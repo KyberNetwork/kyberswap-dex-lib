@@ -170,7 +170,7 @@ func bindUniswapV4PoolManager(address common.Address, caller bind.ContractCaller
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_UniswapV4PoolManager *UniswapV4PoolManagerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_UniswapV4PoolManager *UniswapV4PoolManagerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _UniswapV4PoolManager.Contract.UniswapV4PoolManagerCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -181,7 +181,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerRaw) Transfer(opts *bind.Transa
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_UniswapV4PoolManager *UniswapV4PoolManagerRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_UniswapV4PoolManager *UniswapV4PoolManagerRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _UniswapV4PoolManager.Contract.UniswapV4PoolManagerTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -189,7 +189,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerRaw) Transact(opts *bind.Transa
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _UniswapV4PoolManager.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -200,7 +200,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerTransactorRaw) Transfer(opts *b
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_UniswapV4PoolManager *UniswapV4PoolManagerTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_UniswapV4PoolManager *UniswapV4PoolManagerTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _UniswapV4PoolManager.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -208,7 +208,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerTransactorRaw) Transact(opts *b
 //
 // Solidity: function allowance(address owner, address spender, uint256 id) view returns(uint256 amount)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Allowance(opts *bind.CallOpts, owner common.Address, spender common.Address, id *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "allowance", owner, spender, id)
 
 	if err != nil {
@@ -239,7 +239,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Allowance(owner 
 //
 // Solidity: function balanceOf(address owner, uint256 id) view returns(uint256 balance)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) BalanceOf(opts *bind.CallOpts, owner common.Address, id *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "balanceOf", owner, id)
 
 	if err != nil {
@@ -270,7 +270,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) BalanceOf(owner 
 //
 // Solidity: function extsload(bytes32 slot) view returns(bytes32)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Extsload(opts *bind.CallOpts, slot [32]byte) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "extsload", slot)
 
 	if err != nil {
@@ -301,7 +301,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Extsload(slot [3
 //
 // Solidity: function extsload(bytes32 startSlot, uint256 nSlots) view returns(bytes32[])
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Extsload0(opts *bind.CallOpts, startSlot [32]byte, nSlots *big.Int) ([][32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "extsload0", startSlot, nSlots)
 
 	if err != nil {
@@ -332,7 +332,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Extsload0(startS
 //
 // Solidity: function extsload(bytes32[] slots) view returns(bytes32[])
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Extsload1(opts *bind.CallOpts, slots [][32]byte) ([][32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "extsload1", slots)
 
 	if err != nil {
@@ -363,7 +363,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Extsload1(slots 
 //
 // Solidity: function exttload(bytes32[] slots) view returns(bytes32[])
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Exttload(opts *bind.CallOpts, slots [][32]byte) ([][32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "exttload", slots)
 
 	if err != nil {
@@ -394,7 +394,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Exttload(slots [
 //
 // Solidity: function exttload(bytes32 slot) view returns(bytes32)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Exttload0(opts *bind.CallOpts, slot [32]byte) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "exttload0", slot)
 
 	if err != nil {
@@ -425,7 +425,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Exttload0(slot [
 //
 // Solidity: function isOperator(address owner, address operator) view returns(bool isOperator)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) IsOperator(opts *bind.CallOpts, owner common.Address, operator common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "isOperator", owner, operator)
 
 	if err != nil {
@@ -456,7 +456,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) IsOperator(owner
 //
 // Solidity: function owner() view returns(address)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "owner")
 
 	if err != nil {
@@ -487,7 +487,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) Owner() (common.
 //
 // Solidity: function protocolFeeController() view returns(address)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) ProtocolFeeController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "protocolFeeController")
 
 	if err != nil {
@@ -518,7 +518,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) ProtocolFeeContr
 //
 // Solidity: function protocolFeesAccrued(address currency) view returns(uint256 amount)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) ProtocolFeesAccrued(opts *bind.CallOpts, currency common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "protocolFeesAccrued", currency)
 
 	if err != nil {
@@ -549,7 +549,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerCallerSession) ProtocolFeesAccr
 //
 // Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerCaller) SupportsInterface(opts *bind.CallOpts, interfaceId [4]byte) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _UniswapV4PoolManager.contract.Call(opts, &out, "supportsInterface", interfaceId)
 
 	if err != nil {
@@ -1098,15 +1098,15 @@ type UniswapV4PoolManagerApproval struct {
 // Solidity: event Approval(address indexed owner, address indexed spender, uint256 indexed id, uint256 amount)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterApproval(opts *bind.FilterOpts, owner []common.Address, spender []common.Address, id []*big.Int) (*UniswapV4PoolManagerApprovalIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var spenderRule []interface{}
+	var spenderRule []any
 	for _, spenderItem := range spender {
 		spenderRule = append(spenderRule, spenderItem)
 	}
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -1123,15 +1123,15 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterApproval(opts *
 // Solidity: event Approval(address indexed owner, address indexed spender, uint256 indexed id, uint256 amount)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchApproval(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerApproval, owner []common.Address, spender []common.Address, id []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var spenderRule []interface{}
+	var spenderRule []any
 	for _, spenderItem := range spender {
 		spenderRule = append(spenderRule, spenderItem)
 	}
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -1261,11 +1261,11 @@ type UniswapV4PoolManagerDonate struct {
 // Solidity: event Donate(bytes32 indexed id, address indexed sender, uint256 amount0, uint256 amount1)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterDonate(opts *bind.FilterOpts, id [][32]byte, sender []common.Address) (*UniswapV4PoolManagerDonateIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1282,11 +1282,11 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterDonate(opts *bi
 // Solidity: event Donate(bytes32 indexed id, address indexed sender, uint256 amount0, uint256 amount1)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchDonate(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerDonate, id [][32]byte, sender []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1420,15 +1420,15 @@ type UniswapV4PoolManagerInitialize struct {
 // Solidity: event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterInitialize(opts *bind.FilterOpts, id [][32]byte, currency0 []common.Address, currency1 []common.Address) (*UniswapV4PoolManagerInitializeIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var currency0Rule []interface{}
+	var currency0Rule []any
 	for _, currency0Item := range currency0 {
 		currency0Rule = append(currency0Rule, currency0Item)
 	}
-	var currency1Rule []interface{}
+	var currency1Rule []any
 	for _, currency1Item := range currency1 {
 		currency1Rule = append(currency1Rule, currency1Item)
 	}
@@ -1445,15 +1445,15 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterInitialize(opts
 // Solidity: event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchInitialize(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerInitialize, id [][32]byte, currency0 []common.Address, currency1 []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var currency0Rule []interface{}
+	var currency0Rule []any
 	for _, currency0Item := range currency0 {
 		currency0Rule = append(currency0Rule, currency0Item)
 	}
-	var currency1Rule []interface{}
+	var currency1Rule []any
 	for _, currency1Item := range currency1 {
 		currency1Rule = append(currency1Rule, currency1Item)
 	}
@@ -1585,11 +1585,11 @@ type UniswapV4PoolManagerModifyLiquidity struct {
 // Solidity: event ModifyLiquidity(bytes32 indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterModifyLiquidity(opts *bind.FilterOpts, id [][32]byte, sender []common.Address) (*UniswapV4PoolManagerModifyLiquidityIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1606,11 +1606,11 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterModifyLiquidity
 // Solidity: event ModifyLiquidity(bytes32 indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchModifyLiquidity(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerModifyLiquidity, id [][32]byte, sender []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1739,11 +1739,11 @@ type UniswapV4PoolManagerOperatorSet struct {
 // Solidity: event OperatorSet(address indexed owner, address indexed operator, bool approved)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterOperatorSet(opts *bind.FilterOpts, owner []common.Address, operator []common.Address) (*UniswapV4PoolManagerOperatorSetIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var operatorRule []interface{}
+	var operatorRule []any
 	for _, operatorItem := range operator {
 		operatorRule = append(operatorRule, operatorItem)
 	}
@@ -1760,11 +1760,11 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterOperatorSet(opt
 // Solidity: event OperatorSet(address indexed owner, address indexed operator, bool approved)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchOperatorSet(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerOperatorSet, owner []common.Address, operator []common.Address) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var operatorRule []interface{}
+	var operatorRule []any
 	for _, operatorItem := range operator {
 		operatorRule = append(operatorRule, operatorItem)
 	}
@@ -1892,11 +1892,11 @@ type UniswapV4PoolManagerOwnershipTransferred struct {
 // Solidity: event OwnershipTransferred(address indexed user, address indexed newOwner)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, user []common.Address, newOwner []common.Address) (*UniswapV4PoolManagerOwnershipTransferredIterator, error) {
 
-	var userRule []interface{}
+	var userRule []any
 	for _, userItem := range user {
 		userRule = append(userRule, userItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -1913,11 +1913,11 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterOwnershipTransf
 // Solidity: event OwnershipTransferred(address indexed user, address indexed newOwner)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerOwnershipTransferred, user []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var userRule []interface{}
+	var userRule []any
 	for _, userItem := range user {
 		userRule = append(userRule, userItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2044,7 +2044,7 @@ type UniswapV4PoolManagerProtocolFeeControllerUpdated struct {
 // Solidity: event ProtocolFeeControllerUpdated(address indexed protocolFeeController)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterProtocolFeeControllerUpdated(opts *bind.FilterOpts, protocolFeeController []common.Address) (*UniswapV4PoolManagerProtocolFeeControllerUpdatedIterator, error) {
 
-	var protocolFeeControllerRule []interface{}
+	var protocolFeeControllerRule []any
 	for _, protocolFeeControllerItem := range protocolFeeController {
 		protocolFeeControllerRule = append(protocolFeeControllerRule, protocolFeeControllerItem)
 	}
@@ -2061,7 +2061,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterProtocolFeeCont
 // Solidity: event ProtocolFeeControllerUpdated(address indexed protocolFeeController)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchProtocolFeeControllerUpdated(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerProtocolFeeControllerUpdated, protocolFeeController []common.Address) (event.Subscription, error) {
 
-	var protocolFeeControllerRule []interface{}
+	var protocolFeeControllerRule []any
 	for _, protocolFeeControllerItem := range protocolFeeController {
 		protocolFeeControllerRule = append(protocolFeeControllerRule, protocolFeeControllerItem)
 	}
@@ -2189,7 +2189,7 @@ type UniswapV4PoolManagerProtocolFeeUpdated struct {
 // Solidity: event ProtocolFeeUpdated(bytes32 indexed id, uint24 protocolFee)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterProtocolFeeUpdated(opts *bind.FilterOpts, id [][32]byte) (*UniswapV4PoolManagerProtocolFeeUpdatedIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -2206,7 +2206,7 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterProtocolFeeUpda
 // Solidity: event ProtocolFeeUpdated(bytes32 indexed id, uint24 protocolFee)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchProtocolFeeUpdated(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerProtocolFeeUpdated, id [][32]byte) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -2340,11 +2340,11 @@ type UniswapV4PoolManagerSwap struct {
 // Solidity: event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterSwap(opts *bind.FilterOpts, id [][32]byte, sender []common.Address) (*UniswapV4PoolManagerSwapIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2361,11 +2361,11 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterSwap(opts *bind
 // Solidity: event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerSwap, id [][32]byte, sender []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2496,15 +2496,15 @@ type UniswapV4PoolManagerTransfer struct {
 // Solidity: event Transfer(address caller, address indexed from, address indexed to, uint256 indexed id, uint256 amount)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterTransfer(opts *bind.FilterOpts, from []common.Address, to []common.Address, id []*big.Int) (*UniswapV4PoolManagerTransferIterator, error) {
 
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -2521,15 +2521,15 @@ func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) FilterTransfer(opts *
 // Solidity: event Transfer(address caller, address indexed from, address indexed to, uint256 indexed id, uint256 amount)
 func (_UniswapV4PoolManager *UniswapV4PoolManagerFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *UniswapV4PoolManagerTransfer, from []common.Address, to []common.Address, id []*big.Int) (event.Subscription, error) {
 
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}

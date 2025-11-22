@@ -146,7 +146,7 @@ func bindStateView(address common.Address, caller bind.ContractCaller, transacto
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_StateView *StateViewRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_StateView *StateViewRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _StateView.Contract.StateViewCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_StateView *StateViewRaw) Transfer(opts *bind.TransactOpts) (*types.Transa
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_StateView *StateViewRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_StateView *StateViewRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _StateView.Contract.StateViewTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_StateView *StateViewRaw) Transact(opts *bind.TransactOpts, method string,
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_StateView *StateViewCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_StateView *StateViewCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _StateView.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_StateView *StateViewTransactorRaw) Transfer(opts *bind.TransactOpts) (*ty
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_StateView *StateViewTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_StateView *StateViewTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _StateView.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -187,7 +187,7 @@ func (_StateView *StateViewCaller) GetFeeGrowthGlobals(opts *bind.CallOpts, pool
 	FeeGrowthGlobal0 *big.Int
 	FeeGrowthGlobal1 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getFeeGrowthGlobals", poolId)
 
 	outstruct := new(struct {
@@ -232,7 +232,7 @@ func (_StateView *StateViewCaller) GetFeeGrowthInside(opts *bind.CallOpts, poolI
 	FeeGrowthInside0X128 *big.Int
 	FeeGrowthInside1X128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getFeeGrowthInside", poolId, tickLower, tickUpper)
 
 	outstruct := new(struct {
@@ -274,7 +274,7 @@ func (_StateView *StateViewCallerSession) GetFeeGrowthInside(poolId [32]byte, ti
 //
 // Solidity: function getLiquidity(bytes32 poolId) view returns(uint128 liquidity)
 func (_StateView *StateViewCaller) GetLiquidity(opts *bind.CallOpts, poolId [32]byte) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getLiquidity", poolId)
 
 	if err != nil {
@@ -309,7 +309,7 @@ func (_StateView *StateViewCaller) GetPositionInfo(opts *bind.CallOpts, poolId [
 	FeeGrowthInside0LastX128 *big.Int
 	FeeGrowthInside1LastX128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getPositionInfo", poolId, positionId)
 
 	outstruct := new(struct {
@@ -359,7 +359,7 @@ func (_StateView *StateViewCaller) GetPositionInfo0(opts *bind.CallOpts, poolId 
 	FeeGrowthInside0LastX128 *big.Int
 	FeeGrowthInside1LastX128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getPositionInfo0", poolId, owner, tickLower, tickUpper, salt)
 
 	outstruct := new(struct {
@@ -405,7 +405,7 @@ func (_StateView *StateViewCallerSession) GetPositionInfo0(poolId [32]byte, owne
 //
 // Solidity: function getPositionLiquidity(bytes32 poolId, bytes32 positionId) view returns(uint128 liquidity)
 func (_StateView *StateViewCaller) GetPositionLiquidity(opts *bind.CallOpts, poolId [32]byte, positionId [32]byte) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getPositionLiquidity", poolId, positionId)
 
 	if err != nil {
@@ -441,7 +441,7 @@ func (_StateView *StateViewCaller) GetSlot0(opts *bind.CallOpts, poolId [32]byte
 	ProtocolFee  *big.Int
 	LpFee        *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getSlot0", poolId)
 
 	outstruct := new(struct {
@@ -491,7 +491,7 @@ func (_StateView *StateViewCallerSession) GetSlot0(poolId [32]byte) (struct {
 //
 // Solidity: function getTickBitmap(bytes32 poolId, int16 tick) view returns(uint256 tickBitmap)
 func (_StateView *StateViewCaller) GetTickBitmap(opts *bind.CallOpts, poolId [32]byte, tick int16) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getTickBitmap", poolId, tick)
 
 	if err != nil {
@@ -525,7 +525,7 @@ func (_StateView *StateViewCaller) GetTickFeeGrowthOutside(opts *bind.CallOpts, 
 	FeeGrowthOutside0X128 *big.Int
 	FeeGrowthOutside1X128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getTickFeeGrowthOutside", poolId, tick)
 
 	outstruct := new(struct {
@@ -572,7 +572,7 @@ func (_StateView *StateViewCaller) GetTickInfo(opts *bind.CallOpts, poolId [32]b
 	FeeGrowthOutside0X128 *big.Int
 	FeeGrowthOutside1X128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getTickInfo", poolId, tick)
 
 	outstruct := new(struct {
@@ -625,7 +625,7 @@ func (_StateView *StateViewCaller) GetTickLiquidity(opts *bind.CallOpts, poolId 
 	LiquidityGross *big.Int
 	LiquidityNet   *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "getTickLiquidity", poolId, tick)
 
 	outstruct := new(struct {
@@ -667,7 +667,7 @@ func (_StateView *StateViewCallerSession) GetTickLiquidity(poolId [32]byte, tick
 //
 // Solidity: function poolManager() view returns(address)
 func (_StateView *StateViewCaller) PoolManager(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _StateView.contract.Call(opts, &out, "poolManager")
 
 	if err != nil {

@@ -2,10 +2,11 @@ package quickperps
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"math/big"
 )
 
 type PriceFeedReader struct {

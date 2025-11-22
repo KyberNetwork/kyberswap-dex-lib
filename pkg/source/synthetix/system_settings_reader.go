@@ -4,11 +4,10 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )

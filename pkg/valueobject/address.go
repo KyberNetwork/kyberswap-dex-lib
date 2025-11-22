@@ -10,6 +10,11 @@ const (
 	DAITokenAddress = "0x6b175474e89094c44da98b954eedeac495271d0f"
 )
 
+var (
+	AddrZero   common.Address
+	AddrNative = common.HexToAddress(NativeAddress)
+)
+
 func IsZeroAddress(address common.Address) bool {
-	return address.Cmp(common.Address{}) == 0
+	return address == AddrZero
 }

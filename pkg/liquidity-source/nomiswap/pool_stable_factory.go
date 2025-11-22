@@ -146,7 +146,7 @@ func bindNomiStableFactory(address common.Address, caller bind.ContractCaller, t
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_NomiStableFactory *NomiStableFactoryRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_NomiStableFactory *NomiStableFactoryRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _NomiStableFactory.Contract.NomiStableFactoryCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_NomiStableFactory *NomiStableFactoryRaw) Transfer(opts *bind.TransactOpts
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_NomiStableFactory *NomiStableFactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_NomiStableFactory *NomiStableFactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _NomiStableFactory.Contract.NomiStableFactoryTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_NomiStableFactory *NomiStableFactoryRaw) Transact(opts *bind.TransactOpts
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_NomiStableFactory *NomiStableFactoryCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_NomiStableFactory *NomiStableFactoryCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _NomiStableFactory.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_NomiStableFactory *NomiStableFactoryTransactorRaw) Transfer(opts *bind.Tr
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_NomiStableFactory *NomiStableFactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_NomiStableFactory *NomiStableFactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _NomiStableFactory.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_NomiStableFactory *NomiStableFactoryTransactorRaw) Transact(opts *bind.Tr
 //
 // Solidity: function INIT_CODE_HASH() view returns(bytes32)
 func (_NomiStableFactory *NomiStableFactoryCaller) INITCODEHASH(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStableFactory.contract.Call(opts, &out, "INIT_CODE_HASH")
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_NomiStableFactory *NomiStableFactoryCallerSession) INITCODEHASH() ([32]by
 //
 // Solidity: function allPairs(uint256 ) view returns(address)
 func (_NomiStableFactory *NomiStableFactoryCaller) AllPairs(opts *bind.CallOpts, arg0 *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStableFactory.contract.Call(opts, &out, "allPairs", arg0)
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_NomiStableFactory *NomiStableFactoryCallerSession) AllPairs(arg0 *big.Int
 //
 // Solidity: function allPairsLength() view returns(uint256)
 func (_NomiStableFactory *NomiStableFactoryCaller) AllPairsLength(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStableFactory.contract.Call(opts, &out, "allPairsLength")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_NomiStableFactory *NomiStableFactoryCallerSession) AllPairsLength() (*big
 //
 // Solidity: function feeTo() view returns(address)
 func (_NomiStableFactory *NomiStableFactoryCaller) FeeTo(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStableFactory.contract.Call(opts, &out, "feeTo")
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (_NomiStableFactory *NomiStableFactoryCallerSession) FeeTo() (common.Addres
 //
 // Solidity: function feeToSetter() view returns(address)
 func (_NomiStableFactory *NomiStableFactoryCaller) FeeToSetter(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStableFactory.contract.Call(opts, &out, "feeToSetter")
 
 	if err != nil {
@@ -339,7 +339,7 @@ func (_NomiStableFactory *NomiStableFactoryCallerSession) FeeToSetter() (common.
 //
 // Solidity: function getPair(address , address ) view returns(address)
 func (_NomiStableFactory *NomiStableFactoryCaller) GetPair(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStableFactory.contract.Call(opts, &out, "getPair", arg0, arg1)
 
 	if err != nil {
@@ -594,11 +594,11 @@ type NomiStableFactoryPairCreated struct {
 // Solidity: event PairCreated(address indexed token0, address indexed token1, address pair, uint256 arg3)
 func (_NomiStableFactory *NomiStableFactoryFilterer) FilterPairCreated(opts *bind.FilterOpts, token0 []common.Address, token1 []common.Address) (*NomiStableFactoryPairCreatedIterator, error) {
 
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
@@ -615,11 +615,11 @@ func (_NomiStableFactory *NomiStableFactoryFilterer) FilterPairCreated(opts *bin
 // Solidity: event PairCreated(address indexed token0, address indexed token1, address pair, uint256 arg3)
 func (_NomiStableFactory *NomiStableFactoryFilterer) WatchPairCreated(opts *bind.WatchOpts, sink chan<- *NomiStableFactoryPairCreated, token0 []common.Address, token1 []common.Address) (event.Subscription, error) {
 
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}

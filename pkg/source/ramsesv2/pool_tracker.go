@@ -50,12 +50,12 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	logger.Infof("[%s] Start getting new state of pool: %v", d.config.DexID, p.Address)
+	logger.Infof("[%s] Start getting new state of pool: %v", t.config.DexID, p.Address)
 
 	var (
 		rpcData   *FetchRPCResult
@@ -65,7 +65,7 @@ func (d *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.FetchRPCData(ctx, &p, 0)
+		rpcData, err = t.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
@@ -77,8 +77,8 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	g.Go(func(context.Context) error {
 		var err error
-		if d.config.AlwaysUseTickLens {
-			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p, nil)
+		if t.config.AlwaysUseTickLens {
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, t.ethrpcClient, t.config.TickLensAddress, p, nil)
 			if err != nil {
 				logger.WithFields(logger.Fields{
 					"error": err,
@@ -87,7 +87,7 @@ func (d *PoolTracker) GetNewPoolState(
 			return err
 		}
 
-		poolTicks, err = d.getPoolTicks(ctx, p.Address)
+		poolTicks, err = t.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
@@ -145,12 +145,12 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.Reserve1.String(),
 	}
 
-	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
+	logger.Infof("[%s] Finish updating state of pool: %v", t.config.DexID, p.Address)
 
 	return p, nil
 }
 
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var (
 		liquidity   *big.Int
 		slot0       Slot0
@@ -160,7 +160,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		reserve1    = zeroBI
 	)
 
-	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest := t.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
@@ -168,7 +168,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		rpcRequest.SetBlockNumber(&blockNumberBI)
 	}
 
-	if d.config.IsPoolV3 {
+	if t.config.IsPoolV3 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    poolV3ABI,
 			Target: p.Address,
@@ -236,8 +236,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}, err
 }
 
-func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
-	allowSubgraphError := d.config.IsAllowSubgraphError()
+func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
+	allowSubgraphError := t.config.IsAllowSubgraphError()
 	lastTickIdx := ""
 	var ticks []ticklens.TickResp
 
@@ -249,7 +249,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
 				if resp.Ticks == nil {
@@ -272,7 +272,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 			}
 		}
 
-		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
+		resp.Meta.CheckIsLagging(t.config.DexID, poolAddress)
 
 		if len(resp.Ticks) == 0 {
 			break

@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/sync/singleflight"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type RFQHandler struct {

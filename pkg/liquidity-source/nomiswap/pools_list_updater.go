@@ -122,7 +122,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := 0; i < len(poolAddresses); i++ {
 		// reservesData, err1 := stablePoolABI.Pack("getReserves", nil)
-		// calls.AddCall(&ethrpc.Call{CallData: reservesData}, []interface{}{&reserves[i]})
+		// calls.AddCall(&ethrpc.Call{CallData: reservesData}, []any{&reserves[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    *stablePoolABI,
 			Target: poolAddresses[i].Hex(),

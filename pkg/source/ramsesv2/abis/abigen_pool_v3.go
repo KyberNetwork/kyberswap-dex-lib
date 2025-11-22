@@ -31,7 +31,7 @@ var (
 
 // V3PoolMetaData contains all meta data concerning the V3Pool contract.
 var V3PoolMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AI\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AS\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"F0\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"F1\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"I\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"IIA\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"L\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LOK\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"M0\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"M1\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NOT_AUTHORIZED\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OLD\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"R\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SPL\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"T\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TF\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TLM\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TLU\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TUM\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"Collect\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"CollectProtocol\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"paid0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"paid1\",\"type\":\"uint256\"}],\"name\":\"Flash\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextOld\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextNew\",\"type\":\"uint16\"}],\"name\":\"IncreaseObservationCardinalityNext\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Initialize\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol0Old\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol1Old\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol0New\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol1New\",\"type\":\"uint8\"}],\"name\":\"SetFeeProtocol\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"_advancePeriod\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount0Requested\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1Requested\",\"type\":\"uint128\"}],\"name\":\"collect\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint128\",\"name\":\"amount0Requested\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1Requested\",\"type\":\"uint128\"}],\"name\":\"collectProtocol\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factory\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fee\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal0X128\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal1X128\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"flash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"grossFeeGrowthGlobal0X128\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"grossFeeGrowthGlobal1X128\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNext\",\"type\":\"uint16\"}],\"name\":\"increaseObservationCardinalityNext\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastPeriod\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidity\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxLiquidityPerTick\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"mint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"observations\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"blockTimestamp\",\"type\":\"uint32\"},{\"internalType\":\"int56\",\"name\":\"tickCumulative\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityCumulativeX128\",\"type\":\"uint160\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32[]\",\"name\":\"secondsAgos\",\"type\":\"uint32[]\"}],\"name\":\"observe\",\"outputs\":[{\"internalType\":\"int56[]\",\"name\":\"tickCumulatives\",\"type\":\"int56[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerLiquidityCumulativeX128s\",\"type\":\"uint160[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"}],\"name\":\"periods\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"previousPeriod\",\"type\":\"uint32\"},{\"internalType\":\"int24\",\"name\":\"startTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"lastTick\",\"type\":\"int24\"},{\"internalType\":\"uint160\",\"name\":\"endSecondsPerLiquidityPeriodX128\",\"type\":\"uint160\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"positionPeriodSecondsInRange\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"periodSecondsInsideX96\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"key\",\"type\":\"bytes32\"}],\"name\":\"positions\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside0LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside1LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed1\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"protocolFees\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"slots\",\"type\":\"bytes32[]\"}],\"name\":\"readStorage\",\"outputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"returnData\",\"type\":\"bytes32[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"_fee\",\"type\":\"uint24\"}],\"name\":\"setFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"setFeeProtocol\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"slot0\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"internalType\":\"uint16\",\"name\":\"observationIndex\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinality\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNext\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"feeProtocol\",\"type\":\"uint24\"},{\"internalType\":\"bool\",\"name\":\"unlocked\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"snapshotCumulativesInside\",\"outputs\":[{\"internalType\":\"int56\",\"name\":\"tickCumulativeInside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsInside\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"zeroForOne\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"amountSpecified\",\"type\":\"int256\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceLimitX96\",\"type\":\"uint160\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"swap\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int16\",\"name\":\"tick\",\"type\":\"int16\"}],\"name\":\"tickBitmap\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tickSpacing\",\"outputs\":[{\"internalType\":\"int24\",\"name\":\"\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"ticks\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidityGross\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"liquidityNet\",\"type\":\"int128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside0X128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside1X128\",\"type\":\"uint256\"},{\"internalType\":\"int56\",\"name\":\"tickCumulativeOutside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityOutsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsOutside\",\"type\":\"uint32\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token0\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token1\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"Collect\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"CollectProtocol\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"paid0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"paid1\",\"type\":\"uint256\"}],\"name\":\"Flash\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextOld\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextNew\",\"type\":\"uint16\"}],\"name\":\"IncreaseObservationCardinalityNext\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Initialize\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"feeProtocol0Old\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"feeProtocol1Old\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"feeProtocol0New\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"feeProtocol1New\",\"type\":\"uint32\"}],\"name\":\"SetFeeProtocol\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"factory\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fee\",\"outputs\":[{\"internalType\":\"uint24\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal0X128\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal1X128\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastPeriod\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidity\",\"outputs\":[{\"internalType\":\"uint128\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxLiquidityPerTick\",\"outputs\":[{\"internalType\":\"uint128\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"observations\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"blockTimestamp\",\"type\":\"uint32\"},{\"internalType\":\"int56\",\"name\":\"tickCumulative\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityCumulativeX128\",\"type\":\"uint160\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32[]\",\"name\":\"secondsAgos\",\"type\":\"uint32[]\"}],\"name\":\"observe\",\"outputs\":[{\"internalType\":\"int56[]\",\"name\":\"tickCumulatives\",\"type\":\"int56[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerLiquidityCumulativeX128s\",\"type\":\"uint160[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"}],\"name\":\"periods\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"previousPeriod\",\"type\":\"uint32\"},{\"internalType\":\"int24\",\"name\":\"startTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"lastTick\",\"type\":\"int24\"},{\"internalType\":\"uint160\",\"name\":\"endSecondsPerLiquidityPeriodX128\",\"type\":\"uint160\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"positionPeriodSecondsInRange\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"periodSecondsInsideX96\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"key\",\"type\":\"bytes32\"}],\"name\":\"positions\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside0LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside1LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed1\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"protocolFees\",\"outputs\":[{\"internalType\":\"uint128\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"slots\",\"type\":\"bytes32[]\"}],\"name\":\"readStorage\",\"outputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"returnData\",\"type\":\"bytes32[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"slot0\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"internalType\":\"uint16\",\"name\":\"observationIndex\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinality\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNext\",\"type\":\"uint16\"},{\"internalType\":\"uint32\",\"name\":\"feeProtocol\",\"type\":\"uint32\"},{\"internalType\":\"bool\",\"name\":\"unlocked\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"snapshotCumulativesInside\",\"outputs\":[{\"internalType\":\"int56\",\"name\":\"tickCumulativeInside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsInside\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int16\",\"name\":\"tick\",\"type\":\"int16\"}],\"name\":\"tickBitmap\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tickSpacing\",\"outputs\":[{\"internalType\":\"int24\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"ticks\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidityGross\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"liquidityNet\",\"type\":\"int128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside0X128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside1X128\",\"type\":\"uint256\"},{\"internalType\":\"int56\",\"name\":\"tickCumulativeOutside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityOutsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsOutside\",\"type\":\"uint32\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token0\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token1\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // V3PoolABI is the input ABI used to generate the binding from.
@@ -146,7 +146,7 @@ func bindV3Pool(address common.Address, caller bind.ContractCaller, transactor b
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_V3Pool *V3PoolRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_V3Pool *V3PoolRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _V3Pool.Contract.V3PoolCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_V3Pool *V3PoolRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction,
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_V3Pool *V3PoolRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_V3Pool *V3PoolRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _V3Pool.Contract.V3PoolTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_V3Pool *V3PoolRaw) Transact(opts *bind.TransactOpts, method string, param
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_V3Pool *V3PoolCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_V3Pool *V3PoolCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _V3Pool.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_V3Pool *V3PoolTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Tr
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_V3Pool *V3PoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_V3Pool *V3PoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _V3Pool.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_V3Pool *V3PoolTransactorRaw) Transact(opts *bind.TransactOpts, method str
 //
 // Solidity: function factory() view returns(address)
 func (_V3Pool *V3PoolCaller) Factory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "factory")
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_V3Pool *V3PoolCallerSession) Factory() (common.Address, error) {
 //
 // Solidity: function fee() view returns(uint24)
 func (_V3Pool *V3PoolCaller) Fee(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "fee")
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_V3Pool *V3PoolCallerSession) Fee() (*big.Int, error) {
 //
 // Solidity: function feeGrowthGlobal0X128() view returns(uint256)
 func (_V3Pool *V3PoolCaller) FeeGrowthGlobal0X128(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "feeGrowthGlobal0X128")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_V3Pool *V3PoolCallerSession) FeeGrowthGlobal0X128() (*big.Int, error) {
 //
 // Solidity: function feeGrowthGlobal1X128() view returns(uint256)
 func (_V3Pool *V3PoolCaller) FeeGrowthGlobal1X128(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "feeGrowthGlobal1X128")
 
 	if err != nil {
@@ -304,73 +304,11 @@ func (_V3Pool *V3PoolCallerSession) FeeGrowthGlobal1X128() (*big.Int, error) {
 	return _V3Pool.Contract.FeeGrowthGlobal1X128(&_V3Pool.CallOpts)
 }
 
-// GrossFeeGrowthGlobal0X128 is a free data retrieval call binding the contract method 0x461dfd23.
-//
-// Solidity: function grossFeeGrowthGlobal0X128() view returns(uint256)
-func (_V3Pool *V3PoolCaller) GrossFeeGrowthGlobal0X128(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _V3Pool.contract.Call(opts, &out, "grossFeeGrowthGlobal0X128")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// GrossFeeGrowthGlobal0X128 is a free data retrieval call binding the contract method 0x461dfd23.
-//
-// Solidity: function grossFeeGrowthGlobal0X128() view returns(uint256)
-func (_V3Pool *V3PoolSession) GrossFeeGrowthGlobal0X128() (*big.Int, error) {
-	return _V3Pool.Contract.GrossFeeGrowthGlobal0X128(&_V3Pool.CallOpts)
-}
-
-// GrossFeeGrowthGlobal0X128 is a free data retrieval call binding the contract method 0x461dfd23.
-//
-// Solidity: function grossFeeGrowthGlobal0X128() view returns(uint256)
-func (_V3Pool *V3PoolCallerSession) GrossFeeGrowthGlobal0X128() (*big.Int, error) {
-	return _V3Pool.Contract.GrossFeeGrowthGlobal0X128(&_V3Pool.CallOpts)
-}
-
-// GrossFeeGrowthGlobal1X128 is a free data retrieval call binding the contract method 0xe8169d4b.
-//
-// Solidity: function grossFeeGrowthGlobal1X128() view returns(uint256)
-func (_V3Pool *V3PoolCaller) GrossFeeGrowthGlobal1X128(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _V3Pool.contract.Call(opts, &out, "grossFeeGrowthGlobal1X128")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// GrossFeeGrowthGlobal1X128 is a free data retrieval call binding the contract method 0xe8169d4b.
-//
-// Solidity: function grossFeeGrowthGlobal1X128() view returns(uint256)
-func (_V3Pool *V3PoolSession) GrossFeeGrowthGlobal1X128() (*big.Int, error) {
-	return _V3Pool.Contract.GrossFeeGrowthGlobal1X128(&_V3Pool.CallOpts)
-}
-
-// GrossFeeGrowthGlobal1X128 is a free data retrieval call binding the contract method 0xe8169d4b.
-//
-// Solidity: function grossFeeGrowthGlobal1X128() view returns(uint256)
-func (_V3Pool *V3PoolCallerSession) GrossFeeGrowthGlobal1X128() (*big.Int, error) {
-	return _V3Pool.Contract.GrossFeeGrowthGlobal1X128(&_V3Pool.CallOpts)
-}
-
 // LastPeriod is a free data retrieval call binding the contract method 0xd340ef8a.
 //
 // Solidity: function lastPeriod() view returns(uint256)
 func (_V3Pool *V3PoolCaller) LastPeriod(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "lastPeriod")
 
 	if err != nil {
@@ -401,7 +339,7 @@ func (_V3Pool *V3PoolCallerSession) LastPeriod() (*big.Int, error) {
 //
 // Solidity: function liquidity() view returns(uint128)
 func (_V3Pool *V3PoolCaller) Liquidity(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "liquidity")
 
 	if err != nil {
@@ -432,7 +370,7 @@ func (_V3Pool *V3PoolCallerSession) Liquidity() (*big.Int, error) {
 //
 // Solidity: function maxLiquidityPerTick() view returns(uint128)
 func (_V3Pool *V3PoolCaller) MaxLiquidityPerTick(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "maxLiquidityPerTick")
 
 	if err != nil {
@@ -468,7 +406,7 @@ func (_V3Pool *V3PoolCaller) Observations(opts *bind.CallOpts, index *big.Int) (
 	SecondsPerLiquidityCumulativeX128 *big.Int
 	Initialized                       bool
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "observations", index)
 
 	outstruct := new(struct {
@@ -521,7 +459,7 @@ func (_V3Pool *V3PoolCaller) Observe(opts *bind.CallOpts, secondsAgos []uint32) 
 	TickCumulatives                    []*big.Int
 	SecondsPerLiquidityCumulativeX128s []*big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "observe", secondsAgos)
 
 	outstruct := new(struct {
@@ -568,7 +506,7 @@ func (_V3Pool *V3PoolCaller) Periods(opts *bind.CallOpts, period *big.Int) (stru
 	LastTick                         *big.Int
 	EndSecondsPerLiquidityPeriodX128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "periods", period)
 
 	outstruct := new(struct {
@@ -618,7 +556,7 @@ func (_V3Pool *V3PoolCallerSession) Periods(period *big.Int) (struct {
 //
 // Solidity: function positionPeriodSecondsInRange(uint256 period, address owner, uint256 index, int24 tickLower, int24 tickUpper) view returns(uint256 periodSecondsInsideX96)
 func (_V3Pool *V3PoolCaller) PositionPeriodSecondsInRange(opts *bind.CallOpts, period *big.Int, owner common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "positionPeriodSecondsInRange", period, owner, index, tickLower, tickUpper)
 
 	if err != nil {
@@ -655,7 +593,7 @@ func (_V3Pool *V3PoolCaller) Positions(opts *bind.CallOpts, key [32]byte) (struc
 	TokensOwed0              *big.Int
 	TokensOwed1              *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "positions", key)
 
 	outstruct := new(struct {
@@ -709,7 +647,7 @@ func (_V3Pool *V3PoolCallerSession) Positions(key [32]byte) (struct {
 //
 // Solidity: function protocolFees() view returns(uint128, uint128)
 func (_V3Pool *V3PoolCaller) ProtocolFees(opts *bind.CallOpts) (*big.Int, *big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "protocolFees")
 
 	if err != nil {
@@ -741,7 +679,7 @@ func (_V3Pool *V3PoolCallerSession) ProtocolFees() (*big.Int, *big.Int, error) {
 //
 // Solidity: function readStorage(bytes32[] slots) view returns(bytes32[] returnData)
 func (_V3Pool *V3PoolCaller) ReadStorage(opts *bind.CallOpts, slots [][32]byte) ([][32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "readStorage", slots)
 
 	if err != nil {
@@ -770,17 +708,17 @@ func (_V3Pool *V3PoolCallerSession) ReadStorage(slots [][32]byte) ([][32]byte, e
 
 // Slot0 is a free data retrieval call binding the contract method 0x3850c7bd.
 //
-// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint24 feeProtocol, bool unlocked)
+// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)
 func (_V3Pool *V3PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 	SqrtPriceX96               *big.Int
 	Tick                       *big.Int
 	ObservationIndex           uint16
 	ObservationCardinality     uint16
 	ObservationCardinalityNext uint16
-	FeeProtocol                *big.Int
+	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "slot0")
 
 	outstruct := new(struct {
@@ -789,7 +727,7 @@ func (_V3Pool *V3PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 		ObservationIndex           uint16
 		ObservationCardinality     uint16
 		ObservationCardinalityNext uint16
-		FeeProtocol                *big.Int
+		FeeProtocol                uint32
 		Unlocked                   bool
 	})
 	if err != nil {
@@ -801,7 +739,7 @@ func (_V3Pool *V3PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 	outstruct.ObservationIndex = *abi.ConvertType(out[2], new(uint16)).(*uint16)
 	outstruct.ObservationCardinality = *abi.ConvertType(out[3], new(uint16)).(*uint16)
 	outstruct.ObservationCardinalityNext = *abi.ConvertType(out[4], new(uint16)).(*uint16)
-	outstruct.FeeProtocol = *abi.ConvertType(out[5], new(*big.Int)).(**big.Int)
+	outstruct.FeeProtocol = *abi.ConvertType(out[5], new(uint32)).(*uint32)
 	outstruct.Unlocked = *abi.ConvertType(out[6], new(bool)).(*bool)
 
 	return *outstruct, err
@@ -810,14 +748,14 @@ func (_V3Pool *V3PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 
 // Slot0 is a free data retrieval call binding the contract method 0x3850c7bd.
 //
-// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint24 feeProtocol, bool unlocked)
+// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)
 func (_V3Pool *V3PoolSession) Slot0() (struct {
 	SqrtPriceX96               *big.Int
 	Tick                       *big.Int
 	ObservationIndex           uint16
 	ObservationCardinality     uint16
 	ObservationCardinalityNext uint16
-	FeeProtocol                *big.Int
+	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
 	return _V3Pool.Contract.Slot0(&_V3Pool.CallOpts)
@@ -825,14 +763,14 @@ func (_V3Pool *V3PoolSession) Slot0() (struct {
 
 // Slot0 is a free data retrieval call binding the contract method 0x3850c7bd.
 //
-// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint24 feeProtocol, bool unlocked)
+// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)
 func (_V3Pool *V3PoolCallerSession) Slot0() (struct {
 	SqrtPriceX96               *big.Int
 	Tick                       *big.Int
 	ObservationIndex           uint16
 	ObservationCardinality     uint16
 	ObservationCardinalityNext uint16
-	FeeProtocol                *big.Int
+	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
 	return _V3Pool.Contract.Slot0(&_V3Pool.CallOpts)
@@ -846,7 +784,7 @@ func (_V3Pool *V3PoolCaller) SnapshotCumulativesInside(opts *bind.CallOpts, tick
 	SecondsPerLiquidityInsideX128 *big.Int
 	SecondsInside                 uint32
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "snapshotCumulativesInside", tickLower, tickUpper)
 
 	outstruct := new(struct {
@@ -892,7 +830,7 @@ func (_V3Pool *V3PoolCallerSession) SnapshotCumulativesInside(tickLower *big.Int
 //
 // Solidity: function tickBitmap(int16 tick) view returns(uint256)
 func (_V3Pool *V3PoolCaller) TickBitmap(opts *bind.CallOpts, tick int16) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "tickBitmap", tick)
 
 	if err != nil {
@@ -923,7 +861,7 @@ func (_V3Pool *V3PoolCallerSession) TickBitmap(tick int16) (*big.Int, error) {
 //
 // Solidity: function tickSpacing() view returns(int24)
 func (_V3Pool *V3PoolCaller) TickSpacing(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "tickSpacing")
 
 	if err != nil {
@@ -963,7 +901,7 @@ func (_V3Pool *V3PoolCaller) Ticks(opts *bind.CallOpts, tick *big.Int) (struct {
 	SecondsOutside                 uint32
 	Initialized                    bool
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "ticks", tick)
 
 	outstruct := new(struct {
@@ -1029,7 +967,7 @@ func (_V3Pool *V3PoolCallerSession) Ticks(tick *big.Int) (struct {
 //
 // Solidity: function token0() view returns(address)
 func (_V3Pool *V3PoolCaller) Token0(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "token0")
 
 	if err != nil {
@@ -1060,7 +998,7 @@ func (_V3Pool *V3PoolCallerSession) Token0() (common.Address, error) {
 //
 // Solidity: function token1() view returns(address)
 func (_V3Pool *V3PoolCaller) Token1(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "token1")
 
 	if err != nil {
@@ -1085,237 +1023,6 @@ func (_V3Pool *V3PoolSession) Token1() (common.Address, error) {
 // Solidity: function token1() view returns(address)
 func (_V3Pool *V3PoolCallerSession) Token1() (common.Address, error) {
 	return _V3Pool.Contract.Token1(&_V3Pool.CallOpts)
-}
-
-// AdvancePeriod is a paid mutator transaction binding the contract method 0xc2e0f9b2.
-//
-// Solidity: function _advancePeriod() returns()
-func (_V3Pool *V3PoolTransactor) AdvancePeriod(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "_advancePeriod")
-}
-
-// AdvancePeriod is a paid mutator transaction binding the contract method 0xc2e0f9b2.
-//
-// Solidity: function _advancePeriod() returns()
-func (_V3Pool *V3PoolSession) AdvancePeriod() (*types.Transaction, error) {
-	return _V3Pool.Contract.AdvancePeriod(&_V3Pool.TransactOpts)
-}
-
-// AdvancePeriod is a paid mutator transaction binding the contract method 0xc2e0f9b2.
-//
-// Solidity: function _advancePeriod() returns()
-func (_V3Pool *V3PoolTransactorSession) AdvancePeriod() (*types.Transaction, error) {
-	return _V3Pool.Contract.AdvancePeriod(&_V3Pool.TransactOpts)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0x6847456a.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V3Pool *V3PoolTransactor) Burn(opts *bind.TransactOpts, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "burn", index, tickLower, tickUpper, amount)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0x6847456a.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V3Pool *V3PoolSession) Burn(index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.Burn(&_V3Pool.TransactOpts, index, tickLower, tickUpper, amount)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0x6847456a.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V3Pool *V3PoolTransactorSession) Burn(index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.Burn(&_V3Pool.TransactOpts, index, tickLower, tickUpper, amount)
-}
-
-// Collect is a paid mutator transaction binding the contract method 0xa02f1069.
-//
-// Solidity: function collect(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V3Pool *V3PoolTransactor) Collect(opts *bind.TransactOpts, recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "collect", recipient, index, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect is a paid mutator transaction binding the contract method 0xa02f1069.
-//
-// Solidity: function collect(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V3Pool *V3PoolSession) Collect(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.Collect(&_V3Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect is a paid mutator transaction binding the contract method 0xa02f1069.
-//
-// Solidity: function collect(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V3Pool *V3PoolTransactorSession) Collect(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.Collect(&_V3Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// CollectProtocol is a paid mutator transaction binding the contract method 0x85b66729.
-//
-// Solidity: function collectProtocol(address recipient, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V3Pool *V3PoolTransactor) CollectProtocol(opts *bind.TransactOpts, recipient common.Address, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "collectProtocol", recipient, amount0Requested, amount1Requested)
-}
-
-// CollectProtocol is a paid mutator transaction binding the contract method 0x85b66729.
-//
-// Solidity: function collectProtocol(address recipient, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V3Pool *V3PoolSession) CollectProtocol(recipient common.Address, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.CollectProtocol(&_V3Pool.TransactOpts, recipient, amount0Requested, amount1Requested)
-}
-
-// CollectProtocol is a paid mutator transaction binding the contract method 0x85b66729.
-//
-// Solidity: function collectProtocol(address recipient, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V3Pool *V3PoolTransactorSession) CollectProtocol(recipient common.Address, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.CollectProtocol(&_V3Pool.TransactOpts, recipient, amount0Requested, amount1Requested)
-}
-
-// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
-//
-// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
-func (_V3Pool *V3PoolTransactor) Flash(opts *bind.TransactOpts, recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "flash", recipient, amount0, amount1, data)
-}
-
-// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
-//
-// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
-func (_V3Pool *V3PoolSession) Flash(recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.Contract.Flash(&_V3Pool.TransactOpts, recipient, amount0, amount1, data)
-}
-
-// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
-//
-// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
-func (_V3Pool *V3PoolTransactorSession) Flash(recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.Contract.Flash(&_V3Pool.TransactOpts, recipient, amount0, amount1, data)
-}
-
-// IncreaseObservationCardinalityNext is a paid mutator transaction binding the contract method 0x32148f67.
-//
-// Solidity: function increaseObservationCardinalityNext(uint16 observationCardinalityNext) returns()
-func (_V3Pool *V3PoolTransactor) IncreaseObservationCardinalityNext(opts *bind.TransactOpts, observationCardinalityNext uint16) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "increaseObservationCardinalityNext", observationCardinalityNext)
-}
-
-// IncreaseObservationCardinalityNext is a paid mutator transaction binding the contract method 0x32148f67.
-//
-// Solidity: function increaseObservationCardinalityNext(uint16 observationCardinalityNext) returns()
-func (_V3Pool *V3PoolSession) IncreaseObservationCardinalityNext(observationCardinalityNext uint16) (*types.Transaction, error) {
-	return _V3Pool.Contract.IncreaseObservationCardinalityNext(&_V3Pool.TransactOpts, observationCardinalityNext)
-}
-
-// IncreaseObservationCardinalityNext is a paid mutator transaction binding the contract method 0x32148f67.
-//
-// Solidity: function increaseObservationCardinalityNext(uint16 observationCardinalityNext) returns()
-func (_V3Pool *V3PoolTransactorSession) IncreaseObservationCardinalityNext(observationCardinalityNext uint16) (*types.Transaction, error) {
-	return _V3Pool.Contract.IncreaseObservationCardinalityNext(&_V3Pool.TransactOpts, observationCardinalityNext)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0xf637731d.
-//
-// Solidity: function initialize(uint160 sqrtPriceX96) returns()
-func (_V3Pool *V3PoolTransactor) Initialize(opts *bind.TransactOpts, sqrtPriceX96 *big.Int) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "initialize", sqrtPriceX96)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0xf637731d.
-//
-// Solidity: function initialize(uint160 sqrtPriceX96) returns()
-func (_V3Pool *V3PoolSession) Initialize(sqrtPriceX96 *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.Initialize(&_V3Pool.TransactOpts, sqrtPriceX96)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0xf637731d.
-//
-// Solidity: function initialize(uint160 sqrtPriceX96) returns()
-func (_V3Pool *V3PoolTransactorSession) Initialize(sqrtPriceX96 *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.Initialize(&_V3Pool.TransactOpts, sqrtPriceX96)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x8221b8c1.
-//
-// Solidity: function mint(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V3Pool *V3PoolTransactor) Mint(opts *bind.TransactOpts, recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "mint", recipient, index, tickLower, tickUpper, amount, data)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x8221b8c1.
-//
-// Solidity: function mint(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V3Pool *V3PoolSession) Mint(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.Contract.Mint(&_V3Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount, data)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x8221b8c1.
-//
-// Solidity: function mint(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V3Pool *V3PoolTransactorSession) Mint(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.Contract.Mint(&_V3Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount, data)
-}
-
-// SetFee is a paid mutator transaction binding the contract method 0xeabb5622.
-//
-// Solidity: function setFee(uint24 _fee) returns()
-func (_V3Pool *V3PoolTransactor) SetFee(opts *bind.TransactOpts, _fee *big.Int) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "setFee", _fee)
-}
-
-// SetFee is a paid mutator transaction binding the contract method 0xeabb5622.
-//
-// Solidity: function setFee(uint24 _fee) returns()
-func (_V3Pool *V3PoolSession) SetFee(_fee *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.SetFee(&_V3Pool.TransactOpts, _fee)
-}
-
-// SetFee is a paid mutator transaction binding the contract method 0xeabb5622.
-//
-// Solidity: function setFee(uint24 _fee) returns()
-func (_V3Pool *V3PoolTransactorSession) SetFee(_fee *big.Int) (*types.Transaction, error) {
-	return _V3Pool.Contract.SetFee(&_V3Pool.TransactOpts, _fee)
-}
-
-// SetFeeProtocol is a paid mutator transaction binding the contract method 0x7b7d549d.
-//
-// Solidity: function setFeeProtocol() returns()
-func (_V3Pool *V3PoolTransactor) SetFeeProtocol(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "setFeeProtocol")
-}
-
-// SetFeeProtocol is a paid mutator transaction binding the contract method 0x7b7d549d.
-//
-// Solidity: function setFeeProtocol() returns()
-func (_V3Pool *V3PoolSession) SetFeeProtocol() (*types.Transaction, error) {
-	return _V3Pool.Contract.SetFeeProtocol(&_V3Pool.TransactOpts)
-}
-
-// SetFeeProtocol is a paid mutator transaction binding the contract method 0x7b7d549d.
-//
-// Solidity: function setFeeProtocol() returns()
-func (_V3Pool *V3PoolTransactorSession) SetFeeProtocol() (*types.Transaction, error) {
-	return _V3Pool.Contract.SetFeeProtocol(&_V3Pool.TransactOpts)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x128acb08.
-//
-// Solidity: function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data) returns(int256 amount0, int256 amount1)
-func (_V3Pool *V3PoolTransactor) Swap(opts *bind.TransactOpts, recipient common.Address, zeroForOne bool, amountSpecified *big.Int, sqrtPriceLimitX96 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.contract.Transact(opts, "swap", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x128acb08.
-//
-// Solidity: function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data) returns(int256 amount0, int256 amount1)
-func (_V3Pool *V3PoolSession) Swap(recipient common.Address, zeroForOne bool, amountSpecified *big.Int, sqrtPriceLimitX96 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.Contract.Swap(&_V3Pool.TransactOpts, recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x128acb08.
-//
-// Solidity: function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data) returns(int256 amount0, int256 amount1)
-func (_V3Pool *V3PoolTransactorSession) Swap(recipient common.Address, zeroForOne bool, amountSpecified *big.Int, sqrtPriceLimitX96 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V3Pool.Contract.Swap(&_V3Pool.TransactOpts, recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data)
 }
 
 // V3PoolBurnIterator is returned from FilterBurn and is used to iterate over the raw logs and unpacked data for Burn events raised by the V3Pool contract.
@@ -1401,15 +1108,15 @@ type V3PoolBurn struct {
 // Solidity: event Burn(address indexed owner, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) FilterBurn(opts *bind.FilterOpts, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (*V3PoolBurnIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1426,15 +1133,15 @@ func (_V3Pool *V3PoolFilterer) FilterBurn(opts *bind.FilterOpts, owner []common.
 // Solidity: event Burn(address indexed owner, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *V3PoolBurn, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1566,16 +1273,16 @@ type V3PoolCollect struct {
 // Solidity: event Collect(address indexed owner, address recipient, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) FilterCollect(opts *bind.FilterOpts, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (*V3PoolCollectIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1592,16 +1299,16 @@ func (_V3Pool *V3PoolFilterer) FilterCollect(opts *bind.FilterOpts, owner []comm
 // Solidity: event Collect(address indexed owner, address recipient, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) WatchCollect(opts *bind.WatchOpts, sink chan<- *V3PoolCollect, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1731,11 +1438,11 @@ type V3PoolCollectProtocol struct {
 // Solidity: event CollectProtocol(address indexed sender, address indexed recipient, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) FilterCollectProtocol(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*V3PoolCollectProtocolIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -1752,11 +1459,11 @@ func (_V3Pool *V3PoolFilterer) FilterCollectProtocol(opts *bind.FilterOpts, send
 // Solidity: event CollectProtocol(address indexed sender, address indexed recipient, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) WatchCollectProtocol(opts *bind.WatchOpts, sink chan<- *V3PoolCollectProtocol, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -1888,11 +1595,11 @@ type V3PoolFlash struct {
 // Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
 func (_V3Pool *V3PoolFilterer) FilterFlash(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*V3PoolFlashIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -1909,11 +1616,11 @@ func (_V3Pool *V3PoolFilterer) FilterFlash(opts *bind.FilterOpts, sender []commo
 // Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
 func (_V3Pool *V3PoolFilterer) WatchFlash(opts *bind.WatchOpts, sink chan<- *V3PoolFlash, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -2317,16 +2024,16 @@ type V3PoolMint struct {
 // Solidity: event Mint(address sender, address indexed owner, uint256 index, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) FilterMint(opts *bind.FilterOpts, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (*V3PoolMintIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -2343,16 +2050,16 @@ func (_V3Pool *V3PoolFilterer) FilterMint(opts *bind.FilterOpts, owner []common.
 // Solidity: event Mint(address sender, address indexed owner, uint256 index, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *V3PoolMint, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -2470,16 +2177,16 @@ func (it *V3PoolSetFeeProtocolIterator) Close() error {
 
 // V3PoolSetFeeProtocol represents a SetFeeProtocol event raised by the V3Pool contract.
 type V3PoolSetFeeProtocol struct {
-	FeeProtocol0Old uint8
-	FeeProtocol1Old uint8
-	FeeProtocol0New uint8
-	FeeProtocol1New uint8
+	FeeProtocol0Old uint32
+	FeeProtocol1Old uint32
+	FeeProtocol0New uint32
+	FeeProtocol1New uint32
 	Raw             types.Log // Blockchain specific contextual infos
 }
 
-// FilterSetFeeProtocol is a free log retrieval operation binding the contract event 0x973d8d92bb299f4af6ce49b52a8adb85ae46b9f214c4c4fc06ac77401237b133.
+// FilterSetFeeProtocol is a free log retrieval operation binding the contract event 0xb3159fed3ddfba67bae294599eafe2d0ec98c08bb38e0e5fb87d33154b6e05aa.
 //
-// Solidity: event SetFeeProtocol(uint8 feeProtocol0Old, uint8 feeProtocol1Old, uint8 feeProtocol0New, uint8 feeProtocol1New)
+// Solidity: event SetFeeProtocol(uint32 feeProtocol0Old, uint32 feeProtocol1Old, uint32 feeProtocol0New, uint32 feeProtocol1New)
 func (_V3Pool *V3PoolFilterer) FilterSetFeeProtocol(opts *bind.FilterOpts) (*V3PoolSetFeeProtocolIterator, error) {
 
 	logs, sub, err := _V3Pool.contract.FilterLogs(opts, "SetFeeProtocol")
@@ -2489,9 +2196,9 @@ func (_V3Pool *V3PoolFilterer) FilterSetFeeProtocol(opts *bind.FilterOpts) (*V3P
 	return &V3PoolSetFeeProtocolIterator{contract: _V3Pool.contract, event: "SetFeeProtocol", logs: logs, sub: sub}, nil
 }
 
-// WatchSetFeeProtocol is a free log subscription operation binding the contract event 0x973d8d92bb299f4af6ce49b52a8adb85ae46b9f214c4c4fc06ac77401237b133.
+// WatchSetFeeProtocol is a free log subscription operation binding the contract event 0xb3159fed3ddfba67bae294599eafe2d0ec98c08bb38e0e5fb87d33154b6e05aa.
 //
-// Solidity: event SetFeeProtocol(uint8 feeProtocol0Old, uint8 feeProtocol1Old, uint8 feeProtocol0New, uint8 feeProtocol1New)
+// Solidity: event SetFeeProtocol(uint32 feeProtocol0Old, uint32 feeProtocol1Old, uint32 feeProtocol0New, uint32 feeProtocol1New)
 func (_V3Pool *V3PoolFilterer) WatchSetFeeProtocol(opts *bind.WatchOpts, sink chan<- *V3PoolSetFeeProtocol) (event.Subscription, error) {
 
 	logs, sub, err := _V3Pool.contract.WatchLogs(opts, "SetFeeProtocol")
@@ -2526,9 +2233,9 @@ func (_V3Pool *V3PoolFilterer) WatchSetFeeProtocol(opts *bind.WatchOpts, sink ch
 	}), nil
 }
 
-// ParseSetFeeProtocol is a log parse operation binding the contract event 0x973d8d92bb299f4af6ce49b52a8adb85ae46b9f214c4c4fc06ac77401237b133.
+// ParseSetFeeProtocol is a log parse operation binding the contract event 0xb3159fed3ddfba67bae294599eafe2d0ec98c08bb38e0e5fb87d33154b6e05aa.
 //
-// Solidity: event SetFeeProtocol(uint8 feeProtocol0Old, uint8 feeProtocol1Old, uint8 feeProtocol0New, uint8 feeProtocol1New)
+// Solidity: event SetFeeProtocol(uint32 feeProtocol0Old, uint32 feeProtocol1Old, uint32 feeProtocol0New, uint32 feeProtocol1New)
 func (_V3Pool *V3PoolFilterer) ParseSetFeeProtocol(log types.Log) (*V3PoolSetFeeProtocol, error) {
 	event := new(V3PoolSetFeeProtocol)
 	if err := _V3Pool.contract.UnpackLog(event, "SetFeeProtocol", log); err != nil {
@@ -2622,11 +2329,11 @@ type V3PoolSwap struct {
 // Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)
 func (_V3Pool *V3PoolFilterer) FilterSwap(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*V3PoolSwapIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -2643,11 +2350,11 @@ func (_V3Pool *V3PoolFilterer) FilterSwap(opts *bind.FilterOpts, sender []common
 // Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)
 func (_V3Pool *V3PoolFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *V3PoolSwap, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}

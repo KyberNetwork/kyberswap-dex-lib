@@ -21,7 +21,7 @@ func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 		sumOfSigmoids,
 	)
 
-	if result.BitLen() > 15 { // should not happen
+	if result.BitLen() > 16 { // should not happen
 		panic("Fee calculation exceeded uint16 max value")
 	}
 

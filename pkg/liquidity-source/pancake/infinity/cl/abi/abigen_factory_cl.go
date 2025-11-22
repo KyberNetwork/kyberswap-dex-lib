@@ -186,7 +186,7 @@ func bindPancakeInfinityPoolManager(address common.Address, caller bind.Contract
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _PancakeInfinityPoolManager.Contract.PancakeInfinityPoolManagerCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -197,7 +197,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerRaw) Transfer(opts 
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _PancakeInfinityPoolManager.Contract.PancakeInfinityPoolManagerTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -205,7 +205,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerRaw) Transact(opts 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _PancakeInfinityPoolManager.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -216,7 +216,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerTransactorRaw) Tran
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _PancakeInfinityPoolManager.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -224,7 +224,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerTransactorRaw) Tran
 //
 // Solidity: function extsload(bytes32 slot) view returns(bytes32)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) Extsload(opts *bind.CallOpts, slot [32]byte) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "extsload", slot)
 
 	if err != nil {
@@ -255,7 +255,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) Exts
 //
 // Solidity: function extsload(bytes32[] slots) view returns(bytes32[])
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) Extsload0(opts *bind.CallOpts, slots [][32]byte) ([][32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "extsload0", slots)
 
 	if err != nil {
@@ -289,7 +289,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetFeeGrowt
 	FeeGrowthGlobal0x128 *big.Int
 	FeeGrowthGlobal1x128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getFeeGrowthGlobals", id)
 
 	outstruct := new(struct {
@@ -331,7 +331,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) GetF
 //
 // Solidity: function getLiquidity(bytes32 id, address _owner, int24 tickLower, int24 tickUpper, bytes32 salt) view returns(uint128 liquidity)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetLiquidity(opts *bind.CallOpts, id [32]byte, _owner common.Address, tickLower *big.Int, tickUpper *big.Int, salt [32]byte) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getLiquidity", id, _owner, tickLower, tickUpper, salt)
 
 	if err != nil {
@@ -362,7 +362,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) GetL
 //
 // Solidity: function getLiquidity(bytes32 id) view returns(uint128 liquidity)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetLiquidity0(opts *bind.CallOpts, id [32]byte) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getLiquidity0", id)
 
 	if err != nil {
@@ -393,7 +393,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) GetL
 //
 // Solidity: function getPoolBitmapInfo(bytes32 id, int16 word) view returns(uint256 tickBitmap)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetPoolBitmapInfo(opts *bind.CallOpts, id [32]byte, word int16) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getPoolBitmapInfo", id, word)
 
 	if err != nil {
@@ -424,7 +424,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) GetP
 //
 // Solidity: function getPoolTickInfo(bytes32 id, int24 tick) view returns((uint128,int128,uint256,uint256))
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetPoolTickInfo(opts *bind.CallOpts, id [32]byte, tick *big.Int) (TickInfo, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getPoolTickInfo", id, tick)
 
 	if err != nil {
@@ -455,7 +455,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) GetP
 //
 // Solidity: function getPosition(bytes32 id, address owner, int24 tickLower, int24 tickUpper, bytes32 salt) view returns((uint128,uint256,uint256) position)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetPosition(opts *bind.CallOpts, id [32]byte, owner common.Address, tickLower *big.Int, tickUpper *big.Int, salt [32]byte) (CLPositionInfo, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getPosition", id, owner, tickLower, tickUpper, salt)
 
 	if err != nil {
@@ -491,7 +491,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) GetSlot0(op
 	ProtocolFee  *big.Int
 	LpFee        *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "getSlot0", id)
 
 	outstruct := new(struct {
@@ -541,7 +541,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) GetS
 //
 // Solidity: function owner() view returns(address)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "owner")
 
 	if err != nil {
@@ -572,7 +572,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) Owne
 //
 // Solidity: function paused() view returns(bool res)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) Paused(opts *bind.CallOpts) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "paused")
 
 	if err != nil {
@@ -610,7 +610,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) PoolIdToPoo
 	Fee         *big.Int
 	Parameters  [32]byte
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "poolIdToPoolKey", id)
 
 	outstruct := new(struct {
@@ -668,7 +668,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) Pool
 //
 // Solidity: function protocolFeeController() view returns(address)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) ProtocolFeeController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "protocolFeeController")
 
 	if err != nil {
@@ -699,7 +699,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) Prot
 //
 // Solidity: function protocolFeesAccrued(address currency) view returns(uint256 amount)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) ProtocolFeesAccrued(opts *bind.CallOpts, currency common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "protocolFeesAccrued", currency)
 
 	if err != nil {
@@ -730,7 +730,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCallerSession) Prot
 //
 // Solidity: function vault() view returns(address)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerCaller) Vault(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _PancakeInfinityPoolManager.contract.Call(opts, &out, "vault")
 
 	if err != nil {
@@ -1070,11 +1070,11 @@ type PancakeInfinityPoolManagerDonate struct {
 // Solidity: event Donate(bytes32 indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterDonate(opts *bind.FilterOpts, id [][32]byte, sender []common.Address) (*PancakeInfinityPoolManagerDonateIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1091,11 +1091,11 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterDon
 // Solidity: event Donate(bytes32 indexed id, address indexed sender, uint256 amount0, uint256 amount1, int24 tick)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchDonate(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerDonate, id [][32]byte, sender []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1223,7 +1223,7 @@ type PancakeInfinityPoolManagerDynamicLPFeeUpdated struct {
 // Solidity: event DynamicLPFeeUpdated(bytes32 indexed id, uint24 dynamicLPFee)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterDynamicLPFeeUpdated(opts *bind.FilterOpts, id [][32]byte) (*PancakeInfinityPoolManagerDynamicLPFeeUpdatedIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -1240,7 +1240,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterDyn
 // Solidity: event DynamicLPFeeUpdated(bytes32 indexed id, uint24 dynamicLPFee)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchDynamicLPFeeUpdated(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerDynamicLPFeeUpdated, id [][32]byte) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -1374,15 +1374,15 @@ type PancakeInfinityPoolManagerInitialize struct {
 // Solidity: event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, address hooks, uint24 fee, bytes32 parameters, uint160 sqrtPriceX96, int24 tick)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterInitialize(opts *bind.FilterOpts, id [][32]byte, currency0 []common.Address, currency1 []common.Address) (*PancakeInfinityPoolManagerInitializeIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var currency0Rule []interface{}
+	var currency0Rule []any
 	for _, currency0Item := range currency0 {
 		currency0Rule = append(currency0Rule, currency0Item)
 	}
-	var currency1Rule []interface{}
+	var currency1Rule []any
 	for _, currency1Item := range currency1 {
 		currency1Rule = append(currency1Rule, currency1Item)
 	}
@@ -1399,15 +1399,15 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterIni
 // Solidity: event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, address hooks, uint24 fee, bytes32 parameters, uint160 sqrtPriceX96, int24 tick)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchInitialize(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerInitialize, id [][32]byte, currency0 []common.Address, currency1 []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var currency0Rule []interface{}
+	var currency0Rule []any
 	for _, currency0Item := range currency0 {
 		currency0Rule = append(currency0Rule, currency0Item)
 	}
-	var currency1Rule []interface{}
+	var currency1Rule []any
 	for _, currency1Item := range currency1 {
 		currency1Rule = append(currency1Rule, currency1Item)
 	}
@@ -1539,11 +1539,11 @@ type PancakeInfinityPoolManagerModifyLiquidity struct {
 // Solidity: event ModifyLiquidity(bytes32 indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterModifyLiquidity(opts *bind.FilterOpts, id [][32]byte, sender []common.Address) (*PancakeInfinityPoolManagerModifyLiquidityIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1560,11 +1560,11 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterMod
 // Solidity: event ModifyLiquidity(bytes32 indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchModifyLiquidity(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerModifyLiquidity, id [][32]byte, sender []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1692,11 +1692,11 @@ type PancakeInfinityPoolManagerOwnershipTransferred struct {
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*PancakeInfinityPoolManagerOwnershipTransferredIterator, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -1713,11 +1713,11 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterOwn
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -1978,7 +1978,7 @@ type PancakeInfinityPoolManagerProtocolFeeControllerUpdated struct {
 // Solidity: event ProtocolFeeControllerUpdated(address indexed protocolFeeController)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterProtocolFeeControllerUpdated(opts *bind.FilterOpts, protocolFeeController []common.Address) (*PancakeInfinityPoolManagerProtocolFeeControllerUpdatedIterator, error) {
 
-	var protocolFeeControllerRule []interface{}
+	var protocolFeeControllerRule []any
 	for _, protocolFeeControllerItem := range protocolFeeController {
 		protocolFeeControllerRule = append(protocolFeeControllerRule, protocolFeeControllerItem)
 	}
@@ -1995,7 +1995,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterPro
 // Solidity: event ProtocolFeeControllerUpdated(address indexed protocolFeeController)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchProtocolFeeControllerUpdated(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerProtocolFeeControllerUpdated, protocolFeeController []common.Address) (event.Subscription, error) {
 
-	var protocolFeeControllerRule []interface{}
+	var protocolFeeControllerRule []any
 	for _, protocolFeeControllerItem := range protocolFeeController {
 		protocolFeeControllerRule = append(protocolFeeControllerRule, protocolFeeControllerItem)
 	}
@@ -2123,7 +2123,7 @@ type PancakeInfinityPoolManagerProtocolFeeUpdated struct {
 // Solidity: event ProtocolFeeUpdated(bytes32 indexed id, uint24 protocolFee)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterProtocolFeeUpdated(opts *bind.FilterOpts, id [][32]byte) (*PancakeInfinityPoolManagerProtocolFeeUpdatedIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -2140,7 +2140,7 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterPro
 // Solidity: event ProtocolFeeUpdated(bytes32 indexed id, uint24 protocolFee)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchProtocolFeeUpdated(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerProtocolFeeUpdated, id [][32]byte) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
@@ -2275,11 +2275,11 @@ type PancakeInfinityPoolManagerSwap struct {
 // Solidity: event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee, uint16 protocolFee)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterSwap(opts *bind.FilterOpts, id [][32]byte, sender []common.Address) (*PancakeInfinityPoolManagerSwapIterator, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2296,11 +2296,11 @@ func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) FilterSwa
 // Solidity: event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee, uint16 protocolFee)
 func (_PancakeInfinityPoolManager *PancakeInfinityPoolManagerFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *PancakeInfinityPoolManagerSwap, id [][32]byte, sender []common.Address) (event.Subscription, error) {
 
-	var idRule []interface{}
+	var idRule []any
 	for _, idItem := range id {
 		idRule = append(idRule, idItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
