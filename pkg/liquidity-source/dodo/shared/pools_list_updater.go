@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 
@@ -54,7 +55,7 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 		}
 
 		if pool.BaseToken.Address != "" {
-			baseTokenDecimals, err := strconv.Atoi(pool.BaseToken.Decimals)
+			baseTokenDecimals, err := kutils.Atou[uint8](pool.BaseToken.Decimals)
 			if err != nil {
 				logger.WithFields(logger.Fields{
 					"decimals": pool.BaseToken.Decimals,
@@ -65,7 +66,7 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 			tokenModel := entity.PoolToken{
 				Address:   pool.BaseToken.Address,
 				Symbol:    pool.BaseToken.Symbol,
-				Decimals:  uint8(baseTokenDecimals),
+				Decimals:  baseTokenDecimals,
 				Swappable: true,
 			}
 
@@ -78,7 +79,7 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 		}
 
 		if pool.QuoteToken.Address != "" {
-			quoteTokenDecimals, err := strconv.Atoi(pool.QuoteToken.Decimals)
+			quoteTokenDecimals, err := kutils.Atou[uint8](pool.QuoteToken.Decimals)
 			if err != nil {
 				logger.WithFields(logger.Fields{
 					"decimals": pool.BaseToken.Decimals,
@@ -89,7 +90,7 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 			tokenModel := entity.PoolToken{
 				Address:   pool.QuoteToken.Address,
 				Symbol:    pool.QuoteToken.Symbol,
-				Decimals:  uint8(quoteTokenDecimals),
+				Decimals:  quoteTokenDecimals,
 				Swappable: true,
 			}
 
