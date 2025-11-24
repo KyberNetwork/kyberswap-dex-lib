@@ -1,4 +1,7 @@
 name: 'PR to bump go mod version'
+permissions:
+  contents: write
+  pull-requests: write
 
 on:
   push:
