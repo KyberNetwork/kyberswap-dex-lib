@@ -68,9 +68,9 @@ func (t *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 		changedTickSet := mapset.NewThreadUnsafeSet(changedTicks...)
 		changedTickMap := make(map[int]TickResp, len(changedTicks))
 		for _, t := range ticks {
-			tIdx, err := strconv.ParseInt(t.TickIdx, 10, 64)
+			tIdx, err := strconv.Atoi(t.TickIdx)
 			if err == nil && changedTickSet.ContainsOne(tIdx) {
-				changedTickMap[int(tIdx)] = t
+				changedTickMap[tIdx] = t
 			}
 		}
 
