@@ -4,10 +4,10 @@ import (
 	"context"
 	"math/big"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -245,18 +245,18 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		}
 
 		if unitX == nil {
-			decimalX, err := strconv.ParseInt(resp.Pair.TokenX.Decimals, 10, 64)
+			decimalX, err := kutils.Atou[uint8](resp.Pair.TokenX.Decimals)
 			if err != nil {
 				return nil, err
 			}
-			unitX = bignumber.TenPowDecimals(uint8(decimalX))
+			unitX = bignumber.TenPowDecimals(decimalX)
 		}
 		if unitY == nil {
-			decimalY, err := strconv.ParseInt(resp.Pair.TokenY.Decimals, 10, 64)
+			decimalY, err := kutils.Atou[uint8](resp.Pair.TokenY.Decimals)
 			if err != nil {
 				return nil, err
 			}
-			unitY = bignumber.TenPowDecimals(uint8(decimalY))
+			unitY = bignumber.TenPowDecimals(decimalY)
 		}
 
 		// transform

@@ -4,10 +4,10 @@ import (
 	"context"
 	"math/big"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
@@ -226,18 +226,18 @@ func (t *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		}
 
 		if unitX == nil {
-			decimalX, err := strconv.ParseInt(resp.Pair.TokenX.Decimals, 10, 64)
+			decimalX, err := kutils.Atou[uint8](resp.Pair.TokenX.Decimals)
 			if err != nil {
 				return nil, err
 			}
-			unitX = bignumber.TenPowDecimals(uint8(decimalX))
+			unitX = bignumber.TenPowDecimals(decimalX)
 		}
 		if unitY == nil {
-			decimalY, err := strconv.ParseInt(resp.Pair.TokenY.Decimals, 10, 64)
+			decimalY, err := kutils.Atou[uint8](resp.Pair.TokenY.Decimals)
 			if err != nil {
 				return nil, err
 			}
-			unitY = bignumber.TenPowDecimals(uint8(decimalY))
+			unitY = bignumber.TenPowDecimals(decimalY)
 		}
 
 		// transform
@@ -593,7 +593,7 @@ func (t *PoolTracker) binIDsFromLogs(l zerolog.Logger, logs []ethtypes.Log) ([]u
 			Uint("logIndex", event.Index).Logger()
 
 		switch event.Topics[0] {
-		case pairABI.Events["Swap"].ID, pairABI.Events["Swap0"].ID:
+		case pairABI.Events["Swap"].ID:
 			swap, err := pairFilterer.ParseSwap(event)
 			if err != nil {
 				l.Err(err).Msg("failed to parse Swap event")
@@ -601,7 +601,15 @@ func (t *PoolTracker) binIDsFromLogs(l zerolog.Logger, logs []ethtypes.Log) ([]u
 			}
 			binSet[swap.Id.Uint64()] = struct{}{}
 
-		case pairABI.Events["DepositedToBins"].ID, pairABI.Events["DepositedToBins0"].ID:
+		case ppairABI.Events["Swap0"].ID:
+			swap, err := pairFilterer.ParseSwap0(event)
+			if err != nil {
+				l.Err(err).Msg("failed to parse Swap event")
+				return nil, err
+			}
+			binSet[swap.Id.Uint64()] = struct{}{}
+
+		case pairABI.Events["DepositedToBins"].ID:
 			depositedToBins, err := pairFilterer.ParseDepositedToBins(event)
 			if err != nil {
 				l.Err(err).Msg("failed to parse DepositedToBins event")
@@ -611,7 +619,17 @@ func (t *PoolTracker) binIDsFromLogs(l zerolog.Logger, logs []ethtypes.Log) ([]u
 				binSet[id.Uint64()] = struct{}{}
 			}
 
-		case pairABI.Events["WithdrawnFromBins"].ID, pairABI.Events["WithdrawnFromBins0"].ID:
+		case pairABI.Events["DepositedToBins0"].ID:
+			depositedToBins, err := pairFilterer.ParseDepositedToBins0(event)
+			if err != nil {
+				l.Err(err).Msg("failed to parse DepositedToBins event")
+				return nil, err
+			}
+			for _, id := range depositedToBins.Ids {
+				binSet[id.Uint64()] = struct{}{}
+			}
+
+		case pairABI.Events["WithdrawnFromBins"].ID:
 			withdrawnFromBins, err := pairFilterer.ParseWithdrawnFromBins(event)
 			if err != nil {
 				l.Err(err).Msg("failed to parse WithdrawnFromBins event")
@@ -621,8 +639,26 @@ func (t *PoolTracker) binIDsFromLogs(l zerolog.Logger, logs []ethtypes.Log) ([]u
 				binSet[id.Uint64()] = struct{}{}
 			}
 
-		case pairABI.Events["FlashLoan"].ID, pairABI.Events["FlashLoan0"].ID:
+		case pairABI.Events["WithdrawnFromBins0"].ID:
+			withdrawnFromBins, err := pairFilterer.ParseWithdrawnFromBins0(event)
+			if err != nil {
+				l.Err(err).Msg("failed to parse WithdrawnFromBins event")
+				return nil, err
+			}
+			for _, id := range withdrawnFromBins.Ids {
+				binSet[id.Uint64()] = struct{}{}
+			}
+
+		case pairABI.Events["FlashLoan"].ID:
 			flashLoan, err := pairFilterer.ParseFlashLoan(event)
+			if err != nil {
+				l.Err(err).Msg("failed to parse FlashLoan event")
+				return nil, err
+			}
+			binSet[flashLoan.ActiveId.Uint64()] = struct{}{}
+
+		case pairABI.Events["FlashLoan0"].ID:
+			flashLoan, err := pairFilterer.ParseFlashLoan0(event)
 			if err != nil {
 				l.Err(err).Msg("failed to parse FlashLoan event")
 				return nil, err
