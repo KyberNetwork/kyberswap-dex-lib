@@ -17,7 +17,8 @@ const (
 
 	maxTickLimit = 1000
 
-	defaultGas = 0
+	defaultTakeGas int64 = 59197
+	defaultBaseGas int64 = 57713
 )
 
 var (

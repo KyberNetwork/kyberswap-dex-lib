@@ -62,7 +62,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	takenQuoteAmount, spentBaseAmount, fee, err := s.getExpectedOutput(u256.U0, amountIn)
+	takenQuoteAmount, spentBaseAmount, fee, tickIdx, err := s.getExpectedOutput(u256.U0, amountIn)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  lo.Ternary(s.TakerPolicy.UsesQuote(), tokenOut, tokenIn),
 			Amount: fee.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas: defaultBaseGas + defaultTakeGas*(int64(tickIdx)+1),
 		SwapInfo: SwapInfo{
 			SpentBaseAmount: spentBaseAmount,
 			LimitPrice:      u256.U0,
@@ -85,24 +85,24 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) (
-	*uint256.Int, *uint256.Int, *uint256.Int, error) {
+	*uint256.Int, *uint256.Int, *uint256.Int, int, error) {
 	var takenQuoteAmount, spentBaseAmount, feeAmount uint256.Int
 
 	if len(s.Depths) == 0 {
-		return nil, nil, nil, ErrNoLiquidity
+		return nil, nil, nil, 0, ErrNoLiquidity
 	}
 
 	tempU, tempI := new(uint256.Int), new(int256.Int)
 	tick, tickIndex := s.Highest, 0
 
 	if tick != s.Depths[0].Tick {
-		return nil, nil, nil, ErrInvalidState
+		return nil, nil, nil, 0, ErrInvalidState
 	}
 
 	for !spentBaseAmount.Gt(pBaseAmount) && tick >= int24Min {
 		tickToPrice, err := cloberlib.ToPrice(tick)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, 0, err
 		}
 		if limitPrice.Gt(tickToPrice) {
 			break
@@ -117,7 +117,7 @@ func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) 
 
 		tempU, err = cloberlib.BaseToQuote(tick, &maxAmount, false)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, 0, err
 		}
 		maxAmount.Div(tempU, s.unitSize)
 
@@ -135,7 +135,7 @@ func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) 
 
 		baseAmount, err := cloberlib.QuoteToBase(tick, quoteAmount, true)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, 0, err
 		}
 
 		if s.TakerPolicy.UsesQuote() {
@@ -177,7 +177,7 @@ func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) 
 		tick = s.Depths[tickIndex].Tick
 	}
 
-	return &takenQuoteAmount, &spentBaseAmount, &feeAmount, nil
+	return &takenQuoteAmount, &spentBaseAmount, &feeAmount, tickIndex, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
