@@ -15,8 +15,7 @@ type Liquidity struct {
 }
 
 type Extra struct {
-	Highest cloberlib.Tick `json:"highest"`
-	Depths  []Liquidity    `json:"depths"`
+	Depths []Liquidity `json:"depths"`
 }
 
 type StaticExtra struct {

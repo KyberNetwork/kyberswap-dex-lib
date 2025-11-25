@@ -62,7 +62,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	takenQuoteAmount, spentBaseAmount, fee, tickIdx, err := s.getExpectedOutput(u256.U0, amountIn)
+	takenQuoteAmount, spentBaseAmount, fee, tickIdx, err := getExpectedOutput(u256.U0, amountIn, s.Depths, s.TakerPolicy, s.unitSize)
 	if err != nil {
 		return nil, err
 	}
@@ -84,53 +84,52 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
-func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) (
+func getExpectedOutput(
+	limitPrice, pBaseAmount *uint256.Int,
+	depths []Liquidity, takerPolicy cloberlib.FeePolicy, unitSize *uint256.Int) (
 	*uint256.Int, *uint256.Int, *uint256.Int, int, error) {
 	var takenQuoteAmount, spentBaseAmount, feeAmount uint256.Int
 
-	if len(s.Depths) == 0 {
+	if len(depths) == 0 {
 		return nil, nil, nil, 0, ErrNoLiquidity
 	}
 
 	tempU, tempI := new(uint256.Int), new(int256.Int)
-	tick, tickIndex := s.Highest, 0
-
-	if tick != s.Depths[0].Tick {
-		return nil, nil, nil, 0, ErrInvalidState
-	}
+	tick, tickIndex := depths[0].Tick, 0
 
 	for !spentBaseAmount.Gt(pBaseAmount) && tick >= int24Min {
 		tickToPrice, err := cloberlib.ToPrice(tick)
 		if err != nil {
 			return nil, nil, nil, 0, err
 		}
+
 		if limitPrice.Gt(tickToPrice) {
 			break
 		}
 
 		var maxAmount uint256.Int
-		if s.TakerPolicy.UsesQuote() {
+		if takerPolicy.UsesQuote() {
 			maxAmount.Sub(pBaseAmount, &spentBaseAmount)
 		} else {
-			maxAmount.Set(s.TakerPolicy.CalculateOriginalAmount(tempU.Sub(pBaseAmount, &spentBaseAmount), false))
+			maxAmount.Set(takerPolicy.CalculateOriginalAmount(tempU.Sub(pBaseAmount, &spentBaseAmount), false))
 		}
 
 		tempU, err = cloberlib.BaseToQuote(tick, &maxAmount, false)
 		if err != nil {
 			return nil, nil, nil, 0, err
 		}
-		maxAmount.Div(tempU, s.unitSize)
+		maxAmount.Div(tempU, unitSize)
 
 		if maxAmount.IsZero() {
 			break
 		}
 
-		currentDepth := new(uint256.Int).SetUint64(s.Depths[tickIndex].Depth)
+		currentDepth := new(uint256.Int).SetUint64(depths[tickIndex].Depth)
 		quoteAmount := new(uint256.Int)
 		if currentDepth.Gt(&maxAmount) {
-			quoteAmount.Mul(&maxAmount, s.unitSize)
+			quoteAmount.Mul(&maxAmount, unitSize)
 		} else {
-			quoteAmount.Mul(currentDepth, s.unitSize)
+			quoteAmount.Mul(currentDepth, unitSize)
 		}
 
 		baseAmount, err := cloberlib.QuoteToBase(tick, quoteAmount, true)
@@ -138,9 +137,9 @@ func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) 
 			return nil, nil, nil, 0, err
 		}
 
-		if s.TakerPolicy.UsesQuote() {
+		if takerPolicy.UsesQuote() {
 			tempI.SetFromBig(quoteAmount.ToBig())
-			fee := s.TakerPolicy.CalculateFee(quoteAmount, false)
+			fee := takerPolicy.CalculateFee(quoteAmount, false)
 			tempI.Sub(tempI, fee)
 			quoteAmount.SetFromBig(tempI.ToBig())
 
@@ -151,7 +150,7 @@ func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) 
 			}
 		} else {
 			tempI.SetFromBig(baseAmount.ToBig())
-			fee := s.TakerPolicy.CalculateFee(baseAmount, false)
+			fee := takerPolicy.CalculateFee(baseAmount, false)
 			tempI.Add(tempI, fee)
 			baseAmount.SetFromBig(tempI.ToBig())
 
@@ -169,12 +168,12 @@ func (s *PoolSimulator) getExpectedOutput(limitPrice, pBaseAmount *uint256.Int) 
 		takenQuoteAmount.Add(&takenQuoteAmount, quoteAmount)
 		spentBaseAmount.Add(&spentBaseAmount, baseAmount)
 
-		if tickIndex+1 >= len(s.Depths) {
+		if tickIndex+1 >= len(depths) {
 			break
 		}
 
 		tickIndex++
-		tick = s.Depths[tickIndex].Tick
+		tick = depths[tickIndex].Tick
 	}
 
 	return &takenQuoteAmount, &spentBaseAmount, &feeAmount, tickIndex, nil
@@ -217,11 +216,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	for highestIdx < len(s.Depths) && s.Depths[highestIdx].Depth == 0 {
 		highestIdx++
 	}
-	s.Depths = s.Depths[highestIdx:]
 
-	if len(s.Depths) > 0 {
-		s.Highest = s.Depths[0].Tick
-	}
+	s.Depths = s.Depths[highestIdx:]
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {

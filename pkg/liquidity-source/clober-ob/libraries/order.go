@@ -2,21 +2,16 @@ package cloberlib
 
 import (
 	"math/big"
-
-	"github.com/holiman/uint256"
-)
-
-var (
-	mask24 = uint256.MustFromHex("0xffffff").ToBig()
 )
 
 func DecodeOrderId(orderId *big.Int) (string, Tick) {
-	// [192 bits: bookId][24 bits: tick][40 bits: index]
 	bookId := new(big.Int).Rsh(orderId, 64)
+	tickUint := new(big.Int).Rsh(orderId, 40).Uint64() & 0xffffff
 
-	// tick = (id >> 40) & 0xffffff
-	tick := new(big.Int).Rsh(orderId, 40)
-	tick.And(tick, mask24)
+	tick := Tick(tickUint)
+	if tickUint >= 0x800000 {
+		tick -= 0x1000000
+	}
 
-	return bookId.String(), Tick(tick.Uint64())
+	return bookId.String(), tick
 }

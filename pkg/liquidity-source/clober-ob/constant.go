@@ -7,11 +7,8 @@ import (
 const (
 	DexType = "clober-ob"
 
-	bookManagerMethodGetHighest = "getHighest"
-	bookManagerMethodGetDepth   = "getDepth"
-
-	bookViewerMethodGetLiquidity      = "getLiquidity"
-	bookViewerMethodGetExpectedOutput = "getExpectedOutput"
+	bookManagerMethodGetDepth    = "getDepth"
+	bookViewerMethodGetLiquidity = "getLiquidity"
 
 	int24Min = -(1 << 23)
 
@@ -24,5 +21,4 @@ const (
 var (
 	ErrInvalidToken = errors.New("invalid token")
 	ErrNoLiquidity  = errors.New("no liquidity")
-	ErrInvalidState = errors.New("invalid state")
 )

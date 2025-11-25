@@ -11,13 +11,13 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	cloberlib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
@@ -48,68 +48,45 @@ func (t *PoolTracker) GetNewPoolState(
 		"pool":  p.Address,
 		"dexId": t.config.DexId,
 	})
-	l.Info("start getting new state")
+	l.Info("start getting new pool state")
 
 	bookId, _ := new(big.Int).SetString(p.Address, 10)
-	bookManager := t.config.BookManager.String()
-	bookViewer := t.config.BookViewer.String()
 
-	var (
-		highest           cloberlib.Tick
-		maxExpectedOutput struct {
-			TakenQuoteAmount *big.Int
-			SpentBaseAmount  *big.Int
-		}
-		liquidity []Liquidity
-	)
-
-	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
-		ABI:    bookManagerABI,
-		Target: bookManager,
-		Method: bookManagerMethodGetHighest,
-		Params: []any{bookId},
-	}, []any{&highest}).AddCall(&ethrpc.Call{
-		ABI:    bookViewerABI,
-		Target: bookViewer,
-		Method: bookViewerMethodGetExpectedOutput,
-		Params: []any{
-			&GetExpectedOutputParams{
-				bookId,
-				bignum.ZeroBI,
-				new(big.Int).Mul(bignum.TenPowInt(18), bignum.TenPowInt(p.Tokens[0].Decimals)),
-				bignum.ZeroBI,
-				[]byte{},
-			},
-		},
-	}, []any{&maxExpectedOutput}).TryBlockAndAggregate()
+	liquidity, blockNumber, err := t.getAllLiquidity(ctx, bookId, cloberlib.MaxTick, new(big.Int))
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to aggregate RPC requests")
 		return p, err
 	}
 
-	liquidity, err = t.getAllLiquidity(ctx, bookId, highest, resp.BlockNumber)
-	if err != nil {
-		return p, err
+	var (
+		highest        cloberlib.Tick
+		maxQuoteAmount uint256.Int
+	)
+	if len(liquidity) > 0 {
+		var staticExtra StaticExtra
+		if err = json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+			return p, err
+		}
+
+		highest = liquidity[0].Tick
+		maxQuoteAmount.Set(calculateMaxQuoteAmount(liquidity, uint256.NewInt(staticExtra.UnitSize)))
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Highest: highest,
-		Depths:  liquidity,
+		Depths: liquidity,
 	})
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{"0", maxExpectedOutput.TakenQuoteAmount.String()}
+	p.Reserves = entity.PoolReserves{"0", maxQuoteAmount.String()}
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	p.BlockNumber = blockNumber
 
 	l.WithFields(logger.Fields{
-		"highest":  highest,
-		"maxQuote": maxExpectedOutput.TakenQuoteAmount,
-		"results":  resp.Result,
+		"highest":     highest,
+		"blockNumber": p.BlockNumber,
+		"nDepths":     len(liquidity),
+		"maxQuote":    maxQuoteAmount,
 	}).Info("finish updating state of pool")
 
 	return p, nil
@@ -117,6 +94,12 @@ func (t *PoolTracker) GetNewPoolState(
 
 func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
 	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+	l := logger.WithFields(logger.Fields{
+		"pool":  p.Address,
+		"dexId": t.config.DexId,
+	})
+	l.Info("start getting new state")
+
 	if len(logs) == 0 {
 		return p, nil
 	}
@@ -165,9 +148,19 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []typ
 		return cmp.Compare(b.Tick, a.Tick)
 	})
 
-	// Update highest
+	var (
+		highest        cloberlib.Tick
+		maxQuoteAmount uint256.Int
+	)
 	if len(extra.Depths) > 0 {
-		extra.Highest = extra.Depths[0].Tick
+		highest = extra.Depths[0].Tick
+
+		var staticExtra StaticExtra
+		if err = json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+			return p, err
+		}
+
+		maxQuoteAmount.Set(calculateMaxQuoteAmount(extra.Depths, uint256.NewInt(staticExtra.UnitSize)))
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -176,49 +169,31 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []typ
 	}
 
 	p.Extra = string(extraBytes)
+	p.Reserves = entity.PoolReserves{"0", maxQuoteAmount.String()}
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = blockNumber
 
-	return p, nil
-}
-
-func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	var (
-		extra Extra
-		err   error
-	)
-	if err = json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return p, err
-	}
-
-	bookId, _ := new(big.Int).SetString(p.Address, 10)
-	blockNumber := new(big.Int).SetInt64(int64(p.BlockNumber))
-
-	extra.Depths, err = t.getAllLiquidity(ctx, bookId, extra.Highest, blockNumber)
-	if err != nil {
-		return p, nil
-	}
-	extra.Highest = 0
-	if len(extra.Depths) > 0 {
-		extra.Highest = extra.Depths[0].Tick
-	}
-
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return p, nil
-	}
-	p.Extra = string(extraBytes)
+	l.WithFields(logger.Fields{
+		"highest":     highest,
+		"blockNumber": p.BlockNumber,
+		"nDepths":     len(extra.Depths),
+		"maxQuote":    maxQuoteAmount.String(),
+	}).Info("finish updating state of pool")
 
 	return p, nil
 }
 
-func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, highest cloberlib.Tick, blockNumber *big.Int) ([]Liquidity, error) {
+func (t *PoolTracker) FetchPoolTicks(_ context.Context, p entity.Pool) (entity.Pool, error) {
+	return p, nil
+}
+
+func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, highest cloberlib.Tick, blockNumber *big.Int) ([]Liquidity, uint64, error) {
 	var depths []Liquidity
 	tick := highest
 
 	for tick >= cloberlib.MinTick {
 		var liquidity []Liquidity
-		_, err := t.ethrpcClient.NewRequest().SetBlockNumber(blockNumber).
+		resp, err := t.ethrpcClient.NewRequest().SetBlockNumber(blockNumber).
 			SetContext(ctx).
 			AddCall(&ethrpc.Call{
 				ABI:    bookViewerABI,
@@ -228,8 +203,12 @@ func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, high
 			}, []any{&liquidity}).
 			Aggregate()
 		if err != nil {
-			return nil, err
+			logger.Errorf("failed to get all depths %v", err)
+			return nil, 0, err
 		}
+
+		blockNumber = resp.BlockNumber
+
 		depths = append(depths, liquidity...)
 		if len(liquidity) < maxTickLimit {
 			break
@@ -243,7 +222,7 @@ func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, high
 		tick = newTick
 	}
 
-	return depths, nil
+	return depths, blockNumber.Uint64(), nil
 }
 
 func (t *PoolTracker) getTicksFromLogs(logs []types.Log) ([]cloberlib.Tick, error) {
@@ -297,19 +276,35 @@ func (t *PoolTracker) getTicksFromLogs(logs []types.Log) ([]cloberlib.Tick, erro
 }
 
 func (t *PoolTracker) getTicksFromRPC(ctx context.Context, bookId *big.Int, ticks []cloberlib.Tick, blockNumber *big.Int) ([]Liquidity, error) {
-	var fetchedTicks []Liquidity
+	fetchedTicks := make([]uint64, len(ticks))
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	for _, tick := range ticks {
+	for i, tick := range ticks {
 		req.AddCall(&ethrpc.Call{
 			ABI:    bookManagerABI,
 			Target: t.config.BookManager.String(),
 			Method: bookManagerMethodGetDepth,
 			Params: []any{bookId, new(big.Int).SetInt64(int64(tick))},
-		}, []any{&fetchedTicks})
+		}, []any{&fetchedTicks[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
+		logger.Errorf("failed to get depths from RPC %v", err)
 		return nil, err
 	}
 
-	return fetchedTicks, nil
+	return lo.Map(fetchedTicks, func(t uint64, idx int) Liquidity {
+		return Liquidity{
+			Tick:  ticks[idx],
+			Depth: fetchedTicks[idx],
+		}
+	}), nil
+}
+
+func calculateMaxQuoteAmount(depths []Liquidity, unitSize *uint256.Int) *uint256.Int {
+	var maxQuoteAmount, temp uint256.Int
+	for _, d := range depths {
+		temp.SetUint64(d.Depth).Mul(&temp, unitSize)
+		maxQuoteAmount.Add(&maxQuoteAmount, &temp)
+	}
+
+	return &maxQuoteAmount
 }
