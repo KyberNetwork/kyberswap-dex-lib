@@ -114,7 +114,7 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []types.Log, blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []types.Log, _ map[uint64]entity.BlockHeader) (entity.Pool, error) {
 	if len(logs) == 0 {
 		return p, nil
 	}
@@ -244,6 +244,7 @@ func (t *PoolTracker) getTicksFromLogs(logs []types.Log) ([]cloberlib.Tick, erro
 		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
 			continue
 		}
+
 		switch event.Topics[0] {
 		case bookManagerABI.Events["Make"].ID:
 			makeEvent, err := bookManagerFilterer.ParseMake(event)
@@ -260,6 +261,24 @@ func (t *PoolTracker) getTicksFromLogs(logs []types.Log) ([]cloberlib.Tick, erro
 			}
 
 			ticks[cloberlib.Tick(takeEvent.Tick.Int64())] = struct{}{}
+
+		case bookManagerABI.Events["Cancel"].ID:
+			cancelEvent, err := bookManagerFilterer.ParseCancel(event)
+			if err != nil {
+				return nil, err
+			}
+
+			_, tick := cloberlib.DecodeOrderId(cancelEvent.OrderId)
+			ticks[tick] = struct{}{}
+
+		case bookManagerABI.Events["Claim"].ID:
+			claimEvent, err := bookManagerFilterer.ParseClaim(event)
+			if err != nil {
+				return nil, err
+			}
+
+			_, tick := cloberlib.DecodeOrderId(claimEvent.OrderId)
+			ticks[tick] = struct{}{}
 
 		default:
 			metrics.IncrUnprocessedEventTopic(DexType, event.Topics[0].Hex())
