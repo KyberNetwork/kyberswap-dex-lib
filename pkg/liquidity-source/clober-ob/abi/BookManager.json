@@ -191,13 +191,11 @@
             },
             {
                 "indexed": true,
-                "internalType": "Currency",
                 "name": "base",
                 "type": "address"
             },
             {
                 "indexed": true,
-                "internalType": "Currency",
                 "name": "quote",
                 "type": "address"
             },
@@ -209,13 +207,11 @@
             },
             {
                 "indexed": false,
-                "internalType": "FeePolicy",
                 "name": "makerPolicy",
                 "type": "uint24"
             },
             {
                 "indexed": false,
-                "internalType": "FeePolicy",
                 "name": "takerPolicy",
                 "type": "uint24"
             },
