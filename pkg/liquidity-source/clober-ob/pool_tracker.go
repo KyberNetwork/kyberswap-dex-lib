@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -73,13 +72,15 @@ func (t *PoolTracker) GetNewPoolState(
 		ABI:    bookViewerABI,
 		Target: bookViewer,
 		Method: bookViewerMethodGetExpectedOutput,
-		Params: []any{&GetExpectedOutputParams{
-			bookId,
-			bignum.ZeroBI,
-			new(big.Int).Mul(bignum.TenPowInt(18), bignum.TenPowInt(p.Tokens[0].Decimals)),
-			bignum.ZeroBI,
-			common.Hash{}.Bytes(),
-		}},
+		Params: []any{
+			&GetExpectedOutputParams{
+				bookId,
+				bignum.ZeroBI,
+				new(big.Int).Mul(bignum.TenPowInt(18), bignum.TenPowInt(p.Tokens[0].Decimals)),
+				bignum.ZeroBI,
+				[]byte{},
+			},
+		},
 	}, []any{&maxExpectedOutput}).TryBlockAndAggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -106,15 +107,16 @@ func (t *PoolTracker) GetNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	l.WithFields(logger.Fields{
-		"highest":           highest,
-		"maxExpectedOutput": maxExpectedOutput,
-		"results":           resp.Result,
+		"highest":  highest,
+		"maxQuote": maxExpectedOutput.TakenQuoteAmount,
+		"results":  resp.Result,
 	}).Info("finish updating state of pool")
 
 	return p, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []types.Log, _ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
+	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
 	if len(logs) == 0 {
 		return p, nil
 	}
@@ -163,10 +165,16 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []typ
 		return cmp.Compare(b.Tick, a.Tick)
 	})
 
+	// Update highest
+	if len(extra.Depths) > 0 {
+		extra.Highest = extra.Depths[0].Tick
+	}
+
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
+
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = blockNumber

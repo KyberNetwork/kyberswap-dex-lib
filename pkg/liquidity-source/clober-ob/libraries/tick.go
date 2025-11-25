@@ -12,8 +12,7 @@ import (
 type Tick = int32
 
 var (
-	ErrInvalidTick  = errors.New("invalid tick")
-	ErrInvalidPrice = errors.New("invalid price")
+	ErrInvalidTick = errors.New("invalid tick")
 
 	MaxTick Tick = 1<<19 - 1
 	MinTick      = -MaxTick
