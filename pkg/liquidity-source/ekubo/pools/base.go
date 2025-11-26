@@ -269,14 +269,24 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		skipAhead = tickSpacingsCrossed / initializedTicksCrossed
 	}
 
+	priceLimit := sqrtRatioLimit
+	if isIncreasing {
+		if lowerTickBound := p.TickBounds[1]; lowerTickBound < ekubomath.MaxTick {
+			priceLimit = ekubomath.ToSqrtRatio(lowerTickBound)
+		}
+	} else if upperTickBound := p.TickBounds[0]; upperTickBound > ekubomath.MinTick {
+		priceLimit = ekubomath.ToSqrtRatio(upperTickBound)
+	}
+
 	return &quoting.Quote{
 		ConsumedAmount:   amountRemaining.Sub(amount, &amountRemaining),
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
 		Gas:              quoting.BaseGasConcentratedLiquiditySwap + int64(initializedTicksCrossed)*quoting.GasInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasTickSpacingCrossed,
 		SwapInfo: quoting.SwapInfo{
-			SkipAhead: skipAhead,
-			IsToken1:  isToken1,
+			SkipAhead:  skipAhead,
+			IsToken1:   isToken1,
+			PriceLimit: priceLimit,
 			SwapStateAfter: &BasePoolSwapState{
 				sqrtRatio,
 				&liquidity,

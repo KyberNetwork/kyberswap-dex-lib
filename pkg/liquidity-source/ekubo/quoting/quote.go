@@ -11,6 +11,7 @@ type (
 	SwapInfo struct {
 		SkipAhead           uint32          `json:"skipAhead,omitempty"`
 		IsToken1            bool            `json:"isToken1,omitempty"`
+		PriceLimit          *uint256.Int    `json:"lim,omitempty"`
 		Forward             *common.Address `json:"forward,omitempty"`
 		SwapStateAfter      SwapState       `json:"-"`
 		TickSpacingsCrossed uint32          `json:"-"`
