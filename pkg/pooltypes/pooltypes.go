@@ -80,6 +80,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
+	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
@@ -343,6 +344,7 @@ type Types struct {
 	ArberaZap                  string
 	MapleSyrup                 string
 	Gsm4626                    string
+	NadFun                     string
 }
 
 var (
@@ -524,5 +526,6 @@ var (
 		ArberaZap:                  arberazap.DexType,
 		MapleSyrup:                 maplesyrup.DexType,
 		Gsm4626:                    gsm4626.DexType,
+		NadFun:                     nadfun.DexType,
 	}
 )
