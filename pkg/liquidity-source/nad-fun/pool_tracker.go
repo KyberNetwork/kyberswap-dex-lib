@@ -33,6 +33,13 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err == nil {
+		if extra.IsLocked || extra.IsGraduated {
+			return p, nil
+		}
+	}
+
 	var (
 		curveData struct {
 			RealMonReserve          *big.Int
@@ -90,15 +97,13 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	extra := Extra{
-		IsLocked:      isLocked,
-		IsGraduated:   isGraduated,
-		VirtualNative: uint256.MustFromBig(curveData.VirtualMonReserve),
-		VirtualToken:  uint256.MustFromBig(curveData.VirtualTokenReserve),
-		K:             uint256.MustFromBig(curveData.K),
-		TargetToken:   uint256.MustFromBig(curveData.TargetTokenAmount),
-		ProtocolFee:   uint256.MustFromBig(feeConfigData.ProtocolFee),
-	}
+	extra.IsLocked = isLocked
+	extra.IsGraduated = isGraduated
+	extra.VirtualNative = uint256.MustFromBig(curveData.VirtualMonReserve)
+	extra.VirtualToken = uint256.MustFromBig(curveData.VirtualTokenReserve)
+	extra.K = uint256.MustFromBig(curveData.K)
+	extra.TargetToken = uint256.MustFromBig(curveData.TargetTokenAmount)
+	extra.ProtocolFee = uint256.MustFromBig(feeConfigData.ProtocolFee)
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -106,10 +111,16 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{
-		curveData.RealMonReserve.String(),
-		curveData.RealTokenReserve.String(),
+
+	if extra.IsLocked || extra.IsGraduated {
+		p.Reserves = entity.PoolReserves{"0", "0"}
+	} else {
+		p.Reserves = entity.PoolReserves{
+			curveData.RealMonReserve.String(),
+			curveData.RealTokenReserve.String(),
+		}
 	}
+
 	p.BlockNumber = res.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 
