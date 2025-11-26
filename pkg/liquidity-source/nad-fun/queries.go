@@ -16,7 +16,6 @@ type CurvesQueryParams struct {
 }
 
 type SubgraphCurve struct {
-	Pool           string `json:"pool"`
 	Token          string `json:"token"`
 	BlockTimestamp string `json:"blockTimestamp"`
 }
@@ -39,7 +38,6 @@ func getCurvesQuery(lastBlockTimestamp *big.Int, first int) string {
 			orderBy: blockTimestamp,
 			orderDirection: asc
 		) {
-			pool
 			token
 			blockTimestamp
 		}

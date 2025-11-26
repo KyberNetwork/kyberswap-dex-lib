@@ -113,7 +113,7 @@ func (u *PoolsListUpdater) createPool(curve SubgraphCurve) (entity.Pool, error) 
 	}
 
 	return entity.Pool{
-		Address:   curve.Pool,
+		Address:   GetPoolAddress(curve.Token),
 		Exchange:  u.config.DexID,
 		Type:      DexType,
 		Timestamp: time.Now().Unix(),
