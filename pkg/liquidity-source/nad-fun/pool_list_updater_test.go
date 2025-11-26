@@ -2,7 +2,6 @@ package nadfun
 
 import (
 	"context"
-	"log"
 	"os"
 	"testing"
 
@@ -38,9 +37,6 @@ func TestPoolListUpdater(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, p := range newPools {
-		if p.Tokens[1].Address == "0x193836f0701ac6efbb409991645aee846d2e7777" {
-			log.Fatalln()
-		}
 		p, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
 		require.NotNil(t, p)

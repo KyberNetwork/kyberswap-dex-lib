@@ -9,8 +9,8 @@ import (
 const (
 	DexType = "nad-fun"
 
-	buyGas  = 150000
-	sellGas = 120000
+	buyGas  = 270000
+	sellGas = 200000
 )
 
 var (
