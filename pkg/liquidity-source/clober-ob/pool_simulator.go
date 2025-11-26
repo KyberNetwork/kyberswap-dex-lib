@@ -2,6 +2,7 @@ package cloberob
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/int256"
@@ -232,6 +233,13 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 		HookData:    []byte{},
 		BlockNumber: s.Info.BlockNumber,
 	}
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Depths = slices.Clone(s.Depths)
+
+	return &cloned
 }
 
 func (s *PoolSimulator) CanSwapFrom(token string) []string {
