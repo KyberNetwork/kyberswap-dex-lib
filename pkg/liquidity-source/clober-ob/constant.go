@@ -7,12 +7,14 @@ import (
 const (
 	DexType = "clober-ob"
 
-	bookManagerMethodGetDepth    = "getDepth"
+	bookManagerMethodGetDepth   = "getDepth"
+	bookManagerMethodGetHighest = "getHighest"
+
 	bookViewerMethodGetLiquidity = "getLiquidity"
 
 	int24Min = -(1 << 23)
 
-	maxTickLimit = 1000
+	maxTickLimit = 100
 
 	defaultTakeGas int64 = 59197
 	defaultBaseGas int64 = 57713

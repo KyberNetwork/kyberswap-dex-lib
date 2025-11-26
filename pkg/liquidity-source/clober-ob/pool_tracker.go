@@ -52,7 +52,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	bookId, _ := new(big.Int).SetString(p.Address, 10)
 
-	liquidity, blockNumber, err := t.getAllLiquidity(ctx, bookId, cloberlib.MaxTick, new(big.Int))
+	liquidity, blockNumber, err := t.getAllLiquidity(ctx, bookId)
 	if err != nil {
 		return p, err
 	}
@@ -86,7 +86,7 @@ func (t *PoolTracker) GetNewPoolState(
 		"highest":     highest,
 		"blockNumber": p.BlockNumber,
 		"nDepths":     len(liquidity),
-		"maxQuote":    maxQuoteAmount,
+		"maxQuote":    maxQuoteAmount.String(),
 	}).Info("finish updating state of pool")
 
 	return p, nil
@@ -187,13 +187,27 @@ func (t *PoolTracker) FetchPoolTicks(_ context.Context, p entity.Pool) (entity.P
 	return p, nil
 }
 
-func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, highest cloberlib.Tick, blockNumber *big.Int) ([]Liquidity, uint64, error) {
+func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int) ([]Liquidity, uint64, error) {
+	var highest cloberlib.Tick
+	resp, err := t.ethrpcClient.NewRequest().
+		SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    bookManagerABI,
+			Target: t.config.BookManager.String(),
+			Method: bookManagerMethodGetHighest,
+			Params: []any{bookId},
+		}, []any{&highest}).
+		TryBlockAndAggregate()
+	if err != nil {
+		logger.Errorf("failed to get highest for book %v error %v", bookId.String(), err)
+		return nil, 0, err
+	}
+
 	var depths []Liquidity
 	tick := highest
-
 	for tick >= cloberlib.MinTick {
 		var liquidity []Liquidity
-		resp, err := t.ethrpcClient.NewRequest().SetBlockNumber(blockNumber).
+		_, err = t.ethrpcClient.NewRequest().SetBlockNumber(resp.BlockNumber).
 			SetContext(ctx).
 			AddCall(&ethrpc.Call{
 				ABI:    bookViewerABI,
@@ -203,11 +217,9 @@ func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, high
 			}, []any{&liquidity}).
 			Aggregate()
 		if err != nil {
-			logger.Errorf("failed to get all depths %v", err)
+			logger.Errorf("failed to get all depths for book %v error %v", bookId.String(), err)
 			return nil, 0, err
 		}
-
-		blockNumber = resp.BlockNumber
 
 		depths = append(depths, liquidity...)
 		if len(liquidity) < maxTickLimit {
@@ -222,7 +234,7 @@ func (t *PoolTracker) getAllLiquidity(ctx context.Context, bookId *big.Int, high
 		tick = newTick
 	}
 
-	return depths, blockNumber.Uint64(), nil
+	return depths, resp.BlockNumber.Uint64(), nil
 }
 
 func (t *PoolTracker) getTicksFromLogs(logs []types.Log) ([]cloberlib.Tick, error) {
