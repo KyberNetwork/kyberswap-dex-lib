@@ -1,0 +1,13 @@
+[
+  {
+    "name": "totalFeeBps",
+    "outputs": [
+      {
+        "internalType": "int64",
+        "type": "int64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

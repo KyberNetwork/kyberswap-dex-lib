@@ -116,6 +116,7 @@ type Hook interface {
 	CanAfterSwap(address common.Address) bool
 	CloneState() Hook
 	UpdateBalance(swapInfo any)
+	GetHookData() []byte
 }
 
 type HookParam struct {
@@ -201,3 +202,9 @@ func (h *BaseHook) CloneState() Hook {
 }
 
 func (h *BaseHook) UpdateBalance(_ any) {}
+
+var EmptyBytes = make([]byte, 0)
+
+func (h *BaseHook) GetHookData() []byte {
+	return EmptyBytes
+}

@@ -521,7 +521,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Fee:               p.staticExtra.Fee,
 		TickSpacing:       p.staticExtra.TickSpacing,
 		HookAddress:       p.staticExtra.HooksAddress,
-		HookData:          []byte{},
+		HookData:          p.hook.GetHookData(),
 		PriceLimit:        &priceLimit,
 		TokenWrapMetadata: wrapMetadata,
 	}
