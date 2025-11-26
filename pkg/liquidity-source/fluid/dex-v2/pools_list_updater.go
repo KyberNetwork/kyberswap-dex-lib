@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 )
 
@@ -59,12 +57,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	// Track the last pool's CreatedAtTimestamp
 	var lastPoolIds []string
-	lastCreatedAtTimestampStr := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp
-	lastCreatedAtTimestamp, err := kutils.Atoi[int](lastCreatedAtTimestampStr)
-	if err != nil {
-		return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v, error: %v",
-			lastCreatedAtTimestampStr, subgraphPools[numSubgraphPools-1].ID, err)
-	}
+	lastCreatedAtTimestamp := subgraphPools[numSubgraphPools-1].CreatedAt
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
@@ -82,7 +75,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		isNative := [2]bool{false, false}
 		for i, token := range tokens {
 			if valueobject.IsNative(token.Address) {
-				tokens[i].Address = valueobject.WrapNativeLower(token.Address, valueobject.ChainID(d.config.ChainId))
+				tokens[i].Address = valueobject.WrapNativeLower(token.Address, valueobject.ChainID(d.config.ChainID))
 				isNative[i] = true
 			}
 		}
@@ -91,13 +84,15 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			DexType:     p.DexType,
 			Fee:         p.Fee,
 			TickSpacing: p.TickSpacing,
-			Controller:  common.HexToAddress(p.Controller),
 			IsNative:    isNative,
+		}
+		if p.Controller != valueobject.ZeroAddress {
+			extra.Controller = p.Controller
 		}
 		extraBytes, _ := json.Marshal(extra)
 
 		var newPool = entity.Pool{
-			Address:   fmt.Sprintf("%s_D%d", p.DexId, p.DexType),
+			Address:   fmt.Sprintf("%s_d%d", p.DexId, p.DexType),
 			Exchange:  d.config.DexID,
 			Type:      DexType,
 			Reserves:  []string{"0", "0"},
@@ -107,7 +102,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		pools = append(pools, newPool)
-		if p.CreatedAtTimestamp == lastCreatedAtTimestampStr {
+		if p.CreatedAt == lastCreatedAtTimestamp {
 			lastPoolIds = append(lastPoolIds, p.ID)
 		}
 	}

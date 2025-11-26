@@ -26,7 +26,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
-	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
@@ -54,6 +53,7 @@ import (
 	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
+	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
@@ -81,7 +81,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -163,83 +162,18 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
-	zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Types struct {
-	CurveBase                  string
-	CurvePlainOracle           string
-	CurveMeta                  string
-	CurveAave                  string
-	CurveCompound              string
-	CurveLending               string
-	CurveTricrypto             string
-	CurveTwo                   string
-	Uni                        string
-	UniswapV3                  string
-	Biswap                     string
-	Polydex                    string
-	Dmm                        string
-	Elastic                    string
-	Saddle                     string
-	Nerve                      string
-	OneSwap                    string
-	IronStable                 string
-	DodoClassical              string
-	DodoVendingMachine         string
-	DodoStablePool             string
-	DodoPrivatePool            string
-	Velodrome                  string
-	VelodromeV2                string
-	Velocimeter                string
-	RamsesV2                   string
-	PlatypusBase               string
-	PlatypusPure               string
-	PlatypusAvax               string
-	WombatMain                 string
-	WombatLsd                  string
-	GMX                        string
-	GMXGLP                     string
-	MakerPSM                   string
-	Synthetix                  string
-	MadMex                     string
-	Metavault                  string
-	Lido                       string
-	LidoStEth                  string
-	LimitOrder                 string
-	Fraxswap                   string
-	Camelot                    string
-	MuteSwitch                 string
-	SyncSwapClassic            string
-	SyncSwapStable             string
-	SyncSwapV2Classic          string
-	SyncSwapV2Stable           string
-	SyncSwapV2Aqua             string
-	PancakeV3                  string
-	PancakeInfinityCL          string
-	PancakeInfinityBin         string
-	PancakeStable              string
-	MaverickV1                 string
+	AaveV3                     string
+	AlgebraIntegral            string
 	AlgebraV1                  string
-	IZiSwap                    string
-	WooFiV2                    string
-	WooFiV21                   string
-	Equalizer                  string
-	SwapBasedPerp              string
-	USDFi                      string
-	MantisSwap                 string
-	Vooi                       string
-	PolMatic                   string
-	KokonutCrypto              string
-	LiquidityBookV21           string
-	LiquidityBookV20           string
-	Smardex                    string
-	Integral                   string
-	Fxdx                       string
-	UniswapV1                  string
-	UniswapV2                  string
-	QuickPerps                 string
+	Ambient                    string
+	AngleTransmuter            string
+	ArberaDen                  string
+	ArberaZap                  string
+	ArenaBC                    string
 	BalancerV1                 string
 	BalancerV2ComposableStable string
 	BalancerV2Stable           string
@@ -248,179 +182,178 @@ type Types struct {
 	BalancerV3QuantAMM         string
 	BalancerV3Stable           string
 	BalancerV3Weighted         string
-	VelocoreV2CPMM             string
-	VelocoreV2WombatStable     string
+	BancorV21                  string
+	BancorV3                   string
+	Bebop                      string
+	BedrockUniBTC              string
+	BedrockUniETH              string
+	BeetsSS                    string
+	Biswap                     string
+	Brownfi                    string
+	Camelot                    string
+	Clipper                    string
+	CompoundV2                 string
+	CompoundV3                 string
+	CurveAave                  string
+	CurveBase                  string
+	CurveCompound              string
+	CurveLending               string
+	CurveLlamma                string
+	CurveMeta                  string
+	CurvePlainOracle           string
+	CurveStableMetaNg          string
+	CurveStableNg              string
+	CurveStablePlain           string
+	CurveTricrypto             string
+	CurveTriCryptoNg           string
+	CurveTwo                   string
+	CurveTwoCryptoNg           string
+	CUSD                       string
+	DaiUsds                    string
+	DeltaSwapV1                string
+	Dexalot                    string
+	Dmm                        string
+	DodoClassical              string
+	DodoPrivatePool            string
+	DodoStablePool             string
+	DodoVendingMachine         string
+	Ekubo                      string
+	Elastic                    string
+	Equalizer                  string
+	ERC4626                    string
+	EthenaSusde                string
+	EtherFieBTC                string
+	EtherfiEETH                string
+	EtherfiVampire             string
+	EtherfiWEETH               string
+	EtherVista                 string
+	EulerSwap                  string
+	FluidDexLite               string
+	FluidDexT1                 string
+	FluidDexV2                 string
+	FluidVaultT1               string
+	Fraxswap                   string
 	Fulcrom                    string
-	SolidlyV2                  string
-	SolidlyV3                  string
+	Fxdx                       string
+	GenericArm                 string
+	GenericSimpleRate          string
+	GMX                        string
+	GMXGLP                     string
+	Gsm4626                    string
 	Gyroscope2CLP              string
 	Gyroscope3CLP              string
 	GyroscopeECLP              string
-	ZkEraFinance               string
-	SwaapV2                    string
-	EtherfiEETH                string
-	EtherfiWEETH               string
-	SwellSWETH                 string
-	SwellRSWETH                string
-	BedrockUniETH              string
-	BedrockUniBTC              string
-	PufferPufETH               string
-	BancorV21                  string
-	BancorV3                   string
-	CurveStablePlain           string
-	CurveStableNg              string
-	CurveStableMetaNg          string
-	CurveTriCryptoNg           string
-	CurveTwoCryptoNg           string
-	CurveLlamma                string
-	KelpRSETH                  string
-	RocketPoolRETH             string
-	EthenaSusde                string
-	MakerSavingsDai            string
 	HashflowV3                 string
-	NomiSwapStable             string
-	NativeV3                   string
-	RenzoEZETH                 string
-	Slipstream                 string
-	NuriV2                     string
-	EtherVista                 string
-	MkrSky                     string
-	DaiUsds                    string
-	Ambient                    string
-	MaverickV2                 string
-	LitePSM                    string
-	Usd0PP                     string
-	Bebop                      string
-	Dexalot                    string
-	GenericSimpleRate          string
-	RingSwap                   string
-	PrimeETH                   string
-	StaderETHx                 string
-	FluidVaultT1               string
-	FluidDexT1                 string
-	FluidDexLite               string
-	MantleETH                  string
-	OndoUSDY                   string
-	Clipper                    string
-	DeltaSwapV1                string
-	SfrxETH                    string
-	SfrxETHConvertor           string
-	EtherfiVampire             string
-	AlgebraIntegral            string
-	LO1inch                    string
-	VirtualFun                 string
-	BeetsSS                    string
-	SwapXV2                    string
-	EtherFieBTC                string
-	UniswapV4                  string
-	OvernightUsdp              string
-	SkyPSM                     string
 	Honey                      string
-	PandaFun                   string
-	Ekubo                      string
-	ERC4626                    string
 	HyETH                      string
-	MimSwap                    string
 	InfinityPools              string
-	Brownfi                    string
+	Integral                   string
+	IronStable                 string
+	IZiSwap                    string
+	KelpRSETH                  string
+	KokonutCrypto              string
 	KyberPMM                   string
+	Lido                       string
+	LidoStEth                  string
+	LimitOrder                 string
+	LiquidityBookV20           string
+	LiquidityBookV21           string
+	LitePSM                    string
+	LO1inch                    string
+	MadMex                     string
+	MakerPSM                   string
+	MakerSavingsDai            string
+	MantisSwap                 string
+	MantleETH                  string
+	MapleSyrup                 string
+	MaverickV1                 string
+	MaverickV2                 string
+	Metavault                  string
+	Midas                      string
+	MimSwap                    string
+	MiroMigrator               string
+	MkrSky                     string
+	MuteSwitch                 string
+	NativeV3                   string
+	Nerve                      string
+	NomiSwapStable             string
+	NuriV2                     string
+	OndoUSDY                   string
+	OneSwap                    string
+	OvernightUsdp              string
+	PancakeInfinityBin         string
+	PancakeInfinityCL          string
+	PancakeStable              string
+	PancakeV3                  string
+	PandaFun                   string
+	PlatypusAvax               string
+	PlatypusBase               string
+	PlatypusPure               string
 	Pmm1                       string
 	Pmm2                       string
 	Pmm3                       string
+	PolMatic                   string
+	Polydex                    string
+	PrimeETH                   string
+	PufferPufETH               string
+	QuickPerps                 string
+	RamsesV2                   string
+	RenzoEZETH                 string
+	RingSwap                   string
+	RocketPoolRETH             string
+	Saddle                     string
+	SfrxETH                    string
+	SfrxETHConvertor           string
+	SkyPSM                     string
+	Slipstream                 string
+	Smardex                    string
+	SolidlyV2                  string
+	SolidlyV3                  string
+	StaderETHx                 string
+	SwaapV2                    string
+	SwapBasedPerp              string
+	SwapXV2                    string
+	SwellRSWETH                string
+	SwellSWETH                 string
+	SyncSwapClassic            string
+	SyncSwapStable             string
+	SyncSwapV2Aqua             string
+	SyncSwapV2Classic          string
+	SyncSwapV2Stable           string
+	Synthetix                  string
+	Uni                        string
 	UniswapLO                  string
-	EulerSwap                  string
-	AaveV3                     string
-	CompoundV2                 string
-	CompoundV3                 string
-	AngleTransmuter            string
-	GenericArm                 string
-	ArenaBC                    string
+	UniswapV1                  string
+	UniswapV2                  string
+	UniswapV3                  string
+	UniswapV4                  string
+	Usd0PP                     string
+	USDFi                      string
+	Velocimeter                string
+	VelocoreV2CPMM             string
+	VelocoreV2WombatStable     string
+	Velodrome                  string
+	VelodromeV2                string
+	VirtualFun                 string
+	Vooi                       string
+	WombatLsd                  string
+	WombatMain                 string
+	WooFiV2                    string
+	WooFiV21                   string
 	XsolvBTC                   string
-	Midas                      string
-	MiroMigrator               string
-	ArberaDen                  string
-	CUSD                       string
-	ArberaZap                  string
-	MapleSyrup                 string
-	Gsm4626                    string
-	NadFun                     string
-	CloberOB                   string
 }
 
 var (
 	// PoolTypes is a list of supported pool types.
 	PoolTypes = Types{
-		CurveBase:                  curve.PoolTypeBase,
-		CurvePlainOracle:           curve.PoolTypePlainOracle,
-		CurveMeta:                  curve.PoolTypeMeta,
-		CurveAave:                  curve.PoolTypeAave,
-		CurveCompound:              curve.PoolTypeCompound,
-		CurveTricrypto:             curve.PoolTypeTricrypto,
-		CurveTwo:                   curve.PoolTypeTwo,
-		Uni:                        uniswap.DexTypeUniswap,
-		UniswapV3:                  uniswapv3.DexTypeUniswapV3,
-		Biswap:                     biswap.DexTypeBiswap,
-		Polydex:                    polydex.DexTypePolydex,
-		Dmm:                        dmm.DexTypeDMM,
-		Elastic:                    elastic.DexTypeElastic,
-		Saddle:                     saddle.DexTypeSaddle,
-		Nerve:                      nerve.DexTypeNerve,
-		OneSwap:                    oneswap.DexTypeOneSwap,
-		IronStable:                 ironstable.DexTypeIronStable,
-		DodoClassical:              dodoclassical.PoolType,
-		DodoVendingMachine:         dododvm.PoolType,
-		DodoStablePool:             dododsp.PoolType,
-		DodoPrivatePool:            dododpp.PoolType,
-		Velodrome:                  velodrome.DexType,
-		VelodromeV2:                velodromev2.DexType,
-		Velocimeter:                velocimeter.DexTypeVelocimeter,
-		RamsesV2:                   ramsesv2.DexTypeRamsesV2,
-		PlatypusBase:               platypus.PoolTypePlatypusBase,
-		PlatypusPure:               platypus.PoolTypePlatypusPure,
-		PlatypusAvax:               platypus.PoolTypePlatypusAvax,
-		WombatMain:                 wombat.PoolTypeWombatMain,
-		WombatLsd:                  wombat.PoolTypeWombatLSD,
-		GMX:                        gmx.DexTypeGmx,
-		GMXGLP:                     gmxglp.DexTypeGmxGlp,
-		MakerPSM:                   makerpsm.DexTypeMakerPSM,
-		Synthetix:                  synthetix.DexTypeSynthetix,
-		MadMex:                     madmex.DexTypeMadmex,
-		Metavault:                  metavault.DexTypeMetavault,
-		Lido:                       lido.DexTypeLido,
-		LidoStEth:                  lidosteth.DexTypeLidoStETH,
-		LimitOrder:                 limitorder.DexTypeLimitOrder,
-		Fraxswap:                   fraxswap.DexTypeFraxswap,
-		Camelot:                    camelot.DexTypeCamelot,
-		MuteSwitch:                 muteswitch.DexTypeMuteSwitch,
-		SyncSwapClassic:            syncswap.PoolTypeSyncSwapClassic,
-		SyncSwapStable:             syncswap.PoolTypeSyncSwapStable,
-		SyncSwapV2Classic:          syncswapv2classic.PoolTypeSyncSwapV2Classic,
-		SyncSwapV2Stable:           syncswapv2stable.PoolTypeSyncSwapV2Stable,
-		SyncSwapV2Aqua:             syncswapv2aqua.PoolTypeSyncSwapV2Aqua,
-		PancakeV3:                  pancakev3.DexTypePancakeV3,
-		PancakeInfinityCL:          pancakeinfinitycl.DexType,
-		PancakeInfinityBin:         pancakeinfinitybin.DexType,
-		PancakeStable:              pancakestable.DexType,
-		MaverickV1:                 maverickv1.DexTypeMaverickV1,
+		AaveV3:                     aavev3.DexType,
+		AlgebraIntegral:            algebraintegral.DexType,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
-		IZiSwap:                    iziswap.DexTypeiZiSwap,
-		WooFiV2:                    woofiv2.DexTypeWooFiV2,
-		WooFiV21:                   woofiv21.DexTypeWooFiV21,
-		Equalizer:                  equalizer.DexTypeEqualizer,
-		SwapBasedPerp:              swapbasedperp.DexTypeSwapBasedPerp,
-		USDFi:                      usdfi.DexTypeUSDFi,
-		MantisSwap:                 mantisswap.DexTypeMantisSwap,
-		Vooi:                       vooi.DexTypeVooi,
-		PolMatic:                   polmatic.DexTypePolMatic,
-		KokonutCrypto:              kokonutcrypto.DexTypeKokonutCrypto,
-		LiquidityBookV21:           liquiditybookv21.DexTypeLiquidityBookV21,
-		LiquidityBookV20:           liquiditybookv20.DexTypeLiquidityBookV20,
-		Smardex:                    smardex.DexTypeSmardex,
-		Integral:                   integral.DexTypeIntegral,
-		Fxdx:                       fxdx.DexTypeFxdx,
-		UniswapV1:                  uniswapv1.DexType,
-		UniswapV2:                  uniswapv2.DexType,
-		QuickPerps:                 quickperps.DexTypeQuickperps,
+		Ambient:                    ambient.DexTypeAmbient,
+		AngleTransmuter:            angletransmuter.DexType,
+		ArberaDen:                  arberaden.DexType,
+		ArberaZap:                  arberazap.DexType,
+		ArenaBC:                    arenabc.DexType,
 		BalancerV1:                 balancerv1.DexType,
 		BalancerV2ComposableStable: balancerv2composablestable.DexType,
 		BalancerV2Stable:           balancerv2stable.DexType,
@@ -429,103 +362,164 @@ var (
 		BalancerV3QuantAMM:         balancerv3quantamm.DexType,
 		BalancerV3Stable:           balancerv3stable.DexType,
 		BalancerV3Weighted:         balancerv3weighted.DexType,
-		VelocoreV2CPMM:             velocorev2cpmm.DexType,
-		VelocoreV2WombatStable:     velocorev2wombatstable.DexType,
+		BancorV21:                  bancorv21.DexType,
+		BancorV3:                   bancorv3.DexType,
+		Bebop:                      bebop.DexType,
+		BedrockUniBTC:              unibtc.DexType,
+		BedrockUniETH:              unieth.DexType,
+		BeetsSS:                    beetsss.DexType,
+		Biswap:                     biswap.DexTypeBiswap,
+		Brownfi:                    brownfi.DexType,
+		Camelot:                    camelot.DexTypeCamelot,
+		Clipper:                    clipper.DexType,
+		CompoundV2:                 compoundv2.DexType,
+		CompoundV3:                 compoundv3.DexType,
+		CurveAave:                  curve.PoolTypeAave,
+		CurveBase:                  curve.PoolTypeBase,
+		CurveCompound:              curve.PoolTypeCompound,
+		CurveLending:               curvelending.DexType,
+		CurveLlamma:                curvellamma.DexType,
+		CurveMeta:                  curve.PoolTypeMeta,
+		CurvePlainOracle:           curve.PoolTypePlainOracle,
+		CurveStableMetaNg:          curvestablemetang.DexType,
+		CurveStableNg:              curvestableng.DexType,
+		CurveStablePlain:           plain.DexType,
+		CurveTricrypto:             curve.PoolTypeTricrypto,
+		CurveTriCryptoNg:           curvetricryptong.DexType,
+		CurveTwo:                   curve.PoolTypeTwo,
+		CurveTwoCryptoNg:           curvetwocryptong.DexType,
+		CUSD:                       cusd.DexType,
+		DaiUsds:                    daiusds.DexType,
+		DeltaSwapV1:                deltaswapv1.DexType,
+		Dexalot:                    dexalot.DexType,
+		Dmm:                        dmm.DexTypeDMM,
+		DodoClassical:              dodoclassical.PoolType,
+		DodoPrivatePool:            dododpp.PoolType,
+		DodoStablePool:             dododsp.PoolType,
+		DodoVendingMachine:         dododvm.PoolType,
+		Ekubo:                      ekubo.DexType,
+		Elastic:                    elastic.DexTypeElastic,
+		Equalizer:                  equalizer.DexTypeEqualizer,
+		ERC4626:                    erc4626.DexType,
+		EthenaSusde:                susde.DexType,
+		EtherFieBTC:                etherfiebtc.DexType,
+		EtherfiEETH:                eeth.DexType,
+		EtherfiVampire:             etherfivampire.DexType,
+		EtherfiWEETH:               weeth.DexType,
+		EtherVista:                 ethervista.DexType,
+		EulerSwap:                  eulerswap.DexType,
+		FluidDexLite:               fluidDexLite.DexType,
+		FluidDexT1:                 fluidDexT1.DexType,
+		FluidDexV2:                 dexv2.DexType,
+		FluidVaultT1:               fluidVaultT1.DexType,
+		Fraxswap:                   fraxswap.DexTypeFraxswap,
 		Fulcrom:                    fulcrom.DexTypeFulcrom,
-		SolidlyV2:                  solidlyv2.DexType,
-		SolidlyV3:                  solidlyv3.DexTypeSolidlyV3,
+		Fxdx:                       fxdx.DexTypeFxdx,
+		GenericArm:                 genericarm.DexType,
+		GenericSimpleRate:          genericsimplerate.DexType,
+		GMX:                        gmx.DexTypeGmx,
+		GMXGLP:                     gmxglp.DexTypeGmxGlp,
+		Gsm4626:                    gsm4626.DexType,
 		Gyroscope2CLP:              gyro2clp.DexType,
 		Gyroscope3CLP:              gyro3clp.DexType,
 		GyroscopeECLP:              gyroeclp.DexType,
-		ZkEraFinance:               zkerafinance.DexType,
-		SwaapV2:                    swaapv2.DexType,
-		EtherfiEETH:                eeth.DexType,
-		EtherfiWEETH:               weeth.DexType,
-		BancorV21:                  bancorv21.DexType,
-		BancorV3:                   bancorv3.DexType,
-		CurveStablePlain:           plain.DexType,
-		CurveStableNg:              curvestableng.DexType,
-		CurveStableMetaNg:          curvestablemetang.DexType,
-		CurveTriCryptoNg:           curvetricryptong.DexType,
-		CurveTwoCryptoNg:           curvetwocryptong.DexType,
-		CurveLlamma:                curvellamma.DexType,
-		CurveLending:               curvelending.DexType,
-		KelpRSETH:                  rseth.DexType,
-		RocketPoolRETH:             reth.DexType,
-		SwellSWETH:                 sweth.DexType,
-		SwellRSWETH:                rsweth.DexType,
-		BedrockUniETH:              unieth.DexType,
-		BedrockUniBTC:              unibtc.DexType,
-		PufferPufETH:               pufeth.DexType,
-		EthenaSusde:                susde.DexType,
-		MakerSavingsDai:            savingsdai.DexType,
 		HashflowV3:                 hashflowv3.DexType,
-		NomiSwapStable:             nomiswap.DexType,
-		NativeV3:                   nativev3.DexType,
-		RenzoEZETH:                 ezeth.DexType,
-		Slipstream:                 slipstream.DexType,
-		NuriV2:                     nuriv2.DexType,
-		EtherVista:                 ethervista.DexType,
-		MkrSky:                     mkrsky.DexType,
-		DaiUsds:                    daiusds.DexType,
-		Ambient:                    ambient.DexTypeAmbient,
-		MaverickV2:                 maverickv2.DexType,
-		LitePSM:                    litepsm.DexTypeLitePSM,
-		Usd0PP:                     usd0pp.DexType,
-		Bebop:                      bebop.DexType,
-		Dexalot:                    dexalot.DexType,
-		GenericSimpleRate:          genericsimplerate.DexType,
-		RingSwap:                   ringswap.DexType,
-		PrimeETH:                   primeeth.DexType,
-		StaderETHx:                 staderethx.DexType,
-		FluidVaultT1:               fluidVaultT1.DexType,
-		FluidDexT1:                 fluidDexT1.DexType,
-		FluidDexLite:               fluidDexLite.DexType,
-		MantleETH:                  meth.DexType,
-		OndoUSDY:                   ondousdy.DexType,
-		Clipper:                    clipper.DexType,
-		DeltaSwapV1:                deltaswapv1.DexType,
-		SfrxETH:                    sfrxeth.DexType,
-		SfrxETHConvertor:           sfrxethconvertor.DexType,
-		EtherfiVampire:             etherfivampire.DexType,
-		AlgebraIntegral:            algebraintegral.DexType,
-		LO1inch:                    lo1inch.DexType,
-		VirtualFun:                 virtualfun.DexType,
-		BeetsSS:                    beetsss.DexType,
-		SwapXV2:                    swapxv2.DexType,
-		EtherFieBTC:                etherfiebtc.DexType,
-		UniswapV4:                  uniswapv4.DexType,
-		OvernightUsdp:              overnightusdp.DexType,
-		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
-		PandaFun:                   pandafun.DexType,
-		Ekubo:                      ekubo.DexType,
-		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
-		MimSwap:                    mimswap.DexType,
 		InfinityPools:              infinitypools.DexType,
-		Brownfi:                    brownfi.DexType,
+		Integral:                   integral.DexTypeIntegral,
+		IronStable:                 ironstable.DexTypeIronStable,
+		IZiSwap:                    iziswap.DexTypeiZiSwap,
+		KelpRSETH:                  rseth.DexType,
+		KokonutCrypto:              kokonutcrypto.DexTypeKokonutCrypto,
 		KyberPMM:                   valueobject.ExchangeKyberPMM,
+		Lido:                       lido.DexTypeLido,
+		LidoStEth:                  lidosteth.DexTypeLidoStETH,
+		LimitOrder:                 limitorder.DexTypeLimitOrder,
+		LiquidityBookV20:           liquiditybookv20.DexTypeLiquidityBookV20,
+		LiquidityBookV21:           liquiditybookv21.DexTypeLiquidityBookV21,
+		LitePSM:                    litepsm.DexTypeLitePSM,
+		LO1inch:                    lo1inch.DexType,
+		MadMex:                     madmex.DexTypeMadmex,
+		MakerPSM:                   makerpsm.DexTypeMakerPSM,
+		MakerSavingsDai:            savingsdai.DexType,
+		MantisSwap:                 mantisswap.DexTypeMantisSwap,
+		MantleETH:                  meth.DexType,
+		MapleSyrup:                 maplesyrup.DexType,
+		MaverickV1:                 maverickv1.DexTypeMaverickV1,
+		MaverickV2:                 maverickv2.DexType,
+		Metavault:                  metavault.DexTypeMetavault,
+		Midas:                      midas.DexType,
+		MimSwap:                    mimswap.DexType,
+		MiroMigrator:               miromigrator.DexType,
+		MkrSky:                     mkrsky.DexType,
+		MuteSwitch:                 muteswitch.DexTypeMuteSwitch,
+		NativeV3:                   nativev3.DexType,
+		Nerve:                      nerve.DexTypeNerve,
+		NomiSwapStable:             nomiswap.DexType,
+		NuriV2:                     nuriv2.DexType,
+		OndoUSDY:                   ondousdy.DexType,
+		OneSwap:                    oneswap.DexTypeOneSwap,
+		OvernightUsdp:              overnightusdp.DexType,
+		PancakeInfinityBin:         pancakeinfinitybin.DexType,
+		PancakeInfinityCL:          pancakeinfinitycl.DexType,
+		PancakeStable:              pancakestable.DexType,
+		PancakeV3:                  pancakev3.DexTypePancakeV3,
+		PandaFun:                   pandafun.DexType,
+		PlatypusAvax:               platypus.PoolTypePlatypusAvax,
+		PlatypusBase:               platypus.PoolTypePlatypusBase,
+		PlatypusPure:               platypus.PoolTypePlatypusPure,
 		Pmm1:                       valueobject.ExchangePmm1,
 		Pmm2:                       valueobject.ExchangePmm2,
 		Pmm3:                       valueobject.ExchangePmm3,
+		PolMatic:                   polmatic.DexTypePolMatic,
+		Polydex:                    polydex.DexTypePolydex,
+		PrimeETH:                   primeeth.DexType,
+		PufferPufETH:               pufeth.DexType,
+		QuickPerps:                 quickperps.DexTypeQuickperps,
+		RamsesV2:                   ramsesv2.DexTypeRamsesV2,
+		RenzoEZETH:                 ezeth.DexType,
+		RingSwap:                   ringswap.DexType,
+		RocketPoolRETH:             reth.DexType,
+		Saddle:                     saddle.DexTypeSaddle,
+		SfrxETH:                    sfrxeth.DexType,
+		SfrxETHConvertor:           sfrxethconvertor.DexType,
+		SkyPSM:                     skypsm.DexType,
+		Slipstream:                 slipstream.DexType,
+		Smardex:                    smardex.DexTypeSmardex,
+		SolidlyV2:                  solidlyv2.DexType,
+		SolidlyV3:                  solidlyv3.DexTypeSolidlyV3,
+		StaderETHx:                 staderethx.DexType,
+		SwaapV2:                    swaapv2.DexType,
+		SwapBasedPerp:              swapbasedperp.DexTypeSwapBasedPerp,
+		SwapXV2:                    swapxv2.DexType,
+		SwellRSWETH:                rsweth.DexType,
+		SwellSWETH:                 sweth.DexType,
+		SyncSwapClassic:            syncswap.PoolTypeSyncSwapClassic,
+		SyncSwapStable:             syncswap.PoolTypeSyncSwapStable,
+		SyncSwapV2Aqua:             syncswapv2aqua.PoolTypeSyncSwapV2Aqua,
+		SyncSwapV2Classic:          syncswapv2classic.PoolTypeSyncSwapV2Classic,
+		SyncSwapV2Stable:           syncswapv2stable.PoolTypeSyncSwapV2Stable,
+		Synthetix:                  synthetix.DexTypeSynthetix,
+		Uni:                        uniswap.DexTypeUniswap,
 		UniswapLO:                  uniswaplo.DexType,
-		EulerSwap:                  eulerswap.DexType,
-		AaveV3:                     aavev3.DexType,
-		CompoundV2:                 compoundv2.DexType,
-		CompoundV3:                 compoundv3.DexType,
-		AngleTransmuter:            angletransmuter.DexType,
-		GenericArm:                 genericarm.DexType,
-		ArenaBC:                    arenabc.DexType,
+		UniswapV1:                  uniswapv1.DexType,
+		UniswapV2:                  uniswapv2.DexType,
+		UniswapV3:                  uniswapv3.DexTypeUniswapV3,
+		UniswapV4:                  uniswapv4.DexType,
+		Usd0PP:                     usd0pp.DexType,
+		USDFi:                      usdfi.DexTypeUSDFi,
+		Velocimeter:                velocimeter.DexTypeVelocimeter,
+		VelocoreV2CPMM:             velocorev2cpmm.DexType,
+		VelocoreV2WombatStable:     velocorev2wombatstable.DexType,
+		Velodrome:                  velodrome.DexType,
+		VelodromeV2:                velodromev2.DexType,
+		VirtualFun:                 virtualfun.DexType,
+		Vooi:                       vooi.DexTypeVooi,
+		WombatLsd:                  wombat.PoolTypeWombatLSD,
+		WombatMain:                 wombat.PoolTypeWombatMain,
+		WooFiV2:                    woofiv2.DexTypeWooFiV2,
+		WooFiV21:                   woofiv21.DexTypeWooFiV21,
 		XsolvBTC:                   xsolvbtc.DexType,
-		Midas:                      midas.DexType,
-		MiroMigrator:               miromigrator.DexType,
-		ArberaDen:                  arberaden.DexType,
-		CUSD:                       cusd.DexType,
-		ArberaZap:                  arberazap.DexType,
-		MapleSyrup:                 maplesyrup.DexType,
-		Gsm4626:                    gsm4626.DexType,
-		NadFun:                     nadfun.DexType,
-		CloberOB:                   cloberob.DexType,
 	}
 )
