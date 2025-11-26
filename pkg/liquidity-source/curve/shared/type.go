@@ -1,9 +1,9 @@
 package shared
 
 import (
-	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 )
@@ -63,12 +63,12 @@ func (c *CurveCoin) GetDecimals() uint8 {
 	case float64:
 		return uint8(v)
 	case string:
-		dec, err := strconv.ParseInt(v, 10, 0)
+		dec, err := kutils.Atou[uint8](v)
 		if err != nil {
 			logger.Errorf("curve coin with invalid decimal %v %v", c.Address, c.Decimals)
 			return 0
 		}
-		return uint8(dec)
+		return dec
 	default:
 		logger.Errorf("curve coin with invalid decimal %v %v", c.Address, c.Decimals)
 		return 0

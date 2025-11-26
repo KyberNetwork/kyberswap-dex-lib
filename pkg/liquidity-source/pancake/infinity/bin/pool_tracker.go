@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -278,12 +278,12 @@ func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Addr
 }
 
 func parseTokenDecimal(decimals string) (*big.Float, error) {
-	decimalX, err := strconv.ParseInt(decimals, 10, 64)
+	decimalX, err := kutils.Atou[uint8](decimals)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token decimals: %w", err)
 	}
 
-	return bignumber.TenPowDecimals(uint8(decimalX)), nil
+	return bignumber.TenPowDecimals(decimalX), nil
 }
 
 func parsePoolReserve(reserve string, unit *big.Float) (string, error) {

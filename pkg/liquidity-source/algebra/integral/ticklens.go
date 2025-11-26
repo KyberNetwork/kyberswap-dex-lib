@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
@@ -67,20 +68,20 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 
 		// ticklens contract might return unchanged tick (in the same word), so need to filter them out
 		changedTickSet := mapset.NewThreadUnsafeSet(changedTicks...)
-		changedTickMap := make(map[int]TickResp, len(changedTicks))
+		changedTickMap := make(map[int64]TickResp, len(changedTicks))
 		for _, t := range ticks {
-			tIdx, err := strconv.ParseInt(t.TickIdx, 10, 64)
+			tIdx, err := kutils.Atoi[int64](t.TickIdx)
 			if err == nil && changedTickSet.ContainsOne(tIdx) {
-				changedTickMap[int(tIdx)] = t
+				changedTickMap[tIdx] = t
 			}
 		}
 
 		combined := make([]TickResp, 0, len(changedTicks)+len(extra.Ticks))
 		for _, t := range extra.Ticks {
-			if tick, ok := changedTickMap[t.Index]; ok {
+			if tick, ok := changedTickMap[int64(t.Index)]; ok {
 				// changed, use new value
 				combined = append(combined, tick)
-				delete(changedTickMap, t.Index)
+				delete(changedTickMap, int64(t.Index))
 			} else if changedTickSet.ContainsOne(int64(t.Index)) {
 				// some changed ticks might be consumed entirely and are not in `changedTickMap`, delete them
 				logger.Debugf("deleted tick %v %v", pool.Address, t)

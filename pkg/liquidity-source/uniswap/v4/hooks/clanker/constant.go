@@ -23,6 +23,7 @@ var (
 		valueobject.ChainIDUnichain:    "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
 		valueobject.ChainIDArbitrumOne: "0xEb9D2A726Edffc887a574dC7f46b3a3638E8E44f",
 		valueobject.ChainIDEthereum:    "0x6C8599779B03B00AAaE63C6378830919Abb75473",
+		valueobject.ChainIDMonad:       "0xF9a0C289Eab6B571c6247094a853810987E5B26D",
 	}
 
 	DynamicFeeHookAddresses = []common.Address{
