@@ -14,6 +14,11 @@ type PoolsListQueryParams struct {
 	Skip                   int
 }
 
+type PoolTicksQueryParams struct {
+	PoolId      string
+	LastTickIdx int
+}
+
 func getPoolsListQuery(lastCreatedAtTimestamp int, lastPoolIds []string) string {
 	var tpl bytes.Buffer
 	var lastPoolIdsQ string
@@ -50,6 +55,43 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, lastPoolIds []string) string 
 			tickSpacing
 			controller
 			createdAt
+		}
+	}`)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = t.Execute(&tpl, td)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return tpl.String()
+}
+
+func getPoolTicksQuery(poolId string, lastTickIdx int) string {
+	var tpl bytes.Buffer
+	td := PoolTicksQueryParams{
+		poolId,
+		lastTickIdx,
+	}
+
+	t, err := template.New("poolTicksQuery").Parse(`{
+		ticks(
+			where: {
+				poolId: "{{.PoolId}}"
+				{{ if .LastTickIdx }}tick_gt: {{.LastTickIdx}},{{ end }}
+				liquidityGross_not: 0
+			},
+			orderBy: tick,
+			orderDirection: asc,
+			first: 1000
+		) {
+			tick
+			liquidityNet
+			liquidityGross
 		}
 	}`)
 
