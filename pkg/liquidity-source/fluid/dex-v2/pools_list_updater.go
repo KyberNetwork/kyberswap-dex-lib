@@ -2,7 +2,6 @@ package dexv2
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -92,7 +91,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		extraBytes, _ := json.Marshal(extra)
 
 		var newPool = entity.Pool{
-			Address:   fmt.Sprintf("%s_d%d", p.DexId, p.DexType),
+			Address:   encodeFluidDexV2PoolAddress(p.DexId, p.DexType),
 			Exchange:  d.config.DexID,
 			Type:      DexType,
 			Reserves:  []string{"0", "0"},
