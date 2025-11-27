@@ -2,7 +2,42 @@ package dexv2
 
 import (
 	"math/big"
+
+	"github.com/KyberNetwork/int256"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/holiman/uint256"
 )
+
+type Gas struct {
+	BaseGas          int64
+	CrossInitTickGas int64
+}
+
+type SwapInfo struct {
+	RemainingAmountIn     *v3Utils.Int256  `json:"rAI,omitempty"`
+	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
+	nextStateLiquidity    *v3Utils.Uint128
+	NextStateTickCurrent  int `json:"nT"`
+}
+
+type ExtraTickU256 struct {
+	Liquidity    *uint256.Int `json:"liquidity"`
+	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64       `json:"tickSpacing"`
+	Tick         *int         `json:"tick"`
+	Ticks        []TickU256   `json:"ticks"`
+}
+
+type TickU256 struct {
+	Index          int          `json:"index"`
+	LiquidityGross *uint256.Int `json:"liquidityGross"`
+	LiquidityNet   *int256.Int  `json:"liquidityNet"`
+}
+
+type PoolMeta struct {
+	SwapFee    uint32       `json:"swapFee"`
+	PriceLimit *uint256.Int `json:"priceLimit"`
+}
 
 type Metadata struct {
 	LastCreatedAtTimestamp int      `json:"lastCreatedAtTimestamp"`

@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -112,6 +113,17 @@ func (t *PoolTracker) getNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+
+	var reserve0, reserve1 big.Int
+	if extra.DexVariables.CurrentSqrtPriceX96.Sign() != 0 {
+		// reserve0 = liquidity / sqrtPriceX96 * Q96
+		reserve0.Mul(extra.DexVariables2.ActiveLiquidity, uniswapv4.Q96)
+		reserve0.Div(&reserve0, extra.DexVariables.CurrentSqrtPriceX96)
+	}
+	// reserve1 = liquidity * sqrtPriceX96 / Q96
+	reserve1.Mul(extra.DexVariables2.ActiveLiquidity, extra.DexVariables.CurrentSqrtPriceX96)
+	reserve1.Div(&reserve1, uniswapv4.Q96)
+	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
 	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)
 
