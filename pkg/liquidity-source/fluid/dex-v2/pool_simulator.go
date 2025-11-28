@@ -21,9 +21,6 @@ type PoolSimulator struct {
 	pool.Pool
 	v3Simulator uniswapv3.PoolSimulator
 
-	gas            Gas
-	tickMin        int
-	tickMax        int
 	token0Decimals int64
 	token1Decimals int64
 	extra          Extra
@@ -61,12 +58,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	extraTickU256.Ticks = ticks
 	entityPool.SwapFee = float64(extra.Fee)
 
-	tickMin, tickMax := v3Utils.MinTick, v3Utils.MaxTick
-	if len(ticks) > 0 {
-		tickMin = ticks[0].Index
-		tickMax = ticks[len(ticks)-1].Index
-	}
-
 	v3Simulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, &extraTickU256, false)
 	if err != nil {
 		return nil, err
@@ -76,10 +67,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	simulator := &PoolSimulator{
 		Pool:           v3Simulator.Pool,
-		gas:            defaultGas,
 		v3Simulator:    *v3Simulator,
-		tickMin:        tickMin,
-		tickMax:        tickMax,
 		token0Decimals: int64(entityPool.Tokens[0].Decimals),
 		token1Decimals: int64(entityPool.Tokens[1].Decimals),
 		extra:          extra,
@@ -96,6 +84,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
+	amountIn := param.TokenAmountIn.Amount
+	if err := _verifyAmountLimits(amountIn); err != nil {
+		return nil, err
+	}
+
 	zeroForOne := tokenInIndex == 0
 
 	// Adjust amountIn
@@ -109,7 +102,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		amountInRawAdjusted.Div(
 			new(big.Int).Mul(
 				new(big.Int).Mul(
-					param.TokenAmountIn.Amount,
+					amountIn,
 					LC_EXCHANGE_PRICES_PRECISION,
 				),
 				c.Token0NumeratorPrecision,
@@ -134,7 +127,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			),
 		)
 	}
-	// TODO: _verifyAdjustedAmountLimits
+
+	if err := _verifyAdjustedAmountLimits(&amountInRawAdjusted); err != nil {
+		return nil, err
+	}
 
 	adjustedParam := pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
@@ -153,6 +149,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// Adjust amountOut
 	var amountOut big.Int
 	amountOutRawAdjusted := amountOutResult.TokenAmountOut.Amount
+	if err := _verifyAdjustedAmountLimits(amountOutRawAdjusted); err != nil {
+		return nil, err
+	}
 
 	if zeroForOne {
 		amountOut.Div(
@@ -185,7 +184,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	amountOut.Sub(&amountOut, bignumber.One)
-	// TODO: _verifyAmountLimits
+	if err := _verifyAmountLimits(&amountOut); err != nil {
+		return nil, err
+	}
 
 	amountOutResult.TokenAmountOut.Amount = &amountOut
 
@@ -202,13 +203,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.v3Simulator.UpdateBalance(params)
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var priceLimit v3Utils.Uint160
 	_ = p.v3Simulator.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 
-	// TODO: Add check isNative
+	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+
 	return PoolMeta{
-		SwapFee:    uint32(p.Info.SwapFee.Int64()),
-		PriceLimit: &priceLimit,
+		SwapFee:     uint32(p.Info.SwapFee.Int64()),
+		PriceLimit:  &priceLimit,
+		IsNativeIn:  p.extra.IsNative[tokenInIndex],
+		IsNativeOut: p.extra.IsNative[tokenOutIndex],
 	}
 }

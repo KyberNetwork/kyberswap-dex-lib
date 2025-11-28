@@ -12,8 +12,10 @@ type Gas struct {
 }
 
 type PoolMeta struct {
-	SwapFee    uint32       `json:"swapFee"`
-	PriceLimit *uint256.Int `json:"priceLimit"`
+	SwapFee     uint32       `json:"swapFee"`
+	PriceLimit  *uint256.Int `json:"priceLimit"`
+	IsNativeIn  bool         `json:"isNativeIn,omitempty"`
+	IsNativeOut bool         `json:"isNativeOut,omitempty"`
 }
 
 type Metadata struct {

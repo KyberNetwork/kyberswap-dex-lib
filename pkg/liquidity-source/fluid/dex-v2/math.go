@@ -140,3 +140,17 @@ func _calcSupplyExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, error
 
 	return &supplyExchangePrice, nil
 }
+
+func _verifyAmountLimits(amount *big.Int) error {
+	if amount.Cmp(FOUR_DECIMALS) < 0 || amount.Cmp(X128) > 0 {
+		return ErrAmountOutOfLimits
+	}
+	return nil
+}
+
+func _verifyAdjustedAmountLimits(amount *big.Int) error {
+	if amount.Cmp(FOUR_DECIMALS) < 0 || amount.Cmp(X86) > 0 {
+		return ErrAdjustedAmountOutOfLimits
+	}
+	return nil
+}
