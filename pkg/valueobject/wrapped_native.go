@@ -74,7 +74,7 @@ func IsNative(address string) bool {
 }
 
 func IsZero(address string) bool {
-	return strings.EqualFold(address, ZeroAddress)
+	return address == ZeroAddress
 }
 
 func ZeroToWrappedLower(address string, chainID ChainID) string {
