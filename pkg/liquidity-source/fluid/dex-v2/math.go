@@ -9,14 +9,14 @@ import (
 
 func (p *PoolSimulator) _calculateVars() (CalculatedVars, error) {
 	// NOTE: Should not mutate CalculatedVars's fields (readonly)
-	token0NumeratorPrecision, token0DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(p.Extra.DexVariables2.Token0Decimals.Int64())
-	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(p.Extra.DexVariables2.Token1Decimals.Int64())
+	token0NumeratorPrecision, token0DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(p.token0Decimals)
+	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(p.token1Decimals)
 
-	token0SupplyExchangePrice, err := _calcSupplyExchangePrice(p.Extra.Token0ExchangePricesAndConfig)
+	token0SupplyExchangePrice, err := _calcSupplyExchangePrice(p.extra.Token0ExchangePricesAndConfig)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
-	token1SupplyExchangePrice, err := _calcSupplyExchangePrice(p.Extra.Token1ExchangePricesAndConfig)
+	token1SupplyExchangePrice, err := _calcSupplyExchangePrice(p.extra.Token1ExchangePricesAndConfig)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
