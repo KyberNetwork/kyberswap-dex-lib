@@ -236,6 +236,42 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 	}
 
+	// Adjust amountOut
+	var amountOut big.Int
+	amountOutRawAdjusted := amountOutResult.ReturnedAmount.ToBig()
+	if zeroForOne {
+		amountOut.Div(
+			new(big.Int).Mul(
+				new(big.Int).Mul(
+					amountOutRawAdjusted,
+					c.Token1DenominatorPrecision,
+				),
+				c.Token1SupplyExchangePrice,
+			),
+			new(big.Int).Mul(
+				c.Token1NumeratorPrecision,
+				LC_EXCHANGE_PRICES_PRECISION,
+			),
+		)
+	} else {
+		amountOut.Div(
+			new(big.Int).Mul(
+				new(big.Int).Mul(
+					amountOutRawAdjusted,
+					c.Token0DenominatorPrecision,
+				),
+				c.Token0SupplyExchangePrice,
+			),
+			new(big.Int).Mul(
+				c.Token0NumeratorPrecision,
+				LC_EXCHANGE_PRICES_PRECISION,
+			),
+		)
+	}
+
+	amountOut.Sub(&amountOut, bignumber.One)
+	// TODO: _verifyAmountLimits
+
 	remainingTokenAmountIn := &pool.TokenAmount{
 		Token:  tokenIn,
 		Amount: bignumber.ZeroBI,
@@ -248,7 +284,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 	}
 
-	amountOut := amountOutResult.ReturnedAmount
 	if !p.allowEmptyTicks {
 		if amountOut.Sign() <= 0 {
 			return nil, errors.New("amountOut is 0")
@@ -258,7 +293,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
+			Amount: &amountOut,
 		},
 		RemainingTokenAmountIn: remainingTokenAmountIn,
 		Fee: &pool.TokenAmount{
