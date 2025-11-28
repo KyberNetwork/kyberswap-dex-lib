@@ -4,4 +4,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrFluidLiquidityCalcsError = errors.New("fluidLiquidityCalcsError")
+var (
+	ErrAmountOutOfLimits         = errors.New("amount out of limits")
+	ErrAdjustedAmountOutOfLimits = errors.New("adjusted amount out of limits")
+	ErrFluidLiquidityCalcsError  = errors.New("fluid liquidity calcs error")
+)
