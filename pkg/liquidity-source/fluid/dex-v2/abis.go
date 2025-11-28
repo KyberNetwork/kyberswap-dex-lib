@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	resolverABI abi.ABI
+	liquidityABI abi.ABI
+	resolverABI  abi.ABI
 )
 
 func init() {
@@ -15,6 +16,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
+		{&liquidityABI, liquidityJson},
 		{&resolverABI, resolverJson},
 	}
 

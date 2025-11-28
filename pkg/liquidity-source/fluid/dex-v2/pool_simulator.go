@@ -30,6 +30,8 @@ type PoolSimulator struct {
 	tickMin         int
 	tickMax         int
 	allowEmptyTicks bool
+
+	Extra Extra
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -62,8 +64,15 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		}
 	})
 	extraTickU256.Ticks = ticks
+	entityPool.SwapFee = float64(extra.Fee)
 
-	return NewPoolSimulatorWithExtra(entityPool, chainID, &extraTickU256, false)
+	simulator, err := NewPoolSimulatorWithExtra(entityPool, chainID, &extraTickU256, false)
+	if err != nil {
+		return nil, err
+	}
+
+	simulator.Extra = extra
+	return simulator, nil
 }
 
 func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.ChainID,
@@ -164,51 +173,8 @@ func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint1
 	return nil
 }
 
-func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
-	tokenOut := tokenAmountOut.Token
-	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
-	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
-	}
-
-	zeroForOne := tokenInIndex == 0
-	amountOut := coreEntities.FromRawAmount(lo.Ternary(zeroForOne, p.V3Pool.Token1, p.V3Pool.Token0),
-		tokenAmountOut.Amount)
-	var priceLimit v3Utils.Uint160
-	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
-		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
-	}
-	amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, &priceLimit)
-	if err != nil {
-		return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
-	}
-
-	amountInBI := amountIn.Quotient()
-	if !p.allowEmptyTicks {
-		if amountInBI.Sign() <= 0 {
-			return nil, errors.New("amountIn is 0")
-		}
-	}
-
-	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: amountInBI,
-		},
-		Fee: &pool.TokenAmount{
-			Token: tokenIn,
-		},
-		Gas: p.Gas.BaseGas, // TODO: update GetInputAmount to return crossed tick if we ever need this
-		SwapInfo: SwapInfo{
-			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
-			nextStateLiquidity:    newPoolState.Liquidity,
-			NextStateTickCurrent:  newPoolState.TickCurrent,
-		},
-	}, nil
-}
-
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	// TODO: Support _verifyAmountLimits check
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	tokenIn := tokenAmountIn.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
@@ -216,15 +182,55 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	var amountIn v3Utils.Int256
-	if overflow := amountIn.SetFromBig(tokenAmountIn.Amount); overflow {
-		return nil, ErrOverflow
-	}
 	zeroForOne := tokenInIndex == 0
 	var priceLimit v3Utils.Uint160
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
+
+	// Adjust amountIn
+	c, err := p._calculateVars()
+	if err != nil {
+		return nil, err
+	}
+
+	var amountInRawAdjusted big.Int
+	if zeroForOne {
+		amountInRawAdjusted.Div(
+			new(big.Int).Mul(
+				new(big.Int).Mul(
+					param.TokenAmountIn.Amount,
+					LC_EXCHANGE_PRICES_PRECISION,
+				),
+				c.Token0NumeratorPrecision,
+			),
+			new(big.Int).Mul(
+				c.Token0SupplyExchangePrice,
+				c.Token0DenominatorPrecision,
+			),
+		)
+	} else {
+		amountInRawAdjusted.Div(
+			new(big.Int).Mul(
+				new(big.Int).Mul(
+					param.TokenAmountIn.Amount,
+					LC_EXCHANGE_PRICES_PRECISION,
+				),
+				c.Token1NumeratorPrecision,
+			),
+			new(big.Int).Mul(
+				c.Token1SupplyExchangePrice,
+				c.Token1DenominatorPrecision,
+			),
+		)
+	}
+	// TODO: _verifyAdjustedAmountLimits
+
+	var amountIn v3Utils.Int256
+	if overflow := amountIn.SetFromBig(&amountInRawAdjusted); overflow {
+		return nil, ErrOverflow
+	}
+
 	amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
