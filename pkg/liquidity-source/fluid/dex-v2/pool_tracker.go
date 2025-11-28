@@ -13,6 +13,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
@@ -83,6 +84,8 @@ func (t *PoolTracker) getNewPoolState(
 		DexPoolState DexPoolState
 	}
 
+	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    resolverABI,
 		Target: t.config.Resolver,
@@ -93,12 +96,45 @@ func (t *PoolTracker) getNewPoolState(
 		},
 	}, []any{&res})
 
-	if _, err := req.Call(); err != nil {
+	token0Slot := calculateMappingStorageSlot(
+		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
+		lo.Ternary(
+			extra.IsNative[0],
+			common.HexToAddress(valueobject.NativeAddress),
+			common.HexToAddress(p.Tokens[0].Address),
+		),
+	)
+	req.AddCall(&ethrpc.Call{
+		ABI:    liquidityABI,
+		Target: t.config.Liquidity,
+		Method: "readFromStorage",
+		Params: []any{token0Slot},
+	}, []any{&token0ExchangePricesAndConfig})
+
+	token1Slot := calculateMappingStorageSlot(
+		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
+		lo.Ternary(
+			extra.IsNative[1],
+			common.HexToAddress(valueobject.NativeAddress),
+			common.HexToAddress(p.Tokens[1].Address),
+		),
+	)
+	req.AddCall(&ethrpc.Call{
+		ABI:    liquidityABI,
+		Target: t.config.Liquidity,
+		Method: "readFromStorage",
+		Params: []any{token1Slot},
+	}, []any{&token1ExchangePricesAndConfig})
+
+	if _, err := req.Aggregate(); err != nil {
 		return entity.Pool{}, err
 	}
 
 	extra.DexVariables = res.DexPoolState.DexVariablesUnpacked
 	extra.DexVariables2 = res.DexPoolState.DexVariables2Unpacked
+
+	extra.Token0ExchangePricesAndConfig = token0ExchangePricesAndConfig
+	extra.Token1ExchangePricesAndConfig = token1ExchangePricesAndConfig
 
 	ticks, err := t.fetchPoolTicksFromSubgraph(ctx, p)
 	if err != nil {

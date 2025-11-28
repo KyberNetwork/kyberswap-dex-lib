@@ -72,6 +72,9 @@ type Extra struct {
 
 	DexVariables  DexVariables  `json:"dexVariables"`
 	DexVariables2 DexVariables2 `json:"dexVariables2"`
+
+	Token0ExchangePricesAndConfig *big.Int `json:"token0ExchangePricesAndConfig"`
+	Token1ExchangePricesAndConfig *big.Int `json:"token1ExchangePricesAndConfig"`
 }
 
 type DexVariables struct {
@@ -111,4 +114,13 @@ type Tick struct {
 	Index          int      `json:"index"`
 	LiquidityGross *big.Int `json:"liquidityGross"`
 	LiquidityNet   *big.Int `json:"liquidityNet"`
+}
+
+type CalculatedVars struct {
+	Token0NumeratorPrecision   *big.Int
+	Token0DenominatorPrecision *big.Int
+	Token1NumeratorPrecision   *big.Int
+	Token1DenominatorPrecision *big.Int
+	Token0SupplyExchangePrice  *big.Int
+	Token1SupplyExchangePrice  *big.Int
 }

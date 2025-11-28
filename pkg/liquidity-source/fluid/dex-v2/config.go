@@ -6,5 +6,6 @@ type Config struct {
 	DexID       string
 	ChainID     valueobject.ChainID `json:"chainID"`
 	Resolver    string              `json:"resolver"`
+	Liquidity   string              `json:"liquidity"`
 	SubgraphAPI string              `json:"subgraphAPI"`
 }
