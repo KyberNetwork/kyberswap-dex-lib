@@ -4,9 +4,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -151,7 +152,12 @@ func (t *PoolSimulator) _get_dy_mem(i int, j int, _dx *uint256.Int, _balances []
 	if err != nil {
 		return nil, nil, err
 	}
-	dy.SubUint64(dy.Sub(xp[j], y), 1)
+	if _, overflow := dy.SubOverflow(xp[j], y); overflow {
+		return nil, nil, number.ErrUnderflow
+	}
+	if _, overflow := dy.SubOverflow(&dy, big256.U1); overflow {
+		return nil, nil, number.ErrUnderflow
+	}
 	fee.MulDivOverflow(t.SwapFee, &dy, FeeDenominator)
 	dy.MulDivOverflow(dy.Sub(&dy, &fee), Precision, rates[j])
 	return &dy, &fee, nil
@@ -225,7 +231,12 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *uint256.Int) (*uint25
 		return nil, nil, err
 	}
 	var dy, dyFee uint256.Int
-	dy.SubUint64(dy.Sub(xp[metaJ], y), 1)
+	if _, overflow := dy.SubOverflow(xp[metaJ], y); overflow {
+		return nil, nil, number.ErrUnderflow
+	}
+	if _, overflow := dy.SubOverflow(&dy, big256.U1); overflow {
+		return nil, nil, number.ErrUnderflow
+	}
 	dyFee.MulDivOverflow(t.SwapFee, &dy, FeeDenominator)
 	dy.Sub(&dy, &dyFee)
 	if baseJ < 0 {
@@ -267,7 +278,12 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 		return nil, err
 	}
 	var dy, dyFee uint256.Int
-	dy.SubUint64(dy.Sub(xp[j], y), 1)
+	if _, overflow := dy.SubOverflow(xp[j], y); overflow {
+		return nil, number.ErrUnderflow
+	}
+	if _, overflow := dy.SubOverflow(&dy, big256.U1); overflow {
+		return nil, number.ErrUnderflow
+	}
 	dyFee.MulDivOverflow(&dy, t.SwapFee, FeeDenominator)
 	dy.MulDivOverflow(dy.Sub(&dy, &dyFee), Precision, rates[j])
 	dyAdminFee, _ := dy.MulDivOverflow(&dyFee, t.AdminFee, FeeDenominator)
@@ -329,7 +345,12 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *uint256.Int) (*uint
 			return nil, err
 		}
 		var dyFee uint256.Int
-		dy.SubUint64(dy.Sub(xp[metaJ], y), 1)
+		if _, overflow := dy.SubOverflow(xp[metaJ], y); overflow {
+			return nil, number.ErrUnderflow
+		}
+		if _, overflow := dy.SubOverflow(&dy, big256.U1); overflow {
+			return nil, number.ErrUnderflow
+		}
 		dyFee.MulDivOverflow(&dy, t.SwapFee, FeeDenominator)
 		dy.MulDivOverflow(dy.Sub(&dy, &dyFee), Precision, rates[metaJ])
 		dyAdminFee, _ := dyFee.MulDivOverflow(&dyFee, t.AdminFee, FeeDenominator)
