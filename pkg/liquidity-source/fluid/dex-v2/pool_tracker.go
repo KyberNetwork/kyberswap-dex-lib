@@ -130,8 +130,9 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	extra.DexVariables = res.DexPoolState.DexVariablesUnpacked
-	extra.DexVariables2 = res.DexPoolState.DexVariables2Unpacked
+	extra.Liquidity = res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity
+	extra.SqrtPriceX96 = res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96
+	extra.Tick = res.DexPoolState.DexVariablesUnpacked.CurrentTick
 
 	extra.Token0ExchangePricesAndConfig = token0ExchangePricesAndConfig
 	extra.Token1ExchangePricesAndConfig = token1ExchangePricesAndConfig
@@ -150,14 +151,15 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
+	// TODO: Revise reserves calculation
 	var reserve0, reserve1 big.Int
-	if extra.DexVariables.CurrentSqrtPriceX96.Sign() != 0 {
+	if res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96.Sign() != 0 {
 		// reserve0 = liquidity / sqrtPriceX96 * Q96
-		reserve0.Mul(extra.DexVariables2.ActiveLiquidity, uniswapv4.Q96)
-		reserve0.Div(&reserve0, extra.DexVariables.CurrentSqrtPriceX96)
+		reserve0.Mul(res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity, uniswapv4.Q96)
+		reserve0.Div(&reserve0, res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96)
 	}
 	// reserve1 = liquidity * sqrtPriceX96 / Q96
-	reserve1.Mul(extra.DexVariables2.ActiveLiquidity, extra.DexVariables.CurrentSqrtPriceX96)
+	reserve1.Mul(res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity, res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96)
 	reserve1.Div(&reserve1, uniswapv4.Q96)
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
