@@ -82,7 +82,7 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.
 		AddCall(&ethrpc.Call{
 			ABI: priceStrategyABI, Target: priceStrategy.String(), Method: priceStrategyMethodPriceRatio,
 		}, []any{&priceRatio}).Call(); err != nil {
-		logger.Errorf("get price ratio faied err %v", err)
+		logger.Errorf("get price ratio failed err %v", err)
 		return nil, err
 	}
 
