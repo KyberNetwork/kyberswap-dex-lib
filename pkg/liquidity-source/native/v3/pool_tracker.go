@@ -24,6 +24,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -548,7 +549,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		underlyingTokens := make([]*entity.PoolToken, 0, len(rpcState.UnderlyingTokens))
 
 		for i := range rpcState.UnderlyingTokens {
-			if rpcState.UnderlyingTokens[i].Cmp(common.Address{}) == 0 {
+			if rpcState.UnderlyingTokens[i] == valueobject.AddrZero {
 				continue
 			}
 

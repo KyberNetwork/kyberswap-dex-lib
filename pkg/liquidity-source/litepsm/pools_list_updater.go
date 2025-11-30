@@ -15,6 +15,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -123,7 +124,7 @@ func (d *PoolsListUpdater) newPool(ctx context.Context, psmStr string, psmCfg PS
 	}
 	if _, err = req.TryAggregate(); err != nil {
 		return entity.Pool{}, err
-	} else if innerDai != (common.Address{}) {
+	} else if innerDai != valueobject.AddrZero {
 		staticExtra.Dai = &innerDai
 	}
 

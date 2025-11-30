@@ -163,7 +163,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, markets []common.Addre
 		cTokenAddr := hexutil.Encode(market[:])
 
 		var underlyingTokenAddr string
-		if underlyingTokens[i] == (common.Address{}) {
+		if underlyingTokens[i] == valueobject.AddrZero {
 			underlyingTokenAddr = strings.ToLower(valueobject.WrappedNativeMap[u.config.ChainID])
 		} else {
 			underlyingTokenAddr = hexutil.Encode(underlyingTokens[i][:])

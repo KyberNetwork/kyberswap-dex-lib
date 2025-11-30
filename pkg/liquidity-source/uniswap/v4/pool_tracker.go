@@ -588,11 +588,6 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 				return nil, err
 			}
 
-			logger.WithFields(logger.Fields{
-				"address": event.Address,
-				"event":   mint,
-			}).Debug("decode ModifyLiquidity event")
-
 			tickSet[int(mint.TickLower.Int64())] = struct{}{}
 			tickSet[int(mint.TickUpper.Int64())] = struct{}{}
 

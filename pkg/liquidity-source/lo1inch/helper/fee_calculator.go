@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/bps"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/constants"
 	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const Base10000 = 10000
@@ -25,11 +27,11 @@ type ResolverFee struct {
 }
 
 func NewResolverFee(receiver common.Address, fee uint16, whitelistDiscount uint16) (ResolverFee, error) {
-	if receiver == (common.Address{}) && fee != 0 {
+	if receiver == valueobject.AddrZero && fee != 0 {
 		return ResolverFee{}, fmt.Errorf(
 			"%w: fee must be zero if receiver is zero address", ErrInvalidResolverFee)
 	}
-	if receiver != (common.Address{}) && fee == 0 {
+	if receiver != valueobject.AddrZero && fee == 0 {
 		return ResolverFee{}, fmt.Errorf(
 			"%w: receiver must be zero address if fee is zero", ErrInvalidResolverFee)
 	}
@@ -63,17 +65,17 @@ func NewIntegratorFee(
 			return IntegratorFee{}, fmt.Errorf(
 				"%w: share must be zero if fee is zero", ErrInvalidIntegratorFee)
 		}
-		if integrator != (common.Address{}) {
+		if integrator != valueobject.AddrZero {
 			return IntegratorFee{}, fmt.Errorf(
 				"%w: integrator address must be zero if fee is zero", ErrInvalidIntegratorFee)
 		}
-		if protocol != (common.Address{}) {
+		if protocol != valueobject.AddrZero {
 			return IntegratorFee{}, fmt.Errorf(
 				"%w: protocol address must be zero if fee is zero", ErrInvalidIntegratorFee)
 		}
 	}
 
-	if (integrator == (common.Address{}) || protocol == (common.Address{})) && fee != 0 {
+	if (integrator == valueobject.AddrZero || protocol == valueobject.AddrZero) && fee != 0 {
 		return IntegratorFee{}, fmt.Errorf(
 			"%w: fee must be zero if integrator or protocol is zero address", ErrInvalidIntegratorFee)
 	}

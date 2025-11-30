@@ -2,6 +2,8 @@ package helper
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type SettlementPostInteractionData struct {
@@ -13,5 +15,5 @@ type SettlementPostInteractionData struct {
 }
 
 func (s SettlementPostInteractionData) HasFees() bool {
-	return s.IntegratorFeeRecipient != (common.Address{}) || s.ProtocolFeeRecipient != (common.Address{})
+	return s.IntegratorFeeRecipient != valueobject.AddrZero || s.ProtocolFeeRecipient != valueobject.AddrZero
 }
