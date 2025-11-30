@@ -77,7 +77,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	// TODO: Support _verifyAmountLimits check
 	tokenIn, tokenOut := param.TokenAmountIn.Token, param.TokenOut
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {

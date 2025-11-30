@@ -38,4 +38,6 @@ var (
 	X64  = bignumber.NewBig("0xffffffffffffffff")
 	X86  = bignumber.NewBig("0x3fffffffffffffffffffff")
 	X128 = bignumber.NewBig("0x00ffffffffffffffffffffffffffffffffffffffff")
+
+	Q96 = new(big.Int).Lsh(bignumber.One, 96)
 )
