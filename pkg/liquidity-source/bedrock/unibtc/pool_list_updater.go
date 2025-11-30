@@ -120,7 +120,7 @@ func updateExtra(ctx context.Context, extra *PoolExtra, vaultAddr string, cfg Va
 		}, []any{&(extra.SupplyFeeder)})
 	}
 
-	ignoreTokenUsedCaps := cfg.Type == VaultTypeUniBTC && extra.SupplyFeeder == (common.Address{})
+	ignoreTokenUsedCaps := cfg.Type == VaultTypeUniBTC && extra.SupplyFeeder == valueobject.AddrZero
 	for i, token := range cfg.Tokens {
 		if i == len(cfg.Tokens)-1 { //uniBTC
 			extra.TokenUsedCaps[i] = big.NewInt(0)

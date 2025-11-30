@@ -64,7 +64,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		}
 	}
 
-	if extra.RateProviderAddress == (common.Address{}) {
+	if extra.RateProviderAddress == valueobject.AddrZero {
 		if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
 			ABI:    renzoHookABI,
 			Target: h.hook,

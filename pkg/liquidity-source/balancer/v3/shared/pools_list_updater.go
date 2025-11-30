@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -128,7 +129,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*Subgr
 		return nil, err
 	}
 	for i, bufferAsset := range bufferAssets {
-		if bufferAsset == (common.Address{}) {
+		if bufferAsset == valueobject.AddrZero {
 			bufferSet.Remove(buffers[i])
 		}
 	}

@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Config struct {
@@ -35,16 +36,16 @@ type Config struct {
 }
 
 func (c *Config) Validate() error {
-	if common.HexToAddress(c.NativeTokenAddress) == (common.Address{}) {
+	if c.NativeTokenAddress == valueobject.ZeroAddress {
 		return fmt.Errorf("expected NativeTokenAddress")
 	}
-	if common.HexToAddress(c.SwapDexContractAddress) == (common.Address{}) {
+	if c.SwapDexContractAddress == valueobject.ZeroAddress {
 		return fmt.Errorf("expected SwapDexContractAddress")
 	}
-	if common.HexToAddress(c.QueryContractAddress) == (common.Address{}) {
+	if c.QueryContractAddress == valueobject.ZeroAddress {
 		return fmt.Errorf("expected QueryContractAddress")
 	}
-	if common.HexToAddress(c.MulticallContractAddress) == (common.Address{}) {
+	if c.MulticallContractAddress == valueobject.ZeroAddress {
 		return fmt.Errorf("expected MulticallContractAddress")
 	}
 	if c.PoolIdx == nil {

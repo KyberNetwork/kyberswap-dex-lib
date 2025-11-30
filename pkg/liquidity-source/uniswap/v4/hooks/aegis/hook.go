@@ -71,7 +71,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		}
 	}
 
-	if extra.DynamicFeeManagerAddress == (common.Address{}) {
+	if extra.DynamicFeeManagerAddress == valueobject.AddrZero {
 		req := param.RpcClient.NewRequest().SetContext(ctx)
 		req.AddCall(&ethrpc.Call{
 			ABI:    aegisHookABI,

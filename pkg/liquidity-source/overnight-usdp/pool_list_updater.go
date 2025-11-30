@@ -14,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -108,7 +109,7 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 	err error,
 ) {
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	if u.config.Usdc == (common.Address{}) {
+	if u.config.Usdc == valueobject.AddrZero {
 		req.AddCall(&ethrpc.Call{
 			ABI:    exchangeABI,
 			Target: u.config.Exchange,
@@ -117,7 +118,7 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 	} else {
 		usdcAddress = u.config.Usdc
 	}
-	if u.config.UsdPlus == (common.Address{}) {
+	if u.config.UsdPlus == valueobject.AddrZero {
 		req.AddCall(&ethrpc.Call{
 			ABI:    exchangeABI,
 			Target: u.config.Exchange,

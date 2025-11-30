@@ -96,7 +96,7 @@ func updateExtra(ctx context.Context, extra *PoolExtra, cfg *Config, ethrpcClien
 		Method: "getOracle",
 	}, []any{&(extra.Oracle)})
 
-	if extra.Oracle != (common.Address{}) {
+	if extra.Oracle != valueobject.AddrZero {
 		req.AddCall(&ethrpc.Call{
 			ABI:    OracleABI,
 			Target: extra.Oracle.Hex(),

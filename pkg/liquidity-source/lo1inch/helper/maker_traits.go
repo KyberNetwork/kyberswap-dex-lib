@@ -4,6 +4,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // MakerTraits defines the maker's preferences for an order in a single uint256
@@ -115,7 +117,7 @@ func (mt *MakerTraits) IsPrivate() bool {
 
 // WithAllowedSender sets the allowed sender for the order
 func (mt *MakerTraits) WithAllowedSender(sender common.Address) *MakerTraits {
-	if sender == (common.Address{}) {
+	if sender == valueobject.AddrZero {
 		return mt.WithAnySender()
 	}
 	// Take last 10 bytes of the address

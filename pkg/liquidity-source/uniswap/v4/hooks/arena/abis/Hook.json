@@ -1,0 +1,34 @@
+[
+  {
+    "inputs": [],
+    "name": "arenaFeeHelper",
+    "outputs": [
+      {
+        "internalType": "contract IArenaFeeHelperMinimal",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getTotalFeePpm",
+    "outputs": [
+      {
+        "internalType": "int64",
+        "name": "",
+        "type": "int64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

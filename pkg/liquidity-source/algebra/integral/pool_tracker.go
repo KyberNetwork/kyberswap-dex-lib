@@ -256,7 +256,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginAddr common.Address,
 	blockNumber *big.Int) (map[uint16]Timepoint, *VolatilityOraclePlugin, *DynamicFeeConfig, *SlidingFeeConfig, error) {
-	if pluginAddr == (common.Address{}) {
+	if pluginAddr == valueobject.AddrZero {
 		return nil, nil, nil, nil, nil
 	}
 	plugin := hexutil.Encode(pluginAddr[:])

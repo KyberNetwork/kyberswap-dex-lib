@@ -438,7 +438,7 @@ func (p *PoolSimulator) filterOrdersByAllowedSenders(orderIDs []int64, allowedSe
 		// order.AllowedSenders can be multiple, separate by ','.
 		// We only check for single allowedSenders address for now.
 
-		return orderAllowedSender == (common.Address{}) || lo.Contains(allowedSendersAddress, orderAllowedSender)
+		return orderAllowedSender == valueobject.AddrZero || lo.Contains(allowedSendersAddress, orderAllowedSender)
 	})
 }
 
