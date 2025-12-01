@@ -79,7 +79,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
-		extra := Extra{
+		staticExtra := StaticExtra{
 			Dex:         d.config.Dex,
 			DexType:     p.DexType,
 			Fee:         p.Fee,
@@ -87,18 +87,21 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			IsNative:    isNative,
 		}
 		if p.Controller != valueobject.ZeroAddress {
-			extra.Controller = p.Controller
+			staticExtra.Controller = p.Controller
 		}
-		extraBytes, _ := json.Marshal(extra)
+		staticExtraBytes, err := json.Marshal(staticExtra)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
 
 		var newPool = entity.Pool{
-			Address:   encodeFluidDexV2PoolAddress(p.DexId, p.DexType),
-			Exchange:  d.config.DexID,
-			Type:      DexType,
-			Reserves:  []string{"0", "0"},
-			Tokens:    tokens,
-			Extra:     string(extraBytes),
-			Timestamp: time.Now().Unix(),
+			Address:     encodeFluidDexV2PoolAddress(p.DexId, p.DexType),
+			Exchange:    d.config.DexID,
+			Type:        DexType,
+			Reserves:    []string{"0", "0"},
+			Tokens:      tokens,
+			StaticExtra: string(staticExtraBytes),
+			Timestamp:   time.Now().Unix(),
 		}
 
 		pools = append(pools, newPool)

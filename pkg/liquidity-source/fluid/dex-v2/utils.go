@@ -34,6 +34,28 @@ func calculateMappingStorageSlot(slot uint64, key common.Address) common.Hash {
 	return crypto.Keccak256Hash(input)
 }
 
+func calculateTripleMappingStorageSlot(
+	slot uint64, dexType int, dexId common.Hash, tickIdx int,
+) common.Hash {
+	slotBig := new(big.Int).SetUint64(slot)
+	paddedSlot := common.LeftPadBytes(slotBig.Bytes(), 32)
+
+	dexTypeBI := new(big.Int).SetInt64(int64(dexType))
+	key1 := common.LeftPadBytes(dexTypeBI.Bytes(), 32)
+
+	key2 := common.LeftPadBytes(dexId.Bytes(), 32)
+
+	tickIdxBI := new(big.Int).SetInt64(int64(tickIdx))
+	if tickIdxBI.Sign() < 0 {
+		tickIdxBI.Add(tickIdxBI, two256)
+	}
+	key3 := common.LeftPadBytes(tickIdxBI.Bytes(), 32)
+
+	intermediateSlot1 := crypto.Keccak256(append(key1, paddedSlot...))
+	intermediateSlot2 := crypto.Keccak256(append(key2, intermediateSlot1...))
+	return crypto.Keccak256Hash(append(key3, intermediateSlot2...))
+}
+
 func calculateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (*big.Int, *big.Int, error) {
 	L := big.NewInt(0)
 	totalAmount0, totalAmount1 := big.NewInt(0), big.NewInt(0)

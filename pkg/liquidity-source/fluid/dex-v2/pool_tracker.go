@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -27,6 +28,7 @@ type PoolTracker struct {
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterTicksBasedFactoryCEG0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -56,29 +58,26 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(
 	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
 }
 
-func (t *PoolTracker) getNewPoolState(
+func (t *PoolTracker) fetchRPCData(
 	ctx context.Context,
 	p entity.Pool,
-	_ pool.GetNewPoolStateParams,
+	blockNumber uint64,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (entity.Pool, error) {
-	logger.Infof("[%s] Start getting new state of pool %v", t.config.DexID, p.Address)
-
+) (Extra, error) {
 	dexId, dexType := parseFluidDexV2PoolAddress(p.Address)
 
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return entity.Pool{}, err
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return Extra{}, err
 	}
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		req.SetBlockNumber(&blockNumberBI)
+	}
 
-	// At first, I use `var dexPoolState DexPoolState` here, but it causes
-	// error `abi: cannot unmarshal struct {...} in to *big.Int`.
-	// After tracing, I found that if the output is a struct, go-ethereum
-	// only pick the first field of the struct to unmarshal the data (don't know why).
-	// https://github.com/ethereum/go-ethereum/blob/3bbf5f5b6a9cd5ba998f6580586ddf208217e915/accounts/abi/argument.go#L135-L137
-	// So I create a wrapper struct to hold the DexPoolState struct.
 	var res struct {
 		DexPoolState DexPoolState
 	}
@@ -86,7 +85,7 @@ func (t *PoolTracker) getNewPoolState(
 	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    resolverABI,
+		ABI:    abis.ResolverABI,
 		Target: t.config.Resolver,
 		Method: "getDexPoolState",
 		Params: []any{
@@ -98,13 +97,13 @@ func (t *PoolTracker) getNewPoolState(
 	token0Slot := calculateMappingStorageSlot(
 		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
 		lo.Ternary(
-			extra.IsNative[0],
+			staticExtra.IsNative[0],
 			common.HexToAddress(valueobject.NativeAddress),
 			common.HexToAddress(p.Tokens[0].Address),
 		),
 	)
 	req.AddCall(&ethrpc.Call{
-		ABI:    liquidityABI,
+		ABI:    abis.LiquidityABI,
 		Target: t.config.Liquidity,
 		Method: "readFromStorage",
 		Params: []any{token0Slot},
@@ -113,28 +112,46 @@ func (t *PoolTracker) getNewPoolState(
 	token1Slot := calculateMappingStorageSlot(
 		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
 		lo.Ternary(
-			extra.IsNative[1],
+			staticExtra.IsNative[1],
 			common.HexToAddress(valueobject.NativeAddress),
 			common.HexToAddress(p.Tokens[1].Address),
 		),
 	)
 	req.AddCall(&ethrpc.Call{
-		ABI:    liquidityABI,
+		ABI:    abis.LiquidityABI,
 		Target: t.config.Liquidity,
 		Method: "readFromStorage",
 		Params: []any{token1Slot},
 	}, []any{&token1ExchangePricesAndConfig})
 
 	if _, err := req.Aggregate(); err != nil {
-		return entity.Pool{}, err
+		return Extra{}, err
 	}
 
-	extra.Liquidity = res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity
-	extra.SqrtPriceX96 = res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96
-	extra.Tick = res.DexPoolState.DexVariablesUnpacked.CurrentTick
+	extra := Extra{
+		Liquidity:    res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity,
+		SqrtPriceX96: res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96,
+		Tick:         res.DexPoolState.DexVariablesUnpacked.CurrentTick,
 
-	extra.Token0ExchangePricesAndConfig = token0ExchangePricesAndConfig
-	extra.Token1ExchangePricesAndConfig = token1ExchangePricesAndConfig
+		Token0ExchangePricesAndConfig: token0ExchangePricesAndConfig,
+		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
+	}
+
+	return extra, nil
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
+	logger.Infof("[%s] Start getting new state of pool %v", t.config.DexID, p.Address)
+
+	extra, err := t.fetchRPCData(ctx, p, 0, overrides)
+	if err != nil {
+		return entity.Pool{}, err
+	}
 
 	ticks, err := t.fetchPoolTicksFromSubgraph(ctx, p)
 	if err != nil {

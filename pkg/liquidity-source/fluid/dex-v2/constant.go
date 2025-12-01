@@ -9,12 +9,16 @@ import (
 const (
 	DexType         = "fluid-dex-v2"
 	graphFirstLimit = 1000
+	tickChunkSize   = 100
 
 	MIN_TICK = -524287
 	MAX_TICK = -MIN_TICK
 
-	TOKENS_DECIMALS_PRECISION              = 9
-	LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT = 5
+	TOKENS_DECIMALS_PRECISION = 9
+
+	DEX_V2_TICK_LIQUIDITY_GROSS_MAPPING_SLOT = 3 // liquidityGross
+	DEX_V2_TICK_DATA_MAPPING_SLOT            = 4 // liquidityNet
+	LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT   = 5
 
 	BITS_EXCHANGE_PRICES_FEE                   = 16
 	BITS_EXCHANGE_PRICES_UTILIZATION           = 30
@@ -33,6 +37,9 @@ var (
 	LC_EXCHANGE_PRICES_PRECISION = bignumber.TenPowInt(12)
 	TenPow27                     = bignumber.TenPowInt(27)
 	TenPow54                     = bignumber.TenPowInt(54)
+
+	two255 = new(big.Int).Lsh(bignumber.One, 255)
+	two256 = new(big.Int).Lsh(bignumber.One, 256)
 
 	X14  = bignumber.NewBig("0x3fff")
 	X15  = bignumber.NewBig("0x7fff")

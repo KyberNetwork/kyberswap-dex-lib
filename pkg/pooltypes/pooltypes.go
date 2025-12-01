@@ -26,6 +26,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
@@ -192,6 +193,7 @@ type Types struct {
 	Brownfi                    string
 	Camelot                    string
 	Clipper                    string
+	CloberOB                   string
 	CompoundV2                 string
 	CompoundV3                 string
 	CurveAave                  string
@@ -372,6 +374,7 @@ var (
 		Brownfi:                    brownfi.DexType,
 		Camelot:                    camelot.DexTypeCamelot,
 		Clipper:                    clipper.DexType,
+		CloberOB:                   cloberob.DexType,
 		CompoundV2:                 compoundv2.DexType,
 		CompoundV3:                 compoundv3.DexType,
 		CurveAave:                  curve.PoolTypeAave,

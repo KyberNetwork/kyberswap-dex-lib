@@ -44,18 +44,20 @@ type TickResp struct {
 	LiquidityNet   string `json:"liquidityNet"`
 }
 
-type Extra struct {
+type StaticExtra struct {
 	Dex         string  `json:"dex"`
 	DexType     int     `json:"dexType"`
 	Fee         int     `json:"fee"`
 	TickSpacing int     `json:"tickSpacing"`
 	Controller  string  `json:"controller,omitempty"`
 	IsNative    [2]bool `json:"isNative"`
-	Ticks       []Tick  `json:"ticks"`
+}
 
+type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
+	Ticks        []Tick   `json:"ticks"`
 
 	Token0ExchangePricesAndConfig *big.Int `json:"token0ExchangePricesAndConfig"`
 	Token1ExchangePricesAndConfig *big.Int `json:"token1ExchangePricesAndConfig"`

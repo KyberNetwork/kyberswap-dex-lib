@@ -23,11 +23,17 @@ type PoolSimulator struct {
 	token0Decimals int64
 	token1Decimals int64
 	extra          Extra
+	staticExtra    StaticExtra
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &staticExtra); err != nil {
+		return nil, err
+	}
+
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -36,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	extraTickU256 := uniswapv3.ExtraTickU256{
 		Liquidity:    new(uint256.Int),
 		SqrtPriceX96: new(uint256.Int),
-		TickSpacing:  uint64(extra.TickSpacing),
+		TickSpacing:  uint64(staticExtra.TickSpacing),
 	}
 	extraTickU256.Liquidity.SetFromBig(extra.Liquidity)
 	extraTickU256.SqrtPriceX96.SetFromBig(extra.SqrtPriceX96)
@@ -55,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		}
 	})
 	extraTickU256.Ticks = ticks
-	entityPool.SwapFee = float64(extra.Fee)
+	entityPool.SwapFee = float64(staticExtra.Fee)
 
 	v3Simulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, &extraTickU256, false)
 	if err != nil {
@@ -70,13 +76,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		token0Decimals: int64(entityPool.Tokens[0].Decimals),
 		token1Decimals: int64(entityPool.Tokens[1].Decimals),
 		extra:          extra,
+		staticExtra:    staticExtra,
 	}
 
 	return simulator, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if p.extra.Controller != "" {
+	if p.staticExtra.Controller != "" {
 		return nil, ErrUnsupportedController
 	}
 
@@ -216,14 +223,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 
 	return PoolMeta{
-		Dex:         p.extra.Dex,
+		Dex:         p.staticExtra.Dex,
 		ZeroForOne:  tokenInIndex == 0,
-		DexType:     p.extra.DexType,
-		Fee:         p.extra.Fee,
-		TickSpacing: p.extra.TickSpacing,
-		Controller:  p.extra.Controller,
+		DexType:     p.staticExtra.DexType,
+		Fee:         p.staticExtra.Fee,
+		TickSpacing: p.staticExtra.TickSpacing,
+		Controller:  p.staticExtra.Controller,
 
-		IsNativeIn:  p.extra.IsNative[tokenInIndex],
-		IsNativeOut: p.extra.IsNative[tokenOutIndex],
+		IsNativeIn:  p.staticExtra.IsNative[tokenInIndex],
+		IsNativeOut: p.staticExtra.IsNative[tokenOutIndex],
 	}
 }
