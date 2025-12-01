@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -77,6 +76,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if p.extra.Controller != "" {
+		return nil, ErrUnsupportedController
+	}
+
 	tokenIn, tokenOut := param.TokenAmountIn.Token, param.TokenOut
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
@@ -145,6 +148,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
+	swapInfo := amountOutResult.SwapInfo.(uniswapv3.SwapInfo)
+	if (swapInfo.RemainingAmountIn != nil && swapInfo.RemainingAmountIn.Sign() > 0) ||
+		swapInfo.NextStateTickCurrent < MIN_TICK ||
+		swapInfo.NextStateTickCurrent > MAX_TICK {
+		return nil, ErrNextTickOutOfBounds
+	}
+
 	// Adjust amountOut
 	var amountOut big.Int
 	amountOutRawAdjusted := amountOutResult.TokenAmountOut.Amount
@@ -203,14 +213,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	var priceLimit v3Utils.Uint160
-	_ = p.v3Simulator.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
-
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 
 	return PoolMeta{
-		SwapFee:     uint32(p.Info.SwapFee.Int64()),
-		PriceLimit:  &priceLimit,
+		Dex:         p.extra.Dex,
+		ZeroForOne:  tokenInIndex == 0,
+		DexType:     p.extra.DexType,
+		Fee:         p.extra.Fee,
+		TickSpacing: p.extra.TickSpacing,
+		Controller:  p.extra.Controller,
+
 		IsNativeIn:  p.extra.IsNative[tokenInIndex],
 		IsNativeOut: p.extra.IsNative[tokenOutIndex],
 	}

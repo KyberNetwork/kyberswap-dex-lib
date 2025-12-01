@@ -2,8 +2,6 @@ package dexv2
 
 import (
 	"math/big"
-
-	"github.com/holiman/uint256"
 )
 
 type Gas struct {
@@ -12,10 +10,15 @@ type Gas struct {
 }
 
 type PoolMeta struct {
-	SwapFee     uint32       `json:"swapFee"`
-	PriceLimit  *uint256.Int `json:"priceLimit"`
-	IsNativeIn  bool         `json:"isNativeIn,omitempty"`
-	IsNativeOut bool         `json:"isNativeOut,omitempty"`
+	Dex         string `json:"dex"`
+	ZeroForOne  bool   `json:"zeroForOne,omitempty"`
+	DexType     int    `json:"dexType"`
+	Fee         int    `json:"fee"`
+	TickSpacing int    `json:"tickSpacing"`
+	Controller  string `json:"controller,omitempty"`
+
+	IsNativeIn  bool `json:"isNativeIn,omitempty"`
+	IsNativeOut bool `json:"isNativeOut,omitempty"`
 }
 
 type Metadata struct {
@@ -42,6 +45,7 @@ type TickResp struct {
 }
 
 type Extra struct {
+	Dex         string  `json:"dex"`
 	DexType     int     `json:"dexType"`
 	Fee         int     `json:"fee"`
 	TickSpacing int     `json:"tickSpacing"`

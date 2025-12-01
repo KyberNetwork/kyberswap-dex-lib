@@ -10,6 +10,9 @@ const (
 	DexType         = "fluid-dex-v2"
 	graphFirstLimit = 1000
 
+	MIN_TICK = -524287
+	MAX_TICK = -MIN_TICK
+
 	TOKENS_DECIMALS_PRECISION              = 9
 	LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT = 5
 

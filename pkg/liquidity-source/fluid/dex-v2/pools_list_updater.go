@@ -80,6 +80,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		extra := Extra{
+			Dex:         d.config.Dex,
 			DexType:     p.DexType,
 			Fee:         p.Fee,
 			TickSpacing: p.TickSpacing,
