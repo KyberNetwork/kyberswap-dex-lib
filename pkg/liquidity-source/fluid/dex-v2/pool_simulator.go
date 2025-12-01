@@ -30,7 +30,7 @@ var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &staticExtra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
