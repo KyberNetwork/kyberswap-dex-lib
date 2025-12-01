@@ -156,14 +156,6 @@ func (p *PoolSimulator) calcOut(amountIn *big.Int, tokenIn, tokenOut *entity.Poo
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: tokenIn.Address, Amount: bignumber.ZeroBI},
 		Gas:            p.Gas.Base + levels*p.Gas.Level,
-		SwapInfo: SwapInfo{
-			BaseToken:          tokenIn.Address,
-			BaseTokenAmount:    amountIn.String(),
-			BaseTokenDecimals:  tokenIn.Decimals,
-			QuoteToken:         tokenOut.Address,
-			QuoteTokenAmount:   amountOut.String(),
-			QuoteTokenDecimals: tokenOut.Decimals,
-		},
 	}, nil
 }
 
@@ -184,14 +176,6 @@ func (p *PoolSimulator) calcIn(amountOut *big.Int, tokenIn, tokenOut *entity.Poo
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn.Address, Amount: amountIn},
 		Fee:           &pool.TokenAmount{Token: tokenIn.Address, Amount: bignumber.ZeroBI},
 		Gas:           p.Gas.Base + levels*p.Gas.Level,
-		SwapInfo: SwapInfo{
-			BaseToken:          tokenIn.Address,
-			BaseTokenAmount:    amountIn.String(),
-			BaseTokenDecimals:  tokenIn.Decimals,
-			QuoteToken:         tokenOut.Address,
-			QuoteTokenAmount:   amountOut.String(),
-			QuoteTokenDecimals: tokenOut.Decimals,
-		},
 	}, nil
 }
 

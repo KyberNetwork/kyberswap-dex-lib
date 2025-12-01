@@ -82,7 +82,6 @@ import (
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
-	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -463,7 +462,6 @@ var (
 		MakerSavingsDai:            savingsdai.DexType,
 		HashflowV3:                 hashflowv3.DexType,
 		NomiSwapStable:             nomiswap.DexType,
-		NativeV1:                   nativev1.DexType,
 		NativeV3:                   nativev3.DexType,
 		RenzoEZETH:                 ezeth.DexType,
 		Slipstream:                 slipstream.DexType,
