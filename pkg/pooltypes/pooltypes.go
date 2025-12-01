@@ -279,7 +279,6 @@ type Types struct {
 	MakerSavingsDai            string
 	HashflowV3                 string
 	NomiSwapStable             string
-	NativeV1                   string
 	NativeV3                   string
 	RenzoEZETH                 string
 	Slipstream                 string
