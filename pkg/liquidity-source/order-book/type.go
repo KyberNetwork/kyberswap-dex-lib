@@ -21,12 +21,3 @@ func (l *Level) SetSize(s float64) {
 func (l *Level) Price() float64 {
 	return l[1]
 }
-
-type SwapInfo struct {
-	BaseToken          string `json:"b"`
-	BaseTokenAmount    string `json:"bAmt"`
-	QuoteToken         string `json:"q"`
-	QuoteTokenAmount   string `json:"qAmt"`
-	BaseTokenDecimals  uint8  `json:"bDec"`
-	QuoteTokenDecimals uint8  `json:"qDec"`
-}

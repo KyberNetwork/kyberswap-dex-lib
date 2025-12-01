@@ -57,6 +57,21 @@ func WrapNativeLower(token string, chainID ChainID) string {
 	return strings.ToLower(token)
 }
 
+func ZeroToWrappedLower(address string, chainID ChainID) string {
+	if IsZero(address) {
+		return strings.ToLower(WrappedNativeMap[chainID])
+	}
+
+	return strings.ToLower(address)
+}
+
+func WrapNativeZeroLower(token string, chainID ChainID) string {
+	if IsNativeOrZero(token) {
+		token = WrappedNativeMap[chainID]
+	}
+	return strings.ToLower(token)
+}
+
 // UnwrapNativeLower unwraps, if applicable, wrapped token to native token; and then lowercase it.
 func UnwrapNativeLower(token string, chainID ChainID) string {
 	if IsWrappedNative(token, chainID) {
@@ -77,10 +92,6 @@ func IsZero(address string) bool {
 	return address == ZeroAddress
 }
 
-func ZeroToWrappedLower(address string, chainID ChainID) string {
-	if IsZero(address) {
-		return strings.ToLower(WrappedNativeMap[chainID])
-	}
-
-	return strings.ToLower(address)
+func IsNativeOrZero(address string) bool {
+	return IsNative(address) || IsZero(address)
 }
