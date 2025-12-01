@@ -25,6 +25,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
@@ -301,6 +302,7 @@ type Types struct {
 	FluidDexLite               string
 	MantleETH                  string
 	OndoUSDY                   string
+	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
 	SfrxETH                    string
@@ -483,6 +485,7 @@ var (
 		FluidDexLite:               fluidDexLite.DexType,
 		MantleETH:                  meth.DexType,
 		OndoUSDY:                   ondousdy.DexType,
+		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
 		SfrxETH:                    sfrxeth.DexType,
