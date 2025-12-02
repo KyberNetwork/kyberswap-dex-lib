@@ -12,15 +12,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-func encodeFluidDexV2PoolAddress(dexId string, dexType int) string {
-	return fmt.Sprintf("%s_d%d", dexId, dexType)
+func encodeFluidDexV2PoolAddress(dexId string, dexType uint32) string {
+	return fmt.Sprintf("%s_%d", dexId, dexType)
 }
 
-func parseFluidDexV2PoolAddress(address string) (string, int) {
-	parts := strings.Split(address, "_d")
+func parseFluidDexV2PoolAddress(address string) (string, uint32) {
+	parts := strings.Split(address, "_")
 	dexType, _ := strconv.Atoi(parts[1])
 
-	return parts[0], dexType
+	return parts[0], uint32(dexType)
 }
 
 func calculateMappingStorageSlot(slot uint64, key common.Address) common.Hash {
@@ -35,7 +35,7 @@ func calculateMappingStorageSlot(slot uint64, key common.Address) common.Hash {
 }
 
 func calculateTripleMappingStorageSlot(
-	slot uint64, dexType int, dexId common.Hash, tickIdx int,
+	slot uint64, dexType uint32, dexId common.Hash, tickIdx int,
 ) common.Hash {
 	slotBig := new(big.Int).SetUint64(slot)
 	paddedSlot := common.LeftPadBytes(slotBig.Bytes(), 32)

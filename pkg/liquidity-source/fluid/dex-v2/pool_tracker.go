@@ -3,7 +3,6 @@ package dexv2
 import (
 	"context"
 	"encoding/binary"
-	"math"
 	"math/big"
 	"time"
 
@@ -186,12 +185,8 @@ func (t *PoolTracker) fetchPoolTicksFromSubgraph(
 ) ([]Tick, error) {
 	dexId, dexType := parseFluidDexV2PoolAddress(p.Address)
 
-	if dexType < 0 || dexType > int(math.MaxUint32) {
-		return nil, ErrValueOutOfBounds
-	}
-
 	dexTypeBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(dexTypeBytes, uint32(dexType))
+	binary.LittleEndian.PutUint32(dexTypeBytes, dexType)
 
 	dexIdBytes := common.Hex2Bytes(dexId[2:])
 

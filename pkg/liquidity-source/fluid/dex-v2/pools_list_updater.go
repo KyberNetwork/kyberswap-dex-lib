@@ -101,6 +101,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Reserves:    []string{"0", "0"},
 			Tokens:      tokens,
 			StaticExtra: string(staticExtraBytes),
+			Extra:       "{}",
 			Timestamp:   time.Now().Unix(),
 		}
 

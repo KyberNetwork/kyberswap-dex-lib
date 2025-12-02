@@ -12,9 +12,9 @@ type Gas struct {
 type PoolMeta struct {
 	Dex         string `json:"dex"`
 	ZeroForOne  bool   `json:"zeroForOne,omitempty"`
-	DexType     int    `json:"dexType"`
-	Fee         int    `json:"fee"`
-	TickSpacing int    `json:"tickSpacing"`
+	DexType     uint32 `json:"dexType"`
+	Fee         uint32 `json:"fee"`
+	TickSpacing uint32 `json:"tickSpacing"`
 	Controller  string `json:"controller,omitempty"`
 
 	IsNativeIn  bool `json:"isNativeIn,omitempty"`
@@ -29,11 +29,11 @@ type Metadata struct {
 type SubgraphPool struct {
 	ID          string `json:"id"`
 	DexId       string `json:"dexId"`
-	DexType     int    `json:"dexType"`
+	DexType     uint32 `json:"dexType"`
 	Token0      string `json:"token0"`
 	Token1      string `json:"token1"`
-	Fee         int    `json:"fee"`
-	TickSpacing int    `json:"tickSpacing"`
+	Fee         uint32 `json:"fee"`
+	TickSpacing uint32 `json:"tickSpacing"`
 	Controller  string `json:"controller"`
 	CreatedAt   int    `json:"createdAt"`
 }
@@ -46,9 +46,9 @@ type TickResp struct {
 
 type StaticExtra struct {
 	Dex         string  `json:"dex"`
-	DexType     int     `json:"dexType"`
-	Fee         int     `json:"fee"`
-	TickSpacing int     `json:"tickSpacing"`
+	DexType     uint32  `json:"dexType"`
+	Fee         uint32  `json:"fee"`
+	TickSpacing uint32  `json:"tickSpacing"`
 	Controller  string  `json:"controller,omitempty"`
 	IsNative    [2]bool `json:"isNative"`
 }

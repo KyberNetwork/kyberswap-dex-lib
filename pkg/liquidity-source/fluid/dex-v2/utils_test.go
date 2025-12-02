@@ -8,7 +8,7 @@ import (
 )
 
 func TestCalcTripleSlot(t *testing.T) {
-	poolAddress := "0x8d1b5f8da63fa29b191672231d3845740a11fcbef6c76e077cfffe56cc27c707_d3"
+	poolAddress := "0x8d1b5f8da63fa29b191672231d3845740a11fcbef6c76e077cfffe56cc27c707_3"
 	dexID, dexType := parseFluidDexV2PoolAddress(poolAddress)
 
 	tickIdx := 100

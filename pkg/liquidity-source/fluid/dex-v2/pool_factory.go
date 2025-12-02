@@ -1,10 +1,10 @@
 package dexv2
 
 import (
-	"encoding/hex"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
@@ -45,14 +45,14 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 }
 
 func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint64) (*entity.Pool, error) {
-	poolAddress := encodeFluidDexV2PoolAddress(hex.EncodeToString(p.DexId[:]), int(p.DexType.Int64()))
+	poolAddress := encodeFluidDexV2PoolAddress(hexutil.Encode(p.DexId[:]), uint32(p.DexType.Uint64()))
 
 	token0 := entity.PoolToken{
-		Address:   p.DexType.String(),
+		Address:   p.DexKey.Token0.Hex(),
 		Swappable: true,
 	}
 	token1 := entity.PoolToken{
-		Address:   p.DexType.String(),
+		Address:   p.DexKey.Token1.Hex(),
 		Swappable: true,
 	}
 
@@ -67,12 +67,12 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 
 	staticExtra := StaticExtra{
 		Dex:         f.config.Dex,
-		DexType:     int(p.DexType.Int64()),
-		Fee:         int(p.DexKey.Fee.Int64()),
-		TickSpacing: int(p.DexKey.TickSpacing.Int64()),
+		DexType:     uint32(p.DexType.Uint64()),
+		Fee:         uint32(p.DexKey.Fee.Uint64()),
+		TickSpacing: uint32(p.DexKey.TickSpacing.Uint64()),
 		IsNative:    isNative,
 	}
-	if p.DexKey.Controller.String() != valueobject.ZeroAddress {
+	if p.DexKey.Controller != valueobject.AddrZero {
 		staticExtra.Controller = p.DexKey.Controller.String()
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
@@ -87,6 +87,7 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 		Reserves:    []string{"0", "0"},
 		Tokens:      tokens,
 		StaticExtra: string(staticExtraBytes),
+		Extra:       "{}",
 		BlockNumber: blockNumber,
 		Timestamp:   time.Now().Unix(),
 	}, nil
