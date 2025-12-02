@@ -14,7 +14,7 @@ type PoolSwapInfo = uniswapv3.SwapInfo
 
 type SwapInfo struct {
 	PoolSwapInfo
-	hookSwapInfo any
+	HookSwapInfo any
 }
 
 type SubgraphToken struct {

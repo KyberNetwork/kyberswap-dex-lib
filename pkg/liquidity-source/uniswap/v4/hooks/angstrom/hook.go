@@ -3,7 +3,9 @@ package angstrom
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,6 +16,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+var ErrOutdatedAttestations = errors.New("outdated attestations")
+
 type Hook struct {
 	uniswapv4.Hook
 
@@ -22,6 +26,8 @@ type Hook struct {
 	asset1 common.Address
 
 	extra HookExtra
+
+	attestationController *AttestationController
 }
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
@@ -44,6 +50,21 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		}
 
 		hook.extra = extra
+	}
+
+	hookCfgProperties, exist := param.Cfg.HookConfigs[param.HookAddress]
+	if exist {
+		var hookCfg HookConfig
+		data, err := json.Marshal(hookCfgProperties)
+		if err != nil {
+			return hook
+		}
+
+		if err := json.Unmarshal(data, &hookCfg); err != nil {
+			return hook
+		}
+
+		hook.attestationController = GetAttestationController(hookCfg)
 	}
 
 	return hook
@@ -82,6 +103,14 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	extra.UnlockedFee = unlockedFee
 	extra.ProtocolUnlockedFee = protocolUnlockedFee
 
+	if h.attestationController != nil {
+		attestations, attestationTime := h.attestationController.GetLatestAttestations()
+		if len(attestations) > 0 {
+			extra.LatestAttestations = attestations
+			extra.LatestAttestationsTime = attestationTime.Unix()
+		}
+	}
+
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return "", err
@@ -91,10 +120,19 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 }
 
 func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	if time.Since(time.Unix(h.extra.LatestAttestationsTime, 0)) > time.Minute {
+		return nil, ErrOutdatedAttestations
+	}
+
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   bignumber.ZeroBI,
 		DeltaUnspecified: bignumber.ZeroBI,
 		SwapFee:          uniswapv4.FeeAmount(h.extra.UnlockedFee.Uint64()),
+
+		SwapInfo: SwapInfo{
+			Adapter:      Adapter,
+			Attestations: h.extra.LatestAttestations,
+		},
 	}, nil
 }
 

@@ -99,7 +99,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			if beforeSwapResult != nil {
 				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnspecified)
 				swapResult.Gas += beforeSwapResult.Gas
-				v4SwapInfo.hookSwapInfo = beforeSwapResult.SwapInfo
+				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
@@ -234,7 +234,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			if beforeSwapResult != nil {
 				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnspecified)
 				swapResult.Gas += beforeSwapResult.Gas
-				v4SwapInfo.hookSwapInfo = beforeSwapResult.SwapInfo
+				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
@@ -445,7 +445,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	if p.hook != nil {
-		p.hook.UpdateBalance(v4SwapInfo.hookSwapInfo)
+		p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
 	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
 	p.PoolSimulator.UpdateBalance(params)
