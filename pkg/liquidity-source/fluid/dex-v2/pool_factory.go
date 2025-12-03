@@ -1,6 +1,7 @@
 package dexv2
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -11,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -48,11 +50,11 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 	poolAddress := encodeFluidDexV2PoolAddress(hexutil.Encode(p.DexId[:]), uint32(p.DexType.Uint64()))
 
 	token0 := entity.PoolToken{
-		Address:   p.DexKey.Token0.Hex(),
+		Address:   hexutil.Encode(p.DexKey.Token0[:]),
 		Swappable: true,
 	}
 	token1 := entity.PoolToken{
-		Address:   p.DexKey.Token1.Hex(),
+		Address:   hexutil.Encode(p.DexKey.Token1[:]),
 		Swappable: true,
 	}
 
@@ -91,4 +93,63 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 		BlockNumber: blockNumber,
 		Timestamp:   time.Now().Unix(),
 	}, nil
+}
+
+func DecodePoolAddress(log ethtypes.Log) (string, error) {
+	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
+		return "", nil
+	}
+
+	dexId, dexType, err := func() ([32]byte, *big.Int, error) {
+		switch log.Topics[0] {
+		case abis.DexV2ABI.Events["LogInitialize"].ID:
+			p, err := abis.DexV2PoolFilterer.ParseLogInitialize(log)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+
+			return p.DexId, p.DexType, nil
+
+		case abis.DexV2ABI.Events["LogDeposit"].ID:
+			p, err := abis.DexV2PoolFilterer.ParseLogDeposit(log)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+
+			return p.DexId, p.DexType, nil
+
+		case abis.DexV2ABI.Events["LogWithdraw"].ID:
+			p, err := abis.DexV2PoolFilterer.ParseLogWithdraw(log)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+
+			return p.DexId, p.DexType, nil
+
+		case abis.DexV2ABI.Events["LogBorrow"].ID:
+			p, err := abis.DexV2PoolFilterer.ParseLogBorrow(log)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+
+			return p.DexId, p.DexType, nil
+
+		case abis.DexV2ABI.Events["LogPayback"].ID:
+			p, err := abis.DexV2PoolFilterer.ParseLogPayback(log)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+
+			return p.DexId, p.DexType, nil
+
+		default:
+			return [32]byte{}, nil, nil
+		}
+	}()
+
+	if err != nil {
+		return "", err
+	}
+
+	return encodeFluidDexV2PoolAddress(hexutil.Encode(dexId[:]), uint32(dexType.Uint64())), nil
 }
