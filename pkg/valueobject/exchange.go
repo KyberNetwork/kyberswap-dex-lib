@@ -158,6 +158,7 @@ const (
 	ExchangeFenix                      = "fenix"
 	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
+	ExchangeFluidDexV2                 = "fluid-dex-v2"
 	ExchangeFluidVaultT1               = "fluid-vault-t1"
 	ExchangeFraxSwap                   = "fraxswap"
 	ExchangeFrxETH                     = "frxeth"

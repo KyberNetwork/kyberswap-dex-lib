@@ -54,6 +54,7 @@ import (
 	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
+	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
@@ -345,6 +346,7 @@ type Types struct {
 	Gsm4626                    string
 	NadFun                     string
 	CloberOB                   string
+	FluidDexV2                 string
 }
 
 var (
@@ -527,5 +529,6 @@ var (
 		Gsm4626:                    gsm4626.DexType,
 		NadFun:                     nadfun.DexType,
 		CloberOB:                   cloberob.DexType,
+		FluidDexV2:                 dexv2.DexType,
 	}
 )
