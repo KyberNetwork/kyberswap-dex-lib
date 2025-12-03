@@ -18,7 +18,7 @@ func encodeFluidDexV2PoolAddress(dexId string, dexType uint32) string {
 
 func parseFluidDexV2PoolAddress(address string) (string, uint32) {
 	parts := strings.Split(address, "_")
-	dexType, _ := strconv.Atoi(parts[1])
+	dexType, _ := strconv.ParseUint(parts[1], 10, 32)
 
 	return parts[0], uint32(dexType)
 }
