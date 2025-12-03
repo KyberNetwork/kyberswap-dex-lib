@@ -127,8 +127,7 @@ type PoolManagerExtraData struct {
 }
 
 type FindRouteState struct {
-	Pools                   map[string]IPoolSimulator // map PoolAddress-IPoolSimulator implementation
-	SwapLimit               map[string]SwapLimit      // map dexType-SwapLimit
-	StateRoot               common.Hash               // aevm state root
-	PublishedPoolsStorageID string                    // last published pools
+	Pools     map[string]IPoolSimulator // map PoolAddress-IPoolSimulator implementation
+	SwapLimit map[string]SwapLimit      // map dexType-SwapLimit
+	StateRoot common.Hash               // aevm state root
 }

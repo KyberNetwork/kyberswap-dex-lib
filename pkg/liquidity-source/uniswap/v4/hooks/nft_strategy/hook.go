@@ -50,9 +50,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Method: "deploymentBlock",
 		Params: []any{common.HexToAddress(param.Pool.Tokens[1].Address)},
 	}, []any{&deploymentBlock}).TryBlockAndAggregate()
-	if err != nil || resp.BlockNumber == nil {
-		return "", err
-	} else if deploymentBlock == 0 {
+	if err != nil || resp.BlockNumber == nil || deploymentBlock == 0 {
 		return "{}", nil
 	}
 
