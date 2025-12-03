@@ -11,9 +11,6 @@ const (
 	graphFirstLimit = 1000
 	tickChunkSize   = 100
 
-	MIN_TICK = -524287
-	MAX_TICK = -MIN_TICK
-
 	TOKENS_DECIMALS_PRECISION = 9
 
 	DEX_V2_TICK_LIQUIDITY_GROSS_MAPPING_SLOT = 3 // liquidityGross

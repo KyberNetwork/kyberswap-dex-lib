@@ -106,31 +106,31 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	var amountInRawAdjusted big.Int
+	var amountInRawAdjusted, tmp1, tmp2, tmp3 big.Int
 	if zeroForOne {
 		amountInRawAdjusted.Div(
-			new(big.Int).Mul(
-				new(big.Int).Mul(
+			tmp1.Mul(
+				tmp2.Mul(
 					amountIn,
 					LC_EXCHANGE_PRICES_PRECISION,
 				),
 				c.Token0NumeratorPrecision,
 			),
-			new(big.Int).Mul(
+			tmp3.Mul(
 				c.Token0SupplyExchangePrice,
 				c.Token0DenominatorPrecision,
 			),
 		)
 	} else {
 		amountInRawAdjusted.Div(
-			new(big.Int).Mul(
-				new(big.Int).Mul(
+			tmp1.Mul(
+				tmp2.Mul(
 					param.TokenAmountIn.Amount,
 					LC_EXCHANGE_PRICES_PRECISION,
 				),
 				c.Token1NumeratorPrecision,
 			),
-			new(big.Int).Mul(
+			tmp3.Mul(
 				c.Token1SupplyExchangePrice,
 				c.Token1DenominatorPrecision,
 			),
@@ -156,9 +156,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	swapInfo := amountOutResult.SwapInfo.(uniswapv3.SwapInfo)
-	if (swapInfo.RemainingAmountIn != nil && swapInfo.RemainingAmountIn.Sign() > 0) ||
-		swapInfo.NextStateTickCurrent < MIN_TICK ||
-		swapInfo.NextStateTickCurrent > MAX_TICK {
+	if swapInfo.RemainingAmountIn != nil && swapInfo.RemainingAmountIn.Sign() > 0 {
 		return nil, ErrNextTickOutOfBounds
 	}
 
@@ -171,28 +169,28 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	if zeroForOne {
 		amountOut.Div(
-			new(big.Int).Mul(
-				new(big.Int).Mul(
+			tmp1.Mul(
+				tmp2.Mul(
 					amountOutRawAdjusted,
 					c.Token1DenominatorPrecision,
 				),
 				c.Token1SupplyExchangePrice,
 			),
-			new(big.Int).Mul(
+			tmp3.Mul(
 				c.Token1NumeratorPrecision,
 				LC_EXCHANGE_PRICES_PRECISION,
 			),
 		)
 	} else {
 		amountOut.Div(
-			new(big.Int).Mul(
-				new(big.Int).Mul(
+			tmp1.Mul(
+				tmp2.Mul(
 					amountOutRawAdjusted,
 					c.Token0DenominatorPrecision,
 				),
 				c.Token0SupplyExchangePrice,
 			),
-			new(big.Int).Mul(
+			tmp3.Mul(
 				c.Token0NumeratorPrecision,
 				LC_EXCHANGE_PRICES_PRECISION,
 			),
