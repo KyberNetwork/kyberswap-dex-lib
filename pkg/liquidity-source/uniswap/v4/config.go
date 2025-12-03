@@ -2,6 +2,8 @@ package uniswapv4
 
 import (
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Config struct {
@@ -18,6 +20,8 @@ type Config struct {
 	TimeThresholdByPool map[string]time.Duration `json:"timeThreshold"` // blocks swap after any event
 
 	FetchTickFromStateView bool // instead of fetching from subgraph
+
+	HookConfigs map[common.Address]any `json:"hookConfigs" mapstructure:"hookConfigs"`
 }
 
 func (c *Config) IsAllowSubgraphError() bool {

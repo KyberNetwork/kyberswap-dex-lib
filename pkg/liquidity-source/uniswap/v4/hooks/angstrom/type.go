@@ -9,9 +9,12 @@ import (
 type HookExtra struct {
 	UnlockedFee         *big.Int `json:"uFee"`
 	ProtocolUnlockedFee *big.Int `json:"pFee"`
+
+	LatestAttestations     []Attestation `json:"latestAttestations,omitempty"`
+	LatestAttestationsTime int64         `json:"latestAttestationsTime,omitempty"`
 }
 
-type RFQExtra struct {
+type SwapInfo struct {
 	Adapter      common.Address
 	Attestations []Attestation
 }

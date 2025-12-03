@@ -4,10 +4,10 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 )
 
-type RFQConfig struct {
-	HTTP           HTTPConfig            `mapstructure:"http"`
-	BlocksInFuture int                   `mapstructure:"blocksInFuture"`
-	CacheTTL       durationjson.Duration `mapstructure:"cacheTtl"`
+type HookConfig struct {
+	HTTP            HTTPConfig            `mapstructure:"http"`
+	BlocksInFuture  int                   `mapstructure:"blocksInFuture"`
+	RefreshInterval durationjson.Duration `mapstructure:"refreshInterval"`
 }
 
 type HTTPConfig struct {
