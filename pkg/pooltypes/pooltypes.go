@@ -509,6 +509,7 @@ var (
 		Pmm1:                       valueobject.ExchangePmm1,
 		Pmm2:                       valueobject.ExchangePmm2,
 		Pmm3:                       valueobject.ExchangePmm3,
+		SwaapV2:                    valueobject.ExchangeSwaapV2,
 		UniswapLO:                  uniswaplo.DexType,
 		EulerSwap:                  eulerswap.DexType,
 		AaveV3:                     aavev3.DexType,
