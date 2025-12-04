@@ -515,9 +515,7 @@ func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
 	return swaplimit.NewInventory(DexTypeLimitOrder, balance)
 }
 
-func (s *PoolSimulator) CanSwapFrom(address string) []string { return s.CanSwapTo(address) }
-
-func (s *PoolSimulator) CanSwapTo(address string) []string {
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	if s.GetTokenIndex(address) == -1 {
 		return nil
 	}
@@ -526,6 +524,21 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	for _, order := range s.ordersMapping {
 		if order.TakerAsset == address {
 			result = append(result, order.MakerAsset)
+		}
+	}
+
+	return result
+}
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	if s.GetTokenIndex(address) == -1 {
+		return nil
+	}
+	result := make([]string, 0, len(s.Info.Tokens)-1)
+	// check sellOrders
+	for _, order := range s.ordersMapping {
+		if order.MakerAsset == address {
+			result = append(result, order.TakerAsset)
 		}
 	}
 
