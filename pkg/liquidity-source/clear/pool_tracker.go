@@ -106,10 +106,16 @@ func (d *PoolTracker) GetNewPoolState(
 		reserve1 = "1000000000000000000000000"
 	}
 
+	// Ensure AmountOut is not nil before converting
+	amountOut := previewResult.AmountOut
+	if amountOut == nil {
+		amountOut = big.NewInt(0)
+	}
+
 	extra := Extra{
 		Reserves: map[string]*uint256.Int{
 			strings.ToLower(token0): uint256.MustFromBig(testAmount),
-			strings.ToLower(token1): uint256.MustFromBig(previewResult.AmountOut),
+			strings.ToLower(token1): uint256.MustFromBig(amountOut),
 		},
 		Paused: paused,
 	}

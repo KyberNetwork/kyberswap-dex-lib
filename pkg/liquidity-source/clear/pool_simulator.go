@@ -174,6 +174,10 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 		return nil, nil, ErrPoolNotFound
 	}
 
+	// Create timeout context before building the request
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	var amountOut, ious *big.Int
 
 	calls := ethrpcClient.NewRequest().SetContext(ctx)
@@ -188,9 +192,6 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 			amountIn,
 		},
 	}, []any{&amountOut, &ious})
-
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
