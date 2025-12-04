@@ -514,3 +514,13 @@ type Inventory = swaplimit.Inventory
 func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
 	return swaplimit.NewInventory(DexTypeLimitOrder, balance)
 }
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string { return s.CanSwapTo(address) }
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	tokenIndex := s.GetTokenIndex(address)
+	if tokenIndex != 0 {
+		return nil
+	}
+	return []string{s.Info.Tokens[1]}
+}
