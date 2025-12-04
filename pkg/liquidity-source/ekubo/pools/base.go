@@ -271,12 +271,13 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 
 	priceLimit := sqrtRatioLimit
 	if isIncreasing {
-		if lowerTickBound := p.TickBounds[1]; lowerTickBound < ekubomath.MaxTick {
-			priceLimit = ekubomath.ToSqrtRatio(lowerTickBound)
+		if upperTickBound := p.TickBounds[1] + 1; upperTickBound < ekubomath.MaxTick {
+			priceLimit = ekubomath.ToSqrtRatio(upperTickBound)
 		}
-	} else if upperTickBound := p.TickBounds[0]; upperTickBound > ekubomath.MinTick {
-		priceLimit = ekubomath.ToSqrtRatio(upperTickBound)
+	} else if lowerTickBound := p.TickBounds[0] - 1; lowerTickBound > ekubomath.MinTick {
+		priceLimit = ekubomath.ToSqrtRatio(lowerTickBound)
 	}
+	priceLimit = ekubomath.FixedSqrtRatioToFloat(priceLimit, isIncreasing)
 
 	return &quoting.Quote{
 		ConsumedAmount:   amountRemaining.Sub(amount, &amountRemaining),

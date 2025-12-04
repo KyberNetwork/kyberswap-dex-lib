@@ -2,6 +2,7 @@ package math
 
 import (
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
@@ -11,11 +12,40 @@ var (
 	notBitMask = uint256.MustFromHex("0x3fffffffffffffffffffffff")
 )
 
+// FloatSqrtRatio
+// A dynamic fixed point number (a la floating point) that stores a shifting 94 bit view of the underlying fixed point
+// value, based on the most significant bits (mantissa)
+// If the most significant 2 bits are 11, it represents a 64.30
+// If the most significant 2 bits are 10, it represents a 32.62 number
+// If the most significant 2 bits are 01, it represents a 0.94 number
+// If the most significant 2 bits are 00, it represents a 0.126 number that is always less than 2**-32
+
 func FloatSqrtRatioToFixed(sqrtRatioFloat *uint256.Int) *uint256.Int {
 	var tmp uint256.Int
 	op2 := tmp.Rsh(tmp.And(sqrtRatioFloat, bitMask), 89).Uint64() + 2
 	op1 := tmp.And(sqrtRatioFloat, notBitMask)
 	return op1.Lsh(op1, uint(op2))
+}
+
+func FixedSqrtRatioToFloat(sqrtRatioFixed *uint256.Int, roundUp bool) *uint256.Int {
+	var tmp uint256.Int
+	added := lo.IfF(roundUp, func() *uint256.Int { return tmp.AddUint64(sqrtRatioFixed, 3) }).Else(sqrtRatioFixed)
+	if added.Lt(big256.U2Pow96) {
+		return added.Rsh(added, 2)
+	}
+
+	added = lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU34) }).Else(sqrtRatioFixed)
+	if added.Lt(big256.U2Pow128) {
+		return added.Rsh(added, 34).Or(added, big256.U2Pow94)
+	}
+
+	added = lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU66) }).Else(sqrtRatioFixed)
+	if added.Lt(big256.U2Pow160) {
+		return added.Rsh(added, 66).Or(added, big256.U2Pow95)
+	}
+
+	added = lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU98) }).Else(sqrtRatioFixed)
+	return added.Rsh(added, 98).Or(added, bitMask)
 }
 
 func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *uint256.Int) (*uint256.Int, error) {

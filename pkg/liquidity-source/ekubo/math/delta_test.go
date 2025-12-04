@@ -139,7 +139,7 @@ func TestAmount1(t *testing.T) {
 		_, err := Amount1Delta(
 			MinSqrtRatio,
 			MaxSqrtRatio,
-			big256.UMaxUint128,
+			big256.UMaxU128,
 			false,
 		)
 		require.Error(t, err)
