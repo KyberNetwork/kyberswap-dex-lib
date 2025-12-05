@@ -514,3 +514,39 @@ type Inventory = swaplimit.Inventory
 func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
 	return swaplimit.NewInventory(DexTypeLimitOrder, balance)
 }
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	if s.GetTokenIndex(address) == -1 {
+		return nil
+	}
+	result := make([]string, 0, len(s.Info.Tokens)-1)
+	for _, token := range s.GetTokens() {
+		if token == address {
+			continue
+		}
+		orderIds := s.getOrderIDsBySwapSide(s.getSwapSide(address, token))
+		if len(orderIds) != 0 {
+			result = append(result, token)
+		}
+	}
+
+	return result
+}
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	if s.GetTokenIndex(address) == -1 {
+		return nil
+	}
+	result := make([]string, 0, len(s.Info.Tokens)-1)
+	for _, token := range s.GetTokens() {
+		if token == address {
+			continue
+		}
+		orderIds := s.getOrderIDsBySwapSide(s.getSwapSide(token, address))
+		if len(orderIds) != 0 {
+			result = append(result, token)
+		}
+	}
+
+	return result
+}
