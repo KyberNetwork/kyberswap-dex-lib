@@ -520,10 +520,13 @@ func (s *PoolSimulator) CanSwapFrom(address string) []string {
 		return nil
 	}
 	result := make([]string, 0, len(s.Info.Tokens)-1)
-	// check sellOrders
-	for _, order := range s.ordersMapping {
-		if order.TakerAsset == address {
-			result = append(result, order.MakerAsset)
+	for _, token := range s.GetTokens() {
+		if token == address {
+			continue
+		}
+		orderIds := s.getOrderIDsBySwapSide(s.getSwapSide(address, token))
+		if len(orderIds) != 0 {
+			result = append(result, token)
 		}
 	}
 
@@ -535,10 +538,13 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 		return nil
 	}
 	result := make([]string, 0, len(s.Info.Tokens)-1)
-	// check sellOrders
-	for _, order := range s.ordersMapping {
-		if order.MakerAsset == address {
-			result = append(result, order.TakerAsset)
+	for _, token := range s.GetTokens() {
+		if token == address {
+			continue
+		}
+		orderIds := s.getOrderIDsBySwapSide(s.getSwapSide(token, address))
+		if len(orderIds) != 0 {
+			result = append(result, token)
 		}
 	}
 
