@@ -29,22 +29,23 @@ func FloatSqrtRatioToFixed(sqrtRatioFloat *uint256.Int) *uint256.Int {
 
 func FixedSqrtRatioToFloat(sqrtRatioFixed *uint256.Int, roundUp bool) *uint256.Int {
 	var tmp uint256.Int
-	added := lo.IfF(roundUp, func() *uint256.Int { return tmp.AddUint64(sqrtRatioFixed, 3) }).Else(sqrtRatioFixed)
-	if added.Lt(big256.U2Pow96) {
+	if added := lo.IfF(roundUp, func() *uint256.Int { return tmp.AddUint64(sqrtRatioFixed, 3) }).
+		Else(tmp.Set(sqrtRatioFixed)); added.Lt(big256.U2Pow96) {
 		return added.Rsh(added, 2)
 	}
 
-	added = lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU34) }).Else(sqrtRatioFixed)
-	if added.Lt(big256.U2Pow128) {
+	if added := lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU34) }).
+		Else(tmp.Set(sqrtRatioFixed)); added.Lt(big256.U2Pow128) {
 		return added.Rsh(added, 34).Or(added, big256.U2Pow94)
 	}
 
-	added = lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU66) }).Else(sqrtRatioFixed)
-	if added.Lt(big256.U2Pow160) {
+	if added := lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU66) }).
+		Else(tmp.Set(sqrtRatioFixed)); added.Lt(big256.U2Pow160) {
 		return added.Rsh(added, 66).Or(added, big256.U2Pow95)
 	}
 
-	added = lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU98) }).Else(sqrtRatioFixed)
+	added := lo.IfF(roundUp, func() *uint256.Int { return tmp.Add(sqrtRatioFixed, big256.UMaxU98) }).
+		Else(tmp.Set(sqrtRatioFixed))
 	return added.Rsh(added, 98).Or(added, bitMask)
 }
 

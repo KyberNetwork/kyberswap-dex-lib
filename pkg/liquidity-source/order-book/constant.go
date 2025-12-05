@@ -1,15 +1,15 @@
 package orderbook
 
 import (
-	"math"
+	"time"
 )
 
 const (
 	DexType = "orderbook"
 
-	MaxAge = math.MaxInt64 // TODO: parametize this and gas
+	MaxAge = time.Minute
 )
 
 var (
-	defaultGas = Gas{Base: 95643}
+	defaultGas = Gas{Base: 68331}
 )
