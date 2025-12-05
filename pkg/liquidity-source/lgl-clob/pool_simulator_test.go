@@ -102,22 +102,11 @@ func TestPoolSimulator_CalcAmountOut_X_To_Y_FillAll(t *testing.T) {
 		Token:  "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
 		Amount: bignumber.NewBig10("276965490000000000000000"), // 27696.549 S
 	}
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	_, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: tokenAmtIn,
 		TokenOut:      "0x29219dd400f2bf60e5a23d13be72b486d4038894",
 	})
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "0", result.RemainingTokenAmountIn.Amount.String())
-
-	poolSim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  tokenAmtIn,
-		TokenAmountOut: *result.TokenAmountOut,
-		Fee:            *result.Fee,
-		SwapInfo:       result.SwapInfo,
-	})
-	assert.Equal(t, 0, len(poolSim.Bids.ArrayShares))
-	assert.Equal(t, 0, len(poolSim.Bids.ArrayPrices))
+	require.ErrorIs(t, err, ErrExceededSafetyBuffer)
 }
 
 func TestPoolSimulator_CalcAmountOut_X_To_Y_FillAllWithRemainder(t *testing.T) {
@@ -134,22 +123,11 @@ func TestPoolSimulator_CalcAmountOut_X_To_Y_FillAllWithRemainder(t *testing.T) {
 		Token:  "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
 		Amount: bignumber.NewBig10("276965500000000000000000"), // 27696.550 S
 	}
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	_, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: tokenAmtIn,
 		TokenOut:      "0x29219dd400f2bf60e5a23d13be72b486d4038894",
 	})
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "10000000000000000", result.RemainingTokenAmountIn.Amount.String())
-
-	poolSim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  tokenAmtIn,
-		TokenAmountOut: *result.TokenAmountOut,
-		Fee:            *result.Fee,
-		SwapInfo:       result.SwapInfo,
-	})
-	assert.Equal(t, 0, len(poolSim.Bids.ArrayShares))
-	assert.Equal(t, 0, len(poolSim.Bids.ArrayPrices))
+	require.ErrorIs(t, err, ErrExceededSafetyBuffer)
 }
 
 func TestPoolSimulator_CalcAmountOut_X_To_Y_WithDust(t *testing.T) {
