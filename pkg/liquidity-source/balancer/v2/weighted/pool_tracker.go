@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var ErrReserveNotFound = errors.New("reserve not found")
@@ -145,9 +146,9 @@ func (t *PoolTracker) queryRPC(
 	var (
 		poolTokens                PoolTokens
 		swapFeePercentage         *big.Int
-		protocolSwapFeePercentage = poolpkg.ZeroBI
+		protocolSwapFeePercentage = bignumber.ZeroBI
 		pausedState               PausedState
-		lastInvariant             = poolpkg.ZeroBI
+		lastInvariant             = bignumber.ZeroBI
 		totalSupply               *big.Int
 	)
 

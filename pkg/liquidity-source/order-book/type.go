@@ -8,6 +8,8 @@ type (
 	Extra struct {
 		LevelsFrom [2][]Level `json:"l"`
 	}
+
+	Prices map[[2]string]Extra
 )
 
 func (l *Level) Size() float64 {
