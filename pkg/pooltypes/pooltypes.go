@@ -70,6 +70,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -275,6 +276,7 @@ type Types struct {
 	CurveTwoCryptoNg           string
 	CurveLlamma                string
 	KelpRSETH                  string
+	KelpRSETHL2                string
 	RocketPoolRETH             string
 	EthenaSusde                string
 	MakerSavingsDai            string
@@ -453,6 +455,7 @@ var (
 		CurveLlamma:                curvellamma.DexType,
 		CurveLending:               curvelending.DexType,
 		KelpRSETH:                  rseth.DexType,
+		KelpRSETHL2:                rsethl2.DexType,
 		RocketPoolRETH:             reth.DexType,
 		SwellSWETH:                 sweth.DexType,
 		SwellRSWETH:                rsweth.DexType,
