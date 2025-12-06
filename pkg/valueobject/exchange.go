@@ -92,6 +92,7 @@ const (
 	ExchangeChronosV3                  = "chronos-v3"
 	ExchangeCleopatra                  = "cleopatra"
 	ExchangeCleopatraV2                = "cleopatra-v2"
+	ExchangeClear                      = "clear"
 	ExchangeClipper                    = "clipper"
 	ExchangeCloberOB                   = "clober-ob"
 	ExchangeCoinhaneV3ECLP             = "coinhane-v3-eclp"
