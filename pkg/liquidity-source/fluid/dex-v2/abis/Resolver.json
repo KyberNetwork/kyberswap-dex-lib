@@ -1,1 +1,739 @@
-[{"inputs":[{"internalType":"address","name":"liquidity_","type":"address"},{"internalType":"address","name":"dexV2_","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"uint256","name":"errorId_","type":"uint256"}],"name":"FluidLiquidityCalcsError","type":"error"},{"inputs":[],"name":"T","type":"error"},{"inputs":[],"name":"DEX_V2","outputs":[{"internalType":"contract IFluidDexV2","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"LIQUIDITY","outputs":[{"internalType":"contract IFluidLiquidity","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint24","name":"tickSpacing","type":"uint24"},{"internalType":"address","name":"controller","type":"address"}],"internalType":"struct DexKey","name":"dexKey_","type":"tuple"}],"name":"getDexId","outputs":[{"internalType":"bytes32","name":"dexId_","type":"bytes32"}],"stateMutability":"pure","type":"function"},{"inputs":[{"internalType":"uint256","name":"dexType_","type":"uint256"},{"internalType":"bytes32","name":"dexId_","type":"bytes32"}],"name":"getDexPoolState","outputs":[{"components":[{"internalType":"uint256","name":"dexVariablesPacked","type":"uint256"},{"internalType":"uint256","name":"dexVariables2Packed","type":"uint256"},{"components":[{"internalType":"int256","name":"currentTick","type":"int256"},{"internalType":"uint256","name":"currentSqrtPriceX96","type":"uint256"},{"internalType":"uint256","name":"feeGrowthGlobal0X102","type":"uint256"},{"internalType":"uint256","name":"feeGrowthGlobal1X102","type":"uint256"}],"internalType":"struct DexVariables","name":"dexVariablesUnpacked","type":"tuple"},{"components":[{"internalType":"uint256","name":"protocolFee0To1","type":"uint256"},{"internalType":"uint256","name":"protocolFee1To0","type":"uint256"},{"internalType":"uint256","name":"protocolCutFee","type":"uint256"},{"internalType":"uint256","name":"token0Decimals","type":"uint256"},{"internalType":"uint256","name":"token1Decimals","type":"uint256"},{"internalType":"uint256","name":"activeLiquidity","type":"uint256"},{"internalType":"bool","name":"fetchDynamicFeeFlag","type":"bool"},{"internalType":"bool","name":"inbuiltDynamicFeeFlag","type":"bool"},{"internalType":"uint256","name":"lpFee","type":"uint256"},{"internalType":"uint256","name":"maxDecayTime","type":"uint256"},{"internalType":"uint256","name":"priceImpactToFeeDivisionFactor","type":"uint256"},{"internalType":"uint256","name":"minFee","type":"uint256"},{"internalType":"uint256","name":"maxFee","type":"uint256"},{"internalType":"int256","name":"netPriceImpact","type":"int256"},{"internalType":"uint256","name":"lastUpdateTimestamp","type":"uint256"},{"internalType":"uint256","name":"decayTimeRemaining","type":"uint256"}],"internalType":"struct DexVariables2","name":"dexVariables2Unpacked","type":"tuple"}],"internalType":"struct DexPoolState","name":"dexPoolState_","type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"dexType_","type":"uint256"},{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint24","name":"tickSpacing","type":"uint24"},{"internalType":"address","name":"controller","type":"address"}],"internalType":"struct DexKey","name":"dexKey_","type":"tuple"}],"name":"getDexPoolState","outputs":[{"components":[{"internalType":"uint256","name":"dexVariablesPacked","type":"uint256"},{"internalType":"uint256","name":"dexVariables2Packed","type":"uint256"},{"components":[{"internalType":"int256","name":"currentTick","type":"int256"},{"internalType":"uint256","name":"currentSqrtPriceX96","type":"uint256"},{"internalType":"uint256","name":"feeGrowthGlobal0X102","type":"uint256"},{"internalType":"uint256","name":"feeGrowthGlobal1X102","type":"uint256"}],"internalType":"struct DexVariables","name":"dexVariablesUnpacked","type":"tuple"},{"components":[{"internalType":"uint256","name":"protocolFee0To1","type":"uint256"},{"internalType":"uint256","name":"protocolFee1To0","type":"uint256"},{"internalType":"uint256","name":"protocolCutFee","type":"uint256"},{"internalType":"uint256","name":"token0Decimals","type":"uint256"},{"internalType":"uint256","name":"token1Decimals","type":"uint256"},{"internalType":"uint256","name":"activeLiquidity","type":"uint256"},{"internalType":"bool","name":"fetchDynamicFeeFlag","type":"bool"},{"internalType":"bool","name":"inbuiltDynamicFeeFlag","type":"bool"},{"internalType":"uint256","name":"lpFee","type":"uint256"},{"internalType":"uint256","name":"maxDecayTime","type":"uint256"},{"internalType":"uint256","name":"priceImpactToFeeDivisionFactor","type":"uint256"},{"internalType":"uint256","name":"minFee","type":"uint256"},{"internalType":"uint256","name":"maxFee","type":"uint256"},{"internalType":"int256","name":"netPriceImpact","type":"int256"},{"internalType":"uint256","name":"lastUpdateTimestamp","type":"uint256"},{"internalType":"uint256","name":"decayTimeRemaining","type":"uint256"}],"internalType":"struct DexVariables2","name":"dexVariables2Unpacked","type":"tuple"}],"internalType":"struct DexPoolState","name":"dexPoolState_","type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"dexType_","type":"uint256"},{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint24","name":"tickSpacing","type":"uint24"},{"internalType":"address","name":"controller","type":"address"}],"internalType":"struct DexKey","name":"dexKey_","type":"tuple"},{"internalType":"int24","name":"startTick_","type":"int24"},{"internalType":"int24","name":"endTick_","type":"int24"},{"internalType":"uint256","name":"startLiquidity_","type":"uint256"}],"name":"getLiquidityAmounts","outputs":[{"components":[{"internalType":"int24","name":"tick","type":"int24"},{"internalType":"uint256","name":"liquidity","type":"uint256"}],"internalType":"struct TickLiquidity[]","name":"tickLiquidities_","type":"tuple[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"dexType_","type":"uint256"},{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint24","name":"tickSpacing","type":"uint24"},{"internalType":"address","name":"controller","type":"address"}],"internalType":"struct DexKey","name":"dexKey_","type":"tuple"},{"internalType":"address","name":"user_","type":"address"},{"internalType":"int24","name":"tickLower_","type":"int24"},{"internalType":"int24","name":"tickUpper_","type":"int24"},{"internalType":"bytes32","name":"positionSalt_","type":"bytes32"}],"name":"getPositionData","outputs":[{"components":[{"internalType":"uint256","name":"liquidity","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside0X102","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1X102","type":"uint256"}],"internalType":"struct PositionData","name":"positionData_","type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"dexType_","type":"uint256"},{"internalType":"bytes32","name":"dexId_","type":"bytes32"},{"internalType":"address","name":"user_","type":"address"},{"internalType":"int24","name":"tickLower_","type":"int24"},{"internalType":"int24","name":"tickUpper_","type":"int24"},{"internalType":"bytes32","name":"positionSalt_","type":"bytes32"}],"name":"getPositionData","outputs":[{"components":[{"internalType":"uint256","name":"liquidity","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside0X102","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1X102","type":"uint256"}],"internalType":"struct PositionData","name":"positionData_","type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"dexType_","type":"uint256"},{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint24","name":"tickSpacing","type":"uint24"},{"internalType":"address","name":"controller","type":"address"}],"internalType":"struct DexKey","name":"dexKey_","type":"tuple"},{"internalType":"address","name":"user_","type":"address"},{"internalType":"int24","name":"tickLower_","type":"int24"},{"internalType":"int24","name":"tickUpper_","type":"int24"},{"internalType":"bytes32","name":"positionSalt_","type":"bytes32"}],"name":"getPositionInfo","outputs":[{"components":[{"components":[{"internalType":"uint256","name":"liquidity","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside0X102","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1X102","type":"uint256"}],"internalType":"struct PositionData","name":"positionData","type":"tuple"},{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"},{"internalType":"uint256","name":"feeAccruedToken0","type":"uint256"},{"internalType":"uint256","name":"feeAccruedToken1","type":"uint256"}],"internalType":"struct PositionInfo","name":"positionInfo_","type":"tuple"}],"stateMutability":"view","type":"function"}]
+[
+  {
+    "name": "DEX_V2",
+    "outputs": [
+      {
+        "internalType": "contract IFluidDexV2",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "LIQUIDITY",
+    "outputs": [
+      {
+        "internalType": "contract IFluidLiquidity",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "tickSpacing",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "controller",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey_",
+        "type": "tuple"
+      }
+    ],
+    "name": "getDexId",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "dexId_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getDexPoolState",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "dexVariablesPacked",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "dexVariables2Packed",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "int256",
+                "name": "currentTick",
+                "type": "int256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "currentSqrtPriceX96",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeGrowthGlobal0X102",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeGrowthGlobal1X102",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct DexVariables",
+            "name": "dexVariablesUnpacked",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "protocolFee0To1",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "protocolFee1To0",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "protocolCutFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0Decimals",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1Decimals",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "activeLiquidity",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bool",
+                "name": "fetchDynamicFeeFlag",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "inbuiltDynamicFeeFlag",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lpFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxDecayTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "priceImpactToFeeDivisionFactor",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "minFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "int256",
+                "name": "netPriceImpact",
+                "type": "int256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTimestamp",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "decayTimeRemaining",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct DexVariables2",
+            "name": "dexVariables2Unpacked",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct DexPoolState",
+        "name": "dexPoolState_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType_",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "tickSpacing",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "controller",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey_",
+        "type": "tuple"
+      }
+    ],
+    "name": "getDexPoolState",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "dexVariablesPacked",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "dexVariables2Packed",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "int256",
+                "name": "currentTick",
+                "type": "int256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "currentSqrtPriceX96",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeGrowthGlobal0X102",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeGrowthGlobal1X102",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct DexVariables",
+            "name": "dexVariablesUnpacked",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "protocolFee0To1",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "protocolFee1To0",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "protocolCutFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0Decimals",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1Decimals",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "activeLiquidity",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bool",
+                "name": "fetchDynamicFeeFlag",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "inbuiltDynamicFeeFlag",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lpFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxDecayTime",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "priceImpactToFeeDivisionFactor",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "minFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxFee",
+                "type": "uint256"
+              },
+              {
+                "internalType": "int256",
+                "name": "netPriceImpact",
+                "type": "int256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastUpdateTimestamp",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "decayTimeRemaining",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct DexVariables2",
+            "name": "dexVariables2Unpacked",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct DexPoolState",
+        "name": "dexPoolState_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType_",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "tickSpacing",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "controller",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey_",
+        "type": "tuple"
+      },
+      {
+        "internalType": "int24",
+        "name": "startTick_",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "endTick_",
+        "type": "int24"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startLiquidity_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getLiquidityAmounts",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "int24",
+            "name": "tick",
+            "type": "int24"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidity",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct TickLiquidity[]",
+        "name": "tickLiquidities_",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType_",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "tickSpacing",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "controller",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey_",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "user_",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower_",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper_",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getPositionData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "liquidity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feeGrowthInside0X102",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feeGrowthInside1X102",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct PositionData",
+        "name": "positionData_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId_",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "user_",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower_",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper_",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getPositionData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "liquidity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feeGrowthInside0X102",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feeGrowthInside1X102",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct PositionData",
+        "name": "positionData_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType_",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "tickSpacing",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "controller",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey_",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "user_",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower_",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper_",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getPositionInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "liquidity",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeGrowthInside0X102",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeGrowthInside1X102",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct PositionData",
+            "name": "positionData",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feeAccruedToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feeAccruedToken1",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct PositionInfo",
+        "name": "positionInfo_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
