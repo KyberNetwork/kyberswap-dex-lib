@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -36,7 +37,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if d.hasInitialized {
 		return nil, nil, nil
 	}
-	d.hasInitialized = true
 	pool := entity.Pool{
 		Address:   strings.ToLower(d.config.LRTDepositPool),
 		Exchange:  d.config.DexID,
@@ -48,6 +48,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		return nil, nil, err
 	}
+	d.hasInitialized = true
 	return []entity.Pool{*trackedPool}, nil, nil
 }
 
@@ -162,7 +163,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 	}
 	pool.Extra = string(extraBytes)
 	pool.Tokens = lo.Map(
-		append(supportedTokens, common.HexToAddress(cfg.WNative), wrsETH),
+		append(supportedTokens, common.HexToAddress(valueobject.WrappedNativeMap[cfg.ChainId]), wrsETH),
 		func(token common.Address, _ int) *entity.PoolToken {
 			return &entity.PoolToken{
 				Address:   strings.ToLower(token.Hex()),

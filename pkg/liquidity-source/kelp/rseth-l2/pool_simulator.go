@@ -54,11 +54,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		params.TokenAmountIn.Amount,
 		amountAfterFee.Mul(
 			params.TokenAmountIn.Amount, s.Extra.Fee,
-		).Div(amountAfterFee, BasisPoint),
+		).Div(amountAfterFee, bignum.BasisPoint),
 	)
+
 	rsETHAmount.Mul(amountAfterFee,
 		lo.TernaryF(indexIn == len(s.Info.Tokens)-2,
-			func() *big.Int { return ONE },                                  // WETH
+			func() *big.Int { return bignum.BONE },                          // WETH
 			func() *big.Int { return s.Extra.SupportedTokenRates[indexIn] }, // supported tokens
 		),
 	).Div(
@@ -73,6 +74,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenAmountIn.Token,
 			Amount: s.Fee,
 		},
+		Gas: defaultGas,
 	}, nil
 }
 
@@ -87,7 +89,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolExtra{
 		TokenInIsNative:  strings.EqualFold(tokenIn, s.Info.Tokens[len(s.Info.Tokens)-2]),
-		TokenOutIsNative: strings.EqualFold(tokenIn, s.Info.Tokens[len(s.Info.Tokens)-2]),
+		TokenOutIsNative: strings.EqualFold(tokenOut, s.Info.Tokens[len(s.Info.Tokens)-2]),
 	}
 }
 
