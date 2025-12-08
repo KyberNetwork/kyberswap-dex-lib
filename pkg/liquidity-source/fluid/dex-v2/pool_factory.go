@@ -147,7 +147,7 @@ func DecodePoolAddress(log ethtypes.Log) (string, error) {
 		}
 	}()
 
-	if err != nil {
+	if err != nil || dexType == nil {
 		return "", err
 	}
 

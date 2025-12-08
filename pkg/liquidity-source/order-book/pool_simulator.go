@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -26,6 +27,11 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm1)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm2)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm3)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm4)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm5)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return NewPoolSimulatorWith(entityPool, MaxAge)

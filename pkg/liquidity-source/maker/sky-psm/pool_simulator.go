@@ -2,6 +2,7 @@ package skypsm
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -12,7 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -90,10 +91,17 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	return p
+	cloned := *p
+	cloned.balances = slices.Clone(p.balances)
+
+	return &cloned
 }
 
-func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	indexIn, indexOut := p.GetTokenIndex(params.TokenAmountIn.Token), p.GetTokenIndex(params.TokenAmountOut.Token)
+	p.balances[indexIn] = new(uint256.Int).Add(p.balances[indexIn], uint256.MustFromBig(params.TokenAmountIn.Amount))
+	p.balances[indexOut] = new(uint256.Int).Sub(p.balances[indexOut], uint256.MustFromBig(params.TokenAmountOut.Amount))
+}
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
@@ -102,7 +110,7 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 }
 
 func (p *PoolSimulator) getSwapQuote(inIdx, outIdx int, amount *uint256.Int, calcAmtIn bool) (*uint256.Int, error) {
-	if calcAmtIn && p.balances[inIdx].Cmp(amount) < 0 {
+	if calcAmtIn && p.balances[inIdx].Lt(amount) {
 		return nil, ErrInsufficientBalance
 	}
 
@@ -127,7 +135,7 @@ func (p *PoolSimulator) getSwapQuote(inIdx, outIdx int, amount *uint256.Int, cal
 		return nil, ErrInvalidToken
 	}
 
-	if !calcAmtIn && p.balances[outIdx].Cmp(quoteAmount) < 0 {
+	if !calcAmtIn && p.balances[outIdx].Lt(quoteAmount) {
 		return nil, ErrInsufficientBalance
 	}
 

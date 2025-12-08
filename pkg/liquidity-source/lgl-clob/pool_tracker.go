@@ -93,6 +93,7 @@ func (t *PoolTracker) GetNewPoolState(
 	for i, share := range orderBook.Bids.ArrayShares {
 		reserveY.Add(&reserveY, reserveX.Mul(share, orderBook.Bids.ArrayPrices[i]))
 	}
+	reserveX.Clear()
 	for _, share := range orderBook.Asks.ArrayShares {
 		reserveX.Add(&reserveX, share)
 	}

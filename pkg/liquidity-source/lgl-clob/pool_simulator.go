@@ -12,7 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -21,6 +21,7 @@ type PoolSimulator struct {
 	swapFee *uint256.Int
 	*OrderBook
 	*StaticExtra
+	cumAmtOutF float64
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -127,7 +128,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		}
 	}
 	// 1:190576 2:236653 3:267273 4:269108 5:272492 6:244971 8:241112 9:227946 10:237471
-	gas := int64(197346*math.Log(float64(executedLevels+1)/2) + 190576)
+	// 1:494222 2:497402 after latest update
+	gas := int64(197346*math.Log(float64(executedLevels+1)/2) + 494222)
 	if executedShares.Eq(levels.ArrayShares[executedLevels-1]) {
 		executedShares.Clear()
 		executedLevels++
@@ -135,6 +137,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	executedAmountIn := executedScaledAmountIn.Mul(&executedScaledAmountIn, scalingFactorIn)
 	executedAmountOut := executedScaledAmountOut.Mul(&executedScaledAmountOut, scalingFactorOut)
+	reserveOutF, _ := p.GetReserves()[indexOut].Float64()
+	if p.cumAmtOutF+executedAmountOut.Float64() > reserveOutF*safetyBuffer {
+		return nil, ErrExceededSafetyBuffer
+	}
 
 	var feesTokenY, remainingAmountIn *uint256.Int
 	if isBuy {
@@ -182,6 +188,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		levels.ArrayShares = slices.Clone(levels.ArrayShares)
 		levels.ArrayShares[0] = new(uint256.Int).Sub(levels.ArrayShares[0], si.lastExecutedShares)
 	}
+	amtOutF, _ := params.TokenAmountOut.Amount.Float64()
+	p.cumAmtOutF += amtOutF
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
