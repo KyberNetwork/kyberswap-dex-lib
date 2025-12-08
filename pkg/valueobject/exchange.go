@@ -210,6 +210,7 @@ const (
 	ExchangeKatanaV3                   = "katana-v3"
 	ExchangeKellerFinance              = "keller-finance"
 	ExchangeKelpRSETH                  = "kelp-rseth"
+	ExchangeKelpRSETHL2                = "kelp-rseth-l2"
 	ExchangeKinetixV2                  = "kinetix-v2"
 	ExchangeKinetixV3                  = "kinetix-v3"
 	ExchangeKittenswap                 = "kittenswap"
