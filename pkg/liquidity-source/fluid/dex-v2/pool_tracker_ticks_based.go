@@ -506,9 +506,6 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	extra.Ticks = entityPoolTicks
 
-	reserve0, reserve1 := extractTokenReserves(extra.Reserves)
-	extra.Reserves = nil // clear reserves to avoid redundancy in extra
-
 	extraBytes, err := json.Marshal(extra)
 
 	if err != nil {
@@ -520,6 +517,13 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
+
+	reserve0, reserve1, err := calculateReservesFromTicks(extra.SqrtPriceX96, entityPoolTicks)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	p.Reserves = []string{reserve0.String(), reserve1.String()}
 
 	return p, err

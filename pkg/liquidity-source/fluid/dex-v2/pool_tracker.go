@@ -141,10 +141,11 @@ func (t *PoolTracker) fetchRPCData(
 		SqrtPriceX96: res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96,
 		Tick:         res.DexPoolState.DexVariablesUnpacked.CurrentTick,
 
+		DexVariables2:                 res.DexPoolState.DexVariables2Packed,
 		Token0ExchangePricesAndConfig: token0ExchangePricesAndConfig,
 		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
 
-		Reserves: reserves,
+		TokenReserves: reserves,
 	}
 
 	return extra, nil
@@ -169,9 +170,6 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	extra.Ticks = ticks
 
-	reserve0, reserve1 := extractTokenReserves(extra.Reserves)
-	extra.Reserves = nil // clear reserves to avoid redundancy in extra
-
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
@@ -179,6 +177,12 @@ func (t *PoolTracker) getNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+
+	reserve0, reserve1, err := calculateReservesFromTicks(extra.SqrtPriceX96, ticks)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
 	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)

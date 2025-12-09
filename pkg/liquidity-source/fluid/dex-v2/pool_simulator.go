@@ -22,8 +22,12 @@ type PoolSimulator struct {
 
 	token0Decimals int64
 	token1Decimals int64
-	extra          Extra
-	staticExtra    StaticExtra
+
+	shouldCheckTokenReserves bool
+	tokenReserves            [2]*big.Int
+
+	extra       Extra
+	staticExtra StaticExtra
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -70,13 +74,24 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	v3Simulator.Gas.BaseGas = defaultGas.BaseGas
 	v3Simulator.Gas.CrossInitTickGas = defaultGas.CrossInitTickGas
 
+	var poolAccounting big.Int
+	poolAccounting.Set(extra.DexVariables2).
+		Rsh(&poolAccounting, BITS_DEX_V2_VARIABLES2_POOL_ACCOUNTING_FLAG).
+		And(&poolAccounting, bignumber.One)
+
+	token0Reserves, token1Reserves := extractTokenReserves(extra.TokenReserves)
+
 	simulator := &PoolSimulator{
 		Pool:           v3Simulator.Pool,
 		v3Simulator:    *v3Simulator,
 		token0Decimals: int64(entityPool.Tokens[0].Decimals),
 		token1Decimals: int64(entityPool.Tokens[1].Decimals),
-		extra:          extra,
-		staticExtra:    staticExtra,
+
+		shouldCheckTokenReserves: poolAccounting.Cmp(bignumber.ZeroBI) == 0,
+		tokenReserves:            [2]*big.Int{token0Reserves, token1Reserves},
+
+		extra:       extra,
+		staticExtra: staticExtra,
 	}
 
 	return simulator, nil
@@ -162,11 +177,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	amountOutRawAdjusted := amountOutResult.TokenAmountOut.Amount
-	if tmp.Add(p.Pool.Info.Reserves[tokenInIndex], amountIn).Cmp(X128) > 0 {
-		return nil, ErrTokenReservesOverflow
-	}
-	if tmp.Sub(p.Pool.Info.Reserves[tokenOutIndex], amountOutRawAdjusted).Sign() < 0 {
-		return nil, ErrTokenReservesUnderflow
+
+	if p.shouldCheckTokenReserves {
+		if tmp.Add(p.tokenReserves[tokenInIndex], amountIn).Cmp(X128) > 0 {
+			return nil, ErrTokenReservesOverflow
+		}
+		if tmp.Sub(p.tokenReserves[tokenOutIndex], amountOutRawAdjusted).Sign() < 0 {
+			return nil, ErrTokenReservesUnderflow
+		}
 	}
 
 	if swapInfo.RemainingAmountIn != nil && swapInfo.RemainingAmountIn.Sign() > 0 {
@@ -227,13 +245,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.v3Simulator.UpdateBalance(params)
-
-	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
-	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
-	amountIn, amountOut := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
-
-	p.Pool.Info.Reserves[tokenInIndex].Add(p.Pool.Info.Reserves[tokenInIndex], amountIn)
-	p.Pool.Info.Reserves[tokenOutIndex].Sub(p.Pool.Info.Reserves[tokenOutIndex], amountOut)
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

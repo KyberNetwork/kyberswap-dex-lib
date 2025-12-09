@@ -59,10 +59,11 @@ type Extra struct {
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
 
+	DexVariables2                 *big.Int `json:"dexVariables2"`
 	Token0ExchangePricesAndConfig *big.Int `json:"token0ExchangePricesAndConfig"`
 	Token1ExchangePricesAndConfig *big.Int `json:"token1ExchangePricesAndConfig"`
 
-	Reserves *big.Int `json:"reserves,omitempty"`
+	TokenReserves *big.Int `json:"tokenReserves"`
 }
 
 type DexVariables struct {
