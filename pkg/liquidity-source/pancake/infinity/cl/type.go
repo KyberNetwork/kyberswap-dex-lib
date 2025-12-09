@@ -4,11 +4,20 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	factory "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 )
+
+type PoolSwapInfo = uniswapv4.PoolSwapInfo
+type SwapInfo = uniswapv4.SwapInfo
+type ExtraU256 struct {
+	*uniswapv3.ExtraTickU256
+	HookExtra json.RawMessage `json:"hX,omitempty"`
+}
 
 type SubgraphToken struct {
 	ID       string `json:"id"`
@@ -38,7 +47,10 @@ type StaticExtra struct {
 	Multicall3Address  common.Address `json:"m3"`
 }
 
-type Extra = uniswapv3.Extra
+type Extra struct {
+	*uniswapv3.Extra
+	HookExtra json.RawMessage `json:"hX,omitempty"`
+}
 
 type Slot0Data struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
@@ -48,10 +60,11 @@ type Slot0Data struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int  `json:"liquidity"`
-	Slot0       Slot0Data `json:"slot0"`
-	TickSpacing uint64    `json:"tickSpacing"`
-	SwapFee     uint32    `json:"swapFee"`
+	Liquidity   *big.Int        `json:"liquidity"`
+	Slot0       Slot0Data       `json:"slot0"`
+	TickSpacing uint64          `json:"tickSpacing"`
+	SwapFee     uint32          `json:"swapFee"`
+	HookExtra   json.RawMessage `json:"hX,omitempty"`
 }
 
 type TicksResp struct {

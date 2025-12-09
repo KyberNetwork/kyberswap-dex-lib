@@ -98,6 +98,11 @@ import (
 	pkg_liquiditysource_overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
 	pkg_liquiditysource_pancake_infinity_bin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin"
 	pkg_liquiditysource_pancake_infinity_cl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
+	pkg_liquiditysource_pancake_infinity_cl_hooks_alpha "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/alpha"
+	pkg_liquiditysource_pancake_infinity_cl_hooks_brevis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/brevis"
+	pkg_liquiditysource_pancake_infinity_cl_hooks_dynamicfee "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/dynamicfee"
+	pkg_liquiditysource_pancake_infinity_cl_hooks_limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/limitorder"
+	pkg_liquiditysource_pancake_infinity_cl_hooks_tax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/tax"
 	pkg_liquiditysource_pancake_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/v3"
 	pkg_liquiditysource_pandafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	pkg_liquiditysource_poolparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pool-party"
@@ -282,6 +287,11 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_overnightusdp.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_bin.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_alpha.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_brevis.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_dynamicfee.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_limitorder.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_tax.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pandafun.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_poolparty.PoolSimulator{})
