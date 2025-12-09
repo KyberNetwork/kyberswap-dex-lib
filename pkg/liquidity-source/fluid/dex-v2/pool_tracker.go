@@ -82,7 +82,7 @@ func (t *PoolTracker) fetchRPCData(
 		DexPoolState DexPoolState
 	}
 
-	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int
+	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, reserves *big.Int
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.ResolverABI,
@@ -124,6 +124,14 @@ func (t *PoolTracker) fetchRPCData(
 		Params: []any{token1Slot},
 	}, []any{&token1ExchangePricesAndConfig})
 
+	tokenReserveSlot := calculateDoubleMappingStorageSlot(DEX_V2_TOKEN_RESERVES_MAPPING_SLOT, dexType, common.HexToHash(dexId))
+	req.AddCall(&ethrpc.Call{
+		ABI:    abis.DexV2ABI,
+		Target: t.config.Dex,
+		Method: "readFromStorage",
+		Params: []any{tokenReserveSlot},
+	}, []any{&reserves})
+
 	if _, err := req.Aggregate(); err != nil {
 		return Extra{}, err
 	}
@@ -135,6 +143,8 @@ func (t *PoolTracker) fetchRPCData(
 
 		Token0ExchangePricesAndConfig: token0ExchangePricesAndConfig,
 		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
+
+		Reserves: reserves,
 	}
 
 	return extra, nil
@@ -159,6 +169,9 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	extra.Ticks = ticks
 
+	reserve0, reserve1 := extractTokenReserves(extra.Reserves)
+	extra.Reserves = nil // clear reserves to avoid redundancy in extra
+
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
@@ -166,12 +179,6 @@ func (t *PoolTracker) getNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-
-	reserve0, reserve1, err := calculateReservesFromTicks(extra.SqrtPriceX96, ticks)
-	if err != nil {
-		return entity.Pool{}, err
-	}
-
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
 	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)

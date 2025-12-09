@@ -15,7 +15,9 @@ const (
 
 	DEX_V2_TICK_LIQUIDITY_GROSS_MAPPING_SLOT = 3 // liquidityGross
 	DEX_V2_TICK_DATA_MAPPING_SLOT            = 4 // liquidityNet
-	LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT   = 5
+	DEX_V2_TOKEN_RESERVES_MAPPING_SLOT       = 6
+
+	LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT = 5
 
 	BITS_EXCHANGE_PRICES_FEE                   = 16
 	BITS_EXCHANGE_PRICES_UTILIZATION           = 30
@@ -23,6 +25,9 @@ const (
 	BITS_EXCHANGE_PRICES_SUPPLY_EXCHANGE_PRICE = 91
 	BITS_EXCHANGE_PRICES_SUPPLY_RATIO          = 219
 	BITS_EXCHANGE_PRICES_BORROW_RATIO          = 234
+
+	BITS_DEX_V2_TOKEN_RESERVES_TOKEN_0_RESERVES = 0
+	BITS_DEX_V2_TOKEN_RESERVES_TOKEN_1_RESERVES = 128
 )
 
 var (
@@ -31,6 +36,7 @@ var (
 	SECONDS_PER_YEAR = big.NewInt(365 * 24 * 60 * 60)
 
 	FOUR_DECIMALS                = bignumber.TenPowInt(4)
+	TEN_DECIMALS                 = bignumber.TenPowInt(10)
 	LC_EXCHANGE_PRICES_PRECISION = bignumber.TenPowInt(12)
 	TenPow27                     = bignumber.TenPowInt(27)
 	TenPow54                     = bignumber.TenPowInt(54)
@@ -46,5 +52,6 @@ var (
 	X86  = bignumber.NewBig("0x3fffffffffffffffffffff")
 	X128 = bignumber.NewBig("0x00ffffffffffffffffffffffffffffffffffffffff")
 
-	Q96 = new(big.Int).Lsh(bignumber.One, 96)
+	MAX_SQRT_PRICE_CHANGE_PERCENTAGE = big.NewInt(2_000_000_000)
+	MIN_SQRT_PRICE_CHANGE_PERCENTAGE = big.NewInt(5)
 )

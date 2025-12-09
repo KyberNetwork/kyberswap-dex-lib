@@ -154,3 +154,22 @@ func _verifyAdjustedAmountLimits(amount *big.Int) error {
 	}
 	return nil
 }
+
+func _verifySqrtPriceX96ChangeLimits(sqrtPriceStartX96, sqrtPriceEndX96 *big.Int) error {
+	var percentageChange big.Int
+
+	if sqrtPriceEndX96.Cmp(sqrtPriceStartX96) > 0 {
+		percentageChange.Sub(sqrtPriceEndX96, sqrtPriceStartX96)
+	} else {
+		percentageChange.Sub(sqrtPriceStartX96, sqrtPriceEndX96)
+	}
+
+	percentageChange.Mul(&percentageChange, TEN_DECIMALS).
+		Div(&percentageChange, sqrtPriceStartX96)
+
+	if percentageChange.Cmp(MAX_SQRT_PRICE_CHANGE_PERCENTAGE) > 0 || percentageChange.Cmp(MIN_SQRT_PRICE_CHANGE_PERCENTAGE) < 0 {
+		return ErrSqrtPriceChangeOutOfBounds
+	}
+
+	return nil
+}

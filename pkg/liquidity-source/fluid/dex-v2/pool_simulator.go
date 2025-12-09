@@ -106,7 +106,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	var amountInRawAdjusted, tmp1, tmp2, tmp3 big.Int
+	var amountInRawAdjusted, tmp, tmp1, tmp2, tmp3 big.Int
 	if zeroForOne {
 		amountInRawAdjusted.Div(
 			tmp1.Mul(
@@ -156,13 +156,25 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	swapInfo := amountOutResult.SwapInfo.(uniswapv3.SwapInfo)
+	err = _verifySqrtPriceX96ChangeLimits(p.extra.SqrtPriceX96, swapInfo.NextStateSqrtRatioX96.ToBig())
+	if err != nil {
+		return nil, err
+	}
+
+	amountOutRawAdjusted := amountOutResult.TokenAmountOut.Amount
+	if tmp.Add(p.Pool.Info.Reserves[tokenInIndex], amountIn).Cmp(X128) > 0 {
+		return nil, ErrTokenReservesOverflow
+	}
+	if tmp.Sub(p.Pool.Info.Reserves[tokenOutIndex], amountOutRawAdjusted).Sign() < 0 {
+		return nil, ErrTokenReservesUnderflow
+	}
+
 	if swapInfo.RemainingAmountIn != nil && swapInfo.RemainingAmountIn.Sign() > 0 {
 		return nil, ErrNextTickOutOfBounds
 	}
 
 	// Adjust amountOut
 	var amountOut big.Int
-	amountOutRawAdjusted := amountOutResult.TokenAmountOut.Amount
 	if err := _verifyAdjustedAmountLimits(amountOutRawAdjusted); err != nil {
 		return nil, err
 	}
@@ -215,6 +227,13 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.v3Simulator.UpdateBalance(params)
+
+	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
+	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	amountIn, amountOut := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
+
+	p.Pool.Info.Reserves[tokenInIndex].Add(p.Pool.Info.Reserves[tokenInIndex], amountIn)
+	p.Pool.Info.Reserves[tokenOutIndex].Sub(p.Pool.Info.Reserves[tokenOutIndex], amountOut)
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
