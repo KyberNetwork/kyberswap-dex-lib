@@ -28,8 +28,10 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return nil, err
+	if p.StaticExtra != "" {
+		if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+			return nil, err
+		}
 	}
 
 	return &PoolSimulator{
