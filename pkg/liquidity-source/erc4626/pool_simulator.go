@@ -16,6 +16,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	Extra
+	StaticExtra
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -23,6 +24,11 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -35,7 +41,8 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(r string, _ int) *big.Int { return bignum.NewBig(r) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		Extra: extra,
+		Extra:       extra,
+		StaticExtra: staticExtra,
 	}, nil
 }
 
@@ -152,7 +159,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
-		BlockNumber: s.Info.BlockNumber,
+		BlockNumber:   s.Info.BlockNumber,
+		IsNativeAsset: s.IsNativeAsset,
 	}
 }
 
