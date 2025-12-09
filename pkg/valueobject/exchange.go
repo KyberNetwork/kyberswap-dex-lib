@@ -523,8 +523,8 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm3:       {},
 	ExchangePmm4:       {},
 	ExchangePmm5:       {},
-	ExchangeUniswapLO:  {},
 	ExchangeSwaapV2:    {},
+	ExchangeUniswapLO:  {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

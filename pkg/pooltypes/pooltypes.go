@@ -101,7 +101,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
-	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -442,7 +441,6 @@ var (
 		Gyroscope3CLP:              gyro3clp.DexType,
 		GyroscopeECLP:              gyroeclp.DexType,
 		ZkEraFinance:               zkerafinance.DexType,
-		SwaapV2:                    swaapv2.DexType,
 		EtherfiEETH:                eeth.DexType,
 		EtherfiWEETH:               weeth.DexType,
 		BancorV21:                  bancorv21.DexType,
@@ -514,6 +512,7 @@ var (
 		Pmm1:                       valueobject.ExchangePmm1,
 		Pmm2:                       valueobject.ExchangePmm2,
 		Pmm3:                       valueobject.ExchangePmm3,
+		SwaapV2:                    valueobject.ExchangeSwaapV2,
 		UniswapLO:                  uniswaplo.DexType,
 		EulerSwap:                  eulerswap.DexType,
 		AaveV3:                     aavev3.DexType,
