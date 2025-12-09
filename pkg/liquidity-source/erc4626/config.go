@@ -1,8 +1,13 @@
 package erc4626
 
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
 type Config struct {
-	DexId  string              `json:"dexId"`
-	Vaults map[string]VaultCfg `json:"vaults"`
+	ChainId valueobject.ChainID `json:"chainId"`
+	DexId   string              `json:"dexId"`
+	Vaults  map[string]VaultCfg `json:"vaults"`
 }
 
 type VaultCfg struct {

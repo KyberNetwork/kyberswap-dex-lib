@@ -7,10 +7,12 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -76,14 +78,22 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, vaultAddr string, vau
 		return nil, err
 	}
 
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		IsNativeAsset: valueobject.IsNative(hexutil.Encode(assetToken[:])),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	p := &entity.Pool{
 		Address:  strings.ToLower(vaultAddr),
 		Exchange: u.cfg.DexId,
 		Type:     DexType,
 		Tokens: []*entity.PoolToken{
 			{Address: strings.ToLower(vaultAddr), Swappable: true},
-			{Address: hexutil.Encode(assetToken[:]), Swappable: true},
+			{Address: valueobject.WrapNativeLower(hexutil.Encode(assetToken[:]), u.cfg.ChainId), Swappable: true},
 		},
+		StaticExtra: string(staticExtraBytes),
 	}
 
 	return p, updateEntityState(p, vaultCfg, state)

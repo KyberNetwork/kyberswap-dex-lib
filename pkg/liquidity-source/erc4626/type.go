@@ -31,8 +31,13 @@ type (
 		TotalAssets  *uint256.Int   `json:"tA,omitempty"`
 	}
 
+	StaticExtra struct {
+		IsNativeAsset bool `json:"isNativeAsset"`
+	}
+
 	Meta struct {
-		BlockNumber uint64 `json:"blockNumber"`
+		BlockNumber   uint64 `json:"blockNumber"`
+		IsNativeAsset bool   `json:"isNativeAsset"`
 	}
 
 	PoolState struct {
