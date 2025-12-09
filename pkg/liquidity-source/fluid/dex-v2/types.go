@@ -2,11 +2,22 @@ package dexv2
 
 import (
 	"math/big"
+
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 )
 
 type Gas struct {
 	BaseGas          int64
 	CrossInitTickGas int64
+}
+
+type SwapInfo struct {
+	RemainingAmountIn     *v3Utils.Int256  `json:"rAI,omitempty"`
+	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
+	NextStateTickCurrent  int              `json:"nT"`
+	nextStateLiquidity    *v3Utils.Uint128
+	amountInRawAdjusted   *big.Int
+	amountOutRawAdjusted  *big.Int
 }
 
 type PoolMeta struct {
