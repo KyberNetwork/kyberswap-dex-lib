@@ -83,14 +83,12 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    stateViewABI,
 		Target: t.config.StateViewAddress,
 		Method: "getLiquidity",
-		Params: []any{eth.StringToBytes32(p.Address)},
-	}, []any{&result.Liquidity})
-
-	rpcRequests.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToHash(p.Address)},
+	}, []any{&result.Liquidity}).AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
 		Target: t.config.StateViewAddress,
 		Method: "getSlot0",
-		Params: []any{eth.StringToBytes32(p.Address)},
+		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
 	res, err := rpcRequests.Aggregate()
@@ -185,7 +183,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var ticks []Tick
+	var ticks = make([]Tick, 0, len(poolTicks))
 	for _, tickResp := range poolTicks {
 		tick, err := transformTickRespToTick(tickResp)
 		if err != nil {
@@ -318,7 +316,7 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 			ABI:    stateViewABI,
 			Target: t.config.StateViewAddress,
 			Method: "getTickInfo",
-			Params: []any{eth.StringToBytes32(p.Address), big.NewInt(tickIdx)},
+			Params: []any{common.HexToHash(p.Address), big.NewInt(tickIdx)},
 		}, []any{&stateViewTicks[i]})
 	}
 

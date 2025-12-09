@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -56,9 +57,11 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	hasSwapPermissions := shared.HasSwapPermissions(params)
 
 	extraBytes, _ := json.Marshal(Extra{
-		SqrtPriceX96: p.SqrtPriceX96,
-		TickSpacing:  tickSpacing,
-		Tick:         p.Tick,
+		Extra: &uniswapv3.Extra{
+			SqrtPriceX96: p.SqrtPriceX96,
+			TickSpacing:  tickSpacing,
+			Tick:         p.Tick,
+		},
 	})
 	staticExtra := StaticExtra{
 		HasSwapPermissions: hasSwapPermissions,
@@ -74,7 +77,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	}
 	staticExtraBytes, _ := json.Marshal(staticExtra)
 
-	hook, _ := GetHook(staticExtra.HooksAddress)
+	hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: f.config})
 	return &entity.Pool{
 		Address:   hexutil.Encode(p.Id[:]),
 		SwapFee:   swapFee,

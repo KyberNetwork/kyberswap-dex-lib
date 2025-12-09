@@ -21,6 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -55,46 +56,47 @@ func NewPoolTracker(
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var staticExtra StaticExtra
+	var hookAddress common.Address
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return nil, err
+	} else {
+		hookAddress = staticExtra.HooksAddress
 	}
 
+	var bBlockNumber *big.Int
+	if blockNumber > 0 {
+		bBlockNumber = big.NewInt(int64(blockNumber))
+	}
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
 	}
-	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if blockNumber > 0 {
-		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
-	}
+	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, BlockNumber: bBlockNumber}
+	hook, _ := GetHook(hookAddress, hookParam)
 
-	rpcRequests.AddCall(&ethrpc.Call{
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(bBlockNumber).AddCall(&ethrpc.Call{
 		ABI:    shared.CLPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
 		Method: shared.CLPoolManagerMethodGetLiquidity,
 		Params: []any{common.HexToHash(p.Address)},
-	}, []any{&result.Liquidity})
-
-	rpcRequests.AddCall(&ethrpc.Call{
+	}, []any{&result.Liquidity}).AddCall(&ethrpc.Call{
 		ABI:    shared.CLPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
 		Method: shared.CLPoolManagerMethodGetSlot0,
 		Params: []any{common.HexToHash(p.Address)},
-	}, []any{&result.Slot0})
-
-	_, err := rpcRequests.Aggregate()
-	if err != nil {
-		return nil, err
+	}, []any{&result.Slot0}).Aggregate(); err != nil {
+		return result, err
 	}
 
 	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
 	if shared.IsDynamicFee(staticExtra.Fee) {
-		lpFee = uint64(t.GetDynamicFee(ctx, staticExtra.HooksAddress, uint32(lpFee)))
+		lpFee = uint64(hook.GetDynamicFee(ctx, hookParam, uint32(lpFee)))
 	}
-
 	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
 	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
-
-	return result, nil
+	p.Exchange = hook.GetExchange()
+	var err error
+	result.HookExtra, err = hook.Track(ctx, hookParam)
+	return result, err
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -178,14 +180,16 @@ func (t *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extra := Extra{
-		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  rpcData.TickSpacing,
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
-	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(Extra{
+		Extra: &uniswapv3.Extra{
+			Liquidity:    rpcData.Liquidity,
+			TickSpacing:  rpcData.TickSpacing,
+			SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
+			Tick:         rpcData.Slot0.Tick,
+			Ticks:        ticks,
+		},
+		HookExtra: rpcData.HookExtra,
+	})
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -270,11 +274,6 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 	return ticks, nil
 }
 
-func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address, lpFee uint32) uint32 {
-	hook, _ := GetHook(hookAddress)
-	return hook.GetDynamicFee(ctx, t.ethrpcClient, t.config.CLPoolManagerAddress, hookAddress, lpFee)
-}
-
 type rpcTick struct {
 	Data struct {
 		LiquidityGross        *big.Int
@@ -306,7 +305,7 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 
 	changedTicksCount := len(changedTicks)
 	if changedTicksCount == 0 || changedTicksCount > maxChangedTicks {
-		return nil, ErrTooManyChangedTickes
+		return nil, ErrTooManyChangedTicks
 	}
 
 	rpcRequest := t.ethrpcClient.NewRequest()
@@ -711,11 +710,14 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcState.Liquidity,
-		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-		TickSpacing:  rpcState.TickSpacing,
-		Tick:         rpcState.Slot0.Tick,
-		Ticks:        entityPoolTicks,
+		Extra: &uniswapv3.Extra{
+			Liquidity:    rpcState.Liquidity,
+			SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
+			TickSpacing:  rpcState.TickSpacing,
+			Tick:         rpcState.Slot0.Tick,
+			Ticks:        entityPoolTicks,
+		},
+		HookExtra: rpcState.HookExtra,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -725,7 +727,6 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	}
 
 	p.SwapFee = float64(rpcState.SwapFee)
-
 	p.Extra = string(extraBytes)
 
 	var reserve0, reserve1 big.Int
@@ -739,7 +740,6 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	reserve1.Div(&reserve1, Q96)
 
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil

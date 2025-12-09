@@ -6,6 +6,7 @@ import (
 
 	"github.com/holiman/uint256"
 
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -29,5 +30,9 @@ var (
 	Q96     = new(big.Int).Lsh(bignumber.One, 96)
 	_MASK24 = uint256.NewInt(0xffffff)
 
-	ErrTooManyChangedTickes = errors.New("too many changed ticks")
+	ErrTooManyChangedTicks = errors.New("too many changed ticks")
+
+	ErrInvalidAmountIn  = uniswapv4.ErrInvalidAmountIn
+	ErrInvalidAmountOut = uniswapv4.ErrInvalidAmountOut
+	ErrInvalidFee       = uniswapv4.ErrInvalidFee
 )

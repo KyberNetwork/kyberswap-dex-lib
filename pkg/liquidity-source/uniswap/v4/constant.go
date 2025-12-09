@@ -28,5 +28,9 @@ var (
 
 	ErrTooManyChangedTicks = errors.New("too many changed ticks")
 
+	ErrInvalidAmountIn  = errors.New("invalid amount in")
+	ErrInvalidAmountOut = errors.New("invalid amount out")
+	ErrInvalidFee       = errors.New("invalid fee")
+
 	defaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460}
 )
