@@ -67,12 +67,14 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		Method: "wrsETH",
 		Params: nil,
 	}, []any{&wrsETH})
-	req.AddCall(&ethrpc.Call{
-		ABI:    LRTDepositPoolABI,
-		Target: cfg.LRTDepositPool,
-		Method: "getSupportedTokens",
-		Params: nil,
-	}, []any{&supportedTokens})
+	if !cfg.NoSupportedTokens {
+		req.AddCall(&ethrpc.Call{
+			ABI:    LRTDepositPoolABI,
+			Target: cfg.LRTDepositPool,
+			Method: "getSupportedTokens",
+			Params: nil,
+		}, []any{&supportedTokens})
+	}
 	req.AddCall(&ethrpc.Call{
 		ABI:    LRTDepositPoolABI,
 		Target: cfg.LRTDepositPool,
