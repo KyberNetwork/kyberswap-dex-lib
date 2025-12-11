@@ -466,6 +466,7 @@ const (
 	ExchangeUSDFi                      = "usdfi"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
+	ExchangeValantisStex               = "valantis-stex"
 	ExchangeValleySwap                 = "valleyswap"
 	ExchangeValleySwapV2               = "valleyswap-v2"
 	ExchangeVelocore                   = "velocore"
