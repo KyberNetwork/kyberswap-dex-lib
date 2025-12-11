@@ -28,6 +28,7 @@ var (
 	UMaxU66  = new(uint256.Int).SubUint64(U2Pow66, 1)
 	UMaxU98  = new(uint256.Int).SubUint64(U2Pow98, 1)
 	UMaxU128 = new(uint256.Int).SubUint64(U2Pow128, 1)
+	UMaxU160 = new(uint256.Int).SubUint64(U2Pow160, 1)
 	UMax     = new(uint256.Int).SetAllOne()
 
 	U0    = uint256.NewInt(0)
@@ -188,4 +189,9 @@ func MulWadUp(res, x, y *uint256.Int) *uint256.Int {
 // MulWadDown multiplies x and y, then divides by BONE, rounding down, and stores the result in res.
 func MulWadDown(res, x, y *uint256.Int) *uint256.Int {
 	return MulDivDown(res, x, y, BONE)
+}
+
+func DivUp(res, x, y *uint256.Int) *uint256.Int {
+	v3Utils.DivRoundingUp(x, y, res)
+	return res
 }
