@@ -40,15 +40,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: int(chainID)},
-		Pool:      &entityPool,
-		HookExtra: extra.HookExtra,
-	})
-	if !ok && staticExtra.HasSwapPermissions {
-		return nil, shared.ErrUnsupportedHook
-	}
-
 	var allowEmptyTicks bool
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256,
@@ -62,6 +53,16 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
 	}
 	v3PoolSimulator.Gas = defaultGas
+
+	//Note: BeforeSwap of some hooks might change pool state and affect the swap result
+	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
+		Cfg:       &Config{ChainID: int(chainID)},
+		Pool:      &entityPool,
+		HookExtra: extra.HookExtra,
+	})
+	if !ok && staticExtra.HasSwapPermissions {
+		return nil, shared.ErrUnsupportedHook
+	}
 
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
@@ -125,7 +126,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	zeroForOne := p.GetTokenIndex(tokenIn) == 0
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
+	// clone
+	cloned := *poolSim
+	clonedV3Pool := *poolSim.V3Pool
+	cloned.V3Pool = &clonedV3Pool
+
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
+		V3Pool:          cloned.V3Pool,
 		ExactIn:         true,
 		ZeroForOne:      zeroForOne,
 		AmountSpecified: amountIn,
@@ -142,9 +149,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	if beforeSwapResult.SwapFee >= FeeMax {
 		return nil, ErrInvalidFee
 	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
-		cloned := *poolSim
-		clonedV3Pool := *poolSim.V3Pool
-		cloned.V3Pool = &clonedV3Pool
 		cloned.V3Pool.Fee = beforeSwapResult.SwapFee
 		poolSim = &cloned
 	}

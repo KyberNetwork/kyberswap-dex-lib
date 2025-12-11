@@ -71,7 +71,9 @@ func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) 
 	return hook, ok
 }
 
-type BaseHook struct{ Exchange string }
+type BaseHook struct {
+	Exchange string
+}
 
 func NewBaseHook(exchange valueobject.Exchange, param *HookParam) *BaseHook {
 	suffix := strings.TrimPrefix(string(exchange), DexType) // -dynamic
@@ -84,7 +86,9 @@ func NewBaseHook(exchange valueobject.Exchange, param *HookParam) *BaseHook {
 	if !strings.HasSuffix(thisExchange, suffix) {
 		thisExchange += suffix // pancake-infinity-cl-dynamic / omni-cl-dynamic
 	}
-	return &BaseHook{Exchange: thisExchange}
+	return &BaseHook{
+		Exchange: thisExchange,
+	}
 }
 
 func BaseFactory(exchange valueobject.Exchange) HookFactory {

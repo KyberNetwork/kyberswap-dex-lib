@@ -12,12 +12,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 )
 
 type BeforeSwapParams struct {
 	ExactIn         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int
+	PoolID          string
+	// V3Pool inner state might be changed by the before swap after invoke BeforeSwap
+	V3Pool *v3Entities.Pool
 }
 
 type BeforeSwapResult struct {
