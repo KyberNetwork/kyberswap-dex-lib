@@ -5,7 +5,7 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func GetClosestRate(rates []*uint256.Int, amount *uint256.Int) (*uint256.Int, error) {
+func GetClosestRate(rates []*uint256.Int, amount *uint256.Int, isExactOut bool) (*uint256.Int, error) {
 	if len(rates) == 0 {
 		return nil, ErrInvalidRate
 	}
@@ -21,11 +21,17 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int) (*uint256.Int, er
 
 		prefetchAmount := PrefetchAmounts[i]
 
+		inAmt := amount.Clone()
+		if isExactOut {
+			// in case of exact out, calculate in amount so that we can calculate diff base on in amount.
+			inAmt.MulDivOverflow(amount, prefetchAmount, rate)
+		}
+
 		// Calculate multiplicative distance
-		if amount.Gt(prefetchAmount) {
-			diff.Div(amount, prefetchAmount)
+		if inAmt.Gt(prefetchAmount) {
+			diff.Div(inAmt, prefetchAmount)
 		} else {
-			diff.Div(prefetchAmount, amount)
+			diff.Div(prefetchAmount, inAmt)
 		}
 
 		if diff.Eq(u256.U1) {
@@ -50,6 +56,13 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int) (*uint256.Int, er
 		return nil, ErrInvalidRate
 	}
 
+	if isExactOut {
+		// in = out * prefetchAmount / rate
+		amount.MulDivOverflow(amount, PrefetchAmounts[bestId], rate)
+		return amount, nil
+	}
+
+	// out = in * rate / prefetchAmount
 	amount.MulDivOverflow(amount, rate, PrefetchAmounts[bestId])
 	return amount, nil
 }
