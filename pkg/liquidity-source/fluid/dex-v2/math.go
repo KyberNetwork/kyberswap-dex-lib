@@ -31,11 +31,11 @@ func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1Exchange
 	}
 	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
 
-	token0SupplyExchangePrice, err := _calcSupplyExchangePrice(token0ExchangePricesAndConfig)
+	token0SupplyExchangePrice, token0BorrowExchangePrice, err := _calcExchangePrice(token0ExchangePricesAndConfig)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
-	token1SupplyExchangePrice, err := _calcSupplyExchangePrice(token1ExchangePricesAndConfig)
+	token1SupplyExchangePrice, token1BorrowExchangePrice, err := _calcExchangePrice(token1ExchangePricesAndConfig)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
@@ -47,7 +47,9 @@ func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1Exchange
 		Token1DenominatorPrecision: token1DenominatorPrecision,
 
 		Token0SupplyExchangePrice: token0SupplyExchangePrice,
+		Token0BorrowExchangePrice: token0BorrowExchangePrice,
 		Token1SupplyExchangePrice: token1SupplyExchangePrice,
+		Token1BorrowExchangePrice: token1BorrowExchangePrice,
 	}, nil
 }
 
@@ -59,14 +61,18 @@ func _calculateNumeratorAndDenominatorPrecisions(decimals int64) (*big.Int, *big
 	}
 }
 
-func _calcSupplyExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, error) {
-	var supplyExchangePrice, tmp big.Int
+func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, error) {
+	var supplyExchangePrice, borrowExchangePrice, tmp big.Int
 	supplyExchangePrice.
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_SUPPLY_EXCHANGE_PRICE).
 		And(&supplyExchangePrice, X64)
 
-	if supplyExchangePrice.Sign() == 0 {
-		return nil, ErrFluidLiquidityCalcsError
+	borrowExchangePrice.
+		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_BORROW_EXCHANGE_PRICE).
+		And(&borrowExchangePrice, X64)
+
+	if supplyExchangePrice.Sign() == 0 || borrowExchangePrice.Sign() == 0 {
+		return nil, nil, ErrFluidLiquidityCalcsError
 	}
 
 	var temp big.Int
@@ -88,15 +94,22 @@ func _calcSupplyExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, error
 		And(&borrowRatio, X15)
 
 	if secondsSinceLastUpdate.Sign() == 0 || temp.Sign() == 0 || borrowRatio.Cmp(bignumber.One) == 0 {
-		return &supplyExchangePrice, nil
+		return &supplyExchangePrice, &borrowExchangePrice, nil
 	}
 
-	// Skip borrowExchangePrice calculation since we don't use it
+	var borrowExchangePriceIncrease big.Int
+	borrowExchangePriceIncrease.
+		Mul(&borrowExchangePrice, &temp).
+		Mul(&borrowExchangePriceIncrease, &secondsSinceLastUpdate).
+		Div(&borrowExchangePriceIncrease, tmp.Mul(SECONDS_PER_YEAR, FOUR_DECIMALS))
+
+	borrowExchangePrice.Add(&borrowExchangePrice, &borrowExchangePriceIncrease)
+
 	temp.Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_SUPPLY_RATIO).
 		And(&temp, X15)
 
 	if temp.Cmp(bignumber.One) == 0 {
-		return &supplyExchangePrice, nil
+		return &supplyExchangePrice, &borrowExchangePrice, nil
 	}
 
 	if temp.Bit(0) == 1 {
@@ -158,7 +171,7 @@ func _calcSupplyExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, error
 
 	supplyExchangePrice.Add(&supplyExchangePrice, tmp.Div(&num, &den))
 
-	return &supplyExchangePrice, nil
+	return &supplyExchangePrice, &borrowExchangePrice, nil
 }
 
 func _verifyAmountLimits(amount *big.Int) error {

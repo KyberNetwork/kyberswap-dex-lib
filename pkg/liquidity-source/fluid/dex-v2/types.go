@@ -137,6 +137,9 @@ type CalculatedVars struct {
 	Token0DenominatorPrecision *big.Int
 	Token1NumeratorPrecision   *big.Int
 	Token1DenominatorPrecision *big.Int
-	Token0SupplyExchangePrice  *big.Int
-	Token1SupplyExchangePrice  *big.Int
+
+	Token0SupplyExchangePrice *big.Int
+	Token0BorrowExchangePrice *big.Int
+	Token1SupplyExchangePrice *big.Int
+	Token1BorrowExchangePrice *big.Int
 }

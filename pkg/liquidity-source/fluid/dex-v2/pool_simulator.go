@@ -192,11 +192,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
+	_, dexType := parseFluidDexV2PoolAddress(p.GetAddress())
 	var amountInRawAdjusted, tmp big.Int
 	if zeroForOne {
-		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0SupplyExchangePrice)
+		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
+			lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
 	} else {
-		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1SupplyExchangePrice)
+		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
+			lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
 	}
 
 	if err := _verifyAdjustedAmountLimits(&amountInRawAdjusted); err != nil {
@@ -244,9 +247,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	if zeroForOne {
-		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1SupplyExchangePrice)
+		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
+			lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
 	} else {
-		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0SupplyExchangePrice)
+		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
+			lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
 	}
 
 	amountOut.Sub(&amountOut, bignumber.One)

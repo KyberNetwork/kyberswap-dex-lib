@@ -184,8 +184,12 @@ func (t *PoolTracker) getNewPoolState(
 	if err != nil {
 		return entity.Pool{}, err
 	}
-	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0SupplyExchangePrice)
-	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1SupplyExchangePrice)
+
+	_, dexType := parseFluidDexV2PoolAddress(p.Address)
+	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
+		lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
+	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
+		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
 
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
