@@ -56,13 +56,15 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int, isExactOut bool) 
 		return nil, ErrInvalidRate
 	}
 
+	// new result here to avoid modifying amount param
+	var result *uint256.Int
 	if isExactOut {
 		// in = out * prefetchAmount / rate
-		amount.MulDivOverflow(amount, PrefetchAmounts[bestId], rate)
-		return amount, nil
+		result.MulDivOverflow(amount, PrefetchAmounts[bestId], rate)
+	} else {
+		// out = in * rate / prefetchAmount
+		result.MulDivOverflow(amount, rate, PrefetchAmounts[bestId])
 	}
 
-	// out = in * rate / prefetchAmount
-	amount.MulDivOverflow(amount, rate, PrefetchAmounts[bestId])
-	return amount, nil
+	return result, nil
 }
