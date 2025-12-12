@@ -261,7 +261,10 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 				if zeroForOne {
 					liquidityNet = new(utils.Int128).Neg(liquidityNet)
 				}
-				utils.AddDeltaInPlace(state.liquidity, liquidityNet)
+				err = utils.AddDeltaInPlace(state.liquidity, liquidityNet)
+				if err != nil {
+					return nil, err
+				}
 
 				crossInitTickLoops++
 			}
