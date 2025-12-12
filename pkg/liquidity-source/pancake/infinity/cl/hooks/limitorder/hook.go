@@ -210,7 +210,7 @@ func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTi
 			}
 		}
 
-		if lowerTickInstance != nil {
+		if lowerTickInstance == nil {
 			lowerTickInstance = &uniswapv3.TickU256{
 				Index: int(lowerTickIdx),
 				// if tick not found, it means we are adding liq (not expected), so we can leave LiquidityGross = LiquidityDelta
@@ -230,7 +230,7 @@ func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTi
 			lowerTickInstance.LiquidityNet.Add(lowerTickInstance.LiquidityNet, liquidityDelta)
 		}
 
-		if upperTickInstance != nil {
+		if upperTickInstance == nil {
 			upperTickInstance = &uniswapv3.TickU256{
 				Index: int(upperTickIdx),
 				// if tick not found, it means we are adding liq (not expected), so we can leave LiquidityGross = LiquidityDelta

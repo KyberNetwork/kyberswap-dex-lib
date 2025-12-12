@@ -149,7 +149,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	if beforeSwapResult.SwapFee >= FeeMax {
 		return nil, ErrInvalidFee
 	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
-		// clone
 		cloned := *poolSim
 		clonedV3Pool := *poolSim.V3Pool
 		cloned.V3Pool = &clonedV3Pool
