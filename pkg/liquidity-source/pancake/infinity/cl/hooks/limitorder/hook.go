@@ -185,7 +185,7 @@ func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTi
 			tickUpper.Cmp(tickCurrent) > 0 {
 
 			liquidity := orderInfo.LiquidityTotal
-			// Note: remove liquidity from the pool, because the order is filled
+			// Note: In this LO hook, we are removing liquidity from the pool, because the order is going to be filled
 			if extraTickU256.Liquidity.Cmp(liquidity) < 0 {
 				return ErrorSubLiquidityUnderflow
 			}
@@ -258,14 +258,4 @@ func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTi
 	})
 
 	return nil
-}
-
-func (h *Hook) BeforeSwap(swapHookParams *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) {
-	return &cl.BeforeSwapResult{
-		DeltaSpecified:   big.NewInt(0),
-		DeltaUnspecified: big.NewInt(0),
-		SwapFee:          0,
-		Gas:              0,
-		SwapInfo:         nil,
-	}, nil
 }
