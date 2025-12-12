@@ -60,7 +60,7 @@ func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool
 func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
 	hookFactory, ok := HookFactories[hookAddress]
 	if hookFactory == nil {
-		hook = (*BaseHook)(nil)
+		hook = NewBaseHook(valueobject.ExchangePancakeInfinityCL, param)
 	} else {
 		if param == nil {
 			param = &HookParam{}
