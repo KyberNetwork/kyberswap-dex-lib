@@ -518,10 +518,13 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	p.Extra = string(extraBytes)
 	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
 
-	reserve0, reserve1, err := calculateReservesFromTicks(extra.SqrtPriceX96, entityPoolTicks)
+	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
+	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
 	if err != nil {
 		return entity.Pool{}, err
 	}
+	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0SupplyExchangePrice)
+	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1SupplyExchangePrice)
 
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	p.Reserves = []string{reserve0.String(), reserve1.String()}

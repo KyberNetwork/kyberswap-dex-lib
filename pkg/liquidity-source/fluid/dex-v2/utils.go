@@ -6,10 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/pkg/errors"
 )
 
 func encodeFluidDexV2PoolAddress(dexId string, dexType uint32) string {
@@ -66,107 +64,4 @@ func calculateTripleMappingStorageSlot(
 	intermediateSlot1 := crypto.Keccak256(append(key1, paddedSlot...))
 	intermediateSlot2 := crypto.Keccak256(append(key2, intermediateSlot1...))
 	return crypto.Keccak256Hash(append(key3, intermediateSlot2...))
-}
-
-func extractTokenReserves(tokenReserves *big.Int) (*big.Int, *big.Int) {
-	var token0Reserves, token1Reserves big.Int
-	token0Reserves.Set(tokenReserves).
-		Rsh(&token0Reserves, BITS_DEX_V2_TOKEN_RESERVES_TOKEN_0_RESERVES).
-		And(&token0Reserves, X128)
-
-	token1Reserves.Set(tokenReserves).
-		Rsh(&token1Reserves, BITS_DEX_V2_TOKEN_RESERVES_TOKEN_1_RESERVES).
-		And(&token1Reserves, X128)
-
-	return &token0Reserves, &token1Reserves
-}
-
-func calculateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (*big.Int, *big.Int, error) {
-	L := big.NewInt(0)
-	totalAmount0, totalAmount1 := big.NewInt(0), big.NewInt(0)
-
-	for i, tickLower := range ticks {
-		L.Add(L, tickLower.LiquidityNet)
-
-		if L.Sign() == 0 {
-			continue
-		}
-
-		if i == len(ticks)-1 {
-			return nil, nil, errors.New("sum liquidity net is not zero")
-		}
-
-		tickUpper := ticks[i+1]
-
-		sqrtLower, err := utils.GetSqrtRatioAtTick(tickLower.Index)
-		if err != nil {
-			return nil, nil, err
-		}
-		sqrtUpper, err := utils.GetSqrtRatioAtTick(tickUpper.Index)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		var numer, denom, amount0, amount1, tmp big.Int
-		if sqrtPriceX96.Cmp(sqrtLower) < 0 {
-			numer.Mul(L, Q96).Mul(&numer, tmp.Sub(sqrtUpper, sqrtLower))
-			denom.Mul(sqrtLower, sqrtUpper)
-
-			amount0.Div(&numer, &denom)
-		} else if sqrtPriceX96.Cmp(sqrtUpper) >= 0 {
-			numer.Mul(L, tmp.Sub(sqrtUpper, sqrtLower))
-
-			amount1.Div(&numer, Q96)
-		} else {
-			numer.
-				Mul(L, Q96).
-				Mul(&numer, tmp.Sub(sqrtUpper, sqrtPriceX96))
-			denom.Mul(sqrtPriceX96, sqrtUpper)
-			amount0.Div(&numer, &denom)
-
-			numer.Mul(L, tmp.Sub(sqrtPriceX96, sqrtLower))
-			amount1.Div(&numer, Q96)
-		}
-
-		totalAmount0.Add(totalAmount0, &amount0)
-		totalAmount1.Add(totalAmount1, &amount1)
-	}
-
-	return totalAmount0, totalAmount1, nil
-}
-
-func amountToAdjusted(amount, tokenNumeratorPrecision, tokenDenominatorPrecision,
-	tokenSupplyExchangePrice *big.Int) *big.Int {
-	var tmp1, tmp2, tmp3 big.Int
-	return new(big.Int).Div(
-		tmp1.Mul(
-			tmp2.Mul(
-				amount,
-				EXCHANGE_PRICES_PRECISION,
-			),
-			tokenNumeratorPrecision,
-		),
-		tmp3.Mul(
-			tokenSupplyExchangePrice,
-			tokenDenominatorPrecision,
-		),
-	)
-}
-
-func adjustedToAmount(adjustedAmount, tokenNumeratorPrecision, tokenDenominatorPrecision,
-	tokenSupplyExchangePrice *big.Int) *big.Int {
-	var tmp1, tmp2, tmp3 big.Int
-	return new(big.Int).Div(
-		tmp1.Mul(
-			tmp2.Mul(
-				adjustedAmount,
-				tokenDenominatorPrecision,
-			),
-			tokenSupplyExchangePrice,
-		),
-		tmp3.Mul(
-			tokenNumeratorPrecision,
-			EXCHANGE_PRICES_PRECISION,
-		),
-	)
 }

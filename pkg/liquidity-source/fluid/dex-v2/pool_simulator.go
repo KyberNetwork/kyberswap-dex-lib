@@ -187,7 +187,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	zeroForOne := tokenInIndex == 0
 
 	// Adjust amountIn
-	c, err := p._calculateVars()
+	c, err := _calculateVars(p.extra.DexVariables2, p.extra.Token0ExchangePricesAndConfig, p.extra.Token1ExchangePricesAndConfig)
 	if err != nil {
 		return nil, err
 	}

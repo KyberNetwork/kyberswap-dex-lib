@@ -7,10 +7,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func (p *PoolSimulator) _calculateVars() (CalculatedVars, error) {
+func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int) (CalculatedVars, error) {
 	// NOTE: Should not mutate CalculatedVars's fields (readonly)
 	var tmp big.Int
-	tmp.Set(p.extra.DexVariables2).
+	tmp.Set(dexVariables2).
 		Rsh(&tmp, BITS_DEX_V2_VARIABLES2_TOKEN_0_DECIMALS).
 		And(&tmp, X4)
 
@@ -21,7 +21,7 @@ func (p *PoolSimulator) _calculateVars() (CalculatedVars, error) {
 
 	token0NumeratorPrecision, token0DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
 
-	tmp.Set(p.extra.DexVariables2).
+	tmp.Set(dexVariables2).
 		Rsh(&tmp, BITS_DEX_V2_VARIABLES2_TOKEN_1_DECIMALS).
 		And(&tmp, X4)
 
@@ -31,11 +31,11 @@ func (p *PoolSimulator) _calculateVars() (CalculatedVars, error) {
 	}
 	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
 
-	token0SupplyExchangePrice, err := _calcSupplyExchangePrice(p.extra.Token0ExchangePricesAndConfig)
+	token0SupplyExchangePrice, err := _calcSupplyExchangePrice(token0ExchangePricesAndConfig)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
-	token1SupplyExchangePrice, err := _calcSupplyExchangePrice(p.extra.Token1ExchangePricesAndConfig)
+	token1SupplyExchangePrice, err := _calcSupplyExchangePrice(token1ExchangePricesAndConfig)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
@@ -192,4 +192,53 @@ func _verifySqrtPriceX96ChangeLimits(sqrtPriceStartX96, sqrtPriceEndX96 *big.Int
 	}
 
 	return nil
+}
+
+func extractTokenReserves(tokenReserves *big.Int) (*big.Int, *big.Int) {
+	var token0Reserves, token1Reserves big.Int
+	token0Reserves.Set(tokenReserves).
+		Rsh(&token0Reserves, BITS_DEX_V2_TOKEN_RESERVES_TOKEN_0_RESERVES).
+		And(&token0Reserves, X128)
+
+	token1Reserves.Set(tokenReserves).
+		Rsh(&token1Reserves, BITS_DEX_V2_TOKEN_RESERVES_TOKEN_1_RESERVES).
+		And(&token1Reserves, X128)
+
+	return &token0Reserves, &token1Reserves
+}
+
+func amountToAdjusted(amount, tokenNumeratorPrecision, tokenDenominatorPrecision,
+	tokenSupplyExchangePrice *big.Int) *big.Int {
+	var tmp1, tmp2, tmp3 big.Int
+	return new(big.Int).Div(
+		tmp1.Mul(
+			tmp2.Mul(
+				amount,
+				EXCHANGE_PRICES_PRECISION,
+			),
+			tokenNumeratorPrecision,
+		),
+		tmp3.Mul(
+			tokenSupplyExchangePrice,
+			tokenDenominatorPrecision,
+		),
+	)
+}
+
+func adjustedToAmount(adjustedAmount, tokenNumeratorPrecision, tokenDenominatorPrecision,
+	tokenSupplyExchangePrice *big.Int) *big.Int {
+	var tmp1, tmp2, tmp3 big.Int
+	return new(big.Int).Div(
+		tmp1.Mul(
+			tmp2.Mul(
+				adjustedAmount,
+				tokenDenominatorPrecision,
+			),
+			tokenSupplyExchangePrice,
+		),
+		tmp3.Mul(
+			tokenNumeratorPrecision,
+			EXCHANGE_PRICES_PRECISION,
+		),
+	)
 }
