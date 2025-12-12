@@ -82,26 +82,34 @@ func (t *PoolTracker) fetchRPCData(
 		DexPoolState DexPoolState
 	}
 
-	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, reserves *big.Int
+	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, tokenReserves *big.Int
+
+	token0 := lo.Ternary(
+		staticExtra.IsNative[0],
+		common.HexToAddress(valueobject.NativeAddress),
+		common.HexToAddress(p.Tokens[0].Address),
+	)
+	token1 := lo.Ternary(
+		staticExtra.IsNative[1],
+		common.HexToAddress(valueobject.NativeAddress),
+		common.HexToAddress(p.Tokens[1].Address),
+	)
+	dexKey := DexKey{
+		Token0:      token0,
+		Token1:      token1,
+		Fee:         big.NewInt(int64(staticExtra.Fee)),
+		TickSpacing: big.NewInt(int64(staticExtra.TickSpacing)),
+		Controller:  common.HexToAddress(staticExtra.Controller),
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.ResolverABI,
 		Target: t.config.Resolver,
 		Method: "getDexPoolState",
-		Params: []any{
-			big.NewInt(int64(dexType)),
-			common.HexToHash(dexId),
-		},
+		Params: []any{big.NewInt(int64(dexType)), dexKey},
 	}, []any{&res})
 
-	token0Slot := calculateMappingStorageSlot(
-		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
-		lo.Ternary(
-			staticExtra.IsNative[0],
-			common.HexToAddress(valueobject.NativeAddress),
-			common.HexToAddress(p.Tokens[0].Address),
-		),
-	)
+	token0Slot := calculateMappingStorageSlot(LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT, token0)
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.LiquidityABI,
 		Target: t.config.Liquidity,
@@ -109,14 +117,7 @@ func (t *PoolTracker) fetchRPCData(
 		Params: []any{token0Slot},
 	}, []any{&token0ExchangePricesAndConfig})
 
-	token1Slot := calculateMappingStorageSlot(
-		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
-		lo.Ternary(
-			staticExtra.IsNative[1],
-			common.HexToAddress(valueobject.NativeAddress),
-			common.HexToAddress(p.Tokens[1].Address),
-		),
-	)
+	token1Slot := calculateMappingStorageSlot(LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT, token1)
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.LiquidityABI,
 		Target: t.config.Liquidity,
@@ -130,22 +131,22 @@ func (t *PoolTracker) fetchRPCData(
 		Target: t.config.Dex,
 		Method: "readFromStorage",
 		Params: []any{tokenReserveSlot},
-	}, []any{&reserves})
+	}, []any{&tokenReserves})
 
 	if _, err := req.Aggregate(); err != nil {
 		return Extra{}, err
 	}
 
 	extra := Extra{
-		Liquidity:    res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity,
-		SqrtPriceX96: res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96,
-		Tick:         res.DexPoolState.DexVariablesUnpacked.CurrentTick,
+		Liquidity:    res.DexPoolState.DexPoolStateRaw.DexVariables2Unpacked.ActiveLiquidity,
+		SqrtPriceX96: res.DexPoolState.DexPoolStateRaw.DexVariablesUnpacked.CurrentSqrtPriceX96,
+		Tick:         res.DexPoolState.DexPoolStateRaw.DexVariablesUnpacked.CurrentTick,
 
-		DexVariables2:                 res.DexPoolState.DexVariables2Packed,
+		DexVariables2:                 res.DexPoolState.DexPoolStateRaw.DexVariables2Packed,
 		Token0ExchangePricesAndConfig: token0ExchangePricesAndConfig,
 		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
 
-		TokenReserves: reserves,
+		TokenReserves: tokenReserves,
 	}
 
 	return extra, nil

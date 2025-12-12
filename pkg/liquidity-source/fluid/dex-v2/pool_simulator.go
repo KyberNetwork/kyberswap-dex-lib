@@ -23,17 +23,14 @@ import (
 )
 
 type PoolSimulator struct {
-	V3Pool *v3Entities.Pool
+	V3Pool *UniV3FluidV2Pool
 	pool.Pool
 	Gas     Gas
 	tickMin int
 	tickMax int
 
-	token0Decimals int64
-	token1Decimals int64
-
-	shouldCheckTokenReserves bool
-	tokenReserves            [2]*big.Int
+	poolAccountingFlag bool
+	tokenReserves      [2]*big.Int
 
 	extra       Extra
 	staticExtra StaticExtra
@@ -99,7 +96,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, err
 	}
 
-	v3Pool, err := v3Entities.NewPoolV2(
+	v3Pool, err := NewUniV3FluidV2Pool(
 		token0,
 		token1,
 		constants.FeeAmount(entityPool.SwapFee),
@@ -107,6 +104,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		extraTickU256.Liquidity,
 		*extraTickU256.Tick,
 		ticks,
+		staticExtra.TickSpacing,
+		extra.DexVariables2,
 	)
 	if err != nil {
 		return nil, err
@@ -151,12 +150,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		tickMin: tickMin,
 		tickMax: tickMax,
 
-		token0Decimals:           int64(entityPool.Tokens[0].Decimals),
-		token1Decimals:           int64(entityPool.Tokens[1].Decimals),
-		shouldCheckTokenReserves: poolAccounting.Cmp(bignumber.ZeroBI) == 0,
-		tokenReserves:            [2]*big.Int{token0Reserves, token1Reserves},
-		extra:                    extra,
-		staticExtra:              staticExtra,
+		poolAccountingFlag: poolAccounting.Cmp(bignumber.ZeroBI) == 0,
+		tokenReserves:      [2]*big.Int{token0Reserves, token1Reserves},
+		extra:              extra,
+		staticExtra:        staticExtra,
 	}
 
 	return simulator, nil
@@ -195,35 +192,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	var amountInRawAdjusted, tmp, tmp1, tmp2, tmp3 big.Int
+	var amountInRawAdjusted, tmp big.Int
 	if zeroForOne {
-		amountInRawAdjusted.Div(
-			tmp1.Mul(
-				tmp2.Mul(
-					amountInBI,
-					LC_EXCHANGE_PRICES_PRECISION,
-				),
-				c.Token0NumeratorPrecision,
-			),
-			tmp3.Mul(
-				c.Token0SupplyExchangePrice,
-				c.Token0DenominatorPrecision,
-			),
-		)
+		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0SupplyExchangePrice)
 	} else {
-		amountInRawAdjusted.Div(
-			tmp1.Mul(
-				tmp2.Mul(
-					param.TokenAmountIn.Amount,
-					LC_EXCHANGE_PRICES_PRECISION,
-				),
-				c.Token1NumeratorPrecision,
-			),
-			tmp3.Mul(
-				c.Token1SupplyExchangePrice,
-				c.Token1DenominatorPrecision,
-			),
-		)
+		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1SupplyExchangePrice)
 	}
 
 	if err := _verifyAdjustedAmountLimits(&amountInRawAdjusted); err != nil {
@@ -251,7 +224,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	amountOutRawAdjusted := amountOutResult.ReturnedAmount.ToBig()
 
-	if p.shouldCheckTokenReserves {
+	if p.poolAccountingFlag {
 		if tmp.Add(p.tokenReserves[tokenInIndex], amountInBI).Cmp(X128) > 0 {
 			return nil, ErrTokenReservesOverflow
 		}
@@ -271,33 +244,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	if zeroForOne {
-		amountOut.Div(
-			tmp1.Mul(
-				tmp2.Mul(
-					amountOutRawAdjusted,
-					c.Token1DenominatorPrecision,
-				),
-				c.Token1SupplyExchangePrice,
-			),
-			tmp3.Mul(
-				c.Token1NumeratorPrecision,
-				LC_EXCHANGE_PRICES_PRECISION,
-			),
-		)
+		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1SupplyExchangePrice)
 	} else {
-		amountOut.Div(
-			tmp1.Mul(
-				tmp2.Mul(
-					amountOutRawAdjusted,
-					c.Token0DenominatorPrecision,
-				),
-				c.Token0SupplyExchangePrice,
-			),
-			tmp3.Mul(
-				c.Token0NumeratorPrecision,
-				LC_EXCHANGE_PRICES_PRECISION,
-			),
-		)
+		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0SupplyExchangePrice)
 	}
 
 	amountOut.Sub(&amountOut, bignumber.One)

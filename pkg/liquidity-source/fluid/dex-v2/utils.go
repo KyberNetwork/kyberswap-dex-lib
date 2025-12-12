@@ -134,3 +134,39 @@ func calculateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (*big.Int, 
 
 	return totalAmount0, totalAmount1, nil
 }
+
+func amountToAdjusted(amount, tokenNumeratorPrecision, tokenDenominatorPrecision,
+	tokenSupplyExchangePrice *big.Int) *big.Int {
+	var tmp1, tmp2, tmp3 big.Int
+	return new(big.Int).Div(
+		tmp1.Mul(
+			tmp2.Mul(
+				amount,
+				EXCHANGE_PRICES_PRECISION,
+			),
+			tokenNumeratorPrecision,
+		),
+		tmp3.Mul(
+			tokenSupplyExchangePrice,
+			tokenDenominatorPrecision,
+		),
+	)
+}
+
+func adjustedToAmount(adjustedAmount, tokenNumeratorPrecision, tokenDenominatorPrecision,
+	tokenSupplyExchangePrice *big.Int) *big.Int {
+	var tmp1, tmp2, tmp3 big.Int
+	return new(big.Int).Div(
+		tmp1.Mul(
+			tmp2.Mul(
+				adjustedAmount,
+				tokenDenominatorPrecision,
+			),
+			tokenSupplyExchangePrice,
+		),
+		tmp3.Mul(
+			tokenNumeratorPrecision,
+			EXCHANGE_PRICES_PRECISION,
+		),
+	)
+}

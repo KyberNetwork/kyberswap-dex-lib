@@ -29,7 +29,13 @@ const (
 	BITS_EXCHANGE_PRICES_SUPPLY_RATIO          = 219
 	BITS_EXCHANGE_PRICES_BORROW_RATIO          = 234
 
+	BITS_DEX_V2_VARIABLES2_PROTOCOL_FEE_0_TO_1  = 0
+	BITS_DEX_V2_VARIABLES2_PROTOCOL_FEE_1_TO_0  = 12
 	BITS_DEX_V2_VARIABLES2_POOL_ACCOUNTING_FLAG = 140
+	BITS_DEX_V2_VARIABLES2_LP_FEE               = 156
+
+	BITS_DEX_V2_VARIABLES2_TOKEN_0_DECIMALS = 30
+	BITS_DEX_V2_VARIABLES2_TOKEN_1_DECIMALS = 34
 
 	BITS_DEX_V2_TOKEN_RESERVES_TOKEN_0_RESERVES = 0
 	BITS_DEX_V2_TOKEN_RESERVES_TOKEN_1_RESERVES = 128
@@ -40,22 +46,24 @@ var (
 
 	SECONDS_PER_YEAR = big.NewInt(365 * 24 * 60 * 60)
 
-	FOUR_DECIMALS                = bignumber.TenPowInt(4)
-	TEN_DECIMALS                 = bignumber.TenPowInt(10)
-	LC_EXCHANGE_PRICES_PRECISION = bignumber.TenPowInt(12)
-	TenPow27                     = bignumber.TenPowInt(27)
-	TenPow54                     = bignumber.TenPowInt(54)
+	FOUR_DECIMALS             = bignumber.TenPowInt(4)
+	TEN_DECIMALS              = bignumber.TenPowInt(10)
+	EXCHANGE_PRICES_PRECISION = bignumber.TenPowInt(12)
+	TenPow27                  = bignumber.TenPowInt(27)
+	TenPow54                  = bignumber.TenPowInt(54)
 
 	two255 = new(big.Int).Lsh(bignumber.One, 255)
 	two256 = new(big.Int).Lsh(bignumber.One, 256)
 
+	X4   = bignumber.NewBig("0xf")
+	X12  = bignumber.NewBig("0xfff")
 	X14  = bignumber.NewBig("0x3fff")
 	X15  = bignumber.NewBig("0x7fff")
 	X16  = bignumber.NewBig("0xffff")
 	X33  = bignumber.NewBig("0x1ffffffff")
 	X64  = bignumber.NewBig("0xffffffffffffffff")
 	X86  = bignumber.NewBig("0x3fffffffffffffffffffff")
-	X128 = bignumber.NewBig("0x00ffffffffffffffffffffffffffffffffffffffff")
+	X128 = bignumber.NewBig("0xffffffffffffffffffffffffffffffff")
 
 	MAX_SQRT_PRICE_CHANGE_PERCENTAGE = big.NewInt(2_000_000_000)
 	MIN_SQRT_PRICE_CHANGE_PERCENTAGE = big.NewInt(5)

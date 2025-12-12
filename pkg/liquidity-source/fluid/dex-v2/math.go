@@ -9,8 +9,27 @@ import (
 
 func (p *PoolSimulator) _calculateVars() (CalculatedVars, error) {
 	// NOTE: Should not mutate CalculatedVars's fields (readonly)
-	token0NumeratorPrecision, token0DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(p.token0Decimals)
-	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(p.token1Decimals)
+	var tmp big.Int
+	tmp.Set(p.extra.DexVariables2).
+		Rsh(&tmp, BITS_DEX_V2_VARIABLES2_TOKEN_0_DECIMALS).
+		And(&tmp, X4)
+
+	decimals := tmp.Int64()
+	if decimals == 15 {
+		decimals = 18
+	}
+
+	token0NumeratorPrecision, token0DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
+
+	tmp.Set(p.extra.DexVariables2).
+		Rsh(&tmp, BITS_DEX_V2_VARIABLES2_TOKEN_1_DECIMALS).
+		And(&tmp, X4)
+
+	decimals = tmp.Int64()
+	if decimals == 15 {
+		decimals = 18
+	}
+	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
 
 	token0SupplyExchangePrice, err := _calcSupplyExchangePrice(p.extra.Token0ExchangePricesAndConfig)
 	if err != nil {
@@ -54,11 +73,12 @@ func _calcSupplyExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, error
 	temp.And(exchangePricesAndConfig, X16)
 
 	var secondsSinceLastUpdate big.Int
+	currentTime := time.Now().Unix()
 	secondsSinceLastUpdate.
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_LAST_TIMESTAMP).
 		And(&secondsSinceLastUpdate, X33)
 	secondsSinceLastUpdate.Sub(
-		big.NewInt(time.Now().Unix()),
+		big.NewInt(currentTime),
 		&secondsSinceLastUpdate,
 	)
 
