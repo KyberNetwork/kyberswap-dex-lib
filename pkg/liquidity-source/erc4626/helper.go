@@ -57,7 +57,7 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int, isExactOut bool) 
 	}
 
 	// new result here to avoid modifying amount param
-	var result *uint256.Int
+	result := uint256.NewInt(0)
 	if isExactOut {
 		// in = out * prefetchAmount / rate
 		result.MulDivOverflow(amount, PrefetchAmounts[bestId], rate)
