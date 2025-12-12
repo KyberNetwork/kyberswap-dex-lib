@@ -517,13 +517,20 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
-	reserve0, reserve1, err := calculateReservesFromTicks(extra.SqrtPriceX96, entityPoolTicks)
+
+	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
+	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to calculate reserves from ticks")
-		return p, err
+		return entity.Pool{}, err
 	}
+
+	_, dexType := parseFluidDexV2PoolAddress(p.Address)
+	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
+		lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
+	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
+		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
+
+	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	p.Reserves = []string{reserve0.String(), reserve1.String()}
 
 	return p, err
