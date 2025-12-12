@@ -138,7 +138,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	cloned.V3Pool = &clonedV3Pool
 
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-		V3Pool:          cloned.V3Pool,
 		ExactIn:         true,
 		ZeroForOne:      zeroForOne,
 		AmountSpecified: amountIn,

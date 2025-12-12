@@ -66,9 +66,9 @@ type OrderInfo struct {
 }
 
 type Extra struct {
-	PendingFillOrderList   []OrderId             `json:"pendingFillOrderList"`
-	PendingFillOrderLength *uint256.Int          `json:"pendingFillOrderLength"`
-	OrderInfos             map[OrderId]OrderInfo `json:"orderInfos"`
+	PendingFillOrderList   []OrderId            `json:"pendingFillOrderList"`
+	PendingFillOrderLength *uint256.Int         `json:"pendingFillOrderLength"`
+	OrderInfos             map[string]OrderInfo `json:"orderInfos"`
 }
 
 func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
@@ -88,7 +88,7 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 	}
 
 	rpcRequest := param.RpcClient.NewRequest().SetContext(ctx)
-	extra.OrderInfos = make(map[OrderId]OrderInfo)
+	extra.OrderInfos = make(map[string]OrderInfo)
 	for _, orderId := range extra.PendingFillOrderList {
 		var orderInfo OrderInfo
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -98,7 +98,8 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 			Params: []any{orderId},
 		}, []any{&orderInfo})
 
-		extra.OrderInfos[orderId] = orderInfo
+		orderIdStr := (*big.Int)(orderId).Text(16)
+		extra.OrderInfos[orderIdStr] = orderInfo
 	}
 	if _, err := rpcRequest.TryBlockAndAggregate(); err != nil {
 		return nil, err
@@ -145,13 +146,13 @@ func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTi
 	*/
 	// 1. Mapping BeforeSwap of CLHook to get list of orders to be filled
 	toBeFilledOrderInfos := make([]OrderInfo, 0)
-	orderLength := len(h.Extra.PendingFillOrderList)
+	orderLength := len(h.PendingFillOrderList)
 	if orderLength > 0 {
-		remainingPendingFillOrderLength := h.Extra.PendingFillOrderLength.Uint64()
+		remainingPendingFillOrderLength := h.PendingFillOrderLength.Uint64()
 		if remainingPendingFillOrderLength > 0 {
 			for i := 0; i < orderLength; i++ {
-				orderId := h.Extra.PendingFillOrderList[i]
-				orderInfo := h.OrderInfos[orderId]
+				orderId := h.PendingFillOrderList[i]
+				orderInfo := h.OrderInfos[(*big.Int)(orderId).Text(16)]
 				if orderInfo.Status == OrderStatusPending {
 					remainingPendingFillOrderLength -= 1
 					toBeFilledOrderInfos = append(toBeFilledOrderInfos, orderInfo)
