@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -44,6 +45,9 @@ type Hook interface {
 	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
 	CloneState() Hook
 	UpdateBalance(swapInfo any)
+	// ModifyTicks some hook need ModifyLiquidity before swap, we can use this method in the NewPoolSimulator for simplicity
+	// instead of calling BeforeSwap in CalcAmountOut.
+	ModifyTicks(ctx context.Context, extraTickUint256 *uniswapv3.ExtraTickU256) error
 }
 
 type HookFactory func(param *HookParam) Hook
@@ -130,3 +134,7 @@ func (h *BaseHook) CloneState() Hook {
 }
 
 func (h *BaseHook) UpdateBalance(_ any) {}
+
+func (h *BaseHook) ModifyTicks(ctx context.Context, extraTickUint256 *uniswapv3.ExtraTickU256) error {
+	return nil
+}

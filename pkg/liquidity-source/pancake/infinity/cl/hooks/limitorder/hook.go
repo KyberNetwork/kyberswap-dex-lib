@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -53,13 +56,13 @@ const (
 // poolId bytes32
 
 type OrderInfo struct {
-	Status                   OrderStatus `json:"status"`
-	LiquidityTotal           *big.Int    `json:"liquidityTotal"`
-	TickLower                *big.Int    `json:"tickLower"`
-	ZeroForOne               bool        `json:"zeroForOne"`
-	AccCurrency0PerLiquidity *big.Int    `json:"accCurrency0PerLiquidity"`
-	AccCurrency1PerLiquidity *big.Int    `json:"accCurrency1PerLiquidity"`
-	PoolId                   common.Hash `json:"poolId"`
+	Status                   OrderStatus  `json:"status"`
+	LiquidityTotal           *uint256.Int `json:"liquidityTotal"`
+	TickLower                *big.Int     `json:"tickLower"`
+	ZeroForOne               bool         `json:"zeroForOne"`
+	AccCurrency0PerLiquidity *big.Int     `json:"accCurrency0PerLiquidity"`
+	AccCurrency1PerLiquidity *big.Int     `json:"accCurrency1PerLiquidity"`
+	PoolId                   common.Hash  `json:"poolId"`
 }
 
 type Extra struct {
@@ -104,8 +107,7 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 	return json.Marshal(extra)
 }
 
-// BeforeSwap might change pool state and affect the swap result
-func (h *Hook) BeforeSwap(swapHookParams *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) {
+func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTickU256) error {
 	// ref: https://bscscan.com/address/0x6AdC560aF85377f9a73d17c658D798c9B39186e8#code
 	// Contract: CLLimitOrderHook.sol
 	/*
@@ -141,6 +143,7 @@ func (h *Hook) BeforeSwap(swapHookParams *cl.BeforeSwapParams) (*cl.BeforeSwapRe
 		        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
 		    }
 	*/
+	// 1. Mapping BeforeSwap of CLHook to get list of orders to be filled
 	toBeFilledOrderInfos := make([]OrderInfo, 0)
 	orderLength := len(h.Extra.PendingFillOrderList)
 	if orderLength > 0 {
@@ -161,8 +164,102 @@ func (h *Hook) BeforeSwap(swapHookParams *cl.BeforeSwapParams) (*cl.BeforeSwapRe
 		}
 	}
 
-	// TODO: update V3Pool inner state
+	// 2. Remove liquidity from the pool by ModifyLiquidity, since LO is filled.
+	tickSpacing := big.NewInt(int64(extraTickU256.TickSpacing))
+	var liquidityDelta *int256.Int
+	for _, orderInfo := range toBeFilledOrderInfos {
+		tickLower := orderInfo.TickLower
+		tickUpper := new(big.Int).Add(tickLower, tickSpacing)
+		tickCurrent := big.NewInt(int64(*extraTickU256.Tick))
 
+		// since we are removed liquidity from the pool (LO filled), so liquidityDelta is negative
+		// liquidityDelta: -int256(uint256(totalLiquidity)),
+		int256LiquidityTotal := int256.MustFromBig(orderInfo.LiquidityTotal.ToBig())
+		liquidityDelta = int256LiquidityTotal.Mul(int256LiquidityTotal, int256.NewInt(-1))
+
+		// Pools liquidity tracks the currently active liquidity given pools current tick.
+		// We only want to update it on mint if the new position includes the current tick.
+		if tickCurrent != nil &&
+			tickLower.Cmp(tickCurrent) <= 0 &&
+			tickUpper.Cmp(tickCurrent) > 0 {
+
+			liquidity := orderInfo.LiquidityTotal
+			// Note: remove liquidity from the pool, because the order is filled
+			if extraTickU256.Liquidity.Cmp(liquidity) < 0 {
+				return ErrorSubLiquidityUnderflow
+			}
+			extraTickU256.Liquidity.Sub(extraTickU256.Liquidity, liquidity)
+		}
+
+		lowerTickIdx := tickLower.Int64()
+		upperTickIdx := tickUpper.Int64()
+
+		// find lower and upper tick instances
+		var lowerTickInstance, upperTickInstance *uniswapv3.TickU256
+		for i := range extraTickU256.Ticks {
+			if extraTickU256.Ticks[i].Index == int(lowerTickIdx) {
+				lowerTickInstance = &extraTickU256.Ticks[i]
+			}
+			if extraTickU256.Ticks[i].Index == int(upperTickIdx) {
+				upperTickInstance = &extraTickU256.Ticks[i]
+			}
+
+			if lowerTickInstance != nil && upperTickInstance != nil {
+				break
+			}
+		}
+
+		if lowerTickInstance != nil {
+			lowerTickInstance = &uniswapv3.TickU256{
+				Index: int(lowerTickIdx),
+				// if tick not found, it means we are adding liq (not expected), so we can leave LiquidityGross = LiquidityDelta
+				LiquidityGross: orderInfo.LiquidityTotal,
+				LiquidityNet:   liquidityDelta,
+			}
+			extraTickU256.Ticks = append(extraTickU256.Ticks, *lowerTickInstance)
+		} else {
+			// since LiquidityGross is uint256, and we are removing liq, so we need check sign of liquidityDelta
+			// abs(liquidityDelta) == liquidityTotal > 0
+			if liquidityDelta.Sign() < 0 {
+				lowerTickInstance.LiquidityGross.Sub(lowerTickInstance.LiquidityGross, orderInfo.LiquidityTotal)
+			} else {
+				lowerTickInstance.LiquidityGross.Add(lowerTickInstance.LiquidityGross, orderInfo.LiquidityTotal)
+			}
+
+			lowerTickInstance.LiquidityNet.Add(lowerTickInstance.LiquidityNet, liquidityDelta)
+		}
+
+		if upperTickInstance != nil {
+			upperTickInstance = &uniswapv3.TickU256{
+				Index: int(upperTickIdx),
+				// if tick not found, it means we are adding liq (not expected), so we can leave LiquidityGross = LiquidityDelta
+				LiquidityGross: orderInfo.LiquidityTotal,
+				LiquidityNet:   liquidityDelta.Mul(liquidityDelta, int256.NewInt(-1)),
+			}
+			extraTickU256.Ticks = append(extraTickU256.Ticks, *upperTickInstance)
+		} else {
+			// since LiquidityGross is uint256, and we are removing liq, so we need check sign of liquidityDelta
+			// abs(liquidityDelta) == liquidityTotal > 0
+			if liquidityDelta.Sign() < 0 {
+				upperTickInstance.LiquidityGross.Sub(upperTickInstance.LiquidityGross, orderInfo.LiquidityTotal)
+			} else {
+				upperTickInstance.LiquidityGross.Add(upperTickInstance.LiquidityGross, orderInfo.LiquidityTotal)
+			}
+
+			// remember this is Sub
+			upperTickInstance.LiquidityNet.Sub(upperTickInstance.LiquidityNet, liquidityDelta)
+		}
+	}
+
+	// resort ticks by index
+	sort.Slice(extraTickU256.Ticks, func(i, j int) bool {
+		return extraTickU256.Ticks[i].Index < extraTickU256.Ticks[j].Index
+	})
+
+	return nil
+}
+
+func (h *Hook) BeforeSwap(swapHookParams *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) {
 	return &cl.BeforeSwapResult{
 		DeltaSpecified:   big.NewInt(0),
 		DeltaUnspecified: big.NewInt(0),

@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strings"
@@ -40,8 +41,23 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	var allowEmptyTicks bool
+	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
+		Cfg:       &Config{ChainID: int(chainID)},
+		Pool:      &entityPool,
+		HookExtra: extra.HookExtra,
+	})
+	if !ok && staticExtra.HasSwapPermissions {
+		return nil, shared.ErrUnsupportedHook
+	}
 
+	// modify ticks before new pool simulator, some hooks will need this.
+	// In the the original logic, we should do this logic in BeforeSwap in CalcAmountOut, but using here for simplicity.
+	err := hook.ModifyTicks(context.Background(), extra.ExtraTickU256)
+	if err != nil {
+		return nil, err
+	}
+
+	var allowEmptyTicks bool
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256,
 		allowEmptyTicks)
 	if err != nil {
@@ -53,16 +69,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
 	}
 	v3PoolSimulator.Gas = defaultGas
-
-	//Note: BeforeSwap of some hooks might change pool state and affect the swap result
-	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: int(chainID)},
-		Pool:      &entityPool,
-		HookExtra: extra.HookExtra,
-	})
-	if !ok && staticExtra.HasSwapPermissions {
-		return nil, shared.ErrUnsupportedHook
-	}
 
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
@@ -148,7 +154,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	if beforeSwapResult.SwapFee >= FeeMax {
 		return nil, ErrInvalidFee
-	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
+	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != cloned.V3Pool.Fee {
 		cloned.V3Pool.Fee = beforeSwapResult.SwapFee
 		poolSim = &cloned
 	}
