@@ -93,7 +93,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}
 	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
 	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
-	p.Exchange = hook.GetExchange()
+	p.Exchange = t.getExchange(hook)
 	var err error
 	result.HookExtra, err = hook.Track(ctx, hookParam)
 	return result, err
@@ -808,4 +808,11 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func (t *PoolTracker) getExchange(hook Hook) string {
+	if hook != (*BaseHook)(nil) {
+		return hook.GetExchange()
+	}
+	return t.config.DexID
 }
