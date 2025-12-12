@@ -132,11 +132,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	zeroForOne := p.GetTokenIndex(tokenIn) == 0
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
-	// clone
-	cloned := *poolSim
-	clonedV3Pool := *poolSim.V3Pool
-	cloned.V3Pool = &clonedV3Pool
-
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
 		ExactIn:         true,
 		ZeroForOne:      zeroForOne,
@@ -153,7 +148,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	if beforeSwapResult.SwapFee >= FeeMax {
 		return nil, ErrInvalidFee
-	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != cloned.V3Pool.Fee {
+	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
+		// clone
+		cloned := *poolSim
+		clonedV3Pool := *poolSim.V3Pool
+		cloned.V3Pool = &clonedV3Pool
 		cloned.V3Pool.Fee = beforeSwapResult.SwapFee
 		poolSim = &cloned
 	}

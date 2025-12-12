@@ -18,7 +18,6 @@ type BeforeSwapParams struct {
 	ExactIn         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int
-	PoolID          string
 }
 
 type BeforeSwapResult struct {
