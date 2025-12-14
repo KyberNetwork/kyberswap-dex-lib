@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	gatewayABI abi.ABI
-	erc20ABI   abi.ABI
-	erc4626ABI abi.ABI
+	gatewayABI           abi.ABI
+	erc20ABI             abi.ABI
+	erc4626ABI           abi.ABI
+	lockingControllerABI abi.ABI
 )
 
 func init() {
@@ -21,6 +22,7 @@ func init() {
 		{&gatewayABI, gatewayBytes},
 		{&erc20ABI, erc20Bytes},
 		{&erc4626ABI, erc4626Bytes},
+		{&lockingControllerABI, lockingControllerBytes},
 	}
 
 	for _, b := range builder {

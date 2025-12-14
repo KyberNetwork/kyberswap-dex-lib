@@ -45,9 +45,10 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		siusdTotalAssets *big.Int
 		siusdSupply      *big.Int
 	)
-
-	// Prepare slice for liUSD supplies
+	
+	// Prepare slices for liUSD bucket data
 	liusdSupplies := make([]*big.Int, len(cfg.LIUSDTokens))
+	liusdTotalReceipts := make([]*big.Int, len(cfg.LIUSDTokens))
 
 	// Build batched RPC request
 	req := ethrpcClient.NewRequest().SetContext(ctx)
@@ -79,14 +80,35 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		Method: erc20TotalSupplyMethod,
 	}, []any{&siusdSupply})
 
-	// Get total supply for each liUSD token
+	// Get bucket data for each liUSD token
+	// We need both totalSupply (shares) and totalReceiptTokens from each bucket
 	for i, liusd := range cfg.LIUSDTokens {
 		liusdSupplies[i] = new(big.Int)
+		liusdTotalReceipts[i] = new(big.Int)
+		
+		// Get share token total supply
 		req.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: liusd.Address,
 			Method: erc20TotalSupplyMethod,
 		}, []any{&liusdSupplies[i]})
+		
+		// Get bucket data from LockingController
+		// buckets(uint32) returns (address shareToken, uint256 totalReceiptTokens, uint256 multiplier)
+		var bucketData struct {
+			ShareToken         string
+			TotalReceiptTokens *big.Int
+			Multiplier         *big.Int
+		}
+		req.AddCall(&ethrpc.Call{
+			ABI:    lockingControllerABI,
+			Target: cfg.LockingController,
+			Method: lockingControllerBucketsMethod,
+			Params: []any{liusd.UnwindingEpochs},
+		}, []any{&bucketData.ShareToken, &bucketData.TotalReceiptTokens, &bucketData.Multiplier})
+		
+		// Store totalReceiptTokens for this bucket
+		liusdTotalReceipts[i] = bucketData.TotalReceiptTokens
 	}
 
 	// Execute batched call
@@ -104,19 +126,22 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
-	// Convert liUSD supplies to strings
+	// Convert to strings for JSON
 	liusdSupplyStrings := make([]string, len(liusdSupplies))
-	for i, supply := range liusdSupplies {
-		liusdSupplyStrings[i] = supply.String()
+	liusdTotalReceiptsStrings := make([]string, len(liusdTotalReceipts))
+	for i := range liusdSupplies {
+		liusdSupplyStrings[i] = liusdSupplies[i].String()
+		liusdTotalReceiptsStrings[i] = liusdTotalReceipts[i].String()
 	}
 
 	// Marshal extra data
 	extra := Extra{
-		IsPaused:         isPaused,
-		IUSDSupply:       iusdSupply,
-		SIUSDTotalAssets: siusdTotalAssets,
-		SIUSDSupply:      siusdSupply,
-		LIUSDSupplies:    liusdSupplyStrings,
+		IsPaused:           isPaused,
+		IUSDSupply:         iusdSupply,
+		SIUSDTotalAssets:   siusdTotalAssets,
+		SIUSDSupply:        siusdSupply,
+		LIUSDSupplies:      liusdSupplyStrings,
+		LIUSDTotalReceipts: liusdTotalReceiptsStrings,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -130,9 +155,8 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	p.Extra = string(extraBytes)
 
 	// Update reserves (for display/informational purposes)
-	// Format: [iUSD supply, siUSD total assets, siUSD shares, liUSD1 supply, liUSD2 supply, ...]
+	// Format: [siUSD total assets, siUSD shares, liUSD1 supply, liUSD2 supply, ...]
 	reserves := []string{
-		iusdSupply.String(),
 		siusdTotalAssets.String(),
 		siusdSupply.String(),
 	}

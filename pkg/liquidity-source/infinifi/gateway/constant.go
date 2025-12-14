@@ -8,10 +8,8 @@ const (
 	DexType = "infinifi-gateway"
 
 	// Gateway methods (from InfiniFiGatewayV2)
-	// Only synchronous operations are supported
-	gatewayMintMethod           = "mint"           // USDC → iUSD (synchronous)
-	gatewayStakeMethod          = "stake"          // iUSD → siUSD (synchronous)
-	gatewayCreatePositionMethod = "createPosition" // iUSD → liUSD (synchronous)
+	gatewayMintAndStakeMethod = "mintAndStake" // USDC → siUSD (combined)
+	gatewayMintAndLockMethod  = "mintAndLock"  // USDC → liUSD (combined)
 
 	// ERC20 methods
 	erc20BalanceOfMethod   = "balanceOf"
@@ -21,14 +19,15 @@ const (
 	erc4626ConvertToSharesMethod = "convertToShares" // Preview iUSD → siUSD conversion
 	erc4626TotalAssetsMethod     = "totalAssets"     // Get total iUSD in siUSD vault
 
+	// LockingController methods (for liUSD buckets)
+	lockingControllerBucketsMethod = "buckets" // Get bucket data (shareToken, totalReceiptTokens, multiplier)
+
 	// CoreControlled methods
 	coreControlledPausedMethod = "paused"
 
 	// Gas estimates - measured from actual transactions
-	// Note: These are for synchronous operations only
-	defaultMintGas  int64 = 150000
-	defaultStakeGas int64 = 200000 // Higher due to YieldSharing.distributeInterpolationRewards()
-	defaultLockGas  int64 = 250000 // For createPosition (locking to liUSD)
+	defaultMintAndStakeGas int64 = 650000 // USDC → siUSD (mint + stake combined)
+	defaultMintAndLockGas  int64 = 650000 // USDC → liUSD (mint + lock combined)
 )
 
 var (

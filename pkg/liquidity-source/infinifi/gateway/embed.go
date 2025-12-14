@@ -13,6 +13,9 @@ var erc20Bytes []byte
 //go:embed abi/ERC4626.json
 var erc4626Bytes []byte
 
+//go:embed abi/LockingController.json
+var lockingControllerBytes []byte
+
 //go:embed pools/ethereum.json
 var ethereumPoolData []byte
 
