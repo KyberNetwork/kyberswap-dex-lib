@@ -13,11 +13,12 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut_OneWay(t *testing.T) {
-	// Example token addresses (replace with actual addresses)
+	// Actual token addresses from ethereum.json
 	usdcAddr := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-	iusdAddr := "0x1234567890123456789012345678901234567890"  // Replace with actual
-	siusdAddr := "0x2234567890123456789012345678901234567890" // Replace with actual
-	liusdAddr := "0x3234567890123456789012345678901234567890" // Replace with actual
+	siusdAddr := "0xdbdc1ef57537e34680b898e1febd3d68c7389bcb"
+	liusd1moAddr := "0x12b004719fb632f1e7c010c6f5d6009fb4258442"
+	liusd2moAddr := "0xf1839becaf586814d022f16cdb3504ff8d8ff361"
+	gatewayAddr := "0x3f04b65ddbd87f9ce0a2e7eb24d80e7fb87625b5"
 
 	testCases := []struct {
 		name           string
@@ -27,116 +28,139 @@ func TestPoolSimulator_CalcAmountOut_OneWay(t *testing.T) {
 		amountIn       string
 		expectedAmount string
 		expectedError  error
+		expectedGas    int64
 	}{
 		{
-			name: "USDC -> iUSD (Mint) - 1:1 with decimal conversion",
+			name: "USDC -> siUSD (mintAndStake) - 1 USDC with 2:1 exchange rate",
 			poolExtra: Extra{
-				IsPaused:         false,
-				IUSDSupply:       mustParseBig("1000000000000000000000000"), // 1M iUSD (18 decimals)
-				SIUSDTotalAssets: mustParseBig("500000000000000000000000"),  // 500k iUSD
-				SIUSDSupply:      mustParseBig("500000000000000000000000"),  // 500k siUSD
-				LIUSDSupplies:    []string{"100000000000000000000000"},      // 100k liUSD
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"), // 1M iUSD
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"), // 1M iUSD in vault
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),  // 500k siUSD (2:1 ratio)
+				LIUSDSupplies:      []string{"1000000000000000000000000"},     // 1M liUSD-1mo shares
+				LIUSDTotalReceipts: []string{"1000000000000000000000000"},     // 1M iUSD locked
 			},
 			tokenIn:        usdcAddr,
-			tokenOut:       iusdAddr,
-			amountIn:       "1000000",             // 1 USDC (6 decimals)
-			expectedAmount: "1000000000000000000", // 1 iUSD (18 decimals)
+			tokenOut:       siusdAddr,
+			amountIn:       "1000000",            // 1 USDC (6 decimals)
+			expectedAmount: "500000000000000000", // 0.5 siUSD (18 decimals) - 1 iUSD * 500k / 1M
 			expectedError:  nil,
+			expectedGas:    defaultMintAndStakeGas,
 		},
 		{
-			name: "iUSD -> siUSD (Stake) - ERC4626 conversion",
+			name: "USDC -> liUSD-1mo (mintAndLock) - 1 USDC to 1 liUSD",
 			poolExtra: Extra{
-				IsPaused:         false,
-				IUSDSupply:       mustParseBig("1000000000000000000000000"),
-				SIUSDTotalAssets: mustParseBig("500000000000000000000000"), // 500k iUSD in vault
-				SIUSDSupply:      mustParseBig("400000000000000000000000"), // 400k siUSD shares
-				LIUSDSupplies:    []string{"100000000000000000000000"},
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{"1000000000000000000000000"}, // 1M liUSD-1mo shares
+				LIUSDTotalReceipts: []string{"1000000000000000000000000"}, // 1M iUSD locked (1:1 ratio)
 			},
-			tokenIn:  iusdAddr,
-			tokenOut: siusdAddr,
-			amountIn: "1000000000000000000", // 1 iUSD
-			// Expected: 1 iUSD * 400k siUSD / 500k iUSD = 0.8 siUSD
+			tokenIn:        usdcAddr,
+			tokenOut:       liusd1moAddr,
+			amountIn:       "1000000",             // 1 USDC
+			expectedAmount: "1000000000000000000", // 1 liUSD (1:1)
+			expectedError:  nil,
+			expectedGas:    defaultMintAndLockGas,
+		},
+		{
+			name: "USDC -> liUSD-2mo (mintAndLock) - with non-1:1 exchange rate",
+			poolExtra: Extra{
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{"1000000000000000000000000", "800000000000000000000000"},  // 1M, 800k
+				LIUSDTotalReceipts: []string{"1000000000000000000000000", "1000000000000000000000000"}, // 1M, 1M (0.8:1 ratio)
+			},
+			tokenIn:  usdcAddr,
+			tokenOut: liusd2moAddr,
+			amountIn: "1000000", // 1 USDC
+			// 1 USDC → 1e18 iUSD, then 1e18 * 800k / 1M = 0.8e18 liUSD
 			expectedAmount: "800000000000000000",
 			expectedError:  nil,
-		},
-		{
-			name: "iUSD -> liUSD (Lock) - 1:1",
-			poolExtra: Extra{
-				IsPaused:         false,
-				IUSDSupply:       mustParseBig("1000000000000000000000000"),
-				SIUSDTotalAssets: mustParseBig("500000000000000000000000"),
-				SIUSDSupply:      mustParseBig("500000000000000000000000"),
-				LIUSDSupplies:    []string{"100000000000000000000000"},
-			},
-			tokenIn:        iusdAddr,
-			tokenOut:       liusdAddr,
-			amountIn:       "1000000000000000000", // 1 iUSD
-			expectedAmount: "1000000000000000000", // 1 liUSD
-			expectedError:  nil,
+			expectedGas:    defaultMintAndLockGas,
 		},
 		{
 			name: "Contract paused should fail",
 			poolExtra: Extra{
-				IsPaused:         true,
-				IUSDSupply:       mustParseBig("1000000000000000000000000"),
-				SIUSDTotalAssets: mustParseBig("500000000000000000000000"),
-				SIUSDSupply:      mustParseBig("500000000000000000000000"),
-				LIUSDSupplies:    []string{},
+				IsPaused:           true,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{},
+				LIUSDTotalReceipts: []string{},
 			},
 			tokenIn:       usdcAddr,
-			tokenOut:      iusdAddr,
+			tokenOut:      siusdAddr,
 			amountIn:      "1000000",
 			expectedError: ErrContractPaused,
+			expectedGas:   0,
 		},
 		{
-			name: "Async redemption (iUSD -> USDC) should fail",
+			name: "Unsupported swap (siUSD -> USDC) should fail",
 			poolExtra: Extra{
-				IsPaused:         false,
-				IUSDSupply:       mustParseBig("1000000000000000000000000"),
-				SIUSDTotalAssets: mustParseBig("500000000000000000000000"),
-				SIUSDSupply:      mustParseBig("500000000000000000000000"),
-				LIUSDSupplies:    []string{},
-			},
-			tokenIn:       iusdAddr,
-			tokenOut:      usdcAddr,
-			amountIn:      "1000000000000000000",
-			expectedError: ErrAsyncRedemption,
-		},
-		{
-			name: "Async unstake (siUSD -> iUSD) should fail",
-			poolExtra: Extra{
-				IsPaused:         false,
-				IUSDSupply:       mustParseBig("1000000000000000000000000"),
-				SIUSDTotalAssets: mustParseBig("500000000000000000000000"),
-				SIUSDSupply:      mustParseBig("500000000000000000000000"),
-				LIUSDSupplies:    []string{},
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{},
+				LIUSDTotalReceipts: []string{},
 			},
 			tokenIn:       siusdAddr,
-			tokenOut:      iusdAddr,
+			tokenOut:      usdcAddr,
 			amountIn:      "1000000000000000000",
-			expectedError: ErrAsyncRedemption,
+			expectedError: ErrSwapNotSupported,
+			expectedGas:   0,
+		},
+		{
+			name: "Unsupported swap (liUSD -> USDC) should fail",
+			poolExtra: Extra{
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{"1000000000000000000000000"},
+				LIUSDTotalReceipts: []string{"1000000000000000000000000"},
+			},
+			tokenIn:       liusd1moAddr,
+			tokenOut:      usdcAddr,
+			amountIn:      "1000000000000000000",
+			expectedError: ErrSwapNotSupported,
+			expectedGas:   0,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create pool entity
+			// Create pool entity with proper token list
+			tokens := []*entity.PoolToken{
+				{Address: usdcAddr, Decimals: 6, Swappable: true},
+				{Address: siusdAddr, Decimals: 18, Swappable: true},
+			}
+
+			// Add liUSD tokens based on test case
+			if len(tc.poolExtra.LIUSDSupplies) > 0 {
+				tokens = append(tokens, &entity.PoolToken{Address: liusd1moAddr, Decimals: 18, Swappable: true})
+			}
+			if len(tc.poolExtra.LIUSDSupplies) > 1 {
+				tokens = append(tokens, &entity.PoolToken{Address: liusd2moAddr, Decimals: 18, Swappable: true})
+			}
+
+			// Build reserves
+			reserves := []string{
+				tc.poolExtra.SIUSDTotalAssets.String(),
+				tc.poolExtra.SIUSDSupply.String(),
+			}
+			reserves = append(reserves, tc.poolExtra.LIUSDSupplies...)
+
 			poolEntity := entity.Pool{
-				Address:  "0x3f04b65ddbd87f9ce0a2e7eb24d80e7fb87625b5",
+				Address:  gatewayAddr,
 				Exchange: "infinifi",
 				Type:     DexType,
-				Tokens: []*entity.PoolToken{
-					{Address: usdcAddr, Decimals: 6, Swappable: true},
-					{Address: iusdAddr, Decimals: 18, Swappable: true},
-					{Address: siusdAddr, Decimals: 18, Swappable: true},
-					{Address: liusdAddr, Decimals: 18, Swappable: true},
-				},
-				Reserves: []string{
-					tc.poolExtra.IUSDSupply.String(),
-					tc.poolExtra.SIUSDTotalAssets.String(),
-					tc.poolExtra.SIUSDSupply.String(),
-					"100000000000000000000000",
-				},
+				Tokens:   tokens,
+				Reserves: reserves,
 			}
 
 			// Marshal extra
@@ -161,41 +185,55 @@ func TestPoolSimulator_CalcAmountOut_OneWay(t *testing.T) {
 			// Check error
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, err, tc.expectedError)
+				assert.Nil(t, result)
 				return
 			}
 
 			require.NoError(t, err)
+			require.NotNil(t, result)
 			assert.Equal(t, tc.expectedAmount, result.TokenAmountOut.Amount.String())
+			if tc.expectedGas > 0 {
+				assert.Equal(t, tc.expectedGas, result.Gas)
+			}
 		})
 	}
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	// Actual token addresses from ethereum.json
 	usdcAddr := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-	iusdAddr := "0x1234567890123456789012345678901234567890"
-	siusdAddr := "0x2234567890123456789012345678901234567890"
+	siusdAddr := "0xdbdc1ef57537e34680b898e1febd3d68c7389bcb"
+	liusd1moAddr := "0x12b004719fb632f1e7c010c6f5d6009fb4258442"
+	gatewayAddr := "0x3f04b65ddbd87f9ce0a2e7eb24d80e7fb87625b5"
+
+	initialIUSD := mustParseBig("1000000000000000000000000")
+	initialSIUSDAssets := mustParseBig("1000000000000000000000000")
+	initialSIUSDSupply := mustParseBig("500000000000000000000000")
+	initialLIUSD1moSupply := mustParseBig("1000000000000000000000000")
+	initialLIUSD1moReceipts := mustParseBig("1000000000000000000000000")
 
 	poolExtra := Extra{
-		IsPaused:         false,
-		IUSDSupply:       mustParseBig("1000000000000000000000000"),
-		SIUSDTotalAssets: mustParseBig("500000000000000000000000"),
-		SIUSDSupply:      mustParseBig("500000000000000000000000"),
-		LIUSDSupplies:    []string{},
+		IsPaused:           false,
+		IUSDSupply:         initialIUSD,
+		SIUSDTotalAssets:   initialSIUSDAssets,
+		SIUSDSupply:        initialSIUSDSupply,
+		LIUSDSupplies:      []string{initialLIUSD1moSupply.String()},
+		LIUSDTotalReceipts: []string{initialLIUSD1moReceipts.String()},
 	}
 
 	poolEntity := entity.Pool{
-		Address:  "0x3f04b65ddbd87f9ce0a2e7eb24d80e7fb87625b5",
+		Address:  gatewayAddr,
 		Exchange: "infinifi",
 		Type:     DexType,
 		Tokens: []*entity.PoolToken{
 			{Address: usdcAddr, Decimals: 6, Swappable: true},
-			{Address: iusdAddr, Decimals: 18, Swappable: true},
 			{Address: siusdAddr, Decimals: 18, Swappable: true},
+			{Address: liusd1moAddr, Decimals: 18, Swappable: true},
 		},
 		Reserves: []string{
-			poolExtra.IUSDSupply.String(),
 			poolExtra.SIUSDTotalAssets.String(),
 			poolExtra.SIUSDSupply.String(),
+			poolExtra.LIUSDSupplies[0],
 		},
 	}
 
@@ -206,20 +244,19 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	simulator, err := NewPoolSimulator(poolEntity)
 	require.NoError(t, err)
 
-	// Test USDC -> iUSD (mint)
-	amountIn := mustParseBig("1000000")              // 1 USDC
-	amountOut := mustParseBig("1000000000000000000") // 1 iUSD
-
-	initialIUSD := new(big.Int).Set(simulator.iusdSupply)
+	// Test USDC -> siUSD (mintAndStake)
+	amountInUSDC := mustParseBig("1000000")               // 1 USDC
+	amountOutSIUSD := mustParseBig("500000000000000000")  // 0.5 siUSD (based on 2:1 rate)
+	iusdEquivalent := mustParseBig("1000000000000000000") // 1 iUSD
 
 	simulator.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  usdcAddr,
-			Amount: amountIn,
+			Amount: amountInUSDC,
 		},
 		TokenAmountOut: pool.TokenAmount{
-			Token:  iusdAddr,
-			Amount: amountOut,
+			Token:  siusdAddr,
+			Amount: amountOutSIUSD,
 		},
 		Fee: pool.TokenAmount{
 			Token:  usdcAddr,
@@ -227,9 +264,45 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		},
 	})
 
-	// Check balances updated correctly
-	expectedIUSD := new(big.Int).Add(initialIUSD, amountOut)
+	// Check balances updated correctly for mintAndStake
+	expectedIUSD := new(big.Int).Add(initialIUSD, iusdEquivalent)
+	expectedSIUSDAssets := new(big.Int).Add(initialSIUSDAssets, iusdEquivalent)
+	expectedSIUSDSupply := new(big.Int).Add(initialSIUSDSupply, amountOutSIUSD)
+
 	assert.Equal(t, expectedIUSD.String(), simulator.iusdSupply.String())
+	assert.Equal(t, expectedSIUSDAssets.String(), simulator.siusdTotalAssets.String())
+	assert.Equal(t, expectedSIUSDSupply.String(), simulator.siusdSupply.String())
+
+	// Reset simulator for next test
+	simulator, err = NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	// Test USDC -> liUSD (mintAndLock)
+	amountInUSDC2 := mustParseBig("2000000")               // 2 USDC
+	amountOutLIUSD := mustParseBig("2000000000000000000")  // 2 liUSD
+	iusdEquivalent2 := mustParseBig("2000000000000000000") // 2 iUSD
+
+	simulator.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  usdcAddr,
+			Amount: amountInUSDC2,
+		},
+		TokenAmountOut: pool.TokenAmount{
+			Token:  liusd1moAddr,
+			Amount: amountOutLIUSD,
+		},
+		Fee: pool.TokenAmount{
+			Token:  usdcAddr,
+			Amount: big.NewInt(0),
+		},
+	})
+
+	// Check balances updated correctly for mintAndLock
+	expectedIUSD2 := new(big.Int).Add(initialIUSD, iusdEquivalent2)
+	expectedLIUSD1moSupply := new(big.Int).Add(initialLIUSD1moSupply, amountOutLIUSD)
+
+	assert.Equal(t, expectedIUSD2.String(), simulator.iusdSupply.String())
+	assert.Equal(t, expectedLIUSD1moSupply.String(), simulator.liusdSupplies[0].String())
 }
 
 func mustParseBig(s string) *big.Int {
