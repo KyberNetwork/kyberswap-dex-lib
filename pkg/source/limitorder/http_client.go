@@ -123,7 +123,7 @@ func (c *httpClient) GetOpSignatures(
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("error when getting Op Signatures, url: %v, response: %v", resp.Request.URL, resp.String())
+		return nil, fmt.Errorf("%w: error when getting Op Signatures, url: %v, response: %v", ErrGetOpSignaturesFailed, resp.Request.URL, resp.String())
 	}
 
 	if result.Code != 0 {
