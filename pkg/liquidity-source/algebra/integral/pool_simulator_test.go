@@ -190,15 +190,15 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(984666),
+					Amount: big.NewInt(999561),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(2250),
+					Amount: big.NewInt(15),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(98862330578),
-					Price:     uint256.MustFromDecimal("79214348439875248928556576945"),
+					Price:     uint256.MustFromDecimal("79214336503197110663621051079"),
 					Tick:      -4,
 				},
 				Gas: 281278,
@@ -266,15 +266,15 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(985314),
+					Amount: big.NewInt(997317),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(2250),
+					Amount: big.NewInt(450),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(98862330578),
-					Price:     uint256.MustFromDecimal("79215926928314930666100919082"),
+					Price:     uint256.MustFromDecimal("79215936545101674541845231019"),
 					Tick:      -4,
 				},
 				Gas: 281278,
@@ -346,12 +346,12 @@ func TestCalcAmountOut(t *testing.T) {
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(3207826239749998),
+					Amount: big.NewInt(641565247949996),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(35733795),
-					Price:     uint256.MustFromDecimal("2016016943697492749"),
-					Tick:      -487914,
+					Price:     uint256.MustFromDecimal("1991751945353340918"),
+					Tick:      -488157,
 				},
 				Gas: 344516,
 			},
@@ -418,16 +418,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(768004061),
+					Amount: big.NewInt(776240305),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(1839166),
+					Amount: big.NewInt(367831),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(3480992933),
-					Price:     uint256.MustFromDecimal("86350404125395664252363004498"),
-					Tick:      1721,
+					Price:     uint256.MustFromDecimal("86573656772143189240293883608"),
+					Tick:      1773,
 				},
 				Gas: 317414,
 			},
