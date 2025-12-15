@@ -129,6 +129,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			StaticExtra: string(staticExtraBytes),
 			Extra:       "{}",
 		}
+		fmt.Println("hook.GetExchange()", hook.GetExchange(), "DexType", DexType, "u.config.DexID", u.config.DexID)
 		pools = append(pools, pool)
 	}
 
