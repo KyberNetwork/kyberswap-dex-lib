@@ -119,6 +119,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: u.config})
 
+		logger.WithFields(logger.Fields{
+			"poolID": p.ID,
+			"hook":   hook.GetExchange(),
+			"dexID":  u.config.DexID,
+		}).Info("hook and dex id")
 		// skip if hook is not the same as the dex id
 		if !strings.EqualFold(hook.GetExchange(), u.config.DexID) {
 			logger.WithFields(logger.Fields{
