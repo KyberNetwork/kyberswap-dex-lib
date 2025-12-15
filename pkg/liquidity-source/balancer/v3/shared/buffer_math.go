@@ -9,23 +9,41 @@ import (
 
 var (
 	WAD                   = uint256.NewInt(1e18) // 10**18
-	MINIMUM_WRAP_AMOUNT   = uint256.NewInt(10000)
+	MinimumWrapAmount     = uint256.NewInt(10000)
 	ErrInvalidRate        = errors.New("invalid rate")
 	ErrWrapAmountTooSmall = errors.New("wrap amount too small")
 )
 
-func (b *ExtraBuffer) ConvertToShares(assets *uint256.Int) (*uint256.Int, error) {
-	if assets.Lt(MINIMUM_WRAP_AMOUNT) {
+func (b *ExtraBuffer) ConvertToShares(amount *uint256.Int, isExactOut bool) (*uint256.Int, error) {
+	if !isExactOut && amount.Lt(MinimumWrapAmount) {
 		return nil, ErrWrapAmountTooSmall
 	}
 
-	return erc4626.GetClosestRate(b.DepositRates, assets)
+	result, err := erc4626.GetClosestRate(b.DepositRates, amount, isExactOut)
+	if err != nil {
+		return nil, err
+	}
+
+	if isExactOut && result.Lt(MinimumWrapAmount) {
+		return nil, ErrWrapAmountTooSmall
+	}
+
+	return result, nil
 }
 
-func (b *ExtraBuffer) ConvertToAssets(shares *uint256.Int) (*uint256.Int, error) {
-	if shares.Lt(MINIMUM_WRAP_AMOUNT) {
+func (b *ExtraBuffer) ConvertToAssets(amount *uint256.Int, isExactOut bool) (*uint256.Int, error) {
+	if !isExactOut && amount.Lt(MinimumWrapAmount) {
 		return nil, ErrWrapAmountTooSmall
 	}
 
-	return erc4626.GetClosestRate(b.RedeemRates, shares)
+	result, err := erc4626.GetClosestRate(b.RedeemRates, amount, isExactOut)
+	if err != nil {
+		return nil, err
+	}
+
+	if isExactOut && result.Lt(MinimumWrapAmount) {
+		return nil, ErrWrapAmountTooSmall
+	}
+
+	return result, nil
 }

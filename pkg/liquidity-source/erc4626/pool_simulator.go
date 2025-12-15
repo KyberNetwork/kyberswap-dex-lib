@@ -64,7 +64,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		}
-		amountOut, err = GetClosestRate(s.DepositRates, amountIn)
+		amountOut, err = GetClosestRate(s.DepositRates, amountIn, false)
 		if err != nil {
 			return nil, ErrInvalidDepositRate
 		}
@@ -72,7 +72,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
 			return nil, ErrERC4626RedeemMoreThanMax
 		}
-		amountOut, err = GetClosestRate(s.RedeemRates, amountIn)
+		amountOut, err = GetClosestRate(s.RedeemRates, amountIn, false)
 		if err != nil {
 			return nil, ErrInvalidRedeemRate
 		}
@@ -104,14 +104,14 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	var amountIn *uint256.Int
 	if isDeposit {
-		amountIn, err = GetClosestRate(s.DepositRates, amountOut)
+		amountIn, err = GetClosestRate(s.DepositRates, amountOut, true)
 		if err != nil {
 			return nil, ErrInvalidDepositRate
 		} else if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		}
 	} else {
-		amountIn, err = GetClosestRate(s.RedeemRates, amountOut)
+		amountIn, err = GetClosestRate(s.RedeemRates, amountOut, true)
 		if err != nil {
 			return nil, ErrInvalidRedeemRate
 		} else if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
