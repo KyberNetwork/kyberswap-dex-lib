@@ -20,6 +20,7 @@ const (
 const (
 	Pegged ArmType = iota
 	Pricable
+	Pricable4626
 )
 
 type Extra struct {
@@ -33,6 +34,13 @@ type Extra struct {
 	ArmType            ArmType        `json:"armType"`
 	HasWithdrawalQueue bool           `json:"hasWithdrawalQueue"`
 	Gas                Gas            `json:"g"`
+	Vault              ERC4626Extra   `json:"v"`
+}
+
+type ERC4626Extra struct {
+	BaseAsset   common.Address `json:"ba"`
+	TotalAssets *uint256.Int   `json:"ta"`
+	TotalSupply *uint256.Int   `json:"ts"`
 }
 
 type PoolState struct {
@@ -46,6 +54,13 @@ type PoolState struct {
 	Reserve0         *big.Int
 	Reserve1         *big.Int
 	LiquidityAsset   common.Address
+	Vault            ERC4626
+}
+
+type ERC4626 struct {
+	BaseAsset   common.Address
+	TotalAssets *big.Int
+	TotalSupply *big.Int
 }
 type Gas struct {
 	ZeroToOne uint64 `json:"z2o,omitempty"`

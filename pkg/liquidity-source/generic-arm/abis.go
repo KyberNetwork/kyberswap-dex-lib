@@ -8,6 +8,7 @@ import (
 
 var (
 	lidoArmABI abi.ABI
+	ERC626ABI  abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&lidoArmABI, lidoArmABIData},
+		{&ERC626ABI, ERC626ABIData},
 	}
 
 	for _, b := range builder {

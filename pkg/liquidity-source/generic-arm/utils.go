@@ -23,7 +23,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		Method: "token1",
 	}, []any{&poolState.Token1})
 
-	if armCfg.ArmType == Pricable {
+	if armCfg.ArmType == Pricable || armCfg.ArmType == Pricable4626 {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
@@ -40,6 +40,15 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 			Method: "PRICE_SCALE",
 		}, []any{&poolState.PriceScale})
 	}
+
+	if armCfg.ArmType == Pricable4626 {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    lidoArmABI,
+			Target: armAddr,
+			Method: "baseAsset",
+		}, []any{&poolState.Vault.BaseAsset})
+	}
+
 	if armCfg.HasWithdrawalQueue {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
@@ -77,6 +86,18 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		Method: "balanceOf",
 		Params: []any{common.HexToAddress(armAddr)},
 	}, []any{&poolState.Reserve1})
+	if armCfg.ArmType == Pricable4626 {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    ERC626ABI,
+			Target: poolState.Vault.BaseAsset.Hex(),
+			Method: "totalAssets",
+		}, []any{&poolState.Vault.TotalAssets})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    ERC626ABI,
+			Target: poolState.Vault.BaseAsset.Hex(),
+			Method: "totalSupply",
+		}, []any{&poolState.Vault.TotalSupply})
+	}
 	_, err = calls.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
