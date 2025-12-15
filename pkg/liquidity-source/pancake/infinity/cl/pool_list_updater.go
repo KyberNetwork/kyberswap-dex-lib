@@ -118,6 +118,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: u.config})
+
+		// skip if hook is not the same as the dex id
+		if !strings.EqualFold(hook.GetExchange(), u.config.DexID) {
+			continue
+		}
+
 		pool := entity.Pool{
 			Address:     p.ID,
 			SwapFee:     float64(fee),
