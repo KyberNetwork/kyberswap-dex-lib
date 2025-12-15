@@ -2,6 +2,7 @@ package cl
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 )
 
@@ -64,6 +65,7 @@ totalValueLockedUSD_gt: "100"
 		panic(err)
 	}
 
+	fmt.Println(tpl.String())
 	return tpl.String()
 }
 
