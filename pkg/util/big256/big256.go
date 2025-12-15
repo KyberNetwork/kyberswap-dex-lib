@@ -81,6 +81,14 @@ func SNew(s string) *int256.Int {
 	return res
 }
 
+func NewI(i int64) *uint256.Int {
+	if i >= 0 {
+		return uint256.NewInt(uint64(i))
+	}
+	var res uint256.Int
+	return res.SubUint64(&res, uint64(-i))
+}
+
 func SInt256(i *uint256.Int) *int256.Int {
 	return (*int256.Int)(i).Clone()
 }

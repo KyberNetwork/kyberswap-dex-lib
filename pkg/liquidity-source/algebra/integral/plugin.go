@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/constraints"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type TimepointStorage struct {
@@ -324,7 +325,7 @@ func createNewTimepoint(last Timepoint, blockTimestamp uint32, tick, averageTick
 }
 
 func volatilityOnRange(dt uint32, tick0, tick1, avgTick0, avgTick1 int32) *uint256.Int {
-	k := uint64((tick1 - tick0) - (avgTick1 - avgTick0))
+	k := int64((tick1 - tick0) - (avgTick1 - avgTick0))
 	b := int64(tick0-avgTick0) * int64(dt)
 	sumOfSequence := uint64(dt) * (uint64(dt) + 1)
 
@@ -335,14 +336,14 @@ func volatilityOnRange(dt uint32, tick0, tick1, avgTick0, avgTick1 int32) *uint2
 	sumOfSquares.Mul(sumOfSquares, tmp.SetUint64(2*uint64(dt)+1))
 
 	// k^2 * sumOfSquares
-	term1 := sumOfSquares.Mul(tmp.SetUint64(k*k), sumOfSquares)
+	term1 := sumOfSquares.Mul(tmp.SetUint64(uint64(k*k)), sumOfSquares)
 
 	// 6 * b * k * sumOfSequence
-	term2 := uint256.NewInt(6 * k)
-	term2.Mul(term2, tmp.SetUint64(uint64(b))).Mul(term2, tmp.SetUint64(sumOfSequence))
+	term2, tmp2 := big256.NewI(6*k), big256.NewI(b)
+	term2.Mul(term2, tmp2).Mul(term2, tmp.SetUint64(sumOfSequence))
 
 	// 6 * dt * b^2
-	term3 := uint256.NewInt(uint64(6 * dt))
+	term3 := tmp2.SetUint64(uint64(6 * dt))
 	term3.Mul(term3, tmp.SetUint64(uint64(b*b)))
 
 	// Calculate volatility = (term1 + term2 + term3) / (6 * dt^2)
