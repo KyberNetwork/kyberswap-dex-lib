@@ -155,7 +155,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 				Amount: big.NewInt(997094),
 			},
 			tokenIn:          "0x6440f144b7e50d6a8439336510312d2f54beb01d",
-			expectedAmountIn: "999996963127157068",
+			expectedAmountIn: "999998110061304284",
 			expectedError:    nil,
 		},
 	}

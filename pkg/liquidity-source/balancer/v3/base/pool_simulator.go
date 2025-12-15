@@ -127,6 +127,7 @@ func (p *PoolSimulator) handleBufferConversion(
 	index int,
 	amount *uint256.Int,
 	isUnderlyingToken bool,
+	isExactOut bool,
 ) (convertedAmount *uint256.Int, err error) {
 	if index >= len(p.buffers) || p.buffers[index] == nil {
 		return nil, fmt.Errorf("buffer not found for token at index %d", index)
@@ -138,14 +139,14 @@ func (p *PoolSimulator) handleBufferConversion(
 		}
 
 		// Converting from underlying to wrapped: underlying -> shares -> wrapped
-		convertedAmount, err = p.buffers[index].ConvertToShares(amount)
+		convertedAmount, err = p.buffers[index].ConvertToShares(amount, isExactOut)
 	} else {
 		if p.buffers[index].MaxRedeem != nil && amount.Gt(p.buffers[index].MaxRedeem) {
 			return nil, shared.ErrMaxRedeemExceeded
 		}
 
 		// Converting from wrapped to underlying: wrapped -> assets -> underlying
-		convertedAmount, err = p.buffers[index].ConvertToAssets(amount)
+		convertedAmount, err = p.buffers[index].ConvertToAssets(amount, isExactOut)
 	}
 
 	if err != nil {
@@ -182,7 +183,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	// Check if this is a same-index underlying/wrapped token conversion
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
-		amountOut, err := p.handleBufferConversion(indexIn, amountIn, isTokenInUnderlying)
+		amountOut, err := p.handleBufferConversion(indexIn, amountIn, isTokenInUnderlying, false)
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +214,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, shared.ErrMaxDepositExceeded
 		}
 
-		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn)
+		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn, false)
 		if err != nil {
 			return nil, err
 		}
@@ -239,7 +240,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, shared.ErrMaxRedeemExceeded
 		}
 
-		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut)
+		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut, false)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +285,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	// Check if this is a same-index underlying/wrapped token conversion
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
-		amountIn, err := p.handleBufferConversion(indexOut, amountOut, isTokenOutUnderlying)
+		amountIn, err := p.handleBufferConversion(indexOut, amountOut, isTokenOutUnderlying, true)
 		if err != nil {
 			return nil, err
 		}
@@ -315,7 +316,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			return nil, shared.ErrMaxDepositExceeded
 		}
 
-		amountOut, err = p.buffers[indexOut].ConvertToShares(amountOut)
+		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut, true)
 		if err != nil {
 			return nil, err
 		}
@@ -341,7 +342,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			return nil, shared.ErrMaxRedeemExceeded
 		}
 
-		amountIn, err = p.buffers[indexIn].ConvertToAssets(amountIn)
+		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn, true)
 		if err != nil {
 			return nil, err
 		}
@@ -390,7 +391,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	amountIn := params.TokenAmountIn.Amount
 	if isTokenInUnderlying {
 		// If token in is underlying we must use the converted shares amount for the balance update
-		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(uint256.MustFromBig(params.TokenAmountIn.Amount))
+		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(
+			uint256.MustFromBig(params.TokenAmountIn.Amount), false)
 		amountIn = convertedAmount.ToBig()
 	}
 
@@ -410,7 +412,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	amountOut := params.TokenAmountOut.Amount
 	if isTokenOutUnderlying {
 		// If token out is underlying we must use the converted shares amount for the balance update
-		convertedAmount, _ := p.buffers[indexOut].ConvertToShares(uint256.MustFromBig(params.TokenAmountOut.Amount))
+		convertedAmount, _ := p.buffers[indexOut].ConvertToShares(
+			uint256.MustFromBig(params.TokenAmountOut.Amount), false)
 		amountOut = convertedAmount.ToBig()
 	}
 
