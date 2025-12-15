@@ -121,6 +121,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		// skip if hook is not the same as the dex id
 		if !strings.EqualFold(hook.GetExchange(), u.config.DexID) {
+			logger.WithFields(logger.Fields{
+				"poolID": p.ID,
+				"hook":   hook.GetExchange(),
+				"dexID":  u.config.DexID,
+			}).Infof("skip pool %s because hook is not the same as the dex id", p.ID)
 			continue
 		}
 
