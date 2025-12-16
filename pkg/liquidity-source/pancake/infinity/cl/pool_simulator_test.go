@@ -38,7 +38,6 @@ func TestCalcAmountOut(t *testing.T) {
 	var poolEnt entity.Pool
 
 	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
-
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
