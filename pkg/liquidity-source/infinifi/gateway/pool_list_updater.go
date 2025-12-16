@@ -34,10 +34,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	logger.Infof("[%s] discovering pools", DexType)
 
 	// Define the tokens in this "pool"
-	// Only combined operations: USDC → siUSD/liUSD
+	// All individual operations supported: USDC ↔ iUSD ↔ siUSD ↔ liUSD (except liUSD -> iUSD given async redemption)
 	tokens := []*entity.PoolToken{
 		{
 			Address:   strings.ToLower(u.config.USDC),
+			Swappable: true,
+		},
+		{
+			Address:   strings.ToLower(u.config.IUSD),
 			Swappable: true,
 		},
 		{

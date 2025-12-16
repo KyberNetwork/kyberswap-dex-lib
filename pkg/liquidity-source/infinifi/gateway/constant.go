@@ -8,8 +8,11 @@ const (
 	DexType = "infinifi-gateway"
 
 	// Gateway methods (from InfiniFiGatewayV2)
-	gatewayMintAndStakeMethod = "mintAndStake" // USDC → siUSD (combined)
-	gatewayMintAndLockMethod  = "mintAndLock"  // USDC → liUSD (combined)
+	gatewayMintMethod           = "mint"           // USDC → iUSD
+	gatewayStakeMethod          = "stake"          // iUSD → siUSD
+	gatewayUnstakeMethod        = "unstake"        // siUSD → iUSD
+	gatewayRedeemMethod         = "redeem"         // iUSD → USDC
+	gatewayCreatePositionMethod = "createPosition" // iUSD → liUSD
 
 	// ERC20 methods
 	erc20BalanceOfMethod   = "balanceOf"
@@ -26,13 +29,15 @@ const (
 	coreControlledPausedMethod = "paused"
 
 	// Gas estimates - measured from actual transactions
-	defaultMintAndStakeGas int64 = 650000 // USDC → siUSD (mint + stake combined)
-	defaultMintAndLockGas  int64 = 650000 // USDC → liUSD (mint + lock combined)
+	defaultMintGas           int64 = 150000 // USDC → iUSD
+	defaultStakeGas          int64 = 250000 // iUSD → siUSD
+	defaultUnstakeGas        int64 = 250000 // siUSD → iUSD
+	defaultRedeemGas         int64 = 200000 // iUSD → USDC
+	defaultCreatePositionGas int64 = 200000 // iUSD → liUSD (lock)
 )
 
 var (
 	ErrInvalidToken     = errors.New("invalid token")
 	ErrContractPaused   = errors.New("contract paused")
 	ErrSwapNotSupported = errors.New("swap path not supported")
-	ErrAsyncRedemption  = errors.New("async redemptions not supported - use one-way paths only")
 )

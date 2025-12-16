@@ -24,6 +24,7 @@ type PoolSimulator struct {
 
 	// Token addresses for quick lookup
 	usdc        string
+	iusd        string
 	siusd       string
 	liusdTokens []string
 }
@@ -56,11 +57,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	// Identify token positions
 	// tokens[0] = USDC
-	// tokens[1] = siUSD
-	// tokens[2+] = liUSD tokens
+	// tokens[1] = iUSD
+	// tokens[2] = siUSD
+	// tokens[3+] = liUSD tokens
 	liusdTokenAddrs := make([]string, 0)
-	if len(tokens) > 2 {
-		liusdTokenAddrs = tokens[2:]
+	if len(tokens) > 3 {
+		liusdTokenAddrs = tokens[3:]
 	}
 
 	return &PoolSimulator{
@@ -81,7 +83,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		liusdSupplies:      liusdSupplies,
 		liusdTotalReceipts: liusdTotalReceipts,
 		usdc:               tokens[0],
-		siusd:              tokens[1],
+		iusd:               tokens[1],
+		siusd:              tokens[2],
 		liusdTokens:        liusdTokenAddrs,
 	}, nil
 }
@@ -101,22 +104,34 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	var gas int64
 
 	switch {
-	case tokenIn == s.usdc && tokenOut == s.siusd:
-		// USDC → siUSD (mintAndStake) - combined operation
-		iusdAmount := s.calculateMint(amountIn)
-		amountOut = s.calculateStake(iusdAmount)
-		gas = defaultMintAndStakeGas
+	case tokenIn == s.usdc && tokenOut == s.iusd:
+		// USDC → iUSD (mint)
+		amountOut = s.calculateMint(amountIn)
+		gas = defaultMintGas
 
-	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
-		// USDC → liUSD (mintAndLock) - combined operation
-		iusdAmount := s.calculateMint(amountIn)
-		// Find which liUSD bucket this is for
+	case tokenIn == s.iusd && tokenOut == s.usdc:
+		// iUSD → USDC (redeem)
+		amountOut = s.calculateRedeem(amountIn)
+		gas = defaultRedeemGas
+
+	case tokenIn == s.iusd && tokenOut == s.siusd:
+		// iUSD → siUSD (stake)
+		amountOut = s.calculateStake(amountIn)
+		gas = defaultStakeGas
+
+	case tokenIn == s.siusd && tokenOut == s.iusd:
+		// siUSD → iUSD (unstake)
+		amountOut = s.calculateUnstake(amountIn)
+		gas = defaultUnstakeGas
+
+	case tokenIn == s.iusd && s.isLIUSD(tokenOut):
+		// iUSD → liUSD (lock/createPosition)
 		bucketIndex := s.getLIUSDIndex(tokenOut)
-		amountOut = s.calculateLock(iusdAmount, bucketIndex)
-		gas = defaultMintAndLockGas
+		amountOut = s.calculateLock(amountIn, bucketIndex)
+		gas = defaultCreatePositionGas
 
 	default:
-		// All other paths are unsupported (reverse paths are async)
+		// All other paths are unsupported
 		return nil, ErrSwapNotSupported
 	}
 
@@ -142,6 +157,15 @@ func (s *PoolSimulator) calculateMint(usdcAmount *big.Int) *big.Int {
 	return iusdAmount
 }
 
+// calculateRedeem: iUSD → USDC (1:1 via RedeemController)
+func (s *PoolSimulator) calculateRedeem(iusdAmount *big.Int) *big.Int {
+	// RedeemController provides 1:1 conversion
+	// iUSD has 18 decimals, USDC has 6 decimals
+	// Need to scale: USDC = iUSD / 10^12
+	usdcAmount := new(big.Int).Div(iusdAmount, bignumber.TenPowInt(12))
+	return usdcAmount
+}
+
 // calculateStake: iUSD → siUSD (ERC4626 share conversion)
 func (s *PoolSimulator) calculateStake(iusdAmount *big.Int) *big.Int {
 	// ERC4626 formula: shares = assets * totalShares / totalAssets
@@ -155,6 +179,21 @@ func (s *PoolSimulator) calculateStake(iusdAmount *big.Int) *big.Int {
 	siusdShares.Div(siusdShares, s.siusdTotalAssets)
 
 	return siusdShares
+}
+
+// calculateUnstake: siUSD → iUSD (ERC4626 share redemption)
+func (s *PoolSimulator) calculateUnstake(siusdAmount *big.Int) *big.Int {
+	// ERC4626 formula: assets = shares * totalAssets / totalShares
+	// If totalShares == 0, return 0 (edge case)
+	if s.siusdSupply.Sign() == 0 {
+		return big.NewInt(0)
+	}
+
+	// assets = siusdAmount * siusdTotalAssets / siusdSupply
+	iusdAmount := new(big.Int).Mul(siusdAmount, s.siusdTotalAssets)
+	iusdAmount.Div(iusdAmount, s.siusdSupply)
+
+	return iusdAmount
 }
 
 // calculateLock: iUSD → liUSD (share-based conversion via LockingController)
@@ -200,22 +239,30 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	// Update state based on swap type
 	switch {
-	case tokenIn == s.usdc && tokenOut == s.siusd:
-		// USDC → siUSD (mintAndStake)
-		// iUSD is minted then immediately staked
-		iusdAmount := s.calculateMint(amountIn)
-		s.iusdSupply = new(big.Int).Add(s.iusdSupply, iusdAmount)
-		s.siusdTotalAssets = new(big.Int).Add(s.siusdTotalAssets, iusdAmount)
+	case tokenIn == s.usdc && tokenOut == s.iusd:
+		// USDC → iUSD (mint)
+		s.iusdSupply = new(big.Int).Add(s.iusdSupply, amountOut)
+
+	case tokenIn == s.iusd && tokenOut == s.usdc:
+		// iUSD → USDC (redeem)
+		s.iusdSupply = new(big.Int).Sub(s.iusdSupply, amountIn)
+
+	case tokenIn == s.iusd && tokenOut == s.siusd:
+		// iUSD → siUSD (stake)
+		s.siusdTotalAssets = new(big.Int).Add(s.siusdTotalAssets, amountIn)
 		s.siusdSupply = new(big.Int).Add(s.siusdSupply, amountOut)
 
-	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
-		// USDC → liUSD (mintAndLock)
-		// iUSD is minted then immediately locked
-		iusdAmount := s.calculateMint(amountIn)
-		s.iusdSupply = new(big.Int).Add(s.iusdSupply, iusdAmount)
+	case tokenIn == s.siusd && tokenOut == s.iusd:
+		// siUSD → iUSD (unstake)
+		s.siusdTotalAssets = new(big.Int).Sub(s.siusdTotalAssets, amountOut)
+		s.siusdSupply = new(big.Int).Sub(s.siusdSupply, amountIn)
+
+	case tokenIn == s.iusd && s.isLIUSD(tokenOut):
+		// iUSD → liUSD (lock/createPosition)
 		for i, liusdAddr := range s.liusdTokens {
 			if tokenOut == liusdAddr {
 				s.liusdSupplies[i] = new(big.Int).Add(s.liusdSupplies[i], amountOut)
+				s.liusdTotalReceipts[i] = new(big.Int).Add(s.liusdTotalReceipts[i], amountIn)
 				break
 			}
 		}
