@@ -67,7 +67,7 @@ type OrderInfo struct {
 
 type Extra struct {
 	PendingFillOrderList   []OrderId            `json:"pendingFillOrderList"`
-	PendingFillOrderLength *uint256.Int         `json:"pendingFillOrderLength"`
+	PendingFillOrderLength *big.Int             `json:"pendingFillOrderLength"`
 	OrderInfos             map[string]OrderInfo `json:"orderInfos"`
 }
 
