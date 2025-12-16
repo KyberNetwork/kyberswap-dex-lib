@@ -2,7 +2,6 @@ package cl
 
 import (
 	"bytes"
-	"fmt"
 	"text/template"
 )
 
@@ -64,7 +63,6 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 		panic(err)
 	}
 
-	fmt.Println(tpl.String())
 	return tpl.String()
 }
 
