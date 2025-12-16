@@ -81,7 +81,7 @@ type BaseHook struct {
 }
 
 func NewBaseHook(exchange valueobject.Exchange, param *HookParam) *BaseHook {
-	fmt.Println("exchange", exchange, "param.Pool.Exchange", param.Pool.Exchange, "param.Cfg.DexID", param.Cfg.DexID)
+	fmt.Println("exchange", exchange, "param", param)
 	suffix := strings.TrimPrefix(string(exchange), DexType) // -dynamic
 	thisExchange := string(exchange)                        // pancake-infinity-cl-dynamic
 	if pool := param.Pool; pool != nil {
