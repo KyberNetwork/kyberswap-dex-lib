@@ -30,7 +30,6 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 		pools(
 			where: {
 				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
-				hooks: "0x6adc560af85377f9a73d17c658d798c9b39186e8"
 			},
 			first: {{ .First }},
 			skip: {{ .Skip }},
