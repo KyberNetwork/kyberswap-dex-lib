@@ -2,7 +2,6 @@ package cl
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -49,7 +48,6 @@ func NewPoolListUpdater(
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	fmt.Println("u.config.DexID", u.config.DexID)
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)
@@ -137,7 +135,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			StaticExtra: string(staticExtraBytes),
 			Extra:       "{}",
 		}
-		fmt.Println("hook.GetExchange()", hook.GetExchange(), "DexType", DexType, "u.config.DexID", u.config.DexID)
 		pools = append(pools, pool)
 	}
 
