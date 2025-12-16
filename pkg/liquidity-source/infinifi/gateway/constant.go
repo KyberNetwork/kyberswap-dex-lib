@@ -28,12 +28,12 @@ const (
 	// CoreControlled methods
 	coreControlledPausedMethod = "paused"
 
-	// Gas estimates - measured from actual transactions
-	defaultMintGas           int64 = 150000 // USDC → iUSD
+	// Gas estimates
+	defaultMintGas           int64 = 550000 // USDC → iUSD
 	defaultStakeGas          int64 = 250000 // iUSD → siUSD
 	defaultUnstakeGas        int64 = 250000 // siUSD → iUSD
-	defaultRedeemGas         int64 = 200000 // iUSD → USDC
-	defaultCreatePositionGas int64 = 200000 // iUSD → liUSD (lock)
+	defaultRedeemGas         int64 = 250000 // iUSD → USDC
+	defaultCreatePositionGas int64 = 250000 // iUSD → liUSD (lock)
 )
 
 var (
