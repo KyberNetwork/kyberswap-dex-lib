@@ -13,6 +13,8 @@ const (
 	gatewayUnstakeMethod        = "unstake"        // siUSD → iUSD
 	gatewayRedeemMethod         = "redeem"         // iUSD → USDC
 	gatewayCreatePositionMethod = "createPosition" // iUSD → liUSD
+	gatewayMintAndStakeMethod   = "mintAndStake"   // USDC → siUSD (combined)
+	gatewayMintAndLockMethod    = "mintAndLock"    // USDC → liUSD (combined)
 
 	// ERC20 methods
 	erc20BalanceOfMethod   = "balanceOf"
@@ -34,6 +36,8 @@ const (
 	defaultUnstakeGas        int64 = 250000 // siUSD → iUSD
 	defaultRedeemGas         int64 = 250000 // iUSD → USDC
 	defaultCreatePositionGas int64 = 250000 // iUSD → liUSD (lock)
+	defaultMintAndStakeGas   int64 = 650000 // USDC → siUSD (combined)
+	defaultMintAndLockGas    int64 = 650000 // USDC → liUSD (combined)
 )
 
 var (

@@ -130,6 +130,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		amountOut = s.calculateLock(amountIn, bucketIndex)
 		gas = defaultCreatePositionGas
 
+	case tokenIn == s.usdc && tokenOut == s.siusd:
+		// USDC → siUSD (mintAndStake)
+		amountOut = s.calculateMintAndStake(amountIn)
+		gas = defaultMintAndStakeGas
+
+	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
+		// USDC → liUSD (mintAndLock)
+		bucketIndex := s.getLIUSDIndex(tokenOut)
+		amountOut = s.calculateMintAndLock(amountIn, bucketIndex)
+		gas = defaultMintAndLockGas
+
 	default:
 		// All other paths are unsupported
 		return nil, ErrSwapNotSupported
@@ -216,6 +227,28 @@ func (s *PoolSimulator) calculateLock(iusdAmount *big.Int, bucketIndex int) *big
 	return liusdShares
 }
 
+// calculateMintAndStake: USDC → siUSD (combined mint + stake)
+func (s *PoolSimulator) calculateMintAndStake(usdcAmount *big.Int) *big.Int {
+	// First: USDC → iUSD (mint with decimal scaling)
+	iusdAmount := s.calculateMint(usdcAmount)
+	
+	// Second: iUSD → siUSD (stake with ERC4626 conversion)
+	siusdAmount := s.calculateStake(iusdAmount)
+	
+	return siusdAmount
+}
+
+// calculateMintAndLock: USDC → liUSD (combined mint + lock)
+func (s *PoolSimulator) calculateMintAndLock(usdcAmount *big.Int, bucketIndex int) *big.Int {
+	// First: USDC → iUSD (mint with decimal scaling)
+	iusdAmount := s.calculateMint(usdcAmount)
+	
+	// Second: iUSD → liUSD (lock with bucket conversion)
+	liusdAmount := s.calculateLock(iusdAmount, bucketIndex)
+	
+	return liusdAmount
+}
+
 // getLIUSDIndex finds the index of a liUSD token in the liusdTokens array
 func (s *PoolSimulator) getLIUSDIndex(tokenAddr string) int {
 	for i, addr := range s.liusdTokens {
@@ -263,6 +296,31 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			if tokenOut == liusdAddr {
 				s.liusdSupplies[i] = new(big.Int).Add(s.liusdSupplies[i], amountOut)
 				s.liusdTotalReceipts[i] = new(big.Int).Add(s.liusdTotalReceipts[i], amountIn)
+				break
+			}
+		}
+
+	case tokenIn == s.usdc && tokenOut == s.siusd:
+		// USDC → siUSD (mintAndStake)
+		// Calculate intermediate iUSD amount
+		iusdAmount := s.calculateMint(amountIn)
+		// Update iUSD supply (mint)
+		s.iusdSupply = new(big.Int).Add(s.iusdSupply, iusdAmount)
+		// Update siUSD vault state (stake)
+		s.siusdTotalAssets = new(big.Int).Add(s.siusdTotalAssets, iusdAmount)
+		s.siusdSupply = new(big.Int).Add(s.siusdSupply, amountOut)
+
+	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
+		// USDC → liUSD (mintAndLock)
+		// Calculate intermediate iUSD amount
+		iusdAmount := s.calculateMint(amountIn)
+		// Update iUSD supply (mint)
+		s.iusdSupply = new(big.Int).Add(s.iusdSupply, iusdAmount)
+		// Update liUSD bucket state (lock)
+		for i, liusdAddr := range s.liusdTokens {
+			if tokenOut == liusdAddr {
+				s.liusdSupplies[i] = new(big.Int).Add(s.liusdSupplies[i], amountOut)
+				s.liusdTotalReceipts[i] = new(big.Int).Add(s.liusdTotalReceipts[i], iusdAmount)
 				break
 			}
 		}

@@ -164,9 +164,72 @@ func TestPoolSimulator_CalcAmountOut_AllPaths(t *testing.T) {
 			expectedGas:   0,
 		},
 
-		// Test 8: Unsupported swap (USDC -> siUSD direct, skip iUSD)
+		// Test 8: USDC → siUSD (mintAndStake) - combined operation
 		{
-			name: "Unsupported swap (USDC -> siUSD direct) should fail",
+			name: "USDC -> siUSD (mintAndStake) - 1 USDC to 0.5 siUSD",
+			poolExtra: Extra{
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"), // 1M iUSD in vault
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),  // 500k siUSD (2:1 ratio)
+				LIUSDSupplies:      []string{"1000000000000000000000000"},
+				LIUSDTotalReceipts: []string{"1000000000000000000000000"},
+			},
+			tokenIn:  usdcAddr,
+			tokenOut: siusdAddr,
+			amountIn: "1000000", // 1 USDC
+			// 1 USDC -> 1 iUSD (mint: 1e6 * 1e12 = 1e18)
+			// 1 iUSD -> 0.5 siUSD (stake: 1e18 * 500k / 1M = 0.5e18)
+			expectedAmount: "500000000000000000",
+			expectedError:  nil,
+			expectedGas:    defaultMintAndStakeGas,
+		},
+
+		// Test 9: USDC → liUSD-1mo (mintAndLock) - combined operation
+		{
+			name: "USDC -> liUSD-1mo (mintAndLock) - 1 USDC to 1 liUSD",
+			poolExtra: Extra{
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{"1000000000000000000000000"}, // 1M liUSD shares
+				LIUSDTotalReceipts: []string{"1000000000000000000000000"}, // 1M iUSD locked (1:1)
+			},
+			tokenIn:  usdcAddr,
+			tokenOut: liusd1moAddr,
+			amountIn: "1000000", // 1 USDC
+			// 1 USDC -> 1 iUSD (mint: 1e6 * 1e12 = 1e18)
+			// 1 iUSD -> 1 liUSD (lock: 1e18 * 1M / 1M = 1e18)
+			expectedAmount: "1000000000000000000",
+			expectedError:  nil,
+			expectedGas:    defaultMintAndLockGas,
+		},
+
+		// Test 10: USDC → liUSD-2mo (mintAndLock) with 0.8:1 ratio
+		{
+			name: "USDC -> liUSD-2mo (mintAndLock) - 1 USDC to 0.8 liUSD",
+			poolExtra: Extra{
+				IsPaused:           false,
+				IUSDSupply:         mustParseBig("1000000000000000000000000"),
+				SIUSDTotalAssets:   mustParseBig("1000000000000000000000000"),
+				SIUSDSupply:        mustParseBig("500000000000000000000000"),
+				LIUSDSupplies:      []string{"1000000000000000000000000", "800000000000000000000000"},  // 1M, 800k
+				LIUSDTotalReceipts: []string{"1000000000000000000000000", "1000000000000000000000000"}, // 1M, 1M (0.8:1)
+			},
+			tokenIn:  usdcAddr,
+			tokenOut: liusd2moAddr,
+			amountIn: "1000000", // 1 USDC
+			// 1 USDC -> 1 iUSD (mint: 1e6 * 1e12 = 1e18)
+			// 1 iUSD -> 0.8 liUSD (lock: 1e18 * 800k / 1M = 0.8e18)
+			expectedAmount: "800000000000000000",
+			expectedError:  nil,
+			expectedGas:    defaultMintAndLockGas,
+		},
+
+		// Test 11: Unsupported swap (siUSD -> USDC)
+		{
+			name: "Unsupported swap (siUSD -> USDC) should fail",
 			poolExtra: Extra{
 				IsPaused:           false,
 				IUSDSupply:         mustParseBig("1000000000000000000000000"),
@@ -175,9 +238,9 @@ func TestPoolSimulator_CalcAmountOut_AllPaths(t *testing.T) {
 				LIUSDSupplies:      []string{},
 				LIUSDTotalReceipts: []string{},
 			},
-			tokenIn:       usdcAddr,
-			tokenOut:      siusdAddr,
-			amountIn:      "1000000",
+			tokenIn:       siusdAddr,
+			tokenOut:      usdcAddr,
+			amountIn:      "1000000000000000000",
 			expectedError: ErrSwapNotSupported,
 			expectedGas:   0,
 		},
@@ -391,6 +454,58 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		expectedLIUSD1moSupply := new(big.Int).Add(initialLIUSD1moSupply, amountOutLIUSD)
 		expectedLIUSD1moReceipts := new(big.Int).Add(initialLIUSD1moReceipts, amountInIUSD)
 
+		assert.Equal(t, expectedLIUSD1moSupply.String(), simulator.liusdSupplies[0].String())
+		assert.Equal(t, expectedLIUSD1moReceipts.String(), simulator.liusdTotalReceipts[0].String())
+	})
+
+	// Test 6: USDC → siUSD (mintAndStake)
+	t.Run("USDC -> siUSD (mintAndStake)", func(t *testing.T) {
+		simulator, err := NewPoolSimulator(poolEntity)
+		require.NoError(t, err)
+
+		amountInUSDC := mustParseBig("1000000")              // 1 USDC
+		amountOutSIUSD := mustParseBig("500000000000000000") // 0.5 siUSD (based on 2:1 rate)
+
+		simulator.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: usdcAddr, Amount: amountInUSDC},
+			TokenAmountOut: pool.TokenAmount{Token: siusdAddr, Amount: amountOutSIUSD},
+			Fee:            pool.TokenAmount{Token: usdcAddr, Amount: big.NewInt(0)},
+		})
+
+		// Should increase iUSD supply (mint step)
+		intermediateIUSD := mustParseBig("1000000000000000000") // 1 iUSD from mint
+		expectedIUSD := new(big.Int).Add(initialIUSD, intermediateIUSD)
+		assert.Equal(t, expectedIUSD.String(), simulator.iusdSupply.String())
+
+		// Should increase siUSD vault state (stake step)
+		expectedSIUSDAssets := new(big.Int).Add(initialSIUSDAssets, intermediateIUSD)
+		expectedSIUSDSupply := new(big.Int).Add(initialSIUSDSupply, amountOutSIUSD)
+		assert.Equal(t, expectedSIUSDAssets.String(), simulator.siusdTotalAssets.String())
+		assert.Equal(t, expectedSIUSDSupply.String(), simulator.siusdSupply.String())
+	})
+
+	// Test 7: USDC → liUSD (mintAndLock)
+	t.Run("USDC -> liUSD (mintAndLock)", func(t *testing.T) {
+		simulator, err := NewPoolSimulator(poolEntity)
+		require.NoError(t, err)
+
+		amountInUSDC := mustParseBig("1000000")                // 1 USDC
+		amountOutLIUSD := mustParseBig("1000000000000000000") // 1 liUSD (based on 1:1 rate)
+
+		simulator.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: usdcAddr, Amount: amountInUSDC},
+			TokenAmountOut: pool.TokenAmount{Token: liusd1moAddr, Amount: amountOutLIUSD},
+			Fee:            pool.TokenAmount{Token: usdcAddr, Amount: big.NewInt(0)},
+		})
+
+		// Should increase iUSD supply (mint step)
+		intermediateIUSD := mustParseBig("1000000000000000000") // 1 iUSD from mint
+		expectedIUSD := new(big.Int).Add(initialIUSD, intermediateIUSD)
+		assert.Equal(t, expectedIUSD.String(), simulator.iusdSupply.String())
+
+		// Should increase liUSD bucket state (lock step)
+		expectedLIUSD1moSupply := new(big.Int).Add(initialLIUSD1moSupply, amountOutLIUSD)
+		expectedLIUSD1moReceipts := new(big.Int).Add(initialLIUSD1moReceipts, intermediateIUSD)
 		assert.Equal(t, expectedLIUSD1moSupply.String(), simulator.liusdSupplies[0].String())
 		assert.Equal(t, expectedLIUSD1moReceipts.String(), simulator.liusdTotalReceipts[0].String())
 	})
