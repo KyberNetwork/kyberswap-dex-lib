@@ -161,10 +161,8 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 			return nil, err
 		}
 
-		if step.tickNext < utils.MinTick {
-			step.tickNext = utils.MinTick
-		} else if step.tickNext > utils.MaxTick {
-			step.tickNext = utils.MaxTick
+		if step.tickNext < MIN_TICK || step.tickNext > MAX_TICK {
+			return nil, ErrNextTickOutOfBounds
 		}
 
 		err = utils.GetSqrtRatioAtTickV2(step.tickNext, &step.sqrtPriceNextX96)
