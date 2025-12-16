@@ -12,15 +12,19 @@ import (
 	"github.com/samber/lo"
 )
 
-var SIX_DECIMALS = new(utils.Uint256).SetUint64(1_000_000)
+var SIX_DECIMALS_UI = new(utils.Uint256).SetUint64(1_000_000)
 
 type UniV3FluidV2Pool struct {
 	v3Entities.Pool
 
-	tickSpacing           uint32
+	tickSpacing uint32
+	feeVersion  uint32
+
 	protocolFeeZeroForOne *utils.Uint128
 	protocolFeeOneForZero *utils.Uint128
 	constantLpFee         *utils.Uint128
+
+	dexVariables2 *big.Int
 }
 
 type SwapResult struct {
@@ -80,6 +84,10 @@ func NewUniV3FluidV2Pool(
 	tmp.Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_LP_FEE).And(&tmp, X16)
 	pool.constantLpFee.SetFromBig(&tmp)
 
+	tmp.Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_FEE_VERSION).And(&tmp, X4)
+
+	pool.dexVariables2 = new(big.Int).Set(dexVariables2)
+
 	return pool, nil
 }
 
@@ -126,7 +134,29 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		}
 	}
 
-	exactInput := amountSpecified.Sign() >= 0
+	var d DynamicFeeVariablesUI
+
+	if p.feeVersion == 1 {
+		d, err = calculateDynamicFeeVariables(p.SqrtRatioX96.ToBig(), zeroForOne, p.dexVariables2)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// We need to fetch fetchDynamicFeeForSwap here, but since we don't know any Controller implementation,
+	// we don't know if amountIn affects the dynamic fee. So we skip it for now.
+	var isConstantLpFee bool
+	var constantLpFee utils.Uint128
+	constantLpFee.Set(p.constantLpFee)
+
+	if p.feeVersion == 0 {
+		isConstantLpFee = true
+		constantLpFee.SetFromBig(p.dexVariables2)
+		constantLpFee.Rsh(&constantLpFee, BITS_DEX_V2_VARIABLES2_LP_FEE).And(&constantLpFee, X16UI)
+	} else if p.feeVersion == 1 && d.priceImpactToFeeDivisionFactor.Sign() == 0 {
+		isConstantLpFee = true
+		constantLpFee.Set(d.minFee)
+	}
 
 	// keep track of swap state
 
@@ -161,10 +191,8 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 			return nil, err
 		}
 
-		if step.tickNext < utils.MinTick {
-			step.tickNext = utils.MinTick
-		} else if step.tickNext > utils.MaxTick {
-			step.tickNext = utils.MaxTick
+		if step.tickNext < MIN_TICK || step.tickNext > MAX_TICK {
+			return nil, ErrNextTickOutOfBounds
 		}
 
 		err = utils.GetSqrtRatioAtTickV2(step.tickNext, &step.sqrtPriceNextX96)
@@ -178,74 +206,52 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		}
 
 		var nxtSqrtPriceX96 utils.Uint160
-		// TODO: support _computeSwapStepForSwapInWithDynamicFee
-		err = utils.ComputeSwapStep(state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining,
-			0, // _computeSwapStepForSwapInWithoutFee
-			&nxtSqrtPriceX96, &step.amountIn, &step.amountOut, &step.feeAmount)
-		if err != nil {
-			return nil, err
-		}
-
 		var stepProtocolFee, stepLpFee, protocolFee utils.Uint256
 		protocolFee.Set(lo.Ternary(zeroForOne,
 			p.protocolFeeZeroForOne,
 			p.protocolFeeOneForZero,
 		))
-		if exactInput {
-			// Fluid v2 custom logic: calculate protocol fee and lp fee on amountOut
+
+		if isConstantLpFee {
+			err = computeSwapStepForSwapInWithoutFee(state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining,
+				&nxtSqrtPriceX96, &step.amountIn, &step.amountOut, &step.feeAmount)
+			if err != nil {
+				return nil, err
+			}
 			stepProtocolFee.Mul(&step.amountOut, &protocolFee).
-				Div(&stepProtocolFee, SIX_DECIMALS)
+				Div(&stepProtocolFee, SIX_DECIMALS_UI)
 
 			stepLpFee.Mul(&step.amountOut, p.constantLpFee).
-				Div(&stepLpFee, SIX_DECIMALS)
-
-			state.sqrtPriceX96.Set(&nxtSqrtPriceX96)
-
-			// Fluid v2 custom logic: apply fee on amountOut instead of amountIn as in Uniswap v3
-			var amountInSigned utils.Int256
-			err = utils.ToInt256(&step.amountIn, &amountInSigned)
-			if err != nil {
-				return nil, err
-			}
-
-			var amountOutPlusFee utils.Uint256
-			amountOutPlusFee.Sub(&step.amountOut, &stepLpFee)
-
-			var amountOutSigned utils.Int256
-			err = utils.ToInt256(&amountOutPlusFee, &amountOutSigned)
-			if err != nil {
-				return nil, err
-			}
-
-			state.amountSpecifiedRemaining.Sub(state.amountSpecifiedRemaining, &amountInSigned)
-			state.amountCalculated.Sub(state.amountCalculated, &amountOutSigned)
+				Div(&stepLpFee, SIX_DECIMALS_UI)
 		} else {
-			// TODO: Test this branch
-			var amountInWithFee utils.Uint256
-			amountInWithFee.Mul(&step.amountIn, SIX_DECIMALS).
-				Div(&amountInWithFee, new(utils.Uint256).Sub(SIX_DECIMALS, p.constantLpFee))
-			stepLpFee.Sub(&amountInWithFee, &step.amountIn)
-
-			amountInWithFee.Mul(&amountInWithFee, SIX_DECIMALS).
-				Div(&amountInWithFee, new(utils.Uint256).Sub(SIX_DECIMALS, &protocolFee))
-			stepProtocolFee.Sub(&amountInWithFee, &step.amountIn).
-				Sub(&stepProtocolFee, &stepLpFee)
-
-			var amountInSigned utils.Int256
-			err = utils.ToInt256(&amountInWithFee, &amountInSigned)
+			err = computeSwapStepForSwapInWithDynamicFee(zeroForOne, state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining, d, &protocolFee,
+				&nxtSqrtPriceX96, &step.amountIn, &step.amountOut, &step.feeAmount, &stepProtocolFee, &stepLpFee)
 			if err != nil {
 				return nil, err
 			}
-
-			var amountOutSigned utils.Int256
-			err = utils.ToInt256(&step.amountOut, &amountOutSigned)
-			if err != nil {
-				return nil, err
-			}
-
-			state.amountSpecifiedRemaining.Add(state.amountSpecifiedRemaining, &amountOutSigned)
-			state.amountCalculated.Add(state.amountCalculated, &amountInSigned)
 		}
+
+		state.sqrtPriceX96.Set(&nxtSqrtPriceX96)
+
+		// Fluid v2 custom logic: apply fee on amountOut instead of amountIn as in Uniswap v3
+		var amountInSigned utils.Int256
+		err = utils.ToInt256(&step.amountIn, &amountInSigned)
+		if err != nil {
+			return nil, err
+		}
+
+		var amountOutPlusFee utils.Uint256
+		amountOutPlusFee.Sub(&step.amountOut, &stepProtocolFee)
+		amountOutPlusFee.Sub(&step.amountOut, &stepLpFee)
+
+		var amountOutSigned utils.Int256
+		err = utils.ToInt256(&amountOutPlusFee, &amountOutSigned)
+		if err != nil {
+			return nil, err
+		}
+
+		state.amountSpecifiedRemaining.Sub(state.amountSpecifiedRemaining, &amountInSigned)
+		state.amountCalculated.Sub(state.amountCalculated, &amountOutSigned)
 
 		if state.sqrtPriceX96.Cmp(&step.sqrtPriceNextX96) == 0 {
 			// if the tick is initialized, run the tick transition
