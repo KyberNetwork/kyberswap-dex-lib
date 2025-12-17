@@ -118,6 +118,7 @@ import (
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcat"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/xsolvbtc"
@@ -348,6 +349,7 @@ type Types struct {
 	NadFun                     string
 	CloberOB                   string
 	FluidDexV2                 string
+	Wildcat                    string
 }
 
 var (
@@ -532,5 +534,6 @@ var (
 		NadFun:                     nadfun.DexType,
 		CloberOB:                   cloberob.DexType,
 		FluidDexV2:                 dexv2.DexType,
+		Wildcat:                    wildcat.DexType,
 	}
 )
