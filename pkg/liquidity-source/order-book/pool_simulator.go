@@ -195,8 +195,12 @@ func getAmountOut(amtIn float64, priceLevels []Level, minTrade float64) (amountO
 	}
 
 	for _, currentLevel := range priceLevels {
+		size := currentLevel.Size()
+		if size == 0 {
+			continue
+		}
 		levels++
-		currentLevelAmount := min(currentLevel.Size(), amtIn)
+		currentLevelAmount := min(size, amtIn)
 		amountOut += currentLevelAmount * currentLevel.Price()
 		if amtIn -= currentLevelAmount; amtIn <= 0 {
 			break
@@ -216,8 +220,12 @@ func getAmountIn(amtOut float64, priceLevels []Level, minTrade float64) (amountI
 	}
 
 	for _, currentLevel := range priceLevels {
+		size := currentLevel.Size()
+		if size == 0 {
+			continue
+		}
 		levels++
-		currentLevelAmount := min(currentLevel.Size()*currentLevel.Price(), amtOut)
+		currentLevelAmount := min(size*currentLevel.Price(), amtOut)
 		amountIn += currentLevelAmount / currentLevel.Price()
 		if amtOut -= currentLevelAmount; amtOut <= 0 {
 			break
