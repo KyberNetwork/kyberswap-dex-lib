@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	factoryABI abi.ABI
-	pairABI    abi.ABI
-	erc20ABI   abi.ABI
+	factoryABI   abi.ABI
+	pairABI      abi.ABI
+	erc20ABI     abi.ABI
+	multicallABI abi.ABI
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		{&factoryABI, factoryABIData},
 		{&pairABI, pairABIData},
 		{&erc20ABI, erc20ABIData},
+		{&multicallABI, multicallABIData},
 	}
 
 	for _, b := range builder {

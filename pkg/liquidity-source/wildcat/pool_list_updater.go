@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -101,7 +100,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		p.Extra = string(extraBytes)
 		return p
 	})
-	if _, err := TrackPools(ctx, pools, u.ethrpcClient); err != nil {
+	if _, err := TrackPools(ctx, pools, u.ethrpcClient, u.config); err != nil {
 		return nil, metadataBytes, err
 	}
 
@@ -126,73 +125,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Info("Finished getting new pools")
 
 	return pools, newMetadataBytes, nil
-}
-
-func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Client) ([]entity.Pool, error) {
-	req := rpcClient.NewRequest().SetContext(ctx)
-	rates := make([][]*big.Int, len(pools))
-	reserves := make([][]*big.Int, len(pools))
-	for i, pool := range pools {
-		reserves[i] = make([]*big.Int, 2)
-		for j, token := range pool.Tokens {
-			if !strings.EqualFold(token.Address, valueobject.ZeroAddress) {
-				req.AddCall(&ethrpc.Call{
-					ABI:    erc20ABI,
-					Target: token.Address,
-					Method: "balanceOf",
-					Params: []any{common.HexToAddress(pool.Address)},
-				}, []any{&reserves[i][j]})
-			} else {
-				bal, err := rpcClient.BalanceAt(ctx, common.HexToAddress(pool.Address), nil)
-				if err != nil {
-					return nil, err
-				}
-				reserves[i][j] = bal
-			}
-		}
-	}
-	_, err := req.Aggregate()
-	if err != nil {
-		return nil, err
-	}
-
-	req = rpcClient.NewRequest().SetContext(ctx)
-	for i, pool := range pools {
-		rates[i] = make([]*big.Int, 2)
-		for j := range pool.Tokens {
-			if reserves[i][(j+1)%2].Sign() == 0 {
-				rates[i][j] = big.NewInt(0)
-				continue
-			}
-			req.AddCall(&ethrpc.Call{
-				ABI:    pairABI,
-				Target: pool.Address,
-				Method: "getAmountIn",
-				Params: []any{j == 0, reserves[i][(j+1)%2]}, // true = 0->1 (getAmountIn(zero_for_one, amount_out))
-			}, []any{&rates[i][j]})
-		}
-	}
-	_, err = req.Aggregate()
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range pools {
-		pools[i].Reserves = []string{reserves[i][0].String(), reserves[i][1].String()}
-		var extra Extra
-		err := json.Unmarshal([]byte(pools[i].Extra), &extra)
-		if err != nil {
-			return nil, err
-		}
-		extra.Rates = rates[i]
-		extraBytes, err := json.Marshal(extra)
-		if err != nil {
-			return nil, err
-		}
-		pools[i].Extra = string(extraBytes)
-		pools[i].Timestamp = time.Now().Unix()
-	}
-	return pools, nil
 }
 
 // getOffset gets index of the last pair that is fetched
