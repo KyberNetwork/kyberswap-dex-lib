@@ -52,8 +52,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	amountOut := big.NewInt(0)
-	if s.Extra.Rates[indexIn].Sign() >= 0 {
-		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, s.Info.Reserves[indexOut], s.Extra.Rates[indexIn])
+	if s.Rates[indexIn].Sign() >= 0 {
+		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, s.Info.Reserves[indexOut], s.Rates[indexIn])
 	}
 
 	if amountOut.Cmp(s.Info.Reserves[indexOut]) >= 0 {
@@ -88,7 +88,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 		return nil
 	}
 	return PoolExtra{
-		TokenInIsNative:  s.Extra.IsNative[indexIn],
-		TokenOutIsNative: s.Extra.IsNative[indexOut],
+		TokenInIsNative:  s.IsNative[indexIn],
+		TokenOutIsNative: s.IsNative[indexOut],
 	}
 }
