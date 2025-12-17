@@ -1,0 +1,545 @@
+[
+    {
+        "type": "function",
+        "name": "getAmountOut",
+        "inputs": [
+            {
+                "name": "_amountIn",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_tokenInOut",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_tokenPrices",
+                "type": "uint256[]",
+                "internalType": "uint256[]"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amountOut_",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "swapFee_",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getGate",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isAllowed",
+        "inputs": [
+            {
+                "name": "_user",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isGated",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "oracleAdapter",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "contract IPriceOracleGetter"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "pause",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "paused",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "poolByAsset",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "registerPool",
+        "inputs": [
+            {
+                "name": "_swapPool",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "success_",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "renounceOwnership",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setGate",
+        "inputs": [
+            {
+                "name": "_newGate",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "success_",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setOracleAdapter",
+        "inputs": [
+            {
+                "name": "_newOracleAdapter",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "success_",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "swapExactTokensForTokens",
+        "inputs": [
+            {
+                "name": "_amountIn",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_amountOutMin",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_tokenInOut",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_to",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_deadline",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_priceUpdateData",
+                "type": "bytes[]",
+                "internalType": "bytes[]"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amounts_",
+                "type": "uint256[]",
+                "internalType": "uint256[]"
+            }
+        ],
+        "stateMutability": "payable"
+    },
+    {
+        "type": "function",
+        "name": "swapExactTokensForTokensWithoutPriceFeedUpdate",
+        "inputs": [
+            {
+                "name": "_amountIn",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_amountOutMin",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_tokenInOut",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_to",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_deadline",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amounts_",
+                "type": "uint256[]",
+                "internalType": "uint256[]"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "transferOwnership",
+        "inputs": [
+            {
+                "name": "newOwner",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "unpause",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "unregisterPool",
+        "inputs": [
+            {
+                "name": "_asset",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "success_",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "event",
+        "name": "GateUpdated",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "oldGate",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newGate",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GatedAccessDisabled",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GatedAccessEnabled",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "OracleAdapterSet",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "oldOracleAdapter",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "newOracleAdapter",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "OwnershipTransferred",
+        "inputs": [
+            {
+                "name": "previousOwner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newOwner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Paused",
+        "inputs": [
+            {
+                "name": "account",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Swap",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "amountIn",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "amountOut",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "tokenIn",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "tokenOut",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "SwapPoolRegistered",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "pool",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "asset",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "SwapPoolUnregistered",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "asset",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Unpaused",
+        "inputs": [
+            {
+                "name": "account",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    }
+]

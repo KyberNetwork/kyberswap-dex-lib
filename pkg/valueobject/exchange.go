@@ -278,6 +278,7 @@ const (
 	ExchangeMummyFinance               = "mummy-finance"
 	ExchangeMuteSwitch                 = "muteswitch"
 	ExchangeMVM                        = "mvm"
+	ExchangeNabla                      = "nabla"
 	ExchangeNadFun                     = "nad-fun"
 	ExchangeNativeV1                   = "native-v1"
 	ExchangeNativeV2                   = "native-v2"

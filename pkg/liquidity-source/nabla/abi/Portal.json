@@ -1,0 +1,602 @@
+[
+    {
+        "type": "function",
+        "name": "WETH",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "contract IWETH"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "assetsByRouter",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getGate",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getRouterAssets",
+        "inputs": [
+            {
+                "name": "_router",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "routerAssets_",
+                "type": "address[]",
+                "internalType": "address[]"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getRouters",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "routers_",
+                "type": "address[]",
+                "internalType": "address[]"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "guardOn",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "guardOracle",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "contract IGuardOracle"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isAllowed",
+        "inputs": [
+            {
+                "name": "_user",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isGated",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "oracleAdapter",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "paused",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "quoteSwapExactTokensForTokens",
+        "inputs": [
+            {
+                "name": "_amountIn",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_tokenPath",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_routerPath",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_tokenPrices",
+                "type": "uint256[]",
+                "internalType": "uint256[]"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amountOut_",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "routerAssets",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "routers",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "AssetRegistered",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "router",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "asset",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "AssetUnregistered",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "router",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "asset",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "EthForExactTokensSwapped",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "routerPath",
+                "type": "address[]",
+                "indexed": true,
+                "internalType": "address[]"
+            },
+            {
+                "name": "tokenPath",
+                "type": "address[]",
+                "indexed": false,
+                "internalType": "address[]"
+            },
+            {
+                "name": "swapAmounts",
+                "type": "uint256[]",
+                "indexed": false,
+                "internalType": "uint256[]"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "ExactTokensForEthSwapped",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "routerPath",
+                "type": "address[]",
+                "indexed": true,
+                "internalType": "address[]"
+            },
+            {
+                "name": "tokenPath",
+                "type": "address[]",
+                "indexed": false,
+                "internalType": "address[]"
+            },
+            {
+                "name": "swapAmounts",
+                "type": "uint256[]",
+                "indexed": false,
+                "internalType": "uint256[]"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "ExactTokensForTokensSwapped",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "routerPath",
+                "type": "address[]",
+                "indexed": true,
+                "internalType": "address[]"
+            },
+            {
+                "name": "tokenPath",
+                "type": "address[]",
+                "indexed": false,
+                "internalType": "address[]"
+            },
+            {
+                "name": "swapAmounts",
+                "type": "uint256[]",
+                "indexed": false,
+                "internalType": "uint256[]"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GateUpdated",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "oldGate",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newGate",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GatedAccessDisabled",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GatedAccessEnabled",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GuardActivated",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "router",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GuardDeactivated",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "router",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "GuardOracleSet",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newGuardOracle",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "OracleAdapterSet",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newOracleAdapter",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "OwnershipTransferred",
+        "inputs": [
+            {
+                "name": "previousOwner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newOwner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Paused",
+        "inputs": [
+            {
+                "name": "account",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Unpaused",
+        "inputs": [
+            {
+                "name": "account",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    }
+]
