@@ -47,7 +47,7 @@ type Hook interface {
 	UpdateBalance(swapInfo any)
 	// ModifyTicks some hook need ModifyLiquidity before swap, we can use this method in the NewPoolSimulator for simplicity
 	// instead of calling BeforeSwap in CalcAmountOut.
-	ModifyTicks(ctx context.Context, extraTickUint256 *uniswapv3.ExtraTickU256) error
+	ModifyTicks(extraTickUint256 *uniswapv3.ExtraTickU256) error
 }
 
 type HookFactory func(param *HookParam) Hook
@@ -135,6 +135,6 @@ func (h *BaseHook) CloneState() Hook {
 
 func (h *BaseHook) UpdateBalance(_ any) {}
 
-func (h *BaseHook) ModifyTicks(ctx context.Context, extraTickUint256 *uniswapv3.ExtraTickU256) error {
+func (h *BaseHook) ModifyTicks(extraTickUint256 *uniswapv3.ExtraTickU256) error {
 	return nil
 }

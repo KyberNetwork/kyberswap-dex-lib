@@ -1,7 +1,6 @@
 package cl
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"strings"
@@ -52,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	// modify ticks before new pool simulator, some hooks will need this.
 	// In the the original logic, we should do this logic in BeforeSwap in CalcAmountOut, but using here for simplicity.
-	err := hook.ModifyTicks(context.Background(), extra.ExtraTickU256)
+	err := hook.ModifyTicks(extra.ExtraTickU256)
 	if err != nil {
 		return nil, err
 	}

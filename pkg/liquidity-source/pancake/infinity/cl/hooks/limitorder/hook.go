@@ -108,7 +108,7 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 	return json.Marshal(extra)
 }
 
-func (h *Hook) ModifyTicks(ctx context.Context, extraTickU256 *uniswapv3.ExtraTickU256) error {
+func (h *Hook) ModifyTicks(extraTickU256 *uniswapv3.ExtraTickU256) error {
 	// ref: https://bscscan.com/address/0x6AdC560aF85377f9a73d17c658D798c9B39186e8#code
 	// Contract: CLLimitOrderHook.sol
 	/*
