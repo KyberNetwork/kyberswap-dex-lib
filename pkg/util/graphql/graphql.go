@@ -36,7 +36,7 @@ func NewClient(endpoint string, opts ...ClientOption) *Client {
 		optionFunc(c)
 	}
 	if c.restyClient == nil {
-		c.restyClient = resty.New()
+		c.restyClient = resty.NewWithClient(http.DefaultClient)
 	}
 	chainClientInterceptors(c)
 	return c

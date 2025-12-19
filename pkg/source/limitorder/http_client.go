@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -17,7 +18,7 @@ type httpClient struct {
 }
 
 func NewHTTPClient(baseURL string) *httpClient {
-	return NewHTTPClientWithRestyClient(baseURL, resty.New())
+	return NewHTTPClientWithRestyClient(baseURL, resty.NewWithClient(http.DefaultClient))
 }
 
 func NewHTTPClientWithRestyClient(baseURL string, client *resty.Client) *httpClient {
