@@ -1,6 +1,7 @@
 package angstrom
 
 import (
+	"net/http"
 	"sync"
 	"time"
 
@@ -23,7 +24,7 @@ var (
 
 func GetAttestationController(config HookConfig) *AttestationController {
 	once.Do(func() {
-		httpClient := resty.New().
+		httpClient := resty.NewWithClient(http.DefaultClient).
 			SetBaseURL(config.HTTP.BaseURL).
 			SetTimeout(config.HTTP.Timeout.Duration).
 			SetRetryCount(config.HTTP.RetryCount).

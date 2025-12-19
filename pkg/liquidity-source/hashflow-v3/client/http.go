@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/go-resty/resty/v2"
@@ -39,7 +40,7 @@ type httpClient struct {
 
 func NewHTTPClient(config *hashflowv3.HTTPClientConfig) *httpClient {
 	if config.Client == nil {
-		config.Client = resty.New()
+		config.Client = resty.NewWithClient(http.DefaultClient)
 	}
 	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).

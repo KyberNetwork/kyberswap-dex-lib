@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
@@ -44,7 +45,7 @@ type HTTPClient struct {
 
 func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 	if config.Client == nil {
-		config.Client = resty.New()
+		config.Client = resty.NewWithClient(http.DefaultClient)
 	}
 	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
