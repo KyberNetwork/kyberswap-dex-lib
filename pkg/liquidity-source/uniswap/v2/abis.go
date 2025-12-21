@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	uniswapV2PairABI      abi.ABI
-	uniswapV2FactoryABI   abi.ABI
+	uniswapV2PairABI    abi.ABI
+	uniswapV2FactoryABI abi.ABI
 )
 
 func init() {

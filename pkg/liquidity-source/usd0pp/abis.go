@@ -2,6 +2,7 @@ package usd0pp
 
 import (
 	"bytes"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 

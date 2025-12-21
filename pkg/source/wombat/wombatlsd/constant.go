@@ -1,8 +1,9 @@
 package wombatlsd
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 )
 
 var (

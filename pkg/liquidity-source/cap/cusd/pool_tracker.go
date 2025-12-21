@@ -2,22 +2,21 @@ package cusd
 
 import (
 	"context"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
