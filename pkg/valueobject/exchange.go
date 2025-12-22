@@ -510,6 +510,7 @@ const (
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
 	ExchangeWildcat                    = "wildcat"
+	ExchangeInfinifi                   = "infinifi-gateway"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
