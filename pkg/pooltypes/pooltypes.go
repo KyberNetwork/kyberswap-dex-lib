@@ -67,6 +67,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
@@ -350,6 +351,7 @@ type Types struct {
 	CloberOB                   string
 	FluidDexV2                 string
 	Wildcat                    string
+	Infinifi                   string
 }
 
 var (
@@ -535,5 +537,6 @@ var (
 		CloberOB:                   cloberob.DexType,
 		FluidDexV2:                 dexv2.DexType,
 		Wildcat:                    wildcat.DexType,
+		Infinifi:                   infinifi.DexType,
 	}
 )
