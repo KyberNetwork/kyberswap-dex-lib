@@ -14,8 +14,7 @@ type Extra struct {
 	SIUSDSupply      *big.Int `json:"siusdSupply"`      // Total siUSD shares
 
 	// liUSD bucket data - each bucket has its own exchange rate
-	LIUSDSupplies      []string `json:"liusdSupplies"`      // Total shares for each liUSD bucket
-	LIUSDTotalReceipts []string `json:"liusdTotalReceipts"` // Total iUSD locked in each bucket
+	LIUSDBuckets []bucket `json:"liusdBuckets"`
 }
 
 // Meta contains metadata about the pool state

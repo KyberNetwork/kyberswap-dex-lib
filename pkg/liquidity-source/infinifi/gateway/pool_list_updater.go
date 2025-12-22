@@ -50,14 +50,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		},
 	}
 
-	// Add all liUSD tokens (one per unwinding epoch)
-	for _, liusd := range u.config.LIUSDTokens {
-		tokens = append(tokens, &entity.PoolToken{
-			Address:   strings.ToLower(liusd.Address),
-			Swappable: true,
-		})
-	}
-
 	// Initialize reserves (will be updated by pool tracker)
 	reserves := make([]string, len(tokens))
 	for i := range reserves {
@@ -71,6 +63,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		Timestamp: time.Now().Unix(),
 		Reserves:  reserves,
 		Tokens:    tokens,
+		Extra:     "{}",
 	}
 
 	// Get initial pool state

@@ -7,17 +7,7 @@ import (
 const (
 	DexType = "infinifi-gateway"
 
-	// Gateway methods (from InfiniFiGatewayV2)
-	gatewayMintMethod           = "mint"           // USDC → iUSD
-	gatewayStakeMethod          = "stake"          // iUSD → siUSD
-	gatewayUnstakeMethod        = "unstake"        // siUSD → iUSD
-	gatewayRedeemMethod         = "redeem"         // iUSD → USDC
-	gatewayCreatePositionMethod = "createPosition" // iUSD → liUSD
-	gatewayMintAndStakeMethod   = "mintAndStake"   // USDC → siUSD (combined)
-	gatewayMintAndLockMethod    = "mintAndLock"    // USDC → liUSD (combined)
-
 	// ERC20 methods
-	erc20BalanceOfMethod   = "balanceOf"
 	erc20TotalSupplyMethod = "totalSupply"
 
 	// ERC4626 methods (for siUSD StakedToken)
@@ -29,6 +19,7 @@ const (
 
 	// CoreControlled methods
 	coreControlledPausedMethod = "paused"
+	defaultReserves            = "1000000000000000000000000"
 
 	// Gas estimates
 	defaultMintGas           int64 = 550000 // USDC → iUSD

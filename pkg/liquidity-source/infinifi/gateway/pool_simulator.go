@@ -14,13 +14,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-
-	isPaused           bool
-	iusdSupply         *big.Int
-	siusdTotalAssets   *big.Int
-	siusdSupply        *big.Int
-	liusdSupplies      []*big.Int
-	liusdTotalReceipts []*big.Int
+	Extra
 
 	// Token addresses for quick lookup
 	usdc        string
@@ -47,14 +41,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[i] = bignumber.NewBig(reserve)
 	}
 
-	// Convert liUSD supply strings to big.Int
-	liusdSupplies := make([]*big.Int, len(extra.LIUSDSupplies))
-	liusdTotalReceipts := make([]*big.Int, len(extra.LIUSDTotalReceipts))
-	for i := range extra.LIUSDSupplies {
-		liusdSupplies[i] = bignumber.NewBig(extra.LIUSDSupplies[i])
-		liusdTotalReceipts[i] = bignumber.NewBig(extra.LIUSDTotalReceipts[i])
-	}
-
 	// Identify token positions
 	// tokens[0] = USDC
 	// tokens[1] = iUSD
@@ -76,16 +62,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				BlockNumber: entityPool.BlockNumber,
 			},
 		},
-		isPaused:           extra.IsPaused,
-		iusdSupply:         extra.IUSDSupply,
-		siusdTotalAssets:   extra.SIUSDTotalAssets,
-		siusdSupply:        extra.SIUSDSupply,
-		liusdSupplies:      liusdSupplies,
-		liusdTotalReceipts: liusdTotalReceipts,
-		usdc:               tokens[0],
-		iusd:               tokens[1],
-		siusd:              tokens[2],
-		liusdTokens:        liusdTokenAddrs,
+		usdc:        tokens[0],
+		iusd:        tokens[1],
+		siusd:       tokens[2],
+		liusdTokens: liusdTokenAddrs,
+		Extra:       extra,
 	}, nil
 }
 
@@ -95,7 +76,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	amountIn := params.TokenAmountIn.Amount
 
 	// Check if contract is paused
-	if s.isPaused {
+	if s.IsPaused {
 		return nil, ErrContractPaused
 	}
 
@@ -181,13 +162,13 @@ func (s *PoolSimulator) calculateRedeem(iusdAmount *big.Int) *big.Int {
 func (s *PoolSimulator) calculateStake(iusdAmount *big.Int) *big.Int {
 	// ERC4626 formula: shares = assets * totalShares / totalAssets
 	// If totalAssets == 0 (first deposit), shares = assets (1:1)
-	if s.siusdTotalAssets.Sign() == 0 || s.siusdSupply.Sign() == 0 {
+	if s.SIUSDTotalAssets.Sign() == 0 || s.SIUSDSupply.Sign() == 0 {
 		return new(big.Int).Set(iusdAmount)
 	}
 
 	// shares = iusdAmount * siusdSupply / siusdTotalAssets
-	siusdShares := new(big.Int).Mul(iusdAmount, s.siusdSupply)
-	siusdShares.Div(siusdShares, s.siusdTotalAssets)
+	siusdShares := new(big.Int).Mul(iusdAmount, s.SIUSDSupply)
+	siusdShares.Div(siusdShares, s.SIUSDTotalAssets)
 
 	return siusdShares
 }
@@ -196,13 +177,13 @@ func (s *PoolSimulator) calculateStake(iusdAmount *big.Int) *big.Int {
 func (s *PoolSimulator) calculateUnstake(siusdAmount *big.Int) *big.Int {
 	// ERC4626 formula: assets = shares * totalAssets / totalShares
 	// If totalShares == 0, return 0 (edge case)
-	if s.siusdSupply.Sign() == 0 {
+	if s.SIUSDSupply.Sign() == 0 {
 		return big.NewInt(0)
 	}
 
 	// assets = siusdAmount * siusdTotalAssets / siusdSupply
-	iusdAmount := new(big.Int).Mul(siusdAmount, s.siusdTotalAssets)
-	iusdAmount.Div(iusdAmount, s.siusdSupply)
+	iusdAmount := new(big.Int).Mul(siusdAmount, s.SIUSDTotalAssets)
+	iusdAmount.Div(iusdAmount, s.SIUSDSupply)
 
 	return iusdAmount
 }
@@ -212,8 +193,8 @@ func (s *PoolSimulator) calculateLock(iusdAmount *big.Int, bucketIndex int) *big
 	// LockingController.createPosition (line 216):
 	// newShares = totalShares == 0 ? amount : amount.mulDivDown(totalShares, data.totalReceiptTokens)
 
-	totalShares := s.liusdSupplies[bucketIndex]
-	totalReceiptTokens := s.liusdTotalReceipts[bucketIndex]
+	totalShares := s.LIUSDBuckets[bucketIndex].TotalSupply
+	totalReceiptTokens := s.LIUSDBuckets[bucketIndex].BucketData.TotalReceiptTokens
 
 	// If first deposit (no shares yet), 1:1 conversion
 	if totalShares.Sign() == 0 {
@@ -231,10 +212,10 @@ func (s *PoolSimulator) calculateLock(iusdAmount *big.Int, bucketIndex int) *big
 func (s *PoolSimulator) calculateMintAndStake(usdcAmount *big.Int) *big.Int {
 	// First: USDC → iUSD (mint with decimal scaling)
 	iusdAmount := s.calculateMint(usdcAmount)
-	
+
 	// Second: iUSD → siUSD (stake with ERC4626 conversion)
 	siusdAmount := s.calculateStake(iusdAmount)
-	
+
 	return siusdAmount
 }
 
@@ -242,10 +223,10 @@ func (s *PoolSimulator) calculateMintAndStake(usdcAmount *big.Int) *big.Int {
 func (s *PoolSimulator) calculateMintAndLock(usdcAmount *big.Int, bucketIndex int) *big.Int {
 	// First: USDC → iUSD (mint with decimal scaling)
 	iusdAmount := s.calculateMint(usdcAmount)
-	
+
 	// Second: iUSD → liUSD (lock with bucket conversion)
 	liusdAmount := s.calculateLock(iusdAmount, bucketIndex)
-	
+
 	return liusdAmount
 }
 
@@ -274,28 +255,28 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	switch {
 	case tokenIn == s.usdc && tokenOut == s.iusd:
 		// USDC → iUSD (mint)
-		s.iusdSupply = new(big.Int).Add(s.iusdSupply, amountOut)
+		s.IUSDSupply = new(big.Int).Add(s.IUSDSupply, amountOut)
 
 	case tokenIn == s.iusd && tokenOut == s.usdc:
 		// iUSD → USDC (redeem)
-		s.iusdSupply = new(big.Int).Sub(s.iusdSupply, amountIn)
+		s.IUSDSupply = new(big.Int).Sub(s.IUSDSupply, amountIn)
 
 	case tokenIn == s.iusd && tokenOut == s.siusd:
 		// iUSD → siUSD (stake)
-		s.siusdTotalAssets = new(big.Int).Add(s.siusdTotalAssets, amountIn)
-		s.siusdSupply = new(big.Int).Add(s.siusdSupply, amountOut)
+		s.SIUSDTotalAssets = new(big.Int).Add(s.SIUSDTotalAssets, amountIn)
+		s.SIUSDSupply = new(big.Int).Add(s.SIUSDSupply, amountOut)
 
 	case tokenIn == s.siusd && tokenOut == s.iusd:
 		// siUSD → iUSD (unstake)
-		s.siusdTotalAssets = new(big.Int).Sub(s.siusdTotalAssets, amountOut)
-		s.siusdSupply = new(big.Int).Sub(s.siusdSupply, amountIn)
+		s.SIUSDTotalAssets = new(big.Int).Sub(s.SIUSDTotalAssets, amountOut)
+		s.SIUSDSupply = new(big.Int).Sub(s.SIUSDSupply, amountIn)
 
 	case tokenIn == s.iusd && s.isLIUSD(tokenOut):
 		// iUSD → liUSD (lock/createPosition)
 		for i, liusdAddr := range s.liusdTokens {
 			if tokenOut == liusdAddr {
-				s.liusdSupplies[i] = new(big.Int).Add(s.liusdSupplies[i], amountOut)
-				s.liusdTotalReceipts[i] = new(big.Int).Add(s.liusdTotalReceipts[i], amountIn)
+				s.LIUSDBuckets[i].TotalSupply = new(big.Int).Add(s.LIUSDBuckets[i].TotalSupply, amountOut)
+				s.LIUSDBuckets[i].BucketData.TotalReceiptTokens = new(big.Int).Add(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens, amountIn)
 				break
 			}
 		}
@@ -305,33 +286,32 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		// Calculate intermediate iUSD amount
 		iusdAmount := s.calculateMint(amountIn)
 		// Update iUSD supply (mint)
-		s.iusdSupply = new(big.Int).Add(s.iusdSupply, iusdAmount)
+		s.IUSDSupply = new(big.Int).Add(s.IUSDSupply, iusdAmount)
 		// Update siUSD vault state (stake)
-		s.siusdTotalAssets = new(big.Int).Add(s.siusdTotalAssets, iusdAmount)
-		s.siusdSupply = new(big.Int).Add(s.siusdSupply, amountOut)
+		s.SIUSDTotalAssets = new(big.Int).Add(s.SIUSDTotalAssets, iusdAmount)
+		s.SIUSDSupply = new(big.Int).Add(s.SIUSDSupply, amountOut)
 
 	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
 		// USDC → liUSD (mintAndLock)
 		// Calculate intermediate iUSD amount
 		iusdAmount := s.calculateMint(amountIn)
 		// Update iUSD supply (mint)
-		s.iusdSupply = new(big.Int).Add(s.iusdSupply, iusdAmount)
+		s.IUSDSupply = new(big.Int).Add(s.IUSDSupply, iusdAmount)
 		// Update liUSD bucket state (lock)
 		for i, liusdAddr := range s.liusdTokens {
 			if tokenOut == liusdAddr {
-				s.liusdSupplies[i] = new(big.Int).Add(s.liusdSupplies[i], amountOut)
-				s.liusdTotalReceipts[i] = new(big.Int).Add(s.liusdTotalReceipts[i], iusdAmount)
+				s.LIUSDBuckets[i].TotalSupply = new(big.Int).Add(s.LIUSDBuckets[i].TotalSupply, amountOut)
+				s.LIUSDBuckets[i].BucketData.TotalReceiptTokens = new(big.Int).Add(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens, iusdAmount)
 				break
 			}
 		}
 	}
-
 	// Update reserves for display
-	s.Info.Reserves[0] = new(big.Int).Set(s.siusdTotalAssets)
-	s.Info.Reserves[1] = new(big.Int).Set(s.siusdSupply)
-	for i, supply := range s.liusdSupplies {
+	s.Info.Reserves[1] = new(big.Int).Set(s.SIUSDTotalAssets)
+	s.Info.Reserves[2] = new(big.Int).Set(s.SIUSDSupply)
+	for i, bucket := range s.LIUSDBuckets {
 		if i+2 < len(s.Info.Reserves) {
-			s.Info.Reserves[i+2] = new(big.Int).Set(supply)
+			s.Info.Reserves[i+2] = new(big.Int).Set(bucket.TotalSupply)
 		}
 	}
 }
@@ -346,18 +326,23 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 
 	// Deep copy big.Int fields
-	cloned.iusdSupply = new(big.Int).Set(s.iusdSupply)
-	cloned.siusdTotalAssets = new(big.Int).Set(s.siusdTotalAssets)
-	cloned.siusdSupply = new(big.Int).Set(s.siusdSupply)
+	cloned.IUSDSupply = new(big.Int).Set(s.IUSDSupply)
+	cloned.SIUSDTotalAssets = new(big.Int).Set(s.SIUSDTotalAssets)
+	cloned.SIUSDSupply = new(big.Int).Set(s.SIUSDSupply)
 
 	// Deep copy liUSD supplies and total receipts
-	cloned.liusdSupplies = make([]*big.Int, len(s.liusdSupplies))
-	cloned.liusdTotalReceipts = make([]*big.Int, len(s.liusdTotalReceipts))
-	for i := range s.liusdSupplies {
-		cloned.liusdSupplies[i] = new(big.Int).Set(s.liusdSupplies[i])
-		cloned.liusdTotalReceipts[i] = new(big.Int).Set(s.liusdTotalReceipts[i])
+	cloned.LIUSDBuckets = make([]bucket, len(s.LIUSDBuckets))
+	for i := range s.LIUSDBuckets {
+		cloned.LIUSDBuckets[i] = bucket{
+			Index:       s.LIUSDBuckets[i].Index,
+			TotalSupply: new(big.Int).Set(s.LIUSDBuckets[i].TotalSupply),
+			BucketData: bucketData{
+				ShareToken:         s.LIUSDBuckets[i].BucketData.ShareToken,
+				TotalReceiptTokens: new(big.Int).Set(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens),
+				Multiplier:         new(big.Int).Set(s.LIUSDBuckets[i].BucketData.Multiplier),
+			},
+		}
 	}
-
 	// Clone reserves
 	cloned.Info.Reserves = make([]*big.Int, len(s.Info.Reserves))
 	for i, r := range s.Info.Reserves {
