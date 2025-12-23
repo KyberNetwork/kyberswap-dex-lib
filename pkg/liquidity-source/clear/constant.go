@@ -19,14 +19,14 @@ const (
 	// Default values
 	defaultTokenDecimals = 18
 	zeroString           = "0"
+	defaultReserves      = "100000000000000000000000000"
 )
 
 var (
-	ErrInvalidToken       = errors.New("invalid token")
-	ErrInvalidAmountIn    = errors.New("invalid amount in")
-	ErrInsufficientOutput = errors.New("insufficient output amount")
-	ErrExtraEmpty         = errors.New("extra is empty")
-	ErrStaticExtraEmpty   = errors.New("static extra is empty")
-	ErrPoolNotFound       = errors.New("pool not found")
-	ErrInvalidReserve     = errors.New("invalid reserve")
+	ErrInvalidToken     = errors.New("invalid token")
+	ErrInvalidAmountIn  = errors.New("invalid amount in")
+	ErrExtraEmpty       = errors.New("extra is empty")
+	ErrStaticExtraEmpty = errors.New("static extra is empty")
+	ErrPoolNotFound     = errors.New("pool not found")
+	ErrInvalidReserve   = errors.New("invalid reserve")
 )

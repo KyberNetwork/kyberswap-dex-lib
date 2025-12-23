@@ -9,6 +9,7 @@ import (
 var (
 	clearSwapABI    abi.ABI
 	clearFactoryABI abi.ABI
+	clearVaultABI   abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&clearSwapABI, clearSwapABIJson},
 		{&clearFactoryABI, clearFactoryABIJson},
+		{&clearVaultABI, clearVaultABIJson},
 	}
 
 	for _, b := range builder {

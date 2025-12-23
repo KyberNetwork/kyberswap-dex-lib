@@ -7,3 +7,6 @@ var clearSwapABIJson []byte
 
 //go:embed abis/ClearFactory.json
 var clearFactoryABIJson []byte
+
+//go:embed abis/ClearVault.json
+var clearVaultABIJson []byte

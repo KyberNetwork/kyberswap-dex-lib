@@ -1,374 +1,46 @@
 package clear
 
 import (
-	"math/big"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func TestNewPoolSimulator(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name        string
-		entityPool  entity.Pool
-		expectError bool
-	}{
-		{
-			name: "valid pool",
-			entityPool: entity.Pool{
-				Address:  "0xvault_0xtoken0_0xtoken1",
-				Exchange: "clear",
-				Type:     DexType,
-				Reserves: entity.PoolReserves{"1000000000000000000000000", "1000000000000000000000000"},
-				Tokens: []*entity.PoolToken{
-					{Address: "0xtoken0", Decimals: 18, Swappable: true},
-					{Address: "0xtoken1", Decimals: 18, Swappable: true},
-				},
-				StaticExtra: `{"vaultAddress":"0xvault","swapAddress":"0xswap","tokens":["0xtoken0","0xtoken1"]}`,
-				Extra:       `{"reserves":{},"paused":false}`,
-			},
-			expectError: false,
-		},
-		{
-			name: "empty static extra",
-			entityPool: entity.Pool{
-				Address:     "0xvault_0xtoken0_0xtoken1",
-				Exchange:    "clear",
-				Type:        DexType,
-				StaticExtra: "",
-			},
-			expectError: true,
-		},
-		{
-			name: "invalid static extra json",
-			entityPool: entity.Pool{
-				Address:     "0xvault_0xtoken0_0xtoken1",
-				Exchange:    "clear",
-				Type:        DexType,
-				StaticExtra: "invalid json",
-			},
-			expectError: true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			sim, err := NewPoolSimulator(tc.entityPool)
-			if tc.expectError {
-				require.Error(t, err)
-				require.Nil(t, sim)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, sim)
-			}
-		})
-	}
+func getPoolSim(reserveIn, reserveOut string) *PoolSimulator {
+	extraStr := `{"address":"0xcac0fa2818aed2eea8b9f52ca411e6ec3e13d822","exchange":"clear","type":"clear","timestamp":1766474455,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x69cac783c212bfae06e3c1a9a2e6ae6b17ba0614","symbol":"GHO","decimals":18,"swappable":true}],"extra":"{\"reserves\":{\"0\":{\"1\":{\"AmountIn\":null,\"AmountOut\":null}}}}","staticExtra":"{\"swapAddress\":\"0x5144e17c86d6e1b25f61a036024a65bc4775e37e\"}"}`
+	extraStr = strings.Replace(extraStr, `\"AmountIn\":null`, fmt.Sprintf(`\"AmountIn\":%v`, reserveIn), 1)
+	extraStr = strings.Replace(extraStr, `\"AmountOut\":null`, fmt.Sprintf(`\"AmountOut\":%v`, reserveOut), 1)
+	var entityPool entity.Pool
+	_ = json.Unmarshal([]byte(extraStr),
+		&entityPool)
+	return lo.Must(NewPoolSimulator(entityPool))
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
-	t.Parallel()
-
-	// Create a pool simulator with cached reserves for 1:1 ratio
-	staticExtra := StaticExtra{
-		VaultAddress: "0xvault",
-		SwapAddress:  "0xswap",
-		Tokens:       []string{"0xtoken0", "0xtoken1"},
-	}
-	staticExtraBytes, _ := json.Marshal(staticExtra)
-
-	extra := Extra{
-		Reserves: map[string]*uint256.Int{
-			"0xtoken0": uint256.NewInt(1000000000000000000), // 1e18
-			"0xtoken1": uint256.NewInt(1000000000000000000), // 1e18
-		},
-		Paused: false,
-	}
-	extraBytes, _ := json.Marshal(extra)
-
-	entityPool := entity.Pool{
-		Address:  "0xvault_0xtoken0_0xtoken1",
-		Exchange: "clear",
-		Type:     DexType,
-		Reserves: entity.PoolReserves{"1000000000000000000000000", "1000000000000000000000000"},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xtoken0", Decimals: 18, Swappable: true},
-			{Address: "0xtoken1", Decimals: 18, Swappable: true},
-		},
-		StaticExtra: string(staticExtraBytes),
-		Extra:       string(extraBytes),
-	}
-
-	sim, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-
-	tests := []struct {
-		name          string
-		tokenIn       string
-		tokenOut      string
-		amountIn      *big.Int
-		expectedOut   *big.Int
-		expectError   bool
-		expectedError error
+	testCases := []struct {
+		name      string
+		indexIn   int
+		indexOut  int
+		amountIn  string
+		amountOut string
+		poolSim   *PoolSimulator
 	}{
-		{
-			name:        "valid swap token0 to token1",
-			tokenIn:     "0xtoken0",
-			tokenOut:    "0xtoken1",
-			amountIn:    big.NewInt(1000000000000000000), // 1e18
-			expectedOut: big.NewInt(1000000000000000000), // 1:1 ratio
-			expectError: false,
-		},
-		{
-			name:        "valid swap token1 to token0",
-			tokenIn:     "0xtoken1",
-			tokenOut:    "0xtoken0",
-			amountIn:    big.NewInt(500000000000000000), // 0.5e18
-			expectedOut: big.NewInt(500000000000000000), // 1:1 ratio
-			expectError: false,
-		},
-		{
-			name:          "invalid token in",
-			tokenIn:       "0xinvalid",
-			tokenOut:      "0xtoken1",
-			amountIn:      big.NewInt(1000000000000000000),
-			expectError:   true,
-			expectedError: ErrInvalidToken,
-		},
-		{
-			name:          "invalid token out",
-			tokenIn:       "0xtoken0",
-			tokenOut:      "0xinvalid",
-			amountIn:      big.NewInt(1000000000000000000),
-			expectError:   true,
-			expectedError: ErrInvalidToken,
-		},
-		{
-			name:          "zero amount in",
-			tokenIn:       "0xtoken0",
-			tokenOut:      "0xtoken1",
-			amountIn:      big.NewInt(0),
-			expectError:   true,
-			expectedError: ErrInvalidAmountIn,
-		},
-		{
-			name:          "nil amount in",
-			tokenIn:       "0xtoken0",
-			tokenOut:      "0xtoken1",
-			amountIn:      nil,
-			expectError:   true,
-			expectedError: ErrInvalidAmountIn,
-		},
+		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "2000", poolSim: getPoolSim("1000000", "2000000")},
+		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "1000", poolSim: getPoolSim("1000000", "2000000")},
+		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "0", poolSim: getPoolSim("1000000", "null")},
+		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "0", poolSim: getPoolSim("1000000", "null")},
+		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "0", poolSim: getPoolSim("null", "2000000")},
+		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "0", poolSim: getPoolSim("null", "1000000")},
 	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  tc.tokenIn,
-					Amount: tc.amountIn,
-				},
-				TokenOut: tc.tokenOut,
-			})
-
-			if tc.expectError {
-				require.Error(t, err)
-				if tc.expectedError != nil {
-					assert.ErrorIs(t, err, tc.expectedError)
-				}
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, result)
-				assert.Equal(t, tc.expectedOut.String(), result.TokenAmountOut.Amount.String())
-			}
+	for _, tc := range testCases {
+		testutil.TestCalcAmountOut(t, tc.poolSim, map[int]map[int]map[string]string{
+			tc.indexIn: {tc.indexOut: {tc.amountIn: tc.amountOut}},
 		})
 	}
-}
-
-func TestPoolSimulator_CalcAmountOut_Paused(t *testing.T) {
-	t.Parallel()
-
-	staticExtra := StaticExtra{
-		VaultAddress: "0xvault",
-		SwapAddress:  "0xswap",
-		Tokens:       []string{"0xtoken0", "0xtoken1"},
-	}
-	staticExtraBytes, _ := json.Marshal(staticExtra)
-
-	extra := Extra{
-		Reserves: map[string]*uint256.Int{},
-		Paused:   true,
-	}
-	extraBytes, _ := json.Marshal(extra)
-
-	entityPool := entity.Pool{
-		Address:  "0xvault_0xtoken0_0xtoken1",
-		Exchange: "clear",
-		Type:     DexType,
-		Reserves: entity.PoolReserves{"0", "0"},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xtoken0", Decimals: 18, Swappable: true},
-			{Address: "0xtoken1", Decimals: 18, Swappable: true},
-		},
-		StaticExtra: string(staticExtraBytes),
-		Extra:       string(extraBytes),
-	}
-
-	sim, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-
-	result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xtoken0",
-			Amount: big.NewInt(1000000000000000000),
-		},
-		TokenOut: "0xtoken1",
-	})
-
-	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrInsufficientOutput)
-	assert.Nil(t, result)
-}
-
-func TestPoolSimulator_CloneState(t *testing.T) {
-	t.Parallel()
-
-	staticExtra := StaticExtra{
-		VaultAddress: "0xvault",
-		SwapAddress:  "0xswap",
-		Tokens:       []string{"0xtoken0", "0xtoken1"},
-	}
-	staticExtraBytes, _ := json.Marshal(staticExtra)
-
-	extra := Extra{
-		Reserves: map[string]*uint256.Int{
-			"0xtoken0": uint256.NewInt(1000000000000000000),
-			"0xtoken1": uint256.NewInt(1000000000000000000),
-		},
-		Paused: false,
-	}
-	extraBytes, _ := json.Marshal(extra)
-
-	entityPool := entity.Pool{
-		Address:  "0xvault_0xtoken0_0xtoken1",
-		Exchange: "clear",
-		Type:     DexType,
-		Reserves: entity.PoolReserves{"1000000000000000000000000", "1000000000000000000000000"},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xtoken0", Decimals: 18, Swappable: true},
-			{Address: "0xtoken1", Decimals: 18, Swappable: true},
-		},
-		StaticExtra: string(staticExtraBytes),
-		Extra:       string(extraBytes),
-	}
-
-	sim, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-
-	cloned := sim.CloneState()
-	require.NotNil(t, cloned)
-
-	clonedSim, ok := cloned.(*PoolSimulator)
-	require.True(t, ok)
-
-	// Verify it's a different instance
-	assert.NotSame(t, sim, clonedSim)
-	assert.NotSame(t, sim.RWMutex, clonedSim.RWMutex)
-
-	// Verify reserves are cloned
-	assert.Equal(t, len(sim.extra.Reserves), len(clonedSim.extra.Reserves))
-}
-
-func TestPoolSimulator_UpdateBalance(t *testing.T) {
-	t.Parallel()
-
-	staticExtra := StaticExtra{
-		VaultAddress: "0xvault",
-		SwapAddress:  "0xswap",
-		Tokens:       []string{"0xtoken0", "0xtoken1"},
-	}
-	staticExtraBytes, _ := json.Marshal(staticExtra)
-
-	entityPool := entity.Pool{
-		Address:  "0xvault_0xtoken0_0xtoken1",
-		Exchange: "clear",
-		Type:     DexType,
-		Reserves: entity.PoolReserves{"1000000000000000000", "1000000000000000000"},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xtoken0", Decimals: 18, Swappable: true},
-			{Address: "0xtoken1", Decimals: 18, Swappable: true},
-		},
-		StaticExtra: string(staticExtraBytes),
-		Extra:       `{"reserves":{},"paused":false}`,
-	}
-
-	sim, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-
-	initialReserve0 := new(big.Int).Set(sim.Info.Reserves[0])
-	initialReserve1 := new(big.Int).Set(sim.Info.Reserves[1])
-
-	amountIn := big.NewInt(100000000000000000)  // 0.1e18
-	amountOut := big.NewInt(100000000000000000) // 0.1e18
-
-	sim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xtoken0",
-			Amount: amountIn,
-		},
-		TokenAmountOut: pool.TokenAmount{
-			Token:  "0xtoken1",
-			Amount: amountOut,
-		},
-	})
-
-	// Reserve0 should increase by amountIn
-	expectedReserve0 := new(big.Int).Add(initialReserve0, amountIn)
-	assert.Equal(t, expectedReserve0.String(), sim.Info.Reserves[0].String())
-
-	// Reserve1 should decrease by amountOut
-	expectedReserve1 := new(big.Int).Sub(initialReserve1, amountOut)
-	assert.Equal(t, expectedReserve1.String(), sim.Info.Reserves[1].String())
-}
-
-func TestPoolSimulator_GetMetaInfo(t *testing.T) {
-	t.Parallel()
-
-	staticExtra := StaticExtra{
-		VaultAddress: "0xvault",
-		SwapAddress:  "0xswap",
-		Tokens:       []string{"0xtoken0", "0xtoken1"},
-	}
-	staticExtraBytes, _ := json.Marshal(staticExtra)
-
-	entityPool := entity.Pool{
-		Address:  "0xvault_0xtoken0_0xtoken1",
-		Exchange: "clear",
-		Type:     DexType,
-		Reserves: entity.PoolReserves{"1000000000000000000", "1000000000000000000"},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xtoken0", Decimals: 18, Swappable: true},
-			{Address: "0xtoken1", Decimals: 18, Swappable: true},
-		},
-		StaticExtra: string(staticExtraBytes),
-		Extra:       `{"reserves":{},"paused":false}`,
-	}
-
-	sim, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-
-	meta := sim.GetMetaInfo("0xtoken0", "0xtoken1")
-	require.NotNil(t, meta)
-
-	poolMeta, ok := meta.(PoolMeta)
-	require.True(t, ok)
-	assert.Equal(t, "0xvault", poolMeta.VaultAddress)
-	assert.Equal(t, "0xswap", poolMeta.SwapAddress)
 }

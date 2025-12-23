@@ -1,17 +1,13 @@
 package clear
 
 import (
-	"net/http"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Config struct {
-	DexID           string              `json:"dexID"`
-	ChainID         valueobject.ChainID `json:"chainId"`
-	SubgraphAPI     string              `json:"subgraphAPI"`
-	SubgraphHeaders http.Header         `json:"subgraphHeaders"`
-	NewPoolLimit    int                 `json:"newPoolLimit"`
-	SwapAddress     string              `json:"swapAddress"`
-	FactoryAddress  string              `json:"factoryAddress"`
+	DexID            string              `json:"dexID"`
+	ChainID          valueobject.ChainID `json:"chainId"`
+	NewPoolLimit     int                 `json:"newPoolLimit"`
+	SwapAddress      string              `json:"swapAddress"`
+	FactoryAddresses []string            `json:"factoryAddresses"`
 }

@@ -2,13 +2,15 @@ package clear
 
 import (
 	"math/big"
-
-	"github.com/holiman/uint256"
 )
 
 // Metadata for pagination in pool discovery
+//
+//	type Metadata struct {
+//		LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
+//	}
 type Metadata struct {
-	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
+	Offset map[string]int `json:"offset"`
 }
 
 // GraphQL response types
@@ -32,15 +34,12 @@ type (
 
 // StaticExtra contains immutable pool data
 type StaticExtra struct {
-	VaultAddress string   `json:"vaultAddress"`
-	SwapAddress  string   `json:"swapAddress"`
-	Tokens       []string `json:"tokens"` // All token addresses in the vault
+	SwapAddress string `json:"swapAddress"`
 }
 
 // Extra contains mutable pool state
 type Extra struct {
-	Reserves map[string]*uint256.Int `json:"reserves"` // token address -> reserve
-	Paused   bool                    `json:"paused"`
+	Reserves map[int]map[int]*PreviewSwapResult `json:"reserves"` // token address -> reserve
 }
 
 // PoolMeta contains metadata for swap execution
@@ -51,8 +50,9 @@ type PoolMeta struct {
 
 // PreviewSwapResult from ClearSwap.previewSwap()
 type PreviewSwapResult struct {
+	AmountIn  *big.Int
 	AmountOut *big.Int
-	IOUs      *big.Int
+	IOUs      *big.Int `json:"-"`
 }
 
 // Gas costs for different operations

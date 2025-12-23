@@ -3,7 +3,6 @@ package clear
 import (
 	"context"
 	"math/big"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -13,11 +12,11 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -69,8 +68,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		RWMutex:     &sync.RWMutex{},
 		Pool:        pool.Pool{Info: info},
-		staticExtra: staticExtra,
 		extra:       extra,
+		staticExtra: staticExtra,
 		gas:         DefaultGas,
 	}, nil
 }
@@ -96,22 +95,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidAmountIn
 	}
 
-	// Check if pool is paused
-	if p.extra.Paused {
-		return nil, ErrInsufficientOutput
-	}
-
 	// For Clear, we need to call previewSwap on-chain to get the exact output
 	// Since we can't make RPC calls during simulation, we use the cached rate
 	// The actual rate will be verified during execution
 
 	// Estimate output based on cached reserves ratio
 	// This is an approximation - actual output comes from previewSwap
-	amountOut := p.estimateAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
-
-	if amountOut == nil || amountOut.Sign() <= 0 {
-		return nil, ErrInsufficientOutput
-	}
+	amountOut := p.estimateAmountOut(tokenInIndex, tokenOutIndex, tokenAmountIn.Amount)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -132,34 +122,29 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 // estimateAmountOut estimates the output amount based on cached data
 // For Clear protocol, this is an approximation since actual pricing requires RPC
-func (p *PoolSimulator) estimateAmountOut(tokenIn, tokenOut string, amountIn *big.Int) *big.Int {
-	tokenIn = strings.ToLower(tokenIn)
-	tokenOut = strings.ToLower(tokenOut)
-
-	// Check if we have cached reserves
-	if p.extra.Reserves == nil {
-		// Fall back to 1:1 ratio for stablecoins (Clear's primary use case)
-		return new(big.Int).Set(amountIn)
+func (p *PoolSimulator) estimateAmountOut(tokenInIndex, tokenOutIndex int, amountIn *big.Int) *big.Int {
+	index0, index1 := tokenInIndex, tokenOutIndex
+	if tokenInIndex > tokenOutIndex {
+		index0, index1 = tokenOutIndex, tokenInIndex
+	}
+	if p.extra.Reserves == nil || !lo.HasKey(p.extra.Reserves, index0) || !lo.HasKey(p.extra.Reserves[index0], index1) {
+		return big.NewInt(0)
+	}
+	reserves := p.extra.Reserves[index0][index1]
+	var reserveIn, reserveOut *big.Int
+	if tokenInIndex < tokenOutIndex {
+		reserveIn, reserveOut = reserves.AmountIn, reserves.AmountOut
+	} else {
+		reserveIn, reserveOut = reserves.AmountOut, reserves.AmountIn
 	}
 
-	reserveIn, hasIn := p.extra.Reserves[tokenIn]
-	reserveOut, hasOut := p.extra.Reserves[tokenOut]
-
-	if !hasIn || !hasOut || reserveIn == nil || reserveOut == nil {
-		// Fall back to 1:1 ratio
-		return new(big.Int).Set(amountIn)
-	}
-
-	if reserveIn.IsZero() {
+	if reserveIn == nil || reserveOut == nil || reserveIn.Sign() == 0 || reserveOut.Sign() == 0 {
 		return big.NewInt(0)
 	}
 
 	// Simple ratio calculation: amountOut = amountIn * reserveOut / reserveIn
-	amountInU256 := new(uint256.Int).SetBytes(amountIn.Bytes())
-	result := new(uint256.Int).Mul(amountInU256, reserveOut)
-	result = result.Div(result, reserveIn)
 
-	return result.ToBig()
+	return bignumber.MulDivDown(new(big.Int), amountIn, reserveOut, reserveIn)
 }
 
 // CalcAmountOutWithRPC calculates output using actual RPC call to previewSwap
@@ -186,7 +171,7 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 		Target: p.staticExtra.SwapAddress,
 		Method: methodPreviewSwap,
 		Params: []any{
-			common.HexToAddress(p.staticExtra.VaultAddress),
+			common.HexToAddress(p.Info.Address),
 			common.HexToAddress(tokenIn),
 			common.HexToAddress(tokenOut),
 			amountIn,
@@ -205,42 +190,15 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	cloned := *p
-	cloned.RWMutex = &sync.RWMutex{}
-	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
-
-	// Deep copy extra reserves map
-	if p.extra.Reserves != nil {
-		cloned.extra.Reserves = make(map[string]*uint256.Int)
-		for k, v := range p.extra.Reserves {
-			if v != nil {
-				cloned.extra.Reserves[k] = new(uint256.Int).Set(v)
-			}
-		}
-	}
-
-	return &cloned
+	return p
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output := params.TokenAmountIn, params.TokenAmountOut
-
-	tokenInIndex := p.GetTokenIndex(input.Token)
-	tokenOutIndex := p.GetTokenIndex(output.Token)
-
-	if tokenInIndex >= 0 && tokenInIndex < len(p.Info.Reserves) {
-		p.Info.Reserves[tokenInIndex] = new(big.Int).Add(p.Info.Reserves[tokenInIndex], input.Amount)
-	}
-
-	if tokenOutIndex >= 0 && tokenOutIndex < len(p.Info.Reserves) {
-		p.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(p.Info.Reserves[tokenOutIndex], output.Amount)
-	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
-		VaultAddress: p.staticExtra.VaultAddress,
-		SwapAddress:  p.staticExtra.SwapAddress,
+		SwapAddress: p.staticExtra.SwapAddress,
 	}
 }
 
