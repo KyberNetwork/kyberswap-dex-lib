@@ -101,6 +101,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			swapFees             = make([]SwapFees, n)
 			curveAddresses       = make([]common.Address, n)
 			assetAddresses       = make([]common.Address, n)
+			betaCParams          = make([]Params, n)
 		)
 
 		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
@@ -136,27 +137,17 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			return p, err
 		}
 
-		var (
-			curveBetas = make([]*big.Int, n)
-			curveCs    = make([]*big.Int, n)
-		)
+		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 		for i := 0; i < n; i++ {
-			betaResp, err := t.ethrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
-				curveAddresses[i], slot0, curveStorageABI,
-			)
-			if err != nil || len(betaResp) == 0 {
-				return p, err
-			}
-
-			cResp, err := t.ethrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
-				curveAddresses[i], slot1, curveStorageABI,
-			)
-			if err != nil || len(cResp) == 0 {
-				return p, err
-			}
-
-			curveBetas[i] = betaResp[0].(*big.Int)
-			curveCs[i] = cResp[0].(*big.Int)
+			req.AddCall(&ethrpc.Call{
+				ABI:    curveABI,
+				Target: curveAddresses[i].String(),
+				Method: "params",
+			}, []any{&betaCParams[i]})
+		}
+		resp, err = req.Aggregate()
+		if err != nil {
+			return p, err
 		}
 
 		p.Tokens = lo.Map(assets, func(asset common.Address, _ int) *entity.PoolToken {
@@ -182,8 +173,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 			newExtra.Pools[poolByAsset] = NablaPool{
 				Meta: NablaPoolMeta{
-					CurveBeta:   int256.MustFromBig(curveBetas[i]),
-					CurveC:      int256.MustFromBig(curveCs[i]),
+					CurveBeta:   int256.MustFromBig(betaCParams[i].Beta),
+					CurveC:      int256.MustFromBig(betaCParams[i].C),
 					BackstopFee: int256.MustFromBig(swapFees[i].BackstopFee),
 					ProtocolFee: int256.MustFromBig(swapFees[i].ProtocolFee),
 					LpFee:       int256.MustFromBig(swapFees[i].LpFee),

@@ -33,6 +33,11 @@ type SwapFees struct {
 	ProtocolFee *big.Int
 }
 
+type Params struct {
+	Beta *big.Int
+	C    *big.Int
+}
+
 type Extra struct {
 	Pools        map[common.Address]NablaPool `json:"pools"`
 	PoolByAssets []common.Address             `json:"poolByAssets"`

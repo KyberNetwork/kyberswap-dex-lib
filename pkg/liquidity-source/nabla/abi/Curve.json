@@ -98,7 +98,7 @@
     },
     {
         "type": "function",
-        "name": "beta",
+        "name": "params",
         "inputs": [
         ],
         "outputs": [
@@ -106,15 +106,7 @@
                 "name": "beta",
                 "type": "int256",
                 "internalType": "int256"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "c",
-        "inputs": [],
-        "outputs": [
+            },
             {
                 "name": "c",
                 "type": "int256",
