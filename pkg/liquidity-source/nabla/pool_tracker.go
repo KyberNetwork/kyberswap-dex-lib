@@ -42,17 +42,13 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	logger.Infof("getting new pool state for %v", p.Address)
 	defer logger.Infof("finished getting pool state for %v", p.Address)
 
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, err
-	}
-
 	var extra Extra
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		return p, err
 	}
 
 	router := p.Address
+	pythAdapterV2 := t.config.PythAdapterV2
 
 	var assets []common.Address
 	if _, err := t.ethrpcClient.R().
@@ -78,6 +74,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		logger.Infof("starting refresh of pool %v due to asset changes", p.Address)
 
 		poolByAssets := make([]common.Address, len(assets))
+		priceFeedIs := make([][32]byte, len(assets))
+
 		req := t.ethrpcClient.R().SetContext(ctx)
 		for i, asset := range assets {
 			req.AddCall(&ethrpc.Call{
@@ -85,11 +83,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				Target: router,
 				Method: "poolByAsset",
 				Params: []any{asset},
-			}, []any{&poolByAssets[i]})
+			}, []any{&poolByAssets[i]}).AddCall(&ethrpc.Call{
+				ABI:    pythAdapterV2ABI,
+				Target: pythAdapterV2,
+				Method: "getPriceFeedIdByAsset",
+				Params: []any{asset},
+			}, []any{&priceFeedIs[i]})
 		}
 		resp, err := req.Aggregate()
 		if err != nil {
-			logger.Errorf("failed to aggregate pool by asset")
+			logger.Errorf("failed to aggregate pool by asset and price feed id")
 			return p, err
 		}
 
@@ -162,6 +165,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		})
 
 		var newExtra = Extra{}
+		newExtra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, _ int) string {
+			return hexutil.Encode(id[:])
+		})
 		newExtra.PoolByAssets = assets
 		newExtra.Pools = make(map[common.Address]NablaPool)
 		for i, poolByAsset := range poolByAssets {

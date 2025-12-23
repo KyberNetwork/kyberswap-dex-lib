@@ -12,14 +12,12 @@ import (
 )
 
 var (
-	portalABI   abi.ABI
-	routerABI   abi.ABI
-	swapPoolABI abi.ABI
-	curveABI    abi.ABI
-	oracleABI   abi.ABI
-
-	int256AbiType, _ = abi.NewType("int256", "", nil)
-	curveStorageABI  abi.Arguments
+	portalABI        abi.ABI
+	routerABI        abi.ABI
+	swapPoolABI      abi.ABI
+	curveABI         abi.ABI
+	oracleABI        abi.ABI
+	pythAdapterV2ABI abi.ABI
 
 	oracleFilterer   = lo.Must(abis.NewNablaOracleFilterer(common.Address{}, nil))
 	swapPoolFilterer = lo.Must(abis.NewNablaSwapPoolFilterer(common.Address{}, nil))
@@ -35,10 +33,7 @@ func init() {
 		{&swapPoolABI, swapPoolBytes},
 		{&curveABI, curveBytes},
 		{&oracleABI, oracleBytes},
-	}
-
-	curveStorageABI = abi.Arguments{
-		{Name: "value", Type: int256AbiType},
+		{&pythAdapterV2ABI, pythAdapterV2Bytes},
 	}
 
 	for _, b := range builder {

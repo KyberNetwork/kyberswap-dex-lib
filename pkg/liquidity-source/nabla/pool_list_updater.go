@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -60,18 +59,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 			return nil, nil, err
 		}
 
-		staticExtraBytes, err := json.Marshal(StaticExtra{Oracle: oracle})
-		if err != nil {
-			return nil, nil, err
-		}
-
 		pools = append(pools, entity.Pool{
-			Address:     hexutil.Encode(router[:]),
-			Exchange:    u.config.DexId,
-			Type:        DexType,
-			Timestamp:   time.Now().Unix(),
-			Extra:       "{}",
-			StaticExtra: string(staticExtraBytes),
+			Address:   hexutil.Encode(router[:]),
+			Exchange:  u.config.DexId,
+			Type:      DexType,
+			Timestamp: time.Now().Unix(),
+			Extra:     "{}",
 		})
 	}
 

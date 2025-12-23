@@ -41,10 +41,7 @@ type Params struct {
 type Extra struct {
 	Pools        map[common.Address]NablaPool `json:"pools"`
 	PoolByAssets []common.Address             `json:"poolByAssets"`
-}
-
-type StaticExtra struct {
-	Oracle common.Address `json:"oracle"`
+	PriceFeedIds []string                     `json:"priceFeedIds"`
 }
 
 type Meta struct {
