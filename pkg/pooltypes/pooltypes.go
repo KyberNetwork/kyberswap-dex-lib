@@ -114,6 +114,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
+	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
@@ -351,6 +352,7 @@ type Types struct {
 	CloberOB                   string
 	FluidDexV2                 string
 	Wildcat                    string
+	ValantisStex               string
 	Infinifi                   string
 }
 
@@ -537,6 +539,7 @@ var (
 		CloberOB:                   cloberob.DexType,
 		FluidDexV2:                 dexv2.DexType,
 		Wildcat:                    wildcat.DexType,
+		ValantisStex:               valantisstex.DexType,
 		Infinifi:                   infinifi.DexType,
 	}
 )
