@@ -73,6 +73,7 @@ import (
 	pkg_liquiditysource_hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	pkg_liquiditysource_honey "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	pkg_liquiditysource_hyeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	pkg_liquiditysource_infinifi_gateway "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	pkg_liquiditysource_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	pkg_liquiditysource_kelp_rseth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	pkg_liquiditysource_kelp_rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
@@ -138,6 +139,7 @@ import (
 	pkg_liquiditysource_uniswap_v4_hooks_renzo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/renzo"
 	pkg_liquiditysource_uniswap_v4_hooks_zora "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/zora"
 	pkg_liquiditysource_usd0pp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
+	pkg_liquiditysource_valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
 	pkg_liquiditysource_velocorev2_cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	pkg_liquiditysource_velocorev2_wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	pkg_liquiditysource_velodromev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
@@ -263,6 +265,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hashflowv3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_honey.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hyeth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_infinifi_gateway.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_integral.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rseth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rsethl2.PoolSimulator{})
@@ -328,6 +331,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_renzo.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_zora.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_usd0pp.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_valantisstex.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_cpmm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_wombatstable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})

@@ -1,0 +1,40 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_amountToken1",
+                "type": "uint256"
+            }
+        ],
+        "name": "convertToToken0",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_amountToken0",
+                "type": "uint256"
+            }
+        ],
+        "name": "convertToToken1",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    }
+]
