@@ -59,10 +59,11 @@ type Extra struct {
 }
 
 type Meta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber     uint64 `json:"bN"`
+	PriceUpdateData []byte `json:"p"`
 }
 
 type SwapInfo struct {
-	FrPoolNewState NablaPoolState
-	ToPoolNewState NablaPoolState
+	frPoolNewState NablaPoolState
+	toPoolNewState NablaPoolState
 }

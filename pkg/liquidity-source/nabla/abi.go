@@ -12,8 +12,8 @@ import (
 )
 
 var (
+	RouterABI        abi.ABI
 	portalABI        abi.ABI
-	routerABI        abi.ABI
 	swapPoolABI      abi.ABI
 	curveABI         abi.ABI
 	oracleABI        abi.ABI
@@ -28,8 +28,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
+		{&RouterABI, routerBytes},
 		{&portalABI, portalBytes},
-		{&routerABI, routerBytes},
 		{&swapPoolABI, swapPoolBytes},
 		{&curveABI, curveBytes},
 		{&oracleABI, oracleBytes},

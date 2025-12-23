@@ -93,7 +93,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		req := t.ethrpcClient.R().SetContext(ctx)
 		for i, asset := range assets {
 			req.AddCall(&ethrpc.Call{
-				ABI:    routerABI,
+				ABI:    RouterABI,
 				Target: router,
 				Method: "poolByAsset",
 				Params: []any{asset},

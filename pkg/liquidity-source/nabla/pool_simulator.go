@@ -76,8 +76,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: bignumber.ZeroBI,
 		},
 		SwapInfo: SwapInfo{
-			FrPoolNewState: swapInfo.FrPoolNewState,
-			ToPoolNewState: swapInfo.ToPoolNewState,
+			frPoolNewState: swapInfo.frPoolNewState,
+			toPoolNewState: swapInfo.toPoolNewState,
 		},
 	}, nil
 }
@@ -161,13 +161,13 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	newInputReserveWithSlippage := curveIn.Psi(newInputReserve, fr.State.TotalLiabilities, int64(frDecimals))
 
 	return amountOut, &SwapInfo{
-		FrPoolNewState: NablaPoolState{
+		frPoolNewState: NablaPoolState{
 			Reserve:             newInputReserve,
 			ReserveWithSlippage: newInputReserveWithSlippage,
 			TotalLiabilities:    fr.State.TotalLiabilities,
 			Price:               fr.State.Price,
 		},
-		ToPoolNewState: NablaPoolState{
+		toPoolNewState: NablaPoolState{
 			Reserve:             actualReducedReserveOut,
 			ReserveWithSlippage: reserveWithSlippageAfterAmountOut,
 			TotalLiabilities:    actualTotalLiabilitiesOut,
@@ -193,20 +193,21 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	poolByTokenOut := s.PoolByAssets[idxOut]
 
 	poolIn := s.Pools[poolByTokenIn]
-	poolIn.State = swapInfo.FrPoolNewState
+	poolIn.State = swapInfo.frPoolNewState
 	s.Pools[poolByTokenIn] = poolIn
 
 	poolOut := s.Pools[poolByTokenOut]
-	poolOut.State = swapInfo.ToPoolNewState
+	poolOut.State = swapInfo.toPoolNewState
 	s.Pools[poolByTokenOut] = poolOut
 
-	s.Info.Reserves[idxIn] = swapInfo.FrPoolNewState.Reserve.ToBig()
-	s.Info.Reserves[idxOut] = swapInfo.ToPoolNewState.Reserve.ToBig()
+	s.Info.Reserves[idxIn] = swapInfo.frPoolNewState.Reserve.ToBig()
+	s.Info.Reserves[idxOut] = swapInfo.toPoolNewState.Reserve.ToBig()
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
-		BlockNumber: s.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
+		PriceUpdateData: s.PriceFeedData,
 	}
 }
 
