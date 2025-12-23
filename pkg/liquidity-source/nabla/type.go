@@ -38,10 +38,24 @@ type Params struct {
 	C    *big.Int
 }
 
+type PriceUpdateData struct {
+	Binary struct {
+		Data []string `json:"data"`
+	} `json:"binary"`
+	Parsed []struct {
+		Id    string `json:"id"`
+		Price struct {
+			Price string `json:"price"`
+			Expo  int    `json:"expo"`
+		} `json:"price"`
+	} `json:"parsed"`
+}
+
 type Extra struct {
-	Pools        map[common.Address]NablaPool `json:"pools"`
-	PoolByAssets []common.Address             `json:"poolByAssets"`
-	PriceFeedIds []string                     `json:"priceFeedIds"`
+	Pools         map[common.Address]NablaPool `json:"pools"`
+	PoolByAssets  []common.Address             `json:"poolByAssets"`
+	PriceFeedIds  []string                     `json:"priceFeedIds"`
+	PriceFeedData []byte                       `json:"priceFeedData"`
 }
 
 type Meta struct {

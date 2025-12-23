@@ -21,7 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
@@ -38,7 +38,7 @@ func NewPoolTracker(
 ) (*PoolTracker, error) {
 	pythCfg := config.Pyth
 	if len(pythCfg.Urls) == 0 {
-		pythCfg.Urls = []string{pythDefaultUrl}
+		pythCfg.Urls = []string{PythDefaultUrl}
 	}
 	if pythCfg.Timeout == 0 {
 		pythCfg.Timeout = 10 * time.Second

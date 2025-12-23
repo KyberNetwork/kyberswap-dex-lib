@@ -2,6 +2,7 @@ package nabla
 
 import (
 	"context"
+	"encoding/hex"
 	"math/big"
 	"slices"
 	"time"
@@ -13,10 +14,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	brownfiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -27,12 +30,23 @@ var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	pythClient   *resty.Client
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	pythCfg := config.Pyth
+	if len(pythCfg.BaseUrl) == 0 {
+		pythCfg.URL = brownfiv2.PythDefaultUrl
+	}
+	if pythCfg.Timeout == 0 {
+		pythCfg.Timeout = 10 * time.Second
+	}
+	pythCfg.BaseUrl = pythCfg.URL
+
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
+		pythClient:   pythCfg.NewRestyClient(),
 	}
 }
 
@@ -168,7 +182,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		newExtra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, _ int) string {
 			return hexutil.Encode(id[:])
 		})
-		newExtra.PoolByAssets = assets
+		newExtra.PoolByAssets = poolByAssets
 		newExtra.Pools = make(map[common.Address]NablaPool)
 		for i, poolByAsset := range poolByAssets {
 			var price *int256.Int
@@ -193,11 +207,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				},
 			}
 		}
-		newExtraBytes, err := json.Marshal(newExtra)
-		if err != nil {
-			return p, err
-		}
-		p.Extra = string(newExtraBytes)
+		extra = newExtra
 
 		p.Timestamp = time.Now().Unix()
 
@@ -207,16 +217,48 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	} else if len(params.Logs) > 0 {
 		t.handleEvents(extra.Pools, params.Logs, p.BlockNumber)
 
-		newExtraBytes, err := json.Marshal(extra)
-		if err != nil {
-			return p, err
-		}
-		p.Extra = string(newExtraBytes)
-
 		p.BlockNumber = eth.GetLatestBlockNumberFromLogs(params.Logs)
 
 		p.Timestamp = time.Now().Unix()
 	}
+
+	queryString := lo.Reduce(extra.PriceFeedIds, func(acc string, feedId string, _ int) string {
+		if acc != "" {
+			acc += "&"
+		}
+		return acc + "ids[]=" + feedId
+	}, "")
+	var priceUpdateData PriceUpdateData
+	if resp, err := t.pythClient.R().SetContext(ctx).
+		SetQueryString(queryString).
+		SetResult(&priceUpdateData).
+		Get(""); err != nil || !resp.IsSuccess() {
+		logger.WithFields(logger.Fields{"pool_id": p.Address, "err": err, "resp": resp}).
+			Errorf("failed to fetch price feed data from antenna")
+		return p, err
+	}
+	extra.PriceFeedData, _ = hex.DecodeString(priceUpdateData.Binary.Data[0])
+
+	priceFeedIdxMap := lo.SliceToMap(extra.PriceFeedIds, func(feedId string) (string, int) {
+		return feedId, lo.IndexOf(extra.PriceFeedIds, feedId)
+	})
+
+	for _, parsed := range priceUpdateData.Parsed {
+		parsedId := "0x" + parsed.Id
+		if idx, ok := priceFeedIdxMap[parsedId]; ok && idx < len(extra.PoolByAssets) {
+			poolAddr := extra.PoolByAssets[idx]
+			if swapPool, exists := extra.Pools[poolAddr]; exists {
+				swapPool.State.Price = int256.MustFromDec(parsed.Price.Price)
+				extra.Pools[poolAddr] = swapPool
+			}
+		}
+	}
+
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return p, err
+	}
+	p.Extra = string(extraBytes)
 
 	return p, nil
 }

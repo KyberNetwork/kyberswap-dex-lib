@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,12 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 		Portal:        "0x1F917Fe724F186a1fFA7744A73afed18C335b9eC",
 		Oracle:        "0x6d6190Da8fD73E0C911929DED2D6B47cE066e441",
 		PythAdapterV2: "0x9B5a425a9F4b4411D42B21caacf86d026dce43Ec",
+		Pyth: struct {
+			kutils.HttpCfg
+			URL string `json:"url"`
+		}{
+			URL: "https://antenna.nabla.fi/v1/updates/price/latest",
+		},
 	}
 
 	ts.lister = NewPoolsListUpdater(&config, rpcClient)

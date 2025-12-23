@@ -24,7 +24,7 @@ const (
 	pairMethodKappa       = "k"
 	pairMethodLambda      = "lambda"
 
-	pythDefaultUrl = "https://hermes.pyth.network/v2/updates/price/latest"
+	PythDefaultUrl = "https://hermes.pyth.network/v2/updates/price/latest"
 
 	parsedDecimals = 18
 
