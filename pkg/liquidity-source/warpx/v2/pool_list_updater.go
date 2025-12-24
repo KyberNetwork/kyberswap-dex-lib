@@ -270,14 +270,13 @@ func (u *PoolsListUpdater) newExtra(fee uint64, feePrecision uint64) ([]byte, er
 
 // getBatchSize
 func (u *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
-	if offset == length {
+	if offset >= length {
 		return 0
 	}
 
-	if remaining := length - offset; remaining > 0 {
+	if remaining := length - offset; remaining < limit {
 		return remaining
 	}
-	return 0
 
 	return limit
 }

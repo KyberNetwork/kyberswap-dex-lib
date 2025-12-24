@@ -147,14 +147,13 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {
-	var numerator, denominator uint256.Int
 	// amountInWithFee = amountIn * (feePrecision - fee)
-	amountInWithFee := numerator.Mul(amountIn, numerator.Sub(s.feePrecision, s.fee))
-	// denominator = reserveIn * feePrecision + amountInWithFee
-	denominator.Add(denominator.Mul(reserveIn, s.feePrecision), amountInWithFee)
+	amountInWithFee := new(uint256.Int).Mul(amountIn, new(uint256.Int).Sub(s.feePrecision, s.fee))
 	// numerator = amountInWithFee * reserveOut
-	numerator.Mul(amountInWithFee, reserveOut)
-	return numerator.Div(&numerator, &denominator)
+	numerator := new(uint256.Int).Mul(amountInWithFee, reserveOut)
+	// denominator = reserveIn * feePrecision + amountInWithFee
+	denominator := new(uint256.Int).Add(new(uint256.Int).Mul(reserveIn, s.feePrecision), amountInWithFee)
+	return new(uint256.Int).Div(numerator, denominator)
 }
 
 func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.Int) (amountIn *uint256.Int, err error) {
