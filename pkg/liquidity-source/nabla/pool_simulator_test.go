@@ -177,7 +177,7 @@ func Test_sell(t *testing.T) {
 
 			got, _, err := sell(fr, to, tt.amountIn, 18, 18)
 			require.NoError(t, err)
-			require.Equal(t, tt.want.ToBig().String(), got.ToBig().String())
+			require.Equal(t, tt.want.Dec(), got.Dec())
 		})
 	}
 }

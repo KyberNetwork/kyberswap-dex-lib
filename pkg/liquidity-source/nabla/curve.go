@@ -59,7 +59,11 @@ func sqrt(_a *int256.Int) *int256.Int {
 	}
 
 	quotient := new(int256.Int).Quo(a, result)
-	return i256.Min(result, quotient)
+	if quotient.Lt(result) {
+		result = quotient
+	}
+
+	return result
 }
 
 func (c *Curve) convertToInternalDecimals(value *int256.Int, dec int64) *int256.Int {
@@ -97,7 +101,7 @@ func (c *Curve) solveQuadratic(a, b, cVal *int256.Int) *int256.Int {
 	discriminant := new(int256.Int).Sub(bSquared, fourAC)
 
 	if discriminant.Sign() < 0 {
-		discriminant = i256.Zero
+		discriminant = i256.Zero.Clone()
 	}
 
 	sqrtDiscriminant := sqrt(discriminant)
@@ -107,7 +111,7 @@ func (c *Curve) solveQuadratic(a, b, cVal *int256.Int) *int256.Int {
 	almostSolution := div(numerator, twoA)
 
 	if almostSolution.Sign() < 0 {
-		return i256.Zero
+		return i256.Zero.Clone()
 	}
 
 	return almostSolution

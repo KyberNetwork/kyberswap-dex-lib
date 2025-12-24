@@ -23,8 +23,10 @@ type NablaPoolState struct {
 }
 
 type NablaPool struct {
-	Meta  NablaPoolMeta  `json:"meta"`
-	State NablaPoolState `json:"state"`
+	Address common.Address `json:"address"`
+	Curve   common.Address `json:"curve"`
+	Meta    NablaPoolMeta  `json:"meta"`
+	State   NablaPoolState `json:"state"`
 }
 
 type SwapFees struct {
@@ -45,22 +47,23 @@ type PriceUpdateData struct {
 	Parsed []struct {
 		Id    string `json:"id"`
 		Price struct {
-			Price string `json:"price"`
-			Expo  int    `json:"expo"`
+			Price int64 `json:"price"`
+			Expo  int64 `json:"expo"`
 		} `json:"price"`
 	} `json:"parsed"`
 }
 
 type Extra struct {
-	Pools         map[common.Address]NablaPool `json:"pools"`
-	PoolByAssets  []common.Address             `json:"poolByAssets"`
-	PriceFeedIds  []string                     `json:"priceFeedIds"`
-	PriceFeedData []byte                       `json:"priceFeedData"`
+	Pools         []NablaPool `json:"pools"`
+	PriceFeedIds  []string    `json:"priceFeedIds"`
+	PriceFeedData []byte      `json:"priceFeedData,omitempty"`
+
+	DependenciesStored bool `json:"ds,omitempty"`
 }
 
 type Meta struct {
 	BlockNumber     uint64 `json:"bN"`
-	PriceUpdateData []byte `json:"p"`
+	PriceUpdateData []byte `json:"p,omitempty"`
 }
 
 type SwapInfo struct {

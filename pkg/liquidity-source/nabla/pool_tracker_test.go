@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -36,6 +37,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 		}{
 			URL: "https://antenna.nabla.fi/v1/updates/price/latest",
 		},
+		SkipPriceUpdate: false,
 	}
 
 	ts.lister = NewPoolsListUpdater(&config, rpcClient)
@@ -53,12 +55,14 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 		poolBytes, err := json.Marshal(newPoolState)
 		require.NoError(ts.T(), err)
-
 		ts.T().Log(string(poolBytes))
 	}
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {
 	t.Parallel()
+
+	test.SkipCI(t)
+
 	suite.Run(t, new(PoolListTrackerTestSuite))
 }

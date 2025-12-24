@@ -13,4 +13,5 @@ type Config struct {
 		kutils.HttpCfg
 		URL string `json:"url"`
 	} `json:"pyth"`
+	SkipPriceUpdate bool `json:"skipPriceUpdate"`
 }

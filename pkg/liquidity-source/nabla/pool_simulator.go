@@ -52,17 +52,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	poolByTokenIn := s.PoolByAssets[idxIn]
-	poolByTokenOut := s.PoolByAssets[idxOut]
-
 	amountIn := int256.MustFromBig(params.TokenAmountIn.Amount)
-	amountOut, swapInfo, err := sell(s.Pools[poolByTokenIn], s.Pools[poolByTokenOut], amountIn,
+	amountOut, swapInfo, err := sell(s.Pools[idxIn], s.Pools[idxOut], amountIn,
 		s.decimals[idxIn], s.decimals[idxOut])
 	if err != nil {
 		return nil, err
 	}
 
-	if amountOut.Gt(int256.MustFromBig(s.Info.Reserves[idxOut])) {
+	if amountOut.Gt(s.Pools[idxOut].State.Reserve) {
 		return nil, ErrInsufficientReserves
 	}
 
@@ -83,6 +80,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) (*int256.Int, *SwapInfo, error) {
+	if fr.State.Price == nil || to.State.Price == nil {
+		return nil, nil, ErrStalePrice
+	}
+
 	lpFee := to.Meta.LpFee
 	protocolFee := to.Meta.ProtocolFee
 	backstopFee := to.Meta.BackstopFee
@@ -189,19 +190,13 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	poolByTokenIn := s.PoolByAssets[idxIn]
-	poolByTokenOut := s.PoolByAssets[idxOut]
-
-	poolIn := s.Pools[poolByTokenIn]
+	poolIn := s.Pools[idxIn]
 	poolIn.State = swapInfo.frPoolNewState
-	s.Pools[poolByTokenIn] = poolIn
+	s.Pools[idxIn] = poolIn
 
-	poolOut := s.Pools[poolByTokenOut]
+	poolOut := s.Pools[idxOut]
 	poolOut.State = swapInfo.toPoolNewState
-	s.Pools[poolByTokenOut] = poolOut
-
-	s.Info.Reserves[idxIn] = swapInfo.frPoolNewState.Reserve.ToBig()
-	s.Info.Reserves[idxOut] = swapInfo.toPoolNewState.Reserve.ToBig()
+	s.Pools[idxOut] = poolOut
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {

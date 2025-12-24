@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"math/big"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -19,7 +19,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	brownfiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -35,8 +34,8 @@ type PoolTracker struct {
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	pythCfg := config.Pyth
-	if len(pythCfg.BaseUrl) == 0 {
-		pythCfg.URL = brownfiv2.PythDefaultUrl
+	if len(pythCfg.URL) == 0 {
+		pythCfg.URL = nablaPriceAPI
 	}
 	if pythCfg.Timeout == 0 {
 		pythCfg.Timeout = 10 * time.Second
@@ -61,9 +60,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return p, err
 	}
 
-	router := p.Address
-	pythAdapterV2 := t.config.PythAdapterV2
-
 	var assets []common.Address
 	if _, err := t.ethrpcClient.R().
 		SetContext(ctx).
@@ -71,7 +67,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			ABI:    portalABI,
 			Target: t.config.Portal,
 			Method: "getRouterAssets",
-			Params: []any{common.HexToAddress(router)},
+			Params: []any{common.HexToAddress(p.Address)},
 		}, []any{&assets}).
 		Call(); err != nil {
 		logger.Errorf("failed to get router assets")
@@ -83,7 +79,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	})
 
 	removedAssets, addedAssets := lo.Difference(currentAssets, assets)
-
 	if len(removedAssets) > 0 || len(addedAssets) > 0 || eth.HasRevertedLog(params.Logs) {
 		logger.Infof("starting refresh of pool %v due to asset changes", p.Address)
 
@@ -94,12 +89,12 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		for i, asset := range assets {
 			req.AddCall(&ethrpc.Call{
 				ABI:    RouterABI,
-				Target: router,
+				Target: p.Address,
 				Method: "poolByAsset",
 				Params: []any{asset},
 			}, []any{&poolByAssets[i]}).AddCall(&ethrpc.Call{
 				ABI:    pythAdapterV2ABI,
-				Target: pythAdapterV2,
+				Target: t.config.PythAdapterV2,
 				Method: "getPriceFeedIdByAsset",
 				Params: []any{asset},
 			}, []any{&priceFeedIs[i]})
@@ -174,24 +169,13 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			}
 		})
 
-		p.Reserves = lo.Map(reserves, func(r *big.Int, _ int) string {
-			return r.String()
-		})
-
-		var newExtra = Extra{}
-		newExtra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, _ int) string {
+		extra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, _ int) string {
 			return hexutil.Encode(id[:])
 		})
-		newExtra.PoolByAssets = poolByAssets
-		newExtra.Pools = make(map[common.Address]NablaPool)
-		for i, poolByAsset := range poolByAssets {
-			var price *int256.Int
-			_, exists := extra.Pools[poolByAsset]
-			if exists {
-				price = extra.Pools[poolByAsset].State.Price
-			}
-
-			newExtra.Pools[poolByAsset] = NablaPool{
+		extra.Pools = lo.Map(poolByAssets, func(poolByAsset common.Address, i int) NablaPool {
+			return NablaPool{
+				Address: poolByAsset,
+				Curve:   curveAddresses[i],
 				Meta: NablaPoolMeta{
 					CurveBeta:   int256.MustFromBig(betaCParams[i].Beta),
 					CurveC:      int256.MustFromBig(betaCParams[i].C),
@@ -203,53 +187,51 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 					Reserve:             int256.MustFromBig(reserves[i]),
 					ReserveWithSlippage: int256.MustFromBig(reservesWithSlippage[i]),
 					TotalLiabilities:    int256.MustFromBig(totalLiabilities[i]),
-					Price:               price, // keep old price
+					Price:               nil,
 				},
 			}
-		}
-		extra = newExtra
+		})
 
-		p.Timestamp = time.Now().Unix()
+		extra.DependenciesStored = false
 
 		p.BlockNumber = resp.BlockNumber.Uint64()
 
 		logger.Infof("finished refreshing pool %v after asset changes", p.Address)
 	} else if len(params.Logs) > 0 {
-		t.handleEvents(extra.Pools, params.Logs, p.BlockNumber)
+		t.handleEvents(&extra, params.Logs, p.BlockNumber)
+
+		extra.DependenciesStored = true
 
 		p.BlockNumber = eth.GetLatestBlockNumberFromLogs(params.Logs)
-
-		p.Timestamp = time.Now().Unix()
 	}
 
-	queryString := lo.Reduce(extra.PriceFeedIds, func(acc string, feedId string, _ int) string {
-		if acc != "" {
-			acc += "&"
+	extra.PriceFeedData = nil
+
+	if !t.config.SkipPriceUpdate {
+		queryString := lo.Reduce(extra.PriceFeedIds, func(acc string, feedId string, _ int) string {
+			if acc != "" {
+				acc += "&"
+			}
+			return acc + "ids[]=" + strings.TrimPrefix(feedId, "0x")
+		}, "")
+
+		var priceUpdateData PriceUpdateData
+		if resp, err := t.pythClient.R().SetContext(ctx).
+			SetQueryString(queryString).
+			SetResult(&priceUpdateData).
+			Get(""); err != nil || !resp.IsSuccess() {
+			logger.WithFields(logger.Fields{
+				"pool_id": p.Address, "err": err, "resp": resp,
+			}).Errorf("failed to fetch price feed data from antenna")
+			return p, err
 		}
-		return acc + "ids[]=" + feedId
-	}, "")
-	var priceUpdateData PriceUpdateData
-	if resp, err := t.pythClient.R().SetContext(ctx).
-		SetQueryString(queryString).
-		SetResult(&priceUpdateData).
-		Get(""); err != nil || !resp.IsSuccess() {
-		logger.WithFields(logger.Fields{"pool_id": p.Address, "err": err, "resp": resp}).
-			Errorf("failed to fetch price feed data from antenna")
-		return p, err
-	}
-	extra.PriceFeedData, _ = hex.DecodeString(priceUpdateData.Binary.Data[0])
+		extra.PriceFeedData, _ = hex.DecodeString(priceUpdateData.Binary.Data[0])
 
-	priceFeedIdxMap := lo.SliceToMap(extra.PriceFeedIds, func(feedId string) (string, int) {
-		return feedId, lo.IndexOf(extra.PriceFeedIds, feedId)
-	})
-
-	for _, parsed := range priceUpdateData.Parsed {
-		parsedId := "0x" + parsed.Id
-		if idx, ok := priceFeedIdxMap[parsedId]; ok && idx < len(extra.PoolByAssets) {
-			poolAddr := extra.PoolByAssets[idx]
-			if swapPool, exists := extra.Pools[poolAddr]; exists {
-				swapPool.State.Price = int256.MustFromDec(parsed.Price.Price)
-				extra.Pools[poolAddr] = swapPool
+		for _, parsed := range priceUpdateData.Parsed {
+			parsedId := "0x" + parsed.Id
+			idx := lo.IndexOf(extra.PriceFeedIds, parsedId)
+			if idx >= 0 {
+				extra.Pools[idx].State.Price = new(int256.Int).SetInt64(parsed.Price.Price)
 			}
 		}
 	}
@@ -260,10 +242,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 	p.Extra = string(extraBytes)
 
+	p.Reserves = lo.Map(extra.Pools, func(np NablaPool, _ int) string { return np.State.Reserve.Dec() })
+
+	p.Timestamp = time.Now().Unix()
+
 	return p, nil
 }
 
-func (d *PoolTracker) handleEvents(pools map[common.Address]NablaPool, events []types.Log, blockNumber uint64) {
+func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber uint64) {
 	slices.SortFunc(events, func(l, r types.Log) int {
 		if l.BlockNumber == r.BlockNumber {
 			return int(l.Index - r.Index)
@@ -280,21 +266,25 @@ func (d *PoolTracker) handleEvents(pools map[common.Address]NablaPool, events []
 			continue
 		}
 
+		address := hexutil.Encode(event.Address[:])
+
 		switch event.Topics[0] {
 		case curveABI.Events["PriceFeedUpdate"].ID:
+			if !strings.EqualFold(address, t.config.Oracle) {
+				continue
+			}
+
 			data, err := oracleFilterer.ParsePriceFeedUpdate(event)
 			if err != nil {
 				continue
 			}
 
-			asset, ok := priceFeedIdToAsset[data.Id]
-			if !ok {
-				logger.Infof("no price feed for asset %s", data.Id)
+			idx := lo.IndexOf(extra.PriceFeedIds, hexutil.Encode(data.Id[:]))
+			if idx < 0 {
 				continue
-			} else if p, exists := pools[asset]; exists {
-				p.State.Price = int256.MustFromDec(kutils.Itoa(data.Price))
-				pools[asset] = p
 			}
+
+			extra.Pools[idx].State.Price = new(int256.Int).SetInt64(data.Price)
 
 		case swapPoolABI.Events["ReserveUpdated"].ID:
 			data, err := swapPoolFilterer.ParseReserveUpdated(event)
@@ -302,15 +292,16 @@ func (d *PoolTracker) handleEvents(pools map[common.Address]NablaPool, events []
 				continue
 			}
 
-			p, exists := pools[event.Address]
-			if !exists {
+			_, idx, _ := lo.FindIndexOf(extra.Pools, func(np NablaPool) bool {
+				return hexutil.Encode(np.Address[:]) == address
+			})
+			if idx < 0 {
 				continue
 			}
 
-			p.State.Reserve = int256.MustFromBig(data.NewReserve)
-			p.State.ReserveWithSlippage = int256.MustFromBig(data.NewReserveWithSlippage)
-			p.State.TotalLiabilities = int256.MustFromBig(data.NewTotalLiabilities)
-			pools[event.Address] = p
+			extra.Pools[idx].State.Reserve = int256.MustFromBig(data.NewReserve)
+			extra.Pools[idx].State.ReserveWithSlippage = int256.MustFromBig(data.NewReserveWithSlippage)
+			extra.Pools[idx].State.TotalLiabilities = int256.MustFromBig(data.NewTotalLiabilities)
 
 		case swapPoolABI.Events["SwapFeesSet"].ID:
 			data, err := swapPoolFilterer.ParseSwapFeesSet(event)
@@ -318,17 +309,30 @@ func (d *PoolTracker) handleEvents(pools map[common.Address]NablaPool, events []
 				continue
 			}
 
-			p, exists := pools[event.Address]
-			if !exists {
+			_, idx, _ := lo.FindIndexOf(extra.Pools, func(np NablaPool) bool {
+				return hexutil.Encode(np.Address[:]) == address
+			})
+			if idx < 0 {
 				continue
 			}
 
-			p.Meta.LpFee = int256.MustFromBig(data.LpFee)
-			p.Meta.ProtocolFee = int256.MustFromBig(data.ProtocolFee)
-			p.Meta.BackstopFee = int256.MustFromBig(data.BackstopFee)
-			pools[event.Address] = p
+			extra.Pools[idx].Meta.LpFee = int256.MustFromBig(data.LpFee)
+			extra.Pools[idx].Meta.ProtocolFee = int256.MustFromBig(data.ProtocolFee)
+			extra.Pools[idx].Meta.BackstopFee = int256.MustFromBig(data.BackstopFee)
 
 		default:
 		}
 	}
+}
+
+func (t *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]string, bool, error) {
+	var extra Extra
+	err := json.Unmarshal([]byte(p.Extra), &extra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return append(lo.Map(extra.Pools, func(np NablaPool, _ int) string {
+		return hexutil.Encode(np.Address[:])
+	}), strings.ToLower(t.config.Oracle)), extra.DependenciesStored, nil
 }

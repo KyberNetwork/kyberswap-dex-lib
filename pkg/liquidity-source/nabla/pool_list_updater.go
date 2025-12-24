@@ -46,19 +46,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	}
 
 	for _, router := range routers {
-		var oracle common.Address
-		if _, err := u.ethrpcClient.R().
-			SetContext(ctx).
-			AddCall(&ethrpc.Call{
-				ABI:    portalABI,
-				Target: u.config.Portal,
-				Method: "oracleAdapter",
-			}, []any{&oracle}).
-			Call(); err != nil {
-			logger.Errorf("failed to get oracle")
-			return nil, nil, err
-		}
-
 		pools = append(pools, entity.Pool{
 			Address:   hexutil.Encode(router[:]),
 			Exchange:  u.config.DexId,
