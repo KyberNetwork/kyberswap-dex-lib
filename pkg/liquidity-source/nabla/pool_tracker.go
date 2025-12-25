@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
-	"slices"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -33,14 +33,10 @@ type PoolTracker struct {
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	pythCfg := config.Pyth
-	if len(pythCfg.URL) == 0 {
-		pythCfg.URL = nablaPriceAPI
+	pythCfg := kutils.HttpCfg{
+		BaseUrl: lo.Ternary(len(config.PriceAPI) == 0, nablaPriceAPI, config.PriceAPI),
+		Timeout: config.PriceTimeout.Duration,
 	}
-	if pythCfg.Timeout == 0 {
-		pythCfg.Timeout = 10 * time.Second
-	}
-	pythCfg.BaseUrl = pythCfg.URL
 
 	return &PoolTracker{
 		config:       config,
@@ -250,12 +246,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 }
 
 func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber uint64) {
-	slices.SortFunc(events, func(l, r types.Log) int {
-		if l.BlockNumber == r.BlockNumber {
-			return int(l.Index - r.Index)
-		}
-		return int(l.BlockNumber - r.BlockNumber)
-	})
+	eth.SortLogs(events)
+
+	for i := range extra.Pools {
+		extra.Pools[i].State.Price = nil
+	}
 
 	for _, event := range events {
 		if event.BlockNumber < blockNumber {
@@ -269,7 +264,7 @@ func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber
 		address := hexutil.Encode(event.Address[:])
 
 		switch event.Topics[0] {
-		case curveABI.Events["PriceFeedUpdate"].ID:
+		case oracleABI.Events["PriceFeedUpdate"].ID:
 			if !strings.EqualFold(address, t.config.Oracle) {
 				continue
 			}

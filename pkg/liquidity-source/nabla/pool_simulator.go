@@ -53,8 +53,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	amountIn := int256.MustFromBig(params.TokenAmountIn.Amount)
-	amountOut, swapInfo, err := sell(s.Pools[idxIn], s.Pools[idxOut], amountIn,
-		s.decimals[idxIn], s.decimals[idxOut])
+	amountOut, swapInfo, err := sell(s.Pools[idxIn], s.Pools[idxOut], amountIn, s.decimals[idxIn], s.decimals[idxOut])
 	if err != nil {
 		return nil, err
 	}

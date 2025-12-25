@@ -1,6 +1,8 @@
 package eth
 
 import (
+	"slices"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -42,4 +44,14 @@ func HasRevertedLog(logs []ethtypes.Log) bool {
 	}
 
 	return false
+}
+
+func SortLogs(logs []ethtypes.Log) {
+	slices.SortFunc(logs, func(l, r ethtypes.Log) int {
+		if l.BlockNumber == r.BlockNumber {
+			return int(l.Index - r.Index)
+		}
+
+		return int(l.BlockNumber - r.BlockNumber)
+	})
 }

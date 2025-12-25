@@ -3,9 +3,10 @@ package nabla
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
@@ -27,17 +28,13 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	config := Config{
-		DexId:         DexType,
-		Portal:        "0x1F917Fe724F186a1fFA7744A73afed18C335b9eC",
-		Oracle:        "0x6d6190Da8fD73E0C911929DED2D6B47cE066e441",
-		PythAdapterV2: "0x9B5a425a9F4b4411D42B21caacf86d026dce43Ec",
-		Pyth: struct {
-			kutils.HttpCfg
-			URL string `json:"url"`
-		}{
-			URL: "https://antenna.nabla.fi/v1/updates/price/latest",
-		},
+		DexId:           DexType,
+		Portal:          "0x1F917Fe724F186a1fFA7744A73afed18C335b9eC",
+		Oracle:          "0x6d6190Da8fD73E0C911929DED2D6B47cE066e441",
+		PythAdapterV2:   "0x9B5a425a9F4b4411D42B21caacf86d026dce43Ec",
 		SkipPriceUpdate: false,
+		PriceAPI:        "https://antenna.nabla.fi/v1/updates/price/latest",
+		PriceTimeout:    durationjson.Duration{Duration: 10 * time.Second},
 	}
 
 	ts.lister = NewPoolsListUpdater(&config, rpcClient)
