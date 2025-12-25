@@ -99,6 +99,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx)
 	tokens := make([][]common.Address, newPools)
+
 	for i := range poolAddresses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clearVaultABI,
@@ -110,21 +111,46 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to get pool addresses")
+		}).Errorf("failed to get pool tokens")
 		return nil, metadataBytes, err
-	}
-	staticExtra := StaticExtra{
-		SwapAddress: strings.ToLower(d.config.SwapAddress),
 	}
 
-	staticExtraBytes, err := json.Marshal(staticExtra)
-	if err != nil {
+	req = d.ethrpcClient.NewRequest().SetContext(ctx)
+	iouTokens := make([][]common.Address, newPools)
+	for i := range tokens {
+		iouTokens[i] = make([]common.Address, len(tokens[i]))
+		for j := range tokens[i] {
+			req.AddCall(&ethrpc.Call{
+				ABI:    clearVaultABI,
+				Target: poolAddresses[i].Hex(),
+				Method: "iouOf",
+				Params: []any{tokens[i][j]},
+			}, []any{&iouTokens[i][j]})
+		}
+	}
+
+	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("[Clear] failed to marshal static extra data")
+		}).Errorf("failed to get pool iou tokens")
 		return nil, metadataBytes, err
 	}
+
 	pools := lo.Map(poolAddresses, func(poolAddress common.Address, i int) entity.Pool {
+		extra := Extra{
+			SwapAddress: strings.ToLower(d.config.SwapAddress),
+			IOUs: lo.Map(iouTokens[i], func(iouToken common.Address, _ int) string {
+				return strings.ToLower(iouToken.Hex())
+			}),
+		}
+
+		extraBytes, err := json.Marshal(extra)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"error": err,
+			}).Errorf("[Clear] failed to marshal extra data")
+			return entity.Pool{}
+		}
 		return entity.Pool{
 			Address:  poolAddress.Hex(),
 			Exchange: d.config.DexID,
@@ -138,8 +164,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 					Swappable: true,
 				}
 			}),
-			Extra:       "{}",
-			StaticExtra: string(staticExtraBytes),
+			Extra: string(extraBytes),
 		}
 	})
 
