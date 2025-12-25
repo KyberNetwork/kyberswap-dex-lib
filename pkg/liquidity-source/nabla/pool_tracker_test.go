@@ -2,12 +2,14 @@ package nabla
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -47,7 +49,39 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	require.Greater(ts.T(), len(pools), 0)
 
 	for _, p := range pools {
-		newPoolState, err := ts.tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		newPoolState, err := ts.tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{
+			Logs: []types.Log{
+				{
+					// PriceFeedUpdate
+					Address: common.HexToAddress("0x6d6190Da8fD73E0C911929DED2D6B47cE066e441"),
+					Topics: []common.Hash{
+						common.HexToHash("0xd06a6b7f4918494b3719217d1802786c1f5112a6c1d88fe2cfec00b4584f6aec"),
+						common.HexToHash("0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"),
+					},
+					Data:        common.FromHex("0x00000000000000000000000000000000000000000000000000000000694c90bd000000000000000000000000000000000000000000000000000007f684fca8a00000000000000000000000000000000000000000000000000000000000000000"),
+					BlockNumber: math.MaxUint64,
+				},
+				{
+					// ReserveUpdated
+					Address: common.HexToAddress("0xe971445787dcb0bb577610126287ded493dddae7"),
+					Topics: []common.Hash{
+						common.HexToHash("0x736a4a5812ced57865d349f18ffc358079c6b479326c0dfd1dae30c465b1daf2"),
+					},
+					Data:        common.FromHex("0x00000000000000000000000000000000000000000000000000000004ff89c5a900000000000000000000000000000000000000000000000000000004ffb8521a00000000000000000000000000000000000000000000000000000009fe47c170"),
+					BlockNumber: math.MaxUint64,
+				},
+				{
+					// SwapFeesSet
+					Address: common.HexToAddress("0xe971445787dcb0bb577610126287ded493dddae7"),
+					Topics: []common.Hash{
+						common.HexToHash("0xd51891e6ac27da6065760e4843c63beb01795531a5c017b29f959a4c1055c498"),
+						common.HexToHash("0x0000000000000000000000008f7447a6a04857855caf75ecb1600d2984a7285d"),
+					},
+					Data:        common.FromHex("0x000000000000000000000000000000000000000000000000000000000000008700000000000000000000000000000000000000000000000000000000000000b40000000000000000000000000000000000000000000000000000000000000087"),
+					BlockNumber: math.MaxUint64,
+				},
+			},
+		})
 		require.NoError(ts.T(), err)
 
 		poolBytes, err := json.Marshal(newPoolState)

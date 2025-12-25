@@ -193,7 +193,12 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		p.BlockNumber = resp.BlockNumber.Uint64()
 
 		logger.Infof("finished refreshing pool %v after asset changes", p.Address)
-	} else if len(params.Logs) > 0 {
+	}
+	if len(params.Logs) > 0 {
+		for i := range extra.Pools {
+			extra.Pools[i].State.Price = nil
+		}
+
 		t.handleEvents(&extra, params.Logs, p.BlockNumber)
 
 		extra.DependenciesStored = true
@@ -248,10 +253,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber uint64) {
 	eth.SortLogs(events)
 
-	for i := range extra.Pools {
-		extra.Pools[i].State.Price = nil
-	}
-
 	for _, event := range events {
 		if event.BlockNumber < blockNumber {
 			continue
@@ -271,6 +272,8 @@ func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber
 
 			data, err := oracleFilterer.ParsePriceFeedUpdate(event)
 			if err != nil {
+
+				logger.Errorf("failed to parse PriceFeedUpdate event: %v", err)
 				continue
 			}
 
@@ -284,6 +287,7 @@ func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber
 		case swapPoolABI.Events["ReserveUpdated"].ID:
 			data, err := swapPoolFilterer.ParseReserveUpdated(event)
 			if err != nil {
+				logger.Errorf("failed to parse ReserveUpdated event, error %v", err)
 				continue
 			}
 
@@ -301,6 +305,7 @@ func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber
 		case swapPoolABI.Events["SwapFeesSet"].ID:
 			data, err := swapPoolFilterer.ParseSwapFeesSet(event)
 			if err != nil {
+				logger.Errorf("failed to parse swap SwapFeesSet event, error %v", err)
 				continue
 			}
 
