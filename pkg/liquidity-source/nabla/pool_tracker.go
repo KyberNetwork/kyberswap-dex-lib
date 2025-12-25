@@ -165,7 +165,12 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			}
 		})
 
-		extra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, _ int) string {
+		extra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, i int) string {
+			if priceFeedIdByChain, exist := priceFeedIdByAsset[t.config.ChainId]; exist {
+				if priceFeedId, found := priceFeedIdByChain[assets[i]]; found {
+					return hexutil.Encode(priceFeedId[:])
+				}
+			}
 			return hexutil.Encode(id[:])
 		})
 		extra.Pools = lo.Map(poolByAssets, func(poolByAsset common.Address, i int) NablaPool {

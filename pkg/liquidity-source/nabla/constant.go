@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -27,6 +28,15 @@ var (
 	i1e3  = int256.NewInt(1000)
 	i1e4  = int256.NewInt(10000)
 	i1e6  = int256.NewInt(1000000)
+
+	priceFeedIdByAsset = map[valueobject.ChainID]map[common.Address]common.Hash{
+		valueobject.ChainIDBerachain: map[common.Address]common.Hash{
+			common.HexToAddress("0x6969696969696969696969696969696969696969"): common.HexToHash("0x962088abcfdbdb6e30db2e340c8cf887d9efb311b1f2f17b155a63dbb6d40265"),
+			common.HexToAddress("0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590"): common.HexToHash("0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"),
+			common.HexToAddress("0x0555E30da8f98308EdB960aa94C0Db47230d2B9c"): common.HexToHash("0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"),
+			common.HexToAddress("0x549943e04f40284185054145c6E4e9568C1D3241"): common.HexToHash("0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a"),
+		},
+	}
 )
 
 var (

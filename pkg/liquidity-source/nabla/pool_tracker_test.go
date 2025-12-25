@@ -16,6 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -31,6 +32,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 
 	config := Config{
 		DexId:           DexType,
+		ChainId:         valueobject.ChainIDBerachain,
 		Portal:          "0x1F917Fe724F186a1fFA7744A73afed18C335b9eC",
 		Oracle:          "0x6d6190Da8fD73E0C911929DED2D6B47cE066e441",
 		PythAdapterV2:   "0x9B5a425a9F4b4411D42B21caacf86d026dce43Ec",
