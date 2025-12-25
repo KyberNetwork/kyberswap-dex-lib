@@ -598,5 +598,54 @@
             }
         ],
         "anonymous": false
+    },
+    {
+        "type": "function",
+        "name": "swapExactTokensForTokens",
+        "inputs": [
+            {
+                "name": "_amountIn",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_amountOutMin",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_tokenPath",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_routerPath",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "_to",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_deadline",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_priceUpdateData",
+                "type": "bytes[]",
+                "internalType": "bytes[]"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amountOut_",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "payable"
     }
 ]

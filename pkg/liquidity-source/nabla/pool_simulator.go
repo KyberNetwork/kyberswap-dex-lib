@@ -2,6 +2,7 @@ package nabla
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
@@ -207,5 +208,6 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
+	cloned.Pools = slices.Clone(s.Pools)
 	return &cloned
 }

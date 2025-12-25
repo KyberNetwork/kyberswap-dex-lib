@@ -89,6 +89,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 		poolBytes, err := json.Marshal(newPoolState)
 		require.NoError(ts.T(), err)
 		ts.T().Log(string(poolBytes))
+
 	}
 }
 

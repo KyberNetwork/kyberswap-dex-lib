@@ -2,7 +2,6 @@ package nabla
 
 import (
 	"context"
-	"encoding/hex"
 	"math/big"
 	"strings"
 	"time"
@@ -55,6 +54,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		return p, err
 	}
+
+	extra.DependenciesStored = true
 
 	var assets []common.Address
 	if _, err := t.ethrpcClient.R().
@@ -199,14 +200,13 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 		logger.Infof("finished refreshing pool %v after asset changes", p.Address)
 	}
+
 	if len(params.Logs) > 0 {
 		for i := range extra.Pools {
 			extra.Pools[i].State.Price = nil
 		}
 
 		t.handleEvents(&extra, params.Logs, p.BlockNumber)
-
-		extra.DependenciesStored = true
 
 		p.BlockNumber = eth.GetLatestBlockNumberFromLogs(params.Logs)
 	}
@@ -231,7 +231,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			}).Errorf("failed to fetch price feed data from antenna")
 			return p, err
 		}
-		extra.PriceFeedData, _ = hex.DecodeString(priceUpdateData.Binary.Data[0])
+
+		// Skip price feed data
+		// extra.PriceFeedData, _ = hex.DecodeString(priceUpdateData.Binary.Data[0])
 
 		for _, parsed := range priceUpdateData.Parsed {
 			parsedId := "0x" + parsed.Id
