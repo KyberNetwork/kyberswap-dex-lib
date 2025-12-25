@@ -143,13 +143,16 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	}
 
 	var feesTokenY, remainingAmountIn *uint256.Int
+	priceLimit := levels.ArrayPrices[len(levels.ArrayPrices)-1]
 	if isBuy {
 		feesTokenY = big256.MulWadUp(&tmp, executedAmountIn, p.swapFee)
 		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn).Sub(amtIn, feesTokenY)
+		priceLimit = big256.MulDivUp(&executedValue, priceLimit, uPriceLimitMultiplier, big256.UBasisPoint)
 	} else {
 		feesTokenY = big256.MulWadUp(&tmp, executedAmountOut, p.swapFee)
-		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn)
 		executedAmountOut.Sub(executedAmountOut, feesTokenY)
+		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn)
+		priceLimit = big256.MulDivDown(&executedValue, priceLimit, big256.UBasisPoint, uPriceLimitMultiplier)
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -161,7 +164,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			executedLevels:     executedLevels,
 			lastExecutedShares: &executedShares,
 			HasNative:          p.SupportsNativeEth,
-			PriceLimit:         levels.ArrayPrices[len(levels.ArrayPrices)-1],
+			PriceLimit:         priceLimit,
 		},
 	}, nil
 }
