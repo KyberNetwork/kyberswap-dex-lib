@@ -13,7 +13,7 @@ import (
 )
 
 func getPoolSim(reserveIn, reserveOut string) *PoolSimulator {
-	extraStr := `{"address":"0xcac0fa2818aed2eea8b9f52ca411e6ec3e13d822","exchange":"clear","type":"clear","timestamp":1766474455,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x69cac783c212bfae06e3c1a9a2e6ae6b17ba0614","symbol":"GHO","decimals":18,"swappable":true}],"extra":"{\"reserves\":{\"0\":{\"1\":{\"AmountIn\":null,\"AmountOut\":null}}}}","staticExtra":"{\"swapAddress\":\"0x5144e17c86d6e1b25f61a036024a65bc4775e37e\"}"}`
+	extraStr := `{"address":"0xcac0fa2818aed2eea8b9f52ca411e6ec3e13d822","exchange":"clear","type":"clear","timestamp":1766474455,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x69cac783c212bfae06e3c1a9a2e6ae6b17ba0614","symbol":"GHO","decimals":18,"swappable":true}],"extra":"{\"swapAddress\":\"0xeb5ad3d93e59efcbc6934cad2b48eb33baf29745\",\"ious\":[\"0x1267a63dc2d3af46b1333326f49b4d746374ac2e\",\"0x50ca266a50c6531dce25ee7da0dfb57a06bd864e\"],\"reserves\":{\"0\":{\"1\":{\"AmountIn\":null,\"AmountOut\":null}}}}"}`
 	extraStr = strings.Replace(extraStr, `\"AmountIn\":null`, fmt.Sprintf(`\"AmountIn\":%v`, reserveIn), 1)
 	extraStr = strings.Replace(extraStr, `\"AmountOut\":null`, fmt.Sprintf(`\"AmountOut\":%v`, reserveOut), 1)
 	var entityPool entity.Pool
