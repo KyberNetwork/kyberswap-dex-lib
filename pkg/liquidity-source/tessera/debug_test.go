@@ -82,7 +82,8 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 					{Address: testCase.token0, Decimals: testCase.dec0},
 					{Address: testCase.token1, Decimals: testCase.dec1},
 				},
-				Reserves: []string{"0", "0"},
+				Reserves:    []string{"0", "0"},
+				StaticExtra: "{}",
 			}
 
 			tracker := NewPoolTracker(&cfg, rpcClient)
