@@ -89,15 +89,6 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	protocolFee := to.Meta.ProtocolFee
 	backstopFee := to.Meta.BackstopFee
 
-	var scalingFactor *int256.Int
-	if frDecimals > toDecimals {
-		scalingFactor = new(int256.Int).Mul(priceScalingFactor, i256.TenPow(uint64(frDecimals-toDecimals)))
-	} else if toDecimals > frDecimals {
-		scalingFactor = new(int256.Int).Quo(priceScalingFactor, i256.TenPow(uint64(toDecimals-frDecimals)))
-	} else {
-		scalingFactor = priceScalingFactor
-	}
-
 	price := new(int256.Int).Mul(fr.State.Price, pricePrecision)
 	price.Quo(price, to.State.Price)
 
@@ -117,7 +108,13 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	}
 
 	rawAmountOut := new(int256.Int).Mul(effectiveAmountIn, price)
-	rawAmountOut.Quo(rawAmountOut, scalingFactor)
+	if frDecimals >= toDecimals {
+		scalingFactor := new(int256.Int).Mul(priceScalingFactor, i256.TenPow(uint64(frDecimals-toDecimals)))
+		rawAmountOut.Quo(rawAmountOut, scalingFactor)
+	} else if toDecimals > frDecimals {
+		rawAmountOut.Mul(rawAmountOut, i256.TenPow(uint64(toDecimals-frDecimals)))
+		rawAmountOut.Quo(rawAmountOut, priceScalingFactor)
+	}
 
 	bspFeeAmount := new(int256.Int).Mul(rawAmountOut, backstopFee)
 	bspFeeAmount.Quo(bspFeeAmount, feePrecision)
