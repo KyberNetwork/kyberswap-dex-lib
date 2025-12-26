@@ -146,7 +146,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	if len(params.Logs) > 0 {
 		t.handleEvents(ctx, &p, &extra, params.Logs)
 	} else if err := t.getRPCState(ctx, &p, &extra); err != nil {
-		return p, nil
+		return p, err
 	}
 
 	extraBytes, err := json.Marshal(extra)
