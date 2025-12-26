@@ -17,12 +17,15 @@ type LiquidityLevel struct {
 }
 
 type Extra struct {
-	BaseToQuotePrefetches []PrefetchRate `json:"b2qPrefetches,omitempty"`
-	QuoteToBasePrefetches []PrefetchRate `json:"q2bPrefetches,omitempty"`
+	BaseToQuotePrefetches []PrefetchRate `json:"b2q"`
+	QuoteToBasePrefetches []PrefetchRate `json:"q2b"`
 
 	// Revert condition flags
-	TradingEnabled bool `json:"tradingEnabled"`
-	IsInitialised  bool `json:"isInitialised"`
+	TradingEnabled bool   `json:"tradingEnabled"`
+	IsInitialised  bool   `json:"isInitialised"`
+	Side           uint8  `json:"side"`
+	Offset0        string `json:"offset0"`
+	Offset1        string `json:"offset1"`
 }
 
 type PrefetchRate struct {

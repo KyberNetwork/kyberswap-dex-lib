@@ -33,9 +33,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	reserves := make([]*big.Int, len(entityPool.Reserves))
 	for i, r := range entityPool.Reserves {
 		reserves[i], _ = new(big.Int).SetString(r, 10)
-		if reserves[i] == nil {
-			reserves[i] = bignumber.ZeroBI
-		}
 	}
 
 	return &PoolSimulator{

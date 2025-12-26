@@ -130,8 +130,24 @@ func (d *PoolTracker) GetNewPoolState(
 		return cumulative
 	}
 
-	baseToQuoteAmounts := calculateCumulative(orderBook0, poolOffset1)
-	quoteToBaseAmounts := calculateCumulative(orderBook1, poolOffset0)
+	baseToQuoteAmounts := calculateCumulative(orderBook0, poolOffset0)
+	quoteToBaseAmounts := calculateCumulative(orderBook1, poolOffset1)
+
+	// Subtract a small percentage (0.1%) from prefetch points to avoid T36 reverts at exact boundaries
+	applyShift := func(points []*uint256.Int) []*uint256.Int {
+		for _, p := range points {
+			shift := new(uint256.Int).Div(p, uint256.NewInt(1000))
+			if shift.IsZero() && p.Cmp(uint256.NewInt(100)) > 0 {
+				shift.SetUint64(100)
+			}
+			if !shift.IsZero() {
+				p.Sub(p, shift)
+			}
+		}
+		return points
+	}
+	baseToQuoteAmounts = applyShift(baseToQuoteAmounts)
+	quoteToBaseAmounts = applyShift(quoteToBaseAmounts)
 
 	var b2qMax, q2bMax *uint256.Int
 	if len(baseToQuoteAmounts) > 0 {
@@ -216,6 +232,9 @@ func (d *PoolTracker) GetNewPoolState(
 		QuoteToBasePrefetches: quoteToBasePrefetches,
 		TradingEnabled:        tradingEnabled,
 		IsInitialised:         isInitialised,
+		Side:                  rpcResult.Side,
+		Offset0:               poolOffset0.String(),
+		Offset1:               poolOffset1.String(),
 	}
 
 	extraBytes, err := json.Marshal(extra)
