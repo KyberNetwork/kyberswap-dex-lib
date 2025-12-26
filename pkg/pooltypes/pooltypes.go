@@ -85,6 +85,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
@@ -356,6 +357,7 @@ type Types struct {
 	Wildcat                    string
 	ValantisStex               string
 	Infinifi                   string
+	Nabla                      string
 }
 
 var (
@@ -544,5 +546,6 @@ var (
 		Wildcat:                    wildcat.DexType,
 		ValantisStex:               valantisstex.DexType,
 		Infinifi:                   infinifi.DexType,
+		Nabla:                      nabla.DexType,
 	}
 )

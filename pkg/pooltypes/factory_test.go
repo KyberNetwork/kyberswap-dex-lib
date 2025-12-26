@@ -85,7 +85,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap", "kelp-rseth-l2", "valantis-stex"}
+		"erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap", "kelp-rseth-l2", "valantis-stex", "nabla"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "valantis-stex"}
+		"erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "valantis-stex", "nabla"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {
@@ -130,7 +130,7 @@ func TestTicksBasedPoolTrackerFactory(t *testing.T) {
 	t.Parallel()
 	poolTrackers := []string{"uniswapv3", "uniswap-v4", "algebra-v1", "algebra-integral", "ramses-v2", "native-v3",
 		"pancake-v3", "solidly-v3", "slipstream", "nuri-v2", "pancake-infinity-cl", "pancake-infinity-bin",
-		"liquiditybook-v20", "liquiditybook-v21"}
+		"liquiditybook-v20", "liquiditybook-v21", "clober-ob"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {
