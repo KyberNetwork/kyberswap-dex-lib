@@ -111,7 +111,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				Method: "params",
 			}, []any{&betaCParams[i]})
 		}
-		resp, err = req.Aggregate()
+		_, err = req.Aggregate()
 		if err != nil {
 			return p, err
 		}
