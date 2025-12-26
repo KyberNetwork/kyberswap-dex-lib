@@ -82,7 +82,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				Params: []any{asset},
 			}, []any{&poolByAssets[i]})
 		}
-		resp, err := req.Aggregate()
+		_, err := req.Aggregate()
 		if err != nil {
 			logger.Errorf("failed to aggregate pool by asset")
 			return p, err
@@ -97,7 +97,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				Method: "slippageCurve",
 			}, []any{&curves[i]})
 		}
-		resp, err = req.Aggregate()
+		resp, err := req.Aggregate()
 		if err != nil {
 			return p, err
 		}
