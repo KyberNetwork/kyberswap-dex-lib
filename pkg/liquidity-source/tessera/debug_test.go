@@ -93,7 +93,8 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			require.NoError(t, err)
 
 			var extra Extra
-			json.Unmarshal([]byte(p.Extra), &extra)
+			err = json.Unmarshal([]byte(p.Extra), &extra)
+			require.NoError(t, err)
 
 			fmt.Printf("\n=== %s ===\n", testCase.description)
 			fmt.Printf("Pool: %s\n", p.Address)
