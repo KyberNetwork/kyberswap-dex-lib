@@ -2,7 +2,6 @@ package maverickv2
 
 import (
 	"fmt"
-	"maps"
 	"math/big"
 	"strings"
 
@@ -192,7 +191,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.ActiveTick = newState.activeTick
 
 	// Update TWA
-	// no need to updatw time weighted average price, as UpdateBalance only call in same Route in one block
+	// no need to update time weighted average price, as UpdateBalance only call in same Route in one block
 	// so timeStamp == lastTimeStamp in this context
 	// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-twa-math.ts#L13
 
@@ -355,8 +354,8 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		computeEndPrice(delta, newDelta, tickDataFromLiquidity)
 	}
 
-	// don't need allocateSwapValuesToTick (but don't mutate state in simulation)
-	// allocateSwapValuesToTick(newDelta, delta.TokenAIn, activeTick, tickData)
+	// allocateSwapValuesToTick (only mutate cloned state)
+	allocateSwapValuesToTick(state, newDelta, delta.TokenAIn, state.ActiveTick)
 
 	// If there's excess remaining, we need to move to the next tick
 	if !newDelta.Excess.IsZero() {
@@ -640,7 +639,15 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		cloned.Bins[k] = clonedBin
 	}
 
-	maps.Copy(cloned.Ticks, state.Ticks)
+	for k, v := range state.Ticks {
+		clonedTick := Tick{
+			ReserveA:     safeCloneUint256(v.ReserveA),
+			ReserveB:     safeCloneUint256(v.ReserveB),
+			TotalSupply:  v.TotalSupply,
+			BinIdsByTick: v.BinIdsByTick,
+		}
+		cloned.Ticks[k] = clonedTick
+	}
 
 	return cloned
 }
@@ -1291,4 +1298,33 @@ func tickSqrtPriceAndLiquidity(state *MaverickPoolState, tick int32) (lower, upp
 	tickData.CurrentLiquidity = currentLiquidity
 
 	return sqrtLowerTickPrice, sqrtUpperTickPrice, sqrtPrice, *tickData
+}
+
+func allocateSwapValuesToTick(state *MaverickPoolState, delta *Delta, tokenAIn bool, tick int32) {
+	tickState, ok := state.Ticks[tick]
+	if !ok {
+		return
+	}
+
+	reserveA := tickState.ReserveA
+	reserveB := tickState.ReserveB
+
+	if tokenAIn {
+		reserveA.Add(reserveA, delta.DeltaInBinInternal)
+		if delta.Excess.Sign() > 0 {
+			reserveB.Set(big256.U0)
+		} else {
+			reserveB.Set(clip(reserveB, delta.DeltaOutErc))
+		}
+	} else {
+		if delta.Excess.Sign() > 0 {
+			reserveA.Set(big256.U0)
+		} else {
+			reserveA.Set(clip(reserveA, delta.DeltaOutErc))
+		}
+		reserveB.Add(reserveB, delta.DeltaInBinInternal)
+	}
+
+	state.Ticks[tick].ReserveA.Set(reserveA)
+	state.Ticks[tick].ReserveB.Set(reserveB)
 }
