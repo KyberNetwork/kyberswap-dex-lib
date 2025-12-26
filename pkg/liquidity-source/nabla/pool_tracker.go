@@ -98,7 +98,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			betaCParams          = make([]Params, n)
 		)
 
-		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber).SetFrom(common.HexToAddress("0x8756fd992569e0389bf357eb087f5827f364d2a4"))
+		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 		for i, pAddress := range poolByAssets {
 			req.AddCall(&ethrpc.Call{
 				ABI:    swapPoolABI,
