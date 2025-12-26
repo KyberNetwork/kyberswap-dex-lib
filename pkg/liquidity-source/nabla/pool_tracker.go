@@ -8,12 +8,11 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/go-resty/resty/v2"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -28,19 +27,12 @@ var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	pythClient   *resty.Client
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	pythCfg := kutils.HttpCfg{
-		BaseUrl: lo.Ternary(len(config.PriceAPI) == 0, nablaPriceAPI, config.PriceAPI),
-		Timeout: config.PriceTimeout.Duration,
-	}
-
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		pythClient:   pythCfg.NewRestyClient(),
 	}
 }
 
@@ -80,7 +72,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		logger.Infof("starting refresh of pool %v due to asset changes", p.Address)
 
 		poolByAssets := make([]common.Address, len(assets))
-		priceFeedIs := make([][32]byte, len(assets))
 
 		req := t.ethrpcClient.R().SetContext(ctx)
 		for i, asset := range assets {
@@ -89,12 +80,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				Target: p.Address,
 				Method: "poolByAsset",
 				Params: []any{asset},
-			}, []any{&poolByAssets[i]}).AddCall(&ethrpc.Call{
-				ABI:    pythAdapterV2ABI,
-				Target: t.config.PythAdapterV2,
-				Method: "getPriceFeedIdByAsset",
-				Params: []any{asset},
-			}, []any{&priceFeedIs[i]})
+			}, []any{&poolByAssets[i]})
 		}
 		resp, err := req.Aggregate()
 		if err != nil {
@@ -109,11 +95,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			totalLiabilities     = make([]*big.Int, n)
 			swapFees             = make([]SwapFees, n)
 			curveAddresses       = make([]common.Address, n)
-			assetAddresses       = make([]common.Address, n)
 			betaCParams          = make([]Params, n)
 		)
 
-		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber).SetFrom(common.HexToAddress("0x8756fd992569e0389bf357eb087f5827f364d2a4"))
 		for i, pAddress := range poolByAssets {
 			req.AddCall(&ethrpc.Call{
 				ABI:    swapPoolABI,
@@ -135,13 +120,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				ABI:    swapPoolABI,
 				Target: pAddress.String(),
 				Method: "slippageCurve",
-			}, []any{&curveAddresses[i]}).AddCall(&ethrpc.Call{
-				ABI:    swapPoolABI,
-				Target: pAddress.String(),
-				Method: "asset",
-			}, []any{&assetAddresses[i]})
+			}, []any{&curveAddresses[i]})
 		}
 		resp, err = req.Aggregate()
+		if err != nil {
+			return p, err
+		}
+
+		assetPrices, err := t.getAssetPrices(ctx, assets, resp.BlockNumber)
 		if err != nil {
 			return p, err
 		}
@@ -166,14 +152,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			}
 		})
 
-		extra.PriceFeedIds = lo.Map(priceFeedIs, func(id [32]byte, i int) string {
-			if priceFeedIdByChain, exist := priceFeedIdByAsset[t.config.ChainId]; exist {
-				if priceFeedId, found := priceFeedIdByChain[assets[i]]; found {
-					return hexutil.Encode(priceFeedId[:])
-				}
-			}
-			return hexutil.Encode(id[:])
-		})
 		extra.Pools = lo.Map(poolByAssets, func(poolByAsset common.Address, i int) NablaPool {
 			return NablaPool{
 				Address: poolByAsset,
@@ -189,7 +167,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 					Reserve:             int256.MustFromBig(reserves[i]),
 					ReserveWithSlippage: int256.MustFromBig(reservesWithSlippage[i]),
 					TotalLiabilities:    int256.MustFromBig(totalLiabilities[i]),
-					Price:               nil,
+					Price:               int256.MustFromBig(assetPrices[i]),
 				},
 			}
 		})
@@ -202,46 +180,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	if len(params.Logs) > 0 {
-		for i := range extra.Pools {
-			extra.Pools[i].State.Price = nil
-		}
-
-		t.handleEvents(&extra, params.Logs, p.BlockNumber)
-
-		p.BlockNumber = eth.GetLatestBlockNumberFromLogs(params.Logs)
-	}
-
-	extra.PriceFeedData = nil
-
-	if !t.config.SkipPriceUpdate {
-		queryString := lo.Reduce(extra.PriceFeedIds, func(acc string, feedId string, _ int) string {
-			if acc != "" {
-				acc += "&"
-			}
-			return acc + "ids[]=" + strings.TrimPrefix(feedId, "0x")
-		}, "")
-
-		var priceUpdateData PriceUpdateData
-		if resp, err := t.pythClient.R().SetContext(ctx).
-			SetQueryString(queryString).
-			SetResult(&priceUpdateData).
-			Get(""); err != nil || !resp.IsSuccess() {
-			logger.WithFields(logger.Fields{
-				"pool_id": p.Address, "err": err, "resp": resp,
-			}).Errorf("failed to fetch price feed data from antenna")
-			return p, err
-		}
-
-		// Skip price feed data
-		// extra.PriceFeedData, _ = hex.DecodeString(priceUpdateData.Binary.Data[0])
-
-		for _, parsed := range priceUpdateData.Parsed {
-			parsedId := "0x" + parsed.Id
-			idx := lo.IndexOf(extra.PriceFeedIds, parsedId)
-			if idx >= 0 {
-				extra.Pools[idx].State.Price = new(int256.Int).SetInt64(parsed.Price.Price)
-			}
-		}
+		t.handleEvents(ctx, &p, &extra, params.Logs)
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -257,14 +196,61 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	return p, nil
 }
 
-func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber uint64) {
-	eth.SortLogs(events)
+func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []common.Address, blockNumber *big.Int) ([]*big.Int, error) {
+	if len(assets) == 0 {
+		return nil, nil
+	}
 
-	for _, event := range events {
-		if event.BlockNumber < blockNumber {
-			continue
+	batch := make([]rpc.BatchElem, len(assets))
+	results := make([]hexutil.Bytes, len(assets))
+
+	for i, asset := range assets {
+		callData, err := oracleABI.Pack("getAssetPrice", asset)
+		if err != nil {
+			logger.Errorf("failed to pack get asset price")
+			return nil, err
 		}
 
+		batch[i] = rpc.BatchElem{
+			Method: "eth_call",
+			Args: []any{
+				map[string]any{
+					"from": t.config.Whitelisted,
+					"to":   t.config.Oracle,
+					"data": hexutil.Encode(callData),
+				},
+				lo.Ternary(blockNumber.Sign() <= 0, "latest", hexutil.EncodeBig(blockNumber)),
+			},
+			Result: &results[i],
+		}
+	}
+	if err := t.ethrpcClient.GetETHClient().Client().BatchCallContext(ctx, batch); err != nil {
+		logger.Errorf("getAssetPrices batch call failed: %v", err)
+		return nil, err
+	}
+
+	prices := make([]*big.Int, len(assets))
+	for i, elem := range batch {
+		if elem.Error != nil {
+			return nil, elem.Error
+		}
+		unpacked, err := oracleABI.Unpack("getAssetPrice", results[i])
+		if err != nil {
+			return nil, err
+		}
+		prices[i] = unpacked[0].(*big.Int)
+	}
+
+	return prices, nil
+}
+
+func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *Extra, events []types.Log) {
+	eth.SortLogs(events)
+
+	p.BlockNumber = eth.GetBlockNumberFromLogs(events)
+
+	shouldGetAssetPrices := false
+	for _, event := range events {
 		if len(event.Topics) == 0 {
 			continue
 		}
@@ -277,19 +263,7 @@ func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber
 				continue
 			}
 
-			data, err := oracleFilterer.ParsePriceFeedUpdate(event)
-			if err != nil {
-
-				logger.Errorf("failed to parse PriceFeedUpdate event: %v", err)
-				continue
-			}
-
-			idx := lo.IndexOf(extra.PriceFeedIds, hexutil.Encode(data.Id[:]))
-			if idx < 0 {
-				continue
-			}
-
-			extra.Pools[idx].State.Price = new(int256.Int).SetInt64(data.Price)
+			shouldGetAssetPrices = true
 
 		case swapPoolABI.Events["ReserveUpdated"].ID:
 			data, err := swapPoolFilterer.ParseReserveUpdated(event)
@@ -328,6 +302,23 @@ func (t *PoolTracker) handleEvents(extra *Extra, events []types.Log, blockNumber
 			extra.Pools[idx].Meta.BackstopFee = int256.MustFromBig(data.BackstopFee)
 
 		default:
+		}
+	}
+
+	if shouldGetAssetPrices {
+		assets := lo.Map(p.Tokens, func(token *entity.PoolToken, index int) common.Address {
+			return common.HexToAddress(token.Address)
+		})
+		prices, err := t.getAssetPrices(ctx, assets, big.NewInt(int64(p.BlockNumber)))
+		if err != nil {
+			logger.Errorf("failed to get asset prices: %v", err)
+			return
+		}
+
+		for i := range extra.Pools {
+			swapPool := extra.Pools[i]
+			swapPool.State.Price = int256.MustFromBig(prices[i])
+			extra.Pools[i] = swapPool
 		}
 	}
 }

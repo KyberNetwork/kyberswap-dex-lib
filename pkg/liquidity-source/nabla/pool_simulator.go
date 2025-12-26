@@ -200,10 +200,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return Meta{
-		BlockNumber:     s.Info.BlockNumber,
-		PriceUpdateData: s.PriceFeedData,
-	}
+	return Meta{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

@@ -40,30 +40,13 @@ type Params struct {
 	C    *big.Int
 }
 
-type PriceUpdateData struct {
-	Binary struct {
-		Data []string `json:"data"`
-	} `json:"binary"`
-	Parsed []struct {
-		Id    string `json:"id"`
-		Price struct {
-			Price int64 `json:"price"`
-			Expo  int64 `json:"expo"`
-		} `json:"price"`
-	} `json:"parsed"`
-}
-
 type Extra struct {
-	Pools         []NablaPool `json:"pools"`
-	PriceFeedIds  []string    `json:"priceFeedIds"`
-	PriceFeedData []byte      `json:"priceFeedData,omitempty"`
-
-	DependenciesStored bool `json:"ds,omitempty"`
+	Pools              []NablaPool `json:"pools"`
+	DependenciesStored bool        `json:"ds,omitempty"`
 }
 
 type Meta struct {
-	BlockNumber     uint64 `json:"bN"`
-	PriceUpdateData []byte `json:"p,omitempty"`
+	BlockNumber uint64 `json:"bN"`
 }
 
 type SwapInfo struct {
