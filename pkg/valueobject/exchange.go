@@ -92,6 +92,7 @@ const (
 	ExchangeChronosV3                  = "chronos-v3"
 	ExchangeCleopatra                  = "cleopatra"
 	ExchangeCleopatraV2                = "cleopatra-v2"
+	ExchangeClear                      = "clear"
 	ExchangeClipper                    = "clipper"
 	ExchangeCloberOB                   = "clober-ob"
 	ExchangeCoinhaneV3ECLP             = "coinhane-v3-eclp"
@@ -466,6 +467,7 @@ const (
 	ExchangeUSDFi                      = "usdfi"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
+	ExchangeValantisStex               = "valantis-stex"
 	ExchangeValleySwap                 = "valleyswap"
 	ExchangeValleySwapV2               = "valleyswap-v2"
 	ExchangeVelocore                   = "velocore"
@@ -508,6 +510,8 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
+	ExchangeWildcat                    = "wildcat"
+	ExchangeInfinifi                   = "infinifi-gateway"
 	ExchangeTessera                    = "tessera"
 )
 
@@ -529,6 +533,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm5:       {},
 	ExchangeSwaapV2:    {},
 	ExchangeUniswapLO:  {},
+	ExchangeClear:      {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

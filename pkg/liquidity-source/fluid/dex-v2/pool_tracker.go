@@ -82,26 +82,34 @@ func (t *PoolTracker) fetchRPCData(
 		DexPoolState DexPoolState
 	}
 
-	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int
+	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, tokenReserves *big.Int
+
+	token0 := lo.Ternary(
+		staticExtra.IsNative[0],
+		common.HexToAddress(valueobject.NativeAddress),
+		common.HexToAddress(p.Tokens[0].Address),
+	)
+	token1 := lo.Ternary(
+		staticExtra.IsNative[1],
+		common.HexToAddress(valueobject.NativeAddress),
+		common.HexToAddress(p.Tokens[1].Address),
+	)
+	dexKey := DexKey{
+		Token0:      token0,
+		Token1:      token1,
+		Fee:         big.NewInt(int64(staticExtra.Fee)),
+		TickSpacing: big.NewInt(int64(staticExtra.TickSpacing)),
+		Controller:  common.HexToAddress(staticExtra.Controller),
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.ResolverABI,
 		Target: t.config.Resolver,
 		Method: "getDexPoolState",
-		Params: []any{
-			big.NewInt(int64(dexType)),
-			common.HexToHash(dexId),
-		},
+		Params: []any{big.NewInt(int64(dexType)), dexKey},
 	}, []any{&res})
 
-	token0Slot := calculateMappingStorageSlot(
-		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
-		lo.Ternary(
-			staticExtra.IsNative[0],
-			common.HexToAddress(valueobject.NativeAddress),
-			common.HexToAddress(p.Tokens[0].Address),
-		),
-	)
+	token0Slot := calculateMappingStorageSlot(LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT, token0)
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.LiquidityABI,
 		Target: t.config.Liquidity,
@@ -109,14 +117,7 @@ func (t *PoolTracker) fetchRPCData(
 		Params: []any{token0Slot},
 	}, []any{&token0ExchangePricesAndConfig})
 
-	token1Slot := calculateMappingStorageSlot(
-		LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT,
-		lo.Ternary(
-			staticExtra.IsNative[1],
-			common.HexToAddress(valueobject.NativeAddress),
-			common.HexToAddress(p.Tokens[1].Address),
-		),
-	)
+	token1Slot := calculateMappingStorageSlot(LIQUIDITY_EXCHANGE_PRICES_MAPPING_SLOT, token1)
 	req.AddCall(&ethrpc.Call{
 		ABI:    abis.LiquidityABI,
 		Target: t.config.Liquidity,
@@ -124,17 +125,28 @@ func (t *PoolTracker) fetchRPCData(
 		Params: []any{token1Slot},
 	}, []any{&token1ExchangePricesAndConfig})
 
+	tokenReserveSlot := calculateDoubleMappingStorageSlot(DEX_V2_TOKEN_RESERVES_MAPPING_SLOT, dexType, common.HexToHash(dexId))
+	req.AddCall(&ethrpc.Call{
+		ABI:    abis.DexV2ABI,
+		Target: t.config.Dex,
+		Method: "readFromStorage",
+		Params: []any{tokenReserveSlot},
+	}, []any{&tokenReserves})
+
 	if _, err := req.Aggregate(); err != nil {
 		return Extra{}, err
 	}
 
 	extra := Extra{
-		Liquidity:    res.DexPoolState.DexVariables2Unpacked.ActiveLiquidity,
-		SqrtPriceX96: res.DexPoolState.DexVariablesUnpacked.CurrentSqrtPriceX96,
-		Tick:         res.DexPoolState.DexVariablesUnpacked.CurrentTick,
+		Liquidity:    res.DexPoolState.DexPoolStateRaw.DexVariables2Unpacked.ActiveLiquidity,
+		SqrtPriceX96: res.DexPoolState.DexPoolStateRaw.DexVariablesUnpacked.CurrentSqrtPriceX96,
+		Tick:         res.DexPoolState.DexPoolStateRaw.DexVariablesUnpacked.CurrentTick,
 
+		DexVariables2:                 res.DexPoolState.DexPoolStateRaw.DexVariables2Packed,
 		Token0ExchangePricesAndConfig: token0ExchangePricesAndConfig,
 		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
+
+		TokenReserves: tokenReserves,
 	}
 
 	return extra, nil
@@ -167,10 +179,17 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
-	reserve0, reserve1, err := calculateReservesFromTicks(extra.SqrtPriceX96, ticks)
+	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
+	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
 	if err != nil {
 		return entity.Pool{}, err
 	}
+
+	_, dexType := parseFluidDexV2PoolAddress(p.Address)
+	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
+		lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
+	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
+		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
 
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 

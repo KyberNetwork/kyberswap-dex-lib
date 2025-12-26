@@ -2,6 +2,8 @@ package genericarm
 
 import (
 	"math/big"
+	"slices"
+	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,6 +27,7 @@ type PoolSimulator struct {
 	supportedSwapType  SwapType
 	armType            ArmType
 	hasWithdrawalQueue bool
+	Vault              ERC4626Extra
 	gas                Gas
 }
 
@@ -53,6 +56,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		LiquidityAsset:     extra.LiquidityAsset,
 		WithdrawsQueued:    extra.WithdrawsQueued,
 		WithdrawsClaimed:   extra.WithdrawsClaimed,
+		Vault:              extra.Vault,
 		gas:                extra.Gas,
 	}, nil
 }
@@ -89,7 +93,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		amountOut.Set(amountIn)
 	case Pricable:
 		price := lo.Ternary(indexIn == 0, p.TradeRate0, p.TradeRate1)
-		amountOut.Div(new(uint256.Int).Mul(amountIn, price), p.PriceScale)
+		amountOut.MulDivOverflow(amountIn, price, p.PriceScale)
+	case Pricable4626:
+		tokenInIsBaseAsset := strings.EqualFold(p.Info.Tokens[indexIn], p.Vault.BaseAsset.Hex())
+		if tokenInIsBaseAsset {
+			// convertToAssets
+			amountOut.MulDivOverflow(amountIn, p.Vault.TotalAssets, p.Vault.TotalSupply)
+		} else {
+			// convertToShares
+			amountOut.MulDivOverflow(amountIn, p.Vault.TotalSupply, p.Vault.TotalAssets)
+		}
+		price := lo.Ternary(indexIn == 0, p.TradeRate0, p.TradeRate1)
+		amountOut.MulDivOverflow(amountOut, price, p.PriceScale)
 	default:
 		return nil, ErrUnsupportedArmType
 	}
@@ -116,6 +131,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Gas: int64(lo.Ternary(swapType == ZeroToOne, p.gas.ZeroToOne, p.gas.OneToZero)),
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

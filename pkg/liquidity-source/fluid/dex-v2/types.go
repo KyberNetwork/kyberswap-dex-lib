@@ -2,11 +2,23 @@ package dexv2
 
 import (
 	"math/big"
+
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Gas struct {
 	BaseGas          int64
 	CrossInitTickGas int64
+}
+
+type SwapInfo struct {
+	RemainingAmountIn     *v3Utils.Int256  `json:"rAI,omitempty"`
+	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
+	NextStateTickCurrent  int              `json:"nT"`
+	nextStateLiquidity    *v3Utils.Uint128
+	amountInRawAdjusted   *big.Int
+	amountOutRawAdjusted  *big.Int
 }
 
 type PoolMeta struct {
@@ -59,8 +71,19 @@ type Extra struct {
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
 
+	DexVariables2                 *big.Int `json:"dexVariables2"`
 	Token0ExchangePricesAndConfig *big.Int `json:"token0ExchangePricesAndConfig"`
 	Token1ExchangePricesAndConfig *big.Int `json:"token1ExchangePricesAndConfig"`
+
+	TokenReserves *big.Int `json:"tokenReserves"`
+}
+
+type DexKey struct {
+	Token0      common.Address
+	Token1      common.Address
+	Fee         *big.Int
+	TickSpacing *big.Int
+	Controller  common.Address
 }
 
 type DexVariables struct {
@@ -77,8 +100,9 @@ type DexVariables2 struct {
 	Token0Decimals                 *big.Int `json:"token0Decimals"`
 	Token1Decimals                 *big.Int `json:"token1Decimals"`
 	ActiveLiquidity                *big.Int `json:"activeLiquidity"`
+	PoolAccountingFlag             bool     `json:"poolAccountingFlag"`
 	FetchDynamicFeeFlag            bool     `json:"fetchDynamicFeeFlag"`
-	InbuiltDynamicFeeFlag          bool     `json:"inbuiltDynamicFeeFlag"`
+	FeeVersion                     *big.Int `json:"feeVersion"`
 	LpFee                          *big.Int `json:"lpFee"`
 	MaxDecayTime                   *big.Int `json:"maxDecayTime"`
 	PriceImpactToFeeDivisionFactor *big.Int `json:"priceImpactToFeeDivisionFactor"`
@@ -90,6 +114,12 @@ type DexVariables2 struct {
 }
 
 type DexPoolState struct {
+	DexId           common.Hash     `json:"dexId"`
+	DexPriceParsed  *big.Int        `json:"dexPriceParsed"`
+	DexPoolStateRaw DexPoolStateRaw `json:"dexPoolStateRaw"`
+}
+
+type DexPoolStateRaw struct {
 	DexVariablesPacked    *big.Int      `json:"dexVariablesPacked"`
 	DexVariables2Packed   *big.Int      `json:"dexVariables2Packed"`
 	DexVariablesUnpacked  DexVariables  `json:"dexVariablesUnpacked"`
@@ -107,6 +137,9 @@ type CalculatedVars struct {
 	Token0DenominatorPrecision *big.Int
 	Token1NumeratorPrecision   *big.Int
 	Token1DenominatorPrecision *big.Int
-	Token0SupplyExchangePrice  *big.Int
-	Token1SupplyExchangePrice  *big.Int
+
+	Token0SupplyExchangePrice *big.Int
+	Token0BorrowExchangePrice *big.Int
+	Token1SupplyExchangePrice *big.Int
+	Token1BorrowExchangePrice *big.Int
 }

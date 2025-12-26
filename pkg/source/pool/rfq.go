@@ -98,7 +98,7 @@ func (h *RFQWithPoolState) BatchRFQ(ctx context.Context, paramsSlice []RFQParams
 }
 
 func (h *RFQWithPoolState) GetAndClonePoolState(ctx context.Context, poolAddrs ...string) context.Context {
-	poolState, _ := h.GetStateByPoolAddresses(ctx, poolAddrs, []string{h.DexId}, PoolManagerExtraData{})
+	poolState, _ := h.GetStateByPoolAddresses(ctx, poolAddrs, []string{h.DexId}, nil)
 	if poolState == nil {
 		poolState = &FindRouteState{}
 	}
@@ -117,14 +117,12 @@ func (h *RFQWithPoolState) PoolState(ctx context.Context) *FindRouteState {
 }
 
 type IPoolManager interface {
-	// GetStateByPoolAddresses return a map of address - pools and a map of dexType- swapLimit for
-	GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string,
-		extraData PoolManagerExtraData) (*FindRouteState, error)
+	// GetStateByPoolAddresses return a map of address to pools and a map of dexType to swapLimit
+	GetStateByPoolAddresses(ctx context.Context, addrs, dexes []string, extraData ManagerExtraData) (*FindRouteState,
+		error)
 }
 
-type PoolManagerExtraData struct {
-	KyberLimitOrderAllowedSenders string
-}
+type ManagerExtraData map[string]any
 
 type FindRouteState struct {
 	Pools     map[string]IPoolSimulator // map PoolAddress-IPoolSimulator implementation

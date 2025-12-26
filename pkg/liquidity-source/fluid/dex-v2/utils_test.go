@@ -30,4 +30,11 @@ func TestCalcTripleSlot(t *testing.T) {
 		tickIdx,
 	)
 	assert.Equal(t, "0xafdfcb0b7e403175ea35e5828411d6511c59463259919355a913e68d0d27db28", liquidityNet.Hex())
+
+	tokenReserves := calculateDoubleMappingStorageSlot(
+		DEX_V2_TOKEN_RESERVES_MAPPING_SLOT,
+		dexType,
+		dexIDHash,
+	)
+	assert.Equal(t, "0xd23ef5acc674e3e3afcd02e3e831b02bc695105412576e43ea5284ef3543d8bd", tokenReserves.Hex())
 }

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
@@ -31,7 +32,7 @@ type HTTPClient struct {
 }
 
 func NewHTTPClient(config *dexalot.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
+	client := resty.NewWithClient(http.DefaultClient).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).

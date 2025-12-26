@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strconv"
 
 	"github.com/KyberNetwork/kutils/klog"
@@ -31,7 +32,7 @@ type httpClient struct {
 
 func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
 	if config.Client == nil {
-		config.Client = resty.New()
+		config.Client = resty.NewWithClient(http.DefaultClient)
 	}
 	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).

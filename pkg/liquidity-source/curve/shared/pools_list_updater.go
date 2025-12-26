@@ -3,6 +3,7 @@ package shared
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -43,7 +44,7 @@ type (
 )
 
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client, logger logger.Logger) *PoolsListUpdater {
-	client := resty.New().
+	client := resty.NewWithClient(http.DefaultClient).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)

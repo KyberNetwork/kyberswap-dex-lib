@@ -65,12 +65,17 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	extra := Extra{
-		TradeRate0:         uint256.MustFromBig(poolState.TradeRate0),
-		TradeRate1:         uint256.MustFromBig(poolState.TradeRate1),
-		PriceScale:         uint256.MustFromBig(poolState.PriceScale),
-		WithdrawsQueued:    uint256.MustFromBig(poolState.WithdrawsQueued),
-		WithdrawsClaimed:   uint256.MustFromBig(poolState.WithdrawsClaimed),
-		LiquidityAsset:     poolState.LiquidityAsset,
+		TradeRate0:       uint256.MustFromBig(poolState.TradeRate0),
+		TradeRate1:       uint256.MustFromBig(poolState.TradeRate1),
+		PriceScale:       uint256.MustFromBig(poolState.PriceScale),
+		WithdrawsQueued:  uint256.MustFromBig(poolState.WithdrawsQueued),
+		WithdrawsClaimed: uint256.MustFromBig(poolState.WithdrawsClaimed),
+		LiquidityAsset:   poolState.LiquidityAsset,
+		Vault: ERC4626Extra{
+			BaseAsset:   poolState.Vault.BaseAsset,
+			TotalAssets: uint256.MustFromBig(poolState.Vault.TotalAssets),
+			TotalSupply: uint256.MustFromBig(poolState.Vault.TotalSupply),
+		},
 		SwapTypes:          t.config.Arms[p.Address].SwapType,
 		ArmType:            t.config.Arms[p.Address].ArmType,
 		HasWithdrawalQueue: t.config.Arms[p.Address].HasWithdrawalQueue,

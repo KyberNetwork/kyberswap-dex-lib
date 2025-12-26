@@ -47,6 +47,7 @@ var WrappedNativeMap = map[ChainID]string{
 	ChainIDPlasma:          "0x6100E367285b01F48D07953803A2d8dCA5D19873",
 	ChainIDEtherlink:       "0xc9B53AB2679f573e480d01e0f49e2B5CFB7a3EAb",
 	ChainIDMonad:           "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+	ChainIDMegaETH:         "0x4200000000000000000000000000000000000006",
 }
 
 // WrapNativeLower wraps, if applicable, native token to wrapped token; and then lowercase it.
