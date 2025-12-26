@@ -125,9 +125,23 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIn := params.TokenAmountIn.Token
 
 	if strings.EqualFold(tokenIn, s.Info.Tokens[0]) {
-		s.Info.Reserves[0] = new(big.Int).Add(s.Info.Reserves[0], params.TokenAmountIn.Amount)
+		s.Info.Reserves[0] = new(big.Int).Add(
+			s.Info.Reserves[0],
+			params.TokenAmountIn.Amount,
+		)
+		s.Info.Reserves[1] = new(big.Int).Sub(
+			s.Info.Reserves[1],
+			params.TokenAmountOut.Amount,
+		)
 	} else {
-		s.Info.Reserves[1] = new(big.Int).Sub(s.Info.Reserves[1], params.TokenAmountOut.Amount)
+		s.Info.Reserves[1] = new(big.Int).Add(
+			s.Info.Reserves[1],
+			params.TokenAmountIn.Amount,
+		)
+		s.Info.Reserves[0] = new(big.Int).Sub(
+			s.Info.Reserves[0],
+			params.TokenAmountOut.Amount,
+		)
 	}
 }
 
