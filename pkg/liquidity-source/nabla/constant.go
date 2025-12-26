@@ -12,6 +12,8 @@ const (
 	DexType = valueobject.ExchangeNabla
 
 	decimals = 18
+
+	defaultGas = 244218
 )
 
 var (

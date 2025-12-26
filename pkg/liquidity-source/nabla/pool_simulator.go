@@ -76,6 +76,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			frPoolNewState: swapInfo.frPoolNewState,
 			toPoolNewState: swapInfo.toPoolNewState,
 		},
+		Gas: defaultGas,
 	}, nil
 }
 
