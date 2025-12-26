@@ -15,6 +15,8 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	extra Extra
+
+	tesseraSwap string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -22,6 +24,11 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -46,7 +53,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				BlockNumber: entityPool.BlockNumber,
 			},
 		},
-		extra: extra,
+		extra:       extra,
+		tesseraSwap: staticExtra.TesseraSwap,
 	}, nil
 }
 
@@ -125,12 +133,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return struct {
-		BlockNumber    uint64
-		TradingEnabled bool
-		IsInitialised  bool
+		BlockNumber uint64 `json:"blockNumber"`
+		TesseraSwap string `json:"tesseraSwap"`
 	}{
-		BlockNumber:    s.Info.BlockNumber,
-		TradingEnabled: s.extra.TradingEnabled,
-		IsInitialised:  s.extra.IsInitialised,
+		BlockNumber: s.Info.BlockNumber,
+		TesseraSwap: s.tesseraSwap,
 	}
 }

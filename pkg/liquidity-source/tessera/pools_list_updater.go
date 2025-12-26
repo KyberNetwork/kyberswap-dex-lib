@@ -2,6 +2,7 @@ package tessera
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -13,10 +14,20 @@ import (
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-type PoolsListUpdater struct {
-	cfg          *Config
-	ethrpcClient *ethrpc.Client
-}
+const (
+	batchSize = 50
+)
+
+type (
+	PoolsListUpdater struct {
+		cfg          *Config
+		ethrpcClient *ethrpc.Client
+	}
+
+	PoolsListUpdaterMetadata struct {
+		Offset int `json:"offset"`
+	}
+)
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
@@ -28,25 +39,53 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	u.logger().Info("Start getting new pools.")
+	log := logger.WithFields(logger.Fields{
+		"dexId": u.cfg.DexId,
+	})
 
-	// 1. Get pairs from Indexer
-	var pairs [][]common.Address
+	log.Info("Start getting new pools.")
+
+	metadata, err := u.getMetadata(metadataBytes)
+	if err != nil {
+		log.Warnf("getMetadata failed: %v", err)
+	}
+
+	var allPairs [][]common.Address
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    TesseraIndexerABI,
 		Target: u.cfg.TesseraIndexer,
 		Method: "getTesseraPairs",
-	}, []any{&pairs})
+	}, []any{&allPairs})
 
-	u.logger().Infof("Calling Indexer at %s", u.cfg.TesseraIndexer)
 	if _, err := req.Call(); err != nil {
-		u.logger().Errorf("Indexer call failed: %v", err)
-		return nil, nil, err
+		log.Errorf("Indexer call failed: %v", err)
+		return nil, metadataBytes, err
 	}
-	u.logger().Infof("Found %d pairs from Indexer", len(pairs))
 
-	// 2. Get pool addresses from Engine for each pair
+	totalPairs := len(allPairs)
+	if totalPairs == 0 {
+		log.Info("No pairs found from Indexer")
+		return nil, metadataBytes, nil
+	}
+
+	if metadata.Offset > totalPairs {
+		log.Infof("Resetting offset to 0 (metadata.Offset %d > totalPairs %d)", metadata.Offset, totalPairs)
+		metadata.Offset = 0
+	}
+
+	if metadata.Offset == totalPairs {
+		log.Info("No new pairs to track")
+		return nil, metadataBytes, nil
+	}
+
+	numToProcess := totalPairs - metadata.Offset
+	if numToProcess > batchSize {
+		numToProcess = batchSize
+	}
+
+	pairsToProcess := allPairs[metadata.Offset : metadata.Offset+numToProcess]
+
 	type getPoolResp struct {
 		Exists bool           `abi:"exists"`
 		Pool   common.Address `abi:"pool"`
@@ -54,53 +93,83 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var pools []entity.Pool
 	engineReq := u.ethrpcClient.NewRequest().SetContext(ctx)
-	resps := make([]getPoolResp, len(pairs))
+	resps := make([]getPoolResp, len(pairsToProcess))
 
-	for i, pair := range pairs {
-		token0 := pair[0]
-		token1 := pair[1]
+	for i, pair := range pairsToProcess {
 		engineReq.AddCall(&ethrpc.Call{
 			ABI:    TesseraEngineABI,
 			Target: u.cfg.TesseraEngine,
 			Method: "getTesseraPool",
-			Params: []any{token0, token1},
+			Params: []any{pair[0], pair[1]},
 		}, []any{&resps[i]})
 	}
 
 	resp, err := engineReq.TryAggregate()
 	if err != nil {
-		u.logger().Errorf("Engine call failed: %v", err)
-		return nil, nil, err
+		log.Errorf("Engine call failed: %v", err)
+		return nil, metadataBytes, err
 	}
 
 	for i, r := range resps {
 		if !resp.Result[i] || !r.Exists || r.Pool == (common.Address{}) {
-			u.logger().Debugf("Skipping idx %d: success=%v, exists=%v, addr=%s", i, resp.Result[i], r.Exists, r.Pool.Hex())
+			log.Debugf("Skipping pair %v: success=%v, exists=%v, addr=%s", pairsToProcess[i], resp.Result[i], r.Exists, r.Pool.Hex())
 			continue
 		}
 
 		tokens := []*entity.PoolToken{
-			{Address: strings.ToLower(pairs[i][0].Hex()), Swappable: true},
-			{Address: strings.ToLower(pairs[i][1].Hex()), Swappable: true},
+			{Address: strings.ToLower(pairsToProcess[i][0].Hex()), Swappable: true},
+			{Address: strings.ToLower(pairsToProcess[i][1].Hex()), Swappable: true},
 		}
 
+		staticExtra, _ := json.Marshal(StaticExtra{
+			TesseraSwap: u.cfg.TesseraSwap,
+		})
+
 		p := entity.Pool{
-			Address:   strings.ToLower(r.Pool.Hex()),
-			Exchange:  u.cfg.DexId,
-			Type:      "tessera",
-			Timestamp: time.Now().Unix(),
-			Reserves:  entity.PoolReserves{"0", "0"},
-			Tokens:    tokens,
+			Address:     strings.ToLower(r.Pool.Hex()),
+			Exchange:    u.cfg.DexId,
+			Type:        "tessera",
+			Timestamp:   time.Now().Unix(),
+			Reserves:    entity.PoolReserves{"0", "0"},
+			Tokens:      tokens,
+			StaticExtra: string(staticExtra),
 		}
 		pools = append(pools, p)
 	}
 
-	u.logger().Infof("Total valid pools found: %d", len(pools))
-	return pools, nil, nil
+	newOffset := metadata.Offset + numToProcess
+	newMetadataBytes, err := u.newMetadata(newOffset)
+	if err != nil {
+		log.Errorf("newMetadata failed: %v", err)
+		return pools, metadataBytes, nil
+	}
+
+	log.Infof("Found %d valid pools from batch of %d (new offset: %d/%d)", len(pools), numToProcess, newOffset, totalPairs)
+	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) logger() logger.Logger {
-	return logger.WithFields(logger.Fields{
-		"dexId": u.cfg.DexId,
-	})
+func (u *PoolsListUpdater) getMetadata(metadataBytes []byte) (PoolsListUpdaterMetadata, error) {
+	if len(metadataBytes) == 0 {
+		return PoolsListUpdaterMetadata{}, nil
+	}
+
+	var metadata PoolsListUpdaterMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return PoolsListUpdaterMetadata{}, err
+	}
+
+	return metadata, nil
+}
+
+func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
+	metadata := PoolsListUpdaterMetadata{
+		Offset: newOffset,
+	}
+
+	metadataBytes, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadataBytes, nil
 }

@@ -16,16 +16,17 @@ type LiquidityLevel struct {
 	Price  uint64       `json:"price"`
 }
 
+type StaticExtra struct {
+	TesseraSwap string `json:"tesseraSwap"`
+}
+
 type Extra struct {
 	BaseToQuotePrefetches []PrefetchRate `json:"b2q"`
 	QuoteToBasePrefetches []PrefetchRate `json:"q2b"`
 
 	// Revert condition flags
-	TradingEnabled bool   `json:"tradingEnabled"`
-	IsInitialised  bool   `json:"isInitialised"`
-	Side           uint8  `json:"side"`
-	Offset0        string `json:"offset0"`
-	Offset1        string `json:"offset1"`
+	TradingEnabled bool `json:"tradingEnabled"`
+	IsInitialised  bool `json:"isInitialised"`
 }
 
 type PrefetchRate struct {

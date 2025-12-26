@@ -232,9 +232,6 @@ func (d *PoolTracker) GetNewPoolState(
 		QuoteToBasePrefetches: quoteToBasePrefetches,
 		TradingEnabled:        tradingEnabled,
 		IsInitialised:         isInitialised,
-		Side:                  rpcResult.Side,
-		Offset0:               poolOffset0.String(),
-		Offset1:               poolOffset1.String(),
 	}
 
 	extraBytes, err := json.Marshal(extra)

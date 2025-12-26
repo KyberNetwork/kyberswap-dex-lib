@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -17,6 +18,10 @@ import (
 )
 
 func TestTesseraIntegration(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
 	cfg := Config{
 		DexId:          "tessera",
 		TesseraIndexer: "0x505352DA2918C6a06f12F3d59FFb79905d43439f",

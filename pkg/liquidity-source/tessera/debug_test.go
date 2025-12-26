@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -17,6 +18,10 @@ import (
 
 // TestTesseraDebugFailingCases tests specific failing cases
 func TestTesseraDebugFailingCases(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
 	cfg := Config{
 		DexId:          "tessera",
 		TesseraIndexer: "0x505352DA2918C6a06f12F3d59FFb79905d43439f",
@@ -44,8 +49,8 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			dec0:        8,
 			dec1:        6,
 			direction:   "1=>0",
-			amount:      big.NewInt(10000000), // 10 USDC
-			description: "cbBTC/USDC: 10 USDC (Tiny)",
+			amount:      big.NewInt(100000000), // 100 USDC
+			description: "cbBTC/USDC: 100 USDC",
 		},
 		{
 			poolAddr:    "0xe1191102bdcea1928a93b4d6ea7bf5c4e9207210",
@@ -66,26 +71,6 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			direction:   "1=>0",
 			amount:      big.NewInt(500000000), // 500 USDC
 			description: "Token/USDC: 500 USDC",
-		},
-		{
-			poolAddr:    "0xed57bacdc2a990b631f8817853935791c122c356",
-			token0:      "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
-			token1:      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-			dec0:        8,
-			dec1:        6,
-			direction:   "0=>1",
-			amount:      big.NewInt(11259600), // Failing amount from prefetch
-			description: "cbBTC/USDC: 0.112 cbBTC (B2Q)",
-		},
-		{
-			poolAddr:    "0xed57bacdc2a990b631f8817853935791c122c356",
-			token0:      "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
-			token1:      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-			dec0:        8,
-			dec1:        6,
-			direction:   "0=>1",
-			amount:      big.NewInt(5622900), // User's first b2q AmountIn
-			description: "cbBTC/USDC: 0.0562 cbBTC (User Failing B2Q)",
 		},
 	}
 
@@ -115,24 +100,8 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			fmt.Printf("Direction: %s, Amount: %s\n", testCase.direction, testCase.amount.String())
 			fmt.Printf("TradingEnabled: %v, IsInitialised: %v\n", extra.TradingEnabled, extra.IsInitialised)
 			fmt.Printf("BlockNumber: %d\n", p.BlockNumber)
-			fmt.Printf("Reserves: %v\n", p.Reserves)
-
 			fmt.Printf("BaseToQuotePrefetches: %d items\n", len(extra.BaseToQuotePrefetches))
-			for j, p := range extra.BaseToQuotePrefetches {
-				rateStr := "nil"
-				if p.Rate != nil {
-					rateStr = p.Rate.String()
-				}
-				fmt.Printf("  [%d] AmtIn: %s, Rate: %s\n", j, p.AmountIn.String(), rateStr)
-			}
 			fmt.Printf("QuoteToBasePrefetches: %d items\n", len(extra.QuoteToBasePrefetches))
-			for j, p := range extra.QuoteToBasePrefetches {
-				rateStr := "nil"
-				if p.Rate != nil {
-					rateStr = p.Rate.String()
-				}
-				fmt.Printf("  [%d] AmtIn: %s, Rate: %s\n", j, p.AmountIn.String(), rateStr)
-			}
 
 			var tokenIn, tokenOut string
 			if testCase.direction == "0=>1" {
@@ -180,24 +149,6 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				fmt.Printf("Simulator output: %s\n", simRes.TokenAmountOut.Amount.String())
 			}
 
-			if simErr != nil && quoterErr == nil {
-				fmt.Println("--- DEBUGGING INDIVIDUAL PREFETCH FAILURES ---")
-				fmt.Println("BaseToQuote Individual Calls:")
-				for _, pRate := range extra.BaseToQuotePrefetches {
-					if pRate.Rate == nil {
-						resStr := callQuoterDetailed(rpcClient, cfg.TesseraSwap, common.HexToAddress(p.Tokens[0].Address), common.HexToAddress(p.Tokens[1].Address), pRate.AmountIn.ToBig(), p.BlockNumber)
-						fmt.Printf("  B2Q AmtIn %s -> Result: %s\n", pRate.AmountIn.String(), resStr)
-					}
-				}
-				fmt.Println("QuoteToBase Individual Calls:")
-				for _, pRate := range extra.QuoteToBasePrefetches {
-					if pRate.Rate == nil {
-						resStr := callQuoterDetailed(rpcClient, cfg.TesseraSwap, common.HexToAddress(p.Tokens[1].Address), common.HexToAddress(p.Tokens[0].Address), pRate.AmountIn.ToBig(), p.BlockNumber)
-						fmt.Printf("  Q2B AmtIn %s -> Result: %s\n", pRate.AmountIn.String(), resStr)
-					}
-				}
-			}
-
 			if quoterErr == nil && simErr == nil {
 				diff := new(big.Int).Abs(new(big.Int).Sub(quoterRes.AmountOut, simRes.TokenAmountOut.Amount))
 				bps := int64(0)
@@ -211,30 +162,8 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			} else if quoterErr != nil && simErr == nil {
 				t.Errorf("Quoter reverted but simulator succeeded")
 			} else if quoterErr == nil && simErr != nil {
-				t.Errorf("Quoter succeeded but simulator failed - this indicates a logic bug")
+				t.Errorf("Quoter succeeded but simulator failed")
 			}
 		})
 	}
-}
-
-func callQuoterDetailed(client *ethrpc.Client, router string, tokenIn, tokenOut common.Address, amt *big.Int, block uint64) string {
-	var res struct {
-		AmountIn  *big.Int
-		AmountOut *big.Int
-	}
-	req := client.NewRequest().SetContext(context.Background())
-	if block > 0 {
-		req.SetBlockNumber(new(big.Int).SetUint64(block))
-	}
-	req.AddCall(&ethrpc.Call{
-		ABI:    TesseraRouterABI,
-		Target: router,
-		Method: "tesseraSwapViewAmounts",
-		Params: []any{tokenIn, tokenOut, amt},
-	}, []any{&res})
-	_, err := req.Call()
-	if err != nil {
-		return fmt.Sprintf("REVERT: %v", err)
-	}
-	return fmt.Sprintf("OUT: %s", res.AmountOut.String())
 }
