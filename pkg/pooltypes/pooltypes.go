@@ -110,6 +110,7 @@ import (
 	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
 	uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/lo"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
@@ -358,6 +359,7 @@ type Types struct {
 	ValantisStex               string
 	Infinifi                   string
 	Nabla                      string
+	Tessera                    string
 }
 
 var (
@@ -547,5 +549,6 @@ var (
 		ValantisStex:               valantisstex.DexType,
 		Infinifi:                   infinifi.DexType,
 		Nabla:                      nabla.DexType,
+		Tessera:                    tessera.DexType,
 	}
 )
