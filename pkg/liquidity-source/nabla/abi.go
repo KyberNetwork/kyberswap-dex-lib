@@ -19,7 +19,6 @@ var (
 	oracleABI        abi.ABI
 	pythAdapterV2ABI abi.ABI
 
-	oracleFilterer   = lo.Must(abis.NewNablaOracleFilterer(common.Address{}, nil))
 	swapPoolFilterer = lo.Must(abis.NewNablaSwapPoolFilterer(common.Address{}, nil))
 )
 
