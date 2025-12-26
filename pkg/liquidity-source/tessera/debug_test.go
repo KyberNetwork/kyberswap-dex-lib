@@ -18,10 +18,10 @@ import (
 // TestTesseraDebugFailingCases tests specific failing cases
 func TestTesseraDebugFailingCases(t *testing.T) {
 	cfg := Config{
-		DexId:       "tessera",
-		IndexerAddr: "0x505352DA2918C6a06f12F3d59FFb79905d43439f",
-		EngineAddr:  "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
-		RouterAddr:  "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
+		DexId:          "tessera",
+		TesseraIndexer: "0x505352DA2918C6a06f12F3d59FFb79905d43439f",
+		TesseraEngine:  "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
+		TesseraSwap:    "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
 
 	rpcClient := ethrpc.New("https://base.kyberengineering.io").
@@ -117,7 +117,7 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 
 			reqQuoter.AddCall(&ethrpc.Call{
 				ABI:    TesseraRouterABI,
-				Target: cfg.RouterAddr,
+				Target: cfg.TesseraSwap,
 				Method: "tesseraSwapViewAmounts",
 				Params: []any{common.HexToAddress(tokenIn), common.HexToAddress(tokenOut), testCase.amount},
 			}, []any{&quoterRes})

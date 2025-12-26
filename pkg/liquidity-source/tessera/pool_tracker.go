@@ -2,7 +2,6 @@ package tessera
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,37 +11,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
-
-type poolStateLevel struct {
-	Amount *big.Int `abi:"amount"`
-	Price  *big.Int `abi:"price"`
-	Active *big.Int `abi:"active"`
-}
-
-type poolStateResult struct {
-	PoolOffset0       *big.Int           `abi:"poolOffset0"`
-	PoolOffset1       *big.Int           `abi:"poolOffset1"`
-	LpFeeRate         uint32             `abi:"lpFeeRate"`
-	MtFeeRate         uint32             `abi:"mtFeeRate"`
-	Side              uint8              `abi:"side"`
-	TradingEnabled    bool               `abi:"tradingEnabled"`
-	StartBlock        uint64             `abi:"startBlock"`
-	DecayDuration     uint64             `abi:"decayDuration"`
-	InitialFeeRate    uint32             `abi:"initialFeeRate"`
-	MinimumFeeRate    uint32             `abi:"minimumFeeRate"`
-	AnchorPrice       uint32             `abi:"tesseraAnchorPrice"`
-	IsWhitelistActive bool               `abi:"isWhitelistActive"`
-	WhitelistFeeRate  uint32             `abi:"whitelistFeeRate"`
-	LiquidatorFeeRate uint32             `abi:"liquidatorFeeRate"`
-	OrderBook0        [20]poolStateLevel `abi:"orderBook0"`
-	OrderBook1        [20]poolStateLevel `abi:"orderBook1"`
-}
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -56,8 +33,6 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	routerAddrStr := d.config.RouterAddr
-
 	token0 := common.HexToAddress(p.Tokens[0].Address)
 	token1 := common.HexToAddress(p.Tokens[1].Address)
 
@@ -193,7 +168,7 @@ func (d *PoolTracker) GetNewPoolState(
 	for i, amt := range baseToQuoteAmounts {
 		reqPrefetch.AddCall(&ethrpc.Call{
 			ABI:    TesseraRouterABI,
-			Target: routerAddrStr,
+			Target: d.config.TesseraSwap,
 			Method: "tesseraSwapViewAmounts",
 			Params: []any{token0, token1, amt.ToBig()},
 		}, []any{&baseToQuoteResults[i]})
@@ -201,7 +176,7 @@ func (d *PoolTracker) GetNewPoolState(
 	for i, amt := range quoteToBaseAmounts {
 		reqPrefetch.AddCall(&ethrpc.Call{
 			ABI:    TesseraRouterABI,
-			Target: routerAddrStr,
+			Target: d.config.TesseraSwap,
 			Method: "tesseraSwapViewAmounts",
 			Params: []any{token1, token0, amt.ToBig()},
 		}, []any{&quoteToBaseResults[i]})

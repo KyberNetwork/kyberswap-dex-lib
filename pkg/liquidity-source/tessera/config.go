@@ -2,8 +2,8 @@ package tessera
 
 type Config struct {
 	DexId             string `json:"dexId"`
-	EngineAddr        string `json:"engineAddr"`
-	IndexerAddr       string `json:"indexerAddr"`
-	RouterAddr        string `json:"routerAddr"`
+	TesseraEngine     string `json:"tesseraEngine"`
+	TesseraIndexer    string `json:"tesseraIndexer"`
+	TesseraSwap       string `json:"tesseraSwap"`
 	MaxPrefetchPoints int    `json:"maxPrefetchPoints"`
 }

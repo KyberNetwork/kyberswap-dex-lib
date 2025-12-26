@@ -8,15 +8,17 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{
@@ -33,11 +35,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    TesseraIndexerABI,
-		Target: u.cfg.IndexerAddr,
+		Target: u.cfg.TesseraIndexer,
 		Method: "getTesseraPairs",
 	}, []any{&pairs})
 
-	u.logger().Infof("Calling Indexer at %s", u.cfg.IndexerAddr)
+	u.logger().Infof("Calling Indexer at %s", u.cfg.TesseraIndexer)
 	if _, err := req.Call(); err != nil {
 		u.logger().Errorf("Indexer call failed: %v", err)
 		return nil, nil, err
@@ -59,14 +61,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		token1 := pair[1]
 		engineReq.AddCall(&ethrpc.Call{
 			ABI:    TesseraEngineABI,
-			Target: u.cfg.EngineAddr,
+			Target: u.cfg.TesseraEngine,
 			Method: "getTesseraPool",
 			Params: []any{token0, token1},
 		}, []any{&resps[i]})
 	}
 
-	u.logger().Infof("Calling Engine for %d pools at %s", len(pairs), u.cfg.EngineAddr)
-	// Use TryAggregate which worked before (gave unmarshal error, which means call reached contract)
 	resp, err := engineReq.TryAggregate()
 	if err != nil {
 		u.logger().Errorf("Engine call failed: %v", err)
@@ -79,27 +79,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			continue
 		}
 
-		u.logger().Infof("Found pool: %s for pair [%s, %s]", r.Pool.Hex(), pairs[i][0].Hex(), pairs[i][1].Hex())
-
 		tokens := []*entity.PoolToken{
 			{Address: strings.ToLower(pairs[i][0].Hex()), Swappable: true},
 			{Address: strings.ToLower(pairs[i][1].Hex()), Swappable: true},
 		}
 
-		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			BaseToken:  strings.ToLower(pairs[i][0].Hex()),
-			QuoteToken: strings.ToLower(pairs[i][1].Hex()),
-			EngineAddr: u.cfg.EngineAddr,
-		})
-
 		p := entity.Pool{
-			Address:     strings.ToLower(r.Pool.Hex()),
-			Exchange:    u.cfg.DexId,
-			Type:        "tessera",
-			Timestamp:   time.Now().Unix(),
-			Reserves:    entity.PoolReserves{"0", "0"},
-			Tokens:      tokens,
-			StaticExtra: string(staticExtraBytes),
+			Address:   strings.ToLower(r.Pool.Hex()),
+			Exchange:  u.cfg.DexId,
+			Type:      "tessera",
+			Timestamp: time.Now().Unix(),
+			Reserves:  entity.PoolReserves{"0", "0"},
+			Tokens:    tokens,
 		}
 		pools = append(pools, p)
 	}
