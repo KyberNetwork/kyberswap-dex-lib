@@ -1,8 +1,9 @@
 package gmxglp
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func mul(a, b *big.Int) (*big.Int, error) {

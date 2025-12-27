@@ -1,11 +1,12 @@
 package wombatmain
 
 import (
+	"math/big"
+	"strings"
+
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"math/big"
-	"strings"
 )
 
 func Swap(

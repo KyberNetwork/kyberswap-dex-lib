@@ -3,6 +3,7 @@ package cusd
 import (
 	"bytes"
 	_ "embed"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
