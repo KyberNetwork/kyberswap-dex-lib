@@ -22,7 +22,6 @@ import (
 type PoolSimulator struct {
 	*sync.RWMutex
 	pool.Pool
-	staticExtra  StaticExtra
 	extra        Extra
 	gas          Gas
 	ethrpcClient *ethrpc.Client
@@ -31,15 +30,6 @@ type PoolSimulator struct {
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	if len(entityPool.StaticExtra) == 0 {
-		return nil, ErrStaticExtraEmpty
-	}
-
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, err
-	}
-
 	var extra Extra
 	if len(entityPool.Extra) > 0 {
 		if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -66,11 +56,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		RWMutex:     &sync.RWMutex{},
-		Pool:        pool.Pool{Info: info},
-		extra:       extra,
-		staticExtra: staticExtra,
-		gas:         DefaultGas,
+		RWMutex: &sync.RWMutex{},
+		Pool:    pool.Pool{Info: info},
+		extra:   extra,
+		gas:     DefaultGas,
 	}, nil
 }
 
@@ -117,6 +106,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Amount: integer.Zero(), // Clear handles fees internally
 		},
 		Gas: p.gas.Swap,
+		SwapInfo: SwapInfo{
+			SwapAddress: p.extra.SwapAddress,
+			IOU:         p.extra.IOUs[tokenOutIndex],
+		},
 	}, nil
 }
 
@@ -168,7 +161,7 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 	calls := ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    clearSwapABI,
-		Target: p.staticExtra.SwapAddress,
+		Target: p.extra.SwapAddress,
 		Method: methodPreviewSwap,
 		Params: []any{
 			common.HexToAddress(p.Info.Address),
@@ -197,9 +190,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	return PoolMeta{
-		SwapAddress: p.staticExtra.SwapAddress,
-	}
+	return nil
 }
 
 func (p *PoolSimulator) GetLpToken() string {
