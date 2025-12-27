@@ -123,28 +123,27 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 // estimateAmountOut estimates the output amount based on cached data
 // For Clear protocol, this is an approximation since actual pricing requires RPC
 func (p *PoolSimulator) estimateAmountOut(tokenInIndex, tokenOutIndex int, amountIn *big.Int) *big.Int {
-	index0, index1 := tokenInIndex, tokenOutIndex
-	if tokenInIndex > tokenOutIndex {
-		index0, index1 = tokenOutIndex, tokenInIndex
-	}
-	if p.extra.Reserves == nil || !lo.HasKey(p.extra.Reserves, index0) || !lo.HasKey(p.extra.Reserves[index0], index1) {
+	// Directly use tokenInIndex → tokenOutIndex since tracker now stores both directions
+	if p.extra.Reserves == nil {
 		return big.NewInt(0)
 	}
-	reserves := p.extra.Reserves[index0][index1]
-	var reserveIn, reserveOut *big.Int
-	if tokenInIndex < tokenOutIndex {
-		reserveIn, reserveOut = reserves.AmountIn, reserves.AmountOut
-	} else {
-		reserveIn, reserveOut = reserves.AmountOut, reserves.AmountIn
+	if _, ok := p.extra.Reserves[tokenInIndex]; !ok {
+		return big.NewInt(0)
 	}
-
-	if reserveIn == nil || reserveOut == nil || reserveIn.Sign() == 0 || reserveOut.Sign() == 0 {
+	if _, ok := p.extra.Reserves[tokenInIndex][tokenOutIndex]; !ok {
 		return big.NewInt(0)
 	}
 
-	// Simple ratio calculation: amountOut = amountIn * reserveOut / reserveIn
+	rate := p.extra.Reserves[tokenInIndex][tokenOutIndex]
+	if rate == nil || rate.AmountIn == nil || rate.AmountOut == nil {
+		return big.NewInt(0)
+	}
+	if rate.AmountIn.Sign() == 0 || rate.AmountOut.Sign() == 0 {
+		return big.NewInt(0)
+	}
 
-	return bignumber.MulDivDown(new(big.Int), amountIn, reserveOut, reserveIn)
+	// Simple ratio calculation: amountOut = amountIn * rateAmountOut / rateAmountIn
+	return bignumber.MulDivDown(new(big.Int), amountIn, rate.AmountOut, rate.AmountIn)
 }
 
 // CalcAmountOutWithRPC calculates output using actual RPC call to previewSwap
@@ -190,10 +189,51 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	return p
+	cloned := &PoolSimulator{
+		RWMutex:     &sync.RWMutex{},
+		Pool:        p.Pool,
+		staticExtra: p.staticExtra,
+		gas:         p.gas,
+	}
+
+	// Deep copy reserves
+	cloned.Info.Reserves = make([]*big.Int, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		if r != nil {
+			cloned.Info.Reserves[i] = new(big.Int).Set(r)
+		}
+	}
+
+	// Deep copy extra.Reserves map
+	if p.extra.Reserves != nil {
+		cloned.extra.Reserves = make(map[int]map[int]*PreviewSwapResult)
+		for i, inner := range p.extra.Reserves {
+			cloned.extra.Reserves[i] = make(map[int]*PreviewSwapResult)
+			for j, rate := range inner {
+				if rate != nil {
+					clonedRate := &PreviewSwapResult{}
+					if rate.AmountIn != nil {
+						clonedRate.AmountIn = new(big.Int).Set(rate.AmountIn)
+					}
+					if rate.AmountOut != nil {
+						clonedRate.AmountOut = new(big.Int).Set(rate.AmountOut)
+					}
+					if rate.IOUs != nil {
+						clonedRate.IOUs = new(big.Int).Set(rate.IOUs)
+					}
+					cloned.extra.Reserves[i][j] = clonedRate
+				}
+			}
+		}
+	}
+
+	return cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	// Clear uses oracle-based pricing, not AMM reserves
+	// The rate doesn't change based on swap amounts - it's determined by external oracles
+	// Therefore, we don't need to update any state after a swap
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
