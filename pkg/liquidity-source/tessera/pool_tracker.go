@@ -2,6 +2,7 @@ package tessera
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -38,20 +39,32 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var rpcResult poolStateResult
 	var isInitialised bool
+	var reserves = make([]*big.Int, len(p.Tokens))
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	resp, err := req.AddCall(&ethrpc.Call{
-		ABI:    TesseraPoolABI,
-		Target: p.Address,
-		Method: "poolState",
-		Params: nil,
-	}, []any{&rpcResult}).AddCall(&ethrpc.Call{
-		ABI:    TesseraPoolABI,
-		Target: p.Address,
-		Method: "isInitialised",
-		Params: nil,
-	}, []any{&isInitialised}).TryBlockAndAggregate()
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    tesseraPoolABI,
+			Target: p.Address,
+			Method: "poolState",
+			Params: nil,
+		}, []any{&rpcResult}).
+		AddCall(&ethrpc.Call{
+			ABI:    tesseraPoolABI,
+			Target: p.Address,
+			Method: "isInitialised",
+			Params: nil,
+		}, []any{&isInitialised})
 
+	for i, token := range p.Tokens {
+		req.AddCall(&ethrpc.Call{
+			ABI:    erc20ABI,
+			Target: token.Address,
+			Method: "balanceOf",
+			Params: []any{common.HexToAddress(d.config.TesseraTreasury)},
+		}, []any{&reserves[i]})
+	}
+
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
@@ -137,7 +150,7 @@ func (d *PoolTracker) GetNewPoolState(
 	applyShift := func(points []*uint256.Int) []*uint256.Int {
 		for _, p := range points {
 			shift := new(uint256.Int).Div(p, uint256.NewInt(1000))
-			if shift.IsZero() && p.Cmp(uint256.NewInt(100)) > 0 {
+			if shift.IsZero() && p.CmpUint64(100) > 0 {
 				shift.SetUint64(100)
 			}
 			if !shift.IsZero() {
@@ -148,14 +161,6 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 	baseToQuoteAmounts = applyShift(baseToQuoteAmounts)
 	quoteToBaseAmounts = applyShift(quoteToBaseAmounts)
-
-	var b2qMax, q2bMax *uint256.Int
-	if len(baseToQuoteAmounts) > 0 {
-		b2qMax = baseToQuoteAmounts[len(baseToQuoteAmounts)-1]
-	}
-	if len(quoteToBaseAmounts) > 0 {
-		q2bMax = quoteToBaseAmounts[len(quoteToBaseAmounts)-1]
-	}
 
 	limitPrefetchPoints := func(points []*uint256.Int) []*uint256.Int {
 		maxPrefetchPoints := d.config.MaxPrefetchPoints
@@ -183,7 +188,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	for i, amt := range baseToQuoteAmounts {
 		reqPrefetch.AddCall(&ethrpc.Call{
-			ABI:    TesseraRouterABI,
+			ABI:    tesseraRouterABI,
 			Target: d.config.TesseraSwap,
 			Method: "tesseraSwapViewAmounts",
 			Params: []any{token0, token1, amt.ToBig()},
@@ -191,7 +196,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 	for i, amt := range quoteToBaseAmounts {
 		reqPrefetch.AddCall(&ethrpc.Call{
-			ABI:    TesseraRouterABI,
+			ABI:    tesseraRouterABI,
 			Target: d.config.TesseraSwap,
 			Method: "tesseraSwapViewAmounts",
 			Params: []any{token1, token0, amt.ToBig()},
@@ -227,9 +232,19 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 	}
 
+	var maxB2Q, maxQ2B *uint256.Int
+	if len(baseToQuoteAmounts) > 0 {
+		maxB2Q = baseToQuoteAmounts[len(baseToQuoteAmounts)-1]
+	}
+	if len(quoteToBaseAmounts) > 0 {
+		maxQ2B = quoteToBaseAmounts[len(quoteToBaseAmounts)-1]
+	}
+
 	extra := Extra{
 		BaseToQuotePrefetches: baseToQuotePrefetches,
 		QuoteToBasePrefetches: quoteToBasePrefetches,
+		MaxBaseToQuoteAmount:  maxB2Q,
+		MaxQuoteToBaseAmount:  maxQ2B,
 		TradingEnabled:        tradingEnabled,
 		IsInitialised:         isInitialised,
 	}
@@ -244,12 +259,12 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	res0 := "0"
-	if b2qMax != nil {
-		res0 = b2qMax.String()
+	if reserves[0] != nil {
+		res0 = reserves[0].String()
 	}
 	res1 := "0"
-	if q2bMax != nil {
-		res1 = q2bMax.String()
+	if reserves[1] != nil {
+		res1 = reserves[1].String()
 	}
 	p.Reserves = []string{res0, res1}
 

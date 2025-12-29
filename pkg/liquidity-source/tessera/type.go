@@ -24,6 +24,12 @@ type Extra struct {
 	BaseToQuotePrefetches []PrefetchRate `json:"b2q"`
 	QuoteToBasePrefetches []PrefetchRate `json:"q2b"`
 
+	// Max amounts from prefetch points
+	// Only support swaps up to this limit with high accuracy
+	// Quoter may accept larger amounts but interpolation has no data points beyond this range
+	MaxBaseToQuoteAmount *uint256.Int `json:"maxB2Q,omitempty"`
+	MaxQuoteToBaseAmount *uint256.Int `json:"maxQ2B,omitempty"`
+
 	// Revert condition flags
 	TradingEnabled bool `json:"tradingEnabled"`
 	IsInitialised  bool `json:"isInitialised"`

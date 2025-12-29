@@ -8,7 +8,7 @@ import (
 const (
 	DexType = "tessera"
 
-	defaultGas = 200000
+	defaultGas = 400000
 )
 
 var (
