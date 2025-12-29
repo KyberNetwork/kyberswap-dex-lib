@@ -122,7 +122,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		bucketIndex := s.getLIUSDIndex(tokenOut)
 		swapInfo = SwapInfo{
 			Action:          ActionCreatePosition,
-			UnwindingEpochs: bucketIndex,
+			UnwindingEpochs: int(s.LIUSDBuckets[bucketIndex].Index),
 		}
 		amountOut = s.calculateLock(amountIn, bucketIndex)
 		gas = defaultCreatePositionGas
