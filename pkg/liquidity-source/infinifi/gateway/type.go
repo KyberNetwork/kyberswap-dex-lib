@@ -21,3 +21,19 @@ type Extra struct {
 type Meta struct {
 	BlockNumber uint64 `json:"blockNumber"`
 }
+
+type Action int
+
+const (
+	ActionMint           Action = iota // 0: mint
+	ActionRedeem                       // 1: redeem
+	ActionStake                        // 2: stake
+	ActionUnstake                      // 3: unstake
+	ActionMintAndStake                 // 4: mint and stake
+	ActionCreatePosition Action = 5    // >4: create position
+)
+
+type SwapInfo struct {
+	Action          Action `json:"action"`
+	UnwindingEpochs int    `json:"unwindingEpochs"`
+}

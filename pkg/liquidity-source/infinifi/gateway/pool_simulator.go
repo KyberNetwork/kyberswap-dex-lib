@@ -83,44 +83,63 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	// Determine swap type and calculate output
 	var amountOut *big.Int
 	var gas int64
-
+	var swapInfo SwapInfo
 	switch {
 	case tokenIn == s.usdc && tokenOut == s.iusd:
 		// USDC → iUSD (mint)
+		swapInfo = SwapInfo{
+			Action: ActionMint,
+		}
 		amountOut = s.calculateMint(amountIn)
 		gas = defaultMintGas
 
 	case tokenIn == s.iusd && tokenOut == s.usdc:
 		// iUSD → USDC (redeem)
+		swapInfo = SwapInfo{
+			Action: ActionRedeem,
+		}
 		amountOut = s.calculateRedeem(amountIn)
 		gas = defaultRedeemGas
 
 	case tokenIn == s.iusd && tokenOut == s.siusd:
 		// iUSD → siUSD (stake)
+		swapInfo = SwapInfo{
+			Action: ActionStake,
+		}
 		amountOut = s.calculateStake(amountIn)
 		gas = defaultStakeGas
 
 	case tokenIn == s.siusd && tokenOut == s.iusd:
 		// siUSD → iUSD (unstake)
+		swapInfo = SwapInfo{
+			Action: ActionUnstake,
+		}
 		amountOut = s.calculateUnstake(amountIn)
 		gas = defaultUnstakeGas
 
 	case tokenIn == s.iusd && s.isLIUSD(tokenOut):
 		// iUSD → liUSD (lock/createPosition)
 		bucketIndex := s.getLIUSDIndex(tokenOut)
+		swapInfo = SwapInfo{
+			Action:          ActionCreatePosition,
+			UnwindingEpochs: bucketIndex,
+		}
 		amountOut = s.calculateLock(amountIn, bucketIndex)
 		gas = defaultCreatePositionGas
 
 	case tokenIn == s.usdc && tokenOut == s.siusd:
 		// USDC → siUSD (mintAndStake)
+		swapInfo = SwapInfo{
+			Action: ActionMintAndStake,
+		}
 		amountOut = s.calculateMintAndStake(amountIn)
 		gas = defaultMintAndStakeGas
 
-	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
-		// USDC → liUSD (mintAndLock)
-		bucketIndex := s.getLIUSDIndex(tokenOut)
-		amountOut = s.calculateMintAndLock(amountIn, bucketIndex)
-		gas = defaultMintAndLockGas
+	// case tokenIn == s.usdc && s.isLIUSD(tokenOut):
+	// 	// USDC → liUSD (mintAndLock)
+	// 	bucketIndex := s.getLIUSDIndex(tokenOut)
+	// 	amountOut = s.calculateMintAndLock(amountIn, bucketIndex)
+	// 	gas = defaultMintAndLockGas
 
 	default:
 		// All other paths are unsupported
@@ -136,7 +155,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenIn,
 			Amount: big.NewInt(0), // No fees on these operations
 		},
-		Gas: gas,
+		SwapInfo: swapInfo,
+		Gas:      gas,
 	}, nil
 }
 
@@ -219,6 +239,7 @@ func (s *PoolSimulator) calculateMintAndStake(usdcAmount *big.Int) *big.Int {
 	return siusdAmount
 }
 
+// nolint: unused
 // calculateMintAndLock: USDC → liUSD (combined mint + lock)
 func (s *PoolSimulator) calculateMintAndLock(usdcAmount *big.Int, bucketIndex int) *big.Int {
 	// First: USDC → iUSD (mint with decimal scaling)
