@@ -53,7 +53,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	var allPairs [][]common.Address
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
-		ABI:    TesseraIndexerABI,
+		ABI:    tesseraIndexerABI,
 		Target: u.cfg.TesseraIndexer,
 		Method: "getTesseraPairs",
 	}, []any{&allPairs})
@@ -97,7 +97,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	for i, pair := range pairsToProcess {
 		engineReq.AddCall(&ethrpc.Call{
-			ABI:    TesseraEngineABI,
+			ABI:    tesseraEngineABI,
 			Target: u.cfg.TesseraEngine,
 			Method: "getTesseraPool",
 			Params: []any{pair[0], pair[1]},
