@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -21,6 +22,7 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangeTessera)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -83,16 +85,16 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	amountInRaw := uint256.MustFromBig(tokenAmountIn.Amount)
 
-	var maxAvailable *big.Int
+	// Now only support swaps up to max prefetch points
+	// Quoter may accept larger amounts but interpolation has no data points beyond this range
+	// This prevents price deviation when swapping beyond the highest price level
+	var maxPrefetchAmount *uint256.Int
 	if isBaseToQuote {
-		maxAvailable = s.Info.Reserves[0]
+		maxPrefetchAmount = s.extra.MaxBaseToQuoteAmount
 	} else {
-		maxAvailable = s.Info.Reserves[1]
+		maxPrefetchAmount = s.extra.MaxQuoteToBaseAmount
 	}
-
-	// Now only support swaps up to this limit with high accuracy.
-	// Quoter may accept larger amounts but interpolation has no data points beyond this range.
-	if tokenAmountIn.Amount.Cmp(maxAvailable) > 0 {
+	if maxPrefetchAmount != nil && amountInRaw.Cmp(maxPrefetchAmount) > 0 {
 		return nil, ErrSwapReverted
 	}
 
@@ -107,6 +109,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	if err != nil {
 		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		inventoryLimit := limit.GetLimit(tokenOut)
+		if amountOut.CmpBig(inventoryLimit) > 0 {
+			return nil, ErrSwapReverted
+		}
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -150,11 +159,20 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 
 	if limit := params.SwapLimit; limit != nil {
-		_, _, err := limit.UpdateLimit(tokenOut, tokenIn, amtIn, amtOut)
+		_, _, err := limit.UpdateLimit(tokenOut, tokenIn, amtOut, amtIn)
 		if err != nil {
 			log.Err(err).Msg("tessera.UpdateBalance failed")
 		}
 	}
+}
+
+func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	tokens, reserves := s.GetTokens(), s.GetReserves()
+	inventory := make(map[string]*big.Int, len(tokens))
+	for i, token := range tokens {
+		inventory[token] = reserves[i]
+	}
+	return inventory
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
