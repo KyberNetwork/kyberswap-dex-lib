@@ -14,6 +14,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // TestTesseraDebugFailingCases tests specific failing cases
@@ -23,10 +25,11 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 	}
 
 	cfg := Config{
-		DexId:          "tessera",
-		TesseraIndexer: "0x505352DA2918C6a06f12F3d59FFb79905d43439f",
-		TesseraEngine:  "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
-		TesseraSwap:    "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
+		DexId:           "tessera",
+		TesseraTreasury: "0x3dbe077e7986657e95e1cc50089f17a5a4af0aae",
+		TesseraIndexer:  "0x505352DA2918C6a06f12F3d59FFb79905d43439f",
+		TesseraEngine:   "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
+		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
 
 	rpcClient := ethrpc.New("https://base.kyberengineering.io").
@@ -123,7 +126,7 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				SetBlockNumber(big.NewInt(int64(p.BlockNumber)))
 
 			reqQuoter.AddCall(&ethrpc.Call{
-				ABI:    TesseraRouterABI,
+				ABI:    tesseraRouterABI,
 				Target: cfg.TesseraSwap,
 				Method: "tesseraSwapViewAmounts",
 				Params: []any{common.HexToAddress(tokenIn), common.HexToAddress(tokenOut), testCase.amount},
@@ -137,12 +140,15 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				fmt.Printf("Quoter output: %s\n", quoterRes.AmountOut.String())
 			}
 
+			limit := swaplimit.NewInventory("tessera", sim.CalculateLimit())
+
 			simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  tokenIn,
 					Amount: testCase.amount,
 				},
 				TokenOut: tokenOut,
+				Limit:    limit,
 			})
 
 			if simErr != nil {
@@ -154,12 +160,12 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			if quoterErr == nil && simErr == nil {
 				diff := new(big.Int).Abs(new(big.Int).Sub(quoterRes.AmountOut, simRes.TokenAmountOut.Amount))
 				bps := int64(0)
-				if quoterRes.AmountOut.Cmp(big.NewInt(0)) > 0 {
-					bps = new(big.Int).Div(new(big.Int).Mul(diff, big.NewInt(10000)), quoterRes.AmountOut).Int64()
+				if quoterRes.AmountOut.Sign() > 0 {
+					bps = new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), quoterRes.AmountOut).Int64()
 				}
 				fmt.Printf("Difference: %s, BPS: %d\n", diff.String(), bps)
-				if bps > 10 {
-					t.Errorf("High BPS difference: %d (expected <= 10)", bps)
+				if bps > 1 {
+					t.Errorf("High BPS difference: %d (expected <= 1)", bps)
 				}
 			} else if quoterErr != nil && simErr == nil {
 				t.Errorf("Quoter reverted but simulator succeeded")

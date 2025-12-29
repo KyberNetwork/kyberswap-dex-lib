@@ -1,29 +1,45 @@
 package tessera
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
 var (
-	TesseraIndexerABI abi.ABI
-	TesseraEngineABI  abi.ABI
-	TesseraPoolABI    abi.ABI
-	TesseraRouterABI  abi.ABI
+	tesseraIndexerABI abi.ABI
+	tesseraEngineABI  abi.ABI
+	tesseraPoolABI    abi.ABI
+	tesseraRouterABI  abi.ABI
+	erc20ABI          abi.ABI
 )
 
 func init() {
+	builder := []struct {
+		ABI  *abi.ABI
+		data []byte
+	}{
+		{&erc20ABI, erc20ABIData},
+	}
+
 	var err error
 
-	TesseraIndexerABI, err = abi.JSON(strings.NewReader(`[
+	for _, b := range builder {
+		*b.ABI, err = abi.JSON(bytes.NewReader(b.data))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	tesseraIndexerABI, err = abi.JSON(strings.NewReader(`[
 		{"inputs": [], "name": "getTesseraPairs", "outputs": [{"internalType": "address[][]", "name": "", "type": "address[][]"}], "stateMutability": "view", "type": "function"}
 	]`))
 	if err != nil {
 		panic(err)
 	}
 
-	TesseraEngineABI, err = abi.JSON(strings.NewReader(`[
+	tesseraEngineABI, err = abi.JSON(strings.NewReader(`[
 		{"inputs": [{"internalType": "address", "name": "token0", "type": "address"}, {"internalType": "address", "name": "token1", "type": "address"}], "name": "getTesseraPool", "outputs": [{"internalType": "bool", "name": "exists", "type": "bool"}, {"internalType": "address", "name": "pool", "type": "address"}], "stateMutability": "view", "type": "function"},
 		{"inputs": [], "name": "getSkipLevelsBlock", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}
 	]`))
@@ -31,7 +47,7 @@ func init() {
 		panic(err)
 	}
 
-	TesseraPoolABI, err = abi.JSON(strings.NewReader(`[
+	tesseraPoolABI, err = abi.JSON(strings.NewReader(`[
 		{"inputs": [], "name": "tradingEnabled", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
 		{"inputs": [], "name": "isInitialised", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
 		{"inputs": [], "name": "poolState", "outputs": [
@@ -57,7 +73,7 @@ func init() {
 		panic(err)
 	}
 
-	TesseraRouterABI, err = abi.JSON(strings.NewReader(`[
+	tesseraRouterABI, err = abi.JSON(strings.NewReader(`[
 		{"inputs": [{"internalType": "address", "name": "tokenIn", "type": "address"}, {"internalType": "address", "name": "tokenOut", "type": "address"}, {"internalType": "int256", "name": "amountSpecified", "type": "int256"}], "name": "tesseraSwapViewAmounts", "outputs": [{"internalType": "uint256", "name": "amountIn", "type": "uint256"}, {"internalType": "uint256", "name": "amountOut", "type": "uint256"}], "stateMutability": "view", "type": "function"}
 	]`))
 	if err != nil {

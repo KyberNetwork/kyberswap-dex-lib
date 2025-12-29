@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/holiman/uint256"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -123,25 +124,36 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIn := params.TokenAmountIn.Token
+	tokenOut := params.TokenAmountOut.Token
+
+	amtIn := params.TokenAmountIn.Amount
+	amtOut := params.TokenAmountOut.Amount
 
 	if strings.EqualFold(tokenIn, s.Info.Tokens[0]) {
 		s.Info.Reserves[0] = new(big.Int).Add(
 			s.Info.Reserves[0],
-			params.TokenAmountIn.Amount,
+			amtIn,
 		)
 		s.Info.Reserves[1] = new(big.Int).Sub(
 			s.Info.Reserves[1],
-			params.TokenAmountOut.Amount,
+			amtOut,
 		)
 	} else {
 		s.Info.Reserves[1] = new(big.Int).Add(
 			s.Info.Reserves[1],
-			params.TokenAmountIn.Amount,
+			amtIn,
 		)
 		s.Info.Reserves[0] = new(big.Int).Sub(
 			s.Info.Reserves[0],
-			params.TokenAmountOut.Amount,
+			amtOut,
 		)
+	}
+
+	if limit := params.SwapLimit; limit != nil {
+		_, _, err := limit.UpdateLimit(tokenOut, tokenIn, amtIn, amtOut)
+		if err != nil {
+			log.Err(err).Msg("tessera.UpdateBalance failed")
+		}
 	}
 }
 
