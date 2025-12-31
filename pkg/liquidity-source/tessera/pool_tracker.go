@@ -210,6 +210,10 @@ func (d *PoolTracker) GetNewPoolState(
 
 	baseToQuotePrefetches := make([]PrefetchRate, len(baseToQuoteResults))
 	for i, res := range baseToQuoteResults {
+		if res.AmountOut == nil {
+			baseToQuotePrefetches = baseToQuotePrefetches[:i]
+			break
+		}
 		var rate *uint256.Int
 		if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
 			rate = uint256.MustFromBig(res.AmountOut)
@@ -222,6 +226,10 @@ func (d *PoolTracker) GetNewPoolState(
 
 	quoteToBasePrefetches := make([]PrefetchRate, len(quoteToBaseResults))
 	for i, res := range quoteToBaseResults {
+		if res.AmountOut == nil {
+			quoteToBasePrefetches = quoteToBasePrefetches[:i]
+			break
+		}
 		var rate *uint256.Int
 		if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
 			rate = uint256.MustFromBig(res.AmountOut)
@@ -233,11 +241,11 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var maxB2Q, maxQ2B *uint256.Int
-	if len(baseToQuoteAmounts) > 0 {
-		maxB2Q = baseToQuoteAmounts[len(baseToQuoteAmounts)-1]
+	if len(baseToQuotePrefetches) > 0 {
+		maxB2Q = baseToQuoteAmounts[len(baseToQuotePrefetches)-1]
 	}
-	if len(quoteToBaseAmounts) > 0 {
-		maxQ2B = quoteToBaseAmounts[len(quoteToBaseAmounts)-1]
+	if len(quoteToBasePrefetches) > 0 {
+		maxQ2B = quoteToBaseAmounts[len(quoteToBasePrefetches)-1]
 	}
 
 	extra := Extra{
