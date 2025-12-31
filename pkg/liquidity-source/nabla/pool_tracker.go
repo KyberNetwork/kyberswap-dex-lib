@@ -286,13 +286,14 @@ func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, block
 		}
 	}
 	if err := t.ethrpcClient.GetETHClient().Client().BatchCallContext(ctx, batch); err != nil {
-		logger.Errorf("getAssetPrices batch call failed: %v", err)
+		logger.Errorf("getAssetPrice batch call failed: %v", err)
 		return nil, err
 	}
 
 	for i, elem := range batch {
 		if elem.Error != nil {
-			return nil, elem.Error
+			logger.Warnf("getAssetPrice(%v) failed: %v", assets[i], elem.Error)
+			continue
 		}
 		unpacked, err := oracleABI.Unpack("getAssetPrice", results[i])
 		if err != nil {
@@ -374,7 +375,10 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 		}
 
 		for i := range extra.Pools {
-			extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
+			extra.Pools[i].State.Price = nil
+			if prices[i] != nil {
+				extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
+			}
 		}
 	}
 }
