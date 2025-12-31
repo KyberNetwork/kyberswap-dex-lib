@@ -279,6 +279,7 @@ const (
 	ExchangeMummyFinance               = "mummy-finance"
 	ExchangeMuteSwitch                 = "muteswitch"
 	ExchangeMVM                        = "mvm"
+	ExchangeNabla                      = "nabla"
 	ExchangeNadFun                     = "nad-fun"
 	ExchangeNativeV1                   = "native-v1"
 	ExchangeNativeV2                   = "native-v2"
@@ -512,6 +513,7 @@ const (
 	ExchangeZyberSwapV3                = "zyberswap-v3"
 	ExchangeWildcat                    = "wildcat"
 	ExchangeInfinifi                   = "infinifi-gateway"
+	ExchangeTessera                    = "tessera"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
