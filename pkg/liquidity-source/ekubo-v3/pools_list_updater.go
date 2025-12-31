@@ -17,14 +17,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
-const (
-	reorgBackfillBlocks = 12
-	subgraphQuery       = `
-query NewPools($startBlock: BigInt!, $coreAddress: Bytes!, $extensions: [Bytes!]) {
+const subgraphQuery = `
+query NewPools($startBlockNumber: BigInt!, $coreAddress: Bytes!, $extensions: [Bytes!]) {
   poolInitializations(
-    where: {blockNumber_gte: $startBlock, coreAddress: $coreAddress, extension_in: $extensions}, orderBy: blockNumber
+    where: {blockNumber_gte: $startBlockNumber, coreAddress: $coreAddress, extension_in: $extensions}, orderBy: blockNumber
   ) {
     blockNumber
+    blockHash
     tickSpacing
     stableswapCenterTick
     stableswapAmplification
@@ -35,7 +34,6 @@ query NewPools($startBlock: BigInt!, $coreAddress: Bytes!, $extensions: [Bytes!]
     token1
   }
 }`
-)
 
 var _ = poollist.RegisterFactoryCEG(DexType, NewPoolListUpdater)
 
@@ -51,11 +49,17 @@ type (
 		registeredPools     map[string]bool
 		supportedExtensions map[common.Address]ExtensionType
 
-		startBlock int64
+		startBlockNumber uint64
+		startBlockHash   common.Hash
 	}
 
-	poolData struct {
+	graphResponse struct {
+		PoolInitializations []graphPoolInitialization `json:"poolInitializations"`
+	}
+
+	graphPoolInitialization struct {
 		BlockNumber             string         `json:"blockNumber"`
+		BlockHash               string         `json:"blockHash"`
 		TickSpacing             *uint32        `json:"tickSpacing"`
 		StableswapCenterTick    *int32         `json:"stableswapCenterTick"`
 		StableswapAmplification *uint8         `json:"stableswapAmplification"`
@@ -65,58 +69,88 @@ type (
 		Token0                  common.Address `json:"token0"`
 		Token1                  common.Address `json:"token1"`
 	}
-
-	getAllPoolsResult struct {
-		Data []poolData `json:"poolInitializations"`
-	}
 )
 
 func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[pools.PoolTypeConfig], error) {
-	u.graphqlReq.Var("startBlock", max(u.startBlock-reorgBackfillBlocks, 0))
+	u.graphqlReq.Var("startBlockNumber", u.startBlockNumber)
 
-	var res getAllPoolsResult
+	var res graphResponse
 	err := u.graphqlClient.Run(ctx, u.graphqlReq, &res)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	newPoolKeys := make([]*pools.PoolKey[pools.PoolTypeConfig], 0)
-	for _, p := range res.Data {
-		var poolTypeConfig pools.PoolTypeConfig
+	pis := res.PoolInitializations
 
-		if p.TickSpacing != nil {
-			poolTypeConfig = pools.NewConcentratedPoolTypeConfig(*p.TickSpacing)
-		} else if p.StableswapAmplification != nil && p.StableswapCenterTick != nil {
-			if *p.StableswapAmplification == 0 && *p.StableswapCenterTick == 0 {
-				poolTypeConfig = pools.NewFullRangePoolTypeConfig()
-			} else {
-				poolTypeConfig = pools.NewStableswapPoolTypeConfig(*p.StableswapCenterTick, *p.StableswapAmplification)
-			}
-		} else {
-			return nil, fmt.Errorf("pool %v has unknown pool type config", p.PoolId)
+	if len(pis) == 0 {
+		return nil, nil
+	}
+
+	if u.startBlockNumber != 0 {
+		firstPi := pis[0]
+		firstBlockNumber, err := strconv.ParseUint(firstPi.BlockNumber, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parsing first blockNumber: %w", err)
 		}
 
-		fee, err := strconv.ParseUint(p.Fee, 10, 64)
+		if firstBlockNumber != u.startBlockNumber || common.HexToHash(firstPi.BlockHash) != u.startBlockHash {
+			return nil, ErrReorg
+		}
+
+		firstNewDataIdx := 1
+		for i, pi := range pis[1:] {
+			blockNumber, err := strconv.ParseUint(pi.BlockNumber, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("parsing blockNumber: %w", err)
+			}
+
+			if blockNumber > firstBlockNumber {
+				firstNewDataIdx = i + 1
+			}
+		}
+
+		pis = pis[firstNewDataIdx:]
+	}
+
+	if len(pis) == 0 {
+		return nil, nil
+	}
+
+	lastPi := pis[len(pis)-1]
+	lastBlockNumber, err := strconv.ParseUint(lastPi.BlockNumber, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("parsing last blockNumber: %w", err)
+	}
+
+	u.startBlockNumber = lastBlockNumber
+	u.startBlockHash = common.HexToHash(lastPi.BlockHash)
+
+	newPoolKeys := make([]*pools.PoolKey[pools.PoolTypeConfig], len(pis))
+	for _, pi := range pis {
+		var poolTypeConfig pools.PoolTypeConfig
+
+		if pi.TickSpacing != nil {
+			poolTypeConfig = pools.NewConcentratedPoolTypeConfig(*pi.TickSpacing)
+		} else if pi.StableswapAmplification != nil && pi.StableswapCenterTick != nil {
+			if *pi.StableswapAmplification == 0 && *pi.StableswapCenterTick == 0 {
+				poolTypeConfig = pools.NewFullRangePoolTypeConfig()
+			} else {
+				poolTypeConfig = pools.NewStableswapPoolTypeConfig(*pi.StableswapCenterTick, *pi.StableswapAmplification)
+			}
+		} else {
+			return nil, fmt.Errorf("pool %v has unknown pool type config", pi.PoolId)
+		}
+
+		fee, err := strconv.ParseUint(pi.Fee, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("parsing fee: %w", err)
 		}
 
 		poolKey := pools.NewPoolKey(
-			p.Token0,
-			p.Token1,
-			pools.NewPoolConfig(p.Extension, fee, poolTypeConfig),
+			pi.Token0,
+			pi.Token1,
+			pools.NewPoolConfig(pi.Extension, fee, poolTypeConfig),
 		)
-
-		if u.registeredPools[poolKey.StringId()] {
-			continue
-		}
-
-		blockNumber, err := strconv.ParseInt(p.BlockNumber, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parsing blockNumber: %w", err)
-		}
-
-		u.startBlock = blockNumber + 1
 
 		newPoolKeys = append(newPoolKeys, poolKey)
 	}
@@ -214,7 +248,5 @@ func NewPoolListUpdater(
 
 		registeredPools:     make(map[string]bool),
 		supportedExtensions: cfg.SupportedExtensions,
-
-		startBlock: 0,
 	}
 }
