@@ -29,8 +29,7 @@ type (
 		Token1 common.Address `json:"token1"`
 		Config PoolConfig[T]  `json:"config"`
 
-		stringId string
-		numId    []byte
+		numId []byte
 	}
 
 	IPoolKey interface {
@@ -40,7 +39,6 @@ type (
 		Extension() common.Address
 		ToAbi() AbiPoolKey
 		NumId() ([]byte, error)
-		StringId() string
 	}
 
 	PoolConfig[T PoolTypeConfig] struct {
@@ -129,16 +127,6 @@ func (k *PoolKey[T]) ToPoolAddress() (string, error) {
 	}
 
 	return hexutil.Encode(numId), nil
-}
-
-func (k *PoolKey[T]) StringId() string {
-	if k.stringId == "" {
-		k.stringId = k.Token0.Hex() + "/" + k.Token1.Hex() +
-			"_" + k.Config.String()
-
-	}
-
-	return k.stringId
 }
 
 func (k *PoolKey[T]) NumId() ([]byte, error) {

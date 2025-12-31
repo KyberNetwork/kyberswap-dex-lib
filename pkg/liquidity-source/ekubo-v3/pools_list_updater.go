@@ -46,7 +46,6 @@ type (
 
 		dataFetchers *dataFetchers
 
-		registeredPools     map[string]bool
 		supportedExtensions map[common.Address]ExtensionType
 
 		startBlockNumber uint64
@@ -223,8 +222,6 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			Extra:       string(extraBytes),
 			BlockNumber: newEkuboPools[i].blockNumber,
 		})
-
-		u.registeredPools[poolKey.StringId()] = true
 	}
 
 	return newPools, nil, nil
@@ -246,7 +243,6 @@ func NewPoolListUpdater(
 		graphqlReq:    req,
 		dataFetchers:  NewDataFetchers(ethrpcClient, cfg),
 
-		registeredPools:     make(map[string]bool),
 		supportedExtensions: cfg.SupportedExtensions,
 	}
 }
