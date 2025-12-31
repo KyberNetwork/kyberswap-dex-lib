@@ -4,6 +4,8 @@ import "github.com/ethereum/go-ethereum/common"
 
 var (
 	HookAddresses = []common.Address{
+		// https://basescan.org/address/0x777777C4c14b133858c3982D41Dbf02509fc18d7#readContract
+
 		// CreatorCoinHook
 		common.HexToAddress("0xffF800B76768dA8AB6aab527021e4a6A91219040"),
 		common.HexToAddress("0x9278f6e55ce58519c79dc1ab0ad3b29ea7821040"),
