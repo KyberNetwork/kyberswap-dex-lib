@@ -1,6 +1,7 @@
 package bignumber
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 
@@ -52,18 +53,20 @@ var (
 )
 
 // TenPowDecimals calculates 10^decimal
-func TenPowDecimals[T constraints.Integer](decimal T) *big.Float {
-	if decimal <= 18 {
-		return preTenPowDecimals[decimal]
+func TenPowDecimals[T constraints.Integer](decimals T) *big.Float {
+	if 0 <= decimals && decimals <= 18 {
+		return preTenPowDecimals[decimals]
 	}
-	return big.NewFloat(math.Pow10(int(decimal)))
+	return big.NewFloat(math.Pow10(int(decimals)))
 }
 
-func TenPowInt[T constraints.Integer](decimal T) *big.Int {
-	if decimal <= 18 {
-		return preTenPowInt[decimal]
+func TenPowInt[T constraints.Integer](decimals T) *big.Int {
+	if decimals < 0 {
+		panic(fmt.Sprintf("decimals cannot be negative: %d", decimals))
+	} else if decimals <= 18 {
+		return preTenPowInt[decimals]
 	}
-	y := big.NewInt(int64(decimal))
+	y := big.NewInt(int64(decimals))
 	return y.Exp(Ten, y, nil)
 }
 

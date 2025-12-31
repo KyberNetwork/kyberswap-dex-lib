@@ -238,6 +238,10 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 }
 
 func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, blockNumber *big.Int) ([]*big.Int, error) {
+	if len(assets) == 0 {
+		return nil, nil
+	}
+
 	prices := make([]*big.Int, len(assets))
 
 	if len(t.config.Whitelisted) == 0 {
@@ -255,10 +259,6 @@ func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, block
 		}
 
 		return prices, nil
-	}
-
-	if len(assets) == 0 {
-		return nil, nil
 	}
 
 	batch := make([]rpc.BatchElem, len(assets))
