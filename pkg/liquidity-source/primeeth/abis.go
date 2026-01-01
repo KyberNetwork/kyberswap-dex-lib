@@ -2,6 +2,7 @@ package primeeth
 
 import (
 	"bytes"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 

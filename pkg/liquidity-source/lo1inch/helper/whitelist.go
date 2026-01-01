@@ -3,8 +3,8 @@ package helper
 import (
 	"slices"
 
-	"github.com/ethereum/go-ethereum/common"
 	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Whitelist struct {

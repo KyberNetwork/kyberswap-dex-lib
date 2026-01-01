@@ -41,10 +41,10 @@ func TestPoolSimulator(t *testing.T) {
 	assert.Equal(t, bignumber.NewBig10("1070524829112273927801315"), got.TokenAmountOut.Amount)
 
 	pSim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn: tokenAmountIn,
+		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *got.TokenAmountOut,
-		Fee: *got.Fee,
-		SwapInfo: got.SwapInfo,
+		Fee:            *got.Fee,
+		SwapInfo:       got.SwapInfo,
 	})
 
 	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
@@ -52,7 +52,7 @@ func TestPoolSimulator(t *testing.T) {
 			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			Amount: bignumber.NewBig10("15500255685"),
 		},
-		TokenOut:      "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
+		TokenOut: "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("871374850342807317560423"), got.TokenAmountOut.Amount)

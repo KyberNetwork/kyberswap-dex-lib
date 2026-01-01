@@ -23,7 +23,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			factoryABI.Events["LBPairCreated"].ID: {},
+			factoryABI.Events["LBPairCreated"].ID:  {},
 			factoryABI.Events["LBPairCreated0"].ID: {},
 		},
 	}

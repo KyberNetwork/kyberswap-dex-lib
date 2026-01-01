@@ -1,8 +1,9 @@
 package mantisswap
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func GetAmountOut(

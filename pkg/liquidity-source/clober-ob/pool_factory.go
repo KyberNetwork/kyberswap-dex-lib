@@ -7,12 +7,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
-	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/abi"
+	cloberlib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 

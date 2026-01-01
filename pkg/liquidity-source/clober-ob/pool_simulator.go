@@ -6,15 +6,14 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/int256"
-	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
+	cloberlib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
