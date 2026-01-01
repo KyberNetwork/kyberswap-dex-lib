@@ -47,9 +47,14 @@ func (d *PoolTracker) GetNewPoolState(
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	previewResult := make(map[int]map[int]*PreviewSwapResult)
-	for i := 0; i < len(p.Tokens)-1; i++ {
-		for j := i + 1; j < len(p.Tokens); j++ {
-			// Initialize previewResult[i] and previewResult[i][j] to avoid nil map dereference
+	// Test all pairs in BOTH directions (i→j AND j→i)
+	// Clear uses oracle pricing, so the rate is not symmetric
+	for i := 0; i < len(p.Tokens); i++ {
+		for j := 0; j < len(p.Tokens); j++ {
+			if i == j {
+				continue
+			}
+			// Initialize previewResult[i] if nil
 			if previewResult[i] == nil {
 				previewResult[i] = make(map[int]*PreviewSwapResult)
 			}
