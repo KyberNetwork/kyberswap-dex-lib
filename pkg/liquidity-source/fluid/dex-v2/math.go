@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -254,4 +255,119 @@ func adjustedToAmount(adjustedAmount, tokenNumeratorPrecision, tokenDenominatorP
 			EXCHANGE_PRICES_PRECISION,
 		),
 	)
+}
+
+func calculateDynamicFeeVariables(sqrtPriceX96 *big.Int, swap0To1 bool, dexVariables2 *big.Int) (DynamicFeeVariablesUI, error) {
+	var d DynamicFeeVariables
+	var tmp big.Int
+
+	currentTime := time.Now().Unix()
+	var newLastUpdateTimestamp, lastUpdateTimestamp big.Int
+	newLastUpdateTimestamp.SetUint64(uint64(currentTime)).And(&newLastUpdateTimestamp, X15)
+	lastUpdateTimestamp.Set(dexVariables2).
+		Rsh(&lastUpdateTimestamp, BITS_DEX_V2_VARIABLES2_LAST_UPDATE_TIMESTAMP).
+		And(&lastUpdateTimestamp, X15)
+
+	var timeElapsed big.Int
+	if newLastUpdateTimestamp.Cmp(&lastUpdateTimestamp) < 0 {
+		timeElapsed.Add(X15, bignumber.One).
+			Add(&timeElapsed, &newLastUpdateTimestamp).
+			Sub(&timeElapsed, &lastUpdateTimestamp)
+	} else {
+		timeElapsed.Sub(&newLastUpdateTimestamp, &lastUpdateTimestamp)
+	}
+
+	var decayTimeRemaining big.Int
+	decayTimeRemaining.Set(dexVariables2).
+		Rsh(&decayTimeRemaining, BITS_DEX_V2_VARIABLES2_DECAY_TIME_REMAINING).
+		And(&decayTimeRemaining, X12)
+
+	var netPriceImpact, dexVariables2Int big.Int
+
+	if timeElapsed.Cmp(&decayTimeRemaining) < 0 {
+		netPriceImpact.Set(&dexVariables2Int).
+			Rsh(&netPriceImpact, BITS_DEX_V2_VARIABLES2_ABSOLUTE_NET_PRICE_IMPACT).
+			And(&netPriceImpact, X20)
+
+		tmp.Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_NET_PRICE_IMPACT_SIGN).And(&tmp, bignumber.One)
+		if tmp.Sign() == 0 {
+			netPriceImpact.Neg(&netPriceImpact)
+		}
+
+		netPriceImpact.Mul(&netPriceImpact, tmp.Sub(&decayTimeRemaining, &timeElapsed))
+		netPriceImpact.Div(&netPriceImpact, &decayTimeRemaining)
+	}
+
+	d.minFee = new(big.Int).Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_MIN_FEE).And(&tmp, X16)
+	d.maxFee = new(big.Int).Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_MAX_FEE).And(&tmp, X16)
+	d.priceImpactToFeeDivisionFactor = new(big.Int).Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_PRICE_IMPACT_TO_FEE_DIVISION_FACTOR).And(&tmp, X8)
+
+	d.zeroPriceImpactPriceX96 = new(big.Int).Mul(sqrtPriceX96, sqrtPriceX96)
+	d.zeroPriceImpactPriceX96.
+		Div(d.zeroPriceImpactPriceX96, Q96).
+		Mul(d.zeroPriceImpactPriceX96, SIX_DECIMALS).
+		Div(d.zeroPriceImpactPriceX96, tmp.Add(SIX_DECIMALS, &netPriceImpact))
+
+	var minFeeKinkPriceImpact big.Int
+	minFeeKinkPriceImpact.Mul(d.minFee, d.priceImpactToFeeDivisionFactor)
+	if minFeeKinkPriceImpact.Cmp(SIX_DECIMALS) > 0 {
+		minFeeKinkPriceImpact.Set(SIX_DECIMALS)
+	}
+	if swap0To1 {
+		minFeeKinkPriceImpact.Neg(&minFeeKinkPriceImpact)
+	}
+
+	var maxFeeKinkPriceImpact big.Int
+	maxFeeKinkPriceImpact.Mul(d.maxFee, d.priceImpactToFeeDivisionFactor)
+	if maxFeeKinkPriceImpact.Cmp(SIX_DECIMALS) > 0 {
+		maxFeeKinkPriceImpact.Set(SIX_DECIMALS)
+	}
+	if swap0To1 {
+		maxFeeKinkPriceImpact.Neg(&maxFeeKinkPriceImpact)
+	}
+
+	d.minFeeKinkPriceX96 = new(big.Int).Add(SIX_DECIMALS, &minFeeKinkPriceImpact)
+	d.minFeeKinkPriceX96.Mul(d.zeroPriceImpactPriceX96, d.minFeeKinkPriceX96).Div(d.minFeeKinkPriceX96, SIX_DECIMALS)
+
+	if d.minFeeKinkPriceX96.Cmp(MIN_PRICE_X96) < 0 {
+		d.minFeeKinkPriceX96.Set(MIN_PRICE_X96)
+	} else if d.minFeeKinkPriceX96.Cmp(MAX_PRICE_X96) > 0 {
+		d.minFeeKinkPriceX96.Set(MAX_PRICE_X96)
+	}
+
+	if d.minFeeKinkPriceX96.Cmp(X160) < 0 {
+		d.minFeeKinkSqrtPriceX96.Sqrt(tmp.Lsh(d.minFeeKinkPriceX96, 96))
+	} else {
+		d.minFeeKinkSqrtPriceX96.Sqrt(tmp.Lsh(d.minFeeKinkPriceX96, 84))
+		d.minFeeKinkSqrtPriceX96.Lsh(d.minFeeKinkSqrtPriceX96, 6)
+	}
+
+	d.maxFeeKinkPriceX96 = new(big.Int).Add(SIX_DECIMALS, &maxFeeKinkPriceImpact)
+	d.maxFeeKinkPriceX96.Mul(d.zeroPriceImpactPriceX96, d.maxFeeKinkPriceX96).Div(d.maxFeeKinkPriceX96, SIX_DECIMALS)
+
+	if d.maxFeeKinkPriceX96.Cmp(MIN_PRICE_X96) < 0 {
+		d.maxFeeKinkPriceX96.Set(MIN_PRICE_X96)
+	} else if d.maxFeeKinkPriceX96.Cmp(MAX_PRICE_X96) > 0 {
+		d.maxFeeKinkPriceX96.Set(MAX_PRICE_X96)
+	}
+
+	if d.maxFeeKinkPriceX96.Cmp(X160) < 0 {
+		d.maxFeeKinkSqrtPriceX96.Sqrt(tmp.Lsh(d.maxFeeKinkPriceX96, 96))
+	} else {
+		d.maxFeeKinkSqrtPriceX96.Sqrt(tmp.Lsh(d.maxFeeKinkPriceX96, 84))
+		d.maxFeeKinkSqrtPriceX96.Lsh(d.maxFeeKinkSqrtPriceX96, 6)
+	}
+
+	dui := DynamicFeeVariablesUI{
+		minFee:                         big256.FromBig(d.minFee),
+		maxFee:                         big256.FromBig(d.maxFee),
+		priceImpactToFeeDivisionFactor: big256.FromBig(d.priceImpactToFeeDivisionFactor),
+		zeroPriceImpactPriceX96:        big256.FromBig(d.zeroPriceImpactPriceX96),
+		minFeeKinkPriceX96:             big256.FromBig(d.minFeeKinkPriceX96),
+		minFeeKinkSqrtPriceX96:         big256.FromBig(d.minFeeKinkSqrtPriceX96),
+		maxFeeKinkPriceX96:             big256.FromBig(d.maxFeeKinkPriceX96),
+		maxFeeKinkSqrtPriceX96:         big256.FromBig(d.maxFeeKinkSqrtPriceX96),
+	}
+
+	return dui, nil
 }
