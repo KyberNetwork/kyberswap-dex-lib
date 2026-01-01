@@ -267,7 +267,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 			new(big.Int).Mul(bignumber.Four, big.NewInt(int64(nCoins-1))))
 		_feemul := t.OffpegFeeMultiplier
 		for i := 0; i < nCoins; i += 1 {
-			t.Info.Reserves[i] = new_balances[i] // cannot determine real amount transfered, so use this, close enough
+			t.Info.Reserves[i] = new_balances[i] // cannot determine real amount transferred, so use this, close enough
 			var ideal_balance = new(big.Int).Div(new(big.Int).Mul(D1, old_balances[i]), D0)
 			var difference *big.Int
 			if ideal_balance.Cmp(new_balances[i]) > 0 {
