@@ -265,25 +265,23 @@ func parsePositionUpdatedEventIfMatching(data []byte, poolKey IPoolKey) (*positi
 		return nil, nil
 	}
 
-	params, ok := values[2].(struct {
-		Salt   [32]uint8 `json:"salt"`
-		Bounds struct {
-			Lower int32 `json:"lower"`
-			Upper int32 `json:"upper"`
-		} `json:"bounds"`
-		LiquidityDelta *big.Int `json:"liquidityDelta"`
-	})
+	liquidityDelta, ok := values[3].(*big.Int)
 	if !ok {
-		return nil, errors.New("failed to parse params")
+		return nil, errors.New("failed to parse liquidityDelta")
 	}
 
-	if params.LiquidityDelta.Sign() == 0 {
+	if liquidityDelta.Sign() == 0 {
 		return nil, nil
 	}
 
+	params, ok := values[2].([32]byte)
+	if !ok {
+		return nil, errors.New("failed to parse positionId")
+	}
+
 	return &positionUpdatedEvent{
-		liquidityDelta: int256.MustFromBig(params.LiquidityDelta),
-		lower:          params.Bounds.Lower,
-		upper:          params.Bounds.Upper,
+		liquidityDelta: int256.MustFromBig(liquidityDelta),
+		lower:          int32(binary.BigEndian.Uint32(params[24:28])),
+		upper:          int32(binary.BigEndian.Uint32(params[28:32])),
 	}, nil
 }

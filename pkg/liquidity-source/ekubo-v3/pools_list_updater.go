@@ -125,7 +125,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 	u.startBlockHash = common.HexToHash(lastPi.BlockHash)
 
 	newPoolKeys := make([]*pools.PoolKey[pools.PoolTypeConfig], len(pis))
-	for _, pi := range pis {
+	for i, pi := range pis {
 		var poolTypeConfig pools.PoolTypeConfig
 
 		if pi.TickSpacing != nil {
@@ -151,7 +151,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 			pools.NewPoolConfig(pi.Extension, fee, poolTypeConfig),
 		)
 
-		newPoolKeys = append(newPoolKeys, poolKey)
+		newPoolKeys[i] = poolKey
 	}
 
 	return newPoolKeys, nil
