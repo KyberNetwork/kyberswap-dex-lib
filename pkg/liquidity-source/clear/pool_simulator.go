@@ -22,7 +22,6 @@ import (
 type PoolSimulator struct {
 	*sync.RWMutex
 	pool.Pool
-	staticExtra  StaticExtra
 	extra        Extra
 	gas          Gas
 	ethrpcClient *ethrpc.Client
@@ -31,15 +30,6 @@ type PoolSimulator struct {
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	if len(entityPool.StaticExtra) == 0 {
-		return nil, ErrStaticExtraEmpty
-	}
-
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, err
-	}
-
 	var extra Extra
 	if len(entityPool.Extra) > 0 {
 		if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -66,11 +56,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		RWMutex:     &sync.RWMutex{},
-		Pool:        pool.Pool{Info: info},
-		extra:       extra,
-		staticExtra: staticExtra,
-		gas:         DefaultGas,
+		RWMutex: &sync.RWMutex{},
+		Pool:    pool.Pool{Info: info},
+		extra:   extra,
+		gas:     DefaultGas,
 	}, nil
 }
 
@@ -89,6 +78,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
 		return nil, ErrInvalidToken
+	}
+
+	if len(p.Info.Tokens) != len(p.extra.IOUs) {
+		return nil, ErrInvalidIOUToken
 	}
 
 	if tokenAmountIn.Amount == nil || tokenAmountIn.Amount.Sign() <= 0 {
@@ -117,34 +110,26 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Amount: integer.Zero(), // Clear handles fees internally
 		},
 		Gas: p.gas.Swap,
+		SwapInfo: SwapInfo{
+			SwapAddress: p.extra.SwapAddress,
+			IOU:         p.extra.IOUs[tokenOutIndex],
+		},
 	}, nil
 }
 
 // estimateAmountOut estimates the output amount based on cached data
 // For Clear protocol, this is an approximation since actual pricing requires RPC
 func (p *PoolSimulator) estimateAmountOut(tokenInIndex, tokenOutIndex int, amountIn *big.Int) *big.Int {
-	index0, index1 := tokenInIndex, tokenOutIndex
-	if tokenInIndex > tokenOutIndex {
-		index0, index1 = tokenOutIndex, tokenInIndex
-	}
-	if p.extra.Reserves == nil || !lo.HasKey(p.extra.Reserves, index0) || !lo.HasKey(p.extra.Reserves[index0], index1) {
+	if p.extra.Reserves == nil || !lo.HasKey(p.extra.Reserves, tokenInIndex) || !lo.HasKey(p.extra.Reserves[tokenInIndex], tokenOutIndex) {
 		return big.NewInt(0)
 	}
-	reserves := p.extra.Reserves[index0][index1]
-	var reserveIn, reserveOut *big.Int
-	if tokenInIndex < tokenOutIndex {
-		reserveIn, reserveOut = reserves.AmountIn, reserves.AmountOut
-	} else {
-		reserveIn, reserveOut = reserves.AmountOut, reserves.AmountIn
-	}
-
-	if reserveIn == nil || reserveOut == nil || reserveIn.Sign() == 0 || reserveOut.Sign() == 0 {
+	rate := p.extra.Reserves[tokenInIndex][tokenOutIndex]
+	if rate.AmountIn == nil || rate.AmountOut == nil || rate.AmountIn.Sign() == 0 || rate.AmountOut.Sign() == 0 {
 		return big.NewInt(0)
 	}
 
 	// Simple ratio calculation: amountOut = amountIn * reserveOut / reserveIn
-
-	return bignumber.MulDivDown(new(big.Int), amountIn, reserveOut, reserveIn)
+	return bignumber.MulDivDown(new(big.Int), amountIn, rate.AmountOut, rate.AmountIn)
 }
 
 // CalcAmountOutWithRPC calculates output using actual RPC call to previewSwap
@@ -168,7 +153,7 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 	calls := ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    clearSwapABI,
-		Target: p.staticExtra.SwapAddress,
+		Target: p.extra.SwapAddress,
 		Method: methodPreviewSwap,
 		Params: []any{
 			common.HexToAddress(p.Info.Address),
@@ -197,9 +182,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	return PoolMeta{
-		SwapAddress: p.staticExtra.SwapAddress,
-	}
+	return nil
 }
 
 func (p *PoolSimulator) GetLpToken() string {
