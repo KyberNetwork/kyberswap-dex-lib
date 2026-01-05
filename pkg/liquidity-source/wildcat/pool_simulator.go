@@ -57,9 +57,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	sampleIndex := 0
 	for i, sample := range s.Samples[indexIn] {
-		if len(sample[0].String()) <= len(tokenAmountIn.Amount.String()) {
-			sampleIndex = i
+		if sample[0].Cmp(tokenAmountIn.Amount) > 0 {
+			break
 		}
+		sampleIndex = i
 	}
 
 	amountOut := bignumber.MulDivDown(big.NewInt(0), tokenAmountIn.Amount, s.Samples[indexIn][sampleIndex][1], s.Samples[indexIn][sampleIndex][0])
