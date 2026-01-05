@@ -145,8 +145,8 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	s.reserve0 = new(uint256.Int).Set(s.reserve0)
-	s.reserve1 = new(uint256.Int).Set(s.reserve1)
+	cloned.reserve0 = new(uint256.Int).Set(s.reserve0)
+	cloned.reserve1 = new(uint256.Int).Set(s.reserve1)
 
 	return &cloned
 }
