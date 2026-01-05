@@ -51,6 +51,16 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			token1:      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 			dec0:        8,
 			dec1:        6,
+			direction:   "0=>1",
+			amount:      big.NewInt(100000000), // 1 cbBTC
+			description: "cbBTC/USDC: 1 cbBTC",
+		},
+		{
+			poolAddr:    "0xed57bacdc2a990b631f8817853935791c122c356",
+			token0:      "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+			token1:      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+			dec0:        8,
+			dec1:        6,
 			direction:   "1=>0",
 			amount:      big.NewInt(100000000), // 100 USDC
 			description: "cbBTC/USDC: 100 USDC",
@@ -105,8 +115,8 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 			fmt.Printf("Direction: %s, Amount: %s\n", testCase.direction, testCase.amount.String())
 			fmt.Printf("TradingEnabled: %v, IsInitialised: %v\n", extra.TradingEnabled, extra.IsInitialised)
 			fmt.Printf("BlockNumber: %d\n", p.BlockNumber)
-			fmt.Printf("BaseToQuotePrefetches: %d items\n", len(extra.BaseToQuotePrefetches))
-			fmt.Printf("QuoteToBasePrefetches: %d items\n", len(extra.QuoteToBasePrefetches))
+			fmt.Printf("BaseToQuotePrefetches: %+v\n", extra.BaseToQuotePrefetches)
+			fmt.Printf("QuoteToBasePrefetches: %+v items\n", extra.QuoteToBasePrefetches)
 
 			var tokenIn, tokenOut string
 			if testCase.direction == "0=>1" {
@@ -173,5 +183,74 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				t.Errorf("Quoter succeeded but simulator failed")
 			}
 		})
+	}
+}
+
+func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
+	cfg := Config{
+		DexId:           "tessera",
+		TesseraTreasury: "0x3dbe077e7986657e95e1cc50089f17a5a4af0aae",
+		TesseraIndexer:  "0x505352DA2918C6a06f12F3d59FFb79905d43439f",
+		TesseraEngine:   "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
+		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
+	}
+	rpcClient := ethrpc.New("https://base.kyberengineering.io").
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+
+	pAddr := "0xf524c1bc1c64a2c99bc7eccf19ede9a1d89d5a7c"
+	amountPerSwap, _ := new(big.Int).SetString("10000000000000000", 10) // 0.01 WETH
+	numSwaps := 20
+	totalAmount := new(big.Int).Mul(amountPerSwap, big.NewInt(int64(numSwaps)))
+
+	tracker := NewPoolTracker(&cfg, rpcClient)
+	p, err := tracker.GetNewPoolState(context.Background(), entity.Pool{
+		Address:     pAddr,
+		Tokens:      []*entity.PoolToken{{Address: "0x4200000000000000000000000000000000000006", Decimals: 18}, {Address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", Decimals: 6}},
+		Reserves:    []string{"0", "0"},
+		StaticExtra: "{}",
+	}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+
+	sim1, err := NewPoolSimulator(p)
+	require.NoError(t, err)
+
+	sim2 := sim1.CloneState()
+
+	limit1 := swaplimit.NewInventory("tessera", sim1.CalculateLimit())
+	totalOut1 := big.NewInt(0)
+	for i := 0; i < numSwaps; i++ {
+		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: amountPerSwap},
+			TokenOut:      p.Tokens[1].Address,
+			Limit:         limit1,
+		})
+		if err != nil {
+			break
+		}
+		totalOut1.Add(totalOut1, res.TokenAmountOut.Amount)
+		sim1.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: p.Tokens[0].Address, Amount: amountPerSwap},
+			TokenAmountOut: *res.TokenAmountOut,
+			SwapLimit:      limit1,
+		})
+	}
+
+	res2, err := sim2.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: totalAmount},
+		TokenOut:      p.Tokens[1].Address,
+		Limit:         swaplimit.NewInventory("tessera", sim2.CalculateLimit()),
+	})
+
+	if err == nil {
+		diff := new(big.Int).Abs(new(big.Int).Sub(totalOut1, res2.TokenAmountOut.Amount))
+		bps := new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), totalOut1).Int64()
+		fmt.Printf("Consecutive Swaps Out: %s, Single Swap Out: %s, BPS Diff: %d\n", totalOut1, res2.TokenAmountOut.Amount, bps)
+		require.LessOrEqual(t, bps, int64(1))
+	} else {
+		fmt.Printf("Both failed or limit reached: %v\n", err)
 	}
 }

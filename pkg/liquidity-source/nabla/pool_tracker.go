@@ -137,7 +137,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		extra.DependenciesStored = false
 
 		if err = t.getRPCState(ctx, &p, &extra); err != nil {
-			return p, nil
+			logger.Errorf("failed to get state from RPC error %v", err)
+			return p, err
 		}
 
 		logger.Infof("finished refreshing pool %v after asset changes", p.Address)
@@ -146,6 +147,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	if len(params.Logs) > 0 {
 		t.handleEvents(ctx, &p, &extra, params.Logs)
 	} else if err := t.getRPCState(ctx, &p, &extra); err != nil {
+		logger.Errorf("failed to get state from RPC error %v", err)
 		return p, err
 	}
 
@@ -169,6 +171,7 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 		reservesWithSlippage = make([]*big.Int, n)
 		totalLiabilities     = make([]*big.Int, n)
 		swapFees             = make([]SwapFees, n)
+		prices               = make([]*big.Int, n)
 	)
 	req := t.ethrpcClient.R().SetContext(ctx)
 	for i, sp := range extra.Pools {
@@ -189,16 +192,27 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 			Target: sp.Address.String(),
 			Method: "swapFees",
 		}, []any{&swapFees[i]})
+
+		if len(t.config.Whitelisted) == 0 {
+			req.AddCall(&ethrpc.Call{
+				ABI:    oracleABI,
+				Target: t.config.Oracle,
+				Method: "getAssetPrice",
+				Params: []any{common.HexToAddress(p.Tokens[i].Address)},
+			}, []any{&prices[i]})
+		}
 	}
-	resp, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return err
 	}
 
-	assets := lo.Map(p.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address })
-	prices, err := t.getAssetPrices(ctx, assets, resp.BlockNumber)
-	if err != nil {
-		return err
+	if len(t.config.Whitelisted) > 0 {
+		assets := lo.Map(p.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address })
+		prices, err = t.getAssetPrices(ctx, assets, resp.BlockNumber)
+		if err != nil {
+			return err
+		}
 	}
 
 	for i := range n {
@@ -209,7 +223,11 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 		extra.Pools[i].State.Reserve = int256.MustFromBig(reserves[i])
 		extra.Pools[i].State.ReserveWithSlippage = int256.MustFromBig(reservesWithSlippage[i])
 		extra.Pools[i].State.TotalLiabilities = int256.MustFromBig(totalLiabilities[i])
-		extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
+
+		extra.Pools[i].State.Price = nil
+		if prices[i] != nil {
+			extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
+		}
 	}
 
 	p.BlockNumber = resp.BlockNumber.Uint64()
@@ -224,8 +242,28 @@ func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, block
 		return nil, nil
 	}
 
+	prices := make([]*big.Int, len(assets))
+
+	if len(t.config.Whitelisted) == 0 {
+		req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber)
+		for i, asset := range assets {
+			req.AddCall(&ethrpc.Call{
+				ABI:    oracleABI,
+				Target: t.config.Oracle,
+				Method: "getAssetPrice",
+				Params: []any{common.HexToAddress(asset)},
+			}, []any{&prices[i]})
+		}
+		if _, err := req.TryBlockAndAggregate(); err != nil {
+			return nil, err
+		}
+
+		return prices, nil
+	}
+
 	batch := make([]rpc.BatchElem, len(assets))
 	results := make([]hexutil.Bytes, len(assets))
+	blockNumberHex := lo.Ternary(blockNumber.Sign() <= 0, "latest", hexutil.EncodeBig(blockNumber))
 
 	for i, asset := range assets {
 		callData, err := oracleABI.Pack("getAssetPrice", common.HexToAddress(asset))
@@ -242,20 +280,20 @@ func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, block
 					"to":   t.config.Oracle,
 					"data": hexutil.Encode(callData),
 				},
-				lo.Ternary(blockNumber.Sign() <= 0, "latest", hexutil.EncodeBig(blockNumber)),
+				blockNumberHex,
 			},
 			Result: &results[i],
 		}
 	}
 	if err := t.ethrpcClient.GetETHClient().Client().BatchCallContext(ctx, batch); err != nil {
-		logger.Errorf("getAssetPrices batch call failed: %v", err)
+		logger.Errorf("getAssetPrice batch call failed: %v", err)
 		return nil, err
 	}
 
-	prices := make([]*big.Int, len(assets))
 	for i, elem := range batch {
 		if elem.Error != nil {
-			return nil, elem.Error
+			logger.Warnf("getAssetPrice(%v) failed: %v", assets[i], elem.Error)
+			continue
 		}
 		unpacked, err := oracleABI.Unpack("getAssetPrice", results[i])
 		if err != nil {
@@ -337,7 +375,10 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 		}
 
 		for i := range extra.Pools {
-			extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
+			extra.Pools[i].State.Price = nil
+			if prices[i] != nil {
+				extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
+			}
 		}
 	}
 }
