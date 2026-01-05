@@ -73,6 +73,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -360,6 +361,7 @@ type Types struct {
 	Infinifi                   string
 	Nabla                      string
 	Tessera                    string
+	LiquidCore                 string
 }
 
 var (
@@ -550,5 +552,6 @@ var (
 		Infinifi:                   infinifi.DexType,
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
+		LiquidCore:                 liquidcore.DexType,
 	}
 )
