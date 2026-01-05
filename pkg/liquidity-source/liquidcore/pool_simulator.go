@@ -1,4 +1,4 @@
-package valantisstex
+package liquidcore
 
 import (
 	"math/big"
@@ -12,18 +12,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
 	pool.Pool
 	Extra
-	StaticExtra
+	decimal0, decimal1 uint8
 	reserve0, reserve1 *uint256.Int
-}
-
-type SwapInfo struct {
-	IsZeroToOne bool `json:"isZeroToOne"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -31,11 +26,6 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
-		return nil, err
-	}
-
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(ep.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -48,10 +38,11 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(ep.Reserves, func(item string, _ int) *big.Int { return bignum.NewBig(item) }),
 			BlockNumber: ep.BlockNumber,
 		}},
-		Extra:       extra,
-		StaticExtra: staticExtra,
-		reserve0:    uint256.MustFromDecimal(ep.Reserves[0]),
-		reserve1:    uint256.MustFromDecimal(ep.Reserves[1]),
+		Extra:    extra,
+		reserve0: uint256.MustFromDecimal(ep.Reserves[0]),
+		reserve1: uint256.MustFromDecimal(ep.Reserves[1]),
+		decimal0: ep.Tokens[0].Decimals,
+		decimal1: ep.Tokens[1].Decimals,
 	}, nil
 }
 
@@ -64,33 +55,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	isZeroToOne := indexIn == 0
 
-	feeInBips := s.DefaultSwapFeeBips
-	if !valueobject.IsZeroAddress(s.SwapFeeModule) {
-		feeInBips = lo.Ternary(isZeroToOne, s.SwapFeeInBipsZtoO, s.SwapFeeInBipsOtoZ).Clone()
-		if feeInBips.Gt(maxSwapFeeBips) {
-			return nil, ErrSovereignPoolSwapExcessiveSwapFee
-		}
-	}
-
 	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
 	if amountIn.IsZero() {
 		return nil, ErrZeroSwap
 	}
 
-	amountInWithoutFee, overflow := new(uint256.Int).MulDivOverflow(
-		amountIn, maxSwapFeeBips,
-		new(uint256.Int).Add(maxSwapFeeBips, feeInBips),
-	)
-	if overflow {
-		return nil, number.ErrOverflow
-	}
-
 	var amountOut *uint256.Int
 	var err error
 	if isZeroToOne {
-		amountOut, err = s.convertToToken1(amountInWithoutFee)
+		amountOut, err = s.convertToToken1(amountIn)
 	} else {
-		amountOut, err = s.convertToToken0(amountInWithoutFee)
+		amountOut, err = s.convertToToken0(amountIn)
 	}
 	if err != nil {
 		return nil, err
@@ -99,12 +74,6 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientReserve
 	}
 
-	if s.Gas[0] == 0 || s.Gas[1] == 0 {
-		return nil, ErrInvalidGasConfig
-	}
-
-	fee := new(uint256.Int).Sub(amountIn, amountInWithoutFee)
-
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -112,14 +81,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: fee.ToBig(),
+			Amount: bignum.ZeroBI,
 		},
-		Gas: int64(lo.Ternary(isZeroToOne, s.Gas[0], s.Gas[1])),
+		Gas: defaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) convertToToken0(amount *uint256.Int) (*uint256.Int, error) {
-	res, overflow := new(uint256.Int).MulDivOverflow(amount, s.Rate1To0, u256.BONE)
+	res, overflow := new(uint256.Int).MulDivOverflow(amount, s.Rate10, u256.TenPow(s.decimal1))
 	if overflow {
 		return nil, number.ErrOverflow
 	}
@@ -128,7 +97,7 @@ func (s *PoolSimulator) convertToToken0(amount *uint256.Int) (*uint256.Int, erro
 }
 
 func (s *PoolSimulator) convertToToken1(amount *uint256.Int) (*uint256.Int, error) {
-	res, overflow := new(uint256.Int).MulDivOverflow(amount, s.Rate0To1, u256.BONE)
+	res, overflow := new(uint256.Int).MulDivOverflow(amount, s.Rate01, u256.TenPow(s.decimal0))
 	if overflow {
 		return nil, number.ErrOverflow
 	}
@@ -136,11 +105,8 @@ func (s *PoolSimulator) convertToToken1(amount *uint256.Int) (*uint256.Int, erro
 	return res, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
-	return MetaInfo{
-		BlockNumber: s.Info.BlockNumber,
-		IsZeroToOne: s.GetTokenIndex(tokenIn) == 0,
-	}
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return MetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

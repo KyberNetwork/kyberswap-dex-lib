@@ -234,6 +234,7 @@ const (
 	ExchangeLaminar                    = "laminar"
 	ExchangeLineHubV2                  = "linehub-v2"
 	ExchangeLineHubV3                  = "linehub-v3"
+	ExchangeLiquidCore                 = "liquidcore"
 	ExchangeLiquidusFinance            = "liquidus-finance"
 	ExchangeListaStable                = "lista-stable"
 	ExchangeLitePSM                    = "lite-psm"

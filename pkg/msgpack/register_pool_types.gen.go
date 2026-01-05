@@ -80,6 +80,7 @@ import (
 	pkg_liquiditysource_kelp_rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	pkg_liquiditysource_kuruob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob"
 	pkg_liquiditysource_lglclob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lgl-clob"
+	pkg_liquiditysource_liquidcore "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	pkg_liquiditysource_lista_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stable"
 	pkg_liquiditysource_litepsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	pkg_liquiditysource_lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
@@ -275,6 +276,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rsethl2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kuruob.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lglclob.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidcore.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lo1inch.PoolSimulator{})
