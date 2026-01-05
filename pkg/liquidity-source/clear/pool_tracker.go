@@ -2,12 +2,14 @@ package clear
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -46,9 +48,19 @@ func (d *PoolTracker) GetNewPoolState(
 	// var previewResult PreviewSwapResult
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	iouTokens := make([]common.Address, len(p.Tokens))
 	previewResult := make(map[int]map[int]*PreviewSwapResult)
-	for i := 0; i < len(p.Tokens)-1; i++ {
-		for j := i + 1; j < len(p.Tokens); j++ {
+	for i := 0; i < len(p.Tokens); i++ {
+		req.AddCall(&ethrpc.Call{
+			ABI:    clearVaultABI,
+			Target: p.Address,
+			Method: "iouOf",
+			Params: []any{common.HexToAddress(p.Tokens[i].Address)},
+		}, []any{&iouTokens[i]})
+		for j := 0; j < len(p.Tokens); j++ {
+			if i == j {
+				continue
+			}
 			// Initialize previewResult[i] and previewResult[i][j] to avoid nil map dereference
 			if previewResult[i] == nil {
 				previewResult[i] = make(map[int]*PreviewSwapResult)
@@ -78,7 +90,11 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, nil
 	}
 	extra := Extra{
-		Reserves: previewResult,
+		SwapAddress: d.config.SwapAddress,
+		Reserves:    previewResult,
+		IOUs: lo.Map(iouTokens, func(iouToken common.Address, _ int) string {
+			return strings.ToLower(iouToken.Hex())
+		}),
 	}
 
 	extraBytes, err := json.Marshal(extra)

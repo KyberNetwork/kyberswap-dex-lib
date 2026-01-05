@@ -24,6 +24,7 @@ const (
 
 var (
 	ErrInvalidToken     = errors.New("invalid token")
+	ErrInvalidIOUToken  = errors.New("invalid iou token")
 	ErrInvalidAmountIn  = errors.New("invalid amount in")
 	ErrExtraEmpty       = errors.New("extra is empty")
 	ErrStaticExtraEmpty = errors.New("static extra is empty")

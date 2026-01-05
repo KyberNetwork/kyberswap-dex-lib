@@ -80,6 +80,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidToken
 	}
 
+	if len(p.Info.Tokens) != len(p.extra.IOUs) {
+		return nil, ErrInvalidIOUToken
+	}
+
 	if tokenAmountIn.Amount == nil || tokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
@@ -116,28 +120,16 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 // estimateAmountOut estimates the output amount based on cached data
 // For Clear protocol, this is an approximation since actual pricing requires RPC
 func (p *PoolSimulator) estimateAmountOut(tokenInIndex, tokenOutIndex int, amountIn *big.Int) *big.Int {
-	index0, index1 := tokenInIndex, tokenOutIndex
-	if tokenInIndex > tokenOutIndex {
-		index0, index1 = tokenOutIndex, tokenInIndex
-	}
-	if p.extra.Reserves == nil || !lo.HasKey(p.extra.Reserves, index0) || !lo.HasKey(p.extra.Reserves[index0], index1) {
+	if p.extra.Reserves == nil || !lo.HasKey(p.extra.Reserves, tokenInIndex) || !lo.HasKey(p.extra.Reserves[tokenInIndex], tokenOutIndex) {
 		return big.NewInt(0)
 	}
-	reserves := p.extra.Reserves[index0][index1]
-	var reserveIn, reserveOut *big.Int
-	if tokenInIndex < tokenOutIndex {
-		reserveIn, reserveOut = reserves.AmountIn, reserves.AmountOut
-	} else {
-		reserveIn, reserveOut = reserves.AmountOut, reserves.AmountIn
-	}
-
-	if reserveIn == nil || reserveOut == nil || reserveIn.Sign() == 0 || reserveOut.Sign() == 0 {
+	rate := p.extra.Reserves[tokenInIndex][tokenOutIndex]
+	if rate.AmountIn == nil || rate.AmountOut == nil || rate.AmountIn.Sign() == 0 || rate.AmountOut.Sign() == 0 {
 		return big.NewInt(0)
 	}
 
 	// Simple ratio calculation: amountOut = amountIn * reserveOut / reserveIn
-
-	return bignumber.MulDivDown(new(big.Int), amountIn, reserveOut, reserveIn)
+	return bignumber.MulDivDown(new(big.Int), amountIn, rate.AmountOut, rate.AmountIn)
 }
 
 // CalcAmountOutWithRPC calculates output using actual RPC call to previewSwap
