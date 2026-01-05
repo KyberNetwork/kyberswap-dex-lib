@@ -51,10 +51,18 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	amountOut := big.NewInt(0)
-	if s.Rates[indexIn].Sign() >= 0 {
-		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, s.Info.Reserves[indexOut], s.Rates[indexIn])
+	if len(s.Samples[indexIn]) == 0 {
+		return nil, ErrInsufficientLiquidity
 	}
+
+	sampleIndex := 0
+	for i, sample := range s.Samples[indexIn] {
+		if len(sample[0].String()) <= len(tokenAmountIn.Amount.String()) {
+			sampleIndex = i
+		}
+	}
+
+	amountOut := bignumber.MulDivDown(big.NewInt(0), tokenAmountIn.Amount, s.Samples[indexIn][sampleIndex][1], s.Samples[indexIn][sampleIndex][0])
 
 	if amountOut.Cmp(s.Info.Reserves[indexOut]) >= 0 {
 		return nil, ErrInsufficientLiquidity
