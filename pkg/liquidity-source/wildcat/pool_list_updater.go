@@ -100,9 +100,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		p.Extra = string(extraBytes)
 		return p
 	})
-	if _, err := TrackPools(ctx, pools, u.ethrpcClient, u.config); err != nil {
-		return nil, metadataBytes, err
-	}
+	// if _, err := TrackPools(ctx, pools, u.ethrpcClient, u.config); err != nil {
+	// 	return nil, metadataBytes, err
+	// }
 
 	newMetadataBytes, err := u.newMetadata(offset + len(pairs))
 	if err != nil {

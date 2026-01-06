@@ -9,10 +9,12 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -63,7 +65,6 @@ func (t *PoolTracker) getNewPoolState(
 
 func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Client, cfg *Config) ([]entity.Pool, error) {
 	req := rpcClient.NewRequest().SetContext(ctx)
-	rates := make([][]*big.Int, len(pools))
 	reserves := make([][]*big.Int, len(pools))
 	extras := make([]Extra, len(pools))
 	for i, pool := range pools {
@@ -96,29 +97,40 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 	}
 
 	req = rpcClient.NewRequest().SetContext(ctx)
+	samples := make([][][][2]*big.Int, len(pools))
 	for i, pool := range pools {
-		rates[i] = make([]*big.Int, 2)
+		samples[i] = make([][][2]*big.Int, len(pool.Tokens))
 		for j := range pool.Tokens {
-			if reserves[i][(j+1)%2].Sign() == 0 {
-				rates[i][j] = big.NewInt(0)
-				continue
+			samples[i][j] = make([][2]*big.Int, sampleSize)
+			start := lo.Ternary(pool.Tokens[j].Decimals < sampleSize/2, 0, pool.Tokens[j].Decimals-sampleSize/2)
+			end := pool.Tokens[j].Decimals + sampleSize/2
+			index := 0
+			for k := start; k <= end; k++ {
+				samples[i][j][index] = [2]*big.Int{bignumber.TenPowInt(k), big.NewInt(0)}
+				req.AddCall(&ethrpc.Call{
+					ABI:    pairABI,
+					Target: pool.Address,
+					Method: "getAmountOut",
+					Params: []any{j == 0, samples[i][j][index][0]}, // true = 0->1 (getAmountIn(zero_for_one, amount_out))
+				}, []any{&samples[i][j][index][1]})
+				index++
 			}
-			req.AddCall(&ethrpc.Call{
-				ABI:    pairABI,
-				Target: pool.Address,
-				Method: "getAmountIn",
-				Params: []any{j == 0, reserves[i][(j+1)%2]}, // true = 0->1 (getAmountIn(zero_for_one, amount_out))
-			}, []any{&rates[i][j]})
 		}
 	}
-	_, err = req.Aggregate()
+	_, err = req.TryAggregate()
 	if err != nil {
 		return nil, err
 	}
-
+	for i := range samples {
+		for j := range samples[i] {
+			samples[i][j] = lo.Filter(samples[i][j], func(sample [2]*big.Int, _ int) bool {
+				return sample[0] != nil && sample[1] != nil
+			})
+		}
+	}
 	for i := range pools {
 		pools[i].Reserves = []string{reserves[i][0].String(), reserves[i][1].String()}
-		extras[i].Rates = rates[i]
+		extras[i].Samples = samples[i]
 		extraBytes, err := json.Marshal(extras[i])
 		if err != nil {
 			return nil, err

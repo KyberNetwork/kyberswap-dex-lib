@@ -5,6 +5,7 @@ import "errors"
 const (
 	DexType    = "wildcat"
 	defaultGas = 10000
+	sampleSize = 15
 )
 
 var (
