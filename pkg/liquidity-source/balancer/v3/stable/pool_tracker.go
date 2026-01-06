@@ -15,6 +15,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -95,6 +96,7 @@ func (t *PoolTracker) getNewPoolState(
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(res.MaxSurgeFeePercentage)
 		extra.SurgeThresholdPercentage, _ = uint256.FromBig(res.SurgeThresholdPercentage)
+		res.IsPoolDisabled = res.IsPoolDisabled || extra.IsRisky()
 	}
 	extra.AmplificationParameter, _ = uint256.FromBig(res.Value)
 
@@ -194,4 +196,11 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 	rpcRes.BlockNumber = res.BlockNumber.Uint64()
 
 	return &rpcRes, nil
+}
+
+func (s SurgePercentages) IsRisky() bool {
+	return s.MaxSurgeFeePercentage != nil && s.SurgeThresholdPercentage != nil &&
+		(s.MaxSurgeFeePercentage.Cmp(AcceptableMaxSurgeFeePercentage) > 0 ||
+			math.StableSurgeMedian.CalculateFeeSurgeRatio(s.MaxSurgeFeePercentage, s.SurgeThresholdPercentage).
+				Cmp(AcceptableMaxSurgeFeeByImbalance) > 0)
 }
