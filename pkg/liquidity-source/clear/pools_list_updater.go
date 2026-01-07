@@ -152,7 +152,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return entity.Pool{}
 		}
 		return entity.Pool{
-			Address:  poolAddress.Hex(),
+			Address:  strings.ToLower(poolAddresses[i].Hex()),
 			Exchange: d.config.DexID,
 			Type:     DexType,
 			Reserves: lo.Map(tokens[i], func(_ common.Address, _ int) string {
