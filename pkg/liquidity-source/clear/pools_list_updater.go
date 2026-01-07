@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -152,7 +153,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return entity.Pool{}
 		}
 		return entity.Pool{
-			Address:  poolAddress.Hex(),
+			Address:  hexutil.Encode(poolAddresses[i][:]),
 			Exchange: d.config.DexID,
 			Type:     DexType,
 			Reserves: lo.Map(tokens[i], func(_ common.Address, _ int) string {
