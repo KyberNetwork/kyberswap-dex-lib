@@ -130,7 +130,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		isPoolInRecoveryMode bool
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 
 	poolAddress := p.Address
 	paramsPool := []any{common.HexToAddress(poolAddress)}
