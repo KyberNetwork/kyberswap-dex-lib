@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolsListUpdater struct {
@@ -218,6 +219,7 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 	var (
 		token0Address   common.Address
 		token1Address   common.Address
+		token0Decimals  uint8
 		liquidityResult struct {
 			Total      *big.Int   `json:"total_"`
 			Individual []*big.Int `json:"individual_"`
@@ -267,6 +269,14 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Params: []interface{}{},
 	}, []interface{}{&curveResult.Alpha, &curveResult.Beta, &curveResult.Delta, &curveResult.Epsilon, &curveResult.Lambda})
 
+	// Fetch token0 decimals using ERC20 decimals() method
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    abi.Erc20ABI,
+		Target: token0Address.Hex(),
+		Method: abi.Erc20DecimalsMethod,
+		Params: []interface{}{},
+	}, []interface{}{&token0Decimals})
+
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
 		return nil, err
@@ -281,8 +291,12 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Lambda:  curveResult.Lambda.String(),
 	}
 
-	// TODO: Optionally fetch token metadata (symbol, decimals) using ERC20 calls
-	// For now, we know token1 is always USDC (6 decimals)
+	// Token metadata: token1 is always USDC (6 decimals)
+	// Token0 decimals fetched via ERC20 call
+	// Fallback to 18 decimals if fetch fails
+	if token0Decimals == 0 {
+		token0Decimals = 18
+	}
 
 	extra := Extra{
 		CurveParams:     curveParams,
@@ -302,13 +316,15 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		reserves[i] = reserve.String()
 	}
 
-	// TODO: Optionally fetch actual token symbols and decimals
-	// For now using placeholders (we know token1 is always USDC)
+	// Token metadata
+	// Stabull pools always have USDC as token1 (quote currency)
+	// Token0 is the fiat-backed stablecoin (e.g., AUDS, NZDS, etc.)
+	// Symbol is kept generic as ERC20 symbol() method is not always reliable
 	tokens := []*entity.PoolToken{
 		{
 			Address:   strings.ToLower(token0Address.Hex()),
-			Symbol:    "TOKEN0", // TODO: Fetch via ERC20 symbol() call
-			Decimals:  18,       // TODO: Fetch via ERC20 decimals() call
+			Symbol:    "TOKEN0",       // Generic symbol (actual symbol can vary: AUDS, NZDS, etc.)
+			Decimals:  token0Decimals, // Fetched via ERC20 decimals() call
 			Swappable: true,
 		},
 		{
