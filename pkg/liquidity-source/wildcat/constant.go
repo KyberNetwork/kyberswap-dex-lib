@@ -1,6 +1,9 @@
 package wildcat
 
-import "errors"
+import (
+	"errors"
+	"math/big"
+)
 
 const (
 	DexType    = "wildcat"
@@ -10,6 +13,7 @@ const (
 
 var (
 	ErrInvalidToken          = errors.New("invalid token")
-	ErrTokenNotExist         = errors.New("token does not exist in pool assets")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
+
+	buffer = big.NewInt(9995)
 )
