@@ -79,12 +79,20 @@ func (d *PoolTracker) GetNewPoolState(
 		return d.handleParametersSetEvent(ctx, p, params)
 	}
 
-	// If we have oracle events, refetch oracle rates
+	// If we have oracle events, decode and update oracle rates
 	// Oracle rate changes don't affect reserves but do affect pricing
 	if hasOracleEvent {
-		// Oracle updates are less critical for reserve tracking
-		// We can optionally fetch new oracle rates here
-		// For now, we'll let the next regular update handle it
+		updatedPool, err := d.handleOracleEvents(ctx, p, params, extra)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": p.Address,
+				"error":       err,
+			}).Warn("Failed to handle oracle events")
+			// Continue with normal flow even if oracle update fails
+		} else {
+			return updatedPool, nil
+		}
 	}
 
 	// For Trade events, we can either:
@@ -161,6 +169,136 @@ func (d *PoolTracker) GetNewPoolState(
 		"dex":         DexType,
 		"poolAddress": p.Address,
 	}).Info("Finished getting new state of pool")
+
+	return p, nil
+}
+
+// handleOracleEvents processes Chainlink oracle events (AnswerUpdated or NewTransmission)
+// and updates the oracle rates in the pool state
+func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams, extra Extra) (entity.Pool, error) {
+	logger.WithFields(logger.Fields{
+		"dex":         DexType,
+		"poolAddress": p.Address,
+	}).Info("Processing oracle events")
+
+	updatedExtra := extra
+	hasBaseOracleUpdate := false
+	hasQuoteOracleUpdate := false
+
+	// Process oracle events
+	for _, log := range params.Logs {
+		// Check if it's from base oracle
+		if extra.BaseOracleAddress != "" && isLogFromOracle(log, extra.BaseOracleAddress) {
+			if isAnswerUpdatedEvent(log) {
+				// AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
+				// Topics: [0] = event sig, [1] = current (indexed), [2] = roundId (indexed)
+				if len(log.Topics) >= 2 {
+					// Extract current price from indexed topic
+					currentPrice := new(big.Int).SetBytes(log.Topics[1].Bytes())
+					updatedExtra.BaseOracleRate = currentPrice.String()
+					hasBaseOracleUpdate = true
+					logger.WithFields(logger.Fields{
+						"dex":         DexType,
+						"poolAddress": p.Address,
+						"oracle":      "base",
+						"rate":        currentPrice.String(),
+					}).Info("Updated base oracle rate from AnswerUpdated event")
+				}
+			} else if isNewTransmissionEvent(log) {
+				// NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, ...)
+				// Decode answer from log.Data
+				type NewTransmissionEvent struct {
+					Answer *big.Int
+				}
+				var event NewTransmissionEvent
+				if err := chainlinkAggregatorABI.UnpackIntoInterface(&event, "NewTransmission", log.Data); err != nil {
+					logger.WithFields(logger.Fields{
+						"dex":   DexType,
+						"error": err,
+					}).Warn("Failed to decode NewTransmission event for base oracle")
+					continue
+				}
+				updatedExtra.BaseOracleRate = event.Answer.String()
+				hasBaseOracleUpdate = true
+				logger.WithFields(logger.Fields{
+					"dex":         DexType,
+					"poolAddress": p.Address,
+					"oracle":      "base",
+					"rate":        event.Answer.String(),
+				}).Info("Updated base oracle rate from NewTransmission event")
+			}
+		}
+
+		// Check if it's from quote oracle
+		if extra.QuoteOracleAddress != "" && isLogFromOracle(log, extra.QuoteOracleAddress) {
+			if isAnswerUpdatedEvent(log) {
+				// AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
+				if len(log.Topics) >= 2 {
+					currentPrice := new(big.Int).SetBytes(log.Topics[1].Bytes())
+					updatedExtra.QuoteOracleRate = currentPrice.String()
+					hasQuoteOracleUpdate = true
+					logger.WithFields(logger.Fields{
+						"dex":         DexType,
+						"poolAddress": p.Address,
+						"oracle":      "quote",
+						"rate":        currentPrice.String(),
+					}).Info("Updated quote oracle rate from AnswerUpdated event")
+				}
+			} else if isNewTransmissionEvent(log) {
+				type NewTransmissionEvent struct {
+					Answer *big.Int
+				}
+				var event NewTransmissionEvent
+				if err := chainlinkAggregatorABI.UnpackIntoInterface(&event, "NewTransmission", log.Data); err != nil {
+					logger.WithFields(logger.Fields{
+						"dex":   DexType,
+						"error": err,
+					}).Warn("Failed to decode NewTransmission event for quote oracle")
+					continue
+				}
+				updatedExtra.QuoteOracleRate = event.Answer.String()
+				hasQuoteOracleUpdate = true
+				logger.WithFields(logger.Fields{
+					"dex":         DexType,
+					"poolAddress": p.Address,
+					"oracle":      "quote",
+					"rate":        event.Answer.String(),
+				}).Info("Updated quote oracle rate from NewTransmission event")
+			}
+		}
+	}
+
+	if !hasBaseOracleUpdate && !hasQuoteOracleUpdate {
+		return p, fmt.Errorf("no oracle events decoded")
+	}
+
+	// Recalculate derived oracle rate if both rates are available
+	if updatedExtra.BaseOracleRate != "" && updatedExtra.QuoteOracleRate != "" {
+		baseRate, ok1 := new(big.Int).SetString(updatedExtra.BaseOracleRate, 10)
+		quoteRate, ok2 := new(big.Int).SetString(updatedExtra.QuoteOracleRate, 10)
+		if ok1 && ok2 && quoteRate.Cmp(big.NewInt(0)) > 0 {
+			// oracleRate = baseRate / quoteRate (scaled by precision)
+			oracleRate := new(big.Int).Mul(baseRate, BigOne)
+			oracleRate.Div(oracleRate, quoteRate)
+			updatedExtra.OracleRate = oracleRate.String()
+		}
+	}
+
+	// Update extra data
+	extraBytes, err := json.Marshal(updatedExtra)
+	if err != nil {
+		return p, err
+	}
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+
+	logger.WithFields(logger.Fields{
+		"dex":         DexType,
+		"poolAddress": p.Address,
+		"baseRate":    updatedExtra.BaseOracleRate,
+		"quoteRate":   updatedExtra.QuoteOracleRate,
+		"derivedRate": updatedExtra.OracleRate,
+	}).Info("Successfully updated oracle rates from events")
 
 	return p, nil
 }

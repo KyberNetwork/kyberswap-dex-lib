@@ -45,3 +45,19 @@ func isLogFromPool(log types.Log, poolAddress string) bool {
 func isLogFromOracle(log types.Log, oracleAddress string) bool {
 	return normalizeAddress(log.Address.Hex()) == normalizeAddress(oracleAddress)
 }
+
+// isAnswerUpdatedEvent checks if a log is a Chainlink AnswerUpdated event
+func isAnswerUpdatedEvent(log types.Log) bool {
+	if len(log.Topics) == 0 {
+		return false
+	}
+	return log.Topics[0].Hex() == answerUpdatedEventTopic
+}
+
+// isNewTransmissionEvent checks if a log is a Chainlink NewTransmission event (OCR2)
+func isNewTransmissionEvent(log types.Log) bool {
+	if len(log.Topics) == 0 {
+		return false
+	}
+	return log.Topics[0].Hex() == newTransmissionEventTopic
+}
