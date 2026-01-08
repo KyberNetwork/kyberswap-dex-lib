@@ -262,6 +262,11 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 
 		if state.K.Sign() == 0 && (state.B.Sign() == 0 || state.Q.Sign() == 0) {
 			d.blackList.Set(p.Address, struct{}{})
+			if p.Extra != "" {
+				p.Extra = ""
+				p.Reserves = entity.PoolReserves{"0", "0"}
+				return p, nil
+			}
 		}
 
 		return entity.Pool{}, fmt.Errorf("get pool feeRate failed")
