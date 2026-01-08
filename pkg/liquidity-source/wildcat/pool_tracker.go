@@ -124,7 +124,11 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 	for i := range samples {
 		for j := range samples[i] {
 			samples[i][j] = lo.Filter(samples[i][j], func(sample [2]*big.Int, _ int) bool {
-				return sample[0] != nil && sample[1] != nil
+				ok := sample[0] != nil && sample[1] != nil
+				if ok {
+					sample[1].Mul(sample[1], buffer).Div(sample[1], bignumber.BasisPoint)
+				}
+				return ok
 			})
 		}
 	}
