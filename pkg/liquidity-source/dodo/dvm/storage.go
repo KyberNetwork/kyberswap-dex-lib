@@ -9,9 +9,6 @@ import (
 
 // https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOVendingMachine/impl/DVMStorage.sol#L66
 func (p *PoolSimulator) getPMMState() libv2.PMMState {
-	p.Lock()
-	defer p.Unlock()
-
 	libv2.AdjustedTarget(&p.PMMState)
 	return p.PMMState
 }
