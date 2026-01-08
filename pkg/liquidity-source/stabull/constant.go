@@ -6,8 +6,10 @@ const (
 	DexType = "stabull"
 
 	// Factory methods
-	factoryMethodCurves       = "curves"       // curves(uint256) returns curve address at index
-	factoryMethodCurvesLength = "curvesLength" // curvesLength() returns number of curves
+	// Note: Stabull factory uses event-based pool discovery (NewCurve events)
+	// There is no indexed enumeration like curvesLength/curves(uint256)
+	factoryMethodCurves   = "curves"   // curves(bytes32 id) returns curve address for given id
+	factoryMethodGetCurve = "getCurve" // getCurve(address base, address quote) returns curve address
 
 	// Pool (Curve) methods
 	poolMethodNumeraires     = "numeraires"     // numeraires(uint256) returns token address at index

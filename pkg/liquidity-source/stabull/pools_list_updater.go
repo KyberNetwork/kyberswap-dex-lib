@@ -105,22 +105,17 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 // getAllPairsLength gets number of pools from the factory contract
+// TODO: Stabull factory doesn't have curvesLength method - needs event-based discovery
+// Pools should be discovered via NewCurve events instead of indexed enumeration
 func (d *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
-	var curvesLength *big.Int
+	// Stabull factory uses event-based pool discovery (NewCurve events)
+	// There is no curvesLength() method in the factory contract
+	// Return 0 for now - proper implementation should use GetNewPoolsType to discover via events
+	logger.WithFields(logger.Fields{
+		"dex": DexType,
+	}).Warn("getAllPairsLength not supported - Stabull uses event-based pool discovery")
 
-	getAllPairsLengthRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
-		ABI:    stabullFactoryABI,
-		Target: d.config.FactoryAddress,
-		Method: factoryMethodCurvesLength,
-	}, []interface{}{&curvesLength})
-
-	if _, err := getAllPairsLengthRequest.Call(); err != nil {
-		return 0, err
-	}
-
-	return int(curvesLength.Int64()), nil
+	return 0, nil
 }
 
 // getOffset gets index of the last pool that is fetched
@@ -138,37 +133,16 @@ func (d *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 }
 
 // listPairAddresses lists addresses of pools from offset
+// TODO: Stabull factory uses bytes32 IDs, not indexed enumeration
+// Proper implementation should discover pools via NewCurve events
 func (d *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
-	listPairAddressesResult := make([]common.Address, batchSize)
+	// The curves() method takes bytes32 ID, not uint256 index
+	// Pool discovery should be event-based using NewCurve events
+	logger.WithFields(logger.Fields{
+		"dex": DexType,
+	}).Warn("listPairAddresses not supported - Stabull uses event-based pool discovery")
 
-	listPairAddressesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	for i := 0; i < batchSize; i++ {
-		index := big.NewInt(int64(offset + i))
-
-		listPairAddressesRequest.AddCall(&ethrpc.Call{
-			ABI:    stabullFactoryABI,
-			Target: d.config.FactoryAddress,
-			Method: factoryMethodCurves,
-			Params: []interface{}{index},
-		}, []interface{}{&listPairAddressesResult[i]})
-	}
-
-	resp, err := listPairAddressesRequest.TryAggregate()
-	if err != nil {
-		return nil, err
-	}
-
-	var pairAddresses []common.Address
-	for i, isSuccess := range resp.Result {
-		if !isSuccess {
-			continue
-		}
-
-		pairAddresses = append(pairAddresses, listPairAddressesResult[i])
-	}
-
-	return pairAddresses, nil
+	return []common.Address{}, nil
 }
 
 func (d *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common.Address) ([]entity.Pool, error) {

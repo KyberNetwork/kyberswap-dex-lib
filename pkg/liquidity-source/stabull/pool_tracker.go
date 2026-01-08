@@ -74,9 +74,9 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 	}
 
-	// If we have a ParametersSet event, we need to refetch curve parameters
+	// If we have a ParametersSet event, we need to update curve parameters
 	if hasParametersSetEvent {
-		return d.handleParametersSetEvent(ctx, p)
+		return d.handleParametersSetEvent(ctx, p, params)
 	}
 
 	// If we have oracle events, refetch oracle rates
@@ -264,14 +264,14 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 	return reserves, existingExtra, nil
 }
 
-// handleParametersSetEvent processes a ParametersSet event
+// handleParametersSetEvent processes a ParametersSet event by decoding the event data
 // ParametersSet(uint256 alpha, uint256 beta, uint256 delta, uint256 epsilon, uint256 lambda)
 // This is emitted when admin updates curve parameters - infrequent but critical for pricing
-func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
 		"poolAddress": p.Address,
-	}).Info("ParametersSet event detected, refetching curve parameters")
+	}).Info("ParametersSet event detected, decoding event data")
 
 	var extra Extra
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
@@ -282,58 +282,83 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 		}).Warn("Failed to decode existing extra data")
 	}
 
-	// Fetch updated curve parameters (not reserves, they don't change on ParametersSet)
-	var curveResult struct {
-		Alpha   *big.Int
-		Beta    *big.Int
-		Delta   *big.Int
-		Epsilon *big.Int
-		Lambda  *big.Int
-	}
-	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	// Find and decode the ParametersSet event from the logs
+	for _, log := range params.Logs {
+		if !isLogFromPool(log, p.Address) || !isParametersSetEvent(log) {
+			continue
+		}
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    stabullPoolABI,
-		Target: p.Address,
-		Method: poolMethodViewCurve,
-		Params: []interface{}{},
-	}, []interface{}{&curveResult.Alpha, &curveResult.Beta, &curveResult.Delta, &curveResult.Epsilon, &curveResult.Lambda})
+		// Decode event data
+		type ParametersSetEvent struct {
+			Alpha   *big.Int
+			Beta    *big.Int
+			Delta   *big.Int
+			Epsilon *big.Int
+			Lambda  *big.Int
+		}
+		var event ParametersSetEvent
+		if err := stabullPoolABI.UnpackIntoInterface(&event, "ParametersSet", log.Data); err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": p.Address,
+				"error":       err,
+			}).Error("Failed to decode ParametersSet event")
+			continue
+		}
 
-	_, err := rpcRequest.Aggregate()
-	if err != nil {
+		// Update curve parameters in extra (convert to strings)
+		extra.CurveParams = CurveParameters{
+			Alpha:   event.Alpha.String(),
+			Beta:    event.Beta.String(),
+			Delta:   event.Delta.String(),
+			Epsilon: event.Epsilon.String(),
+			Lambda:  event.Lambda.String(),
+		}
+
+		extraBytes, err := json.Marshal(extra)
+		if err != nil {
+			return p, err
+		}
+		p.Extra = string(extraBytes)
+		p.Timestamp = time.Now().Unix()
+
 		logger.WithFields(logger.Fields{
 			"dex":         DexType,
 			"poolAddress": p.Address,
-			"error":       err,
-		}).Error("Failed to fetch updated curve parameters")
+			"alpha":       event.Alpha.String(),
+			"beta":        event.Beta.String(),
+			"delta":       event.Delta.String(),
+			"epsilon":     event.Epsilon.String(),
+			"lambda":      event.Lambda.String(),
+		}).Info("Updated curve parameters from ParametersSet event")
+
+		return p, nil
+	}
+
+	// If we couldn't find/decode the event, fall back to RPC call
+	logger.WithFields(logger.Fields{
+		"dex":         DexType,
+		"poolAddress": p.Address,
+	}).Warn("No ParametersSet event found in logs, falling back to RPC")
+
+	reserves, updatedExtra, err := d.fetchPoolStateFromNode(ctx, p.Address)
+	if err != nil {
 		return p, err
 	}
 
-	// Update curve parameters in extra (convert to strings)
-	extra.CurveParams = CurveParameters{
-		Alpha:   curveResult.Alpha.String(),
-		Beta:    curveResult.Beta.String(),
-		Delta:   curveResult.Delta.String(),
-		Epsilon: curveResult.Epsilon.String(),
-		Lambda:  curveResult.Lambda.String(),
+	// Update reserves
+	for i := range p.Reserves {
+		if i < len(reserves) {
+			p.Reserves[i] = reserves[i].String()
+		}
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(updatedExtra)
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-
-	logger.WithFields(logger.Fields{
-		"dex":         DexType,
-		"poolAddress": p.Address,
-		"alpha":       curveResult.Alpha.String(),
-		"beta":        curveResult.Beta.String(),
-		"delta":       curveResult.Delta.String(),
-		"epsilon":     curveResult.Epsilon.String(),
-		"lambda":      curveResult.Lambda.String(),
-	}).Info("Updated curve parameters after ParametersSet event")
 
 	return p, nil
 }
