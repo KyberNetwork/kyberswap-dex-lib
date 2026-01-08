@@ -1,10 +1,10 @@
 package stabull
 
 type Config struct {
-	DexID          string   `json:"dexID"`
-	FactoryAddress string   `json:"factoryAddress"`
-	PoolAddresses  []string `json:"poolAddresses,omitempty"` // Optional: List of known pool addresses for initial implementation
-	FromBlock      uint64   `json:"fromBlock"`               // Block to start scanning NewCurve events
+	DexID          string `json:"dexID"`
+	FactoryAddress string `json:"factoryAddress"`
+	NewPoolLimit   int    `json:"newPoolLimit"` // Batch size for pool discovery
+	FromBlock      uint64 `json:"fromBlock"`    // Block to start scanning NewCurve events
 
 	// Chainlink oracle feeds
 	// Maps token address -> Chainlink aggregator address

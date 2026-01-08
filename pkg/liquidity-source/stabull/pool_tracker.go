@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -41,8 +40,99 @@ func (d *PoolTracker) GetNewPoolState(
 		"poolAddress": p.Address,
 	}).Info("Start getting new state of pool")
 
-	// Fetch current pool state from blockchain
-	reserves, extra, err := d.fetchPoolStateFromNode(ctx, p.Address)
+	// Check if we have Trade events to process
+	// If we do, we can update reserves from the event data instead of fetching from RPC
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":         DexType,
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Warn("Failed to decode extra data, will refetch from node")
+	}
+
+	hasTradeEvent := false
+	hasParametersSetEvent := false
+	hasOracleEvent := false
+
+	// Process events if provided
+	for _, log := range params.Logs {
+		if !isLogFromPool(log, p.Address) {
+			// Check if it's from one of the oracle contracts
+			if extra.BaseOracleAddress != "" && isLogFromOracle(log, extra.BaseOracleAddress) {
+				hasOracleEvent = true
+			} else if extra.QuoteOracleAddress != "" && isLogFromOracle(log, extra.QuoteOracleAddress) {
+				hasOracleEvent = true
+			}
+			continue
+		}
+
+		if isTradeEvent(log) {
+			hasTradeEvent = true
+		} else if isParametersSetEvent(log) {
+			hasParametersSetEvent = true
+		}
+	}
+
+	// If we have a ParametersSet event, we need to refetch curve parameters
+	if hasParametersSetEvent {
+		return d.handleParametersSetEvent(ctx, p)
+	}
+
+	// If we have oracle events, refetch oracle rates
+	// Oracle rate changes don't affect reserves but do affect pricing
+	if hasOracleEvent {
+		// Oracle updates are less critical for reserve tracking
+		// We can optionally fetch new oracle rates here
+		// For now, we'll let the next regular update handle it
+	}
+
+	// For Trade events, we can either:
+	// 1. Decode the event and update reserves directly (more efficient)
+	// 2. Refetch reserves from node (simpler, what we're doing now)
+	//
+	// Since Trade event includes originAmount and targetAmount, we could update reserves:
+	// - reserves[origin] += originAmount
+	// - reserves[target] -= targetAmount
+	//
+	// However, for simplicity and to ensure accuracy, we refetch from node
+	if hasTradeEvent {
+		// Refetch reserves after trade
+		reserves, updatedExtra, err := d.fetchPoolReservesFromNode(ctx, p.Address, extra)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": p.Address,
+				"error":       err,
+			}).Error("Failed to fetch pool reserves after trade event")
+			return p, err
+		}
+
+		// Update reserves
+		for i := range p.Reserves {
+			if i < len(reserves) {
+				p.Reserves[i] = reserves[i].String()
+			}
+		}
+
+		// Update extra data
+		extraBytes, err := json.Marshal(updatedExtra)
+		if err != nil {
+			return p, err
+		}
+		p.Extra = string(extraBytes)
+		p.Timestamp = time.Now().Unix()
+
+		logger.WithFields(logger.Fields{
+			"dex":         DexType,
+			"poolAddress": p.Address,
+		}).Info("Updated reserves after trade event")
+
+		return p, nil
+	}
+
+	// No relevant events, do a full refetch
+	reserves, updatedExtra, err := d.fetchPoolStateFromNode(ctx, p.Address)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dex":         DexType,
@@ -60,7 +150,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	// Update extra data
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(updatedExtra)
 	if err != nil {
 		return p, err
 	}
@@ -131,66 +221,68 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		Lambda:  curveResult.Lambda.String(),
 	}
 
-	// Oracle rates: Stabull uses Chainlink oracles internally
-	// Oracle rates: Stabull uses Chainlink oracles internally
-	// The viewOriginSwap already accounts for oracle-adjusted pricing
-	// We don't need to fetch oracle rates separately for simulation
-
+	// Get oracle addresses from config if available
 	extra := Extra{
-		CurveParams:     curveParams,
-		BaseOracleRate:  "", // Not needed - included in viewOriginSwap
-		QuoteOracleRate: "", // Not needed - included in viewOriginSwap
-		OracleRate:      "",
+		CurveParams: curveParams,
 	}
+
+	// Optionally populate oracle addresses from config
+	// This would be set during pool initialization from d.config.ChainlinkOracles
 
 	return reserves, extra, nil
 }
 
-// processLog processes different event types (called internally during GetNewPoolState)
-func (d *PoolTracker) processLog(ctx context.Context, log types.Log, pool entity.Pool) (entity.Pool, error) {
-	eventSignature := log.Topics[0].Hex()
-
-	switch eventSignature {
-	case tradeEventTopic:
-		return d.handleTradeEvent(ctx, log, pool)
-	case parametersSetEventTopic:
-		return d.handleParametersSetEvent(ctx, log, pool)
-	default:
-		// Unknown event, return pool unchanged
-		return pool, nil
+// fetchPoolReservesFromNode fetches only reserves (not curve parameters) - more efficient for Trade events
+func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress string, existingExtra Extra) ([]*big.Int, Extra, error) {
+	var liquidityResult struct {
+		Total      *big.Int   `json:"total_"`
+		Individual []*big.Int `json:"individual_"`
 	}
-}
 
-// handleTradeEvent processes a Trade event (swap transaction)
-// Trade(address indexed trader, address indexed origin, address indexed target, uint256 originAmount, uint256 targetAmount, int128 rawProtocolFee)
-// Note: We refetch reserves as Trade events affect pool balances
-func (d *PoolTracker) handleTradeEvent(ctx context.Context, log types.Log, p entity.Pool) (entity.Pool, error) {
-	// Trade events change reserves, so refetch from node
-	return d.GetNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: []types.Log{log}})
+	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	// Fetch reserves using liquidity() method
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: poolAddress,
+		Method: poolMethodLiquidity,
+		Params: []interface{}{},
+	}, []interface{}{&liquidityResult.Total, &liquidityResult.Individual})
+
+	_, err := rpcRequest.Aggregate()
+	if err != nil {
+		return nil, Extra{}, err
+	}
+
+	// Convert reserves
+	reserves := liquidityResult.Individual
+	if len(reserves) != 2 {
+		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
+	}
+
+	// Return existing extra (curve parameters unchanged)
+	return reserves, existingExtra, nil
 }
 
 // handleParametersSetEvent processes a ParametersSet event
 // ParametersSet(uint256 alpha, uint256 beta, uint256 delta, uint256 epsilon, uint256 lambda)
 // This is emitted when admin updates curve parameters - infrequent but critical for pricing
-func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, log types.Log, pool entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
-		"poolAddress": pool.Address,
-	}).Info("ParameterSet event detected, refetching pool state")
-
-	// ParameterSet changes the curve parameters, so we need to refetch viewCurve()
-	// Reserves don't change on ParameterSet, but pricing formula does
+		"poolAddress": p.Address,
+	}).Info("ParametersSet event detected, refetching curve parameters")
 
 	var extra Extra
-	if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		logger.WithFields(logger.Fields{
 			"dex":         DexType,
-			"poolAddress": pool.Address,
+			"poolAddress": p.Address,
 			"error":       err,
 		}).Warn("Failed to decode existing extra data")
 	}
 
-	// Fetch updated curve parameters
+	// Fetch updated curve parameters (not reserves, they don't change on ParametersSet)
 	var curveResult struct {
 		Alpha   *big.Int
 		Beta    *big.Int
@@ -202,7 +294,7 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, log types.Lo
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
-		Target: pool.Address,
+		Target: p.Address,
 		Method: poolMethodViewCurve,
 		Params: []interface{}{},
 	}, []interface{}{&curveResult.Alpha, &curveResult.Beta, &curveResult.Delta, &curveResult.Epsilon, &curveResult.Lambda})
@@ -211,10 +303,10 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, log types.Lo
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dex":         DexType,
-			"poolAddress": pool.Address,
+			"poolAddress": p.Address,
 			"error":       err,
 		}).Error("Failed to fetch updated curve parameters")
-		return pool, err
+		return p, err
 	}
 
 	// Update curve parameters in extra (convert to strings)
@@ -228,14 +320,14 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, log types.Lo
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		return pool, err
+		return p, err
 	}
-	pool.Extra = string(extraBytes)
-	pool.Timestamp = time.Now().Unix()
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
-		"poolAddress": pool.Address,
+		"poolAddress": p.Address,
 		"alpha":       curveResult.Alpha.String(),
 		"beta":        curveResult.Beta.String(),
 		"delta":       curveResult.Delta.String(),
@@ -243,5 +335,5 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, log types.Lo
 		"lambda":      curveResult.Lambda.String(),
 	}).Info("Updated curve parameters after ParametersSet event")
 
-	return pool, nil
+	return p, nil
 }

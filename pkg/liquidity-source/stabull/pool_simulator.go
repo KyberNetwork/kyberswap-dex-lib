@@ -36,9 +36,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
 	}
 
+	// Derive swap fee from epsilon parameter
+	var swapFee *big.Int
+	if epsilon, ok := new(big.Int).SetString(extra.CurveParams.Epsilon, 10); ok && epsilon != nil {
+		// Epsilon is the fee parameter (e.g., 1.5e15 for 0.15%)
+		// We store it as the swap fee in the pool info
+		swapFee = epsilon
+	} else {
+		// Default to 0.15% = 1.5e15 in 1e18 precision
+		swapFee = new(big.Int).Mul(big.NewInt(15), big.NewInt(1e14))
+	}
+
 	info := pool.PoolInfo{
 		Address:  strings.ToLower(entityPool.Address),
-		SwapFee:  big.NewInt(0), // Stabull doesn't have explicit swap fee (built into curve)
+		SwapFee:  swapFee, // Fee derived from epsilon parameter
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
 		Tokens:   tokens,
@@ -102,10 +113,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 // 1. Hybrid constant product and constant sum invariant
 // 2. Dynamic pricing based on pool balance vs oracle rate
 // 3. Curve parameters (alpha, beta, delta, epsilon, lambda) define the shape
-// 4. 0.15% swap fee (70% to LPs, 30% to protocol) built into calculation
+// 4. Dynamic fee based on epsilon and pool imbalance
 //
-// Since we're in a simulator context (no RPC calls), we implement a simplified version
-// For production routing, the pool_tracker ensures we have up-to-date reserves and parameters
+// We implement the curve math using the greek parameters from pool state
 func (p *PoolSimulator) calculateSwap(
 	amountIn *big.Int,
 	tokenInIndex int,
@@ -126,40 +136,46 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, fmt.Errorf("insufficient reserve out")
 	}
 
-	// Simplified Stabull curve calculation
-	// Real implementation in Curve.sol is much more sophisticated
-	// It uses viewOriginSwap which:
-	// - Calculates new reserve ratio after swap
-	// - Applies curve formula with alpha, beta, delta, epsilon, lambda
-	// - Adjusts pricing based on oracle rate deviation
-	// - Applies 0.15% fee
-	//
-	// For accurate routing, we use a constant product approximation with fee
-	// This gives reasonable estimates; actual execution uses on-chain viewOriginSwap
-
-	// Apply 0.15% swap fee (15 basis points)
-	feeAmount := new(big.Int).Mul(amountIn, big.NewInt(swapFeeBps))
-	feeAmount = new(big.Int).Div(feeAmount, big.NewInt(10000))
-
-	amountInAfterFee := new(big.Int).Sub(amountIn, feeAmount)
-
-	// Constant product approximation: amountOut = (reserveOut * amountInAfterFee) / (reserveIn + amountInAfterFee)
-	numerator := new(big.Int).Mul(reserveOut, amountInAfterFee)
-	denominator := new(big.Int).Add(reserveIn, amountInAfterFee)
-
-	if denominator.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, fmt.Errorf("zero denominator in swap calculation")
+	// Parse curve parameters from extra
+	alpha, ok := new(big.Int).SetString(p.extra.CurveParams.Alpha, 10)
+	if !ok || alpha == nil {
+		alpha = new(big.Int).Mul(big.NewInt(5), big.NewInt(1e17)) // Default: 0.5 * 1e18
 	}
 
-	amountOut := new(big.Int).Div(numerator, denominator)
+	beta, ok := new(big.Int).SetString(p.extra.CurveParams.Beta, 10)
+	if !ok || beta == nil {
+		beta = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
+	}
 
-	// TODO: For more accurate simulation, implement full Stabull curve formula
-	// This would require:
-	// 1. Parse viewOriginSwap logic from Curve.sol
-	// 2. Apply curve parameters from p.extra.CurveParams
-	// 3. Integrate oracle rate adjustment if available
-	//
-	// For now, constant product with 0.15% fee provides reasonable routing estimates
+	delta, ok := new(big.Int).SetString(p.extra.CurveParams.Delta, 10)
+	if !ok || delta == nil {
+		delta = new(big.Int).Exp(big.NewInt(10), big.NewInt(17), nil) // Default: 0.1 * 1e18
+	}
+
+	epsilon, ok := new(big.Int).SetString(p.extra.CurveParams.Epsilon, 10)
+	if !ok || epsilon == nil {
+		epsilon = new(big.Int).Mul(big.NewInt(15), big.NewInt(1e14)) // Default: 0.15% = 1.5e15
+	}
+
+	lambda, ok := new(big.Int).SetString(p.extra.CurveParams.Lambda, 10)
+	if !ok || lambda == nil {
+		lambda = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
+	}
+
+	// Use the Stabull curve formula with greek parameters
+	amountOut, err := calculateStabullSwap(
+		amountIn,
+		reserveIn,
+		reserveOut,
+		alpha,
+		beta,
+		delta,
+		epsilon,
+		lambda,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return amountOut, nil
 }

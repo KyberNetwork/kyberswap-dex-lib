@@ -16,9 +16,12 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config         *Config
-	ethrpcClient   *ethrpc.Client
-	hasInitialized bool
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
+
+type PoolsListUpdaterMetadata struct {
+	Offset int `json:"offset"`
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -34,55 +37,147 @@ func NewPoolsListUpdater(
 }
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	// For now, we use a simple initialization approach
-	// TODO: Implement event-based pool discovery for NewCurve events
-	// This requires scanning blockchain logs for newCurveTopic = "0xe7a19de9e8788cc07c144818f2945144acd6234f790b541aa1010371c8b2a73b"
+	var (
+		dexID     = d.config.DexID
+		startTime = time.Now()
+	)
 
-	if d.hasInitialized {
-		logger.WithFields(logger.Fields{
-			"dex": DexType,
-		}).Debug("skip since pools have been initialized")
-		return nil, nil, nil
-	}
+	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
 
-	// Use configured pool addresses for initial implementation
-	pools, err := d.initPools(ctx)
+	allPairsLength, err := d.getAllPairsLength(ctx)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dex":   DexType,
-			"error": err,
-		}).Error("failed to initialize pools")
-		return nil, nil, err
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID}).
+			Error("getAllPairsLength failed")
+
+		return nil, metadataBytes, err
 	}
 
-	d.hasInitialized = true
+	offset, err := d.getOffset(metadataBytes)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+			Warn("getOffset failed")
+	}
 
-	logger.WithFields(logger.Fields{
-		"dex":   DexType,
-		"pools": len(pools),
-	}).Info("finished fetching pools")
+	batchSize := d.getBatchSize(allPairsLength, d.config.NewPoolLimit, offset)
 
-	return pools, nil, nil
+	pairAddresses, err := d.listPairAddresses(ctx, offset, batchSize)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+			Error("listPairAddresses failed")
+
+		return nil, metadataBytes, err
+	}
+
+	pools, err := d.initPools(ctx, pairAddresses)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+			Error("initPools failed")
+
+		return nil, metadataBytes, err
+	}
+
+	newMetadataBytes, err := d.newMetadata(offset + batchSize)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+			Error("newMetadata failed")
+
+		return nil, metadataBytes, err
+	}
+
+	logger.
+		WithFields(
+			logger.Fields{
+				"dex_id":      dexID,
+				"pools_len":   len(pools),
+				"offset":      offset,
+				"duration_ms": time.Since(startTime).Milliseconds(),
+			},
+		).
+		Info("Finished getting new pools")
+
+	return pools, newMetadataBytes, nil
 }
 
-func (d *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error) {
-	// TODO: For production, scan NewCurve events from CurveFactory
-	// For now, require pool addresses to be configured in Config
+// getAllPairsLength gets number of pools from the factory contract
+func (d *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
+	var curvesLength *big.Int
 
-	if len(d.config.PoolAddresses) == 0 {
-		logger.WithFields(logger.Fields{
-			"dex": DexType,
-		}).Warn("No pool addresses configured")
-		return []entity.Pool{}, nil
+	getAllPairsLengthRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
+		ABI:    stabullFactoryABI,
+		Target: d.config.FactoryAddress,
+		Method: factoryMethodCurvesLength,
+	}, []interface{}{&curvesLength})
+
+	if _, err := getAllPairsLengthRequest.Call(); err != nil {
+		return 0, err
 	}
 
+	return int(curvesLength.Int64()), nil
+}
+
+// getOffset gets index of the last pool that is fetched
+func (d *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
+	if len(metadataBytes) == 0 {
+		return 0, nil
+	}
+
+	var metadata PoolsListUpdaterMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return 0, err
+	}
+
+	return metadata.Offset, nil
+}
+
+// listPairAddresses lists addresses of pools from offset
+func (d *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
+	listPairAddressesResult := make([]common.Address, batchSize)
+
+	listPairAddressesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	for i := 0; i < batchSize; i++ {
+		index := big.NewInt(int64(offset + i))
+
+		listPairAddressesRequest.AddCall(&ethrpc.Call{
+			ABI:    stabullFactoryABI,
+			Target: d.config.FactoryAddress,
+			Method: factoryMethodCurves,
+			Params: []interface{}{index},
+		}, []interface{}{&listPairAddressesResult[i]})
+	}
+
+	resp, err := listPairAddressesRequest.TryAggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	var pairAddresses []common.Address
+	for i, isSuccess := range resp.Result {
+		if !isSuccess {
+			continue
+		}
+
+		pairAddresses = append(pairAddresses, listPairAddressesResult[i])
+	}
+
+	return pairAddresses, nil
+}
+
+func (d *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common.Address) ([]entity.Pool, error) {
 	var pools []entity.Pool
-	for _, poolAddress := range d.config.PoolAddresses {
-		pool, err := d.getNewPool(ctx, poolAddress)
+	for _, poolAddress := range pairAddresses {
+		pool, err := d.getNewPool(ctx, poolAddress.Hex())
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dex":         DexType,
-				"poolAddress": poolAddress,
+				"poolAddress": poolAddress.Hex(),
 				"error":       err,
 			}).Warn("failed to fetch pool")
 			continue
@@ -91,6 +186,32 @@ func (d *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error)
 	}
 
 	return pools, nil
+}
+
+func (d *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
+	metadata := PoolsListUpdaterMetadata{
+		Offset: newOffset,
+	}
+
+	return json.Marshal(metadata)
+}
+
+func (d *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
+	if length <= 0 {
+		return 0
+	}
+
+	if offset >= length {
+		return 0
+	}
+
+	if limit <= 0 {
+		limit = length
+	}
+
+	batchSize := min(length-offset, limit)
+
+	return batchSize
 }
 
 func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (*entity.Pool, error) {

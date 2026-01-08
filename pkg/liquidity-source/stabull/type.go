@@ -32,6 +32,10 @@ type Extra struct {
 	// Curve parameters from viewCurve()
 	CurveParams CurveParameters `json:"curveParams"`
 
+	// Oracle addresses for Chainlink price feeds
+	BaseOracleAddress  string `json:"baseOracleAddress,omitempty"`  // Chainlink aggregator for base token (e.g., NZD/USD)
+	QuoteOracleAddress string `json:"quoteOracleAddress,omitempty"` // Chainlink aggregator for quote token (USDC/USD)
+
 	// Oracle rates for both tokens (base/USD and USDC/USD)
 	// Strings for JSON serialization
 	BaseOracleRate  string `json:"baseOracleRate,omitempty"`  // e.g., NZD/USD from Chainlink
