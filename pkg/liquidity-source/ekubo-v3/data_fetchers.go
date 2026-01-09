@@ -51,15 +51,8 @@ type (
 		SaleRateDeltas                []TimeSaleRateInfo `json:"saleRateDeltas"`
 	}
 
-	dataFetcherAddresses struct {
-		quote string
-		twamm string
-	}
-
 	dataFetchers struct {
-		ethrpcClient        *ethrpc.Client
-		fetcherAddresses    dataFetcherAddresses
-		supportedExtensions map[common.Address]ExtensionType
+		ethrpcClient *ethrpc.Client
 	}
 )
 
@@ -73,7 +66,7 @@ func (f *dataFetchers) fetchPools(
 	}
 
 	twammPoolKeys, basicPoolKeys := lo.FilterReject(poolKeys, func(key *pools.PoolKey[pools.PoolTypeConfig], _ int) bool {
-		extensionType := f.supportedExtensions[key.Extension()]
+		extensionType := SupportedExtensions[key.Extension()]
 		return extensionType == ExtensionTypeTwamm
 	})
 
@@ -90,7 +83,7 @@ func (f *dataFetchers) fetchPools(
 		batchQuoteData := make([]QuoteData, endIdx-startIdx)
 		resp, err := req.AddCall(&ethrpc.Call{
 			ABI:    abis.QuoteDataFetcherABI,
-			Target: f.fetcherAddresses.quote,
+			Target: QuoteDataFetcherAddressStr,
 			Method: basicDataFetcherMethod,
 			Params: []any{
 				lo.Map(basicPoolKeys[startIdx:endIdx], func(poolKey *pools.PoolKey[pools.PoolTypeConfig], _ int) pools.AbiPoolKey {
@@ -113,7 +106,7 @@ func (f *dataFetchers) fetchPools(
 			poolKey := basicPoolKeys[startIdx+i]
 			extension := poolKey.Extension()
 
-			extensionType, ok := f.supportedExtensions[extension]
+			extensionType, ok := SupportedExtensions[extension]
 			if !ok {
 				return nil, fmt.Errorf("requested pool data for unknown extension %v", extension)
 			}
@@ -166,7 +159,7 @@ func (f *dataFetchers) fetchPools(
 		for i, poolKey := range twammPoolKeys[startIdx:endIdx] {
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.TwammDataFetcherABI,
-				Target: f.fetcherAddresses.twamm,
+				Target: TwammDataFetcherAddressStr,
 				Method: twammDataFetcherMethod,
 				Params: []any{
 					poolKey.ToAbi(),
@@ -199,11 +192,6 @@ func (f *dataFetchers) fetchPools(
 func NewDataFetchers(ethrpcClient *ethrpc.Client, cfg *Config) *dataFetchers {
 	return &dataFetchers{
 		ethrpcClient: ethrpcClient,
-		fetcherAddresses: dataFetcherAddresses{
-			quote: cfg.QuoteDataFetcher,
-			twamm: cfg.TwammDataFetcher,
-		},
-		supportedExtensions: cfg.SupportedExtensions,
 	}
 }
 

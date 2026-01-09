@@ -38,7 +38,7 @@ func (d *PoolTracker) getNewPoolState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	lg := klog.WithFields(ctx, klog.Fields{
-		"dexId":       d.config.DexId,
+		"dexId":       DexType,
 		"poolAddress": p.Address,
 	})
 	lg.Infof("Start updating state, log count: %d", len(params.Logs))
@@ -135,7 +135,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 
 		var event pools.Event
-		if d.config.Core == log.Address {
+		if CoreAddress == log.Address {
 			if len(log.Topics) == 0 {
 				event = pools.EventSwapped
 			} else if log.Topics[0] == abis.PositionUpdatedEvent.ID {
@@ -143,7 +143,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
-		} else if d.config.Twamm == log.Address {
+		} else if TwammAddress == log.Address {
 			if len(log.Topics) == 0 {
 				event = pools.EventVirtualOrdersExecuted
 			} else if log.Topics[0] == abis.OrderUpdatedEvent.ID {
@@ -187,7 +187,7 @@ func (d *PoolTracker) forceUpdateState(
 	}
 
 	logger.WithFields(logger.Fields{
-		"dexId":       d.config.DexId,
+		"dexId":       DexType,
 		"poolAddress": poolAddress,
 	}).Info("update state from data fetcher")
 

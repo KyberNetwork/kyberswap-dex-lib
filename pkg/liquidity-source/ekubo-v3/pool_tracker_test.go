@@ -50,7 +50,7 @@ func (ts *PoolTrackerTestSuite) run(cases []*testcase) {
 			require.NoError(t, err)
 
 			staticExtra := StaticExtra{
-				Core:          MainnetConfig.Core,
+				Core:          CoreAddress,
 				ExtensionType: tc.extensionType,
 				PoolKey:       tc.poolKey,
 			}
@@ -190,7 +190,7 @@ func (ts *PoolTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 			poolKey: &pools.AnyPoolKey{PoolKey: pools.NewPoolKey(
 				common.Address{},
 				common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-				pools.NewPoolConfig(MainnetConfig.Twamm, 55340232221128654, pools.PoolTypeConfig(pools.NewFullRangePoolTypeConfig())),
+				pools.NewPoolConfig(TwammAddress, 55340232221128654, pools.PoolTypeConfig(pools.NewFullRangePoolTypeConfig())),
 			),
 			},
 			extensionType: ExtensionTypeTwamm,

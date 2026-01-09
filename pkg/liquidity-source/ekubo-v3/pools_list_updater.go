@@ -46,8 +46,6 @@ type (
 
 		dataFetchers *dataFetchers
 
-		supportedExtensions map[common.Address]ExtensionType
-
 		startBlockNumber uint64
 		startBlockHash   common.Hash
 	}
@@ -94,7 +92,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 
 		if firstBlockNumber != u.startBlockNumber || common.HexToHash(firstPi.BlockHash) != u.startBlockHash {
 			logger.WithFields(logger.Fields{
-				"dexId": u.config.DexId,
+				"dexId": DexType,
 				"expected": logger.Fields{
 					"number": u.startBlockNumber,
 					"hash":   u.startBlockHash,
@@ -190,7 +188,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 
 	newPools := make([]entity.Pool, 0, len(newPoolKeys))
 	for i, poolKey := range newPoolKeys {
-		extensionType, ok := u.supportedExtensions[poolKey.Extension()]
+		extensionType, ok := SupportedExtensions[poolKey.Extension()]
 		if !ok {
 			logger.WithFields(logger.Fields{
 				"poolKey": poolKey,
@@ -199,7 +197,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		}
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			Core:          u.config.Core,
+			Core:          CoreAddress,
 			ExtensionType: extensionType,
 			PoolKey:       &pools.AnyPoolKey{PoolKey: poolKey},
 		})
@@ -219,7 +217,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 
 		newPools = append(newPools, entity.Pool{
 			Address:   poolAddress,
-			Exchange:  u.config.DexId,
+			Exchange:  DexType,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},
@@ -249,15 +247,13 @@ func NewPoolListUpdater(
 ) *PoolListUpdater {
 	req := graphql.NewRequest(subgraphQuery)
 
-	req.Var("coreAddress", cfg.Core)
-	req.Var("extensions", []common.Address{{}, cfg.Oracle, cfg.Twamm, cfg.MevCapture})
+	req.Var("coreAddress", CoreAddress)
+	req.Var("extensions", []common.Address{{}, OracleAddress, TwammAddress, MevCaptureAddress})
 
 	return &PoolListUpdater{
 		config:        cfg,
 		graphqlClient: graphqlClient,
 		graphqlReq:    req,
 		dataFetchers:  NewDataFetchers(ethrpcClient, cfg),
-
-		supportedExtensions: cfg.SupportedExtensions,
 	}
 }

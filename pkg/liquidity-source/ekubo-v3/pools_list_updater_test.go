@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var MainnetConfig = NewConfig(valueobject.ChainIDEthereum, "https://api.studio.thegraph.com/query/1718652/ekubo-pool-initializations/version/latest", common.HexToAddress("0x00000000000014aa86c5d3c41765bb24e11bd701"), common.HexToAddress("0x517e506700271aea091b02f42756f5e174af5230"), common.HexToAddress("0xd4f1060cb9c1a13e1d2d20379b8aa2cf7541ed9b"), common.HexToAddress("0x5555ff9ff2757500bf4ee020dcfd0210cffa41be"), "0x5a3f0f1da4ac0c4b937d5685f330704c8e8303f1", "0xc07e5b80750247c8b5d7234a9c79dfc58785392b")
+var MainnetConfig = NewConfig(valueobject.ChainIDEthereum)
 
 func TestPoolListUpdater(t *testing.T) {
 	t.Parallel()
@@ -26,7 +26,7 @@ func TestPoolListUpdater(t *testing.T) {
 	}
 
 	plUpdater := NewPoolListUpdater(MainnetConfig, ethrpc.New("https://ethereum.drpc.org").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")), graphql.NewClient(MainnetConfig.SubgraphAPI))
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")), graphql.NewClient("https://api.studio.thegraph.com/query/1718652/ekubo-pool-initializations/version/latest"))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)

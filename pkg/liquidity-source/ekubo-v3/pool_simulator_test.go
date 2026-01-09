@@ -608,7 +608,7 @@ func TestOraclePool(t *testing.T) {
 			Liquidity: uint256.NewInt(10_000_000),
 		},
 		&StaticExtra{
-			PoolKey:       poolKey(MainnetConfig.Oracle, 0, pools.NewFullRangePoolTypeConfig()),
+			PoolKey:       poolKey(OracleAddress, 0, pools.NewFullRangePoolTypeConfig()),
 			ExtensionType: ExtensionTypeOracle,
 		},
 	)
