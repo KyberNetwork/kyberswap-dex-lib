@@ -1,14 +1,19 @@
 package stabull
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // TestNewPoolSimulator tests pool simulator creation
@@ -337,4 +342,193 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			TokenOut: "0xtoken1",
 		})
 	}
+}
+
+// ============================================================================
+// INTEGRATION TESTS - Validate against actual contract behavior
+// ============================================================================
+
+func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	tests := []struct {
+		name            string
+		rpcURL          string
+		poolAddress     string
+		tokenIn         string // Token address
+		tokenOut        string // Token address
+		amountIn        string // Amount to swap (in token decimals)
+		maxDeviationBps int64  // Maximum allowed deviation in basis points
+	}{
+		{
+			name:            "Base BRZ/USDC - Small swap",
+			rpcURL:          "https://base.rpc.subquery.network/public",
+			poolAddress:     "0x8a908ae045e61307755a91f4d6ecd04ed31eb1b",
+			tokenIn:         "0xE9185Ee218cae427aF7B9764A011bb89FeA76144", // BRZ
+			tokenOut:        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+			amountIn:        "1000000000000000000",                        // 1 BRZ (18 decimals)
+			maxDeviationBps: 200,                                          // 2% acceptable deviation
+		},
+		{
+			name:            "Polygon NZDS/USDC - Small swap",
+			rpcURL:          "https://polygon-public.nodies.app",
+			poolAddress:     "0xdcbefACa996fe2985138bF31b647EFcd1D0901a",
+			tokenIn:         "0xFbBE4b730e1e77d02dC40fEdF94382802eab3B5",  // NZDS
+			tokenOut:        "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC
+			amountIn:        "1000000",                                    // 1 NZDS (6 decimals)
+			maxDeviationBps: 200,                                          // 2% acceptable deviation
+		},
+		{
+			name:            "Ethereum NZDS/USDC - Small swap",
+			rpcURL:          "https://eth-mainnet.public.blastapi.io",
+			poolAddress:     "0xe37d73c7c4cdd9a8f085f7db70139a0843529f3",
+			tokenIn:         "0xda446fad08277b4d2591536f204e01832b6831c",  // NZDS
+			tokenOut:        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
+			amountIn:        "1000000",                                    // 1 NZDS (6 decimals)
+			maxDeviationBps: 200,                                          // 2% acceptable deviation
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			client := ethrpc.New(tt.rpcURL)
+			require.NotNil(t, client)
+
+			ctx := context.Background()
+
+			// Step 1: Fetch actual pool state from chain
+			t.Log("=== Fetching pool state from chain ===")
+			config := &Config{DexID: "stabull-test"}
+			tracker, err := NewPoolTracker(config, client)
+			require.NoError(t, err)
+
+			reserves, extra, err := tracker.fetchPoolStateFromNode(ctx, tt.poolAddress)
+			require.NoError(t, err)
+			require.Len(t, reserves, 2)
+
+			t.Logf("Pool State:")
+			t.Logf("  Reserve 0: %s", reserves[0].String())
+			t.Logf("  Reserve 1: %s", reserves[1].String())
+			t.Logf("  Alpha: %s", extra.CurveParams.Alpha)
+			t.Logf("  Beta: %s", extra.CurveParams.Beta)
+			t.Logf("  Delta: %s", extra.CurveParams.Delta)
+			t.Logf("  Epsilon: %s", extra.CurveParams.Epsilon)
+			t.Logf("  Lambda: %s", extra.CurveParams.Lambda)
+			if extra.OracleRate != "" {
+				t.Logf("  Oracle Rate: %s", extra.OracleRate)
+			}
+
+			// Step 2: Call contract's viewOriginSwap to get expected output
+			t.Log("\n=== Calling contract viewOriginSwap ===")
+			amountIn := bignumber.NewBig10(tt.amountIn)
+
+			var contractAmountOut *big.Int
+			rpcRequest := client.NewRequest().SetContext(ctx)
+			rpcRequest.AddCall(&ethrpc.Call{
+				ABI:    stabullPoolABI,
+				Target: tt.poolAddress,
+				Method: poolMethodViewOriginSwap,
+				Params: []interface{}{
+					common.HexToAddress(tt.tokenIn),
+					common.HexToAddress(tt.tokenOut),
+					amountIn,
+				},
+			}, []interface{}{&contractAmountOut})
+
+			_, err = rpcRequest.Call()
+			require.NoError(t, err, "Failed to call viewOriginSwap")
+			require.NotNil(t, contractAmountOut)
+
+			t.Logf("Contract viewOriginSwap:")
+			t.Logf("  Input: %s", amountIn.String())
+			t.Logf("  Output: %s", contractAmountOut.String())
+
+			// Step 3: Create pool simulator and calculate output
+			t.Log("\n=== Calculating with pool simulator ===")
+
+			extraBytes, err := json.Marshal(extra)
+			require.NoError(t, err)
+
+			entityPool := entity.Pool{
+				Address:  tt.poolAddress,
+				Exchange: "stabull",
+				Type:     DexType,
+				Tokens: []*entity.PoolToken{
+					{Address: tt.tokenIn, Decimals: 18},
+					{Address: tt.tokenOut, Decimals: 6},
+				},
+				Reserves: []string{
+					reserves[0].String(),
+					reserves[1].String(),
+				},
+				Extra: string(extraBytes),
+			}
+
+			simulator, err := NewPoolSimulator(entityPool)
+			require.NoError(t, err)
+
+			result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  tt.tokenIn,
+					Amount: amountIn,
+				},
+				TokenOut: tt.tokenOut,
+			})
+			require.NoError(t, err, "CalcAmountOut should not error")
+			require.NotNil(t, result)
+
+			simulatorAmountOut := result.TokenAmountOut.Amount
+			t.Logf("Simulator CalcAmountOut:")
+			t.Logf("  Input: %s", amountIn.String())
+			t.Logf("  Output: %s", simulatorAmountOut.String())
+
+			// Step 4: Compare results
+			t.Log("\n=== Comparison ===")
+
+			// Calculate deviation
+			diff := new(big.Int).Sub(contractAmountOut, simulatorAmountOut)
+			absDiff := new(big.Int).Abs(diff)
+
+			// deviation = (absDiff * 10000) / contractAmountOut (in basis points)
+			deviationBps := new(big.Int).Mul(absDiff, big.NewInt(10000))
+			deviationBps.Div(deviationBps, contractAmountOut)
+
+			t.Logf("Contract Output:  %s", contractAmountOut.String())
+			t.Logf("Simulator Output: %s", simulatorAmountOut.String())
+			t.Logf("Difference:       %s", diff.String())
+			t.Logf("Deviation:        %s bps (%.2f%%)", deviationBps.String(), float64(deviationBps.Int64())/100)
+			t.Logf("Max Allowed:      %d bps (%.2f%%)", tt.maxDeviationBps, float64(tt.maxDeviationBps)/100)
+
+			// Assert deviation is within acceptable range
+			assert.True(t,
+				deviationBps.Cmp(big.NewInt(tt.maxDeviationBps)) <= 0,
+				"Deviation %s bps exceeds maximum allowed %d bps",
+				deviationBps.String(),
+				tt.maxDeviationBps,
+			)
+
+			// Additional validation
+			assert.True(t,
+				simulatorAmountOut.Cmp(big.NewInt(0)) > 0,
+				"Simulator output should be positive",
+			)
+			assert.True(t,
+				simulatorAmountOut.Cmp(reserves[1]) < 0,
+				"Simulator output should be less than reserve",
+			)
+		})
+	}
+}
+
+func TestPoolSimulator_BidirectionalSwaps(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Test both swap directions (token0->token1 and token1->token0)
+	t.Log("TODO: Add bidirectional swap tests")
+	t.Skip("Add test implementation")
 }

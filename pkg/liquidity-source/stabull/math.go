@@ -20,11 +20,12 @@ var (
 // - delta (δ): Slippage parameter
 // - epsilon (ε): Fee parameter (dynamic fee based on imbalance)
 // - lambda (λ): Oracle weight parameter
+// - oracleRate: Chainlink oracle rate (base/quote) for price guidance
 //
 // The curve formula maintains an invariant that combines:
 // 1. Constant product (Uniswap-style): x * y = k
 // 2. Constant sum (Curve-style): x + y = k
-// 3. Oracle-aware pricing adjustments
+// 3. Oracle-aware pricing adjustments using lambda
 //
 // Approximation approach:
 // Since we can't replicate the full Solidity math exactly (due to fixed-point precision differences),
@@ -38,6 +39,7 @@ func calculateStabullSwap(
 	delta *big.Int,
 	epsilon *big.Int,
 	lambda *big.Int,
+	oracleRate *big.Int, // Oracle rate for price guidance (in 1e18 precision)
 ) (*big.Int, error) {
 	if amountIn == nil || amountIn.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmount
@@ -77,6 +79,7 @@ func calculateStabullSwap(
 	// Apply curve adjustments based on greek parameters
 	// Alpha: Weights between constant product (α=1e18) and constant sum (α=0)
 	// For balanced pools, alpha is typically around 0.5 * 1e18
+	// Lambda: Weights oracle price influence on the output
 	adjustedAmountOut := applyCurveAdjustment(
 		baseAmountOut,
 		amountInAfterFee,
@@ -86,6 +89,7 @@ func calculateStabullSwap(
 		beta,
 		delta,
 		lambda,
+		oracleRate,
 	)
 
 	// Ensure we don't return more than available reserves
@@ -116,6 +120,7 @@ func calculateDynamicFee(reserveIn *big.Int, reserveOut *big.Int, epsilon *big.I
 
 // applyCurveAdjustment applies the Stabull curve formula adjustments
 // This modifies the base constant product output based on greek parameters
+// Lambda (λ) is used to weight the oracle price influence on the output
 func applyCurveAdjustment(
 	baseAmountOut *big.Int,
 	amountIn *big.Int,
@@ -125,6 +130,7 @@ func applyCurveAdjustment(
 	beta *big.Int,
 	delta *big.Int,
 	lambda *big.Int,
+	oracleRate *big.Int, // Oracle rate (base/quote) in 1e18 precision
 ) *big.Int {
 	// All greek parameters are in 1e18 precision
 	one := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // 1e18
@@ -163,15 +169,35 @@ func applyCurveAdjustment(
 	adjustedOutput := new(big.Int).Set(alphaFactor)
 	adjustedOutput = new(big.Int).Sub(adjustedOutput, deltaReduction)
 
+	// Lambda & Oracle rate adjustment:
+	// If oracle rate is available, use it to guide pricing
+	// Lambda controls how much weight to give the oracle vs pool reserves
+	//
+	// oracleBasedOutput = amountIn * oracleRate / 1e18
+	// finalOutput = (1-lambda)*adjustedOutput + lambda*oracleBasedOutput
+	//             = adjustedOutput + lambda * (oracleBasedOutput - adjustedOutput) / 1e18
+	if oracleRate != nil && oracleRate.Cmp(bignumber.ZeroBI) > 0 && lambda != nil {
+		// Calculate what the output would be based on oracle price
+		oracleBasedOutput := new(big.Int).Mul(amountIn, oracleRate)
+		oracleBasedOutput = new(big.Int).Div(oracleBasedOutput, one)
+
+		// Calculate the difference
+		diff := new(big.Int).Sub(oracleBasedOutput, adjustedOutput)
+
+		// Apply lambda weight: adjustment = lambda * diff / 1e18
+		oracleAdjustment := new(big.Int).Mul(lambda, diff)
+		oracleAdjustment = new(big.Int).Div(oracleAdjustment, one)
+
+		// Add oracle adjustment to the output
+		adjustedOutput = new(big.Int).Add(adjustedOutput, oracleAdjustment)
+	}
+
 	// Ensure output is positive and reasonable
 	if adjustedOutput.Cmp(bignumber.ZeroBI) <= 0 {
 		// Fallback to base amount if adjustments are too aggressive
 		fallbackAmount := new(big.Int).Mul(baseAmountOut, big.NewInt(95))
 		return new(big.Int).Div(fallbackAmount, big.NewInt(100))
 	}
-
-	// Lambda is used for oracle integration, not directly in this calculation
-	// It would be used in the full implementation to weight oracle prices
 
 	return adjustedOutput
 }

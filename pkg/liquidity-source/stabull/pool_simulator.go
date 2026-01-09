@@ -162,6 +162,12 @@ func (p *PoolSimulator) calculateSwap(
 		lambda = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
 	}
 
+	// Parse oracle rate from extra (if available)
+	var oracleRate *big.Int
+	if p.extra.OracleRate != "" {
+		oracleRate, _ = new(big.Int).SetString(p.extra.OracleRate, 10)
+	}
+
 	// Use the Stabull curve formula with greek parameters
 	amountOut, err := calculateStabullSwap(
 		amountIn,
@@ -172,6 +178,7 @@ func (p *PoolSimulator) calculateSwap(
 		delta,
 		epsilon,
 		lambda,
+		oracleRate, // Pass oracle rate for pricing adjustment
 	)
 	if err != nil {
 		return nil, err
