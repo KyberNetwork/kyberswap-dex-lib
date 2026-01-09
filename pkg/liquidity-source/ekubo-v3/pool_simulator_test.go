@@ -34,119 +34,168 @@ type PoolSimulatorTestSuite struct {
 
 // https://github.com/EkuboProtocol/evm-rust-sdk/commits/d6a6e7df76030a8f6c18c2e2cf75086d8a58d16b
 func (ts *PoolSimulatorTestSuite) SetupSuite() {
-	// TODO
 	ts.pools = map[string]string{
-		/*"lvlUSD-USDC-base": `{
-			"address": "0x7c1156e515aa1a2e851674120074968c905aaf37/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48_0_200_0x0000000000000000000000000000000000000000",
-			"exchange": "ekubov3",
-			"type": "ekubov3",
-			"timestamp": 1744552055,
-			"reserves": [
-			"22230236553469695333225",
-			"32442057326"
-			],
+		"lvlUSD-USDC-base": `{
 			"tokens": [
-			{
-				"address": "0x7c1156e515aa1a2e851674120074968c905aaf37",
-				"symbol": "lvlUSD",
-				"decimals": 18,
-				"swappable": true
-			},
-			{
-				"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-				"symbol": "USDC",
-				"decimals": 6,
-				"swappable": true
-			}
+				{
+					"address": "0x7c1156e515aa1a2e851674120074968c905aaf37",
+					"symbol": "lvlUSD",
+					"decimals": 18,
+					"swappable": true
+				},
+				{
+					"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					"symbol": "USDC",
+					"decimals": 6,
+					"swappable": true
+				}
 			],
-			"extra": "{\"liquidity\":190444832097070393212,\"sqrtRatio\":340297432795514877548017330683904,\"activeTick\":-27630947,\"sortedTicks\":[{\"number\":-27733347,\"liquidityDelta\":0},{\"number\":-27634400,\"liquidityDelta\":1357532262696882268},{\"number\":-27631400,\"liquidityDelta\":61232925196865067418},{\"number\":-27631200,\"liquidityDelta\":127854374637508443526},{\"number\":-27630800,\"liquidityDelta\":-127854374637508443526},{\"number\":-27630600,\"liquidityDelta\":-61232925196865067418},{\"number\":-27627600,\"liquidityDelta\":-1357532262696882268},{\"number\":-27528547,\"liquidityDelta\":0}],\"activeTickIndex\":3,\"tickBounds\":[-27733347,-27528547]}",
-			"staticExtra": "{\"extensionType\":1,\"poolKey\":{\"token0\":\"0x7c1156e515aa1a2e851674120074968c905aaf37\",\"token1\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"config\":{\"fee\":0,\"tickSpacing\":200,\"extension\":\"0x0000000000000000000000000000000000000000\"}}}"
+			"extra": "{
+				\"liquidity\": 190444832097070393212,
+				\"sqrtRatio\": 340297432795514877548017330683904,
+				\"activeTick\": -27630947,
+				\"sortedTicks\": [
+					{\"number\": -27733347, \"liquidityDelta\": 0},
+					{\"number\": -27634400, \"liquidityDelta\": 1357532262696882268},
+					{\"number\": -27631400, \"liquidityDelta\": 61232925196865067418},
+					{\"number\": -27631200, \"liquidityDelta\": 127854374637508443526},
+					{\"number\": -27630800, \"liquidityDelta\": -127854374637508443526},
+					{\"number\": -27630600, \"liquidityDelta\": -61232925196865067418},
+					{\"number\": -27627600, \"liquidityDelta\": -1357532262696882268},
+					{\"number\": -27528547, \"liquidityDelta\": 0}
+				],
+				\"activeTickIndex\": 3,
+				\"tickBounds\": [-27733347, -27528547]
+			}",
+			"staticExtra": "{
+				\"extensionType\": 1,
+				\"poolKey\": {
+					\"token0\": \"0x7c1156e515aa1a2e851674120074968c905aaf37\",
+					\"token1\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",
+					\"config\": {
+						\"extension\": \"0x0000000000000000000000000000000000000000\",
+						\"fee\": 0,
+						\"typeConfig\": {
+							\"tickSpacing\": 200
+						}
+					}
+				}
+			}"
 		}`,
 		"ETH-USDC-oracle": `{
-			"address": "0x0000000000000000000000000000000000000000/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48_0_0_0x51d02a5948496a67827242eabc5725531342527c",
-			"exchange": "ekubov3",
-			"type": "ekubov3",
-			"timestamp": 1744554592,
-			"reserves": [
-			"16211767033603422046",
-			"25582559997"
-			],
 			"tokens": [
-			{
-				"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				"symbol": "WETH",
-				"decimals": 18,
-				"swappable": true
-			},
-			{
-				"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-				"symbol": "USDC",
-				"decimals": 6,
-				"swappable": true
-			}
+				{
+					"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					"symbol": "WETH",
+					"decimals": 18,
+					"swappable": true
+				},
+				{
+					"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					"symbol": "USDC",
+					"decimals": 6,
+					"swappable": true
+				}
 			],
-			"extra": "{\"liquidity\":644001943172367,\"sqrtRatio\":13517496585667842734787457760362496}",
-			"staticExtra": "{\"extensionType\":2,\"poolKey\":{\"token0\":\"0x0000000000000000000000000000000000000000\",\"token1\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"config\":{\"fee\":0,\"tickSpacing\":0,\"extension\":\"0x51d02a5948496a67827242eabc5725531342527c\"}}}"
+			"extra": "{
+				\"liquidity\": 644001943172367,
+				\"sqrtRatio\": 13517496585667842734787457760362496
+			}",
+			"staticExtra": "{
+				\"extensionType\": 2,
+				\"poolKey\": {
+					\"token0\": \"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",
+					\"token1\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",
+					\"config\": {
+						\"extension\": \"0x51d02a5948496a67827242eabc5725531342527c\",
+						\"fee\": 0,
+						\"typeConfig\": {}
+					}
+				}
+			}"
 		}`,
 		"ETH-EKUBO-base": `{
-			"address": "0x0000000000000000000000000000000000000000/0x04c46e830bb56ce22735d5d8fc9cb90309317d0f_184467440737095516_19802_0x0000000000000000000000000000000000000000",
-			"exchange": "ekubov3",
-			"type": "ekubov3",
-			"timestamp": 1744554808,
-			"reserves": [
-			"412153040861140123",
-			"18352063799468475546949"
-			],
 			"tokens": [
-			{
-				"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				"symbol": "WETH",
-				"decimals": 18,
-				"swappable": true
-			},
-			{
-				"address": "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				"symbol": "EKUBO",
-				"decimals": 18,
-				"swappable": true
-			}
+				{
+					"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					"symbol": "WETH",
+					"decimals": 18,
+					"swappable": true
+				},
+				{
+					"address": "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+					"symbol": "EKUBO",
+					"decimals": 18,
+					"swappable": true
+				}
 			],
-			"extra": "{\"liquidity\":69269646872393240672,\"sqrtRatio\":6843420854794309313390943859390472519680,\"activeTick\":6002537,\"sortedTicks\":[{\"number\":-4136087,\"liquidityDelta\":0},{\"number\":2950498,\"liquidityDelta\":568821477503452479021},{\"number\":5207926,\"liquidityDelta\":3345854232514988052480},{\"number\":5544560,\"liquidityDelta\":69269646872393240672},{\"number\":5564362,\"liquidityDelta\":24355412055252046472},{\"number\":5623768,\"liquidityDelta\":-568741057254962452977},{\"number\":5643570,\"liquidityDelta\":-3345934652763478078524},{\"number\":5940600,\"liquidityDelta\":-24355412055252046472},{\"number\":6257432,\"liquidityDelta\":-69269646872393240672},{\"number\":16141161,\"liquidityDelta\":0}],\"activeTickIndex\":7,\"tickBounds\":[-4136087,16141161]}",
-			"staticExtra": "{\"extensionType\":1,\"poolKey\":{\"token0\":\"0x0000000000000000000000000000000000000000\",\"token1\":\"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",\"config\":{\"fee\":184467440737095516,\"tickSpacing\":19802,\"extension\":\"0x0000000000000000000000000000000000000000\"}}}"
+			"extra": "{
+				\"liquidity\": 69269646872393240672,
+				\"sqrtRatio\": 6843420854794309313390943859390472519680,
+				\"activeTick\": 6002537,
+				\"sortedTicks\": [
+					{\"number\": -4136087, \"liquidityDelta\": 0},
+					{\"number\": 2950498, \"liquidityDelta\": 568821477503452479021},
+					{\"number\": 5207926, \"liquidityDelta\": 3345854232514988052480},
+					{\"number\": 5544560, \"liquidityDelta\": 69269646872393240672},
+					{\"number\": 5564362, \"liquidityDelta\": 24355412055252046472},
+					{\"number\": 5623768, \"liquidityDelta\": -568741057254962452977},
+					{\"number\": 5643570, \"liquidityDelta\": -3345934652763478078524},
+					{\"number\": 5940600, \"liquidityDelta\": -24355412055252046472},
+					{\"number\": 6257432, \"liquidityDelta\": -69269646872393240672},
+					{\"number\": 16141161, \"liquidityDelta\": 0}
+				],
+				\"activeTickIndex\": 7,
+				\"tickBounds\": [-4136087, 16141161]
+			}",
+			"staticExtra": "{
+				\"extensionType\": 1,
+				\"poolKey\": {
+					\"token0\": \"0x0000000000000000000000000000000000000000\",
+					\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",
+					\"config\": {
+						\"extension\": \"0x0000000000000000000000000000000000000000\",
+						\"fee\": 184467440737095516,
+						\"typeConfig\": {
+							\"tickSpacing\": 19802
+						}
+					}
+				}
+			}"
 		}`,
 		"ETH-EKUBO-full-range": `{
-			"address": "0x0000000000000000000000000000000000000000/0x04c46e830bb56ce22735d5d8fc9cb90309317d0f_184467440737095516_0_0x0000000000000000000000000000000000000000",
-			"exchange": "ekubov3",
-			"type": "ekubov3",
-			"timestamp": 1744554808,
-			"reserves": [
-			"2969312898133367",
-			"1187588195557490576"
-			],
 			"tokens": [
-			{
-				"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				"symbol": "WETH",
-				"decimals": 18,
-				"swappable": true
-			},
-			{
-				"address": "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				"symbol": "EKUBO",
-				"decimals": 18,
-				"swappable": true
-			}
+				{
+					"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					"symbol": "WETH",
+					"decimals": 18,
+					"swappable": true
+				},
+				{
+					"address": "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+					"symbol": "EKUBO",
+					"decimals": 18,
+					"swappable": true
+				}
 			],
-			"extra": "{\"liquidity\":59382833771552102,\"sqrtRatio\":6805254927144693263794887740749196034048}",
-			"staticExtra": "{\"extensionType\":1,\"poolKey\":{\"token0\":\"0x0000000000000000000000000000000000000000\",\"token1\":\"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",\"config\":{\"fee\":184467440737095516,\"tickSpacing\":0,\"extension\":\"0x0000000000000000000000000000000000000000\"}}}"
-		}`,*/
+			"extra": "{
+				\"liquidity\": 59382833771552102,
+				\"sqrtRatio\": 6805254927144693263794887740749196034048
+			}",
+			"staticExtra": "{
+				\"extensionType\": 1,
+				\"poolKey\": {
+					\"token0\": \"0x0000000000000000000000000000000000000000\",
+					\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",
+					\"config\": {
+						\"extension\": \"0x0000000000000000000000000000000000000000\",
+						\"fee\": 184467440737095516,
+						\"typeConfig\": {}
+					}
+				}
+			}"
+		}`,
 		"ETH-EKUBO-oracle": `{
-			"address": "0x0000000000000000000000000000000000000000/0x04c46e830bb56ce22735d5d8fc9cb90309317d0f_0x51d02A5948496a67827242EaBc5725531342527C_0_full_range",
-			"timestamp": 1744554808,
-			"reserves": [
-				"12362031325829643375",
-				"4974045697871814700863"
-			],
 			"tokens": [
 				{
 					"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -207,7 +256,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 		expectedTickSpacingsCrossed uint32
 		expectedErr                 error
 	}{
-		/*{
+		{
 			pool:        "lvlUSD-USDC-base",
 			tokenIn:     "0x7c1156e515aa1a2e851674120074968c905aaf37",
 			tokenOut:    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -248,14 +297,14 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 		},
 
 		{
-			pool:        "ETH-USDC-oracle-42527c",
+			pool:        "ETH-USDC-oracle",
 			tokenIn:     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			amountIn:    "1000000",
 			expectedErr: ErrZeroAmount,
 		},
 		{
-			pool:                        "ETH-USDC-oracle-42527c",
+			pool:                        "ETH-USDC-oracle",
 			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:                    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			amountIn:                    "100000000000000000",
@@ -263,7 +312,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedTickSpacingsCrossed: 0,
 		},
 		{
-			pool:                        "ETH-USDC-oracle-42527c",
+			pool:                        "ETH-USDC-oracle",
 			tokenIn:                     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			amountIn:                    "100000000",
@@ -271,7 +320,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedTickSpacingsCrossed: 0,
 		},
 		{
-			pool:                        "ETH-USDC-oracle-42527c",
+			pool:                        "ETH-USDC-oracle",
 			tokenIn:                     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			amountIn:                    "100000000000000",
@@ -279,7 +328,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedTickSpacingsCrossed: 0,
 		},
 		{
-			pool:                        "ETH-USDC-oracle-42527c",
+			pool:                        "ETH-USDC-oracle",
 			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:                    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			amountIn:                    "100000000000000000",
@@ -293,7 +342,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			amountIn:                    "100000000000000000000",
 			expectedAmountOut:           "22013743230",
 			expectedTickSpacingsCrossed: 0,
-		},*/
+		},
 
 		{
 			pool:                        "ETH-EKUBO-oracle",
@@ -328,72 +377,71 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedTickSpacingsCrossed: 0,
 		},
 
-		/*
-			{
-				pool:                        "ETH-EKUBO-base",
-				tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				amountIn:                    "1000000",
-				expectedAmountOut:           "400407818",
-				expectedTickSpacingsCrossed: 0,
-			},
-			{
-				pool:                        "ETH-EKUBO-base",
-				tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				amountIn:                    "1000000000000000000",
-				expectedAmountOut:           "326276313187628668418",
-				expectedTickSpacingsCrossed: 18,
-			},
-			{
-				pool:                        "ETH-EKUBO-base",
-				tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				amountIn:                    "1000000000000000000",
-				expectedAmountOut:           "2446014701861857",
-				expectedTickSpacingsCrossed: 0,
-			},
-			{
-				pool:                        "ETH-EKUBO-base",
-				tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				amountIn:                    "1000000000000000000000000",
-				expectedAmountOut:           "412153040861140123",
-				expectedTickSpacingsCrossed: 4177,
-			},
+		{
+			pool:                        "ETH-EKUBO-base",
+			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			amountIn:                    "1000000",
+			expectedAmountOut:           "400407818",
+			expectedTickSpacingsCrossed: 0,
+		},
+		{
+			pool:                        "ETH-EKUBO-base",
+			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			amountIn:                    "1000000000000000000",
+			expectedAmountOut:           "326276313187628668418",
+			expectedTickSpacingsCrossed: 18,
+		},
+		{
+			pool:                        "ETH-EKUBO-base",
+			tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			amountIn:                    "1000000000000000000",
+			expectedAmountOut:           "2446014701861857",
+			expectedTickSpacingsCrossed: 0,
+		},
+		{
+			pool:                        "ETH-EKUBO-base",
+			tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			amountIn:                    "1000000000000000000000000",
+			expectedAmountOut:           "412153040861140123",
+			expectedTickSpacingsCrossed: 4177,
+		},
 
-			{
-				pool:                        "ETH-EKUBO-full-range",
-				tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				amountIn:                    "1000000",
-				expectedAmountOut:           "395954099",
-				expectedTickSpacingsCrossed: 0,
-			},
-			{
-				pool:                        "ETH-EKUBO-full-range",
-				tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				amountIn:                    "1000000000000000",
-				expectedAmountOut:           "296948572606173404",
-				expectedTickSpacingsCrossed: 0,
-			},
-			{
-				pool:                        "ETH-EKUBO-full-range",
-				tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				amountIn:                    "1000000000000000000",
-				expectedAmountOut:           "1349942920865004",
-				expectedTickSpacingsCrossed: 0,
-			},
-			{
-				pool:                        "ETH-EKUBO-full-range",
-				tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
-				tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				amountIn:                    "10000000000000000000000",
-				expectedAmountOut:           "2968956746821686",
-				expectedTickSpacingsCrossed: 0,
-			},*/
+		{
+			pool:                        "ETH-EKUBO-full-range",
+			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			amountIn:                    "1000000",
+			expectedAmountOut:           "395954099",
+			expectedTickSpacingsCrossed: 0,
+		},
+		{
+			pool:                        "ETH-EKUBO-full-range",
+			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			amountIn:                    "1000000000000000",
+			expectedAmountOut:           "296948572606173404",
+			expectedTickSpacingsCrossed: 0,
+		},
+		{
+			pool:                        "ETH-EKUBO-full-range",
+			tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			amountIn:                    "1000000000000000000",
+			expectedAmountOut:           "1349942920865004",
+			expectedTickSpacingsCrossed: 0,
+		},
+		{
+			pool:                        "ETH-EKUBO-full-range",
+			tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			amountIn:                    "10000000000000000000000",
+			expectedAmountOut:           "2968956746821686",
+			expectedTickSpacingsCrossed: 0,
+		},
 	}
 
 	for _, tc := range testCases {

@@ -144,19 +144,24 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) 
 			return fmt.Errorf("unpacking event data: %w", err)
 		}
 
-		orderKey, ok := values[2].(TwammOrderKey)
+		saleRateDelta, ok := values[3].(*big.Int)
+		if !ok {
+			return errors.New("failed to parse saleRateDelta")
+		}
+
+		if saleRateDelta.Sign() == 0 {
+			return nil
+		}
+
+		orderKeyAbi, ok := values[2].(TwammOrderKeyAbi)
 		if !ok {
 			return errors.New("failed to parse orderKey")
 		}
+		orderKey := TwammOrderKey{TwammOrderKeyAbi: orderKeyAbi}
 
 		poolKey := p.GetKey()
 		if poolKey.Token0Address() != orderKey.Token0 || poolKey.Token1Address() != orderKey.Token1 || poolKey.Fee() != orderKey.Fee() {
 			return nil
-		}
-
-		saleRateDelta, ok := values[3].(*big.Int)
-		if !ok {
-			return errors.New("failed to parse saleRateDelta")
 		}
 
 		startIdx := 0
@@ -202,6 +207,10 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) 
 				orderDelta := &p.virtualOrderDeltas[idx]
 				affectedSaleRateDelta := lo.Ternary(sellsToken1, orderDelta.SaleRateDelta1, orderDelta.SaleRateDelta0)
 				affectedSaleRateDelta.Add(affectedSaleRateDelta, orderBoundary.saleRateDelta)
+
+				if orderDelta.SaleRateDelta0.IsZero() && orderDelta.SaleRateDelta1.IsZero() {
+					p.virtualOrderDeltas = slices.Delete(p.virtualOrderDeltas, idx, idx+1)
+				}
 
 				startIdx = idx + 1
 			} else {

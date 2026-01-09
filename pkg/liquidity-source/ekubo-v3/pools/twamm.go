@@ -50,10 +50,14 @@ type (
 		virtualOrderDeltas []TwammSaleRateDelta
 	}
 
-	TwammOrderKey struct {
+	TwammOrderKeyAbi = struct {
 		Token0 common.Address `json:"token0"`
 		Token1 common.Address `json:"token1"`
-		Config common.Hash    `json:"config"`
+		Config [32]byte       `json:"config"`
+	}
+
+	TwammOrderKey struct {
+		TwammOrderKeyAbi
 	}
 )
 
@@ -211,7 +215,7 @@ func (k *TwammOrderKey) Fee() uint64 {
 }
 
 func (k *TwammOrderKey) SellsToken1() bool {
-	return k.Config[8]&0x80 != 0
+	return k.Config[8] != 0
 }
 
 func (k *TwammOrderKey) StartTime() uint64 {

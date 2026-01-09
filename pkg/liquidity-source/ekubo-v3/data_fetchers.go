@@ -35,20 +35,20 @@ type (
 		Ticks          []pools.TickRPC `json:"ticks"`
 	}
 
-	TwammSaleRateDelta struct {
-		Time           *big.Int `json:"time"`
+	TimeSaleRateInfo struct {
+		Time           uint64   `json:"time"`
 		SaleRateDelta0 *big.Int `json:"saleRateDelta0"`
 		SaleRateDelta1 *big.Int `json:"saleRateDelta1"`
 	}
 
 	TwammQuoteData struct {
-		SqrtRatio                     *big.Int             `json:"sqrtRatio"`
-		Tick                          int32                `json:"tick"`
-		Liquidity                     *big.Int             `json:"liquidity"`
-		LastVirtualOrderExecutionTime *big.Int             `json:"lastVirtualOrderExecutionTime"`
-		SaleRateToken0                *big.Int             `json:"saleRateToken0"`
-		SaleRateToken1                *big.Int             `json:"saleRateToken1"`
-		SaleRateDeltas                []TwammSaleRateDelta `json:"saleRateDeltas"`
+		SqrtRatio                     *big.Int           `json:"sqrtRatio"`
+		Tick                          int32              `json:"tick"`
+		Liquidity                     *big.Int           `json:"liquidity"`
+		LastVirtualOrderExecutionTime uint64             `json:"lastVirtualOrderExecutionTime"`
+		SaleRateToken0                *big.Int           `json:"saleRateToken0"`
+		SaleRateToken1                *big.Int           `json:"saleRateToken1"`
+		SaleRateDeltas                []TimeSaleRateInfo `json:"saleRateDeltas"`
 	}
 
 	dataFetcherAddresses struct {
@@ -266,10 +266,10 @@ func NewTwammPoolState(data *TwammQuoteData) *pools.TwammPoolState {
 		},
 		Token0SaleRate:    big256.FromBig(data.SaleRateToken0),
 		Token1SaleRate:    big256.FromBig(data.SaleRateToken1),
-		LastExecutionTime: data.LastVirtualOrderExecutionTime.Uint64(),
-		VirtualOrderDeltas: lo.Map(data.SaleRateDeltas, func(srd TwammSaleRateDelta, _ int) pools.TwammSaleRateDelta {
+		LastExecutionTime: data.LastVirtualOrderExecutionTime,
+		VirtualOrderDeltas: lo.Map(data.SaleRateDeltas, func(srd TimeSaleRateInfo, _ int) pools.TwammSaleRateDelta {
 			return pools.TwammSaleRateDelta{
-				Time:           srd.Time.Uint64(),
+				Time:           srd.Time,
 				SaleRateDelta0: big256.SFromBig(srd.SaleRateDelta0),
 				SaleRateDelta1: big256.SFromBig(srd.SaleRateDelta1),
 			}
