@@ -93,7 +93,22 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 		}
 
 		if firstBlockNumber != u.startBlockNumber || common.HexToHash(firstPi.BlockHash) != u.startBlockHash {
-			return nil, ErrReorg
+			logger.WithFields(logger.Fields{
+				"dexId": u.config.DexId,
+				"expected": logger.Fields{
+					"number": u.startBlockNumber,
+					"hash":   u.startBlockHash,
+				},
+				"actual": logger.Fields{
+					"number": firstBlockNumber,
+					"hash":   common.HexToHash(firstPi.BlockHash),
+				},
+			}).Warn("Subgraph reorged, refetching all pools")
+
+			u.startBlockNumber = 0
+			u.startBlockHash = common.Hash{}
+
+			return u.getNewPoolKeys(ctx)
 		}
 
 		firstNewDataIdx := 1
