@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,10 +67,9 @@ func TestEventParserDecode(t *testing.T) {
 				t.Fatalf("failed to get tx receipt: %v", err)
 			}
 
-			logs := make([]types.Log, len(txReceipt.Logs))
-			for _, log := range txReceipt.Logs {
-				logs = append(logs, *log)
-			}
+			logs := lo.Map(txReceipt.Logs, func(log *types.Log, _ int) types.Log {
+				return *log
+			})
 
 			logByAddress, err := e.Decode(context.Background(), logs)
 

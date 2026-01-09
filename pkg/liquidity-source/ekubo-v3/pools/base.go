@@ -53,6 +53,12 @@ type (
 	}
 )
 
+func (s *BasePoolState) CloneState() *BasePoolState {
+	cloned := *s
+	cloned.SortedTicks = slices.Clone(s.SortedTicks)
+	return &cloned
+}
+
 func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
 	ticks := s.SortedTicks
 
@@ -151,8 +157,7 @@ func (p *BasePool) GetState() any {
 func (p *BasePool) CloneState() any {
 	cloned := *p
 	cloned.key = p.key.CloneState()
-	clonedBasePoolState := *p.BasePoolState
-	cloned.BasePoolState = &clonedBasePoolState
+	cloned.BasePoolState = p.BasePoolState.CloneState()
 	return &cloned
 }
 

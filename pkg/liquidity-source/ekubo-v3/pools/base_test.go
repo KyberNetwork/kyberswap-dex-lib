@@ -66,7 +66,7 @@ func TestBasePoolQuote(t *testing.T) {
 				ActiveTick:  0,
 			},
 		)
-		quote, err := p.Quote(big256.U1, true)
+		quote, err := p.Quote(big256.U1, false)
 		require.NoError(t, err)
 
 		require.Zero(t, quote.CalculatedAmount.Sign())

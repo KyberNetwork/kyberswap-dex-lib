@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -230,10 +231,9 @@ func (ts *PoolTrackerTestSuite) getTxLogs(t *testing.T, txHash string) (uint64, 
 		TransactionReceipt(context.Background(), common.HexToHash(txHash))
 	require.NoError(t, err)
 
-	logs := make([]types.Log, len(receipt.Logs))
-	for _, log := range receipt.Logs {
-		logs = append(logs, *log)
-	}
+	logs := lo.Map(receipt.Logs, func(log *types.Log, _ int) types.Log {
+		return *log
+	})
 
 	return receipt.BlockNumber.Uint64(), logs
 }
