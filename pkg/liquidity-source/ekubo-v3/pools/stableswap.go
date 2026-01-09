@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo-v3/math"
-	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo-v3/quoting"
 )
 
@@ -54,7 +53,7 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 
 	isIncreasing := math.IsPriceIncreasing(amount, isToken1)
 
-	sqrtRatioLimit := lo.Ternary(isIncreasing, ekubomath.MaxSqrtRatio, ekubomath.MinSqrtRatio)
+	sqrtRatioLimit := lo.Ternary(isIncreasing, math.MaxSqrtRatio, math.MinSqrtRatio)
 
 	var calculatedAmount, feesPaid uint256.Int
 	amountRemaining := amount.Clone()
@@ -86,11 +85,11 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		}
 
 		stepSqrtRatioLimit := nextTickSqrtRatio
-		if nextTickSqrtRatio == nil || !(nextTickSqrtRatio.Lt(sqrtRatioLimit) == isIncreasing) {
+		if nextTickSqrtRatio == nil || nextTickSqrtRatio.Lt(sqrtRatioLimit) != isIncreasing {
 			stepSqrtRatioLimit = sqrtRatioLimit
 		}
 
-		step, err := ekubomath.ComputeStep(
+		step, err := math.ComputeStep(
 			sqrtRatio,
 			stepLiquidity,
 			stepSqrtRatioLimit,
@@ -120,7 +119,7 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead:  0,
 			IsToken1:   isToken1,
-			PriceLimit: ekubomath.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing),
+			PriceLimit: math.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing),
 			SwapStateAfter: &StableswapPoolSwapState{
 				sqrtRatio,
 			},
