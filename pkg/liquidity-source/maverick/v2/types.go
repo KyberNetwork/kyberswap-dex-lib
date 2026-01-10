@@ -95,7 +95,7 @@ type MoveData struct {
 }
 
 type StaticExtra struct {
-	TickSpacing uint32 `json:"tickSpacing"`
+	TickSpacing int32 `json:"tickSpacing"`
 }
 
 type MaverickPoolState struct {
@@ -104,7 +104,7 @@ type MaverickPoolState struct {
 	ProtocolFeeRatio uint8
 	Bins             map[uint32]Bin
 	Ticks            map[int32]Tick
-	TickSpacing      uint32
+	TickSpacing      int32
 	ActiveTick       int32
 	LastTwaD8        int64 // Time-weighted average tick data
 }
@@ -130,11 +130,8 @@ type Delta struct {
 	DeltaInErc         *uint256.Int // nomutate
 	DeltaOutErc        *uint256.Int // nomutate
 	Excess             *uint256.Int // nomutate
-	SqrtPrice          *uint256.Int // nomutate
-	TickLimit          int32
 	TokenAIn           bool
 	ExactOutput        bool
-	SwappedToMaxPrice  bool
 	SkipCombine        bool
 }
 

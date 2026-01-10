@@ -194,7 +194,6 @@ func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
 	if swappedToMaxPrice {
 		delta.Excess = big256.U0 // CRITICAL: Zero out excess to terminate main loop
 		delta.SkipCombine = true
-		delta.SwappedToMaxPrice = true
 	}
 	return swappedToMaxPrice
 }
@@ -206,7 +205,6 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn, exactOutput b
 		DeltaInErc:         big256.U0,
 		DeltaOutErc:        big256.U0,
 		Excess:             amount,
-		SqrtPrice:          big256.U0,
 		TokenAIn:           tokenAIn,
 		ExactOutput:        exactOutput,
 	}
@@ -421,12 +419,6 @@ func combine(self *Delta, delta *Delta) {
 
 	// Always update these fields regardless of SkipCombine
 	self.Excess = delta.Excess
-	self.SwappedToMaxPrice = delta.SwappedToMaxPrice
-
-	// Set the sqrt price from the latest delta
-	if delta.SqrtPrice != nil && !delta.SqrtPrice.IsZero() {
-		self.SqrtPrice = delta.SqrtPrice
-	}
 }
 
 func scaleFromAmount(amount *uint256.Int, decimals uint8) *uint256.Int {
@@ -881,21 +873,11 @@ func amountToBinNetOfProtocolFee(deltaInErc, feeBasis *uint256.Int, protocolFeeD
 }
 
 // Helper function equivalent to MaverickPoolLib.binReserves
-func binReserves(bin Bin, tick Tick) (*uint256.Int, *uint256.Int) {
-	return binReservesCalc(
-		bin.TickBalance,
-		tick.ReserveA,
-		tick.ReserveB,
-		tick.TotalSupply,
-	)
+func binReserves(bin Bin, tick Tick) (binA, binB *uint256.Int) {
+	return binReservesCalc(bin.TickBalance, tick.ReserveA, tick.ReserveB, tick.TotalSupply)
 }
 
-func binReservesCalc(
-	tickBalance *uint256.Int,
-	tickReserveA *uint256.Int,
-	tickReserveB *uint256.Int,
-	tickTotalSupply *uint256.Int,
-) (*uint256.Int, *uint256.Int) {
+func binReservesCalc(tickBalance, tickReserveA, tickReserveB, tickTotalSupply *uint256.Int) (binA, binB *uint256.Int) {
 	if !tickTotalSupply.IsZero() {
 		return reserveValue(tickReserveA, tickBalance, tickTotalSupply),
 			reserveValue(tickReserveB, tickBalance, tickTotalSupply)
@@ -903,28 +885,22 @@ func binReservesCalc(
 	return big256.U0, big256.U0
 }
 
-func reserveValue(
-	tickReserve *uint256.Int,
-	tickBalance *uint256.Int,
-	tickTotalSupply *uint256.Int,
-) *uint256.Int {
+func reserveValue(tickReserve, tickBalance, tickTotalSupply *uint256.Int) *uint256.Int {
 	reserve := mulDivDown(tickReserve, tickBalance, tickTotalSupply)
 	return big256.Min(tickReserve, reserve)
 }
 
-func getTickDataWithZeroLiquidity(state *MaverickPoolState, tick int32) *TickData {
+func getTickDataWithZeroLiquidity(state *MaverickPoolState, tick int32) TickData {
 	tickState, ok := state.Ticks[tick]
 	if !ok {
-		return &TickData{
-			CurrentReserveA:  big256.U0,
-			CurrentReserveB:  big256.U0,
-			CurrentLiquidity: big256.U0,
+		return TickData{
+			CurrentReserveA: big256.U0,
+			CurrentReserveB: big256.U0,
 		}
 	}
-	return &TickData{
-		CurrentReserveA:  tickState.ReserveA,
-		CurrentReserveB:  tickState.ReserveB,
-		CurrentLiquidity: big256.U0,
+	return TickData{
+		CurrentReserveA: tickState.ReserveA,
+		CurrentReserveB: tickState.ReserveB,
 	}
 }
 
@@ -933,13 +909,13 @@ func safeCloneUint256(value *uint256.Int) *uint256.Int {
 	if value == nil {
 		return nil
 	}
-	return new(uint256.Int).Set(value)
+	return value.Clone()
 }
 
 // Square root price and tick calculations matching the TypeScript implementation
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-tick-math.ts#L122
-func calculateSqrtPrice(tickSpacing uint32, tick int32) *uint256.Int {
-	sqrtP, _ := maverickv1.TickPrice(int32(tickSpacing), tick)
+func calculateSqrtPrice(tickSpacing, tick int32) *uint256.Int {
+	sqrtP, _ := maverickv1.TickPrice(tickSpacing, tick)
 	return sqrtP
 }
 
@@ -1087,7 +1063,7 @@ func tickSqrtPriceAndLiquidity(state *MaverickPoolState, tick int32) (sqrtP *uin
 	// Set the calculated liquidity in the tickData
 	tickData.CurrentLiquidity = currentLiquidity
 
-	return sqrtPrice, *tickData
+	return sqrtPrice, tickData
 }
 
 // allocateSwapValuesToTick assumes shadow-cloned tick map, cloning to a new tick
