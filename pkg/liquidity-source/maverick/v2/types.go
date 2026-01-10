@@ -144,7 +144,6 @@ type Delta struct {
 	SqrtLowerTickPrice *uint256.Int
 	SqrtUpperTickPrice *uint256.Int
 	SqrtPrice          *uint256.Int
-	FractionalPart     *uint256.Int
 	SwappedToMaxPrice  bool
 	SkipCombine        bool
 }
@@ -167,5 +166,4 @@ type maverickSwapInfo struct {
 	activeTick       int32
 	bins             map[uint32]Bin
 	ticks            map[int32]Tick
-	fractionalPartD8 int64
 }

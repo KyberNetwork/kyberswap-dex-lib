@@ -14,7 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -82,22 +82,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	scaledAmountIn := scaleFromAmount(amountIn, p.decimals[tokenInIndex])
 
 	newState := p.state.Clone()
-	_, amountOut, binCrossed, fractionalPart, err := swap(newState, scaledAmountIn, tokenInIndex == 0, false, false)
+	_, amountOut, binCrossed, err := swap(newState, scaledAmountIn, tokenInIndex == 0, false, false)
 	if err != nil {
 		return nil, fmt.Errorf("can not get amount out, err: %v", err)
 	}
 
 	// scale back to token amount
 	scaledAmountOut := ScaleToAmount(amountOut, p.decimals[tokenOutIndex])
-
-	// Use fractional part directly from swap result (matches TypeScript implementation)
-	var fractionalPartD8 int64
-	if fractionalPart != nil && !fractionalPart.IsZero() {
-		fractionalPartD8 = int64(fractionalPart.Uint64())
-	} else {
-		// Default to half-tick if not provided
-		fractionalPartD8 = 1e7
-	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -112,7 +103,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			activeTick:       newState.ActiveTick,
 			bins:             newState.Bins,
 			ticks:            newState.Ticks,
-			fractionalPartD8: fractionalPartD8,
 		},
 	}, nil
 }
@@ -133,22 +123,13 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	scaledAmountOut := scaleFromAmount(amountOut, p.decimals[tokenOutIndex])
 
 	newState := p.state.Clone()
-	_, amountIn, binCrossed, fractionalPart, err := swap(newState, scaledAmountOut, tokenInIndex == 0, true, false)
+	_, amountIn, binCrossed, err := swap(newState, scaledAmountOut, tokenInIndex == 0, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("can not get amount out, err: %v", err)
 	}
 
 	// scale back to token amount
 	scaledAmountIn := ScaleToAmount(amountIn, p.decimals[tokenInIndex])
-
-	// Use fractional part directly from swap result (matches TypeScript implementation)
-	var fractionalPartD8 int64
-	if fractionalPart != nil && !fractionalPart.IsZero() {
-		fractionalPartD8 = int64(fractionalPart.Uint64())
-	} else {
-		// Default to half-tick if not provided
-		fractionalPartD8 = 1e7
-	}
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
@@ -163,7 +144,6 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			activeTick:       newState.ActiveTick,
 			bins:             newState.Bins,
 			ticks:            newState.Ticks,
-			fractionalPartD8: fractionalPartD8,
 		},
 	}, nil
 }
@@ -190,31 +170,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.Ticks = newState.ticks
 	p.state.ActiveTick = newState.activeTick
 
-	// Update TWA
-	// no need to update time weighted average price, as UpdateBalance only call in same Route in one block
-	// so timeStamp == lastTimeStamp in this context
-	// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-twa-math.ts#L13
-
-	// Update time-weighted average with fractional part
-	// fractionalPartD8 := newState.fractionalPartD8
-	// if fractionalPartD8 == 0 {
-	// 	// Default to half the tick if not provided
-	// 	fractionalPartD8 = int64(big256.TenPow(7).Uint64())
-	// }
-	// tickPositionD8 := int64(p.state.ActiveTick)*int64(big256.TenPow(8).Uint64()) + fractionalPartD8
-	// updateTwaValue(p.state, tickPositionD8, timestamp)
-
 	// Move bins based on tick changes
-	threshold := new(uint256.Int).Mul(big256.U5, big256.TenPow(7))
-	moveBins(p.state, startingTick, p.state.ActiveTick, lastTwaD8, p.state.LastTwaD8, threshold)
+	moveBins(p.state, startingTick, p.state.ActiveTick, lastTwaD8, p.state.LastTwaD8)
 
-	// Update pool reserves
-	tokenAmountIn := params.TokenAmountIn
-	tokenAmountOut := params.TokenAmountOut
-	isTokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Info.Tokens[0])
-
+	tokenAmountIn, tokenAmountOut := params.TokenAmountIn, params.TokenAmountOut
 	// Update reserves based on swap direction
-	if isTokenAIn {
+	if isTokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Info.Tokens[0]); isTokenAIn {
 		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], tokenAmountIn.Amount)
 		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], tokenAmountOut.Amount)
 	} else {
@@ -241,7 +202,7 @@ func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
 
 // Helper functions for swap implementation
 func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, _ bool) (*uint256.Int,
-	*uint256.Int, uint32, *uint256.Int, error) {
+	*uint256.Int, uint32, error) {
 	delta := &Delta{
 		DeltaInBinInternal: new(uint256.Int),
 		DeltaInErc:         new(uint256.Int),
@@ -252,7 +213,6 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 		SqrtLowerTickPrice: new(uint256.Int),
 		SqrtUpperTickPrice: new(uint256.Int),
 		SqrtPrice:          new(uint256.Int),
-		FractionalPart:     new(uint256.Int),
 		SwappedToMaxPrice:  false,
 		SkipCombine:        false,
 	}
@@ -274,7 +234,7 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 	for !delta.Excess.IsZero() {
 		newDelta, crossedBin, err := swapTick(state, delta, tickLimit)
 		if err != nil {
-			return nil, nil, 0, big256.U0, err
+			return nil, nil, 0, err
 		}
 
 		if crossedBin {
@@ -284,7 +244,7 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 		combine(delta, newDelta)
 	}
 
-	return delta.DeltaInErc, delta.DeltaOutErc, binCrossed, delta.FractionalPart, nil
+	return delta.DeltaInErc, delta.DeltaOutErc, binCrossed, nil
 }
 
 // swapTick
@@ -301,7 +261,6 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		SqrtLowerTickPrice: new(uint256.Int),
 		SqrtUpperTickPrice: new(uint256.Int),
 		SqrtPrice:          new(uint256.Int),
-		FractionalPart:     new(uint256.Int),
 		SwappedToMaxPrice:  false,
 		SkipCombine:        false,
 	}
@@ -390,19 +349,6 @@ func computeEndPrice(delta *Delta, newDelta *Delta, tickData TickData) {
 	if !delta.TokenAIn {
 		endSqrtPrice = invFloor(endSqrtPrice)
 	}
-
-	// Calculate fractional part
-	// newDelta.fractionalPart = min(big256.TenPow(8), divDown(clip(endSqrtPrice, delta.sqrtLowerTickPrice), big256.TenPow(10) * (delta.sqrtUpperTickPrice - delta.sqrtLowerTickPrice)))
-	clippedPrice := clip(endSqrtPrice, delta.SqrtLowerTickPrice)
-	denominator := new(uint256.Int).Sub(delta.SqrtUpperTickPrice, delta.SqrtLowerTickPrice)
-	denominator.Mul(denominator, big256.TenPow(10))
-
-	if !denominator.IsZero() {
-		fractionalPart := mulDivDown(clippedPrice, big256.TenPow(18), denominator)
-		newDelta.FractionalPart = big256.Min(big256.TenPow(8), fractionalPart)
-	} else {
-		newDelta.FractionalPart = big256.U0
-	}
 }
 
 func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAIn bool, tickData TickData,
@@ -421,7 +367,6 @@ func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAI
 		SqrtLowerTickPrice: new(uint256.Int),
 		SqrtUpperTickPrice: new(uint256.Int),
 		SqrtPrice:          new(uint256.Int).Set(sqrtPrice),
-		FractionalPart:     new(uint256.Int),
 	}
 
 	// Set initial deltaOutErc to all available reserves - line 68-70 in TypeScript
@@ -508,7 +453,6 @@ func computeSwapExactOut(state *MaverickPoolState, amountOut *uint256.Int, token
 		SqrtLowerTickPrice: new(uint256.Int),
 		SqrtUpperTickPrice: new(uint256.Int),
 		SqrtPrice:          new(uint256.Int).Set(sqrtPrice),
-		FractionalPart:     new(uint256.Int),
 	}
 
 	// Determine available output amount - lines 148-150 in TypeScript
@@ -585,9 +529,6 @@ func combine(self *Delta, delta *Delta) {
 	if delta.SqrtPrice != nil && !delta.SqrtPrice.IsZero() {
 		self.SqrtPrice = new(uint256.Int).Set(delta.SqrtPrice)
 	}
-	if delta.FractionalPart != nil && !delta.FractionalPart.IsZero() {
-		self.FractionalPart = new(uint256.Int).Set(delta.FractionalPart)
-	}
 }
 
 func scaleFromAmount(amount *uint256.Int, decimals uint8) *uint256.Int {
@@ -652,34 +593,23 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 	return cloned
 }
 
-func moveBins(state *MaverickPoolState, startingTick, activeTick int32, lastTwapD8, newTwapD8 int64,
-	threshold *uint256.Int) {
+func moveBins(state *MaverickPoolState, startingTick, activeTick int32, lastTwapD8, newTwapD8 int64) {
 	// Skip if no tick change
 	if startingTick == activeTick {
 		return
 	}
 
-	// Convert threshold to int64 for TWA calculations
-	thresholdInt := int64(threshold.Uint64())
-
 	// Handle upward movement
-	newTwap := floorD8Unchecked(newTwapD8 - thresholdInt)
-	lastTwap := floorD8Unchecked(lastTwapD8 - thresholdInt)
+	newTwap := floorD8Unchecked(newTwapD8 - threshold)
+	lastTwap := floorD8Unchecked(lastTwapD8 - threshold)
 
 	if activeTick > startingTick || newTwap > lastTwap {
 		// Create moveData equivalent to MoveData in TypeScript
 		moveData := &MoveData{
-			Kind:            0,
-			TickSearchStart: 0,
-			TickSearchEnd:   0,
-			TickLimit:       0,
-			FirstBinTick:    0,
-			FirstBinId:      0,
 			MergeBinBalance: new(uint256.Int),
 			TotalReserveA:   new(uint256.Int),
 			TotalReserveB:   new(uint256.Int),
 			MergeBins:       make(map[uint32]uint32),
-			Counter:         0,
 		}
 
 		// Calculate tickLimit as min(activeTick - 1, newTwap)
@@ -699,23 +629,16 @@ func moveBins(state *MaverickPoolState, startingTick, activeTick int32, lastTwap
 	}
 
 	// Handle downward movement
-	newTwap = floorD8Unchecked(newTwapD8 + thresholdInt)
-	lastTwap = floorD8Unchecked(lastTwapD8 + thresholdInt)
+	newTwap = floorD8Unchecked(newTwapD8 + threshold)
+	lastTwap = floorD8Unchecked(lastTwapD8 + threshold)
 
 	if activeTick < startingTick || newTwap < lastTwap {
 		// Create moveData equivalent to MoveData in TypeScript
 		moveData := &MoveData{
-			Kind:            0,
-			TickSearchStart: 0,
-			TickSearchEnd:   0,
-			TickLimit:       0,
-			FirstBinTick:    0,
-			FirstBinId:      0,
 			MergeBinBalance: new(uint256.Int),
 			TotalReserveA:   new(uint256.Int),
 			TotalReserveB:   new(uint256.Int),
 			MergeBins:       make(map[uint32]uint32),
-			Counter:         0,
 		}
 
 		// Calculate tickLimit as max(newTwap, activeTick + 1)
