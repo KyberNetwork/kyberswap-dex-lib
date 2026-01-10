@@ -4,6 +4,7 @@ import (
 	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 )
@@ -216,7 +217,7 @@ func (g *gyroECLPMath) calculateInvariantWithError(
 		return nil, nil, err
 	}
 
-	if sqrt.Gt(g._number_0) {
+	if sqrt.IsPositive() {
 		errValue, err = math.NewSignedFixedPointCalculator(errValue).
 			Add(g._number_1).
 			DivUpMagU(new(int256.Int).Mul(g._number_2, sqrt)).
@@ -226,7 +227,7 @@ func (g *gyroECLPMath) calculateInvariantWithError(
 		}
 
 	} else {
-		if errValue.Gt(g._number_0) {
+		if errValue.IsPositive() {
 			t, err := math.SafeCast.ToUint256(errValue)
 			if err != nil {
 				return nil, nil, err
@@ -490,25 +491,24 @@ func (g *gyroECLPMath) calcAtAChi(x, y *int256.Int, p *params, d *derivedParams)
 }
 
 func (g *gyroECLPMath) virtualOffset0(p *params, d *derivedParams, r *vector2) (*int256.Int, error) {
-	termXp, err := math.SignedFixedPoint.DivXpU(d.TauBeta.X, d.DSq)
+	termXp, err := math.NewSignedFixedPointCalculator(d.TauBeta.X).DivXpU(d.DSq).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	a, err := math.NewSignedFixedPointCalculator(nil).
-		TernaryWith(
-			d.TauBeta.X.Gt(g._number_0),
+	a, err := lo.Ternary(
+		d.TauBeta.X.IsPositive(),
 
-			math.NewSignedFixedPointCalculator(r.X).
-				MulUpMagU(p.Lambda).
-				MulUpMagU(p.C).
-				MulUpXpToNpU(termXp),
+		math.NewSignedFixedPointCalculator(r.X).
+			MulUpMagU(p.Lambda).
+			MulUpMagU(p.C).
+			MulUpXpToNpU(termXp),
 
-			math.NewSignedFixedPointCalculator(r.Y).
-				MulDownMagU(p.Lambda).
-				MulDownMagU(p.C).
-				MulUpXpToNpU(termXp),
-		).Result()
+		math.NewSignedFixedPointCalculator(r.Y).
+			MulDownMagU(p.Lambda).
+			MulDownMagU(p.C).
+			MulUpXpToNpU(termXp),
+	).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -530,25 +530,24 @@ func (g *gyroECLPMath) virtualOffset0(p *params, d *derivedParams, r *vector2) (
 }
 
 func (g *gyroECLPMath) virtualOffset1(p *params, d *derivedParams, r *vector2) (*int256.Int, error) {
-	termXp, err := math.SignedFixedPoint.DivXpU(d.TauAlpha.X, d.DSq)
+	termXp, err := math.NewSignedFixedPointCalculator(d.TauAlpha.X).DivXpU(d.DSq).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := math.NewSignedFixedPointCalculator(nil).
-		TernaryWith(
-			d.TauAlpha.X.Lt(g._number_0),
+	b, err := lo.Ternary(
+		d.TauAlpha.X.IsNegative(),
 
-			math.NewSignedFixedPointCalculator(r.X).
-				MulDownMagU(p.Lambda).
-				MulUpMagU(p.S).
-				MulUpXpToNp(new(int256.Int).Neg(termXp)),
+		math.NewSignedFixedPointCalculator(r.X).
+			MulDownMagU(p.Lambda).
+			MulUpMagU(p.S).
+			MulUpXpToNp(new(int256.Int).Neg(termXp)),
 
-			math.NewSignedFixedPointCalculator(new(int256.Int).Neg(r.Y)).
-				MulDownMagU(p.Lambda).
-				MulDownMagU(p.S).
-				MulUpXpToNpU(termXp),
-		).Result()
+		math.NewSignedFixedPointCalculator(new(int256.Int).Neg(r.Y)).
+			MulDownMagU(p.Lambda).
+			MulDownMagU(p.S).
+			MulUpXpToNpU(termXp),
+	).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -597,16 +596,15 @@ func (g *gyroECLPMath) maxBalances0(p *params, d *derivedParams, r *vector2) (*i
 
 	xp, err = math.NewSignedFixedPointCalculator(xp).
 		AddNormalWith(
-			math.NewSignedFixedPointCalculator(nil).
-				TernaryWith(
-					termXp2.Gt(g._number_0),
+			lo.Ternary(
+				termXp2.IsPositive(),
 
-					math.NewSignedFixedPointCalculator(r.Y).
-						MulDownMagU(p.S),
+				math.NewSignedFixedPointCalculator(r.Y).
+					MulDownMagU(p.S),
 
-					math.NewSignedFixedPointCalculator(r.X).
-						MulUpMagU(p.S),
-				).
+				math.NewSignedFixedPointCalculator(r.X).
+					MulUpMagU(p.S),
+			).
 				MulDownXpToNpU(termXp2),
 		).Result()
 	if err != nil {
@@ -644,16 +642,15 @@ func (g *gyroECLPMath) maxBalances1(p *params, d *derivedParams, r *vector2) (*i
 
 	yp, err = math.NewSignedFixedPointCalculator(yp).
 		AddNormalWith(
-			math.NewSignedFixedPointCalculator(nil).
-				TernaryWith(
-					termXp2.Gt(g._number_0),
+			lo.Ternary(
+				termXp2.IsPositive(),
 
-					math.NewSignedFixedPointCalculator(r.Y).
-						MulDownMagU(p.C),
+				math.NewSignedFixedPointCalculator(r.Y).
+					MulDownMagU(p.C),
 
-					math.NewSignedFixedPointCalculator(r.X).
-						MulUpMagU(p.C),
-				).
+				math.NewSignedFixedPointCalculator(r.X).
+					MulUpMagU(p.C),
+			).
 				MulDownXpToNpU(termXp2),
 		).Result()
 	if err != nil {
@@ -909,7 +906,8 @@ func (g *gyroECLPMath) calcMinAtyAChixSqPlusAtySq(x, y *int256.Int, p *params, d
 	return val, nil
 }
 
-func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derivedParams) (*int256.Int, *int256.Int, error) {
+func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derivedParams) (*int256.Int, *int256.Int,
+	error) {
 	var val *int256.Int
 	{
 		l, err := g.calcMinAtxAChiySqPlusAtxSq(x, y, p, d)
@@ -967,12 +965,9 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derived
 		}
 	}
 
-	val, err = math.NewSignedFixedPointCalculator(nil).
-		Ternary(
-			val.Gt(g._number_0),
-
+	val, err = math.SignedFixedPointTernary(
+			val.IsPositive(),
 			a,
-
 			g._number_0,
 		).Result()
 	if err != nil {
@@ -1051,7 +1046,7 @@ func (g *gyroECLPMath) calcXpXpDivLambdaLambda(
 	if err != nil {
 		return nil, err
 	}
-	if termXp.Gt(g._number_0) {
+	if termXp.IsPositive() {
 		a, err := math.NewSignedFixedPointCalculator(sqVars.Y).
 			MulUpMagU(new(int256.Int).Mul(g._number_2, s)).
 			Result()
@@ -1090,7 +1085,7 @@ func (g *gyroECLPMath) calcXpXpDivLambdaLambda(
 		q.A = a
 	}
 
-	if tauBeta.X.Lt(g._number_0) {
+	if tauBeta.X.IsNegative() {
 		b, err := math.NewSignedFixedPointCalculator(r.X).
 			MulUpMagU(x).
 			MulUpMagU(new(int256.Int).Mul(g._number_2, c)).
@@ -1169,16 +1164,15 @@ func (g *gyroECLPMath) calcXpXpDivLambdaLambda(
 		return nil, err
 	}
 
-	q.B, err = math.NewSignedFixedPointCalculator(nil).
-		TernaryWith(
-			q.B.Gt(g._number_0),
+	q.B, err = lo.Ternary(
+		q.B.IsPositive(),
 
-			math.NewSignedFixedPointCalculator(q.B).
-				DivUpMagU(lambda),
+		math.NewSignedFixedPointCalculator(q.B).
+			DivUpMagU(lambda),
 
-			math.NewSignedFixedPointCalculator(q.B).
-				DivDownMagU(lambda),
-		).Result()
+		math.NewSignedFixedPointCalculator(q.B).
+			DivDownMagU(lambda),
+	).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -1190,16 +1184,15 @@ func (g *gyroECLPMath) calcXpXpDivLambdaLambda(
 		return nil, err
 	}
 
-	q.A, err = math.NewSignedFixedPointCalculator(nil).
-		TernaryWith(
-			q.A.Gt(g._number_0),
+	q.A, err = lo.Ternary(
+		q.A.IsPositive(),
 
-			math.NewSignedFixedPointCalculator(q.A).
-				DivUpMagU(lambda),
+		math.NewSignedFixedPointCalculator(q.A).
+			DivUpMagU(lambda),
 
-			math.NewSignedFixedPointCalculator(q.A).
-				DivDownMagU(lambda),
-		).Result()
+		math.NewSignedFixedPointCalculator(q.A).
+			DivDownMagU(lambda),
+	).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -1273,27 +1266,26 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 	var err error
 	q := &qParams{}
 	xp := new(int256.Int).Sub(x, ab.X)
-	q.B, err = math.NewSignedFixedPointCalculator(nil).
-		TernaryWith(
-			xp.Gt(g._number_0),
+	q.B, err = lo.Ternary(
+		xp.IsPositive(),
 
-			math.NewSignedFixedPointCalculator(new(int256.Int).Sub(g._number_0, xp)).
-				MulDownMagU(s).
-				MulDownMagU(c).
-				MulUpXpToNpUWith(
-					math.NewSignedFixedPointCalculator(lamBar.Y).
-						DivXpU(dSq),
-				),
+		math.NewSignedFixedPointCalculator(new(int256.Int).Sub(g._number_0, xp)).
+			MulDownMagU(s).
+			MulDownMagU(c).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(lamBar.Y).
+					DivXpU(dSq),
+			),
 
-			math.NewSignedFixedPointCalculator(new(int256.Int).Sub(g._number_0, xp)).
-				MulUpMagU(s).
-				MulUpMagU(c).
-				MulUpXpToNpUWith(
-					math.NewSignedFixedPointCalculator(lamBar.X).
-						DivXpU(dSq).
-						AddNormal(g._number_1),
-				),
-		).Result()
+		math.NewSignedFixedPointCalculator(new(int256.Int).Sub(g._number_0, xp)).
+			MulUpMagU(s).
+			MulUpMagU(c).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(lamBar.X).
+					DivXpU(dSq).
+					AddNormal(g._number_1),
+			),
+	).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -1356,7 +1348,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 		return nil, err
 	}
 
-	if q.C.Gt(g._number_0) {
+	if q.C.IsPositive() {
 		qC, err := math.SafeCast.ToUint256(q.C)
 		if err != nil {
 			return nil, err

@@ -32,7 +32,7 @@ func init() {
 }
 
 func (s *signedFixedPoint) Add(a, b *int256.Int) (*int256.Int, error) {
-	c, overflow := new(int256.Int).AddOverflow(a, b)
+	c, overflow := a.AddOverflow(a, b)
 	if overflow {
 		return nil, ErrAddOverflow
 	}
@@ -40,14 +40,14 @@ func (s *signedFixedPoint) Add(a, b *int256.Int) (*int256.Int, error) {
 }
 
 func (s *signedFixedPoint) AddMag(a, b *int256.Int) (*int256.Int, error) {
-	if a.Gt(s._zero) {
+	if a.IsPositive() {
 		return s.Add(a, b)
 	}
 	return s.Sub(a, b)
 }
 
 func (s *signedFixedPoint) Sub(a, b *int256.Int) (*int256.Int, error) {
-	c, overflow := new(int256.Int).SubOverflow(a, b)
+	c, overflow := a.SubOverflow(a, b)
 	if overflow {
 		return nil, ErrSubOverflow
 	}
@@ -55,126 +55,113 @@ func (s *signedFixedPoint) Sub(a, b *int256.Int) (*int256.Int, error) {
 }
 
 func (s *signedFixedPoint) MulDownMag(a, b *int256.Int) (*int256.Int, error) {
-	c, overflow := new(int256.Int).MulOverflow(a, b)
+	c, overflow := a.MulOverflow(a, b)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
-	return new(int256.Int).Quo(c, s.ONE), nil
+	return c.Quo(c, s.ONE), nil
 }
 
 func (s *signedFixedPoint) MulDownMagU(a, b *int256.Int) *int256.Int {
-	return new(int256.Int).Quo(new(int256.Int).Mul(a, b), s.ONE)
+	return a.Quo(a.Mul(a, b), s.ONE)
 }
 
 func (s *signedFixedPoint) MulUpMag(a, b *int256.Int) (*int256.Int, error) {
-	c, overflow := new(int256.Int).MulOverflow(a, b)
+	c, overflow := a.MulOverflow(a, b)
 	if overflow {
 		return nil, ErrMulOverflow
-	}
-
-	if c.Gt(s._zero) {
-		return new(int256.Int).Add(
-			new(int256.Int).Quo(
-				new(int256.Int).Sub(c, s._one),
+	} else if c.IsPositive() {
+		return c.Add(
+			c.Quo(
+				c.Sub(c, s._one),
 				s.ONE,
 			),
 			s._one,
 		), nil
-
-	} else if c.Lt(s._zero) {
-		return new(int256.Int).Sub(
-			new(int256.Int).Quo(
-				new(int256.Int).Add(c, s._one),
+	} else if c.IsNegative() {
+		return c.Sub(
+			c.Quo(
+				c.Add(c, s._one),
 				s.ONE,
 			),
 			s._one,
 		), nil
 	}
 
-	return s._zero, nil
+	return c.Clear(), nil
 }
 
 func (s *signedFixedPoint) MulUpMagU(a, b *int256.Int) *int256.Int {
-	c := new(int256.Int).Mul(a, b)
+	c := a.Mul(a, b)
 
-	if c.Gt(s._zero) {
-		return new(int256.Int).Add(
-			new(int256.Int).Quo(
-				new(int256.Int).Sub(c, s._one),
+	if c.IsPositive() {
+		return c.Add(
+			c.Quo(
+				c.Sub(c, s._one),
 				s.ONE,
 			),
 			s._one,
 		)
-
-	} else if c.Lt(s._zero) {
-		return new(int256.Int).Sub(
-			new(int256.Int).Quo(
-				new(int256.Int).Add(c, s._one),
+	} else if c.IsNegative() {
+		return c.Sub(
+			c.Quo(
+				c.Add(c, s._one),
 				s.ONE,
 			),
 			s._one,
 		)
 	}
 
-	return s._zero
+	return c.Clear()
 }
 
 func (s *signedFixedPoint) DivDownMag(a, b *int256.Int) (*int256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrZeroDivision
+	} else if a.IsZero() {
+		return a, nil
 	}
 
-	if a.IsZero() {
-		return s._zero, nil
-	}
-
-	aInflated, overflow := new(int256.Int).MulOverflow(a, s.ONE)
+	aInflated, overflow := a.MulOverflow(a, s.ONE)
 	if overflow {
 		return nil, ErrDivInternal
 	}
 
-	return new(int256.Int).Quo(aInflated, b), nil
+	return aInflated.Quo(aInflated, b), nil
 }
 
 func (s *signedFixedPoint) DivDownMagU(a, b *int256.Int) (*int256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrZeroDivision
 	}
-	return new(int256.Int).Quo(new(int256.Int).Mul(a, s.ONE), b), nil
+	return a.Quo(a.Mul(a, s.ONE), b), nil
 }
 
 func (s *signedFixedPoint) DivUpMag(a, b *int256.Int) (*int256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrZeroDivision
-	}
-
-	if a.IsZero() {
-		return s._zero, nil
-	}
-
-	if b.Lt(s._zero) {
+	} else if a.IsZero() {
+		return a, nil
+	} else if b.IsNegative() {
 		b.Neg(b)
 		a.Neg(a)
 	}
 
-	aInflated, overflow := new(int256.Int).MulOverflow(a, s.ONE)
+	aInflated, overflow := a.MulOverflow(a, s.ONE)
 	if overflow {
 		return nil, ErrDivInternal
-	}
-
-	if aInflated.Gt(s._zero) {
-		return new(int256.Int).Add(
-			new(int256.Int).Quo(
-				new(int256.Int).Sub(aInflated, s._one),
+	} else if aInflated.IsPositive() {
+		return aInflated.Add(
+			aInflated.Quo(
+				aInflated.Sub(aInflated, s._one),
 				b,
 			),
 			s._one,
 		), nil
 	}
-
-	return new(int256.Int).Sub(
-		new(int256.Int).Quo(
-			new(int256.Int).Add(aInflated, s._one),
+	return aInflated.Sub(
+		aInflated.Quo(
+			aInflated.Add(aInflated, s._one),
 			b,
 		),
 		s._one,
@@ -184,33 +171,28 @@ func (s *signedFixedPoint) DivUpMag(a, b *int256.Int) (*int256.Int, error) {
 func (s *signedFixedPoint) DivUpMagU(a, b *int256.Int) (*int256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrZeroDivision
-	}
-
-	if a.IsZero() {
-		return s._zero, nil
-	}
-
-	if b.Lt(s._zero) {
+	} else if a.IsZero() {
+		return a, nil
+	} else if b.IsNegative() {
 		b.Neg(b)
 		a.Neg(a)
 	}
 
-	if a.Gt(s._zero) {
-		return new(int256.Int).Add(
-			new(int256.Int).Quo(
-				new(int256.Int).Sub(
-					new(int256.Int).Mul(a, s.ONE),
+	if a.IsPositive() {
+		return a.Add(
+			a.Quo(
+				a.Sub(
+					a.Mul(a, s.ONE),
 					s._one,
 				), b,
 			),
 			s._one,
 		), nil
 	}
-
-	return new(int256.Int).Sub(
-		new(int256.Int).Quo(
-			new(int256.Int).Add(
-				new(int256.Int).Mul(a, s.ONE),
+	return a.Sub(
+		a.Quo(
+			a.Add(
+				a.Mul(a, s.ONE),
 				s._one,
 			), b,
 		),
@@ -219,71 +201,64 @@ func (s *signedFixedPoint) DivUpMagU(a, b *int256.Int) (*int256.Int, error) {
 }
 
 func (s *signedFixedPoint) MulXp(a, b *int256.Int) (*int256.Int, error) {
-	c, overflow := new(int256.Int).MulOverflow(a, b)
+	c, overflow := a.MulOverflow(a, b)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
-	return new(int256.Int).Quo(c, s.ONE_XP), nil
+	return c.Quo(c, s.ONE_XP), nil
 }
 
 func (s *signedFixedPoint) MulXpU(a, b *int256.Int) *int256.Int {
-	return new(int256.Int).Quo(new(int256.Int).Mul(a, b), s.ONE_XP)
-
+	return a.Quo(a.Mul(a, b), s.ONE_XP)
 }
 
 func (s *signedFixedPoint) DivXp(a, b *int256.Int) (*int256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrZeroDivision
+	} else if a.IsZero() {
+		return a, nil
 	}
 
-	if a.IsZero() {
-		return s._zero, nil
-	}
-
-	aInflated, overflow := new(int256.Int).MulOverflow(a, s.ONE_XP)
+	aInflated, overflow := a.MulOverflow(a, s.ONE_XP)
 	if overflow {
 		return nil, ErrDivInternal
 	}
-
-	return new(int256.Int).Quo(aInflated, b), nil
+	return aInflated.Quo(aInflated, b), nil
 }
 
 func (s *signedFixedPoint) DivXpU(a, b *int256.Int) (*int256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrZeroDivision
 	}
-	return new(int256.Int).Quo(new(int256.Int).Mul(a, s.ONE_XP), b), nil
+	return a.Quo(a.Mul(a, s.ONE_XP), b), nil
 }
 
 func (s *signedFixedPoint) MulDownXpToNp(a, b *int256.Int) (*int256.Int, error) {
-	b1 := new(int256.Int).Quo(b, s._number_1e19)
-	prod1, overflow := new(int256.Int).MulOverflow(a, b1)
+	var b1, b2 int256.Int
+	b1.Quo(b, s._number_1e19)
+	prod1, overflow := b1.MulOverflow(a, &b1)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
-
-	b2 := new(int256.Int).Rem(b, s._number_1e19)
-	prod2, overflow := new(int256.Int).MulOverflow(a, b2)
+	b2.Rem(b, s._number_1e19)
+	prod2, overflow := b2.MulOverflow(a, &b2)
 	if overflow {
 		return nil, ErrMulOverflow
-	}
-
-	if prod1.Gte(s._zero) && prod2.Gte(s._zero) {
-		return new(int256.Int).Quo(
-			new(int256.Int).Add(
+	} else if !prod1.IsNegative() && !prod2.IsNegative() {
+		return prod1.Quo(
+			prod1.Add(
 				prod1,
-				new(int256.Int).Quo(prod2, s._number_1e19),
+				prod2.Quo(prod2, s._number_1e19),
 			),
 			s._number_1e19,
 		), nil
 	}
-
-	return new(int256.Int).Sub(
-		new(int256.Int).Quo(
-			new(int256.Int).Add(
-				new(int256.Int).Add(
+	return prod1.Sub(
+		prod1.Quo(
+			prod1.Add(
+				prod1.Add(
 					prod1,
-					new(int256.Int).Quo(prod2, s._number_1e19),
+					prod2.Quo(prod2, s._number_1e19),
 				),
 				s._one,
 			),
@@ -294,27 +269,27 @@ func (s *signedFixedPoint) MulDownXpToNp(a, b *int256.Int) (*int256.Int, error) 
 }
 
 func (s *signedFixedPoint) MulDownXpToNpU(a, b *int256.Int) *int256.Int {
-	b1 := new(int256.Int).Quo(b, s._number_1e19)
-	prod1 := new(int256.Int).Mul(a, b1)
-	b2 := new(int256.Int).Rem(b, s._number_1e19)
-	prod2 := new(int256.Int).Mul(a, b2)
+	var b1, b2 int256.Int
+	b1.Quo(b, s._number_1e19)
+	prod1 := b1.Mul(a, &b1)
+	b2.Rem(b, s._number_1e19)
+	prod2 := b2.Mul(a, &b2)
 
-	if prod1.Gte(s._zero) && prod2.Gte(s._zero) {
-		return new(int256.Int).Quo(
-			new(int256.Int).Add(
+	if !prod1.IsNegative() && !prod2.IsNegative() {
+		return prod1.Quo(
+			prod1.Add(
 				prod1,
-				new(int256.Int).Quo(prod2, s._number_1e19),
+				prod2.Quo(prod2, s._number_1e19),
 			),
 			s._number_1e19,
 		)
 	}
-
-	return new(int256.Int).Sub(
-		new(int256.Int).Quo(
-			new(int256.Int).Add(
-				new(int256.Int).Add(
+	return prod1.Sub(
+		prod1.Quo(
+			prod1.Add(
+				prod1.Add(
 					prod1,
-					new(int256.Int).Quo(prod2, s._number_1e19),
+					prod2.Quo(prod2, s._number_1e19),
 				),
 				s._one,
 			),
@@ -325,33 +300,32 @@ func (s *signedFixedPoint) MulDownXpToNpU(a, b *int256.Int) *int256.Int {
 }
 
 func (s *signedFixedPoint) MulUpXpToNp(a, b *int256.Int) (*int256.Int, error) {
-	b1 := new(int256.Int).Quo(b, s._number_1e19)
-	prod1, overflow := new(int256.Int).MulOverflow(a, b1)
+	var b1, b2 int256.Int
+	b1.Quo(b, s._number_1e19)
+	prod1, overflow := b1.MulOverflow(a, &b1)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
-	b2 := new(int256.Int).Rem(b, s._number_1e19)
-	prod2, overflow := new(int256.Int).MulOverflow(a, b2)
+	b2.Rem(b, s._number_1e19)
+	prod2, overflow := b2.MulOverflow(a, &b2)
 	if overflow {
 		return nil, ErrMulOverflow
-	}
-
-	if prod1.Lte(s._zero) && prod2.Lte(s._zero) {
-		return new(int256.Int).Quo(
-			new(int256.Int).Add(
+	} else if !prod1.IsPositive() && !prod2.IsPositive() {
+		return prod1.Quo(
+			prod1.Add(
 				prod1,
-				new(int256.Int).Quo(prod2, s._number_1e19),
+				prod2.Quo(prod2, s._number_1e19),
 			),
 			s._number_1e19,
 		), nil
 	}
 
-	return new(int256.Int).Add(
-		new(int256.Int).Quo(
-			new(int256.Int).Sub(
-				new(int256.Int).Add(
+	return prod1.Add(
+		prod1.Quo(
+			prod1.Sub(
+				prod1.Add(
 					prod1,
-					new(int256.Int).Quo(prod2, s._number_1e19),
+					prod2.Quo(prod2, s._number_1e19),
 				),
 				s._one,
 			),
@@ -362,27 +336,27 @@ func (s *signedFixedPoint) MulUpXpToNp(a, b *int256.Int) (*int256.Int, error) {
 }
 
 func (s *signedFixedPoint) MulUpXpToNpU(a, b *int256.Int) *int256.Int {
-	b1 := new(int256.Int).Quo(b, s._number_1e19)
-	prod1 := new(int256.Int).Mul(a, b1)
-	b2 := new(int256.Int).Rem(b, s._number_1e19)
-	prod2 := new(int256.Int).Mul(a, b2)
+	var b1, b2 int256.Int
+	b1.Quo(b, s._number_1e19)
+	prod1 := b1.Mul(a, &b1)
+	b2.Rem(b, s._number_1e19)
+	prod2 := b2.Mul(a, &b2)
 
-	if prod1.Lte(s._zero) && prod2.Lte(s._zero) {
-		return new(int256.Int).Quo(
-			new(int256.Int).Add(
+	if !prod1.IsPositive() && !prod2.IsPositive() {
+		return prod1.Quo(
+			prod1.Add(
 				prod1,
-				new(int256.Int).Quo(prod2, s._number_1e19),
+				prod2.Quo(prod2, s._number_1e19),
 			),
 			s._number_1e19,
 		)
 	}
-
-	return new(int256.Int).Add(
-		new(int256.Int).Quo(
-			new(int256.Int).Sub(
-				new(int256.Int).Add(
+	return prod1.Add(
+		prod1.Quo(
+			prod1.Sub(
+				prod1.Add(
 					prod1,
-					new(int256.Int).Quo(prod2, s._number_1e19),
+					prod2.Quo(prod2, s._number_1e19),
 				),
 				s._one,
 			),
@@ -393,8 +367,8 @@ func (s *signedFixedPoint) MulUpXpToNpU(a, b *int256.Int) *int256.Int {
 }
 
 func (s *signedFixedPoint) Complement(x *int256.Int) *int256.Int {
-	if x.Gte(s.ONE) && x.Lte(s._zero) {
-		return s._zero
+	if x.Gte(s.ONE) || !x.IsPositive() {
+		return x.Clear()
 	}
-	return new(int256.Int).Sub(s.ONE, x)
+	return x.Sub(s.ONE, x)
 }
