@@ -9,7 +9,6 @@ import (
 type State struct {
 	ReserveA           *big.Int `json:"reserveA"`
 	ReserveB           *big.Int `json:"reserveB"`
-	LastTimestamp      int64    `json:"lastTimestamp"`
 	LastTwaD8          int64    `json:"lastTwaD8"`
 	LastLogPriceD8     int64    `json:"lastLogPriceD8"`
 	ActiveTick         int32    `json:"activeTick"`
@@ -88,11 +87,11 @@ type MoveData struct {
 	TickLimit       int32             `json:"tickLimit"`
 	FirstBinTick    int32             `json:"firstBinTick"`
 	FirstBinId      uint32            `json:"firstBinId"`
+	Counter         uint32            `json:"counter"`
 	MergeBinBalance *uint256.Int      `json:"mergeBinBalance"`
 	TotalReserveA   *uint256.Int      `json:"totalReserveA"`
 	TotalReserveB   *uint256.Int      `json:"totalReserveB"`
 	MergeBins       map[uint32]uint32 `json:"mergeBins"` // counter -> binId mapping
-	Counter         uint32            `json:"counter"`
 }
 
 type StaticExtra struct {
@@ -107,9 +106,7 @@ type MaverickPoolState struct {
 	Ticks            map[int32]Tick
 	TickSpacing      uint32
 	ActiveTick       int32
-	LastTwaD8        int64  // Time-weighted average tick data
-	Timestamp        int64  // Current timestamp
-	BinCounter       uint32 // Counter for bin IDs
+	LastTwaD8        int64 // Time-weighted average tick data
 }
 
 type Extra struct {
@@ -120,30 +117,23 @@ type Extra struct {
 	Ticks            map[int32]Tick `json:"ticks"`
 	ActiveTick       int32          `json:"activeTick"`
 	LastTwaD8        int64          `json:"lastTwaD8"`
-	Timestamp        int64          `json:"timestamp"`
 }
 
 type Bin struct {
-	MergeBinBalance  *uint256.Int `json:"mergeBinBalance"`
-	MergeId          uint32       `json:"mergeId"`
-	TotalSupply      *uint256.Int `json:"totalSupply"`
-	Kind             uint8        `json:"kind"`
-	Tick             int32        `json:"tick"`
-	TickBalance      *uint256.Int `json:"tickBalance"`
-	CurrentLiquidity *uint256.Int `json:"currentLiquidity,omitempty"` // Added for TypeScript compatibility
+	Tick        int32        `json:"tick"`
+	TotalSupply *uint256.Int `json:"totalSupply"`
+	TickBalance *uint256.Int `json:"tickBalance"`
 }
 
 type Delta struct {
-	DeltaInBinInternal *uint256.Int
-	DeltaInErc         *uint256.Int
-	DeltaOutErc        *uint256.Int
-	Excess             *uint256.Int
+	DeltaInBinInternal *uint256.Int // nomutate: assign directly
+	DeltaInErc         *uint256.Int // nomutate
+	DeltaOutErc        *uint256.Int // nomutate
+	Excess             *uint256.Int // nomutate
+	SqrtPrice          *uint256.Int // nomutate
+	TickLimit          int32
 	TokenAIn           bool
 	ExactOutput        bool
-	TickLimit          int32
-	SqrtLowerTickPrice *uint256.Int
-	SqrtUpperTickPrice *uint256.Int
-	SqrtPrice          *uint256.Int
 	SwappedToMaxPrice  bool
 	SkipCombine        bool
 }
@@ -163,7 +153,7 @@ type TickData struct {
 }
 
 type maverickSwapInfo struct {
-	activeTick       int32
-	bins             map[uint32]Bin
-	ticks            map[int32]Tick
+	activeTick int32
+	bins       map[uint32]Bin
+	ticks      map[int32]Tick
 }
