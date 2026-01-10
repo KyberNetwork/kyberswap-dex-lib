@@ -163,15 +163,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	// Store old values for TWA and bin movements
 	startingTick := p.state.ActiveTick
-	lastTwaD8 := p.state.LastTwaD8
 
 	// Update the primary state values from swap result
+	p.state.ActiveTick = newState.activeTick
 	p.state.Bins = newState.bins
 	p.state.Ticks = newState.ticks
-	p.state.ActiveTick = newState.activeTick
 
 	// Move bins based on tick changes
-	moveBins(p.state, startingTick, p.state.ActiveTick, lastTwaD8, p.state.LastTwaD8)
+	moveBins(p.state, startingTick, p.state.ActiveTick, p.state.LastTwaD8, p.state.LastTwaD8)
 
 	tokenAmountIn, tokenAmountOut := params.TokenAmountIn, params.TokenAmountOut
 	// Update reserves based on swap direction
@@ -184,7 +183,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
 
@@ -245,22 +244,11 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn, exactOutput b
 // swapTick
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/2108e064319bf14f98c321a8acd4762d3e9e3560/src/dex/maverick-v2/maverick-math/maverick-pool-math.ts#L621
 func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, bool, error) {
-	newDelta := &Delta{
-		DeltaInBinInternal: big256.U0,
-		DeltaInErc:         big256.U0,
-		DeltaOutErc:        big256.U0,
-		Excess:             big256.U0,
-		SqrtPrice:          big256.U0,
-		TickLimit:          tickLimit,
-		TokenAIn:           delta.TokenAIn,
-		ExactOutput:        delta.ExactOutput,
-	}
-
-	activeTick := state.ActiveTick
+	activeTick, tokenAIn := state.ActiveTick, delta.TokenAIn
 
 	// Check if we've reached the tick limit - equivalent to TypeScript pastMaxTick function
 	if pastMaxTick(delta, activeTick, tickLimit) {
-		state.ActiveTick += lo.Ternary[int32](delta.TokenAIn, -1, 1)
+		state.ActiveTick += lo.Ternary[int32](tokenAIn, -1, 1)
 		return delta, true, nil
 	}
 
@@ -274,12 +262,12 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		}
 
 		// Move to next tick in correct direction
-		activeTick += lo.Ternary[int32](delta.TokenAIn, 1, -1)
+		activeTick += lo.Ternary[int32](tokenAIn, 1, -1)
 		crossedBin = true
 
 		// Check again if we've reached the tick limit after moving
 		if pastMaxTick(delta, activeTick, tickLimit) {
-			state.ActiveTick += lo.Ternary[int32](delta.TokenAIn, -1, 1)
+			state.ActiveTick += lo.Ternary[int32](tokenAIn, -1, 1)
 			return delta, true, nil
 		}
 	}
@@ -288,26 +276,22 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 
 	// Here's the key change: Calculate the sqrt prices using tickSqrtPriceAndLiquidity
 	// This matches the TypeScript code: [delta.sqrtLowerTickPrice, delta.sqrtUpperTickPrice, delta.sqrtPrice, tickData] = this.tickSqrtPriceAndLiquidity(activeTick)
-	var tickDataFromLiquidity TickData
-	newDelta.SqrtPrice, tickDataFromLiquidity = tickSqrtPriceAndLiquidity(state, activeTick)
+	sqrtPrice, tickDataFromLiquidity := tickSqrtPriceAndLiquidity(state, activeTick)
 
 	// Perform the actual swap computation
-	if delta.ExactOutput {
-		*newDelta = computeSwapExactOut(state, delta.Excess, delta.TokenAIn, tickDataFromLiquidity, newDelta.SqrtPrice)
-	} else {
-		*newDelta = computeSwapExactIn(state, delta.Excess, delta.TokenAIn, tickDataFromLiquidity, newDelta.SqrtPrice)
-	}
+	newDelta := lo.Ternary(delta.ExactOutput, computeSwapExactOut, computeSwapExactIn)(
+		state, delta.Excess, tokenAIn, tickDataFromLiquidity, sqrtPrice)
 
 	// allocateSwapValuesToTick (tick map was shadow-cloned, clone to a new tick)
-	allocateSwapValuesToTick(state, newDelta, delta.TokenAIn, state.ActiveTick)
+	allocateSwapValuesToTick(state, &newDelta, tokenAIn, state.ActiveTick)
 
 	// If there's excess remaining, we need to move to the next tick
 	if !newDelta.Excess.IsZero() {
-		state.ActiveTick = activeTick + lo.Ternary[int32](delta.TokenAIn, 1, -1)
+		state.ActiveTick = activeTick + lo.Ternary[int32](tokenAIn, 1, -1)
 		crossedBin = true
 	}
 
-	return newDelta, crossedBin, nil
+	return &newDelta, crossedBin, nil
 }
 
 func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAIn bool, tickData TickData,
@@ -747,7 +731,7 @@ func maverickBinMathUpdateBinState(
 	totalSupply := self.TotalSupply
 	if totalSupply.IsZero() {
 		minimumLiquidity := big256.TenPow(8)
-		if deltaLpBalance.Cmp(minimumLiquidity) < 0 {
+		if deltaLpBalance.Lt(minimumLiquidity) {
 			panic("insufficient liquidity")
 		}
 		totalSupply.Set(minimumLiquidity)
@@ -804,7 +788,7 @@ func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState
 
 // Helper function equivalent to MaverickBasicMath.clip - safe subtraction
 func clip(a, b *uint256.Int) *uint256.Int {
-	if a.Cmp(b) >= 0 {
+	if !a.Lt(b) {
 		return new(uint256.Int).Sub(a, b)
 	}
 	return big256.U0
@@ -1080,9 +1064,9 @@ func getSqrtPrice(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice, li
 	sqrtPrice := ratio.Sqrt(ratio)
 
 	// Ensure the price is within bounds: min(max(sqrtPrice, sqrtLowerTickPrice), sqrtUpperTickPrice)
-	if sqrtPrice.Cmp(sqrtLowerTickPrice) < 0 {
+	if sqrtPrice.Lt(sqrtLowerTickPrice) {
 		return sqrtLowerTickPrice
-	} else if sqrtPrice.Cmp(sqrtUpperTickPrice) > 0 {
+	} else if sqrtPrice.Gt(sqrtUpperTickPrice) {
 		return sqrtUpperTickPrice
 	}
 
