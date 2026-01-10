@@ -140,6 +140,7 @@ const (
 	ExchangeEchoDex                    = "echo-dex"
 	ExchangeEchoDexV3                  = "echo-dex-v3"
 	ExchangeEkubo                      = "ekubo"
+	ExchangeEkuboV3                    = "ekubo-v3"
 	ExchangeEllipsis                   = "ellipsis"
 	ExchangeEmpireDex                  = "empiredex"
 	ExchangeEqual                      = "equal"
