@@ -143,3 +143,25 @@ type CalculatedVars struct {
 	Token1SupplyExchangePrice *big.Int
 	Token1BorrowExchangePrice *big.Int
 }
+
+type DynamicFeeVariables struct {
+	minFee                         *big.Int
+	maxFee                         *big.Int
+	priceImpactToFeeDivisionFactor *big.Int
+	zeroPriceImpactPriceX96        *big.Int
+	minFeeKinkPriceX96             *big.Int
+	minFeeKinkSqrtPriceX96         *big.Int
+	maxFeeKinkPriceX96             *big.Int
+	maxFeeKinkSqrtPriceX96         *big.Int
+}
+
+type DynamicFeeVariablesUI struct {
+	minFee                         *v3Utils.Uint256
+	maxFee                         *v3Utils.Uint256
+	priceImpactToFeeDivisionFactor *v3Utils.Uint256
+	zeroPriceImpactPriceX96        *v3Utils.Uint256
+	minFeeKinkPriceX96             *v3Utils.Uint256
+	minFeeKinkSqrtPriceX96         *v3Utils.Uint256
+	maxFeeKinkPriceX96             *v3Utils.Uint256
+	maxFeeKinkSqrtPriceX96         *v3Utils.Uint256
+}
