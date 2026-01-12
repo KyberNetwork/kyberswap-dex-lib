@@ -2,7 +2,6 @@ package ekubov3
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -125,17 +124,17 @@ func (f *dataFetchers) fetchPools(
 					return nil, fmt.Errorf("unexpected pool key %v", poolKey)
 				}
 			case ExtensionTypeOracle:
-				fullRangeKey, ok := any(poolKey).(*pools.FullRangePoolKey)
+				_, ok = poolKey.Config.TypeConfig.(pools.FullRangePoolTypeConfig)
 				if !ok {
-					return nil, errors.New("oracle pool should have full range pool key")
+					return nil, fmt.Errorf("oracle pool should have full range pool type config, got %T", poolKey.Config.TypeConfig)
 				}
-				pool = pools.NewOraclePool(fullRangeKey, NewOraclePoolState(&data))
+				pool = pools.NewOraclePool(poolKey.ToFullRange(), NewOraclePoolState(&data))
 			case ExtensionTypeMevCapture:
-				concentratedKey, ok := any(poolKey).(*pools.ConcentratedPoolKey)
+				poolTypeConfig, ok := poolKey.Config.TypeConfig.(pools.ConcentratedPoolTypeConfig)
 				if !ok {
-					return nil, errors.New("MEV-capture pool should have concentrated pool key")
+					return nil, fmt.Errorf("MEV-capture pool should have concentrated pool type config, got %T", poolKey.Config.TypeConfig)
 				}
-				pool = pools.NewMevCapturePool(concentratedKey, NewBasePoolState(&data))
+				pool = pools.NewMevCapturePool(poolKey.ToConcentrated(poolTypeConfig), NewBasePoolState(&data))
 			default:
 				return nil, fmt.Errorf("unexpected extension type %v", extensionType)
 			}
