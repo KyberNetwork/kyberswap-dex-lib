@@ -1,8 +1,12 @@
 package ekubov3
 
-import "errors"
+import (
+	"errors"
 
-const DexType = "ekubov3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+const DexType = valueobject.ExchangeEkuboV3
 
 var (
 	ErrZeroAmount = errors.New("zero amount")
