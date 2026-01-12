@@ -2,7 +2,6 @@ package ekubov3
 
 import (
 	"context"
-	"os"
 	"slices"
 	"testing"
 
@@ -13,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo-v3/pools"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -21,12 +21,11 @@ var MainnetConfig = NewConfig(valueobject.ChainIDEthereum)
 
 func TestPoolListUpdater(t *testing.T) {
 	t.Parallel()
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
+	test.SkipCI(t)
 
 	plUpdater := NewPoolListUpdater(MainnetConfig, ethrpc.New("https://ethereum.drpc.org").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")), graphql.NewClient("https://api.studio.thegraph.com/query/1718652/ekubo-pool-initializations/version/latest"))
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+		graphql.NewClient("https://api.studio.thegraph.com/query/1718652/ekubo-pool-initializations/version/latest"))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
@@ -45,6 +44,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 		pk := staticExtra.PoolKey
 
-		return pk.Token0.Cmp(testPk.Token0) == 0 && pk.Token1.Cmp(testPk.Token1) == 0 && pk.Config.Compressed() == testPk.Config.Compressed()
+		return pk.Token0.Cmp(testPk.Token0) == 0 && pk.Token1.Cmp(testPk.Token1) == 0 &&
+			pk.Config.Compressed() == testPk.Config.Compressed()
 	}))
 }

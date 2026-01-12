@@ -54,6 +54,17 @@ func TestAmount0(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, result, big256.New("90909090909090910"))
 	})
+
+	t.Run("zeroLiquidity", func(t *testing.T) {
+		result, err := Amount0Delta(
+			big256.New("0"),
+			big256.New("0"),
+			big256.New("0"),
+			true,
+		)
+		require.NoError(t, err)
+		require.Zero(t, result.Sign())
+	})
 }
 
 func TestAmount1(t *testing.T) {

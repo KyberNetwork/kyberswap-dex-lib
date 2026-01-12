@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	positionAmount = big256.BONE.Clone()
+	positionAmount = big256.BONE
 	smallAmount    = big256.TenPow(15)
 )
 

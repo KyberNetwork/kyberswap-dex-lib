@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -55,8 +56,8 @@ func (ts *PoolListTrackerTestSuite) run(cases []*testcase) {
 
 			p := entity.Pool{
 				Tokens: []*entity.PoolToken{
-					{Address: FromEkuboAddress(tc.poolKey.Token0.String(), MainnetConfig.ChainId)},
-					{Address: FromEkuboAddress(tc.poolKey.Token1.String(), MainnetConfig.ChainId)},
+					{Address: valueobject.ZeroToWrappedLower(tc.poolKey.Token0.String(), MainnetConfig.ChainId)},
+					{Address: valueobject.ZeroToWrappedLower(tc.poolKey.Token1.String(), MainnetConfig.ChainId)},
 				},
 				Extra:       string(extraJson),
 				StaticExtra: string(staticExtraJson),

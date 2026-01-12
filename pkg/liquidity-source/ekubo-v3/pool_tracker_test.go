@@ -61,8 +61,8 @@ func (ts *PoolTrackerTestSuite) run(cases []*testcase) {
 
 			p := entity.Pool{
 				Tokens: []*entity.PoolToken{
-					{Address: FromEkuboAddress(tc.poolKey.Token0.String(), MainnetConfig.ChainId)},
-					{Address: FromEkuboAddress(tc.poolKey.Token1.String(), MainnetConfig.ChainId)},
+					{Address: valueobject.ZeroToWrappedLower(tc.poolKey.Token0.String(), MainnetConfig.ChainId)},
+					{Address: valueobject.ZeroToWrappedLower(tc.poolKey.Token1.String(), MainnetConfig.ChainId)},
 				},
 				Extra:       string(extraJson),
 				StaticExtra: string(staticExtraJson),

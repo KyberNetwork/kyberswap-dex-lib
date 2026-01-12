@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListUpdater struct {
@@ -164,11 +165,11 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   FromEkuboAddress(poolKey.Token0.String(), u.config.ChainId),
+					Address:   valueobject.ZeroToWrappedLower(poolKey.Token0.String(), u.config.ChainId),
 					Swappable: true,
 				},
 				{
-					Address:   FromEkuboAddress(poolKey.Token1.String(), u.config.ChainId),
+					Address:   valueobject.ZeroToWrappedLower(poolKey.Token1.String(), u.config.ChainId),
 					Swappable: true,
 				},
 			},

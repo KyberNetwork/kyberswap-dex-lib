@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo-v3/pools"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const subgraphQuery = `
@@ -37,41 +38,35 @@ query NewPools($startBlockNumber: BigInt!, $coreAddress: Bytes!, $extensions: [B
 
 var _ = poollist.RegisterFactoryCEG(DexType, NewPoolListUpdater)
 
-type (
-	PoolListUpdater struct {
-		config *Config
+type PoolListUpdater struct {
+	config *Config
 
-		graphqlClient *graphql.Client
-		graphqlReq    *graphql.Request
+	graphqlClient *graphql.Client
+	graphqlReq    *graphql.Request
 
-		dataFetchers *dataFetchers
+	dataFetchers *dataFetchers
 
-		startBlockNumber uint64
-		startBlockHash   common.Hash
-	}
-
-	graphResponse struct {
-		PoolInitializations []graphPoolInitialization `json:"poolInitializations"`
-	}
-
-	graphPoolInitialization struct {
-		BlockNumber             string         `json:"blockNumber"`
-		BlockHash               string         `json:"blockHash"`
-		TickSpacing             *uint32        `json:"tickSpacing"`
-		StableswapCenterTick    *int32         `json:"stableswapCenterTick"`
-		StableswapAmplification *uint8         `json:"stableswapAmplification"`
-		Extension               common.Address `json:"extension"`
-		Fee                     string         `json:"fee"`
-		PoolId                  common.Hash    `json:"poolId"`
-		Token0                  common.Address `json:"token0"`
-		Token1                  common.Address `json:"token1"`
-	}
-)
+	startBlockNumber uint64
+	startBlockHash   common.Hash
+}
 
 func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[pools.PoolTypeConfig], error) {
 	u.graphqlReq.Var("startBlockNumber", u.startBlockNumber)
 
-	var res graphResponse
+	var res struct {
+		PoolInitializations []struct {
+			BlockNumber             string         `json:"blockNumber"`
+			BlockHash               string         `json:"blockHash"`
+			TickSpacing             *uint32        `json:"tickSpacing"`
+			StableswapCenterTick    *int32         `json:"stableswapCenterTick"`
+			StableswapAmplification *uint8         `json:"stableswapAmplification"`
+			Extension               common.Address `json:"extension"`
+			Fee                     string         `json:"fee"`
+			PoolId                  common.Hash    `json:"poolId"`
+			Token0                  common.Address `json:"token0"`
+			Token1                  common.Address `json:"token1"`
+		} `json:"poolInitializations"`
+	}
 	err := u.graphqlClient.Run(ctx, u.graphqlReq, &res)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
@@ -217,17 +212,17 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 
 		newPools = append(newPools, entity.Pool{
 			Address:   poolAddress,
-			Exchange:  DexType,
+			Exchange:  string(u.config.DexId),
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   FromEkuboAddress(poolKey.Token0.String(), u.config.ChainId),
+					Address:   valueobject.ZeroToWrappedLower(poolKey.Token0.String(), u.config.ChainId),
 					Swappable: true,
 				},
 				{
-					Address:   FromEkuboAddress(poolKey.Token1.String(), u.config.ChainId),
+					Address:   valueobject.ZeroToWrappedLower(poolKey.Token1.String(), u.config.ChainId),
 					Swappable: true,
 				},
 			},

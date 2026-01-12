@@ -21,9 +21,9 @@ func computeSqrtSaleRatioX128(saleRateToken0, saleRateToken1 *uint256.Int) *uint
 	} else if bitLen <= 192 {
 		// We know it only has 192 bits, so we can shift it 64 before rooting to get more precision
 		return saleRatio.Lsh(saleRatio.Sqrt(saleRatio.Lsh(&saleRatio, 64)), 32)
-	} else {
-		return saleRatio.Lsh(saleRatio.Sqrt(saleRatio.Lsh(&saleRatio, 16)), 56)
 	}
+
+	return saleRatio.Lsh(saleRatio.Sqrt(saleRatio.Lsh(&saleRatio, 16)), 56)
 }
 
 func CalculateNextSqrtRatio(sqrtRatio, liquidity, saleRateToken0, saleRateToken1 *uint256.Int, timeElapsed uint32,

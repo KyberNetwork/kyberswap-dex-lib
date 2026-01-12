@@ -32,7 +32,8 @@ var (
 )
 
 type Config struct {
-	ChainId valueobject.ChainID `json:"chainId"`
+	DexId   valueobject.Exchange `json:"dexId"`
+	ChainId valueobject.ChainID  `json:"chainId"`
 }
 
 func NewConfig(chainId valueobject.ChainID) *Config {

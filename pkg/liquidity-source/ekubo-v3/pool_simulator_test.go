@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -497,8 +498,8 @@ func marshalPool(t *testing.T, extra Extra, staticExtra *StaticExtra) *entity.Po
 
 	return &entity.Pool{
 		Tokens: []*entity.PoolToken{
-			{Address: FromEkuboAddress(pk.Token0.String(), MainnetConfig.ChainId)},
-			{Address: FromEkuboAddress(pk.Token1.String(), MainnetConfig.ChainId)},
+			{Address: valueobject.ZeroToWrappedLower(pk.Token0.String(), MainnetConfig.ChainId)},
+			{Address: valueobject.ZeroToWrappedLower(pk.Token1.String(), MainnetConfig.ChainId)},
 		},
 		Extra:       string(extraJson),
 		StaticExtra: string(staticExtraJson),

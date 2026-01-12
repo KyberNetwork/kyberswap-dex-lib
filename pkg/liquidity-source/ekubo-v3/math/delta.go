@@ -16,7 +16,7 @@ func sortRatios(sqrtRatioA, sqrtRatioB *uint256.Int) (*uint256.Int, *uint256.Int
 
 func Amount0Delta(sqrtRatioA, sqrtRatioB, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if liquidity.IsZero() || sqrtRatioA.Eq(sqrtRatioB) {
-		return big256.U0, nil
+		return big256.U0.Clone(), nil
 	}
 
 	lower, upper := sortRatios(sqrtRatioA, sqrtRatioB)
@@ -40,7 +40,7 @@ func Amount0Delta(sqrtRatioA, sqrtRatioB, liquidity *uint256.Int, roundUp bool) 
 
 func Amount1Delta(sqrtRatioA, sqrtRatioB, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if liquidity.IsZero() || sqrtRatioA.Eq(sqrtRatioB) {
-		return big256.U0, nil
+		return big256.U0.Clone(), nil
 	}
 
 	lower, upper := sortRatios(sqrtRatioA, sqrtRatioB)
