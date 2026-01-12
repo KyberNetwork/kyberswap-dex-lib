@@ -51,7 +51,7 @@ import (
 	pkg_liquiditysource_dodo_dsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	pkg_liquiditysource_dodo_dvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	pkg_liquiditysource_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
-	pkg_liquiditysource_ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo-v3"
+	pkg_liquiditysource_ekubo_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	pkg_liquiditysource_erc4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	pkg_liquiditysource_ethena_susde "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	pkg_liquiditysource_ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
@@ -247,7 +247,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dsp.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dvm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubov3.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_erc4626.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ethena_susde.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ethervista.PoolSimulator{})
