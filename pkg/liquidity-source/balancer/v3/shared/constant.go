@@ -31,6 +31,8 @@ var (
 		"":         common.HexToAddress("0xbA1333333333a1BA1108E8412f11850A5C319bA9"), // default
 		"coinhane": common.HexToAddress("0xb61cb1E8EF4BB1b74bB858B8B60d82d79488F13D"),
 	}
+
+	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
 )
 
 const (

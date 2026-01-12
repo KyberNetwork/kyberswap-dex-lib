@@ -235,6 +235,7 @@ const (
 	ExchangeLaminar                    = "laminar"
 	ExchangeLineHubV2                  = "linehub-v2"
 	ExchangeLineHubV3                  = "linehub-v3"
+	ExchangeLiquidCore                 = "liquidcore"
 	ExchangeLiquidusFinance            = "liquidus-finance"
 	ExchangeListaStable                = "lista-stable"
 	ExchangeLitePSM                    = "lite-psm"
@@ -535,7 +536,6 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm5:       {},
 	ExchangeSwaapV2:    {},
 	ExchangeUniswapLO:  {},
-	ExchangeClear:      {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

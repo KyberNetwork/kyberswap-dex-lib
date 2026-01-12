@@ -2,7 +2,6 @@ package clear
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -12,10 +11,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func getPoolSim(reserveIn, reserveOut string) *PoolSimulator {
-	extraStr := `{"address":"0xcac0fa2818aed2eea8b9f52ca411e6ec3e13d822","exchange":"clear","type":"clear","timestamp":1766474455,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x69cac783c212bfae06e3c1a9a2e6ae6b17ba0614","symbol":"GHO","decimals":18,"swappable":true}],"extra":"{\"reserves\":{\"0\":{\"1\":{\"AmountIn\":null,\"AmountOut\":null}}}}","staticExtra":"{\"swapAddress\":\"0x5144e17c86d6e1b25f61a036024a65bc4775e37e\"}"}`
-	extraStr = strings.Replace(extraStr, `\"AmountIn\":null`, fmt.Sprintf(`\"AmountIn\":%v`, reserveIn), 1)
-	extraStr = strings.Replace(extraStr, `\"AmountOut\":null`, fmt.Sprintf(`\"AmountOut\":%v`, reserveOut), 1)
+func getPoolSim(reserveIn01, reserveOut01, reserveIn10, reserveOut10 string) *PoolSimulator {
+	extraStr := fmt.Sprintf(`{"address":"0x5cc8b3282dcc692532b857a68bc0fb07f45fbade","exchange":"clear","type":"clear","timestamp":1767580596,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f","symbol":"GHO","decimals":18,"swappable":true}],"extra":"{\"swapAddress\":\"0xeb5AD3D93E59eFcbC6934caD2B48EB33BAf29745\",\"ious\":[\"0x1267a63dc2d3af46b1333326f49b4d746374ac2e\",\"0x50ca266a50c6531dce25ee7da0dfb57a06bd864e\"],\"reserves\":{\"0\":{\"1\":{\"AmountIn\":%v,\"AmountOut\":%v}},\"1\":{\"0\":{\"AmountIn\":%v,\"AmountOut\":%v}}}}"}`, reserveIn01, reserveOut01, reserveIn10, reserveOut10)
 	var entityPool entity.Pool
 	_ = json.Unmarshal([]byte(extraStr),
 		&entityPool)
@@ -31,12 +28,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		amountOut string
 		poolSim   *PoolSimulator
 	}{
-		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "2000", poolSim: getPoolSim("1000000", "2000000")},
-		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "1000", poolSim: getPoolSim("1000000", "2000000")},
-		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "0", poolSim: getPoolSim("1000000", "null")},
-		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "0", poolSim: getPoolSim("1000000", "null")},
-		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "0", poolSim: getPoolSim("null", "2000000")},
-		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "0", poolSim: getPoolSim("null", "1000000")},
+		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "2000", poolSim: getPoolSim("1000000", "2000000", "2000000", "1000000")},
+		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "1000", poolSim: getPoolSim("1000000", "2000000", "2000000", "1000000")},
+		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "0", poolSim: getPoolSim("1000000", "null", "2000000", "1000000")},
+		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "0", poolSim: getPoolSim("1000000", "2000000", "2000000", "null")},
+		{name: "USDC -> GHO", indexIn: 0, indexOut: 1, amountIn: "1000", amountOut: "0", poolSim: getPoolSim("null", "2000000", "2000000", "1000000")},
+		{name: "GHO -> USDC", indexIn: 1, indexOut: 0, amountIn: "2000", amountOut: "0", poolSim: getPoolSim("1000000", "2000000", "null", "1000000")},
 	}
 	for _, tc := range testCases {
 		testutil.TestCalcAmountOut(t, tc.poolSim, map[int]map[int]map[string]string{

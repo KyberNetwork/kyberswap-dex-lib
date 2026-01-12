@@ -50,25 +50,29 @@ var WrappedNativeMap = map[ChainID]string{
 	ChainIDMegaETH:         "0x4200000000000000000000000000000000000006",
 }
 
+// LowerWrapped returns lowercase wrapped token string
+func LowerWrapped(chainID ChainID) string {
+	return strings.ToLower(WrappedNativeMap[chainID])
+}
+
 // WrapNativeLower wraps, if applicable, native token to wrapped token; and then lowercase it.
 func WrapNativeLower(token string, chainID ChainID) string {
 	if IsNative(token) {
-		token = WrappedNativeMap[chainID]
+		return LowerWrapped(chainID)
 	}
 	return strings.ToLower(token)
 }
 
 func ZeroToWrappedLower(address string, chainID ChainID) string {
 	if IsZero(address) {
-		return strings.ToLower(WrappedNativeMap[chainID])
+		return LowerWrapped(chainID)
 	}
-
 	return strings.ToLower(address)
 }
 
 func WrapNativeZeroLower(token string, chainID ChainID) string {
 	if IsNativeOrZero(token) {
-		token = WrappedNativeMap[chainID]
+		return LowerWrapped(chainID)
 	}
 	return strings.ToLower(token)
 }

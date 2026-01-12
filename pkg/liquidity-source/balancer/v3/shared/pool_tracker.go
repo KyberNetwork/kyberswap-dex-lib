@@ -11,14 +11,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-func GetBufferTokens(req *ethrpc.Request, chainID int, exchange string, bufferTokens []string) func() []*ExtraBuffer {
+func GetBufferTokens(req *ethrpc.Request, chainID valueobject.ChainID, exchange string, bufferTokens []string) func() []*ExtraBuffer {
 	var (
 		rates       = make([][]Rate, len(bufferTokens))
 		maxDeposits = make([]*big.Int, len(bufferTokens))
 		maxRedeems  = make([]*big.Int, len(bufferTokens))
 	)
 
-	vault := Vault(valueobject.ChainID(chainID), exchange)
+	vault := Vault(chainID, exchange)
 	for i, bufferToken := range bufferTokens {
 		if bufferToken == "" {
 			continue
