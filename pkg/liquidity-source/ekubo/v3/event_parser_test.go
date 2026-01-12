@@ -2,7 +2,6 @@ package ekubov3
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,13 +9,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
 
 func TestEventParserDecode(t *testing.T) {
 	t.Parallel()
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
+	test.SkipCI(t)
 
 	rpcClient := ethrpc.
 		New("https://ethereum.drpc.org").

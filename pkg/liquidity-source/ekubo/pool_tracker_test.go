@@ -2,7 +2,6 @@ package ekubo
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -18,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -259,8 +259,7 @@ func (ts *PoolListTrackerTestSuite) SetupSuite() {
 
 func TestPoolListTrackerTestSuite(t *testing.T) {
 	t.Parallel()
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
+	test.SkipCI(t)
+
 	suite.Run(t, new(PoolListTrackerTestSuite))
 }
