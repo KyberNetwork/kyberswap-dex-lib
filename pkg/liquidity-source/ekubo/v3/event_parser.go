@@ -16,7 +16,17 @@ import (
 
 var _ = pooldecode.RegisterFactoryC(DexType, NewEventParser)
 
-type EventParser struct{}
+type EventParser struct {
+	Core  string
+	Twamm string
+}
+
+func NewEventParser(config *Config) *EventParser {
+	return &EventParser{
+		Core:  hexutil.Encode(config.Core[:]),
+		Twamm: hexutil.Encode(config.Twamm[:]),
+	}
+}
 
 func (e *EventParser) Decode(_ context.Context, logs []types.Log) (map[string][]types.Log, error) {
 	addressLogs := make(map[string][]types.Log)
@@ -37,9 +47,9 @@ func (e *EventParser) getPoolAddress(log types.Log) (string, error) {
 	logAddress := hexutil.Encode(log.Address[:])
 
 	switch logAddress {
-	case CoreAddressStrLower:
+	case e.Core:
 		return e.handleCoreLog(log)
-	case TwammAddressStrLower:
+	case e.Twamm:
 		return e.handleTwammLog(log)
 	default:
 		return "", nil
@@ -93,7 +103,8 @@ func (e *EventParser) handleTwammLog(log types.Log) (string, error) {
 		}
 		orderKey := pools.TwammOrderKey{TwammOrderKeyAbi: orderKeyAbi}
 
-		poolKey := pools.NewPoolKey(orderKey.Token0, orderKey.Token1, pools.NewPoolConfig(TwammAddress, orderKey.Fee(), pools.NewFullRangePoolTypeConfig()))
+		poolKey := pools.NewPoolKey(orderKey.Token0, orderKey.Token1,
+			pools.NewPoolConfig(common.HexToAddress(e.Twamm), orderKey.Fee(), pools.NewFullRangePoolTypeConfig()))
 
 		return poolKey.ToPoolAddress()
 	}
@@ -102,12 +113,5 @@ func (e *EventParser) handleTwammLog(log types.Log) (string, error) {
 }
 
 func (e *EventParser) GetKeys(_ context.Context) ([]string, error) {
-	return []string{
-		CoreAddressStrLower,
-		TwammAddressStrLower,
-	}, nil
-}
-
-func NewEventParser(cfg *struct{}) *EventParser {
-	return &EventParser{}
+	return []string{e.Core, e.Twamm}, nil
 }

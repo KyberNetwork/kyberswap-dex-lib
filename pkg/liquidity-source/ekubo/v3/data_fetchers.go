@@ -53,6 +53,7 @@ type (
 
 	dataFetchers struct {
 		ethrpcClient *ethrpc.Client
+		config       *Config
 	}
 )
 
@@ -66,7 +67,7 @@ func (f *dataFetchers) fetchPools(
 	}
 
 	twammPoolKeys, basicPoolKeys := lo.FilterReject(poolKeys, func(key *pools.PoolKey[pools.PoolTypeConfig], _ int) bool {
-		extensionType := SupportedExtensions[key.Extension()]
+		extensionType := f.config.SupportedExtensions()[key.Extension()]
 		return extensionType == ExtensionTypeTwamm
 	})
 
@@ -83,7 +84,7 @@ func (f *dataFetchers) fetchPools(
 		batchQuoteData := make([]QuoteData, endIdx-startIdx)
 		resp, err := req.AddCall(&ethrpc.Call{
 			ABI:    abis.QuoteDataFetcherABI,
-			Target: QuoteDataFetcherAddressStr,
+			Target: f.config.QuoteDataFetcher,
 			Method: basicDataFetcherMethod,
 			Params: []any{
 				lo.Map(basicPoolKeys[startIdx:endIdx], func(poolKey *pools.PoolKey[pools.PoolTypeConfig], _ int) pools.AbiPoolKey {
@@ -91,7 +92,7 @@ func (f *dataFetchers) fetchPools(
 				}),
 				minTickSpacingsPerPool,
 			},
-		}, []any{&batchQuoteData}).Call()
+		}, []any{&batchQuoteData}).Aggregate()
 		if err != nil {
 			logger.Errorf("failed to retrieve quote data from basic data fetcher: %v", err)
 			return nil, err
@@ -106,7 +107,7 @@ func (f *dataFetchers) fetchPools(
 			poolKey := basicPoolKeys[startIdx+i]
 			extension := poolKey.Extension()
 
-			extensionType, ok := SupportedExtensions[extension]
+			extensionType, ok := f.config.SupportedExtensions()[extension]
 			if !ok {
 				return nil, fmt.Errorf("requested pool data for unknown extension %v", extension)
 			}
@@ -159,7 +160,7 @@ func (f *dataFetchers) fetchPools(
 		for i, poolKey := range twammPoolKeys[startIdx:endIdx] {
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.TwammDataFetcherABI,
-				Target: TwammDataFetcherAddressStr,
+				Target: f.config.TwammDataFetcher,
 				Method: twammDataFetcherMethod,
 				Params: []any{
 					poolKey.ToAbi(),
@@ -189,9 +190,10 @@ func (f *dataFetchers) fetchPools(
 	return poolStates, nil
 }
 
-func NewDataFetchers(ethrpcClient *ethrpc.Client, cfg *Config) *dataFetchers {
+func NewDataFetchers(ethrpcClient *ethrpc.Client, config *Config) *dataFetchers {
 	return &dataFetchers{
 		ethrpcClient: ethrpcClient,
+		config:       config,
 	}
 }
 

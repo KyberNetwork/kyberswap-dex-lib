@@ -21,7 +21,10 @@ func TestEventParserDecode(t *testing.T) {
 		New("https://ethereum.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
-	e := NewEventParser(&struct{}{})
+	e := NewEventParser(&Config{
+		Core:  common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
+		Twamm: common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
+	})
 
 	tests := []struct {
 		name        string

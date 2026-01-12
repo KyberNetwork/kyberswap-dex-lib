@@ -26,6 +26,14 @@ import (
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
+func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	return &PoolTracker{
+		config:       config,
+		ethrpcClient: ethrpcClient,
+		dataFetcher:  NewDataFetchers(ethrpcClient, config),
+	}
+}
+
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
@@ -136,7 +144,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 
 		var event pools.Event
-		if CoreAddress == log.Address {
+		if d.config.Core == log.Address {
 			if len(log.Topics) == 0 {
 				event = pools.EventSwapped
 			} else if log.Topics[0] == abis.PositionUpdatedEvent.ID {
@@ -144,7 +152,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
-		} else if TwammAddress == log.Address {
+		} else if d.config.Twamm == log.Address {
 			if len(log.Topics) == 0 {
 				event = pools.EventVirtualOrdersExecuted
 			} else if log.Topics[0] == abis.OrderUpdatedEvent.ID {
@@ -202,12 +210,4 @@ func (d *PoolTracker) forceUpdateState(
 	}
 
 	return pools[0], nil
-}
-
-func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	return &PoolTracker{
-		config:       config,
-		ethrpcClient: ethrpcClient,
-		dataFetcher:  NewDataFetchers(ethrpcClient, config),
-	}
 }

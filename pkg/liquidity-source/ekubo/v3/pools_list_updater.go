@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -43,7 +44,6 @@ type PoolListUpdater struct {
 	config *Config
 
 	graphqlClient *graphql.Client
-	graphqlReq    *graphql.Request
 
 	dataFetchers *dataFetchers
 
@@ -51,8 +51,26 @@ type PoolListUpdater struct {
 	startBlockHash   common.Hash
 }
 
+func NewPoolListUpdater(
+	cfg *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphql.Client,
+) *PoolListUpdater {
+
+	return &PoolListUpdater{
+		config:        cfg,
+		graphqlClient: graphqlClient,
+		dataFetchers:  NewDataFetchers(ethrpcClient, cfg),
+	}
+}
+
 func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[pools.PoolTypeConfig], error) {
-	u.graphqlReq.Var("startBlockNumber", u.startBlockNumber)
+	req := graphql.NewRequest(subgraphQuery)
+	req.Var("coreAddress", u.config.Core)
+	req.Var("extensions", []common.Address{{}, u.config.Oracle, u.config.Twamm, u.config.MevCapture})
+	req.Var("startBlockNumber", u.startBlockNumber)
+
+	fmt.Println(u.config.Oracle, u.config.Twamm, u.config.MevCapture)
 
 	var res struct {
 		PoolInitializations []struct {
@@ -68,7 +86,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 			Token1                  common.Address `json:"token1"`
 		} `json:"poolInitializations"`
 	}
-	err := u.graphqlClient.Run(ctx, u.graphqlReq, &res)
+	err := u.graphqlClient.Run(ctx, req, &res)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -81,7 +99,8 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 
 	if u.startBlockNumber != 0 {
 		firstPi := pis[0]
-		firstBlockNumber, err := strconv.ParseUint(firstPi.BlockNumber, 10, 64)
+
+		firstBlockNumber, err := kutils.Atou[uint64](firstPi.BlockNumber)
 		if err != nil {
 			return nil, fmt.Errorf("parsing first blockNumber: %w", err)
 		}
@@ -107,7 +126,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 
 		firstNewDataIdx := 1
 		for i, pi := range pis[1:] {
-			blockNumber, err := strconv.ParseUint(pi.BlockNumber, 10, 64)
+			blockNumber, err := kutils.Atou[uint64](pi.BlockNumber)
 			if err != nil {
 				return nil, fmt.Errorf("parsing blockNumber: %w", err)
 			}
@@ -125,7 +144,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 	}
 
 	lastPi := pis[len(pis)-1]
-	lastBlockNumber, err := strconv.ParseUint(lastPi.BlockNumber, 10, 64)
+	lastBlockNumber, err := kutils.Atou[uint64](lastPi.BlockNumber)
 	if err != nil {
 		return nil, fmt.Errorf("parsing last blockNumber: %w", err)
 	}
@@ -184,7 +203,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 
 	newPools := make([]entity.Pool, 0, len(newPoolKeys))
 	for i, poolKey := range newPoolKeys {
-		extensionType, ok := SupportedExtensions[poolKey.Extension()]
+		extensionType, ok := u.config.SupportedExtensions()[poolKey.Extension()]
 		if !ok {
 			logger.WithFields(logger.Fields{
 				"poolKey": poolKey,
@@ -193,7 +212,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		}
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			Core:          CoreAddress,
+			Core:          u.config.Core,
 			ExtensionType: extensionType,
 			PoolKey:       &pools.AnyPoolKey{PoolKey: poolKey},
 		})
@@ -234,22 +253,4 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 	}
 
 	return newPools, nil, nil
-}
-
-func NewPoolListUpdater(
-	cfg *Config,
-	ethrpcClient *ethrpc.Client,
-	graphqlClient *graphql.Client,
-) *PoolListUpdater {
-	req := graphql.NewRequest(subgraphQuery)
-
-	req.Var("coreAddress", CoreAddress)
-	req.Var("extensions", []common.Address{{}, OracleAddress, TwammAddress, MevCaptureAddress})
-
-	return &PoolListUpdater{
-		config:        cfg,
-		graphqlClient: graphqlClient,
-		graphqlReq:    req,
-		dataFetchers:  NewDataFetchers(ethrpcClient, cfg),
-	}
 }
