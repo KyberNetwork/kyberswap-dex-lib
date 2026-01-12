@@ -70,8 +70,6 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 	req.Var("extensions", []common.Address{{}, u.config.Oracle, u.config.Twamm, u.config.MevCapture})
 	req.Var("startBlockNumber", u.startBlockNumber)
 
-	fmt.Println(u.config.Oracle, u.config.Twamm, u.config.MevCapture)
-
 	var res struct {
 		PoolInitializations []struct {
 			BlockNumber             string         `json:"blockNumber"`
