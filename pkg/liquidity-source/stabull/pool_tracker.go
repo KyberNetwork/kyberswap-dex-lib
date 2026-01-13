@@ -207,6 +207,13 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 			} else if isNewTransmissionEvent(log) {
 				// NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, ...)
 				// Decode answer from log.Data
+				if len(log.Data) == 0 {
+					logger.WithFields(logger.Fields{
+						"dex":    DexType,
+						"oracle": "base",
+					}).Warn("NewTransmission event has empty data, skipping")
+					continue
+				}
 				type NewTransmissionEvent struct {
 					Answer *big.Int
 				}
@@ -245,6 +252,13 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 					}).Info("Updated quote oracle rate from AnswerUpdated event")
 				}
 			} else if isNewTransmissionEvent(log) {
+				if len(log.Data) == 0 {
+					logger.WithFields(logger.Fields{
+						"dex":    DexType,
+						"oracle": "quote",
+					}).Warn("NewTransmission event has empty data, skipping")
+					continue
+				}
 				type NewTransmissionEvent struct {
 					Answer *big.Int
 				}
@@ -305,18 +319,24 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 
 // fetchPoolStateFromNode fetches current reserves and curve parameters from the blockchain
 func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) ([]*big.Int, Extra, error) {
+	// Define struct to match the liquidity() return signature
+	type LiquidityResult struct {
+		Total      *big.Int
+		Individual []*big.Int
+	}
+
+	// Define struct to match viewCurve() return signature
+	type CurveResult struct {
+		Alpha   *big.Int
+		Beta    *big.Int
+		Delta   *big.Int
+		Epsilon *big.Int
+		Lambda  *big.Int
+	}
+
 	var (
-		liquidityResult struct {
-			Total      *big.Int   `json:"total_"`
-			Individual []*big.Int `json:"individual_"`
-		}
-		curveResult struct {
-			Alpha   *big.Int `json:"alpha_"`
-			Beta    *big.Int `json:"beta_"`
-			Delta   *big.Int `json:"delta_"`
-			Epsilon *big.Int `json:"epsilon_"`
-			Lambda  *big.Int `json:"lambda_"`
-		}
+		liquidityResult LiquidityResult
+		curveResult     CurveResult
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -328,7 +348,7 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		Target: poolAddress,
 		Method: poolMethodLiquidity,
 		Params: []interface{}{},
-	}, []interface{}{&liquidityResult.Total, &liquidityResult.Individual})
+	}, []interface{}{&liquidityResult})
 
 	// Fetch curve parameters using viewCurve() method
 	// viewCurve() returns (uint256 alpha_, uint256 beta_, uint256 delta_, uint256 epsilon_, uint256 lambda_)
@@ -337,7 +357,7 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		Target: poolAddress,
 		Method: poolMethodViewCurve,
 		Params: []interface{}{},
-	}, []interface{}{&curveResult.Alpha, &curveResult.Beta, &curveResult.Delta, &curveResult.Epsilon, &curveResult.Lambda})
+	}, []interface{}{&curveResult})
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
@@ -372,10 +392,13 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 
 // fetchPoolReservesFromNode fetches only reserves (not curve parameters) - more efficient for Trade events
 func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress string, existingExtra Extra) ([]*big.Int, Extra, error) {
-	var liquidityResult struct {
-		Total      *big.Int   `json:"total_"`
-		Individual []*big.Int `json:"individual_"`
+	// Define struct to match the liquidity() return signature
+	type LiquidityResult struct {
+		Total      *big.Int
+		Individual []*big.Int
 	}
+
+	var liquidityResult LiquidityResult
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -385,7 +408,7 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 		Target: poolAddress,
 		Method: poolMethodLiquidity,
 		Params: []interface{}{},
-	}, []interface{}{&liquidityResult.Total, &liquidityResult.Individual})
+	}, []interface{}{&liquidityResult})
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
@@ -423,6 +446,15 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 	// Find and decode the ParametersSet event from the logs
 	for _, log := range params.Logs {
 		if !isLogFromPool(log, p.Address) || !isParametersSetEvent(log) {
+			continue
+		}
+
+		// Check if log data is empty
+		if len(log.Data) == 0 {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": p.Address,
+			}).Warn("ParametersSet event has empty data, skipping")
 			continue
 		}
 

@@ -53,9 +53,9 @@ func calculateStabullSwap(
 		return nil, ErrInsufficientLiquidity
 	}
 
-	// Calculate dynamic fee based on epsilon and pool imbalance
-	// Fee increases when pool becomes more imbalanced
-	fee := calculateDynamicFee(reserveIn, reserveOut, epsilon)
+	// Calculate dynamic fee based on epsilon
+	// Fee is 0.15% (epsilon = 1.5e15) applied to the input amount
+	fee := calculateDynamicFee(amountIn, epsilon)
 
 	// Apply fee to input amount
 	amountInAfterFee := new(big.Int).Sub(amountIn, fee)
@@ -101,21 +101,20 @@ func calculateStabullSwap(
 }
 
 // calculateDynamicFee computes the swap fee based on epsilon and pool imbalance
-// Epsilon represents the base fee rate, but the actual fee can increase with imbalance
-// Formula: fee = amountIn * epsilon / 1e18 * (1 + imbalance_factor)
-func calculateDynamicFee(reserveIn *big.Int, reserveOut *big.Int, epsilon *big.Int) *big.Int {
-	// In the actual Stabull implementation, epsilon is scaled by 1e18
-	// A typical epsilon value might be 1.5e15 (0.15%)
+// Epsilon represents the base fee rate (0.15% = 1.5e15 in 1e18 precision)
+// Formula: fee = amountIn * epsilon / 1e18
+// Note: The fee is applied to the input amount before the swap calculation
+func calculateDynamicFee(amountIn *big.Int, epsilon *big.Int) *big.Int {
+	// Epsilon is scaled by 1e18
+	// A typical epsilon value is 1.5e15 (0.15% = 150000000000000)
+	// fee = amountIn * epsilon / 1e18
 
-	// For now, we use a simplified fee calculation
-	// Real implementation would incorporate pool imbalance
-	// fee = (reserveIn + reserveOut difference) * epsilon
+	one := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // 1e18
 
-	// Base fee rate from epsilon (epsilon is in 1e18 precision)
-	// This is a placeholder - the actual fee logic in Stabull is more complex
-	baseFee := epsilon
+	fee := new(big.Int).Mul(amountIn, epsilon)
+	fee = new(big.Int).Div(fee, one)
 
-	return baseFee
+	return fee
 }
 
 // applyCurveAdjustment applies the Stabull curve formula adjustments

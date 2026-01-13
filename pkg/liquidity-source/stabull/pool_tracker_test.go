@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,18 +27,18 @@ func TestPoolTracker_FetchPoolStateFromNode(t *testing.T) {
 	}{
 		{
 			name:        "Polygon - NZDS/USDC Pool",
-			rpcURL:      "https://polygon-public.nodies.app",
-			poolAddress: "0xdcbefACa996fe2985138bF31b647EFcd1D0901a",
+			rpcURL:      "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
 		},
 		{
 			name:        "Base - BRZ/USDC Pool",
-			rpcURL:      "https://base.rpc.subquery.network/public",
-			poolAddress: "0x8a908ae045e61307755a91f4d6ecd04ed31eb1b",
+			rpcURL:      "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0x8A908aE045E611307755A91f4D6ECD04Ed31EB1B",
 		},
 		{
 			name:        "Ethereum - NZDS/USDC Pool",
-			rpcURL:      "https://eth-mainnet.public.blastapi.io",
-			poolAddress: "0xe37d73c7c4cdd9a8f085f7db70139a0843529f3",
+			rpcURL:      "https://eth-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0xe37D763c7c4cdd9A8f085F7DB70139a0843529F3",
 		},
 	}
 
@@ -45,6 +46,7 @@ func TestPoolTracker_FetchPoolStateFromNode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			client := ethrpc.New(tt.rpcURL)
+			client.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 			require.NotNil(t, client)
 
 			config := &Config{
@@ -139,15 +141,15 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	}{
 		{
 			name:        "Polygon - NZDS/USDC",
-			rpcURL:      "https://polygon-public.nodies.app",
-			poolAddress: "0xdcbefACa996fe2985138bF31b647EFcd1D0901a",
+			rpcURL:      "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
 			token0:      "0xFbBE4b730e1e77d02dC40fEdF94382802eab3B5",  // NZDS
 			token1:      "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC
 		},
 		{
 			name:        "Base - BRZ/USDC",
-			rpcURL:      "https://base.rpc.subquery.network/public",
-			poolAddress: "0x8a908ae045e61307755a91f4d6ecd04ed31eb1b",
+			rpcURL:      "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0x8A908aE045E611307755A91f4D6ECD04Ed31EB1B",
 			token0:      "0xE9185Ee218cae427aF7B9764A011bb89FeA76144", // BRZ
 			token1:      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
 		},
@@ -158,6 +160,9 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 			// Setup
 			client := ethrpc.New(tt.rpcURL)
 			require.NotNil(t, client)
+
+			// Set multicall contract address
+			client.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 			config := &Config{
 				DexID: "stabull-test",

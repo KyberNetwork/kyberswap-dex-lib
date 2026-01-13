@@ -62,12 +62,12 @@ const (
 	ONE = 1e18
 )
 
-// Factory addresses per chain (from DefiLlama adapter)
+// Factory addresses per chain (from official Stabull documentation)
+// https://docs.stabull.finance/amm/contracts
 var FactoryAddresses = map[string]string{
 	"ethereum": "0x2e9E34b5Af24b66F12721113C1C8FFcbB7Bc8051",
 	"polygon":  "0x3c60234db40e6e5b57504e401b1cdc79d91faf89",
 	"base":     "0x86Ba17ebf8819f7fd32Cf1A43AbCaAe541A5BEbf",
-	"arbitrum": "0xArbitrumFactoryAddress", // TODO: Add when Stabull deploys to Arbitrum
 }
 
 var (

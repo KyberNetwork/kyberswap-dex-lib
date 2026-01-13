@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,20 +26,20 @@ func TestPoolsListUpdater_GetNewPool_SpecificAddress(t *testing.T) {
 		{
 			name:        "Polygon - NZDS/USDC Pool",
 			chainID:     137,
-			rpcURL:      "https://polygon-public.nodies.app",
-			poolAddress: "0xdcbefACa996fe2985138bF31b647EFcd1D0901a",
+			rpcURL:      "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
 		},
 		{
 			name:        "Base - BRZ/USDC Pool",
 			chainID:     8453,
-			rpcURL:      "https://base.rpc.subquery.network/public",
-			poolAddress: "0x8a908ae045e61307755a91f4d6ecd04ed31eb1b",
+			rpcURL:      "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0x8A908aE045E611307755A91f4D6ECD04Ed31EB1B",
 		},
 		{
 			name:        "Ethereum - NZDS/USDC Pool",
 			chainID:     1,
-			rpcURL:      "https://eth-mainnet.public.blastapi.io",
-			poolAddress: "0xe37d73c7c4cdd9a8f085f7db70139a0843529f3",
+			rpcURL:      "https://eth-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			poolAddress: "0xe37D763c7c4cdd9A8f085F7DB70139a0843529F3",
 		},
 	}
 
@@ -46,6 +47,7 @@ func TestPoolsListUpdater_GetNewPool_SpecificAddress(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			client := ethrpc.New(tt.rpcURL)
+			client.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 			require.NotNil(t, client)
 
 			config := &Config{

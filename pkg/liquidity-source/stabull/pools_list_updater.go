@@ -195,15 +195,15 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		token1Address   common.Address
 		token0Decimals  uint8
 		liquidityResult struct {
-			Total      *big.Int   `json:"total_"`
-			Individual []*big.Int `json:"individual_"`
+			Total      *big.Int
+			Individual []*big.Int
 		}
 		curveResult struct {
-			Alpha   *big.Int `json:"alpha_"`
-			Beta    *big.Int `json:"beta_"`
-			Delta   *big.Int `json:"delta_"`
-			Epsilon *big.Int `json:"epsilon_"`
-			Lambda  *big.Int `json:"lambda_"`
+			Alpha   *big.Int
+			Beta    *big.Int
+			Delta   *big.Int
+			Epsilon *big.Int
+			Lambda  *big.Int
 		}
 	)
 
@@ -232,7 +232,7 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Target: poolAddress,
 		Method: poolMethodLiquidity,
 		Params: []interface{}{},
-	}, []interface{}{&liquidityResult.Total, &liquidityResult.Individual})
+	}, []interface{}{&liquidityResult})
 
 	// Fetch curve parameters (alpha, beta, delta, epsilon, lambda)
 	// viewCurve() returns (uint256 alpha_, uint256 beta_, uint256 delta_, uint256 epsilon_, uint256 lambda_)
@@ -241,17 +241,24 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Target: poolAddress,
 		Method: poolMethodViewCurve,
 		Params: []interface{}{},
-	}, []interface{}{&curveResult.Alpha, &curveResult.Beta, &curveResult.Delta, &curveResult.Epsilon, &curveResult.Lambda})
+	}, []interface{}{&curveResult})
 
-	// Fetch token0 decimals using ERC20 decimals() method
-	rpcRequest.AddCall(&ethrpc.Call{
+	// Execute first batch of calls to get token addresses and pool data
+	_, err := rpcRequest.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	// Now that we have token addresses, fetch token0 decimals in a second RPC call
+	rpcRequest2 := d.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest2.AddCall(&ethrpc.Call{
 		ABI:    abi.Erc20ABI,
 		Target: token0Address.Hex(),
 		Method: abi.Erc20DecimalsMethod,
 		Params: []interface{}{},
 	}, []interface{}{&token0Decimals})
 
-	_, err := rpcRequest.Aggregate()
+	_, err = rpcRequest2.Aggregate()
 	if err != nil {
 		return nil, err
 	}
