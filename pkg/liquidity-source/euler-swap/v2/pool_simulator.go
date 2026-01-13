@@ -212,7 +212,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 ) (*shared.SwapInfo, error) {
 	debtVaultAddr, debtVaultIdx, debt := p.ControllerVault, 2, uint256.NewInt(0)
 
-	var controllerVault *shared.VaultState
+	controllerVault := p.BorrowVault[2]
 	if p.BorrowVault[0] != nil && p.BorrowVault[0].IsControllerEnabled {
 		controllerVault = p.BorrowVault[0]
 		debtVaultAddr = p.BorrowVault0
@@ -222,6 +222,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 		debtVaultAddr = p.BorrowVault1
 		debtVaultIdx = 1
 	}
+
 	if controllerVault != nil && controllerVault.Debt != nil {
 		debt = controllerVault.Debt.Clone()
 	}
@@ -708,24 +709,52 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	vaultDepositAmt, repayAmt := swapInfo.VaultDepositAmount, swapInfo.RepayAmount
 	sellVault := p.SupplyVault[from]
+	sellBorrowVault := p.BorrowVault[from]
+
 	sellVault.IsControllerEnabled = swapInfo.IsSellVaultControlled
-	sellVault.Cash = new(uint256.Int).Add(sellVault.Cash, vaultDepositAmt)
-	sellVault.Debt = shared.SubTill0(sellVault.Debt, repayAmt)
-	sellVault.MaxDeposit = shared.SubTill0(sellVault.MaxDeposit, vaultDepositAmt)
-	sellVault.TotalBorrows = shared.SubTill0(sellVault.TotalBorrows, repayAmt)
-	addedAssets := shared.SubTill0(swapInfo.VaultDepositAmount, swapInfo.RepayAmount)
-	sellVault.EulerAccountAssets = new(uint256.Int).Add(sellVault.EulerAccountAssets, addedAssets)
+	supplyDepositAmt := shared.SubTill0(vaultDepositAmt, repayAmt)
+	sellVault.Cash = new(uint256.Int).Add(sellVault.Cash, supplyDepositAmt)
+	sellVault.MaxDeposit = shared.SubTill0(sellVault.MaxDeposit, supplyDepositAmt)
+	sellVault.EulerAccountAssets = new(uint256.Int).Add(sellVault.EulerAccountAssets, supplyDepositAmt)
+
+	if sellBorrowVault != nil {
+		sellBorrowVault.Cash = new(uint256.Int).Add(sellBorrowVault.Cash, repayAmt)
+		sellBorrowVault.Debt = shared.SubTill0(sellBorrowVault.Debt, repayAmt)
+		sellBorrowVault.TotalBorrows = shared.SubTill0(sellBorrowVault.TotalBorrows, repayAmt)
+	}
 
 	withdrawAmt, borrowAmt := swapInfo.WithdrawAmount, swapInfo.BorrowAmount
 	buyVault := p.SupplyVault[to]
+	buyBorrowVault := p.BorrowVault[to]
+
 	buyVault.IsControllerEnabled = swapInfo.IsBuyVaultControlled
-	buyVault.Cash = shared.SubTill0(buyVault.Cash, uint256.MustFromBig(params.TokenAmountOut.Amount))
-	buyVault.Debt = new(uint256.Int).Add(buyVault.Debt, borrowAmt)
-	buyVault.MaxDeposit = shared.SubTill0(buyVault.MaxDeposit, withdrawAmt)
-	buyVault.TotalBorrows = new(uint256.Int).Add(buyVault.TotalBorrows, borrowAmt)
+	buyVault.Cash = shared.SubTill0(buyVault.Cash, withdrawAmt)
+	if buyVault.MaxDeposit != nil && !buyVault.MaxDeposit.Eq(big256.UMax) {
+		buyVault.MaxDeposit = new(uint256.Int).Add(buyVault.MaxDeposit, withdrawAmt)
+	}
 	buyVault.EulerAccountAssets = shared.SubTill0(buyVault.EulerAccountAssets, withdrawAmt)
 
-	p.BorrowVault[swapInfo.DebtVaultIdx].Debt.Set(swapInfo.Debt)
+	if buyBorrowVault != nil {
+		buyBorrowVault.Cash = shared.SubTill0(buyBorrowVault.Cash, borrowAmt)
+		buyBorrowVault.Debt = new(uint256.Int).Add(buyBorrowVault.Debt, borrowAmt)
+		buyBorrowVault.TotalBorrows = new(uint256.Int).Add(buyBorrowVault.TotalBorrows, borrowAmt)
+	}
+
+	if swapInfo.DebtVaultIdx < 2 {
+		p.ControllerVault = lo.Ternary(swapInfo.DebtVaultIdx == 0, p.BorrowVault0, p.BorrowVault1)
+	}
+
+	for i := 0; i < 3; i++ {
+		if p.BorrowVault[i] != nil {
+			if i == swapInfo.DebtVaultIdx {
+				p.BorrowVault[i].Debt.Set(swapInfo.Debt)
+				p.BorrowVault[i].IsControllerEnabled = !swapInfo.Debt.IsZero()
+			} else {
+				p.BorrowVault[i].Debt.Clear()
+				p.BorrowVault[i].IsControllerEnabled = false
+			}
+		}
+	}
 
 	p.collateralValue = swapInfo.CollateralValue
 }

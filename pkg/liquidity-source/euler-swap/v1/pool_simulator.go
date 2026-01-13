@@ -300,6 +300,11 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	buyVault.TotalBorrows = new(uint256.Int).Add(buyVault.TotalBorrows, borrowAmt)
 	buyVault.EulerAccountAssets = shared.SubTill0(buyVault.EulerAccountAssets, withdrawAmt)
 
+	if swapInfo.DebtVaultIdx < 2 {
+		p.Vaults[2] = p.Vaults[swapInfo.DebtVaultIdx]
+		p.ControllerVault = lo.Ternary(swapInfo.DebtVaultIdx == 0, p.Vault0, p.Vault1)
+	}
+
 	if p.Vaults[2] != nil {
 		p.Vaults[2].Debt = swapInfo.Debt
 	}
