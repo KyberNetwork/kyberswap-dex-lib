@@ -208,13 +208,14 @@ func NewBasePoolState(data *QuoteData) *pools.BasePoolState {
 		BasePoolSwapState: &pools.BasePoolSwapState{
 			SqrtRatio:       math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatioFloat)),
 			Liquidity:       big256.FromBig(data.Liquidity),
-			ActiveTickIndex: pools.NearestInitializedTickIndex(ticks, data.Tick),
+			ActiveTickIndex: -1,
 		},
 		ActiveTick:  data.Tick,
 		SortedTicks: ticks,
 		TickBounds:  [2]int32{data.MinTick, data.MaxTick},
 	}
 	state.AddLiquidityCutoffs()
+	state.BasePoolSwapState.ActiveTickIndex = pools.NearestInitializedTickIndex(state.SortedTicks, state.ActiveTick)
 
 	return &state
 }
