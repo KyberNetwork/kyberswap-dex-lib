@@ -13,6 +13,7 @@ import (
 
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const invalidTickNumber int32 = math.MinInt32
@@ -142,8 +143,8 @@ func (s *BasePoolState) AddLiquidityCutoffs() {
 
 	s.ActiveTickIndex = activeTickIndex
 
-	s.UpdateTick(s.TickBounds[0], (*int256.Int)(&liquidityDeltaMin), false, true)
-	s.UpdateTick(s.TickBounds[1], (*int256.Int)(&currentLiquidity), true, true)
+	s.UpdateTick(s.TickBounds[0], u256.SInt256(&liquidityDeltaMin), false, true)
+	s.UpdateTick(s.TickBounds[1], u256.SInt256(&currentLiquidity), true, true)
 }
 
 func (p *BasePool) GetKey() IPoolKey {
