@@ -215,7 +215,7 @@ func NewBasePoolState(data *QuoteData) *pools.BasePoolState {
 		TickBounds:  [2]int32{data.MinTick, data.MaxTick},
 	}
 	state.AddLiquidityCutoffs()
-	state.BasePoolSwapState.ActiveTickIndex = pools.NearestInitializedTickIndex(state.SortedTicks, state.ActiveTick)
+	state.ActiveTickIndex = pools.NearestInitializedTickIndex(state.SortedTicks, state.ActiveTick)
 
 	return &state
 }
