@@ -24,6 +24,7 @@ func TestPoolFactory(t *testing.T) {
 		"pmm-3",         // private
 		"pmm-4",         // private
 		"swaap-v2",      // private
+		"bebop",         // private
 		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string
