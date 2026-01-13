@@ -129,8 +129,29 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 }
 
 func NewStableswapPool(key *StableswapPoolKey, state *StableswapPoolState) *StableswapPool {
-	return &StableswapPool{
+	p := &StableswapPool{
 		key:                 key,
 		StableswapPoolState: state,
 	}
+	setStableswapBounds(p, key.Config.TypeConfig.CenterTick, key.Config.TypeConfig.AmplificationFactor)
+	return p
+}
+
+func setStableswapBounds(pool *StableswapPool, centerTick int32, amplification uint8) {
+	lower, upper := activeRange(centerTick, amplification)
+	pool.lowerPrice.Set(math.ToSqrtRatio(lower))
+	pool.upperPrice.Set(math.ToSqrtRatio(upper))
+}
+
+func activeRange(centerTick int32, amplification uint8) (int32, int32) {
+	width := math.MaxTick >> amplification
+	lower := centerTick - width
+	if lower < math.MinTick {
+		lower = math.MinTick
+	}
+	upper := centerTick + width
+	if upper > math.MaxTick {
+		upper = math.MaxTick
+	}
+	return lower, upper
 }

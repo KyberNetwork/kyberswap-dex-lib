@@ -239,6 +239,10 @@ func (p *MevCapturePool) NewBlock() {
 }
 
 func parseSwappedEventIfMatching(data []byte, poolKey IPoolKey) (*swappedEvent, error) {
+	if len(data) < 116 {
+		return nil, nil
+	}
+
 	poolId := data[20:52]
 	expectedPoolId, err := poolKey.NumId()
 	if err != nil {

@@ -39,25 +39,6 @@ func stableswapState(tick int32, liquidity *uint256.Int) *StableswapPoolState {
 	}
 }
 
-func activeRange(centerTick int32, amplification uint8) (int32, int32) {
-	width := math.MaxTick >> amplification
-	lower := centerTick - width
-	if lower < math.MinTick {
-		lower = math.MinTick
-	}
-	upper := centerTick + width
-	if upper > math.MaxTick {
-		upper = math.MaxTick
-	}
-	return lower, upper
-}
-
-func setStableswapBounds(pool *StableswapPool, centerTick int32, amplification uint8) {
-	lower, upper := activeRange(centerTick, amplification)
-	pool.lowerPrice.Set(math.ToSqrtRatio(lower))
-	pool.upperPrice.Set(math.ToSqrtRatio(upper))
-}
-
 func mintedLiquidity(centerTick int32, amplification uint8, currentTick int32) *uint256.Int {
 	lowerTick, upperTick := activeRange(centerTick, amplification)
 	sqrtLower := math.ToSqrtRatio(lowerTick)
@@ -124,7 +105,6 @@ func requiredAmounts(
 func buildPool(centerTick int32, amplification uint8, currentTick int32) *StableswapPool {
 	liquidity := mintedLiquidity(centerTick, amplification, currentTick)
 	pool := NewStableswapPool(stableswapKey(centerTick, amplification), stableswapState(currentTick, liquidity))
-	setStableswapBounds(pool, centerTick, amplification)
 	return pool
 }
 
