@@ -44,6 +44,7 @@ import (
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
@@ -365,6 +366,7 @@ type Types struct {
 	Tessera                    string
 	LiquidCore                 string
 	FrxUSD                     string
+	Elfomofi                   string
 }
 
 var (
@@ -559,5 +561,6 @@ var (
 		Tessera:                    tessera.DexType,
 		LiquidCore:                 liquidcore.DexType,
 		FrxUSD:                     frxusd.DexType,
+		Elfomofi:                   elfomofi.DexType,
 	}
 )
