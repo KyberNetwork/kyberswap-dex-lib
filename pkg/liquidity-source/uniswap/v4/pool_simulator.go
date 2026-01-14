@@ -162,7 +162,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			return nil, ErrInvalidAmountIn
 		}
 
-		if beforeSwapResult.SwapFee >= FeeMax {
+		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
+		} else if beforeSwapResult.SwapFee >= FeeMax {
 			return nil, ErrInvalidFee
 		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
 			cloned := *poolSim
@@ -293,7 +294,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			return nil, ErrInvalidAmountOut
 		}
 
-		if beforeSwapResult.SwapFee >= FeeMax {
+		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
+		} else if beforeSwapResult.SwapFee >= FeeMax {
 			return nil, ErrInvalidFee
 		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
 			cloned := *poolSim
