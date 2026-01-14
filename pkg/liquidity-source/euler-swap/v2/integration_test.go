@@ -52,9 +52,6 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 			simulator, err := NewPoolSimulator(updatedPool)
 			require.NoError(t, err)
 
-			tokenIn := updatedPool.Tokens[0].Address
-			tokenOut := updatedPool.Tokens[1].Address
-
 			amounts := []*big.Int{
 				bignumber.TenPowInt(18),
 				bignumber.TenPowInt(15),
@@ -63,48 +60,67 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 				bignumber.TenPowInt(6),
 			}
 
-			success := false
-			for _, amountIn := range amounts {
-				res, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  tokenIn,
-						Amount: amountIn,
-					},
-					TokenOut: tokenOut,
-				})
-				if err != nil {
-					continue
+			for i := 0; i < len(updatedPool.Tokens); i++ {
+				for j := 0; j < len(updatedPool.Tokens); j++ {
+					if i == j {
+						continue
+					}
+					tokenIn := updatedPool.Tokens[i].Address
+					tokenOut := updatedPool.Tokens[j].Address
+
+					for _, amountIn := range amounts {
+						res, simErr := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+							TokenAmountIn: pool.TokenAmount{
+								Token:  tokenIn,
+								Amount: amountIn,
+							},
+							TokenOut: tokenOut,
+						})
+
+						// On-chain computeQuote
+						var amountOutOnChain *big.Int
+						req := rpcClient.NewRequest().SetContext(ctx)
+						req.AddCall(&ethrpc.Call{
+							ABI:    poolABI,
+							Target: updatedPool.Address,
+							Method: "computeQuote",
+							Params: []any{
+								common.HexToAddress(tokenIn),
+								common.HexToAddress(tokenOut),
+								amountIn,
+								true,
+							},
+						}, []any{&amountOutOnChain})
+
+						_, rpcErr := req.Call()
+
+						if simErr != nil {
+							if simErr == shared.ErrInsolvency {
+								fmt.Printf("Pool: %s, Direction: %d->%d, Amount: %s - Skip solvency error\n",
+									updatedPool.Address, i, j, amountIn.String())
+								continue
+							}
+							assert.Error(t, rpcErr, fmt.Sprintf("Pool: %s, Direction: %d->%d, Amount: %s - Simulator failed (%v) but on-chain succeeded",
+								updatedPool.Address, i, j, amountIn.String(), simErr))
+							continue
+						}
+
+						require.NoError(t, rpcErr, fmt.Sprintf("Pool: %s, Direction: %d->%d, Amount: %s - Simulator succeeded but on-chain failed",
+							updatedPool.Address, i, j, amountIn.String()))
+
+						fmt.Printf("Pool: %s, Direction: %d->%d, In: %s, Out Sim: %s, Out On-chain: %s\n",
+							updatedPool.Address, i, j, amountIn.String(), res.TokenAmountOut.Amount.String(), amountOutOnChain.String())
+
+						diff := new(big.Int).Abs(new(big.Int).Sub(res.TokenAmountOut.Amount, amountOutOnChain))
+						if amountOutOnChain.Sign() > 0 {
+							bps := new(big.Int).Div(new(big.Int).Mul(diff, big.NewInt(10000)), amountOutOnChain)
+							assert.Less(t, bps.Int64(), int64(10), "Difference should be less than 10 BPS")
+						} else {
+							assert.Equal(t, "0", res.TokenAmountOut.Amount.String())
+						}
+					}
 				}
-				success = true
-
-				// On-chain computeQuote
-				var amountOutOnChain *big.Int
-				req := rpcClient.NewRequest().SetContext(ctx)
-				req.AddCall(&ethrpc.Call{
-					ABI:    poolABI,
-					Target: updatedPool.Address,
-					Method: "computeQuote",
-					Params: []any{
-						common.HexToAddress(tokenIn),
-						common.HexToAddress(tokenOut),
-						amountIn,
-						true,
-					},
-				}, []any{&amountOutOnChain})
-
-				_, err = req.Call()
-				require.NoError(t, err)
-
-				fmt.Printf("Pool: %s, In: %s, Out Simulator: %s, Out On-chain: %s\n",
-					updatedPool.Address, amountIn.String(), res.TokenAmountOut.Amount.String(), amountOutOnChain.String())
-
-				diff := new(big.Int).Abs(new(big.Int).Sub(res.TokenAmountOut.Amount, amountOutOnChain))
-				bps := new(big.Int).Div(new(big.Int).Mul(diff, big.NewInt(10000)), amountOutOnChain)
-
-				assert.Less(t, bps.Int64(), int64(10), "Difference should be less than 10 BPS")
-				break
 			}
-			assert.True(t, success, "Should at least succeed for one amount")
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -226,16 +227,16 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 
 		var tokens []*entity.PoolToken
 		tokens = append(tokens, &entity.PoolToken{
-			Address:   tokensByPool[i][0].Hex(),
+			Address:   strings.ToLower(tokensByPool[i][0].Hex()),
 			Swappable: true,
 		})
 		tokens = append(tokens, &entity.PoolToken{
-			Address:   tokensByPool[i][1].Hex(),
+			Address:   strings.ToLower(tokensByPool[i][1].Hex()),
 			Swappable: true,
 		})
 
 		newPool := entity.Pool{
-			Address:     poolAddress.Hex(),
+			Address:     strings.ToLower(poolAddress.Hex()),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
