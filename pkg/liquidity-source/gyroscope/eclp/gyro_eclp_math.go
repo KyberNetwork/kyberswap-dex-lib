@@ -966,10 +966,10 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derived
 	}
 
 	val, err = math.SignedFixedPointTernary(
-			val.IsPositive(),
-			a,
-			g._number_0,
-		).Result()
+		val.IsPositive(),
+		a,
+		g._number_0,
+	).Result()
 	if err != nil {
 		return nil, nil, err
 	}
