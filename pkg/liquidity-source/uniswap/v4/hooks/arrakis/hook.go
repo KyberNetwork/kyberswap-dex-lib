@@ -62,6 +62,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   bignumber.ZeroBI,
 		DeltaUnspecified: bignumber.ZeroBI,
-		SwapFee:          h.Extra.FeesFrom[lo.Ternary(params.ZeroForOne, 0, 1)],
+		SwapFee:          h.FeesFrom[lo.Ternary(params.ZeroForOne, 0, 1)],
 	}, nil
 }
