@@ -1,4 +1,4 @@
-package eulerswap
+package v2
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -18,10 +19,10 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	plUpdater := NewPoolsListUpdater(&Config{
+	plUpdater := NewPoolsListUpdater(&shared.Config{
 		DexID:          DexType,
-		FactoryAddress: "0x45b146BC07c9985589B52df651310e75C6BE066A",
-	}, ethrpc.New("https://unichain.drpc.org").
+		FactoryAddress: "0x5fccb84363f020c0cade052c9c654aabf932814a",
+	}, ethrpc.New("https://ethereum.kyberengineering.io").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)

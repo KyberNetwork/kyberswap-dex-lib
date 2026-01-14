@@ -1,23 +1,13 @@
-package eulerswap
+package v1
 
 import (
-	"math/big"
-
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-)
-
-var (
-	VirtualAmount = big.NewInt(1e6) // 1e6
-
-	e36        = big256.TenPow(36)
-	maxUint112 = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(big256.U1, 112), 1) // 2^112 - 1
-	e18Int     = int256.NewInt(1e18)                                                 // 1e18
-	sixtyThree = uint256.NewInt(63)
 )
 
 func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {
@@ -41,7 +31,7 @@ func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {
 
 func _CeilDiv(a, b *uint256.Int) (*uint256.Int, error) {
 	if b.IsZero() {
-		return nil, ErrDivisionByZero
+		return nil, shared.ErrDivisionByZero
 	}
 
 	if a.IsZero() {
@@ -117,13 +107,13 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	// term2 = (2 * int256(c) - int256(1e18)) * int256(x0)
 	var term2 int256.Int
 	term2.Mul(i256.SafeToInt256(c), i256.Number_2)
-	term2.Sub(&term2, e18Int)
+	term2.Sub(&term2, shared.E18Int)
 	term2.Mul(&term2, i256.SafeToInt256(x0))
 
 	// B = (term1 - term2) / int256(1e18)
 	B := i256.SafeToInt256(&term1)
 	B.Sub(B, &term2)
-	B.Quo(B, e18Int)
+	B.Quo(B, shared.E18Int)
 
 	// C = Math.mulDiv(1e18 - c, x0 * x0, 1e18, Math.Rounding.Ceil)
 	x0Squared := term1.Mul(x0, x0) // reuse
@@ -149,7 +139,7 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	tmp2 := x0Squared // reuse
 
 	var sqrt *uint256.Int
-	if absB.Lt(e36) {
+	if absB.Lt(shared.E36) {
 		// B^2 cannot be calculated directly at 1e18 scale without overflowing
 		squaredB := tmp.Mul(&absB, &absB)
 		discriminant := squaredB.Add(squaredB, fourAC)

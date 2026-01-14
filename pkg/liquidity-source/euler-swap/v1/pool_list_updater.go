@@ -1,4 +1,4 @@
-package eulerswap
+package v1
 
 import (
 	"context"
@@ -13,12 +13,13 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type (
 	PoolsListUpdater struct {
-		config       *Config
+		config       *shared.Config
 		ethrpcClient *ethrpc.Client
 	}
 
@@ -31,7 +32,7 @@ type (
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
-	cfg *Config,
+	cfg *shared.Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
@@ -157,7 +158,7 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, batchS
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodPoolsSlice,
+		Method: "poolsSlice", // Still hardcoded if not in shared, check if it should be
 		Params: []any{startIdx, endIdx},
 	}, []any{&result})
 
@@ -223,7 +224,7 @@ func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []c
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddress.Hex(),
-			Method: poolMethodGetAssets,
+			Method: shared.PoolMethodGetAssets,
 		}, []any{&poolTokens[i]})
 	}
 
@@ -247,13 +248,13 @@ func (d *PoolsListUpdater) getPoolStaticData(
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
-		Method: poolMethodGetParams,
+		Method: shared.PoolMethodGetParams,
 	}, []any{&params})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
-		Method: poolMethodEVC,
+		Method: shared.PoolMethodEVC,
 	}, []any{&evc})
 
 	_, err := req.Aggregate()
@@ -288,7 +289,7 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodPoolsLength,
+		Method: shared.FactoryMethodPoolsLength,
 	}, []any{&allPoolsLength})
 
 	if _, err := req.Call(); err != nil {
@@ -330,9 +331,9 @@ func (u *PoolsListUpdater) getBatchSize(length int, offset int) int {
 		return 0
 	}
 
-	if offset+batchSize >= length {
+	if offset+shared.BatchSize >= length {
 		return length - offset
 	}
 
-	return batchSize
+	return shared.BatchSize
 }

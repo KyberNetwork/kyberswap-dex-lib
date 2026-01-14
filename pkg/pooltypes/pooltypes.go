@@ -51,7 +51,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
-	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
+	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
+	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
@@ -338,6 +339,7 @@ type Types struct {
 	Pmm3                       string
 	UniswapLO                  string
 	EulerSwap                  string
+	EulerSwapV2                string
 	AaveV3                     string
 	CompoundV2                 string
 	CompoundV3                 string
@@ -528,7 +530,8 @@ var (
 		Pmm3:                       valueobject.ExchangePmm3,
 		SwaapV2:                    valueobject.ExchangeSwaapV2,
 		UniswapLO:                  uniswaplo.DexType,
-		EulerSwap:                  eulerswap.DexType,
+		EulerSwap:                  eulerswapv1.DexType,
+		EulerSwapV2:                eulerswapv2.DexType,
 		AaveV3:                     aavev3.DexType,
 		CompoundV2:                 compoundv2.DexType,
 		CompoundV3:                 compoundv3.DexType,

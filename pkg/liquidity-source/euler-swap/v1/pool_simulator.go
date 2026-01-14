@@ -1,16 +1,16 @@
-package eulerswap
+package v1
 
 import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -56,20 +56,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if p.Pause != 1 {
-		return nil, ErrSwapIsPaused
+		return nil, shared.ErrSwapIsPaused
 	}
 
-	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrInvalidToken
+		return nil, shared.ErrInvalidToken
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
-		return nil, ErrInvalidAmountIn
+		return nil, shared.ErrInvalidAmountIn
 	}
 
 	_, amountOut, swapInfo, err := p.swap(true, indexIn == 0, amountIn)
@@ -79,7 +79,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee:            &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            DefaultGas,
 		SwapInfo:       swapInfo,
 	}, nil
@@ -87,18 +87,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	if p.Pause != 1 {
-		return nil, ErrSwapIsPaused
+		return nil, shared.ErrSwapIsPaused
 	}
 
 	tokenAmountOut, tokenIn := param.TokenAmountOut, param.TokenIn
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrInvalidToken
+		return nil, shared.ErrInvalidToken
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
-		return nil, ErrInvalidAmountOut
+		return nil, shared.ErrInvalidAmountOut
 	}
 
 	amountIn, _, swapInfo, err := p.swap(false, indexIn == 0, amountOut)
@@ -108,7 +108,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee:           &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:           DefaultGas,
 		SwapInfo:      swapInfo,
 	}, nil
@@ -118,7 +118,7 @@ func (p *PoolSimulator) swap(
 	isExactIn,
 	zeroForOne bool,
 	amountSpecified *uint256.Int,
-) (amountIn, amountOut *uint256.Int, swapInfo *SwapInfo, err error) {
+) (amountIn, amountOut *uint256.Int, swapInfo *shared.SwapInfo, err error) {
 	if isExactIn {
 		amountIn = amountSpecified
 		amountOut, err = p.computeQuote(amountIn, isExactIn, zeroForOne)
@@ -142,7 +142,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	amtIn,
 	amtOut *uint256.Int,
 	zeroForOne bool,
-) (*SwapInfo, error) {
+) (*shared.SwapInfo, error) {
 	debtVaultAddr, debtVaultIdx, debt := p.ControllerVault, 2, uint256.NewInt(0)
 	if p.Vaults[2] != nil {
 		debt = p.Vaults[2].Debt.Clone()
@@ -164,7 +164,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	if strings.EqualFold(debtVaultAddr, sellVaultAddr) {
 		if depositAmt.Lt(debt) { // partial repayment of controller vault
 			if newDebt.Sign() > 0 { // left-over debt in controller vault + new debt in buy vault = forbidden
-				return nil, ErrMultiDebts
+				return nil, shared.ErrMultiDebts
 			}
 			debt.Sub(debt, depositAmt)
 		} else {
@@ -178,7 +178,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	if newDebt.Sign() > 0 {
 		if !strings.EqualFold(debtVaultAddr, buyVaultAddr) {
 			if debt.Sign() > 0 { // unpaid debt in controller vault + new debt in buy vault = forbidden
-				return nil, ErrMultiDebts
+				return nil, shared.ErrMultiDebts
 			}
 			debtVaultIdx = buyVaultIdx
 		}
@@ -207,10 +207,10 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 		collatVal.Sub(collatVal,
 			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
 
-		// Apply a safety buffer (85%) to the collateral value for swap limit checks
-		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.UBasisPoint)
+		// Apply a safety buffer (99.9%) to the collateral value for swap limit checks
+		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, shared.BufferSwapLimit, big256.UBasisPoint)
 		if liabilityVal.Gt(collatValWithBuffer) {
-			return nil, ErrInsolvency
+			return nil, shared.ErrInsolvency
 		}
 	}
 
@@ -230,20 +230,20 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	}
 
 	if !p.verify(&newReserve0, &newReserve1) {
-		return nil, ErrCurveViolation
+		return nil, shared.ErrCurveViolation
 	}
 
-	return &SwapInfo{
-		reserves:              [2]*uint256.Int{&newReserve0, &newReserve1},
-		withdrawAmount:        soldCollat,
-		borrowAmount:          newDebt,
-		depositAmount:         depositAmt,
-		repayAmount:           repayAmt,
-		debt:                  debt,
-		debtVaultIdx:          debtVaultIdx,
-		collateralValue:       collatVal,
-		isSellVaultControlled: isSellVaultControlled,
-		isBuyVaultControlled:  isBuyVaultControlled,
+	return &shared.SwapInfo{
+		Reserves:              [2]*uint256.Int{&newReserve0, &newReserve1},
+		WithdrawAmount:        soldCollat,
+		BorrowAmount:          newDebt,
+		VaultDepositAmount:    depositAmt,
+		RepayAmount:           repayAmt,
+		Debt:                  debt,
+		DebtVaultIdx:          debtVaultIdx,
+		CollateralValue:       collatVal,
+		IsSellVaultControlled: isSellVaultControlled,
+		IsBuyVaultControlled:  isBuyVaultControlled,
 		ZeroForOne:            zeroForOne,
 	}, nil
 }
@@ -256,62 +256,64 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 	cloned.collateralValue = p.collateralValue.Clone()
 
-	cloned.Vaults = [3]*Vault(lo.Map(p.Vaults[:], func(v *Vault, _ int) *Vault {
+	cloned.Vaults = [3]*shared.VaultState(lo.Map(p.Vaults[:], func(v *shared.VaultState, _ int) *shared.VaultState {
 		if v == nil {
 			return nil
 		}
-		clonedVault := *v
-		return &clonedVault
+		newV := *v
+		return &newV
 	}))
+
 	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	swapInfo, ok := params.SwapInfo.(*SwapInfo)
+	swapInfo, ok := params.SwapInfo.(*shared.SwapInfo)
 	if !ok {
 		return
 	}
-	p.reserves = swapInfo.reserves
+
+	p.reserves[0].Set(swapInfo.Reserves[0])
+	p.reserves[1].Set(swapInfo.Reserves[1])
+
 	from, to := 0, 1
 	if !swapInfo.ZeroForOne {
 		from, to = to, from
 	}
-	amountOut := uint256.MustFromBig(params.TokenAmountOut.Amount)
 
-	depositAmt, repayAmt := swapInfo.depositAmount, swapInfo.repayAmount
+	vaultDepositAmt, repayAmt := swapInfo.VaultDepositAmount, swapInfo.RepayAmount
 	sellVault := p.Vaults[from]
-	sellVault.IsControllerEnabled = swapInfo.isSellVaultControlled
-	sellVault.Cash = new(uint256.Int).Add(sellVault.Cash, depositAmt)
-	sellVault.Debt = subTill0(sellVault.Debt, repayAmt)
-	sellVault.MaxDeposit = subTill0(sellVault.MaxDeposit, depositAmt)
-	sellVault.TotalBorrows = subTill0(sellVault.TotalBorrows, repayAmt)
-	addedAssets := subTill0(depositAmt, repayAmt)
-	sellVault.EulerAccountAssets = addedAssets.Add(sellVault.EulerAccountAssets, addedAssets)
+	sellVault.IsControllerEnabled = swapInfo.IsSellVaultControlled
+	sellVault.Cash = new(uint256.Int).Add(sellVault.Cash, vaultDepositAmt)
+	sellVault.Debt = shared.SubTill0(sellVault.Debt, repayAmt)
+	sellVault.MaxDeposit = shared.SubTill0(sellVault.MaxDeposit, vaultDepositAmt)
+	sellVault.TotalBorrows = shared.SubTill0(sellVault.TotalBorrows, repayAmt)
+	addedAssets := shared.SubTill0(swapInfo.VaultDepositAmount, swapInfo.RepayAmount)
+	sellVault.EulerAccountAssets = new(uint256.Int).Add(sellVault.EulerAccountAssets, addedAssets)
 
-	withdrawAmt, borrowAmt := swapInfo.withdrawAmount, swapInfo.borrowAmount
+	withdrawAmt, borrowAmt := swapInfo.WithdrawAmount, swapInfo.BorrowAmount
 	buyVault := p.Vaults[to]
-	buyVault.IsControllerEnabled = swapInfo.isBuyVaultControlled
-	buyVault.Cash = subTill0(buyVault.Cash, amountOut)
+	buyVault.IsControllerEnabled = swapInfo.IsBuyVaultControlled
+	buyVault.Cash = shared.SubTill0(buyVault.Cash, uint256.MustFromBig(params.TokenAmountOut.Amount))
 	buyVault.Debt = new(uint256.Int).Add(buyVault.Debt, borrowAmt)
-	buyVault.MaxWithdraw = subTill0(buyVault.MaxWithdraw, withdrawAmt)
+	buyVault.MaxWithdraw = shared.SubTill0(buyVault.MaxWithdraw, withdrawAmt)
 	buyVault.TotalBorrows = new(uint256.Int).Add(buyVault.TotalBorrows, borrowAmt)
-	buyVault.EulerAccountAssets = subTill0(buyVault.EulerAccountAssets, withdrawAmt)
+	buyVault.EulerAccountAssets = shared.SubTill0(buyVault.EulerAccountAssets, withdrawAmt)
 
-	if swapInfo.debtVaultIdx < 2 {
-		p.Vaults[2] = p.Vaults[swapInfo.debtVaultIdx]
-		p.ControllerVault = lo.Ternary(swapInfo.debtVaultIdx == 0, p.Vault0, p.Vault1)
+	if swapInfo.DebtVaultIdx < 2 {
+		p.Vaults[2] = p.Vaults[swapInfo.DebtVaultIdx]
+		p.ControllerVault = lo.Ternary(swapInfo.DebtVaultIdx == 0, p.Vault0, p.Vault1)
 	}
 
 	if p.Vaults[2] != nil {
-		p.Vaults[2].Debt = swapInfo.debt
+		p.Vaults[2].Debt = swapInfo.Debt
 	}
 
-	p.collateralValue = swapInfo.collateralValue
+	p.collateralValue = swapInfo.CollateralValue
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolExtra{
-		Fee:         p.Fee,
 		BlockNumber: p.Info.BlockNumber,
 	}
 }
@@ -337,13 +339,17 @@ func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOn
 		return nil, err
 	}
 
+	if quote.Gt(shared.MaxUint112) {
+		return nil, shared.ErrSwapLimitExceeded
+	}
+
 	if isExactIn {
 		if amountWithFee.Gt(inLimit) || quote.Gt(outLimit) {
-			return nil, ErrSwapLimitExceeded
+			return nil, shared.ErrSwapLimitExceeded
 		}
 	} else {
 		if amountWithFee.Gt(outLimit) || quote.Gt(inLimit) {
-			return nil, ErrSwapLimitExceeded
+			return nil, shared.ErrSwapLimitExceeded
 		}
 		quote.Mul(quote, big256.BONE)
 		denominator.Sub(big256.BONE, p.Fee)
@@ -356,8 +362,8 @@ func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOn
 func (p *PoolSimulator) calcLimits(isZeroForOne bool) (*uint256.Int, *uint256.Int, error) {
 	var inLimit, outLimit, maxDeposit, maxWithdraw uint256.Int
 
-	inLimit.Set(maxUint112)
-	outLimit.Set(maxUint112)
+	inLimit.Set(shared.MaxUint112)
+	outLimit.Set(shared.MaxUint112)
 
 	vault := lo.Ternary(isZeroForOne, p.Vaults[0], p.Vaults[1])
 
@@ -402,7 +408,7 @@ func (p *PoolSimulator) calcLimits(isZeroForOne bool) (*uint256.Int, *uint256.In
 }
 
 func (p *PoolSimulator) verify(newReserve0, newReserve1 *uint256.Int) bool {
-	if newReserve0.Gt(maxUint112) || newReserve1.Gt(maxUint112) {
+	if newReserve0.Gt(shared.MaxUint112) || newReserve1.Gt(shared.MaxUint112) {
 		return false
 	}
 
@@ -497,7 +503,7 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 	if isZeroForOne {
 		// swap Y out and X in
 		if !p.reserves[1].Gt(amount) {
-			return nil, ErrSwapLimitExceeded
+			return nil, shared.ErrSwapLimitExceeded
 		}
 		yNew := new(uint256.Int).Sub(p.reserves[1], amount)
 		var xNew *uint256.Int
@@ -527,7 +533,7 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 
 	// swap X out and Y in
 	if !p.reserves[0].Gt(amount) {
-		return nil, ErrSwapLimitExceeded
+		return nil, shared.ErrSwapLimitExceeded
 	}
 	xNew := new(uint256.Int).Sub(p.reserves[0], amount)
 	var yNew *uint256.Int
@@ -608,14 +614,4 @@ func depositAssets(
 	deposited.Add(deposited, remainingAmount)
 
 	return deposited, repaid, feeAmount, isControllerEnabled
-}
-
-func subTill0(amt, sub *uint256.Int) *uint256.Int {
-	if sub.Sign() == 0 {
-		return amt
-	}
-	if sub.Cmp(amt) >= 0 {
-		return big256.U0
-	}
-	return new(uint256.Int).Sub(amt, sub)
 }

@@ -154,6 +154,7 @@ const (
 	ExchangeEtherfiWEETH               = "etherfi-weeth"
 	ExchangeEtherVista                 = "ether-vista"
 	ExchangeEulerSwap                  = "euler-swap"
+	ExchangeEulerSwapV2                = "euler-swap-v2"
 	ExchangeEzkalibur                  = "ezkalibur"
 	ExchangeFakePool                   = "fake-pool"
 	ExchangeFenix                      = "fenix"
@@ -456,6 +457,7 @@ const (
 	ExchangeUniswapV4Deli              = "uniswap-v4-deli"
 	ExchangeUniswapV4Doppler           = "uniswap-v4-doppler"
 	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
+	ExchangeUniswapV4EulerV2           = "uniswap-v4-euler-v2"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
@@ -550,6 +552,7 @@ var SingleSwapSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:  {},
 	ExchangeUniswapV4Euler: {},
 	ExchangeEulerSwap:      {},
+	ExchangeEulerSwapV2:    {},
 	ExchangeWooFiV3:        {},
 }
 

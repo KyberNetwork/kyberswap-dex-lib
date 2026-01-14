@@ -1,4 +1,4 @@
-package eulerswap
+package v1
 
 import (
 	"math/big"
@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -108,7 +109,7 @@ func TestCalcAmountOut(t *testing.T) {
 		})
 
 		require.Nil(t, result)
-		require.ErrorIs(t, err, ErrSwapLimitExceeded)
+		require.ErrorIs(t, err, shared.ErrSwapLimitExceeded)
 	})
 
 	t.Run("swap USDC -> mUSD : swap limit exceeded", func(t *testing.T) {
@@ -135,7 +136,7 @@ func TestCalcAmountOut(t *testing.T) {
 		})
 
 		require.Nil(t, result)
-		require.ErrorIs(t, err, ErrSwapLimitExceeded)
+		require.ErrorIs(t, err, shared.ErrSwapLimitExceeded)
 	})
 }
 
