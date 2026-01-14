@@ -57,7 +57,7 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 			token1:         "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 			baseOracle:     "0x0b0e64c05083fdf9ed7c5d3d8262c4216efc9394", // Correct BRZ/USD oracle
 			quoteOracle:    "0x7e860098f58bbfc8648a4311b374b1d669a2bc6b", // Correct USDC/USD oracle
-			expectedWeight: "50", // 50% each (equal weighted)
+			expectedWeight: "50",                                         // 50% each (equal weighted)
 		},
 	}
 
