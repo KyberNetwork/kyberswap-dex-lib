@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -24,11 +25,6 @@ type PoolsListUpdater struct {
 
 type PoolsListUpdaterMetadata struct {
 	Offset int `json:"offset"`
-}
-
-type TokenPair struct {
-	BaseToken  string
-	QuoteToken string
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -98,178 +94,78 @@ func (d *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 	return 0, nil
 }
 
-// discoverPoolsFromFactory queries the factory with known token pairs to find deployed pools
+// discoverPoolsFromFactory queries factory NewCurve events to find all deployed pools
 func (d *PoolsListUpdater) discoverPoolsFromFactory(ctx context.Context) ([]common.Address, error) {
-	// Token pairs that have known Stabull pools
-	// These pairs match the official Stabull documentation
-	tokenPairs := d.getKnownTokenPairs()
+	logger.WithFields(logger.Fields{
+		"dex":     DexType,
+		"factory": d.config.FactoryAddress,
+		"from":    d.config.FromBlock,
+	}).Info("discovering pools from NewCurve events")
+
+	// Query factory logs for NewCurve events
+	// Event signature: NewCurve(address indexed caller, bytes32 indexed id, address indexed curve)
+	// Topic: 0xe7a19de9e8788cc07c144818f2945144acd6234f790b541aa1010371c8b2a73b
+	fromBlock := new(big.Int).SetUint64(d.config.FromBlock)
+
+	// Use eth_getLogs directly via eth client
+	query := ethereum.FilterQuery{
+		FromBlock: fromBlock,
+		ToBlock:   nil, // latest
+		Addresses: []common.Address{common.HexToAddress(d.config.FactoryAddress)},
+		Topics: [][]common.Hash{
+			{common.HexToHash(newCurveTopic)}, // Event signature
+		},
+	}
+
+	logs, err := d.ethrpcClient.GetETHClient().FilterLogs(ctx, query)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":   DexType,
+			"error": err,
+		}).Error("failed to query NewCurve events")
+		return nil, fmt.Errorf("failed to query NewCurve events: %w", err)
+	}
 
 	logger.WithFields(logger.Fields{
-		"dex":        DexType,
-		"chainID":    d.config.ChainID,
-		"pairsCount": len(tokenPairs),
-	}).Info("discovering pools from factory")
+		"dex":         DexType,
+		"eventsFound": len(logs),
+	}).Info("fetched NewCurve events")
 
+	// Extract pool addresses from events
 	var poolAddresses []common.Address
+	poolSet := make(map[common.Address]struct{}) // Deduplicate
 
-	// Query factory in batches to avoid RPC limits
-	const batchSize = 50
-	for i := 0; i < len(tokenPairs); i += batchSize {
-		end := i + batchSize
-		if end > len(tokenPairs) {
-			end = len(tokenPairs)
-		}
-
-		batch := tokenPairs[i:end]
-		addresses, err := d.queryFactoryBatch(ctx, batch)
-		if err != nil {
+	for _, log := range logs {
+		// The third indexed parameter (curve address) is in Topics[3]
+		if len(log.Topics) < 4 {
 			logger.WithFields(logger.Fields{
-				"dex":   DexType,
-				"batch": i / batchSize,
-				"error": err,
-			}).Warn("factory batch query failed")
+				"dex":       DexType,
+				"topicsLen": len(log.Topics),
+			}).Warn("invalid NewCurve event: not enough topics")
 			continue
 		}
 
-		logger.WithFields(logger.Fields{
-			"dex":          DexType,
-			"batch":        i / batchSize,
-			"poolsInBatch": len(addresses),
-		}).Info("factory batch query succeeded")
+		// Topics[0] = event signature
+		// Topics[1] = caller (indexed)
+		// Topics[2] = id (indexed)
+		// Topics[3] = curve address (indexed)
+		poolAddress := common.BytesToAddress(log.Topics[3].Bytes())
 
-		poolAddresses = append(poolAddresses, addresses...)
+		if poolAddress == (common.Address{}) {
+			continue
+		}
+
+		// Deduplicate
+		if _, exists := poolSet[poolAddress]; !exists {
+			poolSet[poolAddress] = struct{}{}
+			poolAddresses = append(poolAddresses, poolAddress)
+		}
 	}
 
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
 		"pools_found": len(poolAddresses),
-	}).Info("discovered pools from factory")
-
-	return poolAddresses, nil
-}
-
-func (d *PoolsListUpdater) getKnownTokenPairs() []TokenPair {
-	// All known token pairs from Stabull
-	// Token addresses verified from working pool discovery test
-	var pairs []TokenPair
-
-	switch d.config.ChainID {
-	case 137: // Polygon
-		// All tokens paired with Native USDC (0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359)
-		usdcPolygon := "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
-		pairs = []TokenPair{
-			{"0xd2a530170D71a9Cfe1651Fb468E2B98F7Ed7456b", usdcPolygon}, // AUDF/USDC
-			{"0x4ed141110f6eeeaba9a1df36d8c26f684d2475dc", usdcPolygon}, // BRZ/USDC
-			{"0x12050c705152931cFEe3DD56c52Fb09Dea816C23", usdcPolygon}, // COPM/USDC
-			{"0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", usdcPolygon}, // DAI/USDC
-			{"0xE111178A87A3BFf0c8d18DECBa5798827539Ae99", usdcPolygon}, // EURS/USDC
-			{"0xFbBE4b730e1e77d02dC40fEdF9438E2802eab3B5", usdcPolygon}, // NZDS/USDC
-			{"0x9cFb3B1b217b41C4E748774368099Dd8Dd7E89A1", usdcPolygon}, // OFD/USDC
-			{"0x553d3D295e0f695B9228246232eDF400ed3560B5", usdcPolygon}, // PAXG/USDC
-			{"0x87a25dc121Db52369F4a9971F664Ae5e372CF69A", usdcPolygon}, // PHPC/USDC
-			{"0x4Fb71290Ac171E1d144F7221D882BECAc7196EB5", usdcPolygon}, // TRYB/USDC
-			{"0xc2132D05D31c914a87C6611C10748AEb04B58e8F", usdcPolygon}, // USDT/USDC
-			{"0xDC3326e71D45186F113a2F448984CA0e8D201995", usdcPolygon}, // XSGD/USDC
-			{"0x02567e4b14b25549331fCEe2B56c647A8bAB16FD", usdcPolygon}, // ZCHF/USDC
-		}
-	case 8453: // Base
-		// All tokens paired with Native USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
-		usdcBase := "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-		pairs = []TokenPair{
-			{"0x449b3317a6d1efb1bc3ba0700c9eaa4ffff4ae65", usdcBase}, // AUDD/USDC
-			{"0xE9185Ee218cae427aF7B9764A011bb89FeA761B4", usdcBase}, // BRZ/USDC
-			{"0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42", usdcBase}, // EURC/USDC
-			{"0x269cae7dc59803e5c596c95756faeebb6030e0af", usdcBase}, // MXNe/USDC
-			{"0xFb8718a69aed7726AFb3f04D2Bd4bfDE1BdCb294", usdcBase}, // TRYB/USDC
-			{"0xb755506531786C8aC63B756BaB1ac387bACB0C04", usdcBase}, // ZARP/USDC
-			{"0xd4dd9e2f021bb459d5a5f6c24c12fe09c5d45553", usdcBase}, // ZCHF/USDC
-			{"0x7479791022eb1030bbc3b09f6575c5db4ddc0b90", usdcBase}, // OFD/USDC
-		}
-	case 1: // Ethereum
-		// All tokens paired with USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
-		usdcEthereum := "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-		pairs = []TokenPair{
-			{"0x4cCe605eD955295432958d8951D0B176C10720d5", usdcEthereum}, // AUDD/USDC
-			{"0xdB25f211AB05b1c97D595516F45794528a807ad8", usdcEthereum}, // EURS/USDC
-			{"0xc08512927d12348f6620a698105e1baac6ecd911", usdcEthereum}, // GYEN/USDC
-			{"0xda446fad08277b4d2591536f204e018f32b6831c", usdcEthereum}, // NZDS/USDC
-			{"0x2c537e5624e4af88a7ae4060c022609376c8d0eb", usdcEthereum}, // TRYB/USDC
-		}
-	}
-
-	return pairs
-}
-
-func (d *PoolsListUpdater) queryFactoryBatch(ctx context.Context, pairs []TokenPair) ([]common.Address, error) {
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
-
-	// Prepare result storage for all pool addresses
-	poolAddressResults := make([]common.Address, len(pairs))
-
-	// Add all getCurve calls to batch
-	for i, pair := range pairs {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    stabullFactoryABI,
-			Target: d.config.FactoryAddress,
-			Method: factoryMethodGetCurve,
-			Params: []interface{}{
-				common.HexToAddress(pair.BaseToken),
-				common.HexToAddress(pair.QuoteToken),
-			},
-		}, []interface{}{&poolAddressResults[i]})
-	}
-
-	logger.WithFields(logger.Fields{
-		"dex":     DexType,
-		"calls":   len(pairs),
-		"factory": d.config.FactoryAddress,
-	}).Info("executing factory batch RPC")
-
-	resp, err := rpcRequest.TryAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dex":   DexType,
-			"error": err,
-		}).Error("factory batch RPC failed")
-		return nil, fmt.Errorf("factory batch RPC failed: %w", err)
-	}
-
-	logger.WithFields(logger.Fields{
-		"dex":         DexType,
-		"results":     len(resp.Result),
-		"firstResult": len(resp.Result) > 0,
-	}).Info("factory batch RPC completed")
-
-	var poolAddresses []common.Address
-	for i, isSuccess := range resp.Result {
-		if !isSuccess {
-			logger.WithFields(logger.Fields{
-				"dex":   DexType,
-				"index": i,
-				"pair":  fmt.Sprintf("%s/%s", pairs[i].BaseToken, pairs[i].QuoteToken),
-			}).Warn("factory call failed for pair")
-			continue
-		}
-
-		poolAddress := poolAddressResults[i]
-		if poolAddress == (common.Address{}) {
-			// No pool deployed for this pair
-			logger.WithFields(logger.Fields{
-				"dex":  DexType,
-				"pair": fmt.Sprintf("%s/%s", pairs[i].BaseToken, pairs[i].QuoteToken),
-			}).Debug("no pool deployed for pair")
-			continue
-		}
-
-		logger.WithFields(logger.Fields{
-			"dex":  DexType,
-			"pair": fmt.Sprintf("%s/%s", pairs[i].BaseToken, pairs[i].QuoteToken),
-			"pool": poolAddress.Hex(),
-		}).Info("found pool")
-
-		poolAddresses = append(poolAddresses, poolAddress)
-	}
+	}).Info("discovered pools from NewCurve events")
 
 	return poolAddresses, nil
 }
@@ -320,25 +216,19 @@ func (d *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
 
 func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (*entity.Pool, error) {
 	var (
-		token0Address   common.Address
-		token1Address   common.Address
-		token0Decimals  uint8
-		liquidityResult struct {
-			Total      *big.Int
-			Individual []*big.Int
-		}
-		curveResult struct {
-			Alpha   *big.Int
-			Beta    *big.Int
-			Delta   *big.Int
-			Epsilon *big.Int
-			Lambda  *big.Int
-		}
+		token0Address       common.Address
+		token1Address       common.Address
+		token0Decimals      uint8
+		token1Decimals      uint8
+		assimilator0Address common.Address
+		assimilator1Address common.Address
+		oracle0Address      common.Address
+		oracle1Address      common.Address
 	)
 
+	// Batch 1: Fetch token addresses from pool
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
-	// Fetch token0 address (base token) using numeraires(0)
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
 		Target: poolAddress,
@@ -346,7 +236,6 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Params: []interface{}{big.NewInt(0)},
 	}, []interface{}{&token0Address})
 
-	// Fetch token1 address (USDC) using numeraires(1)
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
 		Target: poolAddress,
@@ -354,32 +243,14 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Params: []interface{}{big.NewInt(1)},
 	}, []interface{}{&token1Address})
 
-	// Fetch reserves using liquidity() method
-	// liquidity() returns (uint256 total_, uint256[] individual_)
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    stabullPoolABI,
-		Target: poolAddress,
-		Method: poolMethodLiquidity,
-		Params: []interface{}{},
-	}, []interface{}{&liquidityResult})
-
-	// Fetch curve parameters (alpha, beta, delta, epsilon, lambda)
-	// viewCurve() returns (uint256 alpha_, uint256 beta_, uint256 delta_, uint256 epsilon_, uint256 lambda_)
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    stabullPoolABI,
-		Target: poolAddress,
-		Method: poolMethodViewCurve,
-		Params: []interface{}{},
-	}, []interface{}{&curveResult})
-
-	// Execute first batch of calls to get token addresses and pool data
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch token addresses: %w", err)
 	}
 
-	// Now that we have token addresses, fetch token0 decimals in a second RPC call
+	// Batch 2: Fetch token decimals and assimilator addresses
 	rpcRequest2 := d.ethrpcClient.NewRequest().SetContext(ctx)
+
 	rpcRequest2.AddCall(&ethrpc.Call{
 		ABI:    abi.Erc20ABI,
 		Target: token0Address.Hex(),
@@ -387,71 +258,112 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, poolAddress string) (
 		Params: []interface{}{},
 	}, []interface{}{&token0Decimals})
 
+	rpcRequest2.AddCall(&ethrpc.Call{
+		ABI:    abi.Erc20ABI,
+		Target: token1Address.Hex(),
+		Method: abi.Erc20DecimalsMethod,
+		Params: []interface{}{},
+	}, []interface{}{&token1Decimals})
+
+	rpcRequest2.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: poolAddress,
+		Method: poolMethodAssimilator,
+		Params: []interface{}{token0Address},
+	}, []interface{}{&assimilator0Address})
+
+	rpcRequest2.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: poolAddress,
+		Method: poolMethodAssimilator,
+		Params: []interface{}{token1Address},
+	}, []interface{}{&assimilator1Address})
+
 	_, err = rpcRequest2.Aggregate()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch token decimals and assimilators: %w", err)
 	}
 
-	// Build curve parameters (convert to strings for JSON)
-	curveParams := CurveParameters{
-		Alpha:   curveResult.Alpha.String(),
-		Beta:    curveResult.Beta.String(),
-		Delta:   curveResult.Delta.String(),
-		Epsilon: curveResult.Epsilon.String(),
-		Lambda:  curveResult.Lambda.String(),
+	// Batch 3: Fetch oracle addresses from assimilators
+	rpcRequest3 := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	rpcRequest3.AddCall(&ethrpc.Call{
+		ABI:    assimilatorABI,
+		Target: assimilator0Address.Hex(),
+		Method: assimilatorMethodOracle,
+		Params: []interface{}{},
+	}, []interface{}{&oracle0Address})
+
+	rpcRequest3.AddCall(&ethrpc.Call{
+		ABI:    assimilatorABI,
+		Target: assimilator1Address.Hex(),
+		Method: assimilatorMethodOracle,
+		Params: []interface{}{},
+	}, []interface{}{&oracle1Address})
+
+	_, err = rpcRequest3.Aggregate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch oracle addresses: %w", err)
 	}
 
-	// Token metadata: token1 is always USDC (6 decimals)
-	// Token0 decimals fetched via ERC20 call
-	// Fallback to 18 decimals if fetch fails
+	// Fallback to default decimals if needed
 	if token0Decimals == 0 {
 		token0Decimals = 18
 	}
+	if token1Decimals == 0 {
+		token1Decimals = 6 // USDC default
+	}
 
+	// Build Extra with oracle addresses
+	// Note: Reserves and curve params will be fetched by pool_tracker
 	extra := Extra{
-		CurveParams:     curveParams,
-		BaseOracleRate:  "", // Oracle rates built into viewOriginSwap
-		QuoteOracleRate: "", // Not needed for simulation
-		OracleRate:      "",
+		BaseOracleAddress:  strings.ToLower(oracle0Address.Hex()),
+		QuoteOracleAddress: strings.ToLower(oracle1Address.Hex()),
+		CurveParams:        CurveParameters{}, // Empty, will be populated by pool_tracker
 	}
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal extra: %w", err)
 	}
 
-	// Convert reserves to strings
-	reserves := make([]string, len(liquidityResult.Individual))
-	for i, reserve := range liquidityResult.Individual {
-		reserves[i] = reserve.String()
+	// StaticExtra with assimilator addresses (won't change)
+	staticExtra := map[string]interface{}{
+		"baseAssimilator":  strings.ToLower(assimilator0Address.Hex()),
+		"quoteAssimilator": strings.ToLower(assimilator1Address.Hex()),
+	}
+
+	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal static extra: %w", err)
 	}
 
 	// Token metadata
-	// Stabull pools always have USDC as token1 (quote currency)
-	// Token0 is the fiat-backed stablecoin (e.g., AUDS, NZDS, etc.)
-	// Symbol is kept generic as ERC20 symbol() method is not always reliable
 	tokens := []*entity.PoolToken{
 		{
 			Address:   strings.ToLower(token0Address.Hex()),
-			Symbol:    "TOKEN0",       // Generic symbol (actual symbol can vary: AUDS, NZDS, etc.)
-			Decimals:  token0Decimals, // Fetched via ERC20 decimals() call
+			Symbol:    "TOKEN0",
+			Decimals:  token0Decimals,
 			Swappable: true,
 		},
 		{
 			Address:   strings.ToLower(token1Address.Hex()),
-			Symbol:    "USDC", // All Stabull pools have USDC as quote token
-			Decimals:  6,      // USDC always has 6 decimals
+			Symbol:    "TOKEN1",
+			Decimals:  token1Decimals,
 			Swappable: true,
 		},
 	}
 
+	// Return pool WITHOUT reserves (pool_tracker will fetch them)
+	// Reserves are set to ["0", "0"] as placeholders
 	return &entity.Pool{
-		Address:   strings.ToLower(poolAddress),
-		Exchange:  d.config.DexID,
-		Type:      DexType,
-		Timestamp: time.Now().Unix(),
-		Reserves:  reserves,
-		Tokens:    tokens,
-		Extra:     string(extraBytes),
+		Address:     strings.ToLower(poolAddress),
+		Exchange:    d.config.DexID,
+		Type:        DexType,
+		Timestamp:   time.Now().Unix(),
+		Reserves:    []string{reserveZero, reserveZero}, // Placeholder, pool_tracker will update
+		Tokens:      tokens,
+		Extra:       string(extraBytes),
+		StaticExtra: string(staticExtraBytes),
 	}, nil
 }

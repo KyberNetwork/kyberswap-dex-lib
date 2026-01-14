@@ -364,7 +364,7 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 	}{
 		{
 			name:            "Base BRZ/USDC - Small swap",
-			rpcURL:          "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:          "https://mainnet.base.org",
 			poolAddress:     "0x8A908aE045E611307755A91f4D6ECD04Ed31EB1B",
 			tokenIn:         "0xE9185Ee218cae427aF7B9764A011bb89FeA76144", // BRZ
 			tokenOut:        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
@@ -373,7 +373,7 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 		},
 		{
 			name:            "Polygon NZDS/USDC - Small swap",
-			rpcURL:          "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:          "https://polygon-rpc.com",
 			poolAddress:     "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
 			tokenIn:         "0xFbBE4b730e1e77d02dC40fEdF94382802eab3B5",  // NZDS
 			tokenOut:        "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC
@@ -382,7 +382,7 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 		},
 		{
 			name:            "Ethereum NZDS/USDC - Small swap",
-			rpcURL:          "https://eth-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:          "https://ethereum-rpc.publicnode.com",
 			poolAddress:     "0xe37D763c7c4cdd9A8f085F7DB70139a0843529F3",
 			tokenIn:         "0xda446fad08277b4d2591536f204e01832b6831c",  // NZDS
 			tokenOut:        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC

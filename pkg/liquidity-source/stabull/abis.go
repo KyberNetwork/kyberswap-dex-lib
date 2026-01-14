@@ -9,6 +9,7 @@ import (
 var (
 	stabullFactoryABI      abi.ABI
 	stabullPoolABI         abi.ABI
+	assimilatorABI         abi.ABI
 	chainlinkAggregatorABI abi.ABI
 )
 
@@ -26,7 +27,13 @@ func init() {
 		panic(err)
 	}
 
-	// Parse Chainlink Aggregator ABI (optional)
+	// Parse Assimilator ABI
+	assimilatorABI, err = abi.JSON(bytes.NewReader(assimilatorABIData))
+	if err != nil {
+		panic(err)
+	}
+
+	// Parse Chainlink Aggregator ABI
 	chainlinkAggregatorABI, err = abi.JSON(bytes.NewReader(chainlinkAggregatorABIData))
 	if err != nil {
 		panic(err)

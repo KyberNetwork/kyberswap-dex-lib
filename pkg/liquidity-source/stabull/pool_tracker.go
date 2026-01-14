@@ -139,8 +139,23 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, nil
 	}
 
-	// No relevant events, do a full refetch
-	reserves, updatedExtra, err := d.fetchPoolStateFromNode(ctx, p.Address)
+	// No relevant events, do a full refetch including oracle rates
+	var reserves []*big.Int
+	var updatedExtra Extra
+	var err error
+
+	// Check if we have oracle addresses to fetch rates
+	if extra.BaseOracleAddress != "" || extra.QuoteOracleAddress != "" {
+		// Fetch everything including oracle rates
+		reserves, updatedExtra, err = d.fetchPoolStateWithOraclesFromNode(ctx, p.Address, extra.BaseOracleAddress, extra.QuoteOracleAddress)
+	} else {
+		// Fetch only reserves and curve params (no oracle addresses available yet)
+		reserves, updatedExtra, err = d.fetchPoolStateFromNode(ctx, p.Address)
+		// Preserve oracle addresses from existing extra if they exist
+		updatedExtra.BaseOracleAddress = extra.BaseOracleAddress
+		updatedExtra.QuoteOracleAddress = extra.QuoteOracleAddress
+	}
+
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dex":         DexType,
@@ -317,8 +332,12 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 	return p, nil
 }
 
-// fetchPoolStateFromNode fetches current reserves and curve parameters from the blockchain
+// fetchPoolStateFromNode fetches current reserves, curve parameters, and oracle rates from the blockchain
 func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) ([]*big.Int, Extra, error) {
+	// First, get the current Extra to retrieve oracle addresses
+	// We need to fetch this from the pool entity stored in state
+	// For now, we'll fetch everything fresh and populate oracle addresses later
+
 	// Define struct to match the liquidity() return signature
 	type LiquidityResult struct {
 		Total      *big.Int
@@ -379,26 +398,37 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		Lambda:  curveResult.Lambda.String(),
 	}
 
-	// Get oracle addresses from config if available
+	// Build extra without oracle data (will be populated by fetchOracleRates)
 	extra := Extra{
 		CurveParams: curveParams,
 	}
 
-	// Optionally populate oracle addresses from config
-	// This would be set during pool initialization from d.config.ChainlinkOracles
-
 	return reserves, extra, nil
 }
 
-// fetchPoolReservesFromNode fetches only reserves (not curve parameters) - more efficient for Trade events
-func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress string, existingExtra Extra) ([]*big.Int, Extra, error) {
+// fetchPoolStateWithOraclesFromNode fetches reserves, curve parameters, AND oracle rates from the blockchain
+func (d *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, poolAddress string, baseOracleAddr, quoteOracleAddr string) ([]*big.Int, Extra, error) {
 	// Define struct to match the liquidity() return signature
 	type LiquidityResult struct {
 		Total      *big.Int
 		Individual []*big.Int
 	}
 
-	var liquidityResult LiquidityResult
+	// Define struct to match viewCurve() return signature
+	type CurveResult struct {
+		Alpha   *big.Int
+		Beta    *big.Int
+		Delta   *big.Int
+		Epsilon *big.Int
+		Lambda  *big.Int
+	}
+
+	var (
+		liquidityResult LiquidityResult
+		curveResult     CurveResult
+		baseOracleRate  *big.Int
+		quoteOracleRate *big.Int
+	)
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -409,6 +439,127 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 		Method: poolMethodLiquidity,
 		Params: []interface{}{},
 	}, []interface{}{&liquidityResult})
+
+	// Fetch curve parameters using viewCurve() method
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: poolAddress,
+		Method: poolMethodViewCurve,
+		Params: []interface{}{},
+	}, []interface{}{&curveResult})
+
+	// Fetch base oracle rate (if address provided)
+	if baseOracleAddr != "" {
+		baseOracleRate = new(big.Int)
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    chainlinkAggregatorABI,
+			Target: baseOracleAddr,
+			Method: oracleMethodLatestAnswer,
+			Params: []interface{}{},
+		}, []interface{}{&baseOracleRate})
+	}
+
+	// Fetch quote oracle rate (if address provided)
+	if quoteOracleAddr != "" {
+		quoteOracleRate = new(big.Int)
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    chainlinkAggregatorABI,
+			Target: quoteOracleAddr,
+			Method: oracleMethodLatestAnswer,
+			Params: []interface{}{},
+		}, []interface{}{&quoteOracleRate})
+	}
+
+	_, err := rpcRequest.Aggregate()
+	if err != nil {
+		return nil, Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
+	}
+
+	// Convert reserves
+	reserves := liquidityResult.Individual
+	if len(reserves) != 2 {
+		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
+	}
+
+	// Build curve parameters (convert to strings for JSON)
+	curveParams := CurveParameters{
+		Alpha:   curveResult.Alpha.String(),
+		Beta:    curveResult.Beta.String(),
+		Delta:   curveResult.Delta.String(),
+		Epsilon: curveResult.Epsilon.String(),
+		Lambda:  curveResult.Lambda.String(),
+	}
+
+	// Build extra with oracle data
+	extra := Extra{
+		CurveParams:        curveParams,
+		BaseOracleAddress:  baseOracleAddr,
+		QuoteOracleAddress: quoteOracleAddr,
+	}
+
+	// Set oracle rates if fetched
+	if baseOracleRate != nil {
+		extra.BaseOracleRate = baseOracleRate.String()
+	}
+	if quoteOracleRate != nil {
+		extra.QuoteOracleRate = quoteOracleRate.String()
+	}
+
+	// Calculate derived oracle rate if both rates are available
+	if baseOracleRate != nil && quoteOracleRate != nil && quoteOracleRate.Cmp(big.NewInt(0)) > 0 {
+		// oracleRate = baseRate / quoteRate (scaled by precision)
+		oracleRate := new(big.Int).Mul(baseOracleRate, BigOne)
+		oracleRate.Div(oracleRate, quoteOracleRate)
+		extra.OracleRate = oracleRate.String()
+	}
+
+	return reserves, extra, nil
+}
+
+// fetchPoolReservesFromNode fetches only reserves (and optionally oracle rates) - efficient for Trade events
+func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress string, existingExtra Extra) ([]*big.Int, Extra, error) {
+	// Define struct to match the liquidity() return signature
+	type LiquidityResult struct {
+		Total      *big.Int
+		Individual []*big.Int
+	}
+
+	var (
+		liquidityResult LiquidityResult
+		baseOracleRate  *big.Int
+		quoteOracleRate *big.Int
+	)
+
+	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	// Fetch reserves using liquidity() method
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: poolAddress,
+		Method: poolMethodLiquidity,
+		Params: []interface{}{},
+	}, []interface{}{&liquidityResult})
+
+	// Also fetch oracle rates if addresses are available (good to refresh periodically)
+	if existingExtra.BaseOracleAddress != "" {
+		baseOracleRate = new(big.Int)
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    chainlinkAggregatorABI,
+			Target: existingExtra.BaseOracleAddress,
+			Method: oracleMethodLatestAnswer,
+			Params: []interface{}{},
+		}, []interface{}{&baseOracleRate})
+	}
+
+	if existingExtra.QuoteOracleAddress != "" {
+		quoteOracleRate = new(big.Int)
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    chainlinkAggregatorABI,
+			Target: existingExtra.QuoteOracleAddress,
+			Method: oracleMethodLatestAnswer,
+			Params: []interface{}{},
+		}, []interface{}{&quoteOracleRate})
+	}
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
@@ -421,7 +572,22 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
 	}
 
-	// Return existing extra (curve parameters unchanged)
+	// Update oracle rates if fetched
+	if baseOracleRate != nil {
+		existingExtra.BaseOracleRate = baseOracleRate.String()
+	}
+	if quoteOracleRate != nil {
+		existingExtra.QuoteOracleRate = quoteOracleRate.String()
+	}
+
+	// Recalculate derived oracle rate if both rates are available
+	if baseOracleRate != nil && quoteOracleRate != nil && quoteOracleRate.Cmp(big.NewInt(0)) > 0 {
+		oracleRate := new(big.Int).Mul(baseOracleRate, BigOne)
+		oracleRate.Div(oracleRate, quoteOracleRate)
+		existingExtra.OracleRate = oracleRate.String()
+	}
+
+	// Return existing extra with updated oracle rates (curve parameters unchanged)
 	return reserves, existingExtra, nil
 }
 

@@ -14,9 +14,16 @@ const (
 	// Pool (Curve) methods
 	poolMethodNumeraires     = "numeraires"     // numeraires(uint256) returns token address at index
 	poolMethodReserves       = "reserves"       // reserves(uint256) returns reserve token address at index
+	poolMethodAssimilator    = "assimilator"    // assimilator(address) returns assimilator address for token
 	poolMethodLiquidity      = "liquidity"      // liquidity() returns (total, individual[])
 	poolMethodViewCurve      = "viewCurve"      // viewCurve() returns (alpha, beta, delta, epsilon, lambda)
 	poolMethodViewOriginSwap = "viewOriginSwap" // viewOriginSwap(origin, target, originAmount) returns targetAmount
+
+	// Assimilator methods
+	assimilatorMethodOracle = "oracle" // oracle() returns oracle address
+
+	// Chainlink Oracle methods
+	oracleMethodLatestAnswer = "latestAnswer" // latestAnswer() returns int256 price
 
 	// Event signatures
 	// NewCurve(address indexed caller, bytes32 indexed id, address indexed curve)

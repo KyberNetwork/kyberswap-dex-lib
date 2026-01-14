@@ -8,7 +8,8 @@ var stabullFactoryABIData []byte
 //go:embed abis/StabullPool.json
 var stabullPoolABIData []byte
 
-// Optionally, if you need to monitor Chainlink oracles directly:
-//
+//go:embed abis/Assimilator.json
+var assimilatorABIData []byte
+
 //go:embed abis/ChainlinkAggregator.json
 var chainlinkAggregatorABIData []byte
