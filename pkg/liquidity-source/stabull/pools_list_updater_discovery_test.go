@@ -2,6 +2,7 @@ package stabull
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -79,6 +80,17 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 				t.Logf("    Token1: %s (%d decimals)", pool.Tokens[1].Address, pool.Tokens[1].Decimals)
 				t.Logf("    Reserve0: %s", pool.Reserves[0])
 				t.Logf("    Reserve1: %s", pool.Reserves[1])
+
+				// Decode and log Extra data (oracle addresses)
+				var extra Extra
+				if err := json.Unmarshal([]byte(pool.Extra), &extra); err == nil {
+					if extra.BaseOracleAddress != "" {
+						t.Logf("    Base Oracle: %s", extra.BaseOracleAddress)
+					}
+					if extra.QuoteOracleAddress != "" {
+						t.Logf("    Quote Oracle: %s", extra.QuoteOracleAddress)
+					}
+				}
 			}
 
 			// Metadata: Since we pass nil as metadataBytes, it should remain nil or be empty
