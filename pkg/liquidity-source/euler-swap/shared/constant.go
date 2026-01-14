@@ -4,8 +4,9 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
