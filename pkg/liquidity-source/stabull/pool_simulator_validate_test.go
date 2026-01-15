@@ -91,6 +91,16 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap(t *testing.T) {
 				err = json.Unmarshal([]byte(poolInfo.Extra), &extra)
 				require.NoError(t, err)
 
+				// Get pool label for logging
+				poolLabel := fetchPoolSymbol(ctx, client, poolInfo.Address)
+				if poolLabel == "" {
+					poolLabel = poolInfo.Address
+				}
+
+				// Debug: Log oracle addresses for all pools
+				t.Logf("Pool %s - BaseOracle: %s, QuoteOracle: %s", poolLabel, extra.BaseOracleAddress, extra.QuoteOracleAddress)
+				t.Logf("  Initial BaseOracleRate: '%s', QuoteOracleRate: '%s'", extra.BaseOracleRate, extra.QuoteOracleRate)
+
 				reserves, updatedExtra, err := tracker.fetchPoolStateWithOraclesFromNode(
 					ctx,
 					poolInfo.Address,
@@ -105,6 +115,9 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap(t *testing.T) {
 						continue
 					}
 				}
+
+				// Debug: Log fetched oracle rates
+				t.Logf("  After fetch BaseOracleRate: '%s', QuoteOracleRate: '%s'", updatedExtra.BaseOracleRate, updatedExtra.QuoteOracleRate)
 				if len(reserves) != 2 {
 					t.Logf("%s | %s | %s", tt.name, poolInfo.Address, "unexpected reserve length, skipping pool")
 					continue
@@ -112,6 +125,12 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap(t *testing.T) {
 
 				extraBytes, err := json.Marshal(updatedExtra)
 				require.NoError(t, err)
+
+				// Debug: Log what Extra will be passed to simulator
+				if poolLabel == "tryb-usdc" || poolLabel == "gyen-usdc" {
+					t.Logf("  Extra being passed to simulator for %s: BaseOracleRate='%s', QuoteOracleRate='%s'",
+						poolLabel, updatedExtra.BaseOracleRate, updatedExtra.QuoteOracleRate)
+				}
 
 				entityPool := entity.Pool{
 					Address:  poolInfo.Address,
@@ -130,11 +149,6 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap(t *testing.T) {
 
 				baseToken := poolInfo.Tokens[0]
 				quoteToken := poolInfo.Tokens[1]
-
-				poolLabel := fetchPoolSymbol(ctx, client, poolInfo.Address)
-				if poolLabel == "" {
-					poolLabel = poolInfo.Address
-				}
 
 				if err := runCase(t, client, sim, poolInfo.Address, "base-1",
 					baseToken.Address, quoteToken.Address,
@@ -215,7 +229,7 @@ func runCase(
 		TokenOut: tokenOut,
 	})
 	if err != nil {
-		return fmt.Errorf("simulator failed")
+		return fmt.Errorf("simulator failed: %w", err)
 	}
 
 	simOut18 := result.TokenAmountOut.Amount

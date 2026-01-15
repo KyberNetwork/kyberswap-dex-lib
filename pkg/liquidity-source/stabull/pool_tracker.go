@@ -509,12 +509,30 @@ func (d *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, poo
 
 	// Fetch base oracle rate (if address provided)
 	if baseOracleAddr != "" {
-		baseOracleRate, _ = d.fetchOracleRate(ctx, baseOracleAddr)
+		var err error
+		baseOracleRate, err = d.fetchOracleRate(ctx, baseOracleAddr)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": poolAddress,
+				"oracle":      baseOracleAddr,
+				"error":       err,
+			}).Warn("Failed to fetch BaseOracleRate")
+		}
 	}
 
 	// Fetch quote oracle rate (if address provided)
 	if quoteOracleAddr != "" {
-		quoteOracleRate, _ = d.fetchOracleRate(ctx, quoteOracleAddr)
+		var err error
+		quoteOracleRate, err = d.fetchOracleRate(ctx, quoteOracleAddr)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": poolAddress,
+				"oracle":      quoteOracleAddr,
+				"error":       err,
+			}).Warn("Failed to fetch QuoteOracleRate")
+		}
 	}
 
 	_, err := rpcRequest.Aggregate()
@@ -589,11 +607,29 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 
 	// Also fetch oracle rates if addresses are available (good to refresh periodically)
 	if existingExtra.BaseOracleAddress != "" {
-		baseOracleRate, _ = d.fetchOracleRate(ctx, existingExtra.BaseOracleAddress)
+		var err error
+		baseOracleRate, err = d.fetchOracleRate(ctx, existingExtra.BaseOracleAddress)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": poolAddress,
+				"oracle":      existingExtra.BaseOracleAddress,
+				"error":       err,
+			}).Warn("Failed to fetch BaseOracleRate")
+		}
 	}
 
 	if existingExtra.QuoteOracleAddress != "" {
-		quoteOracleRate, _ = d.fetchOracleRate(ctx, existingExtra.QuoteOracleAddress)
+		var err error
+		quoteOracleRate, err = d.fetchOracleRate(ctx, existingExtra.QuoteOracleAddress)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dex":         DexType,
+				"poolAddress": poolAddress,
+				"oracle":      existingExtra.QuoteOracleAddress,
+				"error":       err,
+			}).Warn("Failed to fetch QuoteOracleRate")
+		}
 	}
 
 	_, err := rpcRequest.Aggregate()

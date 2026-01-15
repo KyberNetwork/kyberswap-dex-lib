@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
@@ -24,6 +25,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
+
+	// Debug: Log what Extra we received
+	logger.WithFields(logger.Fields{
+		"dex":             DexType,
+		"pool":            entityPool.Address,
+		"baseOracle":      extra.BaseOracleAddress,
+		"quoteOracle":     extra.QuoteOracleAddress,
+		"baseOracleRate":  extra.BaseOracleRate,
+		"quoteOracleRate": extra.QuoteOracleRate,
+	}).Debug("NewPoolSimulator created")
 
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
@@ -181,9 +192,9 @@ func (p *PoolSimulator) calculateSwap(
 	// Validate that we have the required oracle rate
 	if inputOracleRate == nil || inputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
 		if tokenInIndex == 0 {
-			return nil, fmt.Errorf("missing or invalid BaseOracleRate for input token conversion")
+			return nil, fmt.Errorf("missing or invalid BaseOracleRate for input token conversion (have: '%s')", p.extra.BaseOracleRate)
 		}
-		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for input token conversion")
+		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for input token conversion (have: '%s', addr: '%s')", p.extra.QuoteOracleRate, p.extra.QuoteOracleAddress)
 	}
 
 	// Convert input to numeraire: (amountIn * oracleRate) / 1e8
@@ -217,25 +228,25 @@ func (p *PoolSimulator) calculateSwap(
 	// For base→quote (token0→token1): output is already in quote token units (numeraire)
 	// For quote→base (token1→token0): output is in numeraire, need to convert to base token units
 	amountOut := amountOutNumeraire
-	
+
 	if tokenOutIndex == 0 {
 		// Swapping to base token (token0), need to convert from numeraire
 		var outputOracleRate *big.Int
 		if p.extra.BaseOracleRate != "" {
 			outputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
 		}
-		
+
 		// Validate that we have the required oracle rate for output conversion
 		if outputOracleRate == nil || outputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
 			return nil, fmt.Errorf("missing or invalid BaseOracleRate for output token conversion")
 		}
-		
+
 		// Convert from numeraire to token: (amountOutNumeraire * 1e8) / oracleRate
 		amountOut = new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
 		amountOut.Div(amountOut, outputOracleRate)
 	}
 	// For tokenOutIndex == 1 (quote token), output is already in correct units
-	
+
 	return amountOut, nil
 }
 
