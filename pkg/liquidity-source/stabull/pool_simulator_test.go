@@ -388,8 +388,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                     // 1 NZDS (6 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000",                                    // 1 NZDS (6 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0xa302a0B8a499fD0f00449df0a490DedE21105955", // NZDS/USD
 			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
@@ -401,8 +401,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                     // 1 NZDS (6 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000",                                    // 1 NZDS (6 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0x3977CFc9e4f29C184D4675f4EB8e0013236e5f3e", // NZDS/USD
 			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
@@ -414,8 +414,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  2,
 			tokenOutDecimals: 6,
-			amountIn:         "100",                                         // 1 EURS (2 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "100",                                        // 1 EURS (2 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0x73366Fe0AA0Ded304479862808e02506FE556a98", // EUR/USD
 			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
@@ -427,8 +427,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                     // 1 TRYB (6 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000",                                    // 1 TRYB (6 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0xd78325DcA0F90F0FFe53cCeA1B02Bb12E1bf8FdB", // TRY/USD
 			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
@@ -440,8 +440,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  18,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000000000000000",                         // 1 DAI (18 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000000000000000",                        // 1 DAI (18 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0x4746DeC9e833A82EC7C2C1356372CcF2cfcD2F3D", // DAI/USD
 			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
@@ -453,8 +453,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC (6 decimals)
 			tokenInDecimals:  2,
 			tokenOutDecimals: 6,
-			amountIn:         "100",                                         // 1 EURS (2 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "100",                                        // 1 EURS (2 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0xb49f677943BC038e9857d61E7d053CaA2C1734C1", // EUR/USD (from Stabull API)
 			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
@@ -466,8 +466,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",  // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                     // 1 TRYB (6 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000",                                    // 1 TRYB (6 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0xB09fC5fD3f11Cf9eb5E1C5Dba43114e3C9f477b5", // TRY/USD
 			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
@@ -480,8 +480,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xFbBE4b730e1e77d02dC40fEdF94382802eab3B5",  // NZDS (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                     // 1 USDC (6 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000",                                    // 1 USDC (6 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0xa302a0B8a499fD0f00449df0a490DedE21105955", // NZDS/USD
 			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
@@ -493,8 +493,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xDa446fAd08277B4D2591536F204E018f32B6831c", // NZDS (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                     // 1 USDC (6 decimals)
-			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			amountIn:         "1000000",                                    // 1 USDC (6 decimals)
+			maxDeviationBps:  200,                                          // 2% acceptable deviation
 			baseOracle:       "0x3977CFc9e4f29C184D4675f4EB8e0013236e5f3e", // NZDS/USD
 			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
@@ -582,6 +582,22 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			t.Logf("Amount In (%d decimals): %s", tt.tokenInDecimals, amountIn.String())
 			t.Logf("Amount In (18 decimals): %s", amountIn18Decimals.String())
 
+			// Determine swap direction based on tokenIn
+			// Numeraires are the token addresses in the pool
+			// If tokenIn == numeraire1, we're swapping token1 → token0 (reverse direction)
+			var originNumeraire, targetNumeraire common.Address
+			if strings.EqualFold(tt.tokenIn, numeraire0.Hex()) {
+				// Forward direction: token0 → token1
+				originNumeraire = numeraire0
+				targetNumeraire = numeraire1
+				t.Log("Swap direction: token0 → token1 (forward)")
+			} else {
+				// Reverse direction: token1 → token0
+				originNumeraire = numeraire1
+				targetNumeraire = numeraire0
+				t.Log("Swap direction: token1 → token0 (reverse)")
+			}
+
 			var contractAmountOut *big.Int
 			swapRequest := client.NewRequest().SetContext(ctx)
 			swapRequest.AddCall(&ethrpc.Call{
@@ -589,9 +605,9 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 				Target: tt.poolAddress,
 				Method: poolMethodViewOriginSwap,
 				Params: []interface{}{
-					numeraire0, // Use numeraire address instead of token address
-					numeraire1, // Use numeraire address instead of token address
-					amountIn,   // viewOriginSwap expects amount in token's raw decimals
+					originNumeraire, // Origin token numeraire
+					targetNumeraire, // Target token numeraire
+					amountIn,        // viewOriginSwap expects amount in token's raw decimals
 				},
 			}, []interface{}{&contractAmountOut})
 
