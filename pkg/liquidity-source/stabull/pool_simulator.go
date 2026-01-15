@@ -76,11 +76,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	// Stabull pools are unidirectional: only support base → quote (token0 → token1)
-	if tokenInIndex != 0 || tokenOutIndex != 1 {
-		return nil, fmt.Errorf("stabull pools only support base → quote swaps (token0 → token1)")
-	}
-
 	// Calculate swap using Stabull curve formula
 	// Note: The actual contract has viewOriginSwap(origin, target, originAmount) that returns targetAmount
 	// In the simulator, we need to replicate this logic locally using cached curve parameters
@@ -170,21 +165,31 @@ func (p *PoolSimulator) calculateSwap(
 	// Convert amountIn to numeraire using the input token's oracle rate
 	// The contract's Assimilators convert token amounts to a common numeraire (USD)
 	// Reserves are stored in numeraire terms
-	amountInNumeraire := amountIn
-
-	// Since pools are unidirectional (always token0 → token1), tokenInIndex is always 0
-	// So we always use BaseOracleRate for input conversion
 	var inputOracleRate *big.Int
-	if p.extra.BaseOracleRate != "" {
-		inputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
+	if tokenInIndex == 0 {
+		// Swapping base token (token0) → quote token (token1)
+		if p.extra.BaseOracleRate != "" {
+			inputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
+		}
+	} else {
+		// Swapping quote token (token1) → base token (token0)
+		if p.extra.QuoteOracleRate != "" {
+			inputOracleRate, _ = new(big.Int).SetString(p.extra.QuoteOracleRate, 10)
+		}
 	}
 
-	if inputOracleRate != nil && inputOracleRate.Cmp(bignumber.ZeroBI) > 0 {
-		// Convert input to numeraire: (amountIn * oracleRate) / 1e8
-		// Chainlink oracle rates are 8 decimals
-		amountInNumeraire = new(big.Int).Mul(amountIn, inputOracleRate)
-		amountInNumeraire.Div(amountInNumeraire, big.NewInt(1e8))
+	// Validate that we have the required oracle rate
+	if inputOracleRate == nil || inputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
+		if tokenInIndex == 0 {
+			return nil, fmt.Errorf("missing or invalid BaseOracleRate for input token conversion")
+		}
+		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for input token conversion")
 	}
+
+	// Convert input to numeraire: (amountIn * oracleRate) / 1e8
+	// Chainlink oracle rates are 8 decimals
+	amountInNumeraire := new(big.Int).Mul(amountIn, inputOracleRate)
+	amountInNumeraire.Div(amountInNumeraire, big.NewInt(1e8))
 
 	// Parse oracle rate from extra (for internal curve pricing)
 	var oracleRate *big.Int
@@ -193,7 +198,7 @@ func (p *PoolSimulator) calculateSwap(
 	}
 
 	// Use the Stabull curve formula with greek parameters
-	amountOut, err := calculateStabullSwap(
+	amountOutNumeraire, err := calculateStabullSwap(
 		amountInNumeraire, // Use numeraire-adjusted amount
 		reserveIn,
 		reserveOut,
@@ -208,8 +213,29 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, err
 	}
 
-	// Output is already in the correct units (token amount in 18 decimals)
-	// No need for conversion since reserves and output are both in numeraire
+	// Convert output from numeraire to actual token amount
+	// For base→quote (token0→token1): output is already in quote token units (numeraire)
+	// For quote→base (token1→token0): output is in numeraire, need to convert to base token units
+	amountOut := amountOutNumeraire
+	
+	if tokenOutIndex == 0 {
+		// Swapping to base token (token0), need to convert from numeraire
+		var outputOracleRate *big.Int
+		if p.extra.BaseOracleRate != "" {
+			outputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
+		}
+		
+		// Validate that we have the required oracle rate for output conversion
+		if outputOracleRate == nil || outputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
+			return nil, fmt.Errorf("missing or invalid BaseOracleRate for output token conversion")
+		}
+		
+		// Convert from numeraire to token: (amountOutNumeraire * 1e8) / oracleRate
+		amountOut = new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
+		amountOut.Div(amountOut, outputOracleRate)
+	}
+	// For tokenOutIndex == 1 (quote token), output is already in correct units
+	
 	return amountOut, nil
 }
 
