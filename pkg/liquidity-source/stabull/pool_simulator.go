@@ -76,6 +76,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
+	// Stabull pools are unidirectional: only support base → quote (token0 → token1)
+	if tokenInIndex != 0 || tokenOutIndex != 1 {
+		return nil, fmt.Errorf("stabull pools only support base → quote swaps (token0 → token1)")
+	}
+
 	// Calculate swap using Stabull curve formula
 	// Note: The actual contract has viewOriginSwap(origin, target, originAmount) that returns targetAmount
 	// In the simulator, we need to replicate this logic locally using cached curve parameters
@@ -162,9 +167,24 @@ func (p *PoolSimulator) calculateSwap(
 		lambda = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
 	}
 
-	// DON'T convert to numeraire - reserves are in token amounts!
-	// Just use the input amount directly
-	amountInToCalculate := amountIn
+	// Convert amountIn to numeraire using the input token's oracle rate
+	// The contract's Assimilators convert token amounts to a common numeraire (USD)
+	// Reserves are stored in numeraire terms
+	amountInNumeraire := amountIn
+
+	// Since pools are unidirectional (always token0 → token1), tokenInIndex is always 0
+	// So we always use BaseOracleRate for input conversion
+	var inputOracleRate *big.Int
+	if p.extra.BaseOracleRate != "" {
+		inputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
+	}
+
+	if inputOracleRate != nil && inputOracleRate.Cmp(bignumber.ZeroBI) > 0 {
+		// Convert input to numeraire: (amountIn * oracleRate) / 1e8
+		// Chainlink oracle rates are 8 decimals
+		amountInNumeraire = new(big.Int).Mul(amountIn, inputOracleRate)
+		amountInNumeraire.Div(amountInNumeraire, big.NewInt(1e8))
+	}
 
 	// Parse oracle rate from extra (for internal curve pricing)
 	var oracleRate *big.Int
@@ -174,7 +194,7 @@ func (p *PoolSimulator) calculateSwap(
 
 	// Use the Stabull curve formula with greek parameters
 	amountOut, err := calculateStabullSwap(
-		amountInToCalculate, // Use token amount directly
+		amountInNumeraire, // Use numeraire-adjusted amount
 		reserveIn,
 		reserveOut,
 		alpha,
@@ -188,7 +208,8 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, err
 	}
 
-	// Return output directly - no conversion needed
+	// Output is already in the correct units (token amount in 18 decimals)
+	// No need for conversion since reserves and output are both in numeraire
 	return amountOut, nil
 }
 

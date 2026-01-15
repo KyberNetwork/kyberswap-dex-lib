@@ -471,33 +471,8 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			baseOracle:       "0xB09fC5fD3f11Cf9eb5E1C5Dba43114e3C9f477b5", // TRY/USD
 			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
-		// Reverse direction tests (USDC → Base Token)
-		{
-			name:             "Polygon USDC/NZDS - Reverse swap",
-			rpcURL:           "https://polygon-rpc.com",
-			poolAddress:      "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
-			tokenIn:          "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
-			tokenOut:         "0xFbBE4b730e1e77d02dC40fEdF94382802eab3B5",  // NZDS (6 decimals)
-			tokenInDecimals:  6,
-			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                    // 1 USDC (6 decimals)
-			maxDeviationBps:  200,                                          // 2% acceptable deviation
-			baseOracle:       "0xa302a0B8a499fD0f00449df0a490DedE21105955", // NZDS/USD
-			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
-		},
-		{
-			name:             "Ethereum USDC/NZDS - Reverse swap",
-			rpcURL:           "https://ethereum-rpc.publicnode.com",
-			poolAddress:      "0xe37D763c7c4cdd9A8f085F7DB70139a0843529F3",
-			tokenIn:          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC (6 decimals)
-			tokenOut:         "0xDa446fAd08277B4D2591536F204E018f32B6831c", // NZDS (6 decimals)
-			tokenInDecimals:  6,
-			tokenOutDecimals: 6,
-			amountIn:         "1000000",                                    // 1 USDC (6 decimals)
-			maxDeviationBps:  200,                                          // 2% acceptable deviation
-			baseOracle:       "0x3977CFc9e4f29C184D4675f4EB8e0013236e5f3e", // NZDS/USD
-			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
-		},
+		// Note: Stabull pools are unidirectional (base → quote only)
+		// Reverse swaps (USDC → base token) are not supported on the same pool
 	}
 
 	for _, tt := range tests {
@@ -582,22 +557,7 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			t.Logf("Amount In (%d decimals): %s", tt.tokenInDecimals, amountIn.String())
 			t.Logf("Amount In (18 decimals): %s", amountIn18Decimals.String())
 
-			// Determine swap direction based on tokenIn
-			// Numeraires are the token addresses in the pool
-			// If tokenIn == numeraire1, we're swapping token1 → token0 (reverse direction)
-			var originNumeraire, targetNumeraire common.Address
-			if strings.EqualFold(tt.tokenIn, numeraire0.Hex()) {
-				// Forward direction: token0 → token1
-				originNumeraire = numeraire0
-				targetNumeraire = numeraire1
-				t.Log("Swap direction: token0 → token1 (forward)")
-			} else {
-				// Reverse direction: token1 → token0
-				originNumeraire = numeraire1
-				targetNumeraire = numeraire0
-				t.Log("Swap direction: token1 → token0 (reverse)")
-			}
-
+			// Stabull pools are unidirectional: always swap numeraire0 → numeraire1 (base → quote)
 			var contractAmountOut *big.Int
 			swapRequest := client.NewRequest().SetContext(ctx)
 			swapRequest.AddCall(&ethrpc.Call{
@@ -605,9 +565,9 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 				Target: tt.poolAddress,
 				Method: poolMethodViewOriginSwap,
 				Params: []interface{}{
-					originNumeraire, // Origin token numeraire
-					targetNumeraire, // Target token numeraire
-					amountIn,        // viewOriginSwap expects amount in token's raw decimals
+					numeraire0, // Always origin (base token)
+					numeraire1, // Always target (quote token)
+					amountIn,   // viewOriginSwap expects amount in token's raw decimals
 				},
 			}, []interface{}{&contractAmountOut})
 
