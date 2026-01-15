@@ -11,25 +11,23 @@ var (
 	ErrInvalidAmount         = errors.New("invalid amount")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 	ErrZeroDenominator       = errors.New("zero denominator")
+	ErrConvergenceFailed     = errors.New("swap convergence failed")
+)
+
+const (
+	// Maximum fee (0.25 in 64x64 fixed point)
+	maxFeeHex = "0x4000000000000000"
 )
 
 // calculateStabullSwap implements the Stabull curve swap calculation
-// The Stabull curve uses a sophisticated invariant with greek parameters:
-// - alpha (α): Weight between constant product and constant sum
-// - beta (β): Volatility parameter
-// - delta (δ): Slippage parameter
-// - epsilon (ε): Fee parameter (dynamic fee based on imbalance)
-// - lambda (λ): Oracle weight parameter
-// - oracleRate: Chainlink oracle rate (base/quote) for price guidance
+// Based on CurveMath.sol from https://github.com/stabull/v1-amm/blob/dev/src/CurveMath.sol
 //
-// The curve formula maintains an invariant that combines:
-// 1. Constant product (Uniswap-style): x * y = k
-// 2. Constant sum (Curve-style): x + y = k
-// 3. Oracle-aware pricing adjustments using lambda
+// This implements the iterative convergence algorithm that:
+// 1. Calculates omega (fee for old state)
+// 2. Iterates up to 32 times adjusting output based on psi (fee for new state)
+// 3. Uses lambda to weight the fee adjustment when omega >= psi
 //
-// Approximation approach:
-// Since we can't replicate the full Solidity math exactly (due to fixed-point precision differences),
-// we implement a close approximation that uses the greek parameters to modify the constant product formula.
+// All calculations are done in numeraire space (18 decimals)
 func calculateStabullSwap(
 	amountIn *big.Int,
 	reserveIn *big.Int,
@@ -39,7 +37,7 @@ func calculateStabullSwap(
 	delta *big.Int,
 	epsilon *big.Int,
 	lambda *big.Int,
-	oracleRate *big.Int, // Oracle rate for price guidance (in 1e18 precision)
+	oracleRate *big.Int,
 ) (*big.Int, error) {
 	if amountIn == nil || amountIn.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmount
@@ -53,152 +51,180 @@ func calculateStabullSwap(
 		return nil, ErrInsufficientLiquidity
 	}
 
-	// Calculate dynamic fee based on epsilon
-	// Fee is 0.15% (epsilon = 1.5e15) applied to the input amount
-	fee := calculateDynamicFee(amountIn, epsilon)
+	one := bignumber.BONE
 
-	// Apply fee to input amount
-	amountInAfterFee := new(big.Int).Sub(amountIn, fee)
-	if amountInAfterFee.Cmp(bignumber.ZeroBI) <= 0 {
-		return nil, ErrInvalidAmount
+	// Global liquidity = sum of all balances
+	oGLiq := new(big.Int).Add(reserveIn, reserveOut)
+
+	// Initial balances
+	oBals := []*big.Int{
+		new(big.Int).Set(reserveIn),
+		new(big.Int).Set(reserveOut),
 	}
 
-	// Calculate the output amount using a hybrid formula that incorporates greek parameters
-	// This is an approximation of the Stabull curve invariant
-
-	// Base constant product calculation: amountOut = (reserveOut * amountInAfterFee) / (reserveIn + amountInAfterFee)
-	numerator := new(big.Int).Mul(reserveOut, amountInAfterFee)
-	denominator := new(big.Int).Add(reserveIn, amountInAfterFee)
-
-	if denominator.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, ErrZeroDenominator
+	// 50/50 weights
+	weights := []*big.Int{
+		new(big.Int).Div(one, big.NewInt(2)),
+		new(big.Int).Div(one, big.NewInt(2)),
 	}
 
-	baseAmountOut := new(big.Int).Div(numerator, denominator)
+	// Calculate omega (fee for old state)
+	omega := calculateFee(oGLiq, oBals, beta, delta, weights)
 
-	// Apply curve adjustments based on greek parameters
-	// Alpha: Weights between constant product (α=1e18) and constant sum (α=0)
-	// For balanced pools, alpha is typically around 0.5 * 1e18
-	// Lambda: Weights oracle price influence on the output
-	adjustedAmountOut := applyCurveAdjustment(
-		baseAmountOut,
-		amountInAfterFee,
-		reserveIn,
-		reserveOut,
-		alpha,
-		beta,
-		delta,
-		lambda,
-		oracleRate,
-	)
+	// Start with negative of input (will be adjusted in loop)
+	outputAmt := new(big.Int).Neg(amountIn)
 
-	// Ensure we don't return more than available reserves
-	if adjustedAmountOut.Cmp(reserveOut) >= 0 {
-		return nil, ErrInsufficientLiquidity
+	// Initialize new balances matching viewOriginSwapData:
+	// After the loop: nBals[input] = balance + amt, nBals[output] = balance - amt
+	nBals := []*big.Int{
+		new(big.Int).Add(oBals[0], amountIn), // nBals[input] = oBals[input] + amountIn
+		new(big.Int).Sub(oBals[1], amountIn), // nBals[output] = oBals[output] - amountIn
 	}
 
-	return adjustedAmountOut, nil
+	// Contract: nGLiq_ = nGLiq_.sub(amt_) but nGLiq already includes +amt from input side
+	// So: nGLiq = (oBals[0] + amt) + (oBals[1]) - amt = oBals[0] + oBals[1] = oGLiq
+	nGLiq := new(big.Int).Set(oGLiq)
+
+	// Iterative convergence
+	for i := 0; i < 32; i++ {
+		// Calculate psi (fee for new state)
+		psi := calculateFee(nGLiq, nBals, beta, delta, weights)
+
+		// Save previous for convergence check
+		prevAmount := new(big.Int).Set(outputAmt)
+
+		// Calculate new output amount
+		if omega.Cmp(psi) < 0 {
+			// outputAmt = -(amountIn + omega - psi)
+			outputAmt = new(big.Int).Sub(omega, psi)
+			outputAmt.Add(outputAmt, amountIn)
+			outputAmt.Neg(outputAmt)
+		} else {
+			// outputAmt = -(amountIn + lambda * (omega - psi))
+			feeDiff := new(big.Int).Sub(omega, psi)
+			lambdaAdj := new(big.Int).Mul(lambda, feeDiff)
+			lambdaAdj.Div(lambdaAdj, one)
+
+			outputAmt = new(big.Int).Add(amountIn, lambdaAdj)
+			outputAmt.Neg(outputAmt)
+		}
+
+		// Check convergence (1e13 precision)
+		prevScaled := new(big.Int).Div(new(big.Int).Abs(prevAmount), big.NewInt(1e13))
+		currScaled := new(big.Int).Div(new(big.Int).Abs(outputAmt), big.NewInt(1e13))
+
+		if prevScaled.Cmp(currScaled) == 0 {
+			// Converged! Update final state
+			nGLiq = new(big.Int).Add(oGLiq, amountIn)
+			nGLiq.Add(nGLiq, outputAmt)
+			nBals[1] = new(big.Int).Add(oBals[1], outputAmt)
+
+			result := new(big.Int).Abs(outputAmt)
+
+			if result.Cmp(reserveOut) >= 0 {
+				return nil, ErrInsufficientLiquidity
+			}
+
+			return result, nil
+		}
+
+		// Update state for next iteration
+		nGLiq = new(big.Int).Add(oGLiq, amountIn)
+		nGLiq.Add(nGLiq, outputAmt)
+		nBals[1] = new(big.Int).Add(oBals[1], outputAmt)
+	}
+
+	return nil, ErrConvergenceFailed
 }
 
-// calculateDynamicFee computes the swap fee based on epsilon and pool imbalance
-// Epsilon represents the base fee rate (0.15% = 1.5e15 in 1e18 precision)
-// Formula: fee = amountIn * epsilon / 1e18
-// Note: The fee is applied to the input amount before the swap calculation
-func calculateDynamicFee(amountIn *big.Int, epsilon *big.Int) *big.Int {
-	// Epsilon is scaled by 1e18
-	// A typical epsilon value is 1.5e15 (0.15% = 150000000000000)
-	// fee = amountIn * epsilon / 1e18
-
-	one := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // 1e18
-
-	fee := new(big.Int).Mul(amountIn, epsilon)
-	fee = new(big.Int).Div(fee, one)
-
-	return fee
-}
-
-// applyCurveAdjustment applies the Stabull curve formula adjustments
-// This modifies the base constant product output based on greek parameters
-// Lambda (λ) is used to weight the oracle price influence on the output
-func applyCurveAdjustment(
-	baseAmountOut *big.Int,
-	amountIn *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	alpha *big.Int,
+// calculateFee implements the fee calculation from CurveMath.sol
+// Calculates total fee (omega/psi) for a given pool state
+func calculateFee(
+	gLiq *big.Int,
+	bals []*big.Int,
 	beta *big.Int,
 	delta *big.Int,
-	lambda *big.Int,
-	oracleRate *big.Int, // Oracle rate (base/quote) in 1e18 precision
+	weights []*big.Int,
 ) *big.Int {
-	// All greek parameters are in 1e18 precision
-	one := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // 1e18
+	psi := bignumber.ZeroBI
 
-	// Calculate pool balance ratio
-	// ratio = reserveIn / reserveOut (scaled by 1e18)
-	ratio := new(big.Int).Mul(reserveIn, one)
-	ratio = new(big.Int).Div(ratio, reserveOut)
+	for i := 0; i < len(bals); i++ {
+		// ideal = gLiq * weight[i] / 1e18
+		ideal := new(big.Int).Mul(gLiq, weights[i])
+		ideal.Div(ideal, bignumber.BONE)
 
-	// Alpha adjustment: weights between CP and CS curves
-	// If alpha = 1e18 (100%), pure constant product
-	// If alpha = 0, more constant sum behavior
-	// adjustment_factor = alpha / 1e18
-	alphaFactor := new(big.Int).Mul(baseAmountOut, alpha)
-	alphaFactor = new(big.Int).Div(alphaFactor, one)
-
-	// Beta adjustment: volatility-based price impact
-	// Higher beta = more slippage for large trades
-	// impact = (amountIn / reserveIn)^beta
-	// For simplicity, we approximate: impact ≈ (amountIn / reserveIn) * (beta / 1e18)
-	sizeRatio := new(big.Int).Mul(amountIn, one)
-	sizeRatio = new(big.Int).Div(sizeRatio, reserveIn)
-
-	betaAdjustment := new(big.Int).Mul(sizeRatio, beta)
-	betaAdjustment = new(big.Int).Div(betaAdjustment, one)
-	betaAdjustment = new(big.Int).Div(betaAdjustment, one) // Apply as reduction factor
-
-	// Delta adjustment: affects slippage curve
-	// Typically reduces output for large trades
-	deltaReduction := new(big.Int).Mul(baseAmountOut, delta)
-	deltaReduction = new(big.Int).Div(deltaReduction, one)
-	deltaReduction = new(big.Int).Mul(deltaReduction, betaAdjustment)
-	deltaReduction = new(big.Int).Div(deltaReduction, one)
-
-	// Apply all adjustments
-	adjustedOutput := new(big.Int).Set(alphaFactor)
-	adjustedOutput = new(big.Int).Sub(adjustedOutput, deltaReduction)
-
-	// Lambda & Oracle rate adjustment:
-	// If oracle rate is available, use it to guide pricing
-	// Lambda controls how much weight to give the oracle vs pool reserves
-	//
-	// oracleBasedOutput = amountIn * oracleRate / 1e18
-	// finalOutput = (1-lambda)*adjustedOutput + lambda*oracleBasedOutput
-	//             = adjustedOutput + lambda * (oracleBasedOutput - adjustedOutput) / 1e18
-	if oracleRate != nil && oracleRate.Cmp(bignumber.ZeroBI) > 0 && lambda != nil {
-		// Calculate what the output would be based on oracle price
-		oracleBasedOutput := new(big.Int).Mul(amountIn, oracleRate)
-		oracleBasedOutput = new(big.Int).Div(oracleBasedOutput, one)
-
-		// Calculate the difference
-		diff := new(big.Int).Sub(oracleBasedOutput, adjustedOutput)
-
-		// Apply lambda weight: adjustment = lambda * diff / 1e18
-		oracleAdjustment := new(big.Int).Mul(lambda, diff)
-		oracleAdjustment = new(big.Int).Div(oracleAdjustment, one)
-
-		// Add oracle adjustment to the output
-		adjustedOutput = new(big.Int).Add(adjustedOutput, oracleAdjustment)
+		// Calculate micro fee for this token
+		microFee := calculateMicroFee(bals[i], ideal, beta, delta)
+		psi = new(big.Int).Add(psi, microFee)
 	}
 
-	// Ensure output is positive and reasonable
-	if adjustedOutput.Cmp(bignumber.ZeroBI) <= 0 {
-		// Fallback to base amount if adjustments are too aggressive
-		fallbackAmount := new(big.Int).Mul(baseAmountOut, big.NewInt(95))
-		return new(big.Int).Div(fallbackAmount, big.NewInt(100))
+	return psi
+}
+
+// calculateMicroFee implements per-token fee from CurveMath.sol
+func calculateMicroFee(bal *big.Int, ideal *big.Int, beta *big.Int, delta *big.Int) *big.Int {
+	one := bignumber.BONE
+	maxFee, _ := new(big.Int).SetString(maxFeeHex, 0)
+
+	if bal.Cmp(ideal) < 0 {
+		// Balance below ideal
+		// threshold = ideal * (1 - beta) / 1e18
+		betaAdj := new(big.Int).Sub(one, beta)
+		threshold := new(big.Int).Mul(ideal, betaAdj)
+		threshold.Div(threshold, one)
+
+		if bal.Cmp(threshold) < 0 {
+			// feeMargin = threshold - bal
+			feeMargin := new(big.Int).Sub(threshold, bal)
+
+			// fee = (feeMargin * delta) / 1e18
+			fee := new(big.Int).Mul(feeMargin, delta)
+			fee.Div(fee, one)
+
+			// fee = (fee * 1e18) / ideal (fixed-point division)
+			fee.Mul(fee, one)
+			fee.Div(fee, ideal)
+
+			if fee.Cmp(maxFee) > 0 {
+				fee = new(big.Int).Set(maxFee)
+			}
+
+			// fee = (fee * feeMargin) / 1e18
+			fee.Mul(fee, feeMargin)
+			fee.Div(fee, one)
+			return fee
+		}
+		return bignumber.ZeroBI
 	}
 
-	return adjustedOutput
+	// Balance above ideal
+	// threshold = ideal * (1 + beta) / 1e18
+	betaAdj := new(big.Int).Add(one, beta)
+	threshold := new(big.Int).Mul(ideal, betaAdj)
+	threshold.Div(threshold, one)
+
+	if bal.Cmp(threshold) > 0 {
+		// feeMargin = bal - threshold
+		feeMargin := new(big.Int).Sub(bal, threshold)
+
+		// fee = (feeMargin * delta) / 1e18
+		fee := new(big.Int).Mul(feeMargin, delta)
+		fee.Div(fee, one)
+
+		// fee = (fee * 1e18) / ideal (fixed-point division)
+		fee.Mul(fee, one)
+		fee.Div(fee, ideal)
+
+		if fee.Cmp(maxFee) > 0 {
+			fee = new(big.Int).Set(maxFee)
+		}
+
+		// fee = (fee * feeMargin) / 1e18
+		fee.Mul(fee, feeMargin)
+		fee.Div(fee, one)
+		return fee
+	}
+	return bignumber.ZeroBI
 }
 
 // calculateSwapFeeFromEpsilon derives the swap fee basis points from epsilon

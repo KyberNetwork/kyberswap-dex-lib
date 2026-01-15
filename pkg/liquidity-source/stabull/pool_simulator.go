@@ -162,7 +162,33 @@ func (p *PoolSimulator) calculateSwap(
 		lambda = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
 	}
 
-	// Parse oracle rate from extra (if available)
+	// Convert amountIn to numeraire using the input token's oracle rate
+	// The contract's Assimilators convert token amounts to a common numeraire (USD)
+	// using token-specific oracles (e.g., NZDS/USD oracle for NZDS)
+	// Reserves are stored in numeraire terms, so amountIn must also be in numeraire
+	amountInNumeraire := amountIn
+
+	// For token index 0 (base token), use BaseOracleRate
+	// For token index 1 (quote token), use QuoteOracleRate
+	var inputOracleRate *big.Int
+	if tokenInIndex == 0 && p.extra.BaseOracleRate != "" {
+		// Input is base token (e.g., NZDS), use its USD oracle rate
+		inputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
+	} else if tokenInIndex == 1 && p.extra.QuoteOracleRate != "" {
+		// Input is quote token (e.g., USDC), use its USD oracle rate
+		inputOracleRate, _ = new(big.Int).SetString(p.extra.QuoteOracleRate, 10)
+	}
+
+	if inputOracleRate != nil && inputOracleRate.Cmp(bignumber.ZeroBI) > 0 {
+		// Chainlink oracle rates are 8 decimals, amountIn is 18 decimals
+		// numeraire = (amountIn * oracleRate) / 1e8
+		// But first scale to match numeraire precision (18 decimals)
+		// numeraire = (amountIn * oracleRate * 1e18) / (1e8 * 1e18) = (amountIn * oracleRate) / 1e8
+		amountInNumeraire = new(big.Int).Mul(amountIn, inputOracleRate)
+		amountInNumeraire.Div(amountInNumeraire, big.NewInt(1e8)) // Chainlink uses 8 decimals
+	}
+
+	// Parse oracle rate from extra (for reference, not used in calculation)
 	var oracleRate *big.Int
 	if p.extra.OracleRate != "" {
 		oracleRate, _ = new(big.Int).SetString(p.extra.OracleRate, 10)
@@ -170,7 +196,7 @@ func (p *PoolSimulator) calculateSwap(
 
 	// Use the Stabull curve formula with greek parameters
 	amountOut, err := calculateStabullSwap(
-		amountIn,
+		amountInNumeraire, // Use numeraire-adjusted amount
 		reserveIn,
 		reserveOut,
 		alpha,

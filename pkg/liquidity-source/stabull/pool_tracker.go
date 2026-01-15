@@ -332,6 +332,65 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 	return p, nil
 }
 
+// fetchOracleRate fetches the latest price from a Chainlink oracle with fallback
+// Tries latestAnswer() first, then falls back to latestRoundData() for newer aggregators
+func (d *PoolTracker) fetchOracleRate(ctx context.Context, oracleAddress string) (*big.Int, error) {
+	// Try latestAnswer() first (simpler, older aggregators)
+	var rate *big.Int
+	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    chainlinkAggregatorABI,
+		Target: oracleAddress,
+		Method: oracleMethodLatestAnswer,
+		Params: []interface{}{},
+	}, []interface{}{&rate})
+
+	_, err := rpcRequest.Aggregate()
+	if err == nil && rate != nil && rate.Sign() > 0 {
+		return rate, nil
+	}
+
+	// Fallback to latestRoundData() for newer aggregators
+	// latestRoundData() returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+	type LatestRoundData struct {
+		RoundId         *big.Int
+		Answer          *big.Int
+		StartedAt       *big.Int
+		UpdatedAt       *big.Int
+		AnsweredInRound *big.Int
+	}
+	var roundData LatestRoundData
+	rpcRequest2 := d.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest2.AddCall(&ethrpc.Call{
+		ABI:    chainlinkAggregatorABI,
+		Target: oracleAddress,
+		Method: oracleMethodLatestRoundData,
+		Params: []interface{}{},
+	}, []interface{}{&roundData})
+
+	_, err = rpcRequest2.Aggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":    DexType,
+			"oracle": oracleAddress,
+			"error":  err,
+		}).Warn("Both latestAnswer() and latestRoundData() failed for oracle")
+		return nil, err
+	}
+
+	if roundData.Answer == nil || roundData.Answer.Sign() <= 0 {
+		return nil, fmt.Errorf("invalid oracle answer: %v", roundData.Answer)
+	}
+
+	logger.WithFields(logger.Fields{
+		"dex":    DexType,
+		"oracle": oracleAddress,
+		"answer": roundData.Answer.String(),
+	}).Debug("Fetched oracle rate using latestRoundData() fallback")
+
+	return roundData.Answer, nil
+}
+
 // fetchPoolStateFromNode fetches current reserves, curve parameters, and oracle rates from the blockchain
 func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) ([]*big.Int, Extra, error) {
 	// First, get the current Extra to retrieve oracle addresses
@@ -450,24 +509,12 @@ func (d *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, poo
 
 	// Fetch base oracle rate (if address provided)
 	if baseOracleAddr != "" {
-		baseOracleRate = new(big.Int)
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    chainlinkAggregatorABI,
-			Target: baseOracleAddr,
-			Method: oracleMethodLatestAnswer,
-			Params: []interface{}{},
-		}, []interface{}{&baseOracleRate})
+		baseOracleRate, _ = d.fetchOracleRate(ctx, baseOracleAddr)
 	}
 
 	// Fetch quote oracle rate (if address provided)
 	if quoteOracleAddr != "" {
-		quoteOracleRate = new(big.Int)
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    chainlinkAggregatorABI,
-			Target: quoteOracleAddr,
-			Method: oracleMethodLatestAnswer,
-			Params: []interface{}{},
-		}, []interface{}{&quoteOracleRate})
+		quoteOracleRate, _ = d.fetchOracleRate(ctx, quoteOracleAddr)
 	}
 
 	_, err := rpcRequest.Aggregate()
@@ -542,23 +589,11 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 
 	// Also fetch oracle rates if addresses are available (good to refresh periodically)
 	if existingExtra.BaseOracleAddress != "" {
-		baseOracleRate = new(big.Int)
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    chainlinkAggregatorABI,
-			Target: existingExtra.BaseOracleAddress,
-			Method: oracleMethodLatestAnswer,
-			Params: []interface{}{},
-		}, []interface{}{&baseOracleRate})
+		baseOracleRate, _ = d.fetchOracleRate(ctx, existingExtra.BaseOracleAddress)
 	}
 
 	if existingExtra.QuoteOracleAddress != "" {
-		quoteOracleRate = new(big.Int)
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    chainlinkAggregatorABI,
-			Target: existingExtra.QuoteOracleAddress,
-			Method: oracleMethodLatestAnswer,
-			Params: []interface{}{},
-		}, []interface{}{&quoteOracleRate})
+		quoteOracleRate, _ = d.fetchOracleRate(ctx, existingExtra.QuoteOracleAddress)
 	}
 
 	_, err := rpcRequest.Aggregate()

@@ -23,7 +23,8 @@ const (
 	assimilatorMethodOracle = "oracle" // oracle() returns oracle address
 
 	// Chainlink Oracle methods
-	oracleMethodLatestAnswer = "latestAnswer" // latestAnswer() returns int256 price
+	oracleMethodLatestAnswer    = "latestAnswer"    // latestAnswer() returns int256 price
+	oracleMethodLatestRoundData = "latestRoundData" // latestRoundData() returns (roundId, answer, startedAt, updatedAt, answeredInRound)
 
 	// Event signatures
 	// NewCurve(address indexed caller, bytes32 indexed id, address indexed curve)
