@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestPoolsListUpdater_GetNewPools tests the complete pool discovery flow
-func TestPoolsListUpdater_GetNewPools(t *testing.T) {
+// TestPoolsListUpdater_GetNewPools_Discovery tests the complete pool discovery flow
+func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
