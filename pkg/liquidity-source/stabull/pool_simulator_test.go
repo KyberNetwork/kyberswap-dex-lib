@@ -388,10 +388,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000", // 1 NZDS (6 decimals)
-			maxDeviationBps:  200,       // 2% acceptable deviation
-			baseOracle:       "0xa302a0B8a499fD0f00449df0a490DedE21105955",
-			quoteOracle:      "0xa302a0B8a499fD0f00449df0a490DedE21105955", // Same oracle for NZDS/USD
+			amountIn:         "1000000",                                     // 1 NZDS (6 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0xa302a0B8a499fD0f00449df0a490DedE21105955", // NZDS/USD
+			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
 		{
 			name:             "Ethereum NZDS/USDC - Small swap",
@@ -401,10 +401,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000", // 1 NZDS (6 decimals)
-			maxDeviationBps:  200,       // 2% acceptable deviation
-			baseOracle:       "0x3977CFc9e4f29C184D4675f4EB8e0013236e5f3e",
-			quoteOracle:      "0x3977CFc9e4f29C184D4675f4EB8e0013236e5f3e", // Same oracle for NZDS/USD
+			amountIn:         "1000000",                                     // 1 NZDS (6 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0x3977CFc9e4f29C184D4675f4EB8e0013236e5f3e", // NZDS/USD
+			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
 		{
 			name:             "Polygon EURS/USDC - Small swap",
@@ -414,10 +414,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  2,
 			tokenOutDecimals: 6,
-			amountIn:         "100", // 1 EURS (2 decimals)
-			maxDeviationBps:  200,   // 2% acceptable deviation
-			baseOracle:       "0x73366Fe0AA0Ded304479862808e02506FE556a98",
-			quoteOracle:      "0x73366Fe0AA0Ded304479862808e02506FE556a98",
+			amountIn:         "100",                                         // 1 EURS (2 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0x73366Fe0AA0Ded304479862808e02506FE556a98", // EUR/USD
+			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
 		{
 			name:             "Polygon TRYB/USDC - Small swap",
@@ -427,10 +427,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000", // 1 TRYB (6 decimals)
-			maxDeviationBps:  200,       // 2% acceptable deviation
-			baseOracle:       "0xd78325DcA0F90F0FFe53cCeA1B02Bb12E1bf8FdB",
-			quoteOracle:      "0xd78325DcA0F90F0FFe53cCeA1B02Bb12E1bf8FdB",
+			amountIn:         "1000000",                                     // 1 TRYB (6 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0xd78325DcA0F90F0FFe53cCeA1B02Bb12E1bf8FdB", // TRY/USD
+			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
 		{
 			name:             "Polygon DAI/USDC - Small swap",
@@ -440,10 +440,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC (6 decimals)
 			tokenInDecimals:  18,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000000000000000", // 1 DAI (18 decimals)
-			maxDeviationBps:  200,                   // 2% acceptable deviation
-			baseOracle:       "0x4746DeC9e833A82EC7C2C1356372CcF2cfcD2F3D",
-			quoteOracle:      "0x4746DeC9e833A82EC7C2C1356372CcF2cfcD2F3D",
+			amountIn:         "1000000000000000000",                         // 1 DAI (18 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0x4746DeC9e833A82EC7C2C1356372CcF2cfcD2F3D", // DAI/USD
+			quoteOracle:      "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7", // USDC/USD on Polygon
 		},
 		{
 			name:             "Ethereum EURS/USDC - Small swap",
@@ -453,10 +453,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC (6 decimals)
 			tokenInDecimals:  2,
 			tokenOutDecimals: 6,
-			amountIn:         "100",                                        // 1 EURS (2 decimals)
-			maxDeviationBps:  200,                                          // 2% acceptable deviation
-			baseOracle:       "0xb49f677943BC038e9857d61E7d053CaA2C1734C1", // EUR/USD (fixed typo: 9859 -> 9857)
-			quoteOracle:      "0x986b5E1e1755e3C2440e960477f25201B0a8bbD4", // USDC/USD on Ethereum
+			amountIn:         "100",                                         // 1 EURS (2 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0xb49f677943BC038e9857d61E7d053CaA2C1734C1", // EUR/USD (from Stabull API)
+			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
 		{
 			name:             "Ethereum TRYB/USDC - Small swap",
@@ -466,10 +466,10 @@ func TestPoolSimulator_CalcAmountOut_ValidateAgainstContract(t *testing.T) {
 			tokenOut:         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",  // USDC (6 decimals)
 			tokenInDecimals:  6,
 			tokenOutDecimals: 6,
-			amountIn:         "1000000", // 1 TRYB (6 decimals)
-			maxDeviationBps:  200,       // 2% acceptable deviation
-			baseOracle:       "0xB09fC5fD3f11Cf9eb5E1C5Dba43114e3C9f477b5",
-			quoteOracle:      "0xB09fC5fD3f11Cf9eb5E1C5Dba43114e3C9f477b5",
+			amountIn:         "1000000",                                     // 1 TRYB (6 decimals)
+			maxDeviationBps:  200,                                            // 2% acceptable deviation
+			baseOracle:       "0xB09fC5fD3f11Cf9eb5E1C5Dba43114e3C9f477b5", // TRY/USD
+			quoteOracle:      "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC/USD on Ethereum
 		},
 	}
 
