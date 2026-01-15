@@ -99,12 +99,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	// Check if we have enough reserves
-	if amountOut.Cmp(p.Info.Reserves[tokenOutIndex]) >= 0 {
-		return nil, fmt.Errorf("insufficient reserves: need %s, have %s",
-			amountOut.String(), p.Info.Reserves[tokenOutIndex].String())
-	}
-
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
