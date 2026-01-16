@@ -70,10 +70,6 @@ func calculateStabullSwap(
 
 	// Calculate omega (fee for old state)
 	omega := calculateFee(oGLiq, oBals, beta, delta, weights)
-	
-	// Add epsilon (base swap fee) to omega
-	// In the contract, total fee = omega + epsilon
-	omega = new(big.Int).Add(omega, epsilon)
 
 	// Start with negative of input (will be adjusted in loop)
 	outputAmt := new(big.Int).Neg(amountIn)
@@ -93,9 +89,6 @@ func calculateStabullSwap(
 	for i := 0; i < 32; i++ {
 		// Calculate psi (fee for new state)
 		psi := calculateFee(nGLiq, nBals, beta, delta, weights)
-		
-		// Add epsilon (base swap fee) to psi
-		psi = new(big.Int).Add(psi, epsilon)
 
 		// Save previous for convergence check
 		prevAmount := new(big.Int).Set(outputAmt)
@@ -131,6 +124,12 @@ func calculateStabullSwap(
 			if result.Cmp(reserveOut) >= 0 {
 				return nil, ErrInsufficientLiquidity
 			}
+
+			// Apply epsilon fee: result = result * (ONE - epsilon) / ONE
+			// In the contract: _amt = _amt.us_mul(ONE - curve.epsilon)
+			oneMinusEpsilon := new(big.Int).Sub(one, epsilon)
+			result = new(big.Int).Mul(result, oneMinusEpsilon)
+			result.Div(result, one)
 
 			return result, nil
 		}
