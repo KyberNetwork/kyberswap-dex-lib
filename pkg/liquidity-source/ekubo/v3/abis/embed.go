@@ -14,4 +14,7 @@ var (
 
 	//go:embed TwammDataFetcher.json
 	twammDataFetcherJson []byte
+
+	//go:embed MevCaptureRouter.json
+	mevCaptureRouterJson []byte
 )

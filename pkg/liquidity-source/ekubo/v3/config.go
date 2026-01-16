@@ -14,6 +14,7 @@ type Config struct {
 	Oracle           common.Address       `json:"oracle"`
 	Twamm            common.Address       `json:"twamm"`
 	MevCapture       common.Address       `json:"mevCapture"`
+	MevCaptureRouter common.Address       `json:"mevCaptureRouter"`
 	QuoteDataFetcher string               `json:"quoteDataFetcher"`
 	TwammDataFetcher string               `json:"twammDataFetcher"`
 

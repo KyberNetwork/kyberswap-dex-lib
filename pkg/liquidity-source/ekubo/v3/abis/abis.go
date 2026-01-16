@@ -11,6 +11,7 @@ var (
 	QuoteDataFetcherABI abi.ABI
 	TwammDataFetcherABI abi.ABI
 	CoreABI             abi.ABI
+	MevCaptureRouterABI abi.ABI
 
 	OrderUpdatedEvent    abi.Event
 	PositionUpdatedEvent abi.Event
@@ -25,6 +26,7 @@ func init() {
 		{&TwammABI, twammJson},
 		{&QuoteDataFetcherABI, quoteDataFetcherJson},
 		{&TwammDataFetcherABI, twammDataFetcherJson},
+		{&MevCaptureRouterABI, mevCaptureRouterJson},
 	}
 
 	for _, b := range builder {

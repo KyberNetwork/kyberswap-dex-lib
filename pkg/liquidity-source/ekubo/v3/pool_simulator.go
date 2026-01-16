@@ -27,7 +27,8 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 		EkuboPool
-		Core common.Address
+		Core   common.Address
+		Router common.Address
 	}
 )
 
@@ -123,8 +124,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
-		Core:    p.Core,
-		PoolKey: p.EkuboPool.GetKey().ToAbi(),
+		MevCaptureRouter: p.Router,
+		Core:             p.Core,
+		PoolKey:          p.EkuboPool.GetKey().ToAbi(),
 	}
 }
 
@@ -158,5 +160,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		EkuboPool: ekuboPool,
 		Core:      staticExtra.Core,
+		Router:    staticExtra.MevCaptureRouter,
 	}, nil
 }

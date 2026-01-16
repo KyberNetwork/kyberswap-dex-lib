@@ -210,9 +210,10 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		}
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			Core:          u.config.Core,
-			ExtensionType: extensionType,
-			PoolKey:       &pools.AnyPoolKey{PoolKey: poolKey},
+			Core:             u.config.Core,
+			ExtensionType:    extensionType,
+			PoolKey:          &pools.AnyPoolKey{PoolKey: poolKey},
+			MevCaptureRouter: u.config.MevCaptureRouter,
 		})
 		if err != nil {
 			return nil, nil, err

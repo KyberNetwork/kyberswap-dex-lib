@@ -14,14 +14,16 @@ type (
 	Extra = PoolState
 
 	StaticExtra struct {
-		Core          common.Address    `json:"core"`
-		ExtensionType ExtensionType     `json:"extensionType"`
-		PoolKey       *pools.AnyPoolKey `json:"poolKey"`
+		Core             common.Address    `json:"core"`
+		ExtensionType    ExtensionType     `json:"extensionType"`
+		PoolKey          *pools.AnyPoolKey `json:"poolKey"`
+		MevCaptureRouter common.Address    `json:"mevCaptureRouter"`
 	}
 
 	Meta struct {
-		Core    common.Address   `json:"core"`
-		PoolKey pools.AbiPoolKey `json:"poolKey"`
+		MevCaptureRouter common.Address   `json:"router"`
+		Core             common.Address   `json:"core"`
+		PoolKey          pools.AbiPoolKey `json:"poolKey"`
 	}
 
 	Pool interface {
