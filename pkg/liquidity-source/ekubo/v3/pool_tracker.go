@@ -1,32 +1,28 @@
-package ekubo
+package ekubov3
 
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
-
-type PoolTracker struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
-	dataFetcher  *dataFetchers
-}
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
@@ -38,6 +34,12 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+	dataFetcher  *dataFetchers
+}
+
 func (d *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -45,7 +47,7 @@ func (d *PoolTracker) getNewPoolState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	lg := klog.WithFields(ctx, klog.Fields{
-		"dexId":       d.config.DexId,
+		"dexId":       DexType,
 		"poolAddress": p.Address,
 	})
 	lg.Infof("Start updating state, log count: %d", len(params.Logs))
@@ -129,7 +131,12 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 	}
 
-	eth.SortLogs(logs)
+	slices.SortFunc(logs, func(l, r types.Log) int {
+		if l.BlockNumber == r.BlockNumber {
+			return int(l.Index - r.Index)
+		}
+		return int(l.BlockNumber - r.BlockNumber)
+	})
 
 	for _, log := range logs {
 		if log.BlockNumber < pool.blockNumber {
@@ -176,18 +183,26 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 
 func (d *PoolTracker) forceUpdateState(
 	ctx context.Context,
-	poolKey *pools.PoolKey,
+	poolKey *pools.AnyPoolKey,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolWithBlockNumber, error) {
-	poolAddress, _ := poolKey.ToPoolAddress()
+	if poolKey == nil {
+		return nil, fmt.Errorf("missing pool key")
+	}
+
+	poolAddress, err := poolKey.ToPoolAddress()
+	if err != nil {
+		return nil, fmt.Errorf("computing pool address: %w", err)
+	}
+
 	logger.WithFields(logger.Fields{
-		"dexId":       d.config.DexId,
+		"dexId":       DexType,
 		"poolAddress": poolAddress,
 	}).Info("update state from data fetcher")
 
 	pools, err := d.dataFetcher.fetchPools(
 		ctx,
-		[]*pools.PoolKey{poolKey},
+		[]*pools.PoolKey[pools.PoolTypeConfig]{poolKey.PoolKey},
 		overrides,
 	)
 	if err != nil {

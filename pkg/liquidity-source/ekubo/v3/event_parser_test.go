@@ -1,4 +1,4 @@
-package ekubo
+package ekubov3
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
@@ -21,8 +22,8 @@ func TestEventParserDecode(t *testing.T) {
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	e := NewEventParser(&Config{
-		Core:  common.HexToAddress("0xe0e0e08A6A4b9Dc7bD67BCB7aadE5cF48157d444"),
-		Twamm: common.HexToAddress("0xd4279c050da1f5c5b2830558c7a08e57e12b54ec"),
+		Core:  common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
+		Twamm: common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
 	})
 
 	tests := []struct {
@@ -31,32 +32,31 @@ func TestEventParserDecode(t *testing.T) {
 		poolAddress []string
 	}{
 		{
-			name:   "Position updated",
-			txHash: "0x10d8e276994d28e82bd67a915fea15a0d7e5da43333f00fbc1b1d09cf8bd6322",
+			name:   "Swapped",
+			txHash: "0xee56e1f3bad803bd857fb118e55d7eabb5368a94ae8f11e83724278f474294ca",
 			poolAddress: []string{
-				"0xdbcf2dab4ba020756b3f44836b5dfc85d95b67d0d35849d3e8d0f00e93d4c763",
+				"0x21ae00a8bbb307ce790c612a71c5ce300918ddca939255bd5e26a8fdcf04b0de",
 			},
 		},
 		{
-			name:   "Anonymous event",
-			txHash: "0x26d7555c237c64968f06f662c91f111c9824efc54decdb68e5ad1c35b384dc17",
+			name:   "PositionUpdated",
+			txHash: "0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691",
 			poolAddress: []string{
-				"0x0e647f6d174aa84c22fddeef0af92262b878ba6f86094e54dbec558c0a53ab79",
-				"0x7d7ee01726b349da3cf2c5af88a965579f3f241693e4c63b19dcbb02ed3c6ff3",
+				"0x21ae00a8bbb307ce790c612a71c5ce300918ddca939255bd5e26a8fdcf04b0de",
 			},
 		},
 		{
-			name:   "Anonymous event",
-			txHash: "0xe13b37e5729409f2df6309ff041e203a0a2df538482c01363d61ddcc4a7d9ff2",
+			name:   "VirtualOrdersExecuted",
+			txHash: "0xde6812e959a49e245f15714d1b50571f43ca7711c91d2df1087178a38bc554b7",
 			poolAddress: []string{
-				"0x91ed49e8b9bf72bda26928351a3bbf93b7bb964ee2b22ca35dce6460ce33e9ee",
+				"0x8d04fa3b0df99076064daf0511006a8a06b0f988922db81c1e596ddfd1f3da12",
 			},
 		},
 		{
-			name:   "Order updated event",
-			txHash: "0xbd9e24145c6e3c936c7617d2a7756a0a7d1b3cf491e145d21f201a06899b1f01",
+			name:   "OrderUpdated",
+			txHash: "0x67bb5ba44397d8b9d9ffe753e9c7f1b478eadfac22464a39521bdd3541f6a68f",
 			poolAddress: []string{
-				"0x91ed49e8b9bf72bda26928351a3bbf93b7bb964ee2b22ca35dce6460ce33e9ee",
+				"0x8d04fa3b0df99076064daf0511006a8a06b0f988922db81c1e596ddfd1f3da12",
 			},
 		},
 	}
@@ -69,10 +69,9 @@ func TestEventParserDecode(t *testing.T) {
 				t.Fatalf("failed to get tx receipt: %v", err)
 			}
 
-			logs := make([]types.Log, len(txReceipt.Logs))
-			for _, log := range txReceipt.Logs {
-				logs = append(logs, *log)
-			}
+			logs := lo.Map(txReceipt.Logs, func(log *types.Log, _ int) types.Log {
+				return *log
+			})
 
 			logByAddress, err := e.Decode(context.Background(), logs)
 
@@ -83,5 +82,4 @@ func TestEventParserDecode(t *testing.T) {
 			}
 		})
 	}
-
 }
