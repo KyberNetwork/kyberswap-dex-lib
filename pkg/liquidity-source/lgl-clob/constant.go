@@ -14,7 +14,8 @@ const (
 
 	maxPriceLevels = 48
 
-	safetyBuffer = 0.69420
+	safetyBuffer        = 0.69420
+	priceLimitPrecision = 6
 )
 
 var (

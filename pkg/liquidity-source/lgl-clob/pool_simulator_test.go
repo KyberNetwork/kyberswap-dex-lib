@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -429,4 +430,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	})
 	assert.Equal(t, "2800410", poolSim.Bids.ArrayShares[0].String())
 	assert.Equal(t, "3116", poolSim.Bids.ArrayPrices[0].String())
+}
+
+// BenchmarkRoundFloat-16    14106196    123.6  ns/op
+// BenchmarkRound-16         96619128     12.32 ns/op
+func BenchmarkRound(b *testing.B) {
+	a, c := uint256.NewInt(1234567891), uint256.NewInt(12345)
+	for range b.N {
+		round(a, 6, true)
+		round(c, 6, false)
+	}
 }
