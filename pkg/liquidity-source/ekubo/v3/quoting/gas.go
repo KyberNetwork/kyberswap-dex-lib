@@ -2,11 +2,11 @@ package quoting
 
 // TODO
 const (
-	BaseGasCost = 81_473
+	BaseGasCost = 27_326
 
-	BaseGasFullRangeSwap             = 17_351
+	BaseGasFullRangeSwap             = 16_079
 	BaseGasStableswapSwap            = 18_000 // TODO
-	BaseGasConcentratedLiquiditySwap = 21_827
+	BaseGasConcentratedLiquiditySwap = 19_360
 	ExtraBaseGasMevCaptureSwap       = 9_178
 
 	GasInitializedTickCrossed     = 20_000
