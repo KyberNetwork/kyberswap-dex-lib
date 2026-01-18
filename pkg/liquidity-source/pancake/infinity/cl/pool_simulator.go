@@ -49,8 +49,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, shared.ErrUnsupportedHook
 	}
 
-	var allowEmptyTicks bool
+	// modify ticks before new pool simulator, some hooks will need this.
+	// In the the original logic, we should do this logic in BeforeSwap in CalcAmountOut, but using here for simplicity.
+	err := hook.ModifyTicks(extra.ExtraTickU256)
+	if err != nil {
+		return nil, err
+	}
 
+	var allowEmptyTicks bool
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256,
 		allowEmptyTicks)
 	if err != nil {
