@@ -76,6 +76,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 // CalcAmountOut calculates the expected output amount for a given input
 // Uses cached reserve and curve parameter state from pool tracker
+// Expects tokenAmountIn.Amount in input token decimals, returns output in output token decimals
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
@@ -130,6 +131,8 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, fmt.Errorf("invalid amount in")
 	}
 
+	// Get token decimals from entity pool tokens
+	// Reserves are stored in 18 decimals (numeraire), but input/output are in token decimals
 	reserveIn := p.Info.Reserves[tokenInIndex]
 	reserveOut := p.Info.Reserves[tokenOutIndex]
 
@@ -218,13 +221,13 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, err
 	}
 
-	// Convert output from numeraire to actual token amount
-	// For base→quote (token0→token1): output is already in quote token units (numeraire)
-	// For quote→base (token1→token0): output is in numeraire, need to convert to base token units
+	// Convert output from numeraire (18 decimals) back to token decimals
+	// For base→quote (token0→token1): output is in numeraire, convert using QuoteOracleRate
+	// For quote→base (token1→token0): output is in numeraire, convert using BaseOracleRate
 	amountOut := amountOutNumeraire
 
 	if tokenOutIndex == 0 {
-		// Swapping to base token (token0), need to convert from numeraire
+		// Swapping to base token (token0), convert from numeraire to token decimals
 		var outputOracleRate *big.Int
 		if p.extra.BaseOracleRate != "" {
 			outputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
@@ -238,26 +241,31 @@ func (p *PoolSimulator) calculateSwap(
 		// Convert from numeraire to token: (amountOutNumeraire * 1e8) / oracleRate
 		amountOut = new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
 		amountOut.Div(amountOut, outputOracleRate)
+	} else {
+		// Swapping to quote token (token1), convert from numeraire to token decimals
+		var outputOracleRate *big.Int
+		if p.extra.QuoteOracleRate != "" {
+			outputOracleRate, _ = new(big.Int).SetString(p.extra.QuoteOracleRate, 10)
+		}
+
+		// Validate that we have the required oracle rate for output conversion
+		if outputOracleRate == nil || outputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
+			return nil, fmt.Errorf("missing or invalid QuoteOracleRate for output token conversion")
+		}
+
+		// Convert from numeraire to token: (amountOutNumeraire * 1e8) / oracleRate
+		amountOut = new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
+		amountOut.Div(amountOut, outputOracleRate)
 	}
-	// For tokenOutIndex == 1 (quote token), output is already in correct units
 
 	return amountOut, nil
 }
 
-// UpdateBalance updates the pool state after a swap
+// UpdateBalance is a no-op for Stabull pools since we don't track state changes
+// The actual swap execution and balance updates are handled by the contract
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output := params.TokenAmountIn, params.TokenAmountOut
-
-	for i := range p.Info.Tokens {
-		if p.Info.Tokens[i] == input.Token {
-			// Add input amount to reserves
-			p.Info.Reserves[i] = new(big.Int).Add(p.Info.Reserves[i], input.Amount)
-		}
-		if p.Info.Tokens[i] == output.Token {
-			// Subtract output amount from reserves
-			p.Info.Reserves[i] = new(big.Int).Sub(p.Info.Reserves[i], output.Amount)
-		}
-	}
+	// No-op: We don't update internal state since we don't know if swap is actually executed
+	// The pool tracker will fetch fresh state from the contract on the next update cycle
 }
 
 // GetMetaInfo returns metadata about the pool

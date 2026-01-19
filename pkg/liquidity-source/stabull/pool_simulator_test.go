@@ -174,64 +174,8 @@ func TestCalcAmountOut(t *testing.T) {
 	}
 }
 
-// TestUpdateBalance tests state updates after swaps
-func TestUpdateBalance(t *testing.T) {
-	// Use bignumber.NewBig10 or string parsing for large values
-	initialReserve0, _ := new(big.Int).SetString("1000000000000000000000", 10) // 1000 tokens
-	initialReserve1, _ := new(big.Int).SetString("2000000000000000000000", 10) // 2000 tokens
-	amountIn, _ := new(big.Int).SetString("1000000000000000000", 10)           // 1 token
-	amountOut, _ := new(big.Int).SetString("1990000000000000000", 10)          // ~1.99 tokens (example)
-
-	extra := Extra{
-		CurveParams: CurveParameters{
-			Alpha:   "1000000000000000000",
-			Beta:    "500000000000000000",
-			Delta:   "100000000000000000",
-			Epsilon: "200000000000000000",
-			Lambda:  "1000000000000000000",
-		},
-		OracleRate: "1000000000000000000",
-	}
-	extraBytes, _ := json.Marshal(extra)
-
-	entityPool := entity.Pool{
-		Address:  "0xtest",
-		Exchange: "stabull",
-		Type:     "stabull",
-		Reserves: []string{initialReserve0.String(), initialReserve1.String()},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xtoken0"},
-			{Address: "0xtoken1"},
-		},
-		Extra: string(extraBytes),
-	}
-
-	sim, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-
-	// Perform swap
-	sim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xtoken0",
-			Amount: amountIn,
-		},
-		TokenAmountOut: pool.TokenAmount{
-			Token:  "0xtoken1",
-			Amount: amountOut,
-		},
-	})
-
-	// Check reserves updated
-	assert.True(t, sim.Info.Reserves[0].Cmp(initialReserve0) > 0,
-		"Reserve0 should increase")
-	assert.True(t, sim.Info.Reserves[1].Cmp(initialReserve1) < 0,
-		"Reserve1 should decrease")
-
-	// Fee stays in pool (goes to LPs), so reserve increases by full amountIn
-	actualIncrease := new(big.Int).Sub(sim.Info.Reserves[0], initialReserve0)
-	assert.Equal(t, amountIn, actualIncrease,
-		"Reserve0 increase should match full input amount (fee stays in pool)")
-}
+// TestUpdateBalance removed - UpdateBalance is now a no-op since we don't track state changes
+// The pool tracker fetches fresh state from the contract on each update cycle
 
 // TestCanSwap tests token swap compatibility
 func TestCanSwap(t *testing.T) {

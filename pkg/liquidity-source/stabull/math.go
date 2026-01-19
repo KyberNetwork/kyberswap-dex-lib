@@ -27,6 +27,13 @@ const (
 // 2. Iterates up to 32 times adjusting output based on psi (fee for new state)
 // 3. Uses lambda to weight the fee adjustment when omega >= psi
 //
+// Parameters:
+// - alpha: Reserved curve parameter (not currently used in fee calculation)
+// - beta: Fee threshold multiplier (defines when fees start accruing)
+// - delta: Fee rate multiplier (controls fee magnitude)
+// - epsilon: Base swap fee (applied as final multiplication after convergence)
+// - lambda: Fee adjustment weight when omega >= psi
+//
 // All calculations are done in numeraire space (18 decimals)
 func calculateStabullSwap(
 	amountIn *big.Int,
