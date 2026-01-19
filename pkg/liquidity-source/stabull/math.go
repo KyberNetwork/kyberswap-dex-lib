@@ -28,7 +28,6 @@ const (
 // 3. Uses lambda to weight the fee adjustment when omega >= psi
 //
 // Parameters:
-// - alpha: Reserved curve parameter (not currently used in fee calculation)
 // - beta: Fee threshold multiplier (defines when fees start accruing)
 // - delta: Fee rate multiplier (controls fee magnitude)
 // - epsilon: Base swap fee (applied as final multiplication after convergence)
@@ -39,12 +38,10 @@ func calculateStabullSwap(
 	amountIn *big.Int,
 	reserveIn *big.Int,
 	reserveOut *big.Int,
-	alpha *big.Int,
 	beta *big.Int,
 	delta *big.Int,
 	epsilon *big.Int,
 	lambda *big.Int,
-	oracleRate *big.Int,
 ) (*big.Int, error) {
 	if amountIn == nil || amountIn.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmount
@@ -238,31 +235,4 @@ func calculateMicroFee(bal *big.Int, ideal *big.Int, beta *big.Int, delta *big.I
 		return fee
 	}
 	return bignumber.ZeroBI
-}
-
-// calculateSwapFeeFromEpsilon derives the swap fee basis points from epsilon
-// Epsilon is the fee parameter in 1e18 precision
-// Returns fee in basis points (1 bp = 0.01%)
-func calculateSwapFeeFromEpsilon(epsilon *big.Int) int64 {
-	// Epsilon is typically around 1.5e15 for 0.15% fee
-	// Convert from 1e18 precision to basis points (1e4 precision)
-	// fee_bps = epsilon * 10000 / 1e18
-
-	if epsilon == nil || epsilon.Cmp(bignumber.ZeroBI) == 0 {
-		return 15 // Default 0.15% = 15 bps
-	}
-
-	// epsilon (1e18) -> basis points (1e4)
-	// bps = epsilon / 1e14
-	bps := new(big.Int).Div(epsilon, big.NewInt(1e14))
-
-	return bps.Int64()
-}
-
-// applyFee applies a fee to an amount
-func applyFee(amount *big.Int, feeBps int64) *big.Int {
-	fee := new(big.Int).Mul(amount, big.NewInt(feeBps))
-	fee = new(big.Int).Div(fee, big.NewInt(10000))
-
-	return new(big.Int).Sub(amount, fee)
 }

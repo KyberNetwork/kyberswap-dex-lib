@@ -145,11 +145,6 @@ func (p *PoolSimulator) calculateSwap(
 	}
 
 	// Parse curve parameters from extra
-	alpha, ok := new(big.Int).SetString(p.extra.CurveParams.Alpha, 10)
-	if !ok || alpha == nil {
-		alpha = new(big.Int).Mul(big.NewInt(5), big.NewInt(1e17)) // Default: 0.5 * 1e18
-	}
-
 	beta, ok := new(big.Int).SetString(p.extra.CurveParams.Beta, 10)
 	if !ok || beta == nil {
 		beta = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
@@ -170,95 +165,61 @@ func (p *PoolSimulator) calculateSwap(
 		lambda = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
 	}
 
-	// Convert amountIn to numeraire using the input token's oracle rate
-	// The contract's Assimilators convert token amounts to a common numeraire (USD)
-	// Reserves are stored in numeraire terms
-	var inputOracleRate *big.Int
+	// Get oracle rates for input and output tokens
+	// For tokenInIndex=0 (base→quote): input=BaseOracleRate, output=QuoteOracleRate
+	// For tokenInIndex=1 (quote→base): input=QuoteOracleRate, output=BaseOracleRate
+	var inputOracleRate, outputOracleRate *big.Int
 	if tokenInIndex == 0 {
-		// Swapping base token (token0) → quote token (token1)
 		if p.extra.BaseOracleRate != "" {
 			inputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
 		}
+		if p.extra.QuoteOracleRate != "" {
+			outputOracleRate, _ = new(big.Int).SetString(p.extra.QuoteOracleRate, 10)
+		}
 	} else {
-		// Swapping quote token (token1) → base token (token0)
 		if p.extra.QuoteOracleRate != "" {
 			inputOracleRate, _ = new(big.Int).SetString(p.extra.QuoteOracleRate, 10)
 		}
+		if p.extra.BaseOracleRate != "" {
+			outputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
+		}
 	}
 
-	// Validate that we have the required oracle rate
+	// Validate oracle rates
 	if inputOracleRate == nil || inputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
 		if tokenInIndex == 0 {
-			return nil, fmt.Errorf("missing or invalid BaseOracleRate for input token conversion (have: '%s')", p.extra.BaseOracleRate)
+			return nil, fmt.Errorf("missing or invalid BaseOracleRate for input token")
 		}
-		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for input token conversion (have: '%s', addr: '%s')", p.extra.QuoteOracleRate, p.extra.QuoteOracleAddress)
+		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for input token")
+	}
+	if outputOracleRate == nil || outputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
+		if tokenOutIndex == 0 {
+			return nil, fmt.Errorf("missing or invalid BaseOracleRate for output token")
+		}
+		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for output token")
 	}
 
-	// Convert input to numeraire: (amountIn * oracleRate) / 1e8
-	// Chainlink oracle rates are 8 decimals
+	// Convert input to numeraire: (amountIn * inputOracleRate) / 1e8
 	amountInNumeraire := new(big.Int).Mul(amountIn, inputOracleRate)
 	amountInNumeraire.Div(amountInNumeraire, big.NewInt(1e8))
 
-	// Parse oracle rate from extra (for internal curve pricing)
-	var oracleRate *big.Int
-	if p.extra.OracleRate != "" {
-		oracleRate, _ = new(big.Int).SetString(p.extra.OracleRate, 10)
-	}
-
 	// Use the Stabull curve formula with greek parameters
 	amountOutNumeraire, err := calculateStabullSwap(
-		amountInNumeraire, // Use numeraire-adjusted amount
+		amountInNumeraire,
 		reserveIn,
 		reserveOut,
-		alpha,
 		beta,
 		delta,
 		epsilon,
 		lambda,
-		oracleRate, // Pass oracle rate for pricing adjustment
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert output from numeraire (18 decimals) back to token decimals
-	// For base→quote (token0→token1): output is in numeraire, convert using QuoteOracleRate
-	// For quote→base (token1→token0): output is in numeraire, convert using BaseOracleRate
-	amountOut := amountOutNumeraire
-
-	if tokenOutIndex == 0 {
-		// Swapping to base token (token0), convert from numeraire to token decimals
-		var outputOracleRate *big.Int
-		if p.extra.BaseOracleRate != "" {
-			outputOracleRate, _ = new(big.Int).SetString(p.extra.BaseOracleRate, 10)
-		}
-
-		// Validate that we have the required oracle rate for output conversion
-		if outputOracleRate == nil || outputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
-			return nil, fmt.Errorf("missing or invalid BaseOracleRate for output token conversion")
-		}
-
-		// Convert from numeraire to token: (amountOutNumeraire * 1e8) / oracleRate
-		amountOut = new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
-		amountOut.Div(amountOut, outputOracleRate)
-	} else {
-		// Swapping to quote token (token1), convert from numeraire to token decimals
-		var outputOracleRate *big.Int
-		if p.extra.QuoteOracleRate != "" {
-			outputOracleRate, _ = new(big.Int).SetString(p.extra.QuoteOracleRate, 10)
-		}
-
-		// Validate that we have the required oracle rate for output conversion
-		if outputOracleRate == nil || outputOracleRate.Cmp(bignumber.ZeroBI) <= 0 {
-			return nil, fmt.Errorf("missing or invalid QuoteOracleRate for output token conversion")
-		}
-
-		// Convert from numeraire to token: (amountOutNumeraire * 1e8) / oracleRate
-		amountOut = new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
-		amountOut.Div(amountOut, outputOracleRate)
-	}
-
-	return amountOut, nil
+	// Convert output from numeraire to token decimals: (amountOutNumeraire * 1e8) / outputOracleRate
+	result := new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
+	return result.Div(result, outputOracleRate), nil
 }
 
 // UpdateBalance is a no-op for Stabull pools since we don't track state changes
@@ -269,7 +230,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 // GetMetaInfo returns metadata about the pool
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(string, string) any {
 	meta := Meta{
 		Alpha:   p.extra.CurveParams.Alpha,
 		Beta:    p.extra.CurveParams.Beta,
