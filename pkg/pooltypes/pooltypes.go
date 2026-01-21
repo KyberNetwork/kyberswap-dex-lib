@@ -24,6 +24,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
@@ -363,6 +364,7 @@ type Types struct {
 	Nabla                      string
 	Tessera                    string
 	LiquidCore                 string
+	Carbon                     string
 }
 
 var (
@@ -556,5 +558,6 @@ var (
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
 		LiquidCore:                 liquidcore.DexType,
+		Carbon:                     carbon.DexType,
 	}
 )

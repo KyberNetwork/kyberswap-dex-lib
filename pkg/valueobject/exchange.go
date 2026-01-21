@@ -88,6 +88,7 @@ const (
 	ExchangeBvm                        = "bvm"
 	ExchangeCamelot                    = "camelot"
 	ExchangeCamelotV3                  = "camelot-v3"
+	ExchangeCarbon                     = "carbon"
 	ExchangeChronos                    = "chronos"
 	ExchangeChronosV3                  = "chronos-v3"
 	ExchangeCleopatra                  = "cleopatra"
