@@ -219,6 +219,9 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
+	var amountOutBeforeConvert uint256.Int
+	amountOutBeforeConvert.Set(amountOut)
+
 	if isTokenOutUnderlying {
 		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
@@ -241,7 +244,8 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: totalSwapFee.ToBig(),
 		},
 		SwapInfo: shared.SwapInfo{
-			AggregateFee: aggregateFee.ToBig(),
+			AggregateFee:           aggregateFee.ToBig(),
+			AmountOutBeforeConvert: amountOutBeforeConvert.ToBig(),
 		},
 		Gas: gas,
 	}, nil
@@ -312,6 +316,8 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	if err != nil {
 		return nil, err
 	}
+	var amountInBeforeConvert uint256.Int
+	amountInBeforeConvert.Set(amountIn)
 
 	if isTokenInUnderlying {
 		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
@@ -335,7 +341,8 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Amount: totalSwapFee.ToBig(),
 		},
 		SwapInfo: shared.SwapInfo{
-			AggregateFee: aggregateSwapFee.ToBig(),
+			AggregateFee:          aggregateSwapFee.ToBig(),
+			AmountInBeforeConvert: amountInBeforeConvert.ToBig(),
 		},
 		Gas: gas,
 	}, nil
@@ -364,11 +371,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	amountIn := params.TokenAmountIn.Amount
+	amountIn := lo.Ternary(swapInfo.AmountInBeforeConvert != nil,
+		swapInfo.AmountInBeforeConvert,
+		params.TokenAmountIn.Amount,
+	)
 	if isTokenInUnderlying {
 		// If token in is underlying we must use the converted shares amount for the balance update
 		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(
-			uint256.MustFromBig(params.TokenAmountIn.Amount), false)
+			uint256.MustFromBig(amountIn), false)
 		amountIn = convertedAmount.ToBig()
 	}
 
@@ -385,11 +395,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	amountOut := params.TokenAmountOut.Amount
+	amountOut := lo.Ternary(swapInfo.AmountOutBeforeConvert != nil,
+		swapInfo.AmountOutBeforeConvert,
+		params.TokenAmountOut.Amount,
+	)
 	if isTokenOutUnderlying {
 		// If token out is underlying we must use the converted assets amount for the balance update
 		convertedAmount, _ := p.buffers[indexOut].ConvertToAssets(
-			uint256.MustFromBig(params.TokenAmountOut.Amount), false)
+			uint256.MustFromBig(amountOut), false)
 		amountOut = convertedAmount.ToBig()
 	}
 

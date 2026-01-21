@@ -212,7 +212,7 @@ func TestUpdateBalance(t *testing.T) {
 			tokenOutAmount: big.NewInt(1e18),
 			expectedReserves: []*big.Int{
 				big.NewInt(4e18),                // waEthLidoWETH + in
-				big.NewInt(3003370557302528821), // waEthLidowstETH reserve - out/ERC4626rate
+				big.NewInt(2996618043619696715), // waEthLidowstETH reserve - out/ERC4626rate
 			},
 			aggregateFee: big.NewInt(0), // Zero fee for test examples
 		},
@@ -225,7 +225,7 @@ func TestUpdateBalance(t *testing.T) {
 			tokenOutAmount: big.NewInt(1e18),
 			expectedReserves: []*big.Int{
 				big.NewInt(3952511634683290746), // waEthLidoWETH + in/ERC4626rate
-				big.NewInt(3003370557302528821), // waEthLidowstETH reserve - out/ERC4626rate
+				big.NewInt(2996618043619696715), // waEthLidowstETH reserve - out/ERC4626rate
 			},
 			aggregateFee: big.NewInt(0), // Zero fee for test examples
 		},
