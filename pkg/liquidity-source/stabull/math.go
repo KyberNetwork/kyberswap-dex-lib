@@ -133,36 +133,37 @@ func calculateStabullSwap(
 				return nil, ErrInsufficientLiquidity
 			}
 
-			// Check alpha bounds: prevent swaps that move reserves too far in one direction
-			// With alpha=0.5 (50%), reserves must stay between 25% and 75% of total liquidity
-			// newReserveIn = reserveIn + amountIn
-			// newReserveOut = reserveOut - result
-			newReserveIn := new(big.Int).Add(reserveIn, amountIn)
-			newReserveOut := new(big.Int).Sub(reserveOut, result)
-			totalLiquidity := new(big.Int).Add(newReserveIn, newReserveOut)
-
-			// Calculate bounds: alpha defines the center, bounds are [0.5-alpha/2, 0.5+alpha/2]
-			// For alpha=0.5: bounds are [0.25, 0.75] (i.e., 25% to 75%)
-			// lowerBound = totalLiquidity * (ONE/2 - alpha/2) / ONE
-			// upperBound = totalLiquidity * (ONE/2 + alpha/2) / ONE
-			halfOne := new(big.Int).Div(one, big.NewInt(2))
-			halfAlpha := new(big.Int).Div(alpha, big.NewInt(2))
-
-			lowerBoundRatio := new(big.Int).Sub(halfOne, halfAlpha)
-			upperBoundRatio := new(big.Int).Add(halfOne, halfAlpha)
-
-			lowerBound := new(big.Int).Mul(totalLiquidity, lowerBoundRatio)
-			lowerBound.Div(lowerBound, one)
-
-			upperBound := new(big.Int).Mul(totalLiquidity, upperBoundRatio)
-			upperBound.Div(upperBound, one)
-
-			// Check if either reserve would be outside bounds
-			if newReserveIn.Cmp(lowerBound) < 0 || newReserveIn.Cmp(upperBound) > 0 {
-				return nil, fmt.Errorf("swap would violate alpha bounds for input reserve")
+			// enforceHalts: Check alpha bounds to prevent swaps that move reserves too far
+			// This matches CurveMath.sol enforceHalts() at line 203
+			// Alpha defines halt boundaries relative to ideal (weighted) balance
+			// For 50/50 pool with alpha=0.5:
+			//   - Ideal = 50% of total liquidity
+			//   - Upper halt = ideal * (1 + alpha) = 50% * 1.5 = 75%
+			//   - Lower halt = ideal * (1 - alpha) = 50% * 0.5 = 25%
+			
+			oGLiq := new(big.Int).Add(reserveIn, reserveOut)
+			nGLiq := new(big.Int).Add(
+				new(big.Int).Add(reserveIn, amountIn),
+				new(big.Int).Sub(reserveOut, result),
+			)
+			
+			// oBals and nBals for input and output tokens
+			oBalsIn := reserveIn
+			oBalsOut := reserveOut
+			nBalsIn := new(big.Int).Add(reserveIn, amountIn)
+			nBalsOut := new(big.Int).Sub(reserveOut, result)
+			
+			// Weight is 0.5 (50%) for both tokens in a 50/50 pool
+			weight := new(big.Int).Div(one, big.NewInt(2)) // 0.5e18
+			
+			// Check input token halts
+			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsIn, nBalsIn, weight, alpha); err != nil {
+				return nil, err
 			}
-			if newReserveOut.Cmp(lowerBound) < 0 || newReserveOut.Cmp(upperBound) > 0 {
-				return nil, fmt.Errorf("swap would violate alpha bounds for output reserve")
+			
+			// Check output token halts
+			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsOut, nBalsOut, weight, alpha); err != nil {
+				return nil, err
 			}
 
 			// Apply epsilon fee: result = result * (ONE - epsilon) / ONE
@@ -271,4 +272,82 @@ func calculateMicroFee(bal *big.Int, ideal *big.Int, beta *big.Int, delta *big.I
 		return fee
 	}
 	return bignumber.ZeroBI
+}
+
+// enforceHaltsForToken checks alpha bounds for a single token
+// Implements the logic from CurveMath.sol enforceHalts() at line 203
+// Alpha defines halt boundaries relative to ideal (weighted) balance:
+//   - If balance > ideal: upper halt = ideal * (1 + alpha)
+//   - If balance < ideal: lower halt = ideal * (1 - alpha)
+// Reverts if:
+//   1. Balance crosses halt boundary (was inside, now outside)
+//   2. Balance is outside halt and moving further away
+func enforceHaltsForToken(oGLiq, nGLiq, oBal, nBal, weight, alpha *big.Int) error {
+	one := bignumber.TenPowInt(18)
+
+	// Calculate ideal balances: ideal = liquidity * weight / 1e18
+	nIdeal := new(big.Int).Mul(nGLiq, weight)
+	nIdeal.Div(nIdeal, one)
+
+	if nBal.Cmp(nIdeal) > 0 {
+		// Balance above ideal - check upper halt
+		// upperAlpha = 1 + alpha
+		upperAlpha := new(big.Int).Add(one, alpha)
+
+		// nHalt = nIdeal * upperAlpha / 1e18
+		nHalt := new(big.Int).Mul(nIdeal, upperAlpha)
+		nHalt.Div(nHalt, one)
+
+		if nBal.Cmp(nHalt) > 0 {
+			// New balance exceeds upper halt
+			// Calculate old halt
+			oIdeal := new(big.Int).Mul(oGLiq, weight)
+			oIdeal.Div(oIdeal, one)
+			oHalt := new(big.Int).Mul(oIdeal, upperAlpha)
+			oHalt.Div(oHalt, one)
+
+			// Check if we crossed the boundary (was inside, now outside)
+			if oBal.Cmp(oHalt) < 0 {
+				return fmt.Errorf("upper halt: crossed boundary")
+			}
+
+			// Check if distance from halt is increasing
+			nDist := new(big.Int).Sub(nBal, nHalt)
+			oDist := new(big.Int).Sub(oBal, oHalt)
+			if nDist.Cmp(oDist) > 0 {
+				return fmt.Errorf("upper halt: distance increasing")
+			}
+		}
+	} else {
+		// Balance below ideal - check lower halt
+		// lowerAlpha = 1 - alpha
+		lowerAlpha := new(big.Int).Sub(one, alpha)
+
+		// nHalt = nIdeal * lowerAlpha / 1e18
+		nHalt := new(big.Int).Mul(nIdeal, lowerAlpha)
+		nHalt.Div(nHalt, one)
+
+		if nBal.Cmp(nHalt) < 0 {
+			// New balance below lower halt
+			// Calculate old halt
+			oIdeal := new(big.Int).Mul(oGLiq, weight)
+			oIdeal.Div(oIdeal, one)
+			oHalt := new(big.Int).Mul(oIdeal, lowerAlpha)
+			oHalt.Div(oHalt, one)
+
+			// Check if we crossed the boundary (was inside, now outside)
+			if oBal.Cmp(oHalt) > 0 {
+				return fmt.Errorf("lower halt: crossed boundary")
+			}
+
+			// Check if distance from halt is increasing
+			nDist := new(big.Int).Sub(nHalt, nBal)
+			oDist := new(big.Int).Sub(oHalt, oBal)
+			if nDist.Cmp(oDist) > 0 {
+				return fmt.Errorf("lower halt: distance increasing")
+			}
+		}
+	}
+
+	return nil
 }
