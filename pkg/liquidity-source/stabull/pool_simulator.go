@@ -144,25 +144,30 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, fmt.Errorf("insufficient reserve out")
 	}
 
-	// Parse curve parameters from extra
+	// Parse curve parameters from extra (no defaults - should fail if missing)
+	alpha, ok := new(big.Int).SetString(p.extra.CurveParams.Alpha, 10)
+	if !ok || alpha == nil {
+		return nil, fmt.Errorf("missing or invalid alpha parameter")
+	}
+
 	beta, ok := new(big.Int).SetString(p.extra.CurveParams.Beta, 10)
 	if !ok || beta == nil {
-		beta = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
+		return nil, fmt.Errorf("missing or invalid beta parameter")
 	}
 
 	delta, ok := new(big.Int).SetString(p.extra.CurveParams.Delta, 10)
 	if !ok || delta == nil {
-		delta = new(big.Int).Exp(big.NewInt(10), big.NewInt(17), nil) // Default: 0.1 * 1e18
+		return nil, fmt.Errorf("missing or invalid delta parameter")
 	}
 
 	epsilon, ok := new(big.Int).SetString(p.extra.CurveParams.Epsilon, 10)
 	if !ok || epsilon == nil {
-		epsilon = new(big.Int).Mul(big.NewInt(15), big.NewInt(1e14)) // Default: 0.15% = 1.5e15
+		return nil, fmt.Errorf("missing or invalid epsilon parameter")
 	}
 
 	lambda, ok := new(big.Int).SetString(p.extra.CurveParams.Lambda, 10)
 	if !ok || lambda == nil {
-		lambda = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // Default: 1e18
+		return nil, fmt.Errorf("missing or invalid lambda parameter")
 	}
 
 	// Get oracle rates for input and output tokens
@@ -208,6 +213,7 @@ func (p *PoolSimulator) calculateSwap(
 		amountInNumeraire,
 		reserveIn,
 		reserveOut,
+		alpha,
 		beta,
 		delta,
 		epsilon,

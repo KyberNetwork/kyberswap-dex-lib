@@ -2,6 +2,7 @@ package stabull
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -26,8 +27,10 @@ const (
 // 1. Calculates omega (fee for old state)
 // 2. Iterates up to 32 times adjusting output based on psi (fee for new state)
 // 3. Uses lambda to weight the fee adjustment when omega >= psi
+// 4. Validates that swap doesn't move reserves outside alpha bounds
 //
 // Parameters:
+// - alpha: Reserve ratio bounds (e.g., 0.5 = allow reserves between 25-75% of total)
 // - beta: Fee threshold multiplier (defines when fees start accruing)
 // - delta: Fee rate multiplier (controls fee magnitude)
 // - epsilon: Base swap fee (applied as final multiplication after convergence)
@@ -38,6 +41,7 @@ func calculateStabullSwap(
 	amountIn *big.Int,
 	reserveIn *big.Int,
 	reserveOut *big.Int,
+	alpha *big.Int,
 	beta *big.Int,
 	delta *big.Int,
 	epsilon *big.Int,
@@ -127,6 +131,38 @@ func calculateStabullSwap(
 
 			if result.Cmp(reserveOut) >= 0 {
 				return nil, ErrInsufficientLiquidity
+			}
+
+			// Check alpha bounds: prevent swaps that move reserves too far in one direction
+			// With alpha=0.5 (50%), reserves must stay between 25% and 75% of total liquidity
+			// newReserveIn = reserveIn + amountIn
+			// newReserveOut = reserveOut - result
+			newReserveIn := new(big.Int).Add(reserveIn, amountIn)
+			newReserveOut := new(big.Int).Sub(reserveOut, result)
+			totalLiquidity := new(big.Int).Add(newReserveIn, newReserveOut)
+
+			// Calculate bounds: alpha defines the center, bounds are [0.5-alpha/2, 0.5+alpha/2]
+			// For alpha=0.5: bounds are [0.25, 0.75] (i.e., 25% to 75%)
+			// lowerBound = totalLiquidity * (ONE/2 - alpha/2) / ONE
+			// upperBound = totalLiquidity * (ONE/2 + alpha/2) / ONE
+			halfOne := new(big.Int).Div(one, big.NewInt(2))
+			halfAlpha := new(big.Int).Div(alpha, big.NewInt(2))
+
+			lowerBoundRatio := new(big.Int).Sub(halfOne, halfAlpha)
+			upperBoundRatio := new(big.Int).Add(halfOne, halfAlpha)
+
+			lowerBound := new(big.Int).Mul(totalLiquidity, lowerBoundRatio)
+			lowerBound.Div(lowerBound, one)
+
+			upperBound := new(big.Int).Mul(totalLiquidity, upperBoundRatio)
+			upperBound.Div(upperBound, one)
+
+			// Check if either reserve would be outside bounds
+			if newReserveIn.Cmp(lowerBound) < 0 || newReserveIn.Cmp(upperBound) > 0 {
+				return nil, fmt.Errorf("swap would violate alpha bounds for input reserve")
+			}
+			if newReserveOut.Cmp(lowerBound) < 0 || newReserveOut.Cmp(upperBound) > 0 {
+				return nil, fmt.Errorf("swap would violate alpha bounds for output reserve")
 			}
 
 			// Apply epsilon fee: result = result * (ONE - epsilon) / ONE
