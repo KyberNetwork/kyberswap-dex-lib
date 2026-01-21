@@ -545,12 +545,12 @@ func IsRFQSource(exchange Exchange) bool {
 	return ok
 }
 
-// additionFallbackSourceSet is a set of exchanges that
-// are considered as fallback sources in addition to RFQ sources.
-var additionFallbackSourceSet = map[Exchange]struct{}{}
+// needFallbackSourceSet is a set of exchanges that
+// need to have a fallback swap (in addition to RFQ sources).
+var needFallbackSourceSet = map[Exchange]struct{}{}
 
-func IsFallbackSource(exchange Exchange) bool {
-	if _, ok := additionFallbackSourceSet[exchange]; ok {
+func NeedsFallbackSource(exchange Exchange) bool {
+	if _, ok := needFallbackSourceSet[exchange]; ok {
 		return true
 	}
 
