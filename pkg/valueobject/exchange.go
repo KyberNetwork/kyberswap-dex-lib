@@ -545,6 +545,18 @@ func IsRFQSource(exchange Exchange) bool {
 	return ok
 }
 
+// additionFallbackSourceSet is a set of exchanges that
+// are considered as fallback sources in addition to RFQ sources.
+var additionFallbackSourceSet = map[Exchange]struct{}{}
+
+func IsFallbackSource(exchange Exchange) bool {
+	if _, ok := additionFallbackSourceSet[exchange]; ok {
+		return true
+	}
+
+	return IsRFQSource(exchange)
+}
+
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
