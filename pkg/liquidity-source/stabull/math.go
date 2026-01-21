@@ -140,27 +140,27 @@ func calculateStabullSwap(
 			//   - Ideal = 50% of total liquidity
 			//   - Upper halt = ideal * (1 + alpha) = 50% * 1.5 = 75%
 			//   - Lower halt = ideal * (1 - alpha) = 50% * 0.5 = 25%
-			
+
 			oGLiq := new(big.Int).Add(reserveIn, reserveOut)
 			nGLiq := new(big.Int).Add(
 				new(big.Int).Add(reserveIn, amountIn),
 				new(big.Int).Sub(reserveOut, result),
 			)
-			
+
 			// oBals and nBals for input and output tokens
 			oBalsIn := reserveIn
 			oBalsOut := reserveOut
 			nBalsIn := new(big.Int).Add(reserveIn, amountIn)
 			nBalsOut := new(big.Int).Sub(reserveOut, result)
-			
+
 			// Weight is 0.5 (50%) for both tokens in a 50/50 pool
 			weight := new(big.Int).Div(one, big.NewInt(2)) // 0.5e18
-			
+
 			// Check input token halts
 			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsIn, nBalsIn, weight, alpha); err != nil {
 				return nil, err
 			}
-			
+
 			// Check output token halts
 			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsOut, nBalsOut, weight, alpha); err != nil {
 				return nil, err
@@ -279,9 +279,10 @@ func calculateMicroFee(bal *big.Int, ideal *big.Int, beta *big.Int, delta *big.I
 // Alpha defines halt boundaries relative to ideal (weighted) balance:
 //   - If balance > ideal: upper halt = ideal * (1 + alpha)
 //   - If balance < ideal: lower halt = ideal * (1 - alpha)
+//
 // Reverts if:
-//   1. Balance crosses halt boundary (was inside, now outside)
-//   2. Balance is outside halt and moving further away
+//  1. Balance crosses halt boundary (was inside, now outside)
+//  2. Balance is outside halt and moving further away
 func enforceHaltsForToken(oGLiq, nGLiq, oBal, nBal, weight, alpha *big.Int) error {
 	one := bignumber.TenPowInt(18)
 
