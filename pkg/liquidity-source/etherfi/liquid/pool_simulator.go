@@ -14,8 +14,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	supportedWithdraw []bool
-	gas               int64
+	extra Extra
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -35,32 +34,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		gas:               defaultGas,
-		supportedWithdraw: extra.SupportedWithdraw,
+		extra: extra,
 	}, nil
 }
 
 func (s *PoolSimulator) CanSwapTo(token string) []string {
-	if token == s.Info.Address {
+	if token == s.Info.Tokens[0] {
 		return s.Info.Tokens[1:]
-	}
-
-	for idx, withdrawToken := range s.Info.Tokens[1:] {
-		if token == withdrawToken && s.supportedWithdraw[idx] {
-			return []string{s.Info.Tokens[0]}
-		}
 	}
 
 	return nil
 }
 
 func (s *PoolSimulator) CanSwapFrom(token string) []string {
-	if token == s.Info.Address {
-		return lo.Filter(s.Info.Tokens[1:], func(_ string, idx int) bool {
-			return s.supportedWithdraw[idx]
-		})
-	}
-
 	if slices.Contains(s.Info.Tokens[1:], token) {
 		return []string{s.Info.Tokens[0]}
 	}
@@ -73,10 +59,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: param.TokenAmountIn.Amount},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: bignumber.ZeroBI},
-		Gas:            s.gas,
+		Gas:            defaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {}
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any { return s.extra }

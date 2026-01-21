@@ -1,10 +1,8 @@
 package liquid
 
-type Extra struct {
-	SupportedWithdraw []bool `json:"supportedWithdraw"`
-}
+import "github.com/ethereum/go-ethereum/common"
 
-type Gas struct {
-	Deposit  int64
-	Withdraw int64
+type Extra struct {
+	LiquidRefer common.Address `json:"liquidRefer"`
+	Teller      common.Address `json:"teller"`
 }

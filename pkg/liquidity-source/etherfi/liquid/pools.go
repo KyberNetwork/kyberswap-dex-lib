@@ -1,8 +1,8 @@
 package liquid
 
 type PoolInfo struct {
-	SupportedDepositAssets  []string
-	SupportedWithdrawAssets []bool // true if the asset at the same index in SupportedDepositAssets can be withdrawn
+	SupportedDepositAssets []string
+	TellerContract         string
 }
 
 var pools = map[string]PoolInfo{
@@ -13,7 +13,7 @@ var pools = map[string]PoolInfo{
 			"0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
 			"0x35fa164735182de50811e8e2e824cfb9b6118ac2",
 		},
-		SupportedWithdrawAssets: []bool{false, true, true},
+		TellerContract: "0x9aa79c84b79816ab920bbce20f8f74557b514734",
 	},
 
 	// LiquidUSD
@@ -22,7 +22,7 @@ var pools = map[string]PoolInfo{
 			"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			"0xdac17f958d2ee523a2206206994597c13d831ec7",
 		},
-		SupportedWithdrawAssets: []bool{true, true},
+		TellerContract: "0x4de413a26fc24c3fc27cc983be70aa9c5c299387",
 	},
 
 	// LiquidBTC
@@ -32,6 +32,6 @@ var pools = map[string]PoolInfo{
 			"0x657e8c867d8b37dcc18fa4caead9c45eb088c642",
 			"0x8236a87084f8b84306f72007f36f2618a5634494",
 		},
-		SupportedWithdrawAssets: []bool{false, true, false},
+		TellerContract: "0x8ea0b382d054dbebeb1d0ae47ee4ac433c730353",
 	},
 }

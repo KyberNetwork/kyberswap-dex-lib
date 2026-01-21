@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -45,7 +46,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 
 		extraBytes, _ := json.Marshal(Extra{
-			SupportedWithdraw: poolInfo.SupportedWithdrawAssets,
+			LiquidRefer: liquidReferAddress,
+			Teller:      common.HexToAddress(poolInfo.TellerContract),
 		})
 
 		return entity.Pool{
