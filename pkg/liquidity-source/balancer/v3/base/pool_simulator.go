@@ -387,8 +387,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	amountOut := params.TokenAmountOut.Amount
 	if isTokenOutUnderlying {
-		// If token out is underlying we must use the converted shares amount for the balance update
-		convertedAmount, _ := p.buffers[indexOut].ConvertToShares(
+		// If token out is underlying we must use the converted assets amount for the balance update
+		convertedAmount, _ := p.buffers[indexOut].ConvertToAssets(
 			uint256.MustFromBig(params.TokenAmountOut.Amount), false)
 		amountOut = convertedAmount.ToBig()
 	}
