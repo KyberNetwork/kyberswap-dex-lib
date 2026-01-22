@@ -80,20 +80,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, metadataBytes, nil
 }
 
-// getAllPairsLength gets number of pools from the factory contract
-// TODO: Stabull factory doesn't have curvesLength method - needs event-based discovery
-// Pools should be discovered via NewCurve events instead of indexed enumeration
-func (d *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
-	// Stabull factory uses event-based pool discovery (NewCurve events)
-	// There is no curvesLength() method in the factory contract
-	// Return 0 for now - proper implementation should use GetNewPoolsType to discover via events
-	logger.WithFields(logger.Fields{
-		"dex": DexType,
-	}).Warn("getAllPairsLength not supported - Stabull uses event-based pool discovery")
-
-	return 0, nil
-}
-
 // discoverPoolsFromFactory queries factory NewCurve events to find all deployed pools
 func (d *PoolsListUpdater) discoverPoolsFromFactory(ctx context.Context) ([]common.Address, error) {
 	logger.WithFields(logger.Fields{

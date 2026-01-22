@@ -1,7 +1,6 @@
 package stabull
 
 import (
-	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -26,14 +25,6 @@ func isParametersSetEvent(log types.Log) bool {
 // normalizeAddress converts an address to lowercase for comparison
 func normalizeAddress(addr string) string {
 	return strings.ToLower(addr)
-}
-
-// reserveString converts a big.Int to string, handling nil
-func reserveString(reserve *big.Int) string {
-	if reserve == nil {
-		return reserveZero
-	}
-	return reserve.String()
 }
 
 // Helper to check if a log address matches the pool address
