@@ -38,7 +38,6 @@ import (
 	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
@@ -66,7 +65,6 @@ import (
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
-	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
@@ -479,7 +477,6 @@ var (
 		PufferPufETH:               pufeth.DexType,
 		EthenaSusde:                susde.DexType,
 		MakerSavingsDai:            savingsdai.DexType,
-		HashflowV3:                 hashflowv3.DexType,
 		NomiSwapStable:             nomiswap.DexType,
 		NativeV3:                   nativev3.DexType,
 		RenzoEZETH:                 ezeth.DexType,
@@ -492,8 +489,6 @@ var (
 		MaverickV2:                 maverickv2.DexType,
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
-		Bebop:                      valueobject.ExchangeBebop,
-		Dexalot:                    dexalot.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
@@ -532,6 +527,9 @@ var (
 		Pmm2:                       valueobject.ExchangePmm2,
 		Pmm3:                       valueobject.ExchangePmm3,
 		SwaapV2:                    valueobject.ExchangeSwaapV2,
+		Bebop:                      valueobject.ExchangeBebop,
+		HashflowV3:                 valueobject.ExchangeHashflowV3,
+		Dexalot:                    valueobject.ExchangeDexalot,
 		UniswapLO:                  uniswaplo.DexType,
 		EulerSwap:                  eulerswapv1.DexType,
 		EulerSwapV2:                eulerswapv2.DexType,
