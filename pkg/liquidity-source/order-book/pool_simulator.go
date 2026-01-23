@@ -32,6 +32,7 @@ var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm2)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm3)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm4)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm5)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm6)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return NewPoolSimulatorWith(entityPool, MaxAge)
