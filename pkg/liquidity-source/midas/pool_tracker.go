@@ -39,11 +39,6 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, 
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	_ pool.GetNewPoolStateParams) (entity.Pool, error) {
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, err
-	}
-
 	lg := logger.WithFields(logger.Fields{
 		"pool": p.Address,
 	})
@@ -52,6 +47,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	defer func() {
 		lg.Infof("finished getting new state of pool")
 	}()
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return p, err
+	}
 
 	currentDayNumber := time.Now().Unix() / oneDayInSecond
 
