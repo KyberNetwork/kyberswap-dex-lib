@@ -416,7 +416,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 				Method: dataFeedGetDataInBase18Method,
 			}, []any{&result.TokenRates[i]})
 		}
-		resp, err = req.TryAggregate()
+		_, err = req.TryAggregate()
 		if err != nil {
 			lg.WithFields(logger.Fields{
 				"error": err,
