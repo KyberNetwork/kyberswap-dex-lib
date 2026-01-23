@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -53,26 +54,70 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return p, err
 	}
 
-	currentDayNumber := time.Now().Unix() / oneDayInSecond
+	var (
+		paymentTokenAddresses []common.Address
+		mTokenAddress         common.Address
+	)
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    lo.Ternary(staticExtra.IsDv, DepositVaultABI, RedemptionVaultABI),
+			Target: p.Address,
+			Method: vGetPaymentTokensMethod,
+		}, []any{&paymentTokenAddresses}).
+		AddCall(&ethrpc.Call{
+			ABI:    lo.Ternary(staticExtra.IsDv, DepositVaultABI, RedemptionVaultABI),
+			Target: p.Address,
+			Method: vMTokenMethod,
+		}, []any{&mTokenAddress}).
+		Aggregate(); err != nil {
+		lg.Errorf("failed to call tokens: %v", err)
+		return p, err
+	}
 
-	mToken := p.Tokens[0].Address
-	tokens := lo.Map(p.Tokens[1:], func(token *entity.PoolToken, _ int) string {
-		return token.Address
+	tokens := make([]common.Address, 0, len(paymentTokenAddresses)+1)
+	tokens = append(tokens, mTokenAddress)
+	tokens = append(tokens, paymentTokenAddresses...)
+
+	decimals := make([]uint8, len(tokens))
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	for i, token := range tokens {
+		req.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: token.String(),
+			Method: abi.Erc20DecimalsMethod,
+		}, []any{&decimals[i]})
+	}
+	_, err := req.Aggregate()
+	if err != nil {
+		lg.Errorf("failed to aggregate token decimals: %v", err)
+		return p, err
+	}
+
+	p.Tokens = lo.Map(tokens, func(token common.Address, i int) *entity.PoolToken {
+		return &entity.PoolToken{
+			Address:   hexutil.Encode(token[:]),
+			Decimals:  decimals[i],
+			Swappable: true,
+		}
 	})
 
-	var (
-		vaultState *VaultStateRpcResult
-		err        error
-	)
+	mToken := mTokenAddress.String()
+	paymentTokens := lo.Map(paymentTokenAddresses, func(token common.Address, _ int) string {
+		return token.String()
+	})
+
+	currentDayNumber := time.Now().Unix() / oneDayInSecond
+
+	var vaultState *VaultStateRpcResult
 	if staticExtra.IsDv {
-		vaultState, err = t.getDvState(ctx, p.Address, mToken, tokens, currentDayNumber)
+		vaultState, err = t.getDvState(ctx, p.Address, mToken, paymentTokens, currentDayNumber)
 	} else {
 		rvCfg, ok := t.rvConfigs[p.Address]
 		if !ok {
 			lg.Errorf("failed to find rvConfig")
 			return p, nil
 		}
-		vaultState, err = t.getRvState(ctx, rvCfg, tokens, currentDayNumber)
+		vaultState, err = t.getRvState(ctx, rvCfg, paymentTokens, currentDayNumber)
 	}
 	if err != nil {
 		lg.Errorf("failed to get vault state: %v", err)
@@ -90,9 +135,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var tokenLimits []string
-	for i := 0; i < len(tokens); i++ {
-		tokenLimits = append(
-			tokenLimits,
+	for i := 0; i < len(paymentTokens); i++ {
+		tokenLimits = append(tokenLimits,
 			convertFromBase18(uint256.MustFromBig(vaultState.TokensConfig[i].Allowance), p.Tokens[i+1].Decimals).String())
 	}
 	p.Reserves = append(p.Reserves, tokenLimits...)
@@ -220,7 +264,7 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, toke
 		}, []any{&result.TokenRates[i]})
 	}
 
-	_, err = req.Aggregate()
+	_, err = req.TryAggregate()
 	if err != nil {
 		lg.WithFields(logger.Fields{
 			"error": err,
@@ -372,7 +416,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 				Method: dataFeedGetDataInBase18Method,
 			}, []any{&result.TokenRates[i]})
 		}
-		_, err = req.Aggregate()
+		resp, err = req.TryAggregate()
 		if err != nil {
 			lg.WithFields(logger.Fields{
 				"error": err,

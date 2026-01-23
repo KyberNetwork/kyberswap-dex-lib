@@ -12,6 +12,7 @@ const (
 	vPausedMethod               = "paused"
 	vMTokenDataFeedMethod       = "mTokenDataFeed"
 	vGetPaymentTokensMethod     = "getPaymentTokens"
+	vMTokenMethod               = "mToken"
 	vTokensConfigMethod         = "tokensConfig"
 	vInstantDailyLimitMethod    = "instantDailyLimit"
 	vInstantFeeMethod           = "instantFee"
