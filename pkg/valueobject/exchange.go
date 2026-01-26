@@ -205,6 +205,7 @@ const (
 	ExchangeShadowLegacy               = "shadow-legacy"
 	ExchangeSkyPSM                     = "sky-psm"
 	ExchangeSmardex                    = "smardex"
+	ExchangeSmoothy                    = "smoothy"
 	ExchangeSolidlyV2                  = "solidly-v2"
 	ExchangeSomeSwapV1                 = "someswap-v1"
 	ExchangeSonicMarket                = "sonic-market"
