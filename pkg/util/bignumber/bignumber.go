@@ -1,6 +1,7 @@
 package bignumber
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 
@@ -29,7 +30,8 @@ var (
 	MIN_SQRT_RATIO    = big.NewInt(4295128739)
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 
-	BasisPoint = big.NewInt(10000)
+	BasisPoint   = big.NewInt(10000)
+	BasisPointM1 = big.NewInt(10000 - 1)
 
 	MAX_UINT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 128), One)
 	MAX_UINT_256 = new(big.Int).Sub(new(big.Int).Lsh(One, 256), One)
@@ -51,18 +53,20 @@ var (
 )
 
 // TenPowDecimals calculates 10^decimal
-func TenPowDecimals[T constraints.Integer](decimal T) *big.Float {
-	if decimal <= 18 {
-		return preTenPowDecimals[decimal]
+func TenPowDecimals[T constraints.Integer](decimals T) *big.Float {
+	if 0 <= decimals && decimals <= 18 {
+		return preTenPowDecimals[decimals]
 	}
-	return big.NewFloat(math.Pow10(int(decimal)))
+	return big.NewFloat(math.Pow10(int(decimals)))
 }
 
-func TenPowInt[T constraints.Integer](decimal T) *big.Int {
-	if decimal <= 18 {
-		return preTenPowInt[decimal]
+func TenPowInt[T constraints.Integer](decimals T) *big.Int {
+	if decimals < 0 {
+		panic(fmt.Sprintf("decimals cannot be negative: %d", decimals))
+	} else if decimals <= 18 {
+		return preTenPowInt[decimals]
 	}
-	y := big.NewInt(int64(decimal))
+	y := big.NewInt(int64(decimals))
 	return y.Exp(Ten, y, nil)
 }
 

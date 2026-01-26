@@ -1,0 +1,23 @@
+[
+    {
+        "id": "0xd2671165570f41bbb3b0097893300b6eb6101e6c",
+        "type": "generic-simple-rate",
+        "lpToken": "",
+        "tokens": [
+            {
+                "address": "0xd2671165570f41bbb3b0097893300b6eb6101e6c",
+                "name": "rsETHWrapper",
+                "symbol": "wrsETH",
+                "decimals": 18,
+                "swappable": true
+            },            
+            {
+                "address": "0xb999ea589e0a1cce9153601dac2d6e203c2fd577",
+                "name": "KelpDao Restaked ETH",
+                "symbol": "rsETH",
+                "decimals": 18,
+                "swappable": true
+            }
+        ]
+    }
+]

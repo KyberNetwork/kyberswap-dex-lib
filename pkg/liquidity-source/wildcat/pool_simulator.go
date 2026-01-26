@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"slices"
+	"sort"
 
 	"github.com/samber/lo"
 
@@ -51,10 +52,16 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	amountOut := big.NewInt(0)
-	if s.Rates[indexIn].Sign() >= 0 {
-		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, s.Info.Reserves[indexOut], s.Rates[indexIn])
+	if len(s.Samples[indexIn]) == 0 {
+		return nil, ErrInsufficientLiquidity
 	}
+
+	samples := s.Samples[indexIn]
+	idx := sort.Search(len(samples), func(i int) bool {
+		return samples[i][0].Cmp(tokenAmountIn.Amount) > 0
+	})
+	sampleIndex := max(idx-1, 0)
+	amountOut := bignumber.MulDivDown(big.NewInt(0), tokenAmountIn.Amount, samples[sampleIndex][1], samples[sampleIndex][0])
 
 	if amountOut.Cmp(s.Info.Reserves[indexOut]) >= 0 {
 		return nil, ErrInsufficientLiquidity
