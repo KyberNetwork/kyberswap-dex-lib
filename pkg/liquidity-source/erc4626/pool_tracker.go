@@ -74,7 +74,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	vaultAddr := p.Tokens[0].Address
 	vaultCfg := t.cfg.Vaults[vaultAddr]
-	_, state, err := fetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
+	_, state, err := FetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
 	if err != nil {
 		lg.WithFields(logger.Fields{
 			"error": err,
@@ -83,10 +83,10 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	return p, updateEntityState(&p, vaultCfg, state)
+	return p, UpdateEntityState(&p, vaultCfg, state)
 }
 
-func updateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
+func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
 	extraBytes, err := json.Marshal(Extra{
 		Gas:          Gas(vaultCfg.Gas),
 		SwapTypes:    vaultCfg.SwapTypes,
@@ -108,7 +108,7 @@ func updateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 	return nil
 }
 
-func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
+func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
 	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *PoolState, error) {
 	var (
 		assetToken common.Address
