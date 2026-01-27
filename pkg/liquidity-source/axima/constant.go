@@ -2,7 +2,7 @@ package axima
 
 const (
 	DexType    = "axima"
-	defaultGas = 200000 // TODO: adjust gas later
+	defaultGas = 175000
 )
 
 var Q64 = float64(1 << 64)
