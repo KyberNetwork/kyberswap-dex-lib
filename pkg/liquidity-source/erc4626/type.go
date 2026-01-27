@@ -49,6 +49,6 @@ type (
 		DepositRates []*big.Int
 		RedeemRates  []*big.Int
 
-		blockNumber uint64
+		BlockNumber uint64
 	}
 )
