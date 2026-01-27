@@ -16,8 +16,8 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	decimals []uint8
-	extra    Extra
+	extra        Extra
+	decimalsDiff int
 }
 
 var (
@@ -43,9 +43,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, _ int) *big.Int { return bignumber.NewBig(item) }),
 		}},
-		extra: extra,
-		decimals: lo.Map(entityPool.Tokens,
-			func(item *entity.PoolToken, _ int) uint8 { return item.Decimals }),
+		extra:        extra,
+		decimalsDiff: int(entityPool.Tokens[0].Decimals) - int(entityPool.Tokens[1].Decimals),
 	}, nil
 }
 
@@ -54,7 +53,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
 	rate := lo.Ternary(zeroToOne, s.extra.ZeroToOneRate, s.extra.OneToZeroRate)
-	decimalsDiff := lo.Ternary(zeroToOne, s.decimals[0]-s.decimals[1], s.decimals[1]-s.decimals[0])
+	decimalsDiff := lo.Ternary(zeroToOne, s.decimalsDiff, -s.decimalsDiff)
 
 	amountOutF := amountInF * rate / math.Pow10(int(decimalsDiff))
 	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
