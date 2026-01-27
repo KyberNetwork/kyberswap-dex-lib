@@ -42,10 +42,10 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(
 }
 
 func (t *PoolTracker) getNewPoolState(
-	ctx context.Context,
+	_ context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
-	overrides map[gethcommon.Address]gethclient.OverrideAccount,
+	_ map[gethcommon.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	// Has nothing to track.
 	p.Timestamp = time.Now().Unix()
