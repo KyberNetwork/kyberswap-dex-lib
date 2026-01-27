@@ -7,6 +7,7 @@ import (
 
 	arberastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/wrseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/oeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wbeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -17,6 +18,7 @@ var bytesByPathMap = map[string]map[string][]byte{
 	string(valueobject.ExchangeOETH):        oeth.BytesByPath,
 	string(valueobject.ExchangeFrxETH):      frxeth.BytesByPath,
 	string(valueobject.ExchangeArberaStake): arberastake.BytesByPath,
+	string(valueobject.ExchangeWRSETH):      wrseth.BytesByPath,
 }
 
 var abiByPathMap = map[string]abi.ABI{

@@ -70,11 +70,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getNewPool(ctx context.Context, vaultAddr string, vaultCfg VaultCfg) (*entity.Pool, error) {
-	assetToken, state, err := fetchAssetAndState(ctx, u.ethrpcClient, vaultAddr, vaultCfg, true, nil)
+	assetToken, state, err := FetchAssetAndState(ctx, u.ethrpcClient, vaultAddr, vaultCfg, true, nil)
 	if err != nil {
 		u.logger.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to fetchAssetAndState")
+		}).Error("failed to FetchAssetAndState")
 		return nil, err
 	}
 
@@ -96,5 +96,5 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, vaultAddr string, vau
 		StaticExtra: string(staticExtraBytes),
 	}
 
-	return p, updateEntityState(p, vaultCfg, state)
+	return p, UpdateEntityState(p, vaultCfg, state)
 }
