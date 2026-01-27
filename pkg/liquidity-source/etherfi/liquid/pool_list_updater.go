@@ -45,19 +45,20 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			tokens = append(tokens, &entity.PoolToken{Address: addr})
 		}
 
-		extraBytes, _ := json.Marshal(Extra{
+		staticExtraBytes, _ := json.Marshal(StaticExtra{
 			LiquidRefer: liquidReferAddress,
 			Teller:      common.HexToAddress(poolInfo.TellerContract),
 		})
 
 		return entity.Pool{
-			Address:   poolAddress,
-			Exchange:  string(valueobject.ExchangeEtherfiLiquid),
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{unlimitedReserve, unlimitedReserve},
-			Tokens:    tokens,
-			Extra:     string(extraBytes),
+			Address:     poolAddress,
+			Exchange:    string(valueobject.ExchangeEtherfiLiquid),
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{unlimitedReserve, unlimitedReserve},
+			Tokens:      tokens,
+			StaticExtra: string(staticExtraBytes),
+			Extra:       "{}",
 		}
 	}), nil, nil
 }

@@ -1,6 +1,8 @@
 package liquid
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ethereum/go-ethereum/common"
+)
 
 const (
 	DexType          = "etherfi-liquid"
@@ -10,5 +12,5 @@ const (
 var (
 	liquidReferAddress = common.HexToAddress("0x1d536713e681b3679f6201f0ad0f83d79eff3ede")
 
-	defaultGas int64 = 70000 // TODO: revise this value later
+	defaultGas int64 = 204000
 )
