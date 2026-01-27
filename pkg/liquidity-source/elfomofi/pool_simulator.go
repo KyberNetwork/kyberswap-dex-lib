@@ -90,5 +90,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	return nil
+	return pool.ApprovalInfo{
+		ApprovalAddress: s.Extra.FactoryAddress,
+	}
 }

@@ -105,7 +105,7 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	extra := Extra{Samples: samples}
+	extra := Extra{Samples: samples, FactoryAddress: t.config.FactoryAddress}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
