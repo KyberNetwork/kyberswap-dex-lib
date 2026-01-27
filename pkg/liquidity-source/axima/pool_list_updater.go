@@ -62,8 +62,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return entity.Pool{}
 		}
 
+		address := pm.PoolAddress
+		if pm.Pair == "ethusdc" {
+			// Workaround till Axima updates their API data
+			address = "0x39Ed372f8e9f316029994Ca7f73B6683829C6b08"
+		}
+
 		return entity.Pool{
-			Address: strings.ToLower(pm.PoolAddress),
+			Address: strings.ToLower(address),
 			Tokens: []*entity.PoolToken{
 				{Address: strings.ToLower(pm.Token0), Swappable: true},
 				{Address: strings.ToLower(pm.Token1), Swappable: true},

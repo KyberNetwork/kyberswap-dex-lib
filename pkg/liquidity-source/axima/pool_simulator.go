@@ -1,6 +1,7 @@
 package axima
 
 import (
+	"math"
 	"math/big"
 	"slices"
 
@@ -15,7 +16,8 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	extra Extra
+	decimals []uint8
+	extra    Extra
 }
 
 var (
@@ -42,17 +44,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, _ int) *big.Int { return bignumber.NewBig(item) }),
 		}},
 		extra: extra,
+		decimals: lo.Map(entityPool.Tokens,
+			func(item *entity.PoolToken, _ int) uint8 { return item.Decimals }),
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-
 	amountInF, _ := params.TokenAmountIn.Amount.Float64()
-	rate := lo.Ternary(params.TokenAmountIn.Token == s.Info.Tokens[0],
-		s.extra.ZeroToOneRate,
-		s.extra.OneToZeroRate)
 
-	amountOutF := amountInF * rate
+	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
+	rate := lo.Ternary(zeroToOne, s.extra.OneToZeroRate, s.extra.ZeroToOneRate)
+	decimals := lo.Ternary(zeroToOne, s.decimals[1], s.decimals[0])
+
+	amountOutF := amountInF * rate / math.Pow10(int(decimals))
 	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
 
 	indexOut := s.GetTokenIndex(params.TokenOut)

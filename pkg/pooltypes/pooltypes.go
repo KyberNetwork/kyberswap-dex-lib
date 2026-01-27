@@ -9,6 +9,7 @@ import (
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/stable"
@@ -365,6 +366,7 @@ type Types struct {
 	Tessera                    string
 	LiquidCore                 string
 	FrxUSD                     string
+	Axima                      string
 }
 
 var (
@@ -559,5 +561,6 @@ var (
 		Tessera:                    tessera.DexType,
 		LiquidCore:                 liquidcore.DexType,
 		FrxUSD:                     frxusd.DexType,
+		Axima:                      axima.DexType,
 	}
 )

@@ -23,8 +23,8 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	ZeroToOneRate   float64 `json:"0to1R"`
-	OneToZeroRate   float64 `json:"1to0R"`
+	ZeroToOneRate   float64 `json:"0to1R"` // rate of 1 token0 to token1
+	OneToZeroRate   float64 `json:"1to0R"` // rate of 1 token1 to token0
 	QuoteAvailable  bool    `json:"qA"`
 	QuoteExpiration int64   `json:"qE"`
 }
