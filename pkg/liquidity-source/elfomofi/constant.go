@@ -6,7 +6,7 @@ import (
 
 const (
 	DexType    = "elfomofi"
-	defaultGas = 10000
+	defaultGas = 308000
 	sampleSize = 15
 )
 
