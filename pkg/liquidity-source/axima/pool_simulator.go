@@ -53,10 +53,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	amountInF, _ := params.TokenAmountIn.Amount.Float64()
 
 	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
-	rate := lo.Ternary(zeroToOne, s.extra.OneToZeroRate, s.extra.ZeroToOneRate)
-	decimals := lo.Ternary(zeroToOne, s.decimals[1], s.decimals[0])
+	rate := lo.Ternary(zeroToOne, s.extra.ZeroToOneRate, s.extra.OneToZeroRate)
+	decimalsDiff := lo.Ternary(zeroToOne, s.decimals[0]-s.decimals[1], s.decimals[1]-s.decimals[0])
 
-	amountOutF := amountInF * rate / math.Pow10(int(decimals))
+	amountOutF := amountInF * rate / math.Pow10(int(decimalsDiff))
 	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
 
 	indexOut := s.GetTokenIndex(params.TokenOut)
@@ -84,13 +84,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if indexIn != -1 && indexOut != -1 {
-		s.Info.Reserves[indexIn].Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-		s.Info.Reserves[indexOut].Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+		s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+		s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	// Return swapDirection
+	return tokenIn == s.Info.Tokens[0]
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
