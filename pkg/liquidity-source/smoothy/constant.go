@@ -11,7 +11,7 @@ import (
 const (
 	DexType = valueobject.ExchangeSmoothy
 
-	defaultGas = 147745
+	defaultGas = 78547
 )
 
 var (
