@@ -2,6 +2,7 @@ package axima
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -125,7 +126,7 @@ func (t *PoolTracker) fetchPairData(ctx context.Context, pair string) (PairData,
 	_, err := t.client.R().
 		SetContext(ctx).
 		SetResult(&pairData).
-		Get(pair + "/bid_ask")
+		Get(fmt.Sprintf("/%s/%s/bid_ask", t.config.ChainID.String(), pair))
 
 	if err != nil {
 		return PairData{}, err

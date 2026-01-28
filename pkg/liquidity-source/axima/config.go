@@ -1,9 +1,13 @@
 package axima
 
-import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+import (
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
 
 type Config struct {
-	DexID string `json:"dexID"`
+	DexID   string              `json:"dexID"`
+	ChainID valueobject.ChainID `json:"chainID"`
 
 	HTTPConfig HTTPConfig `json:"httpConfig"`
 }
