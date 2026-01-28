@@ -18,6 +18,8 @@ const (
 
 	bps       = 10000
 	maxFeeBps = bps - 1
+
+	defaultGas = 111490
 )
 
 var (

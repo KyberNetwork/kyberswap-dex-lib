@@ -257,7 +257,7 @@ const (
 	ExchangeWagyuSwap                  = "wagyuswap"
 	ExchangeWault                      = "wault"
 	ExchangeWBETH                      = "wbeth"
-	ExchangeWildcat                    = "wildcat"
+	ExchangeWildcard                   = "wildcard"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
 	ExchangeWooFiV3                    = "woofi-v3"
