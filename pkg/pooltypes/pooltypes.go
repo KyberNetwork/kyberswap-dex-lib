@@ -50,6 +50,7 @@ import (
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/liquid"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
@@ -367,6 +368,7 @@ type Types struct {
 	LiquidCore                 string
 	FrxUSD                     string
 	Elfomofi                   string
+	EtherfiLiquid              string
 }
 
 var (
@@ -562,5 +564,6 @@ var (
 		LiquidCore:                 liquidcore.DexType,
 		FrxUSD:                     frxusd.DexType,
 		Elfomofi:                   elfomofi.DexType,
+		EtherfiLiquid:              liquid.DexType,
 	}
 )

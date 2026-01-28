@@ -90,6 +90,7 @@ const (
 	ExchangeEtherexV2                  = "etherex-v2"
 	ExchangeEtherFieBTC                = "etherfi-ebtc"
 	ExchangeEtherfiEETH                = "etherfi-eeth"
+	ExchangeEtherfiLiquid              = "etherfi-liquid"
 	ExchangeEtherfiVampire             = "etherfi-vampire"
 	ExchangeEtherfiWEETH               = "etherfi-weeth"
 	ExchangeEtherVista                 = "ether-vista"
