@@ -105,6 +105,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
@@ -369,6 +370,7 @@ type Types struct {
 	FrxUSD                     string
 	Elfomofi                   string
 	EtherfiLiquid              string
+	Smoothy                    string
 }
 
 var (
@@ -565,5 +567,6 @@ var (
 		FrxUSD:                     frxusd.DexType,
 		Elfomofi:                   elfomofi.DexType,
 		EtherfiLiquid:              liquid.DexType,
+		Smoothy:                    smoothy.DexType,
 	}
 )
