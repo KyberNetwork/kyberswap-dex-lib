@@ -83,6 +83,7 @@ const (
 	ExchangeDystopia                   = "dystopia"
 	ExchangeEkubo                      = "ekubo"
 	ExchangeEkuboV3                    = "ekubo-v3"
+	ExchangeElfomofi                   = "elfomofi"
 	ExchangeEllipsis                   = "ellipsis"
 	ExchangeERC4626                    = "erc4626"
 	ExchangeEthenaSusde                = "ethena-susde"
