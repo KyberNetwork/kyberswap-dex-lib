@@ -1,4 +1,4 @@
-package someswap
+package someswapv1
 
 import (
 	"context"
@@ -10,10 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -178,59 +178,36 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		return nil, err
 	}
 
-	pools := make([]entity.Pool, 0, len(pairAddresses))
-
+	pools := make([]entity.Pool, len(pairAddresses))
 	for i, pairAddress := range pairAddresses {
-		token0 := &entity.PoolToken{
-			Address:   hexutil.Encode(token0List[i][:]),
-			Swappable: true,
-		}
-		token1 := &entity.PoolToken{
-			Address:   hexutil.Encode(token1List[i][:]),
-			Swappable: true,
-		}
+		baseFeeBps, _ := fees[i].BaseFee.BaseFeeBps.Float64()
+		dynamicFeeBps, _ := fees[i].DynamicFee.CurrentBps.Float64()
+		swapFee := min(maxFeeBps, baseFeeBps+dynamicFeeBps) / bps
 
-		baseFeeBps := safeBigInt(fees[i].BaseFee.BaseFeeBps)
-		dynamicFeeBps := safeBigInt(fees[i].DynamicFee.CurrentBps)
-		wToken0In := safeBigInt(fees[i].BaseFee.WToken0In)
-		wToken1In := safeBigInt(fees[i].BaseFee.WToken1In)
-
-		totalFeeBps := new(big.Int).Add(baseFeeBps, dynamicFeeBps)
-		if totalFeeBps.Cmp(maxFeeBps) > 0 {
-			totalFeeBps = new(big.Int).Set(maxFeeBps)
-		}
-		swapFee := bpsToFloat(totalFeeBps)
-
-		staticExtraBytes, err := json.Marshal(StaticExtra{
-			BaseFeeBps:    baseFeeBps.String(),
-			DynamicFeeBps: dynamicFeeBps.String(),
-			WToken0In:     wToken0In.String(),
-			WToken1In:     wToken1In.String(),
+		staticExtraBytes, _ := json.Marshal(StaticExtra{
+			WTokens: [2]*uint256.Int{toU256(fees[i].BaseFee.WToken0In), toU256(fees[i].BaseFee.WToken1In)},
 		})
-		if err != nil {
-			return nil, err
-		}
 
-		newPool := entity.Pool{
-			Address:      hexutil.Encode(pairAddress[:]),
-			ReserveUsd:   0,
-			AmplifiedTvl: 0,
-			SwapFee:      swapFee,
-			Exchange:     string(valueobject.ExchangeSomeSwap),
-			Type:         DexType,
-			Timestamp:    time.Now().Unix(),
-			Reserves:     []string{reserveZero, reserveZero},
-			Tokens:       []*entity.PoolToken{token0, token1},
-			StaticExtra:  string(staticExtraBytes),
+		pools[i] = entity.Pool{
+			Address:   hexutil.Encode(pairAddress[:]),
+			SwapFee:   swapFee,
+			Exchange:  u.config.DexID,
+			Type:      DexType,
+			Timestamp: time.Now().Unix(),
+			Reserves:  []string{"0", "0"},
+			Tokens: []*entity.PoolToken{
+				{Address: hexutil.Encode(token0List[i][:]), Swappable: true},
+				{Address: hexutil.Encode(token1List[i][:]), Swappable: true},
+			},
+			StaticExtra: string(staticExtraBytes),
 		}
-
-		pools = append(pools, newPool)
 	}
 
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) listPairData(ctx context.Context, pairAddresses []common.Address) ([]common.Address, []common.Address, []feeParams, error) {
+func (u *PoolsListUpdater) listPairData(ctx context.Context, pairAddresses []common.Address) ([]common.Address,
+	[]common.Address, []feeParams, error) {
 	token0List := make([]common.Address, len(pairAddresses))
 	token1List := make([]common.Address, len(pairAddresses))
 	feeParamsArr := make([]feeParams, len(pairAddresses))
@@ -241,15 +218,11 @@ func (u *PoolsListUpdater) listPairData(ctx context.Context, pairAddresses []com
 			ABI:    pairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken0,
-		}, []any{&token0List[i]})
-
-		req.AddCall(&ethrpc.Call{
+		}, []any{&token0List[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken1,
-		}, []any{&token1List[i]})
-
-		req.AddCall(&ethrpc.Call{
+		}, []any{&token1List[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodFee,
@@ -267,19 +240,10 @@ func (u *PoolsListUpdater) newMetadata(offset int) ([]byte, error) {
 	return json.Marshal(Metadata{Offset: offset})
 }
 
-func safeBigInt(v *big.Int) *big.Int {
-	if v == nil {
-		return big.NewInt(0)
+func toU256(b *big.Int) *uint256.Int {
+	u, overflow := uint256.FromBig(b)
+	if u == nil || overflow {
+		return new(uint256.Int)
 	}
-	return v
-}
-
-func bpsToFloat(bps *big.Int) float64 {
-	if bps == nil {
-		return 0
-	}
-	rat := new(big.Rat).SetInt(bps)
-	rat.Quo(rat, new(big.Rat).SetInt(bpsDen))
-	f, _ := rat.Float64()
-	return f
+	return u
 }

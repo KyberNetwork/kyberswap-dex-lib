@@ -1,21 +1,10 @@
 [
-  { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
   {
     "type": "function",
     "name": "activity",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "UD60x18" }],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "burnLiquidity",
-    "inputs": [{ "name": "to", "type": "address", "internalType": "address" }],
-    "outputs": [
-      { "name": "amount0", "type": "uint256", "internalType": "uint256" },
-      { "name": "amount1", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -33,24 +22,10 @@
   },
   {
     "type": "function",
-    "name": "disableDynamicFee",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "dynamicFeeEnabled",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "enableDynamicFee",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -155,34 +130,6 @@
   },
   {
     "type": "function",
-    "name": "initialize",
-    "inputs": [
-      { "name": "_token0", "type": "address", "internalType": "address" },
-      { "name": "_token1", "type": "address", "internalType": "address" },
-      {
-        "name": "_feeParams",
-        "type": "tuple",
-        "internalType": "struct IFeeController.FeeParams",
-        "components": [
-          {
-            "name": "baseFeeParams",
-            "type": "tuple",
-            "internalType": "struct IFeeController.BaseFee",
-            "components": [
-              { "name": "baseFeeBps", "type": "uint24", "internalType": "uint24" },
-              { "name": "wToken0In", "type": "uint256", "internalType": "uint256" },
-              { "name": "wToken1In", "type": "uint256", "internalType": "uint256" }
-            ]
-          },
-          { "name": "useDynamicFee", "type": "bool", "internalType": "bool" }
-        ]
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "lastUpdateTs",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint40", "internalType": "uint40" }],
@@ -194,60 +141,6 @@
     "inputs": [],
     "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "mintLiquidity",
-    "inputs": [{ "name": "to", "type": "address", "internalType": "address" }],
-    "outputs": [
-      { "name": "liquidity", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setDelegatorOnLp",
-    "inputs": [
-      { "name": "locker", "type": "address", "internalType": "address" },
-      { "name": "allowed", "type": "bool", "internalType": "bool" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setProtocolShareBps",
-    "inputs": [
-      { "name": "newShareBps", "type": "uint24", "internalType": "uint24" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "skim",
-    "inputs": [{ "name": "to", "type": "address", "internalType": "address" }],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "swapExact",
-    "inputs": [
-      { "name": "to", "type": "address", "internalType": "address" },
-      { "name": "inputIsToken0", "type": "bool", "internalType": "bool" }
-    ],
-    "outputs": [
-      { "name": "amountOutUser", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "sync",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",

@@ -1,4 +1,4 @@
-package someswap
+package someswapv1
 
 type Config struct {
 	DexID          string `json:"dexID"`

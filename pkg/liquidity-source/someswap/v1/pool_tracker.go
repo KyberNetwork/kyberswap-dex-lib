@@ -1,4 +1,4 @@
-package someswap
+package someswapv1
 
 import (
 	"context"
@@ -61,10 +61,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{
-		reserveString(reserves.Reserve0),
-		reserveString(reserves.Reserve1),
-	}
+	p.Reserves = entity.PoolReserves{reserveString(reserves.Reserve0), reserveString(reserves.Reserve1)}
 	if blockNumber != nil {
 		p.BlockNumber = blockNumber.Uint64()
 	}
@@ -98,7 +95,7 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 
 func reserveString(reserve *big.Int) string {
 	if reserve == nil {
-		return reserveZero
+		return "0"
 	}
 	return reserve.String()
 }

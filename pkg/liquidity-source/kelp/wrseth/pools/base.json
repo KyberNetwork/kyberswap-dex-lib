@@ -1,23 +1,23 @@
 [
-    {
-        "id": "0xedfa23602d0ec14714057867a78d01e94176bea0",
-        "type": "generic-simple-rate",
-        "lpToken": "",
-        "tokens": [
-            {
-                "address": "0xedfa23602d0ec14714057867a78d01e94176bea0",
-                "name": "rsETHWrapper",
-                "symbol": "wrsETH",
-                "decimals": 18,
-                "swappable": true
-            },            
-            {
-                "address": "0x1bc71130a0e39942a7658878169764bbd8a45993",
-                "name": "KelpDao Restaked ETH",
-                "symbol": "rsETH",
-                "decimals": 18,
-                "swappable": true
-            }
-        ]
-    }
+  {
+    "id": "0xedfa23602d0ec14714057867a78d01e94176bea0",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xedfa23602d0ec14714057867a78d01e94176bea0",
+        "name": "rsETHWrapper",
+        "symbol": "wrsETH",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x1bc71130a0e39942a7658878169764bbd8a45993",
+        "name": "KelpDao Restaked ETH",
+        "symbol": "rsETH",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
 ]

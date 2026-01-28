@@ -1,4 +1,4 @@
-package someswap
+package someswapv1
 
 import (
 	"math/big"
