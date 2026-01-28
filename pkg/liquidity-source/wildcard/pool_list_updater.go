@@ -1,4 +1,4 @@
-package wildcat
+package wildcard
 
 import (
 	"context"
