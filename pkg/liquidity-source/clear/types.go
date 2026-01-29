@@ -16,6 +16,7 @@ type Extra struct {
 type SwapInfo struct {
 	SwapAddress string `json:"swapAddress"`
 	IOU         string `json:"iou"`
+	ReceiveIOU  bool   `json:"receiveIOU"`
 }
 
 // PreviewSwapResult from ClearSwap.previewSwap()
