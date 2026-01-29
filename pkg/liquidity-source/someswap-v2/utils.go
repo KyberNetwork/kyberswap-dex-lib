@@ -23,10 +23,7 @@ func decodeSyncEvent(log types.Log) (ReserveData, error) {
 	if err := poolABI.UnpackIntoInterface(&evt, "Sync", log.Data); err != nil {
 		return ReserveData{}, err
 	}
-	return ReserveData{
-		Reserve0: evt.Reserve0,
-		Reserve1: evt.Reserve1,
-	}, nil
+	return ReserveData(evt), nil
 }
 
 func findLatestSyncEvent(logs []types.Log) *types.Log {
