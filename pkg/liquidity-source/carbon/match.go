@@ -1,7 +1,6 @@
 package carbon
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/KyberNetwork/int256"
@@ -319,7 +318,6 @@ func matchBest(
 	orders := make([]*Order, 0, len(quotes)+1)
 	for _, quote := range quotes {
 		orders = append(orders, ordersMap[quote.Id])
-		fmt.Println("id", quote.Id, quote.Rate.Input.String(), quote.Rate.Output.String())
 	}
 	orders = append(orders, zeroOrder)
 
