@@ -101,10 +101,10 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 	}
 
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{lo.CoalesceOrEmpty(state.MaxDeposit, state.TotalAssets, bignumber.ZeroBI).String(),
-		lo.CoalesceOrEmpty(state.MaxRedeem, state.TotalSupply, bignumber.ZeroBI).String()}
+	p.Reserves = entity.PoolReserves{lo.CoalesceOrEmpty(state.MaxRedeem, state.TotalSupply, bignumber.ZeroBI).String(),
+		lo.CoalesceOrEmpty(state.MaxDeposit, state.TotalAssets, bignumber.ZeroBI).String()}
 	p.Extra = string(extraBytes)
-	p.BlockNumber = state.blockNumber
+	p.BlockNumber = state.BlockNumber
 	return nil
 }
 
@@ -143,7 +143,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			req.AddCall(&ethrpc.Call{
 				ABI:    ABI,
 				Target: vaultAddr,
-				Method: erc4626MethodPreviewDeposit,
+				Method: ERC4626MethodPreviewDeposit,
 				Params: []any{amt.ToBig()},
 			}, []any{&poolState.DepositRates[i]})
 		}
@@ -164,7 +164,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			req.AddCall(&ethrpc.Call{
 				ABI:    ABI,
 				Target: vaultAddr,
-				Method: erc4626MethodPreviewRedeem,
+				Method: ERC4626MethodPreviewRedeem,
 				Params: []any{amt.ToBig()},
 			}, []any{&poolState.RedeemRates[i]})
 		}
@@ -187,7 +187,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	}
 
 	if resp.BlockNumber != nil {
-		poolState.blockNumber = resp.BlockNumber.Uint64()
+		poolState.BlockNumber = resp.BlockNumber.Uint64()
 	}
 	return assetToken, &poolState, nil
 }

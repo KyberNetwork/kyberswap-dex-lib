@@ -1,19 +1,17 @@
-package wildcat
+package wildcard
 
 import (
 	"errors"
-	"math/big"
 )
 
 const (
-	DexType    = "wildcat"
-	defaultGas = 10000
+	DexType    = "wildcard"
+	defaultGas = 120248
 	sampleSize = 15
+	bps        = 10000
 )
 
 var (
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
-
-	buffer = big.NewInt(9995)
 )

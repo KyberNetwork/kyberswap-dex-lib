@@ -1,4 +1,4 @@
-package wildcat
+package wildcard
 
 import (
 	"context"
@@ -121,6 +121,7 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 	if err != nil {
 		return nil, err
 	}
+	buffer := big.NewInt(bps - cfg.PriceTolerance)
 	for i := range samples {
 		for j := range samples[i] {
 			samples[i][j] = lo.Filter(samples[i][j], func(sample [2]*big.Int, _ int) bool {

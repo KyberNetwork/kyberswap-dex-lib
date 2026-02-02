@@ -1,9 +1,9 @@
-package wildcat
+package elfomofi
 
 import (
 	"context"
 	"encoding/json"
-	"math/big"
+	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -14,7 +14,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -26,7 +25,6 @@ type (
 		Offset int `json:"offset"`
 	}
 	Pair struct {
-		Pair   common.Address
 		Token0 common.Address
 		Token1 common.Address
 	}
@@ -57,14 +55,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 		return nil, metadataBytes, err
 	}
-	batchSize := u.config.NewPoolLimit
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	var pairs []Pair
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: "getPairs",
-		Params: []any{big.NewInt(int64(offset)), big.NewInt(int64(offset + batchSize))},
+		Method: "getSupportedPairs",
+		Params: []any{},
 	}, []any{&pairs})
 
 	_, err = req.Aggregate()
@@ -72,39 +69,29 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	pools := lo.Map(pairs, func(pair Pair, _ int) entity.Pool {
-		tokenAddrs := []string{hexutil.Encode(pair.Token0[:]), hexutil.Encode(pair.Token1[:])}
+	if offset >= len(pairs) {
+		return nil, metadataBytes, nil
+	}
+
+	pools := lo.Map(pairs[offset:], func(pair Pair, _ int) entity.Pool {
+		poolAddress := fmt.Sprintf("%s_%s_%s", u.config.DexID, pair.Token0.Hex(), pair.Token1.Hex())
 		p := entity.Pool{
-			Address:   hexutil.Encode(pair.Pair[:]),
+			Address:   poolAddress,
 			Exchange:  u.config.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},
-			Tokens: lo.Map(tokenAddrs, func(addr string, _ int) *entity.PoolToken {
-				return &entity.PoolToken{
-					Address:   valueobject.ZeroToWrappedLower(addr, valueobject.ChainID(u.config.ChainID)),
-					Swappable: true,
-				}
-			}),
+			Tokens: []*entity.PoolToken{
+				{Address: hexutil.Encode(pair.Token0[:]), Swappable: true},
+				{Address: hexutil.Encode(pair.Token1[:]), Swappable: true},
+			},
 			Extra: "{}",
 		}
-		extra := Extra{
-			IsNative: lo.Map(tokenAddrs, func(addr string, _ int) bool {
-				return valueobject.IsZero(addr)
-			}),
-		}
-		extraBytes, err := json.Marshal(extra)
-		if err != nil {
-			return entity.Pool{}
-		}
-		p.Extra = string(extraBytes)
 		return p
 	})
-	// if _, err := TrackPools(ctx, pools, u.ethrpcClient, u.config); err != nil {
-	// 	return nil, metadataBytes, err
-	// }
 
-	newMetadataBytes, err := u.newMetadata(offset + len(pairs))
+	// Assume the order of pairs never changes.
+	newMetadataBytes, err := u.newMetadata(len(pairs))
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
