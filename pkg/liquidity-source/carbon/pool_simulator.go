@@ -119,6 +119,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 			swapInfo.FastTradeActions = tradeResults.Fast.TradeActions
 			swapInfo.FastAmount = tradeResults.Fast.AmountOutAfterFee
+
+			output = tradeResults.Fast
+			swapInfo.TradeActions = output.TradeActions
 		}
 	}
 

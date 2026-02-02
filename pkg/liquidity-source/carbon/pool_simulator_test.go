@@ -1,7 +1,6 @@
 package carbon
 
 import (
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -241,9 +240,6 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 
 			swapInfo, ok := res.SwapInfo.(SwapInfo)
 			require.True(t, ok)
-
-			str, err := json.Marshal(swapInfo)
-			fmt.Println("str", string(str))
 
 			if tc.matchType == MatchTypeFast {
 				require.Equal(t, tc.expectedFastAmountOut, swapInfo.FastAmount.String())
