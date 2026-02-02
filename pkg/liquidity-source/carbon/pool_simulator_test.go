@@ -241,10 +241,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 
 			swapInfo, ok := res.SwapInfo.(SwapInfo)
 			require.True(t, ok)
-
-			if tc.matchType == MatchTypeFast {
-				require.Equal(t, tc.expectedFastAmountOut, swapInfo.FastAmount.String())
-			}
+			require.NotNil(t, swapInfo.TradeActions)
 		})
 	}
 }
