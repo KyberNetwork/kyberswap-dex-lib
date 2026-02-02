@@ -75,6 +75,19 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 			"staticExtra":"{\"t0\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"t1\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"c\":\"0xC537e898CD774e2dCBa3B14Ea6f34C93d5eA45e1\"}",
 			"blockNumber":24368818
 		}`,
+		"c_WFRAX_sfrxUSD_24369440": `{
+		  "address": "0x6111013d0145db20004bd20c53381fb22e9084ef44d4230b7dfc177b21fc2168",
+		  "reserves": [
+			"2921888367026749646377", "55907808133124512681"
+		  ],
+		  "tokens": [
+			{ "address": "0x04acaf8d2865c0714f79da09645c13fd2888977f", "symbol": "WFRAX", "decimals": 18, "swappable": true },
+			{ "address": "0xcf62f905562626cfcdd2261162a51fd02fc9c5b6", "symbol": "sfrxUSD", "decimals": 18, "swappable": true }
+		  ],
+		  "extra": "{\"strategies\":[{\"id\":196002643346460554954903773880698489800741,\"orders\":[{\"y\":\"2921888367026749646377\",\"z\":\"2921888367026749646377\",\"A\":165116592253471,\"B\":150454703685921},{\"y\":\"55907808133124512681\",\"z\":\"1039271769231463156234\",\"A\":31774592811092,\"B\":218029579434898}]}],\"tradingFeePpm\":2000}",
+		  "staticExtra": "{\"t0\":\"0x04acaf8d2865c0714f79da09645c13fd2888977f\",\"t1\":\"0xcf62f905562626cfcdd2261162a51fd02fc9c5b6\",\"c\":\"0xC537e898CD774e2dCBa3B14Ea6f34C93d5eA45e1\"}",
+		  "blockNumber": 24369440
+		}`,
 	}
 
 	ts.sims = map[string]*PoolSimulator{}
@@ -125,10 +138,8 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 		tokenOut string
 		amountIn string
 
-		matchType             MatchType
-		expectedAmountOut     string
-		expectedFastAmountOut string
-		expectedErr           error
+		expectedAmountOut string
+		expectedErr       error
 	}{
 		{
 			pool:              "c_USDC_USDT_24289442",
@@ -166,12 +177,11 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedAmountOut: "8",
 		},
 		{
-			pool:                  "c_USDC_USDT_24289442",
-			tokenOut:              "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			tokenIn:               "0xdac17f958d2ee523a2206206994597c13d831ec7",
-			amountIn:              "100000",
-			expectedAmountOut:     "99939",
-			expectedFastAmountOut: "99632",
+			pool:              "c_USDC_USDT_24289442",
+			tokenOut:          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			tokenIn:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			amountIn:          "100000",
+			expectedAmountOut: "99939",
 		},
 		{
 			pool:              "c_USDC_USDT_24289442",
@@ -195,15 +205,6 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedAmountOut: "99939",
 		},
 		{
-			pool:                  "c_USDC_USDT_24290118",
-			tokenOut:              "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			tokenIn:               "0xdac17f958d2ee523a2206206994597c13d831ec7",
-			amountIn:              "10000000",
-			expectedAmountOut:     "9993127",
-			expectedFastAmountOut: "9993127",
-			matchType:             MatchTypeFast,
-		},
-		{
 			pool:              "c_USDC_USDT_24368818",
 			tokenOut:          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			tokenIn:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -216,6 +217,27 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenIn:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
 			amountIn:          "1000000000000",
 			expectedAmountOut: "116862217",
+		},
+		{
+			pool:              "c_WFRAX_sfrxUSD_24369440",
+			tokenIn:           "0xcf62f905562626cfcdd2261162a51fd02fc9c5b6",
+			tokenOut:          "0x04acaf8d2865c0714f79da09645c13fd2888977f",
+			amountIn:          "1000000000000000000000",
+			expectedAmountOut: "1023952960575087152377",
+		},
+		{
+			pool:              "c_WFRAX_sfrxUSD_24369440",
+			tokenIn:           "0xcf62f905562626cfcdd2261162a51fd02fc9c5b6",
+			tokenOut:          "0x04acaf8d2865c0714f79da09645c13fd2888977f",
+			amountIn:          "1000000000000022220000",
+			expectedAmountOut: "1023952960575105724353",
+		},
+		{
+			pool:              "c_WFRAX_sfrxUSD_24369440",
+			tokenIn:           "0x04acaf8d2865c0714f79da09645c13fd2888977f",
+			tokenOut:          "0xcf62f905562626cfcdd2261162a51fd02fc9c5b6",
+			amountIn:          "1000000000000022220000",
+			expectedAmountOut: "55795992516858263655",
 		},
 	}
 
@@ -242,6 +264,13 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			swapInfo, ok := res.SwapInfo.(SwapInfo)
 			require.True(t, ok)
 			require.NotNil(t, swapInfo.TradeActions)
+
+			if os.Getenv("CI") != "" {
+				return
+			}
+
+			targetAmount := ts.calcTargetAmount(t, sim.Info.BlockNumber, tc.tokenIn, tc.tokenOut, swapInfo.TradeActions)
+			require.Equal(t, tc.expectedAmountOut, targetAmount.String())
 		})
 	}
 }

@@ -3,7 +3,6 @@ package carbon
 import (
 	"sort"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -63,15 +62,13 @@ func tradeTargetAmount(sourceAmount *uint256.Int, order *Order) *uint256.Int {
 		return u256.New0()
 	}
 
-	if A.Sign() == 0 {
-		result := new(uint256.Int).Mul(sourceAmount, B)
-		result.MulDivOverflow(result, B, oneSquared)
-		return result
-	}
-
 	x := sourceAmount
 	y := order.Y
 	z := order.Z
+
+	if A.Sign() == 0 {
+		return mulDivF(x, new(uint256.Int).Mul(B, B), oneSquared)
+	}
 
 	temp1 := new(uint256.Int).Mul(z, uOne)
 
@@ -80,19 +77,24 @@ func tradeTargetAmount(sourceAmount *uint256.Int, order *Order) *uint256.Int {
 
 	temp3 := new(uint256.Int).Mul(temp2, x)
 
-	numerator := new(uint256.Int).Mul(temp2, temp3)
-
-	axTemp2 := new(uint256.Int).Mul(A, temp3)
-	temp1Squared := new(uint256.Int).Mul(temp1, temp1)
-	denominator := new(uint256.Int).Add(axTemp2, temp1Squared)
-
-	if denominator.Sign() == 0 {
-		return u256.New0()
+	factor := u256.Max(minFactor(temp1, temp1), minFactor(temp3, A))
+	if factor.Sign() == 0 {
+		factor = u256.U1.Clone()
 	}
 
-	result := new(uint256.Int).Div(numerator, denominator)
+	temp4 := mulDivC(temp1, temp1, factor)
 
-	return result
+	temp5 := mulDivC(temp3, A, factor)
+
+	temp5.Add(temp4, temp5)
+	if !temp5.Lt(temp4) {
+		return mulDivF(temp2, new(uint256.Int).Div(temp3, factor), temp5)
+	}
+
+	temp1 = mulDivC(temp1, temp1, temp3)
+	temp1.Add(A, temp1)
+
+	return temp2.Div(temp2, temp1)
 }
 
 // tradeSourceAmount x * z^2 / ((A * y + B * z) * (A * y + B * z - A * x))
@@ -112,52 +114,43 @@ func tradeSourceAmount(targetAmount *uint256.Int, order *Order) *uint256.Int {
 		return u256.UMax.Clone()
 	}
 
-	if A.Sign() == 0 {
-		result := new(uint256.Int).Mul(targetAmount, oneSquared)
-		bSquared := new(uint256.Int).Mul(B, B)
-
-		if bSquared.Sign() == 0 {
-			return u256.UMax.Clone()
-		}
-
-		bSquaredMinus1 := new(uint256.Int).Sub(bSquared, u256.U1)
-		result.Add(result, bSquaredMinus1)
-		result.Div(result, bSquared)
-		return result
-	}
-
 	x := targetAmount
 	y := order.Y
 	z := order.Z
 
+	if A.Sign() == 0 {
+		bSquared := new(uint256.Int).Mul(B, B)
+		if bSquared.Sign() == 0 {
+			return u256.UMax.Clone()
+		}
+		return mulDivC(x, oneSquared, bSquared)
+	}
+
 	temp1 := new(uint256.Int).Mul(z, uOne)
 
-	temp2 := new(uint256.Int).Mul(A, y)
-	bz := new(uint256.Int).Mul(B, z)
-	temp2.Add(temp2, bz)
+	temp2 := new(uint256.Int).Mul(y, A)
+	temp2.Add(temp2, new(uint256.Int).Mul(z, B))
 
-	ax := new(uint256.Int).Mul(A, x)
+	ax := new(uint256.Int).Mul(x, A)
 	if !temp2.Gt(ax) {
 		return u256.UMax.Clone()
 	}
 
 	temp3 := new(uint256.Int).Sub(temp2, ax)
 
-	temp1.Mul(temp1, temp1)
-	numerator := new(uint256.Int).Mul(x, temp1)
+	factor := u256.Max(minFactor(temp1, temp1), minFactor(temp2, temp3))
+	if factor.Sign() == 0 {
+		factor = u256.U1.Clone()
+	}
 
-	denominator := new(uint256.Int).Mul(temp2, temp3)
+	temp4 := mulDivC(temp1, temp1, factor)
+	temp5 := mulDivF(temp2, temp3, factor)
 
-	if denominator.Sign() == 0 {
+	if temp5.Sign() == 0 {
 		return u256.UMax.Clone()
 	}
 
-	denomMinus1 := new(uint256.Int).Sub(denominator, u256.U1)
-
-	result := new(uint256.Int).Add(numerator, denomMinus1)
-	result.Div(result, denominator)
-
-	return result
+	return mulDivC(x, temp4, temp5)
 }
 
 func rateBySourceAmount(sourceAmount *uint256.Int, order *Order) Rate {
@@ -322,7 +315,8 @@ func matchBest(
 	orders = append(orders, zeroOrder)
 
 	var rates []Rate
-	delta := int256.NewInt(0)
+	delta := u256.New0()
+	deltaSign := 0
 
 	for n := 1; n < len(orders); n++ {
 		limit := getLimit(orders[n])
@@ -335,13 +329,22 @@ func matchBest(
 			total.Add(total, rates[i].Input)
 		}
 
-		delta.Sub(u256.SInt256(total), u256.SInt256(amount))
+		if total.Gt(amount) {
+			delta = new(uint256.Int).Sub(total, amount)
+			deltaSign = 1
+		} else if total.Lt(amount) {
+			delta = new(uint256.Int).Sub(amount, total)
+			deltaSign = -1
+		} else {
+			delta = u256.New0()
+			deltaSign = 0
+		}
 
-		if delta.Sign() == 0 {
+		if deltaSign == 0 {
 			break
 		}
 
-		if delta.Sign() > 0 {
+		if deltaSign > 0 {
 			lo := new(uint256.Int).Set(limit)
 			hi := getLimit(orders[n-1])
 
@@ -359,13 +362,22 @@ func matchBest(
 					total.Add(total, rates[i].Input)
 				}
 
-				delta.Sub(u256.SInt256(total), u256.SInt256(amount))
+				if total.Gt(amount) {
+					delta.Sub(total, amount)
+					deltaSign = 1
+				} else if total.Lt(amount) {
+					delta.Sub(amount, total)
+					deltaSign = -1
+				} else {
+					delta.Clear()
+					deltaSign = 0
+				}
 
-				if delta.Sign() == 0 {
+				if deltaSign == 0 {
 					break
 				}
 
-				if delta.Sign() > 0 {
+				if deltaSign > 0 {
 					lo.Set(limit)
 				} else {
 					hi.Set(limit)
@@ -377,41 +389,39 @@ func matchBest(
 		}
 	}
 
-	if delta.Sign() > 0 {
-		deltaAbs := (*uint256.Int)(delta)
-		for i := len(rates) - 1; i >= 0 && deltaAbs.Sign() > 0; i-- {
+	if deltaSign > 0 {
+		for i := len(rates) - 1; i >= 0 && delta.Sign() > 0; i-- {
 			if rates[i].Input.Sign() == 0 {
 				continue
 			}
 
 			newInput := u256.New0()
-			if !rates[i].Input.Lt(deltaAbs) {
-				newInput.Sub(rates[i].Input, deltaAbs)
+			if !rates[i].Input.Lt(delta) {
+				newInput.Sub(rates[i].Input, delta)
 			}
 
 			rate := trade(newInput, orders[i])
 
 			if !rate.Input.Gt(rates[i].Input) {
 				actualReduction := new(uint256.Int).Sub(rates[i].Input, rate.Input)
-				deltaAbs.Sub(deltaAbs, actualReduction)
+				delta.Sub(delta, actualReduction)
 			}
 
 			rates[i] = rate
 		}
-	} else if delta.Sign() < 0 {
-		deltaAbs := (*uint256.Int)(new(int256.Int).Neg(delta))
-		for i := 0; i < len(rates) && deltaAbs.Sign() > 0; i++ {
-			newInput := new(uint256.Int).Add(rates[i].Input, deltaAbs)
+	} else if deltaSign < 0 {
+		for i := 0; i < len(rates); i++ {
+			newInput := new(uint256.Int).Add(rates[i].Input, delta)
 			rate := trade(newInput, orders[i])
 
-			if rate.Input.Gt(rates[i].Input) {
-				inputDiff := new(uint256.Int).Sub(rate.Input, rates[i].Input)
-				if !inputDiff.Lt(deltaAbs) {
-					break
-				}
-				deltaAbs.Sub(deltaAbs, inputDiff)
-				rates[i] = rate
+			inputDiff := new(uint256.Int).Sub(rate.Input, rates[i].Input)
+
+			if !inputDiff.Lt(delta) {
+				break
 			}
+
+			delta.Sub(delta, inputDiff)
+			rates[i] = rate
 		}
 	}
 
@@ -485,4 +495,45 @@ func expandRate(rate uint64) *uint256.Int {
 
 	res := uint256.NewInt(rate % one)
 	return res.Lsh(res, uint(rate/one))
+}
+
+func mulDivF(a, b, c *uint256.Int) *uint256.Int {
+	result := new(uint256.Int)
+	result.MulDivOverflow(a, b, c)
+	return result
+}
+
+func mulDivC(a, b, c *uint256.Int) *uint256.Int {
+	result := new(uint256.Int)
+	result.MulDivOverflow(a, b, c)
+
+	remainder := new(uint256.Int)
+	remainder.MulMod(a, b, c)
+	if remainder.Sign() > 0 {
+		result.Add(result, u256.U1)
+	}
+	return result
+}
+
+func mul512(x, y *uint256.Int) (hi, lo *uint256.Int) {
+	lo = new(uint256.Int).Mul(x, y)
+	p := new(uint256.Int).MulMod(x, y, u256.UMax)
+	if !p.Lt(lo) {
+		hi = new(uint256.Int).Sub(p, lo)
+	} else {
+		hi = new(uint256.Int).Sub(p, lo)
+		hi.Sub(hi, u256.U1)
+	}
+
+	return
+}
+
+func minFactor(x, y *uint256.Int) *uint256.Int {
+	hi, lo := mul512(x, y)
+	notLo := new(uint256.Int).Not(lo)
+	if hi.Gt(notLo) {
+		return new(uint256.Int).Add(hi, u256.U2)
+	}
+
+	return new(uint256.Int).Add(hi, u256.U1)
 }
