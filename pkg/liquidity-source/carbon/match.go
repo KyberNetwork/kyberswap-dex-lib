@@ -3,6 +3,7 @@ package carbon
 import (
 	"sort"
 
+	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -178,6 +179,7 @@ func rateBySourceAmount(sourceAmount *uint256.Int, order *Order) Rate {
 func rateByTargetAmount(targetAmount *uint256.Int, order *Order) Rate {
 	input := u256.Min(targetAmount, order.Y).Clone()
 	output := tradeSourceAmount(input, order)
+
 	return Rate{Input: input, Output: output}
 }
 
@@ -256,12 +258,7 @@ func sortedQuotes(
 	}
 
 	sort.Slice(quotes, func(i, j int) bool {
-		cmp := sortFn(quotes[i].Rate, quotes[j].Rate)
-		if cmp != 0 {
-			return cmp < 0
-		}
-
-		return quotes[i].Id < quotes[j].Id
+		return sortFn(quotes[i].Rate, quotes[j].Rate) < 0
 	})
 
 	return quotes
@@ -325,8 +322,7 @@ func matchBest(
 	orders = append(orders, zeroOrder)
 
 	var rates []Rate
-	delta := u256.New0()
-	deltaSign := 0
+	delta := int256.NewInt(0)
 
 	for n := 1; n < len(orders); n++ {
 		limit := getLimit(orders[n])
@@ -339,27 +335,20 @@ func matchBest(
 			total.Add(total, rates[i].Input)
 		}
 
-		if total.Cmp(amount) >= 0 {
-			delta = new(uint256.Int).Sub(total, amount)
-			deltaSign = 1
-		} else {
-			delta = new(uint256.Int).Sub(amount, total)
-			deltaSign = -1
-		}
+		delta.Sub(u256.SInt256(total), u256.SInt256(amount))
 
 		if delta.Sign() == 0 {
-			deltaSign = 0
 			break
 		}
 
-		if deltaSign > 0 {
+		if delta.Sign() > 0 {
 			lo := new(uint256.Int).Set(limit)
 			hi := getLimit(orders[n-1])
 
 			loPlus1 := new(uint256.Int).Add(lo, u256.U1)
-			for loPlus1.Cmp(hi) < 0 {
+			for loPlus1.Lt(hi) {
 				limit = new(uint256.Int).Add(lo, hi)
-				limit.Rsh(limit, 1)
+				limit.Div(limit, u256.U2)
 
 				rates = make([]Rate, n)
 				total = u256.New0()
@@ -370,59 +359,59 @@ func matchBest(
 					total.Add(total, rates[i].Input)
 				}
 
-				if total.Cmp(amount) >= 0 {
-					delta = new(uint256.Int).Sub(total, amount)
-					deltaSign = 1
-				} else {
-					delta = new(uint256.Int).Sub(amount, total)
-					deltaSign = -1
-				}
+				delta.Sub(u256.SInt256(total), u256.SInt256(amount))
 
 				if delta.Sign() == 0 {
-					deltaSign = 0
 					break
 				}
 
-				if deltaSign > 0 {
+				if delta.Sign() > 0 {
 					lo.Set(limit)
 				} else {
 					hi.Set(limit)
 				}
+
 				loPlus1.Add(lo, u256.U1)
 			}
 			break
 		}
 	}
 
-	if deltaSign > 0 {
-		for i := len(rates) - 1; i >= 0; i-- {
-			if rates[i].Input.Cmp(delta) < 0 {
+	if delta.Sign() > 0 {
+		deltaAbs := (*uint256.Int)(delta)
+		for i := len(rates) - 1; i >= 0 && deltaAbs.Sign() > 0; i-- {
+			if rates[i].Input.Sign() == 0 {
 				continue
 			}
-			newInput := new(uint256.Int).Sub(rates[i].Input, delta)
-			rate := trade(newInput, orders[i])
-			if rate.Input.Cmp(rates[i].Input) <= 0 {
-				delta.Add(delta, new(uint256.Int).Sub(rates[i].Input, rate.Input))
-			} else {
-				delta.Sub(delta, new(uint256.Int).Sub(rate.Input, rates[i].Input))
+
+			newInput := u256.New0()
+			if !rates[i].Input.Lt(deltaAbs) {
+				newInput.Sub(rates[i].Input, deltaAbs)
 			}
+
+			rate := trade(newInput, orders[i])
+
+			if !rate.Input.Gt(rates[i].Input) {
+				actualReduction := new(uint256.Int).Sub(rates[i].Input, rate.Input)
+				deltaAbs.Sub(deltaAbs, actualReduction)
+			}
+
 			rates[i] = rate
-			if delta.Sign() == 0 {
-				break
-			}
 		}
-	} else if deltaSign < 0 {
-		for i := 0; i < len(rates); i++ {
-			newInput := new(uint256.Int).Add(rates[i].Input, delta)
+	} else if delta.Sign() < 0 {
+		deltaAbs := (*uint256.Int)(new(int256.Int).Neg(delta))
+		for i := 0; i < len(rates) && deltaAbs.Sign() > 0; i++ {
+			newInput := new(uint256.Int).Add(rates[i].Input, deltaAbs)
 			rate := trade(newInput, orders[i])
-			if rate.Input.Cmp(rates[i].Input) >= 0 {
+
+			if rate.Input.Gt(rates[i].Input) {
 				inputDiff := new(uint256.Int).Sub(rate.Input, rates[i].Input)
-				if inputDiff.Cmp(delta) >= 0 {
+				if !inputDiff.Lt(deltaAbs) {
 					break
 				}
-				delta.Sub(delta, inputDiff)
+				deltaAbs.Sub(deltaAbs, inputDiff)
+				rates[i] = rate
 			}
-			rates[i] = rate
 		}
 	}
 

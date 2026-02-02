@@ -243,7 +243,6 @@ func (s *PoolSimulator) processMatchActions(
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warn("failed to cast swap info")
 		return
 	}
 
