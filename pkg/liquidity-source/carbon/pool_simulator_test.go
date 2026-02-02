@@ -91,6 +91,7 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 	}
 }
 
+//nolint:unused
 func (ts *PoolSimulatorTestSuite) calcTargetAmount(
 	t *testing.T,
 	blockNumber uint64,
