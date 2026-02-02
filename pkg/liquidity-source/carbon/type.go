@@ -61,9 +61,7 @@ type Meta struct {
 }
 
 type SwapInfo struct {
-	TradeActions     []TradeAction `json:"actions"`
-	FastAmount       *uint256.Int  `json:"fastAmount,omitempty"`
-	FastTradeActions []TradeAction `json:"fastActions,omitempty"`
+	TradeActions []TradeAction `json:"actions"`
 }
 
 type TradeAction struct {

@@ -115,10 +115,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 				"pool":          s.Info.Address,
 				"bestAmountOut": tradeResults.Best.AmountOutAfterFee.String(),
 				"fastAmountOut": tradeResults.Fast.AmountOutAfterFee.String(),
-			}).Warn("Fast result has greater output than Best result")
-
-			swapInfo.FastTradeActions = tradeResults.Fast.TradeActions
-			swapInfo.FastAmount = tradeResults.Fast.AmountOutAfterFee
+			}).Debug("Fast result has greater output than Best result")
 
 			output = tradeResults.Fast
 			swapInfo.TradeActions = output.TradeActions
