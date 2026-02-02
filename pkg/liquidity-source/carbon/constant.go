@@ -19,7 +19,7 @@ const (
 
 	defaultTradingFeePpm = 4000
 
-	defaultSingleTradeActionGas   = 11763
+	defaultSingleTradeActionGas   = 45669
 	defaultTradeBySourceAmountGas = 63037
 
 	maxStrategiesPerBatch = 200
