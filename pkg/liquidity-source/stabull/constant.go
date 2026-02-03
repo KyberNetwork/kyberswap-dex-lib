@@ -38,5 +38,5 @@ var (
 
 	Weight50             = new(uint256.Int).Div(big256.BONE, big256.U2)
 	ConvergencePrecision = big256.TenPow(13)
-	NumerairePrecision   = big256.TenPow(8)
+	OracleDecimals       = big256.TenPow(8)
 )

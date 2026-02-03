@@ -18,6 +18,8 @@ type StaticExtra struct {
 type Extra struct {
 	// Curve parameters from viewCurve()
 	CurveParams `json:"c"`
+	// Numeraire reserves
+	Reserves [2]*uint256.Int
 	// Oracle rates for both tokens (base/USD and USDC/USD)
 	OracleRates [2]*uint256.Int `json:"os"` // e.g., [NZD/USD,USDC/USD] from Chainlink
 	// Derived oracle rate (baseOracleRate / quoteOracleRate)

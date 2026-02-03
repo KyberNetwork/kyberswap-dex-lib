@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	U2Pow4  = new(uint256.Int).Lsh(U1, 4)
-	U2Pow8  = new(uint256.Int).Lsh(U1, 8)
+	U2Pow4   = new(uint256.Int).Lsh(U1, 4)
+	U2Pow8   = new(uint256.Int).Lsh(U1, 8)
 	U2Pow16  = new(uint256.Int).Lsh(U1, 16)
 	U2Pow32  = new(uint256.Int).Lsh(U1, 32)
 	U2Pow34  = new(uint256.Int).Lsh(U1, 34)

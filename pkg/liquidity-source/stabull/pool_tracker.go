@@ -113,7 +113,7 @@ func (t *PoolTracker) GetNewPoolState(
 	// However, for simplicity and to ensure accuracy, we refetch from node
 	if hasTradeEvent {
 		// Refetch reserves after trade
-		reserves, updatedExtra, err := t.fetchPoolReservesFromNode(ctx, p, staticExtra)
+		updatedExtra, err := t.fetchPoolReservesFromNode(ctx, p, staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dex":         DexType,
@@ -123,12 +123,7 @@ func (t *PoolTracker) GetNewPoolState(
 			return p, err
 		}
 
-		// Update reserves
-		for i := range p.Reserves {
-			if i < len(reserves) {
-				p.Reserves[i] = reserves[i].String()
-			}
-		}
+		updateReserves(p, updatedExtra)
 
 		// Update extra data
 		extraBytes, err := json.Marshal(updatedExtra)
@@ -147,12 +142,11 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// No relevant events, do a full refetch including oracle rates
-	var reserves []*big.Int
 	var updatedExtra Extra
 	var err error
 
 	// Fetch everything including oracle rates
-	reserves, updatedExtra, err = t.fetchPoolStateWithOraclesFromNode(ctx, p, staticExtra)
+	updatedExtra, err = t.fetchPoolStateWithOraclesFromNode(ctx, p, staticExtra)
 
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -163,12 +157,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	// Update reserves
-	for i := range p.Reserves {
-		if i < len(reserves) {
-			p.Reserves[i] = reserves[i].String()
-		}
-	}
+	updateReserves(p, updatedExtra)
 
 	// Update extra data
 	extraBytes, err := json.Marshal(updatedExtra)
@@ -185,6 +174,14 @@ func (t *PoolTracker) GetNewPoolState(
 	}).Info("Finished getting new state of pool")
 
 	return p, nil
+}
+
+func updateReserves(p entity.Pool, updatedExtra Extra) {
+	for i, reserve := range updatedExtra.Reserves {
+		reserve = mulu(reserve, big256.TenPow(p.Tokens[i].Decimals))
+		reserve.MulDivOverflow(reserve, OracleDecimals, updatedExtra.OracleRates[i])
+		p.Reserves[i] = reserve.String()
+	}
 }
 
 // handleOracleEvents processes Chainlink oracle events (AnswerUpdated or NewTransmission)
@@ -401,7 +398,7 @@ func (t *PoolTracker) fetchOracleRates(ctx context.Context, oracles [2]common.Ad
 }
 
 // fetchPoolStateFromNode fetches current reserves, curve parameters, and oracle rates from the blockchain
-func (t *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) ([]*big.Int, Extra, error) {
+func (t *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) (Extra, error) {
 	// First, get the current Extra to retrieve oracle addresses
 	// We need to fetch this from the pool entity stored in state
 	// For now, we'll fetch everything fresh and populate oracle addresses later
@@ -446,13 +443,13 @@ func (t *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
-		return nil, Extra{}, err
+		return Extra{}, err
 	}
 
 	// Convert reserves
 	reserves := liquidityResult.Individual
 	if len(reserves) != 2 {
-		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
+		return Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
 	}
 
 	// Build curve parameters (convert to strings for JSON)
@@ -467,14 +464,15 @@ func (t *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 	// Build extra without oracle data (will be populated by fetchOracleRates)
 	extra := Extra{
 		CurveParams: curveParams,
+		Reserves:    [2]*uint256.Int{uint256.MustFromBig(reserves[0]), uint256.MustFromBig(reserves[1])},
 	}
 
-	return reserves, extra, nil
+	return extra, nil
 }
 
 // fetchPoolStateWithOraclesFromNode fetches reserves, curve parameters, AND oracle rates from the blockchain
 func (t *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, p entity.Pool,
-	staticExtra StaticExtra) ([]*big.Int, Extra, error) {
+	staticExtra StaticExtra) (Extra, error) {
 	// Define struct to match the liquidity() return signature
 	type LiquidityResult struct {
 		Total      *big.Int
@@ -510,7 +508,7 @@ func (t *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, p e
 		Method: poolMethodViewCurve,
 	}, []any{&curveResult})
 	if _, err := rpcRequest.Aggregate(); err != nil {
-		return nil, Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
+		return Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
 	}
 
 	oracleRates, err := t.fetchOracleRates(ctx, staticExtra.Oracles)
@@ -526,7 +524,7 @@ func (t *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, p e
 	// Convert reserves
 	reserves := liquidityResult.Individual
 	if len(reserves) != 2 {
-		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
+		return Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
 	}
 
 	// Build curve parameters (convert to strings for JSON)
@@ -541,18 +539,19 @@ func (t *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, p e
 	// Build extra with oracle data
 	extra := Extra{
 		CurveParams: curveParams,
+		Reserves:    [2]*uint256.Int{uint256.MustFromBig(reserves[0]), uint256.MustFromBig(reserves[1])},
 		OracleRates: [2]*uint256.Int{uint256.MustFromBig(oracleRates[0]), uint256.MustFromBig(oracleRates[1])},
 	}
 
 	// oracleRate = baseRate / quoteRate (scaled by precision)
 	extra.OracleRate, _ = new(uint256.Int).MulDivOverflow(extra.OracleRates[0], big256.BONE, extra.OracleRates[1])
 
-	return reserves, extra, nil
+	return extra, nil
 }
 
 // fetchPoolReservesFromNode fetches only reserves (and optionally oracle rates) - efficient for Trade events
 func (t *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, p entity.Pool,
-	staticExtra StaticExtra) ([]*big.Int, Extra, error) {
+	staticExtra StaticExtra) (Extra, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		logger.WithFields(logger.Fields{
@@ -577,7 +576,7 @@ func (t *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, p entity.Po
 		Method: poolMethodLiquidity,
 	}, []any{&liquidityResult})
 	if _, err := rpcRequest.Aggregate(); err != nil {
-		return nil, Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
+		return Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
 	}
 
 	// Also fetch oracle rates if addresses are available (good to refresh periodically)
@@ -594,14 +593,15 @@ func (t *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, p entity.Po
 	// Convert reserves
 	reserves := liquidityResult.Individual
 	if len(reserves) != 2 {
-		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
+		return Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
 	}
 
+	extra.Reserves = [2]*uint256.Int{uint256.MustFromBig(reserves[0]), uint256.MustFromBig(reserves[1])}
 	extra.OracleRates = [2]*uint256.Int{uint256.MustFromBig(oracleRates[0]), uint256.MustFromBig(oracleRates[1])}
 	extra.OracleRate, _ = new(uint256.Int).MulDivOverflow(extra.OracleRates[0], big256.BONE, extra.OracleRates[1])
 
 	// Return existing extra with updated oracle rates (curve parameters unchanged)
-	return reserves, extra, nil
+	return extra, nil
 }
 
 // handleParametersSetEvent processes a ParametersSet event by decoding the event data
@@ -682,24 +682,78 @@ func (t *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 		"poolAddress": p.Address,
 	}).Warn("No ParametersSet event found in logs, falling back to RPC")
 
-	reserves, updatedExtra, err := t.fetchPoolStateFromNode(ctx, p.Address)
+	// First, get the current Extra to retrieve oracle addresses
+	// We need to fetch this from the pool entity stored in state
+	// For now, we'll fetch everything fresh and populate oracle addresses later
+
+	// Define struct to match the liquidity() return signature
+	type LiquidityResult struct {
+		Total      *big.Int
+		Individual []*big.Int
+	}
+
+	// Define struct to match viewCurve() return signature
+	type CurveResult struct {
+		Alpha   *big.Int
+		Beta    *big.Int
+		Delta   *big.Int
+		Epsilon *big.Int
+		Lambda  *big.Int
+	}
+
+	var (
+		liquidityResult LiquidityResult
+		curveResult     CurveResult
+	)
+
+	rpcRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
+
+	// Fetch reserves using liquidity() method
+	// liquidity() returns (uint256 total_, uint256[] individual_)
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: p.Address,
+		Method: poolMethodLiquidity,
+	}, []any{&liquidityResult})
+
+	// Fetch curve parameters using viewCurve() method
+	// viewCurve() returns (uint256 alpha_, uint256 beta_, uint256 delta_, uint256 epsilon_, uint256 lambda_)
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    stabullPoolABI,
+		Target: p.Address,
+		Method: poolMethodViewCurve,
+	}, []any{&curveResult})
+
+	_, err := rpcRequest.Aggregate()
 	if err != nil {
 		return p, err
 	}
 
-	// Update reserves
-	for i := range p.Reserves {
-		if i < len(reserves) {
-			p.Reserves[i] = reserves[i].String()
-		}
+	// Convert reserves
+	reserves := liquidityResult.Individual
+	if len(reserves) != 2 {
+		return p, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
 	}
 
-	extraBytes, err := json.Marshal(updatedExtra)
+	// Build curve parameters (convert to strings for JSON)
+	curveParams := CurveParams{
+		Alpha:   uint256.MustFromBig(curveResult.Alpha),
+		Beta:    uint256.MustFromBig(curveResult.Beta),
+		Delta:   uint256.MustFromBig(curveResult.Delta),
+		Epsilon: uint256.MustFromBig(curveResult.Epsilon),
+		Lambda:  uint256.MustFromBig(curveResult.Lambda),
+	}
+
+	extra.CurveParams = curveParams
+	extra.Reserves = [2]*uint256.Int{uint256.MustFromBig(reserves[0]), uint256.MustFromBig(reserves[1])}
+	updateReserves(p, extra)
+
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
-	p.SwapFee = updatedExtra.Epsilon.Float64() / 1e18
+	p.SwapFee = extra.Epsilon.Float64() / 1e18
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil

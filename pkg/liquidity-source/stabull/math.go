@@ -346,25 +346,6 @@ func divu(x, y *uint256.Int) *uint256.Int {
 
 	msb := uint(x.BitLen())
 
-	// result = (x << (255 - msb)) / (((y - 1) >> (msb - 191)) + 1);
-	// require(result <= 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-	//
-	// uint256 hi = result * (y >> 128);
-	// uint256 lo = result * (y & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-	//
-	// uint256 xh = x >> 192;
-	// uint256 xl = x << 64;
-	//
-	// if (xl < lo) xh -= 1;
-	// xl -= lo; // We rely on overflow behavior here
-	// lo = hi << 128;
-	// if (xl < lo) xh -= 1;
-	// xl -= lo; // We rely on overflow behavior here
-	//
-	// assert(xh == hi >> 128);
-	//
-	// result += xl / y;
-
 	var result, hi, lo, xh, xl uint256.Int
 	result.Div(xh.Lsh(x, 255-msb), xl.Rsh(xl.SubUint64(y, 1), msb-191).AddUint64(&xl, 1))
 
@@ -382,7 +363,21 @@ func divu(x, y *uint256.Int) *uint256.Int {
 	if xl.Lt(&lo) {
 		xh.SubUint64(&xh, 1)
 	}
-	xl.Sub(&xl, &lo)// We rely on overflow behavior here
+	xl.Sub(&xl, &lo) // We rely on overflow behavior here
 
 	return result.Add(&result, lo.Div(&xl, y))
+}
+
+func mulu(x, y *uint256.Int) *uint256.Int {
+	var lo uint256.Int
+	if y.IsZero() {
+		return &lo
+	}
+
+	var hi uint256.Int
+	lo.Mul(x, lo.And(y, big256.UMaxU128)).Rsh(&lo, 64)
+	hi.Mul(x, hi.Rsh(y, 128))
+
+	hi.Lsh(&hi, 64)
+	return lo.Add(&lo, &hi)
 }

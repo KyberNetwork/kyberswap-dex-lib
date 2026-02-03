@@ -17,7 +17,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	reserves, powDecs [2]*uint256.Int
+	decs [2]*uint256.Int
 	Extra
 }
 
@@ -38,9 +38,8 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Reserves: []*big.Int{bignumber.NewBig10(ep.Reserves[0]),
 				bignumber.NewBig10(ep.Reserves[1])},
 		}},
-		reserves: [2]*uint256.Int{big256.New(ep.Reserves[0]), big256.New(ep.Reserves[1])},
-		powDecs:  [2]*uint256.Int{big256.TenPow(ep.Tokens[0].Decimals), big256.TenPow(ep.Tokens[1].Decimals)},
-		Extra:    extra,
+		decs:  [2]*uint256.Int{big256.TenPow(ep.Tokens[0].Decimals), big256.TenPow(ep.Tokens[1].Decimals)},
+		Extra: extra,
 	}, nil
 }
 
@@ -89,7 +88,7 @@ func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut i
 
 	// Get token decimals from entity pool tokens
 	// Reserves are stored in 18 decimals (numeraire), but input/output are in token decimals
-	reserveIn, reserveOut := s.reserves[indexIn], s.reserves[indexOut]
+	reserveIn, reserveOut := s.Reserves[indexIn], s.Reserves[indexOut]
 	if reserveIn == nil || reserveIn.Sign() <= 0 {
 		return nil, errors.New("insufficient reserve in")
 	} else if reserveOut == nil || reserveOut.Sign() <= 0 {
@@ -112,9 +111,8 @@ func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut i
 	}
 
 	// Convert input to numeraire: (amountIn * inputOracleRate) / 1e8
-	amountInNumeraire, _ := amountIn.MulDivOverflow(amountIn, inputOracleRate, NumerairePrecision)
-	// in contract, the number is then divu-ed by 10**tokenDecimals into Q64.64 format, here we just mul by 2**64
-	amountInNumeraire.MulDivOverflow(amountInNumeraire, big256.U2Pow64, s.powDecs[indexIn])
+	amountInNumeraire, _ := amountIn.MulDivOverflow(amountIn, inputOracleRate, OracleDecimals)
+	amountInNumeraire = divu(amountInNumeraire, s.decs[indexIn])
 
 	// Use the Stabull curve formula with greek parameters
 	amountOutNumeraire, err := calculateStabullSwap(
@@ -131,9 +129,9 @@ func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut i
 		return nil, err
 	}
 
-	amountOutNumeraire.MulDivOverflow(amountOutNumeraire, s.powDecs[indexOut], big256.U2Pow64)
+	amountOutNumeraire = mulu(amountOutNumeraire, s.decs[indexOut])
 	// Convert output from numeraire to token decimals: (amountOutNumeraire * 1e8) / outputOracleRate
-	result, _ := amountOutNumeraire.MulDivOverflow(amountOutNumeraire, NumerairePrecision, outputOracleRate)
+	result, _ := amountOutNumeraire.MulDivOverflow(amountOutNumeraire, OracleDecimals, outputOracleRate)
 	return result, nil
 }
 
@@ -149,8 +147,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 
 	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
-	s.reserves[indexIn] = new(uint256.Int).Add(s.reserves[indexIn], amtIn)
-	s.reserves[indexOut] = new(uint256.Int).Sub(s.reserves[indexOut], amtOut)
+	s.Reserves[indexIn] = new(uint256.Int).Add(s.Reserves[indexIn], amtIn)
+	s.Reserves[indexOut] = new(uint256.Int).Sub(s.Reserves[indexOut], amtOut)
 }
 
 // GetMetaInfo returns metadata about the pool

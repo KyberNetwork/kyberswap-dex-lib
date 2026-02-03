@@ -93,8 +93,8 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 					{Address: tt.token0, Decimals: 18, Swappable: true},
 					{Address: tt.token1, Decimals: 6, Swappable: true},
 				},
-				Reserves: []string{"0", "0"}, // Empty reserves - will be fetched
-				StaticExtra:    string(staticExtraBytes),
+				Reserves:    []string{"0", "0"}, // Empty reserves - will be fetched
+				StaticExtra: string(staticExtraBytes),
 			}
 
 			// === EXECUTE: Fetch complete pool state via RPC ===
