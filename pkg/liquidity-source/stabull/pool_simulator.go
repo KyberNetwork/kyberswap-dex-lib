@@ -3,7 +3,6 @@ package stabull
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -17,7 +16,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	decs [2]*uint256.Int
+	decs, reserves [2]*uint256.Int
 	Extra
 }
 
@@ -35,44 +34,18 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Exchange: ep.Exchange,
 			Type:     ep.Type,
 			Tokens:   []string{ep.Tokens[0].Address, ep.Tokens[1].Address},
-			Reserves: []*big.Int{bignumber.NewBig10(ep.Reserves[0]),
-				bignumber.NewBig10(ep.Reserves[1])},
+			Reserves: []*big.Int{bignumber.NewBig10(ep.Reserves[0]), bignumber.NewBig10(ep.Reserves[1])},
 		}},
-		decs:  [2]*uint256.Int{big256.TenPow(ep.Tokens[0].Decimals), big256.TenPow(ep.Tokens[1].Decimals)},
-		Extra: extra,
+		reserves: [2]*uint256.Int{big256.New(ep.Reserves[0]), big256.New(ep.Reserves[1])},
+		decs:     [2]*uint256.Int{big256.TenPow(ep.Tokens[0].Decimals), big256.TenPow(ep.Tokens[1].Decimals)},
+		Extra:    extra,
 	}, nil
 }
 
 // CalcAmountOut calculates the expected output amount for a given input
 // Uses cached reserve and curve parameter state from pool tracker
-// Expects tokenAmountIn.Amount in input token decimals, returns output in output token decimals
-func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, fmt.Errorf("indexIn: %v or indexOut: %v is not correct", indexIn, indexOut)
-	}
-
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrInvalidAmount
-	}
-	// Calculate swap using Stabull curve formula
-	// Note: The actual contract has viewOriginSwap(origin, target, originAmount) that returns targetAmount
-	// In the simulator, we need to replicate this logic locally using cached curve parameters
-	amountOut, err := s.calculateSwap(amountIn, indexIn, indexOut)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: bignumber.ZeroBI},
-		Gas:            defaultGas,
-	}, nil
-}
-
-// calculateSwap implements the Stabull curve swap calculation logic
+//
+// implements the Stabull curve swap calculation logic
 // Stabull uses a sophisticated invariant-based curve with oracle integration
 // The actual contract uses viewOriginSwap(origin, target, amount) which implements:
 // 1. Hybrid constant product and constant sum invariant
@@ -81,14 +54,19 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 // 4. Dynamic fee based on epsilon and pool imbalance
 //
 // We implement the curve math using the greek parameters from pool state
-func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut int) (*uint256.Int, error) {
-	if amountIn == nil || amountIn.Sign() <= 0 {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrInvalidToken
+	}
+
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow || amountIn.Sign() <= 0 {
 		return nil, ErrInvalidAmount
 	}
 
-	// Get token decimals from entity pool tokens
-	// Reserves are stored in 18 decimals (numeraire), but input/output are in token decimals
-	reserveIn, reserveOut := s.Reserves[indexIn], s.Reserves[indexOut]
+	reserveIn, reserveOut := s.reserves[indexIn], s.reserves[indexOut]
 	if reserveIn == nil || reserveIn.Sign() <= 0 {
 		return nil, errors.New("insufficient reserve in")
 	} else if reserveOut == nil || reserveOut.Sign() <= 0 {
@@ -96,8 +74,6 @@ func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut i
 	}
 
 	inputOracleRate, outputOracleRate := s.OracleRates[indexIn], s.OracleRates[indexOut]
-
-	// Validate oracle rates
 	if inputOracleRate == nil || inputOracleRate.Sign() <= 0 {
 		if indexIn == 0 {
 			return nil, errors.New("missing or invalid BaseOracleRate for input token")
@@ -111,14 +87,21 @@ func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut i
 	}
 
 	// Convert input to numeraire: (amountIn * inputOracleRate) / 1e8
-	amountInNumeraire, _ := amountIn.MulDivOverflow(amountIn, inputOracleRate, OracleDecimals)
-	amountInNumeraire = divu(amountInNumeraire, s.decs[indexIn])
+	amtInNumeraire, _ := amountIn.MulDivOverflow(amountIn, inputOracleRate, OracleDecimals)
+	amtInNumeraire = divu(amtInNumeraire, s.decs[indexIn])
+
+	var tmp1, tmp2 uint256.Int
+	tmp1.MulDivOverflow(reserveIn, inputOracleRate, OracleDecimals)
+	resInNumeraire := divu(&tmp1, s.decs[indexIn])
+
+	tmp2.MulDivOverflow(reserveOut, outputOracleRate, OracleDecimals)
+	resOutNumeraire := divu(&tmp2, s.decs[indexOut])
 
 	// Use the Stabull curve formula with greek parameters
-	amountOutNumeraire, err := calculateStabullSwap(
-		amountInNumeraire,
-		reserveIn,
-		reserveOut,
+	amtOutNumeraire, err := calculateTrade(
+		amtInNumeraire,
+		resInNumeraire,
+		resOutNumeraire,
 		s.Alpha,
 		s.Beta,
 		s.Delta,
@@ -128,11 +111,20 @@ func (s *PoolSimulator) calculateSwap(amountIn *uint256.Int, indexIn, indexOut i
 	if err != nil {
 		return nil, err
 	}
+	// Apply epsilon fee: result = result * (ONE - epsilon) / ONE
+	// In the contract: _amt = _amt.us_mul(ONE - curve.epsilon)
+	fee := tmp1.Sub(big256.U2Pow64, s.Epsilon)
+	amtOutNumeraire = usMul(amtOutNumeraire, fee)
 
-	amountOutNumeraire = mulu(amountOutNumeraire, s.decs[indexOut])
+	amountOut := mulu(amtOutNumeraire, s.decs[indexOut])
 	// Convert output from numeraire to token decimals: (amountOutNumeraire * 1e8) / outputOracleRate
-	result, _ := amountOutNumeraire.MulDivOverflow(amountOutNumeraire, OracleDecimals, outputOracleRate)
-	return result, nil
+	amountOut.MulDivOverflow(amountOut, OracleDecimals, outputOracleRate)
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: bignumber.ZeroBI},
+		Gas:            defaultGas,
+	}, nil
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -147,8 +139,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 
 	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
-	s.Reserves[indexIn] = new(uint256.Int).Add(s.Reserves[indexIn], amtIn)
-	s.Reserves[indexOut] = new(uint256.Int).Sub(s.Reserves[indexOut], amtOut)
+	s.reserves[indexIn] = new(uint256.Int).Add(s.reserves[indexIn], amtIn)
+	s.reserves[indexOut] = new(uint256.Int).Sub(s.reserves[indexOut], amtOut)
 }
 
 // GetMetaInfo returns metadata about the pool

@@ -88,8 +88,8 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 				// Decode and log StaticExtra data (oracle addresses)
 				var staticExtra StaticExtra
 				if err := json.Unmarshal([]byte(pool.Extra), &staticExtra); err == nil {
-					t.Logf("    Base Oracle: %s", staticExtra.Oracles[0])
-					t.Logf("    Quote Oracle: %s", staticExtra.Oracles[1])
+					t.Logf("    Base Oracle: %s", staticExtra.Assimilators[0])
+					t.Logf("    Quote Oracle: %s", staticExtra.Assimilators[1])
 				}
 			}
 

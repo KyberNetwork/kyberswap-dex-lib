@@ -13,16 +13,11 @@ const (
 	// Pool (Curve) methods
 	poolMethodNumeraires     = "numeraires"     // numeraires(uint256) returns token address at index
 	poolMethodAssimilator    = "assimilator"    // assimilator(address) returns assimilator address for token
-	poolMethodLiquidity      = "liquidity"      // liquidity() returns (total, individual[])
-	poolMethodViewCurve      = "viewCurve"      // viewCurve() returns (alpha, beta, delta, epsilon, lambda)
+	poolMethodCurve          = "curve"          // curve() returns (alpha, beta, delta, epsilon, lambda, totalSupply)
 	poolMethodViewOriginSwap = "viewOriginSwap" // viewOriginSwap(origin, target, originAmount) returns targetAmount
 
 	// Assimilator methods
-	assimilatorMethodOracle = "oracle" // oracle() returns oracle address
-
-	// Chainlink Oracle methods
-	oracleMethodLatestAnswer    = "latestAnswer"    // latestAnswer() returns int256 price
-	oracleMethodLatestRoundData = "latestRoundData" // latestRoundData() returns (roundId, answer, startedAt, updatedAt, answeredInRound)
+	assimilatorMethodGetRate = "getRate" // getRate() returns oracle rate
 
 	// Default gas costs for Stabull swaps
 	// Stabull uses curve math + oracle checks, higher than simple AMMs
@@ -36,7 +31,7 @@ var (
 	answerUpdatedEventTopic   = common.HexToHash("0x0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f")
 	newTransmissionEventTopic = common.HexToHash("0xf6a97944f31ea060dfde0566719c0c1d5ac5b3c3e8b4d8e2c7a6c7e1c8f0c3a8")
 
-	Weight50             = new(uint256.Int).Div(big256.BONE, big256.U2)
+	Weight50             = new(uint256.Int).Div(big256.U2Pow64, big256.U2)
 	ConvergencePrecision = big256.TenPow(13)
 	OracleDecimals       = big256.TenPow(8)
 )

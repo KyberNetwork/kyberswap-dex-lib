@@ -7,9 +7,8 @@ import (
 )
 
 var (
-	stabullPoolABI         abi.ABI
-	assimilatorABI         abi.ABI
-	chainlinkAggregatorABI abi.ABI
+	stabullPoolABI abi.ABI
+	assimilatorABI abi.ABI
 )
 
 func init() {
@@ -23,12 +22,6 @@ func init() {
 
 	// Parse Assimilator ABI
 	assimilatorABI, err = abi.JSON(bytes.NewReader(assimilatorABIData))
-	if err != nil {
-		panic(err)
-	}
-
-	// Parse Chainlink Aggregator ABI
-	chainlinkAggregatorABI, err = abi.JSON(bytes.NewReader(chainlinkAggregatorABIData))
 	if err != nil {
 		panic(err)
 	}

@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	ErrInvalidToken          = errors.New("invalid token")
 	ErrInvalidAmount         = errors.New("invalid amount")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 	ErrConvergenceFailed     = errors.New("swap convergence failed")
@@ -18,7 +19,7 @@ var (
 	maxFee = uint256.MustFromHex("0x4000000000000000")
 )
 
-// calculateStabullSwap implements the Stabull curve swap calculation
+// calculateTrade implements the Stabull curve swap calculation
 // Based on CurveMath.sol from https://github.com/stabull/v1-amm/blob/dev/src/CurveMath.sol
 //
 // This implements the iterative convergence algorithm that:
@@ -35,7 +36,7 @@ var (
 // - lambda: Fee adjustment weight when omega >= psi
 //
 // All calculations are done in numeraire space (18 decimals)
-func calculateStabullSwap(
+func calculateTrade(
 	amountIn *uint256.Int,
 	reserveIn *uint256.Int,
 	reserveOut *uint256.Int,
@@ -98,7 +99,7 @@ func calculateStabullSwap(
 		} else {
 			// outputAmt = -(amountIn + lambda * (omega - psi))
 			feeDiff := lambdaAdj.Sub(omega, psi)
-			lambdaAdj.MulDivOverflow(lambda, feeDiff, big256.BONE)
+			lambdaAdj.MulDivOverflow(lambda, feeDiff, big256.U2Pow64)
 
 			outputAmt.Add(amountIn, &lambdaAdj)
 			outputAmt.Neg(&outputAmt)
@@ -141,7 +142,7 @@ func calculateStabullSwap(
 			nBalsOut := new(uint256.Int).Sub(reserveOut, result)
 
 			// Weight is 0.5 (50%) for both tokens in a 50/50 pool
-			weight := new(uint256.Int).Div(big256.BONE, uint256.NewInt(2)) // 0.5e18
+			weight := new(uint256.Int).Div(big256.U2Pow64, uint256.NewInt(2)) // 0.5e18
 
 			// Check input token halts
 			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsIn, nBalsIn, weight, alpha); err != nil {
@@ -152,12 +153,6 @@ func calculateStabullSwap(
 			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsOut, nBalsOut, weight, alpha); err != nil {
 				return nil, err
 			}
-
-			// Apply epsilon fee: result = result * (ONE - epsilon) / ONE
-			// In the contract: _amt = _amt.us_mul(ONE - curve.epsilon)
-			oneMinusEpsilon := new(uint256.Int).Sub(big256.BONE, epsilon)
-			result = new(uint256.Int).Mul(result, oneMinusEpsilon)
-			result.Div(result, big256.BONE)
 
 			return result, nil
 		}
@@ -185,7 +180,7 @@ func calculateFee(
 	for i := 0; i < len(bals); i++ {
 		// ideal = gLiq * weight[i] / 1e18
 		ideal := new(uint256.Int).Mul(gLiq, weights[i])
-		ideal.Div(ideal, big256.BONE)
+		ideal.Div(ideal, big256.U2Pow64)
 
 		// Calculate micro fee for this token
 		microFee := calculateMicroFee(bals[i], ideal, beta, delta)
@@ -197,7 +192,7 @@ func calculateFee(
 
 // calculateMicroFee implements per-token fee from CurveMath.sol
 func calculateMicroFee(bal *uint256.Int, ideal *uint256.Int, beta *uint256.Int, delta *uint256.Int) *uint256.Int {
-	one := big256.BONE
+	one := big256.U2Pow64
 
 	if bal.Cmp(ideal) < 0 {
 		// Balance below ideal
@@ -270,7 +265,7 @@ func calculateMicroFee(bal *uint256.Int, ideal *uint256.Int, beta *uint256.Int, 
 //  1. Balance crosses halt boundary (was inside, now outside)
 //  2. Balance is outside halt and moving further away
 func enforceHaltsForToken(oGLiq, nGLiq, oBal, nBal, weight, alpha *uint256.Int) error {
-	one := big256.BONE
+	one := big256.U2Pow64
 
 	// Calculate ideal balances: ideal = liquidity * weight / 1e18
 	nIdeal := new(uint256.Int).Mul(nGLiq, weight)
@@ -380,4 +375,8 @@ func mulu(x, y *uint256.Int) *uint256.Int {
 
 	hi.Lsh(&hi, 64)
 	return lo.Add(&lo, &hi)
+}
+
+func usMul(x, y *uint256.Int) *uint256.Int {
+	return x.Mul(x, y).Rsh(x, 64)
 }

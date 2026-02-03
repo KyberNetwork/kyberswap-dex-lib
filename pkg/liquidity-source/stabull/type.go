@@ -10,20 +10,22 @@ type Metadata struct {
 	LastPoolsChecksum common.Address `json:"poolsChecksum"`
 }
 
+type StaticExtraList struct {
+	Assimilators [2]common.Address `json:"a"` // [base, quote]
+}
+
 type StaticExtra struct {
-	Oracles [2]common.Address `json:"o"` // [base, quote]
+	Assimilators [2]string `json:"a"` // [base, quote]
 }
 
 // Extra contains additional pool state that gets serialized
 type Extra struct {
 	// Curve parameters from viewCurve()
 	CurveParams `json:"c"`
-	// Numeraire reserves
-	Reserves [2]*uint256.Int
 	// Oracle rates for both tokens (base/USD and USDC/USD)
-	OracleRates [2]*uint256.Int `json:"os"` // e.g., [NZD/USD,USDC/USD] from Chainlink
+	OracleRates [2]*uint256.Int `json:"o"` // e.g., [NZD/USD,USDC/USD] from Chainlink
 	// Derived oracle rate (baseOracleRate / quoteOracleRate)
-	OracleRate *uint256.Int `json:"o,omitempty"`
+	OracleRate *uint256.Int `json:"r"`
 }
 
 // CurveParams represents the Stabull curve parameters defining the shape of the pricing curve

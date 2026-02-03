@@ -1,12 +1,28 @@
 [
   {
     "inputs": [],
-    "name": "oracle",
+    "name": "getRate",
     "outputs": [
       {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
-        "name": "",
         "type": "address"
+      }
+    ],
+    "name": "viewNumeraireBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

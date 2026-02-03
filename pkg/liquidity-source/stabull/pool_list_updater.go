@@ -175,26 +175,9 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolStrs []string) ([]
 		return nil, errors.New("failed to fetch assimilators")
 	}
 
-	oracles := make([][2]common.Address, len(poolStrs))
-	req = u.ethrpcClient.R().SetContext(ctx)
-	for i, assimilator := range assimilators {
-		req.AddCall(&ethrpc.Call{
-			ABI:    assimilatorABI,
-			Target: hexutil.Encode(assimilator[0][:]),
-			Method: assimilatorMethodOracle,
-		}, []any{&oracles[i][0]}).AddCall(&ethrpc.Call{
-			ABI:    assimilatorABI,
-			Target: hexutil.Encode(assimilator[1][:]),
-			Method: assimilatorMethodOracle,
-		}, []any{&oracles[i][1]})
-	}
-	if _, err := req.Aggregate(); err != nil {
-		return nil, errors.New("failed to fetch oracles")
-	}
-
 	pools := make([]entity.Pool, len(poolStrs))
 	for i, poolStr := range poolStrs {
-		staticExtraBytes, _ := json.Marshal(StaticExtra{Oracles: oracles[i]})
+		staticExtraBytes, _ := json.Marshal(StaticExtraList{Assimilators: assimilators[i]})
 
 		pools[i] = entity.Pool{
 			Address:   poolStr,
