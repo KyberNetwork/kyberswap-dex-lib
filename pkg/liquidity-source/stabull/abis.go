@@ -7,19 +7,13 @@ import (
 )
 
 var (
-	stabullFactoryABI      abi.ABI
 	stabullPoolABI         abi.ABI
 	assimilatorABI         abi.ABI
 	chainlinkAggregatorABI abi.ABI
 )
 
 func init() {
-	// Parse Factory ABI
 	var err error
-	stabullFactoryABI, err = abi.JSON(bytes.NewReader(stabullFactoryABIData))
-	if err != nil {
-		panic(err)
-	}
 
 	// Parse Pool ABI
 	stabullPoolABI, err = abi.JSON(bytes.NewReader(stabullPoolABIData))

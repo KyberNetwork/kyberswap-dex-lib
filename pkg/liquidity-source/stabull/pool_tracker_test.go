@@ -77,11 +77,13 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 			require.NoError(t, err)
 
 			// Create initial pool entity with oracle addresses in Extra
-			initialExtra := Extra{
-				BaseOracleAddress:  tt.baseOracle,
-				QuoteOracleAddress: tt.quoteOracle,
+			staticExtra := StaticExtra{
+				Oracles: [2]common.Address{
+					common.HexToAddress(tt.baseOracle),
+					common.HexToAddress(tt.quoteOracle),
+				},
 			}
-			initialExtraBytes, _ := json.Marshal(initialExtra)
+			staticExtraBytes, _ := json.Marshal(staticExtra)
 
 			poolEntity := entity.Pool{
 				Address:  tt.poolAddress,
@@ -92,7 +94,7 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 					{Address: tt.token1, Decimals: 6, Swappable: true},
 				},
 				Reserves: []string{"0", "0"}, // Empty reserves - will be fetched
-				Extra:    string(initialExtraBytes),
+				StaticExtra:    string(staticExtraBytes),
 			}
 
 			// === EXECUTE: Fetch complete pool state via RPC ===
@@ -129,61 +131,43 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 			require.NoError(t, err, "Should successfully parse Extra data")
 
 			// Validate all 5 Greek parameters
-			require.NotEmpty(t, extra.CurveParams.Alpha, "Alpha should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Beta, "Beta should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Delta, "Delta should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Epsilon, "Epsilon should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Lambda, "Lambda should not be empty")
+			require.NotEmpty(t, extra.Alpha, "Alpha should not be empty")
+			require.NotEmpty(t, extra.Beta, "Beta should not be empty")
+			require.NotEmpty(t, extra.Delta, "Delta should not be empty")
+			require.NotEmpty(t, extra.Epsilon, "Epsilon should not be empty")
+			require.NotEmpty(t, extra.Lambda, "Lambda should not be empty")
 
-			t.Logf("  Alpha (α):   %s", extra.CurveParams.Alpha)
-			t.Logf("  Beta (β):    %s", extra.CurveParams.Beta)
-			t.Logf("  Delta (δ):   %s", extra.CurveParams.Delta)
-			t.Logf("  Epsilon (ε): %s", extra.CurveParams.Epsilon)
-			t.Logf("  Lambda (λ):  %s", extra.CurveParams.Lambda)
+			t.Logf("  Alpha (α):   %s", extra.Alpha)
+			t.Logf("  Beta (β):    %s", extra.Beta)
+			t.Logf("  Delta (δ):   %s", extra.Delta)
+			t.Logf("  Epsilon (ε): %s", extra.Epsilon)
+			t.Logf("  Lambda (λ):  %s", extra.Lambda)
 
 			// Validate parameters are positive numbers
-			alpha, ok := new(big.Int).SetString(extra.CurveParams.Alpha, 10)
-			require.True(t, ok && alpha.Cmp(big.NewInt(0)) > 0, "Alpha should be positive")
-
-			beta, ok := new(big.Int).SetString(extra.CurveParams.Beta, 10)
-			require.True(t, ok && beta.Cmp(big.NewInt(0)) > 0, "Beta should be positive")
-
-			delta, ok := new(big.Int).SetString(extra.CurveParams.Delta, 10)
-			require.True(t, ok && delta.Cmp(big.NewInt(0)) > 0, "Delta should be positive")
-
-			epsilon, ok := new(big.Int).SetString(extra.CurveParams.Epsilon, 10)
-			require.True(t, ok && epsilon.Cmp(big.NewInt(0)) > 0, "Epsilon should be positive")
-
-			lambda, ok := new(big.Int).SetString(extra.CurveParams.Lambda, 10)
-			require.True(t, ok && lambda.Cmp(big.NewInt(0)) > 0, "Lambda should be positive")
+			require.True(t, extra.Alpha.Sign() > 0, "Alpha should be positive")
+			require.True(t, extra.Beta.Sign() > 0, "Beta should be positive")
+			require.True(t, extra.Delta.Sign() > 0, "Delta should be positive")
+			require.True(t, extra.Epsilon.Sign() > 0, "Epsilon should be positive")
+			require.True(t, extra.Lambda.Sign() > 0, "Lambda should be positive")
 
 			// === 3. VALIDATE ORACLE RATES (from EACAggregatorProxy.latestAnswer()) ===
 			t.Logf("")
 			t.Logf("✓ ORACLE RATES (from EACAggregatorProxy.latestAnswer()):")
 
-			require.NotEmpty(t, extra.BaseOracleAddress, "Base oracle address should be set")
-			require.NotEmpty(t, extra.QuoteOracleAddress, "Quote oracle address should be set")
-			t.Logf("  Base Oracle Address:  %s", extra.BaseOracleAddress)
-			t.Logf("  Quote Oracle Address: %s", extra.QuoteOracleAddress)
-
-			require.NotEmpty(t, extra.BaseOracleRate, "Base oracle rate should be fetched")
-			require.NotEmpty(t, extra.QuoteOracleRate, "Quote oracle rate should be fetched")
-			t.Logf("  Base Oracle Rate:     %s", extra.BaseOracleRate)
-			t.Logf("  Quote Oracle Rate:    %s", extra.QuoteOracleRate)
+			require.NotEmpty(t, extra.OracleRates[0], "Base oracle rate should be fetched")
+			require.NotEmpty(t, extra.OracleRates[1], "Quote oracle rate should be fetched")
+			t.Logf("  Base Oracle Rate:     %s", extra.OracleRates[0])
+			t.Logf("  Quote Oracle Rate:    %s", extra.OracleRates[1])
 
 			// Validate oracle rates are positive
-			baseRate, ok := new(big.Int).SetString(extra.BaseOracleRate, 10)
-			require.True(t, ok && baseRate.Cmp(big.NewInt(0)) > 0, "Base oracle rate should be positive")
-
-			quoteRate, ok := new(big.Int).SetString(extra.QuoteOracleRate, 10)
-			require.True(t, ok && quoteRate.Cmp(big.NewInt(0)) > 0, "Quote oracle rate should be positive")
+			require.True(t, extra.OracleRates[0].Sign() > 0, "Base oracle rate should be positive")
+			require.True(t, extra.OracleRates[1].Sign() > 0, "Quote oracle rate should be positive")
 
 			// Validate derived oracle rate
 			require.NotEmpty(t, extra.OracleRate, "Derived oracle rate should be calculated")
 			t.Logf("  Derived Oracle Rate:  %s", extra.OracleRate)
 
-			derivedRate, ok := new(big.Int).SetString(extra.OracleRate, 10)
-			require.True(t, ok && derivedRate.Cmp(big.NewInt(0)) > 0, "Derived oracle rate should be positive")
+			require.True(t, extra.OracleRate.Sign() > 0, "Derived oracle rate should be positive")
 
 			// === 4. VALIDATE WEIGHTS (50/50 for 2-token pools) ===
 			t.Logf("")
@@ -260,8 +244,8 @@ func TestPoolTracker_StateUpdateMethods(t *testing.T) {
 		ABI:    stabullPoolABI,
 		Target: poolAddress,
 		Method: poolMethodLiquidity,
-		Params: []interface{}{},
-	}, []interface{}{&liquidityResult})
+		Params: []any{},
+	}, []any{&liquidityResult})
 
 	// === METHOD 2: Curve.viewCurve() ===
 	t.Log("✓ Testing Curve.viewCurve() method:")
@@ -269,8 +253,8 @@ func TestPoolTracker_StateUpdateMethods(t *testing.T) {
 		ABI:    stabullPoolABI,
 		Target: poolAddress,
 		Method: poolMethodViewCurve,
-		Params: []interface{}{},
-	}, []interface{}{&curveResult})
+		Params: []any{},
+	}, []any{&curveResult})
 
 	// === METHOD 3: EACAggregatorProxy.latestAnswer() - Base Oracle ===
 	t.Log("✓ Testing EACAggregatorProxy.latestAnswer() - Base Oracle:")
@@ -278,8 +262,8 @@ func TestPoolTracker_StateUpdateMethods(t *testing.T) {
 		ABI:    chainlinkAggregatorABI,
 		Target: baseOracle,
 		Method: oracleMethodLatestAnswer,
-		Params: []interface{}{},
-	}, []interface{}{&baseRate})
+		Params: []any{},
+	}, []any{&baseRate})
 
 	// === METHOD 4: EACAggregatorProxy.latestAnswer() - Quote Oracle ===
 	t.Log("✓ Testing EACAggregatorProxy.latestAnswer() - Quote Oracle:")
@@ -287,8 +271,8 @@ func TestPoolTracker_StateUpdateMethods(t *testing.T) {
 		ABI:    chainlinkAggregatorABI,
 		Target: quoteOracle,
 		Method: oracleMethodLatestAnswer,
-		Params: []interface{}{},
-	}, []interface{}{&quoteRate})
+		Params: []any{},
+	}, []any{&quoteRate})
 
 	// Execute all RPC calls
 	_, err := req.Aggregate()

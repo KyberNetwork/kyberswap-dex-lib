@@ -1,9 +1,0 @@
-{
-  "dexID": "stabull",
-  "factoryAddress": "0x0000000000000000000000000000000000000000",
-  "newPoolLimit": 100,
-  "chainlinkOracles": {
-    "0xPoolAddress1": "0xOracleAddress1",
-    "0xPoolAddress2": "0xOracleAddress2"
-  }
-}

@@ -3,21 +3,29 @@ package stabull
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -30,7 +38,7 @@ func NewPoolTracker(
 }
 
 // GetNewPoolState updates the pool state by fetching current reserves and parameters
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
@@ -42,13 +50,14 @@ func (d *PoolTracker) GetNewPoolState(
 
 	// Check if we have Trade events to process
 	// If we do, we can update reserves from the event data instead of fetching from RPC
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"dex":         DexType,
 			"poolAddress": p.Address,
 			"error":       err,
-		}).Warn("Failed to decode extra data, will refetch from node")
+		}).Error("failed to decode StaticExtra data")
+		return entity.Pool{}, errors.New("failed to decode StaticExtra")
 	}
 
 	hasTradeEvent := false
@@ -59,9 +68,7 @@ func (d *PoolTracker) GetNewPoolState(
 	for _, log := range params.Logs {
 		if !isLogFromPool(log, p.Address) {
 			// Check if it's from one of the oracle contracts
-			if extra.BaseOracleAddress != "" && isLogFromOracle(log, extra.BaseOracleAddress) {
-				hasOracleEvent = true
-			} else if extra.QuoteOracleAddress != "" && isLogFromOracle(log, extra.QuoteOracleAddress) {
+			if log.Address == staticExtra.Oracles[0] || log.Address == staticExtra.Oracles[1] {
 				hasOracleEvent = true
 			}
 			continue
@@ -76,13 +83,13 @@ func (d *PoolTracker) GetNewPoolState(
 
 	// If we have a ParametersSet event, we need to update curve parameters
 	if hasParametersSetEvent {
-		return d.handleParametersSetEvent(ctx, p, params)
+		return t.handleParametersSetEvent(ctx, p, params)
 	}
 
 	// If we have oracle events, decode and update oracle rates
 	// Oracle rate changes don't affect reserves but do affect pricing
 	if hasOracleEvent {
-		updatedPool, err := d.handleOracleEvents(ctx, p, params, extra)
+		updatedPool, err := t.handleOracleEvents(ctx, p, params, staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dex":         DexType,
@@ -106,7 +113,7 @@ func (d *PoolTracker) GetNewPoolState(
 	// However, for simplicity and to ensure accuracy, we refetch from node
 	if hasTradeEvent {
 		// Refetch reserves after trade
-		reserves, updatedExtra, err := d.fetchPoolReservesFromNode(ctx, p.Address, extra)
+		reserves, updatedExtra, err := t.fetchPoolReservesFromNode(ctx, p, staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dex":         DexType,
@@ -144,17 +151,8 @@ func (d *PoolTracker) GetNewPoolState(
 	var updatedExtra Extra
 	var err error
 
-	// Check if we have oracle addresses to fetch rates
-	if extra.BaseOracleAddress != "" || extra.QuoteOracleAddress != "" {
-		// Fetch everything including oracle rates
-		reserves, updatedExtra, err = d.fetchPoolStateWithOraclesFromNode(ctx, p.Address, extra.BaseOracleAddress, extra.QuoteOracleAddress)
-	} else {
-		// Fetch only reserves and curve params (no oracle addresses available yet)
-		reserves, updatedExtra, err = d.fetchPoolStateFromNode(ctx, p.Address)
-		// Preserve oracle addresses from existing extra if they exist
-		updatedExtra.BaseOracleAddress = extra.BaseOracleAddress
-		updatedExtra.QuoteOracleAddress = extra.QuoteOracleAddress
-	}
+	// Fetch everything including oracle rates
+	reserves, updatedExtra, err = t.fetchPoolStateWithOraclesFromNode(ctx, p, staticExtra)
 
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -178,6 +176,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 	p.Extra = string(extraBytes)
+	p.SwapFee = updatedExtra.Epsilon.Float64() / 1e18
 	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{
@@ -190,34 +189,41 @@ func (d *PoolTracker) GetNewPoolState(
 
 // handleOracleEvents processes Chainlink oracle events (AnswerUpdated or NewTransmission)
 // and updates the oracle rates in the pool state
-func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams, extra Extra) (entity.Pool, error) {
+func (t *PoolTracker) handleOracleEvents(_ context.Context, p entity.Pool, params pool.GetNewPoolStateParams,
+	staticExtra StaticExtra) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
 		"poolAddress": p.Address,
 	}).Info("Processing oracle events")
 
-	updatedExtra := extra
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":         DexType,
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Warn("Failed to decode existing extra data")
+	}
 	hasBaseOracleUpdate := false
 	hasQuoteOracleUpdate := false
 
 	// Process oracle events
 	for _, log := range params.Logs {
 		// Check if it's from base oracle
-		if extra.BaseOracleAddress != "" && isLogFromOracle(log, extra.BaseOracleAddress) {
+		if log.Address == staticExtra.Oracles[0] {
 			if isAnswerUpdatedEvent(log) {
 				// AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
 				// Topics: [0] = event sig, [1] = current (indexed), [2] = roundId (indexed)
 				if len(log.Topics) >= 2 {
 					// Extract current price from indexed topic
-					currentPrice := new(big.Int).SetBytes(log.Topics[1].Bytes())
-					updatedExtra.BaseOracleRate = currentPrice.String()
+					extra.OracleRates[0] = new(uint256.Int).SetBytes(log.Topics[1].Bytes())
 					hasBaseOracleUpdate = true
 					logger.WithFields(logger.Fields{
 						"dex":         DexType,
 						"poolAddress": p.Address,
 						"oracle":      "base",
-						"rate":        currentPrice.String(),
-					}).Info("Updated base oracle rate from AnswerUpdated event")
+						"rate":        extra.OracleRates[0],
+					}).Debug("Updated base oracle rate from AnswerUpdated event")
 				}
 			} else if isNewTransmissionEvent(log) {
 				// NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, ...)
@@ -240,31 +246,30 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 					}).Warn("Failed to decode NewTransmission event for base oracle")
 					continue
 				}
-				updatedExtra.BaseOracleRate = event.Answer.String()
+				extra.OracleRates[0] = uint256.MustFromBig(event.Answer)
 				hasBaseOracleUpdate = true
 				logger.WithFields(logger.Fields{
 					"dex":         DexType,
 					"poolAddress": p.Address,
 					"oracle":      "base",
-					"rate":        event.Answer.String(),
+					"rate":        event.Answer,
 				}).Info("Updated base oracle rate from NewTransmission event")
 			}
 		}
 
 		// Check if it's from quote oracle
-		if extra.QuoteOracleAddress != "" && isLogFromOracle(log, extra.QuoteOracleAddress) {
+		if log.Address == staticExtra.Oracles[1] {
 			if isAnswerUpdatedEvent(log) {
 				// AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
 				if len(log.Topics) >= 2 {
-					currentPrice := new(big.Int).SetBytes(log.Topics[1].Bytes())
-					updatedExtra.QuoteOracleRate = currentPrice.String()
+					extra.OracleRates[1] = new(uint256.Int).SetBytes(log.Topics[1].Bytes())
 					hasQuoteOracleUpdate = true
 					logger.WithFields(logger.Fields{
 						"dex":         DexType,
 						"poolAddress": p.Address,
 						"oracle":      "quote",
-						"rate":        currentPrice.String(),
-					}).Info("Updated quote oracle rate from AnswerUpdated event")
+						"rate":        extra.OracleRates[1],
+					}).Debug("Updated quote oracle rate from AnswerUpdated event")
 				}
 			} else if isNewTransmissionEvent(log) {
 				if len(log.Data) == 0 {
@@ -285,13 +290,13 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 					}).Warn("Failed to decode NewTransmission event for quote oracle")
 					continue
 				}
-				updatedExtra.QuoteOracleRate = event.Answer.String()
+				extra.OracleRates[1] = uint256.MustFromBig(event.Answer)
 				hasQuoteOracleUpdate = true
 				logger.WithFields(logger.Fields{
 					"dex":         DexType,
 					"poolAddress": p.Address,
 					"oracle":      "quote",
-					"rate":        event.Answer.String(),
+					"rate":        event.Answer,
 				}).Info("Updated quote oracle rate from NewTransmission event")
 			}
 		}
@@ -302,19 +307,13 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 	}
 
 	// Recalculate derived oracle rate if both rates are available
-	if updatedExtra.BaseOracleRate != "" && updatedExtra.QuoteOracleRate != "" {
-		baseRate, ok1 := new(big.Int).SetString(updatedExtra.BaseOracleRate, 10)
-		quoteRate, ok2 := new(big.Int).SetString(updatedExtra.QuoteOracleRate, 10)
-		if ok1 && ok2 && quoteRate.Cmp(big.NewInt(0)) > 0 {
-			// oracleRate = baseRate / quoteRate (scaled by precision)
-			oracleRate := new(big.Int).Mul(baseRate, BigOne)
-			oracleRate.Div(oracleRate, quoteRate)
-			updatedExtra.OracleRate = oracleRate.String()
-		}
+	if extra.OracleRates[0] != nil && extra.OracleRates[1] != nil {
+		// oracleRate = baseRate / quoteRate (scaled by precision)
+		extra.OracleRate, _ = new(uint256.Int).MulDivOverflow(extra.OracleRates[0], big256.BONE, extra.OracleRates[1])
 	}
 
 	// Update extra data
-	extraBytes, err := json.Marshal(updatedExtra)
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
@@ -324,75 +323,85 @@ func (d *PoolTracker) handleOracleEvents(ctx context.Context, p entity.Pool, par
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
 		"poolAddress": p.Address,
-		"baseRate":    updatedExtra.BaseOracleRate,
-		"quoteRate":   updatedExtra.QuoteOracleRate,
-		"derivedRate": updatedExtra.OracleRate,
-	}).Info("Successfully updated oracle rates from events")
+		"baseRate":    extra.OracleRates[0],
+		"quoteRate":   extra.OracleRates[1],
+		"derivedRate": extra.OracleRate,
+	}).Debug("Successfully updated oracle rates from events")
 
 	return p, nil
 }
 
-// fetchOracleRate fetches the latest price from a Chainlink oracle with fallback
+// fetchOracleRates fetches the latest prices from Chainlink oracles with fallback
 // Tries latestAnswer() first, then falls back to latestRoundData() for newer aggregators
-func (d *PoolTracker) fetchOracleRate(ctx context.Context, oracleAddress string) (*big.Int, error) {
+func (t *PoolTracker) fetchOracleRates(ctx context.Context, oracles [2]common.Address) ([2]*big.Int, error) {
 	// Try latestAnswer() first (simpler, older aggregators)
-	var rate *big.Int
-	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-	rpcRequest.AddCall(&ethrpc.Call{
+	var rates [2]*big.Int
+	oracleAddr0, oracleAddr1 := hexutil.Encode(oracles[0][:]), hexutil.Encode(oracles[1][:])
+	_, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    chainlinkAggregatorABI,
-		Target: oracleAddress,
+		Target: oracleAddr0,
 		Method: oracleMethodLatestAnswer,
-		Params: []interface{}{},
-	}, []interface{}{&rate})
-
-	_, err := rpcRequest.Aggregate()
-	if err == nil && rate != nil && rate.Sign() > 0 {
-		return rate, nil
+	}, []any{&rates[0]}).AddCall(&ethrpc.Call{
+		ABI:    chainlinkAggregatorABI,
+		Target: oracleAddr1,
+		Method: oracleMethodLatestAnswer,
+	}, []any{&rates[1]}).TryAggregate()
+	rate0Ok, rate1Ok := rates[0] != nil && rates[0].Sign() > 0, rates[1] != nil && rates[1].Sign() > 0
+	if err == nil && rate0Ok && rate1Ok {
+		return rates, nil
 	}
 
 	// Fallback to latestRoundData() for newer aggregators
 	// latestRoundData() returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-	type LatestRoundData struct {
+	var roundData [2]struct {
 		RoundId         *big.Int
 		Answer          *big.Int
 		StartedAt       *big.Int
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	}
-	var roundData LatestRoundData
-	rpcRequest2 := d.ethrpcClient.NewRequest().SetContext(ctx)
-	rpcRequest2.AddCall(&ethrpc.Call{
-		ABI:    chainlinkAggregatorABI,
-		Target: oracleAddress,
-		Method: oracleMethodLatestRoundData,
-		Params: []interface{}{},
-	}, []interface{}{&roundData})
-
-	_, err = rpcRequest2.Aggregate()
-	if err != nil {
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if !rate0Ok {
+		req.AddCall(&ethrpc.Call{
+			ABI:    chainlinkAggregatorABI,
+			Target: oracleAddr0,
+			Method: oracleMethodLatestRoundData,
+		}, []any{&roundData[0]})
+	}
+	if !rate1Ok {
+		req.AddCall(&ethrpc.Call{
+			ABI:    chainlinkAggregatorABI,
+			Target: oracleAddr1,
+			Method: oracleMethodLatestRoundData,
+		}, []any{&roundData[1]})
+	}
+	if _, err := req.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
-			"dex":    DexType,
-			"oracle": oracleAddress,
-			"error":  err,
+			"dex":     DexType,
+			"oracles": oracles,
+			"error":   err,
 		}).Warn("Both latestAnswer() and latestRoundData() failed for oracle")
-		return nil, err
+		return [2]*big.Int{}, err
 	}
 
-	if roundData.Answer == nil || roundData.Answer.Sign() <= 0 {
-		return nil, fmt.Errorf("invalid oracle answer: %v", roundData.Answer)
+	if !rate0Ok {
+		if roundData[0].Answer == nil || roundData[0].Answer.Sign() <= 0 {
+			return [2]*big.Int{}, fmt.Errorf("invalid oracle answer: %v", roundData[0].Answer)
+		}
+		rates[0] = roundData[0].Answer
+	}
+	if !rate1Ok {
+		if roundData[1].Answer == nil || roundData[1].Answer.Sign() <= 1 {
+			return [2]*big.Int{}, fmt.Errorf("invalid oracle answer: %v", roundData[1].Answer)
+		}
+		rates[1] = roundData[1].Answer
 	}
 
-	logger.WithFields(logger.Fields{
-		"dex":    DexType,
-		"oracle": oracleAddress,
-		"answer": roundData.Answer.String(),
-	}).Debug("Fetched oracle rate using latestRoundData() fallback")
-
-	return roundData.Answer, nil
+	return rates, nil
 }
 
 // fetchPoolStateFromNode fetches current reserves, curve parameters, and oracle rates from the blockchain
-func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) ([]*big.Int, Extra, error) {
+func (t *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress string) ([]*big.Int, Extra, error) {
 	// First, get the current Extra to retrieve oracle addresses
 	// We need to fetch this from the pool entity stored in state
 	// For now, we'll fetch everything fresh and populate oracle addresses later
@@ -417,7 +426,7 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		curveResult     CurveResult
 	)
 
-	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
 
 	// Fetch reserves using liquidity() method
 	// liquidity() returns (uint256 total_, uint256[] individual_)
@@ -425,8 +434,7 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		ABI:    stabullPoolABI,
 		Target: poolAddress,
 		Method: poolMethodLiquidity,
-		Params: []interface{}{},
-	}, []interface{}{&liquidityResult})
+	}, []any{&liquidityResult})
 
 	// Fetch curve parameters using viewCurve() method
 	// viewCurve() returns (uint256 alpha_, uint256 beta_, uint256 delta_, uint256 epsilon_, uint256 lambda_)
@@ -434,8 +442,7 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 		ABI:    stabullPoolABI,
 		Target: poolAddress,
 		Method: poolMethodViewCurve,
-		Params: []interface{}{},
-	}, []interface{}{&curveResult})
+	}, []any{&curveResult})
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
@@ -449,12 +456,12 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 	}
 
 	// Build curve parameters (convert to strings for JSON)
-	curveParams := CurveParameters{
-		Alpha:   curveResult.Alpha.String(),
-		Beta:    curveResult.Beta.String(),
-		Delta:   curveResult.Delta.String(),
-		Epsilon: curveResult.Epsilon.String(),
-		Lambda:  curveResult.Lambda.String(),
+	curveParams := CurveParams{
+		Alpha:   uint256.MustFromBig(curveResult.Alpha),
+		Beta:    uint256.MustFromBig(curveResult.Beta),
+		Delta:   uint256.MustFromBig(curveResult.Delta),
+		Epsilon: uint256.MustFromBig(curveResult.Epsilon),
+		Lambda:  uint256.MustFromBig(curveResult.Lambda),
 	}
 
 	// Build extra without oracle data (will be populated by fetchOracleRates)
@@ -466,7 +473,8 @@ func (d *PoolTracker) fetchPoolStateFromNode(ctx context.Context, poolAddress st
 }
 
 // fetchPoolStateWithOraclesFromNode fetches reserves, curve parameters, AND oracle rates from the blockchain
-func (d *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, poolAddress string, baseOracleAddr, quoteOracleAddr string) ([]*big.Int, Extra, error) {
+func (t *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, p entity.Pool,
+	staticExtra StaticExtra) ([]*big.Int, Extra, error) {
 	// Define struct to match the liquidity() return signature
 	type LiquidityResult struct {
 		Total      *big.Int
@@ -485,59 +493,34 @@ func (d *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, poo
 	var (
 		liquidityResult LiquidityResult
 		curveResult     CurveResult
-		baseOracleRate  *big.Int
-		quoteOracleRate *big.Int
 	)
 
-	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
 
 	// Fetch reserves using liquidity() method
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
-		Target: poolAddress,
+		Target: p.Address,
 		Method: poolMethodLiquidity,
-		Params: []interface{}{},
-	}, []interface{}{&liquidityResult})
-
+	}, []any{&liquidityResult})
 	// Fetch curve parameters using viewCurve() method
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
-		Target: poolAddress,
+		Target: p.Address,
 		Method: poolMethodViewCurve,
-		Params: []interface{}{},
-	}, []interface{}{&curveResult})
-
-	// Fetch base oracle rate (if address provided)
-	if baseOracleAddr != "" {
-		var err error
-		baseOracleRate, err = d.fetchOracleRate(ctx, baseOracleAddr)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dex":         DexType,
-				"poolAddress": poolAddress,
-				"oracle":      baseOracleAddr,
-				"error":       err,
-			}).Warn("Failed to fetch BaseOracleRate")
-		}
-	}
-
-	// Fetch quote oracle rate (if address provided)
-	if quoteOracleAddr != "" {
-		var err error
-		quoteOracleRate, err = d.fetchOracleRate(ctx, quoteOracleAddr)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dex":         DexType,
-				"poolAddress": poolAddress,
-				"oracle":      quoteOracleAddr,
-				"error":       err,
-			}).Warn("Failed to fetch QuoteOracleRate")
-		}
-	}
-
-	_, err := rpcRequest.Aggregate()
-	if err != nil {
+	}, []any{&curveResult})
+	if _, err := rpcRequest.Aggregate(); err != nil {
 		return nil, Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
+	}
+
+	oracleRates, err := t.fetchOracleRates(ctx, staticExtra.Oracles)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":         DexType,
+			"poolAddress": p.Address,
+			"oracles":     staticExtra.Oracles,
+			"error":       err,
+		}).Warn("Failed to fetch oracle rates")
 	}
 
 	// Convert reserves
@@ -547,94 +530,65 @@ func (d *PoolTracker) fetchPoolStateWithOraclesFromNode(ctx context.Context, poo
 	}
 
 	// Build curve parameters (convert to strings for JSON)
-	curveParams := CurveParameters{
-		Alpha:   curveResult.Alpha.String(),
-		Beta:    curveResult.Beta.String(),
-		Delta:   curveResult.Delta.String(),
-		Epsilon: curveResult.Epsilon.String(),
-		Lambda:  curveResult.Lambda.String(),
+	curveParams := CurveParams{
+		Alpha:   uint256.MustFromBig(curveResult.Alpha),
+		Beta:    uint256.MustFromBig(curveResult.Beta),
+		Delta:   uint256.MustFromBig(curveResult.Delta),
+		Epsilon: uint256.MustFromBig(curveResult.Epsilon),
+		Lambda:  uint256.MustFromBig(curveResult.Lambda),
 	}
 
 	// Build extra with oracle data
 	extra := Extra{
-		CurveParams:        curveParams,
-		BaseOracleAddress:  baseOracleAddr,
-		QuoteOracleAddress: quoteOracleAddr,
+		CurveParams: curveParams,
+		OracleRates: [2]*uint256.Int{uint256.MustFromBig(oracleRates[0]), uint256.MustFromBig(oracleRates[1])},
 	}
 
-	// Set oracle rates if fetched
-	if baseOracleRate != nil {
-		extra.BaseOracleRate = baseOracleRate.String()
-	}
-	if quoteOracleRate != nil {
-		extra.QuoteOracleRate = quoteOracleRate.String()
-	}
-
-	// Calculate derived oracle rate if both rates are available
-	if baseOracleRate != nil && quoteOracleRate != nil && quoteOracleRate.Cmp(big.NewInt(0)) > 0 {
-		// oracleRate = baseRate / quoteRate (scaled by precision)
-		oracleRate := new(big.Int).Mul(baseOracleRate, BigOne)
-		oracleRate.Div(oracleRate, quoteOracleRate)
-		extra.OracleRate = oracleRate.String()
-	}
+	// oracleRate = baseRate / quoteRate (scaled by precision)
+	extra.OracleRate, _ = new(uint256.Int).MulDivOverflow(extra.OracleRates[0], big256.BONE, extra.OracleRates[1])
 
 	return reserves, extra, nil
 }
 
 // fetchPoolReservesFromNode fetches only reserves (and optionally oracle rates) - efficient for Trade events
-func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress string, existingExtra Extra) ([]*big.Int, Extra, error) {
+func (t *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, p entity.Pool,
+	staticExtra StaticExtra) ([]*big.Int, Extra, error) {
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":         DexType,
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Warn("Failed to decode existing extra data")
+	}
 	// Define struct to match the liquidity() return signature
 	type LiquidityResult struct {
 		Total      *big.Int
 		Individual []*big.Int
 	}
 
-	var (
-		liquidityResult LiquidityResult
-		baseOracleRate  *big.Int
-		quoteOracleRate *big.Int
-	)
+	var liquidityResult LiquidityResult
 
-	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
+	rpcRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
 	// Fetch reserves using liquidity() method
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
-		Target: poolAddress,
+		Target: p.Address,
 		Method: poolMethodLiquidity,
-		Params: []interface{}{},
-	}, []interface{}{&liquidityResult})
+	}, []any{&liquidityResult})
+	if _, err := rpcRequest.Aggregate(); err != nil {
+		return nil, Extra{}, fmt.Errorf("failed to fetch pool state with oracles: %w", err)
+	}
 
 	// Also fetch oracle rates if addresses are available (good to refresh periodically)
-	if existingExtra.BaseOracleAddress != "" {
-		var err error
-		baseOracleRate, err = d.fetchOracleRate(ctx, existingExtra.BaseOracleAddress)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dex":         DexType,
-				"poolAddress": poolAddress,
-				"oracle":      existingExtra.BaseOracleAddress,
-				"error":       err,
-			}).Warn("Failed to fetch BaseOracleRate")
-		}
-	}
-
-	if existingExtra.QuoteOracleAddress != "" {
-		var err error
-		quoteOracleRate, err = d.fetchOracleRate(ctx, existingExtra.QuoteOracleAddress)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dex":         DexType,
-				"poolAddress": poolAddress,
-				"oracle":      existingExtra.QuoteOracleAddress,
-				"error":       err,
-			}).Warn("Failed to fetch QuoteOracleRate")
-		}
-	}
-
-	_, err := rpcRequest.Aggregate()
+	oracleRates, err := t.fetchOracleRates(ctx, staticExtra.Oracles)
 	if err != nil {
-		return nil, Extra{}, err
+		logger.WithFields(logger.Fields{
+			"dex":         DexType,
+			"poolAddress": p.Address,
+			"oracles":     staticExtra.Oracles,
+			"error":       err,
+		}).Warn("Failed to fetch oracle rates")
 	}
 
 	// Convert reserves
@@ -643,29 +597,18 @@ func (d *PoolTracker) fetchPoolReservesFromNode(ctx context.Context, poolAddress
 		return nil, Extra{}, fmt.Errorf("expected 2 reserves, got %d", len(reserves))
 	}
 
-	// Update oracle rates if fetched
-	if baseOracleRate != nil {
-		existingExtra.BaseOracleRate = baseOracleRate.String()
-	}
-	if quoteOracleRate != nil {
-		existingExtra.QuoteOracleRate = quoteOracleRate.String()
-	}
-
-	// Recalculate derived oracle rate if both rates are available
-	if baseOracleRate != nil && quoteOracleRate != nil && quoteOracleRate.Cmp(big.NewInt(0)) > 0 {
-		oracleRate := new(big.Int).Mul(baseOracleRate, BigOne)
-		oracleRate.Div(oracleRate, quoteOracleRate)
-		existingExtra.OracleRate = oracleRate.String()
-	}
+	extra.OracleRates = [2]*uint256.Int{uint256.MustFromBig(oracleRates[0]), uint256.MustFromBig(oracleRates[1])}
+	extra.OracleRate, _ = new(uint256.Int).MulDivOverflow(extra.OracleRates[0], big256.BONE, extra.OracleRates[1])
 
 	// Return existing extra with updated oracle rates (curve parameters unchanged)
-	return reserves, existingExtra, nil
+	return reserves, extra, nil
 }
 
 // handleParametersSetEvent processes a ParametersSet event by decoding the event data
 // ParametersSet(uint256 alpha, uint256 beta, uint256 delta, uint256 epsilon, uint256 lambda)
 // This is emitted when admin updates curve parameters - infrequent but critical for pricing
-func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams) (entity.Pool, error) {
+func (t *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Pool,
+	params pool.GetNewPoolStateParams) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dex":         DexType,
 		"poolAddress": p.Address,
@@ -714,12 +657,12 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 		}
 
 		// Update curve parameters in extra (convert to strings)
-		extra.CurveParams = CurveParameters{
-			Alpha:   event.Alpha.String(),
-			Beta:    event.Beta.String(),
-			Delta:   event.Delta.String(),
-			Epsilon: event.Epsilon.String(),
-			Lambda:  event.Lambda.String(),
+		extra.CurveParams = CurveParams{
+			Alpha:   uint256.MustFromBig(event.Alpha),
+			Beta:    uint256.MustFromBig(event.Beta),
+			Delta:   uint256.MustFromBig(event.Delta),
+			Epsilon: uint256.MustFromBig(event.Epsilon),
+			Lambda:  uint256.MustFromBig(event.Lambda),
 		}
 
 		extraBytes, err := json.Marshal(extra)
@@ -727,17 +670,8 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 			return p, err
 		}
 		p.Extra = string(extraBytes)
+		p.SwapFee = extra.Epsilon.Float64() / 1e18
 		p.Timestamp = time.Now().Unix()
-
-		logger.WithFields(logger.Fields{
-			"dex":         DexType,
-			"poolAddress": p.Address,
-			"alpha":       event.Alpha.String(),
-			"beta":        event.Beta.String(),
-			"delta":       event.Delta.String(),
-			"epsilon":     event.Epsilon.String(),
-			"lambda":      event.Lambda.String(),
-		}).Info("Updated curve parameters from ParametersSet event")
 
 		return p, nil
 	}
@@ -748,7 +682,7 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 		"poolAddress": p.Address,
 	}).Warn("No ParametersSet event found in logs, falling back to RPC")
 
-	reserves, updatedExtra, err := d.fetchPoolStateFromNode(ctx, p.Address)
+	reserves, updatedExtra, err := t.fetchPoolStateFromNode(ctx, p.Address)
 	if err != nil {
 		return p, err
 	}
@@ -765,6 +699,7 @@ func (d *PoolTracker) handleParametersSetEvent(ctx context.Context, p entity.Poo
 		return p, err
 	}
 	p.Extra = string(extraBytes)
+	p.SwapFee = updatedExtra.Epsilon.Float64() / 1e18
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil

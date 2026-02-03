@@ -12,6 +12,9 @@ import (
 )
 
 var (
+	U2Pow4  = new(uint256.Int).Lsh(U1, 4)
+	U2Pow8  = new(uint256.Int).Lsh(U1, 8)
+	U2Pow16  = new(uint256.Int).Lsh(U1, 16)
 	U2Pow32  = new(uint256.Int).Lsh(U1, 32)
 	U2Pow34  = new(uint256.Int).Lsh(U1, 34)
 	U2Pow64  = new(uint256.Int).Lsh(U1, 64)
@@ -23,6 +26,7 @@ var (
 	U2Pow127 = new(uint256.Int).Lsh(U1, 127)
 	U2Pow128 = new(uint256.Int).Lsh(U1, 128)
 	U2Pow160 = new(uint256.Int).Lsh(U1, 160)
+	U2Pow192 = new(uint256.Int).Lsh(U1, 192)
 
 	UMaxU34  = new(uint256.Int).SubUint64(U2Pow34, 1)
 	UMaxU66  = new(uint256.Int).SubUint64(U2Pow66, 1)

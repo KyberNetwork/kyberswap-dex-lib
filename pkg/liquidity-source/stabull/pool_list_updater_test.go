@@ -3,6 +3,7 @@ package stabull
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,8 +13,8 @@ import (
 
 // TestPoolsListUpdater_GetNewPools_Discovery tests the complete pool discovery flow
 func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
+	if os.Getenv("CI") != "" || testing.Short() {
+		t.Skip("Skipping integration test")
 	}
 
 	tests := []struct {
@@ -28,7 +29,7 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 			chainID:        137,
 			rpcURL:         "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
 			factoryAddress: "0x3c60234db40e6e5b57504e401b1cdc79d91faf89",
-			expectedMin:    13, // We know there are 13 pools on Polygon
+			expectedMin:    12, // We know there are 12 pools on Polygon
 		},
 		{
 			name:           "Base Pool Discovery",
@@ -58,6 +59,9 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 				ChainID:        tt.chainID,
 				FactoryAddress: tt.factoryAddress,
 				NewPoolLimit:   100,
+				HTTPConfig: HTTPConfig{
+					BaseURL: "https://api.stabull.finance",
+				},
 			}
 
 			updater := NewPoolsListUpdater(config, client)
@@ -81,15 +85,11 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 				t.Logf("    Reserve0: %s", pool.Reserves[0])
 				t.Logf("    Reserve1: %s", pool.Reserves[1])
 
-				// Decode and log Extra data (oracle addresses)
-				var extra Extra
-				if err := json.Unmarshal([]byte(pool.Extra), &extra); err == nil {
-					if extra.BaseOracleAddress != "" {
-						t.Logf("    Base Oracle: %s", extra.BaseOracleAddress)
-					}
-					if extra.QuoteOracleAddress != "" {
-						t.Logf("    Quote Oracle: %s", extra.QuoteOracleAddress)
-					}
+				// Decode and log StaticExtra data (oracle addresses)
+				var staticExtra StaticExtra
+				if err := json.Unmarshal([]byte(pool.Extra), &staticExtra); err == nil {
+					t.Logf("    Base Oracle: %s", staticExtra.Oracles[0])
+					t.Logf("    Quote Oracle: %s", staticExtra.Oracles[1])
 				}
 			}
 

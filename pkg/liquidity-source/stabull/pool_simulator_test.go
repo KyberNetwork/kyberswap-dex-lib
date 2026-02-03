@@ -77,7 +77,10 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap2(t *testing.T) {
 				DexID:          "stabull-test",
 				ChainID:        tt.chainID,
 				FactoryAddress: tt.factory,
-				FromBlock:      tt.fromBlock,
+				NewPoolLimit:   100,
+				HTTPConfig: HTTPConfig{
+					BaseURL: "https://api.stabull.finance",
+				},
 			}, client)
 
 			pools, _, err := updater.GetNewPools(ctx, nil)
@@ -88,15 +91,13 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap2(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, poolInfo := range pools {
-				var extra Extra
-				err = json.Unmarshal([]byte(poolInfo.Extra), &extra)
-				require.NoError(t, err)
+				var staticExtra StaticExtra
+				require.NoError(t, json.Unmarshal([]byte(poolInfo.Extra), &staticExtra))
 
 				reserves, updatedExtra, err := tracker.fetchPoolStateWithOraclesFromNode(
 					ctx,
-					poolInfo.Address,
-					extra.BaseOracleAddress,
-					extra.QuoteOracleAddress,
+					poolInfo,
+					staticExtra,
 				)
 				if err != nil {
 					t.Logf("%s | %s | %s", tt.name, poolInfo.Address, "oracle fetch failed, retrying without oracles")
@@ -114,13 +115,13 @@ func TestPoolSimulator_ValidateAgainstViewOriginSwap2(t *testing.T) {
 				extraBytes, err := json.Marshal(updatedExtra)
 				require.NoError(t, err)
 
-				if updatedExtra.BaseOracleRate == "" || updatedExtra.QuoteOracleRate == "" {
+				if updatedExtra.OracleRates[0] == nil || updatedExtra.OracleRates[1] == nil {
 					missing := "missing oracleRate"
-					if updatedExtra.BaseOracleRate == "" && updatedExtra.QuoteOracleRate == "" {
+					if updatedExtra.OracleRates[0] == nil && updatedExtra.OracleRates[1] == nil {
 						missing = "missing baseOracle+quoteOracle"
-					} else if updatedExtra.BaseOracleRate == "" {
+					} else if updatedExtra.OracleRates[0] == nil {
 						missing = "missing baseOracle"
-					} else if updatedExtra.QuoteOracleRate == "" {
+					} else if updatedExtra.OracleRates[1] == nil {
 						missing = "missing quoteOracle"
 					}
 					logErrorRow(t, tt.name, poolInfo.Address, "base-0.01", fmt.Errorf("%s", missing))
@@ -219,12 +220,12 @@ func runCase(
 		ABI:    stabullPoolABI,
 		Target: poolAddr,
 		Method: poolMethodViewOriginSwap,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(tokenIn),
 			common.HexToAddress(tokenOut),
 			amountInRaw,
 		},
-	}, []interface{}{&contractOut})
+	}, []any{&contractOut})
 	resp, err := swapRequest.TryAggregate()
 	if err != nil || len(resp.Result) == 0 || !resp.Result[0] || contractOut == nil {
 		originValue = "revert"
@@ -366,8 +367,8 @@ func fetchPoolSymbol(ctx context.Context, client *ethrpc.Client, poolAddr string
 		ABI:    erc20SymbolABI,
 		Target: poolAddr,
 		Method: "symbol",
-		Params: []interface{}{},
-	}, []interface{}{&symbol})
+		Params: []any{},
+	}, []any{&symbol})
 	if _, err := req.Call(); err != nil {
 		return ""
 	}

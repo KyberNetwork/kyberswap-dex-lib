@@ -1,8 +1,7 @@
 package stabull
 
 import (
-	"strings"
-
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -11,7 +10,7 @@ func isTradeEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
 		return false
 	}
-	return log.Topics[0].Hex() == tradeEventTopic
+	return log.Topics[0] == tradeEventTopic
 }
 
 // isParametersSetEvent checks if a log is a ParametersSet event
@@ -19,22 +18,12 @@ func isParametersSetEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
 		return false
 	}
-	return log.Topics[0].Hex() == parametersSetEventTopic
-}
-
-// normalizeAddress converts an address to lowercase for comparison
-func normalizeAddress(addr string) string {
-	return strings.ToLower(addr)
+	return log.Topics[0] == parametersSetEventTopic
 }
 
 // Helper to check if a log address matches the pool address
 func isLogFromPool(log types.Log, poolAddress string) bool {
-	return normalizeAddress(log.Address.Hex()) == normalizeAddress(poolAddress)
-}
-
-// Helper to check if a log address matches an oracle address
-func isLogFromOracle(log types.Log, oracleAddress string) bool {
-	return normalizeAddress(log.Address.Hex()) == normalizeAddress(oracleAddress)
+	return hexutil.Encode(log.Address[:]) == poolAddress
 }
 
 // isAnswerUpdatedEvent checks if a log is a Chainlink AnswerUpdated event
@@ -42,7 +31,7 @@ func isAnswerUpdatedEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
 		return false
 	}
-	return log.Topics[0].Hex() == answerUpdatedEventTopic
+	return log.Topics[0] == answerUpdatedEventTopic
 }
 
 // isNewTransmissionEvent checks if a log is a Chainlink NewTransmission event (OCR2)
@@ -50,5 +39,5 @@ func isNewTransmissionEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
 		return false
 	}
-	return log.Topics[0].Hex() == newTransmissionEventTopic
+	return log.Topics[0] == newTransmissionEventTopic
 }
