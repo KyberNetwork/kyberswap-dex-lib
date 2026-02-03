@@ -41,7 +41,7 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 		{
 			name:             "Polygon - NZDS/USDC Pool",
 			chainID:          137,
-			rpcURL:           "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:           "https://polygon-bor-rpc.publicnode.com",
 			poolAddress:      "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
 			token0:           "0xFbBE4b730e1e77d02dC40fEdF9438E2802eab3B5",
 			token1:           "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -52,7 +52,7 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 		{
 			name:             "Base - BRZ/USDC Pool",
 			chainID:          8453,
-			rpcURL:           "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:           "https://base-rpc.publicnode.com",
 			poolAddress:      "0x8a908ae045e611307755a91f4d6ecd04ed31eb1b",
 			token0:           "0xe9185ee218cae427af7b9764a011bb89fea761b4",
 			token1:           "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",

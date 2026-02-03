@@ -27,21 +27,21 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 		{
 			name:           "Polygon Pool Discovery",
 			chainID:        137,
-			rpcURL:         "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:         "https://polygon-bor-rpc.publicnode.com",
 			factoryAddress: "0x3c60234db40e6e5b57504e401b1cdc79d91faf89",
 			expectedMin:    12, // We know there are 12 pools on Polygon
 		},
 		{
 			name:           "Base Pool Discovery",
 			chainID:        8453,
-			rpcURL:         "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:         "https://base-rpc.publicnode.com",
 			factoryAddress: "0x86Ba17ebf8819f7fd32Cf1A43AbCaAe541A5BEbf",
 			expectedMin:    8, // We know there are 8 pools on Base
 		},
 		{
 			name:           "Ethereum Pool Discovery",
 			chainID:        1,
-			rpcURL:         "https://eth-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
+			rpcURL:         "https://ethereum-rpc.publicnode.com",
 			factoryAddress: "0x2e9E34b5Af24b66F12721113C1C8FFcbB7Bc8051",
 			expectedMin:    5, // We know there are 5 pools on Ethereum
 		},
