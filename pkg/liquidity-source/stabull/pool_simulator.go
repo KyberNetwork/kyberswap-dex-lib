@@ -98,16 +98,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	resOutNumeraire := divu(&tmp2, s.decs[indexOut])
 
 	// Use the Stabull curve formula with greek parameters
-	amtOutNumeraire, err := calculateTrade(
-		amtInNumeraire,
-		resInNumeraire,
-		resOutNumeraire,
-		s.Alpha,
-		s.Beta,
-		s.Delta,
-		s.Epsilon,
-		s.Lambda,
-	)
+	amtOutNumeraire, err := calculateTrade(amtInNumeraire, resInNumeraire, resOutNumeraire, s.Alpha, s.Beta, s.Delta,
+		s.Lambda)
 	if err != nil {
 		return nil, err
 	}

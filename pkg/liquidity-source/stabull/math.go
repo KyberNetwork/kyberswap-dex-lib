@@ -35,16 +35,7 @@ var (
 // - lambda: Fee adjustment weight when omega >= psi
 //
 // All calculations are done in numeraire space (18 decimals)
-func calculateTrade(
-	amountIn *uint256.Int,
-	reserveIn *uint256.Int,
-	reserveOut *uint256.Int,
-	alpha *uint256.Int,
-	beta *uint256.Int,
-	delta *uint256.Int,
-	epsilon *uint256.Int,
-	lambda *uint256.Int,
-) (*uint256.Int, error) {
+func calculateTrade(amountIn, reserveIn, reserveOut, alpha, beta, delta, lambda *uint256.Int) (*uint256.Int, error) {
 	if amountIn == nil || amountIn.Sign() <= 0 {
 		return nil, ErrInvalidAmount
 	} else if reserveIn == nil || reserveIn.Sign() <= 0 {
@@ -65,7 +56,7 @@ func calculateTrade(
 	weights := []*uint256.Int{Weight50, Weight50}
 
 	// Calculate omega (fee for old state)
-	omega := calculateFee(&oGLiq, oBals, beta, delta, weights)
+	omega := calculateFee(&oGLiq, beta, delta, oBals, weights)
 
 	// Start with negative of input (will be adjusted in loop)
 	outputAmt.Neg(amountIn)
@@ -84,7 +75,7 @@ func calculateTrade(
 	// Iterative convergence
 	for range 32 {
 		// Calculate psi (fee for new state)
-		psi := calculateFee(nGLiq, nBals, beta, delta, weights)
+		psi := calculateFee(nGLiq, beta, delta, nBals, weights)
 
 		// Save previous for convergence check
 		prevAmount := outputAmt.Clone()
@@ -152,13 +143,7 @@ func calculateTrade(
 
 // calculateFee implements the fee calculation from CurveMath.sol
 // Calculates total fee (omega/psi) for a given pool state
-func calculateFee(
-	gLiq *uint256.Int,
-	bals []*uint256.Int,
-	beta *uint256.Int,
-	delta *uint256.Int,
-	weights []*uint256.Int,
-) *uint256.Int {
+func calculateFee(gLiq, beta, delta *uint256.Int, bals, weights []*uint256.Int) *uint256.Int {
 	var psi uint256.Int
 
 	for i, bal := range bals {
@@ -174,7 +159,7 @@ func calculateFee(
 }
 
 // calculateMicroFee implements per-token fee from CurveMath.sol
-func calculateMicroFee(bal *uint256.Int, ideal *uint256.Int, beta *uint256.Int, delta *uint256.Int) *uint256.Int {
+func calculateMicroFee(bal, ideal, beta, delta *uint256.Int) *uint256.Int {
 	if bal.Lt(ideal) {
 		// Balance below ideal
 		// threshold = ideal * (1 - beta) / 2^64
