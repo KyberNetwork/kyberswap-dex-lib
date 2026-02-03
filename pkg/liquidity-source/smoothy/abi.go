@@ -1,4 +1,4 @@
-package wildcat
+package smoothy
 
 import (
 	"bytes"
@@ -7,10 +7,7 @@ import (
 )
 
 var (
-	factoryABI   abi.ABI
-	pairABI      abi.ABI
-	erc20ABI     abi.ABI
-	multicallABI abi.ABI
+	smoothyV1ABI abi.ABI
 )
 
 func init() {
@@ -18,10 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&factoryABI, factoryABIData},
-		{&pairABI, pairABIData},
-		{&erc20ABI, erc20ABIData},
-		{&multicallABI, multicallABIData},
+		{&smoothyV1ABI, smoothyV1ABIBytes},
 	}
 
 	for _, b := range builder {

@@ -7,20 +7,22 @@ import (
 
 	arberastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/wrseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/oeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wbeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var bytesByPathMap = map[string]map[string][]byte{
-	string(valueobject.ExchangeWBETH):       wbeth.BytesByPath,
-	string(valueobject.ExchangeOETH):        oeth.BytesByPath,
-	string(valueobject.ExchangeFrxETH):      frxeth.BytesByPath,
-	string(valueobject.ExchangeArberaStake): arberastake.BytesByPath,
+	valueobject.ExchangeWBETH:       wbeth.BytesByPath,
+	valueobject.ExchangeOETH:        oeth.BytesByPath,
+	valueobject.ExchangeFrxETH:      frxeth.BytesByPath,
+	valueobject.ExchangeArberaStake: arberastake.BytesByPath,
+	valueobject.ExchangeWRSETH:      wrseth.BytesByPath,
 }
 
 var abiByPathMap = map[string]abi.ABI{
-	string(valueobject.ExchangeWBETH): wbeth.WBETHABI,
+	valueobject.ExchangeWBETH: wbeth.WBETHABI,
 }
 
 func GetBytesByPath(dexID string, path string) ([]byte, error) {

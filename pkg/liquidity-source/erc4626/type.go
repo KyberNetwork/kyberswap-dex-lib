@@ -36,8 +36,9 @@ type (
 	}
 
 	Meta struct {
-		BlockNumber   uint64 `json:"blockNumber"`
-		IsNativeAsset bool   `json:"isNativeAsset"`
+		BlockNumber   uint64 `json:"bN"`
+		IsNativeAsset bool   `json:"isNativeAsset,omitempty"`
+		IsDeposit     bool   `json:"isDeposit,omitempty"`
 	}
 
 	PoolState struct {
@@ -48,6 +49,6 @@ type (
 		DepositRates []*big.Int
 		RedeemRates  []*big.Int
 
-		blockNumber uint64
+		BlockNumber uint64
 	}
 )

@@ -1,4 +1,4 @@
-package wildcat
+package elfomofi
 
 import (
 	"encoding/json"
@@ -90,12 +90,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
-		return nil
-	}
-	return PoolExtra{
-		TokenInIsNative:  s.IsNative[indexIn],
-		TokenOutIsNative: s.IsNative[indexOut],
+	return pool.ApprovalInfo{
+		ApprovalAddress: s.FactoryAddress,
 	}
 }

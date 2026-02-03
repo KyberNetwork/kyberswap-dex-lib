@@ -31,6 +31,7 @@ import (
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_brownfi_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
 	pkg_liquiditysource_cap_cusd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
+	pkg_liquiditysource_carbon "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	pkg_liquiditysource_clear "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	pkg_liquiditysource_cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
@@ -50,11 +51,13 @@ import (
 	pkg_liquiditysource_dodo_dvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	pkg_liquiditysource_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	pkg_liquiditysource_ekubo_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
+	pkg_liquiditysource_elfomofi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
 	pkg_liquiditysource_erc4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	pkg_liquiditysource_ethena_susde "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	pkg_liquiditysource_ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	pkg_liquiditysource_etherfi_ebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	pkg_liquiditysource_etherfi_eeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
+	pkg_liquiditysource_etherfi_liquid "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/liquid"
 	pkg_liquiditysource_etherfi_vampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	pkg_liquiditysource_etherfi_weeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	pkg_liquiditysource_eulerswap_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
@@ -115,7 +118,9 @@ import (
 	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	pkg_liquiditysource_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
+	pkg_liquiditysource_smoothy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	pkg_liquiditysource_solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
+	pkg_liquiditysource_someswap_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
 	pkg_liquiditysource_staderethx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	pkg_liquiditysource_swell_rsweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	pkg_liquiditysource_swell_sweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -149,7 +154,7 @@ import (
 	pkg_liquiditysource_velodromev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	pkg_liquiditysource_velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	pkg_liquiditysource_virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
-	pkg_liquiditysource_wildcat "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcat"
+	pkg_liquiditysource_wildcard "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	pkg_liquiditysource_xsolvbtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/xsolvbtc"
@@ -227,6 +232,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cap_cusd.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_carbon.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clear.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cloberob.PoolSimulator{})
@@ -246,11 +252,13 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dvm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo_v3.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_elfomofi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_erc4626.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ethena_susde.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ethervista.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_ebtc.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_eeth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_liquid.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_vampire.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_weeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_eulerswap_v1.PoolSimulator{})
@@ -311,7 +319,9 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smardex.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smoothy.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv2.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_someswap_v1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_rsweth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_sweth.PoolSimulator{})
@@ -345,7 +355,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wildcat.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wildcard.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_xsolvbtc.PoolSimulator{})
