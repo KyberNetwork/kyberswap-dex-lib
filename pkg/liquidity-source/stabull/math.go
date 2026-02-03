@@ -2,7 +2,6 @@ package stabull
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/holiman/uint256"
 
@@ -54,7 +53,7 @@ func calculateTrade(
 		return nil, ErrInsufficientLiquidity
 	}
 
-	var oGLiq, outputAmt, lambdaAdj, prevScaled, currScaled, nBal0, nBal1 uint256.Int
+	var oGLiq, outputAmt, lambdaAdj, prevScaled, currScaled, nBalIn, nBalOut uint256.Int
 
 	// Global liquidity = sum of all balances
 	oGLiq.Add(reserveIn, reserveOut)
@@ -74,8 +73,8 @@ func calculateTrade(
 	// Initialize new balances matching viewOriginSwapData:
 	// After the loop: nBals[input] = balance + amt, nBals[output] = balance - amt
 	nBals := []*uint256.Int{
-		nBal0.Add(oBals[0], amountIn), // nBals[input] = oBals[input] + amountIn
-		nBal1.Sub(oBals[1], amountIn), // nBals[output] = oBals[output] - amountIn
+		nBalIn.Add(oBals[0], amountIn),  // nBals[input] = oBals[input] + amountIn
+		nBalOut.Sub(oBals[1], amountIn), // nBals[output] = oBals[output] - amountIn
 	}
 
 	// Contract: nGLiq_ = nGLiq_.sub(amt_) but nGLiq already includes +amt from input side
@@ -111,13 +110,8 @@ func calculateTrade(
 
 		if prevScaled.Eq(&currScaled) {
 			// Converged! Update final state
-			nGLiq.Add(&oGLiq, amountIn)
-			nGLiq.Add(nGLiq, &outputAmt)
-			nBals[1] = new(uint256.Int).Add(oBals[1], &outputAmt)
-
-			result := new(uint256.Int).Abs(&outputAmt)
-
-			if result.Cmp(reserveOut) >= 0 {
+			result := outputAmt.Abs(&outputAmt)
+			if !result.Lt(reserveOut) {
 				return nil, ErrInsufficientLiquidity
 			}
 
@@ -129,28 +123,18 @@ func calculateTrade(
 			//   - Upper halt = ideal * (1 + alpha) = 50% * 1.5 = 75%
 			//   - Lower halt = ideal * (1 - alpha) = 50% * 0.5 = 25%
 
-			oGLiq := new(uint256.Int).Add(reserveIn, reserveOut)
-			nGLiq := new(uint256.Int).Add(
-				new(uint256.Int).Add(reserveIn, amountIn),
-				new(uint256.Int).Sub(reserveOut, result),
-			)
-
 			// oBals and nBals for input and output tokens
-			oBalsIn := reserveIn
-			oBalsOut := reserveOut
-			nBalsIn := new(uint256.Int).Add(reserveIn, amountIn)
-			nBalsOut := new(uint256.Int).Sub(reserveOut, result)
-
-			// Weight is 0.5 (50%) for both tokens in a 50/50 pool
-			weight := new(uint256.Int).Div(big256.U2Pow64, uint256.NewInt(2)) // 0.5e18
+			nBalIn.Add(reserveIn, amountIn)
+			nBalOut.Sub(reserveOut, result)
+			nGLiq.Add(&nBalIn, &nBalOut)
 
 			// Check input token halts
-			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsIn, nBalsIn, weight, alpha); err != nil {
+			if err := enforceHaltsForToken(&oGLiq, nGLiq, reserveIn, &nBalIn, weights[0], alpha); err != nil {
 				return nil, err
 			}
 
 			// Check output token halts
-			if err := enforceHaltsForToken(oGLiq, nGLiq, oBalsOut, nBalsOut, weight, alpha); err != nil {
+			if err := enforceHaltsForToken(&oGLiq, nGLiq, reserveOut, &nBalOut, weights[1], alpha); err != nil {
 				return nil, err
 			}
 
@@ -158,9 +142,9 @@ func calculateTrade(
 		}
 
 		// Update state for next iteration
-		nGLiq = new(uint256.Int).Add(&oGLiq, amountIn)
+		nGLiq.Add(&oGLiq, amountIn)
 		nGLiq.Add(nGLiq, &outputAmt)
-		nBals[1] = new(uint256.Int).Add(oBals[1], &outputAmt)
+		nBals[1].Add(oBals[1], &outputAmt)
 	}
 
 	return nil, ErrConvergenceFailed
@@ -175,82 +159,69 @@ func calculateFee(
 	delta *uint256.Int,
 	weights []*uint256.Int,
 ) *uint256.Int {
-	psi := big256.U0
+	var psi uint256.Int
 
-	for i := 0; i < len(bals); i++ {
-		// ideal = gLiq * weight[i] / 1e18
-		ideal := new(uint256.Int).Mul(gLiq, weights[i])
-		ideal.Div(ideal, big256.U2Pow64)
+	for i, bal := range bals {
+		// ideal = gLiq * weight[i] / 2^64
+		ideal := usMul(gLiq.Clone(), weights[i])
 
 		// Calculate micro fee for this token
-		microFee := calculateMicroFee(bals[i], ideal, beta, delta)
-		psi = new(uint256.Int).Add(psi, microFee)
+		microFee := calculateMicroFee(bal, ideal, beta, delta)
+		psi.Add(&psi, microFee)
 	}
 
-	return psi
+	return &psi
 }
 
 // calculateMicroFee implements per-token fee from CurveMath.sol
 func calculateMicroFee(bal *uint256.Int, ideal *uint256.Int, beta *uint256.Int, delta *uint256.Int) *uint256.Int {
-	one := big256.U2Pow64
-
-	if bal.Cmp(ideal) < 0 {
+	if bal.Lt(ideal) {
 		// Balance below ideal
-		// threshold = ideal * (1 - beta) / 1e18
-		betaAdj := new(uint256.Int).Sub(one, beta)
-		threshold := new(uint256.Int).Mul(ideal, betaAdj)
-		threshold.Div(threshold, one)
+		// threshold = ideal * (1 - beta) / 2^64
+		betaAdj := new(uint256.Int).Sub(big256.U2Pow64, beta)
+		threshold := usMul(ideal.Clone(), betaAdj)
 
-		if bal.Cmp(threshold) < 0 {
+		if bal.Lt(threshold) {
 			// feeMargin = threshold - bal
 			feeMargin := new(uint256.Int).Sub(threshold, bal)
 
-			// fee = (feeMargin * delta) / 1e18
-			fee := new(uint256.Int).Mul(feeMargin, delta)
-			fee.Div(fee, one)
+			// fee = (feeMargin * delta) / 2^64
+			fee := usMul(feeMargin.Clone(), delta)
 
-			// fee = (fee * 1e18) / ideal (fixed-point division)
-			fee.Mul(fee, one)
-			fee.Div(fee, ideal)
+			// fee = (fee * 2^64) / ideal (fixed-point division)
+			fee.MulDivOverflow(fee, big256.U2Pow64, ideal)
 
-			if fee.Cmp(maxFee) > 0 {
-				fee = new(uint256.Int).Set(maxFee)
+			if fee.Gt(maxFee) {
+				fee.Set(maxFee)
 			}
 
-			// fee = (fee * feeMargin) / 1e18
-			fee.Mul(fee, feeMargin)
-			fee.Div(fee, one)
-			return fee
+			// fee = (fee * feeMargin) / 2^64
+			return usMul(fee, feeMargin)
 		}
 		return big256.U0
 	}
 
 	// Balance above ideal
-	// threshold = ideal * (1 + beta) / 1e18
-	betaAdj := new(uint256.Int).Add(one, beta)
-	threshold := new(uint256.Int).Mul(ideal, betaAdj)
-	threshold.Div(threshold, one)
+	// threshold = ideal * (1 + beta) / 2^64
+	betaAdj := new(uint256.Int).Add(big256.U2Pow64, beta)
+	threshold := usMul(ideal.Clone(), betaAdj)
 
-	if bal.Cmp(threshold) > 0 {
+	if bal.Gt(threshold) {
 		// feeMargin = bal - threshold
 		feeMargin := new(uint256.Int).Sub(bal, threshold)
 
-		// fee = (feeMargin * delta) / 1e18
-		fee := new(uint256.Int).Mul(feeMargin, delta)
-		fee.Div(fee, one)
+		// fee = (feeMargin * delta) / 2^64
+		fee := usMul(feeMargin.Clone(), delta)
 
-		// fee = (fee * 1e18) / ideal (fixed-point division)
-		fee.Mul(fee, one)
-		fee.Div(fee, ideal)
+		// fee = (fee * 2^64) / ideal (fixed-point division)
+		fee.MulDivOverflow(fee, big256.U2Pow64, ideal)
 
-		if fee.Cmp(maxFee) > 0 {
-			fee = new(uint256.Int).Set(maxFee)
+		if fee.Gt(maxFee) {
+			fee.Set(maxFee)
 		}
 
-		// fee = (fee * feeMargin) / 1e18
-		fee.Mul(fee, feeMargin)
-		fee.Div(fee, one)
-		return fee
+		// fee = (fee * feeMargin) / 2^64
+		return usMul(fee, feeMargin)
 	}
 	return big256.U0
 }
@@ -265,68 +236,59 @@ func calculateMicroFee(bal *uint256.Int, ideal *uint256.Int, beta *uint256.Int, 
 //  1. Balance crosses halt boundary (was inside, now outside)
 //  2. Balance is outside halt and moving further away
 func enforceHaltsForToken(oGLiq, nGLiq, oBal, nBal, weight, alpha *uint256.Int) error {
-	one := big256.U2Pow64
+	// Calculate ideal balances: ideal = liquidity * weight / 2^64
+	nIdeal := usMul(nGLiq.Clone(), weight)
 
-	// Calculate ideal balances: ideal = liquidity * weight / 1e18
-	nIdeal := new(uint256.Int).Mul(nGLiq, weight)
-	nIdeal.Div(nIdeal, one)
-
-	if nBal.Cmp(nIdeal) > 0 {
+	if nBal.Gt(nIdeal) {
 		// Balance above ideal - check upper halt
-		// upperAlpha = 1 + alpha
-		upperAlpha := new(uint256.Int).Add(one, alpha)
+		// upperAlpha = 2^64 + alpha
+		upperAlpha := new(uint256.Int).Add(big256.U2Pow64, alpha)
 
-		// nHalt = nIdeal * upperAlpha / 1e18
-		nHalt := new(uint256.Int).Mul(nIdeal, upperAlpha)
-		nHalt.Div(nHalt, one)
+		// nHalt = nIdeal * upperAlpha / 2^64
+		nHalt := usMul(nIdeal, upperAlpha)
 
-		if nBal.Cmp(nHalt) > 0 {
+		if nBal.Gt(nHalt) {
 			// New balance exceeds upper halt
 			// Calculate old halt
-			oIdeal := new(uint256.Int).Mul(oGLiq, weight)
-			oIdeal.Div(oIdeal, one)
-			oHalt := new(uint256.Int).Mul(oIdeal, upperAlpha)
-			oHalt.Div(oHalt, one)
+			oIdeal := usMul(oGLiq.Clone(), weight)
+			oHalt := usMul(oIdeal, upperAlpha)
 
 			// Check if we crossed the boundary (was inside, now outside)
-			if oBal.Cmp(oHalt) < 0 {
-				return fmt.Errorf("upper halt: crossed boundary")
+			if oBal.Lt(oHalt) {
+				return errors.New("upper halt: crossed boundary")
 			}
 
 			// Check if distance from halt is increasing
-			nDist := new(uint256.Int).Sub(nBal, nHalt)
-			oDist := new(uint256.Int).Sub(oBal, oHalt)
-			if nDist.Cmp(oDist) > 0 {
-				return fmt.Errorf("upper halt: distance increasing")
+			nDist := nHalt.Sub(nBal, nHalt)
+			oDist := oHalt.Sub(oBal, oHalt)
+			if nDist.Gt(oDist) {
+				return errors.New("upper halt: distance increasing")
 			}
 		}
 	} else {
 		// Balance below ideal - check lower halt
-		// lowerAlpha = 1 - alpha
-		lowerAlpha := new(uint256.Int).Sub(one, alpha)
+		// lowerAlpha = 2^64 - alpha
+		lowerAlpha := new(uint256.Int).Sub(big256.U2Pow64, alpha)
 
-		// nHalt = nIdeal * lowerAlpha / 1e18
-		nHalt := new(uint256.Int).Mul(nIdeal, lowerAlpha)
-		nHalt.Div(nHalt, one)
+		// nHalt = nIdeal * lowerAlpha / 2^64
+		nHalt := usMul(nIdeal, lowerAlpha)
 
-		if nBal.Cmp(nHalt) < 0 {
+		if nBal.Lt(nHalt) {
 			// New balance below lower halt
 			// Calculate old halt
-			oIdeal := new(uint256.Int).Mul(oGLiq, weight)
-			oIdeal.Div(oIdeal, one)
-			oHalt := new(uint256.Int).Mul(oIdeal, lowerAlpha)
-			oHalt.Div(oHalt, one)
+			oIdeal := usMul(oGLiq.Clone(), weight)
+			oHalt := usMul(oIdeal, lowerAlpha)
 
 			// Check if we crossed the boundary (was inside, now outside)
-			if oBal.Cmp(oHalt) > 0 {
-				return fmt.Errorf("lower halt: crossed boundary")
+			if oBal.Gt(oHalt) {
+				return errors.New("lower halt: crossed boundary")
 			}
 
 			// Check if distance from halt is increasing
-			nDist := new(uint256.Int).Sub(nHalt, nBal)
-			oDist := new(uint256.Int).Sub(oHalt, oBal)
-			if nDist.Cmp(oDist) > 0 {
-				return fmt.Errorf("lower halt: distance increasing")
+			nDist := nHalt.Sub(nHalt, nBal)
+			oDist := oHalt.Sub(oHalt, oBal)
+			if nDist.Gt(oDist) {
+				return errors.New("lower halt: distance increasing")
 			}
 		}
 	}
