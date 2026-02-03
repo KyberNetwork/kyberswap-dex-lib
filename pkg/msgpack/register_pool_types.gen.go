@@ -13,6 +13,7 @@ import (
 	pkg_liquiditysource_arbera_den "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	pkg_liquiditysource_arbera_zap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	pkg_liquiditysource_arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
+	pkg_liquiditysource_axima "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	pkg_liquiditysource_balancer_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	pkg_liquiditysource_balancer_v2_composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	pkg_liquiditysource_balancer_v2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/stable"
@@ -214,6 +215,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_den.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_zap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arenabc.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_axima.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v2_composablestable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v2_stable.PoolSimulator{})
