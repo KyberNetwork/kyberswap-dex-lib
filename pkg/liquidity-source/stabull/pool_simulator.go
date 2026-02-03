@@ -14,8 +14,9 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	gas   Gas
-	extra Extra
+	gas           Gas
+	extra         Extra
+	tokenDecimals [2]uint8 // Token decimals for [token0, token1]
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -38,13 +39,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
+	var tokenDecimals [2]uint8
 
 	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
 		tokens[0] = entityPool.Tokens[0].Address
 		reserves[0] = bignumber.NewBig10(entityPool.Reserves[0])
+		tokenDecimals[0] = entityPool.Tokens[0].Decimals
 
 		tokens[1] = entityPool.Tokens[1].Address
 		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
+		tokenDecimals[1] = entityPool.Tokens[1].Decimals
 	}
 
 	// Derive swap fee from epsilon parameter
@@ -68,9 +72,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:  pool.Pool{Info: info},
-		gas:   defaultGas,
-		extra: extra,
+		Pool:          pool.Pool{Info: info},
+		gas:           defaultGas,
+		extra:         extra,
+		tokenDecimals: tokenDecimals,
 	}, nil
 }
 
@@ -204,8 +209,14 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, fmt.Errorf("missing or invalid QuoteOracleRate for output token")
 	}
 
-	// Convert input to numeraire: (amountIn * inputOracleRate) / 1e8
-	amountInNumeraire := new(big.Int).Mul(amountIn, inputOracleRate)
+	// Convert input to numeraire:
+	// 1. Scale from token decimals to 18 decimals
+	// 2. Apply oracle rate (8 decimals)
+	// Result: (amountIn * 1e(18-tokenDecimals) * inputOracleRate) / 1e8
+	tokenInDecimals := p.tokenDecimals[tokenInIndex]
+	scaleFactor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18-tokenInDecimals)), nil)
+	amountInNumeraire := new(big.Int).Mul(amountIn, scaleFactor)
+	amountInNumeraire.Mul(amountInNumeraire, inputOracleRate)
 	amountInNumeraire.Div(amountInNumeraire, big.NewInt(1e8))
 
 	// Use the Stabull curve formula with greek parameters
@@ -223,9 +234,16 @@ func (p *PoolSimulator) calculateSwap(
 		return nil, err
 	}
 
-	// Convert output from numeraire to token decimals: (amountOutNumeraire * 1e8) / outputOracleRate
+	// Convert output from numeraire to token decimals:
+	// 1. Apply oracle rate (8 decimals)
+	// 2. Scale from 18 decimals to token decimals
+	// Result: (amountOutNumeraire * 1e8 / outputOracleRate) / 1e(18-tokenDecimals)
+	tokenOutDecimals := p.tokenDecimals[tokenOutIndex]
 	result := new(big.Int).Mul(amountOutNumeraire, big.NewInt(1e8))
-	return result.Div(result, outputOracleRate), nil
+	result.Div(result, outputOracleRate)
+	// Scale down from 18 decimals to token decimals
+	scaleFactorOut := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18-tokenOutDecimals)), nil)
+	return result.Div(result, scaleFactorOut), nil
 }
 
 // UpdateBalance is a no-op for Stabull pools since we don't track state changes
