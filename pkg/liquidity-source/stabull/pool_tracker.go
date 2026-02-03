@@ -49,7 +49,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, errors.New("failed to decode StaticExtra")
 	}
 
-	var curveRes struct{ Alpha, Beta, Delta, Epsilon, Lambda *big.Int }
+	var curveRes struct{ Alpha, Beta, Delta, Epsilon, Lambda, TotalSupply *big.Int }
 	var reserves [2]*big.Int
 	var rates [2]*big.Int
 	poolAddr := common.HexToAddress(p.Address)

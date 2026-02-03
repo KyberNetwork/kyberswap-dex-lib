@@ -73,7 +73,8 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 			// Assert
 			require.NoError(t, err, "Should successfully discover pools")
 			require.NotNil(t, pools, "Pools should not be nil")
-			require.GreaterOrEqual(t, len(pools), tt.expectedMin, "Should discover at least the expected number of pools")
+			require.GreaterOrEqual(t, len(pools), tt.expectedMin,
+				"Should discover at least the expected number of pools")
 
 			t.Logf("Discovered %d pools on chain %d", len(pools), tt.chainID)
 
@@ -82,14 +83,12 @@ func TestPoolsListUpdater_GetNewPools_Discovery(t *testing.T) {
 				t.Logf("  Pool %d: %s", i+1, pool.Address)
 				t.Logf("    Token0: %s (%d decimals)", pool.Tokens[0].Address, pool.Tokens[0].Decimals)
 				t.Logf("    Token1: %s (%d decimals)", pool.Tokens[1].Address, pool.Tokens[1].Decimals)
-				t.Logf("    Reserve0: %s", pool.Reserves[0])
-				t.Logf("    Reserve1: %s", pool.Reserves[1])
 
 				// Decode and log StaticExtra data (oracle addresses)
 				var staticExtra StaticExtra
-				if err := json.Unmarshal([]byte(pool.Extra), &staticExtra); err == nil {
-					t.Logf("    Base Oracle: %s", staticExtra.Assimilators[0])
-					t.Logf("    Quote Oracle: %s", staticExtra.Assimilators[1])
+				if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err == nil {
+					t.Logf("    Base Assimilators: %s", staticExtra.Assimilators[0])
+					t.Logf("    Quote Assimilators: %s", staticExtra.Assimilators[1])
 				}
 			}
 

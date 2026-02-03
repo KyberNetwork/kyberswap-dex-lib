@@ -57,7 +57,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
+	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
 	}
 

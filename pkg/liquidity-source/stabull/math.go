@@ -54,7 +54,7 @@ func calculateTrade(
 		return nil, ErrInsufficientLiquidity
 	}
 
-	var oGLiq, outputAmt, lambdaAdj, prevScaled, currScaled uint256.Int
+	var oGLiq, outputAmt, lambdaAdj, prevScaled, currScaled, nBal0, nBal1 uint256.Int
 
 	// Global liquidity = sum of all balances
 	oGLiq.Add(reserveIn, reserveOut)
@@ -74,8 +74,8 @@ func calculateTrade(
 	// Initialize new balances matching viewOriginSwapData:
 	// After the loop: nBals[input] = balance + amt, nBals[output] = balance - amt
 	nBals := []*uint256.Int{
-		new(uint256.Int).Add(oBals[0], amountIn), // nBals[input] = oBals[input] + amountIn
-		new(uint256.Int).Sub(oBals[1], amountIn), // nBals[output] = oBals[output] - amountIn
+		nBal0.Add(oBals[0], amountIn), // nBals[input] = oBals[input] + amountIn
+		nBal1.Sub(oBals[1], amountIn), // nBals[output] = oBals[output] - amountIn
 	}
 
 	// Contract: nGLiq_ = nGLiq_.sub(amt_) but nGLiq already includes +amt from input side
