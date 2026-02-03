@@ -2,18 +2,17 @@ package cusd
 
 import (
 	"context"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
-
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -37,20 +36,27 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	_ pool.GetNewPoolStateParams) (entity.Pool, error) {
-	return getPoolState(ctx, t.ethrpcClient, t.config, p)
+	return getPoolState(ctx, t.ethrpcClient, t.config, &p)
 }
 
-func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config, p entity.Pool) (entity.Pool, error) {
+func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config, p *entity.Pool) (entity.Pool, error) {
 	logger.Infof("start getting new state of pool")
 	defer func() {
 		logger.Infof("finished getting new state of pool")
 	}()
 
+	assetCount := len(p.Tokens) - 1
+
 	var (
-		whitelisted bool
-		paused      bool
-		capSupply   *big.Int
-		assets      []common.Address
+		whitelisted        bool
+		paused             bool
+		assetsPaused       = make([]bool, assetCount)
+		capSupply          *big.Int
+		prices             = make([]PriceResult, assetCount+1)
+		vaultAssetSupplies = make([]*big.Int, assetCount)
+		fees               = make([]*FeeDataResult, assetCount)
+		availableBalances  = make([]*big.Int, assetCount)
+		assets             []common.Address
 	)
 	req := ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    capTokenABI,
@@ -70,33 +76,8 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		Target: p.Address,
 		Method: capTokenAssetsMethod,
 	}, []any{&assets})
-	resp, err := req.Aggregate()
-	if err != nil {
-		logger.Errorf("failed to aggregate state: %v", err)
-		return p, err
-	}
 
-	assetCount := len(assets)
-	if assetCount == 0 {
-		return p, nil
-	}
-
-	tokens := make([]*entity.PoolToken, 0, len(assets)+1)
-	for _, asset := range assets {
-		tokens = append(tokens, &entity.PoolToken{Address: strings.ToLower(asset.String()), Swappable: true})
-	}
-	tokens = append(tokens, &entity.PoolToken{Address: strings.ToLower(p.Address), Swappable: true})
-
-	var (
-		assetsPaused       = make([]bool, assetCount)
-		prices             = make([]PriceResult, assetCount+1)
-		vaultAssetSupplies = make([]*big.Int, assetCount)
-		fees               = make([]*FeeDataResult, assetCount)
-		availableBalances  = make([]*big.Int, assetCount)
-	)
-
-	req = ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
-	for i, token := range tokens {
+	for i, token := range p.Tokens {
 		tokenAddress := common.HexToAddress(token.Address)
 		req.AddCall(&ethrpc.Call{
 			ABI:    oracleABI,
@@ -105,7 +86,7 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 			Params: []any{tokenAddress},
 		}, []any{&prices[i]})
 
-		if i < len(tokens)-1 {
+		if i < len(p.Tokens)-1 {
 			fees[i] = &FeeDataResult{}
 			req.AddCall(&ethrpc.Call{
 				ABI:    capTokenABI,
@@ -130,10 +111,14 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 			}, []any{&availableBalances[i]})
 		}
 	}
-	resp, err = req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
-		logger.Errorf("failed to aggregate state: %v", err)
-		return p, err
+		logger.Errorf("failed to aggregate state")
+		return *p, err
+	}
+
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extraBytes, err := json.Marshal(Extra{
@@ -158,14 +143,14 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		}),
 	})
 	if err != nil {
-		return p, err
+		return *p, err
 	}
-
 	p.Extra = string(extraBytes)
-	p.Reserves = lo.Map(append(availableBalances, bignum.TwoPow128), func(r *big.Int, index int) string { return r.String() })
-	p.Tokens = tokens
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	p.Reserves = lo.Map(append(availableBalances, bignum.TwoPow128), func(item *big.Int, index int) string {
+		return item.String()
+	})
 
-	return p, nil
+	p.Timestamp = time.Now().Unix()
+
+	return *p, nil
 }

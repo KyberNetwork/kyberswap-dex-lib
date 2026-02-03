@@ -1,23 +1,14 @@
 package decode
 
-import (
-	"github.com/KyberNetwork/ethrpc"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-)
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 type (
 	IPoolDecoder              = pool.IPoolDecoder
 	PoolsDecoderParams[C any] struct {
 		Cfg *C
-		Dependencies
 	}
 	FactoryParams struct {
 		Properties
-		Dependencies
-	}
-	Dependencies struct {
-		EthrpcClient *ethrpc.Client
 	}
 	Properties map[string]any
 	FactoryFn  func(string, FactoryParams) (IPoolDecoder, error)
@@ -42,8 +33,7 @@ func RegisterFactory[C any, P IPoolDecoder](poolType string, factory func(PoolsD
 			return nil, err
 		}
 		return factory(PoolsDecoderParams[C]{
-			Cfg:          &cfg,
-			Dependencies: factoryParams.Dependencies,
+			Cfg: &cfg,
 		})
 	}
 	return true
@@ -52,12 +42,6 @@ func RegisterFactory[C any, P IPoolDecoder](poolType string, factory func(PoolsD
 func RegisterFactoryC[C any, P IPoolDecoder](poolType string, factory func(*C) P) bool {
 	return RegisterFactory(poolType, func(params PoolsDecoderParams[C]) (IPoolDecoder, error) {
 		return factory(params.Cfg), nil
-	})
-}
-
-func RegisterFactoryCE[C any, P IPoolDecoder](poolType string, factory func(*C, *ethrpc.Client) P) bool {
-	return RegisterFactory(poolType, func(params PoolsDecoderParams[C]) (IPoolDecoder, error) {
-		return factory(params.Cfg, params.EthrpcClient), nil
 	})
 }
 

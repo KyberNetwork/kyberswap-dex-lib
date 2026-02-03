@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -22,42 +23,42 @@ import (
 // ✓ oracle rates (x2): from EACAggregatorProxy.latestAnswer() method
 // ✓ weights: 50/50 for 2-token pools (hardcoded, as all Stabull pools are equal-weighted)
 func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
+	if os.Getenv("CI") != "" || testing.Short() {
+		t.Skip("Skipping integration test")
 	}
 
 	tests := []struct {
-		name           string
-		chainID        uint
-		rpcURL         string
-		poolAddress    string
-		token0         string
-		token1         string
-		baseOracle     string
-		quoteOracle    string
-		expectedWeight string // Should be 50% for both tokens
+		name             string
+		chainID          uint
+		rpcURL           string
+		poolAddress      string
+		token0           string
+		token1           string
+		baseAssimilator  string
+		quoteAssimilator string
+		expectedWeight   string // Should be 50% for both tokens
 	}{
 		{
-			name:           "Polygon - NZDS/USDC Pool",
-			chainID:        137,
-			rpcURL:         "https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
-			poolAddress:    "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
-			token0:         "0xFbBE4b730e1e77d02dC40fEdF94382802eab3B5",
-			token1:         "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-			baseOracle:     "0xa302a0b8a499fd0f00449df0a490dede21105955",
-			quoteOracle:    "0xfe4a8cc5b5b2366c1b58bea3858e81843581b2f7",
-			expectedWeight: "50", // 50% each (equal weighted)
+			name:             "Polygon - NZDS/USDC Pool",
+			chainID:          137,
+			rpcURL:           "https://polygon-bor-rpc.publicnode.com",
+			poolAddress:      "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a",
+			token0:           "0xFbBE4b730e1e77d02dC40fEdF9438E2802eab3B5",
+			token1:           "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+			baseAssimilator:  "0x9360e289f9ed5702d848194f98e24055e13e5ec9",
+			quoteAssimilator: "0x7a7901031a9aab7bb9204de285a75cb7cb7c537b",
+			expectedWeight:   "50", // 50% each (equal weighted)
 		},
 		{
-			name:           "Base - BRZ/USDC Pool",
-			chainID:        8453,
-			rpcURL:         "https://base-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK",
-			poolAddress:    "0x8A908aE045E611307755A91f4D6ECD04Ed31EB1B",
-			token0:         "0xE9185Ee218cae427aF7B9764A011bb89FeA76144",
-			token1:         "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-			baseOracle:     "0x0b0e64c05083fdf9ed7c5d3d8262c4216efc9394", // Correct BRZ/USD oracle
-			quoteOracle:    "0x7e860098f58bbfc8648a4311b374b1d669a2bc6b", // Correct USDC/USD oracle
-			expectedWeight: "50",                                         // 50% each (equal weighted)
+			name:             "Base - BRZ/USDC Pool",
+			chainID:          8453,
+			rpcURL:           "https://base-rpc.publicnode.com",
+			poolAddress:      "0x8a908ae045e611307755a91f4d6ecd04ed31eb1b",
+			token0:           "0xe9185ee218cae427af7b9764a011bb89fea761b4",
+			token1:           "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+			baseAssimilator:  "0x8ba5bddc1cd6d1a0c757982b2af3eb6db53903e0", // Correct BRZ/USD assimilator
+			quoteAssimilator: "0x53b105e1d48a76cdb955d037f042c830d14d82ab", // Correct USDC/USD assimilator
+			expectedWeight:   "50",                                         // 50% each (equal weighted)
 		},
 	}
 
@@ -76,12 +77,14 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 			tracker, err := NewPoolTracker(config, client)
 			require.NoError(t, err)
 
-			// Create initial pool entity with oracle addresses in Extra
-			initialExtra := Extra{
-				BaseOracleAddress:  tt.baseOracle,
-				QuoteOracleAddress: tt.quoteOracle,
+			// Create initial pool entity with assimilator addresses in Extra
+			staticExtra := StaticExtra{
+				Assimilators: [2]string{
+					tt.baseAssimilator,
+					tt.quoteAssimilator,
+				},
 			}
-			initialExtraBytes, _ := json.Marshal(initialExtra)
+			staticExtraBytes, _ := json.Marshal(staticExtra)
 
 			poolEntity := entity.Pool{
 				Address:  tt.poolAddress,
@@ -91,8 +94,8 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 					{Address: tt.token0, Decimals: 18, Swappable: true},
 					{Address: tt.token1, Decimals: 6, Swappable: true},
 				},
-				Reserves: []string{"0", "0"}, // Empty reserves - will be fetched
-				Extra:    string(initialExtraBytes),
+				Reserves:    []string{"0", "0"}, // Empty reserves - will be fetched
+				StaticExtra: string(staticExtraBytes),
 			}
 
 			// === EXECUTE: Fetch complete pool state via RPC ===
@@ -129,61 +132,43 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 			require.NoError(t, err, "Should successfully parse Extra data")
 
 			// Validate all 5 Greek parameters
-			require.NotEmpty(t, extra.CurveParams.Alpha, "Alpha should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Beta, "Beta should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Delta, "Delta should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Epsilon, "Epsilon should not be empty")
-			require.NotEmpty(t, extra.CurveParams.Lambda, "Lambda should not be empty")
+			require.NotEmpty(t, extra.Alpha, "Alpha should not be empty")
+			require.NotEmpty(t, extra.Beta, "Beta should not be empty")
+			require.NotEmpty(t, extra.Delta, "Delta should not be empty")
+			require.NotEmpty(t, extra.Epsilon, "Epsilon should not be empty")
+			require.NotEmpty(t, extra.Lambda, "Lambda should not be empty")
 
-			t.Logf("  Alpha (α):   %s", extra.CurveParams.Alpha)
-			t.Logf("  Beta (β):    %s", extra.CurveParams.Beta)
-			t.Logf("  Delta (δ):   %s", extra.CurveParams.Delta)
-			t.Logf("  Epsilon (ε): %s", extra.CurveParams.Epsilon)
-			t.Logf("  Lambda (λ):  %s", extra.CurveParams.Lambda)
+			t.Logf("  Alpha (α):   %s", extra.Alpha)
+			t.Logf("  Beta (β):    %s", extra.Beta)
+			t.Logf("  Delta (δ):   %s", extra.Delta)
+			t.Logf("  Epsilon (ε): %s", extra.Epsilon)
+			t.Logf("  Lambda (λ):  %s", extra.Lambda)
 
 			// Validate parameters are positive numbers
-			alpha, ok := new(big.Int).SetString(extra.CurveParams.Alpha, 10)
-			require.True(t, ok && alpha.Cmp(big.NewInt(0)) > 0, "Alpha should be positive")
-
-			beta, ok := new(big.Int).SetString(extra.CurveParams.Beta, 10)
-			require.True(t, ok && beta.Cmp(big.NewInt(0)) > 0, "Beta should be positive")
-
-			delta, ok := new(big.Int).SetString(extra.CurveParams.Delta, 10)
-			require.True(t, ok && delta.Cmp(big.NewInt(0)) > 0, "Delta should be positive")
-
-			epsilon, ok := new(big.Int).SetString(extra.CurveParams.Epsilon, 10)
-			require.True(t, ok && epsilon.Cmp(big.NewInt(0)) > 0, "Epsilon should be positive")
-
-			lambda, ok := new(big.Int).SetString(extra.CurveParams.Lambda, 10)
-			require.True(t, ok && lambda.Cmp(big.NewInt(0)) > 0, "Lambda should be positive")
+			require.True(t, extra.Alpha.Sign() > 0, "Alpha should be positive")
+			require.True(t, extra.Beta.Sign() > 0, "Beta should be positive")
+			require.True(t, extra.Delta.Sign() > 0, "Delta should be positive")
+			require.True(t, extra.Epsilon.Sign() > 0, "Epsilon should be positive")
+			require.True(t, extra.Lambda.Sign() > 0, "Lambda should be positive")
 
 			// === 3. VALIDATE ORACLE RATES (from EACAggregatorProxy.latestAnswer()) ===
 			t.Logf("")
 			t.Logf("✓ ORACLE RATES (from EACAggregatorProxy.latestAnswer()):")
 
-			require.NotEmpty(t, extra.BaseOracleAddress, "Base oracle address should be set")
-			require.NotEmpty(t, extra.QuoteOracleAddress, "Quote oracle address should be set")
-			t.Logf("  Base Oracle Address:  %s", extra.BaseOracleAddress)
-			t.Logf("  Quote Oracle Address: %s", extra.QuoteOracleAddress)
-
-			require.NotEmpty(t, extra.BaseOracleRate, "Base oracle rate should be fetched")
-			require.NotEmpty(t, extra.QuoteOracleRate, "Quote oracle rate should be fetched")
-			t.Logf("  Base Oracle Rate:     %s", extra.BaseOracleRate)
-			t.Logf("  Quote Oracle Rate:    %s", extra.QuoteOracleRate)
+			require.NotEmpty(t, extra.OracleRates[0], "Base oracle rate should be fetched")
+			require.NotEmpty(t, extra.OracleRates[1], "Quote oracle rate should be fetched")
+			t.Logf("  Base Assimilator Rate:     %s", extra.OracleRates[0])
+			t.Logf("  Quote Assimilator Rate:    %s", extra.OracleRates[1])
 
 			// Validate oracle rates are positive
-			baseRate, ok := new(big.Int).SetString(extra.BaseOracleRate, 10)
-			require.True(t, ok && baseRate.Cmp(big.NewInt(0)) > 0, "Base oracle rate should be positive")
-
-			quoteRate, ok := new(big.Int).SetString(extra.QuoteOracleRate, 10)
-			require.True(t, ok && quoteRate.Cmp(big.NewInt(0)) > 0, "Quote oracle rate should be positive")
+			require.True(t, extra.OracleRates[0].Sign() > 0, "Base oracle rate should be positive")
+			require.True(t, extra.OracleRates[1].Sign() > 0, "Quote oracle rate should be positive")
 
 			// Validate derived oracle rate
 			require.NotEmpty(t, extra.OracleRate, "Derived oracle rate should be calculated")
-			t.Logf("  Derived Oracle Rate:  %s", extra.OracleRate)
+			t.Logf("  Derived Assimilator Rate:  %s", extra.OracleRate)
 
-			derivedRate, ok := new(big.Int).SetString(extra.OracleRate, 10)
-			require.True(t, ok && derivedRate.Cmp(big.NewInt(0)) > 0, "Derived oracle rate should be positive")
+			require.True(t, extra.OracleRate.Sign() > 0, "Derived oracle rate should be positive")
 
 			// === 4. VALIDATE WEIGHTS (50/50 for 2-token pools) ===
 			t.Logf("")
@@ -207,116 +192,9 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 			t.Logf("=== TEST SUMMARY ===")
 			t.Logf("✅ Reserves fetched via Curve.liquidity()")
 			t.Logf("✅ Curve parameters fetched via Curve.viewCurve()")
-			t.Logf("✅ Oracle rates (x2) fetched via EACAggregatorProxy.latestAnswer()")
+			t.Logf("✅ Assimilator rates (x2) fetched via EACAggregatorProxy.latestAnswer()")
 			t.Logf("✅ Weights confirmed as 50/50 (equal-weighted)")
 			t.Logf("✅ All state updates successful via RPC scheduler")
 		})
 	}
-}
-
-// TestPoolTracker_StateUpdateMethods validates the specific RPC methods used
-func TestPoolTracker_StateUpdateMethods(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	t.Log("\n=== VALIDATING SPECIFIC RPC METHODS ===")
-
-	// Test on Polygon NZDS/USDC pool
-	client := ethrpc.New("https://polygon-mainnet.g.alchemy.com/v2/IqvzEgP3ce5i1ruu_uNyK")
-	client.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-
-	poolAddress := "0xdcb7efACa996fe2985138bF31b647EFcd1D0901a"
-	baseOracle := "0xa302a0b8a499fd0f00449df0a490dede21105955"
-	quoteOracle := "0xfe4a8cc5b5b2366c1b58bea3858e81843581b2f7"
-
-	// Define return structures
-	type LiquidityResult struct {
-		Total      *big.Int
-		Individual []*big.Int
-	}
-
-	type CurveResult struct {
-		Alpha   *big.Int
-		Beta    *big.Int
-		Delta   *big.Int
-		Epsilon *big.Int
-		Lambda  *big.Int
-	}
-
-	var (
-		liquidityResult LiquidityResult
-		curveResult     CurveResult
-		baseRate        *big.Int
-		quoteRate       *big.Int
-	)
-
-	ctx := context.Background()
-	req := client.NewRequest().SetContext(ctx)
-
-	// === METHOD 1: Curve.liquidity() ===
-	t.Log("\n✓ Testing Curve.liquidity() method:")
-	req.AddCall(&ethrpc.Call{
-		ABI:    stabullPoolABI,
-		Target: poolAddress,
-		Method: poolMethodLiquidity,
-		Params: []interface{}{},
-	}, []interface{}{&liquidityResult})
-
-	// === METHOD 2: Curve.viewCurve() ===
-	t.Log("✓ Testing Curve.viewCurve() method:")
-	req.AddCall(&ethrpc.Call{
-		ABI:    stabullPoolABI,
-		Target: poolAddress,
-		Method: poolMethodViewCurve,
-		Params: []interface{}{},
-	}, []interface{}{&curveResult})
-
-	// === METHOD 3: EACAggregatorProxy.latestAnswer() - Base Oracle ===
-	t.Log("✓ Testing EACAggregatorProxy.latestAnswer() - Base Oracle:")
-	req.AddCall(&ethrpc.Call{
-		ABI:    chainlinkAggregatorABI,
-		Target: baseOracle,
-		Method: oracleMethodLatestAnswer,
-		Params: []interface{}{},
-	}, []interface{}{&baseRate})
-
-	// === METHOD 4: EACAggregatorProxy.latestAnswer() - Quote Oracle ===
-	t.Log("✓ Testing EACAggregatorProxy.latestAnswer() - Quote Oracle:")
-	req.AddCall(&ethrpc.Call{
-		ABI:    chainlinkAggregatorABI,
-		Target: quoteOracle,
-		Method: oracleMethodLatestAnswer,
-		Params: []interface{}{},
-	}, []interface{}{&quoteRate})
-
-	// Execute all RPC calls
-	_, err := req.Aggregate()
-	require.NoError(t, err, "All RPC methods should execute successfully")
-
-	// Validate results
-	t.Log("\n=== METHOD VALIDATION RESULTS ===")
-
-	t.Logf("✅ Curve.liquidity() returned:")
-	t.Logf("   Total: %s", liquidityResult.Total.String())
-	t.Logf("   Individual[0]: %s", liquidityResult.Individual[0].String())
-	t.Logf("   Individual[1]: %s", liquidityResult.Individual[1].String())
-	require.Len(t, liquidityResult.Individual, 2, "Should return 2 individual reserves")
-
-	t.Logf("\n✅ Curve.viewCurve() returned:")
-	t.Logf("   Alpha: %s", curveResult.Alpha.String())
-	t.Logf("   Beta: %s", curveResult.Beta.String())
-	t.Logf("   Delta: %s", curveResult.Delta.String())
-	t.Logf("   Epsilon: %s", curveResult.Epsilon.String())
-	t.Logf("   Lambda: %s", curveResult.Lambda.String())
-
-	t.Logf("\n✅ EACAggregatorProxy.latestAnswer() - Base Oracle returned:")
-	t.Logf("   Rate: %s", baseRate.String())
-	require.True(t, baseRate.Cmp(big.NewInt(0)) > 0, "Base rate should be positive")
-
-	t.Logf("\n✅ EACAggregatorProxy.latestAnswer() - Quote Oracle returned:")
-	t.Logf("   Rate: %s", quoteRate.String())
-	require.True(t, quoteRate.Cmp(big.NewInt(0)) > 0, "Quote rate should be positive")
-
-	t.Log("\n✅ ALL RPC METHODS VALIDATED SUCCESSFULLY")
 }

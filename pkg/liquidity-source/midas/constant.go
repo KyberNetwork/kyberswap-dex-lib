@@ -12,7 +12,6 @@ const (
 	vPausedMethod               = "paused"
 	vMTokenDataFeedMethod       = "mTokenDataFeed"
 	vGetPaymentTokensMethod     = "getPaymentTokens"
-	vMTokenMethod               = "mToken"
 	vTokensConfigMethod         = "tokensConfig"
 	vInstantDailyLimitMethod    = "instantDailyLimit"
 	vInstantFeeMethod           = "instantFee"
@@ -88,5 +87,4 @@ var (
 	ErrRVUInvalidToken              = errors.New("RVU: invalid token")
 	ErrBadArgsUsdcOutAmountZero     = errors.New("BadArgs: USDC out amount zero")
 	ErrNotSupported                 = errors.New("not supported")
-	ErrInvalidTokenRate             = errors.New("invalid token rate")
 )

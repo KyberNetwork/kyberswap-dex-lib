@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -41,7 +43,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 			dvTokens []common.Address
 			rvTokens []common.Address
 		)
-		if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
+		if _, err := u.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
 			AddCall(&ethrpc.Call{
 				ABI:    DepositVaultABI,
 				Target: config.Dv,
@@ -73,14 +77,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		}
 
 		if len(dvTokens) > 0 {
-			dvPool, err := u.initPool(true, config.Dv, config.DvType)
+			dvPool, err := u.initPool(true, config.Dv, mToken, dvTokens, config.DvType)
 			if err == nil {
 				pools = append(pools, *dvPool)
 			}
 		}
 
 		if len(rvTokens) > 0 {
-			rvPool, err := u.initPool(false, config.Rv, config.RvType)
+			rvPool, err := u.initPool(false, config.Rv, mToken, rvTokens, config.RvType)
 			if err == nil {
 				pools = append(pools, *rvPool)
 			}
@@ -90,7 +94,22 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	return pools, nil, nil
 }
 
-func (u *PoolsListUpdater) initPool(isDv bool, vault string, vaultType VaultType) (*entity.Pool, error) {
+func (u *PoolsListUpdater) initPool(isDv bool, vault, mToken string, paymentTokens []common.Address,
+	vaultType VaultType) (*entity.Pool, error) {
+	tokens := make([]*entity.PoolToken, 0, len(paymentTokens)+1)
+	tokens = append(tokens, &entity.PoolToken{
+		Address:   strings.ToLower(mToken),
+		Swappable: true,
+	})
+	for _, token := range paymentTokens {
+		tokens = append(tokens, &entity.PoolToken{
+			Address:   strings.ToLower(token.String()),
+			Swappable: true,
+		})
+	}
+
+	reserves := lo.Times(len(tokens), func(_ int) string { return "0" })
+
 	staticExtra, err := json.Marshal(StaticExtra{
 		IsDv:      isDv,
 		VaultType: vaultType,
@@ -104,6 +123,8 @@ func (u *PoolsListUpdater) initPool(isDv bool, vault string, vaultType VaultType
 		Exchange:    u.config.DexId,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),
+		Reserves:    reserves,
+		Tokens:      tokens,
 		StaticExtra: string(staticExtra),
 	}, nil
 }

@@ -111,11 +111,7 @@ func (v *ManageableVault) convertTokenToUsd(amount *uint256.Int, fromMToken bool
 	if fromMToken {
 		rate.Set(v.mTokenRate)
 	} else {
-		_rate := lo.Ternary(v.tokenConfigs[tokenIndex].Stable, stableCoinRate, v.tokenRates[tokenIndex])
-		if _rate == nil {
-			return nil, nil, ErrInvalidTokenRate
-		}
-		rate.Set(_rate)
+		rate.Set(lo.Ternary(v.tokenConfigs[tokenIndex].Stable, stableCoinRate, v.tokenRates[tokenIndex]))
 	}
 
 	if rate.Sign() == 0 {
@@ -132,11 +128,7 @@ func (v *ManageableVault) convertUsdToToken(amountUsd *uint256.Int, toMToken boo
 	if toMToken {
 		rate.Set(v.mTokenRate)
 	} else {
-		_rate := lo.Ternary(v.tokenConfigs[tokenIndex].Stable, stableCoinRate, v.tokenRates[tokenIndex])
-		if _rate == nil {
-			return nil, nil, ErrInvalidTokenRate
-		}
-		rate.Set(_rate)
+		rate.Set(lo.Ternary(v.tokenConfigs[tokenIndex].Stable, stableCoinRate, v.tokenRates[tokenIndex]))
 	}
 
 	if rate.Sign() == 0 {

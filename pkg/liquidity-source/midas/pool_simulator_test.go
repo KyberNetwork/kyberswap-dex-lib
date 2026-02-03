@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -175,29 +174,4 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 func TestPoolSimulatorTestSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(PoolSimulatorTestSuite))
-}
-
-func TestCalcAmountOutShouldNotPanic(t *testing.T) {
-	poolEntityStr := "{\"address\":\"0x71efa7af1686c5c04aa34a120a91cb4262679c44\",\"exchange\":\"midas\",\"type\":\"midas\",\"timestamp\":1769076893,\"reserves\":[\"200000000000000000000000000\",\"974403940643546\",\"815006435106971\",\"983391413640828\"],\"tokens\":[{\"address\":\"0x2fe058ccf29f123f9dd2aec0418aa66a877d8e50\",\"symbol\":\"msyrupUSDp\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x356b8d89c1e1239cbbb9de4815c39a1474d5ba7d\",\"symbol\":\"syrupUSDT\",\"decimals\":6,\"swappable\":true},{\"address\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"symbol\":\"USDT\",\"decimals\":6,\"swappable\":true},{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"mToken\\\":\\\"0x2fe058ccf29f123f9dd2aec0418aa66a877d8e50\\\",\\\"paymentTokens\\\":[\\\"0x356b8d89c1e1239cbbb9de4815c39a1474d5ba7d\\\",\\\"0xdac17f958d2ee523a2206206994597c13d831ec7\\\",\\\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\\\"],\\\"paused\\\":false,\\\"fnPaused\\\":false,\\\"tokensConfig\\\":[{\\\"fee\\\":\\\"0\\\",\\\"allowance\\\":\\\"974403940643546000000000000\\\",\\\"stable\\\":false},{\\\"fee\\\":\\\"0\\\",\\\"allowance\\\":\\\"815006435106971269000000000\\\",\\\"stable\\\":true},{\\\"fee\\\":\\\"0\\\",\\\"allowance\\\":\\\"983391413640828034137925831\\\",\\\"stable\\\":true}],\\\"instantDailyLimit\\\":\\\"200000000000000000000000000\\\",\\\"dailyLimits\\\":\\\"0\\\",\\\"instantFee\\\":\\\"50\\\",\\\"minAmount\\\":\\\"0\\\",\\\"mTokenRate\\\":\\\"1029712680000000000\\\",\\\"tokenRates\\\":[\\\"1113008000000000000\\\",\\\"998918290000000000\\\",\\\"999763980000000000\\\"],\\\"waivedFeeRestriction\\\":false,\\\"mTokenDecimals\\\":18,\\\"tokenBalances\\\":[\\\"1000000\\\",\\\"93541\\\",\\\"277886\\\"],\\\"mToken2Balance\\\":\\\"8172049868700887549284037\\\",\\\"swapperVaultType\\\":\\\"rvUstb\\\",\\\"mTbillRedemptionVault\\\":{\\\"mToken\\\":\\\"0xdd629e5241cbc5919847783e6c96b2de4754e438\\\",\\\"paymentTokens\\\":[\\\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\\\"],\\\"paused\\\":false,\\\"fnPaused\\\":false,\\\"tokensConfig\\\":[{\\\"fee\\\":\\\"0\\\",\\\"allowance\\\":\\\"0\\\",\\\"stable\\\":false},{\\\"fee\\\":\\\"0\\\",\\\"allowance\\\":\\\"0\\\",\\\"stable\\\":false},{\\\"fee\\\":\\\"0\\\",\\\"allowance\\\":\\\"42882504472679348375436984\\\",\\\"stable\\\":true}],\\\"instantDailyLimit\\\":\\\"10000000000000000000000000\\\",\\\"dailyLimits\\\":\\\"241400755984608339229\\\",\\\"instantFee\\\":\\\"7\\\",\\\"minAmount\\\":\\\"0\\\",\\\"mTokenRate\\\":\\\"1049570220000000000\\\",\\\"tokenRates\\\":[null,null,\\\"999763980000000000\\\"],\\\"waivedFeeRestriction\\\":false,\\\"mTokenDecimals\\\":18,\\\"tokenBalances\\\":[\\\"0\\\",\\\"0\\\",\\\"7\\\"],\\\"redemption\\\":{\\\"usdc\\\":\\\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\\\",\\\"redemptionFee\\\":\\\"0\\\",\\\"ustbBalance\\\":\\\"3019539914382\\\",\\\"chainlinkPrice\\\":{\\\"isBadData\\\":false,\\\"updatedAt\\\":\\\"1769076887\\\",\\\"price\\\":\\\"10966681\\\"},\\\"chainLinkFeedPrecision\\\":\\\"1000000\\\",\\\"superstateTokenPrecision\\\":\\\"1000000\\\"}}}\",\"staticExtra\":\"{\\\"isDv\\\":false,\\\"type\\\":\\\"rvSwapper\\\"}\"}"
-
-	var entity entity.Pool
-	err := json.Unmarshal([]byte(poolEntityStr), &entity)
-	assert.NoError(t, err)
-
-	sim, err := NewPoolSimulator(entity)
-	assert.NoError(t, err)
-
-	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0x2fe058ccf29f123f9dd2aec0418aa66a877d8e50",
-			Amount: bignum.NewBig("4859754219688795000000"),
-		},
-		TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-	})
-	assert.Error(t, err)
-
-	defer func() {
-		r := recover()
-		assert.Nil(t, r, "The code did panic")
-	}()
 }
