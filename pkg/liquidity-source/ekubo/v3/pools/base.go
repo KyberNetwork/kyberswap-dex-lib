@@ -54,12 +54,6 @@ type (
 	}
 )
 
-func (s *BasePoolState) CloneState() *BasePoolState {
-	cloned := *s
-	cloned.SortedTicks = slices.Clone(s.SortedTicks)
-	return &cloned
-}
-
 func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
 	ticks := s.SortedTicks
 
@@ -155,10 +149,11 @@ func (p *BasePool) GetState() any {
 	return p.BasePoolState
 }
 
-func (p *BasePool) CloneState() any {
+func (p *BasePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.key = p.key.CloneState()
-	cloned.BasePoolState = p.BasePoolState.CloneState()
+	copiedBasePoolState := *p.BasePoolState
+	cloned.BasePoolState = &copiedBasePoolState
+	cloned.BasePoolSwapState = p.BasePoolSwapState.Clone()
 	return &cloned
 }
 
@@ -285,6 +280,10 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 			TickSpacingsCrossed: tickSpacingsCrossed,
 		},
 	}, nil
+}
+
+func (s *BasePoolSwapState) Clone() *BasePoolSwapState {
+	return NewBasePoolSwapState(s.SqrtRatio.Clone(), s.Liquidity.Clone(), s.ActiveTickIndex)
 }
 
 func NewBasePoolSwapState(sqrtRatio, liquidity *uint256.Int, activeTickIndex int) *BasePoolSwapState {

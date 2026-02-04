@@ -3,7 +3,6 @@ package pools
 import (
 	"encoding/binary"
 	"fmt"
-	"slices"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -92,12 +91,6 @@ func (k *PoolKey[T]) Extension() common.Address {
 
 func (k *PoolKey[T]) Fee() uint64 {
 	return k.Config.Fee
-}
-
-func (k *PoolKey[T]) CloneState() *PoolKey[T] {
-	cloned := *k
-	cloned.Config.compressed = slices.Clone(k.Config.compressed)
-	return &cloned
 }
 
 func (k *PoolKey[T]) ToAbi() AbiPoolKey {
