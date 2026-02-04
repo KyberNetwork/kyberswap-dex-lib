@@ -246,7 +246,7 @@ func (c ConcentratedPoolTypeConfig) String() string {
 
 func (c StableswapPoolTypeConfig) Compressed() [4]byte {
 	var compressed [4]byte
-	binary.BigEndian.PutUint32(compressed[:], uint32(c.CenterTick))
+	binary.BigEndian.PutUint32(compressed[:], uint32(c.CenterTick/16))
 	compressed[0] = c.AmplificationFactor
 	return compressed
 }

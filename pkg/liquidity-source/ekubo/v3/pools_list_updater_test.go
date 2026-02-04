@@ -21,7 +21,7 @@ import (
 var MainnetConfig = &Config{
 	DexId:            DexType,
 	ChainId:          valueobject.ChainIDEthereum,
-	SubgraphAPI:      "https://api.studio.thegraph.com/query/1718652/ekubo-pool-initializations/version/latest",
+	SubgraphAPI:      "https://api.studio.thegraph.com/query/1718652/ekubo-v-3/version/latest",
 	Core:             common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
 	Oracle:           common.HexToAddress("0x517E506700271AEa091b02f42756F5E174Af5230"),
 	Twamm:            common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
@@ -36,7 +36,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 	plUpdater := NewPoolListUpdater(MainnetConfig, ethrpc.New("https://ethereum.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
-		graphql.NewClient("https://api.studio.thegraph.com/query/1718652/ekubo-pool-initializations/version/latest"))
+		graphql.NewClient(MainnetConfig.SubgraphAPI))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
