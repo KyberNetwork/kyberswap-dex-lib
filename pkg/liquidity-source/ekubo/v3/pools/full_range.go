@@ -89,14 +89,25 @@ func (p *FullRangePool) quoteWithLimitAndOverride(amount *uint256.Int, isToken1 
 		FeesPaid:         step.FeeAmount,
 		Gas:              quoting.BaseGasFullRangeSwap,
 		SwapInfo: quoting.SwapInfo{
-			SkipAhead: 0,
-			IsToken1:  isToken1,
-			SwapStateAfter: &FullRangePoolSwapState{
-				sqrtRatio,
-			},
+			SkipAhead:           0,
+			IsToken1:            isToken1,
+			SwapStateAfter:      NewFullRangePoolSwapState(sqrtRatio),
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
+}
+
+func NewFullRangePoolSwapState(sqrtRatio *uint256.Int) *FullRangePoolSwapState {
+	return &FullRangePoolSwapState{
+		SqrtRatio: sqrtRatio,
+	}
+}
+
+func NewFullRangePoolState(swapState *FullRangePoolSwapState, liquidity *uint256.Int) *FullRangePoolState {
+	return &FullRangePoolState{
+		FullRangePoolSwapState: swapState,
+		Liquidity:              liquidity,
+	}
 }
 
 func NewFullRangePool(key *FullRangePoolKey, state *FullRangePoolState) *FullRangePool {

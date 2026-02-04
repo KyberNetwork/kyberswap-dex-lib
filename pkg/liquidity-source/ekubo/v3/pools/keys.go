@@ -108,8 +108,8 @@ func (k *PoolKey[T]) ToAbi() AbiPoolKey {
 	}
 }
 
-func (k *PoolKey[T]) ToFullRange() *FullRangePoolKey {
-	return poolKeyWithConfig(k, NewFullRangePoolTypeConfig())
+func (k *PoolKey[T]) ToFullRange(config FullRangePoolTypeConfig) *FullRangePoolKey {
+	return poolKeyWithConfig(k, config)
 }
 
 func (k *PoolKey[T]) ToStableswap(config StableswapPoolTypeConfig) *StableswapPoolKey {

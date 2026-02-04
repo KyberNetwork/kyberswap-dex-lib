@@ -36,16 +36,16 @@ func TestBasePoolQuote(t *testing.T) {
 	t.Run("zero_liquidity_token1_input", func(t *testing.T) {
 		p := NewBasePool(
 			poolKey(1, 0),
-			&BasePoolState{
-				BasePoolSwapState: &BasePoolSwapState{
-					SqrtRatio:       big256.U2Pow128,
-					Liquidity:       new(uint256.Int),
-					ActiveTickIndex: 0,
-				},
-				SortedTicks: ticks(new(uint256.Int)),
-				TickBounds:  maxTickBounds,
-				ActiveTick:  0,
-			},
+			NewBasePoolState(
+				NewBasePoolSwapState(
+					big256.U2Pow128,
+					new(uint256.Int),
+					0,
+				),
+				ticks(new(uint256.Int)),
+				maxTickBounds,
+				0,
+			),
 		)
 		quote, err := p.Quote(big256.U1, true)
 		require.NoError(t, err)
@@ -56,16 +56,16 @@ func TestBasePoolQuote(t *testing.T) {
 	t.Run("zero_liquidity_token0_input", func(t *testing.T) {
 		p := NewBasePool(
 			poolKey(1, 0),
-			&BasePoolState{
-				BasePoolSwapState: &BasePoolSwapState{
-					SqrtRatio:       big256.U2Pow128,
-					Liquidity:       new(uint256.Int),
-					ActiveTickIndex: 0,
-				},
-				SortedTicks: ticks(new(uint256.Int)),
-				TickBounds:  maxTickBounds,
-				ActiveTick:  0,
-			},
+			NewBasePoolState(
+				NewBasePoolSwapState(
+					big256.U2Pow128,
+					new(uint256.Int),
+					0,
+				),
+				ticks(new(uint256.Int)),
+				maxTickBounds,
+				0,
+			),
 		)
 		quote, err := p.Quote(big256.U1, false)
 		require.NoError(t, err)
@@ -76,19 +76,19 @@ func TestBasePoolQuote(t *testing.T) {
 	t.Run("liquidity_token1_input", func(t *testing.T) {
 		p := NewBasePool(
 			poolKey(1, 0),
-			&BasePoolState{
-				BasePoolSwapState: &BasePoolSwapState{
-					SqrtRatio:       big256.U2Pow128,
-					Liquidity:       big256.New("1000000000"),
-					ActiveTickIndex: 0,
-				},
-				SortedTicks: []Tick{
+			NewBasePoolState(
+				NewBasePoolSwapState(
+					big256.U2Pow128,
+					big256.New("1000000000"),
+					0,
+				),
+				[]Tick{
 					{Number: 0, LiquidityDelta: int256.NewInt(1e9)},
 					{Number: 1, LiquidityDelta: int256.NewInt(-1e9)},
 				},
-				TickBounds: maxTickBounds,
-				ActiveTick: 0,
-			},
+				maxTickBounds,
+				0,
+			),
 		)
 		quote, err := p.Quote(uint256.NewInt(1000), true)
 		require.NoError(t, err)
@@ -99,19 +99,19 @@ func TestBasePoolQuote(t *testing.T) {
 	t.Run("liquidity_token0_input", func(t *testing.T) {
 		p := NewBasePool(
 			poolKey(1, 0),
-			&BasePoolState{
-				BasePoolSwapState: &BasePoolSwapState{
-					SqrtRatio:       math.ToSqrtRatio(1),
-					Liquidity:       big256.New("1000000000"),
-					ActiveTickIndex: 0,
-				},
-				SortedTicks: []Tick{
+			NewBasePoolState(
+				NewBasePoolSwapState(
+					math.ToSqrtRatio(1),
+					big256.New("1000000000"),
+					0,
+				),
+				[]Tick{
 					{Number: 0, LiquidityDelta: int256.NewInt(1e9)},
 					{Number: 1, LiquidityDelta: int256.NewInt(-1e9)},
 				},
-				TickBounds: maxTickBounds,
-				ActiveTick: 1,
-			},
+				maxTickBounds,
+				1,
+			),
 		)
 
 		quote, err := p.Quote(uint256.NewInt(1000), false)
@@ -224,20 +224,20 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 	)
 
 	newBasePoolStateWithLiquidityCutoffs := func(liquidity *uint256.Int, ticks []Tick) *BasePoolState {
-		state := BasePoolState{
-			BasePoolSwapState: &BasePoolSwapState{
-				SqrtRatio:       new(uint256.Int).Set(activeSqrtRatio),
-				Liquidity:       new(uint256.Int).Set(liquidity),
-				ActiveTickIndex: -1, // Will be filled in
-			},
-			SortedTicks: ticks,
-			TickBounds:  checkedTickNumberBounds,
-			ActiveTick:  activeTickNumber,
-		}
+		state := NewBasePoolState(
+			NewBasePoolSwapState(
+				new(uint256.Int).Set(activeSqrtRatio),
+				new(uint256.Int).Set(liquidity),
+				-1,
+			),
+			ticks,
+			checkedTickNumberBounds,
+			activeTickNumber,
+		)
 
 		state.AddLiquidityCutoffs()
 
-		return &state
+		return state
 	}
 
 	requireTicksEqual := func(t *testing.T, expected []Tick, actual []Tick) {

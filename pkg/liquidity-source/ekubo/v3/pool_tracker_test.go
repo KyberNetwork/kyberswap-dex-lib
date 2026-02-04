@@ -36,7 +36,7 @@ type (
 		name               string
 		txHash             string
 		blockTimestamp     uint64
-		poolKey            *pools.AnyPoolKey
+		poolKey            pools.AnyPoolKey
 		extensionType      ExtensionType
 		stateBefore        any
 		expectedStateAfter any
@@ -96,42 +96,44 @@ func (ts *PoolTrackerTestSuite) TestPositionUpdated() {
 			{
 				name:   "Add base pool liquidity",
 				txHash: "0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691",
-				poolKey: &pools.AnyPoolKey{PoolKey: pools.NewPoolKey(
-					common.HexToAddress(valueobject.ZeroAddress),
-					common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-					pools.NewPoolConfig(common.Address{}, 9223372036854775, pools.PoolTypeConfig(pools.NewConcentratedPoolTypeConfig(1000))),
-				)},
-				extensionType: ExtensionTypeBase,
+				poolKey: anyPoolKey(
+					valueobject.ZeroAddress,
+					"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					common.Address{}.Hex(),
+					9223372036854775,
+					pools.NewConcentratedPoolTypeConfig(1000),
+				),
+				extensionType: ExtensionTypeNoSwapCallPoints,
 				// State after pool initialization https://etherscan.io/tx/0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691#eventlog#114
-				stateBefore: &pools.BasePoolState{
-					BasePoolSwapState: &pools.BasePoolSwapState{
-						SqrtRatio:       math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x4000e4ac4ee732e5c7c0529d")),
-						Liquidity:       new(uint256.Int),
-						ActiveTickIndex: 0,
-					},
-					SortedTicks: []pools.Tick{
+				stateBefore: pools.NewBasePoolState(
+					pools.NewBasePoolSwapState(
+						math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x4000e4ac4ee732e5c7c0529d")),
+						new(uint256.Int),
+						0,
+					),
+					[]pools.Tick{
 						{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
 						{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 					},
-					TickBounds: [2]int32{math.MinTick, math.MaxTick},
-					ActiveTick: int32(binary.BigEndian.Uint32([]byte("\xfe\xd4\x69\x15"))),
-				},
+					[2]int32{math.MinTick, math.MaxTick},
+					int32(binary.BigEndian.Uint32([]byte("\xfe\xd4\x69\x15"))),
+				),
 				// Position update https://etherscan.io/tx/0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691#eventlog#116
-				expectedStateAfter: &pools.BasePoolState{
-					BasePoolSwapState: &pools.BasePoolSwapState{
-						SqrtRatio:       math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x4000e4ac4ee732e5c7c0529d")),
-						Liquidity:       uint256.NewInt(22875426408333),
-						ActiveTickIndex: 1,
-					},
-					SortedTicks: []pools.Tick{
+				expectedStateAfter: pools.NewBasePoolState(
+					pools.NewBasePoolSwapState(
+						math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x4000e4ac4ee732e5c7c0529d")),
+						uint256.NewInt(22875426408333),
+						1,
+					),
+					[]pools.Tick{
 						{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
 						{Number: int32(binary.BigEndian.Uint32([]byte("\xFE\xD4\x2A\x30"))), LiquidityDelta: int256.NewInt(22875426408333)},
 						{Number: int32(binary.BigEndian.Uint32([]byte("\xFE\xD4\xA7\x30"))), LiquidityDelta: int256.NewInt(-22875426408333)},
 						{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 					},
-					TickBounds: [2]int32{math.MinTick, math.MaxTick},
-					ActiveTick: int32(binary.BigEndian.Uint32([]byte("\xfe\xd4\x69\x15"))),
-				},
+					[2]int32{math.MinTick, math.MaxTick},
+					int32(binary.BigEndian.Uint32([]byte("\xfe\xd4\x69\x15"))),
+				),
 			},
 		})
 	})
@@ -142,43 +144,44 @@ func (ts *PoolTrackerTestSuite) TestSwapped() {
 		{
 			name:   "Swap",
 			txHash: "0xee56e1f3bad803bd857fb118e55d7eabb5368a94ae8f11e83724278f474294ca",
-			poolKey: &pools.AnyPoolKey{PoolKey: pools.NewPoolKey(
-				common.Address{},
-				common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-				pools.NewPoolConfig(common.Address{}, 9223372036854775, pools.PoolTypeConfig(pools.NewConcentratedPoolTypeConfig(1000))),
+			poolKey: anyPoolKey(
+				common.Address{}.Hex(),
+				"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+				common.Address{}.Hex(),
+				9223372036854775,
+				pools.NewConcentratedPoolTypeConfig(1000),
 			),
-			},
-			extensionType: ExtensionTypeBase,
-			stateBefore: &pools.BasePoolState{
-				BasePoolSwapState: &pools.BasePoolSwapState{
-					SqrtRatio:       big256.New("18552164211672086963009471320686592"),
-					Liquidity:       uint256.NewInt(17156571521907),
-					ActiveTickIndex: 1,
-				},
-				SortedTicks: []pools.Tick{
+			extensionType: ExtensionTypeNoSwapCallPoints,
+			stateBefore: pools.NewBasePoolState(
+				pools.NewBasePoolSwapState(
+					big256.New("18552164211672086963009471320686592"),
+					uint256.NewInt(17156571521907),
+					1,
+				),
+				[]pools.Tick{
 					{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
 					{Number: -19650000, LiquidityDelta: int256.NewInt(17156571521907)},
 					{Number: -19618000, LiquidityDelta: int256.NewInt(-17156571521907)},
 					{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 				},
-				TickBounds: [2]int32{math.MinTick, math.MaxTick},
-				ActiveTick: -19633899,
-			},
-			expectedStateAfter: &pools.BasePoolState{
-				BasePoolSwapState: &pools.BasePoolSwapState{
-					SqrtRatio:       big256.New("18551574977108402281445297823416320"),
-					Liquidity:       uint256.NewInt(17156571521907),
-					ActiveTickIndex: 1,
-				},
-				SortedTicks: []pools.Tick{
+				[2]int32{math.MinTick, math.MaxTick},
+				-19633899,
+			),
+			expectedStateAfter: pools.NewBasePoolState(
+				pools.NewBasePoolSwapState(
+					big256.New("18551574977108402281445297823416320"),
+					uint256.NewInt(17156571521907),
+					1,
+				),
+				[]pools.Tick{
 					{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
 					{Number: -19650000, LiquidityDelta: int256.NewInt(17156571521907)},
 					{Number: -19618000, LiquidityDelta: int256.NewInt(-17156571521907)},
 					{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 				},
-				TickBounds: [2]int32{math.MinTick, math.MaxTick},
-				ActiveTick: -19633963,
-			},
+				[2]int32{math.MinTick, math.MaxTick},
+				-19633963,
+			),
 		},
 	})
 }
@@ -189,40 +192,36 @@ func (ts *PoolTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 			name:           "Execute virtual orders & stop order",
 			txHash:         "0xde6812e959a49e245f15714d1b50571f43ca7711c91d2df1087178a38bc554b7",
 			blockTimestamp: 1767625571,
-			poolKey: &pools.AnyPoolKey{PoolKey: pools.NewPoolKey(
-				common.Address{},
-				common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-				pools.NewPoolConfig(common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
-					55340232221128654, pools.PoolTypeConfig(pools.NewFullRangePoolTypeConfig())),
+			poolKey: anyPoolKey(
+				common.Address{}.Hex(),
+				"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+				"0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b",
+				55340232221128654,
+				pools.NewFullRangePoolTypeConfig(),
 			),
-			},
 			extensionType: ExtensionTypeTwamm,
-			stateBefore: &pools.TwammPoolState{
-				FullRangePoolState: &pools.FullRangePoolState{
-					FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-						SqrtRatio: big256.New("19112726775014745474545736843526144"),
+			stateBefore: pools.NewTwammPoolState(
+				pools.NewFullRangePoolState(
+					pools.NewFullRangePoolSwapState(big256.New("19112726775014745474545736843526144")),
+					uint256.NewInt(2670594),
+				),
+				pools.NewTimedPoolState(
+					pools.NewTimedPoolSwapState(new(uint256.Int), uint256.NewInt(3744848), 1767625523),
+					[]pools.TimeRateDelta{
+						pools.NewTimeRateDelta(1767636992, new(int256.Int), int256.NewInt(-3744848)),
 					},
-					Liquidity: uint256.NewInt(2670594),
-				},
-				Token0SaleRate: new(uint256.Int),
-				Token1SaleRate: uint256.NewInt(3744848),
-				VirtualOrderDeltas: []pools.TwammSaleRateDelta{
-					{Time: 1767636992, SaleRateDelta0: new(int256.Int), SaleRateDelta1: int256.NewInt(-3744848)},
-				},
-				LastExecutionTime: 1767625523,
-			},
-			expectedStateAfter: &pools.TwammPoolState{
-				FullRangePoolState: &pools.FullRangePoolState{
-					FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-						SqrtRatio: big256.New("19112726775014745474545736843526144"),
-					},
-					Liquidity: uint256.NewInt(2670594),
-				},
-				Token0SaleRate:     new(uint256.Int),
-				Token1SaleRate:     new(uint256.Int),
-				VirtualOrderDeltas: []pools.TwammSaleRateDelta{},
-				LastExecutionTime:  1767625571,
-			},
+				),
+			),
+			expectedStateAfter: pools.NewTwammPoolState(
+				pools.NewFullRangePoolState(
+					pools.NewFullRangePoolSwapState(big256.New("19112726775014745474545736843526144")),
+					uint256.NewInt(2670594),
+				),
+				pools.NewTimedPoolState(
+					pools.NewTimedPoolSwapState(new(uint256.Int), new(uint256.Int), 1767625571),
+					[]pools.TimeRateDelta{},
+				),
+			),
 		},
 	})
 }

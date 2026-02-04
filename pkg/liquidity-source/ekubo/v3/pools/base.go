@@ -277,14 +277,31 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 			SkipAhead:  skipAhead,
 			IsToken1:   isToken1,
 			PriceLimit: priceLimit,
-			SwapStateAfter: &BasePoolSwapState{
+			SwapStateAfter: NewBasePoolSwapState(
 				sqrtRatio,
 				&liquidity,
 				activeTickIndex,
-			},
+			),
 			TickSpacingsCrossed: tickSpacingsCrossed,
 		},
 	}, nil
+}
+
+func NewBasePoolSwapState(sqrtRatio, liquidity *uint256.Int, activeTickIndex int) *BasePoolSwapState {
+	return &BasePoolSwapState{
+		SqrtRatio:       sqrtRatio,
+		Liquidity:       liquidity,
+		ActiveTickIndex: activeTickIndex,
+	}
+}
+
+func NewBasePoolState(swapState *BasePoolSwapState, sortedTicks []Tick, tickBounds [2]int32, activeTick int32) *BasePoolState {
+	return &BasePoolState{
+		BasePoolSwapState: swapState,
+		SortedTicks:       sortedTicks,
+		TickBounds:        tickBounds,
+		ActiveTick:        activeTick,
+	}
 }
 
 func NewBasePool(key *ConcentratedPoolKey, state *BasePoolState) *BasePool {

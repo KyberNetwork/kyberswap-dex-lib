@@ -183,10 +183,10 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 
 func (d *PoolTracker) forceUpdateState(
 	ctx context.Context,
-	poolKey *pools.AnyPoolKey,
+	poolKey pools.AnyPoolKey,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolWithBlockNumber, error) {
-	if poolKey == nil {
+	if poolKey.PoolKey == nil {
 		return nil, fmt.Errorf("missing pool key")
 	}
 
@@ -202,12 +202,12 @@ func (d *PoolTracker) forceUpdateState(
 
 	pools, err := d.dataFetcher.fetchPools(
 		ctx,
-		[]*pools.PoolKey[pools.PoolTypeConfig]{poolKey.PoolKey},
+		[]pools.AnyPoolKey{poolKey},
 		overrides,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching pool state: %w", err)
 	}
 
-	return pools[0], nil
+	return &pools[0].PoolWithBlockNumber, nil
 }

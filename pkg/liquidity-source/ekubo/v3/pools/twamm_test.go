@@ -26,18 +26,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	}
 
 	t.Run("zero_sale_rates_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(1_000_000_000),
-			},
-			Token0SaleRate:     big256.U0,
-			Token1SaleRate:     big256.U0,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(1_000_000_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U0, big256.U0, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -46,18 +41,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("zero_sale_rates_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:     big256.U0,
-			Token1SaleRate:     big256.U0,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U0, big256.U0, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -66,18 +56,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("non_zero_sale_rate_token0_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:     big256.U2Pow32,
-			Token1SaleRate:     big256.U0,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U2Pow32, big256.U0, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -86,18 +71,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("non_zero_sale_rate_token1_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:     big256.U0,
-			Token1SaleRate:     big256.U2Pow32,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U0, big256.U2Pow32, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -106,18 +86,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("non_zero_sale_rate_token1_max_price_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.MaxSqrtRatio,
-				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:     big256.U0,
-			Token1SaleRate:     big256.U2Pow32,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.MaxSqrtRatio),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U0, big256.U2Pow32, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -126,24 +101,18 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("zero_sale_rate_token0_at_max_price_deltas_move_price_down_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.MaxSqrtRatio,
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.MaxSqrtRatio),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U0, big256.U2Pow32, 0),
+				[]TimeRateDelta{
+					NewTimeRateDelta(16, int256.NewInt(1e5<<32), int256.NewInt(0)),
 				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:    big256.U0,
-			Token1SaleRate:    big256.U2Pow32,
-			LastExecutionTime: 0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{
-				{
-					Time:           16,
-					SaleRateDelta0: int256.NewInt(1e5 << 32),
-					SaleRateDelta1: int256.NewInt(0),
-				},
-			},
-		})
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -152,24 +121,18 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("zero_sale_rate_token1_close_at_min_price_deltas_move_price_up_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.MinSqrtRatio,
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.MinSqrtRatio),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U2Pow32, big256.U0, 0),
+				[]TimeRateDelta{
+					NewTimeRateDelta(16, int256.NewInt(0), int256.NewInt(1e5<<32)),
 				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:    big256.U2Pow32,
-			Token1SaleRate:    big256.U0,
-			LastExecutionTime: 0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{
-				{
-					Time:           16,
-					SaleRateDelta0: int256.NewInt(0),
-					SaleRateDelta1: int256.NewInt(1e5 << 32),
-				},
-			},
-		})
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -178,24 +141,18 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("zero_sale_rate_token0_at_max_price_deltas_move_price_down_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.MaxSqrtRatio,
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.MaxSqrtRatio),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U0, big256.U2Pow32, 0),
+				[]TimeRateDelta{
+					NewTimeRateDelta(16, int256.NewInt(1e5<<32), int256.NewInt(0)),
 				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:    big256.U0,
-			Token1SaleRate:    big256.U2Pow32,
-			LastExecutionTime: 0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{
-				{
-					Time:           16,
-					SaleRateDelta0: int256.NewInt(1e5 << 32),
-					SaleRateDelta1: int256.NewInt(0),
-				},
-			},
-		})
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -204,24 +161,18 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("zero_sale_rate_token1_at_min_price_deltas_move_price_up_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.MinSqrtRatio,
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.MinSqrtRatio),
+				uint256.NewInt(1_000_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U2Pow32, big256.U0, 0),
+				[]TimeRateDelta{
+					NewTimeRateDelta(16, int256.NewInt(0), int256.NewInt(1e5<<32)),
 				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
-			Token0SaleRate:    big256.U2Pow32,
-			Token1SaleRate:    big256.U0,
-			LastExecutionTime: 0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{
-				{
-					Time:           16,
-					SaleRateDelta0: int256.NewInt(0),
-					SaleRateDelta1: int256.NewInt(1e5 << 32),
-				},
-			},
-		})
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -230,18 +181,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("one_e18_sale_rates_no_sale_rate_deltas_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:     big256.U2Pow32,
-			Token1SaleRate:     big256.U2Pow32,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U2Pow32, big256.U2Pow32, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -250,18 +196,13 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("one_e18_sale_rates_no_sale_rate_deltas_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:     big256.U2Pow32,
-			Token1SaleRate:     big256.U2Pow32,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(NewTimedPoolSwapState(big256.U2Pow32, big256.U2Pow32, 0), []TimeRateDelta{}),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -270,18 +211,16 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("token0_sale_rate_greater_than_token1_sale_rate_no_sale_rate_deltas_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(1_000),
-			},
-			Token0SaleRate:     new(uint256.Int).Lsh(big256.U10, 32),
-			Token1SaleRate:     big256.U2Pow32,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(1_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(new(uint256.Int).Lsh(big256.U10, 32), big256.U2Pow32, 0),
+				[]TimeRateDelta{},
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -290,18 +229,16 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("token1_sale_rate_greater_than_token0_sale_rate_no_sale_rate_deltas_quote_token1", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:     big256.U2Pow32,
-			Token1SaleRate:     new(uint256.Int).Lsh(big256.U10, 32),
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U2Pow32, new(uint256.Int).Lsh(big256.U10, 32), 0),
+				[]TimeRateDelta{},
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), true, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -310,18 +247,16 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("token0_sale_rate_greater_than_token1_sale_rate_no_sale_rate_deltas_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:     new(uint256.Int).Lsh(big256.U10, 32),
-			Token1SaleRate:     big256.U2Pow32,
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(new(uint256.Int).Lsh(big256.U10, 32), big256.U2Pow32, 0),
+				[]TimeRateDelta{},
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -330,18 +265,16 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("token1_sale_rate_greater_than_token0_sale_rate_no_sale_rate_deltas_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
-				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:     big256.U2Pow32,
-			Token1SaleRate:     new(uint256.Int).Lsh(big256.U10, 32),
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U2Pow32, new(uint256.Int).Lsh(big256.U10, 32), 0),
+				[]TimeRateDelta{},
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -350,24 +283,18 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("sale_rate_deltas_goes_to_zero_halfway_through_execution_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U2Pow32, big256.U2Pow32, 0),
+				[]TimeRateDelta{
+					NewTimeRateDelta(16, int256.NewInt(-1<<32), int256.NewInt(1<<32)),
 				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:    big256.U2Pow32,
-			Token1SaleRate:    big256.U2Pow32,
-			LastExecutionTime: 0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{
-				{
-					Time:           16,
-					SaleRateDelta0: int256.NewInt(-1 << 32),
-					SaleRateDelta1: int256.NewInt(1 << 32),
-				},
-			},
-		})
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -376,24 +303,18 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("sale_rate_deltas_doubles_halfway_through_execution_quote_token0", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(1),
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(1)),
+				uint256.NewInt(100_000),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(big256.U2Pow32, big256.U2Pow32, 0),
+				[]TimeRateDelta{
+					NewTimeRateDelta(16, int256.NewInt(1<<32), int256.NewInt(1<<32)),
 				},
-				Liquidity: uint256.NewInt(100_000),
-			},
-			Token0SaleRate:    big256.U2Pow32,
-			Token1SaleRate:    big256.U2Pow32,
-			LastExecutionTime: 0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{
-				{
-					Time:           16,
-					SaleRateDelta0: int256.NewInt(1 << 32),
-					SaleRateDelta1: int256.NewInt(1 << 32),
-				},
-			},
-		})
+			),
+		))
 
 		quote, err := pool.quoteWithTimestampFn(uint256.NewInt(1000), false, fixedTimestampFn(32))
 		require.NoError(t, err)
@@ -402,18 +323,20 @@ func TestTwammPoolQuote(t *testing.T) {
 	})
 
 	t.Run("compare_to_contract_output", func(t *testing.T) {
-		pool := NewTwammPool(poolKey, &TwammPoolState{
-			FullRangePoolState: &FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.ToSqrtRatio(693147),
-				},
-				Liquidity: big256.New("70710696755630728101718334"),
-			},
-			Token0SaleRate:     big256.New("10526880627450980392156862745"),
-			Token1SaleRate:     big256.New("10526880627450980392156862745"),
-			LastExecutionTime:  0,
-			VirtualOrderDeltas: []TwammSaleRateDelta{},
-		})
+		pool := NewTwammPool(poolKey, NewTwammPoolState(
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(math.ToSqrtRatio(693147)),
+				big256.New("70710696755630728101718334"),
+			),
+			NewTimedPoolState(
+				NewTimedPoolSwapState(
+					big256.New("10526880627450980392156862745"),
+					big256.New("10526880627450980392156862745"),
+					0,
+				),
+				[]TimeRateDelta{},
+			),
+		))
 
 		tenPow18 := new(uint256.Int).Set(big256.BONE)
 
