@@ -26,7 +26,7 @@ type PoolSimulator struct {
 	fee         float64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm1)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm2)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm3)
@@ -34,8 +34,8 @@ var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm4)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm5)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm6)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	return NewPoolSimulatorWith(entityPool, MaxAge)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	return NewPoolSimulatorWith(params.EntityPool, lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64))
 }
 
 func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
