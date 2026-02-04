@@ -7,4 +7,3 @@ var factoryABIJson []byte
 
 //go:embed abis/SomeSwapV2Pool.json
 var poolABIJson []byte
-

@@ -22,4 +22,3 @@ var (
 	feeDen    = big.NewInt(1000000)
 	weightDen = new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)
 )
-

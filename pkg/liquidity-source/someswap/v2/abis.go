@@ -6,17 +6,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var factoryABI abi.ABI
-
-func FactoryABI() abi.ABI {
-	return factoryABI
-}
-
-var poolABI abi.ABI
-
-func PoolABI() abi.ABI {
-	return poolABI
-}
+var (
+	factoryABI abi.ABI
+	poolABI    abi.ABI
+)
 
 func init() {
 	builder := []struct {
@@ -35,4 +28,3 @@ func init() {
 		}
 	}
 }
-

@@ -47,4 +47,3 @@ func TestFactoryABI_ParsesAndHasExpectedEntries(t *testing.T) {
 	t.Logf("factory method %s selector: %s", factoryMethodAllPairsLength, hexutil.Encode(factoryABI.Methods[factoryMethodAllPairsLength].ID))
 	t.Logf("factory event %s topic0: %s", factoryEventPairCreated, factoryABI.Events[factoryEventPairCreated].ID.Hex())
 }
-
