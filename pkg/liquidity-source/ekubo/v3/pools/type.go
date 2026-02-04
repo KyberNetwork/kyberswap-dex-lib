@@ -12,7 +12,7 @@ type (
 		GetState() PoolState
 
 		// Only clones fields updated by SetSwapState
-		CloneState() any
+		CloneSwapStateOnly() Pool
 		SetSwapState(quoting.SwapState)
 		ApplyEvent(event Event, data []byte, blockTimestamp uint64) error
 		NewBlock()

@@ -93,9 +93,9 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 	return quote, nil
 }
 
-func (p *BoostedFeesPool) CloneState() any {
+func (p *BoostedFeesPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.BasePool = p.BasePool.CloneState().(*BasePool)
+	cloned.BasePool = p.BasePool.CloneSwapStateOnly().(*BasePool)
 	cloned.donateRate0 = p.donateRate0.Clone()
 	cloned.donateRate1 = p.donateRate1.Clone()
 	return &cloned
@@ -103,10 +103,10 @@ func (p *BoostedFeesPool) CloneState() any {
 
 func (p *BoostedFeesPool) SetSwapState(state quoting.SwapState) {
 	boostedFeesState := state.(*BoostedFeesPoolSwapState)
+	p.BasePool.SetSwapState(boostedFeesState.BasePoolSwapState)
 	p.lastDonateTime = boostedFeesState.LastExecutionTime
 	p.donateRate0 = boostedFeesState.Token0Rate
 	p.donateRate1 = boostedFeesState.Token1Rate
-	p.BasePool.SetSwapState(boostedFeesState.BasePoolSwapState)
 }
 
 func (p *BoostedFeesPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {

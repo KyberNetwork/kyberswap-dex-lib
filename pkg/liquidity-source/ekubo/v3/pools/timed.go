@@ -28,6 +28,10 @@ type (
 	}
 )
 
+func (s *TimedPoolSwapState) Clone() *TimedPoolSwapState {
+	return NewTimedPoolSwapState(s.Token0Rate.Clone(), s.Token1Rate.Clone(), s.LastExecutionTime)
+}
+
 func NewTimedPoolState(timedPoolSwapState *TimedPoolSwapState, virtualDeltas []TimeRateDelta) *TimedPoolState {
 	return &TimedPoolState{
 		TimedPoolSwapState: timedPoolSwapState,

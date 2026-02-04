@@ -16,9 +16,9 @@ type (
 	}
 )
 
-func (p *OraclePool) CloneState() any {
+func (p *OraclePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	cloned.FullRangePool = p.FullRangePool.CloneSwapStateOnly().(*FullRangePool)
 	return &cloned
 }
 

@@ -21,9 +21,9 @@ type (
 	}
 )
 
-func (p *MevCapturePool) CloneState() any {
+func (p *MevCapturePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.BasePool = p.BasePool.CloneState().(*BasePool)
+	cloned.BasePool = p.BasePool.CloneSwapStateOnly().(*BasePool)
 	return &cloned
 }
 

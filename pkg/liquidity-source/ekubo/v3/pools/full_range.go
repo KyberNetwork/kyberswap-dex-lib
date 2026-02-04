@@ -33,11 +33,11 @@ func (p *FullRangePool) GetState() any {
 	return p.FullRangePoolState
 }
 
-func (p *FullRangePool) CloneState() any {
+func (p *FullRangePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.key = p.key.CloneState()
-	clonedFullRangePoolState := *p.FullRangePoolState
-	cloned.FullRangePoolState = &clonedFullRangePoolState
+	copiedFullRangePoolState := *p.FullRangePoolState
+	cloned.FullRangePoolState = &copiedFullRangePoolState
+	cloned.FullRangePoolSwapState = p.FullRangePoolSwapState.Clone()
 	return &cloned
 }
 
@@ -95,6 +95,10 @@ func (p *FullRangePool) quoteWithLimitAndOverride(amount *uint256.Int, isToken1 
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
+}
+
+func (s *FullRangePoolSwapState) Clone() *FullRangePoolSwapState {
+	return NewFullRangePoolSwapState(s.SqrtRatio.Clone())
 }
 
 func NewFullRangePoolSwapState(sqrtRatio *uint256.Int) *FullRangePoolSwapState {

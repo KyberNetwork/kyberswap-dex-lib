@@ -55,9 +55,9 @@ func (p *TwammPool) GetState() any {
 	)
 }
 
-func (p *TwammPool) CloneState() any {
+func (p *TwammPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	cloned.FullRangePool = p.FullRangePool.CloneSwapStateOnly().(*FullRangePool)
 	cloned.token0SaleRate = p.token0SaleRate.Clone()
 	cloned.token1SaleRate = p.token1SaleRate.Clone()
 	return &cloned

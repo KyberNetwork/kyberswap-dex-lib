@@ -36,11 +36,11 @@ func (p *StableswapPool) GetState() any {
 	return p.StableswapPoolState
 }
 
-func (p *StableswapPool) CloneState() any {
+func (p *StableswapPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.key = p.key.CloneState()
-	clonedStableswapPoolState := *p.StableswapPoolState
-	cloned.StableswapPoolState = &clonedStableswapPoolState
+	copiedStableswapPoolState := *p.StableswapPoolState
+	cloned.StableswapPoolState = &copiedStableswapPoolState
+	cloned.StableswapPoolSwapState = p.StableswapPoolSwapState.Clone()
 	return &cloned
 }
 
@@ -124,6 +124,10 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
+}
+
+func (s *StableswapPoolSwapState) Clone() *StableswapPoolSwapState {
+	return NewStableswapPoolSwapState(s.SqrtRatio.Clone())
 }
 
 func NewStableswapPoolSwapState(sqrtRatio *uint256.Int) *StableswapPoolSwapState {
