@@ -115,21 +115,19 @@ func (f *dataFetchers) fetchPools(
 
 	fetchedPools := make([]fetchedPool, 0, len(poolKeys))
 
-	for startIdx := 0; startIdx < len(basicPoolKeys); startIdx += maxBatchSize {
-		endIdx := min(startIdx+maxBatchSize, len(basicPoolKeys))
-
+	for _, poolKeyBatch := range lo.Chunk(basicPoolKeys, maxBatchSize) {
 		req := f.ethrpcClient.R().SetContext(ctx)
 		if overrides != nil {
 			req.SetOverrides(overrides)
 		}
 
-		batchQuoteData := make([]struct{ quoteData }, endIdx-startIdx)
+		batchQuoteData := make([]quoteData, len(poolKeyBatch))
 		resp, err := req.AddCall(&ethrpc.Call{
 			ABI:    abis.QuoteDataFetcherABI,
 			Target: f.config.QuoteDataFetcher,
 			Method: quoteDataFetcherMethod,
 			Params: []any{
-				lo.Map(basicPoolKeys[startIdx:endIdx], func(keyWithExtType poolKeyWithExtType, _ int) pools.AbiPoolKey {
+				lo.Map(poolKeyBatch, func(keyWithExtType poolKeyWithExtType, _ int) pools.AbiPoolKey {
 					return keyWithExtType.key.ToAbi()
 				}),
 				minTickSpacingsPerPool,
@@ -144,9 +142,9 @@ func (f *dataFetchers) fetchPools(
 			blockNumber = resp.BlockNumber.Uint64()
 		}
 
-		for i, data := range batchQuoteData {
-			data := &data.quoteData
-			poolKeyWithExtType := basicPoolKeys[startIdx+i]
+		for _, tuple := range lo.Zip2(batchQuoteData, poolKeyBatch) {
+			data := &tuple.A
+			poolKeyWithExtType := tuple.B
 			poolKey, extType := poolKeyWithExtType.key, poolKeyWithExtType.extType
 			config := poolKey.Config.TypeConfig
 
@@ -193,16 +191,14 @@ func (f *dataFetchers) fetchPools(
 		}
 	}
 
-	for startIdx := 0; startIdx < len(twammPoolKeys); startIdx += maxBatchSize {
-		endIdx := min(startIdx+maxBatchSize, len(twammPoolKeys))
-
+	for _, poolKeyBatch := range lo.Chunk(twammPoolKeys, maxBatchSize) {
 		req := f.ethrpcClient.R().SetContext(ctx)
 		if overrides != nil {
 			req.SetOverrides(overrides)
 		}
 
-		batchQuoteData := make([]struct{ twammQuoteData }, endIdx-startIdx)
-		for i, poolKey := range twammPoolKeys[startIdx:endIdx] {
+		batchQuoteData := make([]struct{ twammQuoteData }, len(poolKeyBatch))
+		for i, poolKey := range poolKeyBatch {
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.TwammDataFetcherABI,
 				Target: f.config.TwammDataFetcher,
@@ -222,13 +218,13 @@ func (f *dataFetchers) fetchPools(
 			blockNumber = resp.BlockNumber.Uint64()
 		}
 
-		for i, data := range batchQuoteData {
-			poolKey := twammPoolKeys[startIdx+i]
+		for _, tuple := range lo.Zip2(batchQuoteData, poolKeyBatch) {
+			poolKey := tuple.B
 			config := poolKey.Config.TypeConfig
 			if config, ok := config.(pools.FullRangePoolTypeConfig); ok {
 				fetchedPools = append(fetchedPools, fetchedPool{
 					PoolWithBlockNumber{
-						Pool:        pools.NewTwammPool(poolKey.ToFullRange(config), newTwammPoolState(&data.twammQuoteData)),
+						Pool:        pools.NewTwammPool(poolKey.ToFullRange(config), newTwammPoolState(&tuple.A.twammQuoteData)),
 						blockNumber: blockNumber,
 					},
 					poolKey,
@@ -239,19 +235,17 @@ func (f *dataFetchers) fetchPools(
 		}
 	}
 
-	for startIdx := 0; startIdx < len(boostedFeeConcentratedPoolKeys); startIdx += maxBatchSize {
-		endIdx := min(startIdx+maxBatchSize, len(boostedFeeConcentratedPoolKeys))
-
+	for _, poolKeyBatch := range lo.Chunk(boostedFeeConcentratedPoolKeys, maxBatchSize) {
 		req := f.ethrpcClient.R().SetContext(ctx)
 		if overrides != nil {
 			req.SetOverrides(overrides)
 		}
 
-		batchSize := endIdx - startIdx
+		batchSize := len(poolKeyBatch)
 		batchQuoteData := make([]struct{ quoteData }, batchSize)
 		batchBoostedFeesData := make([]struct{ boostedFeesQuoteData }, batchSize)
 
-		for i, poolKey := range boostedFeeConcentratedPoolKeys[startIdx:endIdx] {
+		for i, poolKey := range poolKeyBatch {
 			abiPoolKey := poolKey.ToAbi()
 
 			req.AddCall(&ethrpc.Call{
@@ -282,14 +276,14 @@ func (f *dataFetchers) fetchPools(
 			blockNumber = resp.BlockNumber.Uint64()
 		}
 
-		for i, data := range lo.Zip2(batchQuoteData, batchBoostedFeesData) {
-			poolKey := boostedFeeConcentratedPoolKeys[startIdx+i]
+		for _, tuple := range lo.Zip3(poolKeyBatch, batchQuoteData, batchBoostedFeesData) {
+			poolKey := tuple.A
 			config := poolKey.Config.TypeConfig
 
 			if config, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
 				fetchedPools = append(fetchedPools, fetchedPool{
 					PoolWithBlockNumber{
-						Pool:        pools.NewBoostedFeesPool(poolKey.ToConcentrated(config), newBoostedFeesPoolState(&data.A.quoteData, &data.B.boostedFeesQuoteData)),
+						Pool:        pools.NewBoostedFeesPool(poolKey.ToConcentrated(config), newBoostedFeesPoolState(&tuple.B.quoteData, &tuple.C.boostedFeesQuoteData)),
 						blockNumber: blockNumber,
 					},
 					poolKey,
