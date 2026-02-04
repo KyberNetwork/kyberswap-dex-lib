@@ -15,15 +15,15 @@ func unmarshalExtra[T any](extraBytes []byte) (*T, error) {
 	return &state, err
 }
 
-func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
-	var pool Pool
+func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, error) {
+	var pool pools.Pool
 
-	switch poolTypeConfig := staticExtra.PoolKey.Config.TypeConfig.(type) {
+	switch config := staticExtra.PoolKey.Config.TypeConfig.(type) {
 	case pools.FullRangePoolTypeConfig:
-		poolKey := staticExtra.PoolKey.ToFullRange()
+		poolKey := staticExtra.PoolKey.ToFullRange(config)
 
 		switch staticExtra.ExtensionType {
-		case ExtensionTypeBase:
+		case ExtensionTypeNoSwapCallPoints:
 			fullRangeState, err := unmarshalExtra[pools.FullRangePoolState](extraBytes)
 			if err != nil {
 				return nil, fmt.Errorf("parsing full range pool state: %w", err)
@@ -46,7 +46,7 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
 		case ExtensionTypeTwamm:
 			twammState, err := unmarshalExtra[pools.TwammPoolState](extraBytes)
 			if err != nil {
-				return nil, fmt.Errorf("parsing oracle pool state: %w", err)
+				return nil, fmt.Errorf("parsing TWAMM pool state: %w", err)
 			}
 
 			pool = pools.NewTwammPool(
@@ -57,7 +57,7 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
 			return nil, fmt.Errorf("unknown extension type %v for base pool", staticExtra.ExtensionType)
 		}
 	case pools.StableswapPoolTypeConfig:
-		if staticExtra.ExtensionType != ExtensionTypeBase {
+		if staticExtra.ExtensionType != ExtensionTypeNoSwapCallPoints {
 			return nil, fmt.Errorf("unknown extension type %v for stableswap pool", staticExtra.ExtensionType)
 		}
 
@@ -67,33 +67,45 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
 		}
 
 		pool = pools.NewStableswapPool(
-			staticExtra.PoolKey.ToStableswap(poolTypeConfig),
+			staticExtra.PoolKey.ToStableswap(config),
 			stableswapState,
 		)
 	case pools.ConcentratedPoolTypeConfig:
-		baseState, err := unmarshalExtra[pools.BasePoolState](extraBytes)
-		if err != nil {
-			return nil, fmt.Errorf("parsing base pool state: %w", err)
-		}
-
-		poolKey := staticExtra.PoolKey.ToConcentrated(poolTypeConfig)
+		poolKey := staticExtra.PoolKey.ToConcentrated(config)
 
 		switch staticExtra.ExtensionType {
-		case ExtensionTypeBase:
+		case ExtensionTypeNoSwapCallPoints:
+			state, err := unmarshalExtra[pools.BasePoolState](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing base pool state: %w", err)
+			}
+
 			pool = pools.NewBasePool(
 				poolKey,
-				baseState,
+				state,
 			)
 		case ExtensionTypeMevCapture:
+			state, err := unmarshalExtra[pools.MevCapturePoolState](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing MEVCapture pool state: %w", err)
+			}
+
 			pool = pools.NewMevCapturePool(
 				poolKey,
-				baseState,
+				state,
 			)
+		case ExtensionTypeBoostedFeesConcentrated:
+			state, err := unmarshalExtra[pools.BoostedFeesPoolState](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing BoostedFees pool state: %w", err)
+			}
+
+			pool = pools.NewBoostedFeesPool(poolKey, state)
 		default:
 			return nil, fmt.Errorf("unknown extension type %v for concentrated pool", staticExtra.ExtensionType)
 		}
 	default:
-		return nil, fmt.Errorf("unknown pool type config %v", staticExtra.PoolKey.Config.TypeConfig)
+		return nil, fmt.Errorf("unknown pool type config %T", staticExtra.PoolKey.Config.TypeConfig)
 	}
 
 	return pool, nil

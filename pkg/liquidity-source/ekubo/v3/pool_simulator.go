@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -22,7 +23,7 @@ import (
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 type (
-	EkuboPool = Pool
+	EkuboPool = pools.Pool
 
 	PoolSimulator struct {
 		pool.Pool

@@ -18,17 +18,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var MainnetConfig = &Config{
-	DexId:            DexType,
-	ChainId:          valueobject.ChainIDEthereum,
-	SubgraphAPI:      "https://api.studio.thegraph.com/query/1718652/ekubo-v-3/version/latest",
-	Core:             common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
-	Oracle:           common.HexToAddress("0x517E506700271AEa091b02f42756F5E174Af5230"),
-	Twamm:            common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
-	MevCapture:       common.HexToAddress("0x5555fF9Ff2757500BF4EE020DcfD0210CFfa41Be"),
-	QuoteDataFetcher: "0x5a3f0f1da4ac0c4b937d5685f330704c8e8303f1",
-	TwammDataFetcher: "0xc07e5b80750247c8b5d7234a9c79dfc58785392b",
-}
+var MainnetConfig = NewConfig(
+	DexType,
+	valueobject.ChainIDEthereum,
+	"https://api.studio.thegraph.com/query/1718652/ekubo-v-3/version/latest",
+	common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
+	common.HexToAddress("0x517E506700271AEa091b02f42756F5E174Af5230"),
+	common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
+	common.HexToAddress("0x5555fF9Ff2757500BF4EE020DcfD0210CFfa41Be"),
+	common.HexToAddress("0xd4B54d0ca6979Da05F25895E6e269E678ba00f9e"),
+	common.HexToAddress("0xd26f20001a72a18C002b00e6710000d68700ce00"),
+	"0x5a3f0f1da4ac0c4b937d5685f330704c8e8303f1",
+	"0xc07e5b80750247c8b5d7234a9c79dfc58785392b",
+	"0x7A2fF5819Dc71Bb99133a97c38dA512E60c30475",
+)
 
 func TestPoolListUpdater(t *testing.T) {
 	t.Parallel()
@@ -42,20 +45,35 @@ func TestPoolListUpdater(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, len(newPools), 0)
 
-	testPk := pools.NewPoolKey(
-		common.HexToAddress(valueobject.ZeroAddress),
-		common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-		pools.NewPoolConfig(common.Address{}, 9223372036854775, pools.NewConcentratedPoolTypeConfig(1000)),
-	)
+	expected := []pools.AnyPoolKey{
+		anyPoolKey(
+			valueobject.ZeroAddress,
+			"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			common.Address{}.Hex(),
+			9223372036854775,
+			pools.NewConcentratedPoolTypeConfig(1000),
+		),
+		anyPoolKey(
+			"0x6440f144b7e50d6a8439336510312d2f54beb01d",
+			"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			"0x948b9c2c99718034954110cb61a6e08e107745f9",
+			3689348814741910,
+			pools.NewStableswapPoolTypeConfig(-27631040, 14),
+		),
+	}
 
-	require.True(t, slices.ContainsFunc(newPools, func(el entity.Pool) bool {
-		var staticExtra StaticExtra
-		err := json.Unmarshal([]byte(el.StaticExtra), &staticExtra)
-		require.NoError(t, err)
+	// TODO Check that certain keys are filtered out
 
-		pk := staticExtra.PoolKey
+	for _, testPk := range expected {
+		require.True(t, slices.ContainsFunc(newPools, func(el entity.Pool) bool {
+			var staticExtra StaticExtra
+			err := json.Unmarshal([]byte(el.StaticExtra), &staticExtra)
+			require.NoError(t, err)
 
-		return pk.Token0.Cmp(testPk.Token0) == 0 && pk.Token1.Cmp(testPk.Token1) == 0 &&
-			pk.Config.Compressed() == testPk.Config.Compressed()
-	}))
+			pk := staticExtra.PoolKey
+
+			return pk.Token0.Cmp(testPk.Token0) == 0 && pk.Token1.Cmp(testPk.Token1) == 0 &&
+				pk.Config.Compressed() == testPk.Config.Compressed()
+		}), "missing pool key: %v", testPk)
+	}
 }

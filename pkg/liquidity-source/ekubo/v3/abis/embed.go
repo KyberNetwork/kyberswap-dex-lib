@@ -17,4 +17,10 @@ var (
 
 	//go:embed MevCaptureRouter.json
 	mevCaptureRouterJson []byte
+
+	//go:embed BoostedFees.json
+	boostedFeesJson []byte
+
+	//go:embed BoostedFeesDataFetcher.json
+	boostedFeesDataFetcherJson []byte
 )

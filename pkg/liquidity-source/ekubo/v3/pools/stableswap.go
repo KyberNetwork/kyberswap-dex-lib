@@ -117,15 +117,26 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		FeesPaid:         &feesPaid,
 		Gas:              quoting.BaseGasStableswapSwap,
 		SwapInfo: quoting.SwapInfo{
-			SkipAhead:  0,
-			IsToken1:   isToken1,
-			PriceLimit: math.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing),
-			SwapStateAfter: &StableswapPoolSwapState{
-				sqrtRatio,
-			},
+			SkipAhead:           0,
+			IsToken1:            isToken1,
+			PriceLimit:          math.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing),
+			SwapStateAfter:      NewStableswapPoolSwapState(sqrtRatio),
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
+}
+
+func NewStableswapPoolSwapState(sqrtRatio *uint256.Int) *StableswapPoolSwapState {
+	return &StableswapPoolSwapState{
+		SqrtRatio: sqrtRatio,
+	}
+}
+
+func NewStableswapPoolState(swapState *StableswapPoolSwapState, liquidity *uint256.Int) *StableswapPoolState {
+	return &StableswapPoolState{
+		StableswapPoolSwapState: swapState,
+		Liquidity:               liquidity,
+	}
 }
 
 func NewStableswapPool(key *StableswapPoolKey, state *StableswapPoolState) *StableswapPool {

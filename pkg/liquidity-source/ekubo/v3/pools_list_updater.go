@@ -20,10 +20,25 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+// The extra bounds on `extension` are used to include any pool keys that have no beforeSwap and afterSwap hook, see https://github.com/EkuboProtocol/evm-contracts/blob/665e8333e550003b68a94d8482cc9fda438a2bf1/src/types/callPoints.sol
 const subgraphQuery = `
-query NewPools($startBlockNumber: BigInt!, $coreAddress: Bytes!, $extensions: [Bytes!]) {
+query NewPools(
+  $startBlockNumber: BigInt!
+  $coreAddress: Bytes!
+  $extensions: [Bytes!]
+) {
   poolInitializations(
-    where: {blockNumber_gte: $startBlockNumber, coreAddress: $coreAddress, extension_in: $extensions}, orderBy: blockNumber
+    where: {
+      and: [
+        {blockNumber_gte: $startBlockNumber, coreAddress: $coreAddress}
+        {or: [
+          {extension_in: $extensions}
+          {extension_lte: "0x1fffffffffffffffffffffffffffffffffffffff"}
+          {extension_gte: "0x8000000000000000000000000000000000000000", extension_lte: "0x9fffffffffffffffffffffffffffffffffffffff"}
+        ]}
+      ]
+    }
+    orderBy: blockNumber
   ) {
     blockNumber
     blockHash
@@ -64,10 +79,10 @@ func NewPoolListUpdater(
 	}
 }
 
-func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[pools.PoolTypeConfig], error) {
+func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKey, error) {
 	req := graphql.NewRequest(subgraphQuery)
 	req.Var("coreAddress", u.config.Core)
-	req.Var("extensions", []common.Address{{}, u.config.Oracle, u.config.Twamm, u.config.MevCapture})
+	req.Var("extensions", []common.Address{u.config.Oracle, u.config.Twamm, u.config.MevCapture, u.config.BoostedFeesConcentrated})
 	req.Var("startBlockNumber", u.startBlockNumber)
 
 	var res struct {
@@ -150,7 +165,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 	u.startBlockNumber = lastBlockNumber
 	u.startBlockHash = common.HexToHash(lastPi.BlockHash)
 
-	newPoolKeys := make([]*pools.PoolKey[pools.PoolTypeConfig], len(pis))
+	newPoolKeys := make([]pools.AnyPoolKey, len(pis))
 	for i, pi := range pis {
 		var poolTypeConfig pools.PoolTypeConfig
 
@@ -171,11 +186,13 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey[
 			return nil, fmt.Errorf("parsing fee: %w", err)
 		}
 
-		poolKey := pools.NewPoolKey(
-			pi.Token0,
-			pi.Token1,
-			pools.NewPoolConfig(pi.Extension, fee, poolTypeConfig),
-		)
+		poolKey := pools.AnyPoolKey{
+			PoolKey: pools.NewPoolKey(
+				pi.Token0,
+				pi.Token1,
+				pools.NewPoolConfig(pi.Extension, fee, poolTypeConfig),
+			),
+		}
 
 		newPoolKeys[i] = poolKey
 	}
@@ -194,32 +211,26 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		return nil, nil, err
 	}
 
-	newEkuboPools, err := u.dataFetchers.fetchPools(ctx, newPoolKeys, nil)
+	newFetchedPools, err := u.dataFetchers.fetchPools(ctx, newPoolKeys, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newPools := make([]entity.Pool, 0, len(newPoolKeys))
-	for i, poolKey := range newPoolKeys {
-		extensionType, ok := u.config.SupportedExtensions()[poolKey.Extension()]
-		if !ok {
-			logger.WithFields(logger.Fields{
-				"poolKey": poolKey,
-			}).Warn("skipping pool key with unknown extension")
-			continue
-		}
+	newPools := make([]entity.Pool, 0, len(newFetchedPools))
+	for i, pool := range newFetchedPools {
+		poolKey := pool.key
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
 			Core:             u.config.Core,
-			ExtensionType:    extensionType,
-			PoolKey:          &pools.AnyPoolKey{PoolKey: poolKey},
+			ExtensionType:    u.config.ExtensionType(poolKey.Extension()),
+			PoolKey:          poolKey,
 			MevCaptureRouter: u.config.MevCaptureRouter,
 		})
 		if err != nil {
 			return nil, nil, err
 		}
 
-		extraBytes, err := json.Marshal(Extra(newEkuboPools[i]))
+		extraBytes, err := json.Marshal(Extra(newFetchedPools[i]))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -237,17 +248,17 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   valueobject.ZeroToWrappedLower(poolKey.Token0.String(), u.config.ChainId),
+					Address:   valueobject.ZeroToWrappedLower(poolKey.Token0Address().String(), u.config.ChainId),
 					Swappable: true,
 				},
 				{
-					Address:   valueobject.ZeroToWrappedLower(poolKey.Token1.String(), u.config.ChainId),
+					Address:   valueobject.ZeroToWrappedLower(poolKey.Token1Address().String(), u.config.ChainId),
 					Swappable: true,
 				},
 			},
 			StaticExtra: string(staticExtraBytes),
 			Extra:       string(extraBytes),
-			BlockNumber: newEkuboPools[i].blockNumber,
+			BlockNumber: newFetchedPools[i].blockNumber,
 		})
 	}
 

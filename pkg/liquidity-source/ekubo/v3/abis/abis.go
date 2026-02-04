@@ -7,14 +7,17 @@ import (
 )
 
 var (
-	TwammABI            abi.ABI
-	QuoteDataFetcherABI abi.ABI
-	TwammDataFetcherABI abi.ABI
-	CoreABI             abi.ABI
-	MevCaptureRouterABI abi.ABI
+	TwammABI                  abi.ABI
+	QuoteDataFetcherABI       abi.ABI
+	TwammDataFetcherABI       abi.ABI
+	CoreABI                   abi.ABI
+	MevCaptureRouterABI       abi.ABI
+	BoostedFeesABI            abi.ABI
+	BoostedFeesDataFetcherABI abi.ABI
 
 	OrderUpdatedEvent    abi.Event
 	PositionUpdatedEvent abi.Event
+	PoolBoostedEvent     abi.Event
 )
 
 func init() {
@@ -27,6 +30,8 @@ func init() {
 		{&QuoteDataFetcherABI, quoteDataFetcherJson},
 		{&TwammDataFetcherABI, twammDataFetcherJson},
 		{&MevCaptureRouterABI, mevCaptureRouterJson},
+		{&BoostedFeesABI, boostedFeesJson},
+		{&BoostedFeesDataFetcherABI, boostedFeesDataFetcherJson},
 	}
 
 	for _, b := range builder {
@@ -39,4 +44,5 @@ func init() {
 
 	PositionUpdatedEvent = CoreABI.Events["PositionUpdated"]
 	OrderUpdatedEvent = TwammABI.Events["OrderUpdated"]
+	PoolBoostedEvent = BoostedFeesABI.Events["PoolBoosted"]
 }
