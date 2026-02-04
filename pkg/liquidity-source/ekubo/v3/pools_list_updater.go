@@ -165,8 +165,8 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKe
 	u.startBlockNumber = lastBlockNumber
 	u.startBlockHash = common.HexToHash(lastPi.BlockHash)
 
-	newPoolKeys := make([]pools.AnyPoolKey, len(pis))
-	for i, pi := range pis {
+	newPoolKeys := make([]pools.AnyPoolKey, 0, len(pis))
+	for _, pi := range pis {
 		var poolTypeConfig pools.PoolTypeConfig
 
 		if pi.TickSpacing != nil {
@@ -194,7 +194,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKe
 			),
 		}
 
-		newPoolKeys[i] = poolKey
+		newPoolKeys = append(newPoolKeys, poolKey)
 	}
 
 	return newPoolKeys, nil
@@ -217,7 +217,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 	}
 
 	newPools := make([]entity.Pool, 0, len(newFetchedPools))
-	for i, pool := range newFetchedPools {
+	for _, pool := range newFetchedPools {
 		poolKey := pool.key
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
@@ -230,7 +230,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			return nil, nil, err
 		}
 
-		extraBytes, err := json.Marshal(Extra(newFetchedPools[i]))
+		extraBytes, err := json.Marshal(Extra(pool))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -258,7 +258,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			},
 			StaticExtra: string(staticExtraBytes),
 			Extra:       string(extraBytes),
-			BlockNumber: newFetchedPools[i].blockNumber,
+			BlockNumber: pool.blockNumber,
 		})
 	}
 
