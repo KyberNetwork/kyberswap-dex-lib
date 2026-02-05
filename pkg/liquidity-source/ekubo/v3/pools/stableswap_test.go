@@ -2,6 +2,7 @@ package pools
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -186,6 +187,27 @@ func TestStableswapPoolQuote(t *testing.T) {
 		swapState, ok := quote.SwapInfo.SwapStateAfter.(*StableswapPoolSwapState)
 		require.True(t, ok)
 		require.True(t, swapState.SqrtRatio.Cmp(math.ToSqrtRatio(lower+10)) <= 0)
+	})
+
+	t.Run("exact_out_above_upper_boundary_does_not_hang", func(t *testing.T) {
+		amplification := uint8(26)
+		_, upper := activeRange(0, amplification)
+		outsideTick := min(upper+1000, math.MaxTick)
+
+		pool := buildPool(0, amplification, outsideTick)
+
+		resultCh := make(chan error, 1)
+		go func() {
+			_, err := pool.Quote(new(uint256.Int).Neg(smallAmount), true)
+			resultCh <- err
+		}()
+
+		select {
+		case err := <-resultCh:
+			require.NoError(t, err)
+		case <-time.After(time.Second):
+			t.Fatalf("exact-out quote should not hang above upper boundary")
+		}
 	})
 
 	t.Run("inside_range_has_liquidity", func(t *testing.T) {
