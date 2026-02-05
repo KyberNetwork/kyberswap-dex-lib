@@ -2,14 +2,14 @@ package someswapv2
 
 import (
 	"context"
-	"math/big"
+	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/KyberNetwork/kutils"
+	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -17,12 +17,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type (
-	PoolsListUpdater struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-	}
-)
+type PoolsListUpdater struct {
+	config       *Config
+	client       *resty.Client
+	ethrpcClient *ethrpc.Client
+}
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
@@ -30,222 +29,102 @@ func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
+	client := resty.NewWithClient(http.DefaultClient).
+		SetBaseURL(cfg.HTTPConfig.BaseURL).
+		SetTimeout(cfg.HTTPConfig.Timeout.Duration).
+		SetRetryCount(cfg.HTTPConfig.RetryCount)
+
 	return &PoolsListUpdater{
 		config:       cfg,
 		ethrpcClient: ethrpcClient,
+		client:       client,
 	}
 }
 
-func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	var (
-		dexID     = DexType
-		startTime = time.Now()
-	)
-
-	logger.WithFields(logger.Fields{"exchange": dexID}).Info("Started getting new pools")
-
-	allPairsLength, err := u.getAllPairsLength(ctx)
+func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.Pool, []byte, error) {
+	apiPools, err := u.getPoolsFromAPI(ctx)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID}).Error("getAllPairsLength failed")
-		return nil, metadataBytes, err
+		return nil, nil, err
 	}
 
-	offset, err := u.getOffset(metadataBytes)
+	pools, err := u.initPoolsFromAPI(apiPools)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Warn("getOffset failed")
+		return nil, nil, err
 	}
 
-	if offset >= allPairsLength {
-		return nil, metadataBytes, nil
-	}
-
-	poolsFromEvents, err := u.getPoolsFromEvents(ctx, offset, u.config.NewPoolLimit)
-	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Error("getPoolsFromEvents failed")
-		return nil, metadataBytes, err
-	}
-
-	if len(poolsFromEvents) == 0 {
-		return nil, metadataBytes, nil
-	}
-
-	pools, err := u.initPools(ctx, poolsFromEvents)
-	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Error("initPools failed")
-		return nil, metadataBytes, err
-	}
-
-	newMetadataBytes, err := u.newMetadata(offset + len(pools))
-	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Error("newMetadata failed")
-		return nil, metadataBytes, err
-	}
-
-	logger.WithFields(
-		logger.Fields{
-			"dex_id":      dexID,
-			"valid_pools": len(pools),
-			"offset":      offset,
-			"duration_ms": time.Since(startTime).Milliseconds(),
-		},
-	).Info("Finished getting new pools")
-
-	return pools, newMetadataBytes, nil
+	return pools, nil, nil
 }
 
-func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
-	var allPairsLength *big.Int
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: u.config.Factory,
-		Method: factoryMethodAllPairsLength,
-	}, []any{&allPairsLength})
+func (u *PoolsListUpdater) getPoolsFromAPI(ctx context.Context) ([]APIPool, error) {
+	req := u.client.R().SetContext(ctx)
 
-	if _, err := req.Call(); err != nil {
-		return 0, err
-	}
-	if allPairsLength == nil {
-		return 0, nil
-	}
-	return int(allPairsLength.Int64()), nil
-}
-
-func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
-	if len(metadataBytes) == 0 {
-		return 0, nil
-	}
-	var metadata Metadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-		return 0, err
-	}
-	return metadata.Offset, nil
-}
-
-type poolFromEvent struct {
-	Address common.Address
-	Token0  common.Address
-	Token1  common.Address
-	BaseFee uint32
-	WToken0 uint32
-	WToken1 uint32
-}
-
-func (u *PoolsListUpdater) getPoolsFromEvents(ctx context.Context, offset, limit int) ([]poolFromEvent, error) {
-	pairCreatedEvent := factoryABI.Events[factoryEventPairCreated]
-	pairCreatedTopic := pairCreatedEvent.ID
-
-	client := u.ethrpcClient.GetETHClient()
-	currentBlock, err := client.BlockNumber(ctx)
+	var result GetPoolsResponse
+	resp, err := req.SetResult(&result).Get(poolsEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	const blockStep = uint64(500)
-	fromBlock := uint64(0)
-	if currentBlock > 100000 {
-		fromBlock = currentBlock - 100000
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("failed to get pools from API: status %v", resp.Status())
 	}
 
-	var allPools []poolFromEvent
+	var pools []APIPool
+	for _, pair := range result.Pools {
+		for _, entry := range pair.Pools {
+			wToken0, _ := kutils.Atou[uint32](entry.FeeConfig.WToken0In)
+			wToken1, _ := kutils.Atou[uint32](entry.FeeConfig.WToken1In)
 
-	for start := fromBlock; start < currentBlock && len(allPools) < offset+limit; start += blockStep {
-		end := start + blockStep - 1
-		if end > currentBlock {
-			end = currentBlock
-		}
-
-		query := ethereum.FilterQuery{
-			FromBlock: big.NewInt(int64(start)),
-			ToBlock:   big.NewInt(int64(end)),
-			Addresses: []common.Address{common.HexToAddress(u.config.Factory)},
-			Topics:    [][]common.Hash{{pairCreatedTopic}},
-		}
-
-		logs, err := client.FilterLogs(ctx, query)
-		if err != nil {
-			continue
-		}
-
-		for _, log := range logs {
-			if len(log.Data) >= 192 {
-				poolAddr := common.BytesToAddress(log.Data[:32])
-				baseFee := uint32(log.Data[124])<<24 | uint32(log.Data[125])<<16 | uint32(log.Data[126])<<8 | uint32(log.Data[127])
-				wToken0 := uint32(log.Data[156])<<24 | uint32(log.Data[157])<<16 | uint32(log.Data[158])<<8 | uint32(log.Data[159])
-				wToken1 := uint32(log.Data[188])<<24 | uint32(log.Data[189])<<16 | uint32(log.Data[190])<<8 | uint32(log.Data[191])
-
-				var token0, token1 common.Address
-				if len(log.Topics) >= 3 {
-					token0 = common.BytesToAddress(log.Topics[1].Bytes())
-					token1 = common.BytesToAddress(log.Topics[2].Bytes())
-				}
-
-				allPools = append(allPools, poolFromEvent{
-					Address: poolAddr,
-					Token0:  token0,
-					Token1:  token1,
-					BaseFee: baseFee,
-					WToken0: wToken0,
-					WToken1: wToken1,
-				})
-			}
+			pools = append(pools, APIPool{
+				PairAddress: entry.Backend.PairAddress,
+				Token0:      pair.Token0,
+				Token1:      pair.Token1,
+				BaseFee:     entry.FeeConfig.BaseFeeBps,
+				WToken0:     wToken0,
+				WToken1:     wToken1,
+			})
 		}
 	}
 
-	if offset >= len(allPools) {
-		return nil, nil
-	}
-	end := offset + limit
-	if end > len(allPools) {
-		end = len(allPools)
-	}
-
-	return allPools[offset:end], nil
+	return pools, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, poolsFromEvents []poolFromEvent) ([]entity.Pool, error) {
-	pools := make([]entity.Pool, 0, len(poolsFromEvents))
+func (u *PoolsListUpdater) initPoolsFromAPI(apiPools []APIPool) ([]entity.Pool, error) {
+	pools := make([]entity.Pool, 0, len(apiPools))
 
-	for _, pfe := range poolsFromEvents {
+	for _, ap := range apiPools {
 		token0 := &entity.PoolToken{
-			Address:   hexutil.Encode(pfe.Token0[:]),
+			Address:   valueobject.ZeroToWrappedLower(ap.Token0.Address, u.config.ChainId),
 			Swappable: true,
 		}
 		token1 := &entity.PoolToken{
-			Address:   hexutil.Encode(pfe.Token1[:]),
+			Address:   valueobject.ZeroToWrappedLower(ap.Token1.Address, u.config.ChainId),
 			Swappable: true,
 		}
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			BaseFee: pfe.BaseFee,
-			WToken0: pfe.WToken0,
-			WToken1: pfe.WToken1,
+			BaseFee:      ap.BaseFee,
+			WToken0:      ap.WToken0,
+			WToken1:      ap.WToken1,
+			NativeToken0: valueobject.IsNativeOrZero(ap.Token0.Address),
+			NativeToken1: valueobject.IsNativeOrZero(ap.Token1.Address),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		swapFee := float64(pfe.BaseFee) / float64(feeDen.Int64())
-
 		newPool := entity.Pool{
-			Address:      hexutil.Encode(pfe.Address[:]),
-			ReserveUsd:   0,
-			AmplifiedTvl: 0,
-			SwapFee:      swapFee,
-			Exchange:     string(valueobject.ExchangeSomeSwapV2),
-			Type:         DexType,
-			Timestamp:    time.Now().Unix(),
-			Reserves:     []string{reserveZero, reserveZero},
-			Tokens:       []*entity.PoolToken{token0, token1},
-			StaticExtra:  string(staticExtraBytes),
+			Address:     strings.ToLower(ap.PairAddress),
+			SwapFee:     float64(ap.BaseFee) / float64(feeDen.Uint64()),
+			Exchange:    u.config.DexId,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{token0, token1},
+			StaticExtra: string(staticExtraBytes),
 		}
 
 		pools = append(pools, newPool)
 	}
 
 	return pools, nil
-}
-
-func (u *PoolsListUpdater) newMetadata(offset int) ([]byte, error) {
-	return json.Marshal(Metadata{Offset: offset})
 }

@@ -210,6 +210,7 @@ const (
 	ExchangeSmoothy                    = "smoothy"
 	ExchangeSolidlyV2                  = "solidly-v2"
 	ExchangeSomeSwapV1                 = "someswap-v1"
+	ExchangeSomeSwapV2                 = "someswap-v2"
 	ExchangeSonicMarket                = "sonic-market"
 	ExchangeSpookySwap                 = "spookyswap"
 	ExchangeStaderETHx                 = "staderethx"

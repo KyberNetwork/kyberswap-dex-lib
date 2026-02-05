@@ -1,24 +1,19 @@
 package someswapv2
 
-import "math/big"
-
-const (
-	DexType     = "someswap-v2"
-	reserveZero = "0"
+import (
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-const (
-	factoryMethodAllPairsLength = "allPairsLength"
-	factoryEventPairCreated     = "PairCreated"
+const DexType = valueobject.ExchangeSomeSwapV2
 
-	poolMethodToken0      = "token0"
-	poolMethodToken1      = "token1"
-	poolMethodReserve0    = "reserve0"
-	poolMethodReserve1    = "reserve1"
-	poolMethodGetReserves = "getReserves"
+const (
+	poolsEndpoint = "/api/amm/pools/v2"
+
+	defaultGas = 80000
 )
 
 var (
-	feeDen    = big.NewInt(1000000)
-	weightDen = new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)
+	feeDen    = u256.TenPow(6)
+	weightDen = u256.TenPow(9)
 )

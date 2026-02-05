@@ -7,9 +7,8 @@ import (
 )
 
 type ReserveData struct {
-	Reserve0           *big.Int `abi:"_r0"`
-	Reserve1           *big.Int `abi:"_r1"`
-	BlockTimestampLast uint32   `abi:"ts"`
+	Reserve0 *big.Int `abi:"_r0"`
+	Reserve1 *big.Int `abi:"_r1"`
 }
 
 func (d ReserveData) IsZero() bool {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -23,52 +24,31 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	staticExtra := StaticExtra{
 		BaseFee: 0,
 		WToken0: 0,
 		WToken1: uint32(weightDen.Uint64()),
 	}
-	if entityPool.StaticExtra != "" {
-		if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if ep.StaticExtra != "" {
+		if err := json.Unmarshal([]byte(ep.StaticExtra), &staticExtra); err != nil {
 			return nil, err
 		}
-	}
-
-	reserves := make([]*uint256.Int, len(entityPool.Reserves))
-	for i, reserveStr := range entityPool.Reserves {
-		reserve, err := uint256.FromDecimal(reserveStr)
-		if err != nil {
-			return nil, err
-		}
-		reserves[i] = reserve
-	}
-
-	baseFee := uint256.NewInt(uint64(staticExtra.BaseFee))
-	wToken0 := uint256.NewInt(uint64(staticExtra.WToken0))
-	wToken1 := uint256.NewInt(uint64(staticExtra.WToken1))
-
-	info := pool.PoolInfo{
-		Address:  entityPool.Address,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens: []string{
-			entityPool.Tokens[0].Address,
-			entityPool.Tokens[1].Address,
-		},
-		Reserves: []*big.Int{
-			bignumber.NewBig(entityPool.Reserves[0]),
-			bignumber.NewBig(entityPool.Reserves[1]),
-		},
-		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
-		Pool:     pool.Pool{Info: info},
-		reserves: reserves,
-		baseFee:  baseFee,
-		wToken0:  wToken0,
-		wToken1:  wToken1,
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:     ep.Address,
+			Exchange:    ep.Exchange,
+			Type:        ep.Type,
+			Tokens:      lo.Map(ep.Tokens, func(pt *entity.PoolToken, _ int) string { return pt.Address }),
+			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
+			BlockNumber: ep.BlockNumber,
+		}},
+		reserves: lo.Map(ep.Reserves, func(r string, _ int) *uint256.Int { return uint256.MustFromDecimal(r) }),
+		baseFee:  uint256.NewInt(uint64(staticExtra.BaseFee)),
+		wToken0:  uint256.NewInt(uint64(staticExtra.WToken0)),
+		wToken1:  uint256.NewInt(uint64(staticExtra.WToken1)),
 	}, nil
 }
 
@@ -100,7 +80,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenAmountIn.Token,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: 80000,
+		Gas: defaultGas,
 	}, nil
 }
 
@@ -128,7 +108,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.reserves[tokenOutIndex] = new(uint256.Int).Sub(s.reserves[tokenOutIndex], outTotal)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		BaseFee: uint32(s.baseFee.Uint64()),
 		WToken0: uint32(s.wToken0.Uint64()),
@@ -147,31 +127,28 @@ func (s *PoolSimulator) calcAmountOutDetailed(amountIn *uint256.Int, tokenInInde
 		return nil, nil, nil, fmt.Errorf("invalid reserves")
 	}
 
-	feeDenU256 := uint256.MustFromBig(feeDen)
-	weightDenU256 := uint256.MustFromBig(weightDen)
-
 	weight := s.wToken0
 	if tokenInIndex == 1 {
 		weight = s.wToken1
 	}
 
 	inFee := new(uint256.Int).Mul(s.baseFee, weight)
-	inFee.Div(inFee, weightDenU256)
+	inFee.Div(inFee, weightDen)
 
 	outFee := new(uint256.Int)
-	if s.baseFee.Cmp(inFee) > 0 {
+	if s.baseFee.Gt(inFee) {
 		outFee = new(uint256.Int).Sub(s.baseFee, inFee)
 	}
 
-	feeMultiplier := new(uint256.Int).Sub(feeDenU256, inFee)
+	feeMultiplier := new(uint256.Int).Sub(feeDen, inFee)
 	effIn := new(uint256.Int).Mul(amountIn, feeMultiplier)
-	effIn.Div(effIn, feeDenU256)
+	effIn.Div(effIn, feeDen)
 	if effIn.Sign() <= 0 {
 		return nil, nil, nil, fmt.Errorf("amount in too small")
 	}
 
 	inFeeAmount := new(uint256.Int).Mul(amountIn, inFee)
-	inFeeAmount.Div(inFeeAmount, feeDenU256)
+	inFeeAmount.Div(inFeeAmount, feeDen)
 
 	outTotal := new(uint256.Int).Mul(effIn, reserveOut)
 	denom := new(uint256.Int).Add(reserveIn, effIn)
@@ -180,9 +157,9 @@ func (s *PoolSimulator) calcAmountOutDetailed(amountIn *uint256.Int, tokenInInde
 		return nil, nil, nil, fmt.Errorf("invalid total out")
 	}
 
-	outFeeMultiplier := new(uint256.Int).Sub(feeDenU256, outFee)
+	outFeeMultiplier := new(uint256.Int).Sub(feeDen, outFee)
 	netOut := new(uint256.Int).Mul(outTotal, outFeeMultiplier)
-	netOut.Div(netOut, feeDenU256)
+	netOut.Div(netOut, feeDen)
 	if netOut.Sign() <= 0 {
 		return nil, nil, nil, fmt.Errorf("invalid net out")
 	}
