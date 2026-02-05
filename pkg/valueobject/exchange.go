@@ -264,6 +264,7 @@ const (
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
 	ExchangeWooFiV3                    = "woofi-v3"
+	ExchangeWrappedNative              = "wrapped-native"
 	ExchangeWRSETH                     = "wrseth"
 	ExchangeXSolvBTC                   = "xsolvbtc"
 )
