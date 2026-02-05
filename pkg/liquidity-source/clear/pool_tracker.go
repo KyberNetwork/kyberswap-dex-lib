@@ -76,6 +76,7 @@ func (d *PoolTracker) GetNewPoolState(
 					common.HexToAddress(p.Tokens[i].Address),
 					common.HexToAddress(p.Tokens[j].Address),
 					amountIn,
+					false,
 				},
 			}, []any{previewResult[i][j]})
 		}
