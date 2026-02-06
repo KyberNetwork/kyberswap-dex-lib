@@ -6,18 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type syncEvent struct {
-	Reserve0 *big.Int `abi:"reserve0"`
-	Reserve1 *big.Int `abi:"reserve1"`
-}
-
-func (e syncEvent) toReserveData() ReserveData {
-	return ReserveData{
-		Reserve0: e.Reserve0,
-		Reserve1: e.Reserve1,
-	}
-}
-
 func isSyncEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
 		return false
@@ -26,11 +14,17 @@ func isSyncEvent(log types.Log) bool {
 }
 
 func decodeSyncEvent(log types.Log) (ReserveData, error) {
-	var evt syncEvent
+	var evt struct {
+		Reserve0 *big.Int `abi:"reserve0"`
+		Reserve1 *big.Int `abi:"reserve1"`
+	}
 	if err := pairABI.UnpackIntoInterface(&evt, "Sync", log.Data); err != nil {
 		return ReserveData{}, err
 	}
-	return evt.toReserveData(), nil
+	return ReserveData{
+		Reserve0: evt.Reserve0,
+		Reserve1: evt.Reserve1,
+	}, nil
 }
 
 func findLatestSyncEvent(logs []types.Log) *types.Log {
