@@ -123,8 +123,7 @@
     "inputs": [],
     "outputs": [
       { "name": "_r0", "type": "uint112", "internalType": "uint112" },
-      { "name": "_r1", "type": "uint112", "internalType": "uint112" },
-      { "name": "ts", "type": "uint32", "internalType": "uint32" }
+      { "name": "_r1", "type": "uint112", "internalType": "uint112" }
     ],
     "stateMutability": "view"
   },

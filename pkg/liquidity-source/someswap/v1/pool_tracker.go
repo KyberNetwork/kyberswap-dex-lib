@@ -18,16 +18,16 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
-) (*PoolTracker, error) {
+) *PoolTracker {
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-	}, nil
+	}
 }
 
 func (d *PoolTracker) GetNewPoolState(
