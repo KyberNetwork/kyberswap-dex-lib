@@ -1,0 +1,626 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_coreModule",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "allPairsLength",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "computePoolAddress",
+    "inputs": [
+      {
+        "name": "tokenA",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenB",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "userModule",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "moduleMask",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "baseFeeConfig",
+        "type": "tuple",
+        "internalType": "struct BaseFeeConfig",
+        "components": [
+          {
+            "name": "baseFee",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken0",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken1",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "predicted",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "coreModule",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "createPair",
+    "inputs": [
+      {
+        "name": "tokenA",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenB",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "userModule",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "moduleMask",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "baseFeeConfig",
+        "type": "tuple",
+        "internalType": "struct BaseFeeConfig",
+        "components": [
+          {
+            "name": "baseFee",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken0",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken1",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "pair",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getPair",
+    "inputs": [
+      {
+        "name": "tokenA",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenB",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "userModule",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "moduleMask",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "baseFeeConfig",
+        "type": "tuple",
+        "internalType": "struct BaseFeeConfig",
+        "components": [
+          {
+            "name": "baseFee",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken0",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken1",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "pair",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isRouter",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "locker",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lockerOperator",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pairCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pairInitCodeHash",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "codeHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "permissionsRegistry",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolById",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolImplementation",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setCoreModule",
+    "inputs": [
+      {
+        "name": "newCore",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setLocker",
+    "inputs": [
+      {
+        "name": "newLocker",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setLockerOperator",
+    "inputs": [
+      {
+        "name": "newOperator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setOwner",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPermissionsRegistry",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRouter",
+    "inputs": [
+      {
+        "name": "router",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "allowed",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "LockerOperatorSet",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LockerSet",
+    "inputs": [
+      {
+        "name": "locker",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnerSet",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PairCreated",
+    "inputs": [
+      {
+        "name": "token0",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token1",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "module",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "pair",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "pairCount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "moduleMask",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "baseFeeConfig",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct BaseFeeConfig",
+        "components": [
+          {
+            "name": "baseFee",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken0",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wToken1",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PermissionsRegistrySet",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouterSet",
+    "inputs": [
+      {
+        "name": "router",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "allowed",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__CoreSwapPermissionsNotAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__IdenticalTokens",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__InvalidModuleMask",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__ModulePermissionsMissing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__NotLockerOperator",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__NotOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__PairCreateFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__PairExists",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__UserSwapPermissionsNotAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__ZeroCoreModule",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__ZeroLocker",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__ZeroLockerOperator",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SomeSwapV2Factory__ZeroOwner",
+    "inputs": []
+  }
+]

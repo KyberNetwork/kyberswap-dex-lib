@@ -215,15 +215,15 @@ func (u *PoolsListUpdater) listPairData(ctx context.Context, pairAddresses []com
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, pairAddress := range pairAddresses {
 		req.AddCall(&ethrpc.Call{
-			ABI:    pairABI,
+			ABI:    PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken0,
 		}, []any{&token0List[i]}).AddCall(&ethrpc.Call{
-			ABI:    pairABI,
+			ABI:    PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken1,
 		}, []any{&token1List[i]}).AddCall(&ethrpc.Call{
-			ABI:    pairABI,
+			ABI:    PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodFee,
 		}, []any{&feeParamsArr[i]})

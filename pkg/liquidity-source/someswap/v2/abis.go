@@ -1,4 +1,4 @@
-package someswapv1
+package someswapv2
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	PairABI    abi.ABI
 	factoryABI abi.ABI
+	poolABI    abi.ABI
 )
 
 func init() {
@@ -16,12 +16,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{
-			&PairABI, pairABIJson,
-		},
-		{
-			&factoryABI, factoryABIJson,
-		},
+		{&factoryABI, factoryABIJson},
+		{&poolABI, poolABIJson},
 	}
 
 	for _, b := range builder {
