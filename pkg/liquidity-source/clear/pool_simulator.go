@@ -160,6 +160,7 @@ func (p *PoolSimulator) CalcAmountOutWithRPC(
 			common.HexToAddress(tokenIn),
 			common.HexToAddress(tokenOut),
 			amountIn,
+			false,
 		},
 	}, []any{&amountOut, &ious})
 
