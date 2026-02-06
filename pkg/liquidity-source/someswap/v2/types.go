@@ -1,17 +1,21 @@
 package someswapv2
 
 type StaticExtra struct {
-	BaseFee      uint32 `json:"baseFee"`
-	WToken0      uint32 `json:"wToken0"`
-	WToken1      uint32 `json:"wToken1"`
-	NativeToken0 bool   `json:"n0"`
-	NativeToken1 bool   `json:"n1"`
-}
-
-type PoolMeta struct {
 	BaseFee uint32 `json:"baseFee"`
 	WToken0 uint32 `json:"wToken0"`
 	WToken1 uint32 `json:"wToken1"`
+	Token0  string `json:"t0"`
+	Token1  string `json:"t1"`
+	Router  string `json:"router"`
+}
+
+type PoolMeta struct {
+	BaseFee  uint32 `json:"baseFee"`
+	WToken0  uint32 `json:"wToken0"`
+	WToken1  uint32 `json:"wToken1"`
+	Router   string `json:"router"`
+	TokenIn  string `json:"tokenIn"`
+	TokenOut string `json:"tokenOut"`
 }
 
 type GetPoolsResponse struct {

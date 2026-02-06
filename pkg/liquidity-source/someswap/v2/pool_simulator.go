@@ -16,10 +16,12 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	reserves []*uint256.Int
-	baseFee  *uint256.Int
-	wToken0  *uint256.Int
-	wToken1  *uint256.Int
+	reserves       []*uint256.Int
+	baseFee        *uint256.Int
+	wToken0        *uint256.Int
+	wToken1        *uint256.Int
+	router         string
+	token0, token1 string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -49,6 +51,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		baseFee:  uint256.NewInt(uint64(staticExtra.BaseFee)),
 		wToken0:  uint256.NewInt(uint64(staticExtra.WToken0)),
 		wToken1:  uint256.NewInt(uint64(staticExtra.WToken1)),
+		router:   staticExtra.Router,
+		token0:   staticExtra.Token0,
+		token1:   staticExtra.Token1,
 	}, nil
 }
 
@@ -108,11 +113,15 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.reserves[tokenOutIndex] = new(uint256.Int).Sub(s.reserves[tokenOutIndex], outTotal)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	tokenInIndex := s.GetTokenIndex(tokenIn)
 	return PoolMeta{
-		BaseFee: uint32(s.baseFee.Uint64()),
-		WToken0: uint32(s.wToken0.Uint64()),
-		WToken1: uint32(s.wToken1.Uint64()),
+		BaseFee:  uint32(s.baseFee.Uint64()),
+		WToken0:  uint32(s.wToken0.Uint64()),
+		WToken1:  uint32(s.wToken1.Uint64()),
+		Router:   s.router,
+		TokenIn:  lo.Ternary(tokenInIndex == 0, s.token0, s.token1),
+		TokenOut: lo.Ternary(tokenInIndex == 0, s.token1, s.token0),
 	}
 }
 
@@ -136,7 +145,7 @@ func (s *PoolSimulator) calcAmountOutDetailed(amountIn *uint256.Int, tokenInInde
 	inFee.Div(inFee, weightDen)
 
 	outFee := new(uint256.Int)
-	if s.baseFee.Gt(inFee) {
+	if s.baseFee.Cmp(inFee) > 0 {
 		outFee = new(uint256.Int).Sub(s.baseFee, inFee)
 	}
 

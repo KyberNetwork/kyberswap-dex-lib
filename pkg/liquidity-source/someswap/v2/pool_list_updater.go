@@ -71,8 +71,14 @@ func (u *PoolsListUpdater) getPoolsFromAPI(ctx context.Context) ([]APIPool, erro
 	var pools []APIPool
 	for _, pair := range result.Pools {
 		for _, entry := range pair.Pools {
-			wToken0, _ := kutils.Atou[uint32](entry.FeeConfig.WToken0In)
-			wToken1, _ := kutils.Atou[uint32](entry.FeeConfig.WToken1In)
+			wToken0, err := kutils.Atou[uint32](entry.FeeConfig.WToken0In)
+			if err != nil {
+				return nil, err
+			}
+			wToken1, err := kutils.Atou[uint32](entry.FeeConfig.WToken1In)
+			if err != nil {
+				return nil, err
+			}
 
 			pools = append(pools, APIPool{
 				PairAddress: entry.Backend.PairAddress,
@@ -102,11 +108,12 @@ func (u *PoolsListUpdater) initPoolsFromAPI(apiPools []APIPool) ([]entity.Pool, 
 		}
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			BaseFee:      ap.BaseFee,
-			WToken0:      ap.WToken0,
-			WToken1:      ap.WToken1,
-			NativeToken0: valueobject.IsNativeOrZero(ap.Token0.Address),
-			NativeToken1: valueobject.IsNativeOrZero(ap.Token1.Address),
+			BaseFee: ap.BaseFee,
+			WToken0: ap.WToken0,
+			WToken1: ap.WToken1,
+			Token0:  ap.Token0.Address,
+			Token1:  ap.Token1.Address,
+			Router:  u.config.Router,
 		})
 		if err != nil {
 			return nil, err

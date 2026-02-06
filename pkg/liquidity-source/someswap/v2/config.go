@@ -10,6 +10,7 @@ type Config struct {
 	DexId      string
 	ChainId    valueobject.ChainID
 	Factory    string     `json:"factory,omitempty"`
+	Router     string     `json:"router"`
 	HTTPConfig HTTPConfig `mapstructure:"http_config" json:"http_config"`
 }
 
