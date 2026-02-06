@@ -77,6 +77,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
@@ -375,6 +376,7 @@ type Types struct {
 	Smoothy                    string
 	Carbon                     string
 	Axima                      string
+	KipseliProp                string
 }
 
 var (
@@ -574,5 +576,6 @@ var (
 		Smoothy:                    smoothy.DexType,
 		Carbon:                     carbon.DexType,
 		Axima:                      axima.DexType,
+		KipseliProp:                kipseliprop.DexType,
 	}
 )

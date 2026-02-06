@@ -129,6 +129,7 @@ const (
 	ExchangeKTX                        = "ktx"
 	ExchangeKuruOB                     = "kuru-ob"
 	ExchangeKyberPMM                   = "kyber-pmm"
+	ExchangeKipseliProp                = "kipseli-prop"
 	ExchangeKyberSwapLimitOrder        = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS      = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                 = "liquidcore"

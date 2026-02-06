@@ -1,0 +1,81 @@
+[
+  {
+    "inputs": [],
+    "name": "getListedTokens",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getQuoteToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "getTokenLevels",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "xBase",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "yBase",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "xQuote",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "yQuote",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "name": "getReserveBalances",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "balances",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
