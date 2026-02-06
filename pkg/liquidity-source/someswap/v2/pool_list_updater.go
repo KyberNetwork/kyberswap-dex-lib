@@ -121,7 +121,7 @@ func (u *PoolsListUpdater) initPoolsFromAPI(apiPools []APIPool) ([]entity.Pool, 
 
 		newPool := entity.Pool{
 			Address:     strings.ToLower(ap.PairAddress),
-			SwapFee:     float64(ap.BaseFee) / float64(feeDen.Uint64()),
+			SwapFee:     float64(ap.BaseFee) / float64(bpsDen.Uint64()),
 			Exchange:    u.config.DexId,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),

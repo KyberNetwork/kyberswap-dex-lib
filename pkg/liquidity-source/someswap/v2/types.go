@@ -9,6 +9,10 @@ type StaticExtra struct {
 	Router  string `json:"router"`
 }
 
+type Extra struct {
+	DynBps uint32 `json:"dynBps,omitempty"`
+}
+
 type PoolMeta struct {
 	BaseFee  uint32 `json:"baseFee"`
 	WToken0  uint32 `json:"wToken0"`

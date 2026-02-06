@@ -13,7 +13,4 @@ const (
 	defaultGas = 80000
 )
 
-var (
-	feeDen    = u256.TenPow(6)
-	weightDen = u256.TenPow(9)
-)
+var bpsDen = u256.TenPow(9)

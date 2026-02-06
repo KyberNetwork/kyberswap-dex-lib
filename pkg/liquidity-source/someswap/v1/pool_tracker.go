@@ -81,7 +81,7 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 	var reserves ReserveData
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
+		ABI:    PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 	}, []any{&reserves})

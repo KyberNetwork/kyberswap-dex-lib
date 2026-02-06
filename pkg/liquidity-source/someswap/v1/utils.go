@@ -10,7 +10,7 @@ func isSyncEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
 		return false
 	}
-	return log.Topics[0] == pairABI.Events["Sync"].ID
+	return log.Topics[0] == PairABI.Events["Sync"].ID
 }
 
 func decodeSyncEvent(log types.Log) (ReserveData, error) {
@@ -18,7 +18,7 @@ func decodeSyncEvent(log types.Log) (ReserveData, error) {
 		Reserve0 *big.Int `abi:"reserve0"`
 		Reserve1 *big.Int `abi:"reserve1"`
 	}
-	if err := pairABI.UnpackIntoInterface(&evt, "Sync", log.Data); err != nil {
+	if err := PairABI.UnpackIntoInterface(&evt, "Sync", log.Data); err != nil {
 		return ReserveData{}, err
 	}
 	return ReserveData{
