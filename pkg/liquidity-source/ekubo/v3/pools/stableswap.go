@@ -57,11 +57,11 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 
 	var calculatedAmount, feesPaid uint256.Int
 	amountRemaining := amount.Clone()
-	var initializedTicksCrossed uint32 = 0
+	movedOutOfBoundary := false
 
 	for !amountRemaining.IsZero() && !sqrtRatio.Eq(sqrtRatioLimit) {
 		stepLiquidity := p.Liquidity
-		inRange := sqrtRatio.Lt(&p.upperPrice) && sqrtRatio.Gt(&p.lowerPrice)
+		inRange := sqrtRatio.Cmp(&p.upperPrice) <= 0 && sqrtRatio.Cmp(&p.lowerPrice) >= 0 && !movedOutOfBoundary
 
 		var nextTickSqrtRatio *uint256.Int
 		if inRange {
@@ -73,12 +73,12 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		} else {
 			stepLiquidity = new(uint256.Int)
 
-			if sqrtRatio.Lt(&p.lowerPrice) || sqrtRatio.Eq(&p.lowerPrice) {
-				if isIncreasing {
-					nextTickSqrtRatio = &p.lowerPrice
-				}
-			} else {
-				if !isIncreasing {
+			if !movedOutOfBoundary {
+				if sqrtRatio.Lt(&p.lowerPrice) {
+					if isIncreasing {
+						nextTickSqrtRatio = &p.lowerPrice
+					}
+				} else if !isIncreasing {
 					nextTickSqrtRatio = &p.upperPrice
 				}
 			}
@@ -106,8 +106,8 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		feesPaid.Add(&feesPaid, step.FeeAmount)
 		sqrtRatio = step.SqrtRatioNext
 
-		if nextTickSqrtRatio != nil && nextTickSqrtRatio.Eq(sqrtRatio) {
-			initializedTicksCrossed++
+		if nextTickSqrtRatio != nil && nextTickSqrtRatio.Eq(sqrtRatio) && (sqrtRatio.Eq(&p.upperPrice) && isIncreasing || sqrtRatio.Eq(&p.lowerPrice) && !isIncreasing) {
+			movedOutOfBoundary = true
 		}
 	}
 
@@ -115,7 +115,7 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
-		Gas:              quoting.BaseGasStableswapSwap + int64(initializedTicksCrossed)*quoting.GasInitializedTickCrossed,
+		Gas:              quoting.BaseGasStableswapSwap,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead:  0,
 			IsToken1:   isToken1,
