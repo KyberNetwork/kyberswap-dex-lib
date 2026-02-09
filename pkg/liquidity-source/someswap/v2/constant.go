@@ -8,7 +8,8 @@ import (
 const DexType = valueobject.ExchangeSomeSwapV2
 
 const (
-	poolsEndpoint = "/api/amm/pools/v2"
+	poolsEndpoint      = "/api/amm/pools/v2"
+	dynamicFeeEndpoint = "/api/amm/dynamic-fee/{pool-address}"
 
 	defaultGas = 80000
 )

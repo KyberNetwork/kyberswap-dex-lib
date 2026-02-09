@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
@@ -41,27 +42,14 @@ func NewPoolTracker(
 	}
 }
 
-type DynamicFeeResponse struct {
-	Pool           string `json:"pool"`
-	BaseFee        uint32 `json:"baseFee"`
-	WToken0        string `json:"wToken0"`
-	WToken1        string `json:"wToken1"`
-	CurrentDynBps  uint32 `json:"currentDynBps"`
-	TotalFeeBps    uint32 `json:"totalFeeBps"`
-	InBps          uint32 `json:"inBps"`
-	OutBps         uint32 `json:"outBps"`
-	Config         struct {
-		Enabled   bool   `json:"enabled"`
-		HalfLife  uint64 `json:"halfLife"`
-		MaxCapBps uint32 `json:"maxCapBps"`
-	} `json:"config"`
-}
-
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	logger.Infof("getting new pool state for %s", p.Address)
+	defer logger.Infof("finished getting pool state for %s", p.Address)
+
 	reserves, blockNumber, err := d.getReservesFromRPCNode(ctx, p.Address)
 	if err != nil {
 		return p, err
@@ -76,8 +64,7 @@ func (d *PoolTracker) GetNewPoolState(
 		dynBps = 0
 	}
 
-	extra := Extra{DynBps: dynBps}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(Extra{DynBps: dynBps})
 	if err != nil {
 		return p, err
 	}
@@ -93,14 +80,11 @@ func (d *PoolTracker) GetNewPoolState(
 }
 
 func (d *PoolTracker) getDynamicFee(ctx context.Context, poolAddress string) (uint32, error) {
-	endpoint := fmt.Sprintf("/api/amm/dynamic-fee/%s", poolAddress)
-
 	var result DynamicFeeResponse
-	resp, err := d.httpClient.R().
-		SetContext(ctx).
+	resp, err := d.httpClient.R().SetContext(ctx).
 		SetResult(&result).
-		Get(endpoint)
-
+		SetPathParam("pool-address", poolAddress).
+		Get(dynamicFeeEndpoint)
 	if err != nil {
 		return 0, fmt.Errorf("failed to call dynamic-fee API: %w", err)
 	}

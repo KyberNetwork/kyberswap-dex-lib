@@ -33,8 +33,8 @@ func TestHighPrecisionBPS(t *testing.T) {
 			amountIn:        uint256.NewInt(1_000_000_000), // 1000 tokens
 			reserveIn:       uint256.NewInt(100_000_000_000),
 			reserveOut:      uint256.NewInt(100_000_000_000),
-			baseFee:         uint256.NewInt(300000),             // 0.03%
-			wToken0:         mustFromDecimal("1000000000"),      // 100%
+			baseFee:         uint256.NewInt(300000),        // 0.03%
+			wToken0:         mustFromDecimal("1000000000"), // 100%
 			wToken1:         uint256.NewInt(0),
 			tokenIn:         0,
 			expectedFeePerc: 0.03,
@@ -44,7 +44,7 @@ func TestHighPrecisionBPS(t *testing.T) {
 			amountIn:        uint256.NewInt(1_000_000_000),
 			reserveIn:       uint256.NewInt(100_000_000_000),
 			reserveOut:      uint256.NewInt(100_000_000_000),
-			baseFee:         uint256.NewInt(7500),               // 0.00075%
+			baseFee:         uint256.NewInt(7500), // 0.00075%
 			wToken0:         mustFromDecimal("1000000000"),
 			wToken1:         uint256.NewInt(0),
 			tokenIn:         0,
@@ -55,7 +55,7 @@ func TestHighPrecisionBPS(t *testing.T) {
 			amountIn:        uint256.NewInt(1_000_000_000),
 			reserveIn:       uint256.NewInt(100_000_000_000),
 			reserveOut:      uint256.NewInt(100_000_000_000),
-			baseFee:         uint256.NewInt(190000),             // 0.019%
+			baseFee:         uint256.NewInt(190000), // 0.019%
 			wToken0:         mustFromDecimal("1000000000"),
 			wToken1:         uint256.NewInt(0),
 			tokenIn:         0,
@@ -66,9 +66,9 @@ func TestHighPrecisionBPS(t *testing.T) {
 			amountIn:        uint256.NewInt(1_000_000_000),
 			reserveIn:       uint256.NewInt(100_000_000_000),
 			reserveOut:      uint256.NewInt(100_000_000_000),
-			baseFee:         uint256.NewInt(300000),             // 0.03%
-			wToken0:         mustFromDecimal("500000000"),       // 50%
-			wToken1:         mustFromDecimal("500000000"),       // 50%
+			baseFee:         uint256.NewInt(300000),       // 0.03%
+			wToken0:         mustFromDecimal("500000000"), // 50%
+			wToken1:         mustFromDecimal("500000000"), // 50%
 			tokenIn:         0,
 			expectedFeePerc: 0.03,
 		},
@@ -145,8 +145,8 @@ func createTestSimulator(t *testing.T, reserve0, reserve1, baseFee, wToken0, wTo
 // TestDynamicFeeFromExtra verifies that dynBps from Extra is added to baseFee
 func TestDynamicFeeFromExtra(t *testing.T) {
 	reserve := mustFromDecimal("100000000000")
-	baseFee := uint256.NewInt(190000)   // 0.019%
-	dynBps := uint256.NewInt(150000)    // 0.015% dynamic fee
+	baseFee := uint256.NewInt(190000)        // 0.019%
+	dynBps := uint256.NewInt(150000)         // 0.015% dynamic fee
 	wToken1 := mustFromDecimal("1000000000") // 100%
 
 	// Create pool without dynamic fee

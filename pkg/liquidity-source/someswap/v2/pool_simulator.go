@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -78,7 +79,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("invalid amount in")
 	}
 
-	netOut, _, _, err := s.calcAmountOutDetailed(amountIn, tokenInIndex, tokenOutIndex)
+	netOut, outTotal, inFee, err := s.calcAmountOutDetailed(amountIn, tokenInIndex, tokenOutIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +91,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: bignumber.ZeroBI,
+			Amount: inFee.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas:      defaultGas,
+		SwapInfo: lo.T2(outTotal, inFee),
 	}, nil
 }
 
@@ -110,17 +112,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 
 	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
-	netOut, outTotal, inFee, err := s.calcAmountOutDetailed(amountIn, tokenInIndex, tokenOutIndex)
-	if err != nil || netOut.Sign() == 0 {
-		return
-	}
+	outTotal, inFee := params.SwapInfo.(lo.Tuple2[*uint256.Int, *uint256.Int]).Unpack()
 
 	inDelta := new(uint256.Int).Sub(amountIn, inFee)
 	s.reserves[tokenInIndex] = new(uint256.Int).Add(s.reserves[tokenInIndex], inDelta)
 	s.reserves[tokenOutIndex] = new(uint256.Int).Sub(s.reserves[tokenOutIndex], outTotal)
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	tokenInIndex := s.GetTokenIndex(tokenIn)
 	return PoolMeta{
 		BaseFee:  uint32(s.baseFee.Uint64()),
@@ -149,22 +148,20 @@ func (s *PoolSimulator) calcAmountOutDetailed(amountIn *uint256.Int, tokenInInde
 	}
 
 	totalFee := new(uint256.Int).Add(s.baseFee, s.dynBps)
-	maxFee := new(uint256.Int).Sub(bpsDen, uint256.NewInt(1))
+	maxFee := new(uint256.Int).Sub(bpsDen, u256.U1)
 	if totalFee.Cmp(maxFee) > 0 {
 		totalFee = maxFee
 	}
 
-	inFee := new(uint256.Int).Mul(totalFee, weight)
-	inFee.Div(inFee, bpsDen)
+	inFee, _ := new(uint256.Int).MulDivOverflow(totalFee, weight, bpsDen)
 
 	outFee := new(uint256.Int)
-	if totalFee.Cmp(inFee) > 0 {
-		outFee = new(uint256.Int).Sub(totalFee, inFee)
+	if totalFee.Gt(inFee) {
+		outFee.Sub(totalFee, inFee)
 	}
 
 	feeMultiplier := new(uint256.Int).Sub(bpsDen, inFee)
-	effIn := new(uint256.Int).Mul(amountIn, feeMultiplier)
-	effIn.Div(effIn, bpsDen)
+	effIn, _ := new(uint256.Int).MulDivOverflow(amountIn, feeMultiplier, bpsDen)
 	if effIn.Sign() <= 0 {
 		return nil, nil, nil, fmt.Errorf("amount in too small")
 	}
@@ -180,8 +177,7 @@ func (s *PoolSimulator) calcAmountOutDetailed(amountIn *uint256.Int, tokenInInde
 	}
 
 	outFeeMultiplier := new(uint256.Int).Sub(bpsDen, outFee)
-	netOut := new(uint256.Int).Mul(outTotal, outFeeMultiplier)
-	netOut.Div(netOut, bpsDen)
+	netOut, _ := new(uint256.Int).MulDivOverflow(outTotal, outFeeMultiplier, bpsDen)
 	if netOut.Sign() <= 0 {
 		return nil, nil, nil, fmt.Errorf("invalid net out")
 	}

@@ -22,6 +22,22 @@ type PoolMeta struct {
 	TokenOut string `json:"tokenOut"`
 }
 
+type DynamicFeeResponse struct {
+	Pool          string `json:"pool"`
+	BaseFee       uint32 `json:"baseFee"`
+	WToken0       string `json:"wToken0"`
+	WToken1       string `json:"wToken1"`
+	CurrentDynBps uint32 `json:"currentDynBps"`
+	TotalFeeBps   uint32 `json:"totalFeeBps"`
+	InBps         uint32 `json:"inBps"`
+	OutBps        uint32 `json:"outBps"`
+	Config        struct {
+		Enabled   bool   `json:"enabled"`
+		HalfLife  uint64 `json:"halfLife"`
+		MaxCapBps uint32 `json:"maxCapBps"`
+	} `json:"config"`
+}
+
 type GetPoolsResponse struct {
 	Pools []APIPoolPair `json:"pools"`
 }
