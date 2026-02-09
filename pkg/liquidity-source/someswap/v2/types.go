@@ -1,5 +1,9 @@
 package someswapv2
 
+import (
+	"github.com/ethereum/go-ethereum/common"
+)
+
 type StaticExtra struct {
 	BaseFee uint32 `json:"baseFee"`
 	WToken0 uint32 `json:"wToken0"`
@@ -10,16 +14,20 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	DynBps uint32 `json:"dynBps,omitempty"`
+	DynBps     uint32         `json:"dynBps,omitempty"`
+	ModuleMask uint8          `json:"mM"`
+	UserModule common.Address `json:"uM"`
 }
 
 type PoolMeta struct {
-	BaseFee  uint32 `json:"baseFee"`
-	WToken0  uint32 `json:"wToken0"`
-	WToken1  uint32 `json:"wToken1"`
-	Router   string `json:"router"`
-	TokenIn  string `json:"tokenIn"`
-	TokenOut string `json:"tokenOut"`
+	BaseFee    uint32         `json:"bF"`
+	WToken0    uint32         `json:"wT0"`
+	WToken1    uint32         `json:"wT1"`
+	Router     string         `json:"r"`
+	TokenIn    string         `json:"tI"`
+	TokenOut   string         `json:"tO"`
+	ModuleMask uint8          `json:"mM"`
+	UserModule common.Address `json:"uM"`
 }
 
 type DynamicFeeResponse struct {

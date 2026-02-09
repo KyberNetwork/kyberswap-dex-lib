@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"slices"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -24,6 +25,8 @@ type PoolSimulator struct {
 	wToken1        *uint256.Int
 	router         string
 	token0, token1 string
+	moduleMask     uint8
+	userModule     common.Address
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -54,14 +57,16 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
 			BlockNumber: ep.BlockNumber,
 		}},
-		reserves: lo.Map(ep.Reserves, func(r string, _ int) *uint256.Int { return uint256.MustFromDecimal(r) }),
-		baseFee:  uint256.NewInt(uint64(staticExtra.BaseFee)),
-		dynBps:   uint256.NewInt(uint64(extra.DynBps)),
-		wToken0:  uint256.NewInt(uint64(staticExtra.WToken0)),
-		wToken1:  uint256.NewInt(uint64(staticExtra.WToken1)),
-		router:   staticExtra.Router,
-		token0:   staticExtra.Token0,
-		token1:   staticExtra.Token1,
+		reserves:   lo.Map(ep.Reserves, func(r string, _ int) *uint256.Int { return uint256.MustFromDecimal(r) }),
+		baseFee:    uint256.NewInt(uint64(staticExtra.BaseFee)),
+		dynBps:     uint256.NewInt(uint64(extra.DynBps)),
+		wToken0:    uint256.NewInt(uint64(staticExtra.WToken0)),
+		wToken1:    uint256.NewInt(uint64(staticExtra.WToken1)),
+		router:     staticExtra.Router,
+		token0:     staticExtra.Token0,
+		token1:     staticExtra.Token1,
+		moduleMask: extra.ModuleMask,
+		userModule: extra.UserModule,
 	}, nil
 }
 
@@ -122,12 +127,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	tokenInIndex := s.GetTokenIndex(tokenIn)
 	return PoolMeta{
-		BaseFee:  uint32(s.baseFee.Uint64()),
-		WToken0:  uint32(s.wToken0.Uint64()),
-		WToken1:  uint32(s.wToken1.Uint64()),
-		Router:   s.router,
-		TokenIn:  lo.Ternary(tokenInIndex == 0, s.token0, s.token1),
-		TokenOut: lo.Ternary(tokenInIndex == 0, s.token1, s.token0),
+		BaseFee:    uint32(s.baseFee.Uint64()),
+		WToken0:    uint32(s.wToken0.Uint64()),
+		WToken1:    uint32(s.wToken1.Uint64()),
+		Router:     s.router,
+		TokenIn:    lo.Ternary(tokenInIndex == 0, s.token0, s.token1),
+		TokenOut:   lo.Ternary(tokenInIndex == 0, s.token1, s.token0),
+		ModuleMask: s.moduleMask,
+		UserModule: s.userModule,
 	}
 }
 

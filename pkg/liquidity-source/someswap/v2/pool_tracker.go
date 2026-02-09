@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
@@ -50,7 +51,7 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.Infof("getting new pool state for %s", p.Address)
 	defer logger.Infof("finished getting pool state for %s", p.Address)
 
-	reserves, blockNumber, err := d.getReservesFromRPCNode(ctx, p.Address)
+	reserves, moduleMask, userModule, blockNumber, err := d.getStateFromRPCNode(ctx, p.Address)
 	if err != nil {
 		return p, err
 	}
@@ -64,7 +65,11 @@ func (d *PoolTracker) GetNewPoolState(
 		dynBps = 0
 	}
 
-	extraBytes, err := json.Marshal(Extra{DynBps: dynBps})
+	extraBytes, err := json.Marshal(Extra{
+		DynBps:     dynBps,
+		ModuleMask: moduleMask,
+		UserModule: userModule,
+	})
 	if err != nil {
 		return p, err
 	}
@@ -96,20 +101,33 @@ func (d *PoolTracker) getDynamicFee(ctx context.Context, poolAddress string) (ui
 	return result.CurrentDynBps, nil
 }
 
-func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (v1.ReserveData, *big.Int, error) {
-	var reserves v1.ReserveData
+func (d *PoolTracker) getStateFromRPCNode(ctx context.Context, poolAddress string) (v1.ReserveData, uint8, common.Address, *big.Int, error) {
+	var (
+		reserves   v1.ReserveData
+		moduleMask uint8
+		userModule common.Address
+	)
+
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    v1.PairABI,
 		Target: poolAddress,
 		Method: "getReserves",
-	}, []any{&reserves})
+	}, []any{&reserves}).AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: "moduleMask",
+	}, []any{&moduleMask}).AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: "userModule",
+	}, []any{&userModule})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return v1.ReserveData{}, nil, err
+		return v1.ReserveData{}, 1, common.Address{}, nil, err
 	}
-	return reserves, resp.BlockNumber, nil
+	return reserves, moduleMask, userModule, resp.BlockNumber, nil
 }
 
 func reserveString(reserve *big.Int) string {
