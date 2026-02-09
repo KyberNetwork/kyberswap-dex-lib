@@ -18,16 +18,16 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
-) (*PoolTracker, error) {
+) *PoolTracker {
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-	}, nil
+	}
 }
 
 func (d *PoolTracker) GetNewPoolState(
@@ -81,7 +81,7 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 	var reserves ReserveData
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
+		ABI:    PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 	}, []any{&reserves})
