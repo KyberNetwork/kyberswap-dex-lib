@@ -126,6 +126,52 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 	}, nil
 }
 
+func (p *StableswapPool) CalcBalances() ([]uint256.Int, error) {
+	tvl0, tvl1 := new(uint256.Int), new(uint256.Int)
+	var err error
+
+	if p.SqrtRatio.Lt(&p.upperPrice) {
+		tvl0, err = math.Amount0Delta(p.SqrtRatio, &p.upperPrice, p.Liquidity, false)
+		if err != nil {
+			return nil, fmt.Errorf("computing amount0 delta: %w", err)
+		}
+	}
+
+	if p.SqrtRatio.Gt(&p.lowerPrice) {
+		tvl1, err = math.Amount1Delta(&p.lowerPrice, p.SqrtRatio, p.Liquidity, false)
+		if err != nil {
+			return nil, fmt.Errorf("computing amount1 delta: %w", err)
+		}
+	}
+
+	return []uint256.Int{*tvl0, *tvl1}, nil
+}
+
+func (p *StableswapPool) ApplyEvent(event Event, data []byte, _ uint64) error {
+	switch event {
+	case EventSwapped:
+		event, err := parseSwappedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.SqrtRatio = event.sqrtRatioAfter
+		p.Liquidity = event.liquidityAfter
+	case EventPositionUpdated:
+		event, err := parsePositionUpdatedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.Liquidity.Add(p.Liquidity, (*uint256.Int)(event.liquidityDelta))
+	default:
+	}
+
+	return nil
+}
+
+func (p *StableswapPool) NewBlock() {}
+
 func (s *StableswapPoolSwapState) Clone() *StableswapPoolSwapState {
 	return NewStableswapPoolSwapState(s.SqrtRatio.Clone())
 }

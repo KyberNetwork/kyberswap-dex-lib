@@ -1,19 +1,24 @@
 package pools
 
 import (
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"slices"
 
+	"github.com/KyberNetwork/int256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math/twamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type (
@@ -193,6 +198,113 @@ func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
 func (p *TwammPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	return p.quoteWithTimestampFn(amount, isToken1, estimatedBlockTimestamp)
 }
+
+func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
+	switch event {
+	case EventVirtualOrdersExecuted:
+		if blockTimestamp == 0 {
+			return fmt.Errorf("block timestamp is zero")
+		}
+
+		expectedPoolId, err := p.GetKey().NumId()
+		if err != nil {
+			return fmt.Errorf("computing expected pool id: %w", err)
+		}
+
+		if slices.Compare(data[0:32], expectedPoolId) != 0 {
+			return nil
+		}
+
+		p.lastExecutionTime = blockTimestamp
+		p.token0SaleRate.SetBytes(data[32:46])
+		p.token1SaleRate.SetBytes(data[46:60])
+	case EventOrderUpdated:
+		values, err := abis.OrderUpdatedEvent.Inputs.Unpack(data)
+		if err != nil {
+			return fmt.Errorf("unpacking event data: %w", err)
+		}
+
+		saleRateDelta, ok := values[3].(*big.Int)
+		if !ok {
+			return errors.New("failed to parse saleRateDelta")
+		}
+
+		if saleRateDelta.Sign() == 0 {
+			return nil
+		}
+
+		orderKeyAbi, ok := values[2].(TwammOrderKeyAbi)
+		if !ok {
+			return errors.New("failed to parse orderKey")
+		}
+		orderKey := TwammOrderKey{TwammOrderKeyAbi: orderKeyAbi}
+
+		poolKey := p.GetKey()
+		if poolKey.Token0Address() != orderKey.Token0 || poolKey.Token1Address() != orderKey.Token1 || poolKey.Fee() != orderKey.Fee() {
+			return nil
+		}
+
+		startIdx := 0
+		sellsToken1 := orderKey.SellsToken1()
+		affectedSaleRate := lo.Ternary(sellsToken1, p.token1SaleRate, p.token0SaleRate)
+		uSaleRateDelta := big256.SFromBig(saleRateDelta)
+		orderBoundaries := [2]struct {
+			time          uint64
+			saleRateDelta *int256.Int
+		}{
+			{
+				time:          orderKey.StartTime(),
+				saleRateDelta: uSaleRateDelta,
+			},
+			{
+				time:          orderKey.EndTime(),
+				saleRateDelta: new(int256.Int).Neg(uSaleRateDelta),
+			},
+		}
+
+		for _, orderBoundary := range orderBoundaries {
+			time := orderBoundary.time
+
+			if time > p.lastExecutionTime {
+				idx, found := slices.BinarySearchFunc(p.virtualOrderDeltas[startIdx:], time, func(srd TimeRateDelta, time uint64) int {
+					return cmp.Compare(srd.Time, time)
+				})
+
+				idx += startIdx
+
+				if !found {
+					p.virtualOrderDeltas = slices.Insert(
+						p.virtualOrderDeltas,
+						idx,
+						TimeRateDelta{
+							Time:   time,
+							Delta0: new(int256.Int),
+							Delta1: new(int256.Int),
+						},
+					)
+				}
+
+				orderDelta := &p.virtualOrderDeltas[idx]
+				affectedSaleRateDelta := lo.Ternary(sellsToken1, orderDelta.Delta1, orderDelta.Delta0)
+				affectedSaleRateDelta.Add(affectedSaleRateDelta, orderBoundary.saleRateDelta)
+
+				if orderDelta.Delta0.IsZero() && orderDelta.Delta1.IsZero() {
+					p.virtualOrderDeltas = slices.Delete(p.virtualOrderDeltas, idx, idx+1)
+				}
+
+				startIdx = idx + 1
+			} else {
+				affectedSaleRate.Add(affectedSaleRate, (*uint256.Int)(orderBoundary.saleRateDelta))
+			}
+		}
+	default:
+		return p.FullRangePool.ApplyEvent(event, data, blockTimestamp)
+	}
+
+	return nil
+}
+
+func (p *TwammPool) NewBlock() {}
 
 func (k *TwammOrderKey) Fee() uint64 {
 	return binary.BigEndian.Uint64(k.Config[:])

@@ -40,6 +40,22 @@ func (p *OraclePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, 
 	return quote, nil
 }
 
+func (p *OraclePool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
+	if err := p.FullRangePool.ApplyEvent(event, data, blockTimestamp); err != nil {
+		return err
+	}
+
+	if event == EventSwapped {
+		p.swappedThisBlock = true
+	}
+
+	return nil
+}
+
+func (p *OraclePool) NewBlock() {
+	p.swappedThisBlock = false
+}
+
 func NewOraclePool(key *FullRangePoolKey, state *OraclePoolState) *OraclePool {
 	return &OraclePool{
 		FullRangePool:    NewFullRangePool(key, state),
