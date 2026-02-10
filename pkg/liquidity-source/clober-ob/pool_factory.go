@@ -8,7 +8,7 @@ import (
 	"github.com/goccy/go-json"
 
 	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
+	cloberlib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -82,7 +82,7 @@ func (f *PoolFactory) newPool(p *abis.BookManagerOpen, blockNumber uint64) (*ent
 	}, nil
 }
 
-func DecodePoolAddress(log types.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddress(log types.Log) (string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return "", nil
 	}

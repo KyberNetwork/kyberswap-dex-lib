@@ -97,7 +97,7 @@ func currencyToToken(currency common.Address, chainId valueobject.ChainID) strin
 	return hexutil.Encode(currency[:])
 }
 
-func DecodePoolAddress(log ethtypes.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddress(log ethtypes.Log) (string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return "", nil
 	}
