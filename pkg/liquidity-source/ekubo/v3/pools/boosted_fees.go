@@ -85,6 +85,8 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 		return nil, fmt.Errorf("quoting concentrated pool: %w", err)
 	}
 
+	quote.Gas += quoting.ExtraBaseGasCostOfOneBoostedFeesSwap
+
 	if currentTime != realLastDonateTime {
 		quote.Gas += quoting.GasCostOfExecutingVirtualDonations
 	}

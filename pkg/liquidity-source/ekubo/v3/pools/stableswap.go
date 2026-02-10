@@ -115,7 +115,7 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
-		Gas:              quoting.BaseGasStableswapSwap,
+		Gas:              quoting.GasCostOfOneStableswapSwap,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead:           0,
 			IsToken1:            isToken1,
