@@ -14,7 +14,18 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 )
 
+const (
+	EventSwapped Event = iota + 1
+	EventPositionUpdated
+	EventVirtualOrdersExecuted
+	EventOrderUpdated
+	EventFeesDonated
+	EventPoolBoosted
+)
+
 type (
+	Event int
+
 	swappedEvent struct {
 		sqrtRatioAfter *uint256.Int
 		tickAfter      int32
