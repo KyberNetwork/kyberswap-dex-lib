@@ -95,7 +95,7 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 	}, nil
 }
 
-func DecodePoolAddress(log ethtypes.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddress(log ethtypes.Log) (string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return "", nil
 	}
