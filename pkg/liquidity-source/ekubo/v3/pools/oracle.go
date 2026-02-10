@@ -33,8 +33,10 @@ func (p *OraclePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, 
 		return nil, err
 	}
 
+	quote.Gas += quoting.ExtraBaseGasCostOfOneOracleSwap
+
 	if !p.swappedThisBlock {
-		quote.Gas += quoting.GasUpdatingOracleSnapshot
+		quote.Gas += quoting.GasCostOfUpdatingOracleSnapshot
 	}
 
 	return quote, nil

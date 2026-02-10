@@ -202,6 +202,30 @@ func TestNearestInitializedTickIndex(t *testing.T) {
 	})
 }
 
+func TestApproximateExtraDistinctTickBitmapLookupsWordBoundaries(t *testing.T) {
+	t.Parallel()
+
+	spacing := uint32(1)
+	base := math.ToSqrtRatio(0)
+	sameWord := math.ToSqrtRatio(128)
+	nextWord := math.ToSqrtRatio(129)
+
+	require.Equal(t, int64(0), approximateExtraDistinctTickBitmapLookups(base, sameWord, spacing))
+	require.Equal(t, int64(1), approximateExtraDistinctTickBitmapLookups(base, nextWord, spacing))
+}
+
+func TestApproximateExtraDistinctTickBitmapLookupsNegativeTicks(t *testing.T) {
+	t.Parallel()
+
+	spacing := uint32(1)
+	base := math.ToSqrtRatio(0)
+	negativeSameWord := math.ToSqrtRatio(-1)
+	negativePrevWord := math.ToSqrtRatio(-128)
+
+	require.Equal(t, int64(0), approximateExtraDistinctTickBitmapLookups(base, negativeSameWord, spacing))
+	require.Equal(t, int64(1), approximateExtraDistinctTickBitmapLookups(base, negativePrevWord, spacing))
+}
+
 func TestAddLiquidityCutoffs(t *testing.T) {
 	t.Parallel()
 	var (

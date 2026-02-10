@@ -47,10 +47,10 @@ func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 	fixedPointAdditionalFee := uint64(min(math.Round(approximateFeeMultiplier*float64(poolConfig.Fee)), math.MaxUint64))
 
 	if !p.swappedThisBlock {
-		quote.Gas += quoting.GasAccumulatingMevCaptureFees
+		quote.Gas += quoting.GasCostOfOneMevCaptureStateUpdate
 	}
 
-	quote.Gas += quoting.ExtraBaseGasMevCaptureSwap
+	quote.Gas += quoting.ExtraBaseGasCostOfOneMevCaptureSwap
 
 	if fixedPointAdditionalFee == 0 {
 		return quote, nil

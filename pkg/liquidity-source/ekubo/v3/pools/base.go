@@ -16,7 +16,10 @@ import (
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-const invalidTickNumber int32 = math.MinInt32
+const (
+	invalidTickNumber       int32 = math.MinInt32
+	tickBitmapStorageOffset int32 = 89_421_695
+)
 
 type (
 	BasePoolSwapState struct {
@@ -316,6 +319,11 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 
 	tickSpacingsCrossed := ekubomath.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio,
 		p.key.Config.TypeConfig.TickSpacing)
+	extraDistinctBitmapLookups := approximateExtraDistinctTickBitmapLookups(
+		startingSqrtRatio,
+		sqrtRatio,
+		p.key.Config.TypeConfig.TickSpacing,
+	)
 
 	var skipAhead uint32
 	if initializedTicksCrossed != 0 {
@@ -336,7 +344,10 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		ConsumedAmount:   amountRemaining.Sub(amount, &amountRemaining),
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
-		Gas:              quoting.BaseGasConcentratedLiquiditySwap + int64(initializedTicksCrossed)*quoting.GasInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasTickSpacingCrossed,
+		Gas: quoting.BaseGasCostOfOneConcentratedLiquiditySwap +
+			int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed +
+			extraDistinctBitmapLookups*quoting.GasCostOfOneExtraTickBitmapSload +
+			(int64(initializedTicksCrossed)+extraDistinctBitmapLookups)*quoting.GasCostOfOneExtraConcentratedMathRound,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead:  skipAhead,
 			IsToken1:   isToken1,
@@ -389,4 +400,30 @@ func NearestInitializedTickIndex(sortedTicks []Tick, tickNumber int32) int {
 	}
 
 	return idx
+}
+
+func approximateExtraDistinctTickBitmapLookups(startingSqrtRatio, endingSqrtRatio *uint256.Int, tickSpacing uint32) int64 {
+	if tickSpacing == 0 {
+		return 0
+	}
+
+	startWord := bitmapWordFromSqrtRatio(startingSqrtRatio, int32(tickSpacing))
+	endWord := bitmapWordFromSqrtRatio(endingSqrtRatio, int32(tickSpacing))
+
+	if startWord > endWord {
+		return int64(startWord - endWord)
+	}
+
+	return int64(endWord - startWord)
+}
+
+func bitmapWordFromSqrtRatio(sqrtRatio *uint256.Int, tickSpacing int32) uint32 {
+	tick := ekubomath.ApproximateSqrtRatioToTick(sqrtRatio)
+
+	compressedTick := tick / tickSpacing
+	if tick%tickSpacing < 0 {
+		compressedTick--
+	}
+
+	return uint32(compressedTick+tickBitmapStorageOffset) >> 8
 }

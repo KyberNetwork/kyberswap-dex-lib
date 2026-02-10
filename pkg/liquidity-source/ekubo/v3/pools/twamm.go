@@ -171,16 +171,20 @@ func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
 		return nil, fmt.Errorf("final full range pool quote: %w", err)
 	}
 
-	var virtualOrdersExecuted int64
 	if currentTime > p.lastExecutionTime {
-		virtualOrdersExecuted = 1
+		finalQuote.Gas += quoting.GasCostOfExecutingVirtualOrders
 	}
+
+	extraDistinctBitmapLookups := approximateExtraDistinctTimeBitmapLookups(p.lastExecutionTime, currentTime)
 
 	return &quoting.Quote{
 		ConsumedAmount:   finalQuote.ConsumedAmount,
 		CalculatedAmount: finalQuote.CalculatedAmount,
 		FeesPaid:         finalQuote.FeesPaid,
-		Gas:              finalQuote.Gas + virtualOrderDeltaTimesCrossed*quoting.GasVirtualOrderDelta + virtualOrdersExecuted*quoting.GasExecutingVirtualOrders,
+		Gas: finalQuote.Gas +
+			quoting.ExtraBaseGasCostOfOneTwammSwap +
+			extraDistinctBitmapLookups*quoting.GasCostOfOneColdSload +
+			virtualOrderDeltaTimesCrossed*quoting.GasCostOfCrossingOneVirtualOrderDelta,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: 0,
 			IsToken1:  isToken1,
