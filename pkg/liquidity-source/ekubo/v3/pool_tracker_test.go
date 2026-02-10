@@ -29,11 +29,12 @@ type (
 	PoolTrackerTestSuite struct {
 		suite.Suite
 
-		tracker *PoolTracker
+		trackers map[valueobject.ChainID]*PoolTracker
 	}
 
 	testcase struct {
 		name               string
+		chainID            valueobject.ChainID
 		txHash             string
 		blockTimestamp     uint64
 		poolKey            pools.AnyPoolKey
@@ -69,8 +70,20 @@ func (ts *PoolTrackerTestSuite) run(cases []*testcase) {
 				StaticExtra: string(staticExtraJson),
 			}
 
-			blockNumber, logs := ts.getTxLogs(t, tc.txHash)
-			newPoolState, err := ts.tracker.GetNewPoolState(
+			tracker := ts.trackers[tc.chainID]
+
+			receipt, err := tracker.ethrpcClient.
+				GetETHClient().
+				TransactionReceipt(context.Background(), common.HexToHash(tc.txHash))
+			require.NoError(t, err)
+
+			blockNumber := receipt.BlockNumber.Uint64()
+
+			logs := lo.Map(receipt.Logs, func(log *types.Log, _ int) types.Log {
+				return *log
+			})
+
+			newPoolState, err := tracker.GetNewPoolState(
 				context.Background(),
 				p,
 				pool.GetNewPoolStateParams{
@@ -94,8 +107,9 @@ func (ts *PoolTrackerTestSuite) TestPositionUpdated() {
 	ts.Run("PositionUpdated", func() {
 		ts.run([]*testcase{
 			{
-				name:   "Add concentrated pool liquidity",
-				txHash: "0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691",
+				name:    "Add concentrated pool liquidity",
+				txHash:  "0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691",
+				chainID: valueobject.ChainIDEthereum,
 				poolKey: anyPoolKey(
 					valueobject.ZeroAddress,
 					"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -142,8 +156,9 @@ func (ts *PoolTrackerTestSuite) TestPositionUpdated() {
 func (ts *PoolTrackerTestSuite) TestSwapped() {
 	ts.run([]*testcase{
 		{
-			name:   "Swap",
-			txHash: "0xee56e1f3bad803bd857fb118e55d7eabb5368a94ae8f11e83724278f474294ca",
+			name:    "Swap",
+			chainID: valueobject.ChainIDEthereum,
+			txHash:  "0xee56e1f3bad803bd857fb118e55d7eabb5368a94ae8f11e83724278f474294ca",
 			poolKey: anyPoolKey(
 				common.Address{}.Hex(),
 				"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -191,6 +206,7 @@ func (ts *PoolTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 		{
 			name:           "Execute virtual orders & stop order",
 			txHash:         "0xde6812e959a49e245f15714d1b50571f43ca7711c91d2df1087178a38bc554b7",
+			chainID:        valueobject.ChainIDEthereum,
 			blockTimestamp: 1767625571,
 			poolKey: anyPoolKey(
 				common.Address{}.Hex(),
@@ -226,28 +242,77 @@ func (ts *PoolTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 	})
 }
 
-// TODO No events on mainnet yet
-func (ts *PoolTrackerTestSuite) TestFeesDonatedAndPoolBoosted() {}
-
-func (ts *PoolTrackerTestSuite) getTxLogs(t *testing.T, txHash string) (uint64, []types.Log) {
-	receipt, err := ts.tracker.ethrpcClient.
-		GetETHClient().
-		TransactionReceipt(context.Background(), common.HexToHash(txHash))
-	require.NoError(t, err)
-
-	logs := lo.Map(receipt.Logs, func(log *types.Log, _ int) types.Log {
-		return *log
+func (ts *PoolTrackerTestSuite) TestFeesDonatedAndPoolBoosted() {
+	ts.run([]*testcase{
+		{
+			name:           "Boost pool",
+			txHash:         "0x50d4a090a2c8eb375efa4a5980a7f6274d2bc89f316f474aea6d27c202eb87e3",
+			chainID:        chainIDSepolia,
+			blockTimestamp: 1769448828,
+			poolKey: anyPoolKey(
+				"0x31f017286c6932a1713a31024ab14b9dc7f3ba6c",
+				"0xf45a9c4f3be630703aa89c213bcda334e5a2d803",
+				"0xd4b54d0ca6979da05f25895e6e269e678ba00f9e",
+				0,
+				pools.NewConcentratedPoolTypeConfig(50),
+			),
+			extensionType: ExtensionTypeBoostedFeesConcentrated,
+			stateBefore: pools.NewBoostedFeesPoolState(
+				pools.NewConcentratedPoolState(
+					pools.NewConcentratedPoolSwapState(
+						big256.U2Pow128,
+						new(uint256.Int),
+						-1,
+					),
+					[]pools.Tick{},
+					[2]int32{math.MinTick, math.MaxTick},
+					0,
+				),
+				pools.NewTimedPoolState(
+					pools.NewTimedPoolSwapState(new(uint256.Int), new(uint256.Int), 0),
+					[]pools.TimeRateDelta{},
+				),
+			),
+			expectedStateAfter: pools.NewBoostedFeesPoolState(
+				pools.NewConcentratedPoolState(
+					pools.NewConcentratedPoolSwapState(
+						big256.U2Pow128,
+						new(uint256.Int),
+						-1,
+					),
+					[]pools.Tick{},
+					[2]int32{math.MinTick, math.MaxTick},
+					0,
+				),
+				pools.NewTimedPoolState(
+					pools.NewTimedPoolSwapState(
+						big256.New("150000000000000000000000"),
+						new(uint256.Int),
+						1769448828,
+					),
+					[]pools.TimeRateDelta{
+						pools.NewTimeRateDelta(
+							1795162112,
+							big256.SNew("-150000000000000000000000"),
+							new(int256.Int),
+						),
+					},
+				),
+			),
+		},
 	})
-
-	return receipt.BlockNumber.Uint64(), logs
 }
 
 func (ts *PoolTrackerTestSuite) SetupSuite() {
-	ts.tracker = NewPoolTracker(
-		MainnetConfig,
-		ethrpc.New("https://ethereum.drpc.org").
-			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
-	)
+	ts.trackers = map[valueobject.ChainID]*PoolTracker{
+		valueobject.ChainIDEthereum: NewPoolTracker(
+			MainnetConfig,
+			ethrpc.New("https://ethereum.drpc.org").
+				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+		),
+		chainIDSepolia: NewPoolTracker(SepoliaConfig, ethrpc.New("https://sepolia.drpc.org").
+			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))),
+	}
 }
 
 func TestPoolTrackerTestSuite(t *testing.T) {

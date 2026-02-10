@@ -6,6 +6,11 @@
         "name": "core",
         "type": "address",
         "internalType": "contract ICore"
+      },
+      {
+        "name": "_concentratedLiquidity",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "nonpayable"
@@ -377,6 +382,19 @@
   },
   {
     "type": "function",
+    "name": "concentratedLiquidity",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "forwarded_2374103877",
     "inputs": [
       {
@@ -469,15 +487,15 @@
       },
       {
         "name": "rate0",
-        "type": "uint128",
+        "type": "uint112",
         "indexed": false,
-        "internalType": "uint128"
+        "internalType": "uint112"
       },
       {
         "name": "rate1",
-        "type": "uint128",
+        "type": "uint112",
         "indexed": false,
-        "internalType": "uint128"
+        "internalType": "uint112"
       }
     ],
     "anonymous": false
@@ -495,6 +513,11 @@
   {
     "type": "error",
     "name": "CoreOnly",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IncorrectPoolType",
     "inputs": []
   },
   {
