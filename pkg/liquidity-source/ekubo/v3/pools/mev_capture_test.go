@@ -24,8 +24,8 @@ func TestSwapInputAmountToken0(t *testing.T) {
 	liquidity := uint256.NewInt(28_898_102)
 	fee := new(uint256.Int).Div(new(uint256.Int).Lsh(big256.U1, 64), uint256.NewInt(100)).Uint64()
 
-	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), NewBasePoolState(
-		NewBasePoolSwapState(
+	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), NewConcentratedPoolState(
+		NewConcentratedPoolSwapState(
 			math.ToSqrtRatio(700_000),
 			new(uint256.Int).Set(liquidity),
 			0,
@@ -68,8 +68,8 @@ func TestSwapOutputAmountToken0(t *testing.T) {
 	liquidity := uint256.NewInt(28_898_102)
 	fee := new(uint256.Int).Div(new(uint256.Int).Lsh(big256.U1, 64), uint256.NewInt(100)).Uint64()
 
-	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), NewBasePoolState(
-		NewBasePoolSwapState(
+	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), NewConcentratedPoolState(
+		NewConcentratedPoolSwapState(
 			math.ToSqrtRatio(700_000),
 			new(uint256.Int).Set(liquidity),
 			0,

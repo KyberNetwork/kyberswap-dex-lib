@@ -54,7 +54,7 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, err
 				twammState,
 			)
 		default:
-			return nil, fmt.Errorf("unknown extension type %v for base pool", staticExtra.ExtensionType)
+			return nil, fmt.Errorf("unknown extension type %v for full range pool", staticExtra.ExtensionType)
 		}
 	case pools.StableswapPoolTypeConfig:
 		if staticExtra.ExtensionType != ExtensionTypeNoSwapCallPoints {
@@ -75,12 +75,12 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, err
 
 		switch staticExtra.ExtensionType {
 		case ExtensionTypeNoSwapCallPoints:
-			state, err := unmarshalExtra[pools.BasePoolState](extraBytes)
+			state, err := unmarshalExtra[pools.ConcentratedPoolState](extraBytes)
 			if err != nil {
-				return nil, fmt.Errorf("parsing base pool state: %w", err)
+				return nil, fmt.Errorf("parsing concentrated pool state: %w", err)
 			}
 
-			pool = pools.NewBasePool(
+			pool = pools.NewConcentratedPool(
 				poolKey,
 				state,
 			)

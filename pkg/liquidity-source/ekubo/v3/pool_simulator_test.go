@@ -504,12 +504,12 @@ func marshalPool(t *testing.T, extra Extra, staticExtra *StaticExtra) *entity.Po
 	}
 }
 
-func TestBasePool(t *testing.T) {
+func TestConcentratedPool(t *testing.T) {
 	t.Parallel()
 	entityPool := marshalPool(
 		t,
-		pools.NewBasePoolState(
-			pools.NewBasePoolSwapState(
+		pools.NewConcentratedPoolState(
+			pools.NewConcentratedPoolSwapState(
 				big256.New("13967539110995781342936001321080700"),
 				uint256.NewInt(99999),
 				16,

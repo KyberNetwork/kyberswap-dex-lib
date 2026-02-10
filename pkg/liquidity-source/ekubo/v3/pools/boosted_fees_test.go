@@ -109,8 +109,8 @@ func TestBoostedFeesPoolQuoteIgnoresFutureDeltas(t *testing.T) {
 func testBoostedFeesPool(lastDonateTime, donateRate0, donateRate1 uint64, deltas []TimeRateDelta) *BoostedFeesPool {
 	liquidity := uint256.NewInt(1_000_000)
 	state := NewBoostedFeesPoolState(
-		NewBasePoolState(
-			NewBasePoolSwapState(
+		NewConcentratedPoolState(
+			NewConcentratedPoolSwapState(
 				ekubomath.ToSqrtRatio(0),
 				liquidity,
 				0,

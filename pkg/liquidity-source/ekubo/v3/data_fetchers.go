@@ -157,7 +157,7 @@ func (f *dataFetchers) fetchPools(
 				case pools.StableswapPoolTypeConfig:
 					pool = pools.NewStableswapPool(poolKey.ToStableswap(config), newStableswapPoolState(data))
 				case pools.ConcentratedPoolTypeConfig:
-					pool = pools.NewBasePool(poolKey.ToConcentrated(config), newBasePoolState(data))
+					pool = pools.NewConcentratedPool(poolKey.ToConcentrated(config), newConcentratedPoolState(data))
 				default:
 					logger.Errorf("unexpected pool type config %T", config)
 					continue
@@ -171,7 +171,7 @@ func (f *dataFetchers) fetchPools(
 				}
 			case ExtensionTypeMevCapture:
 				if config, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
-					pool = pools.NewMevCapturePool(poolKey.ToConcentrated(config), newBasePoolState(data))
+					pool = pools.NewMevCapturePool(poolKey.ToConcentrated(config), newConcentratedPoolState(data))
 				} else {
 					logger.Errorf("expected concentrated pool type config for MEVCapture pool, received %T", config)
 					continue
@@ -304,15 +304,15 @@ func NewDataFetchers(ethrpcClient *ethrpc.Client, config *Config) *dataFetchers 
 	}
 }
 
-func newBasePoolState(data *quoteData) *pools.BasePoolState {
+func newConcentratedPoolState(data *quoteData) *pools.ConcentratedPoolState {
 	ticks := lo.Map(data.Ticks, func(tick pools.TickRPC, _ int) pools.Tick {
 		return pools.Tick{
 			Number:         tick.Number,
 			LiquidityDelta: big256.SFromBig(tick.LiquidityDelta),
 		}
 	})
-	state := pools.NewBasePoolState(
-		pools.NewBasePoolSwapState(
+	state := pools.NewConcentratedPoolState(
+		pools.NewConcentratedPoolSwapState(
 			math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatioFloat)),
 			big256.FromBig(data.Liquidity),
 			-1,
@@ -380,5 +380,5 @@ func newBoostedFeesPoolState(quoteData *quoteData, boostedFeesData *boostedFeesQ
 		}),
 	)
 
-	return pools.NewBoostedFeesPoolState(newBasePoolState(quoteData), timedState)
+	return pools.NewBoostedFeesPoolState(newConcentratedPoolState(quoteData), timedState)
 }

@@ -17,17 +17,17 @@ import (
 
 type (
 	BoostedFeesPoolSwapState struct {
-		*BasePoolSwapState
+		*ConcentratedPoolSwapState
 		*TimedPoolSwapState
 	}
 
 	BoostedFeesPoolState struct {
-		*BasePoolState
+		*ConcentratedPoolState
 		*TimedPoolState
 	}
 
 	BoostedFeesPool struct {
-		*BasePool
+		*ConcentratedPool
 		donateRate0      *uint256.Int
 		donateRate1      *uint256.Int
 		lastDonateTime   uint64
@@ -37,7 +37,7 @@ type (
 
 func (p *BoostedFeesPool) GetState() any {
 	return NewBoostedFeesPoolState(
-		p.BasePoolState,
+		p.ConcentratedPoolState,
 		NewTimedPoolState(NewTimedPoolSwapState(p.donateRate0, p.donateRate1, p.lastDonateTime), p.donateRateDeltas),
 	)
 }
@@ -80,7 +80,7 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 		realLastDonateTime = currentTime
 	}
 
-	quote, err := p.BasePool.Quote(amount, isToken1)
+	quote, err := p.ConcentratedPool.Quote(amount, isToken1)
 	if err != nil {
 		return nil, fmt.Errorf("quoting concentrated pool: %w", err)
 	}
@@ -99,7 +99,7 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 		virtualDonateDeltaTimesCrossed*quoting.GasCostOfCrossingOneVirtualDonateDelta
 
 	quote.SwapInfo.SwapStateAfter = NewBoostedFeesPoolSwapState(
-		quote.SwapInfo.SwapStateAfter.(*BasePoolSwapState),
+		quote.SwapInfo.SwapStateAfter.(*ConcentratedPoolSwapState),
 		NewTimedPoolSwapState(
 			donateRate0,
 			donateRate1,
@@ -112,7 +112,7 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 
 func (p *BoostedFeesPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.BasePool = p.BasePool.CloneSwapStateOnly().(*BasePool)
+	cloned.ConcentratedPool = p.ConcentratedPool.CloneSwapStateOnly().(*ConcentratedPool)
 	cloned.donateRate0 = p.donateRate0.Clone()
 	cloned.donateRate1 = p.donateRate1.Clone()
 	return &cloned
@@ -120,7 +120,7 @@ func (p *BoostedFeesPool) CloneSwapStateOnly() Pool {
 
 func (p *BoostedFeesPool) SetSwapState(state quoting.SwapState) {
 	boostedFeesState := state.(*BoostedFeesPoolSwapState)
-	p.BasePool.SetSwapState(boostedFeesState.BasePoolSwapState)
+	p.ConcentratedPool.SetSwapState(boostedFeesState.ConcentratedPoolSwapState)
 	p.lastDonateTime = boostedFeesState.LastExecutionTime
 	p.donateRate0 = boostedFeesState.Token0Rate
 	p.donateRate1 = boostedFeesState.Token1Rate
@@ -244,7 +244,7 @@ func (p *BoostedFeesPool) ApplyEvent(event Event, data []byte, blockTimestamp ui
 			}
 		}
 	default:
-		return p.BasePool.ApplyEvent(event, data, blockTimestamp)
+		return p.ConcentratedPool.ApplyEvent(event, data, blockTimestamp)
 	}
 
 	return nil
@@ -252,23 +252,23 @@ func (p *BoostedFeesPool) ApplyEvent(event Event, data []byte, blockTimestamp ui
 
 func (p *BoostedFeesPool) NewBlock() {}
 
-func NewBoostedFeesPoolSwapState(baseSwapState *BasePoolSwapState, timedSwapState *TimedPoolSwapState) *BoostedFeesPoolSwapState {
+func NewBoostedFeesPoolSwapState(concentratedSwapState *ConcentratedPoolSwapState, timedSwapState *TimedPoolSwapState) *BoostedFeesPoolSwapState {
 	return &BoostedFeesPoolSwapState{
-		BasePoolSwapState:  baseSwapState,
-		TimedPoolSwapState: timedSwapState,
+		ConcentratedPoolSwapState: concentratedSwapState,
+		TimedPoolSwapState:        timedSwapState,
 	}
 }
 
-func NewBoostedFeesPoolState(baseState *BasePoolState, timedState *TimedPoolState) *BoostedFeesPoolState {
+func NewBoostedFeesPoolState(concentratedState *ConcentratedPoolState, timedState *TimedPoolState) *BoostedFeesPoolState {
 	return &BoostedFeesPoolState{
-		BasePoolState:  baseState,
-		TimedPoolState: timedState,
+		ConcentratedPoolState: concentratedState,
+		TimedPoolState:        timedState,
 	}
 }
 
 func NewBoostedFeesPool(key *ConcentratedPoolKey, state *BoostedFeesPoolState) *BoostedFeesPool {
 	return &BoostedFeesPool{
-		BasePool:         NewBasePool(key, state.BasePoolState),
+		ConcentratedPool: NewConcentratedPool(key, state.ConcentratedPoolState),
 		donateRate0:      state.Token0Rate,
 		donateRate1:      state.Token1Rate,
 		lastDonateTime:   state.LastExecutionTime,
