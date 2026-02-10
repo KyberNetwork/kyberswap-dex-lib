@@ -226,6 +226,9 @@ func (ts *PoolTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 	})
 }
 
+// TODO No events on mainnet yet
+func (ts *PoolTrackerTestSuite) TestFeesDonatedAndPoolBoosted() {}
+
 func (ts *PoolTrackerTestSuite) getTxLogs(t *testing.T, txHash string) (uint64, []types.Log) {
 	receipt, err := ts.tracker.ethrpcClient.
 		GetETHClient().
