@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	invalidTickNumber       int32 = math.MinInt32
-	tickBitmapStorageOffset int32 = 89_421_695
+	invalidTickNumber       int32  = math.MinInt32
+	tickBitmapStorageOffset int32  = 89_421_695
+	maxSkipAhead            uint32 = 0x7fffffff
 )
 
 type (
@@ -325,10 +326,9 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		p.key.Config.TypeConfig.TickSpacing,
 	)
 
-	var skipAhead uint32
-	if initializedTicksCrossed != 0 {
-		skipAhead = tickSpacingsCrossed / initializedTicksCrossed
-	}
+	skipAhead := suggestedSkipAhead(initializedTicksCrossed, extraDistinctBitmapLookups)
+
+	initializedTicksCrossedSigned, extraDistinctBitmapLookupsSigned := int64(initializedTicksCrossed), int64(extraDistinctBitmapLookups)
 
 	priceLimit := sqrtRatioLimit
 	if isIncreasing {
@@ -345,9 +345,9 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
 		Gas: quoting.BaseGasCostOfOneConcentratedLiquiditySwap +
-			int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed +
-			extraDistinctBitmapLookups*quoting.GasCostOfOneExtraTickBitmapSload +
-			(int64(initializedTicksCrossed)+extraDistinctBitmapLookups)*quoting.GasCostOfOneExtraConcentratedMathRound,
+			initializedTicksCrossedSigned*quoting.GasCostOfOneInitializedTickCrossed +
+			extraDistinctBitmapLookupsSigned*quoting.GasCostOfOneExtraTickBitmapSload +
+			(initializedTicksCrossedSigned+extraDistinctBitmapLookupsSigned)*quoting.GasCostOfOneExtraConcentratedMathRound,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead:  skipAhead,
 			IsToken1:   isToken1,
@@ -402,7 +402,7 @@ func NearestInitializedTickIndex(sortedTicks []Tick, tickNumber int32) int {
 	return idx
 }
 
-func approximateExtraDistinctTickBitmapLookups(startingSqrtRatio, endingSqrtRatio *uint256.Int, tickSpacing uint32) int64 {
+func approximateExtraDistinctTickBitmapLookups(startingSqrtRatio, endingSqrtRatio *uint256.Int, tickSpacing uint32) uint32 {
 	if tickSpacing == 0 {
 		return 0
 	}
@@ -411,10 +411,10 @@ func approximateExtraDistinctTickBitmapLookups(startingSqrtRatio, endingSqrtRati
 	endWord := bitmapWordFromSqrtRatio(endingSqrtRatio, int32(tickSpacing))
 
 	if startWord > endWord {
-		return int64(startWord - endWord)
+		return startWord - endWord
 	}
 
-	return int64(endWord - startWord)
+	return endWord - startWord
 }
 
 func bitmapWordFromSqrtRatio(sqrtRatio *uint256.Int, tickSpacing int32) uint32 {
@@ -426,4 +426,18 @@ func bitmapWordFromSqrtRatio(sqrtRatio *uint256.Int, tickSpacing int32) uint32 {
 	}
 
 	return uint32(compressedTick+tickBitmapStorageOffset) >> 8
+}
+
+func suggestedSkipAhead(initializedTicksCrossed uint32, extraDistinctBitmapLookups uint32) uint32 {
+	denominator := initializedTicksCrossed
+	if denominator == 0 {
+		denominator = 1
+	}
+
+	skipAhead := extraDistinctBitmapLookups / denominator
+	if skipAhead > maxSkipAhead {
+		return maxSkipAhead
+	}
+
+	return skipAhead
 }
