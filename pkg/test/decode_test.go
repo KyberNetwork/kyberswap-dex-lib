@@ -90,7 +90,7 @@ func TestDecodePoolAddress(t *testing.T) {
 				"3875727077379471850923186002296331935053867847116966170720",
 				"5954885684956363054050231031211743946744177791604395877538",
 			},
-			decodeFn: cloberob.DecodePoolAddress,
+			decodeFn: cloberob.NewPoolFactory(nil).DecodePoolAddress,
 		},
 	}
 
