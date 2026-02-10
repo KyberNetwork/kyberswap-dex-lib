@@ -58,3 +58,7 @@ func estimatedBlockTimestamp() uint64 {
 func realLastTime(now uint64, last uint32) uint64 {
 	return now - ((now - uint64(last)) & 0xffffffff)
 }
+
+func approximateExtraDistinctTimeBitmapLookups(startTime, endTime uint64) int64 {
+	return int64((endTime >> 16) - (startTime >> 16))
+}
