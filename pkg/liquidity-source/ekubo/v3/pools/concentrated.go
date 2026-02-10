@@ -23,22 +23,22 @@ const (
 )
 
 type (
-	BasePoolSwapState struct {
+	ConcentratedPoolSwapState struct {
 		SqrtRatio       *uint256.Int `json:"sqrtRatio"`
 		Liquidity       *uint256.Int `json:"liquidity"`
 		ActiveTickIndex int          `json:"activeTickIndex"`
 	}
 
-	BasePoolState struct {
-		*BasePoolSwapState
+	ConcentratedPoolState struct {
+		*ConcentratedPoolSwapState
 		SortedTicks []Tick   `json:"sortedTicks"`
 		TickBounds  [2]int32 `json:"tickBounds"`
 		ActiveTick  int32    `json:"activeTick"`
 	}
 
-	BasePool struct {
+	ConcentratedPool struct {
 		key *ConcentratedPoolKey
-		*BasePoolState
+		*ConcentratedPoolState
 	}
 
 	TickRPC struct {
@@ -58,7 +58,7 @@ type (
 	}
 )
 
-func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
+func (s *ConcentratedPoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
 	ticks := s.SortedTicks
 
 	liquidityDelta = liquidityDelta.Clone()
@@ -110,7 +110,7 @@ func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int2
 	}
 }
 
-func (s *BasePoolState) AddLiquidityCutoffs() {
+func (s *ConcentratedPoolState) AddLiquidityCutoffs() {
 	var currentLiquidity uint256.Int
 	belowActiveTick := true
 	var activeTickIndex int
@@ -145,7 +145,7 @@ func (s *BasePoolState) AddLiquidityCutoffs() {
 	s.UpdateTick(s.TickBounds[1], u256.SInt256(&currentLiquidity), true, true)
 }
 
-func (s *BasePoolState) CalcBalances() ([]uint256.Int, error) {
+func (s *ConcentratedPoolState) CalcBalances() ([]uint256.Int, error) {
 	stateSqrtRatio := s.SqrtRatio
 
 	balances := make([]uint256.Int, 2)
@@ -178,7 +178,7 @@ func (s *BasePoolState) CalcBalances() ([]uint256.Int, error) {
 	return balances, nil
 }
 
-func (p *BasePool) ApplyEvent(event Event, data []byte, _ uint64) error {
+func (p *ConcentratedPool) ApplyEvent(event Event, data []byte, _ uint64) error {
 	switch event {
 	case EventSwapped:
 		event, err := parseSwappedEventIfMatching(data, p.GetKey())
@@ -212,29 +212,29 @@ func (p *BasePool) ApplyEvent(event Event, data []byte, _ uint64) error {
 	return nil
 }
 
-func (p *BasePool) NewBlock() {}
+func (p *ConcentratedPool) NewBlock() {}
 
-func (p *BasePool) GetKey() IPoolKey {
+func (p *ConcentratedPool) GetKey() IPoolKey {
 	return p.key
 }
 
-func (p *BasePool) GetState() any {
-	return p.BasePoolState
+func (p *ConcentratedPool) GetState() any {
+	return p.ConcentratedPoolState
 }
 
-func (p *BasePool) CloneSwapStateOnly() Pool {
+func (p *ConcentratedPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	copiedBasePoolState := *p.BasePoolState
-	cloned.BasePoolState = &copiedBasePoolState
-	cloned.BasePoolSwapState = p.BasePoolSwapState.Clone()
+	copiedConcentratedPoolState := *p.ConcentratedPoolState
+	cloned.ConcentratedPoolState = &copiedConcentratedPoolState
+	cloned.ConcentratedPoolSwapState = p.ConcentratedPoolSwapState.Clone()
 	return &cloned
 }
 
-func (p *BasePool) SetSwapState(state any) {
-	p.BasePoolSwapState = state.(*BasePoolSwapState)
+func (p *ConcentratedPool) SetSwapState(state any) {
+	p.ConcentratedPoolSwapState = state.(*ConcentratedPoolSwapState)
 }
 
-func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
+func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	var liquidity uint256.Int
 	sqrtRatio := p.SqrtRatio.Clone()
 	liquidity.Set(p.Liquidity)
@@ -352,7 +352,7 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 			SkipAhead:  skipAhead,
 			IsToken1:   isToken1,
 			PriceLimit: priceLimit,
-			SwapStateAfter: NewBasePoolSwapState(
+			SwapStateAfter: NewConcentratedPoolSwapState(
 				sqrtRatio,
 				&liquidity,
 				activeTickIndex,
@@ -362,31 +362,31 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 	}, nil
 }
 
-func (s *BasePoolSwapState) Clone() *BasePoolSwapState {
-	return NewBasePoolSwapState(s.SqrtRatio.Clone(), s.Liquidity.Clone(), s.ActiveTickIndex)
+func (s *ConcentratedPoolSwapState) Clone() *ConcentratedPoolSwapState {
+	return NewConcentratedPoolSwapState(s.SqrtRatio.Clone(), s.Liquidity.Clone(), s.ActiveTickIndex)
 }
 
-func NewBasePoolSwapState(sqrtRatio, liquidity *uint256.Int, activeTickIndex int) *BasePoolSwapState {
-	return &BasePoolSwapState{
+func NewConcentratedPoolSwapState(sqrtRatio, liquidity *uint256.Int, activeTickIndex int) *ConcentratedPoolSwapState {
+	return &ConcentratedPoolSwapState{
 		SqrtRatio:       sqrtRatio,
 		Liquidity:       liquidity,
 		ActiveTickIndex: activeTickIndex,
 	}
 }
 
-func NewBasePoolState(swapState *BasePoolSwapState, sortedTicks []Tick, tickBounds [2]int32, activeTick int32) *BasePoolState {
-	return &BasePoolState{
-		BasePoolSwapState: swapState,
-		SortedTicks:       sortedTicks,
-		TickBounds:        tickBounds,
-		ActiveTick:        activeTick,
+func NewConcentratedPoolState(swapState *ConcentratedPoolSwapState, sortedTicks []Tick, tickBounds [2]int32, activeTick int32) *ConcentratedPoolState {
+	return &ConcentratedPoolState{
+		ConcentratedPoolSwapState: swapState,
+		SortedTicks:               sortedTicks,
+		TickBounds:                tickBounds,
+		ActiveTick:                activeTick,
 	}
 }
 
-func NewBasePool(key *ConcentratedPoolKey, state *BasePoolState) *BasePool {
-	return &BasePool{
-		key:           key,
-		BasePoolState: state,
+func NewConcentratedPool(key *ConcentratedPoolKey, state *ConcentratedPoolState) *ConcentratedPool {
+	return &ConcentratedPool{
+		key:                   key,
+		ConcentratedPoolState: state,
 	}
 }
 

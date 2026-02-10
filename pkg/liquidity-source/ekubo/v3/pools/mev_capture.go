@@ -11,11 +11,11 @@ import (
 )
 
 type (
-	MevCapturePoolSwapState = BasePoolSwapState
-	MevCapturePoolState     = BasePoolState
+	MevCapturePoolSwapState = ConcentratedPoolSwapState
+	MevCapturePoolState     = ConcentratedPoolState
 
 	MevCapturePool struct {
-		*BasePool
+		*ConcentratedPool
 		lastTick         int32
 		swappedThisBlock bool
 	}
@@ -23,23 +23,23 @@ type (
 
 func (p *MevCapturePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.BasePool = p.BasePool.CloneSwapStateOnly().(*BasePool)
+	cloned.ConcentratedPool = p.ConcentratedPool.CloneSwapStateOnly().(*ConcentratedPool)
 	return &cloned
 }
 
 func (p *MevCapturePool) SetSwapState(state quoting.SwapState) {
-	p.BasePoolSwapState = state.(*MevCapturePoolSwapState)
+	p.ConcentratedPoolSwapState = state.(*MevCapturePoolSwapState)
 	p.swappedThisBlock = true
 }
 
 func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
-	quote, err := p.BasePool.Quote(amount, isToken1)
+	quote, err := p.ConcentratedPool.Quote(amount, isToken1)
 	if err != nil {
 		return nil, err
 	}
 	quote.SwapInfo.Forward = &p.key.Config.Extension
 
-	tickAfterSwap := ekubomath.ApproximateSqrtRatioToTick(quote.SwapInfo.SwapStateAfter.(*BasePoolSwapState).SqrtRatio)
+	tickAfterSwap := ekubomath.ApproximateSqrtRatioToTick(quote.SwapInfo.SwapStateAfter.(*ConcentratedPoolSwapState).SqrtRatio)
 
 	poolConfig := &p.key.Config
 	approximateFeeMultiplier := math.Abs(float64(tickAfterSwap-p.lastTick)) / float64(poolConfig.TypeConfig.TickSpacing)
@@ -78,7 +78,7 @@ func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 }
 
 func (p *MevCapturePool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
-	if err := p.BasePool.ApplyEvent(event, data, blockTimestamp); err != nil {
+	if err := p.ConcentratedPool.ApplyEvent(event, data, blockTimestamp); err != nil {
 		return err
 	}
 
@@ -96,7 +96,7 @@ func (p *MevCapturePool) NewBlock() {
 
 func NewMevCapturePool(key *ConcentratedPoolKey, state *MevCapturePoolState) *MevCapturePool {
 	return &MevCapturePool{
-		BasePool:         NewBasePool(key, state),
+		ConcentratedPool: NewConcentratedPool(key, state),
 		lastTick:         state.ActiveTick,
 		swappedThisBlock: false,
 	}

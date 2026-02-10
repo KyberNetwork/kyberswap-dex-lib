@@ -14,7 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-func TestBasePoolQuote(t *testing.T) {
+func TestConcentratedPoolQuote(t *testing.T) {
 	t.Parallel()
 	poolKey := func(tickSpacing uint32, fee uint64) *ConcentratedPoolKey {
 		return NewPoolKey(
@@ -34,10 +34,10 @@ func TestBasePoolQuote(t *testing.T) {
 	maxTickBounds := [2]int32{math.MinTick, math.MaxTick}
 
 	t.Run("zero_liquidity_token1_input", func(t *testing.T) {
-		p := NewBasePool(
+		p := NewConcentratedPool(
 			poolKey(1, 0),
-			NewBasePoolState(
-				NewBasePoolSwapState(
+			NewConcentratedPoolState(
+				NewConcentratedPoolSwapState(
 					big256.U2Pow128,
 					new(uint256.Int),
 					0,
@@ -54,10 +54,10 @@ func TestBasePoolQuote(t *testing.T) {
 	})
 
 	t.Run("zero_liquidity_token0_input", func(t *testing.T) {
-		p := NewBasePool(
+		p := NewConcentratedPool(
 			poolKey(1, 0),
-			NewBasePoolState(
-				NewBasePoolSwapState(
+			NewConcentratedPoolState(
+				NewConcentratedPoolSwapState(
 					big256.U2Pow128,
 					new(uint256.Int),
 					0,
@@ -74,10 +74,10 @@ func TestBasePoolQuote(t *testing.T) {
 	})
 
 	t.Run("liquidity_token1_input", func(t *testing.T) {
-		p := NewBasePool(
+		p := NewConcentratedPool(
 			poolKey(1, 0),
-			NewBasePoolState(
-				NewBasePoolSwapState(
+			NewConcentratedPoolState(
+				NewConcentratedPoolSwapState(
 					big256.U2Pow128,
 					big256.New("1000000000"),
 					0,
@@ -97,10 +97,10 @@ func TestBasePoolQuote(t *testing.T) {
 	})
 
 	t.Run("liquidity_token0_input", func(t *testing.T) {
-		p := NewBasePool(
+		p := NewConcentratedPool(
 			poolKey(1, 0),
-			NewBasePoolState(
-				NewBasePoolSwapState(
+			NewConcentratedPoolState(
+				NewConcentratedPoolSwapState(
 					math.ToSqrtRatio(1),
 					big256.New("1000000000"),
 					0,
@@ -256,9 +256,9 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 		positiveLiquidity                   = uint256.NewInt(10)
 	)
 
-	newBasePoolStateWithLiquidityCutoffs := func(liquidity *uint256.Int, ticks []Tick) *BasePoolState {
-		state := NewBasePoolState(
-			NewBasePoolSwapState(
+	newConcentratedPoolStateWithLiquidityCutoffs := func(liquidity *uint256.Int, ticks []Tick) *ConcentratedPoolState {
+		state := NewConcentratedPoolState(
+			NewConcentratedPoolSwapState(
 				new(uint256.Int).Set(activeSqrtRatio),
 				new(uint256.Int).Set(liquidity),
 				-1,
@@ -280,7 +280,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 	}
 
 	t.Run("empty_ticks", func(t *testing.T) {
-		state := newBasePoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{})
+		state := newConcentratedPoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{})
 
 		require.Equal(t, []Tick{minCheckedTickUninitialized, maxCheckedTickUninitialized}, state.SortedTicks)
 		require.Equal(t, 0, state.ActiveTickIndex)
@@ -295,7 +295,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{activeTickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{activeTickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				minCheckedTickUninitialized,
@@ -314,7 +314,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{minCheckedTickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{minCheckedTickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				minCheckedTickInitialized,
@@ -332,7 +332,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{maxCheckedTickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{maxCheckedTickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				minCheckedTickUninitialized,
@@ -347,7 +347,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{tickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{tickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				minCheckedTickUninitialized,
@@ -366,7 +366,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{tickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{tickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				minCheckedTickUninitialized,
@@ -389,7 +389,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{activeTickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{activeTickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				{
@@ -408,7 +408,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{minCheckedTickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{minCheckedTickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				minCheckedTickUninitialized,
@@ -423,7 +423,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{maxCheckedTickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{maxCheckedTickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				{
@@ -441,7 +441,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{tickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(new(uint256.Int), []Tick{tickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				{
@@ -460,7 +460,7 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 				LiquidityDelta: big256.SInt256(liquidityDelta),
 			}
 
-			state := newBasePoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{tickInitialized})
+			state := newConcentratedPoolStateWithLiquidityCutoffs(positiveLiquidity, []Tick{tickInitialized})
 
 			requireTicksEqual(t, []Tick{
 				{

@@ -94,7 +94,7 @@ func (ts *PoolTrackerTestSuite) TestPositionUpdated() {
 	ts.Run("PositionUpdated", func() {
 		ts.run([]*testcase{
 			{
-				name:   "Add base pool liquidity",
+				name:   "Add concentrated pool liquidity",
 				txHash: "0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691",
 				poolKey: anyPoolKey(
 					valueobject.ZeroAddress,
@@ -105,8 +105,8 @@ func (ts *PoolTrackerTestSuite) TestPositionUpdated() {
 				),
 				extensionType: ExtensionTypeNoSwapCallPoints,
 				// State after pool initialization https://etherscan.io/tx/0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691#eventlog#114
-				stateBefore: pools.NewBasePoolState(
-					pools.NewBasePoolSwapState(
+				stateBefore: pools.NewConcentratedPoolState(
+					pools.NewConcentratedPoolSwapState(
 						math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x4000e4ac4ee732e5c7c0529d")),
 						new(uint256.Int),
 						0,
@@ -119,8 +119,8 @@ func (ts *PoolTrackerTestSuite) TestPositionUpdated() {
 					int32(binary.BigEndian.Uint32([]byte("\xfe\xd4\x69\x15"))),
 				),
 				// Position update https://etherscan.io/tx/0x2757427086944621c7fb8eca63a01809be4c76bb5b7b32596ced53d7fd17a691#eventlog#116
-				expectedStateAfter: pools.NewBasePoolState(
-					pools.NewBasePoolSwapState(
+				expectedStateAfter: pools.NewConcentratedPoolState(
+					pools.NewConcentratedPoolSwapState(
 						math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x4000e4ac4ee732e5c7c0529d")),
 						uint256.NewInt(22875426408333),
 						1,
@@ -152,8 +152,8 @@ func (ts *PoolTrackerTestSuite) TestSwapped() {
 				pools.NewConcentratedPoolTypeConfig(1000),
 			),
 			extensionType: ExtensionTypeNoSwapCallPoints,
-			stateBefore: pools.NewBasePoolState(
-				pools.NewBasePoolSwapState(
+			stateBefore: pools.NewConcentratedPoolState(
+				pools.NewConcentratedPoolSwapState(
 					big256.New("18552164211672086963009471320686592"),
 					uint256.NewInt(17156571521907),
 					1,
@@ -167,8 +167,8 @@ func (ts *PoolTrackerTestSuite) TestSwapped() {
 				[2]int32{math.MinTick, math.MaxTick},
 				-19633899,
 			),
-			expectedStateAfter: pools.NewBasePoolState(
-				pools.NewBasePoolSwapState(
+			expectedStateAfter: pools.NewConcentratedPoolState(
+				pools.NewConcentratedPoolSwapState(
 					big256.New("18551574977108402281445297823416320"),
 					uint256.NewInt(17156571521907),
 					1,
