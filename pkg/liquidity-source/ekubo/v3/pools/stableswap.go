@@ -40,7 +40,7 @@ func (p *StableswapPool) CloneSwapStateOnly() Pool {
 	cloned := *p
 	copiedStableswapPoolState := *p.StableswapPoolState
 	cloned.StableswapPoolState = &copiedStableswapPoolState
-	cloned.StableswapPoolSwapState = p.StableswapPoolSwapState.Clone()
+	cloned.StableswapPoolSwapState = p.Clone()
 	return &cloned
 }
 

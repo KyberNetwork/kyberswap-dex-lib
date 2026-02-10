@@ -37,7 +37,7 @@ func (p *FullRangePool) CloneSwapStateOnly() Pool {
 	cloned := *p
 	copiedFullRangePoolState := *p.FullRangePoolState
 	cloned.FullRangePoolState = &copiedFullRangePoolState
-	cloned.FullRangePoolSwapState = p.FullRangePoolSwapState.Clone()
+	cloned.FullRangePoolSwapState = p.Clone()
 	return &cloned
 }
 

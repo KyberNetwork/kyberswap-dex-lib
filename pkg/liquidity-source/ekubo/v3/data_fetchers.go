@@ -163,15 +163,15 @@ func (f *dataFetchers) fetchPools(
 					continue
 				}
 			case ExtensionTypeOracle:
-				if config, ok := config.(pools.FullRangePoolTypeConfig); ok {
-					pool = pools.NewOraclePool(poolKey.ToFullRange(config), newOraclePoolState(data))
+				if fullRangeConfig, ok := config.(pools.FullRangePoolTypeConfig); ok {
+					pool = pools.NewOraclePool(poolKey.ToFullRange(fullRangeConfig), newOraclePoolState(data))
 				} else {
 					logger.Errorf("expected full range pool type config for Oracle pool, received %T", config)
 					continue
 				}
 			case ExtensionTypeMevCapture:
-				if config, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
-					pool = pools.NewMevCapturePool(poolKey.ToConcentrated(config), newConcentratedPoolState(data))
+				if concentratedConfig, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
+					pool = pools.NewMevCapturePool(poolKey.ToConcentrated(concentratedConfig), newConcentratedPoolState(data))
 				} else {
 					logger.Errorf("expected concentrated pool type config for MEVCapture pool, received %T", config)
 					continue
@@ -221,10 +221,10 @@ func (f *dataFetchers) fetchPools(
 		for _, tuple := range lo.Zip2(batchQuoteData, poolKeyBatch) {
 			poolKey := tuple.B
 			config := poolKey.Config.TypeConfig
-			if config, ok := config.(pools.FullRangePoolTypeConfig); ok {
+			if fullRangeConfig, ok := config.(pools.FullRangePoolTypeConfig); ok {
 				fetchedPools = append(fetchedPools, fetchedPool{
 					PoolWithBlockNumber{
-						Pool:        pools.NewTwammPool(poolKey.ToFullRange(config), newTwammPoolState(&tuple.A.twammQuoteData)),
+						Pool:        pools.NewTwammPool(poolKey.ToFullRange(fullRangeConfig), newTwammPoolState(&tuple.A.twammQuoteData)),
 						blockNumber: blockNumber,
 					},
 					poolKey,
@@ -280,10 +280,10 @@ func (f *dataFetchers) fetchPools(
 			poolKey := tuple.A
 			config := poolKey.Config.TypeConfig
 
-			if config, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
+			if concentratedConfig, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
 				fetchedPools = append(fetchedPools, fetchedPool{
 					PoolWithBlockNumber{
-						Pool:        pools.NewBoostedFeesPool(poolKey.ToConcentrated(config), newBoostedFeesPoolState(&tuple.B.quoteData, &tuple.C.boostedFeesQuoteData)),
+						Pool:        pools.NewBoostedFeesPool(poolKey.ToConcentrated(concentratedConfig), newBoostedFeesPoolState(&tuple.B.quoteData, &tuple.C.boostedFeesQuoteData)),
 						blockNumber: blockNumber,
 					},
 					poolKey,
