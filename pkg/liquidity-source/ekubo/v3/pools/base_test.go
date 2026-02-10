@@ -210,8 +210,8 @@ func TestApproximateExtraDistinctTickBitmapLookupsWordBoundaries(t *testing.T) {
 	sameWord := math.ToSqrtRatio(128)
 	nextWord := math.ToSqrtRatio(129)
 
-	require.Equal(t, int64(0), approximateExtraDistinctTickBitmapLookups(base, sameWord, spacing))
-	require.Equal(t, int64(1), approximateExtraDistinctTickBitmapLookups(base, nextWord, spacing))
+	require.Equal(t, uint32(0), approximateExtraDistinctTickBitmapLookups(base, sameWord, spacing))
+	require.Equal(t, uint32(1), approximateExtraDistinctTickBitmapLookups(base, nextWord, spacing))
 }
 
 func TestApproximateExtraDistinctTickBitmapLookupsNegativeTicks(t *testing.T) {
@@ -222,8 +222,17 @@ func TestApproximateExtraDistinctTickBitmapLookupsNegativeTicks(t *testing.T) {
 	negativeSameWord := math.ToSqrtRatio(-1)
 	negativePrevWord := math.ToSqrtRatio(-128)
 
-	require.Equal(t, int64(0), approximateExtraDistinctTickBitmapLookups(base, negativeSameWord, spacing))
-	require.Equal(t, int64(1), approximateExtraDistinctTickBitmapLookups(base, negativePrevWord, spacing))
+	require.Equal(t, uint32(0), approximateExtraDistinctTickBitmapLookups(base, negativeSameWord, spacing))
+	require.Equal(t, uint32(1), approximateExtraDistinctTickBitmapLookups(base, negativePrevWord, spacing))
+}
+
+func TestSuggestedSkipAhead(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, uint32(0), suggestedSkipAhead(0, 0))
+	require.Equal(t, uint32(7), suggestedSkipAhead(0, 7))
+	require.Equal(t, uint32(3), suggestedSkipAhead(3, 10))
+	require.Equal(t, maxSkipAhead, suggestedSkipAhead(1, maxSkipAhead*2))
 }
 
 func TestAddLiquidityCutoffs(t *testing.T) {
