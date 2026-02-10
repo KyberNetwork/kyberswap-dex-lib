@@ -226,7 +226,7 @@ func (p *ConcentratedPool) CloneSwapStateOnly() Pool {
 	cloned := *p
 	copiedConcentratedPoolState := *p.ConcentratedPoolState
 	cloned.ConcentratedPoolState = &copiedConcentratedPoolState
-	cloned.ConcentratedPoolSwapState = p.ConcentratedPoolSwapState.Clone()
+	cloned.ConcentratedPoolSwapState = p.Clone()
 	return &cloned
 }
 
