@@ -52,7 +52,7 @@ func (ts *PoolTrackerTestSuite) run(cases []*testcase) {
 			require.NoError(t, err)
 
 			staticExtra := StaticExtra{
-				Core:          common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
+				Core:          MainnetConfig.Core,
 				ExtensionType: tc.extensionType,
 				PoolKey:       tc.poolKey,
 			}
