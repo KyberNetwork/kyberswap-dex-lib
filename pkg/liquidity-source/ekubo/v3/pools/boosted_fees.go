@@ -275,7 +275,3 @@ func NewBoostedFeesPool(key *ConcentratedPoolKey, state *BoostedFeesPoolState) *
 		donateRateDeltas: state.VirtualDeltas,
 	}
 }
-
-func approximateExtraDistinctTimeBitmapLookups(startTime, endTime uint64) int64 {
-	return int64((endTime >> 16) - (startTime >> 16))
-}
