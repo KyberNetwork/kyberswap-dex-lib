@@ -78,8 +78,16 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 		return nil, fmt.Errorf("quoting concentrated pool: %w", err)
 	}
 
-	// TODO
-	quote.Gas += 0
+	if currentTime != realLastDonateTime {
+		quote.Gas += quoting.GasCostOfExecutingVirtualDonations
+	}
+
+	if feesAccumulated {
+		quote.Gas += quoting.GasCostOfBoostedFeesFeeAccumulation
+	}
+
+	quote.Gas += approximateExtraDistinctTimeBitmapLookups(realLastDonateTime, currentTime)*quoting.GasCostOfOneColdSload +
+		virtualDonateDeltaTimesCrossed*quoting.GasCostOfCrossingOneVirtualDonateDelta
 
 	quote.SwapInfo.SwapStateAfter = NewBoostedFeesPoolSwapState(
 		quote.SwapInfo.SwapStateAfter.(*BasePoolSwapState),
@@ -135,4 +143,8 @@ func NewBoostedFeesPool(key *ConcentratedPoolKey, state *BoostedFeesPoolState) *
 		lastDonateTime:   state.LastExecutionTime,
 		donateRateDeltas: state.VirtualDeltas,
 	}
+}
+
+func approximateExtraDistinctTimeBitmapLookups(startTime, endTime uint64) int64 {
+	return int64((endTime >> 16) - (startTime >> 16))
 }
