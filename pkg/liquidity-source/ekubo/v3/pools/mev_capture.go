@@ -77,6 +77,23 @@ func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 	return quote, nil
 }
 
+func (p *MevCapturePool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
+	if err := p.BasePool.ApplyEvent(event, data, blockTimestamp); err != nil {
+		return err
+	}
+
+	if event == EventSwapped {
+		p.swappedThisBlock = true
+	}
+
+	return nil
+}
+
+func (p *MevCapturePool) NewBlock() {
+	p.swappedThisBlock = false
+	p.lastTick = p.ActiveTick
+}
+
 func NewMevCapturePool(key *ConcentratedPoolKey, state *MevCapturePoolState) *MevCapturePool {
 	return &MevCapturePool{
 		BasePool:         NewBasePool(key, state),

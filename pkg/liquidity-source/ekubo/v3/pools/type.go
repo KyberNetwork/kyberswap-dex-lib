@@ -6,6 +6,7 @@ import (
 )
 
 type (
+	Event     int
 	PoolState = any
 	Pool      interface {
 		GetKey() IPoolKey
@@ -20,4 +21,13 @@ type (
 		Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error)
 		CalcBalances() ([]uint256.Int, error)
 	}
+)
+
+const (
+	EventSwapped Event = iota + 1
+	EventPositionUpdated
+	EventVirtualOrdersExecuted
+	EventOrderUpdated
+	EventFeesDonated
+	EventPoolBoosted
 )

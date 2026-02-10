@@ -141,6 +141,75 @@ func (s *BasePoolState) AddLiquidityCutoffs() {
 	s.UpdateTick(s.TickBounds[1], u256.SInt256(&currentLiquidity), true, true)
 }
 
+func (s *BasePoolState) CalcBalances() ([]uint256.Int, error) {
+	stateSqrtRatio := s.SqrtRatio
+
+	balances := make([]uint256.Int, 2)
+	var liquidity, sqrtRatio, minAmount1SqrtRatio, maxAmount0SqrtRatio uint256.Int
+	sqrtRatio.Set(ekubomath.MinSqrtRatio)
+
+	for _, tick := range s.SortedTicks {
+		tickSqrtRatio := ekubomath.ToSqrtRatio(tick.Number)
+		minAmount1SqrtRatio.Set(u256.Min(tickSqrtRatio, stateSqrtRatio))
+		maxAmount0SqrtRatio.Set(u256.Max(stateSqrtRatio, &sqrtRatio))
+		if sqrtRatio.Lt(&minAmount1SqrtRatio) {
+			amount1Delta, err := ekubomath.Amount1Delta(&sqrtRatio, &minAmount1SqrtRatio, &liquidity, false)
+			if err != nil {
+				return nil, fmt.Errorf("computing amount1 delta: %w", err)
+			}
+			balances[1].Add(&balances[1], amount1Delta)
+		}
+		if maxAmount0SqrtRatio.Lt(tickSqrtRatio) {
+			amount0Delta, err := ekubomath.Amount0Delta(&maxAmount0SqrtRatio, tickSqrtRatio, &liquidity, false)
+			if err != nil {
+				return nil, fmt.Errorf("computing amount0 delta: %w", err)
+			}
+			balances[0].Add(&balances[0], amount0Delta)
+		}
+
+		sqrtRatio.Set(tickSqrtRatio)
+		liquidity.Add(&liquidity, (*uint256.Int)(tick.LiquidityDelta))
+	}
+
+	return balances, nil
+}
+
+func (p *BasePool) ApplyEvent(event Event, data []byte, _ uint64) error {
+	switch event {
+	case EventSwapped:
+		event, err := parseSwappedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.ActiveTick = event.tickAfter
+		p.SqrtRatio = event.sqrtRatioAfter
+		p.Liquidity = event.liquidityAfter
+
+		p.ActiveTickIndex = NearestInitializedTickIndex(p.SortedTicks, p.ActiveTick)
+	case EventPositionUpdated:
+		event, err := parsePositionUpdatedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		lower, upper, liquidityDelta := event.lower, event.upper, event.liquidityDelta
+
+		p.UpdateTick(lower, liquidityDelta, false, false)
+		p.UpdateTick(upper, liquidityDelta, true, false)
+
+		p.ActiveTickIndex = NearestInitializedTickIndex(p.SortedTicks, p.ActiveTick)
+
+		if p.ActiveTick >= lower && p.ActiveTick < upper {
+			p.Liquidity.Add(p.Liquidity, (*uint256.Int)(liquidityDelta))
+		}
+	default:
+	}
+	return nil
+}
+
+func (p *BasePool) NewBlock() {}
+
 func (p *BasePool) GetKey() IPoolKey {
 	return p.key
 }
