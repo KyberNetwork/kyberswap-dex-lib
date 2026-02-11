@@ -100,14 +100,25 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		return nil, err
 	}
 	if result.Reserves == nil { // default implementation is to estimate from liquidity and sqrtPriceX96
-		var reserve0, reserve1 big.Int
-		if result.Slot0.SqrtPriceX96.Sign() != 0 { // reserve0 = liquidity / sqrtPriceX96 * Q96
-			reserve0.Mul(result.Liquidity, Q96)
-			reserve0.Div(&reserve0, result.Slot0.SqrtPriceX96)
+		var extra Extra
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to unmarshal pool extra")
+			return nil, err
 		}
-		// reserve1 = liquidity * sqrtPriceX96 / Q96
-		reserve1.Mul(result.Liquidity, result.Slot0.SqrtPriceX96)
-		reserve1.Div(&reserve1, Q96)
+
+		reserve0, reserve1, err := CalculateReservesFromTicks(
+			result.Slot0.SqrtPriceX96,
+			extra.Ticks,
+		)
+		if err != nil {
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to calculate reserves from ticks")
+			return nil, err
+		}
+
 		result.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	}
 
