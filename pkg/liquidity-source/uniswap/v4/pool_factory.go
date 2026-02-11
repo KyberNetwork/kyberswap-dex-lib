@@ -47,9 +47,9 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 	return ok
 }
 
-func (f *PoolFactory) DecodePoolAddress(log ethtypes.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddress(log ethtypes.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
-		return "", nil
+		return nil, nil
 	}
 
 	switch log.Topics[0] {
@@ -61,10 +61,10 @@ func (f *PoolFactory) DecodePoolAddress(log ethtypes.Log) (string, error) {
 		if len(log.Topics) < 2 {
 			break
 		}
-		return hexutil.Encode(log.Topics[1][:]), nil
+		return []string{hexutil.Encode(log.Topics[1][:])}, nil
 	}
 
-	return "", nil
+	return nil, nil
 }
 
 func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr uint64) (*entity.Pool, error) {

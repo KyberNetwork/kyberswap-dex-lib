@@ -18,7 +18,7 @@ func TestDecodePoolAddress(t *testing.T) {
 		dexType  string
 		events   []types.Log
 		pools    []string
-		decodeFn func(event types.Log) (string, error)
+		decodeFn func(event types.Log) ([]string, error)
 	}{
 		{
 			dexType: pooltypes.PoolTypes.CloberOB,
@@ -97,9 +97,9 @@ func TestDecodePoolAddress(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.dexType, func(t *testing.T) {
 			for i, event := range tc.events {
-				pool, err := tc.decodeFn(event)
+				pools, err := tc.decodeFn(event)
 				require.NoError(t, err)
-				require.Equal(t, tc.pools[i], pool)
+				require.Equal(t, tc.pools[i], pools[0])
 			}
 		})
 	}

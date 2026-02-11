@@ -119,3 +119,9 @@ func (ep *EventParser) GetKeys(_ context.Context) ([]string, error) {
 func (ep *EventParser) getPoolAddress(token0, token1 common.Address) string {
 	return generatePoolAddress(ep.controller, token0, token1)
 }
+
+// ------------------------------------------------------------
+// 1 log -> multiple pool addresses changes
+func (ep *EventParser) DecodePoolAddress(ctx context.Context, log types.Log) ([]string, error) {
+	return ep.getPoolAddresses(ctx, log)
+}
