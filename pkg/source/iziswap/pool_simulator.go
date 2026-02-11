@@ -169,7 +169,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // we should notice that,
 // unlike liquidity distribution,
 // limit orders may change more frequently, and often changed after each exchange
-// (if any limit order is dealed during that exchange)
+// (if any limit order is dealt during that exchange)
 //
 // the function `UpdateBalance` which only change
 // `currentPoint`, `liquidity` and `liquidityX` on currentPoint
