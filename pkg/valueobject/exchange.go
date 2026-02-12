@@ -260,6 +260,7 @@ const (
 	ExchangeVirtualFun                 = "virtual-fun"
 	ExchangeVooi                       = "vooi"
 	ExchangeWagyuSwap                  = "wagyuswap"
+	ExchangeWasabiProp                 = "wasabi-prop"
 	ExchangeWault                      = "wault"
 	ExchangeWBETH                      = "wbeth"
 	ExchangeWildcard                   = "wildcard"
