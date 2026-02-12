@@ -132,6 +132,7 @@ import (
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
@@ -381,6 +382,7 @@ type Types struct {
 	KipseliProp                string
 	SomeswapV1                 string
 	SomeswapV2                 string
+	WasabiProp                 string
 }
 
 var (
@@ -583,5 +585,6 @@ var (
 		KipseliProp:                kipseliprop.DexType,
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
+		WasabiProp:                 wasabiprop.DexType,
 	}
 )
