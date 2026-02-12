@@ -110,6 +110,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
+	someswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
+	someswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
@@ -377,6 +379,8 @@ type Types struct {
 	Carbon                     string
 	Axima                      string
 	KipseliProp                string
+	SomeswapV1                 string
+	SomeswapV2                 string
 }
 
 var (
@@ -577,5 +581,7 @@ var (
 		Carbon:                     carbon.DexType,
 		Axima:                      axima.DexType,
 		KipseliProp:                kipseliprop.DexType,
+		SomeswapV1:                 someswapv1.DexType,
+		SomeswapV2:                 someswapv2.DexType,
 	}
 )
