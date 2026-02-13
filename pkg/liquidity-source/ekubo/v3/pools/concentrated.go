@@ -403,10 +403,6 @@ func NearestInitializedTickIndex(sortedTicks []Tick, tickNumber int32) int {
 }
 
 func approximateExtraDistinctTickBitmapLookups(startingSqrtRatio, endingSqrtRatio *uint256.Int, tickSpacing uint32) uint32 {
-	if tickSpacing == 0 {
-		return 0
-	}
-
 	startWord := bitmapWordFromSqrtRatio(startingSqrtRatio, int32(tickSpacing))
 	endWord := bitmapWordFromSqrtRatio(endingSqrtRatio, int32(tickSpacing))
 
