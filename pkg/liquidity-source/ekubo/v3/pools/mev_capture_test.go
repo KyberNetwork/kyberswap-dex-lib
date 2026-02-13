@@ -24,13 +24,13 @@ func TestSwapInputAmountToken0(t *testing.T) {
 	liquidity := uint256.NewInt(28_898_102)
 	fee := new(uint256.Int).Div(new(uint256.Int).Lsh(big256.U1, 64), uint256.NewInt(100)).Uint64()
 
-	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), &BasePoolState{
-		BasePoolSwapState: &BasePoolSwapState{
-			SqrtRatio:       math.ToSqrtRatio(700_000),
-			Liquidity:       new(uint256.Int).Set(liquidity),
-			ActiveTickIndex: 0,
-		},
-		SortedTicks: []Tick{
+	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), NewConcentratedPoolState(
+		NewConcentratedPoolSwapState(
+			math.ToSqrtRatio(700_000),
+			new(uint256.Int).Set(liquidity),
+			0,
+		),
+		[]Tick{
 			{
 				Number:         600_000,
 				LiquidityDelta: big256.SInt256(liquidity),
@@ -40,9 +40,9 @@ func TestSwapInputAmountToken0(t *testing.T) {
 				LiquidityDelta: big256.SNeg(liquidity),
 			},
 		},
-		TickBounds: [2]int32{math.MinTick, math.MaxTick},
-		ActiveTick: 700_000,
-	})
+		[2]int32{math.MinTick, math.MaxTick},
+		700_000,
+	))
 
 	quote, err := pool.Quote(uint256.NewInt(100_000), false)
 	require.NoError(t, err)
@@ -68,13 +68,13 @@ func TestSwapOutputAmountToken0(t *testing.T) {
 	liquidity := uint256.NewInt(28_898_102)
 	fee := new(uint256.Int).Div(new(uint256.Int).Lsh(big256.U1, 64), uint256.NewInt(100)).Uint64()
 
-	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), &BasePoolState{
-		BasePoolSwapState: &BasePoolSwapState{
-			SqrtRatio:       math.ToSqrtRatio(700_000),
-			Liquidity:       new(uint256.Int).Set(liquidity),
-			ActiveTickIndex: 0,
-		},
-		SortedTicks: []Tick{
+	pool := NewMevCapturePool(mevCapturePoolKey(fee, 20_000), NewConcentratedPoolState(
+		NewConcentratedPoolSwapState(
+			math.ToSqrtRatio(700_000),
+			new(uint256.Int).Set(liquidity),
+			0,
+		),
+		[]Tick{
 			{
 				Number:         600_000,
 				LiquidityDelta: big256.SInt256(liquidity),
@@ -84,9 +84,9 @@ func TestSwapOutputAmountToken0(t *testing.T) {
 				LiquidityDelta: big256.SNeg(liquidity),
 			},
 		},
-		TickBounds: [2]int32{math.MinTick, math.MaxTick},
-		ActiveTick: 700_000,
-	})
+		[2]int32{math.MinTick, math.MaxTick},
+		700_000,
+	))
 
 	quote, err := pool.Quote(new(uint256.Int).Neg(uint256.NewInt(100_000)), false)
 	require.NoError(t, err)

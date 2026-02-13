@@ -16,25 +16,29 @@ import (
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-const invalidTickNumber int32 = math.MinInt32
+const (
+	invalidTickNumber       int32  = math.MinInt32
+	tickBitmapStorageOffset int32  = 89_421_695
+	maxSkipAhead            uint32 = 0x7fffffff
+)
 
 type (
-	BasePoolSwapState struct {
+	ConcentratedPoolSwapState struct {
 		SqrtRatio       *uint256.Int `json:"sqrtRatio"`
 		Liquidity       *uint256.Int `json:"liquidity"`
 		ActiveTickIndex int          `json:"activeTickIndex"`
 	}
 
-	BasePoolState struct {
-		*BasePoolSwapState
+	ConcentratedPoolState struct {
+		*ConcentratedPoolSwapState
 		SortedTicks []Tick   `json:"sortedTicks"`
 		TickBounds  [2]int32 `json:"tickBounds"`
 		ActiveTick  int32    `json:"activeTick"`
 	}
 
-	BasePool struct {
+	ConcentratedPool struct {
 		key *ConcentratedPoolKey
-		*BasePoolState
+		*ConcentratedPoolState
 	}
 
 	TickRPC struct {
@@ -54,13 +58,7 @@ type (
 	}
 )
 
-func (s *BasePoolState) CloneState() *BasePoolState {
-	cloned := *s
-	cloned.SortedTicks = slices.Clone(s.SortedTicks)
-	return &cloned
-}
-
-func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
+func (s *ConcentratedPoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
 	ticks := s.SortedTicks
 
 	liquidityDelta = liquidityDelta.Clone()
@@ -112,7 +110,7 @@ func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int2
 	}
 }
 
-func (s *BasePoolState) AddLiquidityCutoffs() {
+func (s *ConcentratedPoolState) AddLiquidityCutoffs() {
 	var currentLiquidity uint256.Int
 	belowActiveTick := true
 	var activeTickIndex int
@@ -147,26 +145,96 @@ func (s *BasePoolState) AddLiquidityCutoffs() {
 	s.UpdateTick(s.TickBounds[1], u256.SInt256(&currentLiquidity), true, true)
 }
 
-func (p *BasePool) GetKey() IPoolKey {
+func (s *ConcentratedPoolState) CalcBalances() ([]uint256.Int, error) {
+	stateSqrtRatio := s.SqrtRatio
+
+	balances := make([]uint256.Int, 2)
+	var liquidity, sqrtRatio, minAmount1SqrtRatio, maxAmount0SqrtRatio uint256.Int
+	sqrtRatio.Set(ekubomath.MinSqrtRatio)
+
+	for _, tick := range s.SortedTicks {
+		tickSqrtRatio := ekubomath.ToSqrtRatio(tick.Number)
+		minAmount1SqrtRatio.Set(u256.Min(tickSqrtRatio, stateSqrtRatio))
+		maxAmount0SqrtRatio.Set(u256.Max(stateSqrtRatio, &sqrtRatio))
+		if sqrtRatio.Lt(&minAmount1SqrtRatio) {
+			amount1Delta, err := ekubomath.Amount1Delta(&sqrtRatio, &minAmount1SqrtRatio, &liquidity, false)
+			if err != nil {
+				return nil, fmt.Errorf("computing amount1 delta: %w", err)
+			}
+			balances[1].Add(&balances[1], amount1Delta)
+		}
+		if maxAmount0SqrtRatio.Lt(tickSqrtRatio) {
+			amount0Delta, err := ekubomath.Amount0Delta(&maxAmount0SqrtRatio, tickSqrtRatio, &liquidity, false)
+			if err != nil {
+				return nil, fmt.Errorf("computing amount0 delta: %w", err)
+			}
+			balances[0].Add(&balances[0], amount0Delta)
+		}
+
+		sqrtRatio.Set(tickSqrtRatio)
+		liquidity.Add(&liquidity, (*uint256.Int)(tick.LiquidityDelta))
+	}
+
+	return balances, nil
+}
+
+func (p *ConcentratedPool) ApplyEvent(event Event, data []byte, _ uint64) error {
+	switch event {
+	case EventSwapped:
+		event, err := parseSwappedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.ActiveTick = event.tickAfter
+		p.SqrtRatio = event.sqrtRatioAfter
+		p.Liquidity = event.liquidityAfter
+
+		p.ActiveTickIndex = NearestInitializedTickIndex(p.SortedTicks, p.ActiveTick)
+	case EventPositionUpdated:
+		event, err := parsePositionUpdatedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		lower, upper, liquidityDelta := event.lower, event.upper, event.liquidityDelta
+
+		p.UpdateTick(lower, liquidityDelta, false, false)
+		p.UpdateTick(upper, liquidityDelta, true, false)
+
+		p.ActiveTickIndex = NearestInitializedTickIndex(p.SortedTicks, p.ActiveTick)
+
+		if p.ActiveTick >= lower && p.ActiveTick < upper {
+			p.Liquidity.Add(p.Liquidity, (*uint256.Int)(liquidityDelta))
+		}
+	default:
+	}
+	return nil
+}
+
+func (p *ConcentratedPool) NewBlock() {}
+
+func (p *ConcentratedPool) GetKey() IPoolKey {
 	return p.key
 }
 
-func (p *BasePool) GetState() any {
-	return p.BasePoolState
+func (p *ConcentratedPool) GetState() any {
+	return p.ConcentratedPoolState
 }
 
-func (p *BasePool) CloneState() any {
+func (p *ConcentratedPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.key = p.key.CloneState()
-	cloned.BasePoolState = p.BasePoolState.CloneState()
+	copiedConcentratedPoolState := *p.ConcentratedPoolState
+	cloned.ConcentratedPoolState = &copiedConcentratedPoolState
+	cloned.ConcentratedPoolSwapState = p.Clone()
 	return &cloned
 }
 
-func (p *BasePool) SetSwapState(state any) {
-	p.BasePoolSwapState = state.(*BasePoolSwapState)
+func (p *ConcentratedPool) SetSwapState(state any) {
+	p.ConcentratedPoolSwapState = state.(*ConcentratedPoolSwapState)
 }
 
-func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
+func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	var liquidity uint256.Int
 	sqrtRatio := p.SqrtRatio.Clone()
 	liquidity.Set(p.Liquidity)
@@ -252,11 +320,15 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 
 	tickSpacingsCrossed := ekubomath.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio,
 		p.key.Config.TypeConfig.TickSpacing)
+	extraDistinctBitmapLookups := approximateExtraDistinctTickBitmapLookups(
+		startingSqrtRatio,
+		sqrtRatio,
+		p.key.Config.TypeConfig.TickSpacing,
+	)
 
-	var skipAhead uint32
-	if initializedTicksCrossed != 0 {
-		skipAhead = tickSpacingsCrossed / initializedTicksCrossed
-	}
+	skipAhead := suggestedSkipAhead(initializedTicksCrossed, extraDistinctBitmapLookups)
+
+	initializedTicksCrossedSigned, extraDistinctBitmapLookupsSigned := int64(initializedTicksCrossed), int64(extraDistinctBitmapLookups)
 
 	priceLimit := sqrtRatioLimit
 	if isIncreasing {
@@ -272,25 +344,49 @@ func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		ConsumedAmount:   amountRemaining.Sub(amount, &amountRemaining),
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
-		Gas:              quoting.BaseGasConcentratedLiquiditySwap + int64(initializedTicksCrossed)*quoting.GasInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasTickSpacingCrossed,
+		Gas: quoting.BaseGasCostOfOneConcentratedLiquiditySwap +
+			initializedTicksCrossedSigned*quoting.GasCostOfOneInitializedTickCrossed +
+			extraDistinctBitmapLookupsSigned*quoting.GasCostOfOneExtraTickBitmapSload +
+			(initializedTicksCrossedSigned+extraDistinctBitmapLookupsSigned)*quoting.GasCostOfOneExtraConcentratedMathRound,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead:  skipAhead,
 			IsToken1:   isToken1,
 			PriceLimit: priceLimit,
-			SwapStateAfter: &BasePoolSwapState{
+			SwapStateAfter: NewConcentratedPoolSwapState(
 				sqrtRatio,
 				&liquidity,
 				activeTickIndex,
-			},
+			),
 			TickSpacingsCrossed: tickSpacingsCrossed,
 		},
 	}, nil
 }
 
-func NewBasePool(key *ConcentratedPoolKey, state *BasePoolState) *BasePool {
-	return &BasePool{
-		key:           key,
-		BasePoolState: state,
+func (s *ConcentratedPoolSwapState) Clone() *ConcentratedPoolSwapState {
+	return NewConcentratedPoolSwapState(s.SqrtRatio.Clone(), s.Liquidity.Clone(), s.ActiveTickIndex)
+}
+
+func NewConcentratedPoolSwapState(sqrtRatio, liquidity *uint256.Int, activeTickIndex int) *ConcentratedPoolSwapState {
+	return &ConcentratedPoolSwapState{
+		SqrtRatio:       sqrtRatio,
+		Liquidity:       liquidity,
+		ActiveTickIndex: activeTickIndex,
+	}
+}
+
+func NewConcentratedPoolState(swapState *ConcentratedPoolSwapState, sortedTicks []Tick, tickBounds [2]int32, activeTick int32) *ConcentratedPoolState {
+	return &ConcentratedPoolState{
+		ConcentratedPoolSwapState: swapState,
+		SortedTicks:               sortedTicks,
+		TickBounds:                tickBounds,
+		ActiveTick:                activeTick,
+	}
+}
+
+func NewConcentratedPool(key *ConcentratedPoolKey, state *ConcentratedPoolState) *ConcentratedPool {
+	return &ConcentratedPool{
+		key:                   key,
+		ConcentratedPoolState: state,
 	}
 }
 
@@ -304,4 +400,40 @@ func NearestInitializedTickIndex(sortedTicks []Tick, tickNumber int32) int {
 	}
 
 	return idx
+}
+
+func approximateExtraDistinctTickBitmapLookups(startingSqrtRatio, endingSqrtRatio *uint256.Int, tickSpacing uint32) uint32 {
+	startWord := bitmapWordFromSqrtRatio(startingSqrtRatio, int32(tickSpacing))
+	endWord := bitmapWordFromSqrtRatio(endingSqrtRatio, int32(tickSpacing))
+
+	if startWord > endWord {
+		return startWord - endWord
+	}
+
+	return endWord - startWord
+}
+
+func bitmapWordFromSqrtRatio(sqrtRatio *uint256.Int, tickSpacing int32) uint32 {
+	tick := ekubomath.ApproximateSqrtRatioToTick(sqrtRatio)
+
+	compressedTick := tick / tickSpacing
+	if tick%tickSpacing < 0 {
+		compressedTick--
+	}
+
+	return uint32(compressedTick+tickBitmapStorageOffset) >> 8
+}
+
+func suggestedSkipAhead(initializedTicksCrossed uint32, extraDistinctBitmapLookups uint32) uint32 {
+	denominator := initializedTicksCrossed
+	if denominator == 0 {
+		denominator = 1
+	}
+
+	skipAhead := extraDistinctBitmapLookups / denominator
+	if skipAhead > maxSkipAhead {
+		return maxSkipAhead
+	}
+
+	return skipAhead
 }

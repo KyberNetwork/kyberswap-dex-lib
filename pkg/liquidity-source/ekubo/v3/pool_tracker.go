@@ -144,7 +144,8 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 
 		var event pools.Event
-		if d.config.Core == log.Address {
+		switch log.Address {
+		case d.config.Core:
 			if len(log.Topics) == 0 {
 				event = pools.EventSwapped
 			} else if log.Topics[0] == abis.PositionUpdatedEvent.ID {
@@ -152,7 +153,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
-		} else if d.config.Twamm == log.Address {
+		case d.config.Twamm:
 			if len(log.Topics) == 0 {
 				event = pools.EventVirtualOrdersExecuted
 			} else if log.Topics[0] == abis.OrderUpdatedEvent.ID {
@@ -160,11 +161,19 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
-		} else {
+		case d.config.BoostedFeesConcentrated:
+			if len(log.Topics) == 0 {
+				event = pools.EventFeesDonated
+			} else if log.Topics[0] == abis.PoolBoostedEvent.ID {
+				event = pools.EventPoolBoosted
+			} else {
+				continue
+			}
+		default:
 			continue
 		}
 
-		blockTimestamp := uint64(0)
+		var blockTimestamp uint64
 		if blockHeader, ok := params.BlockHeaders[log.BlockNumber]; ok {
 			blockTimestamp = blockHeader.Timestamp
 		}
@@ -183,10 +192,10 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 
 func (d *PoolTracker) forceUpdateState(
 	ctx context.Context,
-	poolKey *pools.AnyPoolKey,
+	poolKey pools.AnyPoolKey,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolWithBlockNumber, error) {
-	if poolKey == nil {
+	if poolKey.PoolKey == nil {
 		return nil, fmt.Errorf("missing pool key")
 	}
 
@@ -202,12 +211,12 @@ func (d *PoolTracker) forceUpdateState(
 
 	pools, err := d.dataFetcher.fetchPools(
 		ctx,
-		[]*pools.PoolKey[pools.PoolTypeConfig]{poolKey.PoolKey},
+		[]pools.AnyPoolKey{poolKey},
 		overrides,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching pool state: %w", err)
 	}
 
-	return pools[0], nil
+	return &pools[0].PoolWithBlockNumber, nil
 }
