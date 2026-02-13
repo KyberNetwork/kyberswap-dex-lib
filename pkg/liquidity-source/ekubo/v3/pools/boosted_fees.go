@@ -58,17 +58,29 @@ func (p *BoostedFeesPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 boo
 		time := realLastDonateTime
 		tmp := new(uint256.Int)
 
-		for _, delta := range p.donateRateDeltas {
-			if delta.Time <= realLastDonateTime {
-				continue
+		for i := 0; ; i++ {
+			var delta *TimeRateDelta
+			lastDelta := true
+			nextDonateTime := currentTime
+
+			if i < len(p.donateRateDeltas) {
+				delta = &p.donateRateDeltas[i]
+				if delta.Time <= realLastDonateTime {
+					continue
+				}
+
+				if delta.Time < currentTime {
+					lastDelta = false
+					nextDonateTime = delta.Time
+				}
 			}
 
-			if delta.Time > currentTime {
+			timeDiff := uint256.NewInt(nextDonateTime - time)
+			feesAccumulated = feesAccumulated || !tmp.Mul(donateRate0, timeDiff).Rsh(tmp, 32).IsZero() || !tmp.Mul(donateRate1, timeDiff).Rsh(tmp, 32).IsZero()
+
+			if lastDelta {
 				break
 			}
-
-			timeDiff := uint256.NewInt(delta.Time - time)
-			feesAccumulated = feesAccumulated || !tmp.Mul(donateRate0, timeDiff).Rsh(tmp, 32).IsZero() || !tmp.Mul(donateRate1, timeDiff).Rsh(tmp, 32).IsZero()
 
 			donateRate0.Add(donateRate0, (*uint256.Int)(delta.Delta0))
 			donateRate1.Add(donateRate1, (*uint256.Int)(delta.Delta1))
