@@ -2,7 +2,11 @@ package ekubov3
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -16,6 +20,25 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+const testFailingRPCURL = "http://127.0.0.1:1"
+
+const (
+	testCursorIDIndex          = 100
+	testRefetchedPoolIDIndex   = 1
+	testUnexpectedNextIDIndex  = 101
+	testReorgRefetchReqCount   = 2
+	testSingleReturnedPoolSize = 1
+
+	testBlockHashPageOne       = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	testBlockHashPageTwo       = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	testBlockHashCursor        = "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+	testBlockHashMismatch      = "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+	testBlockHashAfterRefetch  = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+	testPoolInitBlockNumberStr = "1"
+	testTickSpacing            = 1000
+	testFeeStr                 = "9223372036854775"
 )
 
 func TestPoolListUpdater(t *testing.T) {
@@ -79,4 +102,193 @@ func TestPoolListUpdater(t *testing.T) {
 	for _, testPk := range filteredOut {
 		require.False(t, containsPoolKey(testPk), "unexpected filtered pool key returned: %v", testPk)
 	}
+}
+
+func TestGetNewPoolKeys_PaginatesAndSkipsCursorRow(t *testing.T) {
+	t.Parallel()
+
+	const firstPageSize = subgraphPageSize
+	firstPage := make([]map[string]any, 0, firstPageSize)
+	for i := range firstPageSize {
+		firstPage = append(firstPage, makePoolInitialization(
+			poolInitID(i+1),
+			testBlockHashPageOne,
+			poolAddress(i+1),
+			poolAddress(i+2),
+		))
+	}
+	lastFirstPage := firstPage[len(firstPage)-1]
+
+	secondPage := []map[string]any{
+		lastFirstPage, // repeated cursor row
+		makePoolInitialization(poolInitID(firstPageSize+1), testBlockHashPageTwo, poolAddress(firstPageSize+3), poolAddress(firstPageSize+4)),
+		makePoolInitialization(poolInitID(firstPageSize+2), testBlockHashPageTwo, poolAddress(firstPageSize+5), poolAddress(firstPageSize+6)),
+	}
+
+	var requestStartIDs []string
+	srv := newSubgraphTestServer(t, func(startID string) []map[string]any {
+		requestStartIDs = append(requestStartIDs, startID)
+		switch startID {
+		case subgraphInitialStartID:
+			return firstPage
+		case lastFirstPage["id"].(string):
+			return secondPage
+		default:
+			t.Fatalf("unexpected startId: %s", startID)
+			return nil
+		}
+	})
+	defer srv.Close()
+
+	u := NewPoolListUpdater(
+		MainnetConfig, ethrpc.New(testFailingRPCURL), graphql.NewClient(srv.URL),
+	)
+
+	keys, cursor, err := u.getNewPoolKeys(context.Background())
+	require.NoError(t, err)
+	require.Len(t, keys, firstPageSize+2)
+	require.Equal(t, []string{subgraphInitialStartID, lastFirstPage["id"].(string)}, requestStartIDs)
+	require.Equal(t, secondPage[len(secondPage)-1]["id"], cursor.id)
+}
+
+func TestGetNewPoolKeys_ReorgWhenNonInitialCursorReturnsEmpty(t *testing.T) {
+	t.Parallel()
+
+	assertReorgRefetchFromNonInitialCursor(t, nil)
+}
+
+func TestGetNewPoolKeys_ReorgWhenCursorIDMatchesButBlockHashDiffers(t *testing.T) {
+	t.Parallel()
+
+	assertReorgRefetchFromNonInitialCursor(t, []map[string]any{
+		makePoolInitialization(
+			poolInitID(testCursorIDIndex),
+			testBlockHashMismatch,
+			poolAddress(10),
+			poolAddress(11),
+		),
+	})
+}
+
+func TestGetNewPoolKeys_ReorgWhenCursorFirstRowIDDiffers(t *testing.T) {
+	t.Parallel()
+
+	assertReorgRefetchFromNonInitialCursor(t, []map[string]any{
+		makePoolInitialization(
+			poolInitID(testUnexpectedNextIDIndex),
+			testBlockHashCursor,
+			poolAddress(12),
+			poolAddress(13),
+		),
+	})
+}
+
+func TestGetNewPools_DoesNotCommitCursorOnFetchPoolsError(t *testing.T) {
+	t.Parallel()
+
+	lastID := poolInitID(testRefetchedPoolIDIndex)
+	srv := newSubgraphTestServer(t, func(startID string) []map[string]any {
+		require.Equal(t, subgraphInitialStartID, startID)
+		return []map[string]any{
+			makePoolInitialization(lastID, testBlockHashAfterRefetch, poolAddress(1), poolAddress(2)),
+		}
+	})
+	defer srv.Close()
+
+	u := NewPoolListUpdater(
+		MainnetConfig, ethrpc.New(testFailingRPCURL), graphql.NewClient(srv.URL), // force data fetcher RPC failure
+	)
+
+	_, _, err := u.GetNewPools(context.Background(), nil)
+	require.Error(t, err)
+	require.Equal(t, subgraphInitialStartID, u.subgraphCursor.id)
+	require.Empty(t, u.subgraphCursor.blockHash)
+}
+
+func assertReorgRefetchFromNonInitialCursor(t *testing.T, firstPage []map[string]any) {
+	t.Helper()
+
+	reorgCursor := subgraphCursor{
+		id:        poolInitID(testCursorIDIndex),
+		blockHash: testBlockHashCursor,
+	}
+
+	requestCount := 0
+	srv := newSubgraphTestServer(t, func(startID string) []map[string]any {
+		requestCount++
+
+		if requestCount == 1 {
+			require.Equal(t, reorgCursor.id, startID)
+			return firstPage
+		}
+
+		require.Equal(t, subgraphInitialStartID, startID)
+		return []map[string]any{
+			makePoolInitialization(poolInitID(testRefetchedPoolIDIndex), testBlockHashAfterRefetch, poolAddress(1), poolAddress(2)),
+		}
+	})
+	defer srv.Close()
+
+	u := NewPoolListUpdater(MainnetConfig, ethrpc.New(testFailingRPCURL), graphql.NewClient(srv.URL))
+	u.subgraphCursor = reorgCursor
+
+	keys, cursor, err := u.getNewPoolKeys(context.Background())
+	require.NoError(t, err)
+	require.Len(t, keys, testSingleReturnedPoolSize)
+	require.Equal(t, testReorgRefetchReqCount, requestCount)
+	require.Equal(t, poolInitID(testRefetchedPoolIDIndex), cursor.id)
+}
+
+func newSubgraphTestServer(t *testing.T, pageFn func(startID string) []map[string]any) *httptest.Server {
+	t.Helper()
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var req struct {
+			Variables map[string]any `json:"variables"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+
+		startID, ok := req.Variables["startId"].(string)
+		require.True(t, ok, "startId is not a string: %T", req.Variables["startId"])
+
+		resp := map[string]any{
+			"data": map[string]any{
+				"poolInitializations": pageFn(startID),
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
+	}))
+}
+
+func makePoolInitialization(id, blockHash, token0, token1 string) map[string]any {
+	return map[string]any{
+		"id":                      id,
+		"blockNumber":             testPoolInitBlockNumberStr,
+		"blockHash":               blockHash,
+		"tickSpacing":             testTickSpacing,
+		"stableswapCenterTick":    nil,
+		"stableswapAmplification": nil,
+		"extension":               common.Address{}.Hex(),
+		"fee":                     testFeeStr,
+		"poolId":                  idToHash(id),
+		"token0":                  token0,
+		"token1":                  token1,
+	}
+}
+
+func poolInitID(i int) string {
+	return fmt.Sprintf("0x%032x", i)
+}
+
+func idToHash(id string) string {
+	trimmed := id[2:]
+	return "0x" + strings.Repeat("0", 64-len(trimmed)) + trimmed
+}
+
+func poolAddress(i int) string {
+	return fmt.Sprintf("0x%040x", i)
 }
