@@ -105,8 +105,6 @@ func TestPoolListUpdater(t *testing.T) {
 }
 
 func TestGetNewPoolKeys_PaginatesAndSkipsCursorRow(t *testing.T) {
-	t.Parallel()
-
 	const firstPageSize = subgraphPageSize
 	firstPage := make([]map[string]any, 0, firstPageSize)
 	for i := range firstPageSize {
@@ -152,14 +150,10 @@ func TestGetNewPoolKeys_PaginatesAndSkipsCursorRow(t *testing.T) {
 }
 
 func TestGetNewPoolKeys_ReorgWhenNonInitialCursorReturnsEmpty(t *testing.T) {
-	t.Parallel()
-
 	assertReorgRefetchFromNonInitialCursor(t, nil)
 }
 
 func TestGetNewPoolKeys_ReorgWhenCursorIDMatchesButBlockHashDiffers(t *testing.T) {
-	t.Parallel()
-
 	assertReorgRefetchFromNonInitialCursor(t, []map[string]any{
 		makePoolInitialization(
 			poolInitID(testCursorIDIndex),
@@ -171,8 +165,6 @@ func TestGetNewPoolKeys_ReorgWhenCursorIDMatchesButBlockHashDiffers(t *testing.T
 }
 
 func TestGetNewPoolKeys_ReorgWhenCursorFirstRowIDDiffers(t *testing.T) {
-	t.Parallel()
-
 	assertReorgRefetchFromNonInitialCursor(t, []map[string]any{
 		makePoolInitialization(
 			poolInitID(testUnexpectedNextIDIndex),
@@ -184,8 +176,6 @@ func TestGetNewPoolKeys_ReorgWhenCursorFirstRowIDDiffers(t *testing.T) {
 }
 
 func TestGetNewPools_DoesNotCommitCursorOnFetchPoolsError(t *testing.T) {
-	t.Parallel()
-
 	lastID := poolInitID(testRefetchedPoolIDIndex)
 	srv := newSubgraphTestServer(t, func(startID string) []map[string]any {
 		require.Equal(t, subgraphInitialStartID, startID)
@@ -243,7 +233,9 @@ func newSubgraphTestServer(t *testing.T, pageFn func(startID string) []map[strin
 	t.Helper()
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() {
+			require.NoError(t, r.Body.Close())
+		}()
 
 		var req struct {
 			Variables map[string]any `json:"variables"`
