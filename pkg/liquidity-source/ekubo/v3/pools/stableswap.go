@@ -36,11 +36,11 @@ func (p *StableswapPool) GetState() any {
 	return p.StableswapPoolState
 }
 
-func (p *StableswapPool) CloneState() any {
+func (p *StableswapPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.key = p.key.CloneState()
-	clonedStableswapPoolState := *p.StableswapPoolState
-	cloned.StableswapPoolState = &clonedStableswapPoolState
+	copiedStableswapPoolState := *p.StableswapPoolState
+	cloned.StableswapPoolState = &copiedStableswapPoolState
+	cloned.StableswapPoolSwapState = p.Clone()
 	return &cloned
 }
 
@@ -115,17 +115,78 @@ func (p *StableswapPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
 		CalculatedAmount: &calculatedAmount,
 		FeesPaid:         &feesPaid,
-		Gas:              quoting.BaseGasStableswapSwap,
+		Gas:              quoting.GasCostOfOneStableswapSwap,
 		SwapInfo: quoting.SwapInfo{
-			SkipAhead:  0,
-			IsToken1:   isToken1,
-			PriceLimit: math.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing),
-			SwapStateAfter: &StableswapPoolSwapState{
-				sqrtRatio,
-			},
+			SkipAhead:           0,
+			IsToken1:            isToken1,
+			PriceLimit:          math.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing),
+			SwapStateAfter:      NewStableswapPoolSwapState(sqrtRatio),
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
+}
+
+func (p *StableswapPool) CalcBalances() ([]uint256.Int, error) {
+	tvl0, tvl1 := new(uint256.Int), new(uint256.Int)
+	var err error
+
+	if p.SqrtRatio.Lt(&p.upperPrice) {
+		tvl0, err = math.Amount0Delta(p.SqrtRatio, &p.upperPrice, p.Liquidity, false)
+		if err != nil {
+			return nil, fmt.Errorf("computing amount0 delta: %w", err)
+		}
+	}
+
+	if p.SqrtRatio.Gt(&p.lowerPrice) {
+		tvl1, err = math.Amount1Delta(&p.lowerPrice, p.SqrtRatio, p.Liquidity, false)
+		if err != nil {
+			return nil, fmt.Errorf("computing amount1 delta: %w", err)
+		}
+	}
+
+	return []uint256.Int{*tvl0, *tvl1}, nil
+}
+
+func (p *StableswapPool) ApplyEvent(event Event, data []byte, _ uint64) error {
+	switch event {
+	case EventSwapped:
+		event, err := parseSwappedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.SqrtRatio = event.sqrtRatioAfter
+		p.Liquidity = event.liquidityAfter
+	case EventPositionUpdated:
+		event, err := parsePositionUpdatedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.Liquidity.Add(p.Liquidity, (*uint256.Int)(event.liquidityDelta))
+	default:
+	}
+
+	return nil
+}
+
+func (p *StableswapPool) NewBlock() {}
+
+func (s *StableswapPoolSwapState) Clone() *StableswapPoolSwapState {
+	return NewStableswapPoolSwapState(s.SqrtRatio.Clone())
+}
+
+func NewStableswapPoolSwapState(sqrtRatio *uint256.Int) *StableswapPoolSwapState {
+	return &StableswapPoolSwapState{
+		SqrtRatio: sqrtRatio,
+	}
+}
+
+func NewStableswapPoolState(swapState *StableswapPoolSwapState, liquidity *uint256.Int) *StableswapPoolState {
+	return &StableswapPoolState{
+		StableswapPoolSwapState: swapState,
+		Liquidity:               liquidity,
+	}
 }
 
 func NewStableswapPool(key *StableswapPoolKey, state *StableswapPoolState) *StableswapPool {

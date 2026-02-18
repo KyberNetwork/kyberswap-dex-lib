@@ -1,10 +1,12 @@
 package ekubov3
 
 const (
-	ExtensionTypeBase ExtensionType = iota + 1
+	ExtensionTypeUnknown ExtensionType = iota
+	ExtensionTypeNoSwapCallPoints
 	ExtensionTypeOracle
 	ExtensionTypeTwamm
 	ExtensionTypeMevCapture
+	ExtensionTypeBoostedFeesConcentrated
 )
 
 type ExtensionType int

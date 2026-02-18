@@ -481,11 +481,8 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountIn() {
 	}
 }
 
-func poolKey(extension common.Address, fee uint64, poolTypeConfig pools.PoolTypeConfig) *pools.AnyPoolKey {
-	return &pools.AnyPoolKey{PoolKey: pools.NewPoolKey(
-		token0, token1,
-		pools.NewPoolConfig(extension, fee, poolTypeConfig),
-	)}
+func poolKey(extension common.Address, fee uint64, poolTypeConfig pools.PoolTypeConfig) pools.AnyPoolKey {
+	return anyPoolKey(token0.Hex(), token1.Hex(), extension.Hex(), fee, poolTypeConfig)
 }
 
 func marshalPool(t *testing.T, extra Extra, staticExtra *StaticExtra) *entity.Pool {
@@ -507,17 +504,17 @@ func marshalPool(t *testing.T, extra Extra, staticExtra *StaticExtra) *entity.Po
 	}
 }
 
-func TestBasePool(t *testing.T) {
+func TestConcentratedPool(t *testing.T) {
 	t.Parallel()
 	entityPool := marshalPool(
 		t,
-		&pools.BasePoolState{
-			BasePoolSwapState: &pools.BasePoolSwapState{
-				SqrtRatio:       big256.New("13967539110995781342936001321080700"),
-				Liquidity:       uint256.NewInt(99999),
-				ActiveTickIndex: 16,
-			},
-			SortedTicks: []pools.Tick{
+		pools.NewConcentratedPoolState(
+			pools.NewConcentratedPoolSwapState(
+				big256.New("13967539110995781342936001321080700"),
+				uint256.NewInt(99999),
+				16,
+			),
+			[]pools.Tick{
 				{Number: -88722000, LiquidityDelta: big256.SNew("99999")},
 				{Number: -24124600, LiquidityDelta: big256.SNew("103926982998885")},
 				{Number: -24124500, LiquidityDelta: big256.SNew("-103926982998885")},
@@ -539,12 +536,12 @@ func TestBasePool(t *testing.T) {
 				{Number: 2000, LiquidityDelta: big256.SNew("-140308196")},
 				{Number: 88722000, LiquidityDelta: big256.SNew("-99999")},
 			},
-			TickBounds: [2]int32{-88722000, 88722000},
-			ActiveTick: -20201601,
-		},
+			[2]int32{-88722000, 88722000},
+			-20201601,
+		),
 		&StaticExtra{
 			PoolKey:       poolKey(common.Address{}, 922337203685477, pools.NewConcentratedPoolTypeConfig(100)),
-			ExtensionType: ExtensionTypeBase,
+			ExtensionType: ExtensionTypeNoSwapCallPoints,
 		},
 	)
 	poolSim, err := NewPoolSimulator(*entityPool)
@@ -603,12 +600,10 @@ func TestOraclePool(t *testing.T) {
 	t.Parallel()
 	entityPool := marshalPool(
 		t,
-		&pools.OraclePoolState{
-			FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-				SqrtRatio: big256.U2Pow128,
-			},
-			Liquidity: uint256.NewInt(10_000_000),
-		},
+		pools.NewFullRangePoolState(
+			pools.NewFullRangePoolSwapState(big256.U2Pow128),
+			uint256.NewInt(10_000_000),
+		),
 		&StaticExtra{
 			PoolKey: poolKey(common.HexToAddress("0x517E506700271AEa091b02f42756F5E174Af5230"),
 				0, pools.NewFullRangePoolTypeConfig()),

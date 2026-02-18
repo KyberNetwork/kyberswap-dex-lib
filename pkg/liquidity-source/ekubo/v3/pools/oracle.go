@@ -16,9 +16,9 @@ type (
 	}
 )
 
-func (p *OraclePool) CloneState() any {
+func (p *OraclePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	cloned.FullRangePool = p.FullRangePool.CloneSwapStateOnly().(*FullRangePool)
 	return &cloned
 }
 
@@ -33,11 +33,29 @@ func (p *OraclePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, 
 		return nil, err
 	}
 
+	quote.Gas += quoting.ExtraBaseGasCostOfOneOracleSwap
+
 	if !p.swappedThisBlock {
-		quote.Gas += quoting.GasUpdatingOracleSnapshot
+		quote.Gas += quoting.GasCostOfUpdatingOracleSnapshot
 	}
 
 	return quote, nil
+}
+
+func (p *OraclePool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
+	if err := p.FullRangePool.ApplyEvent(event, data, blockTimestamp); err != nil {
+		return err
+	}
+
+	if event == EventSwapped {
+		p.swappedThisBlock = true
+	}
+
+	return nil
+}
+
+func (p *OraclePool) NewBlock() {
+	p.swappedThisBlock = false
 }
 
 func NewOraclePool(key *FullRangePoolKey, state *OraclePoolState) *OraclePool {

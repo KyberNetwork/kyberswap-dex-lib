@@ -11,35 +11,35 @@ import (
 )
 
 type (
-	MevCapturePoolSwapState = BasePoolSwapState
-	MevCapturePoolState     = BasePoolState
+	MevCapturePoolSwapState = ConcentratedPoolSwapState
+	MevCapturePoolState     = ConcentratedPoolState
 
 	MevCapturePool struct {
-		*BasePool
+		*ConcentratedPool
 		lastTick         int32
 		swappedThisBlock bool
 	}
 )
 
-func (p *MevCapturePool) CloneState() any {
+func (p *MevCapturePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.BasePool = p.BasePool.CloneState().(*BasePool)
+	cloned.ConcentratedPool = p.ConcentratedPool.CloneSwapStateOnly().(*ConcentratedPool)
 	return &cloned
 }
 
 func (p *MevCapturePool) SetSwapState(state quoting.SwapState) {
-	p.BasePoolSwapState = state.(*MevCapturePoolSwapState)
+	p.ConcentratedPoolSwapState = state.(*MevCapturePoolSwapState)
 	p.swappedThisBlock = true
 }
 
 func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
-	quote, err := p.BasePool.Quote(amount, isToken1)
+	quote, err := p.ConcentratedPool.Quote(amount, isToken1)
 	if err != nil {
 		return nil, err
 	}
 	quote.SwapInfo.Forward = &p.key.Config.Extension
 
-	tickAfterSwap := ekubomath.ApproximateSqrtRatioToTick(quote.SwapInfo.SwapStateAfter.(*BasePoolSwapState).SqrtRatio)
+	tickAfterSwap := ekubomath.ApproximateSqrtRatioToTick(quote.SwapInfo.SwapStateAfter.(*ConcentratedPoolSwapState).SqrtRatio)
 
 	poolConfig := &p.key.Config
 	approximateFeeMultiplier := math.Abs(float64(tickAfterSwap-p.lastTick)) / float64(poolConfig.TypeConfig.TickSpacing)
@@ -47,10 +47,10 @@ func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 	fixedPointAdditionalFee := uint64(min(math.Round(approximateFeeMultiplier*float64(poolConfig.Fee)), math.MaxUint64))
 
 	if !p.swappedThisBlock {
-		quote.Gas += quoting.GasAccumulatingMevCaptureFees
+		quote.Gas += quoting.GasCostOfOneMevCaptureStateUpdate
 	}
 
-	quote.Gas += quoting.ExtraBaseGasMevCaptureSwap
+	quote.Gas += quoting.ExtraBaseGasCostOfOneMevCaptureSwap
 
 	if fixedPointAdditionalFee == 0 {
 		return quote, nil
@@ -77,9 +77,26 @@ func (p *MevCapturePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quo
 	return quote, nil
 }
 
+func (p *MevCapturePool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
+	if err := p.ConcentratedPool.ApplyEvent(event, data, blockTimestamp); err != nil {
+		return err
+	}
+
+	if event == EventSwapped {
+		p.swappedThisBlock = true
+	}
+
+	return nil
+}
+
+func (p *MevCapturePool) NewBlock() {
+	p.swappedThisBlock = false
+	p.lastTick = p.ActiveTick
+}
+
 func NewMevCapturePool(key *ConcentratedPoolKey, state *MevCapturePoolState) *MevCapturePool {
 	return &MevCapturePool{
-		BasePool:         NewBasePool(key, state),
+		ConcentratedPool: NewConcentratedPool(key, state),
 		lastTick:         state.ActiveTick,
 		swappedThisBlock: false,
 	}

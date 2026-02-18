@@ -1,24 +1,25 @@
 package pools
 
 import (
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"slices"
-	"time"
 
 	"github.com/KyberNetwork/int256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math/twamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
-
-const slotDuration = 12
 
 type (
 	TwammPoolSwapState struct {
@@ -30,16 +31,7 @@ type (
 
 	TwammPoolState struct {
 		*FullRangePoolState
-		Token0SaleRate     *uint256.Int         `json:"token0SaleRate"`
-		Token1SaleRate     *uint256.Int         `json:"token1SaleRate"`
-		LastExecutionTime  uint64               `json:"lastExecutionTime"`
-		VirtualOrderDeltas []TwammSaleRateDelta `json:"virtualOrderDeltas"`
-	}
-
-	TwammSaleRateDelta struct {
-		Time           uint64      `json:"time"`
-		SaleRateDelta0 *int256.Int `json:"saleRateDelta0"`
-		SaleRateDelta1 *int256.Int `json:"saleRateDelta1"`
+		*TimedPoolState
 	}
 
 	TwammPool struct {
@@ -47,7 +39,7 @@ type (
 		token0SaleRate     *uint256.Int
 		token1SaleRate     *uint256.Int
 		lastExecutionTime  uint64
-		virtualOrderDeltas []TwammSaleRateDelta
+		virtualOrderDeltas []TimeRateDelta
 	}
 
 	TwammOrderKeyAbi = struct {
@@ -62,18 +54,17 @@ type (
 )
 
 func (p *TwammPool) GetState() any {
-	return &TwammPoolState{
-		FullRangePoolState: p.FullRangePoolState,
-		Token0SaleRate:     p.token0SaleRate,
-		Token1SaleRate:     p.token1SaleRate,
-		LastExecutionTime:  p.lastExecutionTime,
-		VirtualOrderDeltas: p.virtualOrderDeltas,
-	}
+	return NewTwammPoolState(
+		p.FullRangePoolState,
+		NewTimedPoolState(NewTimedPoolSwapState(p.token0SaleRate, p.token1SaleRate, p.lastExecutionTime), p.virtualOrderDeltas),
+	)
 }
 
-func (p *TwammPool) CloneState() any {
+func (p *TwammPool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	cloned.FullRangePool = p.FullRangePool.CloneSwapStateOnly().(*FullRangePool)
+	cloned.token0SaleRate = p.token0SaleRate.Clone()
+	cloned.token1SaleRate = p.token1SaleRate.Clone()
 	return &cloned
 }
 
@@ -97,7 +88,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
 	lastExecutionTime := p.lastExecutionTime
 
 	var virtualOrderDeltaTimesCrossed int64
-	nextSaleRateDeltaIndex := slices.IndexFunc(p.virtualOrderDeltas, func(srd TwammSaleRateDelta) bool {
+	nextSaleRateDeltaIndex := slices.IndexFunc(p.virtualOrderDeltas, func(srd TimeRateDelta) bool {
 		return srd.Time > lastExecutionTime
 	})
 	if nextSaleRateDeltaIndex == -1 {
@@ -107,7 +98,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
 	var fullRangePoolSwapStateOverride *FullRangePoolSwapState
 
 	for lastExecutionTime != currentTime {
-		var saleRateDelta *TwammSaleRateDelta
+		var saleRateDelta *TimeRateDelta
 		nextExecutionTime := currentTime
 
 		if nextSaleRateDeltaIndex < len(p.virtualOrderDeltas) {
@@ -165,8 +156,8 @@ func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
 		}
 
 		if saleRateDelta != nil && saleRateDelta.Time == nextExecutionTime {
-			token0SaleRate.Add(&token0SaleRate, (*uint256.Int)(saleRateDelta.SaleRateDelta0))
-			token1SaleRate.Add(&token1SaleRate, (*uint256.Int)(saleRateDelta.SaleRateDelta1))
+			token0SaleRate.Add(&token0SaleRate, (*uint256.Int)(saleRateDelta.Delta0))
+			token1SaleRate.Add(&token1SaleRate, (*uint256.Int)(saleRateDelta.Delta1))
 
 			nextSaleRateDeltaIndex++
 			virtualOrderDeltaTimesCrossed++
@@ -180,35 +171,144 @@ func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
 		return nil, fmt.Errorf("final full range pool quote: %w", err)
 	}
 
-	var virtualOrdersExecuted int64
 	if currentTime > p.lastExecutionTime {
-		virtualOrdersExecuted = 1
+		finalQuote.Gas += quoting.GasCostOfExecutingVirtualOrders
 	}
+
+	extraDistinctBitmapLookups := approximateExtraDistinctTimeBitmapLookups(p.lastExecutionTime, currentTime)
 
 	return &quoting.Quote{
 		ConsumedAmount:   finalQuote.ConsumedAmount,
 		CalculatedAmount: finalQuote.CalculatedAmount,
 		FeesPaid:         finalQuote.FeesPaid,
-		Gas:              finalQuote.Gas + virtualOrderDeltaTimesCrossed*quoting.GasVirtualOrderDelta + virtualOrdersExecuted*quoting.GasExecutingVirtualOrders,
+		Gas: finalQuote.Gas +
+			quoting.ExtraBaseGasCostOfOneTwammSwap +
+			extraDistinctBitmapLookups*quoting.GasCostOfOneColdSload +
+			virtualOrderDeltaTimesCrossed*quoting.GasCostOfCrossingOneVirtualOrderDelta,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: 0,
 			IsToken1:  isToken1,
-			SwapStateAfter: &TwammPoolSwapState{
-				FullRangePoolSwapState: finalQuote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState),
-				Token0SaleRate:         &token0SaleRate,
-				Token1SaleRate:         &token1SaleRate,
-				LastExecutionTime:      currentTime,
-			},
+			SwapStateAfter: NewTwammPoolSwapState(
+				finalQuote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState),
+				&token0SaleRate,
+				&token1SaleRate,
+				currentTime,
+			),
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
 }
 
 func (p *TwammPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
-	return p.quoteWithTimestampFn(amount, isToken1, func() uint64 {
-		return uint64(time.Now().Unix()) + slotDuration
-	})
+	return p.quoteWithTimestampFn(amount, isToken1, estimatedBlockTimestamp)
 }
+
+func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
+	switch event {
+	case EventVirtualOrdersExecuted:
+		if blockTimestamp == 0 {
+			return fmt.Errorf("block timestamp is zero")
+		}
+
+		expectedPoolId, err := p.GetKey().NumId()
+		if err != nil {
+			return fmt.Errorf("computing expected pool id: %w", err)
+		}
+
+		if slices.Compare(data[0:32], expectedPoolId) != 0 {
+			return nil
+		}
+
+		p.lastExecutionTime = blockTimestamp
+		p.token0SaleRate.SetBytes(data[32:46])
+		p.token1SaleRate.SetBytes(data[46:60])
+	case EventOrderUpdated:
+		values, err := abis.OrderUpdatedEvent.Inputs.Unpack(data)
+		if err != nil {
+			return fmt.Errorf("unpacking event data: %w", err)
+		}
+
+		saleRateDelta, ok := values[3].(*big.Int)
+		if !ok {
+			return errors.New("failed to parse saleRateDelta")
+		}
+
+		if saleRateDelta.Sign() == 0 {
+			return nil
+		}
+
+		orderKeyAbi, ok := values[2].(TwammOrderKeyAbi)
+		if !ok {
+			return errors.New("failed to parse orderKey")
+		}
+		orderKey := TwammOrderKey{TwammOrderKeyAbi: orderKeyAbi}
+
+		poolKey := p.GetKey()
+		if poolKey.Token0Address() != orderKey.Token0 || poolKey.Token1Address() != orderKey.Token1 || poolKey.Fee() != orderKey.Fee() {
+			return nil
+		}
+
+		startIdx := 0
+		sellsToken1 := orderKey.SellsToken1()
+		affectedSaleRate := lo.Ternary(sellsToken1, p.token1SaleRate, p.token0SaleRate)
+		uSaleRateDelta := big256.SFromBig(saleRateDelta)
+		orderBoundaries := [2]struct {
+			time          uint64
+			saleRateDelta *int256.Int
+		}{
+			{
+				time:          orderKey.StartTime(),
+				saleRateDelta: uSaleRateDelta,
+			},
+			{
+				time:          orderKey.EndTime(),
+				saleRateDelta: new(int256.Int).Neg(uSaleRateDelta),
+			},
+		}
+
+		for _, orderBoundary := range orderBoundaries {
+			time := orderBoundary.time
+
+			if time > p.lastExecutionTime {
+				idx, found := slices.BinarySearchFunc(p.virtualOrderDeltas[startIdx:], time, func(srd TimeRateDelta, time uint64) int {
+					return cmp.Compare(srd.Time, time)
+				})
+
+				idx += startIdx
+
+				if !found {
+					p.virtualOrderDeltas = slices.Insert(
+						p.virtualOrderDeltas,
+						idx,
+						TimeRateDelta{
+							Time:   time,
+							Delta0: new(int256.Int),
+							Delta1: new(int256.Int),
+						},
+					)
+				}
+
+				orderDelta := &p.virtualOrderDeltas[idx]
+				affectedSaleRateDelta := lo.Ternary(sellsToken1, orderDelta.Delta1, orderDelta.Delta0)
+				affectedSaleRateDelta.Add(affectedSaleRateDelta, orderBoundary.saleRateDelta)
+
+				if orderDelta.Delta0.IsZero() && orderDelta.Delta1.IsZero() {
+					p.virtualOrderDeltas = slices.Delete(p.virtualOrderDeltas, idx, idx+1)
+				}
+
+				startIdx = idx + 1
+			} else {
+				affectedSaleRate.Add(affectedSaleRate, (*uint256.Int)(orderBoundary.saleRateDelta))
+			}
+		}
+	default:
+		return p.FullRangePool.ApplyEvent(event, data, blockTimestamp)
+	}
+
+	return nil
+}
+
+func (p *TwammPool) NewBlock() {}
 
 func (k *TwammOrderKey) Fee() uint64 {
 	return binary.BigEndian.Uint64(k.Config[:])
@@ -226,12 +326,28 @@ func (k *TwammOrderKey) EndTime() uint64 {
 	return binary.BigEndian.Uint64(k.Config[24:])
 }
 
+func NewTwammPoolSwapState(fullRangeSwapState *FullRangePoolSwapState, token0SaleRate, token1SaleRate *uint256.Int, lastExecutionTime uint64) *TwammPoolSwapState {
+	return &TwammPoolSwapState{
+		FullRangePoolSwapState: fullRangeSwapState,
+		Token0SaleRate:         token0SaleRate,
+		Token1SaleRate:         token1SaleRate,
+		LastExecutionTime:      lastExecutionTime,
+	}
+}
+
+func NewTwammPoolState(fullRangeState *FullRangePoolState, timedState *TimedPoolState) *TwammPoolState {
+	return &TwammPoolState{
+		FullRangePoolState: fullRangeState,
+		TimedPoolState:     timedState,
+	}
+}
+
 func NewTwammPool(key *FullRangePoolKey, state *TwammPoolState) *TwammPool {
 	return &TwammPool{
 		FullRangePool:      NewFullRangePool(key, state.FullRangePoolState),
-		token0SaleRate:     state.Token0SaleRate,
-		token1SaleRate:     state.Token1SaleRate,
+		token0SaleRate:     state.Token0Rate,
+		token1SaleRate:     state.Token1Rate,
 		lastExecutionTime:  state.LastExecutionTime,
-		virtualOrderDeltas: state.VirtualOrderDeltas,
+		virtualOrderDeltas: state.VirtualDeltas,
 	}
 }
