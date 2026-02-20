@@ -228,6 +228,7 @@ const (
 	ExchangeSyncSwapV2Stable           = "syncswapv2-stable"
 	ExchangeSynthetix                  = "synthetix"
 	ExchangeTessera                    = "tessera"
+	ExchangeTrebleSwap                 = "trebleswap"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniswapLO                  = "uniswap-lo"

@@ -371,6 +371,7 @@ type Types struct {
 	Infinifi                   string
 	Nabla                      string
 	Tessera                    string
+	TrebleSwap                 string
 	LiquidCore                 string
 	FrxUSD                     string
 	Elfomofi                   string
@@ -573,6 +574,7 @@ var (
 		Infinifi:                   infinifi.DexType,
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
+		TrebleSwap:                 algebraintegral.DexType,
 		LiquidCore:                 liquidcore.DexType,
 		FrxUSD:                     frxusd.DexType,
 		Elfomofi:                   elfomofi.DexType,
