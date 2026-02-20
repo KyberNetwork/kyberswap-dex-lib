@@ -514,6 +514,87 @@ func TestCalcAmountOut_Ver_1_2(t *testing.T) {
 	assert.Equal(t, big.NewInt(6427705112340899769), res.TokenAmountOut.Amount)
 }
 
+// TrebleSwap (Base chain) - Algebra Integral v1.2.2
+// Pool: WETH/USDC 0x256f399754f7ed5baa75b911ae6fd3c1a63b169c
+var (
+	trebleEp entity.Pool
+	_        = lo.Must(0,
+		json.Unmarshal([]byte(`{"address":"0x256f399754f7ed5baa75b911ae6fd3c1a63b169c","exchange":"trebleswap","type":"algebra-integral","timestamp":1771332717,"reserves":["6500000000000000000","13000000000"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","name":"Wrapped Ether","symbol":"WETH","decimals":18,"weight":50,"swappable":true},{"address":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","name":"USD Coin","symbol":"USDC","decimals":6,"weight":50,"swappable":true}],"extra":"{\"liq\":\"864523148948605\",\"gS\":{\"price\":\"3516580587790024869507051\",\"tick\":-200462,\"lF\":500,\"pC\":215,\"cF\":100,\"un\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":\"13544724490664\",\"LiquidityNet\":\"13544724490664\"},{\"Index\":-209460,\"LiquidityGross\":\"850966927497294\",\"LiquidityNet\":\"850966927497294\"},{\"Index\":-200640,\"LiquidityGross\":\"11623664953\",\"LiquidityNet\":\"11496960647\"},{\"Index\":-200460,\"LiquidityGross\":\"12666966315\",\"LiquidityNet\":\"9423968815\"},{\"Index\":-199560,\"LiquidityGross\":\"11045467565\",\"LiquidityNet\":\"-11045467565\"},{\"Index\":-198240,\"LiquidityGross\":\"11560312800\",\"LiquidityNet\":\"-11560312800\"},{\"Index\":-193380,\"LiquidityGross\":\"850966927497294\",\"LiquidityNet\":\"-850966927497294\"},{\"Index\":887220,\"LiquidityGross\":\"13543039639761\",\"LiquidityNet\":\"-13543039639761\"}],\"tS\":60,\"tP\":{\"21197\":{\"init\":true,\"ts\":1771246279,\"cum\":-544971382236,\"vo\":\"210183180748\",\"tick\":-200299,\"avgT\":-200445,\"wsI\":15784},\"23879\":{\"init\":true,\"ts\":1771332617,\"cum\":-562274074386,\"vo\":\"210669818829\",\"tick\":-200455,\"avgT\":-200406,\"wsI\":21187},\"23880\":{\"init\":true,\"ts\":1771332619,\"cum\":-562274475306,\"vo\":\"210669824661\",\"tick\":-200460,\"avgT\":-200406,\"wsI\":21188},\"23881\":{\"init\":true,\"ts\":1771332717,\"cum\":-562294120582,\"vo\":\"210670131989\",\"tick\":-200462,\"avgT\":-200406,\"wsI\":21197}},\"vo\":{\"tpIdx\":23881,\"lastTs\":1771332717,\"init\":true},\"dF\":{\"a1\":100,\"a2\":200,\"b1\":360,\"b2\":60000,\"g1\":59,\"g2\":8500,\"bF\":200},\"sF\":{\"0to1fF\":\"79228162514264337593543950336\",\"1to0fF\":\"79228162514264337593543950336\",\"pCF\":0,\"bF\":0,\"feeType\":false}}","staticExtra":"{\"pluginV2\":true}"}`),
+			&trebleEp))
+	treblePS = lo.Must(NewPoolSimulator(trebleEp))
+)
+
+func TestCalcAmountOut_TrebleSwap(t *testing.T) {
+	t.Parallel()
+	// Swap 0.01 WETH -> USDC on TrebleSwap (Base)
+	res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+		return treblePS.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x4200000000000000000000000000000000000006", // WETH
+				Amount: big.NewInt(1e16),                            // 0.01 WETH
+			},
+			TokenOut: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+		})
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, big.NewInt(19680765), res.TokenAmountOut.Amount)
+}
+
+// TrebleSwap Pool: USDC/TREB 0x6d354e51dd1e390851353ba5da4cb5737e62909e
+var (
+	trebleUsdcTrebEp entity.Pool
+	_                = lo.Must(0,
+		json.Unmarshal([]byte(`{"address":"0x6d354e51dd1e390851353ba5da4cb5737e62909e","exchange":"trebleswap","type":"algebra-integral","timestamp":1771326329,"reserves":["16700000000","25000000000000000000000"],"tokens":[{"address":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","name":"USD Coin","symbol":"USDC","decimals":6,"weight":50,"swappable":true},{"address":"0xdd2fc771ddab2b787aedfd100a67d8a4754a380c","name":"Treble","symbol":"TREB","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liq\":\"11985586389793724\",\"gS\":{\"price\":\"390096791648205279858193227186312903\",\"tick\":308206,\"lF\":500,\"pC\":215,\"cF\":100,\"un\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":\"338820095940591621\",\"LiquidityNet\":\"338820095940591621\"},{\"Index\":292440,\"LiquidityGross\":\"331648476665730872\",\"LiquidityNet\":\"-331648476665730872\"},{\"Index\":304380,\"LiquidityGross\":\"102432555408153\",\"LiquidityNet\":\"102432555408153\"},{\"Index\":304980,\"LiquidityGross\":\"1732083318745\",\"LiquidityNet\":\"1296767196881\"},{\"Index\":306060,\"LiquidityGross\":\"495781564396439\",\"LiquidityNet\":\"495781564396439\"},{\"Index\":306540,\"LiquidityGross\":\"102432555408153\",\"LiquidityNet\":\"-102432555408153\"},{\"Index\":306780,\"LiquidityGross\":\"467528137008934\",\"LiquidityNet\":\"467528137008934\"},{\"Index\":307500,\"LiquidityGross\":\"495781564396439\",\"LiquidityNet\":\"-495781564396439\"},{\"Index\":307740,\"LiquidityGross\":\"4344756322246972\",\"LiquidityNet\":\"4344756322246972\"},{\"Index\":308160,\"LiquidityGross\":\"1787834197756\",\"LiquidityNet\":\"385888480188\"},{\"Index\":309180,\"LiquidityGross\":\"4344756322246972\",\"LiquidityNet\":\"-4344756322246972\"},{\"Index\":309840,\"LiquidityGross\":\"89181637287761001\",\"LiquidityNet\":\"89181637287761001\"},{\"Index\":309900,\"LiquidityGross\":\"89181637287761001\",\"LiquidityNet\":\"-89181637287761001\"},{\"Index\":310560,\"LiquidityGross\":\"467528137008934\",\"LiquidityNet\":\"-467528137008934\"},{\"Index\":311400,\"LiquidityGross\":\"94487594555140975\",\"LiquidityNet\":\"94487594555140975\"},{\"Index\":311460,\"LiquidityGross\":\"94487594555140975\",\"LiquidityNet\":\"-94487594555140975\"},{\"Index\":313380,\"LiquidityGross\":\"1086861338972\",\"LiquidityNet\":\"-1086861338972\"},{\"Index\":320100,\"LiquidityGross\":\"1514425257813\",\"LiquidityNet\":\"-1514425257813\"},{\"Index\":887220,\"LiquidityGross\":\"7170700643941033\",\"LiquidityNet\":\"-7170700643941033\"}],\"tS\":60,\"tP\":{\"1421\":{\"init\":true,\"ts\":1771326315,\"cum\":121683264476,\"vo\":\"672591899740\",\"tick\":308211,\"avgT\":307966,\"wsI\":1374},\"1422\":{\"init\":true,\"ts\":1771326329,\"cum\":121687583672,\"vo\":\"672596103996\",\"tick\":308514,\"avgT\":307966,\"wsI\":1374}},\"vo\":{\"tpIdx\":1422,\"lastTs\":1771326329,\"init\":true},\"dF\":{\"a1\":0,\"a2\":0,\"b1\":360,\"b2\":60000,\"g1\":59,\"g2\":8500,\"bF\":20000},\"sF\":{\"0to1fF\":\"79228162514264337593543950336\",\"1to0fF\":\"79228162514264337593543950336\",\"pCF\":0,\"bF\":0,\"feeType\":false}}","staticExtra":"{\"pluginV2\":true}"}`),
+			&trebleUsdcTrebEp))
+	trebleUsdcTrebPS = lo.Must(NewPoolSimulator(trebleUsdcTrebEp))
+)
+
+func TestCalcAmountOut_TrebleSwap_USDC_TREB(t *testing.T) {
+	t.Parallel()
+	// Swap 10 USDC -> TREB on TrebleSwap (Base)
+	res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+		return trebleUsdcTrebPS.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+				Amount: big.NewInt(10_000_000),                        // 10 USDC
+			},
+			TokenOut: "0xdd2fc771ddab2b787aedfd100a67d8a4754a380c", // TREB
+		})
+	})
+
+	require.NoError(t, err)
+	expected, _ := new(big.Int).SetString("236628303958585824752", 10)
+	assert.Equal(t, expected, res.TokenAmountOut.Amount)
+}
+
+// TrebleSwap Pool: ETH/TREB 0x86622de331f75a2c0cd3d59dca862b82efd970d9
+var (
+	trebleEthTrebEp entity.Pool
+	_               = lo.Must(0,
+		json.Unmarshal([]byte(`{"address":"0x86622de331f75a2c0cd3d59dca862b82efd970d9","exchange":"trebleswap","type":"algebra-integral","timestamp":1771332537,"reserves":["6600000000000000000","20000000000000000000000"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","name":"Wrapped Ether","symbol":"WETH","decimals":18,"weight":50,"swappable":true},{"address":"0xdd2fc771ddab2b787aedfd100a67d8a4754a380c","name":"Treble","symbol":"TREB","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liq\":\"1367695178967723519455\",\"gS\":{\"price\":\"17368862755344960704543608531493\",\"tick\":107807,\"lF\":500,\"pC\":215,\"cF\":100,\"un\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":\"14913288986969304337704\",\"LiquidityNet\":\"14913288986969304337704\"},{\"Index\":23040,\"LiquidityGross\":\"13559488140812048306952\",\"LiquidityNet\":\"-13559488140812048306952\"},{\"Index\":101880,\"LiquidityGross\":\"31774224174149071\",\"LiquidityNet\":\"31774224174149071\"},{\"Index\":105720,\"LiquidityGross\":\"13808063828146394592\",\"LiquidityNet\":\"13808063828146394592\"},{\"Index\":107400,\"LiquidityGross\":\"55878136434746916\",\"LiquidityNet\":\"54494758146945040\"},{\"Index\":108660,\"LiquidityGross\":\"32481436244952349\",\"LiquidityNet\":\"-31067012103345793\"},{\"Index\":109020,\"LiquidityGross\":\"13808063828146394592\",\"LiquidityNet\":\"-13808063828146394592\"},{\"Index\":111360,\"LiquidityGross\":\"55186447290845978\",\"LiquidityNet\":\"-55186447290845978\"},{\"Index\":887220,\"LiquidityGross\":\"1353800861680182933092\",\"LiquidityNet\":\"-1353800861680182933092\"}],\"tS\":60,\"tP\":{\"922\":{\"init\":true,\"ts\":1771327457,\"cum\":41954069246,\"vo\":\"533134328944\",\"tick\":107824,\"avgT\":107655,\"wsI\":893},\"923\":{\"init\":true,\"ts\":1771332537,\"cum\":42501810086,\"vo\":\"533209284397\",\"tick\":107823,\"avgT\":107755,\"wsI\":895}},\"vo\":{\"tpIdx\":923,\"lastTs\":1771332537,\"init\":true},\"dF\":{\"a1\":0,\"a2\":0,\"b1\":360,\"b2\":60000,\"g1\":59,\"g2\":8500,\"bF\":20000},\"sF\":{\"0to1fF\":\"79228162514264337593543950336\",\"1to0fF\":\"79228162514264337593543950336\",\"pCF\":0,\"bF\":0,\"feeType\":false}}","staticExtra":"{\"pluginV2\":true}"}`),
+			&trebleEthTrebEp))
+	trebleEthTrebPS = lo.Must(NewPoolSimulator(trebleEthTrebEp))
+)
+
+func TestCalcAmountOut_TrebleSwap_ETH_TREB(t *testing.T) {
+	t.Parallel()
+	// Swap 0.01 WETH -> TREB on TrebleSwap (Base)
+	res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+		return trebleEthTrebPS.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x4200000000000000000000000000000000000006", // WETH
+				Amount: big.NewInt(1e16),                            // 0.01 WETH
+			},
+			TokenOut: "0xdd2fc771ddab2b787aedfd100a67d8a4754a380c", // TREB
+		})
+	})
+
+	require.NoError(t, err)
+	expected, _ := new(big.Int).SetString("470249138528089062086", 10)
+	assert.Equal(t, expected, res.TokenAmountOut.Amount)
+}
+
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, ps)
