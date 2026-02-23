@@ -18,6 +18,10 @@ import (
 
 var ErrOutdatedAttestations = errors.New("outdated attestations")
 
+var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
+	return &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom}
+}, L2HookAddresses...)
+
 type Hook struct {
 	uniswapv4.Hook
 
