@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 	"slices"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
@@ -16,13 +17,16 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	extra        Extra
-	decimalsDiff int
+	poolTimestamp int64
+	extra         Extra
+	decimalsDiff  int
 }
 
 var (
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
+	ErrUnavailableQuote      = errors.New("quote not available")
+	ErrStalePoolData         = errors.New("stale pool data")
 )
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -43,12 +47,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, _ int) *big.Int { return bignumber.NewBig(item) }),
 		}},
-		extra:        extra,
-		decimalsDiff: int(entityPool.Tokens[0].Decimals) - int(entityPool.Tokens[1].Decimals),
+		poolTimestamp: entityPool.Timestamp,
+		extra:         extra,
+		decimalsDiff:  int(entityPool.Tokens[0].Decimals) - int(entityPool.Tokens[1].Decimals),
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if !s.extra.QuoteAvailable {
+		return nil, ErrUnavailableQuote
+	}
+
+	if s.poolTimestamp+s.extra.MaxAge < time.Now().Unix() {
+		return nil, ErrStalePoolData
+	}
+
 	amountInF, _ := params.TokenAmountIn.Amount.Float64()
 
 	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
