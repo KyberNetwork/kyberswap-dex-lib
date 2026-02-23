@@ -49,7 +49,7 @@ func TestPoolListUpdater(t *testing.T) {
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		graphql.NewClient(MainnetConfig.SubgraphAPI))
 
-	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
+	newPools, _, err := plUpdater.GetNewPools(t.Context(), nil)
 	require.NoError(t, err)
 	require.Greater(t, len(newPools), 0)
 

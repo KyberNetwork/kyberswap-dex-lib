@@ -252,18 +252,14 @@ func (f *dataFetchers) fetchPools(
 				ABI:    abis.QuoteDataFetcherABI,
 				Target: f.config.QuoteDataFetcher,
 				Method: quoteDataFetcherMethod,
-				Params: []any{
-					abiPoolKey,
-				},
+				Params: []any{abiPoolKey, minTickSpacingsPerPool},
 			}, []any{&batchQuoteData[i]})
 
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.BoostedFeesDataFetcherABI,
 				Target: f.config.BoostedFeesDataFetcher,
 				Method: boostedFeesDataFetcherMethod,
-				Params: []any{
-					abiPoolKey,
-				},
+				Params: []any{abiPoolKey},
 			}, []any{&batchBoostedFeesData[i]})
 		}
 		resp, err := req.Aggregate()
