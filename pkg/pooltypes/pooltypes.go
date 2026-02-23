@@ -70,6 +70,7 @@ import (
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
+	hiddenocean "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hidden-ocean"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
@@ -338,6 +339,7 @@ type Types struct {
 	Ekubo                      string
 	EkuboV3                    string
 	ERC4626                    string
+	HiddenOcean                string
 	HyETH                      string
 	MimSwap                    string
 	InfinityPools              string
@@ -536,6 +538,7 @@ var (
 		Ekubo:                      ekubo.DexType,
 		EkuboV3:                    ekubov3.DexType,
 		ERC4626:                    erc4626.DexType,
+		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
 		MimSwap:                    mimswap.DexType,
 		InfinityPools:              infinitypools.DexType,
