@@ -14,7 +14,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -242,24 +241,26 @@ func (f *dataFetchers) fetchPools(
 		}
 
 		batchSize := len(poolKeyBatch)
-		batchQuoteData := make([]struct{ quoteData }, batchSize)
+		batchQuoteData := make([]quoteData, batchSize)
 		batchBoostedFeesData := make([]struct{ boostedFeesQuoteData }, batchSize)
 
+		req.AddCall(&ethrpc.Call{
+			ABI:    abis.QuoteDataFetcherABI,
+			Target: f.config.QuoteDataFetcher,
+			Method: quoteDataFetcherMethod,
+			Params: []any{
+				lo.Map(poolKeyBatch, func(poolKey pools.AnyPoolKey, _ int) pools.AbiPoolKey {
+					return poolKey.ToAbi()
+				}),
+				minTickSpacingsPerPool,
+			},
+		}, []any{&batchQuoteData})
 		for i, poolKey := range poolKeyBatch {
-			abiPoolKey := poolKey.ToAbi()
-
-			req.AddCall(&ethrpc.Call{
-				ABI:    abis.QuoteDataFetcherABI,
-				Target: f.config.QuoteDataFetcher,
-				Method: quoteDataFetcherMethod,
-				Params: []any{abiPoolKey, minTickSpacingsPerPool},
-			}, []any{&batchQuoteData[i]})
-
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.BoostedFeesDataFetcherABI,
 				Target: f.config.BoostedFeesDataFetcher,
 				Method: boostedFeesDataFetcherMethod,
-				Params: []any{abiPoolKey},
+				Params: []any{poolKey.ToAbi()},
 			}, []any{&batchBoostedFeesData[i]})
 		}
 		resp, err := req.Aggregate()
@@ -279,7 +280,7 @@ func (f *dataFetchers) fetchPools(
 			if concentratedConfig, ok := config.(pools.ConcentratedPoolTypeConfig); ok {
 				fetchedPools = append(fetchedPools, fetchedPool{
 					PoolWithBlockNumber{
-						Pool:        pools.NewBoostedFeesPool(poolKey.ToConcentrated(concentratedConfig), newBoostedFeesPoolState(&tuple.B.quoteData, &tuple.C.boostedFeesQuoteData)),
+						Pool:        pools.NewBoostedFeesPool(poolKey.ToConcentrated(concentratedConfig), newBoostedFeesPoolState(&tuple.B, &tuple.C.boostedFeesQuoteData)),
 						blockNumber: blockNumber,
 					},
 					poolKey,
