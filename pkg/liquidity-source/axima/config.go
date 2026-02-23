@@ -2,6 +2,7 @@ package axima
 
 import (
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
