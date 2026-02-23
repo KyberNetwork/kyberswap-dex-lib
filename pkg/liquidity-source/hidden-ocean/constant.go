@@ -10,11 +10,8 @@ const (
 
 	defaultGas int64 = 150000
 
-	// Fee denominator (1_000_000 = 100%)
-	feeDenominator = 1_000_000
-
 	// Pool methods
-	methodSlot0    = "slot0"
+	methodSlot0     = "slot0"
 	methodLiquidity = "liquidity"
 	methodFee       = "fee"
 	methodGetRange  = "getRange"
