@@ -1,6 +1,8 @@
 package hiddenocean
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -24,6 +26,19 @@ type RegistryPoolInfo struct {
 	Pool   common.Address
 	Token0 common.Address
 	Token1 common.Address
+}
+
+// Slot0 mirrors the return values of pool.slot0().
+type Slot0 struct {
+	SqrtPriceX96 *big.Int
+	Tick         *big.Int
+	Unlocked     bool
+}
+
+// RangeInfo mirrors the return values of pool.getRange().
+type RangeInfo struct {
+	SqrtPaX96 *big.Int
+	SqrtPbX96 *big.Int
 }
 
 // SwapInfo is passed to the router for execution.

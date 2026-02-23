@@ -56,15 +56,12 @@ func fetchPoolState(
 	ctx context.Context, ethrpcClient *ethrpc.Client, poolAddr string,
 ) (Extra, []string, uint64, error) {
 	var (
-		sqrtPriceX96 *big.Int
-		tick         *big.Int
-		unlocked     bool
-		liquidity    *big.Int
-		fee          *big.Int
-		sqrtPaX96    *big.Int
-		sqrtPbX96    *big.Int
-		balance0     *big.Int
-		balance1     *big.Int
+		slot0      Slot0
+		liquidity  *big.Int
+		fee        *big.Int
+		rangeInfo  RangeInfo
+		balance0   *big.Int
+		balance1   *big.Int
 	)
 
 	// We need to know token addresses to query balanceOf. Read them first.
@@ -100,7 +97,7 @@ func fetchPoolState(
 		ABI:    poolABI,
 		Target: poolAddr,
 		Method: methodSlot0,
-	}, []any{&sqrtPriceX96, &tick, &unlocked})
+	}, []any{&slot0})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -118,7 +115,7 @@ func fetchPoolState(
 		ABI:    poolABI,
 		Target: poolAddr,
 		Method: methodGetRange,
-	}, []any{&sqrtPaX96, &sqrtPbX96})
+	}, []any{&rangeInfo})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
@@ -134,7 +131,7 @@ func fetchPoolState(
 		Params: []any{common.HexToAddress(poolAddr)},
 	}, []any{&balance1})
 
-	resp, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool":  poolAddr,
@@ -144,11 +141,11 @@ func fetchPoolState(
 	}
 
 	extra := Extra{
-		SqrtPriceX96: uint256FromBigInt(sqrtPriceX96),
+		SqrtPriceX96: uint256FromBigInt(slot0.SqrtPriceX96),
 		Liquidity:    uint256FromBigInt(liquidity),
 		Fee:          uint32(fee.Uint64()),
-		SqrtPaX96:    uint256FromBigInt(sqrtPaX96),
-		SqrtPbX96:    uint256FromBigInt(sqrtPbX96),
+		SqrtPaX96:    uint256FromBigInt(rangeInfo.SqrtPaX96),
+		SqrtPbX96:    uint256FromBigInt(rangeInfo.SqrtPbX96),
 	}
 
 	reserves := []string{
