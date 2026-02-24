@@ -202,17 +202,9 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 
-	reserve0, reserve1, err := uniswapv4.CalculateReservesFromTicks(
-		rpcData.Slot0.SqrtPriceX96, ticks,
-	)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to calculate reserves from ticks")
-		return entity.Pool{}, err
-	}
-
+	reserve0, reserve1 := uniswapv4.EstimateReservesFromTicks(rpcData.Slot0.SqrtPriceX96, ticks)
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+
 	p.BlockNumber = blockNumber
 
 	l.Infof("Finish updating state of pool")

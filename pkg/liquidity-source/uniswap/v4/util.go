@@ -1,15 +1,15 @@
 package uniswapv4
 
 import (
-	"errors"
+	"math"
 	"math/big"
 
-	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -26,56 +26,39 @@ func GetHookExchange(p *entity.Pool) valueobject.Exchange {
 	return valueobject.Exchange(hook.GetExchange())
 }
 
-func CalculateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (*big.Int, *big.Int, error) {
-	L := big.NewInt(0)
-	totalAmount0, totalAmount1 := big.NewInt(0), big.NewInt(0)
+const TickBase = 1.0001
 
-	for i, tickLower := range ticks {
-		L.Add(L, tickLower.LiquidityNet)
+var Q96 = math.Pow(2, 96)
 
-		if L.Sign() == 0 {
-			continue
-		}
+func EstimateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (amt0, amt1 *big.Int) {
+	if len(ticks) == 0 {
+		return bignumber.ZeroBI, bignumber.ZeroBI
+	}
+	var L, totalAmt0, totalAmt1 float64
+	price, _ := sqrtPriceX96.Float64()
+	price /= Q96
 
-		if i == len(ticks)-1 {
-			return nil, nil, errors.New("sum liquidity net is not zero")
-		}
+	upper := math.Pow(TickBase, float64(ticks[0].Index)/2)
+	for i := 1; i < len(ticks); i++ {
+		tickLower, tickUpper := ticks[i-1], ticks[i]
+		liqNet, _ := tickLower.LiquidityNet.Float64()
+		L += liqNet
 
-		tickUpper := ticks[i+1]
+		lower := upper
+		upper = math.Pow(TickBase, float64(tickUpper.Index)/2)
 
-		sqrtLower, err := utils.GetSqrtRatioAtTick(tickLower.Index)
-		if err != nil {
-			return nil, nil, err
-		}
-		sqrtUpper, err := utils.GetSqrtRatioAtTick(tickUpper.Index)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		var numer, denom, amount0, amount1, tmp big.Int
-		if sqrtPriceX96.Cmp(sqrtLower) < 0 {
-			numer.Mul(L, Q96).Mul(&numer, tmp.Sub(sqrtUpper, sqrtLower))
-			denom.Mul(sqrtLower, sqrtUpper)
-
-			amount0.Div(&numer, &denom)
-		} else if sqrtPriceX96.Cmp(sqrtUpper) >= 0 {
-			numer.Mul(L, tmp.Sub(sqrtUpper, sqrtLower))
-
-			amount1.Div(&numer, Q96)
+		if price < lower {
+			totalAmt0 += L * (upper - lower) / (lower * upper)
+		} else if price >= upper {
+			totalAmt1 += L * (upper - lower)
 		} else {
-			numer.
-				Mul(L, Q96).
-				Mul(&numer, tmp.Sub(sqrtUpper, sqrtPriceX96))
-			denom.Mul(sqrtPriceX96, sqrtUpper)
-			amount0.Div(&numer, &denom)
-
-			numer.Mul(L, tmp.Sub(sqrtPriceX96, sqrtLower))
-			amount1.Div(&numer, Q96)
+			totalAmt0 += L * (upper - price) / (price * upper)
+			totalAmt1 += L * (price - lower)
 		}
-
-		totalAmount0.Add(totalAmount0, &amount0)
-		totalAmount1.Add(totalAmount1, &amount1)
 	}
 
-	return totalAmount0, totalAmount1, nil
+	var tmp big.Float
+	amt0, _ = tmp.SetFloat64(totalAmt0).Int(new(big.Int))
+	amt1, _ = tmp.SetFloat64(totalAmt1).Int(new(big.Int))
+	return amt0, amt1
 }

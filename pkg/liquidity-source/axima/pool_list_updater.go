@@ -3,7 +3,6 @@ package axima
 import (
 	"context"
 	"fmt"
-
 	"net/http"
 	"strings"
 	"time"

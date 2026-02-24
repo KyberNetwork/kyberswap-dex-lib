@@ -108,17 +108,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 			return nil, err
 		}
 
-		reserve0, reserve1, err := CalculateReservesFromTicks(
-			result.Slot0.SqrtPriceX96,
-			extra.Ticks,
-		)
-		if err != nil {
-			l.WithFields(logger.Fields{
-				"error": err,
-			}).Error("failed to calculate reserves from ticks")
-			return nil, err
-		}
-
+		reserve0, reserve1 := EstimateReservesFromTicks(result.Slot0.SqrtPriceX96, extra.Ticks)
 		result.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	}
 
