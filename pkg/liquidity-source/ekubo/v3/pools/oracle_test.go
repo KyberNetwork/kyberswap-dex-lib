@@ -20,12 +20,10 @@ func TestQuoteToken1Input(t *testing.T) {
 	t.Parallel()
 	p := NewOraclePool(
 		oraclePoolKey,
-		&OraclePoolState{
-			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: big256.U2Pow128,
-			},
-			Liquidity: uint256.NewInt(1_000_000_000),
-		},
+		NewFullRangePoolState(
+			NewFullRangePoolSwapState(big256.U2Pow128),
+			uint256.NewInt(1_000_000_000),
+		),
 	)
 
 	quote, err := p.Quote(uint256.NewInt(1000), true)
@@ -39,12 +37,10 @@ func TestQuoteToken0Input(t *testing.T) {
 	t.Parallel()
 	p := NewOraclePool(
 		oraclePoolKey,
-		&OraclePoolState{
-			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: big256.U2Pow128,
-			},
-			Liquidity: uint256.NewInt(1_000_000_000),
-		},
+		NewFullRangePoolState(
+			NewFullRangePoolSwapState(big256.U2Pow128),
+			uint256.NewInt(1_000_000_000),
+		),
 	)
 
 	quote, err := p.Quote(uint256.NewInt(1000), false)

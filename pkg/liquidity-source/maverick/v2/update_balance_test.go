@@ -4,11 +4,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/goccy/go-json"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateBalance(t *testing.T) {

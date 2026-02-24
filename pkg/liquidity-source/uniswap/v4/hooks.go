@@ -110,8 +110,8 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error)
-	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
+	BeforeSwap(params *BeforeSwapParams) (*BeforeSwapResult, error)
+	AfterSwap(params *AfterSwapParams) (*AfterSwapResult, error)
 	CanBeforeSwap(address common.Address) bool
 	CanAfterSwap(address common.Address) bool
 	CloneState() Hook

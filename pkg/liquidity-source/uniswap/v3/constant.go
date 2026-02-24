@@ -28,8 +28,11 @@ var (
 	zeroBI     = big.NewInt(0)
 	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
 
-	ErrOverflow       = errors.New("bigInt overflow int/uint256")
-	ErrInvalidFeeTier = errors.New("invalid feeTier")
-	ErrTickNil        = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
-	ErrV3TicksEmpty   = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
+	ErrOverflow            = errors.New("bigInt overflow int/uint256")
+	ErrInvalidFeeTier      = errors.New("invalid feeTier")
+	ErrTickNil             = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrV3TicksEmpty        = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
+	ErrInvalidToken        = errors.New("invalid token")
+	ErrZeroAmount          = errors.New("zero amount")
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )

@@ -74,19 +74,19 @@ func TestHook_AfterSwap_ExactOut(t *testing.T) {
 	hook := &Hook{}
 
 	// Test exact output swap with 1 ETH output
-	amountOut := big.NewInt(1e18)
+	amountIn := big.NewInt(1e18)
 	params := &uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			ExactIn: false,
 		},
-		AmountOut: amountOut,
+		AmountIn: amountIn,
 	}
 
 	result, err := hook.AfterSwap(params)
 	assert.NoError(t, err)
 
 	// Calculate expected 1% fee: 1e18 * 10000 / 1000000 = 1e16
-	expectedFee := new(big.Int).Mul(amountOut, big.NewInt(10000))
+	expectedFee := new(big.Int).Mul(amountIn, big.NewInt(10000))
 	expectedFee.Div(expectedFee, big.NewInt(1000000))
 	assert.Equal(t, expectedFee, result.HookFee)
 }
