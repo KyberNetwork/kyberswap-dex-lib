@@ -15,8 +15,14 @@ var (
 )
 
 func (b *ExtraBuffer) ConvertToShares(amount *uint256.Int, isExactOut bool) (*uint256.Int, error) {
-	if !isExactOut && amount.Lt(MinimumWrapAmount) {
-		return nil, ErrWrapAmountTooSmall
+	if !isExactOut {
+		// exact in, amount is amountIn, must validate with minimum wrap amount and max deposit
+		if amount.Lt(MinimumWrapAmount) {
+			return nil, ErrWrapAmountTooSmall
+		}
+		if b.MaxDeposit != nil && amount.Gt(b.MaxDeposit) {
+			return nil, ErrMaxDepositExceeded
+		}
 	}
 
 	result, err := erc4626.GetClosestRate(b.DepositRates, amount, isExactOut)
@@ -24,16 +30,27 @@ func (b *ExtraBuffer) ConvertToShares(amount *uint256.Int, isExactOut bool) (*ui
 		return nil, err
 	}
 
-	if isExactOut && result.Lt(MinimumWrapAmount) {
-		return nil, ErrWrapAmountTooSmall
+	if isExactOut {
+		// exact out, result is amountIn, must validate with minimum wrap amount and max deposit
+		if result.Lt(MinimumWrapAmount) {
+			return nil, ErrWrapAmountTooSmall
+		}
+		if b.MaxDeposit != nil && result.Gt(b.MaxDeposit) {
+			return nil, ErrMaxDepositExceeded
+		}
 	}
 
 	return result, nil
 }
 
 func (b *ExtraBuffer) ConvertToAssets(amount *uint256.Int, isExactOut bool) (*uint256.Int, error) {
-	if !isExactOut && amount.Lt(MinimumWrapAmount) {
-		return nil, ErrWrapAmountTooSmall
+	if !isExactOut {
+		if amount.Lt(MinimumWrapAmount) {
+			return nil, ErrWrapAmountTooSmall
+		}
+		if b.MaxRedeem != nil && amount.Gt(b.MaxRedeem) {
+			return nil, ErrMaxRedeemExceeded
+		}
 	}
 
 	result, err := erc4626.GetClosestRate(b.RedeemRates, amount, isExactOut)
@@ -41,8 +58,13 @@ func (b *ExtraBuffer) ConvertToAssets(amount *uint256.Int, isExactOut bool) (*ui
 		return nil, err
 	}
 
-	if isExactOut && result.Lt(MinimumWrapAmount) {
-		return nil, ErrWrapAmountTooSmall
+	if isExactOut {
+		if result.Lt(MinimumWrapAmount) {
+			return nil, ErrWrapAmountTooSmall
+		}
+		if b.MaxRedeem != nil && result.Gt(b.MaxRedeem) {
+			return nil, ErrMaxRedeemExceeded
+		}
 	}
 
 	return result, nil

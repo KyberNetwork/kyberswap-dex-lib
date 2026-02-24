@@ -1,0 +1,43 @@
+[
+  {
+    "dexId": "infinifi",
+    "gateway": "0x3f04b65Ddbd87f9CE0A2e7Eb24d80e7fb87625b5",
+    "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "iusd": "0x48f9e38f3070AD8945DFEae3FA70987722E3D89c",
+    "siusd": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB",
+    "lockingController": "0x1d95cC100D6Cd9C7BbDbD7Cb328d99b3D6037fF7",
+    "liusdTokens": [
+      {
+        "address": "0x12b004719fb632f1E7c010c6F5D6009Fb4258442",
+        "unwindingEpochs": 1,
+        "name": "liUSD-1mo"
+      },
+      {
+        "address": "0xf1839BeCaF586814D022F16cDb3504ff8D8Ff361",
+        "unwindingEpochs": 2,
+        "name": "liUSD-2mo"
+      },
+      {
+        "address": "0x66bCF6151D5558AfB47c38B20663589843156078",
+        "unwindingEpochs": 4,
+        "name": "liUSD-4mo"
+      },
+      {
+        "address": "0xb06Cc4548FebfF3D66a680F9c516381c79bC9707",
+        "unwindingEpochs": 6,
+        "name": "liUSD-6mo"
+      },
+      {
+        "address": "0xf68b95b7e851170c0e5123a3249dD1Ca46215085",
+        "unwindingEpochs": 8,
+        "name": "liUSD-8mo"
+      },
+      {
+        "address": "0xbd3f9814eB946E617f1d774A6762cDbec0bf087A",
+        "unwindingEpochs": 13,
+        "name": "liUSD-13mo"
+      }
+    ]
+  }
+]
+

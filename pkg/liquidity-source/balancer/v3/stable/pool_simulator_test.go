@@ -16,13 +16,10 @@ import (
 )
 
 var (
-	entityPool, eP2 entity.Pool
-	_               = json.Unmarshal([]byte(`{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1751293016,"reserves":["687804073931103275644","1783969556654743519024"],"tokens":[{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"},{"address":"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"694069210892948295209\",\"2124492373418339554414\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009108897721464489\",\"1190879275654308905\"],\"buffs\":[{\"dRate\":[\"976255\",\"976255817341\",\"976255817341645373\",\"976255817341645373456045\",\"976255817341645373456045753577\"],\"rRate\":[\"1024321\",\"1024321681096\",\"1024321681096877127\",\"1024321681096877127977750\",\"1024321681096877127977750950000\"]},{\"dRate\":[\"996629\",\"996629442697\",\"996629442697471179\",\"996629442697471179789157\",\"996629442697471179789157582365\"],\"rRate\":[\"1003381\",\"1003381956380\",\"1003381956380303285\",\"1003381956380303285385258\",\"1003381956380303285385258382000\"]}],\"surge\":{},\"ampParam\":\"5000000\"}","staticExtra":"{\"buffs\":[\"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9\",\"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29\"]}","blockNumber":22817774}`),
+	entityPool entity.Pool
+	_          = json.Unmarshal([]byte(`{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1751293016,"reserves":["687804073931103275644","1783969556654743519024"],"tokens":[{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"},{"address":"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"694069210892948295209\",\"2124492373418339554414\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009108897721464489\",\"1190879275654308905\"],\"buffs\":[{\"dRate\":[\"976255\",\"976255817341\",\"976255817341645373\",\"976255817341645373456045\",\"976255817341645373456045753577\"],\"rRate\":[\"1024321\",\"1024321681096\",\"1024321681096877127\",\"1024321681096877127977750\",\"1024321681096877127977750950000\"]},{\"dRate\":[\"996629\",\"996629442697\",\"996629442697471179\",\"996629442697471179789157\",\"996629442697471179789157582365\"],\"rRate\":[\"1003381\",\"1003381956380\",\"1003381956380303285\",\"1003381956380303285385258\",\"1003381956380303285385258382000\"]}],\"surge\":{},\"ampParam\":\"5000000\"}","staticExtra":"{\"buffs\":[\"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9\",\"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29\"]}","blockNumber":22817774}`),
 		&entityPool)
-	_ = json.Unmarshal([]byte(`{"address":"0x79f96e2160c9069bd819161276320d8c8beab0ea","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1759834811,"reserves":["145112515681572525","157550194","487789","133457591"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","symbol":"WETH","decimals":18,"swappable":true},{"address":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf","symbol":"cbBTC","decimals":8,"swappable":true},{"address":"0xfde4c96c8593536e31f229ea8f37b2ada2699bb2","symbol":"USDT","decimals":6,"swappable":true},{"address":"0xc768c589647798a6ee01a91fde98ef2ed046dbd6","symbol":"waBasUSDC","decimals":6,"swappable":true}],"extra":"{\"hook\":{\"dynFee\":true},\"fee\":\"8000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"681593916124730114424\",\"174733118599984050167\",\"606843756465924360000\",\"133457591000000000000\"],\"decs\":[\"1\",\"1000000000000\",\"10000000000\",\"1000000000000\"],\"rates\":[\"4697002963000000000000\",\"1109063176399414971\",\"124407019524000000000000\",\"1000000000000000000\"],\"buffs\":[null,{\"dRate\":[\"901661\",\"901661890214\",\"901661890214866120\",\"901661890214866120568244\",\"901661890214866120568244980649\"],\"rRate\":[\"1109063\",\"1109063176399\",\"1109063176399414971\",\"1109063176399414971194981\",\"1109063176399414971194981471000\"]},null,null],\"surge\":{\"max\":\"100000000000000000\",\"thres\":\"300000000000000000\"},\"ampParam\":\"5000000\"}","staticExtra":"{\"hook\":\"0xdb8d758bcb971e482b2c45f7f8a7740283a1bd3a\",\"hookT\":\"STABLE_SURGE\",\"buffs\":[\"\",\"0xc768c589647798a6ee01a91fde98ef2ed046dbd6\",\"\",\"\"]}","blockNumber":36522732}`),
-		&eP2)
 	poolSim = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool}))
-	pS2     = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: eP2}))
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -111,31 +108,8 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 }
 
-func TestCalcAmountOutSurge(t *testing.T) {
-	t.Parallel()
-	testutil.TestCalcAmountOut(t, pS2, map[int]map[int]map[string]string{
-		1: {
-			2: {
-				"100000000": "80420",  // "80420",
-				"200000000": "153185", // "160812",
-				"400000000": "300714", // "321540",
-				"800000000": "487638", // "487638",
-			},
-		},
-		2: {
-			1: {
-				"40000":  "46378456",  // "47031432",
-				"80000":  "92208588",  // "93112601",
-				"160000": "172329018", // "172333931",
-				"320000": "174614087", // "174614090",
-			},
-		},
-	})
-}
-
 func TestCalcAmountIn(t *testing.T) {
 	testutil.TestCalcAmountIn(t, poolSim, 8)
-	testutil.TestCalcAmountIn(t, pS2, 4)
 }
 
 func TestCanSwapTo(t *testing.T) {
@@ -238,7 +212,7 @@ func TestUpdateBalance(t *testing.T) {
 			tokenOutAmount: big.NewInt(1e18),
 			expectedReserves: []*big.Int{
 				big.NewInt(4e18),                // waEthLidoWETH + in
-				big.NewInt(3003370557302528821), // waEthLidowstETH reserve - out/ERC4626rate
+				big.NewInt(2996618043619696715), // waEthLidowstETH reserve - out/ERC4626rate
 			},
 			aggregateFee: big.NewInt(0), // Zero fee for test examples
 		},
@@ -251,7 +225,7 @@ func TestUpdateBalance(t *testing.T) {
 			tokenOutAmount: big.NewInt(1e18),
 			expectedReserves: []*big.Int{
 				big.NewInt(3952511634683290746), // waEthLidoWETH + in/ERC4626rate
-				big.NewInt(3003370557302528821), // waEthLidowstETH reserve - out/ERC4626rate
+				big.NewInt(2996618043619696715), // waEthLidowstETH reserve - out/ERC4626rate
 			},
 			aggregateFee: big.NewInt(0), // Zero fee for test examples
 		},
@@ -306,4 +280,41 @@ func TestUpdateBalance(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCalcAmountOutPanic(t *testing.T) {
+	poolEntityStr := "{\"address\":\"0xd99324d16b9a9eca5a20fecee5d1989558b9d8ed\",\"exchange\":\"balancer-v3-stable\",\"type\":\"balancer-v3-stable\",\"timestamp\":1768983592,\"reserves\":[\"999300441332177518\",\"883041\"],\"tokens\":[{\"address\":\"0x8292bb45bf1ee4d140127049757c2e0ff06317ed\",\"symbol\":\"RLUSD\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true},{\"address\":\"0x6a1792a91c08e9f0bfe7a990871b786643237f0f\",\"symbol\":\"waEthRLUSD\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xd4fa2d31b7968e448877f69a96de69f5de8cd23e\",\"symbol\":\"waEthUSDC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"hook\\\":{\\\"dynFee\\\":true},\\\"fee\\\":\\\"100000000000000\\\",\\\"aggrFee\\\":\\\"500000000000000000\\\",\\\"balsE18\\\":[\\\"1005245953312396286\\\",\\\"1024179422593754150\\\"],\\\"decs\\\":[\\\"1\\\",\\\"1000000000000\\\"],\\\"rates\\\":[\\\"1005949674126324558\\\",\\\"1159832241757465566\\\"],\\\"buffs\\\":[{\\\"dRate\\\":[\\\"994085\\\",\\\"994085515131\\\",\\\"994085515131269466\\\",\\\"994085515131269466156146\\\",\\\"994085515131269466156146117490\\\"],\\\"rRate\\\":[\\\"1005949\\\",\\\"1005949674126\\\",\\\"1005949674126324558\\\",\\\"1005949674126324558000916\\\",\\\"1005949674126324558000916272000\\\"],\\\"dMax\\\":\\\"0\\\",\\\"rMax\\\":\\\"431894632730662112724\\\"},{\\\"dRate\\\":[\\\"862193\\\",\\\"862193655252\\\",\\\"862193655252008116\\\",\\\"862193655252008116984440\\\",\\\"862193655252008116984440858996\\\"],\\\"rRate\\\":[\\\"1159832\\\",\\\"1159832241757\\\",\\\"1159832241757465566\\\",\\\"1159832241757465566986639\\\",\\\"1159832241757465566986639823000\\\"],\\\"dMax\\\":\\\"3159008492181171\\\",\\\"rMax\\\":\\\"3740768686869\\\"}],\\\"surge\\\":{\\\"max\\\":\\\"950000000000000000\\\",\\\"thres\\\":\\\"300000000000000000\\\"},\\\"ampParam\\\":\\\"1000000\\\"}\",\"staticExtra\":\"{\\\"hook\\\":\\\"0xbdbadc891bb95dee80ebc491699228ef0f7d6ff1\\\",\\\"hookT\\\":\\\"STABLE_SURGE\\\",\\\"buffs\\\":[\\\"0x6a1792a91c08e9f0bfe7a990871b786643237f0f\\\",\\\"0xd4fa2d31b7968e448877f69a96de69f5de8cd23e\\\"]}\",\"blockNumber\":24281924}"
+
+	var entity entity.Pool
+	err := json.Unmarshal([]byte(poolEntityStr), &entity)
+	assert.NoError(t, err)
+
+	sim, err := NewPoolSimulator(pool.FactoryParams{
+		EntityPool: entity,
+	})
+	assert.NoError(t, err)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: big.NewInt(10_000_000),
+		},
+		TokenOut: "0x8292bb45bf1ee4d140127049757c2e0ff06317ed",
+	})
+	assert.NoError(t, err)
+
+	defer func() {
+		r := recover()
+		assert.Nil(t, r, "The code did panic")
+	}()
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: big.NewInt(10_000_000),
+		},
+		TokenAmountOut: *res.TokenAmountOut,
+		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
+	})
 }

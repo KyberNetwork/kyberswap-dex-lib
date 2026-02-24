@@ -143,14 +143,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	}
 
 	var feesTokenY, remainingAmountIn *uint256.Int
+	priceLimit := levels.ArrayPrices[len(levels.ArrayPrices)-1]
 	if isBuy {
 		feesTokenY = big256.MulWadUp(&tmp, executedAmountIn, p.swapFee)
 		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn).Sub(amtIn, feesTokenY)
+		priceLimit = big256.MulDivUp(&executedValue, priceLimit, uPriceLimitMultiplier, big256.UBasisPoint)
 	} else {
 		feesTokenY = big256.MulWadUp(&tmp, executedAmountOut, p.swapFee)
-		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn)
 		executedAmountOut.Sub(executedAmountOut, feesTokenY)
+		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn)
+		priceLimit = big256.MulDivDown(&executedValue, priceLimit, big256.UBasisPoint, uPriceLimitMultiplier)
 	}
+	priceLimit = round(priceLimit, priceLimitPrecision, isBuy)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: executedAmountOut.ToBig()},
@@ -161,7 +165,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			executedLevels:     executedLevels,
 			lastExecutedShares: &executedShares,
 			HasNative:          p.SupportsNativeEth,
-			PriceLimit:         levels.ArrayPrices[len(levels.ArrayPrices)-1],
+			PriceLimit:         priceLimit,
 		},
 	}, nil
 }
@@ -194,4 +198,17 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
+}
+
+// round rounds uint256 number to at most sigs significant digits
+func round(num *uint256.Int, sigs uint, up bool) *uint256.Int {
+	digits := num.Log10() + 1
+	if digits <= sigs {
+		return num
+	}
+	shift := big256.TenPow(digits - sigs)
+	if up { // 1001..1010 -> 1000..1009 -> 100 -> 101 -> 1010
+		num.SubUint64(num, 1).Div(num, shift).AddUint64(num, 1).Mul(num, shift)
+	}
+	return num.Div(num, shift).Mul(num, shift)
 }

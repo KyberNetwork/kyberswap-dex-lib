@@ -1,6 +1,7 @@
 package angstrom
 
 import (
+	"net/http"
 	"sync"
 	"time"
 
@@ -23,7 +24,7 @@ var (
 
 func GetAttestationController(config HookConfig) *AttestationController {
 	once.Do(func() {
-		httpClient := resty.New().
+		httpClient := resty.NewWithClient(http.DefaultClient).
 			SetBaseURL(config.HTTP.BaseURL).
 			SetTimeout(config.HTTP.Timeout.Duration).
 			SetRetryCount(config.HTTP.RetryCount).
@@ -67,7 +68,7 @@ func (h *AttestationController) fetchAttestations() ([]Attestation, error) {
 			"blocks_in_future": h.cfg.BlocksInFuture,
 		}).
 		SetResult(&resp).
-		Post(GET_ATTESTATIONS_PATH)
+		Post(PathGetAttestations)
 
 	if err != nil {
 		return nil, err

@@ -15,7 +15,7 @@ const (
 
 	poolLensMethodGetFullPoolState = "getFullPoolState"
 
-	MaxTick = 460540 // MaxTick is the maximum tick value for Maverick V2 pools.
+	threshold = 5e7
 
 	GasSwap     = 125000
 	GasCrossBin = 20000

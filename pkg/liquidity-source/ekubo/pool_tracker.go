@@ -3,14 +3,12 @@ package ekubo
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -21,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -130,12 +129,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 	}
 
-	slices.SortFunc(logs, func(l, r types.Log) int {
-		if l.BlockNumber == r.BlockNumber {
-			return int(l.Index - r.Index)
-		}
-		return int(l.BlockNumber - r.BlockNumber)
-	})
+	eth.SortLogs(logs)
 
 	for _, log := range logs {
 		if log.BlockNumber < pool.blockNumber {

@@ -1,15 +1,9 @@
 package math
 
 import (
-	"errors"
-
 	"github.com/holiman/uint256"
 
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-)
-
-var (
-	ErrSqrtFailed = errors.New("_sqrt FAILED")
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var GyroPoolMath *gyroPoolMath

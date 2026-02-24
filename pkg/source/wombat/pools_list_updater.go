@@ -113,7 +113,7 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 			AssetMap: lo.SliceToMap(p.Assets, func(item AssetSubgraph) (string, Asset) {
 				return item.ID, Asset{Address: item.ID}
 			}),
-			DependenciesStored: true,
+			DependenciesStored: false,
 		})
 		if err != nil {
 			return nil, lastCreateTime, err
@@ -229,16 +229,4 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool
 	}
 
 	return PoolTypeWombatMain, nil
-}
-
-func (d *PoolsListUpdater) GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error) {
-	var extra Extra
-	err := json.Unmarshal([]byte(p.Extra), &extra)
-	if err != nil {
-		return nil, false, err
-	}
-
-	return lo.MapToSlice(extra.AssetMap, func(_ string, asset Asset) string {
-		return asset.Address
-	}), extra.DependenciesStored, nil
 }

@@ -341,7 +341,7 @@ func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount
 		return big.NewInt(0)
 	}
 	amount := new(big.Int).Mul(filledMakingAmount, big.NewInt(int64(order.MakerTokenFeePercent)))
-	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, valueobject.BasisPoint), bignumber.One), valueobject.BasisPoint)
+	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, bignumber.BasisPoint), bignumber.One), bignumber.BasisPoint)
 }
 
 // given total takingAmount, calculate fee and takingAmountAfterFee
@@ -360,10 +360,10 @@ func (p *PoolSimulator) calcTakerAssetFeeAmountExactIn(order *order, takingAmoun
 	// => takingAmountAfterFee + ceiling(takingAmountAfterFee * feePct / BasisPoint) = takingAmount
 
 	takingAmountAfterFee = new(big.Int).Div(
-		new(big.Int).Mul(takingAmount, valueobject.BasisPoint),
+		new(big.Int).Mul(takingAmount, bignumber.BasisPoint),
 		new(big.Int).Add(
 			big.NewInt(int64(feePct)),
-			valueobject.BasisPoint,
+			bignumber.BasisPoint,
 		),
 	)
 	fee = new(big.Int).Sub(takingAmount, takingAmountAfterFee)
@@ -383,8 +383,8 @@ func (p *PoolSimulator) calcTakerAssetFeeAmountExactOut(order *order, takingAmou
 
 	amount := new(big.Int).Mul(takingAmountAfterFee, big.NewInt(int64(feePct)))
 	fee = new(big.Int).Div(
-		new(big.Int).Add(amount, valueobject.BasisPointM1),
-		valueobject.BasisPoint,
+		new(big.Int).Add(amount, bignumber.BasisPointM1),
+		bignumber.BasisPoint,
 	)
 
 	takingAmount = new(big.Int).Add(takingAmountAfterFee, fee)

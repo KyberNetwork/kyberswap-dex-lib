@@ -159,10 +159,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	isDeposit, _ := s.getSwapType(tokenIn, tokenOut)
 	return Meta{
 		BlockNumber:   s.Info.BlockNumber,
 		IsNativeAsset: s.IsNativeAsset,
+		IsDeposit:     isDeposit == Deposit,
 	}
 }
 

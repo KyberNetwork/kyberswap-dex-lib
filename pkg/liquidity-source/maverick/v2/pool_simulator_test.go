@@ -139,7 +139,7 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 	})
 
 	t.Run("CalcAmountIn", func(t *testing.T) {
-		testutil.TestCalcAmountIn(t, poolSim, 2) // so slow...
+		testutil.TestCalcAmountIn(t, poolSim, 4) // so slow...
 	})
 }
 
@@ -164,15 +164,18 @@ func TestSimpleSwaps_MAV_WETH(t *testing.T) {
 	poolSim, err := NewPoolSimulator(poolEntity)
 	require.NoError(t, err)
 
+	cloned := poolSim.CloneState()
+
 	// Perform a swap to get swap info
 	amountIn := big.NewInt(1_000_000_000_000_000_000) // 1 MAV
+	tokenAmtIn := pool.TokenAmount{
+		Token:  poolEntity.Tokens[0].Address, // MAV
+		Amount: amountIn,
+	}
 	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  poolEntity.Tokens[0].Address, // MAV
-			Amount: amountIn,
-		},
-		TokenOut: poolEntity.Tokens[1].Address, // WETH
-		Limit:    nil,
+		TokenAmountIn: tokenAmtIn,
+		TokenOut:      poolEntity.Tokens[1].Address, // WETH
+		Limit:         nil,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -181,8 +184,37 @@ func TestSimpleSwaps_MAV_WETH(t *testing.T) {
 	expectedAmount := big.NewInt(22034312672685)
 	require.Equal(t, expectedAmount.String(), result.TokenAmountOut.Amount.String(), "Swap amount should match expected value")
 
+	cloned.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmtIn,
+		TokenAmountOut: *result.TokenAmountOut,
+		Fee:            *result.Fee,
+		SwapInfo:       result.SwapInfo,
+	})
+
+	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmtIn,
+		TokenOut:      poolEntity.Tokens[1].Address, // WETH
+		Limit:         nil,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Assert the expected amount of cloned pool stays the same
+	require.Equal(t, expectedAmount.String(), result.TokenAmountOut.Amount.String(), "Swap amount should match expected value")
+
+	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmtIn,
+		TokenOut:      poolEntity.Tokens[1].Address, // WETH
+		Limit:         nil,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Assert the expected amount after UpdateBalance
+	require.Equal(t, "22034204484076", result.TokenAmountOut.Amount.String(), "Swap amount should match expected value")
+
 	t.Run("CalcAmountIn", func(t *testing.T) {
-		testutil.TestCalcAmountIn(t, poolSim, 2) // so slow...
+		testutil.TestCalcAmountIn(t, poolSim, 4) // so slow...
 	})
 }
 
@@ -228,8 +260,8 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 	binCount := 0
 	for binId, bin := range poolSim.state.Bins {
 		if binCount < 10 { // Show first 10 bins
-			fmt.Printf("Bin %d: tick=%d, kind=%d, totalSupply=%s, tickBalance=%s\n",
-				binId, bin.Tick, bin.Kind, bin.TotalSupply.String(), bin.TickBalance.String())
+			fmt.Printf("Bin %d: tick=%d, totalSupply=%s, tickBalance=%s\n",
+				binId, bin.Tick, bin.TotalSupply.String(), bin.TickBalance.String())
 		}
 		binCount++
 	}

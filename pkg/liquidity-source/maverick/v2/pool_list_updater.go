@@ -232,7 +232,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 
 		// Create StaticExtra with data from both on-chain and API
 		staticExtra := StaticExtra{
-			TickSpacing: uint32(tickSpacingList[i].Uint64()),
+			TickSpacing: int32(tickSpacingList[i].Int64()),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

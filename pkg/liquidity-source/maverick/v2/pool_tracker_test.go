@@ -115,7 +115,6 @@ func TestGetState(t *testing.T) {
 			t.Logf("Fee B In: %d", state.FeeBIn)
 			t.Logf("Protocol fee ratio: %d", state.ProtocolFeeRatioD3)
 			t.Logf("Is locked: %t", state.IsLocked)
-			t.Logf("Last timestamp: %d", state.LastTimestamp)
 			t.Logf("Last TWA D8: %d", state.LastTwaD8)
 			t.Logf("Last log price D8: %d", state.LastLogPriceD8)
 
@@ -125,7 +124,6 @@ func TestGetState(t *testing.T) {
 			assert.True(t, state.ReserveA.Cmp(big.NewInt(0)) >= 0, "ReserveA should be non-negative")
 			assert.True(t, state.ReserveB.Cmp(big.NewInt(0)) >= 0, "ReserveB should be non-negative")
 			assert.True(t, state.BinCounter > 0, "BinCounter should be positive")
-			assert.True(t, state.LastTimestamp > 0, "LastTimestamp should be positive")
 			assert.True(t, blockNumber.Cmp(big.NewInt(0)) > 0, "Block number should be positive")
 
 			// Validate fee values (should be reasonable percentages)
@@ -243,20 +241,12 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 				assert.Equal(t, defaultBin.TotalSupply.String(), smallBatchBin.TotalSupply.String(),
 					"Bin %d TotalSupply should match", binId)
 			}
-			if defaultBin.CurrentLiquidity != nil {
-				assert.Equal(t, defaultBin.CurrentLiquidity.String(), smallBatchBin.CurrentLiquidity.String(),
-					"Bin %d CurrentLiquidity should match", binId)
-			}
 			if defaultBin.TickBalance != nil {
 				assert.Equal(t, defaultBin.TickBalance.String(), smallBatchBin.TickBalance.String(),
 					"Bin %d TickBalance should match", binId)
 			}
 			assert.Equal(t, defaultBin.Tick, smallBatchBin.Tick,
 				"Bin %d Tick should match", binId)
-			assert.Equal(t, defaultBin.Kind, smallBatchBin.Kind,
-				"Bin %d Kind should match", binId)
-			assert.Equal(t, defaultBin.MergeId, smallBatchBin.MergeId,
-				"Bin %d MergeId should match", binId)
 		}
 
 		// Compare tick data

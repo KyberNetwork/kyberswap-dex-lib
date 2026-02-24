@@ -1,0 +1,116 @@
+[
+  {
+      "type": "function",
+      "name": "getAmountIn",
+      "inputs": [
+          {
+              "name": "zeroForOne",
+              "type": "bool",
+              "internalType": "bool"
+          },
+          {
+              "name": "amountOut",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "getAmountOut",
+      "inputs": [
+          {
+              "name": "zeroForOne",
+              "type": "bool",
+              "internalType": "bool"
+          },
+          {
+              "name": "amountIn",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "outputs": [
+          {
+              "name": "",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "stateMutability": "view"
+  },
+  {
+      "type": "function",
+      "name": "swapExactIn",
+      "inputs": [
+          {
+              "name": "zeroForOne",
+              "type": "bool",
+              "internalType": "bool"
+          },
+          {
+              "name": "amountIn",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "amountOutMin",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "to",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "deadline",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+  },
+  {
+      "type": "function",
+      "name": "swapExactOut",
+      "inputs": [
+          {
+              "name": "zeroForOne",
+              "type": "bool",
+              "internalType": "bool"
+          },
+          {
+              "name": "amountOut",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "amountInMax",
+              "type": "uint256",
+              "internalType": "uint256"
+          },
+          {
+              "name": "to",
+              "type": "address",
+              "internalType": "address"
+          },
+          {
+              "name": "deadline",
+              "type": "uint256",
+              "internalType": "uint256"
+          }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+  }
+]

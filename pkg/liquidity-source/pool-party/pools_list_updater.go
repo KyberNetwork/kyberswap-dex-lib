@@ -2,15 +2,12 @@ package poolparty
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/goccy/go-json"
 
-	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
@@ -60,12 +57,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	// Track the last pool's CreatedAtTimestamp
 	var lastPoolIds []string
-	lastCreatedAtTimestampStr := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp
-	lastCreatedAtTimestamp, err := kutils.Atoi[int](lastCreatedAtTimestampStr)
-	if err != nil {
-		return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v, error: %v",
-			lastCreatedAtTimestampStr, subgraphPools[numSubgraphPools-1].ID, err)
-	}
+	lastCreatedAtTimestamp := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp.Int64()
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
@@ -83,19 +75,16 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Swappable: true,
 		}
 
-		publicAmountAvailableBI := bignumber.NewBig10(p.PublicAmountAvailable)
+		publicAmountAvailableBI := p.PublicAmountAvailable
 		if publicAmountAvailableBI.Sign() <= 0 {
 			publicAmountAvailableBI.SetUint64(0)
 		}
-		p.PublicAmountAvailable = publicAmountAvailableBI.String()
+		p.PublicAmountAvailable = publicAmountAvailableBI
 
 		tokens := []*entity.PoolToken{&tokenNative, &tokenTarget}
-		reserves := []string{"0", p.PublicAmountAvailable}
+		reserves := []string{"0", p.PublicAmountAvailable.String()}
 
-		createdAtTimestamp, err := kutils.Atoi[int64](p.CreatedAtTimestamp)
-		if err != nil {
-			return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v", p.CreatedAtTimestamp, p.ID)
-		}
+		createdAtTimestamp := p.CreatedAtTimestamp.Int64()
 
 		extra := Extra{
 			PoolStatus:            p.PoolStatus,
@@ -106,7 +95,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		extraBytes, _ := json.Marshal(extra)
 
 		var newPool = entity.Pool{
-			Address:   p.ID,
+			Address:   p.PoolAddress,
 			Exchange:  d.config.DexID,
 			Type:      DexType,
 			Timestamp: createdAtTimestamp,
@@ -116,13 +105,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		pools = append(pools, newPool)
-		if p.CreatedAtTimestamp == lastCreatedAtTimestampStr {
+		if p.CreatedAtTimestamp.Int64() == lastCreatedAtTimestamp {
 			lastPoolIds = append(lastPoolIds, p.ID)
 		}
 	}
 
 	newMetadataBytes, err := json.Marshal(Metadata{
-		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
+		LastCreatedAtTimestamp: int(lastCreatedAtTimestamp),
 		LastPoolIds:            lastPoolIds,
 	})
 	if err != nil {
@@ -142,10 +131,10 @@ func (d *PoolsListUpdater) getPoolsList(
 	lastCreatedAtTimestamp int,
 	lastPoolIds []string,
 ) ([]SubgraphPool, error) {
-	req := graphql.NewRequest(getPoolsListQuery(lastCreatedAtTimestamp, lastPoolIds))
+	req := graphql.NewRequest(getPoolsListQuery(d.config.ChainID, lastCreatedAtTimestamp, lastPoolIds))
 
 	var response struct {
-		Pools []SubgraphPool `json:"pools"`
+		Pools []SubgraphPool `json:"Pool"`
 	}
 
 	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {

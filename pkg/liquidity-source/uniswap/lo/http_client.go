@@ -3,6 +3,7 @@ package uniswaplo
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -19,7 +20,7 @@ type UniSwapXClient struct {
 }
 
 func NewUniSwapXClient(baseURL string) *UniSwapXClient {
-	client := resty.New()
+	client := resty.NewWithClient(http.DefaultClient)
 	client.SetBaseURL(baseURL)
 	client.SetTimeout(defaultTimeout)
 

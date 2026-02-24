@@ -26,15 +26,16 @@ type PoolSimulator struct {
 	fee         float64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm1)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm2)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm3)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm4)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm5)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm6)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	return NewPoolSimulatorWith(entityPool, MaxAge)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	return NewPoolSimulatorWith(params.EntityPool, lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64))
 }
 
 func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
@@ -195,8 +196,12 @@ func getAmountOut(amtIn float64, priceLevels []Level, minTrade float64) (amountO
 	}
 
 	for _, currentLevel := range priceLevels {
+		size := currentLevel.Size()
+		if size == 0 {
+			continue
+		}
 		levels++
-		currentLevelAmount := min(currentLevel.Size(), amtIn)
+		currentLevelAmount := min(size, amtIn)
 		amountOut += currentLevelAmount * currentLevel.Price()
 		if amtIn -= currentLevelAmount; amtIn <= 0 {
 			break
@@ -216,8 +221,12 @@ func getAmountIn(amtOut float64, priceLevels []Level, minTrade float64) (amountI
 	}
 
 	for _, currentLevel := range priceLevels {
+		size := currentLevel.Size()
+		if size == 0 {
+			continue
+		}
 		levels++
-		currentLevelAmount := min(currentLevel.Size()*currentLevel.Price(), amtOut)
+		currentLevelAmount := min(size*currentLevel.Price(), amtOut)
 		amountIn += currentLevelAmount / currentLevel.Price()
 		if amtOut -= currentLevelAmount; amtOut <= 0 {
 			break

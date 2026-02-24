@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -43,6 +44,7 @@ func TestPoolSimulator_CalcAmountOut_X_To_Y(t *testing.T) {
 	assert.Equal(t, "0x29219dd400f2bf60e5a23d13be72b486d4038894", result.Fee.Token)
 	assert.Equal(t, "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38", result.RemainingTokenAmountIn.Token)
 	assert.Equal(t, "0", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.LtUint64(890))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -77,6 +79,7 @@ func TestPoolSimulator_CalcAmountOut_X_To_Y_FillBid(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "0", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.LtUint64(890))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -153,6 +156,7 @@ func TestPoolSimulator_CalcAmountOut_X_To_Y_WithDust(t *testing.T) {
 	assert.Equal(t, "311606", result.TokenAmountOut.Amount.String())
 	assert.Equal(t, "94", result.Fee.Amount.String()) // 0.0003%
 	assert.Equal(t, "123", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.LtUint64(890))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -211,6 +215,7 @@ func TestPoolSimulator_CalcAmountOut_Y_To_X(t *testing.T) {
 	assert.Equal(t, "0x29219dd400f2bf60e5a23d13be72b486d4038894", result.Fee.Token)
 	assert.Equal(t, "0x29219dd400f2bf60e5a23d13be72b486d4038894", result.RemainingTokenAmountIn.Token)
 	assert.Equal(t, "0", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.GtUint64(100000000))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -247,6 +252,7 @@ func TestPoolSimulator_CalcAmountOut_Y_To_X_FillAsk(t *testing.T) {
 	assert.Equal(t, "9334700000000000000000", result.TokenAmountOut.Amount.String()) // 9334.70 S
 	assert.Equal(t, "873448", result.Fee.Amount.String())                            // 0.0003%
 	assert.Equal(t, "0", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.GtUint64(100000000))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -281,6 +287,7 @@ func TestPoolSimulator_CalcAmountOut_Y_To_X_FillAll(t *testing.T) {
 	assert.Equal(t, "220696620000000000000000", result.TokenAmountOut.Amount.String()) // 220696.62 S
 	assert.Equal(t, "31920289", result.Fee.Amount.String())                            // 0.0003%
 	assert.Equal(t, "0", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.GtUint64(100000000))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -315,6 +322,7 @@ func TestPoolSimulator_CalcAmountOut_Y_To_X_FillAllWithRemainder(t *testing.T) {
 	assert.Equal(t, "220696620000000000000000", result.TokenAmountOut.Amount.String()) // 220696.62 S
 	assert.Equal(t, "31920289", result.Fee.Amount.String())                            // 0.0003%
 	assert.Equal(t, "1", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.GtUint64(100000000))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -349,6 +357,7 @@ func TestPoolSimulator_CalcAmountOut_Y_To_X_WithDust(t *testing.T) {
 	assert.Equal(t, "3200000000000000000", result.TokenAmountOut.Amount.String()) // 3.2 S
 	assert.Equal(t, "300", result.Fee.Amount.String())                            // 0.0003%
 	assert.Equal(t, "1", result.RemainingTokenAmountIn.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.GtUint64(100000000))
 
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmtIn,
@@ -421,4 +430,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	})
 	assert.Equal(t, "2800410", poolSim.Bids.ArrayShares[0].String())
 	assert.Equal(t, "3116", poolSim.Bids.ArrayPrices[0].String())
+}
+
+// BenchmarkRoundFloat-16    14106196    123.6  ns/op
+// BenchmarkRound-16         96619128     12.32 ns/op
+func BenchmarkRound(b *testing.B) {
+	a, c := uint256.NewInt(1234567891), uint256.NewInt(12345)
+	for range b.N {
+		round(a, 6, true)
+		round(c, 6, false)
+	}
 }

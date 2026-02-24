@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -22,7 +23,7 @@ const (
 )
 
 func NewHTTPClient(config *HTTPConfig) *httpClient {
-	client := resty.New().
+	client := resty.NewWithClient(http.DefaultClient).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)

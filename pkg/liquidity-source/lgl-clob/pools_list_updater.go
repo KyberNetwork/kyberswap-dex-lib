@@ -2,6 +2,7 @@ package lglclob
 
 import (
 	"context"
+	"net/http"
 	"slices"
 	"strings"
 
@@ -30,7 +31,7 @@ func NewPoolListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolListUpdater {
-	httpClient := resty.New().
+	httpClient := resty.NewWithClient(http.DefaultClient).
 		SetBaseURL(cfg.HTTPConfig.BaseURL).
 		SetTimeout(cfg.HTTPConfig.Timeout.Duration).
 		SetRetryCount(cfg.HTTPConfig.RetryCount)

@@ -17,6 +17,7 @@ type Extra struct {
 type SurgePercentages struct {
 	MaxSurgeFeePercentage    *uint256.Int `json:"max,omitempty"`
 	SurgeThresholdPercentage *uint256.Int `json:"thres,omitempty"`
+	IsRisky                  bool         `json:"r,omitempty"`
 }
 
 type RpcResult struct {

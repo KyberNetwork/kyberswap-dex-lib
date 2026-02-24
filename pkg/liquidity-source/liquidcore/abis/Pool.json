@@ -1,0 +1,120 @@
+[
+    {
+        "type": "function",
+        "name": "getTokens",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "token0",
+                "type": "address"
+            },
+            {
+                "name": "token1",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "estimateSwap",
+        "inputs": [
+            {
+                "name": "tokenIn",
+                "type": "address"
+            },
+            {
+                "name": "tokenOut",
+                "type": "address"
+            },
+            {
+                "name": "amountIn",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amountOut",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getReserves",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "reserve0",
+                "type": "uint256"
+            },
+            {
+                "name": "reserve1",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getSpotPrices",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "forwardPrice",
+                "type": "uint64"
+            },
+            {
+                "name": "inversePrice",
+                "type": "uint64"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getPoolFees",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "feeToken0In",
+                "type": "uint256"
+            },
+            {
+                "name": "feeToken1In",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "swap",
+        "inputs": [
+            {
+                "name": "tokenIn",
+                "type": "address"
+            },
+            {
+                "name": "tokenOut",
+                "type": "address"
+            },
+            {
+                "name": "amountIn",
+                "type": "uint256"
+            },
+            {
+                "name": "minAmountOut",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amountOut",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    }
+]

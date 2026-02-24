@@ -1,0 +1,103 @@
+[
+    {
+        "type": "function",
+        "name": "beforeSwap",
+        "inputs": [
+            {
+                "name": "amount0Out",
+                "type": "uint256"
+            },
+            {
+                "name": "amount1Out",
+                "type": "uint256"
+            },
+            {
+                "name": "msgSender",
+                "type": "address"
+            },
+            {
+                "name": "to",
+                "type": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "getFee",
+        "inputs": [
+            {
+                "name": "asset0IsInput",
+                "type": "bool"
+            },
+            {
+                "name": "reserve0",
+                "type": "uint112"
+            },
+            {
+                "name": "reserve1",
+                "type": "uint112"
+            },
+            {
+                "name": "readOnly",
+                "type": "bool"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "fee",
+                "type": "uint64"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "afterSwap",
+        "inputs": [
+            {
+                "name": "amount0In",
+                "type": "uint256"
+            },
+            {
+                "name": "amount1In",
+                "type": "uint256"
+            },
+            {
+                "name": "amount0Out",
+                "type": "uint256"
+            },
+            {
+                "name": "amount1Out",
+                "type": "uint256"
+            },
+            {
+                "name": "fee0",
+                "type": "uint256"
+            },
+            {
+                "name": "fee1",
+                "type": "uint256"
+            },
+            {
+                "name": "msgSender",
+                "type": "address"
+            },
+            {
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "name": "reserve0",
+                "type": "uint112"
+            },
+            {
+                "name": "reserve1",
+                "type": "uint112"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    }
+]
