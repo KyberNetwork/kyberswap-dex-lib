@@ -32,12 +32,10 @@ func stableswapKey(centerTick int32, amplification uint8) *StableswapPoolKey {
 }
 
 func stableswapState(tick int32, liquidity *uint256.Int) *StableswapPoolState {
-	return &StableswapPoolState{
-		StableswapPoolSwapState: &StableswapPoolSwapState{
-			SqrtRatio: math.ToSqrtRatio(tick),
-		},
-		Liquidity: liquidity,
-	}
+	return NewStableswapPoolState(
+		NewStableswapPoolSwapState(math.ToSqrtRatio(tick)),
+		liquidity,
+	)
 }
 
 func mintedLiquidity(centerTick int32, amplification uint8, currentTick int32) *uint256.Int {

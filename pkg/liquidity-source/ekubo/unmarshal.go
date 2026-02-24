@@ -53,7 +53,7 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
 	case ExtensionTypeTwamm:
 		twammState, err := unmarshalExtra[pools.TwammPoolState](extraBytes)
 		if err != nil {
-			return nil, fmt.Errorf("parsing oracle pool state: %w", err)
+			return nil, fmt.Errorf("parsing TWAMM pool state: %w", err)
 		}
 
 		pool = pools.NewTwammPool(
@@ -63,7 +63,7 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
 	case ExtensionTypeMevResist:
 		baseState, err := unmarshalExtra[pools.BasePoolState](extraBytes)
 		if err != nil {
-			return nil, fmt.Errorf("parsing oracle pool state: %w", err)
+			return nil, fmt.Errorf("parsing base pool state: %w", err)
 		}
 
 		pool = pools.NewMevResistPool(
