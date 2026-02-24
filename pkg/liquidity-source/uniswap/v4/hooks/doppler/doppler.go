@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -150,7 +151,8 @@ func (h *RehypeDHook) Track(ctx context.Context, param *uniswapv4.HookParam, dHo
 func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*uniswapv4.AfterSwapResult, error) {
 	var hookFee big.Int
 	return &uniswapv4.AfterSwapResult{
-		HookFee: hookFee.Mul(params.AmountOut, h.CustomFee).Div(&hookFee, MaxSwapFee),
-		Gas:     198835,
+		HookFee: hookFee.Mul(lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn), h.CustomFee).
+			Div(&hookFee, MaxSwapFee),
+		Gas: 198835,
 	}, nil
 }
