@@ -132,15 +132,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	var hookFeeAmt *big.Int
-	if !swapHookParams.ExactIn {
-		hookFeeAmt = bignumber.ZeroBI
-	} else {
-		hookFeeAmt = new(big.Int)
-		hookFeeAmt.Mul(swapHookParams.AmountSpecified, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
-		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
-	}
+func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	hookFeeAmt := new(big.Int)
+	hookFeeAmt.Mul(params.AmountSpecified, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+	hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
 	return &uniswapv4.BeforeSwapResult{
 		SwapFee:          h.swapFee,
 		DeltaSpecified:   hookFeeAmt,
@@ -148,18 +143,8 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	if swapHookParams.ExactIn {
-		return &uniswapv4.AfterSwapResult{
-			HookFee: bignumber.ZeroBI,
-		}, nil
-	}
-
-	hookFeeAmt := new(big.Int)
-	hookFeeAmt.Mul(swapHookParams.AmountIn, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
-	hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
-
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
-		HookFee: hookFeeAmt,
+		HookFee: bignumber.ZeroBI,
 	}, nil
 }
