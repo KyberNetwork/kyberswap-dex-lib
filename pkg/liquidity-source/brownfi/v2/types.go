@@ -3,6 +3,7 @@ package brownfiv2
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -14,6 +15,13 @@ type GetReservesResult struct {
 	BlockTimestampLast uint32
 }
 
+type PriceResult struct {
+	Price       uint64
+	Conf        uint64
+	Expo        int32
+	PublishTime uint64
+}
+
 type Extra struct {
 	Fee             uint64          `json:"f,omitempty"`
 	Lambda          uint64          `json:"l,omitempty"`
@@ -23,7 +31,9 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PriceFeedIds [2]string `json:"f"`
+	PriceFeedIds [2]common.Hash `json:"f"`
+	PriceOracle  string         `json:"o"`
+	LastUpdated  int64          `json:"u"`
 }
 
 type SwapInfo struct {

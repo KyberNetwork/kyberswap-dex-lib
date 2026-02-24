@@ -1,0 +1,73 @@
+[
+  {
+    "name": "getPrice",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "getPriceUnsafe",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "price",
+        "internalType": "uint64",
+        "type": "uint64"
+      },
+      {
+        "name": "conf",
+        "internalType": "uint64",
+        "type": "uint64"
+      },
+      {
+        "name": "expo",
+        "internalType": "int32",
+        "type": "int32"
+      },
+      {
+        "name": "publishTime",
+        "internalType": "uint64",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "name": "getUpdateFee",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "internalType": "bytes[]",
+        "type": "bytes[]"
+      }
+    ],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ]
+  }
+]
