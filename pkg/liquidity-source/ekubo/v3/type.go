@@ -2,6 +2,7 @@ package ekubov3
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
 )
@@ -27,3 +28,7 @@ type (
 		blockNumber uint64
 	}
 )
+
+func (p PoolWithBlockNumber) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.GetState())
+}

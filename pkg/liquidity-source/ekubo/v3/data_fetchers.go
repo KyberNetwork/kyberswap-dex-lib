@@ -223,7 +223,10 @@ func (f *dataFetchers) fetchPools(
 			if fullRangeConfig, ok := config.(pools.FullRangePoolTypeConfig); ok {
 				fetchedPools = append(fetchedPools, fetchedPool{
 					PoolWithBlockNumber{
-						Pool:        pools.NewTwammPool(poolKey.ToFullRange(fullRangeConfig), newTwammPoolState(&tuple.A.twammQuoteData)),
+						Pool: pools.NewTwammPool(
+							poolKey.ToFullRange(fullRangeConfig),
+							newTwammPoolState(&tuple.A.twammQuoteData),
+						),
 						blockNumber: blockNumber,
 					},
 					poolKey,
