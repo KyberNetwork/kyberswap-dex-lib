@@ -81,6 +81,8 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	var extra Extra
+
 	pair := staticExtra.Pair
 	pairData, err := t.fetchPairData(ctx, pair)
 	if err != nil {
@@ -90,12 +92,21 @@ func (t *PoolTracker) getNewPoolState(
 			"poolAddress": p.Address,
 			"pair":        pair,
 		}).Errorf("failed to fetch pair data: %v", err)
-		return entity.Pool{}, err
+
+		// In case of fetching pool state error, we will update pool.Extra.QuoteAvailable = false,
+		// so the pool will not be used for routing.
+		extra.QuoteAvailable = false
+
+		extraBytes, err := json.Marshal(extra)
+		if err != nil {
+			return entity.Pool{}, err
+		}
+		p.Extra = string(extraBytes)
+
+		return p, nil
 	}
 
 	reserves := []string{pairData.TotalToken0Available, pairData.TotalToken1Available}
-
-	var extra Extra
 
 	bidF, err := strconv.ParseFloat(pairData.Bid, 64)
 	if err != nil {
@@ -108,6 +119,9 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 	extra.OneToZeroRate = Q64 / askF
+
+	extra.QuoteAvailable = pairData.QuoteAvailable
+	extra.MaxAge = t.config.MaxAge
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
