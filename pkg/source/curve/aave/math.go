@@ -124,7 +124,7 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 				tmp2.Mul(dP, numTokensBI),
 			),
 			d,
-		).Cmp(bignumber.MAX_UINT_256) > 0 {
+		).Cmp(bignumber.MaxUint256) > 0 {
 			return nil, ErrOverflow
 		}
 		d = d.Div(

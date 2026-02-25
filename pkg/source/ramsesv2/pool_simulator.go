@@ -167,11 +167,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 		sqrtPriceLimit := p.getSqrtPriceLimit(zeroForOne)
 		if zeroForOne {
-			if p.V3Pool.SqrtRatioX96.Cmp(sqrtPriceLimit) <= 0 || p.V3Pool.SqrtRatioX96.Cmp(bignumber.MIN_SQRT_RATIO) <= 0 {
+			if p.V3Pool.SqrtRatioX96.Cmp(sqrtPriceLimit) <= 0 || p.V3Pool.SqrtRatioX96.Cmp(bignumber.MinSqrtRatio) <= 0 {
 				return nil, ErrInvalidSqrtPrice
 			}
 		} else {
-			if p.V3Pool.SqrtRatioX96.Cmp(sqrtPriceLimit) >= 0 || p.V3Pool.SqrtRatioX96.Cmp(bignumber.MAX_SQRT_RATIO) >= 0 {
+			if p.V3Pool.SqrtRatioX96.Cmp(sqrtPriceLimit) >= 0 || p.V3Pool.SqrtRatioX96.Cmp(bignumber.MaxSqrtRatio) >= 0 {
 				return nil, ErrInvalidSqrtPrice
 			}
 		}
