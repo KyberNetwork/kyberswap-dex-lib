@@ -200,19 +200,16 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenInIndex := s.GetTokenIndex(tokenIn)
 	zeroForOne := tokenInIndex == 0
 
-	// Update reserves
-	s.Info.Reserves[tokenInIndex] = new(big.Int).Add(s.Info.Reserves[tokenInIndex], amountIn)
+	// Update reserves: fees are transferred to feeReceiver (not kept in pool),
+	// so the pool balance only increases by (amountIn - fee).
+	feeAmount := params.Fee.Amount
+	amountInLessFee := new(big.Int).Sub(amountIn, feeAmount)
+	s.Info.Reserves[tokenInIndex] = new(big.Int).Add(s.Info.Reserves[tokenInIndex], amountInLessFee)
 	tokenOutIndex := 1 - tokenInIndex
 	s.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(s.Info.Reserves[tokenOutIndex], amountOut)
 
-	// Recompute sqrtPriceX96 using the swap step result
-	// To get the post-swap price, re-run ComputeSwapStep with just the consumed amount
-	amountInU256, _ := uint256.FromBig(amountIn)
-	feeU256, _ := uint256.FromBig(params.Fee.Amount)
-
-	// The consumed input minus fee
-	var amountInLessFee uint256.Int
-	amountInLessFee.Sub(amountInU256, feeU256)
+	// Recompute sqrtPriceX96 using the consumed input (excluding fee)
+	amountInLessFeeU256, _ := uint256.FromBig(amountInLessFee)
 
 	// Recompute sqrtPriceX96: use GetNextSqrtPriceFromInput
 	var newSqrtPrice uint256.Int
@@ -226,7 +223,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		sqrtPriceCurrentX96.Set(s.sqrtPbX96)
 	}
 
-	err := v3Utils.GetNextSqrtPriceFromInput(&sqrtPriceCurrentX96, s.liquidity, &amountInLessFee, zeroForOne, &newSqrtPrice)
+	err := v3Utils.GetNextSqrtPriceFromInput(&sqrtPriceCurrentX96, s.liquidity, amountInLessFeeU256, zeroForOne, &newSqrtPrice)
 	if err != nil {
 		// Fallback: keep price at limit
 		if zeroForOne {

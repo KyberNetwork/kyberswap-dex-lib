@@ -200,9 +200,11 @@ func TestUpdateBalance(t *testing.T) {
 	assert.True(t, sim.sqrtPriceX96.Cmp(originalPrice) < 0,
 		"price should decrease for zeroForOne swap")
 
-	// Reserves should be updated
+	// Reserves should be updated: input reserve increases by (amountIn - fee),
+	// since fees are transferred to feeReceiver and not kept in the pool.
 	initReserve, _ := new(big.Int).SetString("1000000000000000000000", 10)
-	expectedReserve0 := new(big.Int).Add(initReserve, big.NewInt(1000000))
+	amountInLessFee := new(big.Int).Sub(big.NewInt(1000000), result.Fee.Amount)
+	expectedReserve0 := new(big.Int).Add(initReserve, amountInLessFee)
 	expectedReserve1 := new(big.Int).Sub(new(big.Int).Set(initReserve), result.TokenAmountOut.Amount)
 	assert.Equal(t, expectedReserve0.String(), sim.Info.Reserves[0].String())
 	assert.Equal(t, expectedReserve1.String(), sim.Info.Reserves[1].String())
