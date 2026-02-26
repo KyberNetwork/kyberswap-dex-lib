@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -44,6 +46,8 @@ type (
 		Fee        uint64         `json:"fee"`
 		TypeConfig T              `json:"typeConfig"`
 		Extension  common.Address `json:"extension"`
+
+		compressed common.Hash
 	}
 
 	PoolTypeConfig interface {
@@ -199,12 +203,16 @@ func (k *AnyPoolKey) UnmarshalJSON(data []byte) error {
 }
 
 func (c *PoolConfig[T]) Compressed() common.Hash {
-	var compressed common.Hash
-	copy(compressed[:20], c.Extension.Bytes())
-	binary.BigEndian.PutUint64(compressed[20:28], c.Fee)
-	typeConfigCompressed := c.TypeConfig.Compressed()
-	copy(compressed[28:32], typeConfigCompressed[:])
-	return compressed
+	if c.compressed == valueobject.HashZero {
+		var compressed common.Hash
+		copy(compressed[:20], c.Extension.Bytes())
+		binary.BigEndian.PutUint64(compressed[20:28], c.Fee)
+		typeConfigCompressed := c.TypeConfig.Compressed()
+		copy(compressed[28:32], typeConfigCompressed[:])
+		c.compressed = compressed
+	}
+
+	return c.compressed
 }
 
 func (c *PoolConfig[T]) String() string {
