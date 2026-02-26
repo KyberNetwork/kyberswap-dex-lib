@@ -12,6 +12,8 @@ const (
 var (
 	AddrZero   common.Address
 	AddrNative = common.HexToAddress(NativeAddress)
+
+	HashZero common.Hash
 )
 
 func IsZeroAddress(address common.Address) bool {
