@@ -133,6 +133,25 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	cloned.extra.Asks = make([]Bin, len(s.extra.Asks))
+	for i, ask := range s.extra.Asks {
+		cloned.extra.Asks[i] = Bin{
+			BinIdx:           ask.BinIdx,
+			Rate:             ask.Rate,
+			CumulativeVolume: new(big.Int).Set(ask.CumulativeVolume),
+			PriceImpactE6:    ask.PriceImpactE6,
+		}
+	}
+
+	cloned.extra.Bids = make([]Bin, len(s.extra.Bids))
+	for i, bid := range s.extra.Bids {
+		cloned.extra.Bids[i] = Bin{
+			BinIdx:           bid.BinIdx,
+			Rate:             bid.Rate,
+			CumulativeVolume: new(big.Int).Set(bid.CumulativeVolume),
+			PriceImpactE6:    bid.PriceImpactE6,
+		}
+	}
 	return &cloned
 }
 
