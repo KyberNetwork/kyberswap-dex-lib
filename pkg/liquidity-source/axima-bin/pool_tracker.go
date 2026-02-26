@@ -147,7 +147,7 @@ func convertAximaBins(aximaBins []AximaBin, isBid bool) ([]Bin, error) {
 
 		rate := lo.Ternary(isBid, priceF/Q64, Q64/priceF)
 
-		pie6, _ := strconv.ParseInt(bin.Price, 10, 64)
+		pie6, _ := strconv.ParseInt(bin.PriceImpactE6, 10, 64)
 		bins[i] = Bin{
 			BinIdx:           bin.BinIdx,
 			Rate:             rate,
