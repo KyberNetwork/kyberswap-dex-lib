@@ -15,6 +15,7 @@ const (
 	ExchangeAstroSwap                  = "astroswap"
 	ExchangeAxial                      = "axial"
 	ExchangeAxima                      = "axima"
+	ExchangeAximaBin                   = "axima-bin"
 	ExchangeBabyDogeSwap               = "babydogeswap"
 	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalancerV1                 = "balancer-v1"

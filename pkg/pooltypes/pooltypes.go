@@ -10,6 +10,7 @@ import (
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
+	aximabin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima-bin"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/stable"
@@ -381,6 +382,7 @@ type Types struct {
 	KipseliProp                string
 	SomeswapV1                 string
 	SomeswapV2                 string
+	AximaBin                   string
 }
 
 var (
@@ -583,5 +585,6 @@ var (
 		KipseliProp:                kipseliprop.DexType,
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
+		AximaBin:                   aximabin.DexType,
 	}
 )
