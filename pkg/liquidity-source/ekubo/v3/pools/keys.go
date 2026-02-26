@@ -44,8 +44,6 @@ type (
 		Fee        uint64         `json:"fee"`
 		TypeConfig T              `json:"typeConfig"`
 		Extension  common.Address `json:"extension"`
-
-		compressed []byte
 	}
 
 	PoolTypeConfig interface {
@@ -201,15 +199,12 @@ func (k *AnyPoolKey) UnmarshalJSON(data []byte) error {
 }
 
 func (c *PoolConfig[T]) Compressed() common.Hash {
-	if c.compressed == nil {
-		c.compressed = append(c.compressed, c.Extension.Bytes()...)
-		c.compressed = binary.BigEndian.AppendUint64(c.compressed, c.Fee)
-
-		typeConfigCompressed := c.TypeConfig.Compressed()
-		c.compressed = append(c.compressed, typeConfigCompressed[:]...)
-	}
-
-	return common.Hash(c.compressed)
+	var compressed common.Hash
+	copy(compressed[:20], c.Extension.Bytes())
+	binary.BigEndian.PutUint64(compressed[20:28], c.Fee)
+	typeConfigCompressed := c.TypeConfig.Compressed()
+	copy(compressed[28:32], typeConfigCompressed[:])
+	return compressed
 }
 
 func (c *PoolConfig[T]) String() string {
