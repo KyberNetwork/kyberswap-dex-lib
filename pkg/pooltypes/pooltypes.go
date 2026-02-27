@@ -132,7 +132,8 @@ import (
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
+	wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
@@ -240,6 +241,7 @@ type Types struct {
 	MaverickV1                 string
 	AlgebraV1                  string
 	IZiSwap                    string
+	WCM                        string
 	WooFiV2                    string
 	WooFiV21                   string
 	Equalizer                  string
@@ -442,6 +444,7 @@ var (
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
+		WCM:                        wcm.DexType,
 		WooFiV2:                    woofiv2.DexTypeWooFiV2,
 		WooFiV21:                   woofiv21.DexTypeWooFiV21,
 		Equalizer:                  equalizer.DexTypeEqualizer,

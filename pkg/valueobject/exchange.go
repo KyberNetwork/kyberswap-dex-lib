@@ -266,6 +266,7 @@ const (
 	ExchangeWildcard                   = "wildcard"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
+	ExchangeWCM                        = "wcm"
 	ExchangeWooFiV3                    = "woofi-v3"
 	ExchangeWrappedNative              = "wrapped-native"
 	ExchangeWRSETH                     = "wrseth"
