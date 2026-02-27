@@ -33,6 +33,7 @@ var (
 		common.HexToAddress("0xd60D6B218116cFd801E28F78d011a203D2b068Cc"), // base v2 v4.1.0 permission-ed
 		common.HexToAddress("0x9b37A43422D7bBD4C8B231be11E50AD1acE828CC"), // unichain v4.0.0
 		common.HexToAddress("0xFd213BE7883db36e1049dC42f5BD6A0ec66B68cC"), // arbitrum v4.0.0
+		common.HexToAddress("0x011a8ed40095F2D7E9c19125B8254b19678D68Cc"), // bsc v4.0.0
 	}
 
 	StaticFeeHookAddresses = []common.Address{
