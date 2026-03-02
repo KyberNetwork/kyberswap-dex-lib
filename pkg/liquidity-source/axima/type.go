@@ -49,5 +49,4 @@ type Bin struct {
 	BinIdx           int64    `json:"bi"`
 	Rate             float64  `json:"r"`
 	CumulativeVolume *big.Int `json:"cv"` // total amountOut that can be swapped up to this bin (inclusive)
-	PriceImpactE6    int      `json:"pie6"`
 }

@@ -136,7 +136,6 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 			BinIdx:           ask.BinIdx,
 			Rate:             ask.Rate,
 			CumulativeVolume: new(big.Int).Set(ask.CumulativeVolume),
-			PriceImpactE6:    ask.PriceImpactE6,
 		}
 	}
 
@@ -146,7 +145,6 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 			BinIdx:           bid.BinIdx,
 			Rate:             bid.Rate,
 			CumulativeVolume: new(big.Int).Set(bid.CumulativeVolume),
-			PriceImpactE6:    bid.PriceImpactE6,
 		}
 	}
 	return &cloned
