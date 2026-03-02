@@ -66,7 +66,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	decimalsDiff := lo.Ternary(zeroToOne, s.decimalsDiff, -s.decimalsDiff)
 
 	bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks)
-	amountOut, err := GetRate(params.TokenAmountIn.Amount, bins, decimalsDiff)
+	amountOut, err := getRate(params.TokenAmountIn.Amount, bins, decimalsDiff)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func GetRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) {
+func getRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) {
 	// Find the last bin with amountIn >= bin.cummulativeAmountIn
 	// (can be derived from bin.cummulativeVolume and bin.rate)
 	binIdx := -1
