@@ -17,7 +17,7 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config Config
+	config *Config
 	client *resty.Client
 }
 
@@ -29,7 +29,7 @@ func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)
 
-	return &PoolsListUpdater{config: *config, client: client}
+	return &PoolsListUpdater{config: config, client: client}
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
@@ -62,8 +62,19 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return entity.Pool{}
 		}
 
+		extra, reserves, err := fetchPoolState(ctx, u.client, u.config, pm.Pair)
+		if err != nil {
+			return entity.Pool{}
+		}
+
+		extraBytes, err := json.Marshal(extra)
+		if err != nil {
+			return entity.Pool{}
+		}
+
 		return entity.Pool{
-			Address: strings.ToLower(pm.PoolAddress),
+			Address:  strings.ToLower(pm.PoolAddress),
+			Reserves: reserves,
 			Tokens: []*entity.PoolToken{
 				{Address: strings.ToLower(pm.Token0), Swappable: true},
 				{Address: strings.ToLower(pm.Token1), Swappable: true},
@@ -71,8 +82,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			StaticExtra: string(staticExtraBytes),
+			Extra:       string(extraBytes),
 			Timestamp:   time.Now().Unix(),
 		}
+	})
+
+	pools = lo.Filter(pools, func(p entity.Pool, _ int) bool {
+		return p.Address != ""
 	})
 
 	return pools, metadataBytes, nil
