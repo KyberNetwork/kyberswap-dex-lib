@@ -1,7 +1,6 @@
 package axima
 
 import (
-	"fmt"
 	"math"
 	"math/big"
 	"slices"
@@ -63,24 +62,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrStalePoolData
 	}
 
-	amountInF, _ := params.TokenAmountIn.Amount.Float64()
-
 	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
-	rate := lo.Ternary(zeroToOne, s.extra.ZeroToOneRate, s.extra.OneToZeroRate)
 	decimalsDiff := lo.Ternary(zeroToOne, s.decimalsDiff, -s.decimalsDiff)
-
-	oldAmountOutF := amountInF * rate / math.Pow10(int(decimalsDiff))
-	oldAmountOut, _ := big.NewFloat(oldAmountOutF).Int(nil)
 
 	bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks)
 	amountOut, err := GetRate(params.TokenAmountIn.Amount, bins, decimalsDiff)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("Old amount out:", oldAmountOut.String())
-	fmt.Println("New amount out:", amountOut.String())
-	fmt.Println("Diff:", new(big.Int).Sub(amountOut, oldAmountOut).String())
 
 	indexOut := s.GetTokenIndex(params.TokenOut)
 	if indexOut == -1 {
@@ -164,10 +153,16 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func GetRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) {
-	// Find the last bin with amountIn <= bin.CummlativeVolume
+	// Find the last bin with amountIn >= bin.cummulativeAmountIn
+	// (can be derived from bin.cummulativeVolume and bin.rate)
 	binIdx := -1
 	for i, bin := range bins {
-		if amountIn.Cmp(bin.CumulativeVolume) <= 0 {
+		amountOutF, _ := bin.CumulativeVolume.Float64()
+		amountInF := amountOutF * math.Pow10(int(decimalsDiff)) / bin.Rate
+		amountInF = math.Ceil(amountInF)
+		amountInRounded := new(big.Int).SetUint64(uint64(amountInF))
+
+		if amountIn.Cmp(amountInRounded) >= 0 {
 			binIdx = i
 		}
 	}
@@ -184,11 +179,11 @@ func GetRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) 
 		return amountOut, nil
 	}
 
-	curBinAmountInF, _ := bins[binIdx].CumulativeVolume.Float64()
-	curBinAmountOutF := curBinAmountInF * bins[binIdx].Rate / math.Pow10(int(decimalsDiff))
+	curBinAmountOutF, _ := bins[binIdx].CumulativeVolume.Float64()
+	curBinAmountInF := curBinAmountOutF * math.Pow10(int(decimalsDiff)) / bins[binIdx].Rate
 
-	nextBinAmountInF, _ := bins[binIdx+1].CumulativeVolume.Float64()
-	nextBinAmountOutF := nextBinAmountInF * bins[binIdx+1].Rate / math.Pow10(int(decimalsDiff))
+	nextBinAmountOutF, _ := bins[binIdx+1].CumulativeVolume.Float64()
+	nextBinAmountInF := nextBinAmountOutF * math.Pow10(int(decimalsDiff)) / bins[binIdx+1].Rate
 
 	// Linear interpolation
 	amountInF, _ := amountIn.Float64()

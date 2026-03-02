@@ -38,9 +38,6 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	ZeroToOneRate float64 `json:"0to1R"` // deprecated. rate of 1 token0 to token1
-	OneToZeroRate float64 `json:"1to0R"` // deprecated. rate of 1 token1 to token0
-
 	QuoteAvailable bool  `json:"qA"`
 	MaxAge         int64 `json:"maxAge"`
 
@@ -51,6 +48,6 @@ type Extra struct {
 type Bin struct {
 	BinIdx           int64    `json:"bi"`
 	Rate             float64  `json:"r"`
-	CumulativeVolume *big.Int `json:"cv"`
+	CumulativeVolume *big.Int `json:"cv"` // total amountOut that can be swapped up to this bin (inclusive)
 	PriceImpactE6    int      `json:"pie6"`
 }

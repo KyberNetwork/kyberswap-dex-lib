@@ -17,29 +17,20 @@ func fetchPoolState(
 	pair string,
 ) (Extra, []string, error) {
 	var pairData PairData
-	_, err := client.R().
+	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&pairData).
 		Get(fmt.Sprintf("/%s/%s/bid_ask", config.ChainID.String(), pair))
 
 	if err != nil {
 		return Extra{}, nil, err
+	} else if res.IsError() {
+		return Extra{}, nil, fmt.Errorf("API error: %s", res.String())
 	}
 
 	reserves := []string{pairData.TotalToken0Available, pairData.TotalToken1Available}
 
 	var extra Extra
-	bidF, err := strconv.ParseFloat(pairData.Bid, 64)
-	if err != nil {
-		return Extra{}, nil, err
-	}
-	extra.ZeroToOneRate = bidF / Q64
-
-	askF, err := strconv.ParseFloat(pairData.Ask, 64)
-	if err != nil {
-		return Extra{}, nil, err
-	}
-	extra.OneToZeroRate = Q64 / askF
 
 	extra.QuoteAvailable = pairData.QuoteAvailable
 	extra.MaxAge = config.MaxAge
@@ -73,7 +64,7 @@ func convertAximaBins(aximaBins []AximaBin, isBid bool) ([]Bin, error) {
 		bins[i] = Bin{
 			BinIdx:           bin.BinIdx,
 			Rate:             rate,
-			CumulativeVolume: bignumber.NewBig(bin.Price),
+			CumulativeVolume: bignumber.NewBig(bin.CummlativeVolume),
 			PriceImpactE6:    int(pie6),
 		}
 	}
