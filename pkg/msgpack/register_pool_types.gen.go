@@ -157,7 +157,8 @@ import (
 	pkg_liquiditysource_velocorev2_wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	pkg_liquiditysource_velodromev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	pkg_liquiditysource_velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
-	pkg_liquiditysource_virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
+	pkg_liquiditysource_virtual_fun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual/fun"
+	pkg_liquiditysource_virtual_launchpadv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual/launchpad-v2"
 	pkg_liquiditysource_wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
 	pkg_liquiditysource_wcm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
 	pkg_liquiditysource_wildcard "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
@@ -364,7 +365,8 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_wombatstable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtual_fun.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtual_launchpadv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wasabiprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wcm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wildcard.PoolSimulator{})

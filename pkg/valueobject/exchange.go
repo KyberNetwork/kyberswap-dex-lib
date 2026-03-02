@@ -257,6 +257,7 @@ const (
 	ExchangeVelocoreV2CPMM             = "velocore-v2-cpmm"
 	ExchangeVelocoreV2WombatStable     = "velocore-v2-wombat-stable"
 	ExchangeVelodromeV2                = "velodrome-v2"
+	ExchangeVirtualLaunchpadV2         = "virtual-launchpad-v2"
 	ExchangeVirtualFun                 = "virtual-fun"
 	ExchangeVooi                       = "vooi"
 	ExchangeWagyuSwap                  = "wagyuswap"
