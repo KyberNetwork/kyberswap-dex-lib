@@ -102,20 +102,20 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		zeroToOne := indexIn == 0
 		if zeroToOne {
 			s.extra.Bids = lo.Filter(s.extra.Bids, func(bin Bin, _ int) bool {
-				return bin.CumulativeVolume.Cmp(params.TokenAmountIn.Amount) > 0
+				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
 			})
 
 			s.extra.Bids = lo.Map(s.extra.Bids, func(bin Bin, _ int) Bin {
-				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountIn.Amount)
+				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
 				return bin
 			})
 		} else {
 			s.extra.Asks = lo.Filter(s.extra.Asks, func(bin Bin, _ int) bool {
-				return bin.CumulativeVolume.Cmp(params.TokenAmountIn.Amount) > 0
+				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
 			})
 
 			s.extra.Asks = lo.Map(s.extra.Asks, func(bin Bin, _ int) Bin {
-				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountIn.Amount)
+				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
 				return bin
 			})
 		}
