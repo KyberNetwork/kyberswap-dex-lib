@@ -44,6 +44,7 @@ var (
 	U8      = uint256.NewInt(8)
 	U9      = uint256.NewInt(9)
 	U10     = uint256.NewInt(10)
+	U99     = uint256.NewInt(99)
 	U100    = uint256.NewInt(100)
 	U999    = uint256.NewInt(999)
 	U1000   = uint256.NewInt(1000)

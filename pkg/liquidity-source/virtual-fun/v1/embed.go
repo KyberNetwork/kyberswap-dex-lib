@@ -1,4 +1,4 @@
-package virtualfun
+package v1
 
 import _ "embed"
 
