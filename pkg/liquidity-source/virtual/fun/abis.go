@@ -1,4 +1,4 @@
-package virtualfun
+package fun
 
 import (
 	"bytes"
