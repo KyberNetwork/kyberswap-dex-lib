@@ -154,6 +154,7 @@ func getRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) 
 	// Find the last bin with amountIn >= bin.cummulativeAmountIn
 	// (can be derived from bin.cummulativeVolume and bin.rate)
 	binIdx := -1
+	isFirstBinSufficient := false
 	for i, bin := range bins {
 		amountOutF, _ := bin.CumulativeVolume.Float64()
 		amountInF := amountOutF * math.Pow10(int(decimalsDiff)) / bin.Rate
@@ -163,10 +164,21 @@ func getRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) 
 		if amountIn.Cmp(amountInRounded) >= 0 {
 			binIdx = i
 		}
+		if i == 0 && amountIn.Cmp(amountInRounded) < 0 {
+			isFirstBinSufficient = true
+		}
 	}
 
 	if binIdx == -1 {
-		return nil, ErrInsufficientLiquidity
+		if !isFirstBinSufficient {
+			return nil, ErrInsufficientLiquidity
+		} else {
+			// Amount in is smaller than the first bin, use the first bin's rate
+			amountInF, _ := amountIn.Float64()
+			amountOutF := amountInF * bins[0].Rate / math.Pow10(int(decimalsDiff))
+			amountOut, _ := big.NewFloat(amountOutF).Int(nil)
+			return amountOut, nil
+		}
 	}
 
 	if binIdx == len(bins)-1 {
