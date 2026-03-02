@@ -14,13 +14,13 @@ func fetchPoolState(
 	ctx context.Context,
 	client *resty.Client,
 	config *Config,
-	pair string,
+	pairIdentifier string,
 ) (Extra, []string, error) {
 	var pairData PairData
 	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&pairData).
-		Get(fmt.Sprintf("/%s/%s/bid_ask", config.ChainID.String(), pair))
+		Get(fmt.Sprintf("/%s/%s/bid_ask", config.ChainID.String(), pairIdentifier))
 
 	if err != nil {
 		return Extra{}, nil, err
@@ -34,6 +34,7 @@ func fetchPoolState(
 
 	extra.QuoteAvailable = pairData.QuoteAvailable
 	extra.MaxAge = config.MaxAge
+	extra.IsV2 = config.IsV2
 
 	if bids, err := convertAximaBins(pairData.Depth.Bids, true); err != nil {
 		return Extra{}, nil, err

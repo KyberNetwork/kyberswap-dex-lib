@@ -41,6 +41,8 @@ type Extra struct {
 	QuoteAvailable bool  `json:"qA"`
 	MaxAge         int64 `json:"maxAge"`
 
+	IsV2 bool `json:"isV2"`
+
 	Asks []Bin `json:"asks"`
 	Bids []Bin `json:"bids"`
 }
@@ -49,4 +51,9 @@ type Bin struct {
 	BinIdx           int64    `json:"bi"`
 	Rate             float64  `json:"r"`
 	CumulativeVolume *big.Int `json:"cv"` // total amountOut that can be swapped up to this bin (inclusive)
+}
+
+type PoolMeta struct {
+	SwapDirection bool `json:"swapDir"`
+	IsV2          bool `json:"isV2"`
 }
