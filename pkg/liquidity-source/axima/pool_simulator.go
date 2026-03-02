@@ -62,14 +62,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrStalePoolData
 	}
 
-	amountInF, _ := params.TokenAmountIn.Amount.Float64()
-
 	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
-	rate := lo.Ternary(zeroToOne, s.extra.ZeroToOneRate, s.extra.OneToZeroRate)
 	decimalsDiff := lo.Ternary(zeroToOne, s.decimalsDiff, -s.decimalsDiff)
 
-	amountOutF := amountInF * rate / math.Pow10(int(decimalsDiff))
-	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
+	bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks)
+	amountOut, err := getRate(params.TokenAmountIn.Amount, bins, decimalsDiff)
+	if err != nil {
+		return nil, err
+	}
 
 	indexOut := s.GetTokenIndex(params.TokenOut)
 	if indexOut == -1 {
@@ -98,6 +98,27 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if indexIn != -1 && indexOut != -1 {
 		s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 		s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+
+		zeroToOne := indexIn == 0
+		if zeroToOne {
+			s.extra.Bids = lo.Filter(s.extra.Bids, func(bin Bin, _ int) bool {
+				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
+			})
+
+			s.extra.Bids = lo.Map(s.extra.Bids, func(bin Bin, _ int) Bin {
+				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
+				return bin
+			})
+		} else {
+			s.extra.Asks = lo.Filter(s.extra.Asks, func(bin Bin, _ int) bool {
+				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
+			})
+
+			s.extra.Asks = lo.Map(s.extra.Asks, func(bin Bin, _ int) Bin {
+				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
+				return bin
+			})
+		}
 	}
 }
 
@@ -109,5 +130,63 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	cloned.extra.Asks = make([]Bin, len(s.extra.Asks))
+	for i, ask := range s.extra.Asks {
+		cloned.extra.Asks[i] = Bin{
+			BinIdx:           ask.BinIdx,
+			Rate:             ask.Rate,
+			CumulativeVolume: new(big.Int).Set(ask.CumulativeVolume),
+		}
+	}
+
+	cloned.extra.Bids = make([]Bin, len(s.extra.Bids))
+	for i, bid := range s.extra.Bids {
+		cloned.extra.Bids[i] = Bin{
+			BinIdx:           bid.BinIdx,
+			Rate:             bid.Rate,
+			CumulativeVolume: new(big.Int).Set(bid.CumulativeVolume),
+		}
+	}
 	return &cloned
+}
+
+func getRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) {
+	// Find the last bin with amountIn >= bin.cummulativeAmountIn
+	// (can be derived from bin.cummulativeVolume and bin.rate)
+	binIdx := -1
+	for i, bin := range bins {
+		amountOutF, _ := bin.CumulativeVolume.Float64()
+		amountInF := amountOutF * math.Pow10(int(decimalsDiff)) / bin.Rate
+		amountInF = math.Ceil(amountInF)
+		amountInRounded := new(big.Int).SetUint64(uint64(amountInF))
+
+		if amountIn.Cmp(amountInRounded) >= 0 {
+			binIdx = i
+		}
+	}
+
+	if binIdx == -1 {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	if binIdx == len(bins)-1 {
+		// Last bin, can't interpolate
+		amountInF, _ := amountIn.Float64()
+		amountOutF := amountInF * bins[binIdx].Rate / math.Pow10(int(decimalsDiff))
+		amountOut, _ := big.NewFloat(amountOutF).Int(nil)
+		return amountOut, nil
+	}
+
+	curBinAmountOutF, _ := bins[binIdx].CumulativeVolume.Float64()
+	curBinAmountInF := curBinAmountOutF * math.Pow10(int(decimalsDiff)) / bins[binIdx].Rate
+
+	nextBinAmountOutF, _ := bins[binIdx+1].CumulativeVolume.Float64()
+	nextBinAmountInF := nextBinAmountOutF * math.Pow10(int(decimalsDiff)) / bins[binIdx+1].Rate
+
+	// Linear interpolation
+	amountInF, _ := amountIn.Float64()
+	amountOutF := curBinAmountOutF + (amountInF-curBinAmountInF)*(nextBinAmountOutF-curBinAmountOutF)/(nextBinAmountInF-curBinAmountInF)
+	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
+
+	return amountOut, nil
 }
