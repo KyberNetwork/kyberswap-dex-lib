@@ -3,22 +3,28 @@ package kipseliprop
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/crypto"
 )
 
 type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
+	signer       *crypto.Eip712Signer
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -27,6 +33,7 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
 		cfg:          cfg,
 		ethrpcClient: ethrpcClient,
+		signer:       crypto.NewEip712Signer(cfg.Quoter[:]),
 	}
 }
 
@@ -36,21 +43,37 @@ func (t *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	tsMs := time.Now().UnixMilli()
+	bTsMs := big.NewInt(tsMs)
 	samples := make([][][2]*big.Int, 2)
+	typedMsgTemplate := DomainType
+	typedMsgTemplate.Domain.ChainId = math.NewHexOrDecimal256(int64(t.cfg.ChainID))
+	typedMsgTemplate.Domain.VerifyingContract = hexutil.Encode(t.cfg.Verifier[:])
 	for i := range p.Tokens {
 		samples[i] = make([][2]*big.Int, sampleSize)
 		start := lo.Ternary(p.Tokens[i].Decimals < sampleSize/2, 0, p.Tokens[i].Decimals-sampleSize/2)
 		idx := 0
+		tokenIn, tokenOut := common.HexToAddress(p.Tokens[i].Address), common.HexToAddress(p.Tokens[1-i].Address)
+		typedMsg := typedMsgTemplate
+		typedMsg.Message = apitypes.TypedDataMessage{
+			"tokenIn":            [20]byte(tokenIn),
+			"tokenOut":           [20]byte(tokenOut),
+			"timestampInMilisec": bTsMs,
+		}
+		sig, err := t.signer.Sign(typedMsg)
+		fmt.Printf("typedMsg: %v, sig: %v, err: %v\n", typedMsg, sig, err)
 		for k := start; k <= start+sampleSize-1 && idx < sampleSize; k++ {
-			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), big.NewInt(0)}
+			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), new(big.Int)}
 			req.AddCall(&ethrpc.Call{
 				ABI:    swapABI,
 				Target: t.cfg.RouterAddress,
 				Method: "quote",
 				Params: []any{
-					common.HexToAddress(p.Tokens[i].Address),
+					tokenIn,
 					samples[i][idx][0],
-					common.HexToAddress(p.Tokens[1-i].Address),
+					tokenOut,
+					bTsMs,
+					sig,
 				},
 			}, []any{&samples[i][idx][1]})
 			idx++
