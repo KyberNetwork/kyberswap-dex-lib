@@ -129,12 +129,16 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		newReserveA, newReserveB *uint256.Int
 		fee                      *uint256.Int
 		graduated                bool
+		err                      error
 	)
 
 	if !isBuy {
 		var amountOutBeforeFee *uint256.Int
 
-		amountOutBeforeFee, amountOut = s.sell(amountIn)
+		amountOutBeforeFee, amountOut, err = s.sell(amountIn)
+		if err != nil {
+			return nil, err
+		}
 		if amountOutBeforeFee.Cmp(balanceB) >= 0 {
 			return nil, ErrInsufficientOutputAmount
 		}
@@ -149,7 +153,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	} else {
 		var amountInAfterFee *uint256.Int
 
-		amountInAfterFee, amountOut = s.buy(amountIn)
+		amountInAfterFee, amountOut, err = s.buy(amountIn)
+		if err != nil {
+			return nil, err
+		}
 		if amountOut.Cmp(balanceA) >= 0 {
 			return nil, ErrInsufficientOutputAmount
 		}
@@ -346,17 +353,20 @@ func (s *PoolSimulator) cappedAntiSniperTax(now int64) *uint256.Int {
 	return antiSniperTax
 }
 
-func (s *PoolSimulator) sell(amountIn *uint256.Int) (*uint256.Int, *uint256.Int) {
-	amountOut := s.getAmountsOut(amountIn, false)
+func (s *PoolSimulator) sell(amountIn *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	amountOut, err := s.getAmountsOut(amountIn, false)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	txFee, _ := new(uint256.Int).MulDivOverflow(s.sellTax, amountOut, u256.U100)
 
 	amountOutAfterFee := new(uint256.Int).Sub(amountOut, txFee)
 
-	return amountOut, amountOutAfterFee
+	return amountOut, amountOutAfterFee, nil
 }
 
-func (s *PoolSimulator) buy(amountIn *uint256.Int) (*uint256.Int, *uint256.Int) {
+func (s *PoolSimulator) buy(amountIn *uint256.Int) (*uint256.Int, *uint256.Int, error) {
 	now := time.Now().Unix()
 	antiSniperTax := s.cappedAntiSniperTax(now)
 
@@ -366,34 +376,52 @@ func (s *PoolSimulator) buy(amountIn *uint256.Int) (*uint256.Int, *uint256.Int) 
 	amountInAfterFee := new(uint256.Int).Sub(amountIn, normalTxFee)
 	amountInAfterFee.Sub(amountInAfterFee, antiSniperTxFee)
 
-	amountOut := s.getAmountsOut(amountInAfterFee, true)
+	amountOut, err := s.getAmountsOut(amountInAfterFee, true)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return amountInAfterFee, amountOut
+	return amountInAfterFee, amountOut, nil
 }
 
-func (s *PoolSimulator) getAmountsOut(amountIn *uint256.Int, isBuy bool) *uint256.Int {
+func (s *PoolSimulator) getAmountsOut(amountIn *uint256.Int, isBuy bool) (*uint256.Int, error) {
 	var amountOut = new(uint256.Int)
 
 	if isBuy {
 		newReserveB := new(uint256.Int).Add(s.reserveB, amountIn)
+		if newReserveB.IsZero() {
+			return nil, ErrDivisionByZero
+		}
 		newReserveA := new(uint256.Int).Div(s.kLast, newReserveB)
 		amountOut = amountOut.Sub(s.reserveA, newReserveA)
 	} else {
 		newReserveA := new(uint256.Int).Add(s.reserveA, amountIn)
+		if newReserveA.IsZero() {
+			return nil, ErrDivisionByZero
+		}
 		newReserveB := new(uint256.Int).Div(s.kLast, newReserveA)
 		amountOut = amountOut.Sub(s.reserveB, newReserveB)
 	}
 
-	return amountOut
+	return amountOut, nil
 }
 
 func (s *PoolSimulator) sellExactOut(amountOut *uint256.Int) (amountIn, amountOutBeforeFee *uint256.Int, err error) {
+	taxDenom := new(uint256.Int).Sub(u256.U100, s.sellTax)
+	if taxDenom.IsZero() {
+		return nil, nil, ErrDivisionByZero
+	}
+
 	amountOutBeforeFee = new(uint256.Int).Div(
 		new(uint256.Int).Mul(amountOut, u256.U100),
-		new(uint256.Int).Sub(u256.U100, s.sellTax),
+		taxDenom,
 	)
 
 	newReserveB := new(uint256.Int).Sub(s.reserveB, amountOutBeforeFee)
+	if newReserveB.IsZero() {
+		return nil, nil, ErrDivisionByZero
+	}
+
 	newReserveA := new(uint256.Int).Div(s.kLast, newReserveB)
 	amountIn = new(uint256.Int).Sub(newReserveA, s.reserveA)
 
@@ -402,6 +430,10 @@ func (s *PoolSimulator) sellExactOut(amountOut *uint256.Int) (amountIn, amountOu
 
 func (s *PoolSimulator) buyExactOut(amountOut *uint256.Int) (amountInBeforeFee, amountInAfterFee *uint256.Int, err error) {
 	newReserveA := new(uint256.Int).Sub(s.reserveA, amountOut)
+	if newReserveA.IsZero() {
+		return nil, nil, ErrDivisionByZero
+	}
+
 	newReserveB := new(uint256.Int).Div(s.kLast, newReserveA)
 	amountInAfterFee = new(uint256.Int).Sub(newReserveB, s.reserveB)
 
@@ -409,9 +441,14 @@ func (s *PoolSimulator) buyExactOut(amountOut *uint256.Int) (amountInBeforeFee, 
 	antiSniperTax := s.cappedAntiSniperTax(now)
 	totalTax := new(uint256.Int).Add(s.buyTax, antiSniperTax)
 
+	taxDenom := new(uint256.Int).Sub(u256.U100, totalTax)
+	if taxDenom.IsZero() {
+		return nil, nil, ErrDivisionByZero
+	}
+
 	amountInBeforeFee = new(uint256.Int).Div(
 		new(uint256.Int).Mul(amountInAfterFee, u256.U100),
-		new(uint256.Int).Sub(u256.U100, totalTax),
+		taxDenom,
 	)
 
 	return

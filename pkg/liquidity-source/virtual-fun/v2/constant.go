@@ -23,4 +23,5 @@ var (
 	ErrInsufficientInputAmount  = errors.New("insufficient input amount")
 	ErrInvalidAmountOut         = errors.New("invalid amount out")
 	ErrInsufficientOutputAmount = errors.New("insufficient output amount")
+	ErrDivisionByZero           = errors.New("division by zero")
 )
