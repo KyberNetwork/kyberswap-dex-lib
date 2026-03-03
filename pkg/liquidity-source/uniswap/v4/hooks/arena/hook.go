@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 	"golang.org/x/sync/singleflight"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -82,10 +83,9 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 
 var MaxHookFee = bignumber.TenPowInt(6)
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	feeAmt := new(big.Int)
-	feeAmt.Mul(swapHookParams.AmountOut, h.totalFeePpm).Div(feeAmt, MaxHookFee)
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
-		HookFee: feeAmt,
+		HookFee: bignumber.MulDivDown(new(big.Int),
+			lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn), h.totalFeePpm, MaxHookFee),
 	}, nil
 }

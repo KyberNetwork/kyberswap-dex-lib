@@ -3,8 +3,9 @@ package shared
 import (
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 )
 
 var (

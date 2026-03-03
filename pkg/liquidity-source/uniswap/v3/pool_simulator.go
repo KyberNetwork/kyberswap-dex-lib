@@ -1,10 +1,8 @@
 package uniswapv3
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
@@ -119,17 +117,15 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		tickMax = v3Ticks[len(v3Ticks)-1].Index
 	}
 
-	var info = pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		SwapFee:  swapFee,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-		Reserves: reserves,
-	}
-
 	return &PoolSimulator{
-		Pool:            pool.Pool{Info: info},
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			SwapFee:  swapFee,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens:   tokens,
+			Reserves: reserves,
+		}},
 		V3Pool:          v3Pool,
 		Gas:             defaultGas,
 		tickMin:         tickMin,
@@ -153,7 +149,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	tokenOut := tokenAmountOut.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+		return nil, ErrInvalidToken
+	} else if tokenAmountOut.Amount.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
+		return nil, ErrInsufficientBalance
 	}
 
 	zeroForOne := tokenInIndex == 0
@@ -165,13 +163,13 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 	amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, &priceLimit)
 	if err != nil {
-		return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
+		return nil, err
 	}
 
 	amountInBI := amountIn.Quotient()
 	if !p.allowEmptyTicks {
 		if amountInBI.Sign() <= 0 {
-			return nil, errors.New("amountIn is 0")
+			return nil, ErrZeroAmount
 		}
 	}
 
@@ -197,7 +195,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenIn := tokenAmountIn.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+		return nil, ErrInvalidToken
 	}
 
 	var amountIn v3Utils.Int256
@@ -211,7 +209,16 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 	amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
 	if err != nil {
-		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
+		return nil, err
+	}
+
+	amountOut := amountOutResult.ReturnedAmount
+	if !p.allowEmptyTicks && amountOut.Sign() <= 0 {
+		return nil, ErrZeroAmount
+	}
+	amountOutBI := amountOut.ToBig()
+	if amountOutBI.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
+		return nil, ErrInsufficientBalance
 	}
 
 	remainingTokenAmountIn := &pool.TokenAmount{
@@ -226,17 +233,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 	}
 
-	amountOut := amountOutResult.ReturnedAmount
-	if !p.allowEmptyTicks {
-		if amountOut.Sign() <= 0 {
-			return nil, errors.New("amountOut is 0")
-		}
-	}
-
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
+			Amount: amountOutBI,
 		},
 		RemainingTokenAmountIn: remainingTokenAmountIn,
 		Fee: &pool.TokenAmount{
@@ -268,6 +268,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.SqrtRatioX96 = si.NextStateSqrtRatioX96
 	p.V3Pool.Liquidity = si.nextStateLiquidity
 	p.V3Pool.TickCurrent = si.NextStateTickCurrent
+	tokenAmtIn, tokenAmtOut := params.TokenAmountIn, params.TokenAmountOut
+	if p.GetTokenIndex(tokenAmtIn.Token) == 0 {
+		p.Info.Reserves = []*big.Int{new(big.Int).Add(p.Info.Reserves[0], tokenAmtIn.Amount),
+			new(big.Int).Sub(p.Info.Reserves[1], tokenAmtOut.Amount)}
+	} else {
+		p.Info.Reserves = []*big.Int{new(big.Int).Sub(p.Info.Reserves[0], tokenAmtOut.Amount),
+			new(big.Int).Add(p.Info.Reserves[1], tokenAmtIn.Amount)}
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
