@@ -17,13 +17,13 @@ func TestPoolSimulatorWithAmountInSmallerThanFirstBin(t *testing.T) {
 	var entityPool entity.Pool
 	err := json.Unmarshal([]byte(poolData), &entityPool)
 	assert.NoError(t, err, "failed to unmarshal pool data")
+	entityPool.Timestamp = time.Now().Unix()
 
 	poolSimulator, err := NewPoolSimulator(entityPool)
 	assert.NoError(t, err, "failed to create pool simulator")
-	poolSimulator.poolTimestamp = time.Now().Unix()
 
-	tokenIn := poolSimulator.Pool.Info.Tokens[0]
-	tokenOut := poolSimulator.Pool.Info.Tokens[1]
+	tokenIn := poolSimulator.Info.Tokens[0]
+	tokenOut := poolSimulator.Info.Tokens[1]
 	amountIn := bignumber.NewBig10("50000000000000000")
 
 	result, err := poolSimulator.CalcAmountOut(pool.CalcAmountOutParams{
