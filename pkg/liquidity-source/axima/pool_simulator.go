@@ -156,12 +156,12 @@ func getRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) 
 	binIdx := -1
 	isAmountInBelowFirstBin := false
 	for i, bin := range bins {
-		amountOutF, _ := bin.CumulativeVolume.Float64()
-		amountInF := amountOutF * math.Pow10(int(decimalsDiff)) / bin.Rate
-		amountInF = math.Ceil(amountInF)
-		amountInRounded := new(big.Int).SetUint64(uint64(amountInF))
+		binAmountOutF, _ := bin.CumulativeVolume.Float64()
+		binAmountInF := binAmountOutF * math.Pow10(int(decimalsDiff)) / bin.Rate
+		binAmountInF = math.Ceil(binAmountInF)
+		binAmountIn := new(big.Int).SetUint64(uint64(binAmountInF))
 
-		if amountIn.Cmp(amountInRounded) >= 0 {
+		if amountIn.Cmp(binAmountIn) >= 0 {
 			binIdx = i
 		} else if i == 0 {
 			isAmountInBelowFirstBin = true
