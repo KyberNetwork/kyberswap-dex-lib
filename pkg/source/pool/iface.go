@@ -124,7 +124,6 @@ type IPoolRFQ interface {
 
 type IPoolDecoder interface {
 	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
-	GetKeys(ctx context.Context) ([]string, error)
 }
 
 type ITBPoolTracker[T any] interface {
