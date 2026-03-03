@@ -72,7 +72,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// Estimate output based on cached reserves ratio
 	// This is an approximation - actual output comes from previewSwap
 	amountOut := p.estimateAmountOut(tokenInIndex, tokenOutIndex, tokenAmountIn.Amount)
-	if amountOut.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
+	if amountOut == nil || amountOut.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInvalidAmountOut
 	}
 
@@ -91,11 +91,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 // For Clear protocol, this is an approximation since actual pricing requires RPC
 func (p *PoolSimulator) estimateAmountOut(tokenInIndex, tokenOutIndex int, amountIn *big.Int) *big.Int {
 	if p.extra.Rates == nil {
-		return new(big.Int)
+		return nil
 	}
 	rate := p.extra.Rates[tokenInIndex][tokenOutIndex]
 	if rate[1] == nil || rate[1].Sign() == 0 {
-		return new(big.Int)
+		return nil
 	}
 
 	// Simple ratio calculation: amountOut = amountIn * reserveOut / reserveIn
