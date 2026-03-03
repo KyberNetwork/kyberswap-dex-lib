@@ -1,7 +1,7 @@
 package clear
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
 )
 
 type Metadata struct {
@@ -9,27 +9,14 @@ type Metadata struct {
 }
 
 type Extra struct {
-	SwapAddress string                             `json:"swapAddress"`
-	IOUs        []string                           `json:"ious"`     // token address -> iou token address
-	Reserves    map[int]map[int]*PreviewSwapResult `json:"reserves"` // token address -> reserve
+	SwapAddress string       `json:"s"`
+	IOUs        []string     `json:"i"` // tokenIdx -> iou token address
+	Rates       [][]AmtInOut `json:"p"` // tokenIn -> tokenOut -> [amtIn, amtOut]
 }
+
+type AmtInOut [2]*uint256.Int
+
 type SwapInfo struct {
 	SwapAddress string `json:"swapAddress"`
 	IOU         string `json:"iou"`
-}
-
-// PreviewSwapResult from ClearSwap.previewSwap()
-type PreviewSwapResult struct {
-	AmountIn  *big.Int
-	AmountOut *big.Int
-	IOUs      *big.Int `json:"-"`
-}
-
-// Gas costs for different operations
-type Gas struct {
-	Swap int64
-}
-
-var DefaultGas = Gas{
-	Swap: defaultGas,
 }
