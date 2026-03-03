@@ -99,7 +99,8 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	pythUpdateDataCh := lo.Async(func() *PythUpdateData {
-		if time.Since(time.Unix(p.Timestamp, 0)) < 5*time.Second {
+		now := time.Now()
+		if now.Sub(time.Unix(p.Timestamp, 0)) < 5*time.Second {
 			return nil // don't need to fetch this too often
 		}
 		permu := rand.Perm(len(d.pythClients))[:min(2, len(d.pythClients))]
@@ -119,6 +120,11 @@ func (d *PoolTracker) GetNewPoolState(
 							"url": d.pythClients[i].BaseURL}).Error("fail to fetch price feeds")
 					}
 					return
+				}
+				for _, price := range pythUpdateData.Parsed {
+					if now.Sub(time.Unix(price.Price.PublishTime, 0)) > maxAge {
+						return
+					}
 				}
 				select {
 				case pythUpdateDataCh <- &pythUpdateData:
