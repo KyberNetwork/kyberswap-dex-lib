@@ -35,6 +35,7 @@ const (
 	pythDefaultUrl = "https://hermes.pyth.network/v2/updates/price/latest"
 
 	ttlStatic      = time.Hour
+	maxAge         = 15 * time.Second
 	parsedDecimals = 18
 
 	defaultGas = 387186
