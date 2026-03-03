@@ -8,42 +8,42 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
-
-	pooldecode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
-var _ = pooldecode.RegisterFactoryC(DexType, NewEventParser)
+var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
 
 type EventParser struct {
 	Core  string
 	Twamm string
 }
 
-func NewEventParser(config *Config) *EventParser {
+func NewPoolFactory(config *Config) *EventParser {
 	return &EventParser{
 		Core:  hexutil.Encode(config.Core[:]),
 		Twamm: hexutil.Encode(config.Twamm[:]),
 	}
 }
 
-func (e *EventParser) Decode(_ context.Context, logs []types.Log) (map[string][]types.Log, error) {
+func (e *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string][]types.Log, error) {
 	addressLogs := make(map[string][]types.Log)
 	for _, log := range logs {
-		poolAddress, err := e.getPoolAddress(log)
+		poolAddresses, err := e.DecodePoolAddressesFromFactoryLog(ctx, log)
 		if err != nil {
 			return nil, err
 		}
 
-		if poolAddress != "" {
+		for _, poolAddress := range poolAddresses {
 			addressLogs[poolAddress] = append(addressLogs[poolAddress], log)
 		}
 	}
 	return addressLogs, nil
 }
 
-func (e *EventParser) getPoolAddress(log types.Log) (string, error) {
+func (e *EventParser) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
 	logAddress := hexutil.Encode(log.Address[:])
 
 	switch logAddress {
@@ -52,66 +52,77 @@ func (e *EventParser) getPoolAddress(log types.Log) (string, error) {
 	case e.Twamm:
 		return e.handleTwammLog(log)
 	default:
-		return "", nil
+		return nil, nil
 	}
 }
 
-func (e *EventParser) handleCoreLog(log types.Log) (string, error) {
+func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 {
 		if len(log.Data) < 52 {
-			return "", fmt.Errorf("invalid data length for Swapped event")
+			return nil, fmt.Errorf("invalid data length for Swapped event")
 		}
 
-		return "0x" + common.Bytes2Hex(log.Data[20:52]), nil
+		return []string{"0x" + common.Bytes2Hex(log.Data[20:52])}, nil
 	}
 
 	if log.Topics[0] == abis.PositionUpdatedEvent.ID {
 		values, err := abis.PositionUpdatedEvent.Inputs.Unpack(log.Data)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		poolId, ok := values[1].([32]byte)
 		if !ok {
-			return "", fmt.Errorf("failed to parse poolId from PositionUpdated event data")
+			return nil, fmt.Errorf("failed to parse poolId from PositionUpdated event data")
 		}
 
-		return "0x" + common.Bytes2Hex(poolId[:]), nil
+		return []string{"0x" + common.Bytes2Hex(poolId[:])}, nil
 	}
 
-	return "", nil
+	return nil, nil
 }
 
-func (e *EventParser) handleTwammLog(log types.Log) (string, error) {
+func (e *EventParser) handleTwammLog(log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 {
 		if len(log.Data) < 32 {
-			return "", fmt.Errorf("invalid data length for VirtualOrdersExecuted event")
+			return nil, fmt.Errorf("invalid data length for VirtualOrdersExecuted event")
 		}
 
-		return "0x" + common.Bytes2Hex(log.Data[0:32]), nil
+		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
 	}
 
 	if log.Topics[0] == abis.OrderUpdatedEvent.ID {
 		values, err := abis.OrderUpdatedEvent.Inputs.Unpack(log.Data)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		orderKeyAbi, ok := values[2].(pools.TwammOrderKeyAbi)
 		if !ok {
-			return "", fmt.Errorf("failed to parse orderKey")
+			return nil, fmt.Errorf("failed to parse orderKey")
 		}
 		orderKey := pools.TwammOrderKey{TwammOrderKeyAbi: orderKeyAbi}
 
 		poolKey := pools.NewPoolKey(orderKey.Token0, orderKey.Token1,
 			pools.NewPoolConfig(common.HexToAddress(e.Twamm), orderKey.Fee(), pools.NewFullRangePoolTypeConfig()))
 
-		return poolKey.ToPoolAddress()
+		poolAddress, err := poolKey.ToPoolAddress()
+		if err != nil {
+			return nil, err
+		}
+
+		return []string{poolAddress}, nil
 	}
 
-	return "", nil
+	return nil, nil
 }
 
-func (e *EventParser) GetKeys(_ context.Context) ([]string, error) {
-	return []string{e.Core, e.Twamm}, nil
+func (ep *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+	// TODO: Implement this (non tick-based pool creation)
+	return nil, nil
+}
+
+func (ep *EventParser) IsEventSupported(event common.Hash) bool {
+	// TODO: Implement this (non tick-based pool creation)
+	return true
 }

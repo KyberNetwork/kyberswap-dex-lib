@@ -2,7 +2,6 @@ package vault
 
 import (
 	"context"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -12,30 +11,35 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
-var _ = poolfactory.RegisterFactoryC(Type, NewPoolFactory)
-
-type PoolFactory struct {
-	cfg          *Config
-	vaultAddress string
+type Config struct {
+	Vault string `json:"vault,omitempty"`
 }
 
-func NewPoolFactory(config *Config) *PoolFactory {
-	return &PoolFactory{
-		cfg:          config,
-		vaultAddress: strings.ToLower(config.Vault),
+type EventParser struct {
+	config *Config
+}
+
+var _ = poolfactory.RegisterFactoryC(Type, NewPoolFactory)
+
+func NewPoolFactory(config *Config) *EventParser {
+	return &EventParser{
+		config: config,
 	}
 }
 
-func (f *PoolFactory) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
-	return nil, nil
+func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string][]types.Log, error) {
+	addressLogs := make(map[string][]types.Log)
+	for _, log := range logs {
+		addresses, _ := p.DecodePoolAddressesFromFactoryLog(ctx, log)
+		for _, address := range addresses {
+			addressLogs[address] = append(addressLogs[address], log)
+		}
+	}
+	return addressLogs, nil
 }
 
-func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
-	return true
-}
-
-func (f *PoolFactory) DecodePoolAddress(ctx context.Context, log types.Log) ([]string, error) {
-	if log.Address != common.HexToAddress(f.vaultAddress) {
+func (p *EventParser) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
+	if log.Address != common.HexToAddress(p.config.Vault) {
 		return nil, nil
 	}
 	switch log.Topics[0] {
@@ -59,4 +63,14 @@ func (f *PoolFactory) DecodePoolAddress(ctx context.Context, log types.Log) ([]s
 		return []string{p}, nil
 	}
 	return nil, nil
+}
+
+func (p *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+	// TODO: Implement this (non tick-based pool creation)
+	return nil, nil
+}
+
+func (p *EventParser) IsEventSupported(event common.Hash) bool {
+	// TODO: Implement this (non tick-based pool creation)
+	return true
 }

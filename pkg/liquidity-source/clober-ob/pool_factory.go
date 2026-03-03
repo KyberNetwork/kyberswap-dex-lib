@@ -1,6 +1,7 @@
 package cloberob
 
 import (
+	"context"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -81,7 +82,7 @@ func (f *PoolFactory) newPool(p *abis.BookManagerOpen, blockNumber uint64) (*ent
 	}, nil
 }
 
-func (f *PoolFactory) DecodePoolAddress(log types.Log) ([]string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return nil, nil
 	}

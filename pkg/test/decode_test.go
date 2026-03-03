@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,7 +19,7 @@ func TestDecodePoolAddress(t *testing.T) {
 		dexType  string
 		events   []types.Log
 		pools    []string
-		decodeFn func(event types.Log) ([]string, error)
+		decodeFn func(ctx context.Context, event types.Log) ([]string, error)
 	}{
 		{
 			dexType: pooltypes.PoolTypes.CloberOB,
@@ -90,14 +91,14 @@ func TestDecodePoolAddress(t *testing.T) {
 				"3875727077379471850923186002296331935053867847116966170720",
 				"5954885684956363054050231031211743946744177791604395877538",
 			},
-			decodeFn: cloberob.NewPoolFactory(nil).DecodePoolAddress,
+			decodeFn: cloberob.NewPoolFactory(nil).DecodePoolAddressesFromFactoryLog,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.dexType, func(t *testing.T) {
 			for i, event := range tc.events {
-				pools, err := tc.decodeFn(event)
+				pools, err := tc.decodeFn(context.Background(), event)
 				require.NoError(t, err)
 				require.Equal(t, tc.pools[i], pools[0])
 			}
