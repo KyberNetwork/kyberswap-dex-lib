@@ -162,11 +162,7 @@ func _FInverse(y, px, py, x0, y0, cx *uint256.Int) (*uint256.Int, error) {
 		if val.BitLen() > 109 {
 			shiftFourAc = uint(val.BitLen() - 109)
 		}
-		if shiftSquaredB > shiftFourAc {
-			shift = shiftSquaredB
-		} else {
-			shift = shiftFourAc
-		}
+		shift = max(shiftSquaredB, shiftFourAc)
 	}
 	twoShift := shift << 1
 

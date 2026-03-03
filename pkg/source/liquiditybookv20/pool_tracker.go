@@ -550,10 +550,7 @@ func (t *PoolTracker) queryRPCBins(ctx context.Context, poolAddress string, binI
 
 	var bins []Bin
 	for from := 0; from < len(binIDs); {
-		to := from + binChunk
-		if to > len(binIDs) {
-			to = len(binIDs)
-		}
+		to := min(from+binChunk, len(binIDs))
 
 		b, err := t.queryRPCBinsByChunk(ctx, poolAddress, binIDs[from:to], blockNumber)
 		if err != nil {
