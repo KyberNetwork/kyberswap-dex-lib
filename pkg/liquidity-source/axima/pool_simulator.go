@@ -123,8 +123,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	// Return swapDirection
-	return tokenIn == s.Info.Tokens[0]
+	return PoolMeta{
+		SwapDirection: tokenIn == s.Info.Tokens[0],
+	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

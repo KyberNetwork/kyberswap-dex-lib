@@ -62,7 +62,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return entity.Pool{}
 		}
 
-		extra, reserves, err := fetchPoolState(ctx, u.client, u.config, pm.Pair)
+		extra, reserves, err := fetchPoolState(ctx, u.client, u.config,
+			lo.Ternary(u.config.IsV2, strings.ToLower(pm.PoolAddress), pm.Pair))
 		if err != nil {
 			return entity.Pool{}
 		}
