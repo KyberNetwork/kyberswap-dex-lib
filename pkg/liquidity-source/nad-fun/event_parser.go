@@ -52,7 +52,7 @@ func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string]
 	return addressLogs, nil
 }
 
-func (p *EventParser) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
+func (p *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
 	if !strings.EqualFold(log.Address.Hex(), p.config.BondingCurve) {
 		return nil, nil
 	}

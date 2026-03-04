@@ -1,6 +1,7 @@
 package dexv2
 
 import (
+	"context"
 	"math/big"
 	"time"
 
@@ -95,7 +96,7 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 	}, nil
 }
 
-func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(log ethtypes.Log) ([]string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return nil, nil
 	}

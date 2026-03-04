@@ -49,7 +49,7 @@ func (e *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string]
 	return addressLogs, nil
 }
 
-func (e *EventParser) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
+func (e *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
 	logAddress := hexutil.Encode(log.Address[:])
 
 	switch logAddress {

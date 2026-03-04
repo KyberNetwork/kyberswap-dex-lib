@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -102,7 +103,7 @@ func currencyToToken(currency common.Address, chainId valueobject.ChainID) strin
 	return hexutil.Encode(currency[:])
 }
 
-func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(log ethtypes.Log) ([]string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return nil, nil
 	}

@@ -82,7 +82,7 @@ func (f *PoolFactory) newPool(p *abis.BookManagerOpen, blockNumber uint64) (*ent
 	}, nil
 }
 
-func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return nil, nil
 	}

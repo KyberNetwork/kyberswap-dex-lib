@@ -1,6 +1,7 @@
 package uniswapv4
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -47,7 +48,7 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 	return ok
 }
 
-func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(log ethtypes.Log) ([]string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
 		return nil, nil
 	}
