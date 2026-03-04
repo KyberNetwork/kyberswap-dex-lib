@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolsListUpdater(t *testing.T) {
@@ -21,7 +22,7 @@ func TestPoolsListUpdater(t *testing.T) {
 		TesseraEngine:  "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
 		TesseraSwap:    "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
-	client := ethrpc.New("https://base.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	client := ethrpc.New("https://base.kyberengineering.io").SetMulticallContract(valueobject.AddrMulticall3)
 	updater := NewPoolsListUpdater(cfg, client)
 
 	// 1. Initial Call

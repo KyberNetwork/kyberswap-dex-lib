@@ -7,8 +7,9 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestGetFullPoolState(t *testing.T) {
@@ -16,7 +17,7 @@ func TestGetFullPoolState(t *testing.T) {
 		t.Skip()
 	}
 	// Create ethrpc client
-	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(valueobject.AddrMulticall3)
 
 	// Create pool tracker
 	config := &Config{
@@ -74,7 +75,7 @@ func TestGetState(t *testing.T) {
 		t.Skip()
 	}
 	// Create ethrpc client
-	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(valueobject.AddrMulticall3)
 
 	// Create pool tracker
 	config := &Config{
@@ -147,7 +148,7 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 	}
 
 	// Create ethrpc client
-	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(valueobject.AddrMulticall3)
 
 	// Test parameters
 	poolAddress := "0x31373595f40ea48a7aab6cbcb0d377c6066e2dca"

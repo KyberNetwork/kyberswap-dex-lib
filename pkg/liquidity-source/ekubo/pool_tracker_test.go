@@ -253,7 +253,7 @@ func (ts *PoolListTrackerTestSuite) SetupSuite() {
 	ts.tracker = NewPoolTracker(
 		&MainnetConfig,
 		ethrpc.New("https://ethereum.drpc.org").
-			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+			SetMulticallContract(valueobject.AddrMulticall3),
 	)
 }
 

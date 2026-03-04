@@ -32,7 +32,7 @@ func TestHookV121_OracleUniGeo_Track(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	p := &entity.Pool{
 		Address: "0x54ff1fd1d62f3bc6224082ecfdb3190a34e8428611b058ade19ce6c083cb608b",
@@ -78,7 +78,7 @@ func TestHookV121_Track(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	p := &entity.Pool{
 		Address: "0xd9f673912e1da331c9e56c5f0dbc7273c0eb684617939a375ec5e227c62d6707",
@@ -132,7 +132,7 @@ func TestHookV120_Track(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://unichain.drpc.org").
-		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	p := &entity.Pool{
 		Address: "0xeec51c6b1a9e7c4bb4fc4fa9a02fc4fff3fe94efd044f895d98b5bfbd2ff9433",
@@ -335,7 +335,7 @@ func Test_Quoter(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	sender := common.HexToAddress("0x7b42Ed932f26509465F7cE3FAF76FfCe1275312f")
 

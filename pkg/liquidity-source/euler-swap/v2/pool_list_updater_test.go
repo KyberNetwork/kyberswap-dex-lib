@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolListUpdater(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPoolListUpdater(t *testing.T) {
 		DexID:          DexType,
 		FactoryAddress: "0x5fccb84363f020c0cade052c9c654aabf932814a",
 	}, ethrpc.New("https://ethereum.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
+		SetMulticallContract(valueobject.AddrMulticall3))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)

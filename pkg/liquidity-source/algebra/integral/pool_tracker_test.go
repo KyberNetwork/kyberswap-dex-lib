@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -27,7 +26,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	d := &PoolTracker{
 		PoolTracker: algebra.PoolTracker[Timepoint, TimepointRPC]{
 			EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc.kyberengineering.io"))).
-				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+				SetMulticallContract(valueobject.AddrMulticall3),
 		},
 		config: &Config{
 			DexID:              valueobject.ExchangeThenaFusionV3,

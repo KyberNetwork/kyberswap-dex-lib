@@ -1,4 +1,4 @@
-package v2
+package obric
 
 import (
 	"testing"
@@ -20,13 +20,12 @@ type PoolListTrackerTestSuite struct {
 }
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {
-	rpcClient := ethrpc.New("https://base.drpc.org").
+	rpcClient := ethrpc.New("https://bsc.drpc.org").
 		SetMulticallContract(valueobject.AddrMulticall3)
 
 	config := Config{
-		ChainID:      valueobject.ChainIDBase,
 		DexId:        DexType,
-		Factory:      "0xD7D3C85B4f2e9bee1998cD2E98820e647792d284",
+		Factory:      "0x749837Fd609232941920a826eb7997C9c4bF4120",
 		NewPoolLimit: 100,
 	}
 
@@ -35,19 +34,23 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 }
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
-	var medataBytes []byte
+	ctx := ts.T().Context()
+	var metadataBytes []byte
 	for {
-		pools, newMetadaBytes, err := ts.updater.GetNewPools(ts.T().Context(), medataBytes)
+		pools, newMetadataBytes, err := ts.updater.GetNewPools(ctx, metadataBytes)
 		require.NoError(ts.T(), err)
-		require.Greater(ts.T(), len(pools), 0)
+
+		if len(pools) == 0 {
+			break
+		}
 
 		for _, p := range pools {
-			newPoolState, err := ts.tracker.GetNewPoolState(ts.T().Context(), p, pool.GetNewPoolStateParams{})
+			newPoolState, err := ts.tracker.GetNewPoolState(ctx, p, pool.GetNewPoolStateParams{})
 			require.NoError(ts.T(), err)
 			require.NotNil(ts.T(), newPoolState)
 		}
 
-		medataBytes = newMetadaBytes
+		metadataBytes = newMetadataBytes
 	}
 }
 

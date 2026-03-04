@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestTesseraIntegration(t *testing.T) {
@@ -31,7 +32,7 @@ func TestTesseraIntegration(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://base.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	updater := NewPoolsListUpdater(&cfg, rpcClient)
 	pools, _, err := updater.GetNewPools(context.Background(), nil)

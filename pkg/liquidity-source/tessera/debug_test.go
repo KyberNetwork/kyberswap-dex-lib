@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // TestTesseraDebugFailingCases tests specific failing cases
@@ -33,7 +34,7 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://base.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	failingCases := []struct {
 		poolAddr    string
@@ -199,7 +200,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
 	rpcClient := ethrpc.New("https://base.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	pAddr := "0xf524c1bc1c64a2c99bc7eccf19ede9a1d89d5a7c"
 	amountPerSwap, _ := new(big.Int).SetString("10000000000000000", 10) // 0.01 WETH

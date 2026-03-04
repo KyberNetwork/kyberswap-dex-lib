@@ -21,10 +21,6 @@ type IPoolsListUpdater interface {
 	GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error)
 }
 
-type IPoolsListUpdaterWithDependencies interface {
-	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
-}
-
 type GetNewPoolStateParams struct {
 	Logs         []types.Log
 	BlockHeaders map[uint64]entity.BlockHeader
@@ -46,6 +42,7 @@ type IPoolTracker interface {
 
 type IPoolTrackerWithDependencies interface {
 	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
+	SetDependenciesStored(p *entity.Pool, isStored bool) error
 }
 
 type IPoolSimulator interface {

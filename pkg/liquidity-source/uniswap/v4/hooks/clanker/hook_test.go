@@ -26,7 +26,7 @@ func TestStaticFeeHook_Track(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	chainID := valueobject.ChainIDArbitrumOne
 
@@ -57,7 +57,7 @@ func TestDynamicFeeHook_Track(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	chainID := valueobject.ChainIDArbitrumOne
 

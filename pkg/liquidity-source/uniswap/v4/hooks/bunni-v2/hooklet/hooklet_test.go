@@ -8,6 +8,8 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestHooklet_Track(t *testing.T) {
@@ -17,7 +19,7 @@ func TestHooklet_Track(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://unichain.drpc.org").
-		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	h := feeOverrideHooklet{}
 

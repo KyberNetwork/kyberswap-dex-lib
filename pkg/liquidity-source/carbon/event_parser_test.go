@@ -20,7 +20,7 @@ func TestEventParserDecode(t *testing.T) {
 	controller := common.HexToAddress("0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1")
 
 	rpcClient := ethrpc.New("https://eth.drpc.org").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	e := NewEventParser(&Config{Controller: controller}, rpcClient)
 

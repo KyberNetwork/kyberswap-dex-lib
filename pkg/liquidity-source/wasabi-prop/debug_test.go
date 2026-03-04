@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestWasabiPropDebug(t *testing.T) {
@@ -45,7 +46,7 @@ func TestWasabiPropDebug(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New(rpcURL).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+		SetMulticallContract(valueobject.AddrMulticall3)
 
 	// Discover pool address for WETH
 	var poolAddr common.Address

@@ -161,6 +161,7 @@ const (
 	ExchangeNativeV2                   = "native-v2"
 	ExchangeNativeV3                   = "native-v3"
 	ExchangeNomiswap                   = "nomiswap"
+	ExchangeObric                      = "obric"
 	ExchangeOETH                       = "oeth"
 	ExchangeOmniBin                    = "omni-bin"
 	ExchangeOmniCL                     = "omni-cl"

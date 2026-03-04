@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListUpdaterTestSuite struct {
@@ -18,7 +19,7 @@ type PoolListUpdaterTestSuite struct {
 
 func (ts *PoolListUpdaterTestSuite) SetupTest() {
 	rpcClient := ethrpc.New("https://rpc.mantle.xyz")
-	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	rpcClient.SetMulticallContract(valueobject.AddrMulticall3)
 
 	ts.client = rpcClient
 

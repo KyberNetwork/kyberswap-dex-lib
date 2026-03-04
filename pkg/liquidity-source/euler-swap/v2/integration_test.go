@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestIntegration_V2_ComputeQuote(t *testing.T) {
@@ -23,7 +24,7 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
-	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	rpcClient.SetMulticallContract(valueobject.AddrMulticall3)
 
 	registryAddress := "0x5fccb84363f020c0cade052c9c654aabf932814a"
 

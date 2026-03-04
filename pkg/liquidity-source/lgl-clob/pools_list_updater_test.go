@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -22,7 +21,7 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 	}
 
 	rpcURL := "https://rpc.soniclabs.com"
-	multicallAddress := common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
+	multicallAddress := valueobject.AddrMulticall3
 	chainId := valueobject.ChainID(146)
 	xpressApiURL := "https://api.xpressprotocol.com"
 	helperAddress := "0x38e577290CAF18D07B5719CC9DA1E91BD753F8C0"

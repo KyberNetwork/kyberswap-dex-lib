@@ -307,10 +307,10 @@ func (ts *PoolTrackerTestSuite) SetupSuite() {
 		valueobject.ChainIDEthereum: NewPoolTracker(
 			MainnetConfig,
 			ethrpc.New("https://ethereum.drpc.org").
-				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+				SetMulticallContract(valueobject.AddrMulticall3),
 		),
 		chainIDSepolia: NewPoolTracker(SepoliaConfig, ethrpc.New("https://sepolia.drpc.org").
-			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))),
+			SetMulticallContract(valueobject.AddrMulticall3)),
 	}
 }
 

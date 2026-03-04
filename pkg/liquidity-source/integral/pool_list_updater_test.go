@@ -10,6 +10,8 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListUpdaterTestSuite struct {
@@ -21,7 +23,7 @@ type PoolListUpdaterTestSuite struct {
 func (ts *PoolListUpdaterTestSuite) SetupTest() {
 	// Setup RPC server
 	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io")
-	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	rpcClient.SetMulticallContract(valueobject.AddrMulticall3)
 
 	ts.client = rpcClient
 

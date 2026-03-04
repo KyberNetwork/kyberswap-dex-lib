@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -21,7 +20,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	}
 
 	rpcURL := "https://rpc.soniclabs.com"
-	multicallAddress := common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
+	multicallAddress := valueobject.AddrMulticall3
 	poolAddress := "0xc7723fe3df538f76a063eb5e62867960d236accf"
 	helperAddress := "0x38e577290CAf18d07b5719cc9da1E91Bd753f8c0"
 	chainId := valueobject.ChainID(146)

@@ -1,0 +1,76 @@
+[
+    {
+        "inputs": [],
+        "name": "getPools",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "xToken",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "yToken",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "pool",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct Registry.PoolRecord[]",
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "xToken",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "yToken",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint32",
+                "name": "id",
+                "type": "uint32"
+            }
+        ],
+        "name": "NewPoolEvent",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256[]",
+                "name": "preKs",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "PoolsPreKEvent",
+        "type": "event"
+    }
+]

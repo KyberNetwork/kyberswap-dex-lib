@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // TestPoolTracker_ComprehensiveStateUpdate tests complete RPC-based state update
@@ -66,7 +66,7 @@ func TestPoolTracker_ComprehensiveStateUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// === SETUP ===
 			client := ethrpc.New(tt.rpcURL)
-			client.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+			client.SetMulticallContract(valueobject.AddrMulticall3)
 			require.NotNil(t, client)
 
 			config := &Config{

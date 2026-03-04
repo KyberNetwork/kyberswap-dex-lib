@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -22,7 +21,7 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 	}
 
 	rpcURL := "https://rpc.monad.xyz"
-	multicallAddress := common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
+	multicallAddress := valueobject.AddrMulticall3
 	chainId := valueobject.ChainIDMonad
 	kuruApiURL := "https://api.kuru.io"
 

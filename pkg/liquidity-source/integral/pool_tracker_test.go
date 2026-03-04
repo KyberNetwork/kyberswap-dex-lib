@@ -6,13 +6,13 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -25,7 +25,7 @@ type PoolListTrackerTestSuite struct {
 func (ts *PoolListTrackerTestSuite) SetupTest() {
 	// Setup RPC server
 	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io")
-	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	rpcClient.SetMulticallContract(valueobject.AddrMulticall3)
 
 	ts.client = rpcClient
 

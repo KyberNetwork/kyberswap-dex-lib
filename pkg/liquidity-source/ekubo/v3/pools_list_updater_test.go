@@ -45,7 +45,7 @@ func TestPoolListUpdater(t *testing.T) {
 	test.SkipCI(t)
 
 	plUpdater := NewPoolListUpdater(MainnetConfig, ethrpc.New("https://ethereum.drpc.org").
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+		SetMulticallContract(valueobject.AddrMulticall3),
 		graphql.NewClient(MainnetConfig.SubgraphAPI))
 
 	newPools, _, err := plUpdater.GetNewPools(t.Context(), nil)
