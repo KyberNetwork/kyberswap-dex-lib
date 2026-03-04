@@ -55,5 +55,4 @@ type Bin struct {
 
 type PoolMeta struct {
 	SwapDirection bool `json:"swapDir"`
-	IsV2          bool `json:"isV2"`
 }
