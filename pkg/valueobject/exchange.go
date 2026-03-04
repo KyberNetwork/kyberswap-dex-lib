@@ -258,6 +258,7 @@ const (
 	ExchangeVelocoreV2WombatStable     = "velocore-v2-wombat-stable"
 	ExchangeVelodromeV2                = "velodrome-v2"
 	ExchangeVirtualFun                 = "virtual-fun"
+	ExchangeVirtualFunV2               = "virtual-fun-v2"
 	ExchangeVooi                       = "vooi"
 	ExchangeWagyuSwap                  = "wagyuswap"
 	ExchangeWasabiProp                 = "wasabi-prop"
