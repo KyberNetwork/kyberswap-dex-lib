@@ -3,6 +3,7 @@ package axima
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
@@ -84,7 +85,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	pair := staticExtra.Pair
 	extra, reserves, err := fetchPoolState(ctx, t.client, t.config,
-		lo.Ternary(t.config.IsV2, p.Address, pair))
+		lo.Ternary(t.config.IsV2, strings.ToLower(p.Address), pair))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
