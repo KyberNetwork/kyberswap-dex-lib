@@ -214,6 +214,7 @@ const (
 	ExchangeSomeSwapV1                 = "someswap-v1"
 	ExchangeSomeSwapV2                 = "someswap-v2"
 	ExchangeSonicMarket                = "sonic-market"
+	ExchangeSPendle                    = "spendle"
 	ExchangeSpookySwap                 = "spookyswap"
 	ExchangeStaderETHx                 = "staderethx"
 	ExchangeSuperlendV3                = "superlend-v3"

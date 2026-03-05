@@ -1,0 +1,24 @@
+[
+  {
+    "name": "PENDLE",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "instantUnstakeFeeRate",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
