@@ -27,6 +27,7 @@ type PoolSimulator struct {
 	completionThreshold *uint256.Int
 	tradingFee          uint16
 	paused              bool
+	graduated           bool
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -70,6 +71,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		completionThreshold: extra.CompletionThreshold,
 		tradingFee:          extra.TradingFee,
 		paused:              extra.Paused,
+		graduated:           extra.Graduated,
 	}, nil
 }
 
@@ -84,8 +86,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if s.paused {
 		return nil, ErrContractPaused
 	}
-
-	if s.completionThreshold.IsZero() {
+	if s.graduated || (s.completionThreshold != nil && s.completionThreshold.IsZero()) {
 		return nil, ErrTokenGraduated
 	}
 
@@ -185,8 +186,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	if s.paused {
 		return nil, ErrContractPaused
 	}
-
-	if s.completionThreshold.IsZero() {
+	if s.graduated || (s.completionThreshold != nil && s.completionThreshold.IsZero()) {
 		return nil, ErrTokenGraduated
 	}
 
@@ -297,7 +297,10 @@ func calcSellAmountIn(
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	swapInfo := params.SwapInfo.(*SwapInfo)
+	swapInfo, ok := params.SwapInfo.(*SwapInfo)
+	if !ok {
+		return
+	}
 
 	if swapInfo.IsBuy {
 		// Buy: reserve += curveCost (cost minus fee)

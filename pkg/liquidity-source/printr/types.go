@@ -29,11 +29,15 @@ type StaticExtra struct {
 }
 
 // Extra stores mutable per-pool state (refreshed by the tracker).
+// Graduated marks a bonding-curve pool as permanently finished (no more swaps);
+// when set, tracker can skip RPC on subsequent cycles (early return). Paused is
+// for temporary block; both prevent swap—semantics need not match the contract 1:1.
 type Extra struct {
 	Reserve             *uint256.Int `json:"r"`
 	CompletionThreshold *uint256.Int `json:"cT"`
 	TradingFee          uint16       `json:"tF"`
 	Paused              bool         `json:"p"`
+	Graduated           bool         `json:"g"`
 }
 
 // SwapInfo is attached to CalcAmountOutResult for the executor and UpdateBalance.
