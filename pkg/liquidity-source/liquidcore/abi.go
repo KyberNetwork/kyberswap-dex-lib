@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	PoolABI abi.ABI
+	PoolABI   abi.ABI
+	RouterABI abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&PoolABI, poolBytes},
+		{&RouterABI, routerBytes},
 	}
 
 	for _, b := range builder {
