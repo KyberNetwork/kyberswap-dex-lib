@@ -52,9 +52,9 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.StartingTime == 0 || time.Now().Unix() < h.StartingTime {
 		return nil, ErrCannotSwapBeforeStartingTime
 	}
-	return h.Hook.BeforeSwap(swapHookParams)
+	return h.Hook.BeforeSwap(params)
 }

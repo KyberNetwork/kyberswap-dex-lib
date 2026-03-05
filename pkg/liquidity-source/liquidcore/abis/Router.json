@@ -1,0 +1,13 @@
+[
+  {
+    "type": "function",
+    "name": "getPools",
+    "outputs": [
+      {
+        "name": "pools",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

@@ -15,6 +15,7 @@ const (
 	ExchangeAstroSwap                  = "astroswap"
 	ExchangeAxial                      = "axial"
 	ExchangeAxima                      = "axima"
+	ExchangeAximaV2                    = "axima-v2"
 	ExchangeBabyDogeSwap               = "babydogeswap"
 	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalancerV1                 = "balancer-v1"
@@ -258,13 +259,16 @@ const (
 	ExchangeVelocoreV2WombatStable     = "velocore-v2-wombat-stable"
 	ExchangeVelodromeV2                = "velodrome-v2"
 	ExchangeVirtualFun                 = "virtual-fun"
+	ExchangeVirtualFunV2               = "virtual-fun-v2"
 	ExchangeVooi                       = "vooi"
 	ExchangeWagyuSwap                  = "wagyuswap"
+	ExchangeWasabiProp                 = "wasabi-prop"
 	ExchangeWault                      = "wault"
 	ExchangeWBETH                      = "wbeth"
 	ExchangeWildcard                   = "wildcard"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
+	ExchangeWCM                        = "wcm"
 	ExchangeWooFiV3                    = "woofi-v3"
 	ExchangeWrappedNative              = "wrapped-native"
 	ExchangeWRSETH                     = "wrseth"
@@ -300,7 +304,8 @@ func IsRFQSource(exchange Exchange) bool {
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
 var needFallbackSourceSet = map[Exchange]struct{}{
-	ExchangeAxima: {},
+	ExchangeAxima:   {},
+	ExchangeAximaV2: {},
 }
 
 func NeedsFallbackSource(exchange Exchange) bool {

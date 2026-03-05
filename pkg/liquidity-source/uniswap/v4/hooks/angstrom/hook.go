@@ -123,7 +123,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if time.Since(time.Unix(h.extra.LatestAttestationsTime, 0)) > time.Minute {
 		return nil, ErrOutdatedAttestations
 	}
@@ -140,9 +140,9 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	exactIn := swapHookParams.ExactIn
-	targetAmount := swapHookParams.AmountOut
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+	exactIn := params.ExactIn
+	targetAmount := params.AmountOut
 
 	var tmp big.Int
 

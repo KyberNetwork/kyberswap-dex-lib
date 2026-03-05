@@ -2,9 +2,8 @@ package axima
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -84,7 +84,8 @@ func (t *PoolTracker) getNewPoolState(
 	var extra Extra
 
 	pair := staticExtra.Pair
-	pairData, err := t.fetchPairData(ctx, pair)
+	extra, reserves, err := fetchPoolState(ctx, t.client, t.config,
+		lo.Ternary(t.config.IsV2, strings.ToLower(p.Address), pair))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -106,23 +107,6 @@ func (t *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	reserves := []string{pairData.TotalToken0Available, pairData.TotalToken1Available}
-
-	bidF, err := strconv.ParseFloat(pairData.Bid, 64)
-	if err != nil {
-		return entity.Pool{}, err
-	}
-	extra.ZeroToOneRate = bidF / Q64
-
-	askF, err := strconv.ParseFloat(pairData.Ask, 64)
-	if err != nil {
-		return entity.Pool{}, err
-	}
-	extra.OneToZeroRate = Q64 / askF
-
-	extra.QuoteAvailable = pairData.QuoteAvailable
-	extra.MaxAge = t.config.MaxAge
-
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
@@ -133,18 +117,4 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
-}
-
-func (t *PoolTracker) fetchPairData(ctx context.Context, pair string) (PairData, error) {
-	var pairData PairData
-	_, err := t.client.R().
-		SetContext(ctx).
-		SetResult(&pairData).
-		Get(fmt.Sprintf("/%s/%s/bid_ask", t.config.ChainID.String(), pair))
-
-	if err != nil {
-		return PairData{}, err
-	}
-
-	return pairData, nil
 }

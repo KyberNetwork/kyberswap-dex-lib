@@ -23,6 +23,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -201,18 +202,9 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 
-	var reserve0, reserve1 big.Int
-	if rpcData.Slot0.SqrtPriceX96.Sign() != 0 {
-		// reserve0 = liquidity / sqrtPriceX96 * Q96
-		reserve0.Mul(rpcData.Liquidity, Q96)
-		reserve0.Div(&reserve0, rpcData.Slot0.SqrtPriceX96)
-	}
-
-	// reserve1 = liquidity * sqrtPriceX96 / Q96
-	reserve1.Mul(rpcData.Liquidity, rpcData.Slot0.SqrtPriceX96)
-	reserve1.Div(&reserve1, Q96)
-
+	reserve0, reserve1 := uniswapv4.EstimateReservesFromTicks(rpcData.Slot0.SqrtPriceX96, ticks)
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+
 	p.BlockNumber = blockNumber
 
 	l.Infof("Finish updating state of pool")

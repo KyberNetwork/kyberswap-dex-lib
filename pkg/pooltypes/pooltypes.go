@@ -77,7 +77,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli-prop"
+	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
@@ -131,7 +131,10 @@ import (
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
-	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
+	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v1"
+	virtualfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v2"
+	wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
@@ -239,6 +242,7 @@ type Types struct {
 	MaverickV1                 string
 	AlgebraV1                  string
 	IZiSwap                    string
+	WCM                        string
 	WooFiV2                    string
 	WooFiV21                   string
 	Equalizer                  string
@@ -327,6 +331,7 @@ type Types struct {
 	AlgebraIntegral            string
 	LO1inch                    string
 	VirtualFun                 string
+	VirtualFunV2               string
 	BeetsSS                    string
 	SwapXV2                    string
 	EtherFieBTC                string
@@ -381,6 +386,7 @@ type Types struct {
 	KipseliProp                string
 	SomeswapV1                 string
 	SomeswapV2                 string
+	WasabiProp                 string
 }
 
 var (
@@ -440,6 +446,7 @@ var (
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
+		WCM:                        wcm.DexType,
 		WooFiV2:                    woofiv2.DexTypeWooFiV2,
 		WooFiV21:                   woofiv21.DexTypeWooFiV21,
 		Equalizer:                  equalizer.DexTypeEqualizer,
@@ -525,6 +532,7 @@ var (
 		AlgebraIntegral:            algebraintegral.DexType,
 		LO1inch:                    lo1inch.DexType,
 		VirtualFun:                 virtualfun.DexType,
+		VirtualFunV2:               virtualfunv2.DexType,
 		BeetsSS:                    beetsss.DexType,
 		SwapXV2:                    swapxv2.DexType,
 		EtherFieBTC:                etherfiebtc.DexType,
@@ -583,5 +591,6 @@ var (
 		KipseliProp:                kipseliprop.DexType,
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
+		WasabiProp:                 wasabiprop.DexType,
 	}
 )

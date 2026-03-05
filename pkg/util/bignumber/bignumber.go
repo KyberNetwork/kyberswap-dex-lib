@@ -11,33 +11,33 @@ import (
 )
 
 var (
-	TwoPow128 = new(big.Int).Exp(Two, big.NewInt(128), nil)
+	ZeroBI     = big.NewInt(0)
+	One        = big.NewInt(1)
+	Two        = big.NewInt(2)
+	Three      = big.NewInt(3)
+	Four       = big.NewInt(4)
+	Five       = big.NewInt(5)
+	Six        = big.NewInt(6)
+	Seven      = big.NewInt(7)
+	Eight      = big.NewInt(8)
+	Nine       = big.NewInt(9)
+	Ten        = big.NewInt(10)
+	Eleven     = big.NewInt(11)
+	B100       = big.NewInt(100)
+	B2Pow24    = big.NewInt(1 << 24)
+	B2Pow31    = big.NewInt(1 << 31)
+	B2Pow128   = new(big.Int).Lsh(One, 128)
+	B2Pow256   = new(big.Int).Lsh(One, 256)
+	MaxUint128 = new(big.Int).Sub(B2Pow128, One)
+	MaxUint256 = new(big.Int).Sub(B2Pow256, One)
+	MinInt128  = new(big.Int).Neg(new(big.Int).Lsh(One, 127))
+	MaxInt128  = new(big.Int).Sub(new(big.Int).Lsh(One, 127), One)
 
-	ZeroBI = big.NewInt(0)
-	One    = big.NewInt(1)
-	Two    = big.NewInt(2)
-	Three  = big.NewInt(3)
-	Four   = big.NewInt(4)
-	Five   = big.NewInt(5)
-	Six    = big.NewInt(6)
-	Seven  = big.NewInt(7)
-	Eight  = big.NewInt(8)
-	Nine   = big.NewInt(9)
-	Ten    = big.NewInt(10)
-	Eleven = big.NewInt(11)
-	B100   = big.NewInt(100)
-
-	MIN_SQRT_RATIO    = big.NewInt(4295128739)
-	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
+	MinSqrtRatio = big.NewInt(4295128739)
+	MaxSqrtRatio = NewBig10("1461446703485210103287273052203988822378723970342")
 
 	BasisPoint   = big.NewInt(10000)
 	BasisPointM1 = big.NewInt(10000 - 1)
-
-	MAX_UINT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 128), One)
-	MAX_UINT_256 = new(big.Int).Sub(new(big.Int).Lsh(One, 256), One)
-
-	MIN_INT_128 = new(big.Int).Neg(new(big.Int).Lsh(One, 127))
-	MAX_INT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 127), One)
 )
 
 var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)
@@ -97,7 +97,7 @@ func Cap(n *big.Int, min *big.Int, max *big.Int) *big.Int {
 }
 
 func CapPriceLimit(n *big.Int) *big.Int {
-	return Cap(n, MIN_SQRT_RATIO, MAX_SQRT_RATIO)
+	return Cap(n, MinSqrtRatio, MaxSqrtRatio)
 }
 
 // Min returns the smaller of a or b.

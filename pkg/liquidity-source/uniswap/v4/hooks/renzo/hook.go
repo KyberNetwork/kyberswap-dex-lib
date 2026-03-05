@@ -102,17 +102,17 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.poolSqrtPriceX96 == nil || h.rate == nil {
 		return nil, errors.New("sqrtPriceX96 or rate is not set")
 	}
 	referenceSqrtPriceX96 := exchangeRateToSqrtPriceX96(h.rate)
 	var fee *big.Int
-	if swapHookParams.ZeroForOne || h.poolSqrtPriceX96.Cmp(referenceSqrtPriceX96) < 0 {
+	if params.ZeroForOne || h.poolSqrtPriceX96.Cmp(referenceSqrtPriceX96) < 0 {
 		fee = h.minFeeBps
 	} else {
-		absPercentageDifferenceWad := absPercentageDifferenceWad(h.poolSqrtPriceX96, referenceSqrtPriceX96)
-		fee = absPercentageDifferenceWad.Div(absPercentageDifferenceWad, B1e12)
+		fee = absPercentageDifferenceWad(h.poolSqrtPriceX96, referenceSqrtPriceX96)
+		fee = fee.Div(fee, B1e12)
 		if fee.Cmp(h.minFeeBps) < 0 {
 			fee = h.minFeeBps
 		} else if fee.Cmp(h.maxFeeBps) > 0 {

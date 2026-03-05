@@ -2,13 +2,15 @@ package clear
 
 import (
 	"context"
-	"strings"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -43,41 +45,42 @@ func (d *PoolTracker) GetNewPoolState(
 	if len(p.Tokens) < 2 {
 		return entity.Pool{}, ErrPoolNotFound
 	}
-	// Use a small test amount (1 unit of token0)
-	// testAmount := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(p.Tokens[0].Decimals)), nil)
-	// var previewResult PreviewSwapResult
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	poolAddr := common.HexToAddress(p.Address)
+	tokens := lo.Map(p.Tokens, func(token *entity.PoolToken, _ int) common.Address {
+		return common.HexToAddress(token.Address)
+	})
 	iouTokens := make([]common.Address, len(p.Tokens))
-	previewResult := make(map[int]map[int]*PreviewSwapResult)
-	for i := 0; i < len(p.Tokens); i++ {
+	rates := make([][]AmtInOut, len(p.Tokens))
+	output := make([][]*big.Int, len(p.Tokens))
+	tokenBalances := make([]*big.Int, len(p.Tokens))
+	for i, token := range p.Tokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clearVaultABI,
 			Target: p.Address,
-			Method: "iouOf",
-			Params: []any{common.HexToAddress(p.Tokens[i].Address)},
-		}, []any{&iouTokens[i]})
-		for j := 0; j < len(p.Tokens); j++ {
+			Method: methodIouOf,
+			Params: []any{tokens[i]},
+		}, []any{&iouTokens[i]}).AddCall(&ethrpc.Call{
+			ABI:    clearVaultABI,
+			Target: p.Address,
+			Method: methodTokenAssets,
+			Params: []any{tokens[i]},
+		}, []any{&tokenBalances[i]})
+		rates[i] = make([]AmtInOut, len(p.Tokens))
+		output[i] = make([]*big.Int, len(p.Tokens))
+		for j := range p.Tokens {
 			if i == j {
 				continue
 			}
-			// Initialize previewResult[i] and previewResult[i][j] to avoid nil map dereference
-			if previewResult[i] == nil {
-				previewResult[i] = make(map[int]*PreviewSwapResult)
-			}
-			amountIn := bignumber.TenPowInt(p.Tokens[i].Decimals)
-			previewResult[i][j] = &PreviewSwapResult{AmountIn: amountIn}
+			amountIn := bignumber.TenPowInt(token.Decimals)
+			rates[i][j][0] = uint256.MustFromBig(amountIn)
 			req.AddCall(&ethrpc.Call{
 				ABI:    clearSwapABI,
 				Target: d.config.SwapAddress,
 				Method: methodPreviewSwap,
-				Params: []any{
-					common.HexToAddress(p.Address),
-					common.HexToAddress(p.Tokens[i].Address),
-					common.HexToAddress(p.Tokens[j].Address),
-					amountIn,
-				},
-			}, []any{previewResult[i][j]})
+				Params: []any{poolAddr, tokens[i], tokens[j], amountIn, true},
+			}, []any{&output[i][j]})
 		}
 	}
 
@@ -86,15 +89,25 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("[Clear] failed to call previewSwap")
-
 		return entity.Pool{}, nil
+	}
+
+	hasSwap := make([]bool, len(p.Tokens))
+	for i, o := range output {
+		for j, o := range o {
+			if o == nil {
+				rates[i][j][0] = nil
+			} else {
+				rates[i][j][1] = uint256.MustFromBig(o)
+				hasSwap[j] = true
+			}
+		}
 	}
 	extra := Extra{
 		SwapAddress: d.config.SwapAddress,
-		Reserves:    previewResult,
-		IOUs: lo.Map(iouTokens, func(iouToken common.Address, _ int) string {
-			return strings.ToLower(iouToken.Hex())
-		}),
+		IOUs: lo.Map(iouTokens,
+			func(iouToken common.Address, _ int) string { return hexutil.Encode(iouToken[:]) }),
+		Rates: rates,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -106,10 +119,15 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	p.Reserves = lo.Map(tokenBalances, func(bal *big.Int, i int) string {
+		if hasSwap[i] {
+			return bal.String()
+		}
+		return "0"
+	})
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
 	logger.Infof("[Clear] Finish getting new state of pool: %v", p.Address)
-
 	return p, nil
 }

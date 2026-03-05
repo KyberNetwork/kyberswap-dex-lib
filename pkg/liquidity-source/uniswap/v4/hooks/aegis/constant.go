@@ -5,5 +5,5 @@ import (
 )
 
 var HookAddresses = []common.Address{
-	common.HexToAddress("0xa0b0d2d00fd544d8e0887f1a3cedd6e24baf10cc"),
+	common.HexToAddress("0xA0b0D2d00fD544D8E0887F1a3cEDd6e24Baf10cc\n"),
 }
