@@ -1,6 +1,6 @@
 package liquidcore
 
 type Config struct {
-	DexId string   `json:"dexId"`
-	Pools []string `json:"pools"`
+	DexId  string `json:"dexId"`
+	Router string `json:"router"`
 }
