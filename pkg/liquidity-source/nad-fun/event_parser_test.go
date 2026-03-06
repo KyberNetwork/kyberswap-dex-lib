@@ -9,8 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestEventParserDecode(t *testing.T) {
@@ -21,7 +19,7 @@ func TestEventParserDecode(t *testing.T) {
 
 	rpcClient := ethrpc.
 		New("https://rpc-mainnet.monadinfra.com/rpc/ICLJSp4IKDWLSpZ4laJATUQfL0ucwxiK").
-		SetMulticallContract(valueobject.AddrMulticall3)
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	e := NewEventParser(&EventParserConfig{
 		BondingCurve: "0xa7283d07812a02afb7c09b60f8896bcea3f90ace",

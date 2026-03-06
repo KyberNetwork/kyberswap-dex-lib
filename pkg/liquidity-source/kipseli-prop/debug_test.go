@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestKipseliDebug_QuoteVsSim(t *testing.T) {
@@ -40,7 +39,7 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 	}
 
 	rpcClient := ethrpc.New("https://base.kyberengineering.io").
-		SetMulticallContract(valueobject.AddrMulticall3)
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	inputPool := entity.Pool{
 		Address: DexType + "_" + weth + "_" + usdc,

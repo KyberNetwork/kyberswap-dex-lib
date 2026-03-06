@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -20,7 +21,7 @@ type PoolListUpdaterTestSuite struct {
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	rpcClientByChainID := map[valueobject.ChainID]*ethrpc.Client{
 		valueobject.ChainIDArbitrumOne: ethrpc.New("https://arbitrum.drpc.org").
-			SetMulticallContract(valueobject.AddrMulticall3),
+			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	}
 
 	testCases := []struct {

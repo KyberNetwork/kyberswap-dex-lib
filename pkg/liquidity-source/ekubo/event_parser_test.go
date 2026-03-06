@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestEventParserDecode(t *testing.T) {
@@ -19,7 +18,7 @@ func TestEventParserDecode(t *testing.T) {
 
 	rpcClient := ethrpc.
 		New("https://ethereum.drpc.org").
-		SetMulticallContract(valueobject.AddrMulticall3)
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	e := NewEventParser(&Config{
 		Core:  common.HexToAddress("0xe0e0e08A6A4b9Dc7bD67BCB7aadE5cF48157d444"),

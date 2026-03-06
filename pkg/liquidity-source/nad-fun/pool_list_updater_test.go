@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -25,7 +26,7 @@ func TestPoolListUpdater(t *testing.T) {
 		NewPoolLimit:        3000,
 		ChainID:             valueobject.ChainIDMonad,
 	}, ethrpc.New("https://rpc-mainnet.monadinfra.com/rpc/ICLJSp4IKDWLSpZ4laJATUQfL0ucwxiK").
-		SetMulticallContract(valueobject.AddrMulticall3),
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		graphqlpkg.NewClient("https://api.goldsky.com/api/public/project_cmcu5mf7qh3lx01ww9j049ln3/subgraphs/nadfun-bc-monad/latest/gn"))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)

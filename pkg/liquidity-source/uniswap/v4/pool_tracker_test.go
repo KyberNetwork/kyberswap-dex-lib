@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolTracker_GetNewPoolState(t *testing.T) {
@@ -27,7 +26,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 
 	pt := &PoolTracker{
 		config:        &Config{DexID: DexType, StateViewAddress: "0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227"},
-		ethrpcClient:  ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(valueobject.AddrMulticall3),
+		ethrpcClient:  ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		graphqlClient: graphqlpkg.NewClient(os.ExpandEnv("https://gateway.thegraph.com/api/$THEGRAPH_API_KEY/subgraphs/id/DiYPVdygkfjDWhbxGSqAQxwBKmfKnkWQojqeM2rkLb3G")),
 	}
 	got, err := pt.GetNewPoolState(context.Background(),
@@ -51,7 +50,7 @@ func TestPoolTracker_GetTickFromStateView(t *testing.T) {
 			FetchTickFromStateView: true,
 		},
 		ethrpcClient: ethrpc.New("https://arbitrum.kyberengineering.io").
-			SetMulticallContract(valueobject.AddrMulticall3),
+			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	}
 
 	// need to fetch fresh data each time

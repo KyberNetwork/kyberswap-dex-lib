@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +22,7 @@ func TestPoolListUpdater(t *testing.T) {
 	}
 
 	client := ethrpc.New("https://ethereum.kyberengineering.io").
-		SetMulticallContract(valueobject.AddrMulticall3)
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	graphqlClient := graphqlpkg.NewClient("https://gateway.thegraph.com/api/18edf1db0b785b022d29fa48dc740617/subgraphs/id/5nwMCSHaTqG3Kd2gHznbTXEnZ9QNWsssQfbHhDqQSQFp")
 

@@ -256,7 +256,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 
-	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
 
 	k := s.calculateK()
 	if k.IsZero() {
@@ -277,6 +277,9 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
 	cloned.currentXK = new(uint256.Int).Set(s.currentXK)
+	cloned.preK = new(uint256.Int).Set(s.preK)
+	cloned.multYBase = new(uint256.Int).Set(s.multYBase)
+	cloned.feeMillionth = new(uint256.Int).Set(s.feeMillionth)
 	return &cloned
 }
 

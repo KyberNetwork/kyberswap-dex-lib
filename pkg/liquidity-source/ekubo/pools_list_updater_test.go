@@ -42,7 +42,7 @@ func TestPoolListUpdater(t *testing.T) {
 	}
 
 	plUpdater := NewPoolListUpdater(&MainnetConfig, ethrpc.New("https://ethereum.drpc.org").
-		SetMulticallContract(valueobject.AddrMulticall3))
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)

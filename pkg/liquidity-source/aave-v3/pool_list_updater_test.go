@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/stretchr/testify/require"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPoolListUpdater(t *testing.T) {
@@ -21,7 +20,7 @@ func TestPoolListUpdater(t *testing.T) {
 	}
 
 	client := ethrpc.New("https://ethereum.kyberengineering.io").
-		SetMulticallContract(valueobject.AddrMulticall3)
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	lister := NewPoolsListUpdater(&Config{
 		DexID:           DexType,

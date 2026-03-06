@@ -20,7 +20,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -180,7 +180,7 @@ func TestSimpleContractCall(t *testing.T) {
 		logger.Debugf("🔗 Testing RPC: %s", rpcURL)
 
 		testClient := ethrpc.New(rpcURL)
-		testClient.SetMulticallContract(valueobject.AddrMulticall3)
+		testClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 		// Quick test - try to read array length
 		var testLength *big.Int
@@ -209,7 +209,7 @@ func TestSimpleContractCall(t *testing.T) {
 	if ethrpcClient == nil {
 		logger.Debugf("❌ All RPC endpoints failed. This might be a deeper ABI issue.")
 		ethrpcClient = ethrpc.New("https://ethereum.kyberengineering.io") // Fallback
-		ethrpcClient.SetMulticallContract(valueobject.AddrMulticall3)
+		ethrpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 		workingRPC = "https://ethereum.kyberengineering.io (fallback)"
 	}
 

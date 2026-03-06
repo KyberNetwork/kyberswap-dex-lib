@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -21,7 +21,7 @@ type PoolListTrackerTestSuite struct {
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {
 	rpcClient := ethrpc.New("https://bsc.drpc.org").
-		SetMulticallContract(valueobject.AddrMulticall3)
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	config := Config{
 		DexId:        DexType,
