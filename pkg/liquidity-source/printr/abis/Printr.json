@@ -1,0 +1,79 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "getCurve",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "basePair",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "totalCurves",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxTokenSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "virtualReserve",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "reserve",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "completionThreshold",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IPrintrStorage.CurveInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "tradingFee",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

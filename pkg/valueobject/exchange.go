@@ -275,6 +275,7 @@ const (
 	ExchangeWrappedNative              = "wrapped-native"
 	ExchangeWRSETH                     = "wrseth"
 	ExchangeXSolvBTC                   = "xsolvbtc"
+	ExchangePrintr                     = "printr"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
