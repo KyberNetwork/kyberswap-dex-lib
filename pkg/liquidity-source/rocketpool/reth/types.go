@@ -3,20 +3,20 @@ package reth
 import "math/big"
 
 type PoolMeta struct {
-	BlockNumber     uint64 `json:"blockNumber"`
+	BlockNumber     uint64 `json:"blockNumber,omitempty"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 type PoolExtra struct {
-	DepositEnabled         bool     `json:"depositEnabled"`
-	MinimumDeposit         *big.Int `json:"minimumDeposit"`
-	MaximumDepositPoolSize *big.Int `json:"maximumDepositPoolSize"`
-	AssignDepositsEnabled  bool     `json:"assignDepositsEnabled"`
-	DepositFee             *big.Int `json:"depositFee"`
-	Balance                *big.Int `json:"balance"`
-	EffectiveCapacity      *big.Int `json:"effectiveCapacity"`
-	TotalETHBalance        *big.Int `json:"totalETHBalance"`
-	TotalRETHSupply        *big.Int `json:"totalRETHSupply"`
-	ExcessBalance          *big.Int `json:"excessBalance"`
-	RETHBalance            *big.Int `json:"rETHBalance"`
+	DepositEnabled         bool     `json:"d,omitempty"`
+	MinimumDeposit         *big.Int `json:"m,omitempty"`
+	MaximumDepositPoolSize *big.Int `json:"p,omitempty"`
+	AssignDepositsEnabled  bool     `json:"a,omitempty"`
+	DepositFee             *big.Int `json:"f,omitempty"`
+	Balance                *big.Int `json:"b,omitempty"`
+	EffectiveCapacity      *big.Int `json:"c,omitempty"`
+	TotalETHBalance        *big.Int `json:"e,omitempty"`
+	TotalRETHSupply        *big.Int `json:"s,omitempty"`
+	ExcessBalance          *big.Int `json:"x,omitempty"`
+	RETHBalance            *big.Int `json:"r,omitempty"`
 }

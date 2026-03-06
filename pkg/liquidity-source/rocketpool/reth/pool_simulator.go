@@ -73,11 +73,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:     entityPool.Address,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		depositEnabled:         extra.DepositEnabled,
@@ -95,51 +97,41 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if param.TokenAmountIn.Token == s.Info.Tokens[0] && param.TokenOut == s.Info.Tokens[1] {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if param.TokenAmountIn.Token == p.Info.Tokens[0] && param.TokenOut == p.Info.Tokens[1] {
 		// ETH -> rETH
-		return s.deposit(param.TokenAmountIn.Amount)
+		return p.deposit(param.TokenAmountIn.Amount)
 	}
 
 	// rETH -> ETH
-	return s.burn(param.TokenAmountIn.Amount)
+	return p.burn(param.TokenAmountIn.Amount)
 }
 
-func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
-	if param.TokenAmountIn.Token == s.Info.Tokens[0] && param.TokenAmountOut.Token == s.Info.Tokens[1] {
-
-		return
-	}
-
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	return p
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {
+}
+
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
-		BlockNumber:     s.Info.BlockNumber,
-		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		BlockNumber: p.Info.BlockNumber,
 	}
-}
-
-func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
-	isDeposit := tokenIn == s.Info.Tokens[0] && tokenOut == s.Info.Tokens[1]
-	return lo.Ternary(!isDeposit, tokenOut, "")
 }
 
 // deposit ETH and mint rETH
-func (s *PoolSimulator) deposit(amount *big.Int) (*pool.CalcAmountOutResult, error) {
-	if !s.depositEnabled {
+func (p *PoolSimulator) deposit(amount *big.Int) (*pool.CalcAmountOutResult, error) {
+	if !p.depositEnabled {
 		return nil, ErrDepositDisabled
-	}
-
-	if amount.Cmp(s.minimumDeposit) < 0 {
+	} else if amount.Cmp(p.minimumDeposit) < 0 {
 		return nil, ErrDepositLessThanMinimum
 	}
 
-	capacityNeeded := new(big.Int).Add(s.balance, amount)
-
-	if capacityNeeded.Cmp(s.maximumDepositPoolSize) > 0 {
-		if s.assignDepositsEnabled {
-			if capacityNeeded.Cmp(new(big.Int).Add(s.maximumDepositPoolSize, s.effectiveCapacity)) > 0 {
+	capacityNeeded := new(big.Int).Add(p.balance, amount)
+	if capacityNeeded.Cmp(p.maximumDepositPoolSize) > 0 {
+		if p.assignDepositsEnabled {
+			if capacityNeeded.Cmp(new(big.Int).Add(p.maximumDepositPoolSize, p.effectiveCapacity)) > 0 {
 				return nil, ErrDepositMatchWithMinipoolsMoreThanMaximum
 			}
 		} else {
@@ -147,53 +139,47 @@ func (s *PoolSimulator) deposit(amount *big.Int) (*pool.CalcAmountOutResult, err
 		}
 	}
 
-	depositFee := new(big.Int).Div(new(big.Int).Mul(amount, s.depositFee), calcBase)
-	depositNet := new(big.Int).Sub(amount, depositFee)
+	depositFee := bignumber.MulDivDown(new(big.Int), amount, p.depositFee, calcBase)
+	depositNet := depositFee.Sub(amount, depositFee)
 
-	if s.totalRETHSupply.Cmp(bignumber.ZeroBI) == 0 {
+	if p.totalRETHSupply.Sign() == 0 {
 		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: depositNet},
-			Fee:            &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: bignumber.ZeroBI},
-			Gas:            s.gas.Deposit,
+			TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[1], Amount: depositNet},
+			Fee:            &pool.TokenAmount{Token: p.Info.Tokens[1], Amount: bignumber.ZeroBI},
+			Gas:            p.gas.Deposit,
 		}, nil
-	}
-
-	if s.totalETHBalance.Cmp(bignumber.ZeroBI) <= 0 {
+	} else if p.totalETHBalance.Sign() <= 0 {
 		return nil, ErrZeroNetworkBalance
 	}
 
-	amountOut := new(big.Int).Div(new(big.Int).Mul(depositNet, s.totalRETHSupply), s.totalETHBalance)
+	amountOut := bignumber.MulDivDown(depositNet, depositNet, p.totalRETHSupply, p.totalETHBalance)
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: amountOut},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: bignumber.ZeroBI},
-		Gas:            s.gas.Deposit,
+		TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[1], Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: p.Info.Tokens[1], Amount: bignumber.ZeroBI},
+		Gas:            p.gas.Deposit,
 	}, nil
 }
 
 // burn rETH and withdraw ETH
-func (s *PoolSimulator) burn(amount *big.Int) (*pool.CalcAmountOutResult, error) {
-	ethAmount := s.getEthValue(amount)
-	ethBalance := new(big.Int).Add(s.excessBalance, s.rETHBalance)
-
+func (p *PoolSimulator) burn(amount *big.Int) (*pool.CalcAmountOutResult, error) {
+	ethAmount := p.getEthValue(amount)
+	ethBalance := new(big.Int).Add(p.excessBalance, p.rETHBalance)
 	if ethBalance.Cmp(ethAmount) < 0 {
 		return nil, ErrInsufficientETHBalance
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: ethAmount},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: bignumber.ZeroBI},
-		Gas:            s.gas.Burn,
+		TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[0], Amount: ethAmount},
+		Fee:            &pool.TokenAmount{Token: p.Info.Tokens[0], Amount: bignumber.ZeroBI},
+		Gas:            p.gas.Burn,
 	}, nil
 }
 
-func (s *PoolSimulator) getEthValue(rethAmount *big.Int) *big.Int {
-	if s.totalRETHSupply.Cmp(bignumber.ZeroBI) == 0 {
+func (p *PoolSimulator) getEthValue(rethAmount *big.Int) *big.Int {
+	if p.totalRETHSupply.Sign() == 0 {
 		return rethAmount
 	}
 
-	return new(big.Int).Div(
-		new(big.Int).Mul(rethAmount, s.totalETHBalance),
-		s.totalRETHSupply,
-	)
+	return bignumber.MulDivDown(new(big.Int), rethAmount, p.totalETHBalance, p.totalRETHSupply)
 }
