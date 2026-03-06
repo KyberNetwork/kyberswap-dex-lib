@@ -40,6 +40,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		logger.Infof("finish get new pool state %v", p.Address)
 	}()
 
+	var staticExtra StaticExtra
+	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+
 	var (
 		canSwap         bool
 		currentExposure *big.Int
@@ -79,7 +82,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			ABI:    abi.Erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: abi.Erc20BalanceOfMethod,
-			Params: []any{common.HexToAddress(p.Address)},
+			Params: []any{staticExtra.GhoReserve},
 		}, []any{&tokenBalance}).
 		Aggregate()
 	if err != nil {
