@@ -41,8 +41,8 @@ type Extra struct {
 
 // SwapInfo is attached to CalcAmountOutResult for the executor and UpdateBalance.
 type SwapInfo struct {
-	IsBuy bool `json:"iB"`
-
+	IsSell        bool   `json:"iS"`
+	PrintrAddress string `json:"pA"`
 	// Pre-computed state for UpdateBalance (not serialized to executor)
 	reserveDelta *uint256.Int // exact amount to add/subtract from reserve
 }
@@ -72,8 +72,7 @@ type TokenListVersion struct {
 
 // MetaInfo is returned by GetMetaInfo for the router.
 type MetaInfo struct {
-	BlockNumber     uint64 `json:"blockNumber"`
-	ApprovalAddress string `json:"approvalAddress,omitempty"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 // PoolsListUpdaterMetadata tracks incremental pool discovery state.

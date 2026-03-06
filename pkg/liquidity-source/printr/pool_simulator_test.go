@@ -73,9 +73,9 @@ func TestPoolSimulator_CalcAmountOut_Buy(t *testing.T) {
 	assert.Equal(t, testToken, result.TokenAmountOut.Token)
 	assert.True(t, result.Fee.Amount.Sign() > 0, "should have fee")
 
-	// Verify swap info
+	// Verify swap info (buy = not sell)
 	swapInfo := result.SwapInfo.(*SwapInfo)
-	assert.True(t, swapInfo.IsBuy)
+	assert.False(t, swapInfo.IsSell)
 }
 
 func TestPoolSimulator_CalcAmountOut_Sell(t *testing.T) {
@@ -98,7 +98,7 @@ func TestPoolSimulator_CalcAmountOut_Sell(t *testing.T) {
 	assert.True(t, result.Fee.Amount.Sign() > 0, "should have fee")
 
 	swapInfo := result.SwapInfo.(*SwapInfo)
-	assert.False(t, swapInfo.IsBuy)
+	assert.True(t, swapInfo.IsSell)
 }
 
 func TestPoolSimulator_CalcAmountOut_Paused(t *testing.T) {
@@ -491,20 +491,6 @@ func TestPoolSimulator_MultipleCurves(t *testing.T) {
 		result1.TokenAmountOut.Amount.String(), result3.TokenAmountOut.Amount.String())
 }
 
-func TestPoolSimulator_GetMetaInfo(t *testing.T) {
-	reserve := uint256.NewInt(0)
-	completionThreshold := mustFromDecimal("500000000000000000000000000")
-	sim := makeTestPool(t, reserve, completionThreshold, 100, false)
-
-	// Buy direction: no approval needed
-	meta := sim.GetMetaInfo(testBasePair, testToken).(MetaInfo)
-	assert.Equal(t, "", meta.ApprovalAddress, "buy should have no approval address")
-
-	// Sell direction: approval needed
-	meta = sim.GetMetaInfo(testToken, testBasePair).(MetaInfo)
-	assert.Equal(t, testPrintrAddr, meta.ApprovalAddress, "sell should have Printr approval address")
-}
-
 func TestPoolSimulator_CalcAmountOut_SwapInfoReserveDelta(t *testing.T) {
 	reserve := uint256.NewInt(0)
 	completionThreshold := mustFromDecimal("500000000000000000000000000")
@@ -519,7 +505,7 @@ func TestPoolSimulator_CalcAmountOut_SwapInfoReserveDelta(t *testing.T) {
 	require.NoError(t, err)
 
 	swapInfo := result.SwapInfo.(*SwapInfo)
-	assert.True(t, swapInfo.IsBuy)
+	assert.False(t, swapInfo.IsSell)
 	assert.True(t, swapInfo.reserveDelta.Sign() > 0,
 		"reserveDelta should be positive for buy: %s", swapInfo.reserveDelta.String())
 	// reserveDelta should be <= amountIn (it's cost minus fee)

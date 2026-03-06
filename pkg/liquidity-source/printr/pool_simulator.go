@@ -95,7 +95,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	isBuy := indexIn == 0
+	isSell := indexIn == 1
 
 	var (
 		amountOut    *uint256.Int
@@ -105,7 +105,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		gas          int64
 	)
 
-	if isBuy {
+	if !isSell {
 		// Buy: user spends basePair, receives tokens
 		// First calculate how many tokens the baseSpend yields
 		tokenAmount := CalcBuyTokenAmount(
@@ -171,7 +171,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		RemainingTokenAmountIn: remainingTokenAmountIn,
 		Fee:                    &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
 		Gas:                    gas,
-		SwapInfo:               &SwapInfo{IsBuy: isBuy, reserveDelta: reserveDelta},
+		SwapInfo:               &SwapInfo{IsSell: isSell, reserveDelta: reserveDelta},
 	}, nil
 }
 
@@ -195,7 +195,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrZeroAmount
 	}
 
-	isBuy := indexIn == 0
+	isSell := indexIn == 1
 
 	var (
 		amountIn     *uint256.Int
@@ -204,7 +204,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		gas          int64
 	)
 
-	if isBuy {
+	if !isSell {
 		// Buy exact tokens: calculate cost directly
 		result := CalcBuyCost(
 			s.maxTokenSupply, s.totalCurves,
@@ -236,7 +236,11 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
 		Gas:           gas,
-		SwapInfo:      &SwapInfo{IsBuy: isBuy, reserveDelta: reserveDelta},
+		SwapInfo: &SwapInfo{
+			IsSell:        isSell,
+			reserveDelta:  reserveDelta,
+			PrintrAddress: s.printrAddr,
+		},
 	}, nil
 }
 
@@ -302,12 +306,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	if swapInfo.IsBuy {
-		// Buy: reserve += curveCost (cost minus fee)
-		s.reserve.Add(s.reserve, swapInfo.reserveDelta)
-	} else {
+	if swapInfo.IsSell {
 		// Sell: reserve -= (refund + fee)
 		s.reserve.Sub(s.reserve, swapInfo.reserveDelta)
+	} else {
+		// Buy: reserve += curveCost (cost minus fee)
+		s.reserve.Add(s.reserve, swapInfo.reserveDelta)
 	}
 }
 
@@ -320,7 +324,6 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{
-		BlockNumber:     s.Info.BlockNumber,
-		ApprovalAddress: s.printrAddr,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
