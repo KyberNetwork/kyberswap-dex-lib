@@ -116,6 +116,7 @@ import (
 	pkg_liquiditysource_pendle_spendle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pendle/spendle"
 	pkg_liquiditysource_poolparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pool-party"
 	pkg_liquiditysource_primeeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
+	pkg_liquiditysource_printr "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
@@ -325,6 +326,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pendle_spendle.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_poolparty.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_printr.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})

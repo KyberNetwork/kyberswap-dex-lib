@@ -103,6 +103,7 @@ import (
 	pancakev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
@@ -387,6 +388,7 @@ type Types struct {
 	SomeswapV1                 string
 	SomeswapV2                 string
 	WasabiProp                 string
+	Printr                     string
 }
 
 var (
@@ -592,5 +594,6 @@ var (
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
 		WasabiProp:                 wasabiprop.DexType,
+		Printr:                     printr.DexType,
 	}
 )
