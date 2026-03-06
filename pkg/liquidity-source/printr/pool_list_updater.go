@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/go-resty/resty/v2"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -19,7 +20,7 @@ import (
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	httpClient   *http.Client
+	httpClient   *resty.Client
 	logger       logger.Logger
 }
 
@@ -32,7 +33,7 @@ func NewPoolsListUpdater(
 	return &PoolsListUpdater{
 		config:       cfg,
 		ethrpcClient: ethrpcClient,
-		httpClient:   &http.Client{Timeout: 30 * time.Second},
+		httpClient:   resty.New().SetTimeout(30 * time.Second),
 		logger:       logger.WithFields(logger.Fields{"dex_id": cfg.DexId}),
 	}
 }
@@ -89,26 +90,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) fetchTokenList(ctx context.Context) (*TokenListResponse, error) {
 	url := fmt.Sprintf("%s/chains/%d/tokenlist.json", u.config.TokenListAPI, u.config.ChainId)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := u.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token list API returned status %d", resp.StatusCode)
-	}
-
 	var tokenList TokenListResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenList); err != nil {
+	resp, err := u.httpClient.R().
+		SetContext(ctx).
+		SetResult(&tokenList).
+		Get(url)
+	if err != nil {
 		return nil, err
 	}
-
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("token list API returned status %d", resp.StatusCode())
+	}
 	return &tokenList, nil
 }
 
