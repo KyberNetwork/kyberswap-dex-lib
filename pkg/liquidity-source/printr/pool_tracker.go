@@ -63,7 +63,6 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	// Early exit: pool already marked graduated (bonding curve finished). Skip RPC; return nil so downstream does not retry.
 	if len(p.Extra) > 0 {
 		var existing Extra
 		if _ = json.Unmarshal([]byte(p.Extra), &existing); existing.Graduated {
@@ -103,15 +102,10 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserve := uint256.MustFromBig(curveResult.Reserve)
-	completionThreshold := uint256.MustFromBig(curveResult.CompletionThreshold)
+	reserve := uint256.MustFromBig(curveResult.Data.Reserve)
+	completionThreshold := uint256.MustFromBig(curveResult.Data.CompletionThreshold)
 
-	// Bonding curve graduated (completionThreshold == 0): pool is permanently not swappable.
-	// Unlike a generic tracker error (where downstream often does not save), here we still
-	// return updated pool with Reserves set to "0","0" so pool indexing does not feed this
-	// pool to path-finding anymore—downstream should persist this state and treat
-	// ErrTokenGraduated as "permanently disabled" for routing. Extra.Graduated is set so
-	// the next tracker cycle can early-return without RPC.
+	// completionThreshold == 0 means graduated → zero reserves to disable routing
 	if completionThreshold.IsZero() {
 		extra := Extra{
 			Reserve:             reserve,
@@ -157,7 +151,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		curveResult.Reserve.String(),
+		curveResult.Data.Reserve.String(),
 		buyableTokens.ToBig().String(),
 	}
 

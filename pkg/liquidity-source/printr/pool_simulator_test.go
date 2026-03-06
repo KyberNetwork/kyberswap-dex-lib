@@ -527,3 +527,52 @@ func TestPoolSimulator_CalcAmountOut_SwapInfoReserveDelta(t *testing.T) {
 		"reserveDelta %s should not exceed amountIn %s",
 		swapInfo.reserveDelta.String(), amountIn.String())
 }
+
+func TestCalcAmountOut_RealPool(t *testing.T) {
+	const (
+		basePairAddr = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a" // WMON
+		tokenAddr    = "0x2d01b4d3f55e2eb2970b0cc788c835ea98d2162e"
+	)
+	staticExtra := StaticExtra{
+		PrintrAddr:     "0xb77726291b125515d0a7affeea2b04f2ff243172",
+		Token:          tokenAddr,
+		BasePair:       basePairAddr,
+		TotalCurves:    1,
+		MaxTokenSupply: "1000000000000000000000000000",
+		VirtualReserve: "284339150049860000000000",
+	}
+	staticExtraBytes, _ := json.Marshal(staticExtra)
+
+	extra := Extra{
+		Reserve:             uint256.NewInt(0),
+		CompletionThreshold: mustFromDecimal("500000000000000000000000000"),
+		TradingFee:          100,
+		Paused:              false,
+		Graduated:           false,
+	}
+	extraBytes, _ := json.Marshal(extra)
+
+	ep := entity.Pool{
+		Address:     tokenAddr,
+		Exchange:    "printr",
+		Type:        DexType,
+		Reserves:    []string{"0", "0"},
+		Tokens:      []*entity.PoolToken{{Address: basePairAddr, Swappable: true}, {Address: tokenAddr, Swappable: true}},
+		StaticExtra: string(staticExtraBytes),
+		Extra:       string(extraBytes),
+	}
+
+	sim, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+
+	// spend WMON, get token
+	amountIn := mustFromDecimal("1000000000000000000") // 1 WMON
+	result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: basePairAddr, Amount: amountIn.ToBig()},
+		TokenOut:      tokenAddr,
+	})
+	require.NoError(t, err)
+	assert.True(t, result.TokenAmountOut.Amount.Sign() > 0, "should receive tokens")
+	assert.Equal(t, tokenAddr, result.TokenAmountOut.Token)
+	assert.True(t, result.Fee.Amount.Sign() >= 0)
+}

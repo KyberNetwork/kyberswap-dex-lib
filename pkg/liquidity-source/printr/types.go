@@ -10,12 +10,14 @@ import (
 // GetCurveResult matches the return type of getCurve(address) on the Printr contract.
 // The getter returns CurveInfo with already-expanded fields (not the packed Curve struct).
 type GetCurveResult struct {
-	BasePair            common.Address
-	TotalCurves         uint16
-	MaxTokenSupply      *big.Int
-	VirtualReserve      *big.Int
-	Reserve             *big.Int
-	CompletionThreshold *big.Int
+	Data struct {
+		BasePair            common.Address
+		TotalCurves         uint16
+		MaxTokenSupply      *big.Int
+		VirtualReserve      *big.Int
+		Reserve             *big.Int
+		CompletionThreshold *big.Int
+	}
 }
 
 // StaticExtra stores immutable per-pool data (set once at pool creation).
@@ -29,9 +31,6 @@ type StaticExtra struct {
 }
 
 // Extra stores mutable per-pool state (refreshed by the tracker).
-// Graduated marks a bonding-curve pool as permanently finished (no more swaps);
-// when set, tracker can skip RPC on subsequent cycles (early return). Paused is
-// for temporary block; both prevent swap—semantics need not match the contract 1:1.
 type Extra struct {
 	Reserve             *uint256.Int `json:"r"`
 	CompletionThreshold *uint256.Int `json:"cT"`

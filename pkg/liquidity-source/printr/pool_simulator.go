@@ -318,21 +318,9 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{
 		BlockNumber:     s.Info.BlockNumber,
-		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		ApprovalAddress: s.printrAddr,
 	}
-}
-
-// GetApprovalAddress returns the Printr contract address when selling tokens,
-// so the executor knows which contract to approve for ERC20 token transfers.
-// When buying (basePair → token), no approval of Printr is needed (user sends ETH/basePair directly).
-func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	if s.GetTokenIndex(tokenIn) == 0 {
-		// Buying: basePair is input, no approval needed on Printr
-		return ""
-	}
-	// Selling: token is input, must approve Printr to transfer tokens
-	return s.printrAddr
 }

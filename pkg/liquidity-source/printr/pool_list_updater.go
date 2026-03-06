@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -61,7 +62,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	pools := u.buildPools(tokenList)
+	pools, err := u.buildPools(ctx, tokenList)
+	if err != nil {
+		u.logger.WithFields(logger.Fields{"error": err}).Error("failed to build pools from token list and onchain getCurve")
+		return nil, metadataBytes, err
+	}
 
 	newMetadata := PoolsListUpdaterMetadata{
 		VersionMajor: tokenList.Version.Major,
@@ -107,68 +112,74 @@ func (u *PoolsListUpdater) fetchTokenList(ctx context.Context) (*TokenListRespon
 	return &tokenList, nil
 }
 
-func (u *PoolsListUpdater) buildPools(tokenList *TokenListResponse) []entity.Pool {
-	pools := make([]entity.Pool, 0, len(tokenList.Tokens))
-
-	for _, token := range tokenList.Tokens {
-		// Filter for non-graduated tokens on this chain
-		if token.ChainId != int(u.config.ChainId) {
+func (u *PoolsListUpdater) buildPools(ctx context.Context, tokenList *TokenListResponse) ([]entity.Pool, error) {
+	var candidates []TokenListEntry
+	for i := range tokenList.Tokens {
+		t := &tokenList.Tokens[i]
+		if t.ChainId != int(u.config.ChainId) {
 			continue
 		}
-
-		isGraduated, _ := token.Extensions["isGraduated"].(bool)
+		isGraduated, _ := t.Extensions["isGraduated"].(bool)
 		if isGraduated {
 			continue
 		}
+		candidates = append(candidates, *t)
+	}
+	if len(candidates) == 0 {
+		return nil, nil
+	}
 
-		basePair, _ := token.Extensions["basePair"].(string)
-		if basePair == "" {
+	curveResults := make([]GetCurveResult, len(candidates))
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	for i := range candidates {
+		tokenAddr := common.HexToAddress(candidates[i].Address)
+		req.AddCall(&ethrpc.Call{
+			ABI:    printrABI,
+			Target: u.config.PrintrAddr,
+			Method: printrMethodGetCurve,
+			Params: []any{tokenAddr},
+		}, []any{&curveResults[i]})
+	}
+
+	resp, err := req.TryAggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	pools := make([]entity.Pool, 0, len(candidates))
+	for i, ok := range resp.Result {
+		if !ok || curveResults[i].Data.MaxTokenSupply == nil || curveResults[i].Data.VirtualReserve == nil {
 			continue
 		}
-
-		totalCurvesFloat, _ := token.Extensions["totalCurves"].(float64)
-		totalCurves := uint16(totalCurvesFloat)
-		if totalCurves == 0 {
-			continue
-		}
-
-		maxTokenSupply, _ := token.Extensions["maxTokenSupply"].(string)
-		virtualReserve, _ := token.Extensions["virtualReserve"].(string)
-		if maxTokenSupply == "" || virtualReserve == "" {
-			continue
-		}
-
-		tokenAddr := strings.ToLower(token.Address)
-		basePairAddr := strings.ToLower(basePair)
+		tokenAddr := strings.ToLower(candidates[i].Address)
+		basePairAddr := strings.ToLower(curveResults[i].Data.BasePair.Hex())
 
 		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			PrintrAddr:     u.config.PrintrAddr,
+			PrintrAddr:     strings.ToLower(u.config.PrintrAddr),
 			Token:          tokenAddr,
 			BasePair:       basePairAddr,
-			TotalCurves:    totalCurves,
-			MaxTokenSupply: maxTokenSupply,
-			VirtualReserve: virtualReserve,
+			TotalCurves:    curveResults[i].Data.TotalCurves,
+			MaxTokenSupply: curveResults[i].Data.MaxTokenSupply.String(),
+			VirtualReserve: curveResults[i].Data.VirtualReserve.String(),
 		})
 
 		p := entity.Pool{
-			Address:   tokenAddr,
-			Exchange:  u.config.DexId,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
+			Address:     tokenAddr,
+			Exchange:    u.config.DexId,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			StaticExtra: string(staticExtraBytes),
 			Tokens: []*entity.PoolToken{
 				{Address: basePairAddr, Swappable: true},
 				{Address: tokenAddr, Swappable: true},
 			},
-			StaticExtra: string(staticExtraBytes),
 		}
-
 		pools = append(pools, p)
 
 		if u.config.NewPoolLimit > 0 && len(pools) >= u.config.NewPoolLimit {
 			break
 		}
 	}
-
-	return pools
+	return pools, nil
 }
