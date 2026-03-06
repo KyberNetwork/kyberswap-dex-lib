@@ -121,8 +121,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientLiquidity
 	}
 
-	fee := new(uint256.Int).Mul(outputBeforeFee, s.feeMillionth)
-	fee.Div(fee, millionth)
+	fee := u256.MulDiv(outputBeforeFee, s.feeMillionth, millionth)
 
 	amountOut := new(uint256.Int).Sub(outputBeforeFee, fee)
 
