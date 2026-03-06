@@ -1,7 +1,6 @@
 package axima
 
 import (
-	"math"
 	"math/big"
 	"slices"
 	"time"
@@ -63,10 +62,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	zeroToOne := params.TokenAmountIn.Token == s.Info.Tokens[0]
-	decimalsDiff := lo.Ternary(zeroToOne, s.decimalsDiff, -s.decimalsDiff)
 
-	bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks)
-	amountOut, err := getRate(params.TokenAmountIn.Amount, bins, decimalsDiff)
+	amountOut, err := s.getRate(zeroToOne, params.TokenAmountIn.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +132,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	for i, ask := range s.extra.Asks {
 		cloned.extra.Asks[i] = Bin{
 			BinIdx:           ask.BinIdx,
-			Rate:             ask.Rate,
+			Price:            ask.Price,
 			CumulativeVolume: new(big.Int).Set(ask.CumulativeVolume),
 		}
 	}
@@ -144,61 +141,109 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	for i, bid := range s.extra.Bids {
 		cloned.extra.Bids[i] = Bin{
 			BinIdx:           bid.BinIdx,
-			Rate:             bid.Rate,
+			Price:            bid.Price,
 			CumulativeVolume: new(big.Int).Set(bid.CumulativeVolume),
 		}
 	}
 	return &cloned
 }
 
-func getRate(amountIn *big.Int, bins []Bin, decimalsDiff int) (*big.Int, error) {
-	// Find the last bin with amountIn >= bin.cummulativeAmountIn
-	// (can be derived from bin.cummulativeVolume and bin.rate)
-	binIdx := -1
-	isAmountInBelowFirstBin := false
+func (s *PoolSimulator) getRate(zeroToOne bool, amountIn *big.Int) (*big.Int, error) {
+	var currentPrice big.Int
+	currentPrice.Set(lo.Ternary(zeroToOne, s.extra.InitBid, s.extra.InitAsk))
+
+	var remainingVolume big.Int
+	remainingVolume.Set(amountIn)
+
+	var finalFillPriceNumerator, finalFillPriceDenominator, tmp big.Int
+
+	bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks)
 	for i, bin := range bins {
-		binAmountOutF, _ := bin.CumulativeVolume.Float64()
-		binAmountInF := binAmountOutF * math.Pow10(int(decimalsDiff)) / bin.Rate
-		binAmountInF = math.Ceil(binAmountInF)
-		binAmountIn := new(big.Int).SetUint64(uint64(binAmountInF))
+		var volumeInThisBin big.Int
 
-		if amountIn.Cmp(binAmountIn) >= 0 {
-			binIdx = i
-		} else if i == 0 {
-			isAmountInBelowFirstBin = true
-		}
-	}
-
-	if binIdx == -1 {
-		if !isAmountInBelowFirstBin {
-			return nil, ErrInsufficientLiquidity
+		if i == 0 {
+			volumeInThisBin.Set(bin.CumulativeVolume)
 		} else {
-			// Amount in is smaller than the first bin, use the first bin's rate
-			amountInF, _ := amountIn.Float64()
-			amountOutF := amountInF * bins[0].Rate / math.Pow10(int(decimalsDiff))
-			amountOut, _ := big.NewFloat(amountOutF).Int(nil)
-			return amountOut, nil
+			prevBin := bins[i-1]
+			volumeInThisBin.Sub(bin.CumulativeVolume, prevBin.CumulativeVolume)
+		}
+
+		var convertedVolume big.Int
+		// We convert back maker token amount to taker token amount
+		// using the price of the current bin, to compare with remainingVolume.
+		// So pass !zeroToOne to calculateAmountFromPrice.
+		convertedVolume.Set(s.calculateAmountFromPrice(!zeroToOne, &volumeInThisBin, bin.Price))
+
+		if remainingVolume.Cmp(&convertedVolume) <= 0 {
+			var exitPrice, fillPrice big.Int
+			exitPrice.Sub(bin.Price, &currentPrice)
+			exitPrice.Mul(&exitPrice, &remainingVolume)
+			exitPrice.Div(&exitPrice, &convertedVolume)
+			exitPrice.Add(&exitPrice, &currentPrice)
+
+			fillPrice.Add(&currentPrice, &exitPrice)
+			fillPrice.Div(&fillPrice, bignumber.Two)
+
+			finalFillPriceNumerator.Add(
+				&finalFillPriceNumerator,
+				tmp.Mul(&fillPrice, &remainingVolume),
+			)
+			finalFillPriceDenominator.Add(
+				&finalFillPriceDenominator,
+				&remainingVolume,
+			)
+			break
+		} else {
+			var fillPrice big.Int
+			fillPrice.Add(&currentPrice, bin.Price)
+			fillPrice.Div(&fillPrice, bignumber.Two)
+
+			finalFillPriceNumerator.Add(
+				&finalFillPriceNumerator,
+				tmp.Mul(&fillPrice, &convertedVolume),
+			)
+			finalFillPriceDenominator.Add(
+				&finalFillPriceDenominator,
+				&convertedVolume,
+			)
+
+			remainingVolume.Sub(&remainingVolume, &convertedVolume)
+			currentPrice.Set(bin.Price)
 		}
 	}
 
-	if binIdx == len(bins)-1 {
-		// Last bin, can't interpolate
-		amountInF, _ := amountIn.Float64()
-		amountOutF := amountInF * bins[binIdx].Rate / math.Pow10(int(decimalsDiff))
-		amountOut, _ := big.NewFloat(amountOutF).Int(nil)
-		return amountOut, nil
+	var fillPrice big.Int
+	if finalFillPriceDenominator.Sign() == 0 {
+		// Should not possible, just safety check to avoid division by zero.
+		return nil, ErrUnavailableQuote
 	}
 
-	curBinAmountOutF, _ := bins[binIdx].CumulativeVolume.Float64()
-	curBinAmountInF := curBinAmountOutF * math.Pow10(int(decimalsDiff)) / bins[binIdx].Rate
+	fillPrice.Div(&finalFillPriceNumerator, &finalFillPriceDenominator)
 
-	nextBinAmountOutF, _ := bins[binIdx+1].CumulativeVolume.Float64()
-	nextBinAmountInF := nextBinAmountOutF * math.Pow10(int(decimalsDiff)) / bins[binIdx+1].Rate
-
-	// Linear interpolation
-	amountInF, _ := amountIn.Float64()
-	amountOutF := curBinAmountOutF + (amountInF-curBinAmountInF)*(nextBinAmountOutF-curBinAmountOutF)/(nextBinAmountInF-curBinAmountInF)
-	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
+	amountOut := s.calculateAmountFromPrice(zeroToOne, amountIn, &fillPrice)
 
 	return amountOut, nil
+}
+
+func (s *PoolSimulator) calculateAmountFromPrice(zeroToOne bool, amountIn *big.Int, price *big.Int) *big.Int {
+	var amountOut big.Int
+	if zeroToOne {
+		amountOut.Mul(amountIn, price)
+		amountOut.Div(&amountOut, Q64BI)
+		if s.decimalsDiff > 0 {
+			amountOut.Div(&amountOut, bignumber.TenPowInt(s.decimalsDiff))
+		} else {
+			amountOut.Mul(&amountOut, bignumber.TenPowInt(-s.decimalsDiff))
+		}
+	} else {
+		amountOut.Mul(amountIn, Q64BI)
+		if s.decimalsDiff > 0 {
+			amountOut.Mul(&amountOut, bignumber.TenPowInt(s.decimalsDiff))
+		} else {
+			amountOut.Div(&amountOut, bignumber.TenPowInt(-s.decimalsDiff))
+		}
+		amountOut.Div(&amountOut, price)
+	}
+
+	return &amountOut
 }
