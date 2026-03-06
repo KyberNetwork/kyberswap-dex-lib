@@ -158,6 +158,9 @@ func (s *PoolSimulator) getRate(zeroToOne bool, amountIn *big.Int) (*big.Int, er
 	var finalFillPriceNumerator, finalFillPriceDenominator, tmp big.Int
 
 	bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks)
+
+	var enoughLiquidity bool
+
 	for i, bin := range bins {
 		var volumeInThisBin big.Int
 
@@ -192,6 +195,7 @@ func (s *PoolSimulator) getRate(zeroToOne bool, amountIn *big.Int) (*big.Int, er
 				&finalFillPriceDenominator,
 				&remainingVolume,
 			)
+			enoughLiquidity = true
 			break
 		} else {
 			var fillPrice big.Int
@@ -210,6 +214,10 @@ func (s *PoolSimulator) getRate(zeroToOne bool, amountIn *big.Int) (*big.Int, er
 			remainingVolume.Sub(&remainingVolume, &convertedVolume)
 			currentPrice.Set(bin.Price)
 		}
+	}
+
+	if !enoughLiquidity && remainingVolume.Sign() > 0 {
+		return nil, ErrInsufficientLiquidity
 	}
 
 	var fillPrice big.Int

@@ -49,6 +49,17 @@ func TestPoolSimulator(t *testing.T) {
 			params: pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  WETH,
+					Amount: bignumber.NewBig("10000000000000000"), // 0.01 WETH
+				},
+				TokenOut: USDC,
+			},
+			expectedAmountOut: "20634466",
+			expectedErr:       nil,
+		},
+		{
+			params: pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  WETH,
 					Amount: bignumber.NewBig("100000000000000000"), // 0.1 WETH
 				},
 				TokenOut: USDC,
