@@ -115,5 +115,14 @@ func Min(a, b *big.Int) *big.Int {
 
 // MulDivDown multiplies x and y, then divides by denominator, rounding down, and stores the result in res.
 func MulDivDown(res, x, y, denominator *big.Int) *big.Int {
-	return res.Mul(x, y).Div(res, denominator)
+	return res.Mul(x, y).Quo(res, denominator)
+}
+
+// MulDivUp multiplies x and y, then divides by denominator, rounding up, and stores the result in res.
+func MulDivUp(res, x, y, denominator *big.Int) *big.Int {
+	var rem big.Int
+	if res.Mul(x, y).QuoRem(res, denominator, &rem); rem.Sign() > 0 {
+		res.Add(res, One)
+	}
+	return res
 }
