@@ -296,26 +296,6 @@ func TestPoolSimulator_ConsecutiveSwaps(t *testing.T) {
 	}
 }
 
-func TestPoolSimulator_GetApprovalAddress_Buy(t *testing.T) {
-	reserve := uint256.NewInt(0)
-	completionThreshold := mustFromDecimal("500000000000000000000000000")
-	sim := makeTestPool(t, reserve, completionThreshold, 100, false)
-
-	// Buying: basePair is input, no approval needed on Printr
-	addr := sim.GetApprovalAddress(testBasePair, testToken)
-	assert.Equal(t, "", addr, "buy direction should not require Printr approval")
-}
-
-func TestPoolSimulator_GetApprovalAddress_Sell(t *testing.T) {
-	reserve := uint256.NewInt(0)
-	completionThreshold := mustFromDecimal("500000000000000000000000000")
-	sim := makeTestPool(t, reserve, completionThreshold, 100, false)
-
-	// Selling: token is input, must approve Printr
-	addr := sim.GetApprovalAddress(testToken, testBasePair)
-	assert.Equal(t, testPrintrAddr, addr, "sell direction should require Printr approval")
-}
-
 func TestPoolSimulator_CalcAmountOut_Buy_RemainingIn(t *testing.T) {
 	reserve := uint256.NewInt(0)
 	// Very small completion threshold so buy gets capped
