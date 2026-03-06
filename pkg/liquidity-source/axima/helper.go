@@ -3,11 +3,9 @@ package axima
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/go-resty/resty/v2"
-	"github.com/samber/lo"
 )
 
 func fetchPoolState(
@@ -28,21 +26,27 @@ func fetchPoolState(
 		return Extra{}, nil, fmt.Errorf("API error: %s", res.String())
 	}
 
+	return convertAximaPoolState(pairData, config)
+}
+
+func convertAximaPoolState(pairData PairData, config *Config) (Extra, []string, error) {
 	reserves := []string{pairData.TotalToken0Available, pairData.TotalToken1Available}
 
 	var extra Extra
 
+	extra.InitBid = bignumber.NewBig(pairData.Bid)
+	extra.InitAsk = bignumber.NewBig(pairData.Ask)
 	extra.QuoteAvailable = pairData.QuoteAvailable
 	extra.MaxAge = config.MaxAge
 	extra.IsV2 = config.IsV2
 
-	if bids, err := convertAximaBins(pairData.Depth.Bids, true); err != nil {
+	if bids, err := convertAximaBins(pairData.Depth.Bids); err != nil {
 		return Extra{}, nil, err
 	} else {
 		extra.Bids = bids
 	}
 
-	if asks, err := convertAximaBins(pairData.Depth.Asks, false); err != nil {
+	if asks, err := convertAximaBins(pairData.Depth.Asks); err != nil {
 		return Extra{}, nil, err
 	} else {
 		extra.Asks = asks
@@ -51,19 +55,12 @@ func fetchPoolState(
 	return extra, reserves, nil
 }
 
-func convertAximaBins(aximaBins []AximaBin, isBid bool) ([]Bin, error) {
+func convertAximaBins(aximaBins []AximaBin) ([]Bin, error) {
 	bins := make([]Bin, len(aximaBins))
 	for i, bin := range aximaBins {
-		priceF, err := strconv.ParseFloat(bin.Price, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		rate := lo.Ternary(isBid, priceF/Q64, Q64/priceF)
-
 		bins[i] = Bin{
 			BinIdx:           bin.BinIdx,
-			Rate:             rate,
+			Price:            bignumber.NewBig(bin.Price),
 			CumulativeVolume: bignumber.NewBig(bin.CummlativeVolume),
 		}
 	}
