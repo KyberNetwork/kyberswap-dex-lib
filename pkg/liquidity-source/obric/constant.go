@@ -12,7 +12,7 @@ const (
 
 	priceBufferSeconds = 20
 
-	defaultGas int64 = 200000
+	defaultGas int64 = 69874
 )
 
 var (
