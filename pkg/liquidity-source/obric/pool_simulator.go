@@ -277,9 +277,6 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
 	cloned.currentXK = new(uint256.Int).Set(s.currentXK)
-	cloned.preK = new(uint256.Int).Set(s.preK)
-	cloned.multYBase = new(uint256.Int).Set(s.multYBase)
-	cloned.feeMillionth = new(uint256.Int).Set(s.feeMillionth)
 	return &cloned
 }
 
