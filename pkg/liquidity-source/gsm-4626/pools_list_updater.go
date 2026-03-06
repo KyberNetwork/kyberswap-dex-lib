@@ -60,6 +60,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.Pool, error) {
 	var (
 		priceStrategy   common.Address
+		ghoReserve      common.Address
 		ghoToken        common.Address
 		underlyingAsset common.Address
 		priceRatio      *big.Int
@@ -68,6 +69,9 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.
 		AddCall(&ethrpc.Call{
 			ABI: gsm4626ABI, Target: gsm, Method: gsmMethodPriceStrategy,
 		}, []any{&priceStrategy}).
+		AddCall(&ethrpc.Call{
+			ABI: gsm4626ABI, Target: gsm, Method: gsmMethodGetGhoReserve,
+		}, []any{&ghoReserve}).
 		AddCall(&ethrpc.Call{
 			ABI: gsm4626ABI, Target: gsm, Method: gsmMethodGhoToken,
 		}, []any{&ghoToken}).
@@ -86,7 +90,10 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.
 		return nil, err
 	}
 
-	extraBytes, err := json.Marshal(StaticExtra{PriceRatio: uint256.MustFromBig(priceRatio)})
+	extraBytes, err := json.Marshal(StaticExtra{
+		GhoReserve: ghoReserve,
+		PriceRatio: uint256.MustFromBig(priceRatio),
+	})
 	if err != nil {
 		return nil, err
 	}
