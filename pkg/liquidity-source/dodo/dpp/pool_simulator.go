@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -19,7 +18,6 @@ import (
 )
 
 type PoolSimulator struct {
-	*sync.RWMutex
 	pool.Pool
 	libv2.PMMState
 	Meta shared.V2Meta
@@ -78,7 +76,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		RWMutex: &sync.RWMutex{},
 		Pool: pool.Pool{
 			Info: info,
 		},
@@ -148,7 +145,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.RWMutex = &sync.RWMutex{}
 	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
 	return &cloned
 }
