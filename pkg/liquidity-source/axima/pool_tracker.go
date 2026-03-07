@@ -3,6 +3,7 @@ package axima
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -82,7 +84,8 @@ func (t *PoolTracker) getNewPoolState(
 	var extra Extra
 
 	pair := staticExtra.Pair
-	extra, reserves, err := fetchPoolState(ctx, t.client, t.config, pair)
+	extra, reserves, err := fetchPoolState(ctx, t.client, t.config,
+		lo.Ternary(t.config.IsV2, strings.ToLower(p.Address), pair))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,

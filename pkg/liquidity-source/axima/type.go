@@ -38,8 +38,13 @@ type StaticExtra struct {
 }
 
 type Extra struct {
+	InitBid *big.Int `json:"initBid"`
+	InitAsk *big.Int `json:"initAsk"`
+
 	QuoteAvailable bool  `json:"qA"`
 	MaxAge         int64 `json:"maxAge"`
+
+	IsV2 bool `json:"isV2"`
 
 	Asks []Bin `json:"asks"`
 	Bids []Bin `json:"bids"`
@@ -47,6 +52,10 @@ type Extra struct {
 
 type Bin struct {
 	BinIdx           int64    `json:"bi"`
-	Rate             float64  `json:"r"`
+	Price            *big.Int `json:"p"`
 	CumulativeVolume *big.Int `json:"cv"` // total amountOut that can be swapped up to this bin (inclusive)
+}
+
+type PoolMeta struct {
+	SwapDirection bool `json:"swapDir"`
 }

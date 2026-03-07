@@ -15,6 +15,8 @@ type Config struct {
 	// it will be considered stale and will not be used for trading.
 	MaxAge int64 `json:"maxAge"`
 
+	IsV2 bool `json:"isV2"`
+
 	HTTPConfig HTTPConfig `json:"httpConfig"`
 }
 

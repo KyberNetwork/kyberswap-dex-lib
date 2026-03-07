@@ -2,13 +2,13 @@ package liquidcore
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -20,7 +20,6 @@ type (
 	PoolsListUpdater struct {
 		config       *Config
 		ethrpcClient *ethrpc.Client
-		initialized  bool
 	}
 )
 
@@ -35,26 +34,49 @@ func NewPoolsListUpdater(
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	if u.initialized {
-		return nil, metadataBytes, nil
+	l := log.Ctx(ctx).With().Str("dexID", u.config.DexId).Logger()
+	l.Info().Msg("start getting new pools")
+
+	var metadata Metadata
+	if len(metadataBytes) != 0 {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+			return nil, metadataBytes, err
+		}
 	}
 
-	logger.Info("start getting new pools")
+	var poolAddrs []common.Address
+	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{ABI: RouterABI, Target: u.config.Router, Method: "getPools"}, []any{&poolAddrs}).
+		Call(); err != nil {
+		return nil, nil, err
+	}
 
-	pools := make([]entity.Pool, 0, len(u.config.Pools))
-	for _, address := range u.config.Pools {
+	var poolsChecksum common.Address
+	for _, pool := range poolAddrs {
+		for i := range common.AddressLength {
+			poolsChecksum[i] ^= pool[i]
+		}
+	}
+	if metadata.LastCount == len(poolAddrs) && metadata.LastPoolsChecksum == poolsChecksum {
+		return nil, metadataBytes, nil
+	}
+	metadata.LastCount, metadata.LastPoolsChecksum = len(poolAddrs), poolsChecksum
+
+	pools := make([]entity.Pool, 0, len(poolAddrs))
+	for _, poolAddr := range poolAddrs {
+		addr := hexutil.Encode(poolAddr[:])
+
 		var tokenResp struct {
 			Token0, Token1 common.Address
 		}
-
 		if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
-			AddCall(&ethrpc.Call{ABI: PoolABI, Target: address, Method: "getTokens"}, []any{&tokenResp}).
+			AddCall(&ethrpc.Call{ABI: PoolABI, Target: addr, Method: "getTokens"}, []any{&tokenResp}).
 			Call(); err != nil {
 			return nil, nil, err
 		}
 
 		pools = append(pools, entity.Pool{
-			Address:   strings.ToLower(address),
+			Address:   addr,
 			Exchange:  u.config.DexId,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
@@ -65,12 +87,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			},
 			Extra: "{}",
 		})
-
 	}
 
-	logger.Infof("finish getting new pools, got %d pools", len(pools))
+	l.Info().Int("count", len(pools)).Msg("finished getting new pools")
 
-	u.initialized = true
-
+	metadataBytes, _ = json.Marshal(metadata)
 	return pools, metadataBytes, nil
 }
