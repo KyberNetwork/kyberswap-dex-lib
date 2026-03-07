@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/go-resty/resty/v2"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func fetchPoolState(
@@ -18,7 +19,7 @@ func fetchPoolState(
 	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&pairData).
-		Get(fmt.Sprintf("/%s/%s/bid_ask", config.ChainID.String(), pairIdentifier))
+		Get(fmt.Sprintf("/%s/%s/bid_ask", config.Chain, pairIdentifier))
 
 	if err != nil {
 		return Extra{}, nil, err
