@@ -113,6 +113,7 @@ const (
 	ExchangeGyroscope3CLP              = "gyroscope-3clp"
 	ExchangeGyroscopeECLP              = "gyroscope-eclp"
 	ExchangeHashflowV3                 = "hashflow-v3"
+	ExchangeHiddenOcean                = "hidden-ocean"
 	ExchangeHoney                      = "honey"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperpieV2                 = "hyperpie-v2"
