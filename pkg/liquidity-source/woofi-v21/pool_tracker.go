@@ -83,19 +83,16 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
 		Method: wooPPV2MethodPaused,
-		Params: nil,
 	}, []any{&isPaused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
 		Method: wooPPV2MethodQuoteToken,
-		Params: nil,
 	}, []any{&quoteToken})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
 		Method: wooPPV2MethodWooracle,
-		Params: nil,
 	}, []any{&wooracle})
 	for i, token := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
@@ -129,6 +126,10 @@ func (d *PoolTracker) GetNewPoolState(
 
 		p.Extra = string(extraBytes)
 		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
+		p.BlockNumber = callsResult.BlockNumber.Uint64()
+		p.Timestamp = time.Now().Unix()
+
+		return p, nil
 	}
 
 	blockNumber := callsResult.BlockNumber
@@ -138,19 +139,16 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodTimestamp,
-		Params: nil,
 	}, []any{&timestamp})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodStaleDuration,
-		Params: nil,
 	}, []any{&staleDuration})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodBound,
-		Params: nil,
 	}, []any{&bound})
 	for i, token := range p.Tokens {
 		oracleCalls.AddCall(&ethrpc.Call{
@@ -195,7 +193,6 @@ func (d *PoolTracker) GetNewPoolState(
 			ABI:    CloracleABI,
 			Target: clOracles[i].Oracle.Hex(),
 			Method: cloracleMethodLatestRoundData,
-			Params: nil,
 		}, []any{&latestRoundData[i]})
 	}
 	if _, err := cloracleCalls.TryBlockAndAggregate(); err != nil {
