@@ -101,7 +101,7 @@ func (u *PoolsListUpdater) fetchPairMetadata(ctx context.Context) ([]PairMetadat
 	_, err := u.client.R().
 		SetContext(ctx).
 		SetResult(&pairMetadata).
-		Get(fmt.Sprintf("/%s/metadata", u.config.ChainID.String()))
+		Get(fmt.Sprintf("/%s/metadata", u.config.Chain))
 
 	if err != nil {
 		return nil, err
