@@ -563,10 +563,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 		err      error
 	)
 	for i := 0; i < totalTicks; i += tickChunkSize {
-		toIdx := i + tickChunkSize
-		if toIdx > totalTicks {
-			toIdx = totalTicks
-		}
+		toIdx := min(i+tickChunkSize, totalTicks)
 
 		if t.config.IsPoolV3 {
 			newTicks, err = t.queryRPCTicksV3ByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
