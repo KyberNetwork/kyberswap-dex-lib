@@ -22,7 +22,7 @@ func TestEventParserDecode(t *testing.T) {
 	rpcClient := ethrpc.New("https://eth.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
-	e := NewEventParser(&Config{Controller: controller}, rpcClient)
+	e := NewPoolFactory(&Config{Controller: controller}, rpcClient)
 
 	tests := []struct {
 		name        string

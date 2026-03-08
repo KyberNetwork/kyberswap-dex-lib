@@ -2,14 +2,13 @@ package vault
 
 import (
 	"context"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/pkg/errors"
 
-	pooldecode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 type Config struct {
@@ -20,53 +19,58 @@ type EventParser struct {
 	config *Config
 }
 
-var _ = pooldecode.RegisterFactoryC(Type, NewEventParser)
+var _ = poolfactory.RegisterFactoryC(Type, NewPoolFactory)
 
-func NewEventParser(config *Config) *EventParser {
+func NewPoolFactory(config *Config) *EventParser {
 	return &EventParser{
 		config: config,
 	}
 }
 
 func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string][]types.Log, error) {
-	keys, err := p.GetKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-	vaultAddress := keys[0]
 	addressLogs := make(map[string][]types.Log)
 	for _, log := range logs {
-		if log.Address != common.HexToAddress(vaultAddress) {
-			continue
-		}
-		switch log.Topics[0] {
-		case vaultABI.Events["Swap"].ID,
-			vaultABI.Events["AggregateSwapFeePercentageChanged"].ID,
-			vaultABI.Events["AggregateYieldFeePercentageChanged"].ID,
-			vaultABI.Events["Approval"].ID,
-			vaultABI.Events["LiquidityAdded"].ID,
-			vaultABI.Events["LiquidityRemoved"].ID,
-			vaultABI.Events["PoolInitialized"].ID,
-			vaultABI.Events["PoolPausedStateChanged"].ID,
-			vaultABI.Events["PoolRecoveryModeStateChanged"].ID,
-			vaultABI.Events["PoolRegistered"].ID,
-			vaultABI.Events["SwapFeePercentageChanged"].ID,
-			vaultABI.Events["Transfer"].ID,
-			vaultABI.Events["VaultAuxiliary"].ID: // these events have the pool address in topic1
-			if len(log.Topics) < 2 {
-				break
-			}
-			p := hexutil.Encode(log.Topics[1][common.HashLength-common.AddressLength:])
-			addressLogs[p] = append(addressLogs[p], log)
+		addresses, _ := p.DecodePoolAddressesFromFactoryLog(ctx, log)
+		for _, address := range addresses {
+			addressLogs[address] = append(addressLogs[address], log)
 		}
 	}
-
 	return addressLogs, nil
 }
 
-func (p *EventParser) GetKeys(_ context.Context) ([]string, error) {
-	if p.config.Vault == "" {
-		return nil, errors.New("vault address is not set")
+func (p *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
+	if log.Address != common.HexToAddress(p.config.Vault) {
+		return nil, nil
 	}
-	return []string{strings.ToLower(p.config.Vault)}, nil
+	switch log.Topics[0] {
+	case vaultABI.Events["Swap"].ID,
+		vaultABI.Events["AggregateSwapFeePercentageChanged"].ID,
+		vaultABI.Events["AggregateYieldFeePercentageChanged"].ID,
+		vaultABI.Events["Approval"].ID,
+		vaultABI.Events["LiquidityAdded"].ID,
+		vaultABI.Events["LiquidityRemoved"].ID,
+		vaultABI.Events["PoolInitialized"].ID,
+		vaultABI.Events["PoolPausedStateChanged"].ID,
+		vaultABI.Events["PoolRecoveryModeStateChanged"].ID,
+		vaultABI.Events["PoolRegistered"].ID,
+		vaultABI.Events["SwapFeePercentageChanged"].ID,
+		vaultABI.Events["Transfer"].ID,
+		vaultABI.Events["VaultAuxiliary"].ID: // these events have the pool address in topic1
+		if len(log.Topics) < 2 {
+			return nil, nil
+		}
+		p := hexutil.Encode(log.Topics[1][common.HashLength-common.AddressLength:])
+		return []string{p}, nil
+	}
+	return nil, nil
+}
+
+func (p *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+	// TODO: Implement this (non tick-based pool creation)
+	return nil, nil
+}
+
+func (p *EventParser) IsEventSupported(event common.Hash) bool {
+	// TODO: Implement this (non tick-based pool creation)
+	return true
 }
