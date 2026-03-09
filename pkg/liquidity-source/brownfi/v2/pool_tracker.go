@@ -216,6 +216,9 @@ func (d *PoolTracker) GetNewPoolState(
 			extra.OPrices[i].MulDivOverflow(extra.OPrices[i], q64, big256.TenPow(-parsed.Price.Expo))
 			// brownfiPrice = max(pythPrice, uniV3Price)
 			pythPrice.MulDivOverflow(pythPrice.SetUint64(pythPrices[i].Price), q64, big256.TenPow(-pythPrices[i].Expo))
+			if brownfiPrices[i] == nil {
+				continue
+			}
 			brownfiPrice.SetFromBig(brownfiPrices[i])
 			if pythPrice.Lt(&brownfiPrice) && // brownfiPrice == uniV3Price
 				brownfiPrice.Gt(extra.OPrices[i]) {
