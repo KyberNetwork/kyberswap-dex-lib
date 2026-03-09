@@ -82,6 +82,7 @@ const (
 	ExchangeDodoClassical              = "dodo-classical"
 	ExchangeDodoPrivatePool            = "dodo-dpp"
 	ExchangeDodoStablePool             = "dodo-dsp"
+	ExchangeDodoGasSavingPool          = "dodo-gsp"
 	ExchangeDodoVendingMachine         = "dodo-dvm"
 	ExchangeDystopia                   = "dystopia"
 	ExchangeEkubo                      = "ekubo"

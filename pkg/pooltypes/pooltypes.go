@@ -43,6 +43,7 @@ import (
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
+	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
@@ -211,6 +212,7 @@ type Types struct {
 	DodoVendingMachine         string
 	DodoStablePool             string
 	DodoPrivatePool            string
+	DodoGasSavingPool          string
 	Velodrome                  string
 	VelodromeV2                string
 	Velocimeter                string
@@ -417,6 +419,7 @@ var (
 		DodoVendingMachine:         dododvm.PoolType,
 		DodoStablePool:             dododsp.PoolType,
 		DodoPrivatePool:            dododpp.PoolType,
+		DodoGasSavingPool:          dodogsp.PoolType,
 		Velodrome:                  velodrome.DexType,
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
