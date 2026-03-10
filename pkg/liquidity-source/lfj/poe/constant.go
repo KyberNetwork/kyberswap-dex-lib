@@ -10,7 +10,7 @@ import (
 const (
 	DexType = valueobject.ExchangePoe
 
-	defaultGas int64 = 150000
+	defaultGas int64 = 200000
 )
 
 var (
