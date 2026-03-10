@@ -43,8 +43,8 @@ import (
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
-	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
@@ -79,6 +79,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
@@ -393,6 +394,7 @@ type Types struct {
 	WasabiProp                 string
 	Obric                      string
 	Printr                     string
+	Poe                        string
 }
 
 var (
@@ -601,5 +603,6 @@ var (
 		WasabiProp:                 wasabiprop.DexType,
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
+		Poe:                        poe.DexType,
 	}
 )
