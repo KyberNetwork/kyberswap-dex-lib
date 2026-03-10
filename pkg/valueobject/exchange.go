@@ -198,6 +198,7 @@ const (
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolycat                    = "polycat"
 	ExchangePolyDex                    = "polydex"
+	ExchangePoe                        = "poe"
 	ExchangePoolParty                  = "pool-party"
 	ExchangePrimeETH                   = "primeeth"
 	ExchangePufferPufETH               = "puffer-pufeth"
