@@ -34,5 +34,6 @@ var (
 		// ZoraV4CoinHook
 		common.HexToAddress("0xC8d077444625eB300A427a6dfB2b1DBf9b159040"), // v2.3.0
 		common.HexToAddress("0xF6d0A13609bb5779Bc5D639F2bA3Bfda83D4D0C0"), // v2.4.0
+		common.HexToAddress("0x0469a4Bd3724DC86C9542F4694c976DA13C450c0"), // v2.6.0
 	}
 )
