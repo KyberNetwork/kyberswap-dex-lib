@@ -65,7 +65,6 @@ func concentrationQ48(baseFeeQ48 uint64, amountIn *uint256.Int, reserveIn *uint2
 	return new(uint256.Int).Set(&result)
 }
 
-// L = min(Lx, Ly).
 func computeLiquidity(sqrtPriceX96 *uint256.Int, cQ48 uint64, reserveX, reserveY *uint256.Int) *uint256.Int {
 	oneMinusC := new(uint256.Int).Sub(q48, uint256.NewInt(cQ48))
 	qX24 := isqrt(oneMinusC)
