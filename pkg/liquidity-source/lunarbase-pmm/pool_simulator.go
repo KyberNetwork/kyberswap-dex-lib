@@ -1,14 +1,9 @@
 package lunarbase
 
 import (
-	"context"
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -23,7 +18,6 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 
-	exactQuoter    *gethclient.Client
 	chainID        valueobject.ChainID
 	periphery      string
 	permit2        string
@@ -31,18 +25,12 @@ type PoolSimulator struct {
 	rawTokenX      string
 	rawTokenY      string
 	priceX96       *uint256.Int
-	fee            *uint256.Int
+	feeQ48         uint64
 	latestBlock    uint64
 	concentrationK uint32
 	paused         bool
 	reserves       []*uint256.Int
 	gas            int64
-}
-
-type quoteExactInParams struct {
-	TokenIn  common.Address
-	TokenOut common.Address
-	AmountIn *big.Int
 }
 
 type SwapInfo struct {
@@ -52,17 +40,16 @@ type SwapInfo struct {
 var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFactory)
 
 func NewPoolSimulatorFactory(params pool.FactoryParams) (*PoolSimulator, error) {
-	return newPoolSimulator(params.EntityPool, params.ChainID, params.EthClient)
+	return newPoolSimulator(params.EntityPool, params.ChainID)
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
-	return newPoolSimulator(entityPool, chainID, nil)
+	return newPoolSimulator(entityPool, chainID)
 }
 
 func newPoolSimulator(
 	entityPool entity.Pool,
 	chainID valueobject.ChainID,
-	ethClient ethereum.ContractCaller,
 ) (*PoolSimulator, error) {
 	if chainID == 0 {
 		chainID = valueobject.ChainIDBase
@@ -78,11 +65,6 @@ func newPoolSimulator(
 		return nil, err
 	}
 
-	var exactQuoter *gethclient.Client
-	if clientWithRPC, ok := ethClient.(interface{ Client() *rpc.Client }); ok && clientWithRPC.Client() != nil {
-		exactQuoter = gethclient.New(clientWithRPC.Client())
-	}
-
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -94,7 +76,6 @@ func newPoolSimulator(
 				BlockNumber: entityPool.BlockNumber,
 			},
 		},
-		exactQuoter:    exactQuoter,
 		chainID:        chainID,
 		periphery:      staticExtra.PeripheryAddress,
 		permit2:        lo.Ternary(staticExtra.Permit2Address != "", staticExtra.Permit2Address, defaultPermit2Address),
@@ -102,7 +83,7 @@ func newPoolSimulator(
 		rawTokenX:      staticExtra.RawTokenX,
 		rawTokenY:      staticExtra.RawTokenY,
 		priceX96:       extra.PX96,
-		fee:            uint256.NewInt(extra.Fee),
+		feeQ48:         extra.Fee,
 		latestBlock:    extra.LatestUpdateBlock,
 		concentrationK: extra.ConcentrationK,
 		paused:         extra.Paused,
@@ -130,124 +111,30 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
-	if s.exactQuoter != nil {
-		return s.calcAmountOutExact(params, indexIn, indexOut, amountIn)
+	poolParams := &PoolParams{
+		SqrtPriceX96:   s.priceX96,
+		FeeQ48:         s.feeQ48,
+		ReserveX:       s.reserves[0],
+		ReserveY:       s.reserves[1],
+		ConcentrationK: s.concentrationK,
 	}
 
-	return s.calcAmountOutApprox(params, indexIn, indexOut, amountIn)
-}
-
-func (s *PoolSimulator) calcAmountOutExact(
-	params pool.CalcAmountOutParams,
-	indexIn, indexOut int,
-	amountIn *uint256.Int,
-) (*pool.CalcAmountOutResult, error) {
-	method := "quoteXToY"
-	if indexIn == 1 {
-		method = "quoteYToX"
-	}
-
-	data, err := coreABI.Pack(method, amountIn.ToBig())
-	if err != nil {
-		return nil, err
-	}
-
-	overrides := map[common.Address]gethclient.OverrideAccount{
-		common.HexToAddress(s.Info.Address): {
-			StateDiff: map[common.Hash]common.Hash{
-				pmmSlotState:    s.packStateSlot(),
-				pmmSlotReserves: s.packReservesSlot(),
-			},
-		},
-	}
-
-	result, err := s.exactQuoter.CallContract(
-		context.Background(),
-		ethereum.CallMsg{
-			To:   lo.ToPtr(common.HexToAddress(s.Info.Address)),
-			Data: data,
-		},
-		nil,
-		&overrides,
-	)
-	if err != nil {
-		return nil, ErrQuoteFailed
-	}
-
-	unpacked, err := coreABI.Unpack(method, result)
-	if err != nil {
-		return nil, err
-	}
-	if len(unpacked) != 3 {
-		return nil, ErrQuoteFailed
-	}
-
-	amountOut, ok := unpacked[0].(*big.Int)
-	if !ok || amountOut == nil || amountOut.Sign() <= 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	pNext, ok := unpacked[1].(*big.Int)
-	if !ok || pNext == nil || pNext.Sign() <= 0 {
-		return nil, ErrQuoteFailed
-	}
-
-	feeAmount, ok := unpacked[2].(*big.Int)
-	if !ok || feeAmount == nil || feeAmount.Sign() < 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-	if amountOut.Cmp(s.reserves[indexOut].ToBig()) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	nextPX96 := uint256.MustFromBig(pNext)
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  params.TokenOut,
-			Amount: amountOut,
-		},
-		Fee: &pool.TokenAmount{
-			Token:  params.TokenOut,
-			Amount: feeAmount,
-		},
-		Gas: s.gas,
-		SwapInfo: SwapInfo{
-			NextPX96: nextPX96,
-		},
-	}, nil
-}
-
-func (s *PoolSimulator) calcAmountOutApprox(
-	params pool.CalcAmountOutParams,
-	indexIn, indexOut int,
-	amountIn *uint256.Int,
-) (*pool.CalcAmountOutResult, error) {
-	var grossOut uint256.Int
+	var result *QuoteResult
 	if indexIn == 0 {
-		big256.MulDivDown(&grossOut, amountIn, s.priceX96, q96)
+		result = quoteXToY(poolParams, amountIn)
 	} else {
-		big256.MulDivDown(&grossOut, amountIn, q96, s.priceX96)
+		result = quoteYToX(poolParams, amountIn)
 	}
 
-	var feeAmount uint256.Int
-	big256.MulDivDown(&feeAmount, &grossOut, s.fee, feePrecision)
-
-	amountOut := new(uint256.Int).Sub(&grossOut, &feeAmount)
-	if amountOut.IsZero() || amountOut.Gt(s.reserves[indexOut]) {
+	if result.AmountOut.IsZero() {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  params.TokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  params.TokenOut,
-			Amount: feeAmount.ToBig(),
-		},
-		Gas: s.gas,
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: result.AmountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: result.Fee.ToBig()},
+		Gas:            s.gas,
+		SwapInfo:       SwapInfo{NextPX96: result.SqrtPriceNext},
 	}, nil
 }
 
@@ -318,32 +205,4 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	return s.CanSwapTo(address)
-}
-
-func (s *PoolSimulator) rawTokenAddress(index int) common.Address {
-	if index == 0 {
-		return common.HexToAddress(s.rawTokenX)
-	}
-
-	return common.HexToAddress(s.rawTokenY)
-}
-
-func (s *PoolSimulator) packStateSlot() common.Hash {
-	packed := uint256.NewInt(0)
-	if s.priceX96 != nil {
-		packed = new(uint256.Int).Set(s.priceX96)
-	}
-
-	packed = new(uint256.Int).Add(packed, new(uint256.Int).Lsh(uint256.NewInt(s.fee.Uint64()), 160))
-	packed = new(uint256.Int).Add(packed, new(uint256.Int).Lsh(uint256.NewInt(s.latestBlock), 208))
-
-	return common.BytesToHash(common.LeftPadBytes(packed.Bytes(), 32))
-}
-
-func (s *PoolSimulator) packReservesSlot() common.Hash {
-	packed := new(uint256.Int).Set(s.reserves[0])
-	packed = new(uint256.Int).Add(packed, new(uint256.Int).Lsh(new(uint256.Int).Set(s.reserves[1]), 112))
-	packed = new(uint256.Int).Add(packed, new(uint256.Int).Lsh(uint256.NewInt(uint64(s.concentrationK)), 224))
-
-	return common.BytesToHash(common.LeftPadBytes(packed.Bytes(), 32))
 }

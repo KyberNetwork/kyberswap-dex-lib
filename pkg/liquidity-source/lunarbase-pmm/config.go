@@ -8,4 +8,6 @@ type Config struct {
 	CoreAddress      string              `json:"coreAddress"`
 	PeripheryAddress string              `json:"peripheryAddress"`
 	Permit2Address   string              `json:"permit2Address"`
+	WsURL            string              `json:"wsURL"`
+	FlashWsURL       string              `json:"flashWsURL"`
 }

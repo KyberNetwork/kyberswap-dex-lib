@@ -95,6 +95,60 @@ const coreABIJSON = `[
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {"internalType": "uint160", "name": "pX96", "type": "uint160"},
+          {"internalType": "uint48", "name": "fee", "type": "uint48"}
+        ],
+        "indexed": false,
+        "internalType": "struct StateUpdateParameters",
+        "name": "state",
+        "type": "tuple"
+      }
+    ],
+    "name": "StateUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": false, "internalType": "uint128", "name": "reserveX", "type": "uint128"},
+      {"indexed": false, "internalType": "uint128", "name": "reserveY", "type": "uint128"}
+    ],
+    "name": "Sync",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": false, "internalType": "address", "name": "recipient", "type": "address"},
+      {"indexed": false, "internalType": "bool", "name": "xToY", "type": "bool"},
+      {"indexed": false, "internalType": "uint256", "name": "dx", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "dy", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "fee", "type": "uint256"}
+    ],
+    "name": "SwapExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": false, "internalType": "uint32", "name": "concentrationK", "type": "uint32"}
+    ],
+    "name": "ConcentrationKSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": false, "internalType": "uint48", "name": "blockDelay", "type": "uint48"}
+    ],
+    "name": "BlockDelaySet",
+    "type": "event"
   }
 ]`
 

@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -13,22 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-func TestQuoteExactInPack(t *testing.T) {
-	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
-
-	data, err := peripheryABI.Pack("quoteExactIn", quoteExactInParams{
-		TokenIn:  valueobject.AddrZero,
-		TokenOut: common.HexToAddress(wrappedNative),
-		AmountIn: big.NewInt(1),
-	})
-	if err != nil {
-		t.Fatalf("pack quoteExactIn: %v", err)
-	}
-	if len(data) == 0 {
-		t.Fatal("packed calldata is empty")
-	}
-}
 
 func TestCloneStateDeepCopy(t *testing.T) {
 	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
@@ -99,21 +82,5 @@ func TestCloneStateDeepCopy(t *testing.T) {
 	}
 	if meta.ApprovalAddress != defaultPermit2Address {
 		t.Fatalf("unexpected approval address: got %s", meta.ApprovalAddress)
-	}
-}
-
-func TestPackReservesSlot(t *testing.T) {
-	sim := &PoolSimulator{
-		concentrationK: 5000,
-		reserves: []*uint256.Int{
-			uint256.MustFromBig(new(big.Int).SetUint64(100)),
-			uint256.MustFromBig(new(big.Int).SetUint64(200)),
-		},
-	}
-
-	got := sim.packReservesSlot()
-	want := common.HexToHash("0x0000138800000000000000000000000000c80000000000000000000000000064")
-	if got != want {
-		t.Fatalf("unexpected packed slot: got %s want %s", got.Hex(), want.Hex())
 	}
 }

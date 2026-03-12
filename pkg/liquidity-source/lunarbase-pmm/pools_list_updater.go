@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -49,6 +50,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 	poolEntity.Timestamp = time.Now().Unix()
+
+	if u.config.WsURL != "" || u.config.FlashWsURL != "" {
+		InitFlashBlockSubscriber(
+			u.config.WsURL,
+			u.config.FlashWsURL,
+			common.HexToAddress(defaultCore(u.config)),
+		)
+	}
 
 	u.hasInitialized = true
 

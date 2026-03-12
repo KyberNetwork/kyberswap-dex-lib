@@ -30,3 +30,17 @@ type PoolMeta struct {
 	Permit2Address  string `json:"permit2Address"`
 	ApprovalAddress string `json:"approvalAddress"`
 }
+
+type PoolParams struct {
+	SqrtPriceX96   *uint256.Int
+	FeeQ48         uint64
+	ReserveX       *uint256.Int
+	ReserveY       *uint256.Int
+	ConcentrationK uint32
+}
+
+type QuoteResult struct {
+	AmountOut     *uint256.Int
+	SqrtPriceNext *uint256.Int
+	Fee           *uint256.Int
+}

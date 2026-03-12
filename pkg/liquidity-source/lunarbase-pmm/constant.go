@@ -3,7 +3,7 @@ package lunarbase
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
 )
 
@@ -18,12 +18,13 @@ const (
 )
 
 var (
-	pmmSlotState    = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000002")
-	pmmSlotReserves = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000003")
-	q96             = new(uint256.Int).Lsh(uint256.NewInt(1), 96)
-	// The contract exposes fee as uint48 in state() and an immutable 5000 getter on the live Base deployment.
-	// We treat it as 1e6-based fee precision here; this still needs confirmation from verified source code.
-	feePrecision = uint256.NewInt(1_000_000)
+	q96 = new(uint256.Int).Lsh(uint256.NewInt(1), 96)
+
+	topicStateUpdated     = crypto.Keccak256Hash([]byte("StateUpdated((uint160,uint48))"))
+	topicSync             = crypto.Keccak256Hash([]byte("Sync(uint128,uint128)"))
+	topicSwapExecuted     = crypto.Keccak256Hash([]byte("SwapExecuted(address,bool,uint256,uint256,uint256)"))
+	topicConcentrationKSet = crypto.Keccak256Hash([]byte("ConcentrationKSet(uint32)"))
+	topicBlockDelaySet    = crypto.Keccak256Hash([]byte("BlockDelaySet(uint48)"))
 
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrPoolPaused            = errors.New("pool is paused")
