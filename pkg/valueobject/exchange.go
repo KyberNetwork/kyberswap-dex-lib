@@ -14,6 +14,8 @@ const (
 	ExchangeArenaBC                    = "arena-bc"
 	ExchangeAstroSwap                  = "astroswap"
 	ExchangeAxial                      = "axial"
+	ExchangeAxima                      = "axima"
+	ExchangeAximaV2                    = "axima-v2"
 	ExchangeBabyDogeSwap               = "babydogeswap"
 	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalancerV1                 = "balancer-v1"
@@ -52,6 +54,7 @@ const (
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
 	ExchangeBurrBearWeighted           = "burrbear-weighted"
+	ExchangeCarbon                     = "carbon"
 	ExchangeClear                      = "clear"
 	ExchangeClipper                    = "clipper"
 	ExchangeCloberOB                   = "clober-ob"
@@ -79,16 +82,19 @@ const (
 	ExchangeDodoClassical              = "dodo-classical"
 	ExchangeDodoPrivatePool            = "dodo-dpp"
 	ExchangeDodoStablePool             = "dodo-dsp"
+	ExchangeDodoGasSavingPool          = "dodo-gsp"
 	ExchangeDodoVendingMachine         = "dodo-dvm"
 	ExchangeDystopia                   = "dystopia"
 	ExchangeEkubo                      = "ekubo"
 	ExchangeEkuboV3                    = "ekubo-v3"
+	ExchangeElfomofi                   = "elfomofi"
 	ExchangeEllipsis                   = "ellipsis"
 	ExchangeERC4626                    = "erc4626"
 	ExchangeEthenaSusde                = "ethena-susde"
 	ExchangeEtherexV2                  = "etherex-v2"
 	ExchangeEtherFieBTC                = "etherfi-ebtc"
 	ExchangeEtherfiEETH                = "etherfi-eeth"
+	ExchangeEtherfiLiquid              = "etherfi-liquid"
 	ExchangeEtherfiVampire             = "etherfi-vampire"
 	ExchangeEtherfiWEETH               = "etherfi-weeth"
 	ExchangeEtherVista                 = "ether-vista"
@@ -100,6 +106,7 @@ const (
 	ExchangeFluidDexV2                 = "fluid-dex-v2"
 	ExchangeFluidVaultT1               = "fluid-vault-t1"
 	ExchangeFrxETH                     = "frxeth"
+	ExchangeFrxUSD                     = "frxusd"
 	ExchangeGenericArm                 = "generic-arm"
 	ExchangeGravity                    = "gravity"
 	ExchangeGsm4626                    = "gsm-4626"
@@ -110,6 +117,7 @@ const (
 	ExchangeHoney                      = "honey"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperpieV2                 = "hyperpie-v2"
+	ExchangeInfinifi                   = "infinifi-gateway"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeIntegral                   = "integral"
 	ExchangeJetSwap                    = "jetswap"
@@ -123,6 +131,7 @@ const (
 	ExchangeKTX                        = "ktx"
 	ExchangeKuruOB                     = "kuru-ob"
 	ExchangeKyberPMM                   = "kyber-pmm"
+	ExchangeKipseliProp                = "kipseli-prop"
 	ExchangeKyberSwapLimitOrder        = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS      = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                 = "liquidcore"
@@ -154,6 +163,7 @@ const (
 	ExchangeNativeV2                   = "native-v2"
 	ExchangeNativeV3                   = "native-v3"
 	ExchangeNomiswap                   = "nomiswap"
+	ExchangeObric                      = "obric"
 	ExchangeOETH                       = "oeth"
 	ExchangeOmniBin                    = "omni-bin"
 	ExchangeOmniCL                     = "omni-cl"
@@ -184,9 +194,12 @@ const (
 	ExchangePmm4                       = "pmm-4"
 	ExchangePmm5                       = "pmm-5"
 	ExchangePmm6                       = "pmm-6"
+	ExchangePmm7                       = "pmm-7"
+	ExchangePmm8                       = "pmm-8"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolycat                    = "polycat"
 	ExchangePolyDex                    = "polydex"
+	ExchangePoe                        = "poe"
 	ExchangePoolParty                  = "pool-party"
 	ExchangePrimeETH                   = "primeeth"
 	ExchangePufferPufETH               = "puffer-pufeth"
@@ -202,8 +215,12 @@ const (
 	ExchangeShadowLegacy               = "shadow-legacy"
 	ExchangeSkyPSM                     = "sky-psm"
 	ExchangeSmardex                    = "smardex"
+	ExchangeSmoothy                    = "smoothy"
 	ExchangeSolidlyV2                  = "solidly-v2"
+	ExchangeSomeSwapV1                 = "someswap-v1"
+	ExchangeSomeSwapV2                 = "someswap-v2"
 	ExchangeSonicMarket                = "sonic-market"
+	ExchangeSPendle                    = "spendle"
 	ExchangeSpookySwap                 = "spookyswap"
 	ExchangeStaderETHx                 = "staderethx"
 	ExchangeSuperlendV3                = "superlend-v3"
@@ -218,6 +235,7 @@ const (
 	ExchangeSyncSwapV2Classic          = "syncswapv2-classic"
 	ExchangeSyncSwapV2Stable           = "syncswapv2-stable"
 	ExchangeSynthetix                  = "synthetix"
+	ExchangeTessera                    = "tessera"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniswapLO                  = "uniswap-lo"
@@ -225,6 +243,7 @@ const (
 	ExchangeUniSwapV3                  = "uniswapv3"
 	ExchangeUniswapV4                  = "uniswap-v4"
 	ExchangeUniswapV4Aegis             = "uniswap-v4-aegis"
+	ExchangeUniswapV4Alpha             = "uniswap-v4-alpha"
 	ExchangeUniswapV4Angstrom          = "uniswap-v4-angstrom"
 	ExchangeUniswapV4Arena             = "uniswap-v4-arena"
 	ExchangeUniswapV4Arrakis           = "uniswap-v4-arrakis"
@@ -248,18 +267,21 @@ const (
 	ExchangeVelocoreV2WombatStable     = "velocore-v2-wombat-stable"
 	ExchangeVelodromeV2                = "velodrome-v2"
 	ExchangeVirtualFun                 = "virtual-fun"
+	ExchangeVirtualFunV2               = "virtual-fun-v2"
 	ExchangeVooi                       = "vooi"
 	ExchangeWagyuSwap                  = "wagyuswap"
+	ExchangeWasabiProp                 = "wasabi-prop"
 	ExchangeWault                      = "wault"
 	ExchangeWBETH                      = "wbeth"
+	ExchangeWildcard                   = "wildcard"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
+	ExchangeWCM                        = "wcm"
 	ExchangeWooFiV3                    = "woofi-v3"
-	ExchangeXSolvBTC                   = "xsolvbtc"
-	ExchangeWildcat                    = "wildcat"
-	ExchangeInfinifi                   = "infinifi-gateway"
-	ExchangeTessera                    = "tessera"
+	ExchangeWrappedNative              = "wrapped-native"
 	ExchangeWRSETH                     = "wrseth"
+	ExchangeXSolvBTC                   = "xsolvbtc"
+	ExchangePrintr                     = "printr"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -279,6 +301,8 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm4:       {},
 	ExchangePmm5:       {},
 	ExchangePmm6:       {},
+	ExchangePmm7:       {},
+	ExchangePmm8:       {},
 	ExchangeSwaapV2:    {},
 	ExchangeUniswapLO:  {},
 }
@@ -290,7 +314,10 @@ func IsRFQSource(exchange Exchange) bool {
 
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
-var needFallbackSourceSet = map[Exchange]struct{}{}
+var needFallbackSourceSet = map[Exchange]struct{}{
+	ExchangeAxima:   {},
+	ExchangeAximaV2: {},
+}
 
 func NeedsFallbackSource(exchange Exchange) bool {
 	if _, ok := needFallbackSourceSet[exchange]; ok {

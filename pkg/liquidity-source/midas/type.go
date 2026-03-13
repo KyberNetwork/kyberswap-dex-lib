@@ -210,9 +210,9 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 				Stable:    cfg.Stable,
 			}
 		}),
-		MTokenRate: uint256.MustFromBig(v.MTokenRate),
+		MTokenRate: lo.Ternary(v.MTokenRate == nil, new(uint256.Int), uint256.MustFromBig(v.MTokenRate)),
 		TokenRates: lo.Map(v.TokenRates, func(rate *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(rate)
+			return lo.Ternary(rate == nil, new(uint256.Int), uint256.MustFromBig(rate))
 		}),
 		WaivedFeeRestriction: v.WaivedFeeRestriction,
 		MTokenDecimals:       v.MTokenDecimals,

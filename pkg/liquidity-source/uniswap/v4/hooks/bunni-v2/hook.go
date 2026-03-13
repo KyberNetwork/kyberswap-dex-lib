@@ -175,8 +175,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if h.Slot0.SqrtPriceX96.IsZero() ||
 		(params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) >= 0) ||
 		(!params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) <= 0) ||
-		params.AmountSpecified.Cmp(bignumber.MAX_INT_128) > 0 ||
-		params.AmountSpecified.Cmp(bignumber.MIN_INT_128) < 0 {
+		params.AmountSpecified.Cmp(bignumber.MaxInt128) > 0 ||
+		params.AmountSpecified.Cmp(bignumber.MinInt128) < 0 {
 		return nil, errors.New("BunniHook__InvalidSwap")
 	}
 

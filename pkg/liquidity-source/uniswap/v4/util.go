@@ -1,11 +1,15 @@
 package uniswapv4
 
 import (
+	"math"
+	"math/big"
+
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -20,4 +24,41 @@ func GetHookExchange(p *entity.Pool) valueobject.Exchange {
 
 	hook, _ := GetHook(hookAddress, nil)
 	return valueobject.Exchange(hook.GetExchange())
+}
+
+const TickBase = 1.0001
+
+var Q96 = math.Pow(2, 96)
+
+func EstimateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (amt0, amt1 *big.Int) {
+	if len(ticks) == 0 {
+		return bignumber.ZeroBI, bignumber.ZeroBI
+	}
+	var L, totalAmt0, totalAmt1 float64
+	price, _ := sqrtPriceX96.Float64()
+	price /= Q96
+
+	upper := math.Pow(TickBase, float64(ticks[0].Index)/2)
+	for i := 1; i < len(ticks); i++ {
+		tickLower, tickUpper := ticks[i-1], ticks[i]
+		liqNet, _ := tickLower.LiquidityNet.Float64()
+		L += liqNet
+
+		lower := upper
+		upper = math.Pow(TickBase, float64(tickUpper.Index)/2)
+
+		if price < lower {
+			totalAmt0 += L * (upper - lower) / (lower * upper)
+		} else if price >= upper {
+			totalAmt1 += L * (upper - lower)
+		} else {
+			totalAmt0 += L * (upper - price) / (price * upper)
+			totalAmt1 += L * (price - lower)
+		}
+	}
+
+	var tmp big.Float
+	amt0, _ = tmp.SetFloat64(totalAmt0).Int(new(big.Int))
+	amt1, _ = tmp.SetFloat64(totalAmt1).Int(new(big.Int))
+	return amt0, amt1
 }

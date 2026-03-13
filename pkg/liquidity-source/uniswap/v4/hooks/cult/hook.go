@@ -65,11 +65,11 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	feeAmt := bignumber.ZeroBI
-	if !swapHookParams.ZeroForOne {
-		feeAmt = new(big.Int)
-		feeAmt.Mul(swapHookParams.AmountOut, h.totalFeeBps).Div(feeAmt, bignumber.BasisPoint)
+	if !params.ZeroForOne {
+		feeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn),
+			h.totalFeeBps, bignumber.BasisPoint)
 	}
 
 	return &uniswapv4.AfterSwapResult{

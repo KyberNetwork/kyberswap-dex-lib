@@ -21,12 +21,10 @@ func TestFullRangePoolQuote(t *testing.T) {
 	}
 
 	t.Run("zero_liquidity", func(t *testing.T) {
-		pool := NewFullRangePool(poolKey(0), &FullRangePoolState{
-			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: big256.U2Pow128,
-			},
-			Liquidity: new(uint256.Int),
-		})
+		pool := NewFullRangePool(poolKey(0), NewFullRangePoolState(
+			NewFullRangePoolSwapState(big256.U2Pow128),
+			new(uint256.Int),
+		))
 
 		quote, err := pool.Quote(uint256.NewInt(1_000), false)
 		require.NoError(t, err)
@@ -35,12 +33,10 @@ func TestFullRangePoolQuote(t *testing.T) {
 	})
 
 	t.Run("with_liqudity_token0_input", func(t *testing.T) {
-		pool := NewFullRangePool(poolKey(0), &FullRangePoolState{
-			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: big256.U2Pow128,
-			},
-			Liquidity: uint256.NewInt(1_000_000),
-		})
+		pool := NewFullRangePool(poolKey(0), NewFullRangePoolState(
+			NewFullRangePoolSwapState(big256.U2Pow128),
+			uint256.NewInt(1_000_000),
+		))
 
 		quote, err := pool.Quote(uint256.NewInt(1_000), false)
 		require.NoError(t, err)
@@ -49,12 +45,10 @@ func TestFullRangePoolQuote(t *testing.T) {
 	})
 
 	t.Run("with_liqudity_token1_input", func(t *testing.T) {
-		pool := NewFullRangePool(poolKey(0), &FullRangePoolState{
-			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: big256.U2Pow128,
-			},
-			Liquidity: uint256.NewInt(1_000_000),
-		})
+		pool := NewFullRangePool(poolKey(0), NewFullRangePoolState(
+			NewFullRangePoolSwapState(big256.U2Pow128),
+			uint256.NewInt(1_000_000),
+		))
 
 		quote, err := pool.Quote(uint256.NewInt(1_000), true)
 		require.NoError(t, err)
@@ -65,12 +59,10 @@ func TestFullRangePoolQuote(t *testing.T) {
 	t.Run("with_fee", func(t *testing.T) {
 		pool := NewFullRangePool(
 			poolKey(1<<32), // 0.01% fee
-			&FullRangePoolState{
-				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: big256.U2Pow128,
-				},
-				Liquidity: uint256.NewInt(1_000_000),
-			},
+			NewFullRangePoolState(
+				NewFullRangePoolSwapState(big256.U2Pow128),
+				uint256.NewInt(1_000_000),
+			),
 		)
 
 		quote, err := pool.Quote(uint256.NewInt(1_000), false)

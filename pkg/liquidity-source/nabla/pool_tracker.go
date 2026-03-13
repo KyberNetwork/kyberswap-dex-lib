@@ -394,3 +394,19 @@ func (t *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]strin
 		return hexutil.Encode(np.Address[:])
 	}), strings.ToLower(t.config.Oracle)), extra.DependenciesStored, nil
 }
+
+func (t *PoolTracker) SetDependenciesStored(p *entity.Pool, isStored bool) error {
+	var extra Extra
+	err := json.Unmarshal([]byte(p.Extra), &extra)
+	if err != nil {
+		return err
+	}
+	extra.DependenciesStored = isStored
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return err
+	}
+	p.Extra = string(extraBytes)
+
+	return err
+}

@@ -1,0 +1,78 @@
+[
+  {
+    "name": "getState",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "asset",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "numeraire",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalTokensOnBondingCurve",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "dopplerHook",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "graduationDopplerHookCalldata",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "internalType": "PoolStatus"
+      },
+      {
+        "name": "poolKey",
+        "type": "tuple",
+        "internalType": "PoolKey",
+        "components": [
+          {
+            "name": "currency0",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "currency1",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "fee",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "tickSpacing",
+            "type": "int24",
+            "internalType": "int24"
+          },
+          {
+            "name": "hooks",
+            "type": "address",
+            "internalType": "IHooks"
+          }
+        ]
+      },
+      {
+        "name": "farTick",
+        "type": "int32",
+        "internalType": "int32"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

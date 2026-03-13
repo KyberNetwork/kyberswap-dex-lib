@@ -7,6 +7,8 @@ const (
 	SubgraphPoolTypeDodoVendingMachine = "DVM"
 	SubgraphPoolTypeDodoStable         = "DSP"
 	SubgraphPoolTypeDodoPrivate        = "DPP"
+	// SubgraphPoolType Dodo GasSavingPool (GSP)
+	SubgraphPoolTypeDodoGasSaving = "GSP"
 
 	defaultTokenDecimals = 18
 

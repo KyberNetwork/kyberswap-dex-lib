@@ -4,13 +4,13 @@ import (
 	"context"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolsListUpdater struct {

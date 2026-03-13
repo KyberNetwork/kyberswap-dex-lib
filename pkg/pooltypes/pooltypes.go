@@ -9,6 +9,7 @@ import (
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/stable"
@@ -24,6 +25,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
@@ -42,13 +44,16 @@ import (
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/liquid"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
@@ -57,6 +62,7 @@ import (
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
@@ -72,6 +78,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
+	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
@@ -90,6 +98,7 @@ import (
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
 	pancakeinfinitybin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin"
@@ -98,12 +107,16 @@ import (
 	pancakev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
+	someswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
+	someswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
@@ -123,8 +136,11 @@ import (
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
-	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcat"
+	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v1"
+	virtualfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v2"
+	wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/xsolvbtc"
@@ -198,6 +214,7 @@ type Types struct {
 	DodoVendingMachine         string
 	DodoStablePool             string
 	DodoPrivatePool            string
+	DodoGasSavingPool          string
 	Velodrome                  string
 	VelodromeV2                string
 	Velocimeter                string
@@ -231,6 +248,7 @@ type Types struct {
 	MaverickV1                 string
 	AlgebraV1                  string
 	IZiSwap                    string
+	WCM                        string
 	WooFiV2                    string
 	WooFiV21                   string
 	Equalizer                  string
@@ -319,6 +337,7 @@ type Types struct {
 	AlgebraIntegral            string
 	LO1inch                    string
 	VirtualFun                 string
+	VirtualFunV2               string
 	BeetsSS                    string
 	SwapXV2                    string
 	EtherFieBTC                string
@@ -358,13 +377,26 @@ type Types struct {
 	NadFun                     string
 	CloberOB                   string
 	FluidDexV2                 string
-	Wildcat                    string
+	Wildcard                   string
 	ValantisStex               string
 	Infinifi                   string
 	Nabla                      string
 	Tessera                    string
 	LiquidCore                 string
 	LunarBase                  string
+	FrxUSD                     string
+	Elfomofi                   string
+	EtherfiLiquid              string
+	Smoothy                    string
+	Carbon                     string
+	Axima                      string
+	KipseliProp                string
+	SomeswapV1                 string
+	SomeswapV2                 string
+	WasabiProp                 string
+	Obric                      string
+	Printr                     string
+	Poe                        string
 }
 
 var (
@@ -391,6 +423,7 @@ var (
 		DodoVendingMachine:         dododvm.PoolType,
 		DodoStablePool:             dododsp.PoolType,
 		DodoPrivatePool:            dododpp.PoolType,
+		DodoGasSavingPool:          dodogsp.PoolType,
 		Velodrome:                  velodrome.DexType,
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
@@ -424,6 +457,7 @@ var (
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
+		WCM:                        wcm.DexType,
 		WooFiV2:                    woofiv2.DexTypeWooFiV2,
 		WooFiV21:                   woofiv21.DexTypeWooFiV21,
 		Equalizer:                  equalizer.DexTypeEqualizer,
@@ -509,6 +543,7 @@ var (
 		AlgebraIntegral:            algebraintegral.DexType,
 		LO1inch:                    lo1inch.DexType,
 		VirtualFun:                 virtualfun.DexType,
+		VirtualFunV2:               virtualfunv2.DexType,
 		BeetsSS:                    beetsss.DexType,
 		SwapXV2:                    swapxv2.DexType,
 		EtherFieBTC:                etherfiebtc.DexType,
@@ -552,12 +587,25 @@ var (
 		NadFun:                     nadfun.DexType,
 		CloberOB:                   cloberob.DexType,
 		FluidDexV2:                 dexv2.DexType,
-		Wildcat:                    wildcat.DexType,
+		Wildcard:                   wildcard.DexType,
 		ValantisStex:               valantisstex.DexType,
 		Infinifi:                   infinifi.DexType,
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
 		LiquidCore:                 liquidcore.DexType,
 		LunarBase:                  lunarbase.DexType,
+		FrxUSD:                     frxusd.DexType,
+		Elfomofi:                   elfomofi.DexType,
+		EtherfiLiquid:              liquid.DexType,
+		Smoothy:                    smoothy.DexType,
+		Carbon:                     carbon.DexType,
+		Axima:                      axima.DexType,
+		KipseliProp:                kipseliprop.DexType,
+		SomeswapV1:                 someswapv1.DexType,
+		SomeswapV2:                 someswapv2.DexType,
+		WasabiProp:                 wasabiprop.DexType,
+		Obric:                      obric.DexType,
+		Printr:                     printr.DexType,
+		Poe:                        poe.DexType,
 	}
 )

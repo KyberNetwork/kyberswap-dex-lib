@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	brownFiV2PairABI    abi.ABI
 	brownFiV2FactoryABI abi.ABI
+	brownFiV2PairABI    abi.ABI
+	brownFiV2OracleABI  abi.ABI
 )
 
 func init() {
@@ -17,10 +18,13 @@ func init() {
 		data []byte
 	}{
 		{
+			&brownFiV2FactoryABI, factoryABIJson,
+		},
+		{
 			&brownFiV2PairABI, pairABIJson,
 		},
 		{
-			&brownFiV2FactoryABI, factoryABIJson,
+			&brownFiV2OracleABI, oracleABIJson,
 		},
 	}
 

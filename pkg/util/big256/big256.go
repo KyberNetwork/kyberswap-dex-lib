@@ -12,6 +12,9 @@ import (
 )
 
 var (
+	U2Pow4   = new(uint256.Int).Lsh(U1, 4)
+	U2Pow8   = new(uint256.Int).Lsh(U1, 8)
+	U2Pow16  = new(uint256.Int).Lsh(U1, 16)
 	U2Pow32  = new(uint256.Int).Lsh(U1, 32)
 	U2Pow34  = new(uint256.Int).Lsh(U1, 34)
 	U2Pow64  = new(uint256.Int).Lsh(U1, 64)
@@ -23,6 +26,7 @@ var (
 	U2Pow127 = new(uint256.Int).Lsh(U1, 127)
 	U2Pow128 = new(uint256.Int).Lsh(U1, 128)
 	U2Pow160 = new(uint256.Int).Lsh(U1, 160)
+	U2Pow192 = new(uint256.Int).Lsh(U1, 192)
 
 	UMaxU34  = new(uint256.Int).SubUint64(U2Pow34, 1)
 	UMaxU66  = new(uint256.Int).SubUint64(U2Pow66, 1)
@@ -30,19 +34,22 @@ var (
 	UMaxU128 = new(uint256.Int).SubUint64(U2Pow128, 1)
 	UMax     = new(uint256.Int).SetAllOne()
 
-	U0    = uint256.NewInt(0)
-	U1    = uint256.NewInt(1)
-	U2    = uint256.NewInt(2)
-	U3    = uint256.NewInt(3)
-	U4    = uint256.NewInt(4)
-	U5    = uint256.NewInt(5)
-	U6    = uint256.NewInt(6)
-	U8    = uint256.NewInt(8)
-	U9    = uint256.NewInt(9)
-	U10   = uint256.NewInt(10)
-	U100  = uint256.NewInt(100)
-	U1000 = uint256.NewInt(1000)
-	U2000 = uint256.NewInt(2000)
+	U0      = uint256.NewInt(0)
+	U1      = uint256.NewInt(1)
+	U2      = uint256.NewInt(2)
+	U3      = uint256.NewInt(3)
+	U4      = uint256.NewInt(4)
+	U5      = uint256.NewInt(5)
+	U6      = uint256.NewInt(6)
+	U8      = uint256.NewInt(8)
+	U9      = uint256.NewInt(9)
+	U10     = uint256.NewInt(10)
+	U99     = uint256.NewInt(99)
+	U100    = uint256.NewInt(100)
+	U999    = uint256.NewInt(999)
+	U1000   = uint256.NewInt(1000)
+	U2000   = uint256.NewInt(2000)
+	U100000 = uint256.NewInt(100000)
 
 	MinSqrtRatio    = uint256.NewInt(4295128739)
 	MaxSqrtRatio, _ = NewUint256("1461446703485210103287273052203988822378723970342")
@@ -69,6 +76,10 @@ func TenPow[T constraints.Integer](decimal T) *uint256.Int {
 	}
 	tmp := uint256.NewInt(uint64(decimal))
 	return tmp.Exp(U10, tmp)
+}
+
+func New0() *uint256.Int {
+	return U0.Clone()
 }
 
 func New(s string) *uint256.Int {
@@ -182,6 +193,12 @@ func MulDivUp(res, x, y, denominator *uint256.Int) *uint256.Int {
 func MulDivDown(res, x, y, denominator *uint256.Int) *uint256.Int {
 	res.MulDivOverflow(x, y, denominator)
 	return res
+}
+
+func MulDiv(x, y, denominator *uint256.Int) *uint256.Int {
+	var res uint256.Int
+	res.MulDivOverflow(x, y, denominator)
+	return &res
 }
 
 func MulDivRounding(res, x, y, denominator *uint256.Int, roundingUp bool) *uint256.Int {

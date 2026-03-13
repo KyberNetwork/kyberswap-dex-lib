@@ -28,8 +28,8 @@ type StaticFeeExtra struct {
 	ProtocolFee     *big.Int
 	ClankerFee      *big.Int
 	PairedFee       *big.Int
-	ClankerIsToken0 bool
-	ClankerTracked  bool
+	ClankerIsToken0 bool `json:",omitempty"`
+	ClankerTracked  bool `json:",omitempty"`
 }
 
 var _ = uniswapv4.RegisterHooksFactory(NewStaticFeeHook, StaticFeeHookAddresses...)
@@ -130,9 +130,7 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 		return nil, ErrPoolIsNotTracked
 	}
 
-	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
-
-	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
+	if params.ZeroForOne == h.clankerIsToken0 {
 		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecified:   bignumber.ZeroBI,
 			DeltaUnspecified: bignumber.ZeroBI,
@@ -143,11 +141,7 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 	var scaledProtocolFee, fee big.Int
 
 	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	if params.ExactIn && swappingForClanker {
-		fee.Add(Million, h.protocolFee)
-	} else { // !params.ExactIn && !swappingForClanker
-		fee.Sub(Million, h.protocolFee)
-	}
+	fee.Add(Million, h.protocolFee)
 	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
 	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
@@ -160,24 +154,17 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 }
 
 func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
-
-	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
+	if params.ZeroForOne != h.clankerIsToken0 {
 		return &uniswapv4.AfterSwapResult{
 			HookFee: bignumber.ZeroBI,
 		}, nil
 	}
 
 	var delta big.Int
-	if params.ExactIn && !swappingForClanker {
-		delta.Mul(params.AmountOut, h.protocolFee)
-	} else { // !params.ExactIn && swappingForClanker
-		delta.Mul(params.AmountIn, h.protocolFee)
-	}
+	delta.Mul(params.AmountOut, h.protocolFee)
 	delta.Div(&delta, FeeDenominator)
 
 	return &uniswapv4.AfterSwapResult{
 		HookFee: &delta,
-		Gas:     0,
 	}, nil
 }

@@ -35,7 +35,7 @@ var entityPool = entity.Pool{
 }
 
 func TestPoolSimulator_NewPool(t *testing.T) {
-	poolSimulator, err := NewPoolSimulator(entityPool)
+	poolSimulator, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 	assert.NoError(t, err)
 	assert.Equal(t, "0xaf88d065e77c8cc2239327c5edb3a432268e5831", poolSimulator.tokens[0].Address)
 	assert.Equal(t, "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", poolSimulator.tokens[1].Address)
@@ -139,7 +139,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			err := json.Unmarshal([]byte(entityPoolStrData), &entityPool)
 			require.NoError(t, err)
 
-			poolSimulator, err := NewPoolSimulator(entityPool)
+			poolSimulator, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 			require.NoError(t, err)
 
 			var limit pool.SwapLimit
@@ -246,7 +246,7 @@ func TestPoolSimulator_MultiSwap(t *testing.T) {
 			var entityPool entity.Pool
 			require.NoError(t, json.Unmarshal([]byte(entityPoolStrData), &entityPool))
 
-			sim, err := NewPoolSimulator(entityPool)
+			sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 			require.NoError(t, err)
 
 			limit := swaplimit.NewInventory("pmm-1", sim.CalculateLimit())
@@ -278,7 +278,7 @@ func TestPoolSimulator_MultiSwap(t *testing.T) {
 			var entityPool2 entity.Pool
 			require.NoError(t, json.Unmarshal([]byte(entityPoolStrData), &entityPool2))
 
-			sim2, err := NewPoolSimulator(entityPool2)
+			sim2, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool2})
 			require.NoError(t, err)
 
 			limit2 := swaplimit.NewInventory("pmm-1", sim2.CalculateLimit())

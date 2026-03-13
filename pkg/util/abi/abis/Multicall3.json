@@ -1,0 +1,21 @@
+[
+  {
+    "name": "getEthBalance",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "addr",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "balance",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ]
+  }
+]

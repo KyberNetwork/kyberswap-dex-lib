@@ -2,6 +2,7 @@ package reth
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -58,6 +60,9 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
+	var tmp big.Int
+	p.Reserves[0] = tmp.Add(extra.ExcessBalance, extra.RETHBalance).String()
+	p.Reserves[1] = bignumber.MulDivDown(&tmp, &tmp, extra.TotalRETHSupply, extra.TotalETHBalance).String()
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()

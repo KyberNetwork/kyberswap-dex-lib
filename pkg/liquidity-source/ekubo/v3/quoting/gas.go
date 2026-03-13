@@ -1,18 +1,37 @@
 package quoting
 
-// TODO
 const (
-	BaseGasCost = 27_326
+	BaseGasCost           = 56_502
+	GasCostOfOneColdSload = 2_100
 
-	BaseGasFullRangeSwap             = 16_079
-	BaseGasStableswapSwap            = 18_000 // TODO
-	BaseGasConcentratedLiquiditySwap = 19_360
-	ExtraBaseGasMevCaptureSwap       = 9_178
+	// Full range
+	GasCostOfOneFullRangeSwap = 15_678
 
-	GasInitializedTickCrossed     = 20_000
-	GasTickSpacingCrossed         = 2_507
-	GasUpdatingOracleSnapshot     = 16_821
-	GasVirtualOrderDelta          = 25_000
-	GasExecutingVirtualOrders     = 25_502
-	GasAccumulatingMevCaptureFees = 11_264
+	// Stableswap
+	GasCostOfOneStableswapSwap = 17_184
+
+	// Concentrated
+	BaseGasCostOfOneConcentratedLiquiditySwap = 19_175
+	GasCostOfOneInitializedTickCrossed        = 14_259 // The first crossed tick is more expensive because of the `sload` of the output token fees per liquidity but we can't capture that. This estimate is for the first tick.
+	GasCostOfOneExtraTickBitmapSload          = 2_000  // Difference between an sload on a warm vs a cold slot
+	GasCostOfOneExtraConcentratedMathRound    = 4_076
+
+	// Oracle
+	ExtraBaseGasCostOfOneOracleSwap = -1_801 // The negative costs come from savings compared to a full range swap which usually touches fee-related storage slots
+	GasCostOfUpdatingOracleSnapshot = 9_709
+
+	// TWAMM
+	ExtraBaseGasCostOfOneTwammSwap        = 5_302
+	GasCostOfExecutingVirtualOrders       = 20_554
+	GasCostOfCrossingOneVirtualOrderDelta = 19_980
+
+	// MEVCapture
+	ExtraBaseGasCostOfOneMevCaptureSwap = 15_840
+	GasCostOfOneMevCaptureStateUpdate   = 16_418
+
+	// BoostedFees
+	ExtraBaseGasCostOfOneBoostedFeesSwap   = 2_743
+	GasCostOfExecutingVirtualDonations     = 6_814
+	GasCostOfCrossingOneVirtualDonateDelta = 4_271
+	GasCostOfBoostedFeesFeeAccumulation    = 19_279
 )
