@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
@@ -45,14 +46,14 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	if len(params.Logs) > 0 {
+		return t.processLogs(p, params.Logs)
+	}
+
 	if sub := GetFlashBlockSubscriber(); sub != nil {
 		if state := sub.GetLatestState(); state != nil && !state.IsStale() {
 			return t.buildPoolFromCachedState(p, state)
 		}
-	}
-
-	if len(params.Logs) > 0 {
-		return t.processLogs(p, params.Logs)
 	}
 
 	return t.getNewPoolState(ctx, p, nil)
@@ -106,9 +107,13 @@ func (t *PoolTracker) processLogs(p entity.Pool, logs []types.Log) (entity.Pool,
 	}
 
 	changed := false
+	var latestLogBlock uint64
 	for _, log := range logs {
 		if len(log.Topics) == 0 {
 			continue
+		}
+		if log.BlockNumber > latestLogBlock {
+			latestLogBlock = log.BlockNumber
 		}
 
 		switch log.Topics[0] {
@@ -138,6 +143,9 @@ func (t *PoolTracker) processLogs(p entity.Pool, logs []types.Log) (entity.Pool,
 			return p, err
 		}
 		p.Extra = string(extraBytes)
+		if latestLogBlock > 0 {
+			p.BlockNumber = latestLogBlock
+		}
 		p.Timestamp = time.Now().Unix()
 	}
 
@@ -149,16 +157,23 @@ func (t *PoolTracker) processStateUpdated(extra *Extra, log types.Log) error {
 	if err != nil {
 		return err
 	}
-	tuple, ok := values[0].(struct {
+	if len(values) < 1 {
+		return ErrQuoteFailed
+	}
+	tuple := *abi.ConvertType(values[0], new(struct {
 		PX96 *big.Int `abi:"pX96"`
-		Fee  uint64   `abi:"fee"`
+		Fee  *big.Int `abi:"fee"`
+	})).(*struct {
+		PX96 *big.Int `abi:"pX96"`
+		Fee  *big.Int `abi:"fee"`
 	})
-	if !ok {
+	if tuple.PX96 == nil || tuple.Fee == nil {
 		return ErrQuoteFailed
 	}
 
 	extra.PX96 = uint256.MustFromBig(tuple.PX96)
-	extra.Fee = tuple.Fee
+	extra.Fee = tuple.Fee.Uint64()
+	extra.LatestUpdateBlock = log.BlockNumber
 
 	return nil
 }
@@ -227,7 +242,15 @@ func (t *PoolTracker) buildPoolFromCachedState(p entity.Pool, state *poolState) 
 
 	extra.PX96 = new(uint256.Int).Set(state.PX96)
 	extra.Fee = state.FeeQ48
-	extra.ConcentrationK = state.ConcentrationK
+	if state.LatestUpdateBlock > 0 {
+		extra.LatestUpdateBlock = state.LatestUpdateBlock
+	}
+	if state.BlockDelay > 0 {
+		extra.BlockDelay = state.BlockDelay
+	}
+	if state.ConcentrationK > 0 {
+		extra.ConcentrationK = state.ConcentrationK
+	}
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

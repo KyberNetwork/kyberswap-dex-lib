@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -32,12 +33,14 @@ const (
 )
 
 type poolState struct {
-	PX96           *uint256.Int
-	FeeQ48         uint64
-	ReserveX       *uint256.Int
-	ReserveY       *uint256.Int
-	ConcentrationK uint32
-	BlockNumber    uint64
+	PX96              *uint256.Int
+	FeeQ48            uint64
+	ReserveX          *uint256.Int
+	ReserveY          *uint256.Int
+	LatestUpdateBlock uint64
+	BlockDelay        uint64
+	ConcentrationK    uint32
+	BlockNumber       uint64
 
 	StateUpdatedAt    time.Time
 	ReservesUpdatedAt time.Time
@@ -57,9 +60,10 @@ type FlashBlockSubscriber struct {
 	flashWsURL  string
 	coreAddress common.Address
 
-	lastBlockTime atomic.Int64
-	lastFlashTime atomic.Int64
-	lastEventTime atomic.Int64
+	lastBlockTime    atomic.Int64
+	lastFlashTime    atomic.Int64
+	lastEventTime    atomic.Int64
+	flashFeedEnabled atomic.Bool
 
 	dedupMu   sync.Mutex
 	dedupRing [dedupRingSize]uint64
@@ -149,49 +153,50 @@ func (s *FlashBlockSubscriber) run(ctx context.Context) {
 }
 
 func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
-	wsURL := s.wsURL
-	if s.hasFlash() {
-		wsURL = s.flashWsURL
+	headWSURL := s.wsURL
+	if headWSURL == "" {
+		headWSURL = s.flashWsURL
 	}
-	if wsURL == "" {
+	logWSURL := s.wsURL
+	if s.hasFlash() {
+		logWSURL = s.flashWsURL
+	}
+
+	if headWSURL == "" || logWSURL == "" {
 		return fmt.Errorf("no WebSocket URL configured")
 	}
 
-	client, err := rpc.DialContext(ctx, wsURL)
+	headsClient, err := rpc.DialContext(ctx, headWSURL)
 	if err != nil {
 		return err
 	}
-	defer client.Close()
+	defer headsClient.Close()
+
+	logsClient := headsClient
+	if logWSURL != headWSURL {
+		logsClient, err = rpc.DialContext(ctx, logWSURL)
+		if err != nil {
+			return err
+		}
+		defer logsClient.Close()
+	}
 
 	now := time.Now().UnixMilli()
 	s.lastBlockTime.Store(now)
-	if s.hasFlash() {
-		s.lastFlashTime.Store(now)
-	}
 	s.lastEventTime.Store(now)
+	s.flashFeedEnabled.Store(false)
 
 	select {
 	case <-s.forceClose:
 	default:
 	}
 
-	heartbeatCtx, heartbeatCancel := context.WithCancel(ctx)
-	defer heartbeatCancel()
-	go s.heartbeat(heartbeatCtx)
-
 	headsCh := make(chan *types.Header, 16)
-	headsSub, err := subscribeNewHeads(ctx, client, headsCh)
+	headsSub, err := subscribeNewHeads(ctx, headsClient, headsCh)
 	if err != nil {
 		return fmt.Errorf("subscribe newHeads: %w", err)
 	}
 	defer headsSub.Unsubscribe()
-
-	logsMethod := "pendingLogs"
-
-	type logSub struct {
-		ch  chan types.Log
-		sub *rpc.ClientSubscription
-	}
 
 	topicNames := []struct {
 		topic common.Hash
@@ -200,25 +205,28 @@ func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
 		{topicStateUpdated, "StateUpdated"},
 		{topicSync, "Sync"},
 		{topicSwapExecuted, "SwapExecuted"},
+		{topicConcentrationKSet, "ConcentrationKSet"},
+		{topicBlockDelaySet, "BlockDelaySet"},
 	}
 
-	subs := make([]logSub, 0, len(topicNames))
-	for _, t := range topicNames {
-		ch := make(chan types.Log, 64)
-		sub, err := subscribeFilterLogs(ctx, client, logsMethod, s.coreAddress, t.topic, ch)
-		if err != nil {
-			for _, ls := range subs {
-				ls.sub.Unsubscribe()
-			}
-			return fmt.Errorf("subscribe %s %s: %w", logsMethod, t.name, err)
-		}
-		subs = append(subs, logSub{ch: ch, sub: sub})
+	subs, logsMethod, err := subscribePoolLogs(ctx, logsClient, s.coreAddress, topicNames)
+	if err != nil {
+		return err
 	}
 	defer func() {
 		for _, ls := range subs {
 			ls.sub.Unsubscribe()
 		}
 	}()
+
+	s.flashFeedEnabled.Store(s.hasFlash() && logsMethod == "pendingLogs")
+	if s.flashFeedEnabled.Load() {
+		s.lastFlashTime.Store(now)
+	}
+
+	heartbeatCtx, heartbeatCancel := context.WithCancel(ctx)
+	defer heartbeatCancel()
+	go s.heartbeat(heartbeatCtx)
 
 	for {
 		select {
@@ -255,6 +263,16 @@ func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
 			s.processLog(log)
 		case err := <-subs[2].sub.Err():
 			return fmt.Errorf("SwapExecuted subscription error: %w", err)
+
+		case log := <-subs[3].ch:
+			s.processLog(log)
+		case err := <-subs[3].sub.Err():
+			return fmt.Errorf("ConcentrationKSet subscription error: %w", err)
+
+		case log := <-subs[4].ch:
+			s.processLog(log)
+		case err := <-subs[4].sub.Err():
+			return fmt.Errorf("BlockDelaySet subscription error: %w", err)
 		}
 	}
 }
@@ -279,7 +297,7 @@ func (s *FlashBlockSubscriber) heartbeat(ctx context.Context) {
 				return
 			}
 
-			if s.hasFlash() {
+			if s.flashFeedEnabled.Load() {
 				if lastFlash := s.lastFlashTime.Load(); lastFlash > 0 && now-lastFlash > flashStaleThd.Milliseconds() {
 					s.lastFlashTime.Store(0)
 					select {
@@ -345,6 +363,8 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 		s.latestState.ReservesUpdatedAt = now
 	case topicConcentrationKSet:
 		s.handleConcentrationKSet(log)
+	case topicBlockDelaySet:
+		s.handleBlockDelaySet(log)
 	}
 
 	s.latestState.BlockNumber = log.BlockNumber
@@ -355,16 +375,23 @@ func (s *FlashBlockSubscriber) handleStateUpdated(log types.Log) {
 	if err != nil {
 		return
 	}
-	tuple, ok := values[0].(struct {
+	if len(values) < 1 {
+		return
+	}
+	tuple := *abi.ConvertType(values[0], new(struct {
 		PX96 *big.Int `abi:"pX96"`
-		Fee  uint64   `abi:"fee"`
+		Fee  *big.Int `abi:"fee"`
+	})).(*struct {
+		PX96 *big.Int `abi:"pX96"`
+		Fee  *big.Int `abi:"fee"`
 	})
-	if !ok {
+	if tuple.PX96 == nil || tuple.Fee == nil {
 		return
 	}
 
 	s.latestState.PX96 = big256.FromBig(tuple.PX96)
-	s.latestState.FeeQ48 = tuple.Fee
+	s.latestState.FeeQ48 = tuple.Fee.Uint64()
+	s.latestState.LatestUpdateBlock = log.BlockNumber
 }
 
 func (s *FlashBlockSubscriber) handleSync(log types.Log) {
@@ -403,6 +430,23 @@ func (s *FlashBlockSubscriber) handleConcentrationKSet(log types.Log) {
 	s.latestState.ConcentrationK = k
 }
 
+func (s *FlashBlockSubscriber) handleBlockDelaySet(log types.Log) {
+	values, err := coreABI.Events["BlockDelaySet"].Inputs.Unpack(log.Data)
+	if err != nil {
+		return
+	}
+	if len(values) < 1 {
+		return
+	}
+
+	bd, ok := values[0].(uint64)
+	if !ok {
+		return
+	}
+
+	s.latestState.BlockDelay = bd
+}
+
 func subscribeNewHeads(ctx context.Context, client *rpc.Client, ch chan<- *types.Header) (*rpc.ClientSubscription, error) {
 	return client.EthSubscribe(ctx, ch, "newHeads")
 }
@@ -420,4 +464,43 @@ func subscribeFilterLogs(
 		"topics":  []common.Hash{topic},
 	}
 	return client.Subscribe(ctx, "eth", ch, method, arg)
+}
+
+type logSub struct {
+	ch  chan types.Log
+	sub *rpc.ClientSubscription
+}
+
+func subscribePoolLogs(
+	ctx context.Context,
+	client *rpc.Client,
+	addr common.Address,
+	topics []struct {
+		topic common.Hash
+		name  string
+	},
+) ([]logSub, string, error) {
+	for _, method := range []string{"pendingLogs", "logs"} {
+		subs := make([]logSub, 0, len(topics))
+		ok := true
+
+		for _, t := range topics {
+			ch := make(chan types.Log, 64)
+			sub, err := subscribeFilterLogs(ctx, client, method, addr, t.topic, ch)
+			if err != nil {
+				for _, ls := range subs {
+					ls.sub.Unsubscribe()
+				}
+				ok = false
+				break
+			}
+			subs = append(subs, logSub{ch: ch, sub: sub})
+		}
+
+		if ok {
+			return subs, method, nil
+		}
+	}
+
+	return nil, "", fmt.Errorf("subscribe logs failed for all supported methods")
 }

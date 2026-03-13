@@ -84,3 +84,54 @@ func TestCloneStateDeepCopy(t *testing.T) {
 		t.Fatalf("unexpected approval address: got %s", meta.ApprovalAddress)
 	}
 }
+
+func TestCalcAmountOutReturnsInsufficientLiquidityWhenPriceIsStale(t *testing.T) {
+	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
+
+	extraBytes, err := json.Marshal(Extra{
+		PX96:              new(uint256.Int).Lsh(uint256.NewInt(1), 96),
+		Fee:               1,
+		LatestUpdateBlock: 10,
+		BlockDelay:        2,
+		ConcentrationK:    5000,
+	})
+	if err != nil {
+		t.Fatalf("marshal extra: %v", err)
+	}
+
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		PeripheryAddress: defaultPeripheryAddress,
+		Permit2Address:   defaultPermit2Address,
+		RawTokenX:        valueobject.ZeroAddress,
+		RawTokenY:        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+		WrappedNative:    wrappedNative,
+	})
+	if err != nil {
+		t.Fatalf("marshal static extra: %v", err)
+	}
+
+	sim, err := NewPoolSimulator(entity.Pool{
+		Address:     defaultCoreAddress,
+		Exchange:    DexType,
+		Type:        DexType,
+		BlockNumber: 13,
+		Reserves:    entity.PoolReserves{"1000000000000000000000", "1000000000000000000000"},
+		Tokens: []*entity.PoolToken{
+			{Address: wrappedNative, Decimals: 18},
+			{Address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", Decimals: 6},
+		},
+		Extra:       string(extraBytes),
+		StaticExtra: string(staticExtraBytes),
+	}, valueobject.ChainIDBase)
+	if err != nil {
+		t.Fatalf("new simulator: %v", err)
+	}
+
+	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(1)},
+		TokenOut:      sim.GetTokens()[1],
+	})
+	if err != ErrInsufficientLiquidity {
+		t.Fatalf("expected ErrInsufficientLiquidity, got %v", err)
+	}
+}

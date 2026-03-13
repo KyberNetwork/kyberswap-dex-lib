@@ -27,6 +27,7 @@ type PoolSimulator struct {
 	priceX96       *uint256.Int
 	feeQ48         uint64
 	latestBlock    uint64
+	blockDelay     uint64
 	concentrationK uint32
 	paused         bool
 	reserves       []*uint256.Int
@@ -85,6 +86,7 @@ func newPoolSimulator(
 		priceX96:       extra.PX96,
 		feeQ48:         extra.Fee,
 		latestBlock:    extra.LatestUpdateBlock,
+		blockDelay:     extra.BlockDelay,
 		concentrationK: extra.ConcentrationK,
 		paused:         extra.Paused,
 		reserves: lo.Map(entityPool.Reserves, func(item string, _ int) *uint256.Int {
@@ -104,6 +106,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 	if s.priceX96 == nil || s.priceX96.IsZero() {
 		return nil, ErrZeroPrice
+	}
+	if s.isPriceStale() {
+		return nil, ErrInsufficientLiquidity
 	}
 
 	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
@@ -205,4 +210,12 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	return s.CanSwapTo(address)
+}
+
+func (s *PoolSimulator) isPriceStale() bool {
+	if s.blockDelay == 0 || s.latestBlock == 0 || s.Info.BlockNumber <= s.latestBlock {
+		return false
+	}
+
+	return s.Info.BlockNumber-s.latestBlock > s.blockDelay
 }
