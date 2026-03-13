@@ -1,18 +1,18 @@
 package cloberob
 
 import (
+	"context"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
-	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/abi"
+	cloberlib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -82,54 +82,54 @@ func (f *PoolFactory) newPool(p *abis.BookManagerOpen, blockNumber uint64) (*ent
 	}, nil
 }
 
-func DecodePoolAddress(log types.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
-		return "", nil
+		return nil, nil
 	}
 
 	switch log.Topics[0] {
 	case bookManagerABI.Events["Open"].ID:
 		openEvent, err := bookManagerFilterer.ParseOpen(log)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		return openEvent.Id.String(), nil
+		return []string{openEvent.Id.String()}, nil
 
 	case bookManagerABI.Events["Make"].ID:
 		makeEvent, err := bookManagerFilterer.ParseMake(log)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		return makeEvent.BookId.String(), nil
+		return []string{makeEvent.BookId.String()}, nil
 
 	case bookManagerABI.Events["Take"].ID:
 		takeEvent, err := bookManagerFilterer.ParseTake(log)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		return takeEvent.BookId.String(), nil
+		return []string{takeEvent.BookId.String()}, nil
 
 	case bookManagerABI.Events["Claim"].ID:
 		event, err := bookManagerFilterer.ParseClaim(log)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		bookId, _ := cloberlib.DecodeOrderId(event.OrderId)
-		return bookId, nil
+		return []string{bookId}, nil
 
 	case bookManagerABI.Events["Cancel"].ID:
 		event, err := bookManagerFilterer.ParseCancel(log)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		bookId, _ := cloberlib.DecodeOrderId(event.OrderId)
-		return bookId, nil
+		return []string{bookId}, nil
 	}
 
-	return "", nil
+	return nil, nil
 }

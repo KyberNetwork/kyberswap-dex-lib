@@ -5,20 +5,20 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	pooldecode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
-var _ = pooldecode.RegisterFactoryCE(DexType, NewEventParser)
+var _ = poolfactory.RegisterFactoryCE(DexType, NewPoolFactory)
 
 type EventParser struct {
 	ethrpcClient *ethrpc.Client
 	controller   common.Address
 }
 
-func NewEventParser(config *Config, ethrpcClient *ethrpc.Client) *EventParser {
+func NewPoolFactory(config *Config, ethrpcClient *ethrpc.Client) *EventParser {
 	return &EventParser{
 		ethrpcClient: ethrpcClient,
 		controller:   config.Controller,
@@ -29,7 +29,7 @@ func (ep *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string
 	addressLogs := make(map[string][]types.Log)
 
 	for _, log := range logs {
-		poolAddresses, err := ep.getPoolAddresses(ctx, log)
+		poolAddresses, err := ep.DecodePoolAddressesFromFactoryLog(ctx, log)
 		if err != nil {
 			return nil, err
 		}
@@ -42,6 +42,10 @@ func (ep *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string
 	}
 
 	return addressLogs, nil
+}
+
+func (ep *EventParser) DecodePoolAddressesFromFactoryLog(ctx context.Context, log types.Log) ([]string, error) {
+	return ep.getPoolAddresses(ctx, log)
 }
 
 func (ep *EventParser) getPoolAddresses(ctx context.Context, log types.Log) ([]string, error) {
@@ -112,10 +116,16 @@ func (ep *EventParser) getPoolAddresses(ctx context.Context, log types.Log) ([]s
 	}
 }
 
-func (ep *EventParser) GetKeys(_ context.Context) ([]string, error) {
-	return []string{hexutil.Encode(ep.controller[:])}, nil
-}
-
 func (ep *EventParser) getPoolAddress(token0, token1 common.Address) string {
 	return generatePoolAddress(ep.controller, token0, token1)
+}
+
+func (ep *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+	// TODO: Implement this (non tick-based pool creation)
+	return nil, nil
+}
+
+func (ep *EventParser) IsEventSupported(event common.Hash) bool {
+	// TODO: Implement this (non tick-based pool creation)
+	return true
 }
