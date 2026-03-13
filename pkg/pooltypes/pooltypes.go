@@ -83,6 +83,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
+	lunarbase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
@@ -382,6 +383,7 @@ type Types struct {
 	Nabla                      string
 	Tessera                    string
 	LiquidCore                 string
+	LunarBase                  string
 	FrxUSD                     string
 	Elfomofi                   string
 	EtherfiLiquid              string
@@ -591,6 +593,7 @@ var (
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
 		LiquidCore:                 liquidcore.DexType,
+		LunarBase:                  lunarbase.DexType,
 		FrxUSD:                     frxusd.DexType,
 		Elfomofi:                   elfomofi.DexType,
 		EtherfiLiquid:              liquid.DexType,

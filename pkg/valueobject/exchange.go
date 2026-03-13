@@ -138,6 +138,7 @@ const (
 	ExchangeListaStable                = "lista-stable"
 	ExchangeLitePSM                    = "lite-psm"
 	ExchangeLO1inch                    = "lo1inch"
+	ExchangeLunarBase                  = "lunarbase"
 	ExchangeMakerLido                  = "lido"
 	ExchangeMakerLidoStETH             = "lido-steth"
 	ExchangeMakerPSM                   = "maker-psm"
