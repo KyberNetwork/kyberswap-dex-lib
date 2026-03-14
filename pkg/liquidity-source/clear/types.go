@@ -19,4 +19,5 @@ type AmtInOut [2]*uint256.Int
 type SwapInfo struct {
 	SwapAddress string `json:"swapAddress"`
 	IOU         string `json:"iou"`
+	ReceiveIOU  bool   `json:"receiveIOU"`
 }
