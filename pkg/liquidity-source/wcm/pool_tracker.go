@@ -110,10 +110,7 @@ func (t *PoolTracker) getOrderBook(ctx context.Context, orderBookAddr string) (O
 		if count > len(raw)-1 {
 			count = len(raw) - 1
 		}
-		bucketCount := (count + 1) / 2
-		if bucketCount > len(raw)-1 {
-			bucketCount = len(raw) - 1
-		}
+		bucketCount := min((count+1)/2, len(raw)-1)
 		decoded := 0
 		for i := 1; i <= bucketCount && decoded < count; i++ {
 			p1, q1, p2, q2 := decodeDepthChartBucket(raw[i])
