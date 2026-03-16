@@ -47,11 +47,9 @@ type SwapInfo struct {
 	reserveDelta *uint256.Int // exact amount to add/subtract from reserve
 }
 
-// TokenListResponse matches the tokenlist JSON from Printr API
-// (e.g. https://api-preview.printr.money/tokenlist.json with ?since= or ?size=&skip=).
 type TokenListResponse struct {
 	Name      string           `json:"name"`
-	Timestamp string           `json:"timestamp"` // ISO8601 e.g. "2026-03-16T04:57:52Z"
+	Timestamp string           `json:"timestamp"`
 	Tokens    []TokenListEntry `json:"tokens"`
 	Version   TokenListVersion `json:"version"`
 }

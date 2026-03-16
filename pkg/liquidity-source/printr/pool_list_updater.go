@@ -85,10 +85,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-// fetchTokenList calls the Printr tokenlist API with ?size=&skip= (tokens ordered by timestamp).
 func (u *PoolsListUpdater) fetchTokenList(ctx context.Context, size, skip int) (*TokenListResponse, error) {
 	base := strings.TrimSuffix(u.config.TokenListAPI, "/")
-	rawURL := base + "/tokenlist.json"
+	rawURL := fmt.Sprintf("%s/chains/%d/tokenlist.json", base, u.config.ChainId)
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
