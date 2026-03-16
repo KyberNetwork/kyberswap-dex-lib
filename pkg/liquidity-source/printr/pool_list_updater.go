@@ -12,14 +12,12 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
-
-const defaultPageSize = 100 // when NewPoolLimit <= 0
 
 type PoolsListUpdater struct {
 	config       *Config
@@ -51,12 +49,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		_ = json.Unmarshal(metadataBytes, &metadata)
 	}
 
-	pageSize := u.config.NewPoolLimit
-	if pageSize <= 0 {
-		pageSize = defaultPageSize
-	}
-
-	list, err := u.fetchTokenList(ctx, pageSize, metadata.Skip)
+	list, err := u.fetchTokenList(ctx, u.config.NewPoolLimit, metadata.Skip)
 	if err != nil {
 		u.logger.WithFields(logger.Fields{"error": err}).Error("failed to fetch token list")
 		return nil, metadataBytes, err
