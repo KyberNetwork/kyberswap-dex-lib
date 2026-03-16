@@ -133,7 +133,14 @@ func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	tokens, reserves := s.GetTokens(), s.GetReserves()
 	inventory := make(map[string]*big.Int, len(tokens))
 	for i, token := range tokens {
-		inventory[token] = reserves[i]
+		limit := reserves[i]
+		if i < len(s.Caps) && s.Caps[i] != nil && s.Caps[i].Sign() > 0 {
+			// Use the smaller of onchain reserve and cap as available inventory
+			if s.Caps[i].Cmp(limit) < 0 {
+				limit = s.Caps[i]
+			}
+		}
+		inventory[token] = limit
 	}
 	return inventory
 }

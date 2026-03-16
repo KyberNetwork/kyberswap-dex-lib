@@ -51,8 +51,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	list, err := u.fetchTokenList(ctx, u.config.NewPoolLimit, metadata.Skip)
 	if err != nil {
-		u.logger.WithFields(logger.Fields{"error": err}).Error("failed to fetch token list")
-		return nil, metadataBytes, err
+		u.logger.WithFields(logger.Fields{"error": err}).Warn("failed to fetch token list")
+		return nil, metadataBytes, nil
 	}
 
 	pools, err := u.buildPools(ctx, list)
