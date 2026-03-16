@@ -80,7 +80,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (u *PoolsListUpdater) fetchTokenList(ctx context.Context, size, skip int) (*TokenListResponse, error) {
 	base := strings.TrimSuffix(u.config.TokenListAPI, "/")
-	rawURL := fmt.Sprintf("%s/chains/%d/tokenlist.json", base, u.config.ChainId)
+	rawURL, err := url.JoinPath(base, "chains", strconv.FormatInt(int64(u.config.ChainId), 10), "tokenlist.json")
+	if err != nil {
+		return nil, err
+	}
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
