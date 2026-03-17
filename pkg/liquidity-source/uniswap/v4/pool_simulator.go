@@ -41,7 +41,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
 		Cfg:       &Config{ChainID: chainID},
 		Pool:      &entityPool,
-		HookExtra: extra.HookExtra,
+		HookExtra: HookExtra(extra.HookExtra),
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook

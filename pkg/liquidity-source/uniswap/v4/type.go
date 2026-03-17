@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -44,12 +45,12 @@ type StaticExtra struct {
 
 type Extra struct {
 	*uniswapv3.Extra
-	HookExtra string `json:"hX,omitempty"`
+	HookExtra json.RawMessage `json:"hX,omitempty"`
 }
 
 type ExtraU256 struct {
 	*uniswapv3.ExtraTickU256
-	HookExtra string `json:"hX,omitempty"`
+	HookExtra json.RawMessage `json:"hX,omitempty"`
 }
 
 type Slot0Data struct {
@@ -64,7 +65,7 @@ type FetchRPCResult struct {
 	Slot0       Slot0Data           `json:"s0"`
 	TickSpacing int32               `json:"tS"`
 	Reserves    entity.PoolReserves `json:"rs"`
-	HookExtra   string              `json:"hX,omitempty"`
+	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 }
 
 type TicksResp struct {

@@ -46,11 +46,7 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	}
 
 	var hookExtra HookExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &hookExtra); err != nil {
-			return nil
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&hookExtra)
 
 	if param.Pool != nil {
 		if param.Pool.StaticExtra != "" {
@@ -70,7 +66,7 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		}
 	}
 
-	hook.hooklet = InitHooklet(hookExtra.HookletAddress, hookExtra.HookletExtra)
+	hook.hooklet = InitHooklet(hookExtra.HookletAddress, uniswapv4.HookExtra(hookExtra.HookletExtra))
 	hook.oracle = oracle.NewObservationStorage(hookExtra.Observations)
 	hook.HookExtra = hookExtra
 	hook.writeObservationOnce = new(sync.Once)

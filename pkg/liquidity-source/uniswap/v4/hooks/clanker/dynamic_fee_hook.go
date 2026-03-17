@@ -98,17 +98,13 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook: param.HookAddress.Hex(),
 	}
 
-	if param.HookExtra != "" {
-		var extra DynamicFeeExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return nil
-		}
+	var extra DynamicFeeExtra
+	_ = param.HookExtra.Unmarshal(&extra)
 
-		hook.clankerIsToken0 = extra.ClankerIsToken0
-		hook.protocolFee = extra.ProtocolFee
-		hook.poolFVars = extra.PoolFVars
-		hook.poolCVars = extra.PoolCVars
-	}
+	hook.clankerIsToken0 = extra.ClankerIsToken0
+	hook.protocolFee = extra.ProtocolFee
+	hook.poolFVars = extra.PoolFVars
+	hook.poolCVars = extra.PoolCVars
 
 	if param.Pool != nil {
 		cloned := *param.Pool
@@ -132,13 +128,9 @@ func (h *DynamicFeeHook) CloneState() uniswapv4.Hook {
 	return &cloned
 }
 
-func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra DynamicFeeExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return "", err
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&extra)
 
 	poolBytes := eth.StringToBytes32(param.Pool.Address)
 	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
@@ -182,7 +174,7 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	}
 
 	if _, err := req.Aggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	extra.PoolCVars = &PoolDynamicConfigVars{
@@ -209,12 +201,7 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 		extra.ClankerIsToken0 = info.Data.Token == token0
 	}
 
-	extraBytes, err := json.Marshal(&extra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(extraBytes), nil
+	return json.Marshal(&extra)
 }
 
 func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne bool) (uint64, error) {

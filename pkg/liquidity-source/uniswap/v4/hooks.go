@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -110,7 +111,7 @@ type Hook interface {
 	GetExchange() string
 	AllowEmptyTicks() bool
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
-	Track(context.Context, *HookParam) (string, error)
+	Track(context.Context, *HookParam) (json.RawMessage, error)
 	BeforeSwap(params *BeforeSwapParams) (*BeforeSwapResult, error)
 	AfterSwap(params *AfterSwapParams) (*AfterSwapResult, error)
 	CanBeforeSwap(address common.Address) bool
@@ -124,9 +125,25 @@ type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
 	Pool        *entity.Pool
-	HookExtra   string
+	HookExtra   HookExtra
 	HookAddress common.Address
 	BlockNumber *big.Int
+}
+
+type HookExtra json.RawMessage
+
+func (x HookExtra) Unmarshal(dest any) error {
+	if len(x) == 0 {
+		return ErrEmptyExtra
+	}
+	if x[0] == '"' { // backwards-compatibility
+		var unescaped string
+		if err := json.Unmarshal(x, &unescaped); err != nil {
+			return err
+		}
+		return json.Unmarshal([]byte(unescaped), dest)
+	}
+	return json.Unmarshal(x, dest)
 }
 
 type HookFactory func(param *HookParam) Hook
@@ -177,8 +194,8 @@ func (h *BaseHook) GetReserves(context.Context, *HookParam) (entity.PoolReserves
 	return nil, nil
 }
 
-func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
-	return "", nil
+func (h *BaseHook) Track(context.Context, *HookParam) (json.RawMessage, error) {
+	return nil, nil
 }
 
 func (h *BaseHook) BeforeSwap(_ *BeforeSwapParams) (*BeforeSwapResult, error) {

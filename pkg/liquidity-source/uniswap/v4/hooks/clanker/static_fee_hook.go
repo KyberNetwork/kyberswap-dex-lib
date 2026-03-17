@@ -40,33 +40,25 @@ func NewStaticFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook: param.HookAddress.Hex(),
 	}
 
-	if param.HookExtra != "" {
-		var extra StaticFeeExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return nil
-		}
+	var extra StaticFeeExtra
+	_ = param.HookExtra.Unmarshal(&extra)
 
-		hook.clankerIsToken0 = extra.ClankerIsToken0
-		hook.protocolFee = extra.ProtocolFee
+	hook.clankerIsToken0 = extra.ClankerIsToken0
+	hook.protocolFee = extra.ProtocolFee
 
-		if extra.PairedFee != nil {
-			hook.pairedFee = uniswapv4.FeeAmount(extra.PairedFee.Uint64())
-		}
-		if extra.ClankerFee != nil {
-			hook.clankerFee = uniswapv4.FeeAmount(extra.ClankerFee.Uint64())
-		}
+	if extra.PairedFee != nil {
+		hook.pairedFee = uniswapv4.FeeAmount(extra.PairedFee.Uint64())
+	}
+	if extra.ClankerFee != nil {
+		hook.clankerFee = uniswapv4.FeeAmount(extra.ClankerFee.Uint64())
 	}
 
 	return hook
 }
 
-func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra StaticFeeExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return "", err
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&extra)
 
 	poolBytes := eth.StringToBytes32(param.Pool.Address)
 	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
@@ -81,15 +73,12 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 		ABI:    dynamicFeeHookABI,
 		Target: h.hook,
 		Method: "protocolFee",
-	}, []any{&extra.ProtocolFee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&extra.ProtocolFee}).AddCall(&ethrpc.Call{
 		ABI:    staticFeeHookABI,
 		Target: h.hook,
 		Method: "clankerFee",
 		Params: []any{poolBytes},
-	}, []any{&extra.ClankerFee})
-	req.AddCall(&ethrpc.Call{
+	}, []any{&extra.ClankerFee}).AddCall(&ethrpc.Call{
 		ABI:    staticFeeHookABI,
 		Target: h.hook,
 		Method: "pairedFee",
@@ -109,7 +98,7 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	}
 
 	if _, err := req.Aggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if !extra.ClankerTracked {
@@ -117,12 +106,7 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
 	}
 
-	extraBytes, err := json.Marshal(&extra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(extraBytes), nil
+	return json.Marshal(&extra)
 }
 
 func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {

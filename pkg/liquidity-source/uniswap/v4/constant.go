@@ -37,6 +37,7 @@ var (
 	NativeTokenAddress = valueobject.AddrZero
 
 	ErrTooManyChangedTicks = errors.New("too many changed ticks")
+	ErrEmptyExtra          = errors.New("empty extra")
 
 	ErrInvalidAmountIn  = errors.New("invalid amount in")
 	ErrInvalidAmountOut = errors.New("invalid amount out")

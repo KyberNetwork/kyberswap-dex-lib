@@ -42,13 +42,9 @@ func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (ent
 	}, nil
 }
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var hookExtra HookExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &hookExtra); err != nil {
-			return "", err
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&hookExtra)
 
 	poolId := common.HexToHash(param.Pool.Address)
 
@@ -135,7 +131,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 
 	res, err := req1.Aggregate()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	hookExtra.Slot0 = Slot0{
@@ -212,7 +208,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 				Call()
 
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 		}
 
@@ -275,7 +271,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	if _, err := req2.TryBlockAndAggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if IsOracleUniGeoLDF(hookExtra.LDFAddress) {
@@ -289,7 +285,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	observationHashes, err := h.fetchObservations(
 		ctx, param.RpcClient, res.BlockNumber, poolId, hookExtra.ObservationState.CardinalityNext)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	hookExtra.Observations = decodeObservations(observationHashes)
@@ -315,27 +311,22 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		},
 	}
 
-	if hookExtra.HookletExtra == "" {
-		h.hooklet = InitHooklet(hookExtra.HookletAddress, "")
+	if hookExtra.HookletExtra == nil {
+		h.hooklet = InitHooklet(hookExtra.HookletAddress, nil)
 	}
 
 	hookletExtra, err := h.hooklet.Track(ctx, hooklet.HookletParams{
 		RpcClient:      param.RpcClient,
 		HookletAddress: hookExtra.HookletAddress,
-		HookletExtra:   hookExtra.HookletExtra,
+		HookletExtra:   uniswapv4.HookExtra(hookExtra.HookletExtra),
 		PoolId:         poolId,
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	hookExtra.HookletExtra = hookletExtra
-	newHookExtra, err := json.Marshal(&hookExtra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(newHookExtra), nil
+	return json.Marshal(&hookExtra)
 }
 
 func (h *Hook) fetchObservations(

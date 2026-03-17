@@ -44,7 +44,7 @@ func TestHookFactory_WithExtra(t *testing.T) {
 	extraBytes, _ := json.Marshal(h)
 
 	hook, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
-		HookExtra: string(extraBytes),
+		HookExtra: extraBytes,
 	})
 	require.True(t, ok)
 
@@ -60,7 +60,7 @@ func TestBeforeSwap_ReturnsDynamicFee(t *testing.T) {
 	extraBytes, _ := json.Marshal(h)
 
 	hook, _ := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
-		HookExtra: string(extraBytes),
+		HookExtra: extraBytes,
 	})
 
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
@@ -233,7 +233,7 @@ func TestTrack_BaseETHUSDC(t *testing.T) {
 	require.NoError(t, err)
 
 	var h Hook
-	require.NoError(t, json.Unmarshal([]byte(extraStr), &h))
+	require.NoError(t, json.Unmarshal(extraStr, &h))
 	t.Logf("Base ETH/USDC: fee=%d ticks=[%d,%d] amount0=%s amount1=%s",
 		h.SwapFee, h.TickLower, h.TickUpper, h.Amount0Available, h.Amount1Available)
 
@@ -266,7 +266,7 @@ func TestTrack_BaseUSDSUSDC(t *testing.T) {
 	require.NoError(t, err)
 
 	var h Hook
-	require.NoError(t, json.Unmarshal([]byte(extraStr), &h))
+	require.NoError(t, json.Unmarshal(extraStr, &h))
 	t.Logf("Base USDS/USDC: fee=%d ticks=[%d,%d] amount0=%s amount1=%s",
 		h.SwapFee, h.TickLower, h.TickUpper, h.Amount0Available, h.Amount1Available)
 
@@ -298,7 +298,7 @@ func TestTrack_ArbitrumUSDCUSDT(t *testing.T) {
 	require.NoError(t, err)
 
 	var h Hook
-	require.NoError(t, json.Unmarshal([]byte(extraStr), &h))
+	require.NoError(t, json.Unmarshal(extraStr, &h))
 	t.Logf("Arb USDC/USDT: fee=%d ticks=[%d,%d] amount0=%s amount1=%s",
 		h.SwapFee, h.TickLower, h.TickUpper, h.Amount0Available, h.Amount1Available)
 

@@ -47,9 +47,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
 	}
 	var staticExtra uniswapv4.StaticExtra
-	if param.HookExtra != "" {
-		_ = json.Unmarshal([]byte(param.HookExtra), &hook)
-	}
+	_ = param.HookExtra.Unmarshal(&hook)
 	if param.Pool != nil {
 		if param.Pool.Extra != "" {
 			_ = json.Unmarshal([]byte(param.Pool.Extra), &hook.ExtraTickU256)
@@ -135,12 +133,8 @@ func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (ent
 }
 
 // Track just encodes the current dynamic fee and JIT tick range fetched in GetReserves
-func (h *Hook) Track(_ context.Context, _ *uniswapv4.HookParam) (string, error) {
-	extraBytes, err := json.Marshal(h)
-	if err != nil {
-		return "", err
-	}
-	return string(extraBytes), nil
+func (h *Hook) Track(_ context.Context, _ *uniswapv4.HookParam) (json.RawMessage, error) {
+	return json.Marshal(h)
 }
 
 // BeforeSwap computes the JIT liquidity contribution from rehypothecated yield sources.
