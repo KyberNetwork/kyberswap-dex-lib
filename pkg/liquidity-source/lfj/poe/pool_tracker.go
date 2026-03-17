@@ -38,18 +38,32 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	logger.Infof("getting new pool state for %v", p.Address)
 
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, err
-	}
-
 	tokenX := common.HexToAddress(p.Tokens[0].Address)
 	tokenY := common.HexToAddress(p.Tokens[1].Address)
 	key := crypto.Keccak256Hash(append(tokenX.Bytes(), tokenY.Bytes()...))
 
-	var reserves struct {
-		ReserveX *big.Int
-		ReserveY *big.Int
+	var (
+		oracle   common.Address
+		reserves struct {
+			ReserveX *big.Int
+			ReserveY *big.Int
+		}
+	)
+
+	req := t.ethrpcClient.R().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: p.Address,
+			Method: "getOracle",
+		}, []any{&oracle}).
+		AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: p.Address,
+			Method: "getReserves",
+		}, []any{&reserves})
+	_, err := req.Aggregate()
+	if err != nil {
+		return p, err
 	}
 
 	var oracleData struct {
@@ -59,15 +73,10 @@ func (t *PoolTracker) GetNewPoolState(
 		Expiry  *big.Int
 	}
 
-	req := t.ethrpcClient.R().SetContext(ctx).
-		AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: p.Address,
-			Method: "getReserves",
-		}, []any{&reserves}).
+	req = t.ethrpcClient.R().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    oracleABI,
-			Target: staticExtra.Oracle,
+			Target: oracle.String(),
 			Method: "getData",
 			Params: []any{key},
 		}, []any{&oracleData})
@@ -77,6 +86,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	extra := Extra{
+		Oracle:  oracle.String(),
 		Price:   uint256.MustFromBig(oracleData.Price),
 		FeeHbps: uint256.MustFromBig(oracleData.FeeHbps),
 		Alpha:   uint256.MustFromBig(oracleData.Alpha),

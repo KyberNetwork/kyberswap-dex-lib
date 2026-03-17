@@ -77,5 +77,24 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "name": "getReserveBalanceCap",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "caps",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

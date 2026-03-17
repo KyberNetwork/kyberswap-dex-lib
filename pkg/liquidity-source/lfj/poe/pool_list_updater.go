@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -62,7 +61,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addresses []common.Add
 	infos := make([]struct {
 		tokenX common.Address
 		tokenY common.Address
-		oracle common.Address
 	}, len(addresses))
 
 	req := u.ethrpcClient.R().SetContext(ctx)
@@ -76,11 +74,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addresses []common.Add
 			ABI:    poolABI,
 			Target: target,
 			Method: "getTokenY",
-		}, []any{&infos[i].tokenY}).AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: target,
-			Method: "getOracle",
-		}, []any{&infos[i].oracle})
+		}, []any{&infos[i].tokenY})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		return nil, err
@@ -89,11 +83,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addresses []common.Add
 	pools := make([]entity.Pool, 0, len(addresses))
 	for i, addr := range addresses {
 		info := infos[i]
-
-		staticExtra, err := json.Marshal(StaticExtra{Oracle: info.oracle.Hex()})
-		if err != nil {
-			return nil, err
-		}
 
 		pools = append(pools, entity.Pool{
 			Address:   hexutil.Encode(addr[:]),
@@ -105,8 +94,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addresses []common.Add
 				{Address: hexutil.Encode(info.tokenX[:]), Swappable: true},
 				{Address: hexutil.Encode(info.tokenY[:]), Swappable: true},
 			},
-			Extra:       "{}",
-			StaticExtra: string(staticExtra),
+			Extra: "{}",
 		})
 	}
 
