@@ -4,9 +4,9 @@
     "name": "getFee",
     "outputs": [
       {
-        "internalType": "uint24",
+        "internalType": "uint64",
         "name": "fee",
-        "type": "uint24"
+        "type": "uint64"
       }
     ],
     "stateMutability": "view",

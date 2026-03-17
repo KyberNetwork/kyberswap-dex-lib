@@ -78,6 +78,10 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return hook
 }
 
+func (h *Hook) AllowEmptyTicks() bool {
+	return true
+}
+
 func (h *Hook) CloneState() uniswapv4.Hook {
 	cloned := *h
 

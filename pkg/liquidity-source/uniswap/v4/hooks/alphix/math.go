@@ -8,10 +8,11 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // Q96 is 2^96, used in fixed-point sqrt price math.
-var Q96 = new(uint256.Int).Lsh(uint256.NewInt(1), 96)
+var Q96 = new(uint256.Int).Lsh(big256.U1, 96)
 
 // getLiquidityForAmounts computes the maximum liquidity that can be minted
 // at [sqrtPriceLower, sqrtPriceUpper] given available amounts.
@@ -21,7 +22,7 @@ func getLiquidityForAmounts(
 	amount0, amount1 *uint256.Int,
 ) *uint256.Int {
 	if sqrtPriceLowerX96.Cmp(sqrtPriceUpperX96) >= 0 {
-		return uint256.NewInt(0)
+		return big256.U0
 	}
 
 	if sqrtPriceX96.Cmp(sqrtPriceLowerX96) <= 0 {
@@ -50,7 +51,7 @@ func getLiquidityForAmount0(sqrtPriceAX96, sqrtPriceBX96, amount0 *uint256.Int) 
 	}
 	diff := new(uint256.Int).Sub(sqrtPriceBX96, sqrtPriceAX96)
 	if diff.IsZero() {
-		return uint256.NewInt(0)
+		return big256.U0
 	}
 
 	// Use big.Int to avoid overflow: numerator = amount0 * sqrtA * sqrtB
@@ -60,16 +61,16 @@ func getLiquidityForAmount0(sqrtPriceAX96, sqrtPriceBX96, amount0 *uint256.Int) 
 	diffBig := diff.ToBig()
 	q96Big := Q96.ToBig()
 
-	numerator := new(big.Int).Mul(a0Big, sqrtABig)
+	numerator := a0Big.Mul(a0Big, sqrtABig)
 	numerator.Mul(numerator, sqrtBBig)
 
 	// denominator = diff * Q96
-	denominator := new(big.Int).Mul(diffBig, q96Big)
+	denominator := diffBig.Mul(diffBig, q96Big)
 
 	result := numerator.Div(numerator, denominator)
 	liq, overflow := uint256.FromBig(result)
 	if overflow {
-		return uint256.NewInt(0)
+		return big256.U0
 	}
 	return liq
 }
@@ -82,7 +83,7 @@ func getLiquidityForAmount1(sqrtPriceAX96, sqrtPriceBX96, amount1 *uint256.Int) 
 	}
 	diff := new(uint256.Int).Sub(sqrtPriceBX96, sqrtPriceAX96)
 	if diff.IsZero() {
-		return uint256.NewInt(0)
+		return big256.U0
 	}
 	numerator := new(uint256.Int).Mul(amount1, Q96)
 	return numerator.Div(numerator, diff)
@@ -99,7 +100,7 @@ func computeJitSwap(
 	sqrtPriceX96, sqrtPriceLowerX96, sqrtPriceUpperX96 *uint256.Int,
 	liquidity *uint256.Int,
 	swapFee uniswapv4.FeeAmount,
-) (deltaSpecified, deltaUnspecified *big.Int) {
+) (deltaSpecified, deltaUnspecified, nextSqrtPriceX96 *uint256.Int) {
 	// Determine the price limit for the JIT swap
 	sqrtPriceTargetX96 := sqrtPriceLowerX96
 	if !zeroForOne {
@@ -108,19 +109,19 @@ func computeJitSwap(
 
 	// If price is outside JIT range, JIT cannot contribute
 	if zeroForOne && sqrtPriceX96.Cmp(sqrtPriceLowerX96) <= 0 {
-		return big.NewInt(0), big.NewInt(0)
+		return big256.U0, big256.U0, sqrtPriceX96
 	}
 	if !zeroForOne && sqrtPriceX96.Cmp(sqrtPriceUpperX96) >= 0 {
-		return big.NewInt(0), big.NewInt(0)
+		return big256.U0, big256.U0, sqrtPriceX96
 	}
 
 	// Convert amountSpecified to int256 for the V3 SDK
 	// For exactIn: amountRemaining is positive
 	// For exactOut: amountRemaining is negative
-	amountRemainingI256 := int256.NewInt(0)
-	amountRemainingI256.SetFromBig(new(big.Int).Abs(amountSpecified))
+	var amountRemainingI256 int256.Int
+	amountRemainingI256.SetFromBig(amountSpecified)
 	if !exactIn {
-		amountRemainingI256.Neg(amountRemainingI256)
+		amountRemainingI256.Neg(&amountRemainingI256)
 	}
 
 	var sqrtPriceNextX96, amountIn, amountOut, feeAmount uint256.Int
@@ -128,20 +129,15 @@ func computeJitSwap(
 		sqrtPriceX96,
 		sqrtPriceTargetX96,
 		liquidity,
-		amountRemainingI256,
+		&amountRemainingI256,
 		swapFee,
 		&sqrtPriceNextX96, &amountIn, &amountOut, &feeAmount,
 	)
 	if err != nil {
-		return big.NewInt(0), big.NewInt(0)
+		return big256.U0, big256.U0, sqrtPriceX96
 	}
 
-	// deltaSpecified: amount consumed from the input (fee included)
-	totalIn := new(uint256.Int).Add(&amountIn, &feeAmount)
-	deltaSpecified = totalIn.ToBig()
+	totalIn := amountIn.Add(&amountIn, &feeAmount)
 
-	// deltaUnspecified: negative output (convention: negative = tokens going to swapper)
-	deltaUnspecified = new(big.Int).Neg(amountOut.ToBig())
-
-	return deltaSpecified, deltaUnspecified
+	return totalIn, &amountOut, &sqrtPriceNextX96
 }

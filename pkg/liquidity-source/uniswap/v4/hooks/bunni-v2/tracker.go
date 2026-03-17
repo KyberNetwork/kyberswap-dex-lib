@@ -74,7 +74,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	hookAddress := h.hook.Hex()
 	token0Address := param.Pool.Tokens[0].Address
 	token1Address := param.Pool.Tokens[1].Address
-	poolManagerAddress := GetPoolManagerAddress(valueobject.ChainID(param.Cfg.ChainID))
+	poolManagerAddress := GetPoolManagerAddress(param.Cfg.ChainID)
 
 	req1 := param.RpcClient.NewRequest().SetContext(ctx)
 	if param.BlockNumber != nil {

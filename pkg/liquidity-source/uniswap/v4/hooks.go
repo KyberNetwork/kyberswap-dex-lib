@@ -21,8 +21,8 @@ type BeforeSwapParams struct {
 }
 
 type BeforeSwapResult struct {
-	DeltaSpecified   *big.Int
-	DeltaUnspecified *big.Int
+	DeltaSpecified   *big.Int // in -= specified
+	DeltaUnspecified *big.Int // out -= unspecified
 	SwapFee          FeeAmount
 	Gas              int64
 	SwapInfo         any
@@ -108,6 +108,7 @@ func HasSwapPermissions(address common.Address) bool {
 
 type Hook interface {
 	GetExchange() string
+	AllowEmptyTicks() bool
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
 	BeforeSwap(params *BeforeSwapParams) (*BeforeSwapResult, error)
@@ -166,6 +167,10 @@ func (h *BaseHook) GetExchange() string {
 		return string(h.Exchange)
 	}
 	return DexType
+}
+
+func (h *BaseHook) AllowEmptyTicks() bool {
+	return false
 }
 
 func (h *BaseHook) GetReserves(context.Context, *HookParam) (entity.PoolReserves, error) {

@@ -4,18 +4,20 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Config struct {
-	ChainID                int    `json:"chainID"`
-	DexID                  string `json:"dexID"`
-	SubgraphAPI            string `json:"subgraphAPI"`
-	UniversalRouterAddress string `json:"universalRouterAddress"`
-	Permit2Address         string `json:"permit2Address"`
-	Multicall3Address      string `json:"multicall3Address"`
-	StateViewAddress       string `json:"stateViewAddress"`
-	NewPoolLimit           int    `json:"newPoolLimit"`
-	AllowSubgraphError     bool   `json:"allowSubgraphError"`
+	ChainID                valueobject.ChainID `json:"chainID"`
+	DexID                  string              `json:"dexID"`
+	SubgraphAPI            string              `json:"subgraphAPI"`
+	UniversalRouterAddress string              `json:"universalRouterAddress"`
+	Permit2Address         string              `json:"permit2Address"`
+	Multicall3Address      string              `json:"multicall3Address"`
+	StateViewAddress       string              `json:"stateViewAddress"`
+	NewPoolLimit           int                 `json:"newPoolLimit"`
+	AllowSubgraphError     bool                `json:"allowSubgraphError"`
 
 	TimeThresholdByPool map[string]time.Duration `json:"timeThreshold"` // blocks swap after any event
 

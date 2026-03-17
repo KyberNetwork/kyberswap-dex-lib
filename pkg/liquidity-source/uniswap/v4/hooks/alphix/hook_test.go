@@ -1,7 +1,6 @@
 package alphix
 
 import (
-	"context"
 	"math/big"
 	"os"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -27,7 +27,7 @@ func TestHookRegistration(t *testing.T) {
 	for _, addr := range HookAddresses {
 		hook, ok := uniswapv4.GetHook(addr, &uniswapv4.HookParam{})
 		assert.True(t, ok, "hook should be registered for %s", addr.Hex())
-		assert.Equal(t, string(valueobject.ExchangeUniswapV4Alphix), hook.GetExchange())
+		assert.Equal(t, valueobject.ExchangeUniswapV4Alphix, hook.GetExchange())
 	}
 
 	// Verify an unknown address is not registered as Alphix
@@ -40,8 +40,8 @@ func TestHookRegistration(t *testing.T) {
 func TestHookFactory_WithExtra(t *testing.T) {
 	t.Parallel()
 
-	extra := AlphixExtra{Fee: 3000}
-	extraBytes, _ := json.Marshal(extra)
+	h := Hook{SwapFee: 3000}
+	extraBytes, _ := json.Marshal(h)
 
 	hook, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
 		HookExtra: string(extraBytes),
@@ -50,14 +50,14 @@ func TestHookFactory_WithExtra(t *testing.T) {
 
 	alphixHook, ok := hook.(*Hook)
 	require.True(t, ok)
-	assert.Equal(t, uniswapv4.FeeAmount(3000), alphixHook.swapFee)
+	assert.Equal(t, uniswapv4.FeeAmount(3000), alphixHook.SwapFee)
 }
 
 func TestBeforeSwap_ReturnsDynamicFee(t *testing.T) {
 	t.Parallel()
 
-	extra := AlphixExtra{Fee: 5000}
-	extraBytes, _ := json.Marshal(extra)
+	h := Hook{SwapFee: 5000}
+	extraBytes, _ := json.Marshal(h)
 
 	hook, _ := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
 		HookExtra: string(extraBytes),
@@ -103,14 +103,19 @@ func TestBeforeSwap_JitSimulation(t *testing.T) {
 	sqrtPriceAtTick0 := new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 
 	hook := &Hook{
-		Hook:             &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook:             HookAddresses[2],
-		swapFee:          3000,          // 30 bps
-		tickLower:        -8,            // ±8 ticks JIT range
-		tickUpper:        8,
-		amount0Available: uint256.NewInt(1_000_000_000_000), // 1M USDC (6 decimals)
-		amount1Available: uint256.NewInt(1_000_000_000_000), // 1M USDT (6 decimals)
-		sqrtPriceX96:     sqrtPriceAtTick0,
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		ExtraTickU256: uniswapv3.ExtraTickU256{
+			SqrtPriceX96: sqrtPriceAtTick0,
+		},
+		SwapFee:          3000, // 30 bps
+		TickLower:        -8,   // ±8 ticks JIT range
+		TickUpper:        8,
+		Amount0Available: uint256.NewInt(1_000_000_000_000), // 1M USDC (6 decimals)
+		Amount1Available: uint256.NewInt(1_000_000_000_000), // 1M USDT (6 decimals)
+		PoolManagerBalances: [2]*uint256.Int{
+			uint256.NewInt(1_000_000_000),
+			uint256.NewInt(1_000_000_000),
+		},
 	}
 
 	// Swap 1000 USDC (exactIn, zeroForOne)
@@ -136,14 +141,19 @@ func TestBeforeSwap_NoJitWhenNoReserves(t *testing.T) {
 	// Hook with tick range but zero reserves — should return fee only, no delta
 	sqrtPrice := new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 	hook := &Hook{
-		Hook:             &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook:             HookAddresses[0],
-		swapFee:          5000,
-		tickLower:        -8,
-		tickUpper:        8,
-		amount0Available: uint256.NewInt(0),
-		amount1Available: uint256.NewInt(0),
-		sqrtPriceX96:     sqrtPrice,
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		ExtraTickU256: uniswapv3.ExtraTickU256{
+			SqrtPriceX96: sqrtPrice,
+		},
+		SwapFee:          5000,
+		TickLower:        -8,
+		TickUpper:        8,
+		Amount0Available: uint256.NewInt(0),
+		Amount1Available: uint256.NewInt(0),
+		PoolManagerBalances: [2]*uint256.Int{
+			uint256.NewInt(1_000_000_000),
+			uint256.NewInt(1_000_000_000),
+		},
 	}
 
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
@@ -161,24 +171,29 @@ func TestCloneState_DeepCopy(t *testing.T) {
 	t.Parallel()
 
 	original := &Hook{
-		Hook:             &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook:             HookAddresses[0],
-		swapFee:          3000,
-		tickLower:        -8,
-		tickUpper:        8,
-		amount0Available: uint256.NewInt(500),
-		amount1Available: uint256.NewInt(600),
-		sqrtPriceX96:     uint256.NewInt(1000),
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		ExtraTickU256: uniswapv3.ExtraTickU256{
+			SqrtPriceX96: uint256.NewInt(1000),
+		},
+		SwapFee:          3000,
+		TickLower:        -8,
+		TickUpper:        8,
+		Amount0Available: uint256.NewInt(500),
+		Amount1Available: uint256.NewInt(600),
+		PoolManagerBalances: [2]*uint256.Int{
+			uint256.NewInt(1_000_000_000),
+			uint256.NewInt(1_000_000_000),
+		},
 	}
 
 	cloned := original.CloneState().(*Hook)
 
 	// Mutate clone and verify original is unaffected
-	cloned.amount0Available.SetUint64(999)
-	cloned.sqrtPriceX96.SetUint64(0)
+	cloned.Amount0Available = uint256.NewInt(999)
+	cloned.SqrtPriceX96 = uint256.NewInt(0)
 
-	assert.Equal(t, uint64(500), original.amount0Available.Uint64())
-	assert.Equal(t, uint64(1000), original.sqrtPriceX96.Uint64())
+	assert.Equal(t, uint64(500), original.Amount0Available.Uint64())
+	assert.Equal(t, uint64(1000), original.SqrtPriceX96.Uint64())
 }
 
 func TestParseHookAddresses(t *testing.T) {
@@ -194,118 +209,124 @@ func TestParseHookAddresses(t *testing.T) {
 // --- Live RPC tests (skipped in CI) ---
 
 func TestTrack_BaseETHUSDC(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping RPC test in CI")
 	}
 
 	rpcClient := ethrpc.New("https://mainnet.base.org").SetMulticallContract(multicall3)
-	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook: HookAddresses[0], // Base ETH/USDC
-	}
-
-	extraStr, err := hook.Track(context.Background(), &uniswapv4.HookParam{
+	param := &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: 8453},
 		RpcClient: rpcClient,
 		Pool: &entity.Pool{
 			Tokens: []*entity.PoolToken{
-				{Address: "0x0000000000000000000000000000000000000000"}, // ETH
+				{Address: "0x4200000000000000000000000000000000000006"}, // ETH
 				{Address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}, // USDC
 			},
+			Extra: `{"sqrtPriceX96":3811737795642663424882786}`,
 		},
-	})
+	}
+	hook, _ := uniswapv4.GetHook(HookAddresses[0], param)
+	_, err := hook.GetReserves(t.Context(), param)
+	require.NoError(t, err)
+	extraStr, err := hook.Track(t.Context(), param)
 	require.NoError(t, err)
 
-	var extra AlphixExtra
-	require.NoError(t, json.Unmarshal([]byte(extraStr), &extra))
+	var h Hook
+	require.NoError(t, json.Unmarshal([]byte(extraStr), &h))
 	t.Logf("Base ETH/USDC: fee=%d ticks=[%d,%d] amount0=%s amount1=%s",
-		extra.Fee, extra.TickLower, extra.TickUpper, extra.Amount0Available, extra.Amount1Available)
+		h.SwapFee, h.TickLower, h.TickUpper, h.Amount0Available, h.Amount1Available)
 
-	assert.True(t, extra.Fee > 0, "fee should be > 0")
-	assert.True(t, extra.TickLower < extra.TickUpper, "tick range should be valid")
+	assert.True(t, h.SwapFee > 0, "fee should be > 0")
+	assert.True(t, h.TickLower < h.TickUpper, "tick range should be valid")
 }
 
 func TestTrack_BaseUSDSUSDC(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping RPC test in CI")
 	}
 
 	rpcClient := ethrpc.New("https://mainnet.base.org").SetMulticallContract(multicall3)
-	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook: HookAddresses[1], // Base USDS/USDC
-	}
-
-	extraStr, err := hook.Track(context.Background(), &uniswapv4.HookParam{
+	param := &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: 8453},
 		RpcClient: rpcClient,
 		Pool: &entity.Pool{
 			Tokens: []*entity.PoolToken{
 				{Address: "0x820c137fa70c8691f0e44dc420a5e53c168921dc"}, // USDS
 				{Address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}, // USDC
 			},
+			Extra: `{"sqrtPriceX96":79228143988102516226390}`,
 		},
-	})
+	}
+	hook, _ := uniswapv4.GetHook(HookAddresses[1], param)
+	_, err := hook.GetReserves(t.Context(), param)
+	require.NoError(t, err)
+	extraStr, err := hook.Track(t.Context(), param)
 	require.NoError(t, err)
 
-	var extra AlphixExtra
-	require.NoError(t, json.Unmarshal([]byte(extraStr), &extra))
+	var h Hook
+	require.NoError(t, json.Unmarshal([]byte(extraStr), &h))
 	t.Logf("Base USDS/USDC: fee=%d ticks=[%d,%d] amount0=%s amount1=%s",
-		extra.Fee, extra.TickLower, extra.TickUpper, extra.Amount0Available, extra.Amount1Available)
+		h.SwapFee, h.TickLower, h.TickUpper, h.Amount0Available, h.Amount1Available)
 
-	assert.True(t, extra.Fee > 0, "fee should be > 0")
+	assert.True(t, h.SwapFee > 0, "fee should be > 0")
 }
 
 func TestTrack_ArbitrumUSDCUSDT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping RPC test in CI")
 	}
 
 	rpcClient := ethrpc.New("https://arb1.arbitrum.io/rpc").SetMulticallContract(multicall3)
-	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook: HookAddresses[2], // Arbitrum USDC/USDT
-	}
-
-	extraStr, err := hook.Track(context.Background(), &uniswapv4.HookParam{
+	param := &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: 42161},
 		RpcClient: rpcClient,
 		Pool: &entity.Pool{
 			Tokens: []*entity.PoolToken{
 				{Address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"}, // USDC
 				{Address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"}, // USDT
 			},
+			Extra: `{"sqrtPriceX96":79221058094279577424188345191}`,
 		},
-	})
+	}
+	hook, _ := uniswapv4.GetHook(HookAddresses[2], param)
+	_, err := hook.GetReserves(t.Context(), param)
+	require.NoError(t, err)
+	extraStr, err := hook.Track(t.Context(), param)
 	require.NoError(t, err)
 
-	var extra AlphixExtra
-	require.NoError(t, json.Unmarshal([]byte(extraStr), &extra))
+	var h Hook
+	require.NoError(t, json.Unmarshal([]byte(extraStr), &h))
 	t.Logf("Arb USDC/USDT: fee=%d ticks=[%d,%d] amount0=%s amount1=%s",
-		extra.Fee, extra.TickLower, extra.TickUpper, extra.Amount0Available, extra.Amount1Available)
+		h.SwapFee, h.TickLower, h.TickUpper, h.Amount0Available, h.Amount1Available)
 
-	assert.True(t, extra.Fee > 0, "fee should be > 0")
-	assert.Equal(t, -8, extra.TickLower)
-	assert.Equal(t, 8, extra.TickUpper)
+	assert.True(t, h.SwapFee > 0, "fee should be > 0")
+	assert.Equal(t, -8, h.TickLower)
+	assert.Equal(t, 8, h.TickUpper)
 }
 
 func TestGetReserves_ArbitrumUSDCUSDT(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping RPC test in CI")
 	}
 
 	rpcClient := ethrpc.New("https://arb1.arbitrum.io/rpc").SetMulticallContract(multicall3)
-	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		hook: HookAddresses[2],
-	}
-
-	reserves, err := hook.GetReserves(context.Background(), &uniswapv4.HookParam{
+	param := &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: 42161},
 		RpcClient: rpcClient,
 		Pool: &entity.Pool{
 			Tokens: []*entity.PoolToken{
 				{Address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"},
 				{Address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"},
 			},
+			Extra: `{"sqrtPriceX96":79221058094279577424188345191}`,
 		},
-	})
+	}
+	hook, _ := uniswapv4.GetHook(HookAddresses[2], param)
+	reserves, err := hook.GetReserves(t.Context(), param)
 	require.NoError(t, err)
 	require.Len(t, reserves, 2)
 

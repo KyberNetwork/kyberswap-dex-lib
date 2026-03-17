@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -312,7 +311,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	tokenInAddress, tokenOutAddress := eth.AddressZero, eth.AddressZero
+	tokenInAddress, tokenOutAddress := valueobject.AddrZero, valueobject.AddrZero
 	if !p.isNative[p.GetTokenIndex(tokenIn)] {
 		tokenInAddress = common.HexToAddress(tokenIn)
 	}

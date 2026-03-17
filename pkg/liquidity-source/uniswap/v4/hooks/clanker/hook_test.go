@@ -36,7 +36,7 @@ func TestStaticFeeHook_Track(t *testing.T) {
 	})
 
 	_, err := sh.Track(context.Background(), &uniswapv4.HookParam{
-		Cfg:       &uniswapv4.Config{ChainID: int(chainID)},
+		Cfg:       &uniswapv4.Config{ChainID: chainID},
 		RpcClient: rpcClient,
 		Pool: &entity.Pool{
 			Address: "0x3f3ef57297fb9f0a3dca28b15b7b6d8186c0caba8dfc82294d8181da56113a82",
@@ -67,13 +67,13 @@ func TestDynamicFeeHook_Track(t *testing.T) {
 	require.NoError(t, err)
 
 	dh := NewDynamicFeeHook(&uniswapv4.HookParam{
-		Cfg:         &uniswapv4.Config{ChainID: int(chainID)},
+		Cfg:         &uniswapv4.Config{ChainID: chainID},
 		RpcClient:   rpcClient,
 		HookAddress: common.HexToAddress("0xFd213BE7883db36e1049dC42f5BD6A0ec66B68cC"),
 	})
 
 	_, err = dh.Track(context.Background(), &uniswapv4.HookParam{
-		Cfg:       &uniswapv4.Config{ChainID: int(chainID)},
+		Cfg:       &uniswapv4.Config{ChainID: chainID},
 		RpcClient: rpcClient,
 		Pool:      &pool,
 	})

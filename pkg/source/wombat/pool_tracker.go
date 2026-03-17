@@ -18,6 +18,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -142,7 +143,7 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	for i, assetAddress := range assetAddresses {
-		if assetAddress.Cmp(eth.AddressZero) != 0 {
+		if assetAddress.Cmp(valueobject.AddrZero) != 0 {
 			assetCalls.AddCall(&ethrpc.Call{
 				ABI:    DynamicAssetABI,
 				Target: assetAddress.Hex(),

@@ -114,8 +114,7 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		cloned := *param.Pool
 		cloned.SwapFee = 0
 
-		chainID := valueobject.ChainID(param.Cfg.ChainID)
-		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, chainID)
+		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, param.Cfg.ChainID)
 	}
 
 	return hook
@@ -176,7 +175,7 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	if !extra.ClankerTracked {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clankerABI,
-			Target: ClankerAddressByChain[valueobject.ChainID(param.Cfg.ChainID)],
+			Target: ClankerAddressByChain[param.Cfg.ChainID],
 			Method: "tokenDeploymentInfo",
 			Params: []any{token0},
 		}, []any{&info})

@@ -1,7 +1,6 @@
 package uniswapv4
 
 import (
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -68,7 +67,7 @@ func DecodePoolAddress(log ethtypes.Log) (string, error) {
 }
 
 func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr uint64) (*entity.Pool, error) {
-	chainId := valueobject.ChainID(f.cfg.ChainID)
+	chainId := f.cfg.ChainID
 	hook, _ := GetHook(p.Hooks, &HookParam{
 		Cfg: f.cfg,
 	})
@@ -112,8 +111,8 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 }
 
 func currencyToToken(currency common.Address, chainId valueobject.ChainID) string {
-	if eth.IsZeroAddress(currency) {
-		return strings.ToLower(valueobject.WrappedNativeMap[chainId])
+	if valueobject.IsZeroAddress(currency) {
+		return valueobject.LowerWrapped(chainId)
 	}
 	return hexutil.Encode(currency[:])
 }

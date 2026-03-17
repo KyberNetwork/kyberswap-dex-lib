@@ -99,7 +99,7 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	if !extra.ClankerTracked {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clankerABI,
-			Target: ClankerAddressByChain[valueobject.ChainID(param.Cfg.ChainID)],
+			Target: ClankerAddressByChain[param.Cfg.ChainID],
 			Method: "tokenDeploymentInfo",
 			Params: []any{token0},
 		}, []any{&info})

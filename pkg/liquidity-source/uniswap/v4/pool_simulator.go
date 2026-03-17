@@ -39,7 +39,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: int(chainID)},
+		Cfg:       &Config{ChainID: chainID},
 		Pool:      &entityPool,
 		HookExtra: extra.HookExtra,
 	})
@@ -47,11 +47,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, shared.ErrUnsupportedHook
 	}
 
-	var allowEmptyTicks bool
-	switch hook.GetExchange() {
-	case valueobject.ExchangeUniswapV4BunniV2, valueobject.ExchangeUniswapV4Deli:
-		allowEmptyTicks = true
-	}
+	allowEmptyTicks := hook.AllowEmptyTicks()
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256, allowEmptyTicks)
 	if err != nil {
