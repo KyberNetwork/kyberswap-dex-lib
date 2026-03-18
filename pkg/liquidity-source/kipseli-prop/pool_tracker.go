@@ -76,12 +76,12 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	propamm.ApplyBuffer(samples, t.cfg.Buffer)
-
 	// Round 2 (cold start only): refine cap boundary.
 	if err := t.refineColdStartCap(ctx, res.BlockNumber, p, samples, incremental, tsMs); err != nil {
 		return p, err
 	}
+
+	propamm.ApplyBuffer(samples, t.cfg.Buffer)
 
 	for i := range samples {
 		samples[i] = propamm.CleanSamples(samples[i])
