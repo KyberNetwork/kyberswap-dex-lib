@@ -1,8 +1,25 @@
 // Package propamm provides shared helpers for propAMM-family integrations (wasabi-prop, kipseli-prop, etc.).
 //
-// PropAMM pools behave like orderbook + oracle hybrids: near-constant rate within a valid
-// amountIn range, with hard boundaries where output drops to zero. The helpers here implement
-// an incremental sample strategy that discovers and tracks this valid range efficiently.
+// PropAMM pools have near-constant rate within a valid range, with hard cap at boundaries:
+//
+//	amountOut
+//	    │
+//	    │         ┌──────────────┐
+//	    │        ╱                ╲  (or plateau instead of drop)
+//	    │       ╱   constant rate  ╲
+//	    │      ╱                    ╲
+//	    ├─────╱──────────────────────╲────── amountIn
+//	    │   validMin              validMax
+//
+// Strategy: sample on-chain quotes at chosen amountIn points, then interpolate.
+//
+//	Cold start (round 1):     10^0, 10^1, ..., 10^14  — broad discovery
+//	Cold start (round 2):     refine between last-ok and first-zero — narrow cap
+//	Incremental:              dense in [prevMin, prevMax] + probes outside — track shifts
+//
+//	    ──────[===prevMin====dense====prevMax===]──────
+//	      ↑probe                              probe↑
+//	    prevMin/5                           prevMax*4
 package propamm
 
 import (
@@ -23,9 +40,11 @@ const (
 	ColdRefinePoints = 5
 )
 
-// BuildQueryPoints picks sample amountIn values depending on available history:
-//   - Cold start: 10^k grid spanning token decimals range.
-//   - Incremental: dense log-spaced in [prevMin, prevMax] + boundary probes outside.
+// BuildQueryPoints picks sample amountIn values:
+//
+//	Cold start (no history):   [10^0, 10^1, ..., 10^14]
+//	Incremental (has history): [min/2, min/5] + [dense log-spaced] + [max*1.5, max*2, max*4]
+//	                            └─lower─┘       └──prevMin..Max──┘   └───upper probes───┘
 func BuildQueryPoints(decimals uint8, prevMin, prevMax *big.Int) []*big.Int {
 	if prevMin == nil || prevMin.Sign() <= 0 || prevMax == nil || prevMax.Sign() <= 0 || prevMax.Cmp(prevMin) <= 0 {
 		return ColdStartGrid(decimals)
@@ -37,13 +56,19 @@ func BuildQueryPoints(decimals uint8, prevMin, prevMax *big.Int) []*big.Int {
 	})
 }
 
-// ColdStartGrid returns SampleSize points: 10^start, 10^(start+1), ..., centered around token decimals.
+// ColdStartGrid: 15 points spanning token's magnitude range.
+//
+//	USDC (6 dec): 10^0, 10^1, ..., 10^14  (0.000001 USDC → 100M USDC)
+//	WETH (18 dec): 10^11, 10^12, ..., 10^25
 func ColdStartGrid(decimals uint8) []*big.Int {
 	start := lo.Ternary(decimals < SampleSize/2, 0, decimals-SampleSize/2)
 	return lo.Times(SampleSize, func(k int) *big.Int { return bignumber.TenPowInt(start + uint8(k)) })
 }
 
-// LogSpaced returns n points logarithmically spaced between low and high (inclusive).
+// LogSpaced: n points log-distributed between low..high (inclusive endpoints).
+//
+//	low=100, high=10000, n=5 → [100, 316, 1000, 3162, 10000]
+//	                             equal spacing in log10 scale
 func LogSpaced(low, high *big.Int, n int) []*big.Int {
 	l, h := math.Log10(bigIntToFloat64(low)), math.Log10(bigIntToFloat64(high))
 	return lo.Times(n, func(k int) *big.Int {
@@ -81,9 +106,14 @@ func bigIntToFloat64(x *big.Int) float64 {
 	return f
 }
 
-// CleanSamples filters out<=0, sorts by amountIn, deduplicates, and trims plateau.
-// Plateau = trailing samples where amountOut stopped increasing (pool hit reserve/cap limit).
-// Keeping them would distort interpolation because rate (out/in) at those points is artificially low.
+// CleanSamples: filter → sort → dedup → trim plateau.
+//
+//	Before: [1→100] [10→0] [5→500] [100→3000] [1000→3000] [10000→3000]
+//	Filter: [1→100]        [5→500] [100→3000] [1000→3000] [10000→3000]
+//	Sort:   [1→100] [5→500] [100→3000] [1000→3000] [10000→3000]
+//	Trim:   [1→100] [5→500] [100→3000]                              ← plateau removed
+//	                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+//	                                     output stopped increasing = distorted rate
 func CleanSamples(s [][2]*big.Int) [][2]*big.Int {
 	s = lo.Filter(s, func(v [2]*big.Int, _ int) bool {
 		return v[0] != nil && v[1] != nil && v[1].Sign() > 0
@@ -105,8 +135,10 @@ func CleanSamples(s [][2]*big.Int) [][2]*big.Int {
 	return s
 }
 
-// ValidRangeFromSamples returns [min, max] amountIn from previous run's samples.
-// Returns nil,nil on cold start (no previous data).
+// ValidRangeFromSamples: extract [min, max] amountIn from last run's cleaned samples.
+//
+//	samples[dir] = [[100→X], [500→Y], [3000→Z]]  →  prevMin=100, prevMax=3000
+//	samples[dir] = []                              →  nil, nil (triggers cold start)
 func ValidRangeFromSamples(allSamples [][][2]*big.Int, dir int) (prevMin, prevMax *big.Int) {
 	if dir >= len(allSamples) || len(allSamples[dir]) == 0 {
 		return nil, nil
@@ -118,8 +150,11 @@ func ValidRangeFromSamples(allSamples [][][2]*big.Int, dir int) (prevMin, prevMa
 	return nil, nil
 }
 
-// FindCapBoundary finds the transition where amountOut drops to zero.
-// Returns (highest amountIn with out>0, lowest amountIn with out==0 above it).
+// FindCapBoundary: locate the out>0 → out==0 transition 
+//
+//	[1→100] [10→500] [100→3000] [1000→0] [10000→0]
+//	                   ^^^^^^^^   ^^^^^^^
+//	                   capLower   capUpper
 func FindCapBoundary(samples [][2]*big.Int) (capLower, capUpper *big.Int) {
 	for _, s := range samples {
 		if s[0] != nil && s[1] != nil && s[1].Sign() > 0 && (capLower == nil || s[0].Cmp(capLower) > 0) {
@@ -138,7 +173,10 @@ func FindCapBoundary(samples [][2]*big.Int) (capLower, capUpper *big.Int) {
 	return
 }
 
-// RefineCapPoints returns evenly spaced points between capLower and capUpper for cap boundary refinement.
+// RefineCapPoints: evenly spaced between capLower and capUpper to narrow the real cap.
+//
+//	capLower=100, capUpper=1000 → [250, 400, 550, 700, 850]
+//	                                ↑ query these to find exact transition
 func RefineCapPoints(capLower, capUpper *big.Int) []*big.Int {
 	if capLower == nil || capUpper == nil || capUpper.Cmp(capLower) <= 0 {
 		return nil
@@ -155,7 +193,10 @@ func RefineCapPoints(capLower, capUpper *big.Int) []*big.Int {
 	)
 }
 
-// ApplyBuffer scales down amountOut by buffer/BasisPoint as a safety margin.
+// ApplyBuffer: conservative safety margin — scale down all amountOut.
+//
+//	buffer=9970 (BasisPoint=10000) → keep 99.7% of each amountOut
+//	[100→3000] becomes [100→2991]
 func ApplyBuffer(samples [][][2]*big.Int, buffer int64) {
 	if buffer <= 0 {
 		return
