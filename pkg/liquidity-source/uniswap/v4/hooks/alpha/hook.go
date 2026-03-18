@@ -16,11 +16,10 @@ import (
 )
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	var hook Hook
-	if param.HookExtra != "" {
-		_ = json.Unmarshal([]byte(param.HookExtra), &hook)
+	hook := Hook{
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alpha},
 	}
-	hook.Hook = &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alpha}
+	_ = param.HookExtra.Unmarshal(&hook)
 	return &hook
 },
 	common.HexToAddress("0xb0Ba5d56364569496e0aA5158C3242420eaDE880"), // base
@@ -32,9 +31,9 @@ type Hook struct {
 	StartTime      int64 `json:"s"`
 }
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	if len(param.HookExtra) > 0 {
-		return param.HookExtra, nil
+		return json.RawMessage(param.HookExtra), nil
 	}
 
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
@@ -43,11 +42,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Method: "poolStartedTimestamp",
 		Params: []any{common.HexToHash(param.Pool.Address)},
 	}, []any{&h.StartTime}).TryBlockAndAggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	extraBytes, _ := json.Marshal(h)
-	return string(extraBytes), nil
+	return json.Marshal(h)
 }
 
 var ErrPoolNotStarted = errors.New("pool not started")

@@ -31,11 +31,9 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Arena},
 	}
 
-	if param.HookExtra != "" {
-		var extra Extra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
-			hook.totalFeePpm = big.NewInt(extra.TotalFeePpm)
-		}
+	var extra Extra
+	if err := param.HookExtra.Unmarshal(&extra); err == nil {
+		hook.totalFeePpm = big.NewInt(extra.TotalFeePpm)
 	}
 	return hook
 }, HookAddresses...)
@@ -47,7 +45,7 @@ var (
 	timer               = time.AfterFunc(0, func() { cachedHelperAddress = "" })
 )
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	helper := cachedHelperAddress
 	if helper == "" {
 		res, err, _ := sf.Do("", func() (any, error) {
@@ -63,7 +61,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 			return helper, err
 		})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		helper = res.(string)
 	}
@@ -75,10 +73,9 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Method: "getTotalFeePpm",
 		Params: []any{common.HexToHash(param.Pool.Address)},
 	}, []any{&extra.TotalFeePpm}).Call(); err != nil {
-		return "", err
+		return nil, err
 	}
-	extraBytes, _ := json.Marshal(extra)
-	return string(extraBytes), nil
+	return json.Marshal(extra)
 }
 
 var MaxHookFee = bignumber.TenPowInt(6)

@@ -13,7 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -314,7 +313,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	tokenInAddress, tokenOutAddress := eth.AddressZero, eth.AddressZero
+	tokenInAddress, tokenOutAddress := valueobject.AddrZero, valueobject.AddrZero
 	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenIn)] {
 		tokenInAddress = common.HexToAddress(tokenIn)
 	}

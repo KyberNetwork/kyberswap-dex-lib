@@ -3,10 +3,12 @@ package bunniv2
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/oracle"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 )
 
 type SwapInfo struct {
@@ -24,7 +26,7 @@ type SwapInfo struct {
 }
 
 type HookExtra struct {
-	HookletExtra           string                  `json:"he"`
+	HookletExtra           json.RawMessage         `json:"he"`
 	HookletAddress         common.Address          `json:"ha"`
 	LDFAddress             common.Address          `json:"la"`
 	HookFee                *uint256.Int            `json:"hf"`
