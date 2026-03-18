@@ -346,7 +346,8 @@ func IsPropAMMSource[T ~string](exchange T) bool {
 }
 
 var needsCandidateEdgeSet = map[Exchange]struct{}{
-	ExchangeUniSwap: {},
+	ExchangeUniSwap:   {},
+	ExchangeUniSwapV3: {},
 }
 
 func NeedsCandidateEdge(exchange Exchange) bool {
