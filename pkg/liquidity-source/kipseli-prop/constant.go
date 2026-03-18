@@ -9,7 +9,6 @@ import (
 const (
 	DexType    = "kipseli-prop"
 	defaultGas = 125_000
-	sampleSize = 15
 )
 
 var (

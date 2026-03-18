@@ -260,6 +260,7 @@ const (
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUsd0PP                     = "usd0pp"
+	ExchangeUsdAi                      = "usd-ai"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
 	ExchangeValantisStex               = "valantis-stex"
 	ExchangeVelocoreV2CPMM             = "velocore-v2-cpmm"

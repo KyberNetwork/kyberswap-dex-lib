@@ -129,6 +129,7 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -312,6 +313,7 @@ type Types struct {
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
+	UsdAi                      string
 	Ambient                    string
 	MaverickV2                 string
 	LitePSM                    string
@@ -519,6 +521,7 @@ var (
 		EtherVista:                 ethervista.DexType,
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
+		UsdAi:                      usd_ai.DexType,
 		Ambient:                    ambient.DexTypeAmbient,
 		MaverickV2:                 maverickv2.DexType,
 		LitePSM:                    litepsm.DexTypeLitePSM,
