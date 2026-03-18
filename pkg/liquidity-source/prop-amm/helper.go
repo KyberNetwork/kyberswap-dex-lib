@@ -81,13 +81,28 @@ func bigIntToFloat64(x *big.Int) float64 {
 	return f
 }
 
-// CleanSamples filters out<=0, sorts by amountIn, deduplicates.
+// CleanSamples filters out<=0, sorts by amountIn, deduplicates, and trims plateau.
+// Plateau = trailing samples where amountOut stopped increasing (pool hit reserve/cap limit).
+// Keeping them would distort interpolation because rate (out/in) at those points is artificially low.
 func CleanSamples(s [][2]*big.Int) [][2]*big.Int {
 	s = lo.Filter(s, func(v [2]*big.Int, _ int) bool {
 		return v[0] != nil && v[1] != nil && v[1].Sign() > 0
 	})
 	sort.Slice(s, func(a, b int) bool { return s[a][0].Cmp(s[b][0]) < 0 })
-	return lo.UniqBy(s, func(v [2]*big.Int) string { return v[0].String() })
+	s = lo.UniqBy(s, func(v [2]*big.Int) string { return v[0].String() })
+
+	if len(s) >= 2 {
+		cut := len(s)
+		for i := len(s) - 1; i > 0; i-- {
+			if s[i][1].Cmp(s[i-1][1]) <= 0 {
+				cut = i
+			} else {
+				break
+			}
+		}
+		s = s[:cut]
+	}
+	return s
 }
 
 // ValidRangeFromSamples returns [min, max] amountIn from previous run's samples.

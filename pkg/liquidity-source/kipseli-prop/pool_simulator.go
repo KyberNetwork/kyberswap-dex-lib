@@ -58,7 +58,9 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	// Samples are pre-cleaned: sorted by amountIn, all out > 0. Last element = cap.
 	for dir := 0; dir < len(sim.Samples) && dir < 2; dir++ {
 		if n := len(sim.Samples[dir]); n > 0 {
-			sim.maxIn[dir] = sim.Samples[dir][n-1][0]
+			if dir < len(sim.Caps) && sim.Caps[dir] != nil && sim.Caps[dir].Sign() > 0 {
+				sim.maxIn[dir] = sim.Samples[dir][n-1][0]
+			}
 			sim.filledIn[dir] = new(big.Int)
 		}
 	}

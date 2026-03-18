@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	testRouterAddr = "0x5e4f46e92311685b590fb65128f4fe17034ac7e1"
+	testRouterAddr = "0x71C2Ed90CC288229Be59F26b8B3EEF3C07d7ab99"
 	testLensAddr   = "0x62aff80b3d2AfE0e497f1Ef735a6fDC9c3ef1acf"
 	testWeth       = "0x4200000000000000000000000000000000000006"
 	testUsdc       = "0x833589fCD6eDb6E08f4C7C32D4f71b54bdA02913"
@@ -105,6 +105,8 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 		}
 	}
 
+	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+
 	for _, dir := range directions {
 		sig := tracker.signQuote(dir.tokenIn, dir.tokenOut, tsMs)
 		for _, amt := range amounts {
@@ -125,6 +127,7 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 				simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{Token: dir.tokenIn.Hex(), Amount: amt},
 					TokenOut:      dir.tokenOut.Hex(),
+					Limit:         limit,
 				})
 
 				if qErr != nil || quoterOut == nil || quoterOut.Sign() == 0 {
@@ -135,13 +138,18 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 				}
 
 				if simErr != nil || simRes == nil {
-					t.Errorf("quoter OK but simulator failed: %v", simErr)
+					outIdx := sim.GetTokenIndex(strings.ToLower(dir.tokenOut.Hex()))
+					if outIdx >= 0 && quoterOut.Cmp(sim.GetReserves()[outIdx]) >= 0 {
+						t.Logf("quoter %s >= reserve %s → exceeds inventory", quoterOut, sim.GetReserves()[outIdx])
+						return
+					}
+					t.Errorf("quoter OK (out=%s) but simulator failed: %v", quoterOut, simErr)
 					return
 				}
 
 				bps := calculateBPS(quoterOut, simRes.TokenAmountOut.Amount)
 				t.Logf("amt=%s quote=%s sim=%s bps=%d", amt, quoterOut, simRes.TokenAmountOut.Amount, bps)
-				if bps > 200 {
+				if bps > 50 {
 					t.Errorf("high BPS diff: %d (quote=%s, sim=%s)", bps, quoterOut, simRes.TokenAmountOut.Amount)
 				}
 			})
