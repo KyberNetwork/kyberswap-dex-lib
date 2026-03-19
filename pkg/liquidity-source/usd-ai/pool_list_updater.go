@@ -15,7 +15,6 @@ import (
 
 type PoolsListUpdater struct {
 	config         *Config
-	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
 
