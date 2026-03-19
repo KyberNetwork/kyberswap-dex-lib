@@ -42,87 +42,24 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	tsMs := time.Now().UnixMilli()
 	bTsMs := big.NewInt(tsMs)
-	samples := make([][][2]*big.Int, 2)
-	typedMsgTemplate := DomainType
-	typedMsgTemplate.Domain.ChainId = math.NewHexOrDecimal256(int64(t.cfg.ChainID))
-	typedMsgTemplate.Domain.VerifyingContract = hexutil.Encode(t.cfg.Verifier[:])
-	for i := range p.Tokens {
-		samples[i] = make([][2]*big.Int, sampleSize)
-		start := lo.Ternary(p.Tokens[i].Decimals < sampleSize/2, 0, p.Tokens[i].Decimals-sampleSize/2)
-		idx := 0
-		tokenIn, tokenOut := common.HexToAddress(p.Tokens[i].Address), common.HexToAddress(p.Tokens[1-i].Address)
-		typedMsg := typedMsgTemplate
-		typedMsg.Message = apitypes.TypedDataMessage{
-			"tokenIn":            [20]byte(tokenIn),
-			"tokenOut":           [20]byte(tokenOut),
-			"timestampInMilisec": bTsMs,
-		}
-		sig, err := t.signer.Sign(typedMsg)
-		if err != nil {
-			return p, err
-		}
-		for k := start; k <= start+sampleSize-1 && idx < sampleSize; k++ {
-			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), new(big.Int)}
-			req.AddCall(&ethrpc.Call{
-				ABI:    swapABI,
-				Target: t.cfg.RouterAddress,
-				Method: "quote",
-				Params: []any{
-					tokenIn,
-					samples[i][idx][0],
-					tokenOut,
-					bTsMs,
-					sig,
-				},
-			}, []any{&samples[i][idx][1]})
-			idx++
-		}
-	}
 
-	res, err := req.TryBlockAndAggregate()
+	samples, blockNumber, err := t.fetchQuotes(ctx, p, bTsMs)
 	if err != nil {
 		return p, err
 	}
 
 	t.warnGapInQuotes(p, samples)
-
-	if t.cfg.Buffer > 0 {
-		buf := big.NewInt(t.cfg.Buffer)
-		for i := range samples {
-			for j := range samples[i] {
-				if samples[i][j][1] != nil {
-					samples[i][j][1].Mul(samples[i][j][1], buf)
-					samples[i][j][1].Div(samples[i][j][1], bignumber.BasisPoint)
-				}
-			}
-		}
-	}
+	t.applyBuffer(samples)
 
 	tokenAddrs := []common.Address{
 		common.HexToAddress(p.Tokens[0].Address),
 		common.HexToAddress(p.Tokens[1].Address),
 	}
 
-	var balances []*big.Int
-	var caps []*big.Int
-	reqRes := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
-	reqRes.AddCall(&ethrpc.Call{
-		ABI:    lensABI,
-		Target: t.cfg.LensAddress,
-		Method: "getReserveBalances",
-		Params: []any{tokenAddrs},
-	}, []any{&balances})
-	reqRes.AddCall(&ethrpc.Call{
-		ABI:    lensABI,
-		Target: t.cfg.LensAddress,
-		Method: "getReserveBalanceCap",
-		Params: []any{tokenAddrs},
-	}, []any{&caps})
-
-	if _, err := reqRes.TryAggregate(); err != nil {
+	balances, caps, err := t.fetchBalancesAndCaps(ctx, blockNumber, tokenAddrs)
+	if err != nil {
 		return p, err
 	}
 
@@ -130,40 +67,9 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInsufficientLiquidity
 	}
 
-	p.Reserves = []string{
-		balances[0].String(),
-		balances[1].String(),
-	}
+	p.Reserves = []string{balances[0].String(), balances[1].String()}
 
-	extra := Extra{
-		Samples: samples,
-	}
-
-	extra.MaxIn = make([]*big.Int, len(caps))
-	for i, c := range caps {
-		if c == nil || c.Sign() <= 0 || c.Cmp(bignumber.MaxUint256) == 0 {
-			continue
-		}
-		if i < len(balances) && balances[i] != nil && c.Cmp(balances[i]) > 0 {
-			extra.MaxIn[i] = new(big.Int).Sub(c, balances[i])
-		}
-	}
-
-	for dir := range samples {
-		maxIn := lo.Ternary(dir < len(extra.MaxIn), extra.MaxIn[dir], nil)
-
-		valid := samples[dir][:0]
-		for _, s := range samples[dir] {
-			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
-				continue
-			}
-			if maxIn != nil && maxIn.Sign() > 0 && s[0].Cmp(maxIn) > 0 {
-				continue
-			}
-			valid = append(valid, s)
-		}
-		samples[dir] = valid
-	}
+	extra := buildExtra(samples, balances, caps)
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -172,9 +78,135 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = res.BlockNumber.Uint64()
+	p.BlockNumber = blockNumber.Uint64()
 
 	return p, nil
+}
+
+func (t *PoolTracker) fetchQuotes(ctx context.Context, p entity.Pool, bTsMs *big.Int) ([][][2]*big.Int, *big.Int, error) {
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	samples := make([][][2]*big.Int, 2)
+
+	msgTemplate := DomainType
+	msgTemplate.Domain.ChainId = math.NewHexOrDecimal256(int64(t.cfg.ChainID))
+	msgTemplate.Domain.VerifyingContract = hexutil.Encode(t.cfg.Verifier[:])
+
+	for i := range p.Tokens {
+		samples[i] = make([][2]*big.Int, sampleSize)
+		tokenIn := common.HexToAddress(p.Tokens[i].Address)
+		tokenOut := common.HexToAddress(p.Tokens[1-i].Address)
+
+		sig, err := t.signQuoteMsg(msgTemplate, tokenIn, tokenOut, bTsMs)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		dec := int(p.Tokens[i].Decimals)
+		start := max(0, dec-sampleSize/2)
+		for idx, k := 0, start; idx < sampleSize; idx, k = idx+1, k+1 {
+			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), new(big.Int)}
+			req.AddCall(&ethrpc.Call{
+				ABI:    swapABI,
+				Target: t.cfg.RouterAddress,
+				Method: "quote",
+				Params: []any{tokenIn, samples[i][idx][0], tokenOut, bTsMs, sig},
+			}, []any{&samples[i][idx][1]})
+		}
+	}
+
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return samples, res.BlockNumber, nil
+}
+
+func (t *PoolTracker) signQuoteMsg(template apitypes.TypedData, tokenIn, tokenOut common.Address, bTsMs *big.Int) ([]byte, error) {
+	msg := template
+	msg.Message = apitypes.TypedDataMessage{
+		"tokenIn":            [20]byte(tokenIn),
+		"tokenOut":           [20]byte(tokenOut),
+		"timestampInMilisec": bTsMs,
+	}
+	return t.signer.Sign(msg)
+}
+
+func (t *PoolTracker) applyBuffer(samples [][][2]*big.Int) {
+	if t.cfg.Buffer <= 0 {
+		return
+	}
+	buf := big.NewInt(t.cfg.Buffer)
+	for i := range samples {
+		for j := range samples[i] {
+			if s1 := samples[i][j][1]; s1 != nil {
+				s1.Mul(s1, buf)
+				s1.Div(s1, bignumber.BasisPoint)
+			}
+		}
+	}
+}
+
+func (t *PoolTracker) fetchBalancesAndCaps(ctx context.Context, blockNumber *big.Int, tokenAddrs []common.Address) ([]*big.Int, []*big.Int, error) {
+	var balances, caps []*big.Int
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	req.AddCall(&ethrpc.Call{
+		ABI:    lensABI,
+		Target: t.cfg.LensAddress,
+		Method: "getReserveBalances",
+		Params: []any{tokenAddrs},
+	}, []any{&balances})
+	req.AddCall(&ethrpc.Call{
+		ABI:    lensABI,
+		Target: t.cfg.LensAddress,
+		Method: "getReserveBalanceCap",
+		Params: []any{tokenAddrs},
+	}, []any{&caps})
+
+	if _, err := req.TryAggregate(); err != nil {
+		return nil, nil, err
+	}
+	return balances, caps, nil
+}
+
+func buildExtra(samples [][][2]*big.Int, balances, caps []*big.Int) Extra {
+	extra := Extra{
+		MaxIn: computeMaxIn(balances, caps),
+	}
+
+	for dir := range samples {
+		maxIn := lo.Ternary(dir < len(extra.MaxIn), extra.MaxIn[dir], nil)
+		extra.Samples = append(extra.Samples, filterSamples(samples[dir], maxIn))
+	}
+
+	return extra
+}
+
+func computeMaxIn(balances, caps []*big.Int) []*big.Int {
+	maxIn := make([]*big.Int, len(caps))
+	for i, c := range caps {
+		if c == nil || c.Sign() <= 0 || c.Cmp(bignumber.MaxUint256) == 0 {
+			continue
+		}
+		if i < len(balances) && balances[i] != nil && c.Cmp(balances[i]) > 0 {
+			maxIn[i] = new(big.Int).Sub(c, balances[i])
+		}
+	}
+	return maxIn
+}
+
+func filterSamples(samples [][2]*big.Int, maxIn *big.Int) [][2]*big.Int {
+	valid := samples[:0]
+	for _, s := range samples {
+		if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
+			continue
+		}
+		if maxIn != nil && maxIn.Sign() > 0 && s[0].Cmp(maxIn) > 0 {
+			continue
+		}
+		valid = append(valid, s)
+	}
+	return valid
 }
 
 func (t *PoolTracker) warnGapInQuotes(p entity.Pool, samples [][][2]*big.Int) {
