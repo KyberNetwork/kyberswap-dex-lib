@@ -17,8 +17,6 @@ const (
 	pairMethodFeeParameters    = "feeParameters"
 	pairMethodGetReservesAndID = "getReservesAndId"
 	pairMethodGetBin           = "getBin"
-
-	routerGetPriceFromIDMethod = "getPriceFromId"
 )
 
 const (
