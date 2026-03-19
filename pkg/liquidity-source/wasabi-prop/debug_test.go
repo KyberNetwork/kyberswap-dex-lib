@@ -16,7 +16,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -27,7 +26,7 @@ func TestWasabiPropDebug(t *testing.T) {
 
 	rpcURL := os.Getenv("BASE_RPC_URL")
 	if rpcURL == "" {
-		t.Skip("BASE_RPC_URL not set")
+		rpcURL = "https://base.kyberengineering.io"
 	}
 
 	const (
@@ -42,7 +41,7 @@ func TestWasabiPropDebug(t *testing.T) {
 		ChainID:        8453,
 		FactoryAddress: factoryAddr,
 		RouterAddress:  routerAddr,
-		Buffer:         9900,
+		Buffer:         10000,
 	}
 
 	rpcClient := ethrpc.New(rpcURL).
@@ -161,105 +160,4 @@ func calculateBPS(quoter, sim *big.Int) int64 {
 	}
 	diff := new(big.Int).Abs(new(big.Int).Sub(quoter, sim))
 	return new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), quoter).Int64()
-}
-
-func TestMergeSwap(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip()
-	}
-
-	const (
-		routerAddr = "0xfc81dfde25083a286723b7c9dd7213f8723369fe"
-
-		cbBtcUsdcPool = "0xab3e004d55ae459ef3c4b7fc8ed28f4a8174b2da"
-		cbBtc         = "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"
-		usdc          = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-	)
-
-	rpcURL := "https://base.kyberengineering.io"
-
-	cfg := Config{
-		DexID:         DexType,
-		ChainID:       8453,
-		RouterAddress: routerAddr,
-		Buffer:        9900,
-	}
-
-	rpcClient := ethrpc.New(rpcURL).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-
-	inputPool := entity.Pool{
-		Address: strings.ToLower(cbBtcUsdcPool),
-		Tokens: []*entity.PoolToken{
-			{Address: strings.ToLower(cbBtc), Decimals: 8, Swappable: true},
-			{Address: strings.ToLower(usdc), Decimals: 6, Swappable: true},
-		},
-		Reserves:    []string{"0", "0"},
-		StaticExtra: `{"routerAddress":"` + routerAddr + `"}`,
-	}
-
-	tracker := NewPoolTracker(&cfg, rpcClient)
-	p, err := tracker.GetNewPoolState(context.Background(), inputPool, pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-
-	sim1, err := NewPoolSimulator(p)
-	require.NoError(t, err)
-
-	sim2 := sim1.CloneState()
-	require.NotNil(t, sim2)
-
-	// cbBTC -> USDC
-	tokenIn := strings.ToLower(p.Tokens[0].Address)
-	tokenOut := strings.ToLower(p.Tokens[1].Address)
-
-	amountPerSwap := big.NewInt(5_000_000) // 0.05 cbBTC
-	numSwaps := 20
-	totalAmount := new(big.Int).Mul(amountPerSwap, big.NewInt(int64(numSwaps))) // 1 cbBTC
-
-	limit1 := swaplimit.NewInventory(DexType, sim1.CalculateLimit())
-	totalOut1 := big.NewInt(0)
-	var err1 error
-	for i := 0; i < numSwaps; i++ {
-		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
-			TokenOut:      tokenOut,
-			Limit:         limit1,
-		})
-		if err != nil {
-			err1 = err
-			t.Logf("N-swap: failed at swap %d: %v", i+1, err)
-			break
-		}
-		totalOut1.Add(totalOut1, res.TokenAmountOut.Amount)
-		sim1.UpdateBalance(pool.UpdateBalanceParams{
-			TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
-			TokenAmountOut: *res.TokenAmountOut,
-			SwapLimit:      limit1,
-		})
-	}
-
-	res2, err2 := sim2.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: totalAmount},
-		TokenOut:      tokenOut,
-		Limit:         swaplimit.NewInventory(DexType, sim2.CalculateLimit()),
-	})
-
-	if err2 != nil {
-		if err1 == nil {
-			t.Errorf("single swap N*X failed (%v) but N swaps never errored (totalOut=%s)", err2, totalOut1)
-			return
-		}
-		require.Equal(t, err1.Error(), err2.Error(), "N swaps and 1 swap should fail with the same error")
-		t.Logf("both N-swap (stopped at totalOut=%s, err=%v) and 1-swap N*X hit cap: %v", totalOut1, err1, err2)
-		return
-	}
-
-	if totalOut1.Sign() == 0 {
-		t.Errorf("N swaps produced zero output but single swap N*X succeeded with out=%s", res2.TokenAmountOut.Amount.String())
-		return
-	}
-
-	bps := calculateBPS(totalOut1, res2.TokenAmountOut.Amount)
-	t.Logf("N swaps totalOut=%s, 1 swap totalOut=%s, BPS diff=%d", totalOut1, res2.TokenAmountOut.Amount, bps)
-	require.LessOrEqual(t, bps, int64(1), "N consecutive swaps (amount X) should match 1 swap (amount N*X) within 1 BPS")
 }

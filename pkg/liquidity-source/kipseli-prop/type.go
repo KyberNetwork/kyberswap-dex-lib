@@ -3,8 +3,8 @@ package kipseliprop
 import "math/big"
 
 type Extra struct {
-	Samples [][][2]*big.Int `json:"samples"`        // [tokenInIndex][]{amountIn, amountOut}
-	Caps    []*big.Int      `json:"caps,omitempty"` // per-token reserve caps, same order as pool tokens
+	Samples [][][2]*big.Int `json:"samples"`         // [tokenInIndex][]{amountIn, amountOut}
+	MaxIn   []*big.Int      `json:"maxIn,omitempty"` // per-direction max sell amountIn = cap - reserve; nil means no input cap
 }
 
 type StaticExtra struct {

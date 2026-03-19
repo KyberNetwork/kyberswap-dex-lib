@@ -12,6 +12,9 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -39,14 +42,11 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 	}
 
 	var verifier common.Address
-	if v := os.Getenv("KIPSELI_VERIFIER"); v != "" {
-		verifier = common.HexToAddress("")
-	}
+
+	verifier = common.HexToAddress("")
 
 	var quoter common.Hash
-	if q := os.Getenv("KIPSELI_QUOTER"); q != "" {
-		quoter = common.HexToHash(q)
-	}
+	quoter = common.HexToHash("")
 
 	cfg := Config{
 		DexID:         DexType,
@@ -81,6 +81,19 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 	return p, sim, tracker, rpcClient
 }
 
+func signQuoteForTest(tracker *PoolTracker, tokenIn, tokenOut common.Address, tsMs *big.Int) []byte {
+	typedMsg := DomainType
+	typedMsg.Domain.ChainId = math.NewHexOrDecimal256(int64(tracker.cfg.ChainID))
+	typedMsg.Domain.VerifyingContract = hexutil.Encode(tracker.cfg.Verifier[:])
+	typedMsg.Message = apitypes.TypedDataMessage{
+		"tokenIn":            [20]byte(tokenIn),
+		"tokenOut":           [20]byte(tokenOut),
+		"timestampInMilisec": tsMs,
+	}
+	sig, _ := tracker.signer.Sign(typedMsg)
+	return sig
+}
+
 func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 	p, sim, tracker, rpcClient := setupKipseliTest(t)
 
@@ -94,12 +107,10 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 		{"USDC=>WETH", common.HexToAddress(testUsdc), common.HexToAddress(testWeth)},
 	}
 
-	tsMs := big.NewInt(time.Now().UnixMilli())
-
 	src := rand.New(rand.NewSource(time.Now().Unix()))
 	amounts := make([]*big.Int, 0, 9)
 	for _, exp := range []int{6, 12, 18} {
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			n := src.Int63n(9_000_000) + 1_000_000
 			amounts = append(amounts, new(big.Int).Mul(big.NewInt(n), bignumber.TenPowInt(exp-6)))
 		}
@@ -108,9 +119,11 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
 
 	for _, dir := range directions {
-		sig := tracker.signQuote(dir.tokenIn, dir.tokenOut, tsMs)
 		for _, amt := range amounts {
 			t.Run(fmt.Sprintf("%s_%s", dir.label, amt.String()), func(t *testing.T) {
+				tsMs := big.NewInt(time.Now().UnixMilli())
+				sig := signQuoteForTest(tracker, dir.tokenIn, dir.tokenOut, tsMs)
+
 				var quoterOut *big.Int
 				req := rpcClient.NewRequest().SetContext(context.Background())
 				if p.BlockNumber > 0 {
@@ -132,7 +145,7 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 
 				if qErr != nil || quoterOut == nil || quoterOut.Sign() == 0 {
 					if simErr == nil && simRes != nil && simRes.TokenAmountOut.Amount.Sign() > 0 {
-						t.Logf("quoter reverted but simulator returned %s (expected for out-of-range amounts)", simRes.TokenAmountOut.Amount)
+						t.Errorf("quoter reverted but simulator accepted (out=%s) — simulator overestimates", simRes.TokenAmountOut.Amount)
 					}
 					return
 				}
@@ -173,7 +186,7 @@ func TestKipseliMergeSwap(t *testing.T) {
 	limit1 := swaplimit.NewInventory(DexType, sim1.CalculateLimit())
 	totalOut1 := new(big.Int)
 	var err1 error
-	for i := 0; i < numSwaps; i++ {
+	for i := range numSwaps {
 		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
 			TokenOut:      tokenOut,

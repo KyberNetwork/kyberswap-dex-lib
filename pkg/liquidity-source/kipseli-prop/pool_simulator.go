@@ -19,8 +19,7 @@ type PoolSimulator struct {
 	pool.Pool
 	Extra
 	StaticExtra
-	maxIn    [2]*big.Int // max tradeable amountIn per direction (from samples)
-	filledIn [2]*big.Int // cumulative amountIn filled so far
+	remainingIn [2]*big.Int
 }
 
 var (
@@ -55,15 +54,25 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		StaticExtra: staticExtra,
 	}
 
-	// Samples are pre-cleaned: sorted by amountIn, all out > 0. Last element = cap.
-	for dir := 0; dir < len(sim.Samples) && dir < 2; dir++ {
-		if n := len(sim.Samples[dir]); n > 0 {
-			if dir < len(sim.Caps) && sim.Caps[dir] != nil && sim.Caps[dir].Sign() > 0 {
-				sim.maxIn[dir] = sim.Samples[dir][n-1][0]
-			}
-			sim.filledIn[dir] = new(big.Int)
+	// cumulative cap: prefer MaxIn, otherwise fallback to sampleMaxIn
+	for dir := range 2 {
+		var sampleMax *big.Int
+		if dir < len(sim.Samples) && len(sim.Samples[dir]) > 0 {
+			sampleMax = sim.Samples[dir][len(sim.Samples[dir])-1][0]
+		}
+		var capMax *big.Int
+		if dir < len(sim.MaxIn) {
+			capMax = sim.MaxIn[dir]
+		}
+
+		switch {
+		case capMax != nil:
+			sim.remainingIn[dir] = new(big.Int).Set(capMax)
+		case sampleMax != nil:
+			sim.remainingIn[dir] = new(big.Int).Set(sampleMax)
 		}
 	}
+
 	return sim, nil
 }
 
@@ -80,9 +89,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if len(s.Samples[indexIn]) == 0 {
 		return nil, ErrInsufficientLiquidity
 	}
-	if s.maxIn[indexIn] != nil {
-		next := new(big.Int).Add(s.filledIn[indexIn], tokenAmountIn.Amount)
-		if next.Cmp(s.maxIn[indexIn]) > 0 {
+
+	if rem := s.remainingIn[indexIn]; rem != nil {
+		if tokenAmountIn.Amount.Cmp(rem) > 0 {
 			return nil, ErrInsufficientLiquidity
 		}
 	}
@@ -96,12 +105,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	var amountOut = new(big.Int)
 	bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, samples[sampleIndex][1], samples[sampleIndex][0])
 
-	if amountOut.Sign() <= 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
 	if limit := params.Limit; limit != nil {
-		if amountOut.Cmp(limit.GetLimit(tokenOut)) > 0 {
+		inventoryLimit := limit.GetLimit(tokenOut)
+		if amountOut.Cmp(inventoryLimit) > 0 {
 			return nil, pool.ErrNotEnoughInventory
 		}
 	}
@@ -118,12 +124,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if indexIn < 0 || indexOut < 0 {
 		return
 	}
-	if s.filledIn[indexIn] != nil {
-		s.filledIn[indexIn].Add(s.filledIn[indexIn], params.TokenAmountIn.Amount)
-	}
-
 	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	if s.remainingIn[indexIn] != nil {
+		s.remainingIn[indexIn] = new(big.Int).Sub(s.remainingIn[indexIn], params.TokenAmountIn.Amount)
+		if s.remainingIn[indexIn].Sign() < 0 {
+			s.remainingIn[indexIn] = big.NewInt(0)
+		}
+	}
 
 	if limit := params.SwapLimit; limit != nil {
 		_, _, _ = limit.UpdateLimit(
@@ -138,9 +146,19 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
-	for i := range s.filledIn {
-		if s.filledIn[i] != nil {
-			cloned.filledIn[i] = new(big.Int).Set(s.filledIn[i])
+	cloned.Samples = make([][][2]*big.Int, len(s.Samples))
+	for i, dir := range s.Samples {
+		cloned.Samples[i] = make([][2]*big.Int, len(dir))
+		for j, pair := range dir {
+			cloned.Samples[i][j] = [2]*big.Int{
+				new(big.Int).Set(pair[0]),
+				new(big.Int).Set(pair[1]),
+			}
+		}
+	}
+	for i := range s.remainingIn {
+		if s.remainingIn[i] != nil {
+			cloned.remainingIn[i] = new(big.Int).Set(s.remainingIn[i])
 		}
 	}
 	return &cloned
@@ -154,11 +172,7 @@ func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	tokens, reserves := s.GetTokens(), s.GetReserves()
 	inventory := make(map[string]*big.Int, len(tokens))
 	for i, token := range tokens {
-		limit := reserves[i]
-		if i < len(s.Caps) && s.Caps[i] != nil && s.Caps[i].Sign() > 0 && s.Caps[i].Cmp(limit) < 0 {
-			limit = s.Caps[i]
-		}
-		inventory[token] = limit
+		inventory[token] = reserves[i]
 	}
 	return inventory
 }

@@ -3,7 +3,7 @@ package wasabiprop
 import "math/big"
 
 type Extra struct {
-	Samples [][][2]*big.Int `json:"samples"` // [tokenInIndex][]{amountIn, amountOut}, only entries with amountOut > 0, sorted by amountIn
+	Samples [][][2]*big.Int `json:"samples"` // [tokenInIndex][]{amountIn, amountOut}
 }
 
 type StaticExtra struct {
