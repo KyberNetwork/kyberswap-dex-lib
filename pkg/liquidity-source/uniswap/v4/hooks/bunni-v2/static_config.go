@@ -1,10 +1,12 @@
 package bunniv2
 
 import (
+	"github.com/ethereum/go-ethereum/common"
+
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/hooklet"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -26,7 +28,7 @@ var (
 		common.HexToAddress("0x005aF73a245d8171A0550ffAe2631f12cc211888"): "0x00000091Cb2d7914C9cd196161Da0943aB7b92E1",
 	}
 
-	HookletAddresses = map[common.Address]func(string) hooklet.IHooklet{
+	HookletAddresses = map[common.Address]func(extra uniswapv4.HookExtra) hooklet.IHooklet{
 		common.HexToAddress("0x0000e819b8A536Cf8e5d70B9C49256911033000C"): hooklet.NewFeeOverrideHooklet, // v1.0.0
 		common.HexToAddress("0x00eCE5a72612258f20eB24573C544f9dD8c5000C"): hooklet.NewFeeOverrideHooklet, // v1.0.1
 	}
@@ -100,13 +102,13 @@ func InitOracleUniGeoLDF(address common.Address, tickSpacing int, params *ldf.Or
 	return nil
 }
 
-func InitHooklet(address common.Address, hookletExtra string) hooklet.IHooklet {
+func InitHooklet(address common.Address, hookletExtra uniswapv4.HookExtra) hooklet.IHooklet {
 	initHooklet, exists := HookletAddresses[address]
 	if exists {
 		return initHooklet(hookletExtra)
 	}
 
-	return hooklet.NewBaseHooklet("")
+	return hooklet.NewBaseHooklet(nil)
 }
 
 func IsOracleUniGeoLDF(address common.Address) bool {

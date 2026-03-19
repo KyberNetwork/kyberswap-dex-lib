@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -44,36 +46,25 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var metadata PoolsListUpdaterMetadata
 	if len(metadataBytes) > 0 {
-		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-			u.logger.WithFields(logger.Fields{"error": err}).Warn("failed to unmarshal metadata")
-		}
+		_ = json.Unmarshal(metadataBytes, &metadata)
 	}
 
-	tokenList, err := u.fetchTokenList(ctx)
+	list, err := u.fetchTokenList(ctx, u.config.NewPoolLimit, metadata.Skip)
 	if err != nil {
-		u.logger.WithFields(logger.Fields{"error": err}).Error("failed to fetch token list")
-		return nil, metadataBytes, err
-	}
-
-	// Check if token list version changed
-	if tokenList.Version.Major == metadata.VersionMajor &&
-		tokenList.Version.Minor == metadata.VersionMinor &&
-		tokenList.Version.Patch == metadata.VersionPatch {
-		u.logger.Info("token list unchanged, no new pools")
+		u.logger.WithFields(logger.Fields{"error": err}).Warn("failed to fetch token list")
 		return nil, metadataBytes, nil
 	}
 
-	pools, err := u.buildPools(ctx, tokenList)
+	pools, err := u.buildPools(ctx, list)
 	if err != nil {
 		u.logger.WithFields(logger.Fields{"error": err}).Error("failed to build pools from token list and onchain getCurve")
 		return nil, metadataBytes, err
 	}
 
 	newMetadata := PoolsListUpdaterMetadata{
-		VersionMajor: tokenList.Version.Major,
-		VersionMinor: tokenList.Version.Minor,
-		VersionPatch: tokenList.Version.Patch,
+		Skip: metadata.Skip + len(list.Tokens),
 	}
+
 	newMetadataBytes, err := json.Marshal(newMetadata)
 	if err != nil {
 		return nil, metadataBytes, err
@@ -87,14 +78,26 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) fetchTokenList(ctx context.Context) (*TokenListResponse, error) {
-	url := fmt.Sprintf("%s/chains/%d/tokenlist.json", u.config.TokenListAPI, u.config.ChainId)
+func (u *PoolsListUpdater) fetchTokenList(ctx context.Context, size, skip int) (*TokenListResponse, error) {
+	base := strings.TrimSuffix(u.config.TokenListAPI, "/")
+	rawURL, err := url.JoinPath(base, "chains", strconv.FormatInt(int64(u.config.ChainId), 10), "tokenlist.json")
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	q := parsed.Query()
+	q.Set("size", strconv.Itoa(size))
+	q.Set("skip", strconv.Itoa(skip))
+	parsed.RawQuery = q.Encode()
 
 	var tokenList TokenListResponse
 	resp, err := u.httpClient.R().
 		SetContext(ctx).
 		SetResult(&tokenList).
-		Get(url)
+		Get(parsed.String())
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +171,6 @@ func (u *PoolsListUpdater) buildPools(ctx context.Context, tokenList *TokenListR
 			},
 		}
 		pools = append(pools, p)
-
-		if u.config.NewPoolLimit > 0 && len(pools) >= u.config.NewPoolLimit {
-			break
-		}
 	}
 	return pools, nil
 }

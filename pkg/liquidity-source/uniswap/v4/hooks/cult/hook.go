@@ -29,16 +29,14 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Cult},
 	}
 
-	if param.HookExtra != "" {
-		var extra Extra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
-			hook.totalFeeBps = big.NewInt(extra.TotalFeeBps)
-		}
+	var extra Extra
+	if err := param.HookExtra.Unmarshal(&extra); err == nil {
+		hook.totalFeeBps = big.NewInt(extra.TotalFeeBps)
 	}
 	return hook
 }, lo.Keys(FactoryByHook)...)
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra Extra
 	factory := FactoryByHook[param.HookAddress]
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
@@ -46,10 +44,9 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Target: hexutil.Encode(factory[:]),
 		Method: "totalFeeBps",
 	}, []any{&extra.TotalFeeBps}).Call(); err != nil {
-		return "", err
+		return nil, err
 	}
-	extraBytes, _ := json.Marshal(extra)
-	return string(extraBytes), nil
+	return json.Marshal(extra)
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {

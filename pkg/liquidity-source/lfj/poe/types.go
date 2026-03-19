@@ -4,11 +4,8 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type StaticExtra struct {
-	Oracle string `json:"oracle"`
-}
-
 type Extra struct {
+	Oracle  string       `json:"oracle"`
 	Price   *uint256.Int `json:"p"`
 	FeeHbps *uint256.Int `json:"fee_hbps"`
 	Alpha   *uint256.Int `json:"alpha"`

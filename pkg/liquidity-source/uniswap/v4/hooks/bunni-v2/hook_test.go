@@ -51,7 +51,7 @@ func TestHookV121_OracleUniGeo_Track(t *testing.T) {
 		ChainID: 1,
 	}
 
-	hookExtra := ""
+	var hookExtra []byte
 
 	h := NewHook(&uniswapv4.HookParam{
 		Cfg:         cfg,
@@ -97,7 +97,7 @@ func TestHookV121_Track(t *testing.T) {
 		ChainID: 1,
 	}
 
-	hookExtra := ""
+	var hookExtra []byte
 
 	h := NewHook(&uniswapv4.HookParam{
 		Cfg:         cfg,
@@ -151,7 +151,7 @@ func TestHookV120_Track(t *testing.T) {
 		ChainID: 130,
 	}
 
-	hookExtra := ""
+	var hookExtra []byte
 
 	h := NewHook(&uniswapv4.HookParam{
 		Cfg:         cfg,

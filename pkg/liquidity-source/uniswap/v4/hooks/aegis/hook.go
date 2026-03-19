@@ -53,22 +53,18 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		hook: param.HookAddress,
 	}
 
-	if param.HookExtra != "" {
-		var extra AegisExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
-			hook.swapFee = uniswapv4.FeeAmount(extra.DynamicFee)
-			hook.protocolFee = big.NewInt(int64(extra.PoolPOLShare))
-		}
+	var extra AegisExtra
+	if err := param.HookExtra.Unmarshal(&extra); err == nil {
+		hook.swapFee = uniswapv4.FeeAmount(extra.DynamicFee)
+		hook.protocolFee = big.NewInt(int64(extra.PoolPOLShare))
 	}
 	return hook
 }, HookAddresses...)
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra AegisExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return "", err
-		}
+	if err := param.HookExtra.Unmarshal(&extra); err != nil {
+		return nil, err
 	}
 
 	if extra.DynamicFeeManagerAddress == valueobject.AddrZero {
@@ -85,7 +81,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		}, []any{&extra.DynamicFeeManagerAddress})
 		_, err := req.Aggregate()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
@@ -117,7 +113,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}, []any{&poolPOLShare})
 	_, err := req.Aggregate()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	extra.BaseFee = dynamicFeeState.BaseFee.Uint64()
 	extra.SurgeFee = dynamicFeeState.SurgeFee.Uint64()
@@ -125,11 +121,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	extra.ManualFeeIsSet = manualFee.IsSet
 	extra.DynamicFee = lo.Ternary(extra.ManualFeeIsSet, extra.ManualFee, extra.BaseFee+extra.SurgeFee)
 	extra.PoolPOLShare = poolPOLShare.Uint64()
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return "", err
-	}
-	return string(extraBytes), nil
+	return json.Marshal(extra)
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
@@ -143,7 +135,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}, nil
 }
 
-func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+func (h *Hook) AfterSwap(_ *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
 		HookFee: bignumber.ZeroBI,
 	}, nil

@@ -107,22 +107,13 @@ func (t *PoolTracker) GetNewPoolState(
 		samples[i] = valid
 	}
 
-	extra := Extra{
-		Samples: samples,
-	}
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return p, err
-	}
-
-	p.Extra = string(extraBytes)
-
 	tokenAddrs := []common.Address{
 		common.HexToAddress(p.Tokens[0].Address),
 		common.HexToAddress(p.Tokens[1].Address),
 	}
 
 	var balances []*big.Int
+	var caps []*big.Int
 	reqRes := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
 	reqRes.AddCall(&ethrpc.Call{
 		ABI:    lensABI,
@@ -130,6 +121,12 @@ func (t *PoolTracker) GetNewPoolState(
 		Method: "getReserveBalances",
 		Params: []any{tokenAddrs},
 	}, []any{&balances})
+	reqRes.AddCall(&ethrpc.Call{
+		ABI:    lensABI,
+		Target: t.cfg.LensAddress,
+		Method: "getReserveBalanceCap",
+		Params: []any{tokenAddrs},
+	}, []any{&caps})
 
 	if _, err := reqRes.TryAggregate(); err != nil {
 		return p, err
@@ -144,6 +141,22 @@ func (t *PoolTracker) GetNewPoolState(
 		balances[1].String(),
 	}
 
+	extra := Extra{
+		Samples: samples,
+	}
+	extra.Caps = lo.Map(caps, func(c *big.Int, _ int) *big.Int {
+		if c == nil || c.Sign() <= 0 || c.Cmp(bignumber.MaxUint256) == 0 {
+			return nil
+		}
+		return c
+	})
+
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return p, err
+	}
+
+	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = res.BlockNumber.Uint64()
 

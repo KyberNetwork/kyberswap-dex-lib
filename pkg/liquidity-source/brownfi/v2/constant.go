@@ -43,13 +43,13 @@ const (
 
 var (
 	Router = map[valueobject.ChainID]common.Address{
-		valueobject.ChainIDArbitrumOne: common.HexToAddress("0x3240853b71c89209ea8764CDDfA3b81766553E55"),
+		valueobject.ChainIDArbitrumOne: common.HexToAddress("0x68F963E0CEC0360a003AB8c6D61FA3f39497c463"),
 		valueobject.ChainIDBase:        common.HexToAddress("0x454d337F8afb2dF8168547ab85d937D2445Df47a"),
-		valueobject.ChainIDBerachain:   common.HexToAddress("0xa8e42eB1C8aC6228BE39522728E18e7F6d69443c"),
-		valueobject.ChainIDBSC:         common.HexToAddress("0xD3F729D909a7E84669A35c3F25b37b4AC3487784"),
-		valueobject.ChainIDHyperEVM:    common.HexToAddress("0x0A461D280891167Ee8391f4F0c03EECaa39ae632"),
-		valueobject.ChainIDLinea:       common.HexToAddress("0x3F0bBeEdEa5E5F63a14cBdA82718d4f25501fBeA"),
-		valueobject.ChainIDMonad:       common.HexToAddress("0xD3F729D909a7E84669A35c3F25b37b4AC3487784"),
+		valueobject.ChainIDBerachain:   common.HexToAddress("0xb91458408dc7bb0561da70ffd89903794eAcDDA7"),
+		valueobject.ChainIDBSC:         common.HexToAddress("0xbCE4436BB4F0AdAcdAb3c9d3aEE44059cb9c371B"),
+		valueobject.ChainIDHyperEVM:    common.HexToAddress("0x7D06f0ad977B3276da37f2Da4b3a7b2c639244aA"),
+		valueobject.ChainIDLinea:       common.HexToAddress("0xf435c8a8b8FFB5236eFF9a955dee41564C84Aa62"),
+		valueobject.ChainIDMonad:       common.HexToAddress("0xFaed28e0ffb1C07A2Aa7A41Ae03536dfC12B0db7"),
 	}
 
 	q64         = big256.U2Pow64

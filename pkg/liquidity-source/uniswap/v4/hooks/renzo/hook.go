@@ -36,13 +36,11 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		hook: param.HookAddress.Hex(),
 	}
 
-	if param.HookExtra != "" {
-		var extra RenzoExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
-			hook.rate = big.NewInt(int64(extra.Rate))
-			hook.minFeeBps = big.NewInt(int64(extra.MinFeeBps))
-			hook.maxFeeBps = big.NewInt(int64(extra.MaxFeeBps))
-		}
+	var extra RenzoExtra
+	if err := param.HookExtra.Unmarshal(&extra); err == nil {
+		hook.rate = big.NewInt(int64(extra.Rate))
+		hook.minFeeBps = big.NewInt(int64(extra.MinFeeBps))
+		hook.maxFeeBps = big.NewInt(int64(extra.MaxFeeBps))
 	}
 
 	if param.Pool != nil && param.Pool.Extra != "" {
@@ -56,13 +54,9 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra RenzoExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return "", err
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&extra)
 
 	if extra.RateProviderAddress == valueobject.AddrZero {
 		if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
@@ -70,7 +64,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 			Target: h.hook,
 			Method: "rateProvider",
 		}, []any{&extra.RateProviderAddress}).Call(); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
@@ -88,18 +82,13 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Target: h.hook,
 		Method: "maxFeeBps",
 	}, []any{&maxFeeBps}).Aggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	extra.Rate = rate.Uint64()
 	extra.MinFeeBps = minFeeBps.Uint64()
 	extra.MaxFeeBps = maxFeeBps.Uint64()
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(extraBytes), nil
+	return json.Marshal(extra)
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
@@ -135,6 +124,7 @@ func exchangeRateToSqrtPriceX96(rate *big.Int) *big.Int {
 func absPercentageDifferenceWad(sqrtPriceX96, denominatorX96 *big.Int) *big.Int {
 	percentageDiffWad, divX96 := new(big.Int), new(big.Int)
 	divX96.Mul(sqrtPriceX96, q96).Div(divX96, denominatorX96)
-	percentageDiffWad.Mul(divX96, divX96).Mul(percentageDiffWad, WAD).Div(percentageDiffWad, q192).Sub(percentageDiffWad, WAD).Abs(percentageDiffWad)
+	percentageDiffWad.Mul(divX96, divX96).Mul(percentageDiffWad, WAD).Div(percentageDiffWad,
+		q192).Sub(percentageDiffWad, WAD).Abs(percentageDiffWad)
 	return percentageDiffWad
 }

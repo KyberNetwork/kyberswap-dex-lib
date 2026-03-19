@@ -47,12 +47,11 @@ type SwapInfo struct {
 	reserveDelta *uint256.Int // exact amount to add/subtract from reserve
 }
 
-// TokenListResponse matches the Uniswap-standard tokenlist JSON format
-// served by PRINTR's API at /chains/{chainId}/tokenlist.json.
 type TokenListResponse struct {
-	Name    string           `json:"name"`
-	Tokens  []TokenListEntry `json:"tokens"`
-	Version TokenListVersion `json:"version"`
+	Name      string           `json:"name"`
+	Timestamp string           `json:"timestamp"`
+	Tokens    []TokenListEntry `json:"tokens"`
+	Version   TokenListVersion `json:"version"`
 }
 
 type TokenListEntry struct {
@@ -75,9 +74,6 @@ type MetaInfo struct {
 	BlockNumber uint64 `json:"blockNumber"`
 }
 
-// PoolsListUpdaterMetadata tracks incremental pool discovery state.
 type PoolsListUpdaterMetadata struct {
-	VersionMajor int `json:"vMaj"`
-	VersionMinor int `json:"vMin"`
-	VersionPatch int `json:"vPat"`
+	Skip int `json:"skip"`
 }

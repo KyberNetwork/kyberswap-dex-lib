@@ -1,7 +1,8 @@
-package doppler
+package alpha
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,24 +11,25 @@ import (
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type Hook struct { // scheduled
-	uniswapv4.Hook `json:"-"`
-	StartingTime   int64
-}
-
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	return &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler}
-}, NoopHookAddresses...)
-
-var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	var hook Hook
+	hook := Hook{
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alpha},
+	}
 	_ = param.HookExtra.Unmarshal(&hook)
-	hook.Hook = &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler}
 	return &hook
-}, ScheduledHookAddresses...)
+},
+	common.HexToAddress("0xb0Ba5d56364569496e0aA5158C3242420eaDE880"), // base
+	common.HexToAddress("0xB0BcB37dD65712c3Afa101D54389c8279659A880"), // bsc
+)
+
+type Hook struct {
+	uniswapv4.Hook `json:"-"`
+	StartTime      int64 `json:"s"`
+}
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	if len(param.HookExtra) > 0 {
@@ -35,20 +37,25 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	}
 
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
-		ABI:    hookABI,
+		ABI:    Abi,
 		Target: hexutil.Encode(param.HookAddress[:]),
-		Method: "startingTimeOf",
+		Method: "poolStartedTimestamp",
 		Params: []any{common.HexToHash(param.Pool.Address)},
-	}, []any{&h.StartingTime}).Call(); err != nil {
+	}, []any{&h.StartTime}).TryBlockAndAggregate(); err != nil {
 		return nil, err
 	}
 
 	return json.Marshal(h)
 }
 
-func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if h.StartingTime == 0 || time.Now().Unix() < h.StartingTime {
-		return nil, ErrCannotSwapBeforeStartingTime
+var ErrPoolNotStarted = errors.New("pool not started")
+
+func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	if time.Now().Before(time.Unix(h.StartTime, 0)) {
+		return nil, ErrPoolNotStarted
 	}
-	return h.Hook.BeforeSwap(params)
+	return &uniswapv4.BeforeSwapResult{
+		DeltaSpecified:   bignumber.ZeroBI,
+		DeltaUnspecified: bignumber.ZeroBI,
+	}, nil
 }

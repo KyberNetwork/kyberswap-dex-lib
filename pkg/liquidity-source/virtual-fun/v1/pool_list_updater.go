@@ -14,7 +14,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -186,7 +185,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
-		if token0List[i].Cmp(eth.AddressZero) == 0 {
+		if token0List[i].Cmp(valueobject.AddrZero) == 0 {
 			continue
 		}
 
@@ -262,7 +261,7 @@ func (u *PoolsListUpdater) getListToken0(ctx context.Context, pairAddresses []co
 
 		for i := range result.Result {
 			if result.Result[i] {
-				listToken0Result[i] = eth.AddressZero // ignore the pool has this token
+				listToken0Result[i] = valueobject.AddrZero // ignore the pool has this token
 			}
 		}
 	}
