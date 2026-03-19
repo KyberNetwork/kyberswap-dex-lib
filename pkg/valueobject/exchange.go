@@ -345,20 +345,6 @@ func IsPropAMMSource[T ~string](exchange T) bool {
 	return contained
 }
 
-var needsCandidateEdgeSet = map[Exchange]struct{}{
-	ExchangeUniSwap:   {},
-	ExchangeUniSwapV3: {},
-}
-
-func NeedsCandidateEdge(exchange Exchange) bool {
-	if _, ok := needFallbackSourceSet[Exchange(exchange)]; ok {
-		return true
-	}
-
-	_, ok := needsCandidateEdgeSet[exchange]
-	return ok
-}
-
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
