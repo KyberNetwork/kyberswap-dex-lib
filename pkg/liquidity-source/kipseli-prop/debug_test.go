@@ -41,12 +41,8 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 		rpcURL = "https://base.kyberengineering.io"
 	}
 
-	var verifier common.Address
-
-	verifier = common.HexToAddress("")
-
-	var quoter common.Hash
-	quoter = common.HexToHash("")
+	verifier := common.HexToAddress(os.Getenv("VERIFIER_ADDRESS"))
+	quoter := common.HexToHash(os.Getenv("QUOTER_HASH"))
 
 	cfg := Config{
 		DexID:         DexType,
