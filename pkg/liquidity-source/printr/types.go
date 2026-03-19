@@ -22,12 +22,13 @@ type GetCurveResult struct {
 
 // StaticExtra stores immutable per-pool data (set once at pool creation).
 type StaticExtra struct {
-	PrintrAddr     string `json:"pA"`
-	Token          string `json:"tk"`
-	BasePair       string `json:"bP"`
-	TotalCurves    uint16 `json:"tC"`
-	MaxTokenSupply string `json:"mTS"`
-	VirtualReserve string `json:"vR"`
+	PrintrAddr         string `json:"pA"`
+	Token              string `json:"tk"`
+	BasePair           string `json:"bP"`
+	TotalCurves        uint16 `json:"tC"`
+	MaxTokenSupply     string `json:"mTS"`
+	VirtualReserve     string `json:"vR"`
+	DependenciesStored bool   `json:"ds,omitempty"`
 }
 
 // Extra stores mutable per-pool state (refreshed by the tracker).

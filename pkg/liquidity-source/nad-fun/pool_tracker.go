@@ -3,6 +3,7 @@ package nadfun
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -125,4 +126,30 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func (t *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]string, bool, error) {
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return []string{strings.ToLower(t.config.BondingCurveAddress)}, staticExtra.DependenciesStored, nil
+}
+
+func (t *PoolTracker) SetDependenciesStored(p *entity.Pool, isStored bool) error {
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err != nil {
+		return err
+	}
+	staticExtra.DependenciesStored = isStored
+	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return err
+	}
+	p.StaticExtra = string(staticExtraBytes)
+
+	return err
 }

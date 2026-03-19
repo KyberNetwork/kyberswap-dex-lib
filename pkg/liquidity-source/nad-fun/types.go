@@ -18,7 +18,8 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Router string `json:"router"`
+	Router             string `json:"router"`
+	DependenciesStored bool   `json:"ds,omitempty"`
 }
 
 type SwapInfo struct {

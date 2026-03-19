@@ -2,6 +2,7 @@ package printr
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -173,4 +174,30 @@ func computeTokenReserve(
 	curveConstant := new(uint256.Int).Mul(virtualReserve, initialTokenReserve)
 	vPlusR := new(uint256.Int).Add(virtualReserve, reserve)
 	return new(uint256.Int).Div(curveConstant, vPlusR)
+}
+
+func (t *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]string, bool, error) {
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return []string{strings.ToLower(t.config.PrintrAddr)}, staticExtra.DependenciesStored, nil
+}
+
+func (t *PoolTracker) SetDependenciesStored(p *entity.Pool, isStored bool) error {
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err != nil {
+		return err
+	}
+	staticExtra.DependenciesStored = isStored
+	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return err
+	}
+	p.StaticExtra = string(staticExtraBytes)
+
+	return err
 }
