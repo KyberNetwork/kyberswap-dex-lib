@@ -2,6 +2,7 @@ package carbon
 
 import (
 	"context"
+	"errors"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -122,10 +123,10 @@ func (ep *EventParser) getPoolAddress(token0, token1 common.Address) string {
 
 func (ep *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	// TODO: Implement this (non tick-based pool creation)
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
 
 func (ep *EventParser) IsEventSupported(event common.Hash) bool {
 	// TODO: Implement this (non tick-based pool creation)
-	return true
+	return false
 }

@@ -2,6 +2,7 @@ package ekubo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -145,10 +146,10 @@ func sort(tokenA, tokenB common.Address) (common.Address, common.Address) {
 
 func (e *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	// TODO: Implement this (non tick-based pool creation)
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
 
 func (e *EventParser) IsEventSupported(event common.Hash) bool {
 	// TODO: Implement this (non tick-based pool creation)
-	return true
+	return false
 }
