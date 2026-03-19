@@ -62,7 +62,6 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	// Warn on quote gaps: >0 ... 0 ... >0 as amountIn increases.
 	t.warnGapInQuotes(p, samples)
 
 	if t.cfg.Buffer > 0 {
@@ -77,14 +76,15 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 
-	for i := range samples {
-		valid := samples[i][:0]
-		for _, s := range samples[i] {
-			if s[0] != nil && s[1] != nil {
-				valid = append(valid, s)
+	for dir := range samples {
+		valid := samples[dir][:0]
+		for _, s := range samples[dir] {
+			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
+				continue
 			}
+			valid = append(valid, s)
 		}
-		samples[i] = valid
+		samples[dir] = valid
 	}
 
 	// Get reserves from pool (returns a struct/tuple)
@@ -107,17 +107,6 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = []string{
 		reserves.BaseTokenReserves.String(),
 		reserves.QuoteTokenReserves.String(),
-	}
-
-	for dir := range samples {
-		valid := samples[dir][:0]
-		for _, s := range samples[dir] {
-			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
-				continue
-			}
-			valid = append(valid, s)
-		}
-		samples[dir] = valid
 	}
 
 	extra := Extra{Samples: samples}

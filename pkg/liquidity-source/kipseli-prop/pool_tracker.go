@@ -130,17 +130,6 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInsufficientLiquidity
 	}
 
-	for dir := range samples {
-		valid := samples[dir][:0]
-		for _, s := range samples[dir] {
-			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
-				continue
-			}
-			valid = append(valid, s)
-		}
-		samples[dir] = valid
-	}
-
 	p.Reserves = []string{
 		balances[0].String(),
 		balances[1].String(),
@@ -149,6 +138,7 @@ func (t *PoolTracker) GetNewPoolState(
 	extra := Extra{
 		Samples: samples,
 	}
+
 	extra.MaxIn = make([]*big.Int, len(caps))
 	for i, c := range caps {
 		if c == nil || c.Sign() <= 0 || c.Cmp(bignumber.MaxUint256) == 0 {
@@ -158,16 +148,19 @@ func (t *PoolTracker) GetNewPoolState(
 			extra.MaxIn[i] = new(big.Int).Sub(c, balances[i])
 		}
 	}
+
 	for dir := range samples {
 		maxIn := lo.Ternary(dir < len(extra.MaxIn), extra.MaxIn[dir], nil)
-		if maxIn == nil || maxIn.Sign() <= 0 {
-			continue
-		}
+
 		valid := samples[dir][:0]
 		for _, s := range samples[dir] {
-			if s[0] != nil && s[0].Cmp(maxIn) <= 0 {
-				valid = append(valid, s)
+			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
+				continue
 			}
+			if maxIn != nil && maxIn.Sign() > 0 && s[0].Cmp(maxIn) > 0 {
+				continue
+			}
+			valid = append(valid, s)
 		}
 		samples[dir] = valid
 	}
