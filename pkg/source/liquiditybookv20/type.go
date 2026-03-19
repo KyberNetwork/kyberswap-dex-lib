@@ -7,21 +7,16 @@ type Metadata struct {
 }
 
 type Extra struct {
-	RpcBlockTimestamp      uint64        `json:"rpcBlockTimestamp"`
-	SubgraphBlockTimestamp uint64        `json:"subgraphBlockTimestamp,omitempty"`
-	FeeParameters          feeParameters `json:"feeParameters"`
-	ActiveBinID            uint32        `json:"activeBinId"`
-	Bins                   []Bin         `json:"bins"`
-	Liquidity              *big.Int      `json:"liquidity"`
-	PriceX128              *big.Int      `json:"priceX128"`
+	RpcBlockTimestamp uint64        `json:"rpcBlockTimestamp"`
+	FeeParameters     feeParameters `json:"feeParameters"`
+	ActiveBinID       uint32        `json:"activeBinId"`
+	Bins              []Bin         `json:"bins"`
 }
 
 type QueryRpcPoolStateResult struct {
 	BlockTimestamp uint64        `json:"blockTimestamp"`
 	FeeParameters  feeParameters `json:"feeParameters"`
 	ReservesAndID  reservesAndID `json:"reserves"`
-	Liquidity      *big.Int      `json:"liquidity"`
-	PriceX128      *big.Int      `json:"priceX128"`
 }
 
 type BinResp struct {
@@ -36,8 +31,7 @@ type reservesAndID struct {
 }
 
 type querySubgraphPoolStateResult struct {
-	BlockTimestamp uint64 `json:"blockTimestamp"`
-	Bins           []Bin  `json:"bins"`
+	Bins []Bin `json:"bins"`
 }
 
 type getSwapOutResult struct {
