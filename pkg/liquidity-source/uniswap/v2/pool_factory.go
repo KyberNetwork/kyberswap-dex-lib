@@ -1,6 +1,7 @@
 package uniswapv2
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
@@ -27,26 +28,37 @@ func NewPoolFactory(config *Config) *PoolFactory {
 		config: config,
 	}
 }
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, event types.Log) ([]string, error) {
+	pairCreated, err := f.getPairCreated(event)
+	if err != nil {
+		return nil, err
+	}
+	return []string{hexutil.Encode(pairCreated.Pair[:])}, nil
+}
 
 func (f *PoolFactory) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+	pairCreated, err := f.getPairCreated(event)
+	if err != nil {
+		return nil, err
+	}
+	return f.newPool(pairCreated, event.BlockNumber)
+}
+
+func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
+	return event == uniswapV2FactoryABI.Events["PairCreated"].ID
+}
+
+func (f *PoolFactory) getPairCreated(event types.Log) (*uniswapv2.UniswapV2FactoryPairCreated, error) {
 	if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) || !strings.EqualFold(hexutil.Encode(event.Address[:]), f.config.FactoryAddress) {
 		return nil, errors.New("event is not supported")
 	}
 
 	switch event.Topics[0] {
 	case uniswapV2FactoryABI.Events["PairCreated"].ID:
-		pool, err := uniswapV2FactoryFilterer.ParsePairCreated(event)
-		if err != nil {
-			return nil, err
-		}
-		return f.newPool(pool, event.BlockNumber)
+		return uniswapV2FactoryFilterer.ParsePairCreated(event)
 	default:
 		return nil, errors.New("event is not supported")
 	}
-}
-
-func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
-	return event == uniswapV2FactoryABI.Events["PairCreated"].ID
 }
 
 func (f *PoolFactory) newPool(p *uniswapv2.UniswapV2FactoryPairCreated, blockNbr uint64) (*entity.Pool, error) {
