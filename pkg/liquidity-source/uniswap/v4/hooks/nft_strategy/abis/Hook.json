@@ -1,19 +1,47 @@
 [
   {
+    "name": "deploymentBlock",
+    "type": "function",
+    "stateMutability": "view",
     "inputs": [
       {
         "internalType": "address",
         "type": "address"
       }
     ],
-    "name": "deploymentBlock",
     "outputs": [
       {
         "internalType": "int64",
         "type": "int64"
       }
-    ],
+    ]
+  },
+  {
+    "name": "fee",
+    "type": "function",
     "stateMutability": "view",
-    "type": "function"
+    "outputs": [
+      {
+        "internalType": "int64",
+        "type": "int64"
+      }
+    ]
+  },
+  {
+    "name": "calculateFee",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "internalType": "int64",
+        "type": "int64"
+      }
+    ]
   }
 ]

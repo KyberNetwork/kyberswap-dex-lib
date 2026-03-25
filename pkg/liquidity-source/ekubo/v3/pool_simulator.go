@@ -10,10 +10,10 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -22,7 +22,7 @@ import (
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 type (
-	EkuboPool = Pool
+	EkuboPool = pools.Pool
 
 	PoolSimulator struct {
 		pool.Pool
@@ -114,7 +114,7 @@ func (p *PoolSimulator) quoteWithZeroChecksAndBaseGasCost(amountBig *big.Int, is
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.EkuboPool = p.EkuboPool.CloneState().(EkuboPool)
+	cloned.EkuboPool = p.CloneSwapStateOnly()
 	return &cloned
 }
 

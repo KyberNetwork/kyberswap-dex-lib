@@ -1,0 +1,1461 @@
+[
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "chainName",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "treasury",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "legacyTreasury",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "mainTelecoinFactory",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "teleportingTelecoinFactory",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "its",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "itsFactory",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "wrappedNativeToken",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "locker",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "liquidityModule",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "create3Deployer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "growthFund",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "buybackFund",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "teamTreasuryFund",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "stakingFund",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "printrDev",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "legacyPrintrDev",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "legacyPrintrDev2",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feePercentGrowth",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feePercentBuyback",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feePercentTeam",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "feePercentCreator",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "tradingFee",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct IPrintrStorage.DeploymentParams",
+        "name": "storageParams",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "teleport_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
+    ],
+    "name": "AddressEmptyCode",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "AddressInsufficientBalance",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Create3AddressMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EnforcedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ExpectedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FailedInnerCall",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "FeeIsTooHigh",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FeePercentagesMustSum",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InsufficientInitialBuy",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InsufficientPayment",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidBasePairDecimals",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidBasePairs",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidBasePrices",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidCreatorAddress",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidImplementation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidInitialPrice",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidLength",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidQuoteResult",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LiquidityAlreadyDeployed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LiquidityDeploymentFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MathOverflowedMulDiv",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotInitializing",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PoolCreationFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PriceExceedsLimit",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RefundFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RenounceOwnershipDisabled",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "SafeERC20FailedOperation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SwapFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TokenNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TooHighThreshold",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UnauthorizedCaller",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "WrongChainName",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ZeroAmount",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "telecoinId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "CurveCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokenAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "baseAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "LiquidityDeployed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "positionManager",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lockId",
+        "type": "uint256"
+      }
+    ],
+    "name": "LiquidityLocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "telecoinId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "TelecoinPrinted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalSupply",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenGraduated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "stage",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "gasLeft",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenGraduationPartialFailure",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cost",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "priceAfter",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "issuedSupply",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "reserve",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenTrade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "telecoin",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "factory",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint24",
+        "name": "feePips",
+        "type": "uint24"
+      }
+    ],
+    "name": "UniswapPoolCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "fallback"
+  },
+  {
+    "inputs": [],
+    "name": "BIPS_SCALAR",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "EVM_ADDRESS_PREFIX",
+    "outputs": [
+      {
+        "internalType": "bytes1",
+        "name": "",
+        "type": "bytes1"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "PRECISION",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "VERSION",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "buy",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "priceLimit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "tradingFee",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct IPrintrTrading.TradeParams",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "buybackFund",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "create3Deployer",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentChainHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "estimateTokenCost",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "availableAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "cost",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAfter",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "issuedSupply",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "estimateTokenRefund",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenAmountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "refund",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAfter",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "issuedSupply",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feePercentBuyback",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feePercentCreator",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feePercentGrowth",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feePercentTeam",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "growthFund",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "interchainTokenService",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "itsFactory",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "legacyPrintrDev",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "legacyPrintrDev2",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "legacyTreasury",
+    "outputs": [
+      {
+        "internalType": "contract ITreasury",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liquidityModule",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "locker",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mainTelecoinFactory",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "initialSpending",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "salt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes",
+            "name": "creatorAddresses",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "name",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "symbol",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "packedParams",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32[]",
+            "name": "chains",
+            "type": "bytes32[]"
+          },
+          {
+            "internalType": "bytes32[]",
+            "name": "basePairs",
+            "type": "bytes32[]"
+          },
+          {
+            "internalType": "bytes",
+            "name": "basePrices",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IPrintrStorage.TelecoinParams",
+        "name": "telecoinParams",
+        "type": "tuple"
+      }
+    ],
+    "name": "print",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "telecoinId",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "printrDev",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "quoteTokenAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "cost",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAfter",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "issuedSupply",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "sell",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "priceLimit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "tradingFee",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct IPrintrTrading.TradeParams",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "spend",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "priceLimit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "tradingFee",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct IPrintrTrading.TradeParams",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakingFund",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "teamTreasuryFund",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "teleport",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "teleportingTelecoinFactory",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "tradingFee",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "treasury",
+    "outputs": [
+      {
+        "internalType": "contract ITreasury",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "signer",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "witnessSell",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "priceLimit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "tradingFee",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct IPrintrTrading.TradeParams",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wrappedNativeToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
+  }
+]

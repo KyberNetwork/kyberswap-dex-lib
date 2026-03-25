@@ -1,0 +1,51 @@
+[
+  {
+    "name": "getHookFees",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fees0",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "fees1",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "beneficiaryFees0",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "beneficiaryFees1",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "airlockOwnerFees0",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "airlockOwnerFees1",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "customFee",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

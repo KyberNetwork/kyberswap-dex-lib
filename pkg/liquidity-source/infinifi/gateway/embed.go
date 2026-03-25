@@ -22,4 +22,3 @@ var ethereumPoolData []byte
 var BytesByPath = map[string][]byte{
 	"pools/ethereum.json": ethereumPoolData,
 }
-

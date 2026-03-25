@@ -3,6 +3,8 @@ package flaunch
 import (
 	"math/big"
 
+	"github.com/samber/lo"
+
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -38,9 +40,9 @@ func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 }
 
 // AfterSwap calculates the fee based on the output amount and the swap fee. There's no protocol fee.
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	var hookFeeAmt big.Int
 	return &uniswapv4.AfterSwapResult{
-		HookFee: hookFeeAmt.Div(swapHookParams.AmountOut, FeeDivBy),
+		HookFee: hookFeeAmt.Div(lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn), FeeDivBy),
 	}, nil
 }

@@ -33,11 +33,11 @@ func (p *FullRangePool) GetState() any {
 	return p.FullRangePoolState
 }
 
-func (p *FullRangePool) CloneState() any {
+func (p *FullRangePool) CloneSwapStateOnly() Pool {
 	cloned := *p
-	cloned.key = p.key.CloneState()
-	clonedFullRangePoolState := *p.FullRangePoolState
-	cloned.FullRangePoolState = &clonedFullRangePoolState
+	copiedFullRangePoolState := *p.FullRangePoolState
+	cloned.FullRangePoolState = &copiedFullRangePoolState
+	cloned.FullRangePoolSwapState = p.Clone()
 	return &cloned
 }
 
@@ -48,6 +48,44 @@ func (p *FullRangePool) SetSwapState(state quoting.SwapState) {
 func (p *FullRangePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	return p.quoteWithLimitAndOverride(amount, isToken1, nil, nil)
 }
+
+func (s *FullRangePoolState) CalcBalances() ([]uint256.Int, error) {
+	tvl0, err := math.Amount0Delta(s.SqrtRatio, math.MaxSqrtRatio, s.Liquidity, false)
+	if err != nil {
+		return nil, fmt.Errorf("computing amount0 delta: %w", err)
+	}
+
+	tvl1, err := math.Amount1Delta(math.MinSqrtRatio, s.SqrtRatio, s.Liquidity, false)
+	if err != nil {
+		return nil, fmt.Errorf("computing amount1 delta: %w", err)
+	}
+
+	return []uint256.Int{*tvl0, *tvl1}, nil
+}
+
+func (p *FullRangePool) ApplyEvent(event Event, data []byte, _ uint64) error {
+	switch event {
+	case EventSwapped:
+		event, err := parseSwappedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.SqrtRatio = event.sqrtRatioAfter
+		p.Liquidity = event.liquidityAfter
+	case EventPositionUpdated:
+		event, err := parsePositionUpdatedEventIfMatching(data, p.GetKey())
+		if err != nil || event == nil {
+			return err
+		}
+
+		p.Liquidity.Add(p.Liquidity, (*uint256.Int)(event.liquidityDelta))
+	default:
+	}
+	return nil
+}
+
+func (p *FullRangePool) NewBlock() {}
 
 func (p *FullRangePool) quoteWithLimitAndOverride(amount *uint256.Int, isToken1 bool, sqrtRatioLimit *uint256.Int, overrideState *FullRangePoolSwapState) (*quoting.Quote, error) {
 	var state *FullRangePoolSwapState
@@ -87,16 +125,31 @@ func (p *FullRangePool) quoteWithLimitAndOverride(amount *uint256.Int, isToken1 
 		ConsumedAmount:   step.ConsumedAmount,
 		CalculatedAmount: step.CalculatedAmount,
 		FeesPaid:         step.FeeAmount,
-		Gas:              quoting.BaseGasFullRangeSwap,
+		Gas:              quoting.GasCostOfOneFullRangeSwap,
 		SwapInfo: quoting.SwapInfo{
-			SkipAhead: 0,
-			IsToken1:  isToken1,
-			SwapStateAfter: &FullRangePoolSwapState{
-				sqrtRatio,
-			},
+			SkipAhead:           0,
+			IsToken1:            isToken1,
+			SwapStateAfter:      NewFullRangePoolSwapState(sqrtRatio),
 			TickSpacingsCrossed: 0,
 		},
 	}, nil
+}
+
+func (s *FullRangePoolSwapState) Clone() *FullRangePoolSwapState {
+	return NewFullRangePoolSwapState(s.SqrtRatio.Clone())
+}
+
+func NewFullRangePoolSwapState(sqrtRatio *uint256.Int) *FullRangePoolSwapState {
+	return &FullRangePoolSwapState{
+		SqrtRatio: sqrtRatio,
+	}
+}
+
+func NewFullRangePoolState(swapState *FullRangePoolSwapState, liquidity *uint256.Int) *FullRangePoolState {
+	return &FullRangePoolState{
+		FullRangePoolSwapState: swapState,
+		Liquidity:              liquidity,
+	}
 }
 
 func NewFullRangePool(key *FullRangePoolKey, state *FullRangePoolState) *FullRangePool {

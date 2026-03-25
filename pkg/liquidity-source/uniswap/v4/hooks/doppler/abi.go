@@ -6,7 +6,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var hookABI abi.ABI
+var (
+	hookABI              abi.ABI
+	poolStateABI         abi.ABI
+	rehypeDopplerHookABI abi.ABI
+)
 
 func init() {
 	builder := []struct {
@@ -14,6 +18,8 @@ func init() {
 		data []byte
 	}{
 		{&hookABI, hookABIJson},
+		{&poolStateABI, poolStateABIJson},
+		{&rehypeDopplerHookABI, rehypeDopplerHookABIJson},
 	}
 
 	for _, b := range builder {

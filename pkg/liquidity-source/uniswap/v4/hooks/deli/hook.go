@@ -3,6 +3,8 @@ package deli
 import (
 	"math/big"
 
+	"github.com/samber/lo"
+
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -40,7 +42,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	hookFeeAmt := bignumber.ZeroBI
 	if params.ZeroForOne != h.isWBTLToken0 {
-		hookFeeAmt = bignumber.MulDivDown(new(big.Int), params.AmountOut, h.FeeTier, FeeDenom)
+		hookFeeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn),
+			h.FeeTier, FeeDenom)
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: hookFeeAmt,

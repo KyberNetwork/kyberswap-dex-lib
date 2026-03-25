@@ -161,7 +161,7 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = lo.Map(append(availableBalances, bignum.TwoPow128), func(r *big.Int, index int) string { return r.String() })
+	p.Reserves = lo.Map(append(availableBalances, bignum.B2Pow128), func(r *big.Int, index int) string { return r.String() })
 	p.Tokens = tokens
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = resp.BlockNumber.Uint64()

@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Erc20ABI abi.ABI
+	Erc20ABI      abi.ABI
+	Multicall3ABI abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&Erc20ABI, erc20Json},
+		{&Multicall3ABI, multicall3Json},
 	}
 
 	for _, b := range builder {

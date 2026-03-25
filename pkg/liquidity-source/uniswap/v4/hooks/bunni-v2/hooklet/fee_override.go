@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -29,10 +30,10 @@ type FeeOverrideRPC struct {
 	FeeOneToZero      *big.Int
 }
 
-func NewFeeOverrideHooklet(extra string) IHooklet {
+func NewFeeOverrideHooklet(extra uniswapv4.HookExtra) IHooklet {
 	var hookletExtra HookletExtra
-	if extra != "" {
-		if err := json.Unmarshal([]byte(extra), &hookletExtra); err != nil {
+	if extra != nil {
+		if err := extra.Unmarshal(&hookletExtra); err != nil {
 			return nil
 		}
 	}
@@ -42,7 +43,7 @@ func NewFeeOverrideHooklet(extra string) IHooklet {
 	}
 }
 
-func (h *feeOverrideHooklet) Track(ctx context.Context, params HookletParams) (string, error) {
+func (h *feeOverrideHooklet) Track(ctx context.Context, params HookletParams) (json.RawMessage, error) {
 	var feeOverride FeeOverrideRPC
 
 	req := params.RpcClient.NewRequest().SetContext(ctx)
@@ -54,21 +55,15 @@ func (h *feeOverrideHooklet) Track(ctx context.Context, params HookletParams) (s
 	}, []any{&feeOverride})
 
 	if _, err := req.Aggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	extra, err := json.Marshal(&HookletExtra{
+	return json.Marshal(&HookletExtra{
 		OverrideZeroToOne: feeOverride.OverrideZeroToOne,
 		FeeZeroToOne:      uint256.MustFromBig(feeOverride.FeeZeroToOne),
 		OverrideOneToZero: feeOverride.OverrideOneToZero,
 		FeeOneToZero:      uint256.MustFromBig(feeOverride.FeeOneToZero),
 	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(extra), nil
 }
 
 func (h *feeOverrideHooklet) BeforeSwap(params *SwapParams) (

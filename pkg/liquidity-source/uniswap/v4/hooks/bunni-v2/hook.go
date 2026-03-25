@@ -46,11 +46,7 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	}
 
 	var hookExtra HookExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &hookExtra); err != nil {
-			return nil
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&hookExtra)
 
 	if param.Pool != nil {
 		if param.Pool.StaticExtra != "" {
@@ -70,12 +66,16 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		}
 	}
 
-	hook.hooklet = InitHooklet(hookExtra.HookletAddress, hookExtra.HookletExtra)
+	hook.hooklet = InitHooklet(hookExtra.HookletAddress, uniswapv4.HookExtra(hookExtra.HookletExtra))
 	hook.oracle = oracle.NewObservationStorage(hookExtra.Observations)
 	hook.HookExtra = hookExtra
 	hook.writeObservationOnce = new(sync.Once)
 
 	return hook
+}
+
+func (h *Hook) AllowEmptyTicks() bool {
+	return true
 }
 
 func (h *Hook) CloneState() uniswapv4.Hook {
@@ -175,8 +175,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if h.Slot0.SqrtPriceX96.IsZero() ||
 		(params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) >= 0) ||
 		(!params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) <= 0) ||
-		params.AmountSpecified.Cmp(bignumber.MAX_INT_128) > 0 ||
-		params.AmountSpecified.Cmp(bignumber.MIN_INT_128) < 0 {
+		params.AmountSpecified.Cmp(bignumber.MaxInt128) > 0 ||
+		params.AmountSpecified.Cmp(bignumber.MinInt128) < 0 {
 		return nil, errors.New("BunniHook__InvalidSwap")
 	}
 

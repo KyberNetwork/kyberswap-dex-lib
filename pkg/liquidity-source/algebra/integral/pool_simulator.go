@@ -77,17 +77,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tickMin := extra.Ticks[0].Index
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
-	var info = pool.PoolInfo{
-		Address:     strings.ToLower(entityPool.Address),
-		Exchange:    entityPool.Exchange,
-		Type:        entityPool.Type,
-		Tokens:      tokens,
-		Reserves:    reserves,
-		BlockNumber: entityPool.BlockNumber,
-	}
-
 	return &PoolSimulator{
-		Pool:               pool.Pool{Info: info},
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
+		}},
 		globalState:        extra.GlobalState,
 		liquidity:          extra.Liquidity,
 		ticks:              ticks,
@@ -301,7 +299,9 @@ func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
 			}
 			newFee = getFee(volatilityLast, p.dynamicFee)
 		}
-		p.globalState.LastFee = newFee
+		if newFee != 0 {
+			p.globalState.LastFee = newFee
+		}
 		return nil
 	})
 }
@@ -410,8 +410,8 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	feeU := uint256.NewInt(cache.fee)
 	cache.communityFee = uint256.NewInt(uint64(p.globalState.CommunityFee))
 
-	if zeroToOne && limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(MIN_SQRT_RATIO) <= 0 ||
-		!zeroToOne && limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(MAX_SQRT_RATIO) >= 0 {
+	if zeroToOne && !limitSqrtPrice.Lt(currentPrice) || !limitSqrtPrice.Gt(MIN_SQRT_RATIO) ||
+		!zeroToOne && !limitSqrtPrice.Gt(currentPrice) || !limitSqrtPrice.Lt(MAX_SQRT_RATIO) {
 		return nil, nil, nil, 0, nil, FeesAmount{}, 0, ErrInvalidLimitSqrtPrice
 	}
 
@@ -448,7 +448,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		}
 
 		var targetPrice = step.nextTickPrice
-		if zeroToOne == (step.nextTickPrice.Cmp(limitSqrtPrice) < 0) {
+		if zeroToOne == (step.nextTickPrice.Lt(limitSqrtPrice)) {
 			targetPrice = limitSqrtPrice
 		}
 
@@ -508,7 +508,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 				return nil, nil, nil, 0, nil, FeesAmount{}, 0, err
 			}
 
-		} else if currentPrice.Cmp(step.stepSqrtPrice) != 0 {
+		} else if !currentPrice.Eq(step.stepSqrtPrice) {
 			currentTickInt, err := v3Utils.GetTickAtSqrtRatioV2(currentPrice)
 			if err != nil {
 				return nil, nil, nil, 0, nil, FeesAmount{}, 0, err
@@ -547,9 +547,10 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 			return nil, nil, nil, nil, err
 		}
 
-		if amountAvailableAfterFee.Cmp(input) >= 0 {
+		if !amountAvailableAfterFee.Lt(input) {
 			resultPrice = targetPrice.Clone()
-			feeAmount, err = v3Utils.MulDivRoundingUp(input, uint256.NewInt(fee), feeDenoMinusFee)
+			feeAmount = new(uint256.Int)
+			err = v3Utils.MulDivRoundingUpV2(input, feeAmount.SetUint64(fee), feeDenoMinusFee, feeAmount)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -587,7 +588,7 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 			return nil, nil, nil, nil, ErrInvalidAmountRequired
 		}
 
-		if amountAvailable.Cmp(output) >= 0 {
+		if !amountAvailable.Lt(output) {
 			resultPrice = targetPrice.Clone()
 		} else {
 			resultPrice, err = getNewPriceAfterOutput(currentPrice, liquidity, amountAvailable, zeroToOne)
@@ -595,14 +596,14 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 				return nil, nil, nil, nil, err
 			}
 
-			if targetPrice.Cmp(resultPrice) != 0 {
+			if !targetPrice.Eq(resultPrice) {
 				output, err = getOutputTokenAmount(resultPrice, currentPrice, liquidity)
 				if err != nil {
 					return nil, nil, nil, nil, err
 				}
 			}
 
-			if output.Cmp(amountAvailable) > 0 {
+			if output.Gt(amountAvailable) {
 				output.Set(amountAvailable)
 			}
 		}
@@ -612,8 +613,8 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 			return nil, nil, nil, nil, err
 		}
 
-		feeAmount, err = v3Utils.MulDivRoundingUp(input, uint256.NewInt(fee),
-			feeDenoMinusFee)
+		feeAmount = new(uint256.Int)
+		err = v3Utils.MulDivRoundingUpV2(input, feeAmount.SetUint64(fee), feeDenoMinusFee, feeAmount)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}

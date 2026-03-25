@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -25,10 +25,7 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	return &PoolTracker{
-		cfg:          cfg,
-		ethrpcClient: ethrpcClient,
-	}
+	return &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient}
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -37,15 +34,7 @@ func (t *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	// Fetch reserves first so we can generate reserve-aware sample points
-	var reserves getReservesResult
-	reqRes := t.ethrpcClient.NewRequest().SetContext(ctx)
-	reqRes.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: p.Address,
-		Method: "getReserves",
-	}, []any{&reserves})
-
-	resBlock, err := reqRes.TryBlockAndAggregate()
+	reserves, reservesBlock, err := t.fetchReserves(ctx, p.Address, nil)
 	if err != nil {
 		return p, err
 	}
@@ -56,24 +45,64 @@ func (t *PoolTracker) GetNewPoolState(
 
 	tokenReserves := []*big.Int{reserves.BaseTokenReserves, reserves.QuoteTokenReserves}
 
-	// Build sample points: power-of-10 levels + reserve-based levels
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resBlock.BlockNumber)
+	// Fetch quotes at the same block, with reserve-aware sample points
+	samples, blockNumber, err := t.fetchQuotes(ctx, p, tokenReserves, reservesBlock)
+	if err != nil {
+		return p, err
+	}
+
+	t.warnGapInQuotes(p, samples)
+	t.applyBuffer(samples)
+
+	samples = filterSamples(samples)
+
+	p.Reserves = []string{
+		reserves.BaseTokenReserves.String(),
+		reserves.QuoteTokenReserves.String(),
+	}
+
+	extraBytes, err := json.Marshal(Extra{Samples: samples})
+	if err != nil {
+		return p, err
+	}
+
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = blockNumber.Uint64()
+
+	return p, nil
+}
+
+func (t *PoolTracker) fetchQuotes(
+	ctx context.Context,
+	p entity.Pool,
+	tokenReserves []*big.Int,
+	blockNumber *big.Int,
+) ([][][2]*big.Int, *big.Int, error) {
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		req.SetBlockNumber(blockNumber)
+	}
 	samples := make([][][2]*big.Int, 2)
+
 	for i := range p.Tokens {
 		points := make([]*big.Int, 0, sampleSize+len(reserveSampleBps))
 
 		// Power-of-10 levels (covers small to large orders of magnitude)
-		start := lo.Ternary(p.Tokens[i].Decimals < sampleSize/2, 0, p.Tokens[i].Decimals-sampleSize/2)
-		for k := start; k <= start+sampleSize-1; k++ {
+		dec := int(p.Tokens[i].Decimals)
+		start := max(0, dec-sampleSize/2)
+		for idx, k := 0, start; idx < sampleSize; idx, k = idx+1, k+1 {
 			points = append(points, bignumber.TenPowInt(k))
 		}
 
 		// Reserve-based levels (fine-grained coverage near the liquidity boundary)
-		for _, bps := range reserveSampleBps {
-			pt := new(big.Int).Mul(tokenReserves[i], big.NewInt(int64(bps)))
-			pt.Div(pt, bignumber.BasisPoint)
-			if pt.Sign() > 0 {
-				points = append(points, pt)
+		if tokenReserves != nil && tokenReserves[i] != nil && tokenReserves[i].Sign() > 0 {
+			for _, bps := range reserveSampleBps {
+				pt := new(big.Int).Mul(tokenReserves[i], big.NewInt(int64(bps)))
+				pt.Div(pt, bignumber.BasisPoint)
+				if pt.Sign() > 0 {
+					points = append(points, pt)
+				}
 			}
 		}
 
@@ -100,47 +129,94 @@ func (t *PoolTracker) GetNewPoolState(
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return p, err
+		return nil, nil, err
 	}
 
-	if t.cfg.Buffer > 0 {
-		buf := big.NewInt(t.cfg.Buffer)
-		for i := range samples {
-			for j := range samples[i] {
-				if samples[i][j][1] != nil {
-					samples[i][j][1].Mul(samples[i][j][1], buf)
-					samples[i][j][1].Div(samples[i][j][1], bignumber.BasisPoint)
-				}
-			}
-		}
-	}
+	return samples, res.BlockNumber, nil
+}
 
-	// Filter out failed samples (nil outputs from reverted on-chain calls)
+func (t *PoolTracker) applyBuffer(samples [][][2]*big.Int) {
+	if t.cfg.Buffer <= 0 {
+		return
+	}
+	buf := big.NewInt(t.cfg.Buffer)
 	for i := range samples {
-		valid := samples[i][:0]
-		for _, s := range samples[i] {
-			if s[0] != nil && s[1] != nil {
-				valid = append(valid, s)
+		for j := range samples[i] {
+			if s1 := samples[i][j][1]; s1 != nil {
+				s1.Mul(s1, buf)
+				s1.Div(s1, bignumber.BasisPoint)
 			}
 		}
-		samples[i] = valid
 	}
+}
 
-	extra := Extra{Samples: samples}
-	extraBytes, err := json.Marshal(extra)
+func (t *PoolTracker) fetchReserves(ctx context.Context, poolAddr string, blockNumber *big.Int) (getReservesResult, *big.Int, error) {
+	var reserves getReservesResult
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		req.SetBlockNumber(blockNumber)
+	}
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddr,
+		Method: "getReserves",
+	}, []any{&reserves})
+
+	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return p, err
+		return getReservesResult{}, nil, err
 	}
 
-	p.Extra = string(extraBytes)
-	p.Reserves = []string{
-		reserves.BaseTokenReserves.String(),
-		reserves.QuoteTokenReserves.String(),
-	}
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = res.BlockNumber.Uint64()
+	return reserves, res.BlockNumber, nil
+}
 
-	return p, nil
+func filterSamples(samples [][][2]*big.Int) [][][2]*big.Int {
+	for dir := range samples {
+		valid := samples[dir][:0]
+		for _, s := range samples[dir] {
+			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
+				continue
+			}
+			valid = append(valid, s)
+		}
+		samples[dir] = valid
+	}
+	return samples
+}
+
+func (t *PoolTracker) warnGapInQuotes(p entity.Pool, samples [][][2]*big.Int) {
+	for dir := range samples {
+		seenPositive := false
+		zeroRunStart := -1
+
+		for i := range samples[dir] {
+			pt := samples[dir][i]
+			if pt[0] == nil || pt[1] == nil {
+				continue
+			}
+			if pt[1].Sign() > 0 {
+				if zeroRunStart >= 0 {
+					startAmt := samples[dir][zeroRunStart][0]
+					endAmt := samples[dir][i-1][0]
+					logger.WithFields(logger.Fields{
+						"pool":           p.Address,
+						"dir":            dir,
+						"tokenIn":        p.Tokens[dir].Address,
+						"tokenOut":       p.Tokens[1-dir].Address,
+						"holeFromAmount": startAmt.String(),
+						"holeToAmount":   endAmt.String(),
+						"resumeAmount":   pt[0].String(),
+					}).Warn("wasabi-prop quote gap detected (positive -> zero -> positive)")
+					zeroRunStart = -1
+				}
+				seenPositive = true
+				continue
+			}
+			if seenPositive && zeroRunStart < 0 {
+				zeroRunStart = i
+			}
+		}
+	}
 }
 
 // dedupSorted removes consecutive duplicates from a sorted []*big.Int slice.

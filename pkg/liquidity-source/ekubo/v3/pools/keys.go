@@ -3,7 +3,6 @@ package pools
 import (
 	"encoding/binary"
 	"fmt"
-	"slices"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -11,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -46,7 +47,7 @@ type (
 		TypeConfig T              `json:"typeConfig"`
 		Extension  common.Address `json:"extension"`
 
-		compressed []byte
+		compressed common.Hash
 	}
 
 	PoolTypeConfig interface {
@@ -94,12 +95,6 @@ func (k *PoolKey[T]) Fee() uint64 {
 	return k.Config.Fee
 }
 
-func (k *PoolKey[T]) CloneState() *PoolKey[T] {
-	cloned := *k
-	cloned.Config.compressed = slices.Clone(k.Config.compressed)
-	return &cloned
-}
-
 func (k *PoolKey[T]) ToAbi() AbiPoolKey {
 	return AbiPoolKey{
 		Token0: k.Token0,
@@ -108,8 +103,8 @@ func (k *PoolKey[T]) ToAbi() AbiPoolKey {
 	}
 }
 
-func (k *PoolKey[T]) ToFullRange() *FullRangePoolKey {
-	return poolKeyWithConfig(k, NewFullRangePoolTypeConfig())
+func (k *PoolKey[T]) ToFullRange(config FullRangePoolTypeConfig) *FullRangePoolKey {
+	return poolKeyWithConfig(k, config)
 }
 
 func (k *PoolKey[T]) ToStableswap(config StableswapPoolTypeConfig) *StableswapPoolKey {
@@ -208,15 +203,16 @@ func (k *AnyPoolKey) UnmarshalJSON(data []byte) error {
 }
 
 func (c *PoolConfig[T]) Compressed() common.Hash {
-	if c.compressed == nil {
-		c.compressed = append(c.compressed, c.Extension.Bytes()...)
-		c.compressed = binary.BigEndian.AppendUint64(c.compressed, c.Fee)
-
+	if c.compressed == valueobject.HashZero {
+		var compressed common.Hash
+		copy(compressed[:20], c.Extension.Bytes())
+		binary.BigEndian.PutUint64(compressed[20:28], c.Fee)
 		typeConfigCompressed := c.TypeConfig.Compressed()
-		c.compressed = append(c.compressed, typeConfigCompressed[:]...)
+		copy(compressed[28:32], typeConfigCompressed[:])
+		c.compressed = compressed
 	}
 
-	return common.Hash(c.compressed)
+	return c.compressed
 }
 
 func (c *PoolConfig[T]) String() string {

@@ -1,0 +1,193 @@
+[
+    {
+        "inputs": [],
+        "name": "getState",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint8",
+                        "name": "decimalsX",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint8",
+                        "name": "decimalsY",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "multYBase",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "reserveX",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "reserveY",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "currentXK",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "preK",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "feeMillionth",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "priceMaxAge",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "priceUpdateTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isLocked",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "int256",
+                        "name": "diff",
+                        "type": "int256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "enable",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct IPool.PoolState",
+                "name": "state",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "inputAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isXtoY",
+                "type": "bool"
+            }
+        ],
+        "name": "swap",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "xToken",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "yToken",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "reserveX",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "reserveY",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "currentXK",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "preK",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint64",
+                "name": "feeMillionth",
+                "type": "uint64"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "priceMaxAge",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "priceUpdateTime",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isLocked",
+                "type": "bool"
+            },
+            {
+                "indexed": false,
+                "internalType": "int256",
+                "name": "diff",
+                "type": "int256"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "enable",
+                "type": "bool"
+            }
+        ],
+        "name": "StateEvent",
+        "type": "event"
+    }
+]

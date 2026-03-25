@@ -25,7 +25,7 @@ func TestHooklet_Track(t *testing.T) {
 		RpcClient:      rpcClient,
 		HookletAddress: common.HexToAddress("0x0000e819b8A536Cf8e5d70B9C49256911033000C"),
 		PoolId:         common.HexToHash("0xe7b110a6045c9e17b97902a414604b96ef0ccd227abbb0f0761da09437522e4d"),
-		HookletExtra:   "",
+		HookletExtra:   nil,
 	})
 
 	require.NotNil(t, res)

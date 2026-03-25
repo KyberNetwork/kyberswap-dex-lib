@@ -10,7 +10,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
-
 	pooldecode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
 )
 

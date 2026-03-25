@@ -68,7 +68,7 @@ func (h *AttestationController) fetchAttestations() ([]Attestation, error) {
 			"blocks_in_future": h.cfg.BlocksInFuture,
 		}).
 		SetResult(&resp).
-		Post(GET_ATTESTATIONS_PATH)
+		Post(PathGetAttestations)
 
 	if err != nil {
 		return nil, err

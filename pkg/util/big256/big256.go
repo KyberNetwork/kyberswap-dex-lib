@@ -44,6 +44,7 @@ var (
 	U8      = uint256.NewInt(8)
 	U9      = uint256.NewInt(9)
 	U10     = uint256.NewInt(10)
+	U99     = uint256.NewInt(99)
 	U100    = uint256.NewInt(100)
 	U999    = uint256.NewInt(999)
 	U1000   = uint256.NewInt(1000)
@@ -105,6 +106,14 @@ func SInt256(i *uint256.Int) *int256.Int {
 
 func SNeg(i *uint256.Int) *int256.Int {
 	return new(int256.Int).Neg((*int256.Int)(i))
+}
+
+func SFloat64(i *int256.Int) float64 {
+	if i.IsPositive() {
+		return ((*uint256.Int)(i)).Float64()
+	}
+	var tmp int256.Int
+	return -(*uint256.Int)(tmp.Neg(i)).Float64()
 }
 
 func NewUint256(s string) (res *uint256.Int, err error) {

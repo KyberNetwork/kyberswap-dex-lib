@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
@@ -46,13 +47,11 @@ func (d *PoolTracker) GetNewPoolState(
 			ABI:    tesseraPoolABI,
 			Target: p.Address,
 			Method: "poolState",
-			Params: nil,
 		}, []any{&rpcResult}).
 		AddCall(&ethrpc.Call{
 			ABI:    tesseraPoolABI,
 			Target: p.Address,
 			Method: "isInitialised",
-			Params: nil,
 		}, []any{&isInitialised})
 
 	for i, token := range p.Tokens {
@@ -77,7 +76,7 @@ func (d *PoolTracker) GetNewPoolState(
 	orderBook1 := make([]LiquidityLevel, 0, 20)
 
 	for _, level := range rpcResult.OrderBook0 {
-		if level.Active.Uint64() != 0 {
+		if level.Active.Sign() != 0 {
 			break
 		}
 		amtU, _ := uint256.FromBig(level.Amount)
@@ -91,7 +90,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	for _, level := range rpcResult.OrderBook1 {
-		if level.Active.Uint64() != 0 {
+		if level.Active.Sign() != 0 {
 			break
 		}
 		amtU, _ := uint256.FromBig(level.Amount)
@@ -104,15 +103,16 @@ func (d *PoolTracker) GetNewPoolState(
 		})
 	}
 
+	var tmp uint256.Int
 	calculateCumulative := func(levels []LiquidityLevel, offsetU *uint256.Int) []*uint256.Int {
 		cumulative := make([]*uint256.Int, 0, len(levels))
-		sum := uint256.NewInt(0)
+		sum := new(uint256.Int)
 
 		// Skip filled levels
 		activeIdx := -1
-		skippedSum := uint256.NewInt(0)
+		skippedSum := new(uint256.Int)
 		for i, level := range levels {
-			if offsetU.Cmp(new(uint256.Int).Add(skippedSum, level.Amount)) >= 0 {
+			if !offsetU.Lt(tmp.Add(skippedSum, level.Amount)) {
 				skippedSum.Add(skippedSum, level.Amount)
 				continue
 			}
@@ -125,11 +125,11 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 
 		// Calculate cumulative amounts starting from active level
-		currentOffset := new(uint256.Int).Sub(offsetU, skippedSum)
+		currentOffset := tmp.Sub(offsetU, skippedSum)
 		for i := activeIdx; i < len(levels); i++ {
 			levelRemaining := new(uint256.Int)
 			if i == activeIdx {
-				if levels[i].Amount.Cmp(currentOffset) > 0 {
+				if levels[i].Amount.Gt(currentOffset) {
 					levelRemaining.Sub(levels[i].Amount, currentOffset)
 				} else {
 					continue
@@ -138,7 +138,7 @@ func (d *PoolTracker) GetNewPoolState(
 				levelRemaining.Set(levels[i].Amount)
 			}
 			sum.Add(sum, levelRemaining)
-			cumulative = append(cumulative, new(uint256.Int).Set(sum))
+			cumulative = append(cumulative, sum.Clone())
 		}
 		return cumulative
 	}
@@ -149,7 +149,7 @@ func (d *PoolTracker) GetNewPoolState(
 	// Subtract a small percentage (0.1%) from prefetch points to avoid T36 reverts at exact boundaries
 	applyShift := func(points []*uint256.Int) []*uint256.Int {
 		for _, p := range points {
-			shift := new(uint256.Int).Div(p, uint256.NewInt(1000))
+			shift := tmp.Div(p, tmp.SetUint64(1000))
 			if shift.IsZero() && p.CmpUint64(100) > 0 {
 				shift.SetUint64(100)
 			}
@@ -208,6 +208,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	buffer := new(uint256.Int).SubUint64(big256.UBasisPoint, d.config.PriceTolerance)
 	baseToQuotePrefetches := make([]PrefetchRate, len(baseToQuoteResults))
 	for i, res := range baseToQuoteResults {
 		if res.AmountOut == nil {
@@ -218,6 +219,7 @@ func (d *PoolTracker) GetNewPoolState(
 		if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
 			rate = uint256.MustFromBig(res.AmountOut)
 		}
+		rate.MulDivOverflow(rate, buffer, big256.UBasisPoint)
 		baseToQuotePrefetches[i] = PrefetchRate{
 			AmountIn: baseToQuoteAmounts[i],
 			Rate:     rate,
@@ -234,6 +236,7 @@ func (d *PoolTracker) GetNewPoolState(
 		if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
 			rate = uint256.MustFromBig(res.AmountOut)
 		}
+		rate.MulDivOverflow(rate, buffer, big256.UBasisPoint)
 		quoteToBasePrefetches[i] = PrefetchRate{
 			AmountIn: quoteToBaseAmounts[i],
 			Rate:     rate,

@@ -689,6 +689,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return p, err
 	}
 
+	p.SwapFee = float64(rpcState.State.LastFee)
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
@@ -846,10 +847,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	totalTicks := len(tickIndexes)
 	ticks := make([]tickspkg.Tick, 0, totalTicks)
 	for i := 0; i < totalTicks; i += tickChunkSize {
-		toIdx := i + tickChunkSize
-		if toIdx > totalTicks {
-			toIdx = totalTicks
-		}
+		toIdx := min(i+tickChunkSize, totalTicks)
 
 		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
 		if err != nil {

@@ -21,7 +21,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -66,30 +68,39 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var staticExtra StaticExtra
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
-	if staticExtra.PriceFeedIds[0] == "" {
-		var priceFeedIds [2]common.Hash
+	if time.Since(time.Unix(staticExtra.LastUpdated, 0)) > ttlStatic {
+		var priceOracle common.Address
 		if _, err := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 			ABI:    brownFiV2FactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodPriceFeedIds,
 			Params: []any{common.HexToAddress(p.Tokens[0].Address)},
-		}, []any{&priceFeedIds[0]}).AddCall(&ethrpc.Call{
+		}, []any{&staticExtra.PriceFeedIds[0]}).AddCall(&ethrpc.Call{
 			ABI:    brownFiV2FactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodPriceFeedIds,
 			Params: []any{common.HexToAddress(p.Tokens[1].Address)},
-		}, []any{&priceFeedIds[1]}).Aggregate(); err != nil {
+		}, []any{&staticExtra.PriceFeedIds[1]}).AddCall(&ethrpc.Call{
+			ABI:    brownFiV2FactoryABI,
+			Target: d.config.FactoryAddress,
+			Method: factoryMethodPriceOracle,
+		}, []any{&priceOracle}).AddCall(&ethrpc.Call{
+			ABI:    brownFiV2FactoryABI,
+			Target: d.config.FactoryAddress,
+			Method: factoryMethodPriceOracle,
+		}, []any{&priceOracle}).Aggregate(); err != nil {
 			return p, errors.WithMessage(err, "fail to fetch price feed ids")
 		} else {
-			staticExtra.PriceFeedIds[0] = hexutil.Encode(priceFeedIds[0][:])
-			staticExtra.PriceFeedIds[1] = hexutil.Encode(priceFeedIds[1][:])
+			staticExtra.PriceOracle = hexutil.Encode(priceOracle[:])
+			staticExtra.LastUpdated = time.Now().Unix()
 			staticExtraBytes, _ := json.Marshal(staticExtra)
 			p.StaticExtra = string(staticExtraBytes)
 		}
 	}
 
 	pythUpdateDataCh := lo.Async(func() *PythUpdateData {
-		if time.Since(time.Unix(p.Timestamp, 0)) < 5*time.Second {
+		now := time.Now()
+		if now.Sub(time.Unix(p.Timestamp, 0)) < 5*time.Second {
 			return nil // don't need to fetch this too often
 		}
 		permu := rand.Perm(len(d.pythClients))[:min(2, len(d.pythClients))]
@@ -100,7 +111,8 @@ func (d *PoolTracker) GetNewPoolState(
 			wg.Go(func() {
 				var pythUpdateData PythUpdateData
 				if resp, err := d.pythClients[i].R().SetContext(ctx).
-					SetQueryString("ids[]=" + staticExtra.PriceFeedIds[0] + "&ids[]=" + staticExtra.PriceFeedIds[1]).
+					SetQueryString("ids[]=" + hexutil.Encode(staticExtra.PriceFeedIds[0][:]) +
+						"&ids[]=" + hexutil.Encode(staticExtra.PriceFeedIds[1][:])).
 					SetResult(&pythUpdateData).
 					Get(""); err != nil || !resp.IsSuccess() {
 					if !errors.Is(context.Cause(ctx), ErrResponseRaced) {
@@ -108,6 +120,11 @@ func (d *PoolTracker) GetNewPoolState(
 							"url": d.pythClients[i].BaseURL}).Error("fail to fetch price feeds")
 					}
 					return
+				}
+				for _, price := range pythUpdateData.Parsed {
+					if now.Sub(time.Unix(price.Price.PublishTime, 0)) > maxAge {
+						return
+					}
 				}
 				select {
 				case pythUpdateDataCh <- &pythUpdateData:
@@ -131,7 +148,9 @@ func (d *PoolTracker) GetNewPoolState(
 	var extra Extra
 	_ = json.Unmarshal([]byte(p.Extra), &extra)
 	var reserveData GetReservesResult
-	var kappa *big.Int
+	var kappa, updateFee, routerBalance *big.Int
+	var brownfiPrices [2]*big.Int
+	var pythPrices [2]PriceResult
 	resp, err := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    brownFiV2PairABI,
 		Target: p.Address,
@@ -148,7 +167,37 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    brownFiV2PairABI,
 		Target: p.Address,
 		Method: pairMethodKappa,
-	}, []any{&kappa}).TryBlockAndAggregate()
+	}, []any{&kappa}).AddCall(&ethrpc.Call{
+		ABI:    brownFiV2OracleABI,
+		Target: staticExtra.PriceOracle,
+		Method: oracleMethodGetPrice,
+		Params: []any{staticExtra.PriceFeedIds[0], dummyMaxAge},
+	}, []any{&brownfiPrices[0]}).AddCall(&ethrpc.Call{
+		ABI:    brownFiV2OracleABI,
+		Target: staticExtra.PriceOracle,
+		Method: oracleMethodGetPrice,
+		Params: []any{staticExtra.PriceFeedIds[1], dummyMaxAge},
+	}, []any{&brownfiPrices[1]}).AddCall(&ethrpc.Call{
+		ABI:    brownFiV2OracleABI,
+		Target: d.config.Pyth.Address,
+		Method: oracleMethodGetPriceUnsafe,
+		Params: []any{staticExtra.PriceFeedIds[0]},
+	}, []any{&pythPrices[0]}).AddCall(&ethrpc.Call{
+		ABI:    brownFiV2OracleABI,
+		Target: d.config.Pyth.Address,
+		Method: oracleMethodGetPriceUnsafe,
+		Params: []any{staticExtra.PriceFeedIds[1]},
+	}, []any{&pythPrices[1]}).AddCall(&ethrpc.Call{
+		ABI:    brownFiV2OracleABI,
+		Target: d.config.Pyth.Address,
+		Method: oracleMethodGetUpdateFee,
+		Params: []any{[][]byte{extra.PriceUpdateData}},
+	}, []any{&updateFee}).AddCall(&ethrpc.Call{
+		ABI:    abi.Multicall3ABI,
+		Target: d.config.Multicall3,
+		Method: abi.Multicall3GetEthBalance,
+		Params: []any{Router[d.config.ChainID]},
+	}, []any{&routerBalance}).TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
@@ -158,12 +207,23 @@ func (d *PoolTracker) GetNewPoolState(
 	extra.Kappa.SetFromBig(kappa)
 
 	if pythUpdateData := <-pythUpdateDataCh; pythUpdateData != nil {
+		var pythPrice, brownfiPrice uint256.Int
 		for i, parsed := range pythUpdateData.Parsed {
 			if extra.OPrices[i] == nil {
 				extra.OPrices[i] = new(uint256.Int)
 			}
 			_ = extra.OPrices[i].SetFromDecimal(parsed.Price.Price)
 			extra.OPrices[i].MulDivOverflow(extra.OPrices[i], q64, big256.TenPow(-parsed.Price.Expo))
+			// brownfiPrice = max(pythPrice, uniV3Price)
+			pythPrice.MulDivOverflow(pythPrice.SetUint64(pythPrices[i].Price), q64, big256.TenPow(-pythPrices[i].Expo))
+			if brownfiPrices[i] == nil {
+				continue
+			}
+			brownfiPrice.SetFromBig(brownfiPrices[i])
+			if pythPrice.Lt(&brownfiPrice) && // brownfiPrice == uniV3Price
+				brownfiPrice.Gt(extra.OPrices[i]) {
+				extra.OPrices[i].Set(&brownfiPrice)
+			}
 		}
 		extra.PriceUpdateData, _ = hex.DecodeString(pythUpdateData.Binary.Data[0])
 		p.Timestamp = time.Now().Unix()
@@ -171,15 +231,18 @@ func (d *PoolTracker) GetNewPoolState(
 		p.Timestamp = min(p.Timestamp+1, time.Now().Unix()) // minimal increment for lower save priority
 	}
 
+	routerEnoughBalance := routerBalance == nil || updateFee == nil || updateFee.Sign() <= 0 ||
+		routerBalance.Div(routerBalance, updateFee).Cmp(bignumber.Ten) > 0
 	logger.
 		WithFields(
 			logger.Fields{
-				"pool_id":          p.Address,
-				"old_reserve":      p.Reserves,
-				"new_reserve":      reserveData,
-				"old_block_number": p.BlockNumber,
-				"new_block_number": resp.BlockNumber.Uint64(),
-				"duration_ms":      time.Since(startTime).Milliseconds(),
+				"pool_id":               p.Address,
+				"old_reserve":           p.Reserves,
+				"new_reserve":           reserveData,
+				"router_enough_balance": routerEnoughBalance,
+				"old_block_number":      p.BlockNumber,
+				"new_block_number":      resp.BlockNumber.Uint64(),
+				"duration_ms":           time.Since(startTime).Milliseconds(),
 			},
 		).
 		Info("Finished getting new pool state")
@@ -189,9 +252,10 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	p.Reserves = entity.PoolReserves{
-		reserveData.Reserve0.String(),
-		reserveData.Reserve1.String(),
+	if routerEnoughBalance {
+		p.Reserves = entity.PoolReserves{reserveData.Reserve0.String(), reserveData.Reserve1.String()}
+	} else {
+		p.Reserves = entity.PoolReserves{"0", "0"}
 	}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = resp.BlockNumber.Uint64()

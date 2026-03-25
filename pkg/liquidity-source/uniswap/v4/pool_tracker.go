@@ -29,6 +29,7 @@ import (
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -100,14 +101,15 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		return nil, err
 	}
 	if result.Reserves == nil { // default implementation is to estimate from liquidity and sqrtPriceX96
-		var reserve0, reserve1 big.Int
-		if result.Slot0.SqrtPriceX96.Sign() != 0 { // reserve0 = liquidity / sqrtPriceX96 * Q96
-			reserve0.Mul(result.Liquidity, Q96)
-			reserve0.Div(&reserve0, result.Slot0.SqrtPriceX96)
+		var extra Extra
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to unmarshal pool extra")
+			return nil, err
 		}
-		// reserve1 = liquidity * sqrtPriceX96 / Q96
-		reserve1.Mul(result.Liquidity, result.Slot0.SqrtPriceX96)
-		reserve1.Div(&reserve1, Q96)
+
+		reserve0, reserve1 := EstimateReservesFromTicks(result.Slot0.SqrtPriceX96, extra.Ticks)
 		result.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	}
 
@@ -571,7 +573,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error) {
 	tickSet := make(map[int]struct{})
 	for _, event := range logs {
-		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
+		if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
 			continue
 		}
 
@@ -614,10 +616,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	totalTicks := len(tickIndexes)
 	ticks := make([]tickspkg.Tick, 0, totalTicks)
 	for i := 0; i < totalTicks; i += tickChunkSize {
-		toIdx := i + tickChunkSize
-		if toIdx > totalTicks {
-			toIdx = totalTicks
-		}
+		toIdx := min(i+tickChunkSize, totalTicks)
 
 		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
 		if err != nil {
