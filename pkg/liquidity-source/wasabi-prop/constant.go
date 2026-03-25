@@ -9,10 +9,10 @@ const (
 )
 
 // reserveSampleBps defines sample points as basis-point fractions of the input token's reserve.
-// 5% to 100% in 5% steps gives fine-grained coverage near the liquidity boundary.
+// Fine-grained at the low end (0.1%–5%) to capture small-trade pricing, then coarser steps up to 100%.
 var reserveSampleBps = []int{
-	500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000,
-	5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000,
+	10, 50, 100, 250, 500, 1000, 1500, 2000, 2500, 3000,
+	4000, 5000, 6000, 7000, 8000, 9000, 10000,
 }
 
 var (
