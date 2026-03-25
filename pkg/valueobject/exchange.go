@@ -101,6 +101,7 @@ const (
 	ExchangeEulerSwap                  = "euler-swap"
 	ExchangeEulerSwapV2                = "euler-swap-v2"
 	ExchangeFakePool                   = "fake-pool"
+	ExchangeFeltir                     = "feltir"
 	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidDexV2                 = "fluid-dex-v2"

@@ -48,6 +48,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
@@ -324,6 +325,7 @@ type Types struct {
 	RingSwap                   string
 	PrimeETH                   string
 	StaderETHx                 string
+	Feltir                     string
 	FluidVaultT1               string
 	FluidDexT1                 string
 	FluidDexLite               string
@@ -530,6 +532,7 @@ var (
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
 		StaderETHx:                 staderethx.DexType,
+		Feltir:                     feltir.DexType,
 		FluidVaultT1:               fluidVaultT1.DexType,
 		FluidDexT1:                 fluidDexT1.DexType,
 		FluidDexLite:               fluidDexLite.DexType,
