@@ -10,14 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEventParser_GetKeys(t *testing.T) {
-	t.Parallel()
-
-	ep := NewEventParser(&Config{PrintrAddr: ""})
-	_, err := ep.GetKeys(context.Background())
-	assert.Error(t, err)
-}
-
 func TestEventParser_Decode(t *testing.T) {
 	t.Parallel()
 
@@ -25,7 +17,7 @@ func TestEventParser_Decode(t *testing.T) {
 	token := common.HexToAddress("0xc37f74311b2C7A3bFb0Ea98a2158131fACB8b6e7")
 	poolAddr := strings.ToLower(token.Hex())
 
-	ep := NewEventParser(&Config{PrintrAddr: printrAddr.Hex()})
+	ep := NewPoolFactory(&Config{PrintrAddr: printrAddr.Hex()})
 
 	topicAddr := func(a common.Address) common.Hash {
 		return common.BytesToHash(common.LeftPadBytes(a.Bytes(), common.HashLength))
