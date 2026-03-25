@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -35,24 +36,65 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	// Fetch reserves first so we can generate reserve-aware sample points
+	var reserves getReservesResult
+	reqRes := t.ethrpcClient.NewRequest().SetContext(ctx)
+	reqRes.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: p.Address,
+		Method: "getReserves",
+	}, []any{&reserves})
+
+	resBlock, err := reqRes.TryBlockAndAggregate()
+	if err != nil {
+		return p, err
+	}
+
+	if reserves.BaseTokenReserves == nil || reserves.QuoteTokenReserves == nil {
+		return p, ErrInsufficientLiquidity
+	}
+
+	tokenReserves := []*big.Int{reserves.BaseTokenReserves, reserves.QuoteTokenReserves}
+
+	// Build sample points: power-of-10 levels + reserve-based levels
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resBlock.BlockNumber)
 	samples := make([][][2]*big.Int, 2)
 	for i := range p.Tokens {
-		samples[i] = make([][2]*big.Int, sampleSize)
+		points := make([]*big.Int, 0, sampleSize+len(reserveSampleBps))
+
+		// Power-of-10 levels (covers small to large orders of magnitude)
 		start := lo.Ternary(p.Tokens[i].Decimals < sampleSize/2, 0, p.Tokens[i].Decimals-sampleSize/2)
-		idx := 0
-		for k := start; k <= start+sampleSize-1 && idx < sampleSize; k++ {
-			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), big.NewInt(0)}
+		for k := start; k <= start+sampleSize-1; k++ {
+			points = append(points, bignumber.TenPowInt(k))
+		}
+
+		// Reserve-based levels (fine-grained coverage near the liquidity boundary)
+		for _, bps := range reserveSampleBps {
+			pt := new(big.Int).Mul(tokenReserves[i], big.NewInt(int64(bps)))
+			pt.Div(pt, bignumber.BasisPoint)
+			if pt.Sign() > 0 {
+				points = append(points, pt)
+			}
+		}
+
+		// Sort and deduplicate
+		sort.Slice(points, func(a, b int) bool {
+			return points[a].Cmp(points[b]) < 0
+		})
+		points = dedupSorted(points)
+
+		samples[i] = make([][2]*big.Int, len(points))
+		for j, pt := range points {
+			samples[i][j] = [2]*big.Int{new(big.Int).Set(pt), big.NewInt(0)}
 			req.AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: p.Address,
 				Method: "quoteExactInput",
 				Params: []any{
 					common.HexToAddress(p.Tokens[i].Address),
-					samples[i][idx][0],
+					samples[i][j][0],
 				},
-			}, []any{&samples[i][idx][1]})
-			idx++
+			}, []any{&samples[i][j][1]})
 		}
 	}
 
@@ -73,6 +115,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 
+	// Filter out failed samples (nil outputs from reverted on-chain calls)
 	for i := range samples {
 		valid := samples[i][:0]
 		for _, s := range samples[i] {
@@ -83,40 +126,33 @@ func (t *PoolTracker) GetNewPoolState(
 		samples[i] = valid
 	}
 
-	extra := Extra{
-		Samples: samples,
-	}
+	extra := Extra{Samples: samples}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
 
 	p.Extra = string(extraBytes)
-
-	// Get reserves from pool (returns a struct/tuple)
-	var reserves getReservesResult
-	reqRes := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
-	reqRes.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: p.Address,
-		Method: "getReserves",
-	}, []any{&reserves})
-
-	if _, err := reqRes.Call(); err != nil {
-		return p, err
-	}
-
-	if reserves.BaseTokenReserves == nil || reserves.QuoteTokenReserves == nil {
-		return p, ErrInsufficientLiquidity
-	}
-
 	p.Reserves = []string{
 		reserves.BaseTokenReserves.String(),
 		reserves.QuoteTokenReserves.String(),
 	}
-
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = res.BlockNumber.Uint64()
 
 	return p, nil
+}
+
+// dedupSorted removes consecutive duplicates from a sorted []*big.Int slice.
+func dedupSorted(sorted []*big.Int) []*big.Int {
+	if len(sorted) <= 1 {
+		return sorted
+	}
+	result := sorted[:1]
+	for _, v := range sorted[1:] {
+		if v.Cmp(result[len(result)-1]) != 0 {
+			result = append(result, v)
+		}
+	}
+	return result
 }
