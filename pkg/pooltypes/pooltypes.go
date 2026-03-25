@@ -137,15 +137,10 @@ import (
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
-<<<<<<< HEAD
-	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
-=======
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v1"
 	virtualfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v2"
 	wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
->>>>>>> main
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
@@ -401,12 +396,9 @@ type Types struct {
 	SomeswapV1                 string
 	SomeswapV2                 string
 	WasabiProp                 string
-<<<<<<< HEAD
-=======
 	Obric                      string
 	Printr                     string
 	Poe                        string
->>>>>>> main
 }
 
 var (
@@ -615,11 +607,8 @@ var (
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
 		WasabiProp:                 wasabiprop.DexType,
-<<<<<<< HEAD
-=======
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
->>>>>>> main
 	}
 )
