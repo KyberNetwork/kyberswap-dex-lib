@@ -2,6 +2,7 @@ package vault
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -65,12 +66,12 @@ func (p *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log t
 	return nil, nil
 }
 
-func (p *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+func (ep *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	// TODO: Implement this (non tick-based pool creation)
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
 
-func (p *EventParser) IsEventSupported(event common.Hash) bool {
+func (ep *EventParser) IsEventSupported(event common.Hash) bool {
 	// TODO: Implement this (non tick-based pool creation)
-	return true
+	return false
 }

@@ -2,6 +2,7 @@ package ekubov3
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -119,10 +120,10 @@ func (e *EventParser) handleTwammLog(log types.Log) ([]string, error) {
 
 func (ep *EventParser) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	// TODO: Implement this (non tick-based pool creation)
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
 
 func (ep *EventParser) IsEventSupported(event common.Hash) bool {
 	// TODO: Implement this (non tick-based pool creation)
-	return true
+	return false
 }
