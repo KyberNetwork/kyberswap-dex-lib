@@ -48,6 +48,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
@@ -129,6 +130,7 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -312,6 +314,7 @@ type Types struct {
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
+	UsdAi                      string
 	Ambient                    string
 	MaverickV2                 string
 	LitePSM                    string
@@ -322,6 +325,7 @@ type Types struct {
 	RingSwap                   string
 	PrimeETH                   string
 	StaderETHx                 string
+	Feltir                     string
 	FluidVaultT1               string
 	FluidDexT1                 string
 	FluidDexLite               string
@@ -519,6 +523,7 @@ var (
 		EtherVista:                 ethervista.DexType,
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
+		UsdAi:                      usd_ai.DexType,
 		Ambient:                    ambient.DexTypeAmbient,
 		MaverickV2:                 maverickv2.DexType,
 		LitePSM:                    litepsm.DexTypeLitePSM,
@@ -527,6 +532,7 @@ var (
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
 		StaderETHx:                 staderethx.DexType,
+		Feltir:                     feltir.DexType,
 		FluidVaultT1:               fluidVaultT1.DexType,
 		FluidDexT1:                 fluidDexT1.DexType,
 		FluidDexLite:               fluidDexLite.DexType,

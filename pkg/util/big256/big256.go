@@ -108,6 +108,14 @@ func SNeg(i *uint256.Int) *int256.Int {
 	return new(int256.Int).Neg((*int256.Int)(i))
 }
 
+func SFloat64(i *int256.Int) float64 {
+	if i.IsPositive() {
+		return ((*uint256.Int)(i)).Float64()
+	}
+	var tmp int256.Int
+	return -(*uint256.Int)(tmp.Neg(i)).Float64()
+}
+
 func NewUint256(s string) (res *uint256.Int, err error) {
 	res = new(uint256.Int)
 	err = res.SetFromDecimal(s)

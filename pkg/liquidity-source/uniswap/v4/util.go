@@ -76,7 +76,7 @@ func EstimateReservesFromTicksU256(sqrtPriceX96 *uint256.Int, ticks []v3.TickU25
 	upper := math.Pow(TickBase, float64(ticks[0].Index)/2)
 	for i := 1; i < len(ticks); i++ {
 		tickLower, tickUpper := ticks[i-1], ticks[i]
-		liqNet := ((*uint256.Int)(tickLower.LiquidityNet)).Float64()
+		liqNet := big256.SFloat64(tickLower.LiquidityNet)
 		L += liqNet
 
 		lower := upper
@@ -92,8 +92,16 @@ func EstimateReservesFromTicksU256(sqrtPriceX96 *uint256.Int, ticks []v3.TickU25
 		}
 	}
 
-	var tmp big.Float
-	amt0BI, _ := tmp.SetFloat64(totalAmt0).Int(new(big.Int))
-	amt1BI, _ := tmp.SetFloat64(totalAmt1).Int(new(big.Int))
-	return uint256.MustFromBig(amt0BI), uint256.MustFromBig(amt1BI)
+	var tmpBF big.Float
+	var tmpBI big.Int
+	var overflow bool
+	amt0BI, _ := tmpBF.SetFloat64(totalAmt0).Int(&tmpBI)
+	if amt0, overflow = uint256.FromBig(amt0BI); overflow {
+		amt0 = new(uint256.Int)
+	}
+	amt1BI, _ := tmpBF.SetFloat64(totalAmt1).Int(&tmpBI)
+	if amt1, overflow = uint256.FromBig(amt1BI); overflow {
+		amt1 = new(uint256.Int)
+	}
+	return amt0, amt1
 }

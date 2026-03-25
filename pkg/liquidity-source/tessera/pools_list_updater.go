@@ -79,10 +79,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	numToProcess := totalPairs - metadata.Offset
-	if numToProcess > batchSize {
-		numToProcess = batchSize
-	}
+	numToProcess := min(totalPairs-metadata.Offset, batchSize)
 
 	pairsToProcess := allPairs[metadata.Offset : metadata.Offset+numToProcess]
 

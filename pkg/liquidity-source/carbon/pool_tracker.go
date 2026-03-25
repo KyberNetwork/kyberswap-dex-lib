@@ -151,10 +151,7 @@ func (t *PoolTracker) getStrategiesByPair(ctx context.Context, token0, token1 co
 	totalCount := int(count.Int64())
 	strategies := make([]Strategy, 0, totalCount)
 	for offset := 0; offset < totalCount; offset += maxStrategiesPerBatch {
-		endIndex := offset + maxStrategiesPerBatch
-		if endIndex > totalCount {
-			endIndex = totalCount
-		}
+		endIndex := min(offset+maxStrategiesPerBatch, totalCount)
 
 		batchStrategies, err := t.fetchStrategiesBatch(ctx, token0, token1, offset, endIndex, resp.BlockNumber)
 		if err != nil {

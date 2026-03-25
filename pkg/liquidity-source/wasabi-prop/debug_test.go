@@ -26,7 +26,7 @@ func TestWasabiPropDebug(t *testing.T) {
 
 	rpcURL := os.Getenv("BASE_RPC_URL")
 	if rpcURL == "" {
-		t.Skip("BASE_RPC_URL not set")
+		rpcURL = "https://base.kyberengineering.io"
 	}
 
 	const (
@@ -41,7 +41,7 @@ func TestWasabiPropDebug(t *testing.T) {
 		ChainID:        8453,
 		FactoryAddress: factoryAddr,
 		RouterAddress:  routerAddr,
-		Buffer:         9900,
+		Buffer:         10000,
 	}
 
 	rpcClient := ethrpc.New(rpcURL).
