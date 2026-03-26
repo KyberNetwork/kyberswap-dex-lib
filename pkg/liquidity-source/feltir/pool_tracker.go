@@ -160,7 +160,7 @@ func filterSamples(samples [2][][2]*big.Int, reserves [2]*big.Int) [2][][2]*big.
 		outReserve := reserves[1-dir]
 		var plateau *big.Int
 		if outReserve != nil && outReserve.Sign() > 0 {
-			plateau = new(big.Int).Sub(outReserve, big.NewInt(1))
+			plateau = new(big.Int).Sub(outReserve, bignumber.One)
 		}
 
 		valid := samples[dir][:0]
