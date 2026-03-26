@@ -76,9 +76,6 @@ func (d *PoolTracker) GetNewPoolState(
 	orderBook1 := make([]LiquidityLevel, 0, 20)
 
 	for _, level := range rpcResult.OrderBook0 {
-		if level.Active.Sign() != 0 {
-			break
-		}
 		amtU, _ := uint256.FromBig(level.Amount)
 		if amtU.IsZero() {
 			continue
@@ -90,9 +87,6 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	for _, level := range rpcResult.OrderBook1 {
-		if level.Active.Sign() != 0 {
-			break
-		}
 		amtU, _ := uint256.FromBig(level.Amount)
 		if amtU.IsZero() {
 			continue
@@ -143,8 +137,8 @@ func (d *PoolTracker) GetNewPoolState(
 		return cumulative
 	}
 
-	baseToQuoteAmounts := calculateCumulative(orderBook0, poolOffset0)
-	quoteToBaseAmounts := calculateCumulative(orderBook1, poolOffset1)
+	baseToQuoteAmounts := calculateCumulative(orderBook0, poolOffset1)
+	quoteToBaseAmounts := calculateCumulative(orderBook1, poolOffset0)
 
 	// Subtract a small percentage (0.1%) from prefetch points to avoid T36 reverts at exact boundaries
 	applyShift := func(points []*uint256.Int) []*uint256.Int {
@@ -209,53 +203,32 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	buffer := new(uint256.Int).SubUint64(big256.UBasisPoint, d.config.PriceTolerance)
-	baseToQuotePrefetches := make([]PrefetchRate, len(baseToQuoteResults))
-	for i, res := range baseToQuoteResults {
-		if res.AmountOut == nil {
-			baseToQuotePrefetches = baseToQuotePrefetches[:i]
-			break
+
+	buildPrefetches := func(results []poolSwapViewAmounts, amounts []*uint256.Int) []PrefetchRate {
+		prefetches := make([]PrefetchRate, len(results))
+		for i, res := range results {
+			if res.AmountOut == nil || res.AmountOut.Sign() == 0 {
+				return prefetches[:i]
+			}
+			var rate *uint256.Int
+			if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
+				rate = uint256.MustFromBig(res.AmountOut)
+				rate.MulDivOverflow(rate, buffer, big256.UBasisPoint)
+			}
+			prefetches[i] = PrefetchRate{
+				AmountIn: amounts[i],
+				Rate:     rate,
+			}
 		}
-		var rate *uint256.Int
-		if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
-			rate = uint256.MustFromBig(res.AmountOut)
-		}
-		rate.MulDivOverflow(rate, buffer, big256.UBasisPoint)
-		baseToQuotePrefetches[i] = PrefetchRate{
-			AmountIn: baseToQuoteAmounts[i],
-			Rate:     rate,
-		}
+		return prefetches
 	}
 
-	quoteToBasePrefetches := make([]PrefetchRate, len(quoteToBaseResults))
-	for i, res := range quoteToBaseResults {
-		if res.AmountOut == nil {
-			quoteToBasePrefetches = quoteToBasePrefetches[:i]
-			break
-		}
-		var rate *uint256.Int
-		if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
-			rate = uint256.MustFromBig(res.AmountOut)
-		}
-		rate.MulDivOverflow(rate, buffer, big256.UBasisPoint)
-		quoteToBasePrefetches[i] = PrefetchRate{
-			AmountIn: quoteToBaseAmounts[i],
-			Rate:     rate,
-		}
-	}
-
-	var maxB2Q, maxQ2B *uint256.Int
-	if len(baseToQuotePrefetches) > 0 {
-		maxB2Q = baseToQuoteAmounts[len(baseToQuotePrefetches)-1]
-	}
-	if len(quoteToBasePrefetches) > 0 {
-		maxQ2B = quoteToBaseAmounts[len(quoteToBasePrefetches)-1]
-	}
+	baseToQuotePrefetches := buildPrefetches(baseToQuoteResults, baseToQuoteAmounts)
+	quoteToBasePrefetches := buildPrefetches(quoteToBaseResults, quoteToBaseAmounts)
 
 	extra := Extra{
 		BaseToQuotePrefetches: baseToQuotePrefetches,
 		QuoteToBasePrefetches: quoteToBasePrefetches,
-		MaxBaseToQuoteAmount:  maxB2Q,
-		MaxQuoteToBaseAmount:  maxQ2B,
 		TradingEnabled:        tradingEnabled,
 		IsInitialised:         isInitialised,
 	}
