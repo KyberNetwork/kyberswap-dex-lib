@@ -1,0 +1,166 @@
+[
+    {
+        "name": "previewSellBaseTargetIn",
+        "inputs": [
+            {
+                "name": "maob",
+                "type": "address"
+            },
+            {
+                "name": "baseAmount",
+                "type": "uint256"
+            },
+            {
+                "name": "minQuoteOut",
+                "type": "uint256"
+            },
+            {
+                "name": "maxRung",
+                "type": "uint16"
+            },
+            {
+                "name": "minQuotePerRung",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "quoteOut",
+                "type": "uint256"
+            },
+            {
+                "name": "quoteFeePaid",
+                "type": "uint256"
+            },
+            {
+                "name": "baseUsed",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "previewBuyBaseTargetIn",
+        "inputs": [
+            {
+                "name": "maob",
+                "type": "address"
+            },
+            {
+                "name": "quoteIn",
+                "type": "uint256"
+            },
+            {
+                "name": "minBaseOut",
+                "type": "uint256"
+            },
+            {
+                "name": "maxRung",
+                "type": "uint16"
+            },
+            {
+                "name": "minQuotePerRung",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "baseOut",
+                "type": "uint256"
+            },
+            {
+                "name": "baseFeePaid",
+                "type": "uint256"
+            },
+            {
+                "name": "quoteUsed",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "previewSellBaseExactOut",
+        "inputs": [
+            {
+                "name": "maob",
+                "type": "address"
+            },
+            {
+                "name": "quoteOut",
+                "type": "uint256"
+            },
+            {
+                "name": "maxBaseIn",
+                "type": "uint256"
+            },
+            {
+                "name": "maxRung",
+                "type": "uint16"
+            },
+            {
+                "name": "minQuotePerRung",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "baseUsed",
+                "type": "uint256"
+            },
+            {
+                "name": "quoteFeePaid",
+                "type": "uint256"
+            },
+            {
+                "name": "netQuoteOut",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "previewBuyBaseExactOut",
+        "inputs": [
+            {
+                "name": "maob",
+                "type": "address"
+            },
+            {
+                "name": "baseAmount",
+                "type": "uint256"
+            },
+            {
+                "name": "maxQuoteIn",
+                "type": "uint256"
+            },
+            {
+                "name": "maxRung",
+                "type": "uint16"
+            },
+            {
+                "name": "minQuotePerRung",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "quoteUsed",
+                "type": "uint256"
+            },
+            {
+                "name": "baseFeePaid",
+                "type": "uint256"
+            },
+            {
+                "name": "baseOut",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

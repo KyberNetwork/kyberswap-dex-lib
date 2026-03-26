@@ -199,6 +199,7 @@ const (
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolycat                    = "polycat"
 	ExchangePolyDex                    = "polydex"
+	ExchangeCanonic                    = "canonic"
 	ExchangePoe                        = "poe"
 	ExchangePoolParty                  = "pool-party"
 	ExchangePrimeETH                   = "primeeth"

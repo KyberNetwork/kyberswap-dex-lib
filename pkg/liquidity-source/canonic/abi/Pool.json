@@ -1,0 +1,197 @@
+[
+    {
+        "name": "baseToken",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "quoteToken",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "baseScale",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "quoteScale",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "takerFee",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "marketState",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "getMidPrice",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "price",
+                "type": "uint256"
+            },
+            {
+                "name": "precision",
+                "type": "uint256"
+            },
+            {
+                "name": "updatedAt",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "getDepth",
+        "inputs": [
+            {
+                "name": "maxPerSide",
+                "type": "uint16"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "askRungBps",
+                "type": "uint16[]"
+            },
+            {
+                "name": "askVolumesInBase",
+                "type": "uint256[]"
+            },
+            {
+                "name": "bidRungBps",
+                "type": "uint16[]"
+            },
+            {
+                "name": "bidVolumesInQuote",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "sellBaseTargetIn",
+        "inputs": [
+            {
+                "name": "baseAmount",
+                "type": "uint256"
+            },
+            {
+                "name": "minQuoteOut",
+                "type": "uint256"
+            },
+            {
+                "name": "maxRung",
+                "type": "uint16"
+            },
+            {
+                "name": "deadline",
+                "type": "uint64"
+            },
+            {
+                "name": "minQuotePerRung",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "quoteOut",
+                "type": "uint256"
+            },
+            {
+                "name": "quoteFeePaid",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "name": "buyBaseTargetIn",
+        "inputs": [
+            {
+                "name": "quoteIn",
+                "type": "uint256"
+            },
+            {
+                "name": "minBaseOut",
+                "type": "uint256"
+            },
+            {
+                "name": "maxRung",
+                "type": "uint16"
+            },
+            {
+                "name": "deadline",
+                "type": "uint64"
+            },
+            {
+                "name": "minQuotePerRung",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "baseOut",
+                "type": "uint256"
+            },
+            {
+                "name": "baseFeePaid",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]

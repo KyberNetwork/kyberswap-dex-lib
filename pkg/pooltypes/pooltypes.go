@@ -80,6 +80,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -399,6 +400,7 @@ type Types struct {
 	Obric                      string
 	Printr                     string
 	Poe                        string
+	Canonic                    string
 }
 
 var (
@@ -610,5 +612,6 @@ var (
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
+		Canonic:                    canonic.DexType,
 	}
 )
