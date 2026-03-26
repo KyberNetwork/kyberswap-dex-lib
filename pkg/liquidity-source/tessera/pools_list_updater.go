@@ -125,7 +125,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		p := entity.Pool{
 			Address:     strings.ToLower(r.Pool.Hex()),
 			Exchange:    u.cfg.DexId,
-			Type:        "tessera",
+			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Tokens:      tokens,

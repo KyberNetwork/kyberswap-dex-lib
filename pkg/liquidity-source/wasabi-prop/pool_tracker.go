@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -32,7 +33,18 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	samples, blockNumber, err := t.fetchQuotes(ctx, p)
+	reserves, blockNumber, err := t.fetchReserves(ctx, p.Address)
+	if err != nil {
+		return p, err
+	}
+
+	if reserves.BaseTokenReserves == nil || reserves.QuoteTokenReserves == nil {
+		return p, ErrInsufficientLiquidity
+	}
+
+	tokenReserves := []*big.Int{reserves.BaseTokenReserves, reserves.QuoteTokenReserves}
+
+	samples, err := t.fetchQuotes(ctx, p, tokenReserves, blockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -41,15 +53,6 @@ func (t *PoolTracker) GetNewPoolState(
 	t.applyBuffer(samples)
 
 	samples = filterSamples(samples)
-
-	reserves, err := t.fetchReserves(ctx, p.Address, blockNumber)
-	if err != nil {
-		return p, err
-	}
-
-	if reserves.BaseTokenReserves == nil || reserves.QuoteTokenReserves == nil {
-		return p, ErrInsufficientLiquidity
-	}
 
 	p.Reserves = []string{
 		reserves.BaseTokenReserves.String(),
@@ -68,34 +71,62 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) fetchQuotes(ctx context.Context, p entity.Pool) ([][][2]*big.Int, *big.Int, error) {
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+func (t *PoolTracker) fetchQuotes(
+	ctx context.Context,
+	p entity.Pool,
+	tokenReserves []*big.Int,
+	blockNumber *big.Int,
+) ([][][2]*big.Int, error) {
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	samples := make([][][2]*big.Int, 2)
 
 	for i := range p.Tokens {
-		samples[i] = make([][2]*big.Int, sampleSize)
+		points := make([]*big.Int, 0, sampleSize+len(reserveSampleBps))
+
+		// Power-of-10 levels (covers small to large orders of magnitude)
 		dec := int(p.Tokens[i].Decimals)
 		start := max(0, dec-sampleSize/2)
 		for idx, k := 0, start; idx < sampleSize; idx, k = idx+1, k+1 {
-			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), big.NewInt(0)}
+			points = append(points, bignumber.TenPowInt(k))
+		}
+
+		// Reserve-based levels (fine-grained coverage near the liquidity boundary)
+		if tokenReserves != nil && tokenReserves[i] != nil && tokenReserves[i].Sign() > 0 {
+			for _, bps := range reserveSampleBps {
+				pt := new(big.Int).Mul(tokenReserves[i], big.NewInt(int64(bps)))
+				pt.Div(pt, bignumber.BasisPoint)
+				if pt.Sign() > 0 {
+					points = append(points, pt)
+				}
+			}
+		}
+
+		// Sort and deduplicate
+		sort.Slice(points, func(a, b int) bool {
+			return points[a].Cmp(points[b]) < 0
+		})
+		points = dedupSorted(points)
+
+		samples[i] = make([][2]*big.Int, len(points))
+		for j, pt := range points {
+			samples[i][j] = [2]*big.Int{new(big.Int).Set(pt), big.NewInt(0)}
 			req.AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: p.Address,
 				Method: "quoteExactInput",
 				Params: []any{
 					common.HexToAddress(p.Tokens[i].Address),
-					samples[i][idx][0],
+					samples[i][j][0],
 				},
-			}, []any{&samples[i][idx][1]})
+			}, []any{&samples[i][j][1]})
 		}
 	}
 
-	res, err := req.TryBlockAndAggregate()
-	if err != nil {
-		return nil, nil, err
+	if _, err := req.TryBlockAndAggregate(); err != nil {
+		return nil, err
 	}
 
-	return samples, res.BlockNumber, nil
+	return samples, nil
 }
 
 func (t *PoolTracker) applyBuffer(samples [][][2]*big.Int) {
@@ -113,20 +144,21 @@ func (t *PoolTracker) applyBuffer(samples [][][2]*big.Int) {
 	}
 }
 
-func (t *PoolTracker) fetchReserves(ctx context.Context, poolAddr string, blockNumber *big.Int) (getReservesResult, error) {
+func (t *PoolTracker) fetchReserves(ctx context.Context, poolAddr string) (getReservesResult, *big.Int, error) {
 	var reserves getReservesResult
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddr,
 		Method: "getReserves",
 	}, []any{&reserves})
 
-	if _, err := req.Call(); err != nil {
-		return getReservesResult{}, err
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return getReservesResult{}, nil, err
 	}
 
-	return reserves, nil
+	return reserves, res.BlockNumber, nil
 }
 
 func filterSamples(samples [][][2]*big.Int) [][][2]*big.Int {
@@ -176,4 +208,18 @@ func (t *PoolTracker) warnGapInQuotes(p entity.Pool, samples [][][2]*big.Int) {
 			}
 		}
 	}
+}
+
+// dedupSorted removes consecutive duplicates from a sorted []*big.Int slice.
+func dedupSorted(sorted []*big.Int) []*big.Int {
+	if len(sorted) <= 1 {
+		return sorted
+	}
+	result := sorted[:1]
+	for _, v := range sorted[1:] {
+		if v.Cmp(result[len(result)-1]) != 0 {
+			result = append(result, v)
+		}
+	}
+	return result
 }

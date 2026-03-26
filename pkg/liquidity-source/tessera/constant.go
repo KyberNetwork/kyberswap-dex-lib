@@ -2,8 +2,6 @@ package tessera
 
 import (
 	"errors"
-
-	"github.com/holiman/uint256"
 )
 
 const (
@@ -13,9 +11,7 @@ const (
 )
 
 var (
-	// Support up to 65% capacity of order book to avoid revert due to on-chain state changes
-	maxOrderbookFillFactorBPS = uint256.NewInt(6500)
-	ErrInvalidToken           = errors.New("invalid token")
+	ErrInvalidToken  = errors.New("invalid token")
 	ErrTradingDisabled        = errors.New("trading disabled")
 	ErrNotInitialised         = errors.New("pool not initialised")
 	ErrInvalidRate            = errors.New("invalid rate")
