@@ -1,0 +1,332 @@
+[
+    {
+        "inputs": [],
+        "name": "getMidPrice",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "price",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "precision",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "updatedAt",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getRungs",
+        "outputs": [
+            {
+                "internalType": "uint16[]",
+                "name": "",
+                "type": "uint16[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint16",
+                "name": "maxPerSide",
+                "type": "uint16"
+            }
+        ],
+        "name": "getDepth",
+        "outputs": [
+            {
+                "internalType": "uint16[]",
+                "name": "askRungs",
+                "type": "uint16[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "askVolumes",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "uint16[]",
+                "name": "bidRungs",
+                "type": "uint16[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "bidVolumes",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "rungCount",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "takerFee",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "FEE_DENOM",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "minQuoteTaker",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "marketState",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "stateExpiresAt",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "baseToken",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "quoteToken",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "baseDecimals",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "quoteDecimals",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "baseScale",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "quoteScale",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "RUNG_DENOM",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "PRICE_SIGFIGS",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint16",
+                "name": "rung",
+                "type": "uint16"
+            }
+        ],
+        "name": "getRungState",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "askVolume",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "bidVolume",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint32",
+                "name": "askGeneration",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "bidGeneration",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint256",
+                "name": "askCumulativeFill",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "bidCumulativeFill",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint16",
+                "name": "rung",
+                "type": "uint16"
+            },
+            {
+                "internalType": "bool",
+                "name": "isAsk",
+                "type": "bool"
+            }
+        ],
+        "name": "getLastSegment",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "remainder",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalFilled",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalVolume",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

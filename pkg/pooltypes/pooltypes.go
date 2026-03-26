@@ -24,6 +24,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
@@ -405,6 +406,7 @@ type Types struct {
 	Obric                      string
 	Printr                     string
 	Poe                        string
+	Canonic                    string
 }
 
 var (
@@ -619,5 +621,6 @@ var (
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
+		Canonic:                    canonic.DexType,
 	}
 )
