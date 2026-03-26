@@ -155,6 +155,7 @@ const (
 	ExchangeMiroMigrator               = "miro-migrator"
 	ExchangeMkrSky                     = "mkr-sky"
 	ExchangeMMF                        = "mmf"
+	ExchangeMooniswap                  = "mooniswap"
 	ExchangeMorpheus                   = "morpheus"
 	ExchangeMuteSwitch                 = "muteswitch"
 	ExchangeNabla                      = "nabla"

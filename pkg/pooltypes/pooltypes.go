@@ -93,6 +93,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
@@ -354,6 +355,7 @@ type Types struct {
 	ERC4626                    string
 	HyETH                      string
 	MimSwap                    string
+	Mooniswap                  string
 	InfinityPools              string
 	Brownfi                    string
 	KyberPMM                   string
@@ -561,6 +563,7 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
 		MimSwap:                    mimswap.DexType,
+		Mooniswap:                  mooniswap.DexType,
 		InfinityPools:              infinitypools.DexType,
 		Brownfi:                    brownfi.DexType,
 		KyberPMM:                   valueobject.ExchangeKyberPMM,
