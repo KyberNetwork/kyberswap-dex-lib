@@ -17,3 +17,7 @@ var (
 func IsZeroAddress(address common.Address) bool {
 	return address == AddrZero
 }
+
+func IsNativeOrZeroAddr(address common.Address) bool {
+	return address == AddrNative || address == AddrZero
+}

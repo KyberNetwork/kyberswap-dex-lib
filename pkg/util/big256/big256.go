@@ -152,20 +152,20 @@ func MustFromInt64(x int64) *uint256.Int {
 }
 
 func Cap(n *uint256.Int, min *uint256.Int, max *uint256.Int) *uint256.Int {
-	if n.Cmp(min) <= 0 {
+	if !n.Gt(min) {
 		return new(uint256.Int).Add(min, U1)
 	}
-	if n.Cmp(max) >= 0 {
+	if !n.Lt(max) {
 		return new(uint256.Int).Sub(max, U1)
 	}
 	return n
 }
 
 func CapPriceLimit(priceLimit *uint256.Int) *uint256.Int {
-	if priceLimit.Cmp(MinSqrtRatio) <= 0 {
+	if !priceLimit.Gt(MinSqrtRatio) {
 		return priceLimit.AddUint64(MinSqrtRatio, 1)
 	}
-	if priceLimit.Cmp(MaxSqrtRatio) >= 0 {
+	if !priceLimit.Lt(MaxSqrtRatio) {
 		return priceLimit.SubUint64(MaxSqrtRatio, 1)
 	}
 	return priceLimit
@@ -175,7 +175,7 @@ func CapPriceLimit(priceLimit *uint256.Int) *uint256.Int {
 func Min(a, b *uint256.Int) *uint256.Int {
 	if a == nil || b == nil {
 		return nil
-	} else if a.Cmp(b) < 0 {
+	} else if a.Lt(b) {
 		return a
 	}
 	return b
@@ -185,7 +185,7 @@ func Min(a, b *uint256.Int) *uint256.Int {
 func Max(a, b *uint256.Int) *uint256.Int {
 	if a == nil || b == nil {
 		return nil
-	} else if a.Cmp(b) > 0 {
+	} else if a.Gt(b) {
 		return a
 	}
 	return b
