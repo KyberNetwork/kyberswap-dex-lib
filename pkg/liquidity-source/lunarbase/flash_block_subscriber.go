@@ -252,27 +252,27 @@ func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
 		case log := <-subs[0].ch:
 			s.processLog(log)
 		case err := <-subs[0].sub.Err():
-			return fmt.Errorf("StateUpdated subscription error: %w", err)
+			return fmt.Errorf("stateUpdated subscription error: %w", err)
 
 		case log := <-subs[1].ch:
 			s.processLog(log)
 		case err := <-subs[1].sub.Err():
-			return fmt.Errorf("Sync subscription error: %w", err)
+			return fmt.Errorf("sync subscription error: %w", err)
 
 		case log := <-subs[2].ch:
 			s.processLog(log)
 		case err := <-subs[2].sub.Err():
-			return fmt.Errorf("SwapExecuted subscription error: %w", err)
+			return fmt.Errorf("swapExecuted subscription error: %w", err)
 
 		case log := <-subs[3].ch:
 			s.processLog(log)
 		case err := <-subs[3].sub.Err():
-			return fmt.Errorf("ConcentrationKSet subscription error: %w", err)
+			return fmt.Errorf("concentrationKSet subscription error: %w", err)
 
 		case log := <-subs[4].ch:
 			s.processLog(log)
 		case err := <-subs[4].sub.Err():
-			return fmt.Errorf("BlockDelaySet subscription error: %w", err)
+			return fmt.Errorf("blockDelaySet subscription error: %w", err)
 		}
 	}
 }

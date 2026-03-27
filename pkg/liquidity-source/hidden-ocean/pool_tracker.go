@@ -32,7 +32,7 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	extra, reserves, blockNumber, err := fetchPoolState(ctx, t.ethrpcClient, p.Address)
+	extra, reserves, blockNumber, err := t.fetchPoolState(ctx, &p)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -42,99 +42,57 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Extra = string(extraBytes)
-	p.Reserves = reserves
-	p.BlockNumber = blockNumber
+	p.SwapFee = float64(extra.Fee)
 	p.Timestamp = time.Now().Unix()
+	p.Reserves = reserves
+	p.Extra = string(extraBytes)
+	p.BlockNumber = blockNumber
 
 	return p, nil
 }
 
 // fetchPoolState retrieves current pool state via batched RPC calls.
-// Shared between pool_list_updater and pool_tracker.
-func fetchPoolState(
-	ctx context.Context, ethrpcClient *ethrpc.Client, poolAddr string,
-) (Extra, []string, uint64, error) {
+func (t *PoolTracker) fetchPoolState(ctx context.Context, p *entity.Pool) (Extra, []string, uint64, error) {
 	var (
-		slot0      Slot0
-		liquidity  *big.Int
-		fee        *big.Int
-		rangeInfo  RangeInfo
-		balance0   *big.Int
-		balance1   *big.Int
+		slot0     Slot0
+		liquidity *big.Int
+		fee       *big.Int
+		rangeInfo RangeInfo
+		balance0  *big.Int
+		balance1  *big.Int
 	)
 
-	// We need to know token addresses to query balanceOf. Read them first.
-	var (
-		token0Addr common.Address
-		token1Addr common.Address
-	)
-
-	tokenReq := ethrpcClient.NewRequest().SetContext(ctx)
-	tokenReq.AddCall(&ethrpc.Call{
+	poolAddr := common.HexToAddress(p.Address)
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: poolAddr,
-		Method: methodToken0,
-	}, []any{&token0Addr})
-	tokenReq.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddr,
-		Method: methodToken1,
-	}, []any{&token1Addr})
-
-	if _, err := tokenReq.Aggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"pool":  poolAddr,
-			"error": err,
-		}).Error("failed to fetch token addresses")
-		return Extra{}, nil, 0, err
-	}
-
-	// Now batch-fetch all state in one call
-	req := ethrpcClient.NewRequest().SetContext(ctx)
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddr,
+		Target: p.Address,
 		Method: methodSlot0,
-	}, []any{&slot0})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&slot0}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: poolAddr,
+		Target: p.Address,
 		Method: methodLiquidity,
-	}, []any{&liquidity})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&liquidity}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: poolAddr,
+		Target: p.Address,
 		Method: methodFee,
-	}, []any{&fee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&fee}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: poolAddr,
+		Target: p.Address,
 		Method: methodGetRange,
-	}, []any{&rangeInfo})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&rangeInfo}).AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
-		Target: token0Addr.Hex(),
+		Target: p.Tokens[0].Address,
 		Method: erc20MethodBalanceOf,
-		Params: []any{common.HexToAddress(poolAddr)},
-	}, []any{&balance0})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{poolAddr},
+	}, []any{&balance0}).AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
-		Target: token1Addr.Hex(),
+		Target: p.Tokens[1].Address,
 		Method: erc20MethodBalanceOf,
-		Params: []any{common.HexToAddress(poolAddr)},
-	}, []any{&balance1})
-
-	resp, err := req.TryBlockAndAggregate()
+		Params: []any{poolAddr},
+	}, []any{&balance1}).TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"pool":  poolAddr,
+			"pool":  p.Address,
 			"error": err,
 		}).Error("failed to aggregate RPC calls")
 		return Extra{}, nil, 0, err
@@ -159,7 +117,7 @@ func fetchPoolState(
 	}
 
 	logger.WithFields(logger.Fields{
-		"pool":        poolAddr,
+		"pool":        p.Address,
 		"blockNumber": blockNumber,
 	}).Info("fetched pool state")
 

@@ -152,69 +152,14 @@ const coreABIJSON = `[
   }
 ]`
 
-const peripheryABIJSON = `[
-  {
-    "inputs": [],
-    "name": "pool",
-    "outputs": [{"internalType": "contract ICurvePMM", "name": "", "type": "address"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{
-      "components": [
-        {"internalType": "address", "name": "tokenIn", "type": "address"},
-        {"internalType": "address", "name": "tokenOut", "type": "address"},
-        {"internalType": "uint256", "name": "amountIn", "type": "uint256"}
-      ],
-      "internalType": "struct ICurvePMMPeriphery.QuoteParams",
-      "name": "params",
-      "type": "tuple"
-    }],
-    "name": "quoteExactIn",
-    "outputs": [{"internalType": "uint256", "name": "amountOut", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]`
-
-const erc20ABIJSON = `[
-  {
-    "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "decimals",
-    "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]`
-
 var (
-	coreABI      abi.ABI
-	peripheryABI abi.ABI
-	erc20ABI     abi.ABI
+	coreABI abi.ABI
 )
 
 func init() {
 	var err error
 
 	coreABI, err = abi.JSON(strings.NewReader(coreABIJSON))
-	if err != nil {
-		panic(err)
-	}
-
-	peripheryABI, err = abi.JSON(strings.NewReader(peripheryABIJSON))
-	if err != nil {
-		panic(err)
-	}
-
-	erc20ABI, err = abi.JSON(strings.NewReader(erc20ABIJSON))
 	if err != nil {
 		panic(err)
 	}

@@ -72,7 +72,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	poolInfoList := make([]RegistryPoolInfo, batchSize)
 	getPoolReq := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		getPoolReq.AddCall(&ethrpc.Call{
 			ABI:    registryABI,
 			Target: u.config.RegistryAddress,

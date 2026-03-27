@@ -26,7 +26,9 @@ type fuzzVector struct {
 func TestAllFuzzVectors(t *testing.T) {
 	f, err := os.Open("testdata/fuzz_vectors.jsonl")
 	require.NoError(t, err)
-	defer f.Close()
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
 
 	var (
 		total     int

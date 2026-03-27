@@ -12,7 +12,9 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -223,7 +225,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		sqrtPriceCurrentX96.Set(s.sqrtPbX96)
 	}
 
-	err := v3Utils.GetNextSqrtPriceFromInput(&sqrtPriceCurrentX96, s.liquidity, amountInLessFeeU256, zeroForOne, &newSqrtPrice)
+	err := v3Utils.GetNextSqrtPriceFromInput(&sqrtPriceCurrentX96, s.liquidity, amountInLessFeeU256, zeroForOne,
+		&newSqrtPrice)
 	if err != nil {
 		// Fallback: keep price at limit
 		if zeroForOne {
@@ -306,8 +309,18 @@ func (s *PoolSimulator) recomputeRange() {
 	s.sqrtPbX96 = new(uint256.Int).Set(&sqrtPbX96)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
+	var priceLimit uint256.Int
+	// give a little more room
+	if tokenIn == p.Info.Tokens[0] {
+		big256.MulDivDown(&priceLimit, p.sqrtPaX96, p.sqrtPaX96, p.sqrtPriceX96)
+	} else {
+		big256.MulDivUp(&priceLimit, p.sqrtPbX96, p.sqrtPbX96, p.sqrtPriceX96)
+	}
+	return uniswapv3.PoolMeta{
+		SwapFee:    p.fee,
+		PriceLimit: big256.CapPriceLimit(&priceLimit),
+	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
