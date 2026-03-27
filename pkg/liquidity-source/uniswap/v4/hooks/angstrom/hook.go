@@ -18,10 +18,6 @@ import (
 
 var ErrOutdatedAttestations = errors.New("outdated attestations")
 
-var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	return &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom}
-}, L2HookAddresses...)
-
 type Hook struct {
 	uniswapv4.Hook
 
@@ -107,7 +103,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	return json.Marshal(extra)
 }
 
-func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if time.Since(time.Unix(h.extra.LatestAttestationsTime, 0)) > time.Minute {
 		return nil, ErrOutdatedAttestations
 	}
@@ -125,7 +121,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 }
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	exactIn := params.ExactIn
+	exactIn := params.CalcOut
 	targetAmount := params.AmountOut
 
 	var tmp big.Int

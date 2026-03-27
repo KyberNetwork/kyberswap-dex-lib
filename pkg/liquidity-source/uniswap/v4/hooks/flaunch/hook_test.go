@@ -18,7 +18,7 @@ func TestHook_BeforeSwap_ExactIn(t *testing.T) {
 	amountSpecified := big.NewInt(1e18)
 	params := &uniswapv4.BeforeSwapParams{
 		AmountSpecified: amountSpecified,
-		ExactIn:         true,
+		CalcOut:         true,
 	}
 
 	result, err := hook.BeforeSwap(params)
@@ -37,7 +37,7 @@ func TestHook_BeforeSwap_ExactOut(t *testing.T) {
 	amountSpecified := big.NewInt(1e18)
 	params := &uniswapv4.BeforeSwapParams{
 		AmountSpecified: amountSpecified,
-		ExactIn:         false,
+		CalcOut:         false,
 	}
 
 	result, err := hook.BeforeSwap(params)
@@ -56,7 +56,7 @@ func TestHook_AfterSwap_ExactIn(t *testing.T) {
 	amountOut := big.NewInt(1e18)
 	params := &uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
-			ExactIn: true,
+			CalcOut: true,
 		},
 		AmountOut: amountOut,
 	}
@@ -77,7 +77,7 @@ func TestHook_AfterSwap_ExactOut(t *testing.T) {
 	amountIn := big.NewInt(1e18)
 	params := &uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
-			ExactIn: false,
+			CalcOut: false,
 		},
 		AmountIn: amountIn,
 	}

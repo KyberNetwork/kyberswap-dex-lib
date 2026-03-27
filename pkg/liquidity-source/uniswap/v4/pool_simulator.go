@@ -145,7 +145,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
 		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-			ExactIn:         true,
+			CalcOut:         true,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountIn,
 		}); err != nil {
@@ -183,7 +183,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	if p.hook.CanAfterSwap(p.staticExtra.HooksAddress) {
 		afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 			BeforeSwapParams: &BeforeSwapParams{
-				ExactIn:         true,
+				CalcOut:         true,
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountIn,
 			},
@@ -253,7 +253,6 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			}
 		}
 	}
-
 	if p.GetTokenIndex(param.TokenIn) == -1 {
 		for _, wrapper := range p.tokenWrappers {
 			metadata, canUnwrap := wrapper.CanWrap(p.chainID, param.TokenIn)
@@ -277,7 +276,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
 		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-			ExactIn:         false,
+			CalcOut:         false,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountOut,
 		}); err != nil {
@@ -315,7 +314,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	if p.hook.CanAfterSwap(p.staticExtra.HooksAddress) {
 		if afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 			BeforeSwapParams: &BeforeSwapParams{
-				ExactIn:         false,
+				CalcOut:         false,
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountOut,
 			},

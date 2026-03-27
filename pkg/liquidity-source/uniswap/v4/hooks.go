@@ -16,14 +16,14 @@ import (
 )
 
 type BeforeSwapParams struct {
-	ExactIn         bool
+	CalcOut         bool
 	ZeroForOne      bool
-	AmountSpecified *big.Int
+	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut
 }
 
 type BeforeSwapResult struct {
-	DeltaSpecified   *big.Int // in -= specified
-	DeltaUnspecified *big.Int // out -= unspecified
+	DeltaSpecified   *big.Int // CalcOut: in -= specified   ; CalcIn: out += specified
+	DeltaUnspecified *big.Int // CalcOut: out -= unspecified; CalcIn: in += unspecified
 	SwapFee          FeeAmount
 	Gas              int64
 	SwapInfo         any
@@ -31,22 +31,17 @@ type BeforeSwapResult struct {
 
 func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
 	if result == nil {
-		return errors.New("before swap result is nil")
+		return ErrNilBeforeSwapResult
+	} else if result.DeltaSpecified == nil {
+		return ErrNilDeltaSpecified
+	} else if result.DeltaUnspecified == nil {
+		return ErrNilDeltaUnspecified
 	}
-
-	if result.DeltaSpecified == nil {
-		return errors.New("delta specified is nil")
-	}
-
-	if result.DeltaUnspecified == nil {
-		return errors.New("delta unspecified is nil")
-	}
-
 	return nil
 }
 
 type AfterSwapResult struct {
-	HookFee *big.Int
+	HookFee *big.Int // CalcOut: out -= hook fee; CalcIn: in += hook fee
 	Gas     int64
 }
 

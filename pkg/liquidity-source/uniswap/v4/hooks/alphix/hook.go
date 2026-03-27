@@ -181,7 +181,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	// Simulate the swap against the JIT position
 	// Compute how much input the JIT position can absorb and what output it produces
 	deltaSpecified, deltaUnspecified, nextSqrtPriceX96 := computeJitSwap(
-		params.ZeroForOne, params.ExactIn,
+		params.ZeroForOne, params.CalcOut,
 		params.AmountSpecified,
 		h.SqrtPriceX96, &sqrtPriceLowerX96, &sqrtPriceUpperX96,
 		h.jitLiquidity, h.SwapFee,

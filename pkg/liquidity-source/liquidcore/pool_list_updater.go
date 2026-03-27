@@ -46,7 +46,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var poolAddrs []common.Address
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{ABI: RouterABI, Target: u.config.Router, Method: "getPools"}, []any{&poolAddrs}).
+		AddCall(&ethrpc.Call{ABI: routerABI, Target: u.config.Router, Method: "getPools"}, []any{&poolAddrs}).
 		Call(); err != nil {
 		return nil, nil, err
 	}
@@ -70,7 +70,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Token0, Token1 common.Address
 		}
 		if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
-			AddCall(&ethrpc.Call{ABI: PoolABI, Target: addr, Method: "getTokens"}, []any{&tokenResp}).
+			AddCall(&ethrpc.Call{
+				ABI:    poolABI,
+				Target: addr,
+				Method: "getTokens"}, []any{&tokenResp}).
 			Call(); err != nil {
 			return nil, nil, err
 		}

@@ -39,9 +39,12 @@ var (
 	ErrTooManyChangedTicks = errors.New("too many changed ticks")
 	ErrEmptyExtra          = errors.New("empty extra")
 
-	ErrInvalidAmountIn  = errors.New("invalid amount in")
-	ErrInvalidAmountOut = errors.New("invalid amount out")
-	ErrInvalidFee       = errors.New("invalid fee")
+	ErrInvalidAmountIn     = errors.New("invalid amount in")
+	ErrInvalidAmountOut    = errors.New("invalid amount out")
+	ErrInvalidFee          = errors.New("invalid fee")
+	ErrNilBeforeSwapResult = errors.New("before swap result is nil")
+	ErrNilDeltaSpecified   = errors.New("delta specified is nil")
+	ErrNilDeltaUnspecified = errors.New("delta unspecified is nil")
 
 	defaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460}
 )
