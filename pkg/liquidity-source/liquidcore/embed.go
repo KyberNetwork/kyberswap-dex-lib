@@ -2,8 +2,8 @@ package liquidcore
 
 import _ "embed"
 
-//go:embed abis/Pool.json
+//go:embed abi/Pool.json
 var poolBytes []byte
 
-//go:embed abis/Router.json
+//go:embed abi/Router.json
 var routerBytes []byte
