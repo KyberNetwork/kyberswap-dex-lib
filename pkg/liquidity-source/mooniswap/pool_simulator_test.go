@@ -23,8 +23,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			{Address: token0, Swappable: true},
 			{Address: token1, Swappable: true},
 		},
-		Reserves: []string{"6208659185333448735", "12972544827"},
-		Extra:    `{"fee":"2650302140801805","slpFee":"835653904615203690","bA0":"6208659185333448735","bA1":"12972544827","bR0":"6208659185333448735","bR1":"12972544827"}`,
+		Reserves:    []string{"6208659185333448735", "12972544827"},
+		Extra:       `{"fee":"2650302140801805","slpFee":"835653904615203690","bA0":"6208659185333448735","bA1":"12972544827","bR0":"6208659185333448735","bR1":"12972544827"}`,
+		StaticExtra: `{}`,
 	}
 
 	sim, err := NewPoolSimulator(p)
@@ -89,8 +90,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			{Address: token0, Swappable: true},
 			{Address: token1, Swappable: true},
 		},
-		Reserves: []string{"6208659185333448735", "12972544827"},
-		Extra:    `{"fee":"2650302140801805","slpFee":"835653904615203690","bA0":"6208659185333448735","bA1":"12972544827","bR0":"6208659185333448735","bR1":"12972544827"}`,
+		Reserves:    []string{"6208659185333448735", "12972544827"},
+		Extra:       `{"fee":"2650302140801805","slpFee":"835653904615203690","bA0":"6208659185333448735","bA1":"12972544827","bR0":"6208659185333448735","bR1":"12972544827"}`,
+		StaticExtra: `{}`,
 	}
 
 	sim, err := NewPoolSimulator(p)
@@ -131,8 +133,9 @@ func TestPoolSimulator_CloneState(t *testing.T) {
 			{Address: token0, Swappable: true},
 			{Address: token1, Swappable: true},
 		},
-		Reserves: []string{"6208659185333448735", "12972544827"},
-		Extra:    `{"fee":"2650302140801805","slpFee":"835653904615203690","bA0":"6208659185333448735","bA1":"12972544827","bR0":"6208659185333448735","bR1":"12972544827"}`,
+		Reserves:    []string{"6208659185333448735", "12972544827"},
+		Extra:       `{"fee":"2650302140801805","slpFee":"835653904615203690","bA0":"6208659185333448735","bA1":"12972544827","bR0":"6208659185333448735","bR1":"12972544827"}`,
+		StaticExtra: `{}`,
 	}
 
 	sim, err := NewPoolSimulator(p)

@@ -36,31 +36,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	fee, err := uint256.FromDecimal(extra.Fee)
-	if err != nil {
-		return nil, err
-	}
-	slippageFee, err := uint256.FromDecimal(extra.SlippageFee)
-	if err != nil {
-		return nil, err
-	}
-	balAdd0, err := uint256.FromDecimal(extra.BalAdd0)
-	if err != nil {
-		return nil, err
-	}
-	balAdd1, err := uint256.FromDecimal(extra.BalAdd1)
-	if err != nil {
-		return nil, err
-	}
-	balRem0, err := uint256.FromDecimal(extra.BalRem0)
-	if err != nil {
-		return nil, err
-	}
-	balRem1, err := uint256.FromDecimal(extra.BalRem1)
-	if err != nil {
-		return nil, err
-	}
-
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  entityPool.Address,
@@ -72,10 +47,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, _ int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		fee:         fee,
-		slippageFee: slippageFee,
-		balAdd:      [2]*uint256.Int{balAdd0, balAdd1},
-		balRem:      [2]*uint256.Int{balRem0, balRem1},
+		fee:         extra.Fee,
+		slippageFee: extra.SlippageFee,
+		balAdd:      [2]*uint256.Int{extra.BalAdd0, extra.BalAdd1},
+		balRem:      [2]*uint256.Int{extra.BalRem0, extra.BalRem1},
 		StaticExtra: staticExtra,
 	}, nil
 }
@@ -137,6 +112,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 		new(uint256.Int).Set(s.balRem[1]),
 	}
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+
 	return &cloned
 }
 

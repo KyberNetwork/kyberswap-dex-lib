@@ -1,16 +1,18 @@
 package mooniswap
 
 import (
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Extra struct {
-	Fee         string `json:"fee"`
-	SlippageFee string `json:"slpFee"`
-	BalAdd0     string `json:"bA0"`
-	BalAdd1     string `json:"bA1"`
-	BalRem0     string `json:"bR0"`
-	BalRem1     string `json:"bR1"`
+	Fee         *uint256.Int `json:"fee"`
+	SlippageFee *uint256.Int `json:"slpFee"`
+	BalAdd0     *uint256.Int `json:"bA0"`
+	BalAdd1     *uint256.Int `json:"bA1"`
+	BalRem0     *uint256.Int `json:"bR0"`
+	BalRem1     *uint256.Int `json:"bR1"`
 }
 
 type StaticExtra struct {
