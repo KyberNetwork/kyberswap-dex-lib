@@ -154,15 +154,3 @@ func (t *PoolTracker) getPoolState(
 		BalRem1:     uint256.MustFromBig(balRem1),
 	}, resp.BlockNumber.Uint64(), nil
 }
-
-func getMinStr(a, b string) string {
-	aBig, ok1 := new(big.Int).SetString(a, 10)
-	bBig, ok2 := new(big.Int).SetString(b, 10)
-	if !ok1 || !ok2 {
-		return "0"
-	}
-	if aBig.Cmp(bBig) < 0 {
-		return a
-	}
-	return b
-}
