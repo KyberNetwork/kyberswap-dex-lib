@@ -3,7 +3,6 @@ package clear
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -79,7 +78,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	k := 0
 	for i, batchSize := range batchSizes {
 		nextOffset[d.config.FactoryAddresses[i]] = metadata.Offset[d.config.FactoryAddresses[i]] + batchSize
-		for j := 0; j < batchSize; j++ {
+		for j := range batchSize {
 			req.AddCall(&ethrpc.Call{
 				ABI:    clearFactoryABI,
 				Target: d.config.FactoryAddresses[i],
@@ -100,15 +99,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx)
 	tokens := make([][]common.Address, newPools)
-
 	for i := range poolAddresses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clearVaultABI,
-			Target: poolAddresses[i].Hex(),
-			Method: "tokens",
+			Target: hexutil.Encode(poolAddresses[i][:]),
+			Method: methodTokens,
 		}, []any{&tokens[i]})
 	}
-
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -116,33 +113,9 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	req = d.ethrpcClient.NewRequest().SetContext(ctx)
-	iouTokens := make([][]common.Address, newPools)
-	for i := range tokens {
-		iouTokens[i] = make([]common.Address, len(tokens[i]))
-		for j := range tokens[i] {
-			req.AddCall(&ethrpc.Call{
-				ABI:    clearVaultABI,
-				Target: poolAddresses[i].Hex(),
-				Method: "iouOf",
-				Params: []any{tokens[i][j]},
-			}, []any{&iouTokens[i][j]})
-		}
-	}
-
-	if _, err := req.Aggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to get pool iou tokens")
-		return nil, metadataBytes, err
-	}
-
 	pools := lo.Map(poolAddresses, func(poolAddress common.Address, i int) entity.Pool {
 		extra := Extra{
-			SwapAddress: strings.ToLower(d.config.SwapAddress),
-			IOUs: lo.Map(iouTokens[i], func(iouToken common.Address, _ int) string {
-				return strings.ToLower(iouToken.Hex())
-			}),
+			SwapAddress: d.config.SwapAddress,
 		}
 
 		extraBytes, err := json.Marshal(extra)
@@ -156,14 +129,9 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Address:  hexutil.Encode(poolAddresses[i][:]),
 			Exchange: d.config.DexID,
 			Type:     DexType,
-			Reserves: lo.Map(tokens[i], func(_ common.Address, _ int) string {
-				return defaultReserves
-			}),
+			Reserves: lo.Map(tokens[i], func(_ common.Address, _ int) string { return "0" }),
 			Tokens: lo.Map(tokens[i], func(token common.Address, j int) *entity.PoolToken {
-				return &entity.PoolToken{
-					Address:   token.Hex(),
-					Swappable: true,
-				}
+				return &entity.PoolToken{Address: hexutil.Encode(token[:]), Swappable: true}
 			}),
 			Extra: string(extraBytes),
 		}

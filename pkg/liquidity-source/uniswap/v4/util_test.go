@@ -4,8 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -279,6 +282,47 @@ func BenchmarkEstimateReservesFromTicks(b *testing.B) {
 			for range b.N - 1 {
 				_, _ = EstimateReservesFromTicks(tt.args.sqrtPriceX96, tt.args.ticks)
 			}
+		})
+	}
+}
+
+func TestEstimateReservesFromTicksU256(t *testing.T) {
+	type args struct {
+		sqrtPriceX96 *uint256.Int
+		ticks        []v3.TickU256
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantAmt0 *uint256.Int
+		wantAmt1 *uint256.Int
+	}{
+		{
+			"alphix",
+			args{
+				big256.New("3580966902810831567784431"),
+				[]v3.TickU256{
+					{Index: -201420, LiquidityGross: big256.New("8104963630759"),
+						LiquidityNet: big256.SNew("8104963630759")},
+					{Index: -200280, LiquidityGross: big256.New("208606306005373"),
+						LiquidityNet: big256.SNew("208606306005373")},
+					{Index: -199920, LiquidityGross: big256.New("208606306005373"),
+						LiquidityNet: big256.SNew("-208606306005373")},
+					{Index: -199260, LiquidityGross: big256.New("8104963630759"),
+						LiquidityNet: big256.SNew("-8104963630759")},
+				},
+			},
+			big256.New("48508975244978208"),
+			big256.New("108309717"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotAmt0, gotAmt1 := EstimateReservesFromTicksU256(tt.args.sqrtPriceX96, tt.args.ticks)
+			assert.Equalf(t, tt.wantAmt0, gotAmt0, "EstimateReservesFromTicksU256(%v, %v)", tt.args.sqrtPriceX96,
+				tt.args.ticks)
+			assert.Equalf(t, tt.wantAmt1, gotAmt1, "EstimateReservesFromTicksU256(%v, %v)", tt.args.sqrtPriceX96,
+				tt.args.ticks)
 		})
 	}
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -44,15 +43,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	reserves := make([]*big.Int, len(entityPool.Reserves))
 	for i, r := range entityPool.Reserves {
 		reserves[i], _ = new(big.Int).SetString(r, 10)
-	}
-
-	if extra.MaxBaseToQuoteAmount != nil {
-		extra.MaxBaseToQuoteAmount.MulDivOverflow(extra.MaxBaseToQuoteAmount,
-			maxOrderbookFillFactorBPS, big256.UBasisPoint)
-	}
-	if extra.MaxQuoteToBaseAmount != nil {
-		extra.MaxQuoteToBaseAmount.MulDivOverflow(extra.MaxQuoteToBaseAmount,
-			maxOrderbookFillFactorBPS, big256.UBasisPoint)
 	}
 
 	return &PoolSimulator{

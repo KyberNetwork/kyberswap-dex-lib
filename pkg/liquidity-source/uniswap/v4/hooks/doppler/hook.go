@@ -14,12 +14,8 @@ import (
 )
 
 type Hook struct { // scheduled
-	uniswapv4.Hook
-	Extra
-}
-
-type Extra struct {
-	StartingTime int64
+	uniswapv4.Hook `json:"-"`
+	StartingTime   int64
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -27,29 +23,27 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, NoopHookAddresses...)
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	var extra Extra
-	if param.HookExtra != "" {
-		_ = json.Unmarshal([]byte(param.HookExtra), &extra)
-	}
-	return &Hook{
-		Hook:  &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler},
-		Extra: extra,
-	}
+	var hook Hook
+	_ = param.HookExtra.Unmarshal(&hook)
+	hook.Hook = &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler}
+	return &hook
 }, ScheduledHookAddresses...)
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
-	var extra Extra
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
+	if len(param.HookExtra) > 0 {
+		return json.RawMessage(param.HookExtra), nil
+	}
+
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    hookABI,
 		Target: hexutil.Encode(param.HookAddress[:]),
 		Method: "startingTimeOf",
 		Params: []any{common.HexToHash(param.Pool.Address)},
-	}, []any{&extra.StartingTime}).Call(); err != nil {
-		return "", err
+	}, []any{&h.StartingTime}).Call(); err != nil {
+		return nil, err
 	}
 
-	extraBytes, _ := json.Marshal(extra)
-	return string(extraBytes), nil
+	return json.Marshal(h)
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {

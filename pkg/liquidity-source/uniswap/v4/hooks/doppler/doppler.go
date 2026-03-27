@@ -24,9 +24,7 @@ type DHook struct { // scheduled
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	var dHook DHook
-	if param.HookExtra != "" {
-		_ = json.Unmarshal([]byte(param.HookExtra), &dHook)
-	}
+	_ = param.HookExtra.Unmarshal(&dHook)
 	dHook.Hook = &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler}
 	if f := DHooks[dHook.DHook]; f != nil {
 		dHook.IDHook = f(dHook.HookExtra)
@@ -44,7 +42,7 @@ type PoolState struct {
 	FarTick                       int32
 }
 
-func (h *DHook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *DHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var poolState, poolState2 PoolState
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
@@ -71,7 +69,7 @@ func (h *DHook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, 
 		}, []any{&poolState2}).TryAggregate()
 	}
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if h.Asset == valueobject.AddrZero {
@@ -91,12 +89,11 @@ func (h *DHook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, 
 
 	if h.IDHook != nil {
 		if h.HookExtra, err = h.IDHook.Track(ctx, param, h); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
-	extraBytes, _ := json.Marshal(h)
-	return string(extraBytes), nil
+	return json.Marshal(h)
 }
 
 func (h *DHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {

@@ -79,10 +79,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	numToProcess := totalPairs - metadata.Offset
-	if numToProcess > batchSize {
-		numToProcess = batchSize
-	}
+	numToProcess := min(totalPairs-metadata.Offset, batchSize)
 
 	pairsToProcess := allPairs[metadata.Offset : metadata.Offset+numToProcess]
 
@@ -128,7 +125,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		p := entity.Pool{
 			Address:     strings.ToLower(r.Pool.Hex()),
 			Exchange:    u.cfg.DexId,
-			Type:        "tessera",
+			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Tokens:      tokens,

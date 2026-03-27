@@ -51,8 +51,9 @@ type PythUpdateData struct {
 	} `json:"binary"`
 	Parsed []struct {
 		Price struct {
-			Price string `json:"price"`
-			Expo  int    `json:"expo"`
+			Price       string `json:"price"`
+			Expo        int    `json:"expo"`
+			PublishTime int64  `json:"publish_time"`
 		} `json:"price"`
 	} `json:"parsed"`
 }

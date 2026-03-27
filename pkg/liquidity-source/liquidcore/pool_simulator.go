@@ -3,22 +3,18 @@ package liquidcore
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	Extra
-	decimal0, decimal1 uint8
-	reserve0, reserve1 *uint256.Int
+	*PoolState
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -38,11 +34,17 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(ep.Reserves, func(item string, _ int) *big.Int { return bignum.NewBig(item) }),
 			BlockNumber: ep.BlockNumber,
 		}},
-		Extra:    extra,
-		reserve0: uint256.MustFromDecimal(ep.Reserves[0]),
-		reserve1: uint256.MustFromDecimal(ep.Reserves[1]),
-		decimal0: ep.Tokens[0].Decimals,
-		decimal1: ep.Tokens[1].Decimals,
+
+		PoolState: &PoolState{
+			Token0:      ep.Tokens[0].Address,
+			Token1:      ep.Tokens[1].Address,
+			Decimals0:   ep.Tokens[0].Decimals,
+			Decimals1:   ep.Tokens[1].Decimals,
+			Reserve0:    uint256.MustFromDecimal(ep.Reserves[0]),
+			Reserve1:    uint256.MustFromDecimal(ep.Reserves[1]),
+			SpotPrice:   extra.SpotPrice,
+			OraclePrice: extra.OraclePrice,
+		},
 	}, nil
 }
 
@@ -53,56 +55,25 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	isZeroToOne := indexIn == 0
-
 	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
-	if amountIn.IsZero() {
-		return nil, ErrZeroSwap
-	}
 
-	var amountOut *uint256.Int
-	var err error
-	if isZeroToOne {
-		amountOut, err = s.convertToToken1(amountIn)
-	} else {
-		amountOut, err = s.convertToToken0(amountIn)
-	}
+	result, err := CalcSwap(s.PoolState, tokenAmountIn.Token, tokenOut, amountIn)
 	if err != nil {
 		return nil, err
-	}
-	if amountOut.Gt(lo.Ternary(isZeroToOne, s.reserve1, s.reserve0)) {
-		return nil, ErrInsufficientReserve
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
+			Amount: result.AmountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: bignum.ZeroBI,
+			Amount: result.FeeAmount.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas:      defaultGas,
+		SwapInfo: lo.T4(s.SpotPrice, s.OraclePrice, result.NewReserve0, result.NewReserve1),
 	}, nil
-}
-
-func (s *PoolSimulator) convertToToken0(amount *uint256.Int) (*uint256.Int, error) {
-	res, overflow := new(uint256.Int).MulDivOverflow(amount, s.Rate10, u256.TenPow(s.decimal1))
-	if overflow {
-		return nil, number.ErrOverflow
-	}
-
-	return res, nil
-}
-
-func (s *PoolSimulator) convertToToken1(amount *uint256.Int) (*uint256.Int, error) {
-	res, overflow := new(uint256.Int).MulDivOverflow(amount, s.Rate01, u256.TenPow(s.decimal0))
-	if overflow {
-		return nil, number.ErrOverflow
-	}
-
-	return res, nil
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
@@ -111,21 +82,16 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.reserve0 = new(uint256.Int).Set(s.reserve0)
-	cloned.reserve1 = new(uint256.Int).Set(s.reserve1)
+	clonedPoolState := *s.PoolState
+	clonedPoolState.Reserve0 = new(uint256.Int).Set(s.Reserve0)
+	clonedPoolState.Reserve1 = new(uint256.Int).Set(s.Reserve1)
+	cloned.PoolState = &clonedPoolState
 
 	return &cloned
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
-	isZeroToOne := indexIn == 0
-
-	if isZeroToOne {
-		s.reserve0.Add(s.reserve0, uint256.MustFromBig(params.TokenAmountIn.Amount))
-		s.reserve1.Sub(s.reserve1, uint256.MustFromBig(params.TokenAmountOut.Amount))
-	} else {
-		s.reserve0.Sub(s.reserve0, uint256.MustFromBig(params.TokenAmountOut.Amount))
-		s.reserve1.Add(s.reserve1, uint256.MustFromBig(params.TokenAmountIn.Amount))
-	}
+	_, _, r0, r1 := params.SwapInfo.(lo.Tuple4[*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int]).Unpack()
+	s.Reserve0 = r0.Clone()
+	s.Reserve1 = r1.Clone()
 }

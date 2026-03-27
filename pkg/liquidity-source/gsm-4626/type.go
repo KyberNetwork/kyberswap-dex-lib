@@ -1,9 +1,13 @@
 package gsm4626
 
-import "github.com/holiman/uint256"
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
+)
 
 type StaticExtra struct {
-	PriceRatio *uint256.Int `json:"priceRatio"`
+	GhoReserve common.Address `json:"g"`
+	PriceRatio *uint256.Int   `json:"priceRatio"`
 }
 
 type Extra struct {

@@ -847,10 +847,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	totalTicks := len(tickIndexes)
 	ticks := make([]tickspkg.Tick, 0, totalTicks)
 	for i := 0; i < totalTicks; i += tickChunkSize {
-		toIdx := i + tickChunkSize
-		if toIdx > totalTicks {
-			toIdx = totalTicks
-		}
+		toIdx := min(i+tickChunkSize, totalTicks)
 
 		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
 		if err != nil {

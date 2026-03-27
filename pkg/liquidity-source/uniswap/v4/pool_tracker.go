@@ -29,6 +29,7 @@ import (
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -572,7 +573,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error) {
 	tickSet := make(map[int]struct{})
 	for _, event := range logs {
-		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
+		if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
 			continue
 		}
 
@@ -615,10 +616,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	totalTicks := len(tickIndexes)
 	ticks := make([]tickspkg.Tick, 0, totalTicks)
 	for i := 0; i < totalTicks; i += tickChunkSize {
-		toIdx := i + tickChunkSize
-		if toIdx > totalTicks {
-			toIdx = totalTicks
-		}
+		toIdx := min(i+tickChunkSize, totalTicks)
 
 		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
 		if err != nil {

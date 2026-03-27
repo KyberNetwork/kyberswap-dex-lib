@@ -1,5 +1,7 @@
 package axima
 
+import "math/big"
+
 type PairMetadata struct {
 	Pair                 string `json:"pair"`
 	PoolAddress          string `json:"poolAddress"`
@@ -16,6 +18,19 @@ type PairData struct {
 	TotalToken0Available string `json:"totalToken0Available"`
 	TotalToken1Available string `json:"totalToken1Available"`
 	QuoteExpiration      int64  `json:"quoteExpiration"`
+	Depth                Depth  `json:"depth"`
+}
+
+type Depth struct {
+	Asks []AximaBin `json:"asks"`
+	Bids []AximaBin `json:"bids"`
+}
+
+type AximaBin struct {
+	BinIdx           int64  `json:"binIdx"`
+	Price            string `json:"price"`
+	CummlativeVolume string `json:"cumulativeVolume"`
+	PriceImpactE6    string `json:"priceImpactE6"`
 }
 
 type StaticExtra struct {
@@ -23,8 +38,24 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	ZeroToOneRate  float64 `json:"0to1R"` // rate of 1 token0 to token1
-	OneToZeroRate  float64 `json:"1to0R"` // rate of 1 token1 to token0
-	QuoteAvailable bool    `json:"qA"`
-	MaxAge         int64   `json:"maxAge"`
+	InitBid *big.Int `json:"initBid"`
+	InitAsk *big.Int `json:"initAsk"`
+
+	QuoteAvailable bool  `json:"qA"`
+	MaxAge         int64 `json:"maxAge"`
+
+	IsV2 bool `json:"isV2"`
+
+	Asks []Bin `json:"asks"`
+	Bids []Bin `json:"bids"`
+}
+
+type Bin struct {
+	BinIdx           int64    `json:"bi"`
+	Price            *big.Int `json:"p"`
+	CumulativeVolume *big.Int `json:"cv"` // total amountOut that can be swapped up to this bin (inclusive)
+}
+
+type PoolMeta struct {
+	SwapDirection bool `json:"swapDir"`
 }

@@ -19,6 +19,7 @@ type PoolSimulator struct {
 	pool.Pool
 	Extra
 	StaticExtra
+	remainingIn [2]*big.Int
 }
 
 var (
@@ -40,7 +41,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	tokens := lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) string { return strings.ToLower(e.Address) })
 	reserves := lo.Map(p.Reserves, func(e string, _ int) *big.Int { return bignumber.NewBig(e) })
 
-	return &PoolSimulator{
+	sim := &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
@@ -51,7 +52,19 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		}},
 		Extra:       extra,
 		StaticExtra: staticExtra,
-	}, nil
+	}
+
+	// Runtime cumulative cap is sample-based for wasabi (no on-chain MaxIn metadata).
+	for dir := 0; dir < 2; dir++ {
+		if dir < len(sim.Samples) && len(sim.Samples[dir]) > 0 {
+			lastIn := sim.Samples[dir][len(sim.Samples[dir])-1][0]
+			if lastIn != nil {
+				sim.remainingIn[dir] = new(big.Int).Set(lastIn)
+			}
+		}
+	}
+
+	return sim, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -66,6 +79,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	if len(s.Samples[indexIn]) == 0 {
 		return nil, ErrInsufficientLiquidity
+	}
+	if rem := s.remainingIn[indexIn]; rem != nil {
+		if tokenAmountIn.Amount.Cmp(rem) > 0 {
+			return nil, ErrInsufficientLiquidity
+		}
 	}
 
 	samples := s.Samples[indexIn]
@@ -98,6 +116,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	if s.remainingIn[indexIn] != nil {
+		s.remainingIn[indexIn] = new(big.Int).Sub(s.remainingIn[indexIn], params.TokenAmountIn.Amount)
+		if s.remainingIn[indexIn].Sign() < 0 {
+			s.remainingIn[indexIn] = big.NewInt(0)
+		}
+	}
 
 	if limit := params.SwapLimit; limit != nil {
 		_, _, _ = limit.UpdateLimit(
@@ -120,6 +144,11 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 				new(big.Int).Set(pair[0]),
 				new(big.Int).Set(pair[1]),
 			}
+		}
+	}
+	for i := range s.remainingIn {
+		if s.remainingIn[i] != nil {
+			cloned.remainingIn[i] = new(big.Int).Set(s.remainingIn[i])
 		}
 	}
 	return &cloned

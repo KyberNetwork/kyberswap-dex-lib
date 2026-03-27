@@ -167,20 +167,20 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				fmt.Printf("Simulator output: %s\n", simRes.TokenAmountOut.Amount.String())
 			}
 
-			if quoterErr == nil && simErr == nil {
+			quoterUnavailable := quoterErr != nil || (quoterRes.AmountOut == nil || quoterRes.AmountOut.Sign() == 0)
+			if quoterUnavailable && simErr != nil {
+				fmt.Printf("Both agree: swap unavailable (quoter: %v, sim: %v)\n", quoterErr, simErr)
+			} else if quoterUnavailable && simErr == nil {
+				t.Errorf("Quoter returned unavailable but simulator gave output: %s", simRes.TokenAmountOut.Amount)
+			} else if !quoterUnavailable && simErr != nil {
+				t.Errorf("Quoter succeeded (out=%s) but simulator failed: %v", quoterRes.AmountOut, simErr)
+			} else {
 				diff := new(big.Int).Abs(new(big.Int).Sub(quoterRes.AmountOut, simRes.TokenAmountOut.Amount))
-				bps := int64(0)
-				if quoterRes.AmountOut.Sign() > 0 {
-					bps = new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), quoterRes.AmountOut).Int64()
-				}
+				bps := new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), quoterRes.AmountOut).Int64()
 				fmt.Printf("Difference: %s, BPS: %d\n", diff.String(), bps)
 				if bps > 1 {
 					t.Errorf("High BPS difference: %d (expected <= 1)", bps)
 				}
-			} else if quoterErr != nil && simErr == nil {
-				t.Errorf("Quoter reverted but simulator succeeded")
-			} else if quoterErr == nil && simErr != nil {
-				t.Errorf("Quoter succeeded but simulator failed")
 			}
 		})
 	}

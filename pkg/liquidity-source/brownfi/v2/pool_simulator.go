@@ -9,7 +9,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -30,7 +30,7 @@ var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	entityPool := params.EntityPool
-	if time.Since(time.Unix(entityPool.Timestamp, 0)) > 15*time.Second {
+	if time.Since(time.Unix(entityPool.Timestamp, 0)) > maxAge {
 		return nil, ErrInvalidPrices
 	}
 	router, ok := Router[params.ChainID]

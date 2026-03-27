@@ -3,7 +3,6 @@ package uniswapv4
 import (
 	"context"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -68,7 +67,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
-	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
 		token0Decimals, err := kutils.Atou[uint8](p.Token0.Decimals)
 		if err != nil {
@@ -82,9 +80,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			{Address: p.Token0.ID, Decimals: token0Decimals, Swappable: true},
 			{Address: p.Token1.ID, Decimals: token1Decimals, Swappable: true},
 		}
+		var isNative [2]bool
 		for idx, token := range tokens {
-			if token.Address == EmptyAddress {
-				tokens[idx].Address = strings.ToLower(valueobject.WrappedNativeMap[chainID])
+			if valueobject.IsZero(token.Address) {
+				tokens[idx].Address = valueobject.LowerWrapped(u.config.ChainID)
+				isNative[idx] = true
 			}
 		}
 
@@ -98,7 +98,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		staticExtra := StaticExtra{
-			IsNative:               [2]bool{p.Token0.ID == EmptyAddress, p.Token1.ID == EmptyAddress},
+			IsNative:               isNative,
 			Fee:                    fee,
 			TickSpacing:            tickSpacing,
 			HooksAddress:           common.HexToAddress(p.Hooks),

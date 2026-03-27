@@ -1,0 +1,181 @@
+{
+    "pair": "wethusdc_meow",
+    "poolAddress": "0xa07938EA73e9D8Eb23535816D073c2731eA24946",
+    "bidAdj": "38063892392282659564215",
+    "askAdj": "38067089893538664059810",
+    "quoteAvailable": true,
+    "totalToken0Available": "26781623648559802650",
+    "totalToken1Available": "46825379220",
+    "latestBlock": 43001289,
+    "blockTs": 1772791925,
+    "serverTs": 1772791926,
+    "quoteExpiration": 1772791927,
+    "depth": {
+        "asks": [
+            {
+                "binIdx": -1,
+                "price": "38069675999078719875252",
+                "cumulativeVolume": "1426092302651726631",
+                "priceImpactE6": "67"
+            },
+            {
+                "binIdx": 0,
+                "price": "38073482966678627747240",
+                "cumulativeVolume": "4499151541673946252",
+                "priceImpactE6": "167"
+            },
+            {
+                "binIdx": 1,
+                "price": "38077289934278535619227",
+                "cumulativeVolume": "7565975271772170442",
+                "priceImpactE6": "267"
+            },
+            {
+                "binIdx": 2,
+                "price": "38081096901878443491215",
+                "cumulativeVolume": "10631282503288823290",
+                "priceImpactE6": "367"
+            },
+            {
+                "binIdx": 3,
+                "price": "38084903869478351363202",
+                "cumulativeVolume": "13696358097255023513",
+                "priceImpactE6": "467"
+            },
+            {
+                "binIdx": 4,
+                "price": "38088710837078259235189",
+                "cumulativeVolume": "16761480108239686233",
+                "priceImpactE6": "567"
+            },
+            {
+                "binIdx": 5,
+                "price": "38092517804678167107177",
+                "cumulativeVolume": "19826602119224348953",
+                "priceImpactE6": "667"
+            },
+            {
+                "binIdx": 6,
+                "price": "38096324772278074979165",
+                "cumulativeVolume": "22891724130209011673",
+                "priceImpactE6": "767"
+            },
+            {
+                "binIdx": 7,
+                "price": "38100131739877982851152",
+                "cumulativeVolume": "25956574072797410936",
+                "priceImpactE6": "867"
+            },
+            {
+                "binIdx": 8,
+                "price": "38103938707477890723140",
+                "cumulativeVolume": "25956574072797410936",
+                "priceImpactE6": "967"
+            },
+            {
+                "binIdx": 9,
+                "price": "38107745675077798595127",
+                "cumulativeVolume": "25956574072797410936",
+                "priceImpactE6": "1068"
+            },
+            {
+                "binIdx": 10,
+                "price": "38111552642677706467115",
+                "cumulativeVolume": "25956574072797410936",
+                "priceImpactE6": "1168"
+            },
+            {
+                "binIdx": 11,
+                "price": "38115359610277614339102",
+                "cumulativeVolume": "25956574072797410936",
+                "priceImpactE6": "1268"
+            },
+            {
+                "binIdx": 12,
+                "price": "38119166577877522211090",
+                "cumulativeVolume": "25956574072797410936",
+                "priceImpactE6": "1368"
+            }
+        ],
+        "bids": [
+            {
+                "binIdx": -1,
+                "price": "38062671632770913514791",
+                "cumulativeVolume": "655070987",
+                "priceImpactE6": "33"
+            },
+            {
+                "binIdx": -2,
+                "price": "38058864984942853617450",
+                "cumulativeVolume": "7002001252",
+                "priceImpactE6": "133"
+            },
+            {
+                "binIdx": -3,
+                "price": "38055058337114793720108",
+                "cumulativeVolume": "13363404262",
+                "priceImpactE6": "233"
+            },
+            {
+                "binIdx": -4,
+                "price": "38051251689286733822767",
+                "cumulativeVolume": "19725670537",
+                "priceImpactE6": "333"
+            },
+            {
+                "binIdx": -5,
+                "price": "38047445041458673925426",
+                "cumulativeVolume": "26087936812",
+                "priceImpactE6": "433"
+            },
+            {
+                "binIdx": -6,
+                "price": "38043638393630614028084",
+                "cumulativeVolume": "32450203087",
+                "priceImpactE6": "533"
+            },
+            {
+                "binIdx": -7,
+                "price": "38039831745802554130744",
+                "cumulativeVolume": "38812469362",
+                "priceImpactE6": "633"
+            },
+            {
+                "binIdx": -8,
+                "price": "38036025097974494233403",
+                "cumulativeVolume": "45174735637",
+                "priceImpactE6": "733"
+            },
+            {
+                "binIdx": -9,
+                "price": "38032218450146434336061",
+                "cumulativeVolume": "45174735637",
+                "priceImpactE6": "833"
+            },
+            {
+                "binIdx": -10,
+                "price": "38028411802318374438720",
+                "cumulativeVolume": "45174735637",
+                "priceImpactE6": "933"
+            },
+            {
+                "binIdx": -11,
+                "price": "38024605154490314541378",
+                "cumulativeVolume": "45174735637",
+                "priceImpactE6": "1033"
+            },
+            {
+                "binIdx": -12,
+                "price": "38020798506662254644037",
+                "cumulativeVolume": "45174735637",
+                "priceImpactE6": "1133"
+            },
+            {
+                "binIdx": -13,
+                "price": "38016991858834194746696",
+                "cumulativeVolume": "45174735637",
+                "priceImpactE6": "1233"
+            }
+        ]
+    }
+}

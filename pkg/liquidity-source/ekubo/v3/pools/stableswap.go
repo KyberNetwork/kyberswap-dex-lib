@@ -206,13 +206,7 @@ func setStableswapBounds(pool *StableswapPool, centerTick int32, amplification u
 
 func activeRange(centerTick int32, amplification uint8) (int32, int32) {
 	width := math.MaxTick >> amplification
-	lower := centerTick - width
-	if lower < math.MinTick {
-		lower = math.MinTick
-	}
-	upper := centerTick + width
-	if upper > math.MaxTick {
-		upper = math.MaxTick
-	}
+	lower := max(centerTick-width, math.MinTick)
+	upper := min(centerTick+width, math.MaxTick)
 	return lower, upper
 }
