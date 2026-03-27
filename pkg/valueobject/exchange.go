@@ -249,6 +249,7 @@ const (
 	ExchangeUniswapV4Alpha             = "uniswap-v4-alpha"
 	ExchangeUniswapV4Alphix            = "uniswap-v4-alphix"
 	ExchangeUniswapV4Angstrom          = "uniswap-v4-angstrom"
+	ExchangeUniswapV4AngstromL2        = "uniswap-v4-angstrom-l2"
 	ExchangeUniswapV4Arena             = "uniswap-v4-arena"
 	ExchangeUniswapV4Arrakis           = "uniswap-v4-arrakis"
 	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"

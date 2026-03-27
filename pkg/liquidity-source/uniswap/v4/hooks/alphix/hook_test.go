@@ -64,7 +64,7 @@ func TestBeforeSwap_ReturnsDynamicFee(t *testing.T) {
 	})
 
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
-		ExactIn:         true,
+		CalcOut:         true,
 		ZeroForOne:      true,
 		AmountSpecified: big.NewInt(1_000_000), // 1 USDC
 	})
@@ -83,7 +83,7 @@ func TestAfterSwap_Noop(t *testing.T) {
 
 	result, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
-			ExactIn:         true,
+			CalcOut:         true,
 			ZeroForOne:      true,
 			AmountSpecified: big.NewInt(1_000_000),
 		},
@@ -120,7 +120,7 @@ func TestBeforeSwap_JitSimulation(t *testing.T) {
 
 	// Swap 1000 USDC (exactIn, zeroForOne)
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
-		ExactIn:         true,
+		CalcOut:         true,
 		ZeroForOne:      true,
 		AmountSpecified: big.NewInt(1_000_000_000), // 1000 USDC
 	})
@@ -157,7 +157,7 @@ func TestBeforeSwap_NoJitWhenNoReserves(t *testing.T) {
 	}
 
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
-		ExactIn:         true,
+		CalcOut:         true,
 		ZeroForOne:      true,
 		AmountSpecified: big.NewInt(1_000_000),
 	})

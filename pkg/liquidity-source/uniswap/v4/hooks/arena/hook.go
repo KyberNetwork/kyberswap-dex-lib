@@ -83,6 +83,6 @@ var MaxHookFee = bignumber.TenPowInt(6)
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
 		HookFee: bignumber.MulDivDown(new(big.Int),
-			lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn), h.totalFeePpm, MaxHookFee),
+			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), h.totalFeePpm, MaxHookFee),
 	}, nil
 }

@@ -16,7 +16,7 @@ import (
 )
 
 type BeforeSwapParams struct {
-	ExactIn         bool
+	CalcOut         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int
 }
@@ -31,17 +31,12 @@ type BeforeSwapResult struct {
 
 func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
 	if result == nil {
-		return errors.New("before swap result is nil")
+		return ErrNilBeforeSwapResult
+	} else if result.DeltaSpecified == nil {
+		return ErrNilDeltaSpecified
+	} else if result.DeltaUnspecified == nil {
+		return ErrNilDeltaUnspecified
 	}
-
-	if result.DeltaSpecified == nil {
-		return errors.New("delta specified is nil")
-	}
-
-	if result.DeltaUnspecified == nil {
-		return errors.New("delta unspecified is nil")
-	}
-
 	return nil
 }
 

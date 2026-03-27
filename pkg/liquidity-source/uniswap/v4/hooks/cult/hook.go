@@ -51,7 +51,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	feeAmt := bignumber.ZeroBI
-	if params.ZeroForOne && params.ExactIn {
+	if params.ZeroForOne && params.CalcOut {
 		feeAmt = new(big.Int)
 		feeAmt.Mul(params.AmountSpecified, h.totalFeeBps).Div(feeAmt, bignumber.BasisPoint)
 	}
@@ -65,7 +65,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	feeAmt := bignumber.ZeroBI
 	if !params.ZeroForOne {
-		feeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn),
+		feeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
 			h.totalFeeBps, bignumber.BasisPoint)
 	}
 

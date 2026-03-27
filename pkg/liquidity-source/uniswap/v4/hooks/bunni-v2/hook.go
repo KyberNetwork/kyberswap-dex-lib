@@ -262,7 +262,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 
 	if totalLiquidity.IsZero() ||
-		(!params.ExactIn &&
+		(!params.CalcOut &&
 			lo.Ternary(params.ZeroForOne, currentActiveBalance1, currentActiveBalance0).Lt(amountSpecified)) {
 		return nil, errors.New("BunniHook__RequestedOutputExceedsBalance")
 	}
@@ -301,7 +301,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		CurrentActiveBalance1:            currentActiveBalance1,
 		ArithmeticMeanTick:               int(arithmeticMeanTick),
 		ZeroForOne:                       params.ZeroForOne,
-		ExactIn:                          params.ExactIn,
+		ExactIn:                          params.CalcOut,
 		AmountSpecified:                  amountSpecified,
 		SqrtPriceLimitX96:                sqrtPriceLimitX96,
 		LdfState:                         ldfState,
@@ -310,7 +310,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, err
 	}
 
-	if !params.ExactIn && outputAmount.Lt(amountSpecified) {
+	if !params.CalcOut && outputAmount.Lt(amountSpecified) {
 		return nil, errors.New("BunniHook__InsufficientOutput")
 	}
 
@@ -412,7 +412,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		swapFee = &hookFeesBaseSwapFee
 	}
 
-	if params.ExactIn {
+	if params.CalcOut {
 		swapFeeAmount = math.MulDivUp(outputAmount, swapFee, SWAP_FEE_BASE)
 
 		if useAmAmmFee {

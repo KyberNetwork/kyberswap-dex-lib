@@ -68,7 +68,7 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 	fee := big.NewInt(h.calculateFee(params.ZeroForOne))
 	return &uniswapv4.AfterSwapResult{
 		HookFee: bignumber.MulDivDown(fee,
-			lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn), fee, bignumber.BasisPoint),
+			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), fee, bignumber.BasisPoint),
 	}, nil
 }
 

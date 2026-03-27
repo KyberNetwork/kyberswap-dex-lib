@@ -43,6 +43,6 @@ func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	var hookFeeAmt big.Int
 	return &uniswapv4.AfterSwapResult{
-		HookFee: hookFeeAmt.Div(lo.Ternary(params.ExactIn, params.AmountOut, params.AmountIn), FeeDivBy),
+		HookFee: hookFeeAmt.Div(lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), FeeDivBy),
 	}, nil
 }

@@ -125,7 +125,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-		ExactIn:         true,
+		CalcOut:         true,
 		ZeroForOne:      zeroForOne,
 		AmountSpecified: amountIn,
 	}); err != nil {
@@ -160,7 +160,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 		BeforeSwapParams: &BeforeSwapParams{
-			ExactIn:         true,
+			CalcOut:         true,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountIn,
 		},
@@ -229,7 +229,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	amountOut := new(big.Int).Set(param.TokenAmountOut.Amount)
 
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-		ExactIn:         false,
+		CalcOut:         false,
 		ZeroForOne:      zeroForOne,
 		AmountSpecified: amountOut,
 	}); err != nil {
@@ -264,7 +264,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 
 	if afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 		BeforeSwapParams: &BeforeSwapParams{
-			ExactIn:         false,
+			CalcOut:         false,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountOut,
 		},
