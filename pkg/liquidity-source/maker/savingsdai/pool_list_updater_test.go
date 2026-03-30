@@ -23,7 +23,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	test.SkipCI(ts.T())
 
 	rpcClientByChainID := map[valueobject.ChainID]*ethrpc.Client{
-		1: ethrpc.New("https://eth.drpc.org").
+		1: ethrpc.New("https://ethereum-rpc.kyberswap.com").
 			SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696")),
 	}
 

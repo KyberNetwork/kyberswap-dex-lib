@@ -25,7 +25,7 @@ func TestStaticFeeHook_Track(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://arbitrum.drpc.org").
+	rpcClient := ethrpc.New("https://arbitrum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	chainID := valueobject.ChainIDArbitrumOne
@@ -56,7 +56,7 @@ func TestDynamicFeeHook_Track(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://arbitrum.drpc.org").
+	rpcClient := ethrpc.New("https://arbitrum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	chainID := valueobject.ChainIDArbitrumOne

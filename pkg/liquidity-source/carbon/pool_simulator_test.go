@@ -31,7 +31,7 @@ type PoolSimulatorTestSuite struct {
 func (ts *PoolSimulatorTestSuite) SetupSuite() {
 	rpcUrl := os.Getenv("ETHEREUM_RPC_ENDPOINT")
 	if rpcUrl == "" {
-		rpcUrl = "https://eth.drpc.org"
+		rpcUrl = "https://ethereum-rpc.kyberswap.com"
 	}
 
 	if client, err := ethclient.Dial(rpcUrl); err == nil {

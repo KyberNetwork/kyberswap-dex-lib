@@ -26,7 +26,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 
 	d := &PoolTracker{
 		PoolTracker: algebra.PoolTracker[Timepoint, TimepointRPC]{
-			EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc.drpc.org"))).
+			EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc-rpc.kyberswap.com"))).
 				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		},
 		config: &Config{

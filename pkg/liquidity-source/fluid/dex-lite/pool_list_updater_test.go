@@ -43,7 +43,7 @@ func TestPoolsListUpdater(t *testing.T) {
 
 	logger.Debugf("Starting TestPoolsListUpdater with config: %+v", config)
 
-	client := ethrpc.New("https://eth.drpc.org")
+	client := ethrpc.New("https://ethereum-rpc.kyberswap.com")
 	client.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 
 	updater := NewPoolsListUpdater(&config, client)
@@ -89,7 +89,7 @@ func TestGetAllPools(t *testing.T) {
 		}
 	)
 
-	client := ethrpc.New("https://eth.drpc.org")
+	client := ethrpc.New("https://ethereum-rpc.kyberswap.com")
 	client.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 
 	updater := NewPoolsListUpdater(&config, client)
@@ -167,7 +167,7 @@ func TestSimpleContractCall(t *testing.T) {
 	rpcEndpoints := []string{
 		"https://ethereum.publicnode.com",     // PublicNode
 		"https://rpc.ankr.com/eth",            // Ankr
-		"https://eth.drpc.org",                // LlamaRPC
+		"https://ethereum-rpc.kyberswap.com",  // LlamaRPC
 		"https://cloudflare-eth.com",          // Cloudflare
 		"https://ethereum-rpc.publicnode.com", // PublicNode alternative
 	}
@@ -208,9 +208,9 @@ func TestSimpleContractCall(t *testing.T) {
 
 	if ethrpcClient == nil {
 		logger.Debugf("❌ All RPC endpoints failed. This might be a deeper ABI issue.")
-		ethrpcClient = ethrpc.New("https://eth.drpc.org") // Fallback
+		ethrpcClient = ethrpc.New("https://ethereum-rpc.kyberswap.com") // Fallback
 		ethrpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-		workingRPC = "https://eth.drpc.org (fallback)"
+		workingRPC = "https://ethereum-rpc.kyberswap.com (fallback)"
 	}
 
 	logger.Debugf("🚀 Using RPC: %s", workingRPC)
@@ -274,7 +274,7 @@ func TestSimpleContractCall(t *testing.T) {
 		logger.Debugf("📞 Making direct eth_call with ethclient...")
 
 		// Create a new ethclient
-		client, err := ethclient.Dial("https://eth.drpc.org")
+		client, err := ethclient.Dial("https://ethereum-rpc.kyberswap.com")
 		if err != nil {
 			logger.Debugf("❌ Failed to create ethclient: %v", err)
 			return
@@ -488,7 +488,7 @@ func TestFluidDexLiteComprehensiveIntegration(t *testing.T) {
 	config := Config{
 		DexLiteAddress: "0xBbcb91440523216e2b87052A99F69c604A7b6e00",
 	}
-	ethrpcClient := ethrpc.New("https://eth.drpc.org")
+	ethrpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com")
 	ethrpcClient.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 	ctx := context.Background()
 
