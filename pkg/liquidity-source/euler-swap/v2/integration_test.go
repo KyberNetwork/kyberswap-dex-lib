@@ -22,7 +22,7 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
+	rpcClient := ethrpc.New("https://eth.drpc.org")
 	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	registryAddress := "0x5fccb84363f020c0cade052c9c654aabf932814a"

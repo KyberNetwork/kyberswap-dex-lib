@@ -19,7 +19,7 @@ func TestPoolListUpdater(t *testing.T) {
 	t.Parallel()
 	test.SkipCI(t)
 
-	client := ethrpc.New("https://ethereum.kyberengineering.io").
+	client := ethrpc.New("https://eth.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	lister := NewPoolsListUpdater(&Config{
