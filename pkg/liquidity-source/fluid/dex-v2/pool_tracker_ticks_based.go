@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -102,13 +103,12 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool,
 	return p, nil
 }
 
-func (t *PoolTracker) GetNewState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader,
+	param poolpkg.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	if len(logs) == 0 {
+	if len(param.Logs) == 0 {
 		return p, nil
 	}
 
@@ -117,13 +117,13 @@ func (t *PoolTracker) GetNewState(
 		"exchange":    p.Exchange,
 	})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs)
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
 	if err != nil {
 		l.Error(err.Error())
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool, logs, blockHeaders)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
 }
 
 func (t *PoolTracker) newTicksBasedPool(
