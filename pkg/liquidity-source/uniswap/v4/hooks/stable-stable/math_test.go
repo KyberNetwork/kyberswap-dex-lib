@@ -161,6 +161,16 @@ func TestCalculateDecayingFee_FastPath(t *testing.T) {
 	}
 }
 
+func TestCalculateDecayingFee_PrevBelowTarget(t *testing.T) {
+	target := uint256.NewInt(13_995_487)
+	prev := uint256.NewInt(13_995_060)
+
+	got, err := CalculateDecayingFee(target, prev, 167_772, 4_188_378, 96_255)
+	if err == nil {
+		t.Fatalf("expected error for prev<target, got fee=%s", got)
+	}
+}
+
 func TestAdjustPreviousFeeForPriceMovement_Identity(t *testing.T) {
 	// movementRatio = Q96 (i.e. price unchanged) → adjustedFee == prev.
 	prev := uint256.NewInt(123_456_789)

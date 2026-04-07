@@ -74,13 +74,13 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		Target: param.HookAddress.Hex(),
 		Method: "feeConfig",
 		Params: []any{poolId},
-	}, []any{&cfg.K, &cfg.LogK, &cfg.OptimalFeeE6, &cfg.TargetMultiplier, &cfg.ReferenceSqrtPriceX96})
+	}, []any{&cfg})
 	req.AddCall(&ethrpc.Call{
 		ABI:    stableStableHookABI,
 		Target: param.HookAddress.Hex(),
 		Method: "feeState",
 		Params: []any{poolId},
-	}, []any{&state.DecayingFeeE12, &state.SqrtAmmPriceX96, &state.BlockNumber})
+	}, []any{&state})
 
 	if _, err := req.Aggregate(); err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 				cachedSqrtPrev,
 			)
 			if err != nil {
-				return zeroFeeResult(), nil
+				return nil, err
 			}
 			decayingFeeE12 = df
 		} else {

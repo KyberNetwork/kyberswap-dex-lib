@@ -48,7 +48,7 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 }
 
 func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
-	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
+	if len(log.Topics) == 0 || valueobject.IsZeroAddress(log.Address) {
 		return nil, nil
 	}
 
