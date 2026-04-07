@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	gasBeforeSwap int64 = 35000
+	gasBeforeSwap int64 = 11695
 )
 
 var HookAddresses = []common.Address{
