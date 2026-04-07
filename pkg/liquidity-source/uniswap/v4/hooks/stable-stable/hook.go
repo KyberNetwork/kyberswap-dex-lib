@@ -135,10 +135,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	userSellsZeroForOne := params.ZeroForOne
 	ammPriceBelowRP := sqrtAmmPriceX96.Cmp(sqrtRefX96) < 0
 
-	var (
-		lpFeeE12       *uint256.Int
-		decayingFeeE12 *uint256.Int
-	)
+	var lpFeeE12 *uint256.Int
 
 	if !isOutside {
 		// Inside optimal range: charge the fee that puts the pre-impact price
@@ -148,9 +145,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			return zeroFeeResult(), nil
 		}
 		lpFeeE12 = fee
-		decayingFeeE12 = new(uint256.Int).Set(undefinedDecayingFeeE12)
 	} else {
 		// Outside optimal range: compute the decaying fee.
+		var decayingFeeE12 *uint256.Int
 		if isNewBlock {
 			farBoundaryFeeE12 := CalculateFarBoundaryFee(priceRatioX96, h.OptimalFeeE6)
 			df, err := h.calculateDecayingFee(
