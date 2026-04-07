@@ -62,7 +62,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	maxIn := computeMaxIn(balances, caps)
 
-	samples, err := t.fetchQuotes(ctx, p, bTsMs, maxIn)
+	samples, err := t.fetchQuotes(ctx, p, bTsMs, maxIn, blockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -91,8 +91,9 @@ func (t *PoolTracker) fetchQuotes(
 	p entity.Pool,
 	bTsMs *big.Int,
 	maxIn []*big.Int,
+	blockNumber *big.Int,
 ) ([][][2]*big.Int, error) {
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	samples := make([][][2]*big.Int, 2)
 
 	msgTemplate := DomainType
@@ -209,7 +210,8 @@ func buildExtra(samples [][][2]*big.Int, balances, caps []*big.Int) Extra {
 
 	for dir := range samples {
 		maxIn := lo.Ternary(dir < len(extra.MaxIn), extra.MaxIn[dir], nil)
-		extra.Samples = append(extra.Samples, filterSamples(samples[dir], maxIn))
+		outputReserve := lo.Ternary(1-dir < len(balances), balances[1-dir], nil)
+		extra.Samples = append(extra.Samples, filterSamples(samples[dir], maxIn, outputReserve))
 	}
 
 	return extra
@@ -228,9 +230,8 @@ func computeMaxIn(balances, caps []*big.Int) []*big.Int {
 	return maxIn
 }
 
-func filterSamples(samples [][2]*big.Int, maxIn *big.Int) [][2]*big.Int {
+func filterSamples(samples [][2]*big.Int, maxIn *big.Int, outputReserve *big.Int) [][2]*big.Int {
 	valid := samples[:0]
-	var lastOut *big.Int
 	for _, s := range samples {
 		if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
 			continue
@@ -238,11 +239,9 @@ func filterSamples(samples [][2]*big.Int, maxIn *big.Int) [][2]*big.Int {
 		if maxIn != nil && maxIn.Sign() > 0 && s[0].Cmp(maxIn) > 0 {
 			continue
 		}
-
-		if lastOut != nil && s[1].Cmp(lastOut) == 0 {
+		if outputReserve != nil && outputReserve.Sign() > 0 && s[1].Cmp(outputReserve) >= 0 {
 			continue
 		}
-		lastOut = s[1]
 		valid = append(valid, s)
 	}
 	return valid
