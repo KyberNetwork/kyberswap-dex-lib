@@ -265,6 +265,7 @@ const (
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUniswapV4NftStrategy       = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
+	ExchangeUniswapV4StableStable      = "uniswap-v4-stable-stable"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdAi                      = "usd-ai"
