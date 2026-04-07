@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -45,20 +46,12 @@ func (t *PoolTracker) GetNewPoolState(
 	tsMs := time.Now().UnixMilli()
 	bTsMs := big.NewInt(tsMs)
 
-	samples, blockNumber, err := t.fetchQuotes(ctx, p, bTsMs)
-	if err != nil {
-		return p, err
-	}
-
-	t.warnGapInQuotes(p, samples)
-	t.applyBuffer(samples)
-
 	tokenAddrs := []common.Address{
 		common.HexToAddress(p.Tokens[0].Address),
 		common.HexToAddress(p.Tokens[1].Address),
 	}
 
-	balances, caps, err := t.fetchBalancesAndCaps(ctx, blockNumber, tokenAddrs)
+	balances, caps, blockNumber, err := t.fetchBalancesAndCaps(ctx, tokenAddrs)
 	if err != nil {
 		return p, err
 	}
@@ -66,6 +59,16 @@ func (t *PoolTracker) GetNewPoolState(
 	if len(balances) < 2 || balances[0] == nil || balances[1] == nil {
 		return p, ErrInsufficientLiquidity
 	}
+
+	maxIn := computeMaxIn(balances, caps)
+
+	samples, err := t.fetchQuotes(ctx, p, bTsMs, maxIn)
+	if err != nil {
+		return p, err
+	}
+
+	t.warnGapInQuotes(p, samples)
+	t.applyBuffer(samples)
 
 	p.Reserves = []string{balances[0].String(), balances[1].String()}
 
@@ -83,7 +86,12 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) fetchQuotes(ctx context.Context, p entity.Pool, bTsMs *big.Int) ([][][2]*big.Int, *big.Int, error) {
+func (t *PoolTracker) fetchQuotes(
+	ctx context.Context,
+	p entity.Pool,
+	bTsMs *big.Int,
+	maxIn []*big.Int,
+) ([][][2]*big.Int, error) {
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	samples := make([][][2]*big.Int, 2)
 
@@ -92,34 +100,58 @@ func (t *PoolTracker) fetchQuotes(ctx context.Context, p entity.Pool, bTsMs *big
 	msgTemplate.Domain.VerifyingContract = hexutil.Encode(t.cfg.Verifier[:])
 
 	for i := range p.Tokens {
-		samples[i] = make([][2]*big.Int, sampleSize)
 		tokenIn := common.HexToAddress(p.Tokens[i].Address)
 		tokenOut := common.HexToAddress(p.Tokens[1-i].Address)
 
 		sig, err := t.signQuoteMsg(msgTemplate, tokenIn, tokenOut, bTsMs)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
+
+		points := make([]*big.Int, 0, sampleSize+len(maxInSampleBps))
 
 		dec := int(p.Tokens[i].Decimals)
 		start := max(0, dec-sampleSize/2)
 		for idx, k := 0, start; idx < sampleSize; idx, k = idx+1, k+1 {
-			samples[i][idx] = [2]*big.Int{bignumber.TenPowInt(k), new(big.Int)}
+			points = append(points, bignumber.TenPowInt(k))
+		}
+
+		var dirMaxIn *big.Int
+		if i < len(maxIn) {
+			dirMaxIn = maxIn[i]
+		}
+		if dirMaxIn != nil && dirMaxIn.Sign() > 0 {
+			for _, bps := range maxInSampleBps {
+				pt := new(big.Int).Mul(dirMaxIn, big.NewInt(int64(bps)))
+				pt.Div(pt, bignumber.BasisPoint)
+				if pt.Sign() > 0 {
+					points = append(points, pt)
+				}
+			}
+		}
+
+		sort.Slice(points, func(a, b int) bool {
+			return points[a].Cmp(points[b]) < 0
+		})
+		points = dedupSorted(points)
+
+		samples[i] = make([][2]*big.Int, len(points))
+		for j, pt := range points {
+			samples[i][j] = [2]*big.Int{new(big.Int).Set(pt), new(big.Int)}
 			req.AddCall(&ethrpc.Call{
 				ABI:    swapABI,
 				Target: t.cfg.RouterAddress,
 				Method: "quote",
-				Params: []any{tokenIn, samples[i][idx][0], tokenOut, bTsMs, sig},
-			}, []any{&samples[i][idx][1]})
+				Params: []any{tokenIn, samples[i][j][0], tokenOut, bTsMs, sig},
+			}, []any{&samples[i][j][1]})
 		}
 	}
 
-	res, err := req.TryBlockAndAggregate()
-	if err != nil {
-		return nil, nil, err
+	if _, err := req.TryAggregate(); err != nil {
+		return nil, err
 	}
 
-	return samples, res.BlockNumber, nil
+	return samples, nil
 }
 
 func (t *PoolTracker) signQuoteMsg(template apitypes.TypedData, tokenIn, tokenOut common.Address, bTsMs *big.Int) ([]byte, error) {
@@ -147,9 +179,9 @@ func (t *PoolTracker) applyBuffer(samples [][][2]*big.Int) {
 	}
 }
 
-func (t *PoolTracker) fetchBalancesAndCaps(ctx context.Context, blockNumber *big.Int, tokenAddrs []common.Address) ([]*big.Int, []*big.Int, error) {
+func (t *PoolTracker) fetchBalancesAndCaps(ctx context.Context, tokenAddrs []common.Address) ([]*big.Int, []*big.Int, *big.Int, error) {
 	var balances, caps []*big.Int
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    lensABI,
 		Target: t.cfg.LensAddress,
@@ -163,10 +195,11 @@ func (t *PoolTracker) fetchBalancesAndCaps(ctx context.Context, blockNumber *big
 		Params: []any{tokenAddrs},
 	}, []any{&caps})
 
-	if _, err := req.TryAggregate(); err != nil {
-		return nil, nil, err
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	return balances, caps, nil
+	return balances, caps, res.BlockNumber, nil
 }
 
 func buildExtra(samples [][][2]*big.Int, balances, caps []*big.Int) Extra {
@@ -197,6 +230,7 @@ func computeMaxIn(balances, caps []*big.Int) []*big.Int {
 
 func filterSamples(samples [][2]*big.Int, maxIn *big.Int) [][2]*big.Int {
 	valid := samples[:0]
+	var lastOut *big.Int
 	for _, s := range samples {
 		if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
 			continue
@@ -204,6 +238,11 @@ func filterSamples(samples [][2]*big.Int, maxIn *big.Int) [][2]*big.Int {
 		if maxIn != nil && maxIn.Sign() > 0 && s[0].Cmp(maxIn) > 0 {
 			continue
 		}
+
+		if lastOut != nil && s[1].Cmp(lastOut) == 0 {
+			continue
+		}
+		lastOut = s[1]
 		valid = append(valid, s)
 	}
 	return valid
@@ -243,4 +282,17 @@ func (t *PoolTracker) warnGapInQuotes(p entity.Pool, samples [][][2]*big.Int) {
 			}
 		}
 	}
+}
+
+func dedupSorted(sorted []*big.Int) []*big.Int {
+	if len(sorted) <= 1 {
+		return sorted
+	}
+	result := sorted[:1]
+	for _, v := range sorted[1:] {
+		if v.Cmp(result[len(result)-1]) != 0 {
+			result = append(result, v)
+		}
+	}
+	return result
 }
