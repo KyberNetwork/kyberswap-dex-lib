@@ -138,5 +138,5 @@ type ITicksBasedPoolTracker interface {
 
 type IPoolFactoryDecoder interface {
 	DecodePoolCreated(event types.Log) (*entity.Pool, error)
-	IsEventSupported(event common.Hash) bool
+	IsEventSupported(hash common.Hash) bool
 }
