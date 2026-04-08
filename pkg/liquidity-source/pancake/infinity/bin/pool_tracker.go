@@ -31,7 +31,6 @@ import (
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG0(DexType, NewPoolTracker)
 
 var poolFilterer = lo.Must(abi.NewPancakeInfinityPoolManagerFilterer(common.Address{}, nil))
 
@@ -90,7 +89,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	return &result, err
 }
 
-func (t *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	param poolpkg.GetNewPoolStateParams,
@@ -321,14 +320,13 @@ func transformSubgraphBin(
 	}, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
 	})
 
-	var blockNumber = eth.GetLatestBlockNumberFromLogs(logs)
+	var blockNumber = eth.GetLatestBlockNumberFromLogs(param.Logs)
 
 	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
 	if err != nil {
@@ -364,8 +362,8 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []eth
 		currentActiveBinID = rpcState.Slot0.ActiveId
 	}
 
-	if len(logs) > 0 {
-		binIDsFromLogs, err := t.binIDsFromLogs(currentActiveBinID, extra.Bins, logs)
+	if len(param.Logs) > 0 {
+		binIDsFromLogs, err := t.binIDsFromLogs(currentActiveBinID, extra.Bins, param.Logs)
 		if err != nil {
 			return p, err
 		}

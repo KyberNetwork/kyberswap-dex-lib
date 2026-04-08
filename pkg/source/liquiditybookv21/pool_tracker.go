@@ -33,7 +33,6 @@ type PoolTracker struct {
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexTypeLiquidityBookV21, NewPoolTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG0(DexTypeLiquidityBookV21, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
@@ -47,7 +46,7 @@ func NewPoolTracker(
 	}
 }
 
-func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
+func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
 	error) {
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 	l.Info().Msg("GetNewPoolState starts")
@@ -254,15 +253,14 @@ func (t *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 	}, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param pool.GetNewPoolStateParams) (entity.Pool, error) {
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
-	if err := t.updateStateByDexLib(ctx, &p, logs); err != nil {
+	if err := t.updateStateByDexLib(ctx, &p, param.Logs); err != nil {
 		l.Err(err).Msg(ErrUpdateStateByDexLibFailed.Error())
 		return p, errors.Wrap(ErrUpdateStateByDexLibFailed, err.Error())
 	}
-	if err := t.updateBinsData(ctx, &p, logs); err != nil {
+	if err := t.updateBinsData(ctx, &p, param.Logs); err != nil {
 		l.Err(err).Msg(ErrUpdateBinsDataFailed.Error())
 		return p, errors.Wrap(ErrUpdateBinsDataFailed, err.Error())
 	}

@@ -139,8 +139,19 @@ func TestTicksBasedPoolTrackerFactory(t *testing.T) {
 
 	for _, poolTracker := range poolTrackers {
 		t.Run(poolTracker, func(t *testing.T) {
-			got := pooltrack.TicksBasedFactory(poolTracker)
+			got := pooltrack.Factory(poolTracker)
 			assert.NotNil(t, got)
+			handler, err := got(string(poolTracker), pooltrack.FactoryParams{
+				Exchange:   string(poolTracker),
+				Properties: nil,
+				Dependencies: pooltrack.Dependencies{
+					EthrpcClient:  nil,
+					GraphqlClient: nil,
+				},
+			})
+			assert.NoError(t, err)
+			_, ok := handler.(pool.ITicksBasedPoolTracker)
+			assert.True(t, ok)
 		})
 	}
 }
