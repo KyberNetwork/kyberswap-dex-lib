@@ -103,15 +103,15 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.OptimalFeeE6 == 0 || h.OptimalFeeE6 > MaxOptimalFeeE6 {
-		return zeroFeeResult(), nil
+		return nil, ErrInvalidFeeConfig
 	}
 	if h.SqrtPriceX96 == nil || h.SqrtPriceX96.IsZero() {
-		return zeroFeeResult(), nil
+		return nil, ErrInvalidFeeConfig
 	}
 
 	sqrtRefX96, err := uint256.FromDecimal(h.ReferenceSqrtPriceX96)
 	if err != nil || sqrtRefX96.IsZero() {
-		return zeroFeeResult(), nil
+		return nil, ErrInvalidFeeConfig
 	}
 
 	cachedSqrtPrev, err := uint256.FromDecimal(h.SqrtAmmPriceX96)
@@ -135,16 +135,20 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	userSellsZeroForOne := params.ZeroForOne
 	ammPriceBelowRP := sqrtAmmPriceX96.Cmp(sqrtRefX96) < 0
 
-	var lpFeeE12 *uint256.Int
+	var (
+		lpFeeE12                 *uint256.Int
+		nextDecayingFeeE12Stored uint64
+	)
 
 	if !isOutside {
 		// Inside optimal range: charge the fee that puts the pre-impact price
 		// exactly on the corresponding boundary.
 		fee, err := CalculateInsideOptimalRangeFee(priceRatioX96, h.OptimalFeeE6, ammPriceBelowRP, userSellsZeroForOne)
 		if err != nil {
-			return zeroFeeResult(), nil
+			return nil, err
 		}
 		lpFeeE12 = fee
+		nextDecayingFeeE12Stored = undefinedDecayingFeeE12.Uint64()
 	} else {
 		// Outside optimal range: compute the decaying fee.
 		var decayingFeeE12 *uint256.Int
@@ -163,6 +167,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		} else {
 			decayingFeeE12 = uint256.NewInt(h.DecayingFeeE12)
 		}
+		nextDecayingFeeE12Stored = decayingFeeE12.Uint64()
 
 		// Direction selector: if the swap pushes price further from the
 		// reference, charge zero. Otherwise charge the decaying fee.
@@ -178,12 +183,38 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		swapFeeE6 = uint64(uniswapv4.FeeMax)
 	}
 
+	var info *stableStableSwapInfo
+	if isNewBlock {
+		info = &stableStableSwapInfo{
+			sqrtAmmPriceX96: sqrtAmmPriceX96.Dec(),
+			decayingFeeE12:  nextDecayingFeeE12Stored,
+			blockNumber:     h.TrackedBlock,
+		}
+	}
+
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   bignumber.ZeroBI,
 		DeltaUnspecified: bignumber.ZeroBI,
 		SwapFee:          uniswapv4.FeeAmount(swapFeeE6),
 		Gas:              gasBeforeSwap,
+		SwapInfo:         info,
 	}, nil
+}
+
+type stableStableSwapInfo struct {
+	sqrtAmmPriceX96 string
+	decayingFeeE12  uint64
+	blockNumber     uint64
+}
+
+func (h *Hook) UpdateBalance(info any) {
+	si, ok := info.(*stableStableSwapInfo)
+	if !ok || si == nil {
+		return
+	}
+	h.SqrtAmmPriceX96 = si.sqrtAmmPriceX96
+	h.DecayingFeeE12 = si.decayingFeeE12
+	h.BlockNumber = si.blockNumber
 }
 
 // calculateDecayingFee mirrors StableStableHook._calculateDecayingFee.
@@ -217,9 +248,12 @@ func (h *Hook) calculateDecayingFee(
 	}
 
 	// targetFee = farBoundaryFee - closeBoundaryFee * targetMultiplier / 100
-	targetFee := new(uint256.Int).Mul(closeBoundaryFeeE12, uint256.NewInt(h.TargetMultiplier))
-	targetFee.Div(targetFee, maxTargetMultiplierU)
-	targetFee.Sub(farBoundaryFeeE12, targetFee)
+	targetSubtrahend := new(uint256.Int).Mul(closeBoundaryFeeE12, uint256.NewInt(h.TargetMultiplier))
+	targetSubtrahend.Div(targetSubtrahend, maxTargetMultiplierU)
+	if targetSubtrahend.Gt(farBoundaryFeeE12) {
+		return nil, ErrInvalidFeeConfig
+	}
+	targetFee := new(uint256.Int).Sub(farBoundaryFeeE12, targetSubtrahend)
 
 	var blocksPassed uint64
 	if h.TrackedBlock > previousBlockNumber {
@@ -227,15 +261,6 @@ func (h *Hook) calculateDecayingFee(
 	}
 
 	return CalculateDecayingFee(targetFee, decayStartFeeE12, h.K, h.LogK, blocksPassed)
-}
-
-func zeroFeeResult() *uniswapv4.BeforeSwapResult {
-	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
-		SwapFee:          0,
-		Gas:              gasBeforeSwap,
-	}
 }
 
 func (h *Hook) CloneState() uniswapv4.Hook {
