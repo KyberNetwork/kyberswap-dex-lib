@@ -36,7 +36,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 		},
 		graphqlClient: graphqlpkg.NewClient("https://thegraph.com/explorer/api/playground/QmWSzHwZY9ZMNYMVbQLyL276V1toR3iZsnYMfQut166yit"),
 	}
-	got, err := d.GetNewPoolState(context.Background(), thenaEp, pool.GetNewPoolStateParams{})
+	got, err := d.BootstrapPoolState(context.Background(), thenaEp, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	t.Log(string(lo.Must(json.Marshal(got))))
 }

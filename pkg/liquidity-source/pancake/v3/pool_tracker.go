@@ -33,7 +33,6 @@ type PoolTracker struct {
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexTypePancakeV3, NewPoolTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG0(DexTypePancakeV3, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
@@ -47,7 +46,7 @@ func NewPoolTracker(
 	}
 }
 
-func (t *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ sourcePool.GetNewPoolStateParams,
@@ -273,9 +272,8 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	return ticks, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error) {
-	if len(logs) == 0 {
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param sourcePool.GetNewPoolStateParams) (entity.Pool, error) {
+	if len(param.Logs) == 0 {
 		return p, nil
 	}
 
@@ -284,13 +282,13 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []eth
 		"exchange":    p.Exchange,
 	})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs)
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
 	if err != nil {
 		l.Error(err.Error())
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool, logs, blockHeaders)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {

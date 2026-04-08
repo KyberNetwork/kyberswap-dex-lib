@@ -128,10 +128,11 @@ type ITBPoolTracker[T any] interface {
 }
 
 // ITicksBasedPoolTracker fetches ticks for pool from Swap, Mint and Burn events.
+// GetNewPoolState (from IPoolTracker) applies log-based updates using params.Logs and params.BlockHeaders.
+// BootstrapPoolState performs full RPC/subgraph refresh (e.g. when params have no logs).
 type ITicksBasedPoolTracker interface {
-	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
-	GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
-		blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error)
+	IPoolTracker
+	BootstrapPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 	FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error)
 }
 

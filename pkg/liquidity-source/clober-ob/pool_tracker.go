@@ -29,7 +29,7 @@ type PoolTracker struct {
 	graphqlClient *graphql.Client
 }
 
-var _ = pooltrack.RegisterTicksBasedFactoryCEG(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCEG(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphql.Client) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -39,7 +39,7 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client, graphqlClient *
 	}, nil
 }
 
-func (t *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
@@ -92,15 +92,14 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
-	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"pool":  p.Address,
 		"dexId": t.config.DexId,
 	})
 	l.Info("start getting new state")
 
-	if len(logs) == 0 {
+	if len(param.Logs) == 0 {
 		return p, nil
 	}
 
@@ -109,13 +108,13 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []typ
 		return p, err
 	}
 
-	ticks, err := t.getTicksFromLogs(logs)
+	ticks, err := t.getTicksFromLogs(param.Logs)
 	if err != nil {
 		return p, err
 	}
 
 	bookId, _ := new(big.Int).SetString(p.Address, 10)
-	blockNumber := eth.GetLatestBlockNumberFromLogs(logs)
+	blockNumber := eth.GetLatestBlockNumberFromLogs(param.Logs)
 
 	refetchedTicks, err := t.getTicksFromRPC(ctx, bookId, ticks, big.NewInt(int64(blockNumber)))
 	if err != nil {

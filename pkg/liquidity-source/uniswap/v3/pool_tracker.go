@@ -29,7 +29,6 @@ import (
 )
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG(DexTypeUniswapV3, NewTracker)
 
 type Tracker struct {
 	config        *Config
@@ -82,9 +81,8 @@ func initializeConfig(cfg *Config) (*Config, error) {
 	return cfg, nil
 }
 
-func (t *Tracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error) {
-	if len(logs) == 0 {
+func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, param poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
+	if len(param.Logs) == 0 {
 		return p, nil
 	}
 
@@ -93,12 +91,12 @@ func (t *Tracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtype
 		"exchange": p.Exchange,
 	})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs, l)
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs, l)
 	if err != nil {
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool, logs, blockHeaders, l)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders, l)
 }
 
 func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
@@ -606,7 +604,7 @@ func (t *Tracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
 	return p.Timestamp
 }
 
-func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
+func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       t.config.DexID,
