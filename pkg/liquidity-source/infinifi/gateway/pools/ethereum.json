@@ -10,32 +10,32 @@
       {
         "address": "0x12b004719fb632f1E7c010c6F5D6009Fb4258442",
         "unwindingEpochs": 1,
-        "name": "liUSD-1mo"
+        "name": "liUSD-1w"
       },
       {
         "address": "0xf1839BeCaF586814D022F16cDb3504ff8D8Ff361",
         "unwindingEpochs": 2,
-        "name": "liUSD-2mo"
+        "name": "liUSD-2w"
       },
       {
         "address": "0x66bCF6151D5558AfB47c38B20663589843156078",
         "unwindingEpochs": 4,
-        "name": "liUSD-4mo"
+        "name": "liUSD-4w"
       },
       {
         "address": "0xb06Cc4548FebfF3D66a680F9c516381c79bC9707",
         "unwindingEpochs": 6,
-        "name": "liUSD-6mo"
+        "name": "liUSD-6w"
       },
       {
         "address": "0xf68b95b7e851170c0e5123a3249dD1Ca46215085",
         "unwindingEpochs": 8,
-        "name": "liUSD-8mo"
+        "name": "liUSD-8w"
       },
       {
         "address": "0xbd3f9814eB946E617f1d774A6762cDbec0bf087A",
         "unwindingEpochs": 13,
-        "name": "liUSD-13mo"
+        "name": "liUSD-13w"
       }
     ]
   }
