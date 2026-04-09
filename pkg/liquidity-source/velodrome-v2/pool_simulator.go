@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -305,7 +306,34 @@ func (p *PoolSimulator) _getAmountIn(
 	_reserve1 *uint256.Int,
 ) (amountIn *uint256.Int, err error) {
 	if p.stable {
-		return nil, ErrUnimplemented
+		xy := p._k(_reserve0, _reserve1)
+		var tmp, tmp2, _reserveA, _reserveB uint256.Int
+		big256.MulDivDown(&_reserveA, _reserve0, number.Number_1e18, p.decimals0)
+		big256.MulDivDown(&_reserveB, _reserve1, number.Number_1e18, p.decimals1)
+		decimalsA, decimalsB := p.decimals0, p.decimals1
+
+		if tokenOut != p.Info.Tokens[0] {
+			_reserveA, _reserveB = _reserveB, _reserveA
+			decimalsA, decimalsB = decimalsB, decimalsA
+		}
+
+		amountOutScaled := big256.MulDivDown(&tmp, amountOut, number.Number_1e18, decimalsB)
+		newReserveB := amountOutScaled.Sub(&_reserveB, amountOutScaled)
+
+		// Reverse the swap: find newReserveA such that k(newReserveA, newReserveB) = xy
+		// _get_y(x0, xy, y) finds y such that k(x0, y) = xy
+		// So we call _get_y(newReserveB, xy, &_reserveA) to find the new reserveA
+		newReserveA, err := p._get_y(newReserveB, xy, &_reserveA)
+		if err != nil {
+			return nil, err
+		}
+		amountIn = newReserveA.Sub(newReserveA, &_reserveA)
+
+		// Apply fee adjustment: reverse the fee deduction from CalcAmountOut
+		tmp2.Sub(p.feePrecision, p.fee)
+		amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp2)
+
+		return big256.MulWadDown(&tmp, amountIn, decimalsA), nil
 	}
 
 	defer func() {

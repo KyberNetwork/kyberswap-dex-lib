@@ -6,13 +6,22 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+)
+
+var (
+	poolEncoded = `{"address":"0x9e4cb8b916289864321661ce02cf66aa5ba63c94","amplifiedTvl":1996183.055839599,"exchange":"solidly-v2","type":"solidly-v2","timestamp":1738874095,"reserves":["166579067762010917945","30215077318001718108921"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","name":"","symbol":"","decimals":0,"weight":0,"swappable":true},{"address":"0xde5ed76e7c05ec5e4572cfc88d1acea165109e44","name":"","symbol":"","decimals":0,"weight":0,"swappable":true}],"extra":"{\"isPaused\":false,\"fee\":100}","staticExtra":"{\"feePrecision\":10000,\"decimal0\":\"1000000000000000000\",\"decimal1\":\"1000000000000000000\",\"stable\":false,\"decBig\":null}"}`
+	poolEntity  entity.Pool
+	_           = lo.Must(0, json.Unmarshal([]byte(poolEncoded), &poolEntity))
+	poolSim     = lo.Must(NewPoolSimulator(poolEntity))
 )
 
 func TestNewPoolSimulator(t *testing.T) {
@@ -221,6 +230,50 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db", Amount: bignumber.NewBig10("4843761042147587964077")},
 			tokenIn:          "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
 			expectedAmountIn: bignumber.NewBig10("248331921"),
+			expectedFee:      bignumber.NewBig10("0"),
+		},
+		{
+			name: "[stable][1to0] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
+						Tokens:   []string{"0x3e29d3a9316dab217754d13b28646b76607c5f04", "0x6806411765af15bddd26f8f544a34cc40cb9838b"},
+						Reserves: []*big.Int{bignumber.NewBig10("165363502891169888414"), bignumber.NewBig10("70707320014274856246")},
+					},
+				},
+				isPaused:     false,
+				stable:       true,
+				decimals0:    number.NewUint256("1000000000000000000"),
+				decimals1:    number.NewUint256("1000000000000000000"),
+				fee:          uint256.NewInt(5),
+				feePrecision: uint256.NewInt(10000),
+			},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x3e29d3a9316dab217754d13b28646b76607c5f04", Amount: bignumber.NewBig10("8040168956751976")},
+			tokenIn:          "0x6806411765af15bddd26f8f544a34cc40cb9838b",
+			expectedAmountIn: bignumber.NewBig10("7070085324939017"),
+			expectedFee:      bignumber.NewBig10("0"),
+		},
+		{
+			name: "[stable][0to1] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
+						Tokens:   []string{"0x3e29d3a9316dab217754d13b28646b76607c5f04", "0x6806411765af15bddd26f8f544a34cc40cb9838b"},
+						Reserves: []*big.Int{bignumber.NewBig10("165363502891169888414"), bignumber.NewBig10("70707320014274856246")},
+					},
+				},
+				isPaused:     false,
+				stable:       true,
+				decimals0:    number.NewUint256("1000000000000000000"),
+				decimals1:    number.NewUint256("1000000000000000000"),
+				fee:          uint256.NewInt(5),
+				feePrecision: uint256.NewInt(10000),
+			},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x6806411765af15bddd26f8f544a34cc40cb9838b", Amount: bignumber.NewBig10("6210478971090850")},
+			tokenIn:          "0x3e29d3a9316dab217754d13b28646b76607c5f04",
+			expectedAmountIn: bignumber.NewBig10("7070085324939017"),
 			expectedFee:      bignumber.NewBig10("0"),
 		},
 	}
