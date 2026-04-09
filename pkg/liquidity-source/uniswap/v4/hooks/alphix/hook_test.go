@@ -199,10 +199,120 @@ func TestCloneState_DeepCopy(t *testing.T) {
 func TestParseHookAddresses(t *testing.T) {
 	t.Parallel()
 
-	// Base hook
+	// JIT hooks
 	assert.Equal(t, common.HexToAddress("0x0e4b892Df7C5Bcf5010FAF4AA106074e555660C0"), HookAddresses[0])
-	// Arbitrum hook
 	assert.Equal(t, common.HexToAddress("0x5e645C3D580976Ca9e3fe77525D954E73a0Ce0C0"), HookAddresses[1])
+	// LVR fee hook
+	assert.Equal(t, common.HexToAddress("0x7cBbfF9C4fcd74B221C535F4fB4B1Db04F1B9044"), LvrFeeHookAddresses[0])
+}
+
+// --- LvrFeeHook tests ---
+
+func TestLvrFeeHook_Registration(t *testing.T) {
+	t.Parallel()
+
+	for _, addr := range LvrFeeHookAddresses {
+		hook, ok := uniswapv4.GetHook(addr, &uniswapv4.HookParam{})
+		assert.True(t, ok, "hook should be registered for %s", addr.Hex())
+		assert.Equal(t, valueobject.ExchangeUniswapV4Alphix, hook.GetExchange())
+	}
+}
+
+func TestLvrFeeHook_Factory_WithExtra(t *testing.T) {
+	t.Parallel()
+
+	extra := LvrFeeExtra{SwapFee: 499, HookFee: 5000}
+	extraBytes, _ := json.Marshal(extra)
+
+	hook, ok := uniswapv4.GetHook(LvrFeeHookAddresses[0], &uniswapv4.HookParam{
+		HookExtra: extraBytes,
+	})
+	require.True(t, ok)
+
+	lvrHook, ok := hook.(*LvrFeeHook)
+	require.True(t, ok)
+	assert.Equal(t, uniswapv4.FeeAmount(499), lvrHook.SwapFee)
+	assert.Equal(t, int64(5000), lvrHook.HookFee)
+}
+
+func TestLvrFeeHook_BeforeSwap(t *testing.T) {
+	t.Parallel()
+
+	extra := LvrFeeExtra{SwapFee: 499}
+	extraBytes, _ := json.Marshal(extra)
+
+	hook, _ := uniswapv4.GetHook(LvrFeeHookAddresses[0], &uniswapv4.HookParam{
+		HookExtra: extraBytes,
+	})
+
+	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
+		CalcOut:         true,
+		ZeroForOne:      true,
+		AmountSpecified: big.NewInt(1_000_000),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, uniswapv4.FeeAmount(499), result.SwapFee)
+	assert.Equal(t, int64(0), result.DeltaSpecified.Int64())
+	assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
+}
+
+func TestLvrFeeHook_AfterSwap_NoHookFee(t *testing.T) {
+	t.Parallel()
+
+	hook, _ := uniswapv4.GetHook(LvrFeeHookAddresses[0], &uniswapv4.HookParam{})
+
+	result, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
+			CalcOut:         true,
+			ZeroForOne:      true,
+			AmountSpecified: big.NewInt(1_000_000),
+		},
+		AmountIn:  big.NewInt(1_000_000),
+		AmountOut: big.NewInt(999_500),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), result.HookFee.Int64())
+}
+
+func TestLvrFeeHook_AfterSwap_WithHookFee(t *testing.T) {
+	t.Parallel()
+
+	extra := LvrFeeExtra{SwapFee: 499, HookFee: 5000}
+	extraBytes, _ := json.Marshal(extra)
+
+	hook, _ := uniswapv4.GetHook(LvrFeeHookAddresses[0], &uniswapv4.HookParam{
+		HookExtra: extraBytes,
+	})
+
+	result, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
+			CalcOut:         true,
+			ZeroForOne:      true,
+			AmountSpecified: big.NewInt(1_000_000_000),
+		},
+		AmountIn:  big.NewInt(1_000_000_000),
+		AmountOut: big.NewInt(999_500_000),
+	})
+	require.NoError(t, err)
+	// 999_500_000 * 5000 / 1_000_000 = 4_997_500
+	assert.Equal(t, int64(4_997_500), result.HookFee.Int64())
+}
+
+func TestLvrFeeHook_CloneState(t *testing.T) {
+	t.Parallel()
+
+	original := &LvrFeeHook{
+		Hook:    &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		SwapFee: 499,
+		HookFee: 5000,
+	}
+
+	cloned := original.CloneState().(*LvrFeeHook)
+	cloned.SwapFee = 1000
+	cloned.HookFee = 0
+
+	assert.Equal(t, uniswapv4.FeeAmount(499), original.SwapFee)
+	assert.Equal(t, int64(5000), original.HookFee)
 }
 
 // --- Live RPC tests (skipped in CI) ---
@@ -299,4 +409,50 @@ func TestGetReserves_ArbitrumUSDCUSDT(t *testing.T) {
 	t.Logf("Arb USDC/USDT reserves: [%s, %s]", reserves[0], reserves[1])
 	assert.NotEqual(t, "0", reserves[0], "USDC reserve should be > 0")
 	assert.NotEqual(t, "0", reserves[1], "USDT reserve should be > 0")
+}
+
+func TestLvrFeeHook_Track_BaseETHUSDC(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping RPC test in CI")
+	}
+
+	rpcClient := ethrpc.New("https://mainnet.base.org").SetMulticallContract(multicall3)
+	param := &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: 8453},
+		RpcClient: rpcClient,
+		Pool: &entity.Pool{
+			Address: "0xebb666a5c6449b83536950b975d74deb32aca1537a501b58161a896816b04da6",
+		},
+	}
+	hook, _ := uniswapv4.GetHook(LvrFeeHookAddresses[0], param)
+	extraStr, err := hook.Track(t.Context(), param)
+	require.NoError(t, err)
+
+	var extra LvrFeeExtra
+	require.NoError(t, json.Unmarshal(extraStr, &extra))
+	t.Logf("Base ETH/USDC (LVRFee): swapFee=%d hookFee=%d", extra.SwapFee, extra.HookFee)
+}
+
+func TestLvrFeeHook_Track_BaseETHcbBTC(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping RPC test in CI")
+	}
+
+	rpcClient := ethrpc.New("https://mainnet.base.org").SetMulticallContract(multicall3)
+	param := &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: 8453},
+		RpcClient: rpcClient,
+		Pool: &entity.Pool{
+			Address: "0x3860784278e9e481ffd0888430ab2af8f2bb1180069f31cde9e1066728bbe73b",
+		},
+	}
+	hook, _ := uniswapv4.GetHook(LvrFeeHookAddresses[0], param)
+	extraStr, err := hook.Track(t.Context(), param)
+	require.NoError(t, err)
+
+	var extra LvrFeeExtra
+	require.NoError(t, json.Unmarshal(extraStr, &extra))
+	t.Logf("Base ETH/cbBTC (LVRFee): swapFee=%d hookFee=%d", extra.SwapFee, extra.HookFee)
 }
