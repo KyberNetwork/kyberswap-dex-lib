@@ -263,6 +263,7 @@ const (
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
+	ExchangeUniswapV4Livo              = "uniswap-v4-livo"
 	ExchangeUniswapV4NftStrategy       = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
