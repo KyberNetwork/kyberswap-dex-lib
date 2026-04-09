@@ -73,7 +73,6 @@ func (f *PoolFactory) newPool(p *abis.DVMFactoryNewDVM, blockNumber uint64) (*en
 			Swappable: true,
 		}},
 		StaticExtra: string(staticExtraBytes),
-		Extra:       string("{}"),
 		BlockNumber: blockNumber,
 	}, nil
 }
