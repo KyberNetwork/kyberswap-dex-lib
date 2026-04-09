@@ -224,9 +224,8 @@ func (p *PoolSimulator) _getAmountOut(
 ) (*uint256.Int, error) {
 	if p.stable {
 		xy := p._k(_reserve0, _reserve1)
-		var _reserveA, _reserveB uint256.Int
-		_reserveA.Div(_reserveA.Mul(_reserve0, number.Number_1e18), p.decimals0)
-		_reserveB.Div(_reserveB.Mul(_reserve1, number.Number_1e18), p.decimals1)
+		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
+		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
 		decimalsA, decimalsB := p.decimals0, p.decimals1
 
 		if tokenIn != p.Info.Tokens[0] {
@@ -236,11 +235,11 @@ func (p *PoolSimulator) _getAmountOut(
 
 		amountIn = new(uint256.Int).Mul(amountIn, number.Number_1e18)
 		amountIn.Div(amountIn, decimalsA)
-		y, err := p._get_y(_reserveA.Add(amountIn, &_reserveA), xy, &_reserveB)
+		y, err := p._get_y(new(uint256.Int).Add(amountIn, _reserveA), xy, _reserveB)
 		if err != nil {
 			return nil, err
 		}
-		y = y.Sub(&_reserveB, y)
+		y = new(uint256.Int).Sub(_reserveB, y)
 
 		return y.Div(y.Mul(y, decimalsB), number.Number_1e18), nil
 	}
@@ -310,33 +309,33 @@ func (p *PoolSimulator) _getAmountIn(
 ) (amountIn *uint256.Int, err error) {
 	if p.stable {
 		xy := p._k(_reserve0, _reserve1)
-		var tmp, tmp2, _reserveA, _reserveB uint256.Int
-		big256.MulDivDown(&_reserveA, _reserve0, number.Number_1e18, p.decimals0)
-		big256.MulDivDown(&_reserveB, _reserve1, number.Number_1e18, p.decimals1)
-		decimalsA, decimalsB := p.decimals0, p.decimals1
+		var tmp uint256.Int
+		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
+		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
 
-		if tokenOut != p.Info.Tokens[0] {
-			_reserveA, _reserveB = _reserveB, _reserveA
-			decimalsA, decimalsB = decimalsB, decimalsA
+		if tokenOut == p.Info.Tokens[0] {
+			amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals0)
+			newReserveA := new(uint256.Int).Sub(_reserveA, amountOutScaled)
+			x, err := p._get_y(newReserveA, xy, _reserveB)
+			if err != nil {
+				return nil, err
+			}
+			amountIn = new(uint256.Int).Sub(x, _reserveB)
+			tmp.Sub(p.feePrecision, p.fee)
+			amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
+			return big256.MulWadUp(&tmp, amountIn, p.decimals1), nil
 		}
 
-		amountOutScaled := big256.MulDivDown(&tmp, amountOut, number.Number_1e18, decimalsB)
-		newReserveB := amountOutScaled.Sub(&_reserveB, amountOutScaled)
-
-		// Reverse the swap: find newReserveA such that k(newReserveA, newReserveB) = xy
-		// _get_y(x0, xy, y) finds y such that k(x0, y) = xy
-		// So we call _get_y(newReserveB, xy, &_reserveA) to find the new reserveA
-		newReserveA, err := p._get_y(newReserveB, xy, &_reserveA)
+		amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals1)
+		newReserveB := new(uint256.Int).Sub(_reserveB, amountOutScaled)
+		x, err := p._get_y(newReserveB, xy, _reserveA)
 		if err != nil {
 			return nil, err
 		}
-		amountIn = newReserveA.Sub(newReserveA, &_reserveA)
-
-		// Apply fee adjustment: reverse the fee deduction from CalcAmountOut
-		tmp2.Sub(p.feePrecision, p.fee)
-		amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp2)
-
-		return big256.MulWadDown(&tmp, amountIn, decimalsA), nil
+		amountIn = new(uint256.Int).Sub(x, _reserveA)
+		tmp.Sub(p.feePrecision, p.fee)
+		amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
+		return big256.MulWadUp(&tmp, amountIn, p.decimals0), nil
 	}
 
 	defer func() {

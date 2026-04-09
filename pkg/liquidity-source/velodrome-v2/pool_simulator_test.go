@@ -352,4 +352,16 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
 	testutil.TestCalcAmountIn(t, stablePoolSim)
+
+	t.Run("stable pool 108753812642555559936 token0", func(t *testing.T) {
+		result, err := stablePoolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
+			TokenAmountOut: poolpkg.TokenAmount{
+				Token:  stablePoolSim.Info.Tokens[0],
+				Amount: bignumber.NewBig("108753812642555559936"),
+			},
+			TokenIn: stablePoolSim.Info.Tokens[1],
+		})
+		assert.NoError(t, err)
+		t.Logf("amountIn: %s", result.TokenAmountIn.Amount.String())
+	})
 }
