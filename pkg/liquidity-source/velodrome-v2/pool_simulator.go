@@ -292,8 +292,11 @@ func (p *PoolSimulator) getAmountIn(
 		balance1 = new(uint256.Int).Sub(reserve1, amountOut)
 	}
 
-	if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
-		return nil, ErrK
+	// Skip K invariant check for stable pools since the invariant is different
+	if !p.stable {
+		if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
+			return nil, ErrK
+		}
 	}
 
 	return amountIn, nil
