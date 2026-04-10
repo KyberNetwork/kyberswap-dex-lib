@@ -9,6 +9,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+type Fork struct {
+	Name           string
+	AddressByChain map[valueobject.ChainID]string
+}
+
 var (
 	Million              = big.NewInt(1_000_000)
 	FeeDenominator       = Million // Uniswap 100% fee
@@ -18,13 +23,16 @@ var (
 	FeeControlDenominator = uint256.NewInt(10_000_000_000)
 	maxUint24             = uint64(1<<24 - 1)
 
-	ClankerAddressByChain = map[valueobject.ChainID]string{
-		valueobject.ChainIDBase:        "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
-		valueobject.ChainIDUnichain:    "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
-		valueobject.ChainIDArbitrumOne: "0xEb9D2A726Edffc887a574dC7f46b3a3638E8E44f",
-		valueobject.ChainIDEthereum:    "0x6C8599779B03B00AAaE63C6378830919Abb75473",
-		valueobject.ChainIDMonad:       "0xF9a0C289Eab6B571c6247094a853810987E5B26D",
-		valueobject.ChainIDBSC:         "0xea30438E0B5f99096cb05A8Da63be55A6A298F6a",
+	Clanker = &Fork{
+		"clanker",
+		map[valueobject.ChainID]string{
+			valueobject.ChainIDBase:        "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
+			valueobject.ChainIDUnichain:    "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
+			valueobject.ChainIDArbitrumOne: "0xEb9D2A726Edffc887a574dC7f46b3a3638E8E44f",
+			valueobject.ChainIDEthereum:    "0x6C8599779B03B00AAaE63C6378830919Abb75473",
+			valueobject.ChainIDMonad:       "0xF9a0C289Eab6B571c6247094a853810987E5B26D",
+			valueobject.ChainIDBSC:         "0xea30438E0B5f99096cb05A8Da63be55A6A298F6a",
+		},
 	}
 
 	DynamicFeeHookAddresses = []common.Address{
@@ -45,5 +53,20 @@ var (
 		common.HexToAddress("0x6C24D0bCC264EF6A740754A11cA579b9d225e8Cc"), // ethereum v4.0.0
 		common.HexToAddress("0x94F802a9EFE4dd542FdBd77a25D9e69A6dC828Cc"), // monad v2 v4.1.0
 		common.HexToAddress("0xC5d309026BCAb6630888d51CE21154AD2f4828cC"), // bsc v4.0.0
+	}
+
+	Liquid = &Fork{
+		"liquid",
+		map[valueobject.ChainID]string{
+			valueobject.ChainIDBase: "0x04F1a284168743759BE6554f607a10CEBdB77760",
+		},
+	}
+
+	LiquidDynamicFeeHookAddresses = []common.Address{
+		common.HexToAddress("0x80E2F7dC8C2C880BbC4BDF80A5Fb0eB8B1DB68CC"), // base v2 v4.1.0
+	}
+
+	LiquidStaticFeeHookAddresses = []common.Address{
+		common.HexToAddress("0x9811f10Cd549c754Fa9E5785989c422A762c28cc"), // base v2 v4.1.0 TODO mevModule
 	}
 )
