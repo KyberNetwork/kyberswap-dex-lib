@@ -243,6 +243,56 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 			expectedAmountIn: bignumber.NewBig10("7442028"),
 			expectedFee:      bignumber.NewBig10("0"),
 		},
+		{
+			name: "[stable][1to0] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address: "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
+						Tokens: []string{"0x7f5c764cbc14f9669b88837ca1490cca17c31607",
+							"0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"},
+						Reserves: []*big.Int{bignumber.NewBig10("2052127179"), bignumber.NewBig10("1705017421")},
+					},
+				},
+				isPaused:     false,
+				stable:       true,
+				fee:          uint256.NewInt(5),
+				feePrecision: uint256.NewInt(10000),
+				reserves: []*uint256.Int{uint256.MustFromDecimal("2052127179"),
+					uint256.MustFromDecimal("1705017421")},
+				decimals: []*uint256.Int{uint256.MustFromDecimal("1000000"), uint256.MustFromDecimal("1000000")},
+			},
+			tokenAmountOut: poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
+				Amount: bignumber.NewBig10("36307464")},
+			tokenIn:          "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+			expectedAmountIn: bignumber.NewBig10("36283954"),
+			expectedFee:      bignumber.NewBig10("0"),
+		},
+		{
+			name: "[stable][0to1] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address: "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
+						Tokens: []string{"0x7f5c764cbc14f9669b88837ca1490cca17c31607",
+							"0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"},
+						Reserves: []*big.Int{bignumber.NewBig10("6110873648"), bignumber.NewBig10("6651345170")},
+					},
+				},
+				isPaused:     false,
+				stable:       true,
+				fee:          uint256.NewInt(5),
+				feePrecision: uint256.NewInt(10000),
+				reserves: []*uint256.Int{uint256.MustFromDecimal("6110873648"),
+					uint256.MustFromDecimal("6651345170")},
+				decimals: []*uint256.Int{uint256.MustFromDecimal("1000000"), uint256.MustFromDecimal("1000000")},
+			},
+			tokenAmountOut: poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+				Amount: bignumber.NewBig10("302127234")},
+			tokenIn:          "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
+			expectedAmountIn: bignumber.NewBig10("302268108"),
+			expectedFee:      bignumber.NewBig10("0"),
+		},
 	}
 
 	for _, tc := range testCases {
@@ -405,6 +455,56 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 
 			assert.Equal(t, tc.expectedReserves[0], tc.poolSimulator.reserves[0])
 			assert.Equal(t, tc.expectedReserves[1], tc.poolSimulator.reserves[1])
+		})
+	}
+}
+
+func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name       string
+		entityPool entity.Pool
+	}{
+		{
+			name: "[volatile] it should test calc amount in correctly",
+			entityPool: entity.Pool{
+				Address:   "0x79c912fef520be002c2b6e57ec4324e260f38e50",
+				Exchange:  "velodrome",
+				Type:      "velodrome",
+				Timestamp: 1699771973,
+				Reserves:  []string{"31229966656506421921", "63506727363"},
+				Tokens: []*entity.PoolToken{
+					{Address: "0x4200000000000000000000000000000000000006", Swappable: true, Decimals: 18},
+					{Address: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Swappable: true, Decimals: 6},
+				},
+				Extra:       "{\"isPaused\":false,\"fee\":5}",
+				StaticExtra: "{\"feePrecision\":10000,\"decimal0\":\"0xde0b6b3a7640000\",\"decimal1\":\"0xde0b6b3a7640000\",\"stable\":false}",
+			},
+		},
+		{
+			name: "[stable] it should test calc amount in correctly",
+			entityPool: entity.Pool{
+				Address:   "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
+				Exchange:  "velodrome",
+				Type:      "velodrome",
+				Timestamp: 1699771973,
+				Reserves:  []string{"2052127179", "1705017421"},
+				Tokens: []*entity.PoolToken{
+					{Address: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Swappable: true, Decimals: 6},
+					{Address: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Swappable: true, Decimals: 6},
+				},
+				Extra:       "{\"isPaused\":false,\"fee\":5}",
+				StaticExtra: "{\"feePrecision\":10000,\"decimal0\":\"0xde0b6b3a7640000\",\"decimal1\":\"0xde0b6b3a7640000\",\"stable\":true}",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			poolSimulator, err := NewPoolSimulator(tc.entityPool)
+			assert.Nil(t, err)
+
+			testutil.TestCalcAmountIn(t, poolSimulator, 16)
 		})
 	}
 }
