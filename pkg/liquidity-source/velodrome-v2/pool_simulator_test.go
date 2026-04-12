@@ -22,6 +22,11 @@ var (
 	poolEntity  entity.Pool
 	_           = lo.Must(0, json.Unmarshal([]byte(poolEncoded), &poolEntity))
 	poolSim     = lo.Must(NewPoolSimulator(poolEntity))
+
+	stablePoolEncoded = `{"address":"0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0","exchange":"aerodrome","type":"velodrome-v2","timestamp":1738874095,"reserves":["165363502891169888414","70707320014274856246"],"tokens":[{"address":"0x3e29d3a9316dab217754d13b28646b76607c5f04","name":"","symbol":"","decimals":0,"weight":0,"swappable":true},{"address":"0x6806411765af15bddd26f8f544a34cc40cb9838b","name":"","symbol":"","decimals":0,"weight":0,"swappable":true}],"extra":"{\"isPaused\":false,\"fee\":5}","staticExtra":"{\"feePrecision\":10000,\"decimal0\":\"1000000000000000000\",\"decimal1\":\"1000000000000000000\",\"stable\":true,\"decBig\":null}"}`
+	stablePoolEntity  entity.Pool
+	_                 = lo.Must(0, json.Unmarshal([]byte(stablePoolEncoded), &stablePoolEntity))
+	stablePoolSim     = lo.Must(NewPoolSimulator(stablePoolEntity))
 )
 
 // TestPoolSimulator_getAmountOut
@@ -346,4 +351,17 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
+	testutil.TestCalcAmountIn(t, stablePoolSim)
+
+	t.Run("stable pool 108753812642555559936 token0", func(t *testing.T) {
+		result, err := stablePoolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
+			TokenAmountOut: poolpkg.TokenAmount{
+				Token:  stablePoolSim.Info.Tokens[0],
+				Amount: bignumber.NewBig("108753812642555559936"),
+			},
+			TokenIn: stablePoolSim.Info.Tokens[1],
+		})
+		assert.NoError(t, err)
+		t.Logf("amountIn: %s", result.TokenAmountIn.Amount.String())
+	})
 }

@@ -193,13 +193,30 @@ func (p *PoolSimulator) getAmountOut(amountIn *uint256.Int, indexIn, indexOut in
 
 func (p *PoolSimulator) getAmountIn(amountOut *uint256.Int, indexIn, indexOut int) (*uint256.Int, error) {
 	if p.stable {
-		return nil, ErrUnimplemented
+		xy := p._k(p.reserves[0], p.reserves[1])
+		decimalsA, decimalsB := p.decimals[indexIn], p.decimals[indexOut]
+		var _reserveIn, _reserveOut uint256.Int
+		_reserveIn.Div(_reserveIn.Mul(p.reserves[indexIn], big256.BONE), decimalsA)
+		_reserveOut.Div(_reserveOut.Mul(p.reserves[indexOut], big256.BONE), decimalsB)
+
+		var tmp uint256.Int
+		amountOutScaled := tmp.Mul(amountOut, big256.BONE)
+		amountOutScaled.Div(amountOutScaled, decimalsB)
+
+		y, err := p._get_y(_reserveOut.Sub(&_reserveOut, amountOutScaled), xy, &_reserveIn)
+		if err != nil {
+			return nil, err
+		}
+		x := y.Sub(y, &_reserveIn)
+
+		result := x.Div(x.Mul(x, decimalsA), big256.BONE)
+
+		return big256.MulDivUp(result, result, p.feePrecision, tmp.Sub(p.feePrecision, p.fee)), nil
 	}
 
 	var tmp1, tmp2 uint256.Int
 	tmp2.Mul(tmp1.Sub(p.reserves[indexOut], amountOut), tmp2.Sub(p.feePrecision, p.fee))
-	tmp1.MulDivOverflow(tmp1.Mul(p.reserves[indexIn], amountOut), p.feePrecision, &tmp2)
-	return tmp1.AddUint64(&tmp1, 1), nil
+	return big256.MulDivUp(&tmp1, tmp1.Mul(p.reserves[indexIn], amountOut), p.feePrecision, &tmp2), nil
 }
 
 func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
