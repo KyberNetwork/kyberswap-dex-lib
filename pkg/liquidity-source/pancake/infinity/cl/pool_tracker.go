@@ -716,16 +716,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	p.SwapFee = float64(rpcState.SwapFee)
 	p.Extra = string(extraBytes)
 
-	var reserve0, reserve1 big.Int
-
-	// reserve0 = liquidity / sqrtPriceX96 * Q96
-	reserve0.Mul(rpcState.Liquidity, Q96)
-	reserve0.Div(&reserve0, rpcState.Slot0.SqrtPriceX96) // Already checked rpcState.Slot0.SqrtPriceX96 != 0
-
-	// reserve1 = liquidity * sqrtPriceX96 / Q96
-	reserve1.Mul(rpcState.Liquidity, rpcState.Slot0.SqrtPriceX96)
-	reserve1.Div(&reserve1, Q96)
-
+	reserve0, reserve1 := uniswapv4.EstimateReservesFromTicks(rpcState.Slot0.SqrtPriceX96, entityPoolTicks)
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	p.Timestamp = time.Now().Unix()
 
