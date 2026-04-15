@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	alphixHookABI  abi.ABI
-	lvrFeeHookABI  abi.ABI
+	alphixHookABI abi.ABI
+	lvrFeeHookABI abi.ABI
+	proHookABI    abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&alphixHookABI, alphixHookABIJson},
 		{&lvrFeeHookABI, lvrFeeHookABIJson},
+		{&proHookABI, proHookABIJson},
 	}
 
 	for _, b := range builder {

@@ -19,3 +19,10 @@ var HookAddresses = []common.Address{
 var LvrFeeHookAddresses = []common.Address{
 	common.HexToAddress("0x7cBbfF9C4fcd74B221C535F4fB4B1Db04F1B9044"), // base
 }
+
+// ProHookAddresses contains all known AlphixPro hook addresses across chains.
+// Each hook is multi-pool: one address can serve many pools, each with its own
+// per-pool config tracked independently via Track().
+var ProHookAddresses = []common.Address{
+	common.HexToAddress("0x2f9Cf87A6CbFA53C3F1B184900de17298e3F9080"), // base
+}
