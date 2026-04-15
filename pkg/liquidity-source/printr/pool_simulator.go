@@ -174,7 +174,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		SwapInfo: &SwapInfo{
 			IsSell:        isSell,
 			reserveDelta:  reserveDelta,
-			PrintrAddress: s.printrAddr},
+			PrintrAddress: s.printrAddr,
+		},
 	}, nil
 }
 
