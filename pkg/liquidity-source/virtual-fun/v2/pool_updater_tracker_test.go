@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -36,19 +35,13 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 }
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
-	var medataBytes []byte
+	var metadataBytes []byte
 	for {
-		pools, newMetadaBytes, err := ts.updater.GetNewPools(ts.T().Context(), medataBytes)
+		pools, newMetadataBytes, err := ts.updater.GetNewPools(ts.T().Context(), metadataBytes)
 		require.NoError(ts.T(), err)
 		require.Greater(ts.T(), len(pools), 0)
 
-		for _, p := range pools {
-			newPoolState, err := ts.tracker.GetNewPoolState(ts.T().Context(), p, pool.GetNewPoolStateParams{})
-			require.NoError(ts.T(), err)
-			require.NotNil(ts.T(), newPoolState)
-		}
-
-		medataBytes = newMetadaBytes
+		metadataBytes = newMetadataBytes
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -28,10 +29,7 @@ type (
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
-func NewPoolsListUpdater(
-	cfg *Config,
-	ethrpcClient *ethrpc.Client,
-) *PoolsListUpdater {
+func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:       cfg,
 		ethrpcClient: ethrpcClient,
@@ -67,7 +65,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := u.newMetadata(offset + batchSize)
+	newMetadataBytes, err := json.Marshal(PoolsListUpdaterMetadata{Offset: offset + batchSize})
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -141,8 +139,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 	}
 
 	pools := make([]entity.Pool, 0, len(pairAddresses))
-
 	for i, pairAddress := range pairAddresses {
+		if valueobject.IsZeroAddress(bondings[i]) {
+			continue
+		}
+
 		token0 := &entity.PoolToken{Address: hexutil.Encode(agentTokens[i][:]), Swappable: true}
 		token1 := &entity.PoolToken{Address: hexutil.Encode(assetTokens[i][:]), Swappable: true}
 
@@ -154,7 +155,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			return nil, err
 		}
 
-		var newPool = entity.Pool{
+		pools = append(pools, entity.Pool{
 			Address:     hexutil.Encode(pairAddress[:]),
 			Exchange:    string(u.config.DexId),
 			Type:        DexType,
@@ -162,9 +163,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			Reserves:    []string{"0", "0"},
 			Tokens:      []*entity.PoolToken{token0, token1},
 			StaticExtra: string(staticExtra),
-		}
-
-		pools = append(pools, newPool)
+		})
 	}
 
 	return pools, nil
@@ -194,34 +193,93 @@ func (u *PoolsListUpdater) getPairsInfo(
 			Method: "router",
 		}, []any{&routers[i]})
 	}
-	_, err := req.Aggregate()
-	if err != nil {
+	if _, err := req.Aggregate(); err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	bondings := make([]common.Address, len(pairAddresses))
-	req = u.ethrpcClient.R().SetContext(ctx)
-	for i, router := range routers {
-		req.AddCall(&ethrpc.Call{
-			ABI:    routerABI,
-			Target: router.Hex(),
-			Method: "bondingV4",
-		}, []any{&bondings[i]})
-	}
-	if _, err := req.Aggregate(); err != nil {
+	bondings, err := u.resolveBondings(ctx, agentTokens, routers)
+	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
 	return agentTokens, assetTokens, routers, bondings, nil
 }
 
-func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
-	metadataBytes, err := json.Marshal(PoolsListUpdaterMetadata{Offset: newOffset})
-	if err != nil {
+func (u *PoolsListUpdater) resolveBondings(
+	ctx context.Context,
+	agentTokens []common.Address,
+	routers []common.Address,
+) ([]common.Address, error) {
+	bondings := make([]common.Address, len(agentTokens))
+	if len(agentTokens) == 0 {
+		return bondings, nil
+	}
+
+	type routerBondings struct{ v2, v4 common.Address }
+	rb := make(map[common.Address]*routerBondings)
+	req := u.ethrpcClient.R().SetContext(ctx)
+	for _, r := range routers {
+		if _, ok := rb[r]; ok {
+			continue
+		}
+		entry := &routerBondings{}
+		rb[r] = entry
+		req.AddCall(&ethrpc.Call{
+			ABI:    routerABI,
+			Target: r.Hex(),
+			Method: "bondingV2",
+		}, []any{&entry.v2}).AddCall(&ethrpc.Call{
+			ABI:    routerABI,
+			Target: r.Hex(),
+			Method: "bondingV4",
+		}, []any{&entry.v4})
+	}
+	if _, err := req.TryAggregate(); err != nil {
 		return nil, err
 	}
 
-	return metadataBytes, nil
+	infos := make([][2]BondingTokenInfo, len(agentTokens))
+	probe := u.ethrpcClient.R().SetContext(ctx)
+	for i, token := range agentTokens {
+		entry := rb[routers[i]]
+		if entry == nil {
+			continue
+		}
+		if !valueobject.IsZeroAddress(entry.v2) {
+			probe.AddCall(&ethrpc.Call{
+				ABI:    bondingABI,
+				Target: entry.v2.Hex(),
+				Method: "tokenInfo",
+				Params: []any{token},
+			}, []any{&infos[i][0]})
+		}
+		if !valueobject.IsZeroAddress(entry.v4) {
+			probe.AddCall(&ethrpc.Call{
+				ABI:    bondingABI,
+				Target: entry.v4.Hex(),
+				Method: "tokenInfo",
+				Params: []any{token},
+			}, []any{&infos[i][1]})
+		}
+	}
+	if _, err := probe.TryAggregate(); err != nil {
+		return nil, err
+	}
+
+	for i := range agentTokens {
+		entry := rb[routers[i]]
+		if entry == nil {
+			continue
+		}
+		switch {
+		case !valueobject.IsZeroAddress(infos[i][1].Creator):
+			bondings[i] = entry.v4
+		case !valueobject.IsZeroAddress(infos[i][0].Creator):
+			bondings[i] = entry.v2
+		}
+	}
+
+	return bondings, nil
 }
 
 func (u *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
