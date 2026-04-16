@@ -21,40 +21,22 @@ import (
 )
 
 type rpcState struct {
-	blockNumber   uint64
-	peripheryAddr string
-	hasNative     bool
-	tokenX        string
-	tokenY        string
-	reserveX      *big.Int
-	reserveY      *big.Int
-	extra         Extra
-}
-
-func normalizeAddress(address string) string {
-	return strings.ToLower(address)
-}
-
-func defaultCore(cfg *Config) string {
-	if cfg != nil && cfg.CoreAddress != "" {
-		return normalizeAddress(cfg.CoreAddress)
-	}
-	return normalizeAddress(defaultCoreAddress)
-}
-
-func defaultPeriphery(cfg *Config) string {
-	if cfg != nil && cfg.PeripheryAddress != "" {
-		return normalizeAddress(cfg.PeripheryAddress)
-	}
-	return normalizeAddress(defaultPeripheryAddress)
+	blockNumber uint64
+	hasNative   bool
+	tokenX      string
+	tokenY      string
+	reserveX    *big.Int
+	reserveY    *big.Int
+	extra       Extra
 }
 
 func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClient *ethrpc.Client,
 	overrides map[common.Address]gethclient.OverrideAccount) (*rpcState, error) {
-	coreAddress := defaultCore(cfg)
-	peripheryAddress := defaultPeriphery(cfg)
+	var coreAddress string
 	if p != nil {
 		coreAddress = p.Address
+	} else {
+		coreAddress = strings.ToLower(cfg.CoreAddress)
 	}
 
 	var (
@@ -122,13 +104,12 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 	}
 
 	return &rpcState{
-		blockNumber:   blockNumber,
-		peripheryAddr: peripheryAddress,
-		hasNative:     valueobject.IsNativeOrZeroAddr(tokenX) || valueobject.IsNativeOrZeroAddr(tokenY),
-		tokenX:        tokenXAddress,
-		tokenY:        tokenYAddress,
-		reserveX:      reserveX,
-		reserveY:      reserveY,
+		blockNumber: blockNumber,
+		hasNative:   valueobject.IsNativeOrZeroAddr(tokenX) || valueobject.IsNativeOrZeroAddr(tokenY),
+		tokenX:      tokenXAddress,
+		tokenY:      tokenYAddress,
+		reserveX:    reserveX,
+		reserveY:    reserveY,
 		extra: Extra{
 			PriceX96:          pX96,
 			FeeQ48:            state.Fee,
@@ -143,11 +124,10 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 func buildEntityPool(p *entity.Pool, cfg *Config, state *rpcState) (*entity.Pool, error) {
 	if p == nil {
 		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			PeripheryAddress: state.peripheryAddr,
-			HasNative:        state.hasNative,
+			HasNative: state.hasNative,
 		})
 		p = &entity.Pool{
-			Address:  defaultCore(cfg),
+			Address:  strings.ToLower(cfg.CoreAddress),
 			Exchange: cfg.DexID,
 			Type:     DexType,
 			Tokens: []*entity.PoolToken{

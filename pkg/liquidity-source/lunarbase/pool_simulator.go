@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -28,27 +27,15 @@ type SwapInfo struct {
 	nextPX96 *uint256.Int
 }
 
-var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFactory)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulatorFactory(params pool.FactoryParams) (*PoolSimulator, error) {
-	return newPoolSimulator(params.EntityPool, params.ChainID)
-}
-
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
-	return newPoolSimulator(entityPool, chainID)
-}
-
-func newPoolSimulator(
-	entityPool entity.Pool,
-	chainID valueobject.ChainID,
-) (*PoolSimulator, error) {
-	if chainID == 0 {
-		chainID = valueobject.ChainIDBase
-	}
-
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	entityPool, chainID := params.EntityPool, params.ChainID
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	} else if params.Opts.StaleCheck && extra.IsStale(entityPool.BlockNumber) {
+		return nil, ErrStalePool
 	}
 
 	var staticExtra StaticExtra
@@ -86,8 +73,6 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrPoolPaused
 	} else if s.PriceX96 == nil || s.PriceX96.IsZero() {
 		return nil, ErrZeroPrice
-	} else if s.isPriceStale() {
-		return nil, ErrInsufficientLiquidity
 	}
 
 	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
@@ -145,32 +130,17 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
-	var approvalAddress string
-	if !s.HasNative || !valueobject.IsWrappedNative(tokenIn, s.chainID) {
-		permit2 := valueobject.Permit2(s.chainID)
-		approvalAddress = hexutil.Encode(permit2[:])
-	}
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
 		BlockNumber:     s.Info.BlockNumber,
-		RouterAddress:   s.PeripheryAddress,
-		ApprovalAddress: approvalAddress,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 		HasNative:       s.HasNative,
 	}
 }
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	if !s.HasNative || !valueobject.IsWrappedNative(tokenIn, s.chainID) {
-		permit2 := valueobject.Permit2(s.chainID)
-		return hexutil.Encode(permit2[:])
+		return s.GetAddress()
 	}
 	return ""
-}
-
-func (s *PoolSimulator) isPriceStale() bool {
-	if s.BlockDelay == 0 || s.LatestUpdateBlock == 0 || s.Info.BlockNumber <= s.LatestUpdateBlock {
-		return false
-	}
-
-	return s.Info.BlockNumber-s.LatestUpdateBlock > s.BlockDelay
 }

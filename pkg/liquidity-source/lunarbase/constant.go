@@ -1,20 +1,18 @@
 package lunarbase
 
 import (
-	"errors"
 	"math"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
 	DexType = "lunarbase"
-
-	defaultCoreAddress      = "0xeccd5b11549140c67fa2e8b6028bc86a4f9cab6d"
-	defaultPeripheryAddress = "0x110ab7d4a269cc0e94b6f56926186ec4716edb1b"
 
 	defaultGas = 120000
 )
@@ -29,6 +27,7 @@ var (
 	topicConcentrationKSet = crypto.Keccak256Hash([]byte("ConcentrationKSet(uint32)"))
 	topicBlockDelaySet     = crypto.Keccak256Hash([]byte("BlockDelaySet(uint48)"))
 
+	ErrStalePool             = errors.WithMessage(pool.ErrUnsupported, "stale pool")
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrPoolPaused            = errors.New("pool is paused")
 	ErrZeroPrice             = errors.New("pool price is zero")

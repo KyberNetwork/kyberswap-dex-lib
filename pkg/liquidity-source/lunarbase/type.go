@@ -15,15 +15,21 @@ type Extra struct {
 	ConcentrationK    uint32       `json:"k,omitempty"`
 }
 
+func (e *Extra) IsStale(blockNumber uint64) bool {
+	if e.BlockDelay == 0 || e.LatestUpdateBlock == 0 || blockNumber <= e.LatestUpdateBlock {
+		return false
+	}
+
+	return blockNumber-e.LatestUpdateBlock > e.BlockDelay
+}
+
 type StaticExtra struct {
-	PeripheryAddress string `json:"p,omitempty"`
-	HasNative        bool   `json:"n,omitempty"`
+	HasNative bool `json:"n,omitempty"`
 }
 
 type PoolMeta struct {
 	BlockNumber     uint64 `json:"blockNumber,omitempty"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
-	RouterAddress   string `json:"r,omitempty"`
 	HasNative       bool   `json:"n,omitempty"`
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -27,15 +28,14 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 	}
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
-		PeripheryAddress: defaultPeripheryAddress,
-		HasNative:        true,
+		HasNative: true,
 	})
 	if err != nil {
 		t.Fatalf("marshal static extra: %v", err)
 	}
 
-	sim, err := NewPoolSimulator(entity.Pool{
-		Address:  defaultCoreAddress,
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address:  "0x00003bf45ce34bf1bea78669f9a40ee630e11b99",
 		Exchange: DexType,
 		Type:     DexType,
 		Reserves: entity.PoolReserves{"100", "200"},
@@ -45,7 +45,7 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 		},
 		Extra:       string(extraBytes),
 		StaticExtra: string(staticExtraBytes),
-	}, valueobject.ChainIDBase)
+	}, ChainID: valueobject.ChainIDBase})
 	if err != nil {
 		t.Fatalf("new simulator: %v", err)
 	}
@@ -71,10 +71,7 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 	}
 
 	meta := sim.GetMetaInfo(sim.GetTokens()[1], sim.GetTokens()[0]).(PoolMeta)
-	if meta.RouterAddress != defaultPeripheryAddress {
-		t.Fatalf("unexpected router address: got %s", meta.RouterAddress)
-	}
-	if meta.ApprovalAddress != strings.ToLower(valueobject.Permit2(8453).Hex()) {
+	if meta.ApprovalAddress != strings.ToLower("0x00003bf45ce34bf1bea78669f9a40ee630e11b99") {
 		t.Fatalf("unexpected approval address: got %s", meta.ApprovalAddress)
 	}
 }
@@ -94,15 +91,14 @@ func TestCalcAmountOutReturnsInsufficientLiquidityWhenPriceIsStale(t *testing.T)
 	}
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
-		PeripheryAddress: defaultPeripheryAddress,
-		HasNative:        true,
+		HasNative: true,
 	})
 	if err != nil {
 		t.Fatalf("marshal static extra: %v", err)
 	}
 
-	sim, err := NewPoolSimulator(entity.Pool{
-		Address:     defaultCoreAddress,
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address:     "0x00003bf45ce34bf1bea78669f9a40ee630e11b99",
 		Exchange:    DexType,
 		Type:        DexType,
 		BlockNumber: 13,
@@ -113,7 +109,7 @@ func TestCalcAmountOutReturnsInsufficientLiquidityWhenPriceIsStale(t *testing.T)
 		},
 		Extra:       string(extraBytes),
 		StaticExtra: string(staticExtraBytes),
-	}, valueobject.ChainIDBase)
+	}, ChainID: valueobject.ChainIDBase})
 	if err != nil {
 		t.Fatalf("new simulator: %v", err)
 	}
@@ -122,7 +118,5 @@ func TestCalcAmountOutReturnsInsufficientLiquidityWhenPriceIsStale(t *testing.T)
 		TokenAmountIn: pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(1)},
 		TokenOut:      sim.GetTokens()[1],
 	})
-	if err != ErrInsufficientLiquidity {
-		t.Fatalf("expected ErrInsufficientLiquidity, got %v", err)
-	}
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
 }

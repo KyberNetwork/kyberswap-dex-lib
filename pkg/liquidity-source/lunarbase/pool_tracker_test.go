@@ -29,7 +29,7 @@ func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 	}
 
 	poolEntity := entity.Pool{
-		Address:     defaultCoreAddress,
+		Address:     "0x00003bf45ce34bf1bea78669f9a40ee630e11b99",
 		Exchange:    DexType,
 		Type:        DexType,
 		BlockNumber: 10,
@@ -92,7 +92,7 @@ func TestProcessLogsUpdatesLatestUpdateBlock(t *testing.T) {
 	}
 
 	poolEntity := entity.Pool{
-		Address:     defaultCoreAddress,
+		Address:     "0x00003bf45ce34bf1bea78669f9a40ee630e11b99",
 		Exchange:    DexType,
 		Type:        DexType,
 		BlockNumber: 10,

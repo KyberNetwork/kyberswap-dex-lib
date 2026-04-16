@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -175,6 +176,7 @@ func (t *PoolTracker) GetNewPoolState(
 		reserve1 += level.Size() * level.Price()
 	}
 
+	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{strconv.FormatFloat(reserve0*math.Pow10(int(p.Tokens[0].Decimals)), 'f', 0, 64),
 		strconv.FormatFloat(reserve1*math.Pow10(int(p.Tokens[1].Decimals)), 'f', 0, 64)}
 	p.Extra = string(extraBytes)
