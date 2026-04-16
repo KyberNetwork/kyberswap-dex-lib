@@ -2,15 +2,23 @@ package ambient
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 )
 
 const (
-	DexTypeAmbient = "ambient"
+	DexType = "ambient"
 
 	defaultSubgraphLimit = 1000
 )
 
 var (
-	// NativeTokenPlaceholderAddress is the address that Ambient uses to represent native token in pools.
-	NativeTokenPlaceholderAddress = common.HexToAddress("0x0")
+	NativeTokenPlaceholderAddress = common.Address{}
+)
+
+var (
+	ErrInvalidToken     = errors.New("invalid token")
+	ErrPairNotFound     = errors.New("pair not found")
+	ErrNoTrackedPairs   = errors.New("no tracked pairs")
+	ErrZeroAmount       = errors.New("zero amount")
+	ErrInsufficientFund = errors.New("insufficient reserve")
 )

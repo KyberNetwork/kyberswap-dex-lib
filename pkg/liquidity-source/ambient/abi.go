@@ -8,7 +8,6 @@ import (
 
 var (
 	erc20ABI     abi.ABI
-	queryABI     abi.ABI
 	multicallABI abi.ABI
 )
 
@@ -18,7 +17,6 @@ func init() {
 		data []byte
 	}{
 		{&erc20ABI, erc20ABIBytes},
-		{&queryABI, queryABIBytes},
 		{&multicallABI, multicallABIBytes},
 	}
 

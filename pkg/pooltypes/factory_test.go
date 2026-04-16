@@ -16,7 +16,6 @@ import (
 func TestPoolFactory(t *testing.T) {
 	t.Parallel()
 	excludedPoolTypes := []string{
-		"ambient",       // private
 		"maverick-v2",   // private
 		"kyber-pmm",     // private
 		"pmm-1",         // private

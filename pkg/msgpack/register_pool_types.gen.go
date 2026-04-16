@@ -9,6 +9,7 @@ import (
 	pkg_liquiditysource_aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	pkg_liquiditysource_algebra_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	pkg_liquiditysource_algebra_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
+	pkg_liquiditysource_ambient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	pkg_liquiditysource_angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	pkg_liquiditysource_arbera_den "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	pkg_liquiditysource_arbera_zap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
@@ -231,6 +232,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_aavev3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_v1.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ambient.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_angletransmuter.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_den.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_zap.PoolSimulator{})

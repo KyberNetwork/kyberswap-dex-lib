@@ -41,37 +41,49 @@ func (p TokenPair) String() string {
 }
 
 func (p TokenPair) MarshalText() ([]byte, error) {
-	s := strings.ToLower(fmt.Sprintf("%s:%s", p.Base, p.Quote))
-	return []byte(s), nil
+	return []byte(p.String()), nil
 }
 
 func (p *TokenPair) UnmarshalText(text []byte) error {
-	splited := strings.SplitN(string(text), ":", 2)
-	if len(splited) != 2 {
+	parts := strings.SplitN(string(text), ":", 2)
+	if len(parts) != 2 {
 		return fmt.Errorf("expect <base>:<quote>")
 	}
-	p.Base = common.HexToAddress(splited[0])
-	p.Quote = common.HexToAddress(splited[1])
+	p.Base = common.HexToAddress(parts[0])
+	p.Quote = common.HexToAddress(parts[1])
 	return nil
 }
 
 type StaticExtra struct {
-	// ERC20 native wrapper token
 	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
+	PoolIdx            uint64         `json:"poolIdx"`
+	SwapDex            common.Address `json:"swapDex"`
 }
 
 type TokenPairInfo struct {
-	SqrtPriceX64 string `json:"sqrtPriceX64"`
-	Liquidity    string `json:"liquidity"`
-	// we assume that there is 1 pool per token pair
-	PoolIdx *big.Int `json:"poolIdx"`
+	PoolIdx *big.Int      `json:"poolIdx"`
+	State   *TrackerExtra `json:"state,omitempty"`
 }
 
 type Extra struct {
 	TokenPairs map[TokenPair]*TokenPairInfo `json:"tokenPairs"`
 }
 
-// NTokenPool is extended from pool.Pool with custom CanSwapTo()
+type Meta struct {
+	SwapDex common.Address `json:"swapDex"`
+	Base    common.Address `json:"base"`
+	Quote   common.Address `json:"quote"`
+	PoolIdx *big.Int       `json:"poolIdx"`
+}
+
+type Gas struct {
+	BaseGas int64
+}
+
+var defaultGas = Gas{BaseGas: 250_000}
+
+// NTokenPool extends pool.Pool with pair-aware adjacency logic for Ambient's
+// singleton contract model.
 type NTokenPool struct {
 	pool.Pool
 
@@ -123,7 +135,6 @@ func (p *NTokenPool) GetPair(tokenIn, tokenOut common.Address) (TokenPair, bool)
 	if quote == p.nativeTokenAddress {
 		quote = NativeTokenPlaceholderAddress
 	}
-	// base must < quote
 	if bytes.Compare(base[:], quote[:]) > 0 {
 		base, quote = quote, base
 	}
