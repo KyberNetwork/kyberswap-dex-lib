@@ -24,7 +24,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if err != nil {
 		return nil, err
 	}
-	poolSim.Gas = orderbook.Gas{Base: 222222, Level: 22222}
+	poolSim.Gas = defaultGas
 	var staticExtra StaticExtra
 	_ = json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra)
 	return &PoolSimulator{PoolSimulator: poolSim,

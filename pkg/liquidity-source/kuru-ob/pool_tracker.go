@@ -81,7 +81,7 @@ func (t *PoolTracker) GetNewPoolState(
 				price = price / pricePrecision
 			} else {
 				price = pricePrecision / price
-				size *= price
+				size /= price
 			}
 			offset += 64
 			book = append(book, orderbook.Level{size, price})
@@ -119,7 +119,7 @@ func (t *PoolTracker) GetNewPoolState(
 					price = price / 1e18
 				} else {
 					price = 1e18 / price
-					sizeF *= price
+					sizeF /= price
 				}
 				ammLevels[from] = append(ammLevels[from], orderbook.Level{sizeF, price})
 				if from == 0 {
