@@ -61,6 +61,7 @@ import (
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fermi"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
@@ -413,6 +414,7 @@ type Types struct {
 	Printr                     string
 	Poe                        string
 	Canonic                    string
+	Fermi                      string
 }
 
 var (
@@ -631,5 +633,6 @@ var (
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
 		Canonic:                    canonic.DexType,
+		Fermi:                      fermi.DexType,
 	}
 )
