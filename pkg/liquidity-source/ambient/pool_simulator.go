@@ -110,7 +110,12 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		IsBuy:      isBuy,
 		LimitPrice: defaultLimitPrice(isBuy),
 	}
-	accum := SweepSwap(&state.Curve, swap, &state.PoolParams, NewSnapshotBitmapView(state))
+	bmpView := NewSnapshotBitmapView(state)
+	accum := SweepSwap(&state.Curve, swap, &state.PoolParams, bmpView)
+
+	if bmpView.BoundaryExceeded() && swap.Qty.Sign() > 0 {
+		return nil, ErrTickRangeExceeded
+	}
 
 	amountOut := outputAmount(accum, inBaseQty)
 	if amountOut.Sign() <= 0 {
@@ -299,6 +304,8 @@ func cloneTrackerExtra(extra *TrackerExtra) *TrackerExtra {
 		ActiveTicks:    append([]int32(nil), extra.ActiveTicks...),
 		Levels:         make([]TrackedLevel, len(extra.Levels)),
 		Knockouts:      make([]TrackedKnockout, len(extra.Knockouts)),
+		MinTick:        extra.MinTick,
+		MaxTick:        extra.MaxTick,
 	}
 
 	for i, level := range extra.Levels {

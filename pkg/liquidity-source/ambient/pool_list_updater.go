@@ -158,6 +158,7 @@ func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address strin
 		NativeTokenAddress: common.HexToAddress(u.cfg.NativeTokenAddress),
 		PoolIdx:            u.cfg.PoolIdx.Uint64(),
 		SwapDex:            common.HexToAddress(u.cfg.SwapDexContractAddress),
+		TickRange:          u.cfg.TickRange,
 	}
 	encodedStaticExtra, err := json.Marshal(staticExtra)
 	if err != nil {

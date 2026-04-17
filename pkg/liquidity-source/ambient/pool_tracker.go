@@ -36,6 +36,25 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, err
 	}, nil
 }
 
+func (t *PoolTracker) tickWindow(prevCurve *CurveState) TickWindow {
+	if t.cfg.TickRange <= 0 {
+		return FullTickWindow
+	}
+	var center int32
+	if prevCurve != nil && prevCurve.PriceRoot != nil && prevCurve.PriceRoot.Sign() > 0 {
+		center = GetTickAtSqrtRatio(prevCurve.PriceRoot)
+	}
+	minTick := center - t.cfg.TickRange
+	maxTick := center + t.cfg.TickRange
+	if minTick < FullTickWindow.MinTick {
+		minTick = FullTickWindow.MinTick
+	}
+	if maxTick > FullTickWindow.MaxTick {
+		maxTick = FullTickWindow.MaxTick
+	}
+	return TickWindow{MinTick: minTick, MaxTick: maxTick}
+}
+
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -114,7 +133,10 @@ func (t *PoolTracker) GetNewPoolState(
 		poolIdx := pairInfo.PoolIdx.Uint64()
 		var state *TrackerExtra
 		if pairInfo.State == nil {
-			state, err = t.stateTracker.Load(ctx, pair.Base, pair.Quote, poolIdx, blockNumBI)
+			state, err = t.stateTracker.LoadWindow(
+				ctx, pair.Base, pair.Quote, poolIdx, blockNumBI,
+				t.tickWindow(nil),
+			)
 		} else {
 			var changed bool
 			state, changed, err = t.stateTracker.Refresh(ctx, pairInfo.State, blockNumBI)

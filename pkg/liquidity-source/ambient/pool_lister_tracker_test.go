@@ -27,7 +27,7 @@ func (emptyPoolDatastore) Get(_ context.Context, _ string) (entity.Pool, error) 
 }
 
 const (
-	testLTRPCURL                 = "https://ethereum-rpc.kyberswap.com"
+	testLTRPCURL                 = "https://mainnet.gateway.tenderly.co/6td6HqHO4vq7x66oUgqUKX"
 	testLTMulticallAddress       = "0xcA11bde05977b3631167028862bE2a173976CA11"
 	testLTSwapDexContractAddress = "0xaaaaaaaaa24eeeb8d57d431224f73832bc34f688"
 	testLTNativeTokenAddress     = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"

@@ -58,6 +58,7 @@ type StaticExtra struct {
 	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
 	PoolIdx            uint64         `json:"poolIdx"`
 	SwapDex            common.Address `json:"swapDex"`
+	TickRange          int32          `json:"tickRange,omitempty"`
 }
 
 type TokenPairInfo struct {

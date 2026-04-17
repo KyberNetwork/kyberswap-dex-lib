@@ -29,6 +29,12 @@ type Config struct {
 	// The pool discriminator for a token pair. We currently integrate one poolIdx
 	// per source configuration.
 	PoolIdx *big.Int `json:"poolIdx"`
+
+	// TickRange limits the number of ticks fetched around the current price.
+	// 0 means fetch all ticks (full int24 range). A positive value N fetches
+	// ticks in [currentTick-N, currentTick+N], reducing cold-load RPC calls
+	// at the cost of rejecting swaps that move the price beyond the window.
+	TickRange int32 `json:"tickRange"`
 }
 
 func (c *Config) Validate() error {

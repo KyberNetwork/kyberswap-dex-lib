@@ -54,7 +54,7 @@ func stepToLiquidity(curve *CurveState, inflator uint64, feesInBase bool) {
 }
 
 func roundDownConcRewards(concInflator uint64, newAmbientSeeds *big.Int) uint64 {
-	if newAmbientSeeds.Sign() == 0 {
+	if newAmbientSeeds.Sign() <= 0 {
 		return 0
 	}
 	num := new(big.Int).Mul(new(big.Int).SetUint64(concInflator), newAmbientSeeds)

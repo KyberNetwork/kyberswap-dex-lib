@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	DexType = "ambient"
+	DexType        = "ambient"
+	DexTypeAmbient = DexType
 
 	defaultSubgraphLimit = 1000
 )
@@ -16,9 +17,10 @@ var (
 )
 
 var (
-	ErrInvalidToken     = errors.New("invalid token")
-	ErrPairNotFound     = errors.New("pair not found")
-	ErrNoTrackedPairs   = errors.New("no tracked pairs")
-	ErrZeroAmount       = errors.New("zero amount")
-	ErrInsufficientFund = errors.New("insufficient reserve")
+	ErrInvalidToken      = errors.New("invalid token")
+	ErrPairNotFound      = errors.New("pair not found")
+	ErrNoTrackedPairs    = errors.New("no tracked pairs")
+	ErrZeroAmount        = errors.New("zero amount")
+	ErrInsufficientFund  = errors.New("insufficient reserve")
+	ErrTickRangeExceeded = errors.New("swap exceeds fetched tick range")
 )

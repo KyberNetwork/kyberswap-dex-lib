@@ -38,6 +38,8 @@ type TrackerExtra struct {
 	ActiveTicks    []int32
 	Levels         []TrackedLevel
 	Knockouts      []TrackedKnockout
+	MinTick        int32 `json:"minTick,omitempty"`
+	MaxTick        int32 `json:"maxTick,omitempty"`
 }
 
 type StateTracker struct {
@@ -62,9 +64,9 @@ func (p PoolSpec) ToPoolParams() PoolParams {
 	}
 }
 
-// Load fetches a complete pool snapshot using JSON-RPC batching. The lobby
-// sweep, terminus reads, and per-tick reads are each issued as a single
-// batched HTTP roundtrip — 3 RTTs total instead of ~270 sequential calls.
+// Load fetches a pool snapshot using JSON-RPC batching. When window covers
+// the full int24 range, all ticks are fetched (3 RTTs). A narrower window
+// reduces RPC calls but limits the quotable swap range.
 func (t *StateTracker) Load(
 	ctx context.Context,
 	base,
@@ -72,19 +74,34 @@ func (t *StateTracker) Load(
 	poolIdx uint64,
 	blockNum *big.Int,
 ) (*TrackerExtra, error) {
+	return t.LoadWindow(ctx, base, quote, poolIdx, blockNum, FullTickWindow)
+}
+
+func (t *StateTracker) LoadWindow(
+	ctx context.Context,
+	base,
+	quote common.Address,
+	poolIdx uint64,
+	blockNum *big.Int,
+	window TickWindow,
+) (*TrackerExtra, error) {
 	orderedBase, orderedQuote := normalizePair(base, quote)
 	poolHash := EncodePoolHash(orderedBase, orderedQuote, poolIdx)
 
-	// ---- Stage A: curve(2) + poolSpec(1) + templateSpec(1) + 256 mezz reads.
+	minLobby := int16(LobbyKey(window.MinTick))
+	maxLobby := int16(LobbyKey(window.MaxTick))
+	numLobbies := int(maxLobby-minLobby) + 1
+
+	// ---- Stage A: curve(2) + poolSpec(1) + templateSpec(1) + lobby mezz reads.
 	const numFixed = 4
-	stageA := make([]common.Hash, 0, numFixed+256)
+	stageA := make([]common.Hash, 0, numFixed+numLobbies)
 	stageA = append(stageA,
 		CurveSlot(poolHash),
 		common.BigToHash(new(big.Int).Add(CurveSlot(poolHash).Big(), big.NewInt(1))),
 		PoolSpecsSlot(poolHash),
 		TemplateSlot(poolIdx),
 	)
-	for lobby16 := int16(LobbyKey(FullTickWindow.MinTick)); lobby16 <= int16(LobbyKey(FullTickWindow.MaxTick)); lobby16++ {
+	for lobby16 := minLobby; lobby16 <= maxLobby; lobby16++ {
 		probeTick := int32(int8(lobby16)) << 16
 		stageA = append(stageA, MezzSlot(poolHash, probeTick))
 	}
@@ -110,7 +127,7 @@ func (t *StateTracker) Load(
 		if mezz == nil || mezz.Sign() == 0 {
 			continue
 		}
-		lobby := int8(int16(LobbyKey(FullTickWindow.MinTick)) + int16(i))
+		lobby := int8(minLobby + int16(i))
 		for _, mezzBit := range setBitPositions(mezz) {
 			mezzKey := WeldLobbyMezz(lobby, mezzBit)
 			probeTickTerm := int32(mezzKey) << 8
@@ -134,7 +151,7 @@ func (t *StateTracker) Load(
 		}
 		for _, termBit := range setBitPositions(term) {
 			tick := WeldLobbyMezzTerm(hits[i].lobby, hits[i].mezzBit, termBit)
-			if tick < FullTickWindow.MinTick || tick > FullTickWindow.MaxTick {
+			if tick < window.MinTick || tick > window.MaxTick {
 				continue
 			}
 			activeTicks = append(activeTicks, tick)
@@ -192,6 +209,8 @@ func (t *StateTracker) Load(
 		ActiveTicks:    activeTicks,
 		Levels:         levels,
 		Knockouts:      knockouts,
+		MinTick:        window.MinTick,
+		MaxTick:        window.MaxTick,
 	}, nil
 }
 
@@ -220,7 +239,11 @@ func (t *StateTracker) Refresh(
 		return prev, false, nil
 	}
 
-	extra, err := t.Load(ctx, prev.Base, prev.Quote, prev.PoolIdx, blockNum)
+	window := FullTickWindow
+	if prev.MinTick != 0 || prev.MaxTick != 0 {
+		window = TickWindow{MinTick: prev.MinTick, MaxTick: prev.MaxTick}
+	}
+	extra, err := t.LoadWindow(ctx, prev.Base, prev.Quote, prev.PoolIdx, blockNum, window)
 	if err != nil {
 		return nil, false, err
 	}
