@@ -82,16 +82,16 @@ func SweepSwap(
 	swap *SwapDirective,
 	pool *PoolParams,
 	bmp BitmapView,
-) *SwapAccum {
+) (*SwapAccum, error) {
 	accum := NewSwapAccum()
 
 	// Solidity short-circuit: if the current price is already past the limit
 	// in the swap direction, produce zero flow.
 	if swap.IsBuy && curve.PriceRoot.Cmp(swap.LimitPrice) >= 0 {
-		return accum
+		return accum, nil
 	}
 	if !swap.IsBuy && curve.PriceRoot.Cmp(swap.LimitPrice) <= 0 {
-		return accum
+		return accum, nil
 	}
 
 	midTick := GetTickAtSqrtRatio(curve.PriceRoot)
@@ -123,19 +123,24 @@ func SweepSwap(
 				if sweepTrace != nil {
 					sweepTrace("post-swap2", bumpTick, swap, curve)
 				}
+				accum.PinSpillLoops++
 				doMore = hasSwapLeft(curve, swap)
 			}
 		}
 
 		if doMore {
-			midTick = adjTickLiq(accum, bumpTick, curve, swap, bmp)
+			next, err := adjTickLiq(accum, bumpTick, curve, swap, bmp)
+			if err != nil {
+				return nil, err
+			}
+			midTick = next
 			if sweepTrace != nil {
 				sweepTrace("adj", midTick, swap, curve)
 			}
 		}
 	}
 
-	return accum
+	return accum, nil
 }
 
 // sweepTrace is an optional debug callback. Tests can set it to observe the
@@ -161,17 +166,24 @@ func adjTickLiq(
 	curve *CurveState,
 	swap *SwapDirective,
 	bmp BitmapView,
-) int32 {
+) (int32, error) {
 	if !isTickFinite(bumpTick) {
-		return bumpTick
+		return bumpTick, nil
 	}
 
 	bidLots, askLots := bmp.QueryLevel(bumpTick)
+	crossedLots := askLots
+	if !swap.IsBuy {
+		crossedLots = bidLots
+	}
+	if HasKnockoutLiq(crossedLots) {
+		accum.KnockoutCrossLoops++
+	}
+
 	// crossDelta = netLotsOnLiquidity(bid, ask) = (int128(bid) - int128(ask)) * LOT_SIZE.
 	// For EmptyBitmapView both are zero, so liqDelta = 0 and concLiq is
 	// unchanged.
-	crossDelta := new(big.Int).Sub(bidLots, askLots)
-	crossDelta.Mul(crossDelta, LotSize)
+	crossDelta := new(big.Int).Sub(LotsToLiquidity(bidLots), LotsToLiquidity(askLots))
 
 	liqDelta := new(big.Int).Set(crossDelta)
 	if !swap.IsBuy {
@@ -179,14 +191,18 @@ func adjTickLiq(
 	}
 	curve.ConcLiq = new(big.Int).Add(curve.ConcLiq, liqDelta)
 
-	paidBase, paidQuote, burnSwap := ShaveAtBump(curve, swap.InBaseQty, swap.IsBuy, swap.Qty)
+	paidBase, paidQuote, burnSwap, err := ShaveAtBump(curve, swap.InBaseQty, swap.IsBuy, swap.Qty)
+	if err != nil {
+		return 0, err
+	}
 	accum.Accumulate(paidBase, paidQuote, new(big.Int))
 	swap.Qty = new(big.Int).Sub(swap.Qty, burnSwap)
+	accum.CrossInitTickLoops++
 
 	if swap.IsBuy {
-		return bumpTick
+		return bumpTick, nil
 	}
-	return bumpTick - 1
+	return bumpTick - 1, nil
 }
 
 // LotSize mirrors LiquidityMath.LOT_SIZE_LIQ (Ambient uses 1024-unit lots for

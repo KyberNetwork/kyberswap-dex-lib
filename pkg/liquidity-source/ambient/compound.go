@@ -1,10 +1,16 @@
 package ambient
 
-import "math/big"
+import (
+	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 func ApproxSqrtCompound(x64 uint64) uint64 {
+	// Saturate at Q48-1. The on-chain contract reverts when x >= Q48 but in
+	// the quoting path we'd rather produce a degraded result than crash.
 	if x64 >= Q48.Uint64() {
-		panic("approxSqrtCompound: x >= Q48")
+		x64 = Q48.Uint64() - 1
 	}
 	x := new(big.Int).SetUint64(x64)
 	xSq := new(big.Int).Mul(x, x)
@@ -52,7 +58,7 @@ func CompoundPrice(price *big.Int, growth uint64, shiftUp bool) *big.Int {
 	if shiftUp {
 		num := new(big.Int).Mul(price, multFactor)
 		z := new(big.Int).Rsh(num, 48)
-		z.Add(z, big.NewInt(1))
+		z.Add(z, bignum.One)
 		return z
 	}
 	num := new(big.Int).Lsh(new(big.Int).Set(price), 48)
@@ -67,10 +73,4 @@ func InflateLiqSeed(seed *big.Int, growth uint64) *big.Int {
 		return new(big.Int).Set(mask128)
 	}
 	return inflated
-}
-
-func DeflateLiqSeed(liq *big.Int, growth uint64) *big.Int {
-	num := new(big.Int).Lsh(new(big.Int).Set(liq), 48)
-	denom := new(big.Int).Add(Q48, new(big.Int).SetUint64(growth))
-	return num.Div(num, denom)
 }

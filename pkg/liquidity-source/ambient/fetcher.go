@@ -5,19 +5,16 @@ import (
 	"fmt"
 	"math/big"
 	"math/bits"
-	"sort"
 	"strings"
 	"time"
 
-	ethereum "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"golang.org/x/sync/errgroup"
 )
-
-// Public CrocSwapDex entrypoint on Ethereum mainnet.
-var MainnetDexAddr = common.HexToAddress("0xaaaaaaaaa24eeeb8d57d431224f73832bc34f688")
 
 // readSlot(uint256)
 var selectorReadSlot = [4]byte{0x02, 0xce, 0x8a, 0xf3}
@@ -41,74 +38,23 @@ type TickWindow struct {
 // FullTickWindow covers the entire int24 domain.
 var FullTickWindow = TickWindow{MinTick: -1 << 23, MaxTick: (1 << 23) - 1}
 
-// FetchActive returns every active tick whose terminus bit is set inside window.
-func (f *TickFetcher) FetchActive(
-	ctx context.Context,
-	poolHash common.Hash,
-	window TickWindow,
-	blockNum *big.Int,
-) ([]int32, error) {
-	if window.MinTick > window.MaxTick {
-		return nil, fmt.Errorf("bad window: min=%d > max=%d", window.MinTick, window.MaxTick)
-	}
-
-	minLobby := LobbyKey(window.MinTick)
-	maxLobby := LobbyKey(window.MaxTick)
-
-	var out []int32
-
-	for lobby16 := int16(minLobby); lobby16 <= int16(maxLobby); lobby16++ {
-		lobby := int8(lobby16)
-		probeTick := int32(lobby) << 16
-
-		mezzWord, err := f.readSlot(ctx, MezzSlot(poolHash, probeTick), blockNum)
-		if err != nil {
-			return nil, fmt.Errorf("read mezz(lobby=%d): %w", lobby, err)
-		}
-		if mezzWord.Sign() == 0 {
-			continue
-		}
-
-		for _, mezzBit := range setBitPositions(mezzWord) {
-			mezzKey := WeldLobbyMezz(lobby, mezzBit)
-			probeTickTerm := int32(mezzKey) << 8
-
-			termWord, err := f.readSlot(ctx, TerminusSlot(poolHash, probeTickTerm), blockNum)
-			if err != nil {
-				return nil, fmt.Errorf("read terminus(lobby=%d mezz=%d): %w", lobby, mezzBit, err)
-			}
-			if termWord.Sign() == 0 {
-				return nil, fmt.Errorf(
-					"mezz bit set but terminus empty at lobby=%d mezz=%d: slot layout mismatch",
-					lobby, mezzBit,
-				)
-			}
-
-			for _, termBit := range setBitPositions(termWord) {
-				tick := WeldLobbyMezzTerm(lobby, mezzBit, termBit)
-				if tick < window.MinTick || tick > window.MaxTick {
-					continue
-				}
-				out = append(out, tick)
-			}
-		}
-	}
-
-	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
-	return out, nil
-}
-
 // MaxBatchSize bounds the per-roundtrip JSON-RPC batch size. Tenderly enforces
 // a per-second rate limit on the underlying eth_call count, so very large
-// batches (e.g. 260) trip 429s; chunks of 50 stay under typical free-tier
-// limits while still saving ~5× roundtrips vs sequential.
+// batches (e.g. 260) trip 429s; chunks of 100 stay under typical free-tier
+// limits while still saving ~10× roundtrips vs sequential.
 var MaxBatchSize = 50
 
+// BatchConcurrency bounds the number of chunk batches in flight at once.
+// Chunks are independent eth_calls so parallelism cuts cold-load latency
+// roughly linearly until the provider's per-second batch cap is hit.
+var BatchConcurrency = 4
+
 // ReadSlotsBatch issues `eth_call`s for the supplied storage slots in chunked
-// JSON-RPC batches (size capped by MaxBatchSize). The result slice is
-// positionally aligned with `slots`. Used to collapse the 3 stages of a cold
-// pool load (curve+spec+template+lobby sweep, terminus, level+knockout) into
-// a small number of roundtrips.
+// JSON-RPC batches (size capped by MaxBatchSize). Chunks run in parallel up
+// to BatchConcurrency workers. The result slice is positionally aligned with
+// `slots`. Used to collapse the 3 stages of a cold pool load (curve+spec+
+// template+lobby sweep, terminus, level+knockout) into a small number of
+// roundtrips.
 func (f *TickFetcher) ReadSlotsBatch(
 	ctx context.Context,
 	slots []common.Hash,
@@ -119,14 +65,21 @@ func (f *TickFetcher) ReadSlotsBatch(
 	}
 
 	out := make([]*big.Int, len(slots))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(BatchConcurrency)
 	for start := 0; start < len(slots); start += MaxBatchSize {
 		end := start + MaxBatchSize
 		if end > len(slots) {
 			end = len(slots)
 		}
-		if err := f.readSlotsBatchChunk(ctx, slots[start:end], blockNum, out[start:end]); err != nil {
-			return nil, err
-		}
+		chunkSlots := slots[start:end]
+		chunkOut := out[start:end]
+		g.Go(func() error {
+			return f.readSlotsBatchChunk(gctx, chunkSlots, blockNum, chunkOut)
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

@@ -1,6 +1,10 @@
 package ambient
 
-import "math/big"
+import (
+	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 func AssimilateLiq(curve *CurveState, feesPaid *big.Int, isSwapInBase bool) {
 	liq := ActiveLiquidity(curve)
@@ -33,7 +37,7 @@ func calcReserveInflator(reserve, feesPaid *big.Int) uint64 {
 }
 
 func shaveForPrecision(liq, price, feesPaid *big.Int, isFeesInBase bool) *big.Int {
-	maxLiqExpansion := big.NewInt(2)
+	maxLiqExpansion := bignum.Two
 	bufferTokens := new(big.Int).Mul(maxLiqExpansion, PriceToTokenPrecision(liq, price, isFeesInBase))
 	if feesPaid.Cmp(bufferTokens) <= 0 {
 		return new(big.Int)
@@ -58,6 +62,6 @@ func roundDownConcRewards(concInflator uint64, newAmbientSeeds *big.Int) uint64 
 		return 0
 	}
 	num := new(big.Int).Mul(new(big.Int).SetUint64(concInflator), newAmbientSeeds)
-	denom := new(big.Int).Add(newAmbientSeeds, big.NewInt(1))
+	denom := new(big.Int).Add(newAmbientSeeds, bignum.One)
 	return num.Div(num, denom).Uint64()
 }

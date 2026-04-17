@@ -1,13 +1,17 @@
 package ambient
 
-import "math/big"
+import (
+	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 var (
-	Q48  = new(big.Int).Lsh(big.NewInt(1), 48)
-	Q64F = new(big.Int).Lsh(big.NewInt(1), 64)
-	Q128 = new(big.Int).Lsh(big.NewInt(1), 128)
+	Q48  = new(big.Int).Lsh(bignum.One, 48)
+	Q64F = new(big.Int).Lsh(bignum.One, 64)
+	Q128 = new(big.Int).Lsh(bignum.One, 128)
 
-	mask128 = new(big.Int).Sub(Q128, big.NewInt(1))
+	mask128 = new(big.Int).Sub(Q128, bignum.One)
 	mask64  = new(big.Int).SetUint64(^uint64(0))
 )
 

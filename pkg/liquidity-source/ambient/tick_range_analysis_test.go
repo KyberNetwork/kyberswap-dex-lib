@@ -20,6 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const crocImpactAddr = "0x3e3EDd3eD7621891E574E5d7f47b1f30A994c0D0"
@@ -41,9 +42,9 @@ func TestTickRangeAnalysis(t *testing.T) {
 		quote common.Address
 	}
 	knownPairs := []knownPair{
-		{"ETH/USDC", NativeTokenPlaceholderAddress, common.HexToAddress(testLTUSDC)},
-		{"ETH/USDT", NativeTokenPlaceholderAddress, common.HexToAddress(testLTUSDT)},
-		{"ETH/WBTC", NativeTokenPlaceholderAddress, common.HexToAddress(testLTWBTC)},
+		{"ETH/USDC", valueobject.AddrZero, common.HexToAddress(testLTUSDC)},
+		{"ETH/USDT", valueobject.AddrZero, common.HexToAddress(testLTUSDT)},
+		{"ETH/WBTC", valueobject.AddrZero, common.HexToAddress(testLTWBTC)},
 		{"USDC/USDT", common.HexToAddress(testLTUSDC), common.HexToAddress(testLTUSDT)},
 		{"WBTC/USDC", common.HexToAddress(testLTWBTC), common.HexToAddress(testLTUSDC)},
 		{"WBTC/USDT", common.HexToAddress(testLTWBTC), common.HexToAddress(testLTUSDT)},
@@ -54,8 +55,7 @@ func TestTickRangeAnalysis(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Close()
 
-	dexAddr := common.HexToAddress(testLTSwapDexContractAddress)
-	tracker := NewStateTracker(client, dexAddr)
+	tracker := NewStateTracker(client, testLTSwapDex)
 
 	blockNum, err := client.BlockNumber(ctx)
 	require.NoError(t, err)
@@ -154,14 +154,13 @@ func TestTickRangeComparison(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Close()
 
-	dexAddr := common.HexToAddress(testLTSwapDexContractAddress)
-	tracker := NewStateTracker(client, dexAddr)
+	tracker := NewStateTracker(client, testLTSwapDex)
 
 	blockNum, err := client.BlockNumber(ctx)
 	require.NoError(t, err)
 	blockBI := new(big.Int).SetUint64(blockNum)
 
-	base := NativeTokenPlaceholderAddress
+	base := valueobject.AddrZero
 	quote := common.HexToAddress(testLTUSDC)
 
 	fullState, err := tracker.Load(ctx, base, quote, 420, blockBI)
@@ -213,15 +212,14 @@ func TestTickRangeSwapParity(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Close()
 
-	dexAddr := common.HexToAddress(testLTSwapDexContractAddress)
-	tracker := NewStateTracker(client, dexAddr)
+	tracker := NewStateTracker(client, testLTSwapDex)
 
 	blockNum, err := client.BlockNumber(ctx)
 	require.NoError(t, err)
 	blockBI := new(big.Int).SetUint64(blockNum)
 	t.Logf("block: %d", blockNum)
 
-	base := NativeTokenPlaceholderAddress
+	base := valueobject.AddrZero
 	quote := common.HexToAddress(testLTUSDC)
 
 	// Load full state.
@@ -331,7 +329,9 @@ func TestTickRangeSwapParity(t *testing.T) {
 	t.Logf("\n=== SWAP PARITY: simulator(full) vs CrocImpact on-chain ===")
 	t.Logf("%-20s %18s %18s %10s", "CASE", "SIM_OUT", "CHAIN_OUT", "DIFF")
 
-	orderedBase, orderedQuote := normalizePair(NativeTokenPlaceholderAddress, usdcAddr)
+	orderedBaseHex, orderedQuoteHex := normalizePair(valueobject.AddrZero.Hex(), usdcAddr.Hex())
+	orderedBase := common.HexToAddress(orderedBaseHex)
+	orderedQuote := common.HexToAddress(orderedQuoteHex)
 	poolHash := EncodePoolHash(orderedBase, orderedQuote, 420)
 
 	for _, tc := range cases {
@@ -373,11 +373,14 @@ func TestTickRangeSwapParity(t *testing.T) {
 		chainBmp := &ChainBitmapView{
 			Ctx:      ctx,
 			Client:   client,
-			DexAddr:  common.HexToAddress(testLTSwapDexContractAddress),
+			DexAddr:  common.HexToAddress(testLTSwapDex),
 			PoolHash: poolHash,
 			Block:    blockBI,
 		}
-		chainAccum := SweepSwap(&simCurve, simSwap, &fullState.PoolParams, chainBmp)
+		chainAccum, err := SweepSwap(&simCurve, simSwap, &fullState.PoolParams, chainBmp)
+		if err != nil {
+			t.Fatalf("SweepSwap: %v", err)
+		}
 		var chainBmpOut *big.Int
 		if tc.inBaseQty {
 			chainBmpOut = new(big.Int).Neg(chainAccum.QuoteFlow)
@@ -415,8 +418,7 @@ func TestTickRangeReserveCoverage(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Close()
 
-	dexAddr := common.HexToAddress(testLTSwapDexContractAddress)
-	tracker := NewStateTracker(client, dexAddr)
+	tracker := NewStateTracker(client, testLTSwapDex)
 
 	blockNum, err := client.BlockNumber(ctx)
 	require.NoError(t, err)
@@ -573,26 +575,30 @@ func buildSimulator(t *testing.T, state *TrackerExtra, wethAddr common.Address) 
 	t.Helper()
 
 	staticExtra, err := json.Marshal(StaticExtra{
-		NativeTokenAddress: wethAddr,
-		PoolIdx:            420,
-		SwapDex:            common.HexToAddress(testLTSwapDexContractAddress),
+		NativeToken: wethAddr.Hex(),
+		PoolIdx:     420,
+		SwapDex:     testLTSwapDex,
+		Base:        state.Base.Hex(),
+		Quote:       state.Quote.Hex(),
 	})
 	require.NoError(t, err)
 
-	extra, err := json.Marshal(Extra{
-		TokenPairs: map[TokenPair]*TokenPairInfo{
-			{Base: state.Base, Quote: state.Quote}: {
-				PoolIdx: big.NewInt(int64(state.PoolIdx)),
-				State:   state,
-			},
-		},
-	})
+	extra, err := json.Marshal(Extra{State: state})
 	require.NoError(t, err)
+
+	token0 := wethAddr.Hex()
+	if state.Base != valueobject.AddrZero {
+		token0 = state.Base.Hex()
+	}
+	token1 := state.Quote.Hex()
+	if state.Quote == valueobject.AddrZero {
+		token1 = wethAddr.Hex()
+	}
 
 	sim, err := NewPoolSimulator(makeEntityPool(
-		testLTSwapDexContractAddress,
-		wethAddr.Hex(),
-		state.Quote.Hex(),
+		state.PoolHash.Hex(),
+		token0,
+		token1,
 		string(staticExtra),
 		string(extra),
 	))

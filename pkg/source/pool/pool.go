@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -167,4 +171,16 @@ func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn Token
 			TokenOut:      tokenOut,
 			Limit:         limit,
 		})
+}
+
+func FromEntity(e entity.Pool) Pool {
+	return Pool{PoolInfo{
+		Address:     e.Address,
+		Exchange:    e.Exchange,
+		Type:        e.Type,
+		Tokens:      lo.Map(e.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
+		Reserves:    lo.Map(e.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
+		SwapFee:     big.NewInt(int64(e.SwapFee)),
+		BlockNumber: e.BlockNumber,
+	}}
 }

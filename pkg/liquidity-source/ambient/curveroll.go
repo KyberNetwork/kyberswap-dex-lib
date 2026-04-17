@@ -1,6 +1,11 @@
 package ambient
 
-import "math/big"
+import (
+	"errors"
+	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 var roundPrecisionWei = big.NewInt(4)
 
@@ -8,6 +13,10 @@ type SwapAccum struct {
 	BaseFlow  *big.Int
 	QuoteFlow *big.Int
 	ProtoFees *big.Int
+
+	CrossInitTickLoops int
+	PinSpillLoops      int
+	KnockoutCrossLoops int
 }
 
 func NewSwapAccum() *SwapAccum {
@@ -64,7 +73,7 @@ func deriveFlowPrice(price, liq, flow *big.Int, inBaseQty, isBuy bool) *big.Int 
 	} else {
 		curvePrice = calcQuoteFlowPrice(price, liq, flow, isBuy)
 	}
-	maxRatio := new(big.Int).Sub(MaxSqrtRatio, big.NewInt(1))
+	maxRatio := new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 	if curvePrice.Cmp(MaxSqrtRatio) >= 0 {
 		return maxRatio
 	}
@@ -89,7 +98,7 @@ func calcBaseFlowPrice(price, liq, flow *big.Int, isBuy bool) *big.Int {
 		return new(big.Int)
 	}
 	result := new(big.Int).Sub(price, deltaCalc)
-	result.Sub(result, big.NewInt(1))
+	result.Sub(result, bignum.One)
 	return result
 }
 
@@ -100,7 +109,7 @@ func calcQuoteFlowPrice(price, liq, flow *big.Int, isBuy bool) *big.Int {
 		return new(big.Int).Set(MaxSqrtRatio)
 	}
 	result := RecipQ64(invNext)
-	result.Add(result, big.NewInt(1))
+	result.Add(result, bignum.One)
 	return result
 }
 
@@ -160,32 +169,40 @@ func flowToSpent(paidFlow *big.Int, inBaseQty, isBuy bool) *big.Int {
 func PriceToTokenPrecision(liq, price *big.Int, inBase bool) *big.Int {
 	if inBase {
 		result := new(big.Int).Rsh(liq, 64)
-		result.Add(result, big.NewInt(1))
+		result.Add(result, bignum.One)
 		return result
 	}
-	priceMinus1 := new(big.Int).Sub(price, big.NewInt(1))
+	priceMinus1 := new(big.Int).Sub(price, bignum.One)
 	step := DivQ64(liq, priceMinus1)
 	start := DivQ64(liq, price)
 	delta := new(big.Int).Sub(step, start)
-	delta.Add(delta, big.NewInt(1))
+	delta.Add(delta, bignum.One)
 	return delta
 }
 
-func ShaveAtBump(curve *CurveState, inBaseQty, isBuy bool, swapLeft *big.Int) (paidBase, paidQuote, burnSwap *big.Int) {
+// ErrShaveBurnDown mirrors Solidity's require(swapLeft > burnDown) in
+// CurveRoll.shaveAtBump. In practice adjTickLiq is only called when there is
+// swap qty left, so this should be unreachable; surfaced as an error (rather
+// than a panic) to keep the simulator safe against edge cases.
+var ErrShaveBurnDown = errors.New("shave-at-bump: swapLeft <= burnDown")
+
+func ShaveAtBump(curve *CurveState, inBaseQty, isBuy bool, swapLeft *big.Int) (paidBase, paidQuote, burnSwap *big.Int, err error) {
 	liq := ActiveLiquidity(curve)
 	burnDown := PriceToTokenPrecision(liq, curve.PriceRoot, inBaseQty)
 	if swapLeft.Cmp(burnDown) <= 0 {
-		panic("BD")
+		return nil, nil, nil, ErrShaveBurnDown
 	}
 	if isBuy {
-		return setShaveUp(curve, inBaseQty, burnDown)
+		paidBase, paidQuote, burnSwap = setShaveUp(curve, inBaseQty, burnDown)
+		return paidBase, paidQuote, burnSwap, nil
 	}
-	return setShaveDown(curve, inBaseQty, burnDown)
+	paidBase, paidQuote, burnSwap = setShaveDown(curve, inBaseQty, burnDown)
+	return paidBase, paidQuote, burnSwap, nil
 }
 
 func setShaveDown(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBase, paidQuote, burnSwap *big.Int) {
 	if curve.PriceRoot.Cmp(MinSqrtRatio) > 0 {
-		curve.PriceRoot = new(big.Int).Sub(curve.PriceRoot, big.NewInt(1))
+		curve.PriceRoot = new(big.Int).Sub(curve.PriceRoot, bignum.One)
 	}
 	paidBase = new(big.Int)
 	paidQuote = new(big.Int).Set(burnDown)
@@ -198,9 +215,9 @@ func setShaveDown(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBas
 }
 
 func setShaveUp(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBase, paidQuote, burnSwap *big.Int) {
-	maxMinus1 := new(big.Int).Sub(MaxSqrtRatio, big.NewInt(1))
+	maxMinus1 := new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 	if curve.PriceRoot.Cmp(maxMinus1) < 0 {
-		curve.PriceRoot = new(big.Int).Add(curve.PriceRoot, big.NewInt(1))
+		curve.PriceRoot = new(big.Int).Add(curve.PriceRoot, bignum.One)
 	}
 	paidQuote = new(big.Int)
 	paidBase = new(big.Int).Set(burnDown)

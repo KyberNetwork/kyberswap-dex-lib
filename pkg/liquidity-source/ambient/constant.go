@@ -1,20 +1,23 @@
 package ambient
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
-	DexType        = "ambient"
-	DexTypeAmbient = DexType
+	DexType = valueobject.ExchangeAmbient
 
-	defaultSubgraphLimit = 1000
+	indexerPoolListPath = "/gcgo/pool_list"
 )
 
-var (
-	NativeTokenPlaceholderAddress = common.Address{}
-)
+var defaultGas = Gas{
+	BaseGas:          220000,
+	CrossInitTickGas: 21000,
+	PinSpillGas:      12681,
+	KnockoutCrossGas: 31093,
+}
 
 var (
 	ErrInvalidToken      = errors.New("invalid token")

@@ -1,6 +1,10 @@
 package ambient
 
-import "math/big"
+import (
+	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 func CastBitmapIndex(x int8) uint8 {
 	if x >= 0 {
@@ -35,8 +39,8 @@ func WeldLobbyMezzTerm(lobbyIdx int8, mezzBitArg, termBitArg uint8) int32 {
 // mask256 is (1 << 256) - 1 — used to truncate Go big.Int to Solidity's
 // native uint256 width after left shifts.
 var mask256 = func() *big.Int {
-	m := new(big.Int).Lsh(big.NewInt(1), 256)
-	return m.Sub(m, big.NewInt(1))
+	m := new(big.Int).Lsh(bignum.One, 256)
+	return m.Sub(m, bignum.One)
 }()
 
 // TruncateBitmap mirrors Bitmaps.truncateBitmap, operating on a 256-bit value.

@@ -1,6 +1,10 @@
 package ambient
 
-import "math/big"
+import (
+	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 type SwapDirective struct {
 	Qty        *big.Int
@@ -89,7 +93,7 @@ func determineLimit(bumpTick int32, limitPrice *big.Int, isBuy bool) *big.Int {
 	if bounded.Cmp(MinSqrtRatio) < 0 {
 		return new(big.Int).Set(MinSqrtRatio)
 	}
-	maxMinus1 := new(big.Int).Sub(MaxSqrtRatio, big.NewInt(1))
+	maxMinus1 := new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 	if bounded.Cmp(MaxSqrtRatio) >= 0 {
 		return maxMinus1
 	}
@@ -101,7 +105,7 @@ func boundLimit(bumpTick int32, limitPrice *big.Int, isBuy bool) *big.Int {
 		return new(big.Int).Set(limitPrice)
 	}
 	if isBuy {
-		bumpPrice := new(big.Int).Sub(GetSqrtRatioAtTick(bumpTick), big.NewInt(1))
+		bumpPrice := new(big.Int).Sub(GetSqrtRatioAtTick(bumpTick), bignum.One)
 		if bumpPrice.Cmp(limitPrice) < 0 {
 			return bumpPrice
 		}

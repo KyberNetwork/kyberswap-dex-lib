@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
@@ -52,30 +53,31 @@ func TestPoolSimulatorCloneStateDeepCopiesPairState(t *testing.T) {
 	sim := newTestPoolSimulator(t)
 	cloned := sim.CloneState().(*PoolSimulator)
 
-	pair, ok := sim.GetPair(common.HexToAddress(testWETH), common.HexToAddress(testUSDC))
-	require.True(t, ok)
-
-	clonedState := cloned.pairInfos[pair].State
-	clonedState.Curve.PriceRoot.Add(clonedState.Curve.PriceRoot, big.NewInt(1))
-
-	require.NotEqual(t, 0, clonedState.Curve.PriceRoot.Cmp(sim.pairInfos[pair].State.Curve.PriceRoot))
+	cloned.state.Curve.PriceRoot.Add(cloned.state.Curve.PriceRoot, big.NewInt(1))
+	require.NotEqual(t, 0, cloned.state.Curve.PriceRoot.Cmp(sim.state.Curve.PriceRoot))
 }
 
 func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 	t.Helper()
 
+	base := valueobject.AddrZero
+	quote := common.HexToAddress(testUSDC)
+	poolHash := EncodePoolHash(base, quote, 420)
+
 	staticExtra, err := json.Marshal(StaticExtra{
-		NativeTokenAddress: common.HexToAddress(testWETH),
-		PoolIdx:            420,
-		SwapDex:            common.HexToAddress("0xaaaaaaaaa24eeeb8d57d431224f73832bc34f688"),
+		NativeToken: testWETH,
+		PoolIdx:     420,
+		SwapDex:     "0xaaaaaaaaa24eeeb8d57d431224f73832bc34f688",
+		Base:        base.Hex(),
+		Quote:       quote.Hex(),
 	})
 	require.NoError(t, err)
 
 	state := &TrackerExtra{
-		Base:     NativeTokenPlaceholderAddress,
-		Quote:    common.HexToAddress(testUSDC),
+		Base:     base,
+		Quote:    quote,
 		PoolIdx:  420,
-		PoolHash: common.HexToHash("0x1"),
+		PoolHash: poolHash,
 		Curve: CurveState{
 			PriceRoot:    GetSqrtRatioAtTick(0),
 			AmbientSeeds: big.NewInt(1_000_000_000),
@@ -83,29 +85,20 @@ func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 			SeedDeflator: 0,
 			ConcGrowth:   0,
 		},
-		PoolSpec:       PoolSpec{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
-		TemplateSpec:   PoolSpec{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
-		PoolParams:     PoolParams{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
-		TemplateParams: PoolParams{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
-		ActiveTicks:    []int32{-256, 256},
+		PoolSpec:    PoolSpec{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
+		PoolParams:  PoolParams{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
+		ActiveTicks: []int32{-256, 256},
 		Levels: []TrackedLevel{
 			{Tick: -256, Level: BookLevel{BidLots: big.NewInt(0), AskLots: big.NewInt(100)}},
 			{Tick: 256, Level: BookLevel{BidLots: big.NewInt(100), AskLots: big.NewInt(0)}},
 		},
 	}
 
-	extra, err := json.Marshal(Extra{
-		TokenPairs: map[TokenPair]*TokenPairInfo{
-			{Base: NativeTokenPlaceholderAddress, Quote: common.HexToAddress(testUSDC)}: {
-				PoolIdx: big.NewInt(420),
-				State:   state,
-			},
-		},
-	})
+	extra, err := json.Marshal(Extra{State: state})
 	require.NoError(t, err)
 
 	sim, err := NewPoolSimulator(entity.Pool{
-		Address:  "0xaaaaaaaaa24eeeb8d57d431224f73832bc34f688",
+		Address:  poolHash.Hex(),
 		Exchange: DexType,
 		Type:     DexType,
 		Tokens: []*entity.PoolToken{

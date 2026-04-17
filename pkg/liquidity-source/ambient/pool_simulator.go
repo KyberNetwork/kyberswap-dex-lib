@@ -1,83 +1,57 @@
 package ambient
 
 import (
-	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
-	*NTokenPool
+	pool.Pool
 
-	gas       Gas
-	swapDex   common.Address
-	pairInfos map[TokenPair]*TokenPairInfo
+	gas     Gas
+	swapDex string
+	base    string
+	quote   string
+	poolIdx uint64
+	state   *TrackerExtra
 }
 
 type SwapInfo struct {
-	Pair      TokenPair
 	NextState *TrackerExtra
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, fmt.Errorf("unmarshal static extra: %w", err)
+	if err := json.Unmarshal([]byte(ep.StaticExtra), &staticExtra); err != nil {
+		return nil, err
 	}
 
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
-		return nil, fmt.Errorf("unmarshal extra: %w", err)
+	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
+		return nil, err
 	}
-
-	pairInfos := make(map[TokenPair]*TokenPairInfo, len(extra.TokenPairs))
-	pairs := make([]TokenPair, 0, len(extra.TokenPairs))
-	for pair, info := range extra.TokenPairs {
-		if info == nil || info.State == nil {
-			continue
-		}
-		pairInfos[pair] = &TokenPairInfo{
-			PoolIdx: info.PoolIdx,
-			State:   cloneTrackerExtra(info.State),
-		}
-		pairs = append(pairs, pair)
-	}
-	if len(pairInfos) == 0 {
+	if extra.State == nil {
 		return nil, ErrNoTrackedPairs
 	}
 
-	tokens := make([]string, len(entityPool.Tokens))
-	reserves := make([]*big.Int, len(entityPool.Reserves))
-	for i, token := range entityPool.Tokens {
-		tokens[i] = strings.ToLower(token.Address)
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-	}
-
-	basePool := pool.Pool{
-		Info: pool.PoolInfo{
-			Address:     strings.ToLower(entityPool.Address),
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      tokens,
-			Reserves:    reserves,
-			BlockNumber: entityPool.BlockNumber,
-		},
-	}
-
 	return &PoolSimulator{
-		NTokenPool: NewNTokenPool(basePool, pairs, staticExtra.NativeTokenAddress),
-		gas:        defaultGas,
-		swapDex:    staticExtra.SwapDex,
-		pairInfos:  pairInfos,
+		Pool:    pool.FromEntity(ep),
+		gas:     defaultGas,
+		swapDex: staticExtra.SwapDex,
+		base:    staticExtra.Base,
+		quote:   staticExtra.Quote,
+		poolIdx: staticExtra.PoolIdx,
+		state:   cloneTrackerExtra(extra.State),
 	}, nil
 }
 
@@ -86,24 +60,13 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	tokenInAddr := common.HexToAddress(params.TokenAmountIn.Token)
-	tokenOutAddr := common.HexToAddress(params.TokenOut)
-
-	pair, ok := p.GetPair(tokenInAddr, tokenOutAddr)
+	inBaseQty, ok := p.matchDirection(params.TokenAmountIn.Token, params.TokenOut)
 	if !ok {
 		return nil, ErrPairNotFound
 	}
-
-	pairInfo, ok := p.pairInfos[pair]
-	if !ok || pairInfo == nil || pairInfo.State == nil {
-		return nil, ErrPairNotFound
-	}
-
-	state := cloneTrackerExtra(pairInfo.State)
-	inBaseQty := pair.Base == tokenInAddr ||
-		(pair.Base == NativeTokenPlaceholderAddress && tokenInAddr == p.nativeTokenAddress)
 	isBuy := inBaseQty
 
+	state := cloneTrackerExtra(p.state)
 	swap := &SwapDirective{
 		Qty:        new(big.Int).Set(params.TokenAmountIn.Amount),
 		InBaseQty:  inBaseQty,
@@ -111,7 +74,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		LimitPrice: defaultLimitPrice(isBuy),
 	}
 	bmpView := NewSnapshotBitmapView(state)
-	accum := SweepSwap(&state.Curve, swap, &state.PoolParams, bmpView)
+	accum, err := SweepSwap(&state.Curve, swap, &state.PoolParams, bmpView)
+	if err != nil {
+		return nil, err
+	}
 
 	if bmpView.BoundaryExceeded() && swap.Qty.Sign() > 0 {
 		return nil, ErrTickRangeExceeded
@@ -131,11 +97,6 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	remainingAmountIn := new(big.Int).Set(swap.Qty)
-	swapInfo := SwapInfo{
-		Pair:      pair,
-		NextState: state,
-	}
-
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  params.TokenOut,
@@ -149,9 +110,25 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  params.TokenAmountIn.Token,
 			Amount: remainingAmountIn,
 		},
-		Gas:      p.gas.BaseGas,
-		SwapInfo: swapInfo,
+		Gas:      p.estimateGas(accum),
+		SwapInfo: SwapInfo{NextState: state},
 	}, nil
+}
+
+func (p *PoolSimulator) estimateGas(accum *SwapAccum) int64 {
+	return p.gas.BaseGas +
+		p.gas.CrossInitTickGas*int64(accum.CrossInitTickLoops) +
+		p.gas.PinSpillGas*int64(accum.PinSpillLoops) +
+		p.gas.KnockoutCrossGas*int64(accum.KnockoutCrossLoops)
+}
+
+func (p *PoolSimulator) matchDirection(tokenIn, tokenOut string) (inBaseQty, ok bool) {
+	iIn := p.GetTokenIndex(strings.ToLower(tokenIn))
+	iOut := p.GetTokenIndex(strings.ToLower(tokenOut))
+	if iIn < 0 || iOut < 0 || iIn == iOut {
+		return false, false
+	}
+	return iIn == 0, true
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -170,21 +147,15 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 		info.Reserves[i] = copyBigInt(reserve)
 	}
 
-	pairs := append([]TokenPair(nil), p.pairs...)
-	cloned := &PoolSimulator{
-		NTokenPool: NewNTokenPool(pool.Pool{Info: info}, pairs, p.nativeTokenAddress),
-		gas:        p.gas,
-		swapDex:    p.swapDex,
-		pairInfos:  make(map[TokenPair]*TokenPairInfo, len(p.pairInfos)),
+	return &PoolSimulator{
+		Pool:    pool.Pool{Info: info},
+		gas:     p.gas,
+		swapDex: p.swapDex,
+		base:    p.base,
+		quote:   p.quote,
+		poolIdx: p.poolIdx,
+		state:   cloneTrackerExtra(p.state),
 	}
-	for pair, info := range p.pairInfos {
-		cloned.pairInfos[pair] = &TokenPairInfo{
-			PoolIdx: info.PoolIdx,
-			State:   cloneTrackerExtra(info.State),
-		}
-	}
-
-	return cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -201,34 +172,26 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if indexOut >= 0 {
 		p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 	}
-
-	info, ok := p.pairInfos[swapInfo.Pair]
-	if !ok || info == nil {
-		return
-	}
-	info.State = cloneTrackerExtra(swapInfo.NextState)
+	p.state = cloneTrackerExtra(swapInfo.NextState)
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	pair, ok := p.GetPair(common.HexToAddress(tokenIn), common.HexToAddress(tokenOut))
-	if !ok {
-		return nil
-	}
-	info, ok := p.pairInfos[pair]
-	if !ok || info == nil {
-		return nil
-	}
-
+func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
+	tokenInIndex := p.GetTokenIndex(strings.ToLower(tokenIn))
 	return Meta{
 		SwapDex: p.swapDex,
-		Base:    pair.Base,
-		Quote:   pair.Quote,
-		PoolIdx: info.PoolIdx,
+		Base:    lo.Ternary(tokenInIndex == 0, p.base, p.quote),
+		Quote:   lo.Ternary(tokenInIndex == 0, p.quote, p.base),
+		PoolIdx: new(big.Int).SetUint64(p.poolIdx),
 	}
 }
 
-func (p *PoolSimulator) GetApprovalAddress(_, _ string) string {
-	return p.swapDex.Hex()
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	tokenInIndex := p.GetTokenIndex(strings.ToLower(tokenIn))
+	if !valueobject.IsZero(lo.Ternary(tokenInIndex == 0, p.base, p.quote)) {
+		return p.swapDex
+	}
+
+	return ""
 }
 
 func outputAmount(accum *SwapAccum, inBaseQty bool) *big.Int {
@@ -240,7 +203,7 @@ func outputAmount(accum *SwapAccum, inBaseQty bool) *big.Int {
 
 func defaultLimitPrice(isBuy bool) *big.Int {
 	if isBuy {
-		return new(big.Int).Sub(MaxSqrtRatio, big.NewInt(1))
+		return new(big.Int).Sub(MaxSqrtRatio, bignumber.One)
 	}
 	return new(big.Int).Set(MinSqrtRatio)
 }
@@ -262,67 +225,11 @@ func cloneCurveState(state CurveState) CurveState {
 	}
 }
 
-func cloneBookLevel(level BookLevel) BookLevel {
-	return BookLevel{
-		BidLots:     copyBigInt(level.BidLots),
-		AskLots:     copyBigInt(level.AskLots),
-		FeeOdometer: level.FeeOdometer,
-	}
-}
-
-func cloneKnockoutPivot(pivot KnockoutPivot) KnockoutPivot {
-	return KnockoutPivot{
-		Lots:       copyBigInt(pivot.Lots),
-		PivotTime:  pivot.PivotTime,
-		RangeTicks: pivot.RangeTicks,
-	}
-}
-
-func cloneKnockoutMerkle(merkle KnockoutMerkle) KnockoutMerkle {
-	return KnockoutMerkle{
-		MerkleRoot: copyBigInt(merkle.MerkleRoot),
-		PivotTime:  merkle.PivotTime,
-		FeeMileage: merkle.FeeMileage,
-	}
-}
-
 func cloneTrackerExtra(extra *TrackerExtra) *TrackerExtra {
 	if extra == nil {
 		return nil
 	}
-
-	cloned := &TrackerExtra{
-		Base:           extra.Base,
-		Quote:          extra.Quote,
-		PoolIdx:        extra.PoolIdx,
-		PoolHash:       extra.PoolHash,
-		Curve:          cloneCurveState(extra.Curve),
-		PoolSpec:       extra.PoolSpec,
-		TemplateSpec:   extra.TemplateSpec,
-		PoolParams:     extra.PoolParams,
-		TemplateParams: extra.TemplateParams,
-		ActiveTicks:    append([]int32(nil), extra.ActiveTicks...),
-		Levels:         make([]TrackedLevel, len(extra.Levels)),
-		Knockouts:      make([]TrackedKnockout, len(extra.Knockouts)),
-		MinTick:        extra.MinTick,
-		MaxTick:        extra.MaxTick,
-	}
-
-	for i, level := range extra.Levels {
-		cloned.Levels[i] = TrackedLevel{
-			Tick:  level.Tick,
-			Level: cloneBookLevel(level.Level),
-		}
-	}
-	for i, knockout := range extra.Knockouts {
-		cloned.Knockouts[i] = TrackedKnockout{
-			Tick:      knockout.Tick,
-			BidPivot:  cloneKnockoutPivot(knockout.BidPivot),
-			BidMerkle: cloneKnockoutMerkle(knockout.BidMerkle),
-			AskPivot:  cloneKnockoutPivot(knockout.AskPivot),
-			AskMerkle: cloneKnockoutMerkle(knockout.AskMerkle),
-		}
-	}
-
-	return cloned
+	cloned := *extra
+	cloned.Curve = cloneCurveState(extra.Curve)
+	return &cloned
 }

@@ -1,7 +1,6 @@
 package ambient
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -9,6 +8,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type TrackedLevel struct {
@@ -16,43 +17,31 @@ type TrackedLevel struct {
 	Level BookLevel
 }
 
-type TrackedKnockout struct {
-	Tick      int32
-	BidPivot  KnockoutPivot
-	BidMerkle KnockoutMerkle
-	AskPivot  KnockoutPivot
-	AskMerkle KnockoutMerkle
-}
-
-// TrackerExtra is the research-side snapshot emitted by PoolTracker.
 type TrackerExtra struct {
-	Base           common.Address
-	Quote          common.Address
-	PoolIdx        uint64
-	PoolHash       common.Hash
-	Curve          CurveState
-	PoolSpec       PoolSpec
-	TemplateSpec   PoolSpec
-	PoolParams     PoolParams
-	TemplateParams PoolParams
-	ActiveTicks    []int32
-	Levels         []TrackedLevel
-	Knockouts      []TrackedKnockout
-	MinTick        int32 `json:"minTick,omitempty"`
-	MaxTick        int32 `json:"maxTick,omitempty"`
+	Base        common.Address
+	Quote       common.Address
+	PoolIdx     uint64
+	PoolHash    common.Hash
+	Curve       CurveState
+	PoolSpec    PoolSpec
+	PoolParams  PoolParams
+	ActiveTicks []int32
+	Levels      []TrackedLevel
+	MinTick     int32 `json:"minTick,omitempty"`
+	MaxTick     int32 `json:"maxTick,omitempty"`
 }
 
 type StateTracker struct {
 	Client  *ethclient.Client
-	DexAddr common.Address
+	DexAddr string
 	Fetcher *TickFetcher
 }
 
-func NewStateTracker(c *ethclient.Client, dexAddr common.Address) *StateTracker {
+func NewStateTracker(c *ethclient.Client, dexAddr string) *StateTracker {
 	return &StateTracker{
 		Client:  c,
 		DexAddr: dexAddr,
-		Fetcher: NewTickFetcher(c, dexAddr),
+		Fetcher: NewTickFetcher(c, common.HexToAddress(dexAddr)),
 	}
 }
 
@@ -64,13 +53,9 @@ func (p PoolSpec) ToPoolParams() PoolParams {
 	}
 }
 
-// Load fetches a pool snapshot using JSON-RPC batching. When window covers
-// the full int24 range, all ticks are fetched (3 RTTs). A narrower window
-// reduces RPC calls but limits the quotable swap range.
 func (t *StateTracker) Load(
 	ctx context.Context,
-	base,
-	quote common.Address,
+	base, quote common.Address,
 	poolIdx uint64,
 	blockNum *big.Int,
 ) (*TrackerExtra, error) {
@@ -79,27 +64,27 @@ func (t *StateTracker) Load(
 
 func (t *StateTracker) LoadWindow(
 	ctx context.Context,
-	base,
-	quote common.Address,
+	base, quote common.Address,
 	poolIdx uint64,
 	blockNum *big.Int,
 	window TickWindow,
 ) (*TrackerExtra, error) {
-	orderedBase, orderedQuote := normalizePair(base, quote)
+	orderedBaseHex, orderedQuoteHex := normalizePair(base.Hex(), quote.Hex())
+	orderedBase := common.HexToAddress(orderedBaseHex)
+	orderedQuote := common.HexToAddress(orderedQuoteHex)
 	poolHash := EncodePoolHash(orderedBase, orderedQuote, poolIdx)
 
 	minLobby := int16(LobbyKey(window.MinTick))
 	maxLobby := int16(LobbyKey(window.MaxTick))
 	numLobbies := int(maxLobby-minLobby) + 1
 
-	// ---- Stage A: curve(2) + poolSpec(1) + templateSpec(1) + lobby mezz reads.
-	const numFixed = 4
+	// ---- Stage A: curve(2) + poolSpec(1) + lobby mezz reads.
+	const numFixed = 3
 	stageA := make([]common.Hash, 0, numFixed+numLobbies)
 	stageA = append(stageA,
 		CurveSlot(poolHash),
-		common.BigToHash(new(big.Int).Add(CurveSlot(poolHash).Big(), big.NewInt(1))),
+		common.BigToHash(new(big.Int).Add(CurveSlot(poolHash).Big(), bignum.One)),
 		PoolSpecsSlot(poolHash),
-		TemplateSlot(poolIdx),
 	)
 	for lobby16 := minLobby; lobby16 <= maxLobby; lobby16++ {
 		probeTick := int32(int8(lobby16)) << 16
@@ -113,7 +98,6 @@ func (t *StateTracker) LoadWindow(
 
 	curve := DecodeCurve(slotWord(wordsA[0]), slotWord(wordsA[1]))
 	poolSpec := DecodePoolSpec(slotWord(wordsA[2]))
-	templateSpec := DecodePoolSpec(slotWord(wordsA[3]))
 	mezzWords := wordsA[numFixed:]
 
 	// ---- Stage B: terminus reads for every non-empty mezz word.
@@ -159,16 +143,10 @@ func (t *StateTracker) LoadWindow(
 	}
 	sort.Slice(activeTicks, func(i, j int) bool { return activeTicks[i] < activeTicks[j] })
 
-	// ---- Stage C: per active tick, read level + 4 knockout slots.
-	stageC := make([]common.Hash, 0, 5*len(activeTicks))
+	// ---- Stage C: per active tick, one level slot.
+	stageC := make([]common.Hash, 0, len(activeTicks))
 	for _, tick := range activeTicks {
-		stageC = append(stageC,
-			LevelSlot(poolHash, tick),
-			KnockoutPivotSlot(poolHash, true, tick),
-			KnockoutMerkleSlot(poolHash, true, tick),
-			KnockoutPivotSlot(poolHash, false, tick),
-			KnockoutMerkleSlot(poolHash, false, tick),
-		)
+		stageC = append(stageC, LevelSlot(poolHash, tick))
 	}
 
 	wordsC, err := t.Fetcher.ReadSlotsBatch(ctx, stageC, blockNum)
@@ -176,47 +154,35 @@ func (t *StateTracker) LoadWindow(
 		return nil, fmt.Errorf("stage C batch: %w", err)
 	}
 
-	levels := make([]TrackedLevel, 0, len(activeTicks))
-	knockouts := make([]TrackedKnockout, 0, len(activeTicks))
+	levels := make([]TrackedLevel, len(activeTicks))
 	for i, tick := range activeTicks {
-		base := i * 5
-		levels = append(levels, TrackedLevel{
+		levels[i] = TrackedLevel{
 			Tick:  tick,
-			Level: DecodeBookLevel(slotWord(wordsC[base])),
-		})
-		k := TrackedKnockout{
-			Tick:      tick,
-			BidPivot:  DecodeKnockoutPivot(slotWord(wordsC[base+1])),
-			BidMerkle: DecodeKnockoutMerkle(slotWord(wordsC[base+2])),
-			AskPivot:  DecodeKnockoutPivot(slotWord(wordsC[base+3])),
-			AskMerkle: DecodeKnockoutMerkle(slotWord(wordsC[base+4])),
-		}
-		if hasTrackedKnockout(k) {
-			knockouts = append(knockouts, k)
+			Level: DecodeBookLevel(slotWord(wordsC[i])),
 		}
 	}
 
 	return &TrackerExtra{
-		Base:           orderedBase,
-		Quote:          orderedQuote,
-		PoolIdx:        poolIdx,
-		PoolHash:       poolHash,
-		Curve:          curve,
-		PoolSpec:       poolSpec,
-		TemplateSpec:   templateSpec,
-		PoolParams:     poolSpec.ToPoolParams(),
-		TemplateParams: templateSpec.ToPoolParams(),
-		ActiveTicks:    activeTicks,
-		Levels:         levels,
-		Knockouts:      knockouts,
-		MinTick:        window.MinTick,
-		MaxTick:        window.MaxTick,
+		Base:        orderedBase,
+		Quote:       orderedQuote,
+		PoolIdx:     poolIdx,
+		PoolHash:    poolHash,
+		Curve:       curve,
+		PoolSpec:    poolSpec,
+		PoolParams:  poolSpec.ToPoolParams(),
+		ActiveTicks: activeTicks,
+		Levels:      levels,
+		MinTick:     window.MinTick,
+		MaxTick:     window.MaxTick,
 	}, nil
 }
 
-// Refresh reuses prev when the curve fingerprint (slot0+slot1) is unchanged,
-// avoiding the ~270-call full reload. Returns (extra, changed, err): extra is
-// always non-nil on success; changed=false means prev was reused as-is.
+// Refresh reuses prev when curve + poolSpec fingerprints are unchanged,
+// avoiding the full reload. Returns (extra, changed, err): extra is always
+// non-nil on success; changed=false means prev was reused as-is.
+//
+// window controls the tick window for the fallback LoadWindow call; callers
+// typically recompute it from the fresh curve so the window follows price.
 //
 // Caveat: liquidity mints/burns inside an already-active mezz word do not move
 // the curve, so this is sufficient for swap-routing freshness but not for
@@ -225,6 +191,7 @@ func (t *StateTracker) Refresh(
 	ctx context.Context,
 	prev *TrackerExtra,
 	blockNum *big.Int,
+	window TickWindow,
 ) (*TrackerExtra, bool, error) {
 	if prev == nil {
 		return nil, false, fmt.Errorf("prev is nil")
@@ -234,20 +201,25 @@ func (t *StateTracker) Refresh(
 	if err != nil {
 		return nil, false, fmt.Errorf("read curve: %w", err)
 	}
+	poolSpec, err := t.readPoolSpec(ctx, prev.PoolHash, blockNum)
+	if err != nil {
+		return nil, false, fmt.Errorf("read pool spec: %w", err)
+	}
 
-	if curveEqual(curve, prev.Curve) {
+	if curveEqual(curve, prev.Curve) && poolSpecEqual(poolSpec, prev.PoolSpec) &&
+		window.MinTick == prev.MinTick && window.MaxTick == prev.MaxTick {
 		return prev, false, nil
 	}
 
-	window := FullTickWindow
-	if prev.MinTick != 0 || prev.MaxTick != 0 {
-		window = TickWindow{MinTick: prev.MinTick, MaxTick: prev.MaxTick}
-	}
 	extra, err := t.LoadWindow(ctx, prev.Base, prev.Quote, prev.PoolIdx, blockNum, window)
 	if err != nil {
 		return nil, false, err
 	}
 	return extra, true, nil
+}
+
+func poolSpecEqual(a, b PoolSpec) bool {
+	return a == b
 }
 
 func curveEqual(a, b CurveState) bool {
@@ -265,11 +237,10 @@ func bigEqual(a, b *big.Int) bool {
 	return a.Cmp(b) == 0
 }
 
-func normalizePair(base, quote common.Address) (common.Address, common.Address) {
-	if bytes.Compare(base[:], quote[:]) > 0 {
+func normalizePair(base, quote string) (string, string) {
+	if base > quote {
 		return quote, base
 	}
-
 	return base, quote
 }
 
@@ -279,7 +250,7 @@ func (t *StateTracker) readCurve(ctx context.Context, poolHash common.Hash, bloc
 		return CurveState{}, err
 	}
 
-	slot1Key := common.BigToHash(new(big.Int).Add(CurveSlot(poolHash).Big(), big.NewInt(1)))
+	slot1Key := common.BigToHash(new(big.Int).Add(CurveSlot(poolHash).Big(), bignum.One))
 	slot1, err := t.Fetcher.readSlot(ctx, slot1Key, blockNum)
 	if err != nil {
 		return CurveState{}, err
@@ -295,68 +266,6 @@ func (t *StateTracker) readPoolSpec(ctx context.Context, poolHash common.Hash, b
 	}
 
 	return DecodePoolSpec(slotWord(word)), nil
-}
-
-func (t *StateTracker) readTemplateSpec(ctx context.Context, poolIdx uint64, blockNum *big.Int) (PoolSpec, error) {
-	word, err := t.Fetcher.readSlot(ctx, TemplateSlot(poolIdx), blockNum)
-	if err != nil {
-		return PoolSpec{}, err
-	}
-
-	return DecodePoolSpec(slotWord(word)), nil
-}
-
-func (t *StateTracker) readLevel(
-	ctx context.Context,
-	poolHash common.Hash,
-	tick int32,
-	blockNum *big.Int,
-) (BookLevel, error) {
-	word, err := t.Fetcher.readSlot(ctx, LevelSlot(poolHash, tick), blockNum)
-	if err != nil {
-		return BookLevel{}, err
-	}
-
-	return DecodeBookLevel(slotWord(word)), nil
-}
-
-func (t *StateTracker) readKnockout(
-	ctx context.Context,
-	poolHash common.Hash,
-	tick int32,
-	blockNum *big.Int,
-) (TrackedKnockout, error) {
-	bidPivotWord, err := t.Fetcher.readSlot(ctx, KnockoutPivotSlot(poolHash, true, tick), blockNum)
-	if err != nil {
-		return TrackedKnockout{}, err
-	}
-	bidMerkleWord, err := t.Fetcher.readSlot(ctx, KnockoutMerkleSlot(poolHash, true, tick), blockNum)
-	if err != nil {
-		return TrackedKnockout{}, err
-	}
-	askPivotWord, err := t.Fetcher.readSlot(ctx, KnockoutPivotSlot(poolHash, false, tick), blockNum)
-	if err != nil {
-		return TrackedKnockout{}, err
-	}
-	askMerkleWord, err := t.Fetcher.readSlot(ctx, KnockoutMerkleSlot(poolHash, false, tick), blockNum)
-	if err != nil {
-		return TrackedKnockout{}, err
-	}
-
-	return TrackedKnockout{
-		Tick:      tick,
-		BidPivot:  DecodeKnockoutPivot(slotWord(bidPivotWord)),
-		BidMerkle: DecodeKnockoutMerkle(slotWord(bidMerkleWord)),
-		AskPivot:  DecodeKnockoutPivot(slotWord(askPivotWord)),
-		AskMerkle: DecodeKnockoutMerkle(slotWord(askMerkleWord)),
-	}, nil
-}
-
-func hasTrackedKnockout(k TrackedKnockout) bool {
-	return k.BidPivot.Lots.Sign() > 0 ||
-		k.BidMerkle.MerkleRoot.Sign() > 0 ||
-		k.AskPivot.Lots.Sign() > 0 ||
-		k.AskMerkle.MerkleRoot.Sign() > 0
 }
 
 func slotWord(word *big.Int) [32]byte {

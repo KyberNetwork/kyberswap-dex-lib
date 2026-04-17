@@ -7,24 +7,40 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // ChainBitmapView implements BitmapView by reading the CrocSwapDex storage
 // mappings (mezzanine_, terminus_, levels_) at a pinned block. Mirrors
 // CrocImpact.sol's pinBitmap/seekMezzSpill/queryLevel exactly.
+//
+// The BitmapView interface does not return errors, so readSlot failures are
+// captured on the struct and surfaced via Err(). Once an error is set,
+// subsequent slot reads short-circuit (returning zero) so the containing
+// SweepSwap call terminates quickly; callers should check Err() afterwards.
 type ChainBitmapView struct {
 	Ctx      context.Context
 	Client   *ethclient.Client
 	DexAddr  common.Address
 	PoolHash common.Hash
 	Block    *big.Int // nil → latest
+
+	err error
 }
 
+// Err returns the first readSlot error encountered, or nil if none.
+func (v *ChainBitmapView) Err() error { return v.err }
+
 func (v *ChainBitmapView) readSlot(slot common.Hash) *big.Int {
+	if v.err != nil {
+		return new(big.Int)
+	}
 	f := &TickFetcher{Client: v.Client, DexAddr: v.DexAddr}
 	val, err := f.readSlot(v.ctx(), slot, v.Block)
 	if err != nil {
-		panic(err)
+		v.err = err
+		return new(big.Int)
 	}
 	return val
 }
@@ -165,8 +181,8 @@ func weldLobbyPosMezzTerm(lobbyWord, mezzBit, termBit uint8) int32 {
 //	bidLots = (val << 160) >> 160   → bits [0, 95]
 func (v *ChainBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) {
 	val := v.readSlot(LevelSlot(v.PoolHash, tick))
-	mask96 := new(big.Int).Lsh(big.NewInt(1), 96)
-	mask96.Sub(mask96, big.NewInt(1))
+	mask96 := new(big.Int).Lsh(bignum.One, 96)
+	mask96.Sub(mask96, bignum.One)
 
 	bidLots = new(big.Int).And(val, mask96)
 	askLots = new(big.Int).And(new(big.Int).Rsh(val, 96), mask96)

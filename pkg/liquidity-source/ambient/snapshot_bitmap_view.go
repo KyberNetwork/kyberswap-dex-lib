@@ -19,10 +19,13 @@ type SnapshotBitmapView struct {
 	boundaryExceeded bool
 }
 
+// NewSnapshotBitmapView builds a read-only view over state. state is assumed
+// to be owned by the caller (e.g. already cloned upstream); levels are shared
+// by reference.
 func NewSnapshotBitmapView(state *TrackerExtra) *SnapshotBitmapView {
 	levels := make(map[int32]BookLevel, len(state.Levels))
 	for _, level := range state.Levels {
-		levels[level.Tick] = cloneBookLevel(level.Level)
+		levels[level.Tick] = level.Level
 	}
 
 	minTick := state.MinTick
@@ -94,5 +97,7 @@ func (v *SnapshotBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) 
 	if !ok {
 		return new(big.Int), new(big.Int)
 	}
-	return copyBigInt(level.BidLots), copyBigInt(level.AskLots)
+	// adjTickLiq reads bid/ask via new(big.Int).Sub, so sharing pointers is
+	// safe; the returned *big.Int must not be mutated by callers.
+	return level.BidLots, level.AskLots
 }

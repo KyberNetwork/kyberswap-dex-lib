@@ -7,7 +7,6 @@ package ambient
 
 import (
 	"encoding/binary"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/crypto/sha3"
@@ -18,21 +17,11 @@ import (
 // the CrocSlots library. Values marked (inferred) come from the declaration
 // order in StorageLayout.sol — empirically verified in Phase 1/2 tests.
 const (
-	AuthoritySlot    uint64 = 0     // (CrocSlots) authority_
-	LevelsMapSlot    uint64 = 65538 // (CrocSlots) levels_                — verified Phase 2
-	KoPivotMapSlot   uint64 = 65539 // (CrocSlots) knockoutPivots_
-	KoMerkleMapSlot  uint64 = 65540 // (CrocSlots) knockoutMerkles_
-	KoPosMapSlot     uint64 = 65541 // (CrocSlots) knockoutPos_
-	MezzMapSlot      uint64 = 65542 // (inferred)  mezzanine_             — verified Phase 2
-	TerminusMapSlot  uint64 = 65543 // (inferred)  terminus_              — verified Phase 2
-	TemplateMapSlot  uint64 = 65544 // (inferred)  templates_
-	PoolsMapSlot     uint64 = 65545 // (inferred)  pools_                 — verified Phase 3
-	ImprovesMapSlot  uint64 = 65546 // (inferred)  improves_
-	FeesAccumMapSlot uint64 = 65548 // (CrocSlots) feesAccum_
-	PositionsMapSlot uint64 = 65549 // (CrocSlots) positions_
-	AmbPosMapSlot    uint64 = 65550 // (CrocSlots) ambPositions_
-	CurvesMapSlot    uint64 = 65551 // (CrocSlots) curves_                — verified Phase 1
-	UserBalsMapSlot  uint64 = 65552 // (CrocSlots) userBals_
+	LevelsMapSlot   uint64 = 65538 // (CrocSlots) levels_     — verified Phase 2
+	MezzMapSlot     uint64 = 65542 // (inferred)  mezzanine_  — verified Phase 2
+	TerminusMapSlot uint64 = 65543 // (inferred)  terminus_   — verified Phase 2
+	PoolsMapSlot    uint64 = 65545 // (inferred)  pools_      — verified Phase 3
+	CurvesMapSlot   uint64 = 65551 // (CrocSlots) curves_     — verified Phase 1
 )
 
 func keccak256(parts ...[]byte) common.Hash {
@@ -69,16 +58,6 @@ func EncodePoolHash(base, quote common.Address, poolIdx uint64) common.Hash {
 		leftPad32(base.Bytes()),
 		leftPad32(quote.Bytes()),
 		uint256BE(poolIdx),
-	)
-}
-
-func EncodePoolHashBig(base, quote common.Address, poolIdx *big.Int) common.Hash {
-	var padded [32]byte
-	poolIdx.FillBytes(padded[:])
-	return keccak256(
-		leftPad32(base.Bytes()),
-		leftPad32(quote.Bytes()),
-		padded[:],
 	)
 }
 
@@ -130,147 +109,24 @@ func mappingSlot(key common.Hash, slot uint64) common.Hash {
 	return keccak256(key[:], uint256BE(slot))
 }
 
-func mappingSlotBytes32(key common.Hash, slot uint64) common.Hash {
-	return mappingSlot(key, slot)
-}
-
-func mappingSlotUint256(key uint64, slot uint64) common.Hash {
-	return keccak256(uint256BE(key), uint256BE(slot))
-}
-
 // CurveSlot — base slot of curves_[poolHash]. 2 slots wide.
 func CurveSlot(poolHash common.Hash) common.Hash {
-	return mappingSlotBytes32(poolHash, CurvesMapSlot)
+	return mappingSlot(poolHash, CurvesMapSlot)
 }
 
 // PoolSpecsSlot — 1-slot Pool struct at pools_[poolHash].
 func PoolSpecsSlot(poolHash common.Hash) common.Hash {
-	return mappingSlotBytes32(poolHash, PoolsMapSlot)
-}
-
-func TemplateSlot(poolIdx uint64) common.Hash {
-	return mappingSlotUint256(poolIdx, TemplateMapSlot)
+	return mappingSlot(poolHash, PoolsMapSlot)
 }
 
 func LevelSlot(poolHash common.Hash, tick int32) common.Hash {
-	return mappingSlotBytes32(LevelMapKey(poolHash, tick), LevelsMapSlot)
+	return mappingSlot(LevelMapKey(poolHash, tick), LevelsMapSlot)
 }
 
 func MezzSlot(poolHash common.Hash, tick int32) common.Hash {
-	return mappingSlotBytes32(MezzMapKey(poolHash, tick), MezzMapSlot)
+	return mappingSlot(MezzMapKey(poolHash, tick), MezzMapSlot)
 }
 
 func TerminusSlot(poolHash common.Hash, tick int32) common.Hash {
-	return mappingSlotBytes32(TermMapKey(poolHash, tick), TerminusMapSlot)
-}
-
-func boolBE(b bool) []byte {
-	var out [32]byte
-	if b {
-		out[31] = 1
-	}
-	return out[:]
-}
-
-func int24BE(v int32) []byte {
-	var out [32]byte
-	if v < 0 {
-		for i := range out {
-			out[i] = 0xff
-		}
-	}
-	out[29] = byte(uint32(v) >> 16)
-	out[30] = byte(uint32(v) >> 8)
-	out[31] = byte(uint32(v))
-	return out[:]
-}
-
-func uint32BE(v uint32) []byte {
-	var out [32]byte
-	binary.BigEndian.PutUint32(out[28:], v)
-	return out[:]
-}
-
-func int24Packed(v int32) []byte {
-	u := uint32(v) & 0xffffff
-	return []byte{byte(u >> 16), byte(u >> 8), byte(u)}
-}
-
-// EncodeKnockoutPivotKey replicates KnockoutLiq.encodePivotKey:
-//
-//	keccak256(abi.encode(pool, isBid, tick))
-func EncodeKnockoutPivotKey(poolHash common.Hash, isBid bool, tick int32) common.Hash {
-	return keccak256(poolHash[:], boolBE(isBid), int24BE(tick))
-}
-
-// EncodeKnockoutPosKey replicates KnockoutLiq.encodePosKey:
-//
-//	keccak256(abi.encode(pool, owner, loc.isBid_, loc.lowerTick_, loc.upperTick_, pivotTime))
-func EncodeKnockoutPosKey(poolHash common.Hash, owner common.Address, isBid bool, lowerTick, upperTick int32, pivotTime uint32) common.Hash {
-	return keccak256(
-		poolHash[:],
-		leftPad32(owner.Bytes()),
-		boolBE(isBid),
-		int24BE(lowerTick),
-		int24BE(upperTick),
-		uint32BE(pivotTime),
-	)
-}
-
-// EncodeRangePosKey replicates PositionRegistrar.encodePosKey for range positions:
-//
-//	keccak256(abi.encodePacked(owner, poolIdx, lowerTick, upperTick))
-func EncodeRangePosKey(owner common.Address, poolHash common.Hash, lowerTick, upperTick int32) common.Hash {
-	buf := make([]byte, 0, 58) // 20 + 32 + 3 + 3
-	buf = append(buf, owner.Bytes()...)
-	buf = append(buf, poolHash[:]...)
-	buf = append(buf, int24Packed(lowerTick)...)
-	buf = append(buf, int24Packed(upperTick)...)
-	return keccak256(buf)
-}
-
-// EncodeAmbientPosKey replicates PositionRegistrar.encodePosKey for ambient positions:
-//
-//	keccak256(abi.encodePacked(owner, poolIdx))
-func EncodeAmbientPosKey(owner common.Address, poolHash common.Hash) common.Hash {
-	buf := make([]byte, 0, 52) // 20 + 32
-	buf = append(buf, owner.Bytes()...)
-	buf = append(buf, poolHash[:]...)
-	return keccak256(buf)
-}
-
-func KnockoutPivotSlot(poolHash common.Hash, isBid bool, tick int32) common.Hash {
-	key := EncodeKnockoutPivotKey(poolHash, isBid, tick)
-	return mappingSlotBytes32(key, KoPivotMapSlot)
-}
-
-func KnockoutMerkleSlot(poolHash common.Hash, isBid bool, tick int32) common.Hash {
-	key := EncodeKnockoutPivotKey(poolHash, isBid, tick)
-	return mappingSlotBytes32(key, KoMerkleMapSlot)
-}
-
-func KnockoutPosSlot(poolHash common.Hash, owner common.Address, isBid bool, lowerTick, upperTick int32, pivotTime uint32) common.Hash {
-	key := EncodeKnockoutPosKey(poolHash, owner, isBid, lowerTick, upperTick, pivotTime)
-	return mappingSlotBytes32(key, KoPosMapSlot)
-}
-
-func RangePositionSlot(owner common.Address, poolHash common.Hash, lowerTick, upperTick int32) common.Hash {
-	key := EncodeRangePosKey(owner, poolHash, lowerTick, upperTick)
-	return mappingSlotBytes32(key, PositionsMapSlot)
-}
-
-func AmbientPositionSlot(owner common.Address, poolHash common.Hash) common.Hash {
-	key := EncodeAmbientPosKey(owner, poolHash)
-	return mappingSlotBytes32(key, AmbPosMapSlot)
-}
-
-func FeesAccumSlot(token common.Address) common.Hash {
-	var key common.Hash
-	copy(key[12:], token.Bytes())
-	return mappingSlot(key, FeesAccumMapSlot)
-}
-
-func UserBalanceSlot(owner common.Address, token common.Address) common.Hash {
-	key := keccak256(leftPad32(owner.Bytes()), leftPad32(token.Bytes()))
-	return mappingSlot(key, UserBalsMapSlot)
+	return mappingSlot(TermMapKey(poolHash, tick), TerminusMapSlot)
 }
