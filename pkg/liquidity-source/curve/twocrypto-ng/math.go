@@ -15,6 +15,9 @@ var ( // FXSwap custom MATH library for their twocrypto-ng pools
 	CustomMaths = []common.Address{
 		common.HexToAddress("0x79839c2D74531A8222C0F555865aAc1834e82e51"), // For YB on ethereum
 		common.HexToAddress("0xe3AA3639BA550bED6ba5Fb9635bE89f9e35b9745"), // Polygon
+		common.HexToAddress("0x2Bd498ae431dC98694010950fcF8ACd3599f5512"), // Base
+		common.HexToAddress("0xd908A6ed4DCE4139f9b0F0E9c6c769539a9D7601"), // BSC
+		common.HexToAddress("0xAE25375012a380D1a9B7C57021aCe72D83Cb5565"), // Etherlink
 	}
 )
 
