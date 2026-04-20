@@ -319,7 +319,8 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 		address := hexutil.Encode(event.Address[:])
 
 		switch event.Topics[0] {
-		case oracleABI.Events["PriceFeedUpdate"].ID:
+		case oracleABI.Events["PriceFeedUpdate"].ID,
+			darkOracleABI.Events["PricesUpdated"].ID:
 			if !strings.EqualFold(address, t.config.Oracle) {
 				continue
 			}
