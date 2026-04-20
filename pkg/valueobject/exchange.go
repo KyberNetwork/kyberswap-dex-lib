@@ -107,6 +107,7 @@ const (
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidDexV2                 = "fluid-dex-v2"
 	ExchangeFluidVaultT1               = "fluid-vault-t1"
+	ExchangeFluidATokenSwap            = "fluid-atoken-swap"
 	ExchangeFrxETH                     = "frxeth"
 	ExchangeFrxUSD                     = "frxusd"
 	ExchangeGenericArm                 = "generic-arm"

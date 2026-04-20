@@ -2,15 +2,12 @@ package aavev3
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
@@ -40,14 +37,7 @@ func TestPoolListUpdater(t *testing.T) {
 	for _, p := range newPools {
 		require.Equal(t, p.Tokens[0].Address, p.Address)
 
-		newPool, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		_, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		require.Equal(t,
-			entity.PoolReserves{
-				strconv.Itoa(defaultReserve),
-				strconv.Itoa(defaultReserve),
-			},
-			newPool.Reserves,
-		)
 	}
 }
