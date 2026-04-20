@@ -20,7 +20,6 @@ var defaultGas = Gas{
 }
 
 var (
-	ErrInvalidToken      = errors.New("invalid token")
 	ErrPairNotFound      = errors.New("pair not found")
 	ErrNoTrackedPairs    = errors.New("no tracked pairs")
 	ErrZeroAmount        = errors.New("zero amount")
