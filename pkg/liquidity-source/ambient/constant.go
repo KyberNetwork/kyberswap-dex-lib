@@ -13,7 +13,7 @@ const (
 )
 
 var defaultGas = Gas{
-	BaseGas:          220000,
+	BaseGas:          120000,
 	CrossInitTickGas: 21000,
 	PinSpillGas:      12681,
 	KnockoutCrossGas: 31093,
