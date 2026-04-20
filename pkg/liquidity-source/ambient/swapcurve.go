@@ -93,9 +93,8 @@ func determineLimit(bumpTick int32, limitPrice *big.Int, isBuy bool) *big.Int {
 	if bounded.Cmp(MinSqrtRatio) < 0 {
 		return new(big.Int).Set(MinSqrtRatio)
 	}
-	maxMinus1 := new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 	if bounded.Cmp(MaxSqrtRatio) >= 0 {
-		return maxMinus1
+		return new(big.Int).Set(MaxSqrtRatioMinus1)
 	}
 	return bounded
 }
@@ -140,12 +139,16 @@ func assignFees(liqFees, exchFees *big.Int, inBaseQty bool) (paidBase, paidQuote
 	return
 }
 
+var (
+	feeBPMult        = big.NewInt(1_000_000)
+	protoTakeDivisor = big.NewInt(256)
+)
+
 func CalcFeeOverFlow(flow *big.Int, feeRate uint16, protoProp uint8) (liqFee, protoFee *big.Int) {
-	feeBPMult := big.NewInt(1_000_000)
 	totalFee := new(big.Int).Mul(flow, new(big.Int).SetUint64(uint64(feeRate)))
 	totalFee.Div(totalFee, feeBPMult)
 	protoFee = new(big.Int).Mul(totalFee, new(big.Int).SetUint64(uint64(protoProp)))
-	protoFee.Div(protoFee, big.NewInt(256))
+	protoFee.Div(protoFee, protoTakeDivisor)
 	liqFee = new(big.Int).Sub(totalFee, protoFee)
 	return
 }

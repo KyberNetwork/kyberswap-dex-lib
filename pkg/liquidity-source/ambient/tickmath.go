@@ -10,8 +10,9 @@ var (
 	MinTick int32 = -665454
 	MaxTick int32 = 831818
 
-	MinSqrtRatio = big.NewInt(65538)
-	MaxSqrtRatio = bignum.NewBig("21267430153580247136652501917186561138")
+	MinSqrtRatio       = big.NewInt(65538)
+	MaxSqrtRatio       = bignum.NewBig("21267430153580247136652501917186561138")
+	MaxSqrtRatioMinus1 = new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 
 	q64  = new(big.Int).Lsh(bignum.One, 64)
 	q128 = new(big.Int).Lsh(bignum.One, 128)

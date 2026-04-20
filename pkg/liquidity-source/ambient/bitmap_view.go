@@ -11,14 +11,10 @@ import (
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// ChainBitmapView implements BitmapView by reading the CrocSwapDex storage
-// mappings (mezzanine_, terminus_, levels_) at a pinned block. Mirrors
-// CrocImpact.sol's pinBitmap/seekMezzSpill/queryLevel exactly.
-//
-// The BitmapView interface does not return errors, so readSlot failures are
-// captured on the struct and surfaced via Err(). Once an error is set,
-// subsequent slot reads short-circuit (returning zero) so the containing
-// SweepSwap call terminates quickly; callers should check Err() afterwards.
+// ChainBitmapView reads CrocSwapDex storage (mezzanine/terminus/levels) at a
+// pinned block; mirrors CrocImpact.sol pinBitmap/seekMezzSpill/queryLevel.
+// readSlot errors are captured and surfaced via Err(); later reads
+// short-circuit so the caller must check Err() after SweepSwap.
 type ChainBitmapView struct {
 	Ctx      context.Context
 	Client   *ethclient.Client
@@ -66,8 +62,8 @@ func (v *ChainBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
 	return WeldMezzTerm(tickMezz, nextTerm), false
 }
 
-// doesSpillBit mirrors CrocImpact.sol doesSpillBit. For sell direction, if
-// bit 0 is already set we are AT a bump, so do not spill.
+// doesSpillBit mirrors CrocImpact.sol: sell-side bit 0 already set means
+// we're AT a bump, so don't spill.
 func doesSpillBit(isBuy bool, spillTrunc bool, termBitmap *big.Int) bool {
 	if isBuy {
 		return spillTrunc
@@ -78,9 +74,7 @@ func doesSpillBit(isBuy bool, spillTrunc bool, termBitmap *big.Int) bool {
 	return spillTrunc
 }
 
-// chainSpillOverPin mirrors CrocImpact.sol spillOverPin (uses zeroTerm(!isBuy)
-// for the welded terminus bit so a buy spillover lands at the top of the next
-// terminus).
+// chainSpillOverPin mirrors CrocImpact.sol spillOverPin.
 func chainSpillOverPin(isBuy bool, tickMezz int16) int32 {
 	if isBuy {
 		if tickMezz == math.MaxInt16 {
@@ -156,10 +150,6 @@ func (v *ChainBitmapView) seekOverLobby(lobbyBit uint8, isBuy bool) int32 {
 }
 
 // rootsForBorder mirrors CrocImpact.sol rootsForBorder.
-//
-//	pinTick = isBuy ? borderTick : (borderTick - 1)
-//	lobbyBit = pinTick.lobbyBit()
-//	mezzBit  = pinTick.mezzBit()
 func rootsForBorder(borderTick int32, isBuy bool) (lobbyBit, mezzBit uint8) {
 	pinTick := borderTick
 	if !isBuy {
@@ -174,11 +164,8 @@ func weldLobbyPosMezzTerm(lobbyWord, mezzBit, termBit uint8) int32 {
 	return WeldLobbyMezzTerm(UncastBitmapIndex(lobbyWord), mezzBit, termBit)
 }
 
-// QueryLevel reads (bidLots, askLots) from levels_[poolHash, tick] using the
-// same layout as CrocImpact.sol queryLevel:
-//
-//	askLots = (val << 64)  >> 160   → bits [96, 191]  from LSB-0 perspective
-//	bidLots = (val << 160) >> 160   → bits [0, 95]
+// QueryLevel reads (bidLots, askLots) from levels_[poolHash, tick].
+// Layout: bidLots = bits [0,95], askLots = bits [96,191].
 func (v *ChainBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) {
 	val := v.readSlot(LevelSlot(v.PoolHash, tick))
 	mask96 := new(big.Int).Lsh(bignum.One, 96)

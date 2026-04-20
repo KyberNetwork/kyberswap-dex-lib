@@ -213,7 +213,7 @@ func outputAmount(accum *SwapAccum, inBaseQty bool) *big.Int {
 
 func defaultLimitPrice(isBuy bool) *big.Int {
 	if isBuy {
-		return new(big.Int).Sub(MaxSqrtRatio, bignumber.One)
+		return new(big.Int).Set(MaxSqrtRatioMinus1)
 	}
 	return new(big.Int).Set(MinSqrtRatio)
 }

@@ -3,6 +3,8 @@ package ambient
 import (
 	"math/big"
 	"sort"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // SnapshotBitmapView is an in-memory implementation of BitmapView backed by a
@@ -19,9 +21,9 @@ type SnapshotBitmapView struct {
 	boundaryExceeded bool
 }
 
-// NewSnapshotBitmapView builds a read-only view over state. state is assumed
-// to be owned by the caller (e.g. already cloned upstream); levels are shared
-// by reference.
+// NewSnapshotBitmapView builds a read-only view over state. Callers must not
+// mutate state.ActiveTicks or state.Levels for the lifetime of the view; the
+// view borrows them without copying.
 func NewSnapshotBitmapView(state *TrackerExtra) *SnapshotBitmapView {
 	levels := make(map[int32]BookLevel, len(state.Levels))
 	for _, level := range state.Levels {
@@ -36,7 +38,7 @@ func NewSnapshotBitmapView(state *TrackerExtra) *SnapshotBitmapView {
 	}
 
 	return &SnapshotBitmapView{
-		activeTicks: append([]int32(nil), state.ActiveTicks...),
+		activeTicks: state.ActiveTicks,
 		levels:      levels,
 		minTick:     minTick,
 		maxTick:     maxTick,
@@ -92,12 +94,13 @@ func (v *SnapshotBitmapView) SeekMezzSpill(borderTick int32, isBuy bool) int32 {
 	return zeroTick(false)
 }
 
+// QueryLevel returns bid/ask lots for tick. Callers must treat the returned
+// *big.Int as read-only; misses share bignum.ZeroBI, hits share the level's
+// own pointers.
 func (v *SnapshotBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) {
 	level, ok := v.levels[tick]
 	if !ok {
-		return new(big.Int), new(big.Int)
+		return bignum.ZeroBI, bignum.ZeroBI
 	}
-	// adjTickLiq reads bid/ask via new(big.Int).Sub, so sharing pointers is
-	// safe; the returned *big.Int must not be mutated by callers.
 	return level.BidLots, level.AskLots
 }

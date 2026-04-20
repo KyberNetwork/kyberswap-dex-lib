@@ -1,17 +1,16 @@
 package ambient
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"testing"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -24,13 +23,22 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-const crocImpactAddr = "0x3e3EDd3eD7621891E574E5d7f47b1f30A994c0D0"
+const (
+	crocImpactAddr       = "0x3e3EDd3eD7621891E574E5d7f47b1f30A994c0D0"
+	tickRangeTestPoolIdx = 420
+)
+
+var (
+	analysisTickRangeCandidates = []int32{5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000, 200000}
+	parityTickRanges            = []int32{10000, 20000, 50000}
+	crocImpactParsedABI         = mustParseCrocImpactABI()
+	crocImpactAddrCommon        = common.HexToAddress(crocImpactAddr)
+)
 
 type testHarness struct {
 	ctx      context.Context
 	client   *ethclient.Client
 	tracker  *StateTracker
-	rpcURL   string
 	blockBI  *big.Int
 	blockNum uint64
 }
@@ -56,7 +64,6 @@ func newTestHarness(t *testing.T) *testHarness {
 		ctx:      ctx,
 		client:   client,
 		tracker:  NewStateTracker(client, testLTSwapDex),
-		rpcURL:   rpcURL,
 		blockBI:  new(big.Int).SetUint64(blockNum),
 		blockNum: blockNum,
 	}
@@ -69,14 +76,14 @@ func TestTickRangeAnalysis(t *testing.T) {
 	t.Parallel()
 	h := newTestHarness(t)
 
-	pairs := fetchIndexerPairs(t, 420)
+	pairs := fetchIndexerPairs(t, tickRangeTestPoolIdx)
 	t.Logf("fetched %d PoolIdx=420 pools", len(pairs))
 
 	pools := loadPoolStats(t, h, pairs)
+	require.NotEmpty(t, pools, "expected at least one pool with tracked ticks")
 	logPerPoolDist(t, pools)
 
-	candidates := []int32{5000, 10000, 20000, 30000, 50000, 75000, 100000, 150000, 200000}
-	stats := sweepRanges(pools, candidates)
+	stats := sweepRanges(pools, analysisTickRangeCandidates)
 	logSweep(t, stats, len(pools))
 
 	recommendTickRange(t, pools, stats)
@@ -91,18 +98,17 @@ func TestTickRangeSwapParity(t *testing.T) {
 	base := valueobject.AddrZero
 	quote := common.HexToAddress(testLTUSDC)
 
-	fullState, err := h.tracker.Load(h.ctx, base, quote, 420, h.blockBI)
+	fullState, err := h.tracker.Load(h.ctx, base, quote, tickRangeTestPoolIdx, h.blockBI)
 	require.NoError(t, err)
 
 	currentTick := GetTickAtSqrtRatio(fullState.Curve.PriceRoot)
 	t.Logf("ETH/USDC: %d ticks, currentTick=%d", len(fullState.ActiveTicks), currentTick)
 
-	tickRanges := []int32{10000, 20000, 50000}
-	windowedSims := make(map[int32]*PoolSimulator, len(tickRanges))
 	wethAddr := common.HexToAddress(testLTNativeTokenAddress)
-	for _, tr := range tickRanges {
+	windowedSims := make(map[int32]*PoolSimulator, len(parityTickRanges))
+	for _, tr := range parityTickRanges {
 		window := clampWindow(TickWindow{MinTick: currentTick - tr, MaxTick: currentTick + tr})
-		ws, err := h.tracker.LoadWindow(h.ctx, base, quote, 420, h.blockBI, window)
+		ws, err := h.tracker.LoadWindow(h.ctx, base, quote, tickRangeTestPoolIdx, h.blockBI, window)
 		require.NoError(t, err)
 		windowedSims[tr] = buildSimulator(t, ws, wethAddr)
 		t.Logf("TickRange=%d: %d ticks", tr, len(ws.ActiveTicks))
@@ -110,41 +116,24 @@ func TestTickRangeSwapParity(t *testing.T) {
 	fullSim := buildSimulator(t, fullState, wethAddr)
 
 	usdcAddr := common.HexToAddress(testLTUSDC)
-	wei18 := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	wei6 := big.NewInt(1_000_000)
-	cases := []struct {
-		name              string
-		tokenIn, tokenOut string
-		amountIn          *big.Int
-		isBuy, inBaseQty  bool
-	}{
-		{"0.01 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Div(wei18, big.NewInt(100)), true, true},
-		{"0.1 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Div(wei18, big.NewInt(10)), true, true},
-		{"1 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Set(wei18), true, true},
-		{"10 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Mul(big.NewInt(10), wei18), true, true},
-		{"100 USDC→ETH", usdcAddr.Hex(), wethAddr.Hex(), new(big.Int).Mul(big.NewInt(100), wei6), false, false},
-		{"1000 USDC→ETH", usdcAddr.Hex(), wethAddr.Hex(), new(big.Int).Mul(big.NewInt(1000), wei6), false, false},
-		{"10000 USDC→ETH", usdcAddr.Hex(), wethAddr.Hex(), new(big.Int).Mul(big.NewInt(10000), wei6), false, false},
-	}
+	cases := defaultSwapParityCases(wethAddr, usdcAddr)
 
 	t.Logf("\n=== SWAP PARITY: simulator(full) vs simulator(windowed) ===")
 	header := fmt.Sprintf("%-20s %18s", "CASE", "FULL_OUT")
-	for _, tr := range tickRanges {
+	for _, tr := range parityTickRanges {
 		header += fmt.Sprintf(" %14s", fmt.Sprintf("TR=%d", tr))
 	}
 	t.Log(header)
 	for _, tc := range cases {
-		fullResult, fullErr := fullSim.CloneState().(*PoolSimulator).
-			CalcAmountOut(calcParams(tc.tokenIn, tc.tokenOut, tc.amountIn))
+		fullResult, fullErr := calcSimulatorResult(fullSim, tc)
 		line := fmt.Sprintf("%-20s", tc.name)
 		if fullErr != nil {
 			line += fmt.Sprintf(" %18s", "ERR:"+fullErr.Error())
 		} else {
 			line += fmt.Sprintf(" %18s", fullResult.TokenAmountOut.Amount.String())
 		}
-		for _, tr := range tickRanges {
-			wRes, wErr := windowedSims[tr].CloneState().(*PoolSimulator).
-				CalcAmountOut(calcParams(tc.tokenIn, tc.tokenOut, tc.amountIn))
+		for _, tr := range parityTickRanges {
+			wRes, wErr := calcSimulatorResult(windowedSims[tr], tc)
 			switch {
 			case wErr != nil:
 				line += fmt.Sprintf(" %14s", "ERR")
@@ -166,45 +155,26 @@ func TestTickRangeSwapParity(t *testing.T) {
 	orderedBaseHex, orderedQuoteHex := normalizePair(valueobject.AddrZero.Hex(), usdcAddr.Hex())
 	orderedBase := common.HexToAddress(orderedBaseHex)
 	orderedQuote := common.HexToAddress(orderedQuoteHex)
-	poolHash := EncodePoolHash(orderedBase, orderedQuote, 420)
+	poolHash := EncodePoolHash(orderedBase, orderedQuote, tickRangeTestPoolIdx)
 
 	for _, tc := range cases {
-		simRes, simErr := fullSim.CloneState().(*PoolSimulator).
-			CalcAmountOut(calcParams(tc.tokenIn, tc.tokenOut, tc.amountIn))
+		simRes, simErr := calcSimulatorResult(fullSim, tc)
 		if simErr != nil {
 			t.Logf("%-20s ERR:%s", tc.name, simErr.Error())
 			continue
 		}
 
-		chainBase, chainQuote, err := callCrocImpact(h.rpcURL, orderedBase, orderedQuote, 420,
+		chainBase, chainQuote, err := callCrocImpact(h.ctx, h.client, orderedBase, orderedQuote, tickRangeTestPoolIdx,
 			tc.isBuy, tc.inBaseQty, tc.amountIn, h.blockBI)
 		if err != nil {
 			t.Logf("%-20s sim=%s RPC_ERR=%v", tc.name, simRes.TokenAmountOut.Amount, err)
 			continue
 		}
-		chainOut := new(big.Int).Neg(chainQuote)
-		if !tc.inBaseQty {
-			chainOut = new(big.Int).Neg(chainBase)
-		}
+		chainOut := deriveChainOutput(chainBase, chainQuote, tc.inBaseQty)
 
 		// Also run simulator with live ChainBitmapView for snapshot-vs-chain diff.
-		simCurve := fullState.Curve
-		simSwap := &SwapDirective{
-			Qty:        new(big.Int).Set(tc.amountIn),
-			InBaseQty:  tc.inBaseQty,
-			IsBuy:      tc.isBuy,
-			LimitPrice: defaultLimitPrice(tc.isBuy),
-		}
-		chainBmp := &ChainBitmapView{
-			Ctx: h.ctx, Client: h.client,
-			DexAddr: common.HexToAddress(testLTSwapDex), PoolHash: poolHash, Block: h.blockBI,
-		}
-		chainAccum, err := SweepSwap(&simCurve, simSwap, &fullState.PoolParams, chainBmp)
+		chainBmpOut, err := calcChainBitmapOut(h, fullState, poolHash, tc)
 		require.NoError(t, err)
-		chainBmpOut := new(big.Int).Neg(chainAccum.QuoteFlow)
-		if !tc.inBaseQty {
-			chainBmpOut = new(big.Int).Neg(chainAccum.BaseFlow)
-		}
 
 		t.Logf("%-20s sim_snap=%-20s sim_chain_bmp=%-20s onchain=%-20s diff_snap=%-6s diff_bmp=%-6s",
 			tc.name, simRes.TokenAmountOut.Amount, chainBmpOut, chainOut,
@@ -216,6 +186,13 @@ func TestTickRangeSwapParity(t *testing.T) {
 type tickLot struct {
 	tick int32
 	lots *big.Int
+}
+
+type swapParityCase struct {
+	name              string
+	tokenIn, tokenOut string
+	amountIn          *big.Int
+	isBuy, inBaseQty  bool
 }
 
 type poolStats struct {
@@ -233,7 +210,7 @@ func loadPoolStats(t *testing.T, h *testHarness, pairs []indexerPair) []poolStat
 	t.Helper()
 	var out []poolStats
 	for _, kp := range pairs {
-		state, err := h.tracker.Load(h.ctx, kp.base, kp.quote, 420, h.blockBI)
+		state, err := h.tracker.Load(h.ctx, kp.base, kp.quote, tickRangeTestPoolIdx, h.blockBI)
 		if err != nil {
 			t.Logf("SKIP %s: %v", kp.name, err)
 			continue
@@ -256,7 +233,7 @@ func loadPoolStats(t *testing.T, h *testHarness, pairs []indexerPair) []poolStat
 		totalLots := new(big.Int)
 		ticks := make([]tickLot, 0, len(state.Levels))
 		for _, lvl := range state.Levels {
-			lots := new(big.Int).Add(absBI(lvl.Level.BidLots), absBI(lvl.Level.AskLots))
+			lots := new(big.Int).Add(realLots(lvl.Level.BidLots), realLots(lvl.Level.AskLots))
 			if lots.Sign() == 0 {
 				continue
 			}
@@ -275,6 +252,7 @@ func loadPoolStats(t *testing.T, h *testHarness, pairs []indexerPair) []poolStat
 			ticks:      ticks,
 		})
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
 	return out
 }
 
@@ -441,6 +419,63 @@ func absBI(x *big.Int) *big.Int {
 	return new(big.Int).Set(x)
 }
 
+func realLots(x *big.Int) *big.Int {
+	return new(big.Int).AndNot(absBI(x), knockoutFlagMask)
+}
+
+func defaultSwapParityCases(wethAddr, usdcAddr common.Address) []swapParityCase {
+	wei18 := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	wei6 := big.NewInt(1_000_000)
+
+	return []swapParityCase{
+		{"0.01 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Div(wei18, big.NewInt(100)), true, true},
+		{"0.1 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Div(wei18, big.NewInt(10)), true, true},
+		{"1 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Set(wei18), true, true},
+		{"10 ETH→USDC", wethAddr.Hex(), usdcAddr.Hex(), new(big.Int).Mul(big.NewInt(10), wei18), true, true},
+		{"100 USDC→ETH", usdcAddr.Hex(), wethAddr.Hex(), new(big.Int).Mul(big.NewInt(100), wei6), false, false},
+		{"1000 USDC→ETH", usdcAddr.Hex(), wethAddr.Hex(), new(big.Int).Mul(big.NewInt(1000), wei6), false, false},
+		{"10000 USDC→ETH", usdcAddr.Hex(), wethAddr.Hex(), new(big.Int).Mul(big.NewInt(10000), wei6), false, false},
+	}
+}
+
+func calcSimulatorResult(sim *PoolSimulator, tc swapParityCase) (*pool.CalcAmountOutResult, error) {
+	return sim.CloneState().(*PoolSimulator).CalcAmountOut(calcParams(tc.tokenIn, tc.tokenOut, tc.amountIn))
+}
+
+func deriveChainOutput(baseFlow, quoteFlow *big.Int, inBaseQty bool) *big.Int {
+	if inBaseQty {
+		return new(big.Int).Neg(quoteFlow)
+	}
+	return new(big.Int).Neg(baseFlow)
+}
+
+func calcChainBitmapOut(
+	h *testHarness,
+	fullState *TrackerExtra,
+	poolHash common.Hash,
+	tc swapParityCase,
+) (*big.Int, error) {
+	simCurve := fullState.Curve
+	simSwap := &SwapDirective{
+		Qty:        new(big.Int).Set(tc.amountIn),
+		InBaseQty:  tc.inBaseQty,
+		IsBuy:      tc.isBuy,
+		LimitPrice: defaultLimitPrice(tc.isBuy),
+	}
+	chainBmp := &ChainBitmapView{
+		Ctx:      h.ctx,
+		Client:   h.client,
+		DexAddr:  common.HexToAddress(testLTSwapDex),
+		PoolHash: poolHash,
+		Block:    h.blockBI,
+	}
+	chainAccum, err := SweepSwap(&simCurve, simSwap, &fullState.PoolParams, chainBmp)
+	if err != nil {
+		return nil, err
+	}
+	return deriveChainOutput(chainAccum.BaseFlow, chainAccum.QuoteFlow, tc.inBaseQty), nil
+}
+
 // --- indexer / on-chain helpers --------------------------------------------
 
 type indexerPair struct {
@@ -449,23 +484,14 @@ type indexerPair struct {
 	quote common.Address
 }
 
-func fetchIndexerPairs(t *testing.T, poolIdx int) []indexerPair {
+func fetchIndexerPairs(t *testing.T, poolIdx uint64) []indexerPair {
 	t.Helper()
-	type indexerPool struct {
-		Base    string `json:"base"`
-		Quote   string `json:"quote"`
-		PoolIdx int    `json:"poolIdx"`
-	}
-	var body struct {
-		Data []indexerPool `json:"data"`
-	}
-	resp, err := http.Get("https://ambindexer.net/gcgo/pool_list?chainId=0x1") //nolint:gosec
+	updater := NewPoolListUpdater(newTestConfig(), newTestRPCClient())
+	indexerPools, err := updater.fetchIndexer(t.Context())
 	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
 
-	pairs := make([]indexerPair, 0, len(body.Data))
-	for _, p := range body.Data {
+	pairs := make([]indexerPair, 0, len(indexerPools))
+	for _, p := range indexerPools {
 		if p.PoolIdx != poolIdx {
 			continue
 		}
@@ -475,13 +501,14 @@ func fetchIndexerPairs(t *testing.T, poolIdx int) []indexerPair {
 			quote: common.HexToAddress(p.Quote),
 		})
 	}
+	sort.Slice(pairs, func(i, j int) bool { return pairs[i].name < pairs[j].name })
 	return pairs
 }
 
 func buildSimulator(t *testing.T, state *TrackerExtra, wethAddr common.Address) *PoolSimulator {
 	t.Helper()
 	staticExtra, err := json.Marshal(StaticExtra{
-		NativeToken: wethAddr.Hex(), PoolIdx: 420, SwapDex: testLTSwapDex,
+		NativeToken: wethAddr.Hex(), PoolIdx: tickRangeTestPoolIdx, SwapDex: testLTSwapDex,
 		Base: state.Base.Hex(), Quote: state.Quote.Hex(),
 	})
 	require.NoError(t, err)
@@ -539,64 +566,40 @@ const crocImpactABI = `[{
 	"stateMutability":"view","type":"function"
 }]`
 
+func mustParseCrocImpactABI() abi.ABI {
+	parsed, err := abi.JSON(strings.NewReader(crocImpactABI))
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
 func callCrocImpact(
-	rpcURL string,
+	ctx context.Context,
+	client *ethclient.Client,
 	base, quote common.Address,
 	poolIdx uint64,
 	isBuy, inBaseQty bool,
 	qty, blockNum *big.Int,
 ) (baseFlow, quoteFlow *big.Int, err error) {
-	parsed, _ := abi.JSON(strings.NewReader(crocImpactABI))
 	limitPrice := new(big.Int).Set(MinSqrtRatio)
 	if isBuy {
 		limitPrice = new(big.Int).Sub(MaxSqrtRatio, big.NewInt(1))
 	}
-	data, err := parsed.Pack("calcImpact",
+	data, err := crocImpactParsedABI.Pack("calcImpact",
 		base, quote, new(big.Int).SetUint64(poolIdx),
 		isBuy, inBaseQty, qty, uint16(0), limitPrice)
 	if err != nil {
 		return nil, nil, fmt.Errorf("pack: %w", err)
 	}
 
-	raw, err := jsonRPCCall(rpcURL, "eth_call", []any{
-		map[string]string{"to": crocImpactAddr, "data": "0x" + common.Bytes2Hex(data)},
-		fmt.Sprintf("0x%x", blockNum.Uint64()),
-	})
+	raw, err := client.CallContract(ctx, ethereum.CallMsg{To: &crocImpactAddrCommon, Data: data}, blockNum)
 	if err != nil {
 		return nil, nil, fmt.Errorf("eth_call: %w", err)
 	}
-	var hex string
-	if err := json.Unmarshal(raw, &hex); err != nil {
-		return nil, nil, fmt.Errorf("unmarshal: %w", err)
-	}
-	out, err := parsed.Unpack("calcImpact", common.FromHex(hex))
+	out, err := crocImpactParsedABI.Unpack("calcImpact", raw)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unpack: %w", err)
 	}
 	return out[0].(*big.Int), out[1].(*big.Int), nil
-}
-
-func jsonRPCCall(rpcURL, method string, params []any) (json.RawMessage, error) {
-	data, _ := json.Marshal(map[string]any{
-		"jsonrpc": "2.0", "id": 1, "method": method, "params": params,
-	})
-	resp, err := http.Post(rpcURL, "application/json", bytes.NewReader(data)) //nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	var res struct {
-		Result json.RawMessage `json:"result"`
-		Error  *struct {
-			Code    int    `json:"code"`
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return nil, err
-	}
-	if res.Error != nil {
-		return nil, fmt.Errorf("rpc error %d: %s", res.Error.Code, res.Error.Message)
-	}
-	return res.Result, nil
 }

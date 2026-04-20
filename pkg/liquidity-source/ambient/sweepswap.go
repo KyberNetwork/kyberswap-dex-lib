@@ -3,36 +3,29 @@ package ambient
 import (
 	"math"
 	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// TickInfinityUpper and TickInfinityLower are Solidity's `type(int24).max/min`,
-// used as sentinel "zero horizon" bump ticks by Bitmaps.zeroTick().
+// int24 sentinels used by Bitmaps.zeroTick() as "zero horizon" bump ticks.
 const (
-	TickInfinityUpper int32 = (1 << 23) - 1 // 8_388_607
-	TickInfinityLower int32 = -(1 << 23)    // -8_388_608
+	TickInfinityUpper int32 = (1 << 23) - 1
+	TickInfinityLower int32 = -(1 << 23)
 )
 
-// BitmapView is the minimum read surface SweepSwap needs from the 3-layer
-// tick bitmap + per-level data. Mirrors CrocImpact.sol's view-side helpers.
+// BitmapView is the read surface SweepSwap needs. Mirrors CrocImpact.sol.
 type BitmapView interface {
-	// PinBitmap mirrors Bitmaps.pinBitmap/pinTermMezz. It returns the next
-	// bump tick in the LOCAL mezz neighborhood of startTick, and spillsOver
-	// when no bit is found locally.
+	// PinBitmap returns the next bump tick in the local mezz of startTick;
+	// spillsOver when no bit is found locally.
 	PinBitmap(isBuy bool, startTick int32) (bumpTick int32, spillsOver bool)
-
-	// SeekMezzSpill mirrors Bitmaps.seekMezzSpill. It finds the next active
-	// tick across the entire bitmap starting from borderTick, falling back
-	// to zeroTick(isBuy) when nothing is found.
+	// SeekMezzSpill returns the next active tick across the whole bitmap,
+	// falling back to zeroTick(isBuy).
 	SeekMezzSpill(borderTick int32, isBuy bool) int32
-
-	// QueryLevel returns (bidLots, askLots) at tick for adjTickLiq.
-	// For pools without concentrated liquidity at the tick, both are zero.
+	// QueryLevel returns (bidLots, askLots) at tick; zeros if none.
 	QueryLevel(tick int32) (bidLots, askLots *big.Int)
 }
 
-// EmptyBitmapView implements BitmapView for a pool whose bitmap is empty.
-// Every PinBitmap call spills over to the mezz boundary; SeekMezzSpill
-// always returns the int24 infinity sentinel; QueryLevel returns zeros.
+// EmptyBitmapView is the zero-liquidity implementation of BitmapView.
 type EmptyBitmapView struct{}
 
 func (EmptyBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
@@ -45,11 +38,10 @@ func (EmptyBitmapView) SeekMezzSpill(borderTick int32, isBuy bool) int32 {
 }
 
 func (EmptyBitmapView) QueryLevel(tick int32) (*big.Int, *big.Int) {
-	return new(big.Int), new(big.Int)
+	return bignum.ZeroBI, bignum.ZeroBI
 }
 
-// spillOverPin replicates Bitmaps.spillOverPin: it returns the tick that
-// sits one mezz bucket away from startTick in the swap direction.
+// spillOverPin mirrors Bitmaps.spillOverPin: next mezz bucket in swap direction.
 func spillOverPin(isBuy bool, tickMezz int16) int32 {
 	if isBuy {
 		if tickMezz == math.MaxInt16 {
@@ -73,10 +65,9 @@ func isTickFinite(tick int32) bool {
 	return tick > TickInfinityLower && tick < TickInfinityUpper
 }
 
-// SweepSwap runs the outer loop that CrocImpact.sol's sweepSwap() performs:
-// it repeatedly calls SwapToLimit against the next bitmap-bounded bump tick
-// until the swap is exhausted or the limit price is reached. Fees are
-// accumulated segment-by-segment (matching the on-chain fee-charging).
+// SweepSwap mirrors CrocImpact.sol sweepSwap: repeatedly SwapToLimit to the
+// next bump tick until swap exhausts or hits limit price; fees accumulate
+// segment-by-segment.
 func SweepSwap(
 	curve *CurveState,
 	swap *SwapDirective,
@@ -85,8 +76,7 @@ func SweepSwap(
 ) (*SwapAccum, error) {
 	accum := NewSwapAccum()
 
-	// Solidity short-circuit: if the current price is already past the limit
-	// in the swap direction, produce zero flow.
+	// Solidity short-circuit: already past limit → zero flow.
 	if swap.IsBuy && curve.PriceRoot.Cmp(swap.LimitPrice) >= 0 {
 		return accum, nil
 	}
@@ -143,8 +133,7 @@ func SweepSwap(
 	return accum, nil
 }
 
-// sweepTrace is an optional debug callback. Tests can set it to observe the
-// per-segment state evolution. Leaving it nil disables tracing.
+// sweepTrace is an optional debug callback for tests; nil disables tracing.
 var sweepTrace func(label string, tick int32, swap *SwapDirective, curve *CurveState)
 
 func hasSwapLeft(curve *CurveState, swap *SwapDirective) bool {
@@ -157,9 +146,8 @@ func hasSwapLeft(curve *CurveState, swap *SwapDirective) bool {
 	return inLimit && swap.Qty.Sign() > 0
 }
 
-// adjTickLiq mirrors CrocImpact.sol's adjTickLiq: when we cross a
-// concentrated-liquidity bump, update concLiq, shave one unit of token
-// precision across the bump, and return the updated midTick.
+// adjTickLiq mirrors CrocImpact.sol adjTickLiq: on bump crossing, update
+// concLiq, shave one unit of precision, and return new midTick.
 func adjTickLiq(
 	accum *SwapAccum,
 	bumpTick int32,
@@ -180,9 +168,7 @@ func adjTickLiq(
 		accum.KnockoutCrossLoops++
 	}
 
-	// crossDelta = netLotsOnLiquidity(bid, ask) = (int128(bid) - int128(ask)) * LOT_SIZE.
-	// For EmptyBitmapView both are zero, so liqDelta = 0 and concLiq is
-	// unchanged.
+	// crossDelta = (int128(bid) - int128(ask)) * LOT_SIZE.
 	crossDelta := new(big.Int).Sub(LotsToLiquidity(bidLots), LotsToLiquidity(askLots))
 
 	liqDelta := new(big.Int).Set(crossDelta)
@@ -205,6 +191,5 @@ func adjTickLiq(
 	return bumpTick - 1, nil
 }
 
-// LotSize mirrors LiquidityMath.LOT_SIZE_LIQ (Ambient uses 1024-unit lots for
-// concentrated positions).
+// LotSize mirrors LiquidityMath.LOT_SIZE_LIQ.
 var LotSize = big.NewInt(1024)

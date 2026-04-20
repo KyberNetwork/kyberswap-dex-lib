@@ -73,9 +73,8 @@ func deriveFlowPrice(price, liq, flow *big.Int, inBaseQty, isBuy bool) *big.Int 
 	} else {
 		curvePrice = calcQuoteFlowPrice(price, liq, flow, isBuy)
 	}
-	maxRatio := new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 	if curvePrice.Cmp(MaxSqrtRatio) >= 0 {
-		return maxRatio
+		return new(big.Int).Set(MaxSqrtRatioMinus1)
 	}
 	if curvePrice.Cmp(MinSqrtRatio) < 0 {
 		return new(big.Int).Set(MinSqrtRatio)
@@ -180,10 +179,8 @@ func PriceToTokenPrecision(liq, price *big.Int, inBase bool) *big.Int {
 	return delta
 }
 
-// ErrShaveBurnDown mirrors Solidity's require(swapLeft > burnDown) in
-// CurveRoll.shaveAtBump. In practice adjTickLiq is only called when there is
-// swap qty left, so this should be unreachable; surfaced as an error (rather
-// than a panic) to keep the simulator safe against edge cases.
+// ErrShaveBurnDown mirrors Solidity's require(swapLeft > burnDown).
+// In practice unreachable; kept as error (not panic) for safety.
 var ErrShaveBurnDown = errors.New("shave-at-bump: swapLeft <= burnDown")
 
 func ShaveAtBump(curve *CurveState, inBaseQty, isBuy bool, swapLeft *big.Int) (paidBase, paidQuote, burnSwap *big.Int, err error) {
@@ -215,8 +212,7 @@ func setShaveDown(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBas
 }
 
 func setShaveUp(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBase, paidQuote, burnSwap *big.Int) {
-	maxMinus1 := new(big.Int).Sub(MaxSqrtRatio, bignum.One)
-	if curve.PriceRoot.Cmp(maxMinus1) < 0 {
+	if curve.PriceRoot.Cmp(MaxSqrtRatioMinus1) < 0 {
 		curve.PriceRoot = new(big.Int).Add(curve.PriceRoot, bignum.One)
 	}
 	paidQuote = new(big.Int)

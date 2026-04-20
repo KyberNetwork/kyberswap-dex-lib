@@ -38,23 +38,14 @@ type TickWindow struct {
 // FullTickWindow covers the entire int24 domain.
 var FullTickWindow = TickWindow{MinTick: -1 << 23, MaxTick: (1 << 23) - 1}
 
-// MaxBatchSize bounds the per-roundtrip JSON-RPC batch size. Tenderly enforces
-// a per-second rate limit on the underlying eth_call count, so very large
-// batches (e.g. 260) trip 429s; chunks of 100 stay under typical free-tier
-// limits while still saving ~10× roundtrips vs sequential.
+// MaxBatchSize caps JSON-RPC batch size. Larger batches trip 429s on free-tier RPCs.
 var MaxBatchSize = 50
 
-// BatchConcurrency bounds the number of chunk batches in flight at once.
-// Chunks are independent eth_calls so parallelism cuts cold-load latency
-// roughly linearly until the provider's per-second batch cap is hit.
+// BatchConcurrency caps chunk batches in flight.
 var BatchConcurrency = 4
 
-// ReadSlotsBatch issues `eth_call`s for the supplied storage slots in chunked
-// JSON-RPC batches (size capped by MaxBatchSize). Chunks run in parallel up
-// to BatchConcurrency workers. The result slice is positionally aligned with
-// `slots`. Used to collapse the 3 stages of a cold pool load (curve+spec+
-// template+lobby sweep, terminus, level+knockout) into a small number of
-// roundtrips.
+// ReadSlotsBatch batches eth_call(readSlot) for every slot. Result is
+// positionally aligned with `slots`.
 func (f *TickFetcher) ReadSlotsBatch(
 	ctx context.Context,
 	slots []common.Hash,
@@ -133,9 +124,8 @@ func (f *TickFetcher) readSlotsBatchChunk(
 	return nil
 }
 
-// batchCallWithRetry retries on HTTP 429 / "rate limit" errors with exponential
-// backoff (0.5s, 1s, 2s, 4s, 8s). Per-element errors are not inspected — those
-// surface to the caller. Only request-level errors are retried.
+// batchCallWithRetry retries request-level 429/rate-limit errors with
+// exponential backoff (0.5s → 8s). Per-element errors surface to the caller.
 func batchCallWithRetry(ctx context.Context, client *rpc.Client, batch []rpc.BatchElem) error {
 	const maxAttempts = 5
 	delay := 500 * time.Millisecond

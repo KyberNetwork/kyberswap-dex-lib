@@ -178,15 +178,9 @@ func (t *StateTracker) LoadWindow(
 }
 
 // Refresh reuses prev when curve + poolSpec fingerprints are unchanged,
-// avoiding the full reload. Returns (extra, changed, err): extra is always
-// non-nil on success; changed=false means prev was reused as-is.
-//
-// window controls the tick window for the fallback LoadWindow call; callers
-// typically recompute it from the fresh curve so the window follows price.
-//
-// Caveat: liquidity mints/burns inside an already-active mezz word do not move
-// the curve, so this is sufficient for swap-routing freshness but not for
-// bit-exact tick distribution. Pair with a periodic full reload if needed.
+// else falls back to LoadWindow. Returns (extra, changed, err).
+// Caveat: mints/burns inside an already-active mezz word don't move the curve,
+// so pair with periodic full reload for bit-exact tick distribution.
 func (t *StateTracker) Refresh(
 	ctx context.Context,
 	prev *TrackerExtra,

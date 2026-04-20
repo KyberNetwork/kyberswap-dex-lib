@@ -3,13 +3,16 @@ package ambient
 import "math/big"
 
 const (
-	LotSizeBits      = 10
-	KnockoutFlagMask = 0x1
+	LotSizeBits = 10
+)
+
+var (
+	knockoutFlagMask = big.NewInt(0x1)
 )
 
 func LotsToLiquidity(lots *big.Int) *big.Int {
-	realLots := new(big.Int).AndNot(lots, big.NewInt(KnockoutFlagMask))
-	return new(big.Int).Lsh(realLots, LotSizeBits)
+	result := new(big.Int).AndNot(lots, knockoutFlagMask)
+	return result.Lsh(result, LotSizeBits)
 }
 
 func HasKnockoutLiq(lots *big.Int) bool {
