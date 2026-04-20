@@ -2,6 +2,7 @@ package atokenswap
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -153,8 +154,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	// Update AvailableLiquidity (subtract output amount)
+	s.OutputStates = slices.Clone(s.OutputStates)
 	state := &s.OutputStates[idxOut-1]
+
+	// Update AvailableLiquidity (subtract output amount)
 	state.AvailableLiquidity = outputUint256.Sub(state.AvailableLiquidity, outputUint256)
 
 	// Update MaxSwap (subtract input amount)
