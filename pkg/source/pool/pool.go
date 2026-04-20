@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -178,7 +179,7 @@ func FromEntity(e entity.Pool) Pool {
 		Address:     e.Address,
 		Exchange:    e.Exchange,
 		Type:        e.Type,
-		Tokens:      lo.Map(e.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
+		Tokens:      lo.Map(e.Tokens, func(t *entity.PoolToken, _ int) string { return strings.ToLower(t.Address) }),
 		Reserves:    lo.Map(e.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
 		SwapFee:     big.NewInt(int64(e.SwapFee)),
 		BlockNumber: e.BlockNumber,

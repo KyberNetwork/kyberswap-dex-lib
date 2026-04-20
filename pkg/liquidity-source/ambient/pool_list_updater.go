@@ -59,8 +59,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			NativeToken: valueobject.LowerWrapped(u.config.ChainId),
 			PoolIdx:     p.PoolIdx,
 			SwapDex:     u.config.SwapDex,
-			Base:        base,
-			Quote:       quote,
+			Base:        strings.ToLower(base),
+			Quote:       strings.ToLower(quote),
 		})
 		if err != nil {
 			continue

@@ -2,8 +2,10 @@ package ambient
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -25,10 +27,13 @@ type PoolSimulator struct {
 }
 
 type SwapInfo struct {
-	NextState *TrackerExtra
+	nextCurve CurveState
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var (
+	_ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+	_ = pool.RegisterUseSwapLimit(DexType)
+)
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
@@ -51,8 +56,12 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		base:    staticExtra.Base,
 		quote:   staticExtra.Quote,
 		poolIdx: staticExtra.PoolIdx,
-		state:   cloneTrackerExtra(extra.State),
+		state:   extra.State,
 	}, nil
+}
+
+func (p *PoolSimulator) ambientToken(tokenIndex int) string {
+	return lo.Ternary(tokenIndex == 0, p.base, p.quote)
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -66,15 +75,15 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 	isBuy := inBaseQty
 
-	state := cloneTrackerExtra(p.state)
+	curve := p.state.Curve
 	swap := &SwapDirective{
 		Qty:        new(big.Int).Set(params.TokenAmountIn.Amount),
 		InBaseQty:  inBaseQty,
 		IsBuy:      isBuy,
 		LimitPrice: defaultLimitPrice(isBuy),
 	}
-	bmpView := NewSnapshotBitmapView(state)
-	accum, err := SweepSwap(&state.Curve, swap, &state.PoolParams, bmpView)
+	bmpView := NewSnapshotBitmapView(p.state)
+	accum, err := SweepSwap(&curve, swap, &p.state.PoolParams, bmpView)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +97,19 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	tokenOutIndex := p.GetTokenIndex(strings.ToLower(params.TokenOut))
-	if tokenOutIndex < 0 {
-		return nil, ErrInvalidToken
+	tokenOutIndex := 1
+	if !inBaseQty {
+		tokenOutIndex = 0
 	}
 	if amountOut.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientFund
+	}
+
+	if limit := params.Limit; limit != nil {
+		if inventoryLimit := limit.GetLimit(p.ambientToken(tokenOutIndex)); inventoryLimit != nil &&
+			amountOut.Cmp(inventoryLimit) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
 	}
 
 	remainingAmountIn := new(big.Int).Set(swap.Qty)
@@ -111,7 +127,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: remainingAmountIn,
 		},
 		Gas:      p.estimateGas(accum),
-		SwapInfo: SwapInfo{NextState: state},
+		SwapInfo: SwapInfo{nextCurve: curve},
 	}, nil
 }
 
@@ -120,6 +136,14 @@ func (p *PoolSimulator) estimateGas(accum *SwapAccum) int64 {
 		p.gas.CrossInitTickGas*int64(accum.CrossInitTickLoops) +
 		p.gas.PinSpillGas*int64(accum.PinSpillLoops) +
 		p.gas.KnockoutCrossGas*int64(accum.KnockoutCrossLoops)
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	reserves := p.GetReserves()
+	return map[string]*big.Int{
+		p.ambientToken(0): new(big.Int).Set(reserves[0]),
+		p.ambientToken(1): new(big.Int).Set(reserves[1]),
+	}
 }
 
 func (p *PoolSimulator) matchDirection(tokenIn, tokenOut string) (inBaseQty, ok bool) {
@@ -132,47 +156,33 @@ func (p *PoolSimulator) matchDirection(tokenIn, tokenOut string) (inBaseQty, ok 
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	info := pool.PoolInfo{
-		Address:     p.Info.Address,
-		Exchange:    p.Info.Exchange,
-		Type:        p.Info.Type,
-		Tokens:      append([]string(nil), p.Info.Tokens...),
-		Reserves:    make([]*big.Int, len(p.Info.Reserves)),
-		BlockNumber: p.Info.BlockNumber,
-	}
-	if p.Info.SwapFee != nil {
-		info.SwapFee = new(big.Int).Set(p.Info.SwapFee)
-	}
-	for i, reserve := range p.Info.Reserves {
-		info.Reserves[i] = copyBigInt(reserve)
-	}
-
-	return &PoolSimulator{
-		Pool:    pool.Pool{Info: info},
-		gas:     p.gas,
-		swapDex: p.swapDex,
-		base:    p.base,
-		quote:   p.quote,
-		poolIdx: p.poolIdx,
-		state:   cloneTrackerExtra(p.state),
-	}
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	clonedState := *p.state
+	clonedState.Curve = p.state.Curve.Clone()
+	cloned.state = &clonedState
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
-	if !ok || swapInfo.NextState == nil {
+	if !ok || swapInfo.nextCurve.PriceRoot == nil {
 		return
 	}
 
 	indexIn := p.GetTokenIndex(strings.ToLower(params.TokenAmountIn.Token))
 	indexOut := p.GetTokenIndex(strings.ToLower(params.TokenAmountOut.Token))
-	if indexIn >= 0 {
-		p.Info.Reserves[indexIn] = new(big.Int).Add(p.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+
+	p.Info.Reserves[indexIn] = new(big.Int).Add(p.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	p.state.Curve = swapInfo.nextCurve
+
+	if limit := params.SwapLimit; limit != nil {
+		if _, _, err := limit.UpdateLimit(p.ambientToken(indexOut), p.ambientToken(indexIn),
+			params.TokenAmountOut.Amount, params.TokenAmountIn.Amount); err != nil {
+			logger.Errorf("unable to update ambient limit, error: %v", err)
+		}
 	}
-	if indexOut >= 0 {
-		p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
-	}
-	p.state = cloneTrackerExtra(swapInfo.NextState)
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
@@ -206,30 +216,4 @@ func defaultLimitPrice(isBuy bool) *big.Int {
 		return new(big.Int).Sub(MaxSqrtRatio, bignumber.One)
 	}
 	return new(big.Int).Set(MinSqrtRatio)
-}
-
-func copyBigInt(v *big.Int) *big.Int {
-	if v == nil {
-		return nil
-	}
-	return new(big.Int).Set(v)
-}
-
-func cloneCurveState(state CurveState) CurveState {
-	return CurveState{
-		PriceRoot:    copyBigInt(state.PriceRoot),
-		AmbientSeeds: copyBigInt(state.AmbientSeeds),
-		ConcLiq:      copyBigInt(state.ConcLiq),
-		SeedDeflator: state.SeedDeflator,
-		ConcGrowth:   state.ConcGrowth,
-	}
-}
-
-func cloneTrackerExtra(extra *TrackerExtra) *TrackerExtra {
-	if extra == nil {
-		return nil
-	}
-	cloned := *extra
-	cloned.Curve = cloneCurveState(extra.Curve)
-	return &cloned
 }

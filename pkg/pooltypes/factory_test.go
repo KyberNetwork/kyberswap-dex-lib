@@ -59,7 +59,7 @@ func TestCanCalcAmountIn(t *testing.T) {
 
 func TestUseSwapLimit(t *testing.T) {
 	t.Parallel()
-	dexes := []string{"kyberswap-limit-order-v2", "ringswap"}
+	dexes := []string{"kyberswap-limit-order-v2", "ringswap", "ambient"}
 	for _, tt := range dexes {
 		t.Run(tt, func(t *testing.T) {
 			assert.Contains(t, pool.UseSwapLimit, tt)

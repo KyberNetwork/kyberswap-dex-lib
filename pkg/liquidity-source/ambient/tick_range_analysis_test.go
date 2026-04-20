@@ -363,7 +363,7 @@ func TestTickRangeSwapParity(t *testing.T) {
 		simOut := simResult.TokenAmountOut.Amount
 
 		// Run simulator with ChainBitmapView for ground truth comparison.
-		simCurve := cloneCurveState(fullState.Curve)
+		simCurve := fullState.Curve
 		simSwap := &SwapDirective{
 			Qty:        new(big.Int).Set(tc.amountIn),
 			InBaseQty:  tc.inBaseQty,

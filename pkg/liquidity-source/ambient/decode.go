@@ -14,6 +14,16 @@ type CurveState struct {
 	ConcGrowth   uint64
 }
 
+func (c CurveState) Clone() CurveState {
+	return CurveState{
+		PriceRoot:    new(big.Int).Set(c.PriceRoot),
+		AmbientSeeds: new(big.Int).Set(c.AmbientSeeds),
+		ConcLiq:      new(big.Int).Set(c.ConcLiq),
+		SeedDeflator: c.SeedDeflator,
+		ConcGrowth:   c.ConcGrowth,
+	}
+}
+
 type BookLevel struct {
 	BidLots     *big.Int // uint96
 	AskLots     *big.Int // uint96
