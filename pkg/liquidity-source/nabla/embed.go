@@ -18,6 +18,3 @@ var curveBytes []byte
 
 //go:embed abi/Oracle.json
 var oracleBytes []byte
-
-//go:embed abi/DarkOracle.json
-var darkOracleBytes []byte
