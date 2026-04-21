@@ -11,6 +11,13 @@ import (
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+// mask96 is (1 << 96) - 1 — used to extract 96-bit lot fields from a uint256
+// storage slot. Hoisted so QueryLevel doesn't allocate on each call.
+var mask96 = func() *big.Int {
+	m := new(big.Int).Lsh(bignum.One, 96)
+	return m.Sub(m, bignum.One)
+}()
+
 // ChainBitmapView reads CrocSwapDex storage (mezzanine/terminus/levels) at a
 // pinned block; mirrors CrocImpact.sol pinBitmap/seekMezzSpill/queryLevel.
 // readSlot errors are captured and surfaced via Err(); later reads
@@ -168,9 +175,6 @@ func weldLobbyPosMezzTerm(lobbyWord, mezzBit, termBit uint8) int32 {
 // Layout: bidLots = bits [0,95], askLots = bits [96,191].
 func (v *ChainBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) {
 	val := v.readSlot(LevelSlot(v.PoolHash, tick))
-	mask96 := new(big.Int).Lsh(bignum.One, 96)
-	mask96.Sub(mask96, bignum.One)
-
 	bidLots = new(big.Int).And(val, mask96)
 	askLots = new(big.Int).And(new(big.Int).Rsh(val, 96), mask96)
 	return

@@ -17,11 +17,11 @@ import (
 // the CrocSlots library. Values marked (inferred) come from the declaration
 // order in StorageLayout.sol — empirically verified in Phase 1/2 tests.
 const (
-	LevelsMapSlot   uint64 = 65538 // (CrocSlots) levels_     — verified Phase 2
-	MezzMapSlot     uint64 = 65542 // (inferred)  mezzanine_  — verified Phase 2
-	TerminusMapSlot uint64 = 65543 // (inferred)  terminus_   — verified Phase 2
-	PoolsMapSlot    uint64 = 65545 // (inferred)  pools_      — verified Phase 3
-	CurvesMapSlot   uint64 = 65551 // (CrocSlots) curves_     — verified Phase 1
+	LevelsMapSlot   uint64 = 65538 // (CrocSlots) levels_
+	MezzMapSlot     uint64 = 65542 // (inferred)  mezzanine_
+	TerminusMapSlot uint64 = 65543 // (inferred)  terminus_
+	PoolsMapSlot    uint64 = 65545 // (inferred)  pools_
+	CurvesMapSlot   uint64 = 65551 // (CrocSlots) curves_
 )
 
 func keccak256(parts ...[]byte) common.Hash {

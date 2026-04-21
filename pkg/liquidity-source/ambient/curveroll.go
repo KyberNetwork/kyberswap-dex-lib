@@ -7,7 +7,7 @@ import (
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var roundPrecisionWei = big.NewInt(4)
+var roundPrecisionWei = bignum.Four
 
 type SwapAccum struct {
 	BaseFlow  *big.Int
@@ -114,14 +114,14 @@ func calcQuoteFlowPrice(price, liq, flow *big.Int, isBuy bool) *big.Int {
 
 func signFlow(flowMagn, counterMagn *big.Int, inBaseQty, isBuy bool) (flow, counter *big.Int) {
 	flow, counter = signMagn(flowMagn, counterMagn, inBaseQty, isBuy)
-	counter = new(big.Int).Add(counter, roundPrecisionWei)
+	counter.Add(counter, roundPrecisionWei)
 	return
 }
 
 func signFixed(flowMagn, counterMagn *big.Int, inBaseQty, isBuy bool) (flow, counter *big.Int) {
 	flow, counter = signMagn(flowMagn, counterMagn, inBaseQty, isBuy)
-	flow = new(big.Int).Add(flow, roundPrecisionWei)
-	counter = new(big.Int).Add(counter, roundPrecisionWei)
+	flow.Add(flow, roundPrecisionWei)
+	counter.Add(counter, roundPrecisionWei)
 	return
 }
 
@@ -144,21 +144,22 @@ func setCurvePos(curve *CurveState, inBaseQty, isBuy bool, swapQty, price, paidF
 		qtyLeft = new(big.Int).Sub(swapQty, spent)
 	}
 	if inBaseQty {
-		paidBase = new(big.Int).Set(paidFlow)
-		paidQuote = new(big.Int).Set(paidCounter)
+		paidBase, paidQuote = paidFlow, paidCounter
 	} else {
-		paidBase = new(big.Int).Set(paidCounter)
-		paidQuote = new(big.Int).Set(paidFlow)
+		paidBase, paidQuote = paidCounter, paidFlow
 	}
 	curve.PriceRoot = new(big.Int).Set(price)
 	return
 }
 
 func flowToSpent(paidFlow *big.Int, inBaseQty, isBuy bool) *big.Int {
-	spent := new(big.Int).Set(paidFlow)
-	if inBaseQty != isBuy {
-		spent.Neg(spent)
+	if inBaseQty == isBuy {
+		if paidFlow.Sign() < 0 {
+			return new(big.Int)
+		}
+		return paidFlow
 	}
+	spent := new(big.Int).Neg(paidFlow)
 	if spent.Sign() < 0 {
 		return new(big.Int)
 	}

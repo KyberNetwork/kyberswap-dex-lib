@@ -14,8 +14,25 @@ var (
 	MaxSqrtRatio       = bignum.NewBig("21267430153580247136652501917186561138")
 	MaxSqrtRatioMinus1 = new(big.Int).Sub(MaxSqrtRatio, bignum.One)
 
-	q64  = new(big.Int).Lsh(bignum.One, 64)
-	q128 = new(big.Int).Lsh(bignum.One, 128)
+	q64 = new(big.Int).Lsh(bignum.One, 64)
+
+	tickLog2Mul       = bignum.NewBig10("255738958999603826347141")
+	tickLowOffset     = bignum.NewBig10("3402992956809132418596140100660247210")
+	tickHiOffset      = bignum.NewBig10("291339464771989622907027621153398088495")
+	tickMsbBias       = big.NewInt(128)
+	tickMsbThresholds = []struct {
+		cmp  *big.Int
+		bits uint
+	}{
+		{bignum.NewBig("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 7},
+		{bignum.NewBig("0xFFFFFFFFFFFFFFFF"), 6},
+		{bignum.NewBig("0xFFFFFFFF"), 5},
+		{bignum.NewBig("0xFFFF"), 4},
+		{bignum.NewBig("0xFF"), 3},
+		{bignum.NewBig("0xF"), 2},
+		{bignum.NewBig("0x3"), 1},
+		{bignum.NewBig("0x1"), 0},
+	}
 
 	tickMagicFactors = []*big.Int{
 		bignum.NewBig("0xfffcb933bd6fad37aa2d162d1a594001"),
@@ -59,7 +76,7 @@ func GetSqrtRatioAtTick(tick int32) *big.Int {
 	if absTick&0x1 != 0 {
 		ratio.Set(tickMagicFactors[0])
 	} else {
-		ratio.Set(q128)
+		ratio.Set(bignum.B2Pow128)
 	}
 
 	for i := 1; i < len(tickMagicFactors); i++ {
@@ -71,8 +88,7 @@ func GetSqrtRatioAtTick(tick int32) *big.Int {
 	}
 
 	if tick > 0 {
-		maxU256 := new(big.Int).Sub(new(big.Int).Lsh(bignum.One, 256), bignum.One)
-		ratio.Div(maxU256, ratio)
+		ratio.Div(bignum.MaxUint256, ratio)
 	}
 
 	rem := new(big.Int).Mod(ratio, q64)
@@ -95,21 +111,7 @@ func GetTickAtSqrtRatio(sqrtPriceX64 *big.Int) int32 {
 	r := new(big.Int).Set(ratio)
 	msb := uint(0)
 
-	thresholds := []struct {
-		cmp  *big.Int
-		bits uint
-	}{
-		{bignum.NewBig("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 7},
-		{bignum.NewBig("0xFFFFFFFFFFFFFFFF"), 6},
-		{bignum.NewBig("0xFFFFFFFF"), 5},
-		{bignum.NewBig("0xFFFF"), 4},
-		{bignum.NewBig("0xFF"), 3},
-		{bignum.NewBig("0xF"), 2},
-		{bignum.NewBig("0x3"), 1},
-		{bignum.NewBig("0x1"), 0},
-	}
-
-	for _, t := range thresholds {
+	for _, t := range tickMsbThresholds {
 		if r.Cmp(t.cmp) > 0 {
 			f := uint(1) << t.bits
 			msb |= f
@@ -127,7 +129,7 @@ func GetTickAtSqrtRatio(sqrtPriceX64 *big.Int) int32 {
 		r.Lsh(ratio, 127-msb)
 	}
 
-	log2 := new(big.Int).Sub(big.NewInt(int64(msb)), big.NewInt(128))
+	log2 := new(big.Int).Sub(big.NewInt(int64(msb)), tickMsbBias)
 	log2.Lsh(log2, 64)
 
 	for i := uint(63); i >= 50; i-- {
@@ -141,16 +143,16 @@ func GetTickAtSqrtRatio(sqrtPriceX64 *big.Int) int32 {
 		}
 	}
 
-	logSqrt10001 := new(big.Int).Mul(log2, bignum.NewBig("255738958999603826347141"))
+	logSqrt10001 := new(big.Int).Mul(log2, tickLog2Mul)
 
-	tickLow := new(big.Int).Sub(logSqrt10001, bignum.NewBig("3402992956809132418596140100660247210"))
+	tickLow := new(big.Int).Sub(logSqrt10001, tickLowOffset)
 	tickLow.Rsh(tickLow, 128)
 	if logSqrt10001.Sign() < 0 || tickLow.Sign() < 0 {
 		// handle negative: arithmetic right shift
-		tickLow = arithRsh128(new(big.Int).Sub(logSqrt10001, bignum.NewBig("3402992956809132418596140100660247210")))
+		tickLow = arithRsh128(new(big.Int).Sub(logSqrt10001, tickLowOffset))
 	}
 
-	tickHi := new(big.Int).Add(logSqrt10001, bignum.NewBig("291339464771989622907027621153398088495"))
+	tickHi := new(big.Int).Add(logSqrt10001, tickHiOffset)
 	tickHi = arithRsh128(tickHi)
 
 	if tickLow.Cmp(tickHi) == 0 {

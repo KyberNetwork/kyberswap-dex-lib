@@ -168,21 +168,19 @@ func adjTickLiq(
 		accum.KnockoutCrossLoops++
 	}
 
-	// crossDelta = (int128(bid) - int128(ask)) * LOT_SIZE.
-	crossDelta := new(big.Int).Sub(LotsToLiquidity(bidLots), LotsToLiquidity(askLots))
-
-	liqDelta := new(big.Int).Set(crossDelta)
+	// liqDelta = (int128(bid) - int128(ask)) * LOT_SIZE, negated on sell side.
+	liqDelta := new(big.Int).Sub(LotsToLiquidity(bidLots), LotsToLiquidity(askLots))
 	if !swap.IsBuy {
 		liqDelta.Neg(liqDelta)
 	}
-	curve.ConcLiq = new(big.Int).Add(curve.ConcLiq, liqDelta)
+	curve.ConcLiq = liqDelta.Add(curve.ConcLiq, liqDelta)
 
 	paidBase, paidQuote, burnSwap, err := ShaveAtBump(curve, swap.InBaseQty, swap.IsBuy, swap.Qty)
 	if err != nil {
 		return 0, err
 	}
-	accum.Accumulate(paidBase, paidQuote, new(big.Int))
-	swap.Qty = new(big.Int).Sub(swap.Qty, burnSwap)
+	accum.Accumulate(paidBase, paidQuote, bignum.ZeroBI)
+	swap.Qty.Sub(swap.Qty, burnSwap)
 	accum.CrossInitTickLoops++
 
 	if swap.IsBuy {
@@ -190,6 +188,3 @@ func adjTickLiq(
 	}
 	return bumpTick - 1, nil
 }
-
-// LotSize mirrors LiquidityMath.LOT_SIZE_LIQ.
-var LotSize = big.NewInt(1024)

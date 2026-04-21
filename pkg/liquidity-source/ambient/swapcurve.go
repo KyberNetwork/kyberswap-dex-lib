@@ -26,7 +26,7 @@ func SwapToLimit(curve *CurveState, accum *SwapAccum, swap *SwapDirective, pool 
 	accum.Accumulate(paidBase, paidQuote, paidProto)
 
 	paidBase, paidQuote, swap.Qty = swapOverCurve(curve, swap.InBaseQty, swap.IsBuy, swap.Qty, limitPrice)
-	accum.Accumulate(paidBase, paidQuote, new(big.Int))
+	accum.Accumulate(paidBase, paidQuote, bignum.ZeroBI)
 }
 
 func CalcLimitFlows(curve *CurveState, swapQty *big.Int, inBaseQty bool, limitPrice *big.Int) *big.Int {
@@ -127,15 +127,15 @@ func bookExchFees(curve *CurveState, swapQty *big.Int, pool *PoolParams, inBaseQ
 }
 
 func assignFees(liqFees, exchFees *big.Int, inBaseQty bool) (paidBase, paidQuote, paidProto *big.Int) {
-	totalFees := new(big.Int).Add(liqFees, exchFees)
-	paidBase = new(big.Int)
-	paidQuote = new(big.Int)
+	totalFees := liqFees.Add(liqFees, exchFees)
+	paidBase = bignum.ZeroBI
+	paidQuote = bignum.ZeroBI
 	if inBaseQty {
 		paidQuote = totalFees
 	} else {
 		paidBase = totalFees
 	}
-	paidProto = new(big.Int).Set(exchFees)
+	paidProto = exchFees
 	return
 }
 
@@ -145,9 +145,11 @@ var (
 )
 
 func CalcFeeOverFlow(flow *big.Int, feeRate uint16, protoProp uint8) (liqFee, protoFee *big.Int) {
-	totalFee := new(big.Int).Mul(flow, new(big.Int).SetUint64(uint64(feeRate)))
+	totalFee := new(big.Int).SetUint64(uint64(feeRate))
+	totalFee.Mul(flow, totalFee)
 	totalFee.Div(totalFee, feeBPMult)
-	protoFee = new(big.Int).Mul(totalFee, new(big.Int).SetUint64(uint64(protoProp)))
+	protoFee = new(big.Int).SetUint64(uint64(protoProp))
+	protoFee.Mul(totalFee, protoFee)
 	protoFee.Div(protoFee, protoTakeDivisor)
 	liqFee = new(big.Int).Sub(totalFee, protoFee)
 	return

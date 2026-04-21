@@ -43,7 +43,7 @@ type PoolSpec struct {
 var (
 	maskU64  = new(big.Int).SetUint64(^uint64(0))
 	maskU96  = new(big.Int).Sub(new(big.Int).Lsh(bignum.One, 96), bignum.One)
-	maskU128 = new(big.Int).Sub(new(big.Int).Lsh(bignum.One, 128), bignum.One)
+	maskU128 = bignum.MaxUint128
 	maskU16  = big.NewInt(0xffff)
 	maskU8   = big.NewInt(0xff)
 )

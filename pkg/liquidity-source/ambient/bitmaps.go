@@ -6,6 +6,8 @@ import (
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+var mask256 = bignum.MaxUint256
+
 func CastBitmapIndex(x int8) uint8 {
 	if x >= 0 {
 		return uint8(x) + 128
@@ -35,13 +37,6 @@ func WeldLobbyMezz(lobbyIdx int8, mezzBitArg uint8) int16 {
 func WeldLobbyMezzTerm(lobbyIdx int8, mezzBitArg, termBitArg uint8) int32 {
 	return (int32(lobbyIdx) << 16) + (int32(mezzBitArg) << 8) + int32(termBitArg)
 }
-
-// mask256 is (1 << 256) - 1 — used to truncate Go big.Int to Solidity's
-// native uint256 width after left shifts.
-var mask256 = func() *big.Int {
-	m := new(big.Int).Lsh(bignum.One, 256)
-	return m.Sub(m, bignum.One)
-}()
 
 // TruncateBitmap mirrors Bitmaps.truncateBitmap, operating on a 256-bit value.
 // For right=true  → (bitmap >> shift) << shift  (zeroes the low shift bits).

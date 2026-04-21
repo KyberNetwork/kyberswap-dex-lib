@@ -21,7 +21,7 @@ func HasKnockoutLiq(lots *big.Int) bool {
 
 func ActiveLiquidity(curve *CurveState) *big.Int {
 	ambient := InflateLiqSeed(curve.AmbientSeeds, curve.SeedDeflator)
-	return new(big.Int).Add(ambient, curve.ConcLiq)
+	return ambient.Add(ambient, curve.ConcLiq)
 }
 
 func DeltaBase(liq, priceX, priceY *big.Int) *big.Int {

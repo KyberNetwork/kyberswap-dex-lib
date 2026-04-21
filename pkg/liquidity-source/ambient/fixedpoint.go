@@ -8,9 +8,9 @@ import (
 
 var (
 	Q48  = new(big.Int).Lsh(bignum.One, 48)
-	Q128 = new(big.Int).Lsh(bignum.One, 128)
+	Q128 = bignum.B2Pow128
 
-	mask128 = new(big.Int).Sub(Q128, bignum.One)
+	mask128 = bignum.MaxUint128
 )
 
 func MulQ64(x, y *big.Int) *big.Int {

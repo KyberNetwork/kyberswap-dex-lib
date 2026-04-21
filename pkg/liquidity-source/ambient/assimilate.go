@@ -61,7 +61,8 @@ func roundDownConcRewards(concInflator uint64, newAmbientSeeds *big.Int) uint64 
 	if newAmbientSeeds.Sign() <= 0 {
 		return 0
 	}
-	num := new(big.Int).Mul(new(big.Int).SetUint64(concInflator), newAmbientSeeds)
+	num := new(big.Int).SetUint64(concInflator)
+	num.Mul(num, newAmbientSeeds)
 	denom := new(big.Int).Add(newAmbientSeeds, bignum.One)
 	return num.Div(num, denom).Uint64()
 }
