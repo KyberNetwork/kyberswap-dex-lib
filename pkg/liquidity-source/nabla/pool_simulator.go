@@ -89,9 +89,6 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	protocolFee := to.Meta.ProtocolFee
 	backstopFee := to.Meta.BackstopFee
 
-	price := new(int256.Int).Mul(fr.State.Price, pricePrecision)
-	price.Quo(price, to.State.Price)
-
 	curveIn := NewCurve(fr.Meta.CurveBeta, fr.Meta.CurveC)
 	curveOut := NewCurve(to.Meta.CurveBeta, to.Meta.CurveC)
 
@@ -99,21 +96,25 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 		new(int256.Int).Add(fr.State.ReserveWithSlippage, amountIn), int64(frDecimals))
 
 	temp0 := new(int256.Int).Add(fr.State.Reserve, effectiveAmountIn)
+	maxCoverageRatioForSwapIn := fr.Meta.MaxCoverageRatioForSwapIn
+	if maxCoverageRatioForSwapIn == nil {
+		maxCoverageRatioForSwapIn = defaultMaxCoverageRatioForSwapIn
+	}
 
-	temp1 := new(int256.Int).Mul(i1990, fr.State.TotalLiabilities)
-	temp1.Quo(temp1, i1e3)
+	temp1 := new(int256.Int).Mul(maxCoverageRatioForSwapIn, fr.State.TotalLiabilities)
+	temp1.Quo(temp1, i100)
 
 	if temp0.Gt(temp1) {
 		return nil, nil, ErrZeroSwap
 	}
 
-	rawAmountOut := new(int256.Int).Mul(effectiveAmountIn, price)
+	rawAmountOut := new(int256.Int).Mul(effectiveAmountIn, fr.State.Price)
 	if frDecimals >= toDecimals {
-		scalingFactor := new(int256.Int).Mul(priceScalingFactor, i256.TenPow(uint64(frDecimals-toDecimals)))
-		rawAmountOut.Quo(rawAmountOut, scalingFactor)
+		rawAmountOut.Quo(rawAmountOut, to.State.Price)
+		rawAmountOut.Quo(rawAmountOut, i256.TenPow(uint64(frDecimals-toDecimals)))
 	} else if toDecimals > frDecimals {
 		rawAmountOut.Mul(rawAmountOut, i256.TenPow(uint64(toDecimals-frDecimals)))
-		rawAmountOut.Quo(rawAmountOut, priceScalingFactor)
+		rawAmountOut.Quo(rawAmountOut, to.State.Price)
 	}
 
 	bspFeeAmount := new(int256.Int).Mul(rawAmountOut, backstopFee)
@@ -157,7 +158,15 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	amountOut := new(int256.Int).Sub(to.State.ReserveWithSlippage, reserveWithSlippageAfterAmountOut)
 
 	newInputReserve := new(int256.Int).Add(fr.State.Reserve, effectiveAmountIn)
-	newInputReserveWithSlippage := curveIn.Psi(newInputReserve, fr.State.TotalLiabilities, int64(frDecimals))
+	newInputReserveWithSlippage := new(int256.Int).Add(fr.State.ReserveWithSlippage, amountIn)
+
+	newOutputReserve := new(int256.Int).Sub(actualReducedReserveOut, protocolFeeAmount)
+	newOutputReserveWithSlippage := curveOut.Psi(
+		newOutputReserve, actualTotalLiabilitiesOut, int64(toDecimals),
+	)
+	if newOutputReserveWithSlippage.Gt(reserveWithSlippageAfterAmountOut) {
+		newOutputReserveWithSlippage = reserveWithSlippageAfterAmountOut
+	}
 
 	return amountOut, &SwapInfo{
 		frPoolNewState: NablaPoolState{
@@ -167,8 +176,8 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 			Price:               fr.State.Price,
 		},
 		toPoolNewState: NablaPoolState{
-			Reserve:             actualReducedReserveOut,
-			ReserveWithSlippage: reserveWithSlippageAfterAmountOut,
+			Reserve:             newOutputReserve,
+			ReserveWithSlippage: newOutputReserveWithSlippage,
 			TotalLiabilities:    actualTotalLiabilitiesOut,
 			Price:               to.State.Price,
 		},
