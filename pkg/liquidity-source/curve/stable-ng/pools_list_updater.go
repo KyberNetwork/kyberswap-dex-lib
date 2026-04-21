@@ -64,7 +64,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
+	error) {
 	var (
 		aList          = make([]*big.Int, len(curvePools))
 		aPreciseList   = make([]*big.Int, len(curvePools))
@@ -108,26 +109,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
-		invalidDecimal := false
 		isNativeCoins := make([]bool, 0, len(curvePool.Coins))
 		for _, c := range curvePool.Coins {
-			dec := c.GetDecimals()
-			if dec == 0 {
-				invalidDecimal = true
-				break
-			}
-			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address:   strings.ToLower(c.Address),
-				Symbol:    c.Symbol,
-				Decimals:  dec,
-				Swappable: true,
-			})
+			poolTokens = append(poolTokens, &entity.PoolToken{Address: strings.ToLower(c.Address), Swappable: true})
 			isNativeCoins = append(isNativeCoins, c.IsOrgNative)
 			reserves = append(reserves, "0")
-		}
-		if invalidDecimal {
-			lg.Warn("ignore pool with invalid coin decimal")
-			continue
 		}
 		reserves = append(reserves, "0")
 
@@ -141,7 +127,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		}
 
 		if aList[i] != nil && aPreciseList[i] != nil {
-			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]), number.SetFromBig(aList[i]))
+			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]),
+				number.SetFromBig(aList[i]))
 		} else if aList[i] != nil {
 			staticExtra.APrecision = uint256.NewInt(1)
 		} else {
