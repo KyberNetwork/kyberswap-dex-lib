@@ -78,26 +78,11 @@ func (u *PoolsListUpdater) initPools(_ context.Context, curvePools []shared.Curv
 
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins))
-		invalidDecimal := false
 		isNativeCoins := make([]bool, 0, len(curvePool.Coins))
 		for _, c := range curvePool.Coins {
-			dec := c.GetDecimals()
-			if dec == 0 {
-				invalidDecimal = true
-				break
-			}
-			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address:   strings.ToLower(c.Address),
-				Symbol:    c.Symbol,
-				Decimals:  dec,
-				Swappable: true,
-			})
+			poolTokens = append(poolTokens, &entity.PoolToken{Address: strings.ToLower(c.Address), Swappable: true})
 			isNativeCoins = append(isNativeCoins, c.IsOrgNative)
 			reserves = append(reserves, "0")
-		}
-		if invalidDecimal {
-			lg.Warn("ignore pool with invalid coin decimal")
-			continue
 		}
 
 		var staticExtra = StaticExtra{
