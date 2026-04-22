@@ -17,6 +17,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	Extra
+	shortSymbols []string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -27,6 +28,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	prefixLen := len(entityPool.Tokens[0].Symbol) - 4
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  entityPool.Address,
@@ -39,6 +41,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		Extra: extra,
+		shortSymbols: lo.Map(entityPool.Tokens[1:], func(token *entity.PoolToken, _ int) string {
+			return token.Symbol[prefixLen:]
+		}),
 	}, nil
 }
 
@@ -80,7 +85,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{NewPoolState: &s.Extra},
+		SwapInfo:       SwapInfo{ShortSymbol: s.shortSymbols[idxOut-1]},
 	}, nil
 }
 
@@ -125,7 +130,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: param.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
 		Gas:           defaultGas,
-		SwapInfo:      SwapInfo{NewPoolState: &s.Extra},
+		SwapInfo:      SwapInfo{ShortSymbol: s.shortSymbols[idxOut-1]},
 	}, nil
 }
 
@@ -197,7 +202,7 @@ func (s *PoolSimulator) calculateAmountOut(amountIn, rateWithPremium, availableL
 	error) {
 	// Calculate amountOut using rate with premium
 	// amountOut = (amountIn * 1e18) / rateWithPremium
-	amountOut := big256.MulDiv(amountIn, OneEth, rateWithPremium)
+	amountOut := big256.MulDiv(amountIn, big256.BONE, rateWithPremium)
 
 	// Check if amountOut exceeds available liquidity
 	if amountOut.Cmp(availableLiquidity) > 0 {
@@ -218,7 +223,7 @@ func (s *PoolSimulator) calculateAmountIn(amountOut, rateWithPremium, availableL
 
 	// Calculate amountIn using rate with premium
 	// amountIn = (amountOut * rateWithPremium) / 1e18
-	amountIn := big256.MulDiv(amountOut, rateWithPremium, OneEth)
+	amountIn := big256.MulDiv(amountOut, rateWithPremium, big256.BONE)
 
 	return amountIn, nil
 }
