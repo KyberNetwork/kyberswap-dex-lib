@@ -65,7 +65,7 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 					func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			},
 		},
-		Gas:         defaultGas,
+		Gas:         lo.ValueOr(gasByDex, entityPool.Exchange, defaultGas),
 		levelsFroms: extra.LevelsFrom,
 		tokens:      [2]*entity.PoolToken(entity.ClonePoolTokens(entityPool.Tokens)),
 		minTrades:   [2]float64{firstLevelFrom0.Size(), firstLevelFrom1.Size()},
