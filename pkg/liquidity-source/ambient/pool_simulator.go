@@ -45,7 +45,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
 	}
-	if extra.State == nil {
+	if extra.State == nil ||
+		extra.State.Curve.PriceRoot == nil ||
+		extra.State.Curve.PriceRoot.Sign() == 0 {
 		return nil, ErrNoTrackedPairs
 	}
 

@@ -62,6 +62,47 @@ func (t *StateTracker) Load(
 	return t.LoadWindow(ctx, base, quote, poolIdx, blockNum, FullTickWindow)
 }
 
+func (t *StateTracker) LoadCentered(
+	ctx context.Context,
+	base, quote common.Address,
+	poolIdx uint64,
+	blockNum *big.Int,
+	halfRange int32,
+) (*TrackerExtra, error) {
+	if halfRange <= 0 {
+		return t.Load(ctx, base, quote, poolIdx, blockNum)
+	}
+
+	orderedBaseHex, orderedQuoteHex := normalizePair(base.Hex(), quote.Hex())
+	orderedBase := common.HexToAddress(orderedBaseHex)
+	orderedQuote := common.HexToAddress(orderedQuoteHex)
+	poolHash := EncodePoolHash(orderedBase, orderedQuote, poolIdx)
+
+	curve, err := t.readCurve(ctx, poolHash, blockNum)
+	if err != nil {
+		return nil, fmt.Errorf("centered load: read curve: %w", err)
+	}
+	if curve.PriceRoot == nil || curve.PriceRoot.Sign() == 0 {
+		return &TrackerExtra{
+			Base: orderedBase, Quote: orderedQuote,
+			PoolIdx: poolIdx, PoolHash: poolHash,
+			Curve: curve,
+		}, nil
+	}
+
+	center := GetTickAtSqrtRatio(curve.PriceRoot)
+	minTick := center - halfRange
+	maxTick := center + halfRange
+	if minTick < FullTickWindow.MinTick {
+		minTick = FullTickWindow.MinTick
+	}
+	if maxTick > FullTickWindow.MaxTick {
+		maxTick = FullTickWindow.MaxTick
+	}
+
+	return t.LoadWindow(ctx, base, quote, poolIdx, blockNum, TickWindow{MinTick: minTick, MaxTick: maxTick})
+}
+
 func (t *StateTracker) LoadWindow(
 	ctx context.Context,
 	base, quote common.Address,

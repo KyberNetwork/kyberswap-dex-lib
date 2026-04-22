@@ -76,12 +76,12 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var state *TrackerExtra
 	if extra.State == nil {
-		state, err = t.stateTracker.LoadWindow(
+		state, err = t.stateTracker.LoadCentered(
 			ctx,
 			common.HexToAddress(staticExtra.Base),
 			common.HexToAddress(staticExtra.Quote),
 			staticExtra.PoolIdx, blockNumBI,
-			t.tickWindow(nil),
+			t.cfg.TickRange,
 		)
 	} else {
 		window := t.tickWindow(&extra.State.Curve)
@@ -141,10 +141,11 @@ func (t *PoolTracker) tickWindow(prevCurve *CurveState) TickWindow {
 	if t.cfg.TickRange <= 0 {
 		return FullTickWindow
 	}
-	var center int32
-	if prevCurve != nil && prevCurve.PriceRoot != nil && prevCurve.PriceRoot.Sign() > 0 {
-		center = GetTickAtSqrtRatio(prevCurve.PriceRoot)
+	if prevCurve == nil || prevCurve.PriceRoot == nil || prevCurve.PriceRoot.Sign() == 0 {
+		return FullTickWindow
 	}
+
+	center := GetTickAtSqrtRatio(prevCurve.PriceRoot)
 	minTick := center - t.cfg.TickRange
 	maxTick := center + t.cfg.TickRange
 	if minTick < FullTickWindow.MinTick {
@@ -153,5 +154,6 @@ func (t *PoolTracker) tickWindow(prevCurve *CurveState) TickWindow {
 	if maxTick > FullTickWindow.MaxTick {
 		maxTick = FullTickWindow.MaxTick
 	}
+
 	return TickWindow{MinTick: minTick, MaxTick: maxTick}
 }
