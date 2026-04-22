@@ -170,6 +170,7 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 		reserves             = make([]*big.Int, n)
 		reservesWithSlippage = make([]*big.Int, n)
 		totalLiabilities     = make([]*big.Int, n)
+		maxCoverageRatios    = make([]*big.Int, n)
 		swapFees             = make([]SwapFees, n)
 		prices               = make([]*big.Int, n)
 	)
@@ -188,6 +189,10 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 			Target: sp.Address.String(),
 			Method: "totalLiabilities",
 		}, []any{&totalLiabilities[i]}).AddCall(&ethrpc.Call{
+			ABI:    swapPoolABI,
+			Target: sp.Address.String(),
+			Method: "maxCoverageRatioForSwapIn",
+		}, []any{&maxCoverageRatios[i]}).AddCall(&ethrpc.Call{
 			ABI:    swapPoolABI,
 			Target: sp.Address.String(),
 			Method: "swapFees",
@@ -219,6 +224,7 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 		extra.Pools[i].Meta.BackstopFee = int256.MustFromBig(swapFees[i].BackstopFee)
 		extra.Pools[i].Meta.ProtocolFee = int256.MustFromBig(swapFees[i].ProtocolFee)
 		extra.Pools[i].Meta.LpFee = int256.MustFromBig(swapFees[i].LpFee)
+		extra.Pools[i].Meta.MaxCoverageRatioForSwapIn = int256.MustFromBig(maxCoverageRatios[i])
 
 		extra.Pools[i].State.Reserve = int256.MustFromBig(reserves[i])
 		extra.Pools[i].State.ReserveWithSlippage = int256.MustFromBig(reservesWithSlippage[i])
@@ -318,14 +324,11 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 
 		address := hexutil.Encode(event.Address[:])
 
-		switch event.Topics[0] {
-		case oracleABI.Events["PriceFeedUpdate"].ID:
-			if !strings.EqualFold(address, t.config.Oracle) {
-				continue
-			}
-
+		if strings.EqualFold(address, t.config.Oracle) {
 			shouldGetAssetPrices = true
+		}
 
+		switch event.Topics[0] {
 		case swapPoolABI.Events["ReserveUpdated"].ID:
 			data, err := swapPoolFilterer.ParseReserveUpdated(event)
 			if err != nil {
