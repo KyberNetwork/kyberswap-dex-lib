@@ -30,8 +30,7 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 		pools(
 			where: {
 				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
-totalValueLockedUSD_gt: "100"
-      hooks_not_in: ["0x1a3dfbcac585e22f993cc8e09bcc0db388cc1ca3", "0x1e9c64cad39ddd36fb808e004067cffc710eb71d", "0xf27b9134b23957d842b08ffa78b07722fb9845bd", "0x0fcf6d110cf96be56d251716e69e37619932edf2", "0xdfdfb2c5a717ab00b370e883021f20c2fbaed277", "0x32c59d556b16db81dfc32525efb3cb257f7e493d", "0x0000000000000000000000000000000000000000"]
+				hooks: "0x6adc560af85377f9a73d17c658d798c9b39186e8"
 			},
 			first: {{ .First }},
 			skip: {{ .Skip }},

@@ -116,6 +116,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: u.config})
+
 		pool := entity.Pool{
 			Address:     p.ID,
 			SwapFee:     float64(fee),
