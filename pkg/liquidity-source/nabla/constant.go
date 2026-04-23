@@ -17,16 +17,14 @@ const (
 )
 
 var (
-	priceScalingFactor = int256.NewInt(1e8)
-	pricePrecision     = int256.NewInt(1e8)
-	feePrecision       = int256.NewInt(1e6)
+	feePrecision                     = int256.NewInt(1e6)
+	defaultMaxCoverageRatioForSwapIn = int256.NewInt(200)
 
 	mantissa = int256.NewInt(1e18)
 
-	i1990 = int256.NewInt(1990)
-	i1e3  = int256.NewInt(1000)
-	i1e4  = int256.NewInt(10000)
-	i1e6  = int256.NewInt(1000000)
+	i100 = int256.NewInt(100)
+	i1e4 = int256.NewInt(10000)
+	i1e6 = int256.NewInt(1000000)
 )
 
 var (

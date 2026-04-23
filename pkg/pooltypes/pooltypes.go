@@ -96,8 +96,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
@@ -532,7 +532,7 @@ var (
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
 		UsdAi:                      usd_ai.DexType,
-		Ambient:                    ambient.DexTypeAmbient,
+		Ambient:                    ambient.DexType,
 		MaverickV2:                 maverickv2.DexType,
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,

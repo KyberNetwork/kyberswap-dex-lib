@@ -3,6 +3,7 @@ package atokenswap
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -11,10 +12,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -53,21 +56,21 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	poolExtra, blockNumber, err := t.getPoolState(ctx, &p, overrides)
+	extra, blockNumber, err := t.getPoolState(ctx, &p, overrides)
 	if err != nil {
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(poolExtra)
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("error marshaling extra data")
 		return p, err
 	}
 
 	// Update reserves based on available liquidity for all output tokens
-	reserves := make(entity.PoolReserves, len(poolExtra.OutputStates)+1)
+	reserves := make(entity.PoolReserves, len(extra.OutputStates)+1)
 	reserves[0] = "0" // Input token reserve (not tracked)
-	for i, state := range poolExtra.OutputStates {
+	for i, state := range extra.OutputStates {
 		reserves[i+1] = state.AvailableLiquidity.String()
 	}
 
@@ -84,10 +87,10 @@ func (t *PoolTracker) getPoolState(
 	p *entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (Extra, uint64, error) {
-	var paused bool
-
 	// Prepare variables for all output tokens
-	rateWithPremiumVars := make([]*big.Int, len(p.Tokens)-1)
+	var paused bool
+	var premium, oraclePrecision *big.Int
+	rateVars := make([]*big.Int, len(p.Tokens)-1)
 	liquidityVars := make([]*big.Int, len(p.Tokens)-1)
 	maxSwapVars := make([]*big.Int, len(p.Tokens)-1)
 
@@ -95,35 +98,44 @@ func (t *PoolTracker) getPoolState(
 		ABI:    aTokenSwapABI,
 		Target: p.Address,
 		Method: "paused",
-	}, []any{&paused})
+	}, []any{&paused}).AddCall(&ethrpc.Call{
+		ABI:    aTokenSwapABI,
+		Target: p.Address,
+		Method: "premium",
+	}, []any{&premium}).AddCall(&ethrpc.Call{
+		ABI:    aTokenSwapABI,
+		Target: p.Address,
+		Method: "ORACLE_PRECISION",
+	}, []any{&oraclePrecision})
 
+	prefixLen := len(p.Tokens[0].Symbol) - 4 // aEthWETH -> aEth
 	for i, token := range p.Tokens[1:] {
-		tokenStr := token.Address
-		funcs, ok := tokenFunctions[tokenStr]
-		if !ok {
-			logger.WithFields(logger.Fields{"dexType": DexType, "outputToken": tokenStr}).Error("unknown output token")
-			return Extra{}, 0, ErrInvalidToken
-		}
-		rateWithPremiumVars[i] = new(big.Int)
+		// aEthwstETH - aEth -> wstETH -> WstETH
+		shortSymbol := strings.ToUpper(token.Symbol[prefixLen:prefixLen+1]) + token.Symbol[prefixLen+1:]
+		rateFunc := "get" + shortSymbol + "Rate"
+		liquidityFunc := "available" + shortSymbol + "Liquidity"
+		maxSwapFunc := "maxSwapTo" + shortSymbol
+
+		rateVars[i] = new(big.Int)
 		liquidityVars[i] = new(big.Int)
 		maxSwapVars[i] = new(big.Int)
 
 		req = req.AddCall(&ethrpc.Call{
 			ABI:    aTokenSwapABI,
 			Target: p.Address,
-			Method: funcs.rateWithPremiumFunc,
-		}, []any{&rateWithPremiumVars[i]}).AddCall(&ethrpc.Call{
+			Method: rateFunc,
+		}, []any{&rateVars[i]}).AddCall(&ethrpc.Call{
 			ABI:    aTokenSwapABI,
 			Target: p.Address,
-			Method: funcs.liquidityFunc,
+			Method: liquidityFunc,
 		}, []any{&liquidityVars[i]}).AddCall(&ethrpc.Call{
 			ABI:    aTokenSwapABI,
 			Target: p.Address,
-			Method: funcs.maxSwapFunc,
+			Method: maxSwapFunc,
 		}, []any{&maxSwapVars[i]})
 	}
 
-	resp, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
@@ -132,15 +144,20 @@ func (t *PoolTracker) getPoolState(
 		return Extra{}, 0, err
 	}
 
-	// Build output states
-	outputStates := make([]OutputTokenState, len(p.Tokens)-1)
-	for i := range outputStates {
-		outputStates[i] = OutputTokenState{
-			RateWithPremium:    uint256.MustFromBig(rateWithPremiumVars[i]),
+	// Build output states - map all tokens (zero values for unsupported ones)
+	var tmp big.Int
+	tmp.Sub(PremiumPrecision, premium)
+	outputStates := lo.Map(rateVars, func(rate *big.Int, i int) OutputTokenState {
+		rate = bignumber.MulDivDown(rate, rate, PremiumPrecision, &tmp)
+		if oraclePrecision != nil {
+			rate = bignumber.MulDivDown(rate, rate, bignumber.BONE, oraclePrecision)
+		}
+		return OutputTokenState{
+			RateWithPremium:    uint256.MustFromBig(rate),
 			AvailableLiquidity: uint256.MustFromBig(liquidityVars[i]),
 			MaxSwap:            uint256.MustFromBig(maxSwapVars[i]),
 		}
-	}
+	})
 
 	return Extra{
 		Paused:       paused,

@@ -19,7 +19,7 @@ type Extra struct {
 
 // SwapInfo contains information passed during swap execution
 type SwapInfo struct {
-	NewPoolState *Extra `json:"-"`
+	ShortSymbol string `json:"s"`
 }
 
 type PoolMeta struct {

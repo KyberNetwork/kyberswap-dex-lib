@@ -14,25 +14,24 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
+	stateTracker *StateTracker
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexTypeAmbient, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
-func NewPoolTracker(
-	cfg *Config,
-	ethrpcClient *ethrpc.Client,
-) (*PoolTracker, error) {
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid config: %w", err)
-	}
+func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
 	return &PoolTracker{
 		cfg:          cfg,
 		ethrpcClient: ethrpcClient,
+		stateTracker: NewStateTracker(ethrpcClient.GetETHClient(), cfg.SwapDex),
 	}, nil
 }
 
@@ -42,127 +41,119 @@ func (t *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	startTime := time.Now()
-	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
+	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("started getting new pool state")
 	defer func() {
-		logger.
-			WithFields(
-				logger.Fields{
-					"pool_id":     p.Address,
-					"duration_ms": time.Since(startTime).Milliseconds(),
-				},
-			).
-			Info("Finished getting new pool state")
+		logger.WithFields(logger.Fields{
+			"pool_id":     p.Address,
+			"duration_ms": time.Since(startTime).Milliseconds(),
+		}).Info("finished getting new pool state")
 	}()
 
-	var (
-		poolAddr           = common.HexToAddress(p.Address)
-		queryAddress       = common.HexToAddress(t.cfg.QueryContractAddress)
-		nativeTokenAddress = common.HexToAddress(t.cfg.NativeTokenAddress)
-
-		extra Extra
-	)
-
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": t.cfg.DexID, "address": p.Address, "err": err}).
-			Error("could not json.Unmarshal Extra")
-		return p, fmt.Errorf("could not json.Unmarshal Extra: %w", err)
-	}
-
-	var (
-		reserves = make([]*big.Int, len(p.Tokens)) // reserves[i] is corresponding to p.Tokens[i]
-
-		tokenPairs    = make([]TokenPair, len(extra.TokenPairs))
-		sqrtPriceX64s = make([]*big.Int, len(extra.TokenPairs)) // sqrtPriceX64s[i] is corresponding to tokenPairs[i]
-		liquidities   = make([]*big.Int, len(extra.TokenPairs)) // liquidities[i] is corresponding to tokenPairs[i]
-	)
-
-	rpcRequest := t.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
-
-	for i, token := range p.Tokens {
-		tokenAddr := common.HexToAddress(token.Address)
-		if tokenAddr == nativeTokenAddress {
-			// native token reserve is the balance of the pool contract itself
-			rpcRequest.AddCall(&ethrpc.Call{
-				ABI:    multicallABI,
-				Target: t.cfg.MulticallContractAddress,
-				Method: "getEthBalance",
-				Params: []any{poolAddr},
-			}, []any{&reserves[i]})
-		} else {
-			rpcRequest.AddCall(&ethrpc.Call{
-				ABI:    erc20ABI,
-				Target: tokenAddr.Hex(),
-				Method: "balanceOf",
-				Params: []any{poolAddr},
-			}, []any{&reserves[i]})
-		}
-	}
-
-	i := 0
-	for pair, pairInfo := range extra.TokenPairs {
-		tokenPairs[i] = pair
-
-		// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-price
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    queryABI,
-			Target: queryAddress.Hex(),
-			Method: "queryPrice",
-			Params: []any{pair.Base, pair.Quote, pairInfo.PoolIdx},
-		}, []any{&sqrtPriceX64s[i]})
-
-		// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-liquidity
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    queryABI,
-			Target: queryAddress.Hex(),
-			Method: "queryLiquidity",
-			Params: []any{pair.Base, pair.Quote, pairInfo.PoolIdx},
-		}, []any{&liquidities[i]})
-
-		i++
-	}
-
-	if _, err := rpcRequest.TryAggregate(); err != nil {
-		logger.
-			WithFields(logger.Fields{"poolAddress": p.Address, "error": err}).
-			Error("failed to call multical contract TryAggregate")
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
+	if staticExtra.PoolIdx == 0 {
+		return p, fmt.Errorf("StaticExtra.PoolIdx is zero")
+	}
 
-	for i, pair := range tokenPairs {
-		if liquidities[i] != nil {
-			extra.TokenPairs[pair].Liquidity = liquidities[i].String()
-		} else {
-			logger.
-				WithFields(logger.Fields{"poolAddress": p.Address}).
-				Warnf("could not fetch liquidity for pair %s", pair)
-		}
-		if sqrtPriceX64s[i] != nil {
-			extra.TokenPairs[pair].SqrtPriceX64 = sqrtPriceX64s[i].String()
-		} else {
-			logger.
-				WithFields(logger.Fields{"poolAddress": p.Address}).
-				Warnf("could not fetch sqrtPriceX64 for pair %s", pair)
+	var extra Extra
+	if len(p.Extra) != 0 {
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+			return p, err
 		}
 	}
 
-	encodedExtra, err := json.Marshal(extra)
+	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"poolAddress": p.Address, "error": err}).
-			Error("failed to marshal extra data")
+		return p, err
+	}
+	blockNumBI := new(big.Int).SetUint64(blockNumber)
+
+	if err := t.fetchReserves(ctx, &p, &staticExtra, blockNumBI); err != nil {
 		return p, err
 	}
 
-	p.Extra = string(encodedExtra)
+	var state *TrackerExtra
+	if extra.State == nil {
+		state, err = t.stateTracker.LoadCentered(
+			ctx,
+			common.HexToAddress(staticExtra.Base),
+			common.HexToAddress(staticExtra.Quote),
+			staticExtra.PoolIdx, blockNumBI,
+			t.cfg.TickRange,
+		)
+	} else {
+		window := t.tickWindow(&extra.State.Curve)
+		var changed bool
+		state, changed, err = t.stateTracker.Refresh(ctx, extra.State, blockNumBI, window)
+		if err == nil && !changed {
+			state = extra.State
+		}
+	}
+	if err != nil {
+		return p, err
+	}
+	extra.State = state
+
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return p, err
+	}
+	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	for i := len(p.Reserves); i < len(p.Tokens); i++ {
-		p.Reserves = append(p.Reserves, "")
-	}
-	for i, reserve := range reserves {
-		p.Reserves[i] = reserve.String()
-	}
+	p.BlockNumber = blockNumber
 
 	return p, nil
+}
+
+func (t *PoolTracker) fetchReserves(ctx context.Context, p *entity.Pool, sE *StaticExtra, blockNum *big.Int) error {
+	reserves := make([]*big.Int, 2)
+	swapDex := common.HexToAddress(t.cfg.SwapDex)
+
+	req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNum)
+	for i, addr := range [2]string{sE.Base, sE.Quote} {
+		if valueobject.IsZero(addr) {
+			req.AddCall(&ethrpc.Call{
+				ABI:    abi.Multicall3ABI,
+				Target: t.cfg.Multicall3,
+				Method: abi.Multicall3GetEthBalance,
+				Params: []any{swapDex},
+			}, []any{&reserves[i]})
+		} else {
+			req.AddCall(&ethrpc.Call{
+				ABI:    abi.Erc20ABI,
+				Target: addr,
+				Method: abi.Erc20BalanceOfMethod,
+				Params: []any{swapDex},
+			}, []any{&reserves[i]})
+		}
+	}
+	if _, err := req.Aggregate(); err != nil {
+		return err
+	}
+
+	p.Reserves = bignum.ToStrings(reserves)
+	return nil
+}
+
+func (t *PoolTracker) tickWindow(prevCurve *CurveState) TickWindow {
+	if t.cfg.TickRange <= 0 {
+		return FullTickWindow
+	}
+	if prevCurve == nil || prevCurve.PriceRoot == nil || prevCurve.PriceRoot.Sign() == 0 {
+		return FullTickWindow
+	}
+
+	center := GetTickAtSqrtRatio(prevCurve.PriceRoot)
+	minTick := center - t.cfg.TickRange
+	maxTick := center + t.cfg.TickRange
+	if minTick < FullTickWindow.MinTick {
+		minTick = FullTickWindow.MinTick
+	}
+	if maxTick > FullTickWindow.MaxTick {
+		maxTick = FullTickWindow.MaxTick
+	}
+
+	return TickWindow{MinTick: minTick, MaxTick: maxTick}
 }

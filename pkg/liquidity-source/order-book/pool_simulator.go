@@ -35,6 +35,8 @@ var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm5)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm6)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm7)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm8)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm9)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm10)
 
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	return NewPoolSimulatorWith(params.EntityPool, lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64))
@@ -63,7 +65,7 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 					func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			},
 		},
-		Gas:         defaultGas,
+		Gas:         lo.ValueOr(gasByDex, entityPool.Exchange, defaultGas),
 		levelsFroms: extra.LevelsFrom,
 		tokens:      [2]*entity.PoolToken(entity.ClonePoolTokens(entityPool.Tokens)),
 		minTrades:   [2]float64{firstLevelFrom0.Size(), firstLevelFrom1.Size()},
