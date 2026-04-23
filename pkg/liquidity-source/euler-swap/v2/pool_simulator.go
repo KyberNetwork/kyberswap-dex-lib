@@ -467,8 +467,8 @@ func (p *PoolSimulator) calcLimits(isZeroForOne bool, fee *uint256.Int) (*uint25
 			supplyCash = uint256.NewInt(0)
 		}
 
-		isSameVault := (isZeroForOne && p.SupplyVault1 == p.BorrowVault1) ||
-			(!isZeroForOne && p.SupplyVault0 == p.BorrowVault0)
+		isSameVault := (isZeroForOne && strings.EqualFold(p.SupplyVault1, p.BorrowVault1)) ||
+			(!isZeroForOne && strings.EqualFold(p.SupplyVault0, p.BorrowVault0))
 
 		if supplyBalance.Gt(supplyCash) || isSameVault {
 			if supplyCash.Lt(&outLimit) {
@@ -738,6 +738,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		buyBorrowVault.Cash = shared.SubTill0(buyBorrowVault.Cash, borrowAmt)
 		buyBorrowVault.Debt = new(uint256.Int).Add(buyBorrowVault.Debt, borrowAmt)
 		buyBorrowVault.TotalBorrows = new(uint256.Int).Add(buyBorrowVault.TotalBorrows, borrowAmt)
+	}
+
+	if len(p.Collaterals) == 2 {
+		sellCollatIdx, buyCollatIdx := from, to
+		p.Collaterals[sellCollatIdx] = new(uint256.Int).Add(p.Collaterals[sellCollatIdx], supplyDepositAmt)
+		p.Collaterals[buyCollatIdx] = shared.SubTill0(p.Collaterals[buyCollatIdx], withdrawAmt)
 	}
 
 	if swapInfo.DebtVaultIdx < 2 {
