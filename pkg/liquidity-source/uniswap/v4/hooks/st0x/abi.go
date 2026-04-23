@@ -8,7 +8,6 @@ import (
 )
 
 var (
-	propAMMHookABI     = lo.Must(abi.JSON(bytes.NewReader(propAMMHookABIJson)))
-	priceOracleABI     = lo.Must(abi.JSON(bytes.NewReader(priceOracleABIJson)))
-	poolManager6909ABI = lo.Must(abi.JSON(bytes.NewReader(poolManager6909ABIJson)))
+	propAMMHookABI = lo.Must(abi.JSON(bytes.NewReader(propAMMHookABIJson)))
+	priceOracleABI = lo.Must(abi.JSON(bytes.NewReader(priceOracleABIJson)))
 )
