@@ -177,6 +177,16 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMetaInfo{}
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	_, _, isSourceNative, _, _ := s.transformTokens(tokenIn, tokenOut)
+	return isSourceNative
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	_, _, _, isTargetNative, _ := s.transformTokens(tokenIn, tokenOut)
+	return isTargetNative
+}
+
 func (s *PoolSimulator) verifyTokens(sourceToken, targetToken string) error {
 	if _, err := s.getPoolData(sourceToken); err != nil {
 		return err

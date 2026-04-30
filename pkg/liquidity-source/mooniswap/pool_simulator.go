@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -122,4 +123,14 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 		IsNativeIn:  lo.Ternary(tokenInIndex == 0, s.IsNativeToken0, s.IsNativeToken1),
 		IsNativeOut: lo.Ternary(tokenInIndex == 0, s.IsNativeToken1, s.IsNativeToken0),
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return meta.IsNativeIn
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return meta.IsNativeOut
 }

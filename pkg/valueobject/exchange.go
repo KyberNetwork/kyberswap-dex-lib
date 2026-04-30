@@ -330,8 +330,10 @@ func IsRFQSource[T ~string](exchange T) bool {
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
 var needFallbackSourceSet = map[Exchange]struct{}{
-	ExchangeAxima:   {},
-	ExchangeAximaV2: {},
+	ExchangeAxima:     {},
+	ExchangeAximaV2:   {},
+	ExchangeWooFiV3:   {},
+	ExchangeBrownfiV2: {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {

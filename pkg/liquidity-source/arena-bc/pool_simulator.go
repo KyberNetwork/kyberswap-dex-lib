@@ -160,6 +160,15 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, _ valueobject.ChainID) bool {
+	isBuy := s.GetTokenIndex(tokenIn) == 0
+	return isBuy
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, _ string, _ valueobject.ChainID) bool {
+	return false
+}
+
 func (s *PoolSimulator) sell(tokenAmount *uint256.Int) (*uint256.Int, *SwapInfo, int64, error) {
 	scaledTokenAmount, remaining := new(uint256.Int).DivMod(tokenAmount, granularityScaler, new(uint256.Int))
 	if scaledTokenAmount.IsZero() {

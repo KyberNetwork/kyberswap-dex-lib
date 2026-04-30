@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -128,6 +129,24 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 		Core:             p.Core,
 		PoolKey:          p.EkuboPool.GetKey().ToAbi(),
 	}
+}
+
+func (p *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	forward := strings.EqualFold(tokenIn, p.GetTokens()[0])
+	metaInfo := p.GetMetaInfo(tokenIn, tokenOut).(Meta)
+
+	tokenInKey := lo.Ternary(forward, metaInfo.PoolKey.Token0, metaInfo.PoolKey.Token1)
+
+	return valueobject.IsZeroAddress(tokenInKey)
+}
+
+func (p *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	forward := strings.EqualFold(tokenIn, p.GetTokens()[0])
+	metaInfo := p.GetMetaInfo(tokenIn, tokenOut).(Meta)
+
+	tokenOutKey := lo.Ternary(forward, metaInfo.PoolKey.Token1, metaInfo.PoolKey.Token0)
+
+	return valueobject.IsZeroAddress(tokenOutKey)
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {

@@ -3,6 +3,7 @@ package bancorv21
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
@@ -12,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -178,6 +180,16 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMetaInner{
 		BlockNumber: s.Info.BlockNumber,
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	path := s.findPath(tokenIn, tokenOut)
+	return len(path) > 0 && strings.EqualFold(path[0], valueobject.NativeAddress)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	path := s.findPath(tokenIn, tokenOut)
+	return len(path) > 0 && strings.EqualFold(path[len(path)-1], valueobject.NativeAddress)
 }
 
 // Simulates the _getExtendedArray Solidity function

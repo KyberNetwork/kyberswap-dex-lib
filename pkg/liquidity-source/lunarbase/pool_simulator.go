@@ -144,3 +144,13 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	}
 	return ""
 }
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return meta.HasNative && valueobject.IsWrappedNative(tokenIn, s.chainID)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return meta.HasNative && valueobject.IsWrappedNative(tokenOut, s.chainID)
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type IPoolsListUpdater interface {
@@ -80,6 +81,11 @@ type IMetaPoolSimulator interface {
 	IPoolSimulator
 	GetBasePools() []IPoolSimulator      // get base pools
 	SetBasePool(basePool IPoolSimulator) // set base pool
+}
+
+type IPoolSupportNativeSwap interface {
+	SwapReceiveNativeIn(tokenIn, tokenOut string, chainId valueobject.ChainID) bool
+	SwapReturnNativeOut(tokenIn, tokenOut string, chainId valueobject.ChainID) bool
 }
 
 type (

@@ -206,6 +206,16 @@ func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return ""
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, chainId valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return valueobject.IsZero(meta.Base) && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainId valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return valueobject.IsZero(meta.Quote) && valueobject.IsWrappedNative(tokenOut, chainId)
+}
+
 func outputAmount(accum *SwapAccum, inBaseQty bool) *big.Int {
 	if inBaseQty {
 		return new(big.Int).Neg(accum.QuoteFlow)
