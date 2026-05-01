@@ -7,7 +7,8 @@ type Metadata struct {
 }
 
 type Extra struct {
-	PriceX96          *uint256.Int `json:"p,omitempty"`
+	PriceX48          *uint256.Int `json:"p,omitempty"`
+	AnchorPriceX48    *uint256.Int `json:"a,omitempty"`
 	FeeQ48            uint64       `json:"f,omitempty"`
 	LatestUpdateBlock uint64       `json:"b,omitempty"`
 	Paused            bool         `json:"0,omitempty"`
@@ -34,11 +35,12 @@ type PoolMeta struct {
 }
 
 type PoolParams struct {
-	SqrtPriceX96   *uint256.Int
-	FeeQ48         uint64
-	ReserveX       *uint256.Int
-	ReserveY       *uint256.Int
-	ConcentrationK uint32
+	SqrtPriceX48       *uint256.Int
+	AnchorSqrtPriceX48 *uint256.Int
+	FeeQ48             uint64
+	ReserveX           *uint256.Int
+	ReserveY           *uint256.Int
+	ConcentrationK     uint32
 }
 
 type QuoteResult struct {

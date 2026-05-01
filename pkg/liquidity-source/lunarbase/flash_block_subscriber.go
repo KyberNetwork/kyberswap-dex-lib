@@ -33,7 +33,8 @@ const (
 )
 
 type poolState struct {
-	PX96              *uint256.Int
+	PX48              *uint256.Int
+	AnchorPX48        *uint256.Int
 	FeeQ48            uint64
 	ReserveX          *uint256.Int
 	ReserveY          *uint256.Int
@@ -106,7 +107,10 @@ func (s *FlashBlockSubscriber) GetLatestState() *poolState {
 	}
 
 	cp := *s.latestState
-	cp.PX96 = new(uint256.Int).Set(s.latestState.PX96)
+	cp.PX48 = new(uint256.Int).Set(s.latestState.PX48)
+	if s.latestState.AnchorPX48 != nil {
+		cp.AnchorPX48 = new(uint256.Int).Set(s.latestState.AnchorPX48)
+	}
 	cp.ReserveX = new(uint256.Int).Set(s.latestState.ReserveX)
 	cp.ReserveY = new(uint256.Int).Set(s.latestState.ReserveY)
 
@@ -346,9 +350,10 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 
 	if s.latestState == nil {
 		s.latestState = &poolState{
-			PX96:     new(uint256.Int),
-			ReserveX: new(uint256.Int),
-			ReserveY: new(uint256.Int),
+			PX48:       new(uint256.Int),
+			AnchorPX48: new(uint256.Int),
+			ReserveX:   new(uint256.Int),
+			ReserveY:   new(uint256.Int),
 		}
 	}
 
@@ -379,17 +384,19 @@ func (s *FlashBlockSubscriber) handleStateUpdated(log types.Log) {
 		return
 	}
 	tuple := *abi.ConvertType(values[0], new(struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
+		AnchorPX48 *big.Int `abi:"anchorPX48"`
+		Fee        *big.Int `abi:"fee"`
 	})).(*struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
+		AnchorPX48 *big.Int `abi:"anchorPX48"`
+		Fee        *big.Int `abi:"fee"`
 	})
-	if tuple.PX96 == nil || tuple.Fee == nil {
+	if tuple.AnchorPX48 == nil || tuple.Fee == nil {
 		return
 	}
 
-	s.latestState.PX96 = big256.FromBig(tuple.PX96)
+	anchor := big256.FromBig(tuple.AnchorPX48)
+	s.latestState.AnchorPX48 = anchor
+	s.latestState.PX48 = anchor.Clone()
 	s.latestState.FeeQ48 = tuple.Fee.Uint64()
 	s.latestState.LatestUpdateBlock = log.BlockNumber
 }

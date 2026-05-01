@@ -45,10 +45,11 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		paused         bool
 		blockDelay     uint64
 		concentrationK uint32
+		anchorPX48     *big.Int
 		reserveX       *big.Int
 		reserveY       *big.Int
 		state          struct {
-			PX96              *big.Int
+			PX48              *big.Int
 			Fee               uint64
 			LatestUpdateBlock uint64
 		}
@@ -86,7 +87,11 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		ABI:    coreABI,
 		Target: coreAddress,
 		Method: "state",
-	}, []any{&state}).Aggregate()
+	}, []any{&state}).AddCall(&ethrpc.Call{
+		ABI:    coreABI,
+		Target: coreAddress,
+		Method: "anchorPrice",
+	}, []any{&anchorPX48}).Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +100,8 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 	tokenXAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenX[:]), cfg.ChainID)
 	tokenYAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenY[:]), cfg.ChainID)
 
-	pX96 := lo.CoalesceOrEmpty(uint256.MustFromBig(state.PX96), big256.U0)
+	pX48 := lo.CoalesceOrEmpty(uint256.MustFromBig(state.PX48), big256.U0)
+	anchorPX48U := lo.CoalesceOrEmpty(uint256.MustFromBig(anchorPX48), big256.U0)
 	if reserveX == nil {
 		reserveX = bignumber.ZeroBI
 	}
@@ -111,7 +117,8 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		reserveX:    reserveX,
 		reserveY:    reserveY,
 		extra: Extra{
-			PriceX96:          pX96,
+			PriceX48:          pX48,
+			AnchorPriceX48:    anchorPX48U,
 			FeeQ48:            state.Fee,
 			LatestUpdateBlock: state.LatestUpdateBlock,
 			Paused:            paused,

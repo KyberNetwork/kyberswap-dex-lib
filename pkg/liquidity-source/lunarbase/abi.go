@@ -23,15 +23,8 @@ const coreABIJSON = `[
   },
   {
     "inputs": [],
-    "name": "CONCENTRATION_ALPHA",
-    "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "blockDelay",
-    "outputs": [{"internalType": "uint64", "name": "", "type": "uint64"}],
+    "outputs": [{"internalType": "uint48", "name": "", "type": "uint48"}],
     "stateMutability": "view",
     "type": "function"
   },
@@ -61,7 +54,7 @@ const coreABIJSON = `[
     "name": "quoteXToY",
     "outputs": [
       {"internalType": "uint256", "name": "dy", "type": "uint256"},
-      {"internalType": "uint160", "name": "pNext", "type": "uint160"},
+      {"internalType": "uint80", "name": "pNext", "type": "uint80"},
       {"internalType": "uint256", "name": "fee", "type": "uint256"}
     ],
     "stateMutability": "view",
@@ -72,7 +65,7 @@ const coreABIJSON = `[
     "name": "quoteYToX",
     "outputs": [
       {"internalType": "uint256", "name": "dx", "type": "uint256"},
-      {"internalType": "uint160", "name": "pNext", "type": "uint160"},
+      {"internalType": "uint80", "name": "pNext", "type": "uint80"},
       {"internalType": "uint256", "name": "fee", "type": "uint256"}
     ],
     "stateMutability": "view",
@@ -89,10 +82,17 @@ const coreABIJSON = `[
     "inputs": [],
     "name": "state",
     "outputs": [
-      {"internalType": "uint160", "name": "pX96", "type": "uint160"},
-      {"internalType": "uint64", "name": "fee", "type": "uint64"},
-      {"internalType": "uint64", "name": "latestUpdateBlock", "type": "uint64"}
+      {"internalType": "uint80", "name": "pX48", "type": "uint80"},
+      {"internalType": "uint48", "name": "fee", "type": "uint48"},
+      {"internalType": "uint48", "name": "latestUpdateBlock", "type": "uint48"}
     ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "anchorPrice",
+    "outputs": [{"internalType": "uint80", "name": "anchorPX48", "type": "uint80"}],
     "stateMutability": "view",
     "type": "function"
   },
@@ -101,7 +101,7 @@ const coreABIJSON = `[
     "inputs": [
       {
         "components": [
-          {"internalType": "uint160", "name": "pX96", "type": "uint160"},
+          {"internalType": "uint80", "name": "anchorPX48", "type": "uint80"},
           {"internalType": "uint48", "name": "fee", "type": "uint48"}
         ],
         "indexed": false,

@@ -18,7 +18,8 @@ import (
 
 func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 	extraBytes, err := json.Marshal(Extra{
-		PriceX96:          uint256.NewInt(1),
+		PriceX48:          uint256.NewInt(1),
+		AnchorPriceX48:    uint256.NewInt(1),
 		FeeQ48:            1,
 		LatestUpdateBlock: 10,
 		BlockDelay:        5,
@@ -39,7 +40,8 @@ func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 
 	subscriberInstance = &FlashBlockSubscriber{
 		latestState: &poolState{
-			PX96:              uint256.NewInt(2),
+			PX48:              uint256.NewInt(2),
+			AnchorPX48:        uint256.NewInt(2),
 			FeeQ48:            2,
 			ReserveX:          uint256.NewInt(111),
 			ReserveY:          uint256.NewInt(222),
@@ -81,7 +83,8 @@ func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 
 func TestProcessLogsUpdatesLatestUpdateBlock(t *testing.T) {
 	extraBytes, err := json.Marshal(Extra{
-		PriceX96:          uint256.NewInt(1),
+		PriceX48:          uint256.NewInt(1),
+		AnchorPriceX48:    uint256.NewInt(1),
 		FeeQ48:            1,
 		LatestUpdateBlock: 10,
 		BlockDelay:        5,
@@ -101,11 +104,11 @@ func TestProcessLogsUpdatesLatestUpdateBlock(t *testing.T) {
 	}
 
 	stateTuple := struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
+		AnchorPX48 *big.Int `abi:"anchorPX48"`
+		Fee        *big.Int `abi:"fee"`
 	}{
-		PX96: big.NewInt(123),
-		Fee:  big.NewInt(456),
+		AnchorPX48: big.NewInt(123),
+		Fee:        big.NewInt(456),
 	}
 	stateData, err := coreABI.Events["StateUpdated"].Inputs.Pack(stateTuple)
 	if err != nil {

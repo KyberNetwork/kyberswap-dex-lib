@@ -145,17 +145,19 @@ func (t *PoolTracker) processStateUpdated(extra *Extra, log types.Log) error {
 		return ErrQuoteFailed
 	}
 	tuple := *abi.ConvertType(values[0], new(struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
+		AnchorPX48 *big.Int `abi:"anchorPX48"`
+		Fee        *big.Int `abi:"fee"`
 	})).(*struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
+		AnchorPX48 *big.Int `abi:"anchorPX48"`
+		Fee        *big.Int `abi:"fee"`
 	})
-	if tuple.PX96 == nil || tuple.Fee == nil {
+	if tuple.AnchorPX48 == nil || tuple.Fee == nil {
 		return ErrQuoteFailed
 	}
 
-	extra.PriceX96 = uint256.MustFromBig(tuple.PX96)
+	anchor := uint256.MustFromBig(tuple.AnchorPX48)
+	extra.AnchorPriceX48 = anchor
+	extra.PriceX48 = anchor.Clone()
 	extra.FeeQ48 = tuple.Fee.Uint64()
 	extra.LatestUpdateBlock = log.BlockNumber
 
@@ -224,7 +226,8 @@ func (t *PoolTracker) buildPoolFromCachedState(p entity.Pool, state *poolState) 
 		return p, err
 	}
 
-	extra.PriceX96 = new(uint256.Int).Set(state.PX96)
+	extra.PriceX48 = new(uint256.Int).Set(state.PX48)
+	extra.AnchorPriceX48 = new(uint256.Int).Set(state.AnchorPX48)
 	extra.FeeQ48 = state.FeeQ48
 	if state.LatestUpdateBlock > 0 {
 		extra.LatestUpdateBlock = state.LatestUpdateBlock

@@ -24,7 +24,7 @@ type PoolSimulator struct {
 }
 
 type SwapInfo struct {
-	nextPX96 *uint256.Int
+	nextPX48 *uint256.Int
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -71,7 +71,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	} else if s.Paused {
 		return nil, ErrPoolPaused
-	} else if s.PriceX96 == nil || s.PriceX96.IsZero() {
+	} else if s.PriceX48 == nil || s.PriceX48.IsZero() {
 		return nil, ErrZeroPrice
 	}
 
@@ -80,12 +80,18 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
+	anchor := s.AnchorPriceX48
+	if anchor == nil || anchor.IsZero() {
+		anchor = s.PriceX48
+	}
+
 	poolParams := &PoolParams{
-		SqrtPriceX96:   s.PriceX96,
-		FeeQ48:         s.FeeQ48,
-		ReserveX:       s.reserves[0],
-		ReserveY:       s.reserves[1],
-		ConcentrationK: s.ConcentrationK,
+		SqrtPriceX48:       s.PriceX48,
+		AnchorSqrtPriceX48: anchor,
+		FeeQ48:             s.FeeQ48,
+		ReserveX:           s.reserves[0],
+		ReserveY:           s.reserves[1],
+		ConcentrationK:     s.ConcentrationK,
 	}
 
 	var result *QuoteResult
@@ -103,7 +109,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: result.AmountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: result.Fee.ToBig()},
 		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{nextPX96: result.SqrtPriceNext},
+		SwapInfo:       SwapInfo{nextPX48: result.SqrtPriceNext},
 	}, nil
 }
 
@@ -125,8 +131,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.reserves = slices.Clone(s.reserves)
 	s.reserves[indexIn] = inAmount.Add(s.reserves[indexIn], inAmount)
 	s.reserves[indexOut] = outAmount.Sub(s.reserves[indexOut], outAmount)
-	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok && swapInfo.nextPX96 != nil {
-		s.PriceX96 = swapInfo.nextPX96
+	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok && swapInfo.nextPX48 != nil {
+		s.PriceX48 = swapInfo.nextPX48
 	}
 }
 

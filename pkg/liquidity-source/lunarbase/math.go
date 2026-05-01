@@ -6,103 +6,152 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
+const fixedPoint48Resolution = 48
+
 var (
-	q48 = new(uint256.Int).Lsh(big256.U1, 48)
-	q24 = new(uint256.Int).Lsh(big256.U1, 24)
+	q48     = new(uint256.Int).Lsh(big256.U1, 48)
+	q24     = new(uint256.Int).Lsh(big256.U1, 24)
+	u2Pow80 = new(uint256.Int).Lsh(big256.U1, 80)
 )
 
 func isqrt(x *uint256.Int) *uint256.Int {
 	return new(uint256.Int).Sqrt(x)
 }
 
-func concentrationQ48(baseFeeQ48 uint64, amountIn *uint256.Int, reserveIn *uint256.Int, k uint32) *uint256.Int {
+// concentrationQ48 mirrors SwapLib.concentrationQ48 (wealth-normalized r).
+func concentrationQ48(
+	pX48 *uint256.Int,
+	baseFeeQ48 uint64,
+	amountIn *uint256.Int,
+	reserveX, reserveY *uint256.Int,
+	k uint32,
+	xToY bool,
+) *uint256.Int {
 	c := uint256.NewInt(baseFeeQ48)
-	if c.IsZero() || amountIn.IsZero() || reserveIn.IsZero() || k == 0 {
+	if c.IsZero() || amountIn.IsZero() || k == 0 || pX48.IsZero() {
 		return c
 	}
 
-	var rQ48, tmp uint256.Int
-	if !amountIn.Lt(reserveIn) {
-		rQ48.Set(q48)
-	} else {
-		big256.MulDivDown(&rQ48, amountIn, q48, reserveIn)
+	var priceQ96, q96 uint256.Int
+	priceQ96.Mul(pX48, pX48)
+	q96.Mul(q48, q48)
+
+	var xWealthInY uint256.Int
+	big256.MulDivDown(&xWealthInY, reserveX, &priceQ96, &q96)
+
+	var totalWealthInY uint256.Int
+	totalWealthInY.Add(&xWealthInY, reserveY)
+	if totalWealthInY.IsZero() {
+		return c
 	}
 
-	rSquaredQ48 := big256.MulDivDown(&rQ48, &rQ48, &rQ48, q48)
-	kTimesR2 := tmp.Mul(tmp.SetUint64(uint64(k)), rSquaredQ48)
-	multiplierQ48 := tmp.Add(kTimesR2, q48)
+	var amountInWealth uint256.Int
+	if xToY {
+		big256.MulDivDown(&amountInWealth, amountIn, &priceQ96, &q96)
+	} else {
+		amountInWealth.Set(amountIn)
+	}
 
-	result := big256.MulDivDown(&tmp, c, multiplierQ48, q48)
+	var rQ48 uint256.Int
+	if !amountInWealth.Lt(&totalWealthInY) {
+		rQ48.Set(q48)
+	} else {
+		big256.MulDivDown(&rQ48, &amountInWealth, q48, &totalWealthInY)
+	}
+
+	var rSquaredQ48 uint256.Int
+	big256.MulDivDown(&rSquaredQ48, &rQ48, &rQ48, q48)
+
+	kU := uint256.NewInt(uint64(k))
+	var kTimesR2 uint256.Int
+	kTimesR2.Mul(kU, &rSquaredQ48)
+	var multiplierQ48 uint256.Int
+	multiplierQ48.Add(q48, &kTimesR2)
+
+	var result uint256.Int
+	big256.MulDivDown(&result, c, &multiplierQ48, q48)
+
 	if !result.Lt(q48) {
 		return result.Set(q48)
 	}
-	return result
+	return &result
 }
 
-func lowerBound(sqrtPriceX96 *uint256.Int, cQ48 uint64) *uint256.Int {
+func lowerBound(pX48 *uint256.Int, cQ48 uint64) *uint256.Int {
 	var oneMinusC uint256.Int
 	oneMinusC.Sub(q48, oneMinusC.SetUint64(cQ48))
 
 	sqrtOneMinusC := isqrt(&oneMinusC)
-	return big256.MulDivDown(sqrtOneMinusC, sqrtPriceX96, sqrtOneMinusC, q24)
+	var result uint256.Int
+	return big256.MulDivDown(&result, pX48, sqrtOneMinusC, q24)
 }
 
-func upperBound(sqrtPriceX96 *uint256.Int, cQ48 uint64) *uint256.Int {
+func upperBound(pX48 *uint256.Int, cQ48 uint64) *uint256.Int {
 	var oneMinusC uint256.Int
 	oneMinusC.Sub(q48, oneMinusC.SetUint64(cQ48))
 
 	sqrtOneMinusC := isqrt(&oneMinusC)
-	return big256.MulDivDown(sqrtOneMinusC, sqrtPriceX96, q24, sqrtOneMinusC)
+	var result uint256.Int
+	return big256.MulDivDown(&result, pX48, q24, sqrtOneMinusC)
 }
 
-func liquidityY(sqrtPriceX96, pBid, reserveY *uint256.Int) *uint256.Int {
+func liquidityY(pX48, pBid, reserveY *uint256.Int) *uint256.Int {
 	var denom uint256.Int
-	denom.Sub(sqrtPriceX96, pBid)
+	denom.Sub(pX48, pBid)
 
-	return big256.MulDivDown(&denom, reserveY, q96, &denom)
+	var result uint256.Int
+	return big256.MulDivDown(&result, reserveY, q48, &denom)
 }
 
-func liquidityX(sqrtPriceX96, pAsk, reserveX *uint256.Int) *uint256.Int {
-	var priceProductQ96 uint256.Int
-	big256.MulDivDown(&priceProductQ96, sqrtPriceX96, pAsk, q96)
+// liquidityX mirrors SwapLib.Lx: mulDiv(reserveX, pX48*pAsk, Q48*(pAsk-pX48)).
+func liquidityX(pX48, pAsk, reserveX *uint256.Int) *uint256.Int {
+	var num uint256.Int
+	num.Mul(pX48, pAsk)
 
 	var denom uint256.Int
-	denom.Sub(pAsk, sqrtPriceX96)
+	denom.Sub(pAsk, pX48)
+	denom.Mul(q48, &denom)
 
-	return big256.MulDivDown(&denom, reserveX, &priceProductQ96, &denom)
+	var result uint256.Int
+	return big256.MulDivDown(&result, reserveX, &num, &denom)
 }
 
-func getNextSqrtPriceFromAmountXRoundingUp(sqrtPX96, liquidity, amountX *uint256.Int) *uint256.Int {
+// getNextSqrtPriceFromAmountXRoundingUp ports the addX=true branch of SqrtPriceMath.
+func getNextSqrtPriceFromAmountXRoundingUp(sqrtPX48, liquidity, amountX *uint256.Int) *uint256.Int {
 	if amountX.IsZero() {
-		return sqrtPX96
+		return new(uint256.Int).Set(sqrtPX48)
 	}
 
-	var num, prod, tmp uint256.Int
-	num.Lsh(liquidity, 96)
-	prod.Mul(amountX, sqrtPX96)
+	var num1, prod, tmp uint256.Int
+	num1.Lsh(liquidity, fixedPoint48Resolution)
+	prod.Mul(amountX, sqrtPX48)
 
-	if quotient := tmp.Div(&prod, amountX); quotient.Eq(sqrtPX96) {
-		if deno := tmp.Add(&num, &prod); !deno.Lt(&num) {
-			return big256.MulDivUp(deno, &num, sqrtPX96, deno)
+	if quotient := tmp.Div(&prod, amountX); quotient.Eq(sqrtPX48) {
+		var deno uint256.Int
+		deno.Add(&num1, &prod)
+		if !deno.Lt(&num1) {
+			return big256.MulDivUp(new(uint256.Int), &num1, sqrtPX48, &deno)
 		}
 	}
 
-	divResult := num.Div(&num, sqrtPX96)
-	deno := divResult.Add(divResult, amountX)
-	return big256.DivUp(&num, deno)
+	var divResult uint256.Int
+	divResult.Div(&num1, sqrtPX48)
+	var deno uint256.Int
+	deno.Add(&divResult, amountX)
+	return ceilDiv(&num1, &deno)
 }
 
-func getNextSqrtPriceFromAmountYRoundingDown(sqrtPX96, liquidity, amountY *uint256.Int) *uint256.Int {
+// getNextSqrtPriceFromAmountYRoundingDown ports the addY=true branch of SqrtPriceMath.
+func getNextSqrtPriceFromAmountYRoundingDown(sqrtPX48, liquidity, amountY *uint256.Int) *uint256.Int {
 	var quotient uint256.Int
-	if amountY.Lt(big256.U2Pow160) {
-		// (amountY << 96) / liquidity
-		shifted := quotient.Lsh(amountY, 96)
+	if amountY.Lt(u2Pow80) {
+		shifted := new(uint256.Int).Lsh(amountY, fixedPoint48Resolution)
 		quotient.Div(shifted, liquidity)
 	} else {
-		big256.MulDivDown(&quotient, amountY, q96, liquidity)
+		big256.MulDivDown(&quotient, amountY, q48, liquidity)
 	}
 
-	return quotient.Add(sqrtPX96, &quotient)
+	return new(uint256.Int).Add(sqrtPX48, &quotient)
 }
 
 func getAmountXDelta(sqrtRatioA, sqrtRatioB, liquidity *uint256.Int, roundUp bool) *uint256.Int {
@@ -112,90 +161,110 @@ func getAmountXDelta(sqrtRatioA, sqrtRatioB, liquidity *uint256.Int, roundUp boo
 	}
 
 	var num1, num2 uint256.Int
-	num1.Lsh(liquidity, 96)
+	num1.Lsh(liquidity, fixedPoint48Resolution)
 	num2.Sub(sb, sa)
 
 	if roundUp {
-		md := big256.MulDivUp(&num1, &num1, &num2, sb)
-		return big256.DivUp(md, sa)
+		md := big256.MulDivUp(new(uint256.Int), &num1, &num2, sb)
+		return ceilDiv(md, sa)
 	}
-	md := big256.MulDivDown(&num1, &num1, &num2, sb)
+	md := big256.MulDivDown(new(uint256.Int), &num1, &num2, sb)
 	return md.Div(md, sa)
 }
 
 func getAmountYDelta(sqrtRatioA, sqrtRatioB, liquidity *uint256.Int, roundUp bool) *uint256.Int {
-	var diff uint256.Int
-	diff.Abs(diff.Sub(sqrtRatioB, sqrtRatioA))
+	sa, sb := sqrtRatioA, sqrtRatioB
+	if sa.Gt(sb) {
+		sa, sb = sb, sa
+	}
 
-	return big256.MulDivRounding(&diff, liquidity, &diff, q96, roundUp)
+	var diff uint256.Int
+	diff.Sub(sb, sa)
+
+	if roundUp {
+		return big256.MulDivUp(new(uint256.Int), liquidity, &diff, q48)
+	}
+	return big256.MulDivDown(new(uint256.Int), liquidity, &diff, q48)
+}
+
+func ceilDiv(a, b *uint256.Int) *uint256.Int {
+	var q, rem uint256.Int
+	if q.DivMod(a, b, &rem); !rem.IsZero() {
+		q.AddUint64(&q, 1)
+	}
+	return &q
 }
 
 func quoteXToY(params *PoolParams, dx *uint256.Int) *QuoteResult {
 	zero := &QuoteResult{
 		AmountOut:     big256.U0,
-		SqrtPriceNext: params.SqrtPriceX96.Clone(),
+		SqrtPriceNext: params.SqrtPriceX48.Clone(),
 		Fee:           big256.U0,
 	}
 
-	cQ48 := concentrationQ48(params.FeeQ48, dx, params.ReserveX, params.ConcentrationK)
+	cQ48 := concentrationQ48(params.SqrtPriceX48, params.FeeQ48, dx, params.ReserveX, params.ReserveY, params.ConcentrationK, true)
 	if !cQ48.Lt(q48) {
 		return zero
 	}
 
 	cU64 := cQ48.Uint64()
-	pBid := lowerBound(params.SqrtPriceX96, cU64)
-	liquidity := liquidityY(params.SqrtPriceX96, pBid, params.ReserveY)
+	pBid := lowerBound(params.AnchorSqrtPriceX48, cU64)
+	if !params.SqrtPriceX48.Gt(pBid) {
+		return zero
+	}
+	liquidity := liquidityY(params.SqrtPriceX48, pBid, params.ReserveY)
 
-	maxNetDx := getAmountXDelta(pBid, params.SqrtPriceX96, liquidity, false)
+	maxNetDx := getAmountXDelta(pBid, params.SqrtPriceX48, liquidity, false)
 	if dx.Gt(maxNetDx) {
 		return zero
 	}
 
-	pNext := getNextSqrtPriceFromAmountXRoundingUp(params.SqrtPriceX96, liquidity, dx)
-	dy := getAmountYDelta(params.SqrtPriceX96, pNext, liquidity, false)
+	pNext := getNextSqrtPriceFromAmountXRoundingUp(params.SqrtPriceX48, liquidity, dx)
+	dy := getAmountYDelta(params.SqrtPriceX48, pNext, liquidity, false)
 
-	var fee uint256.Int
-	big256.MulDivDown(&fee, dy, uint256.NewInt(params.FeeQ48), q48)
-	dyAfterFee := dy.Sub(dy, &fee)
+	fee := big256.MulDivDown(new(uint256.Int), dy, uint256.NewInt(params.FeeQ48), q48)
+	dyAfterFee := new(uint256.Int).Sub(dy, fee)
 
 	return &QuoteResult{
 		AmountOut:     dyAfterFee,
 		SqrtPriceNext: pNext,
-		Fee:           &fee,
+		Fee:           fee,
 	}
 }
 
 func quoteYToX(params *PoolParams, dy *uint256.Int) *QuoteResult {
 	zero := &QuoteResult{
 		AmountOut:     big256.U0,
-		SqrtPriceNext: params.SqrtPriceX96.Clone(),
+		SqrtPriceNext: params.SqrtPriceX48.Clone(),
 		Fee:           big256.U0,
 	}
 
-	cQ48 := concentrationQ48(params.FeeQ48, dy, params.ReserveY, params.ConcentrationK)
+	cQ48 := concentrationQ48(params.SqrtPriceX48, params.FeeQ48, dy, params.ReserveX, params.ReserveY, params.ConcentrationK, false)
 	if !cQ48.Lt(q48) {
 		return zero
 	}
 
 	cU64 := cQ48.Uint64()
-	pAsk := upperBound(params.SqrtPriceX96, cU64)
-	liquidity := liquidityX(params.SqrtPriceX96, pAsk, params.ReserveX)
+	pAsk := upperBound(params.AnchorSqrtPriceX48, cU64)
+	if !params.SqrtPriceX48.Lt(pAsk) {
+		return zero
+	}
+	liquidity := liquidityX(params.SqrtPriceX48, pAsk, params.ReserveX)
 
-	maxNetDy := getAmountYDelta(params.SqrtPriceX96, pAsk, liquidity, false)
+	maxNetDy := getAmountYDelta(params.SqrtPriceX48, pAsk, liquidity, false)
 	if dy.Gt(maxNetDy) {
 		return zero
 	}
 
-	pNext := getNextSqrtPriceFromAmountYRoundingDown(params.SqrtPriceX96, liquidity, dy)
-	dxOut := getAmountXDelta(params.SqrtPriceX96, pNext, liquidity, false)
+	pNext := getNextSqrtPriceFromAmountYRoundingDown(params.SqrtPriceX48, liquidity, dy)
+	dxOut := getAmountXDelta(params.SqrtPriceX48, pNext, liquidity, false)
 
-	var fee uint256.Int
-	big256.MulDivDown(&fee, dxOut, uint256.NewInt(params.FeeQ48), q48)
-	dxAfterFee := dxOut.Sub(dxOut, &fee)
+	fee := big256.MulDivDown(new(uint256.Int), dxOut, uint256.NewInt(params.FeeQ48), q48)
+	dxAfterFee := new(uint256.Int).Sub(dxOut, fee)
 
 	return &QuoteResult{
 		AmountOut:     dxAfterFee,
 		SqrtPriceNext: pNext,
-		Fee:           &fee,
+		Fee:           fee,
 	}
 }

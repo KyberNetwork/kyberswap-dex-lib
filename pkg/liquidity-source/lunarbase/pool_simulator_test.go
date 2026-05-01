@@ -18,7 +18,8 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
 
 	extraBytes, err := json.Marshal(Extra{
-		PriceX96:          uint256.NewInt(1),
+		PriceX48:          uint256.NewInt(1),
+		AnchorPriceX48:    uint256.NewInt(1),
 		FeeQ48:            1,
 		LatestUpdateBlock: 1,
 		ConcentrationK:    5000,
@@ -56,18 +57,18 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 		TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(20)},
 		Fee:            pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(0)},
 		SwapInfo: SwapInfo{
-			nextPX96: uint256.NewInt(2),
+			nextPX48: uint256.NewInt(2),
 		},
 	})
 
 	if sim.GetReserves()[0].Cmp(big.NewInt(100)) != 0 || sim.GetReserves()[1].Cmp(big.NewInt(200)) != 0 {
 		t.Fatalf("original reserves mutated: got %s/%s", sim.GetReserves()[0], sim.GetReserves()[1])
 	}
-	if sim.PriceX96.Uint64() != 1 {
-		t.Fatalf("original price mutated: got %d", sim.PriceX96.Uint64())
+	if sim.PriceX48.Uint64() != 1 {
+		t.Fatalf("original price mutated: got %d", sim.PriceX48.Uint64())
 	}
-	if cloned.(*PoolSimulator).PriceX96.Uint64() != 2 {
-		t.Fatalf("cloned price was not updated: got %d", cloned.(*PoolSimulator).PriceX96.Uint64())
+	if cloned.(*PoolSimulator).PriceX48.Uint64() != 2 {
+		t.Fatalf("cloned price was not updated: got %d", cloned.(*PoolSimulator).PriceX48.Uint64())
 	}
 
 	meta := sim.GetMetaInfo(sim.GetTokens()[1], sim.GetTokens()[0]).(PoolMeta)
@@ -79,8 +80,10 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 func TestCalcAmountOutReturnsInsufficientLiquidityWhenPriceIsStale(t *testing.T) {
 	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
 
+	pX48 := uint256.NewInt(1 << 48)
 	extraBytes, err := json.Marshal(Extra{
-		PriceX96:          new(uint256.Int).Lsh(uint256.NewInt(1), 96),
+		PriceX48:          pX48,
+		AnchorPriceX48:    pX48,
 		FeeQ48:            1,
 		LatestUpdateBlock: 10,
 		BlockDelay:        2,

@@ -12,7 +12,7 @@ import (
 
 type fuzzVector struct {
 	Dir    string `json:"dir"`
-	PX96   string `json:"pX96"`
+	PX48   string `json:"pX48"`
 	Fee    string `json:"fee"`
 	ResX   string `json:"resX"`
 	ResY   string `json:"resY"`
@@ -50,12 +50,14 @@ func TestAllFuzzVectors(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(line), &v), "parse error line %d", lineNum)
 		total++
 
+		p := u(v.PX48)
 		params := &PoolParams{
-			SqrtPriceX96:   u(v.PX96),
-			FeeQ48:         u(v.Fee).Uint64(),
-			ReserveX:       u(v.ResX),
-			ReserveY:       u(v.ResY),
-			ConcentrationK: v.K,
+			SqrtPriceX48:       p,
+			AnchorSqrtPriceX48: p,
+			FeeQ48:             u(v.Fee).Uint64(),
+			ReserveX:           u(v.ResX),
+			ReserveY:           u(v.ResY),
+			ConcentrationK:     v.K,
 		}
 
 		if v.Dir == "xToY" {
