@@ -110,6 +110,13 @@ func (t *PoolTracker) processLogs(p entity.Pool, logs []types.Log) (entity.Pool,
 				p.Reserves = entity.PoolReserves{reserveX.String(), reserveY.String()}
 				changed = true
 			}
+		case topicSwapExecuted:
+			// Replay swap with pre-swap reserves (current p.Reserves) to derive the new pX48.
+			// Sync log for this tx, if present, comes after SwapExecuted in logIndex order
+			// and will overwrite reserves with post-swap values on the next iteration.
+			if err := t.processSwapExecuted(&extra, p.Reserves, lg); err == nil {
+				changed = true
+			}
 		case topicConcentrationKSet:
 			if err := t.processConcentrationKSet(&extra, lg); err == nil {
 				changed = true
@@ -198,6 +205,60 @@ func (t *PoolTracker) processConcentrationKSet(extra *Extra, log types.Log) erro
 
 	extra.ConcentrationK = k
 
+	return nil
+}
+
+func (t *PoolTracker) processSwapExecuted(extra *Extra, preSwapReserves entity.PoolReserves, log types.Log) error {
+	if extra.PriceX48 == nil || extra.AnchorPriceX48 == nil || extra.PriceX48.IsZero() {
+		return ErrQuoteFailed
+	}
+
+	values, err := coreABI.Events["SwapExecuted"].Inputs.Unpack(log.Data)
+	if err != nil {
+		return err
+	}
+	if len(values) < 5 {
+		return ErrQuoteFailed
+	}
+
+	xToY, ok := values[1].(bool)
+	if !ok {
+		return ErrQuoteFailed
+	}
+	dxBig, ok1 := values[2].(*big.Int)
+	dyBig, ok2 := values[3].(*big.Int)
+	if !ok1 || !ok2 {
+		return ErrQuoteFailed
+	}
+
+	if len(preSwapReserves) < 2 {
+		return ErrQuoteFailed
+	}
+	reserveX, err := uint256.FromDecimal(preSwapReserves[0])
+	if err != nil {
+		return ErrQuoteFailed
+	}
+	reserveY, err := uint256.FromDecimal(preSwapReserves[1])
+	if err != nil {
+		return ErrQuoteFailed
+	}
+
+	dx, dy := uint256.MustFromBig(dxBig), uint256.MustFromBig(dyBig)
+
+	params := &PoolParams{
+		SqrtPriceX48:       extra.PriceX48,
+		AnchorSqrtPriceX48: extra.AnchorPriceX48,
+		FeeQ48:             extra.FeeQ48,
+		ReserveX:           reserveX,
+		ReserveY:           reserveY,
+		ConcentrationK:     extra.ConcentrationK,
+	}
+
+	pNext := replaySwapPNext(params, xToY, dx, dy)
+	if pNext == nil || pNext.IsZero() {
+		return ErrQuoteFailed
+	}
+	extra.PriceX48 = pNext
 	return nil
 }
 

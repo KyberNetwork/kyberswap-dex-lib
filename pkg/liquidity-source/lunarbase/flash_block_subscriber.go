@@ -366,6 +366,10 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 	case topicSync:
 		s.handleSync(log)
 		s.latestState.ReservesUpdatedAt = now
+	case topicSwapExecuted:
+		// Replay against current cached pre-swap reserves; the matching Sync
+		// log (later in tx order) will overwrite reserves on the next call.
+		s.handleSwapExecuted(log)
 	case topicConcentrationKSet:
 		s.handleConcentrationKSet(log)
 	case topicBlockDelaySet:
@@ -418,6 +422,45 @@ func (s *FlashBlockSubscriber) handleSync(log types.Log) {
 
 	s.latestState.ReserveX = big256.FromBig(reserveX)
 	s.latestState.ReserveY = big256.FromBig(reserveY)
+}
+
+func (s *FlashBlockSubscriber) handleSwapExecuted(log types.Log) {
+	if s.latestState.PX48 == nil || s.latestState.AnchorPX48 == nil ||
+		s.latestState.PX48.IsZero() ||
+		s.latestState.ReserveX == nil || s.latestState.ReserveY == nil {
+		return
+	}
+
+	values, err := coreABI.Events["SwapExecuted"].Inputs.Unpack(log.Data)
+	if err != nil || len(values) < 5 {
+		return
+	}
+	xToY, ok := values[1].(bool)
+	if !ok {
+		return
+	}
+	dxBig, ok1 := values[2].(*big.Int)
+	dyBig, ok2 := values[3].(*big.Int)
+	if !ok1 || !ok2 {
+		return
+	}
+
+	dx, dy := big256.FromBig(dxBig), big256.FromBig(dyBig)
+
+	params := &PoolParams{
+		SqrtPriceX48:       s.latestState.PX48,
+		AnchorSqrtPriceX48: s.latestState.AnchorPX48,
+		FeeQ48:             s.latestState.FeeQ48,
+		ReserveX:           s.latestState.ReserveX,
+		ReserveY:           s.latestState.ReserveY,
+		ConcentrationK:     s.latestState.ConcentrationK,
+	}
+
+	pNext := replaySwapPNext(params, xToY, dx, dy)
+	if pNext == nil || pNext.IsZero() {
+		return
+	}
+	s.latestState.PX48 = pNext
 }
 
 func (s *FlashBlockSubscriber) handleConcentrationKSet(log types.Log) {

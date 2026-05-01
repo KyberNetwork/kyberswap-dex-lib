@@ -232,6 +232,35 @@ func quoteXToY(params *PoolParams, dx *uint256.Int) *QuoteResult {
 	}
 }
 
+// replaySwapPNext recomputes the post-swap sqrtPrice (pNext) for a SwapExecuted event.
+// Uses cached pre-swap reserves and current operator-published anchor.
+// SwapExecuted args: (recipient, xToY, dx, dy, fee), where dx/dy are token-X/token-Y deltas
+// regardless of direction. Therefore amountIn = xToY ? dx : dy.
+// Returns nil if the replay yields a zero result (the pool would have rejected the swap),
+// in which case the caller should leave pX48 untouched.
+func replaySwapPNext(params *PoolParams, xToY bool, dx, dy *uint256.Int) *uint256.Int {
+	var amountIn *uint256.Int
+	if xToY {
+		amountIn = dx
+	} else {
+		amountIn = dy
+	}
+	if amountIn == nil || amountIn.IsZero() {
+		return nil
+	}
+
+	var result *QuoteResult
+	if xToY {
+		result = quoteXToY(params, amountIn)
+	} else {
+		result = quoteYToX(params, amountIn)
+	}
+	if result == nil || result.AmountOut == nil || result.AmountOut.IsZero() {
+		return nil
+	}
+	return result.SqrtPriceNext
+}
+
 func quoteYToX(params *PoolParams, dy *uint256.Int) *QuoteResult {
 	zero := &QuoteResult{
 		AmountOut:     big256.U0,
