@@ -12,47 +12,6 @@ func u(s string) *uint256.Int {
 	return v
 }
 
-// In all vectors anchorPX48 == pX48 (the on-chain `upd` resets both to the same value).
-func assertXToY(t *testing.T, name string,
-	pX48 string, fee uint64, resX, resY string, k uint32, dx string,
-	expectedDy, expectedPNext, expectedFee string,
-) {
-	t.Helper()
-	p := u(pX48)
-	params := &PoolParams{
-		SqrtPriceX48:       p,
-		AnchorSqrtPriceX48: p,
-		FeeQ48:             fee,
-		ReserveX:           u(resX),
-		ReserveY:           u(resY),
-		ConcentrationK:     k,
-	}
-	result := quoteXToY(params, u(dx))
-	assert.Equal(t, expectedDy, result.AmountOut.Dec(), "%s: dy mismatch", name)
-	assert.Equal(t, expectedPNext, result.SqrtPriceNext.Dec(), "%s: pNext mismatch", name)
-	assert.Equal(t, expectedFee, result.Fee.Dec(), "%s: fee mismatch", name)
-}
-
-func assertYToX(t *testing.T, name string,
-	pX48 string, fee uint64, resX, resY string, k uint32, dy string,
-	expectedDx, expectedPNext, expectedFee string,
-) {
-	t.Helper()
-	p := u(pX48)
-	params := &PoolParams{
-		SqrtPriceX48:       p,
-		AnchorSqrtPriceX48: p,
-		FeeQ48:             fee,
-		ReserveX:           u(resX),
-		ReserveY:           u(resY),
-		ConcentrationK:     k,
-	}
-	result := quoteYToX(params, u(dy))
-	assert.Equal(t, expectedDx, result.AmountOut.Dec(), "%s: dx mismatch", name)
-	assert.Equal(t, expectedPNext, result.SqrtPriceNext.Dec(), "%s: pNext mismatch", name)
-	assert.Equal(t, expectedFee, result.Fee.Dec(), "%s: fee mismatch", name)
-}
-
 func TestIsqrt(t *testing.T) {
 	cases := []struct {
 		input, expected uint64
