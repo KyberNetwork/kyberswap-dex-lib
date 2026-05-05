@@ -185,6 +185,7 @@ const (
 	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeInfinityCLLO        = "pancake-infinity-cl-lo"
+	ExchangePancakeInfinityCLStable    = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax       = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
