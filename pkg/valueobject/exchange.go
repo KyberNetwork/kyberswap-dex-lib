@@ -365,13 +365,14 @@ func IsPropAMMSource[T ~string](exchange T) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeBebop:          {},
-	ExchangeClipper:        {},
-	ExchangeOvernightUsdp:  {},
-	ExchangeUniswapV4Euler: {},
-	ExchangeEulerSwap:      {},
-	ExchangeEulerSwapV2:    {},
-	ExchangeWooFiV3:        {},
+	ExchangeBebop:            {},
+	ExchangeClipper:          {},
+	ExchangeOvernightUsdp:    {},
+	ExchangeEulerSwap:        {},
+	ExchangeEulerSwapV2:      {},
+	ExchangeUniswapV4Euler:   {},
+	ExchangeUniswapV4EulerV2: {},
+	ExchangeWooFiV3:          {},
 }
 
 func IsSingleSwapSource[T ~string](exchange T) bool {
