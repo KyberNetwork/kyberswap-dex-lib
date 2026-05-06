@@ -97,6 +97,10 @@ func GetHook(hookAddress common.Address, param *HookParam) (Hook, bool) {
 }
 
 func isStableHook(param *HookParam, hookAddress common.Address) bool {
+	if valueobject.IsZeroAddress(hookAddress) {
+		return false
+	}
+
 	var stableHookFactories []string
 	if cfg := param.Cfg; cfg != nil {
 		stableHookFactories = cfg.StableHookFactories
