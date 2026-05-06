@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -204,4 +205,37 @@ func Test_ClSimulator_StableHook(t *testing.T) {
 		require.NotNil(t, res.TokenAmountOut)
 		require.Equal(t, fx.wantDy.String(), res.TokenAmountOut.Amount.String())
 	}
+}
+
+func TestHook_BeforeSwap_DustPool(t *testing.T) {
+	const poolJSON = `{"address":"0x80a2f355f4694286aa79c22f4c644c42141b07e68546ce6cdb23d7183f8db1d0","exchange":"pancake-infinity-cl-stable","type":"pancake-infinity-cl","timestamp":1778040091,"reserves":["285462141838064","1975110172833"],"tokens":[{"address":"0x38c207dbe12e84a4b3eafa62f492391df95ae36e","symbol":"MIT","decimals":18,"swappable":true},{"address":"0xaa60ca2e1bada3641bb94785d7ae3bbd5a6cb520","symbol":"USDT.z","decimals":18,"swappable":true}],"extra":"{\"liquidity\":0,\"sqrtPriceX96\":79228162514264337593543950336,\"tickSpacing\":1,\"tick\":0,\"ticks\":[],\"hX\":{\"balances\":[\"285462141838064\",\"1975110172833\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000\"],\"lpSupply\":\"284924283676128\",\"initialA\":\"200000\",\"futureA\":\"200000\",\"initialATime\":0,\"futureATime\":0,\"swapFee\":\"1000000\",\"adminFee\":\"5000000000\",\"offpegFeeMultiplier\":\"50000000000\"}}","staticExtra":"{\"hsp\":true,\"0x0\":[false,false],\"fee\":0,\"params\":\"0x0000000000000000000000000000000000000000000000000000000000010455\",\"tS\":1,\"pm\":\"0xa0ffb9c1ce1fe56963b0321b32e7a0302114058b\",\"hooks\":\"0xd7829fa3188734420659601ac17ccc16980dabf0\",\"p2\":\"0x31c2f6fcff4f8759b3bd5bf0e1084a055615c768\",\"vault\":\"0x238a358808379702088667322f80ac48bad5e6c4\",\"m3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}","blockNumber":89704036}`
+
+	var pool entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(poolJSON), &pool))
+
+	tokenUSDT := "0xaa60ca2e1bada3641bb94785d7ae3bbd5a6cb520"
+	tokenMIT := "0x38c207dbe12e84a4b3eafa62f492391df95ae36e"
+	e18 := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+
+	t.Run("1e18 routes", func(t *testing.T) {
+		sim, err := cl.NewPoolSimulator(pool, valueobject.ChainID(56))
+		require.NoError(t, err)
+		res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{Token: tokenUSDT, Amount: new(big.Int).Set(e18)},
+			TokenOut:      tokenMIT,
+		})
+		require.NoError(t, err)
+		require.Equal(t, 1, res.TokenAmountOut.Amount.Sign())
+	})
+
+	t.Run("100e18 rejected by stable-ng drain guard", func(t *testing.T) {
+		sim, err := cl.NewPoolSimulator(pool, valueobject.ChainID(56))
+		require.NoError(t, err)
+		huge := new(big.Int).Mul(big.NewInt(100), e18)
+		_, err = sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{Token: tokenUSDT, Amount: huge},
+			TokenOut:      tokenMIT,
+		})
+		require.ErrorIs(t, err, stableng.ErrPoolDrained)
+	})
 }
