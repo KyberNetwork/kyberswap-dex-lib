@@ -79,7 +79,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	}
 	staticExtraBytes, _ := json.Marshal(staticExtra)
 
-	exchange := f.config.DexID
+	exchange := ""
 	if classifyStableHooks(context.Background(), f.ethrpcClient, f.config.StableHookFactories, []common.Address{p.Hooks})[p.Hooks] {
 		exchange = valueobject.ExchangePancakeInfinityCLStable
 	} else {

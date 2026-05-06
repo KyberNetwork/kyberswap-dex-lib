@@ -338,10 +338,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if p.hook != nil {
 		p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
 	}
-	// When the hook fully overrides math (CalcAmountOut/In short-circuited the
-	// v3 simulator), PoolSwapInfo carries no next-state pointers — skip v3
-	// UpdateBalance to avoid corrupting tick state with nil values.
-	if v4SwapInfo.PoolSwapInfo.NextStateSqrtRatioX96 == nil {
+	if v4SwapInfo.NextStateSqrtRatioX96 == nil {
 		return
 	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
