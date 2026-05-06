@@ -76,6 +76,11 @@ func (h *Hook) BeforeSwap(p *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) 
 			DeltaSpecified:   new(big.Int).Set(p.AmountSpecified),
 			DeltaUnspecified: new(big.Int).Neg(res.TokenAmountOut.Amount),
 			Gas:              defaultGas,
+			SwapInfo: updateBalanceInfo{
+				in:  poolpkg.TokenAmount{Token: tokens[i], Amount: new(big.Int).Set(p.AmountSpecified)},
+				out: poolpkg.TokenAmount{Token: tokens[j], Amount: new(big.Int).Set(res.TokenAmountOut.Amount)},
+				fee: poolpkg.TokenAmount{Token: res.Fee.Token, Amount: new(big.Int).Set(res.Fee.Amount)},
+			},
 		}, nil
 	}
 
@@ -100,6 +105,11 @@ func (h *Hook) BeforeSwap(p *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) 
 		DeltaSpecified:   new(big.Int).Neg(p.AmountSpecified),
 		DeltaUnspecified: new(big.Int).Set(res.TokenAmountIn.Amount),
 		Gas:              defaultGas,
+		SwapInfo: updateBalanceInfo{
+			in:  poolpkg.TokenAmount{Token: tokens[i], Amount: new(big.Int).Set(res.TokenAmountIn.Amount)},
+			out: poolpkg.TokenAmount{Token: tokens[j], Amount: new(big.Int).Set(p.AmountSpecified)},
+			fee: poolpkg.TokenAmount{Token: res.Fee.Token, Amount: new(big.Int).Set(res.Fee.Amount)},
+		},
 	}, nil
 }
 

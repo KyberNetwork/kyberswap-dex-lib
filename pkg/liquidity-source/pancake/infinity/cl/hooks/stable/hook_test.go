@@ -239,3 +239,41 @@ func TestHook_BeforeSwap_DustPool(t *testing.T) {
 		require.ErrorIs(t, err, stableng.ErrPoolDrained)
 	})
 }
+
+func TestHook_UpdateBalance(t *testing.T) {
+	hxBytes, err := json.Marshal(poolHookExtra())
+	require.NoError(t, err)
+
+	pool := &entity.Pool{
+		Address:  "0x78b58a50e66956d9a4828c229c31541de7c79bbf",
+		Exchange: valueobject.ExchangePancakeInfinityCLStable,
+		Type:     cl.DexType,
+		Tokens:   stableFixtureTokens(),
+		Reserves: entity.PoolReserves(poolHookExtra().Balances),
+	}
+
+	h := Factory(&cl.HookParam{
+		Pool:        pool,
+		HookExtra:   hxBytes,
+		HookAddress: common.HexToAddress(pool.Address),
+	}).(*Hook)
+
+	pre0 := new(big.Int).Set(h.inner.Info.Reserves[0])
+	pre1 := new(big.Int).Set(h.inner.Info.Reserves[1])
+
+	dx := bignum.NewBig("1731028333861421")
+	res, err := h.BeforeSwap(&cl.BeforeSwapParams{
+		CalcOut:         true,
+		ZeroForOne:      true,
+		AmountSpecified: dx,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res.SwapInfo)
+
+	h.UpdateBalance(res.SwapInfo)
+
+	require.NotEqual(t, pre0.String(), h.inner.Info.Reserves[0].String(), "reserve[0] must have moved")
+	require.NotEqual(t, pre1.String(), h.inner.Info.Reserves[1].String(), "reserve[1] must have moved")
+	require.Equal(t, 1, h.inner.Info.Reserves[0].Cmp(pre0), "reserve[0] (in) increased")
+	require.Equal(t, -1, h.inner.Info.Reserves[1].Cmp(pre1), "reserve[1] (out) decreased")
+}
