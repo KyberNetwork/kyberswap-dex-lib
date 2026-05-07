@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -47,4 +48,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 		IdxIn:     idxIn,
 		HasNative: p.hasNative,
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, chainId valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(MetaInfo)
+	return meta.HasNative && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainId valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(MetaInfo)
+	return meta.HasNative && valueobject.IsWrappedNative(tokenOut, chainId)
 }

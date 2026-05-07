@@ -97,7 +97,7 @@ func (t *PoolTracker) getNewPoolState(
 			Method: printrMethodPaused,
 		}, []any{&isPaused})
 
-	_, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
@@ -154,6 +154,7 @@ func (t *PoolTracker) getNewPoolState(
 		curveResult.Data.Reserve.String(),
 		buyableTokens.ToBig().String(),
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,

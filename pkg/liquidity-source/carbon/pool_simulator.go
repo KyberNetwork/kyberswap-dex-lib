@@ -279,3 +279,13 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 		ApprovalAddress: s.Controller,
 	}
 }
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return meta.IsNativeIn
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return meta.IsNativeOut
+}

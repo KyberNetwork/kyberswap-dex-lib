@@ -270,6 +270,10 @@ func (t *PoolSimulator) GetDyByX(
 	if err != nil {
 		return err
 	}
+	// y == 0 ⇒ on-chain upkeep_oracles → _get_p reverts at `Dr * D / xp[j]`
+	if y.IsZero() {
+		return ErrPoolDrained
+	}
 
 	// dy: uint256 = _xp[j] - y - 1  # -1 just in case there were some rounding errors
 	number.SafeSubZ(&xp[j], &y, dy)
@@ -358,6 +362,10 @@ func (t *PoolSimulator) GetDx(
 			number.SafeSub(FeeDenominator, &dynamicFee),
 		),
 	)
+	// y == 0 ⇒ targets a post-state where on-chain `_get_p` reverts.
+	if y.IsZero() {
+		return ErrPoolDrained
+	}
 
 	// x: uint256 = self.get_y(j, i, y, xp, amp, D, N_COINS)
 	var x uint256.Int

@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -110,4 +111,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{Exchange: s.Exchange}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(_, _ string, _ valueobject.ChainID) bool {
+	return true // Only support wrap native in
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, _ string, _ valueobject.ChainID) bool {
+	return false
 }

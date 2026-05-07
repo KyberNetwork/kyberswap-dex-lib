@@ -125,6 +125,14 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	return result
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
+}
+
 // Helper function to get reserve for a specific token
 func (s *PoolSimulator) getReserveForToken(token string) (*big.Int, error) {
 	if idx := s.GetTokenIndex(token); idx >= 0 {

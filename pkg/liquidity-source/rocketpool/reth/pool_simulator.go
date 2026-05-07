@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -118,6 +119,14 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		BlockNumber: p.Info.BlockNumber,
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 // deposit ETH and mint rETH

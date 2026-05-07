@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -198,6 +199,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
+}
+
+func (p *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return p.SupportsNativeEth && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (p *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return p.SupportsNativeEth && valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 // round rounds uint256 number to at most sigs significant digits

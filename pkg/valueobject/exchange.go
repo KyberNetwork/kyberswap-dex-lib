@@ -185,6 +185,7 @@ const (
 	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeInfinityCLLO        = "pancake-infinity-cl-lo"
+	ExchangePancakeInfinityCLStable    = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax       = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
@@ -203,6 +204,7 @@ const (
 	ExchangePmm8                       = "pmm-8"
 	ExchangePmm9                       = "pmm-9"
 	ExchangePmm10                      = "pmm-10"
+	ExchangePmm11                      = "pmm-11"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolycat                    = "polycat"
 	ExchangePolyDex                    = "polydex"
@@ -318,6 +320,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm8:       {},
 	ExchangePmm9:       {},
 	ExchangePmm10:      {},
+	ExchangePmm11:      {},
 	ExchangeSwaapV2:    {},
 	ExchangeUniswapLO:  {},
 }
@@ -330,8 +333,10 @@ func IsRFQSource[T ~string](exchange T) bool {
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
 var needFallbackSourceSet = map[Exchange]struct{}{
-	ExchangeAxima:   {},
-	ExchangeAximaV2: {},
+	ExchangeAxima:     {},
+	ExchangeAximaV2:   {},
+	ExchangeWooFiV3:   {},
+	ExchangeBrownfiV2: {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {
@@ -361,13 +366,14 @@ func IsPropAMMSource[T ~string](exchange T) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeBebop:          {},
-	ExchangeClipper:        {},
-	ExchangeOvernightUsdp:  {},
-	ExchangeUniswapV4Euler: {},
-	ExchangeEulerSwap:      {},
-	ExchangeEulerSwapV2:    {},
-	ExchangeWooFiV3:        {},
+	ExchangeBebop:            {},
+	ExchangeClipper:          {},
+	ExchangeOvernightUsdp:    {},
+	ExchangeEulerSwap:        {},
+	ExchangeEulerSwapV2:      {},
+	ExchangeUniswapV4Euler:   {},
+	ExchangeUniswapV4EulerV2: {},
+	ExchangeWooFiV3:          {},
 }
 
 func IsSingleSwapSource[T ~string](exchange T) bool {

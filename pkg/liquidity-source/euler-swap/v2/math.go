@@ -184,7 +184,8 @@ func _FInverse(y, px, py, x0, y0, cx *uint256.Int) (*uint256.Int, error) {
 		sqrt.Lsh(sqrt, shift)
 
 		x = new(uint256.Int).Add(&absB, sqrt)
-		x.Div(x, new(uint256.Int).Lsh(cx, 1))
+		denom := new(uint256.Int).Lsh(cx, 1)
+		x, _ = _DivUp(x, denom)
 	} else {
 		var fourAC uint256.Int
 		fourAC.Sub(big256.BONE, cx).Mul(&fourAC, cx).Lsh(&fourAC, 2)
