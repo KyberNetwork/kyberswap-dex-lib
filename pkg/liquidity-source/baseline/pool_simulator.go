@@ -202,8 +202,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	tokenInIndex := p.GetTokenIndex(tokenIn)
+	tokenOutIndex := p.GetTokenIndex(tokenOut)
+	isBuy, _ := swapDirection(tokenInIndex, tokenOutIndex)
+
+	return PoolMeta{
+		Pool:        p.extra.RelayAddress,
+		IsBuyBase:   isBuy,
+		BlockNumber: p.Info.BlockNumber,
+	}
 }
 
 func swapDirection(tokenInIndex, tokenOutIndex int) (bool, error) {

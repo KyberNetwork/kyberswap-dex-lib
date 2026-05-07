@@ -60,3 +60,9 @@ type quoteResult struct {
 	ReserveDelta  *big.Int
 	State         *QuoteState
 }
+
+type PoolMeta struct {
+	Pool        string `json:"p"`
+	BlockNumber uint64 `json:"bN"`
+	IsBuyBase   bool   `json:"isBuyBase,omitempty"`
+}

@@ -689,6 +689,7 @@ func quoteErrorParitySelectorMapping(solidityErr error) (string, error, bool) {
 	return "", nil, false
 }
 
+// nolint: unused
 func assertQuoteStateEqual(t *testing.T, expected, actual *QuoteState) {
 	t.Helper()
 
@@ -706,6 +707,7 @@ func assertQuoteStateEqual(t *testing.T, expected, actual *QuoteState) {
 	assertU256Equal(t, "snapshotActivePrice", expected.SnapshotActivePrice, actual.SnapshotActivePrice)
 }
 
+// nolint: unused
 func assertCurveParamsEqual(t *testing.T, label string, expected, actual CurveParams) {
 	t.Helper()
 
@@ -719,6 +721,7 @@ func assertCurveParamsEqual(t *testing.T, label string, expected, actual CurvePa
 	assertU256Equal(t, label+".LastInvariant", expected.LastInvariant, actual.LastInvariant)
 }
 
+// nolint: unused
 func assertU256Equal(t *testing.T, label string, expected, actual *uint256.Int) {
 	t.Helper()
 

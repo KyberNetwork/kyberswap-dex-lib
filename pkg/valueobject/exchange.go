@@ -297,6 +297,7 @@ const (
 	ExchangeWRSETH                     = "wrseth"
 	ExchangeXSolvBTC                   = "xsolvbtc"
 	ExchangePrintr                     = "printr"
+	ExchangeBaseline                   = "baseline"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
