@@ -99,21 +99,10 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	if result.Reserves, err = hook.GetReserves(ctx, hookParam); err != nil {
 		return nil, err
 	}
-	if result.Reserves == nil { // default implementation is to estimate from liquidity and sqrtPriceX96
-		var extra Extra
-		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-			l.WithFields(logger.Fields{
-				"error": err,
-			}).Error("failed to unmarshal pool extra")
-			return nil, err
-		}
-
-		reserve0, reserve1 := EstimateReservesFromTicks(result.Slot0.SqrtPriceX96, extra.Ticks)
-		result.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-	}
 
 	hookParam.BlockNumber = res.BlockNumber
 	result.HookExtra, err = hook.Track(ctx, hookParam)
+	p.Exchange = hook.GetExchange()
 	return result, err
 }
 
@@ -193,8 +182,14 @@ func (t *PoolTracker) BootstrapPoolState(
 			}).Error("failed to transform tickResp to tick")
 			continue
 		}
-
 		ticks = append(ticks, tick)
+	}
+
+	if rpcData.Reserves != nil {
+		p.Reserves = rpcData.Reserves
+	} else {
+		reserve0, reserve1 := EstimateReservesFromTicks(rpcData.Slot0.SqrtPriceX96, ticks)
+		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	}
 
 	extraBytes, err := json.Marshal(Extra{
@@ -215,7 +210,6 @@ func (t *PoolTracker) BootstrapPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = rpcData.Reserves
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 
@@ -728,25 +722,6 @@ func (t *PoolTracker) updateState(
 
 	blockNumber := ticksBasedPool.BlockNumber
 
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
-	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
-	}
-
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
 	for _, tick := range ticksBasedPool.Ticks {
 		// skip uninitialized ticks
@@ -766,9 +741,33 @@ func (t *PoolTracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	if rpcState.Slot0.SqrtPriceX96.Sign() == 0 {
+	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	if err != nil {
+		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			rpcState, err = t.FetchRPCData(ctx, &p, 0)
+			if err != nil {
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to fetch latest state from RPC")
+				return p, err
+			}
+		} else {
+			l.WithFields(logger.Fields{
+				"error":       err,
+				"blockNumber": blockNumber,
+			}).Error("failed to fetch state from RPC")
+			return p, err
+		}
+	} else if rpcState.Slot0.SqrtPriceX96.Sign() == 0 {
 		l.Error("sqrtPriceX96 is 0")
 		return p, errors.New("sqrtPriceX96 is 0")
+	}
+
+	if rpcState.Reserves != nil {
+		p.Reserves = rpcState.Reserves
+	} else {
+		reserve0, reserve1 := EstimateReservesFromTicks(rpcState.Slot0.SqrtPriceX96, entityPoolTicks)
+		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	}
 
 	extraBytes, err := json.Marshal(Extra{
@@ -790,26 +789,9 @@ func (t *PoolTracker) updateState(
 
 	p.SwapFee, _ = rpcState.Slot0.LpFee.Float64()
 	p.Extra = string(extraBytes)
-	p.Reserves = rpcState.Reserves
-	p.Exchange = t.getExchange(&p)
 	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
 
 	return p, nil
-}
-
-func (t *PoolTracker) getExchange(p *entity.Pool) string {
-	var staticExtra StaticExtra
-	var hookAddress common.Address
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		logger.Errorf("failed to unmarshal static extra data")
-	} else {
-		hookAddress = staticExtra.HooksAddress
-	}
-
-	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p}
-	hook, _ := GetHook(hookAddress, hookParam)
-
-	return hook.GetExchange()
 }
 
 func (t *PoolTracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,

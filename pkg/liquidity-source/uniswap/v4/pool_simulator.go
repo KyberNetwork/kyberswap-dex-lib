@@ -44,7 +44,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		HookExtra: HookExtra(extra.HookExtra),
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
-		return nil, shared.ErrUnsupportedHook
+		// If the hook implements Calibratable and has a valid model, allow it
+		// through. Otherwise, the pool is unsupported (unknown hook, no model).
+		if c, isCalibratable := hook.(Calibratable); !isCalibratable || !c.IsCalibrated() {
+			return nil, shared.ErrUnsupportedHook
+		}
 	}
 
 	allowEmptyTicks := hook.AllowEmptyTicks()

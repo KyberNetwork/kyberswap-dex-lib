@@ -141,9 +141,28 @@ func (x HookExtra) Unmarshal(dest any) error {
 	return json.Unmarshal(x, dest)
 }
 
+// Calibratable is implemented by hooks that use auto-detection. When a hook
+// returned by GetHook also implements this interface, the pool simulator will
+// allow it even if its address is not in HookFactories — provided that
+// IsCalibrated() returns true.
+type Calibratable interface {
+	IsCalibrated() bool
+}
+
 type HookFactory func(param *HookParam) Hook
 
 var HookFactories = map[common.Address]HookFactory{}
+
+// fallbackHookFactory is called when a hook address is not in HookFactories.
+// It is set by SetFallbackHookFactory (typically from the auto package init).
+var fallbackHookFactory HookFactory
+
+// SetFallbackHookFactory registers a factory that is used for any hook address
+// not explicitly registered in HookFactories. Only one fallback can be active;
+// subsequent calls replace the previous value.
+func SetFallbackHookFactory(f HookFactory) {
+	fallbackHookFactory = f
+}
 
 func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	return RegisterHooksFactory(func(*HookParam) Hook {
@@ -161,7 +180,15 @@ func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool
 func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
 	hookFactory, ok := HookFactories[hookAddress]
 	if hookFactory == nil {
-		hook = (*BaseHook)(nil)
+		if fallbackHookFactory != nil {
+			if param == nil {
+				param = &HookParam{}
+			}
+			param.HookAddress = hookAddress
+			hook = fallbackHookFactory(param)
+		} else {
+			hook = (*BaseHook)(nil)
+		}
 	} else {
 		if param == nil {
 			param = &HookParam{}
