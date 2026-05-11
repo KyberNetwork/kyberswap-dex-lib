@@ -181,7 +181,9 @@ func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) 
 		hook = hookFactory(param)
 	} else if !ok && fallbackHookFactory != nil {
 		hook = fallbackHookFactory(param)
-		ok = hook != nil
+		if ok = hook != nil; !ok {
+			hook = (*BaseHook)(nil)
+		}
 	} else {
 		hook = (*BaseHook)(nil)
 	}
