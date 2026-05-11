@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -27,7 +28,6 @@ var (
 	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrK                        = errors.New("K")
 	ErrY                        = errors.New("!Y")
-	ErrUnimplemented            = errors.New("unimplemented")
 )
 
 type (
@@ -293,8 +293,11 @@ func (s *PoolSimulator) getAmountIn(
 		balance1 = new(uint256.Int).Sub(reserve1, amountOut)
 	}
 
-	if s._k(balance0, balance1).Cmp(s._k(reserve0, reserve1)) < 0 {
-		return nil, ErrK
+	// Skip K invariant check for stable pools since the invariant is different
+	if !s.stable {
+		if s._k(balance0, balance1).Cmp(s._k(reserve0, reserve1)) < 0 {
+			return nil, ErrK
+		}
 	}
 
 	return amountIn, nil
@@ -307,7 +310,34 @@ func (s *PoolSimulator) _getAmountIn(
 	_reserve1 *uint256.Int,
 ) (amountIn *uint256.Int, err error) {
 	if s.stable {
-		return nil, ErrUnimplemented
+		xy := s._k(_reserve0, _reserve1)
+		var tmp uint256.Int
+		_reserve0 = big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, s.decimals0)
+		_reserve1 = big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, s.decimals1)
+
+		if tokenOut == s.Info.Tokens[0] {
+			amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, s.decimals0)
+			newReserve0 := amountOutScaled.Sub(_reserve0, amountOutScaled)
+			x, err := s._get_y(newReserve0, xy, _reserve1)
+			if err != nil {
+				return nil, err
+			}
+			amountIn = x.Sub(x, _reserve1)
+			tmp.Sub(s.feePrecision, s.fee)
+			amountIn = big256.MulDivUp(&tmp, amountIn, s.feePrecision, &tmp)
+			return big256.MulWadUp(&tmp, amountIn, s.decimals1), nil
+		}
+
+		amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, s.decimals1)
+		newReserve1 := amountOutScaled.Sub(_reserve1, amountOutScaled)
+		x, err := s._get_y(newReserve1, xy, _reserve0)
+		if err != nil {
+			return nil, err
+		}
+		amountIn = x.Sub(x, _reserve0)
+		tmp.Sub(s.feePrecision, s.fee)
+		amountIn = big256.MulDivUp(&tmp, amountIn, s.feePrecision, &tmp)
+		return big256.MulWadUp(&tmp, amountIn, s.decimals0), nil
 	}
 
 	defer func() {

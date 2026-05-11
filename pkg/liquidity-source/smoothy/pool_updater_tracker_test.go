@@ -21,7 +21,7 @@ type PoolListTrackerTestSuite struct {
 }
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {
-	rpcClient := ethrpc.New("https://eth.drpc.org").
+	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 
 	config := Config{

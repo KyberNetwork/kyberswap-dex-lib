@@ -35,7 +35,7 @@ func TestCP_Track(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(cpEntityPool.Extra), &extra))
 	require.NoError(t, json.Unmarshal([]byte(cpEntityPool.StaticExtra), &staticExtra))
 	hookParam := &uniswapv4.HookParam{
-		RpcClient:   ethrpc.New("https://base.drpc.org"),
+		RpcClient:   ethrpc.New("https://base-rpc.kyberswap.com"),
 		Pool:        &cpEntityPool,
 		HookAddress: staticExtra.HooksAddress,
 	}

@@ -157,3 +157,11 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.totalSupply = p.totalSupply.Clone()
 	return &cloned
 }
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
+}

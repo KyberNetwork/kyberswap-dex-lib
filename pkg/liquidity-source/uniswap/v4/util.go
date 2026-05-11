@@ -50,7 +50,7 @@ func EstimateReservesFromTicks(sqrtPriceX96 *big.Int, ticks []Tick) (amt0, amt1 
 		lower := upper
 		upper = math.Pow(TickBase, float64(tickUpper.Index)/2)
 
-		if price < lower {
+		if price <= lower {
 			totalAmt0 += L * (upper - lower) / (lower * upper)
 		} else if price >= upper {
 			totalAmt1 += L * (upper - lower)

@@ -221,6 +221,14 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return s.HasNative && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return s.HasNative && valueobject.IsWrappedNative(tokenOut, chainId)
+}
+
 // ------------------------------------------------------------------------------------------------
 // @dev the logic in the methods below mirrors the original Solidity code used in Dex, see
 // https://github.com/Instadapp/fluid-contracts-public/tree/main/contracts/protocols/dex/poolT1

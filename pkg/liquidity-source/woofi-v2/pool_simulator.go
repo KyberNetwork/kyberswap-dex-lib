@@ -3,6 +3,7 @@ package woofiv2
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -12,53 +13,31 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	ErrPoolPaused      = errors.New("WooPPV2: pool is paused")
 	ErrInvalidAmountIn = errors.New("invalid amountIn")
 
-	ErrBaseTokenIsQuoteToken = errors.New("WooPPV2: baseToken==quoteToken")
-	ErrOracleIsNotFeasible   = errors.New("WooPPV2: !ORACLE_FEASIBLE")
-
+	ErrBaseTokenIsQuoteToken       = errors.New("WooPPV2: baseToken==quoteToken")
+	ErrOracleIsNotFeasible         = errors.New("WooPPV2: !ORACLE_FEASIBLE")
+	ErrOraclePriceNotPositive      = errors.New("WooPPV2: !ORACLE_PRICE")
 	ErrArithmeticOverflowUnderflow = errors.New("arithmetic overflow / underflow")
 )
 
-var (
-	Number_1e5 = number.TenPow(5)
-)
+type PoolSimulator struct {
+	pool.Pool
+	quoteToken string
+	tokenInfos map[string]TokenInfo
+	decimals   map[string]uint8
+	wooracle   Wooracle
+	cloracle   map[string]Cloracle
+	isPaused   bool
 
-type (
-	PoolSimulator struct {
-		pool.Pool
-		quoteToken string
-		tokenInfos map[string]TokenInfo
-		decimals   map[string]uint8
-		wooracle   Wooracle
-		cloracle   map[string]Cloracle
-		isPaused   bool
-
-		gas Gas
-	}
-
-	// DecimalInfo
-	// https://github.com/woonetwork/WooPoolV2/blob/e4fc06d357e5f14421c798bf57a251f865b26578/contracts/WooPPV2.sol#L58
-	DecimalInfo struct {
-		priceDec *uint256.Int // 10**(price_decimal)
-		quoteDec *uint256.Int // 10**(quote_decimal)
-		baseDec  *uint256.Int // 10**(base_decimal)
-	}
-
-	woofiV2SwapInfo struct {
-		newPrice      *uint256.Int
-		newBase1Price *uint256.Int
-		newBase2Price *uint256.Int
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+	gas Gas
+}
 
 var _ = pool.RegisterFactory0(DexTypeWooFiV2, NewPoolSimulator)
 
@@ -207,7 +186,7 @@ func (s *PoolSimulator) _sellBase(
 			quoteAmount,
 			uint256.NewInt(uint64(s.tokenInfos[baseToken].FeeRate)),
 		),
-		Number_1e5,
+		u256.TenPow(5),
 	)
 
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
@@ -235,7 +214,7 @@ func (s *PoolSimulator) _sellQuote(
 			quoteAmount,
 			uint256.NewInt(uint64(s.tokenInfos[baseToken].FeeRate)),
 		),
-		Number_1e5,
+		u256.TenPow(5),
 	)
 
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
@@ -281,7 +260,7 @@ func (s *PoolSimulator) _swapBaseToBase(
 		return nil, nil, nil, nil, err
 	}
 
-	swapFee := new(uint256.Int).Div(new(uint256.Int).Mul(quoteAmount, uint256.NewInt(uint64(feeRate))), Number_1e5)
+	swapFee := new(uint256.Int).Div(new(uint256.Int).Mul(quoteAmount, uint256.NewInt(uint64(feeRate))), u256.TenPow(5))
 
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
 
@@ -312,6 +291,9 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 ) (*uint256.Int, *uint256.Int, error) {
 	if !state.WoFeasible {
 		return nil, nil, ErrOracleIsNotFeasible
+	}
+	if state.Price.Sign() <= 0 {
+		return nil, nil, ErrOraclePriceNotPositive
 	}
 
 	desc := s.decimalInfo(baseToken)
@@ -373,6 +355,9 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 ) (*uint256.Int, *uint256.Int, error) {
 	if !state.WoFeasible {
 		return nil, nil, ErrOracleIsNotFeasible
+	}
+	if state.Price.Sign() <= 0 {
+		return nil, nil, ErrOraclePriceNotPositive
 	}
 
 	decs := s.decimalInfo(baseToken)
@@ -464,11 +449,12 @@ func (s *PoolSimulator) updateBalanceSellBase(params pool.UpdateBalanceParams) {
 		Reserve: newQuoteReserve,
 		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
 	}
+	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
 		Price:      swapInfo.newPrice,
-		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+		Spread:     stateIn.Spread,
+		Coeff:      stateIn.Coeff,
+		WoFeasible: stateIn.WoFeasible,
 	}
 }
 
@@ -526,7 +512,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 // WooracleV2._cloPriceInQuote
 // https://github.com/woonetwork/WooPoolV2/blob/fb94e2bf4882f51340c66357e8c566edc2a767a9/contracts/wooracle/WooracleV2.sol#L304-L325
 func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken string) (*uint256.Int, int64) {
-	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(zeroAddress) == 0 {
+	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(valueobject.AddrZero) == 0 {
 		return number.Zero, 0
 	}
 
@@ -575,11 +561,12 @@ func (s *PoolSimulator) updateBalanceSellQuote(params pool.UpdateBalanceParams) 
 		Reserve: newQuoteReserve,
 		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
 	}
-	s.wooracle.States[params.TokenAmountIn.Token] = State{
+	stateOut := s.wooracle.States[params.TokenAmountOut.Token]
+	s.wooracle.States[params.TokenAmountOut.Token] = State{
 		Price:      swapInfo.newPrice,
-		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+		Spread:     stateOut.Spread,
+		Coeff:      stateOut.Coeff,
+		WoFeasible: stateOut.WoFeasible,
 	}
 }
 
@@ -626,4 +613,14 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalancePar
 		Coeff:      s.wooracle.States[params.TokenAmountOut.Token].Coeff,
 		WoFeasible: s.wooracle.States[params.TokenAmountOut.Token].WoFeasible,
 	}
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.tokenInfos = maps.Clone(p.tokenInfos)
+	cloned.cloracle = maps.Clone(p.cloracle)
+
+	cloned.wooracle.States = maps.Clone(p.wooracle.States)
+
+	return &cloned
 }

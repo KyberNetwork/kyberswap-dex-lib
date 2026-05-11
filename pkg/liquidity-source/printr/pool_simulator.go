@@ -171,7 +171,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		RemainingTokenAmountIn: remainingTokenAmountIn,
 		Fee:                    &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
 		Gas:                    gas,
-		SwapInfo:               &SwapInfo{IsSell: isSell, reserveDelta: reserveDelta},
+		SwapInfo: &SwapInfo{
+			IsSell:        isSell,
+			reserveDelta:  reserveDelta,
+			PrintrAddress: s.printrAddr,
+		},
 	}, nil
 }
 

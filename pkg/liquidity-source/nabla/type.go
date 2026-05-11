@@ -8,11 +8,12 @@ import (
 )
 
 type NablaPoolMeta struct {
-	CurveBeta   *int256.Int `json:"curveBeta"`
-	CurveC      *int256.Int `json:"curveC"`
-	BackstopFee *int256.Int `json:"backstopFee"`
-	ProtocolFee *int256.Int `json:"protocolFee"`
-	LpFee       *int256.Int `json:"lpFee"`
+	CurveBeta                 *int256.Int `json:"curveBeta"`
+	CurveC                    *int256.Int `json:"curveC"`
+	BackstopFee               *int256.Int `json:"backstopFee"`
+	ProtocolFee               *int256.Int `json:"protocolFee"`
+	LpFee                     *int256.Int `json:"lpFee"`
+	MaxCoverageRatioForSwapIn *int256.Int `json:"maxCoverageRatioForSwapIn,omitempty"`
 }
 
 type NablaPoolState struct {

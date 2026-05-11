@@ -1,0 +1,268 @@
+[
+    {
+        "name": "pool_count",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "name": "pool_list",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_index",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ]
+    },
+    {
+        "name": "find_pool_for_coins",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address"
+            },
+            {
+                "name": "_to",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ]
+    },
+    {
+        "name": "find_pool_for_coins",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "address"
+            },
+            {
+                "name": "_to",
+                "type": "address"
+            },
+            {
+                "name": "i",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ]
+    },
+    {
+        "name": "get_n_coins",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "name": "get_coins",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address[]"
+            }
+        ]
+    },
+    {
+        "name": "get_decimals",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256[]"
+            }
+        ]
+    },
+    {
+        "name": "get_balances",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256[]"
+            }
+        ]
+    },
+    {
+        "name": "get_A",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "name": "get_fees",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "fee",
+                "type": "uint256"
+            },
+            {
+                "name": "admin_fee",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "name": "get_admin_balances",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256[4]"
+            }
+        ]
+    },
+    {
+        "name": "get_pool_asset_types",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint8[4]"
+            }
+        ]
+    },
+    {
+        "name": "pool_implementations",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_idx",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ]
+    },
+    {
+        "name": "pool_oracle_implementations",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "_idx",
+                "type": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ]
+    },
+    {
+        "stateMutability": "view",
+        "type": "function",
+        "name": "get_implementation_address",
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ]
+    }
+]

@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -35,6 +36,9 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 	subgraphPoolType string,
 	metadata Metadata,
 ) ([]entity.Pool, Metadata, error) {
+	if d.graphqlClient == nil {
+		return nil, Metadata{}, errors.New("graphql client is nil")
+	}
 	subgraphPools, err := d.getPoolsList(ctx, d.config.NewPoolLimit, 0, subgraphPoolType, metadata.LastCreatedAtTimestamp)
 	if err != nil {
 		return nil, Metadata{}, err

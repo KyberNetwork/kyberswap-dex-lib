@@ -130,6 +130,14 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return s.extra.RouterAddress
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
+}
+
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {
 	numerator := new(uint256.Int).Mul(amountIn, reserveOut)
 	denominator := new(uint256.Int).Add(reserveIn, amountIn)

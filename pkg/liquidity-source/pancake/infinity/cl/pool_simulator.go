@@ -40,7 +40,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: int(chainID)},
+		Cfg:       &Config{ChainID: int(chainID), DexID: entityPool.Exchange},
 		Pool:      &entityPool,
 		HookExtra: extra.HookExtra,
 	})
@@ -48,7 +48,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, shared.ErrUnsupportedHook
 	}
 
-	var allowEmptyTicks bool
+	allowEmptyTicks := false
+	if hook != nil {
+		allowEmptyTicks = hook.AllowEmptyTicks()
+	}
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256,
 		allowEmptyTicks)
@@ -148,7 +151,23 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		poolSim = &cloned
 	}
 
-	if swapResult, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	if amountIn.Sign() == 0 {
+		// Hook consumed the full input — math is fully overridden by the
+		// hook's BeforeSwap delta. Skip the v3 tick simulator (which would
+		// error on amountIn=0 for pools with no real CL liquidity, e.g.
+		// curve-style stable hooks). The deferred handler subtracts
+		// DeltaUnspecified (negative for full overrides) from the zero
+		// output to produce the hook-provided amountOut.
+		//
+		// PoolSwapInfo carries nil tick fields so UpdateBalance can detect
+		// "v3 was skipped" and avoid touching v3 tick state.
+		swapResult = &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: new(big.Int)},
+			Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: new(big.Int)},
+			Gas:            0,
+			SwapInfo:       PoolSwapInfo{}, // all-nil → UpdateBalance skips v3
+		}
+	} else if swapResult, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn,
@@ -252,7 +271,18 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		poolSim = &cloned
 	}
 
-	if swapResult, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
+	if amountOut.Sign() == 0 {
+		// Hook fully provides the output (full math override). See the matching
+		// short-circuit in CalcAmountOut above for the rationale. The deferred
+		// handler adds DeltaUnspecified (positive for full overrides) to the
+		// zero input to produce the hook-provided amountIn.
+		swapResult = &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: new(big.Int)},
+			Fee:           &pool.TokenAmount{Token: param.TokenIn, Amount: new(big.Int)},
+			Gas:           0,
+			SwapInfo:      PoolSwapInfo{},
+		}
+	} else if swapResult, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut,
@@ -308,6 +338,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if p.hook != nil {
 		p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
 	}
+	if v4SwapInfo.NextStateSqrtRatioX96 == nil {
+		return
+	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
 	p.PoolSimulator.UpdateBalance(params)
 }
@@ -338,4 +371,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		PriceLimit:  &priceLimit,
 		SwapFee:     p.Info.SwapFee.Uint64(),
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
+	return meta.TokenIn == valueobject.AddrZero
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
+	return meta.TokenOut == valueobject.AddrZero
 }

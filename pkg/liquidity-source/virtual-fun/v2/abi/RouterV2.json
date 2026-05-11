@@ -149,6 +149,19 @@
     },
     {
         "inputs": [],
+        "name": "bondingV2",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
         "name": "bondingV4",
         "outputs": [
             {

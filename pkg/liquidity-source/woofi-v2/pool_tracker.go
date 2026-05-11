@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -189,7 +190,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}, len(p.Tokens))
 
 	if _, ok := lo.Find(clOracles, func(clOracle clOracleResp) bool {
-		return clOracle.Oracle.Cmp(zeroAddress) == 0
+		return clOracle.Oracle.Cmp(valueobject.AddrZero) == 0
 	}); !ok {
 		cloracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 		for i := range p.Tokens {

@@ -30,7 +30,7 @@ func TestTesseraIntegration(t *testing.T) {
 		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
 
-	rpcClient := ethrpc.New("https://base.kyberengineering.io").
+	rpcClient := ethrpc.New("https://base-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	updater := NewPoolsListUpdater(&cfg, rpcClient)

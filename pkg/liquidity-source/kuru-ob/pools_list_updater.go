@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -114,8 +115,9 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			SwapFee:     fee / 10000,
 			Exchange:    u.config.DexID,
 			Type:        DexType,
-			Tokens:      tokens,
+			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},
+			Tokens:      tokens,
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 		}

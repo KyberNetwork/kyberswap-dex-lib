@@ -133,6 +133,14 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
 }
 
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
+}
+
 // def getInputPrice(input_amount: uint256, input_reserve: uint256, output_reserve: uint256) -> uint256:
 //
 //	assert input_reserve > 0 and output_reserve > 0

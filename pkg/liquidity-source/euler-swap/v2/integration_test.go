@@ -22,13 +22,11 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
+	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com")
 	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
-	registryAddress := "0x5fccb84363f020c0cade052c9c654aabf932814a"
-
 	config := shared.Config{
-		FactoryAddress: registryAddress,
+		FactoryAddress: "0x5fccb84363f020c0cade052c9c654aabf932814a",
 	}
 
 	updater := NewPoolsListUpdater(&config, rpcClient)
@@ -97,6 +95,11 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 						if simErr != nil {
 							if simErr == shared.ErrInsolvency {
 								fmt.Printf("Pool: %s, Direction: %d->%d, Amount: %s - Skip solvency error\n",
+									updatedPool.Address, i, j, amountIn.String())
+								continue
+							}
+							if simErr == shared.ErrCurveViolation {
+								fmt.Printf("Pool: %s, Direction: %d->%d, Amount: %s - Skip curve violation error\n",
 									updatedPool.Address, i, j, amountIn.String())
 								continue
 							}

@@ -38,7 +38,7 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 
 	rpcURL := os.Getenv("BASE_RPC_URL")
 	if rpcURL == "" {
-		rpcURL = "https://base.kyberengineering.io"
+		rpcURL = "https://base-rpc.kyberswap.com"
 	}
 
 	verifier := common.HexToAddress(os.Getenv("VERIFIER_ADDRESS"))

@@ -3,6 +3,7 @@ package stableng
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -14,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -104,7 +106,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
-	// swap from token to token
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
@@ -144,7 +145,6 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut := param.TokenAmountOut
 	tokenIn := param.TokenIn
-	// swap from token to token
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenAmountOut.Token)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
@@ -182,15 +182,17 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.Reserves = slices.Clone(t.Reserves)
+	return &cloned
+}
+
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
-	var outputAmount = output.Amount
-	// output = output + adminFee
-	outputAmount = new(big.Int).Add(
-		outputAmount,
-		params.Fee.Amount,
-	)
+	outputAmount := new(big.Int).Add(output.Amount, params.Fee.Amount)
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
 			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
@@ -216,4 +218,14 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		meta.TokenOutIsNative = &t.StaticExtra.IsNativeCoins[toId]
 	}
 	return meta
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
+	return meta.TokenInIsNative != nil && *meta.TokenInIsNative
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
+	return meta.TokenOutIsNative != nil && *meta.TokenOutIsNative
 }

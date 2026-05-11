@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type IPoolsListUpdater interface {
@@ -82,6 +83,11 @@ type IMetaPoolSimulator interface {
 	SetBasePool(basePool IPoolSimulator) // set base pool
 }
 
+type IPoolSupportNativeSwap interface {
+	SwapReceiveNativeIn(tokenIn, tokenOut string, chainId valueobject.ChainID) bool
+	SwapReturnNativeOut(tokenIn, tokenOut string, chainId valueobject.ChainID) bool
+}
+
 type (
 	// ICustomFuncs provides customizable functions for calculating amount out and cloning pool states
 	ICustomFuncs interface {
@@ -128,14 +134,15 @@ type ITBPoolTracker[T any] interface {
 }
 
 // ITicksBasedPoolTracker fetches ticks for pool from Swap, Mint and Burn events.
+// GetNewPoolState (from IPoolTracker) applies log-based updates using params.Logs and params.BlockHeaders.
+// BootstrapPoolState performs full RPC/subgraph refresh (e.g. when params have no logs).
 type ITicksBasedPoolTracker interface {
-	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
-	GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
-		blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error)
+	IPoolTracker
+	BootstrapPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 	FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error)
 }
 
 type IPoolFactoryDecoder interface {
 	DecodePoolCreated(event types.Log) (*entity.Pool, error)
-	IsEventSupported(event common.Hash) bool
+	IsEventSupported(hash common.Hash) bool
 }

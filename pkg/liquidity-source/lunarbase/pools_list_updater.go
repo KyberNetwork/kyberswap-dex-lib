@@ -53,7 +53,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		InitFlashBlockSubscriber(
 			u.config.WsURL,
 			u.config.FlashWsURL,
-			common.HexToAddress(defaultCore(u.config)),
+			common.HexToAddress(u.config.CoreAddress),
 		)
 	}
 

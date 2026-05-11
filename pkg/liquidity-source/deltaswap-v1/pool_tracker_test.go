@@ -22,7 +22,7 @@ type PoolListTrackerTestSuite struct {
 }
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {
-	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io")
+	rpcClient := ethrpc.New("https://arbitrum-rpc.kyberswap.com")
 	rpcClient.SetMulticallContract(common.HexToAddress("0x7eCfBaa8742fDf5756DAC92fbc8b90a19b8815bF"))
 
 	ts.client = rpcClient

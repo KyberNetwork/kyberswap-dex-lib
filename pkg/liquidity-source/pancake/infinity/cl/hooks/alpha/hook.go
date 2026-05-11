@@ -25,6 +25,7 @@ var _ = cl.RegisterHooksFactory(func(param *cl.HookParam) cl.Hook {
 	common.HexToAddress("0x9a9B5331ce8d74b2B721291D57DE696E878353fd"),
 	common.HexToAddress("0x72e09eBd9b24F47730b651889a4eD984CBa53d90"),
 	common.HexToAddress("0xb0BAa371b899950B4Ef6A27c21bAf5ef7c434d0f"),
+	common.HexToAddress("0xb0bb171D333569CfD28a37F5c5DdDAAa90aD46af"), // bsc pancakeswap
 )
 
 type Hook struct {

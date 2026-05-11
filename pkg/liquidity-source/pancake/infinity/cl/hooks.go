@@ -39,11 +39,13 @@ var (
 type Hook interface {
 	GetExchange() string
 	GetDynamicFee(ctx context.Context, params *HookParam, lpFee uint32) uint32
+	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) ([]byte, error)
 	BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error)
 	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
 	CloneState() Hook
 	UpdateBalance(swapInfo any)
+	AllowEmptyTicks() bool
 }
 
 type HookFactory func(param *HookParam) Hook
@@ -57,18 +59,58 @@ func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool
 	return true
 }
 
-func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
-	hookFactory, ok := HookFactories[hookAddress]
-	if hookFactory == nil {
-		hook = NewBaseHook(valueobject.ExchangePancakeInfinityCL, param)
-	} else {
-		if param == nil {
-			param = &HookParam{}
-		}
-		param.HookAddress = hookAddress
-		hook = hookFactory(param)
+var stableHookFactory HookFactory
+
+func RegisterStableHookFactory(f HookFactory) bool {
+	stableHookFactory = f
+	return true
+}
+
+// GetHook resolves a Hook in priority order:
+//  1. by hook contract address (HookFactories) — static init-time config
+//  2. stable-hook fast-path when entity.Pool.Exchange (or Cfg.DexID) is stable
+//  3. RPC classification — only when param.RpcClient is set (in tracker)
+//  4. fallback to BaseHook
+func GetHook(hookAddress common.Address, param *HookParam) (Hook, bool) {
+	if param == nil {
+		param = &HookParam{}
 	}
-	return hook, ok
+	param.HookAddress = hookAddress
+
+	if f, ok := HookFactories[hookAddress]; ok && f != nil {
+		return f(param), true
+	}
+
+	exchange := ""
+	if param.Pool != nil {
+		exchange = param.Pool.Exchange
+	} else if param.Cfg != nil {
+		exchange = param.Cfg.DexID
+	}
+
+	if stableHookFactory != nil &&
+		(exchange == valueobject.ExchangePancakeInfinityCLStable || isStableHook(param, hookAddress)) {
+		return stableHookFactory(param), true
+	}
+
+	return NewBaseHook(valueobject.ExchangePancakeInfinityCL, param), false
+}
+
+func isStableHook(param *HookParam, hookAddress common.Address) bool {
+	if valueobject.IsZeroAddress(hookAddress) {
+		return false
+	}
+
+	var stableHookFactories []string
+	if cfg := param.Cfg; cfg != nil {
+		stableHookFactories = cfg.StableHookFactories
+	}
+	return classifyStableHooks(
+		context.Background(),
+		param.RpcClient,
+		stableHookFactories,
+		[]common.Address{hookAddress},
+	)[hookAddress]
 }
 
 type BaseHook struct{ Exchange string }
@@ -104,6 +146,10 @@ func (h *BaseHook) GetDynamicFee(_ context.Context, _ *HookParam, _ uint32) uint
 	return 0
 }
 
+func (h *BaseHook) GetReserves(context.Context, *HookParam) (entity.PoolReserves, error) {
+	return nil, nil
+}
+
 func (h *BaseHook) Track(context.Context, *HookParam) ([]byte, error) {
 	return nil, nil
 }
@@ -126,3 +172,5 @@ func (h *BaseHook) CloneState() Hook {
 }
 
 func (h *BaseHook) UpdateBalance(_ any) {}
+
+func (h *BaseHook) AllowEmptyTicks() bool { return false }

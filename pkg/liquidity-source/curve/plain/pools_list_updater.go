@@ -52,7 +52,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		u.logger.Infof("Finish updating pools list.")
 	}()
 
-	curvePools, newMetadataBytes, err := u.sharedUpdater.GetNewPools(ctx, metadataBytes, mapset.NewSet(shared.CURVE_POOL_TYPE_STABLE_PLAIN))
+	curvePools, newMetadataBytes, err := u.sharedUpdater.GetNewPools(ctx, metadataBytes,
+		mapset.NewSet(shared.CURVE_POOL_TYPE_STABLE_PLAIN))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,7 +64,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	// some of these curve-stable-plain pools might already existed in Redis as curve-base pools
+	// some of these curve-stable-plain pools might already exist in Redis as curve-base pools
 	// after deploying, these old curve-base pools will continue to work as curve-base (pool-service won't overwrite that)
 	// after deleting old curve-base pools in Redis, they will be classified again as curve-stable-plain
 
@@ -72,7 +73,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
+	error) {
 	var (
 		aList        = make([]*big.Int, len(curvePools))
 		aPreciseList = make([]*big.Int, len(curvePools))
@@ -82,7 +84,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	// for Plain pool we'll need APrecision (A_precise/A)
-	// (the original whitepaper use A, but in code they use A_precise (A*APrecision) to do the calculation)
+	// (the original white-paper use A, but in code they use A_precise (A*APrecision) to do the calculation)
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
@@ -117,26 +119,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
-		invalidDecimal := false
 		isNativeCoin := make([]bool, 0, len(curvePool.Coins))
 		for _, c := range curvePool.Coins {
-			dec := c.GetDecimals()
-			if dec == 0 {
-				invalidDecimal = true
-				break
-			}
-			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address:   strings.ToLower(c.Address),
-				Symbol:    c.Symbol,
-				Decimals:  dec,
-				Swappable: true,
-			})
+			poolTokens = append(poolTokens, &entity.PoolToken{Address: strings.ToLower(c.Address), Swappable: true})
 			isNativeCoin = append(isNativeCoin, c.IsOrgNative)
 			reserves = append(reserves, "0")
-		}
-		if invalidDecimal {
-			lg.Warn("ignore pool with invalid coin decimal")
-			continue
 		}
 		reserves = append(reserves, "0")
 
@@ -151,7 +138,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		}
 
 		if aList[i] != nil && aPreciseList[i] != nil {
-			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]), number.SetFromBig(aList[i]))
+			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]),
+				number.SetFromBig(aList[i]))
 		} else if aList[i] != nil {
 			staticExtra.APrecision = uint256.NewInt(1)
 		} else {

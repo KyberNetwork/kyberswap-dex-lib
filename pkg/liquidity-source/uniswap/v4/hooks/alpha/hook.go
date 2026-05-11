@@ -24,6 +24,8 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 },
 	common.HexToAddress("0xb0Ba5d56364569496e0aA5158C3242420eaDE880"), // base
 	common.HexToAddress("0xB0BcB37dD65712c3Afa101D54389c8279659A880"), // bsc
+	common.HexToAddress("0xB0b24B89dB0dafbE43C5b40226b63A179f592880"), // base uniswap v4
+	common.HexToAddress("0xB0Be14859E2cA735B22E58C52A6F3413454E2880"), // arb uniswap v4
 )
 
 type Hook struct {

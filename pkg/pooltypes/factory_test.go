@@ -16,7 +16,6 @@ import (
 func TestPoolFactory(t *testing.T) {
 	t.Parallel()
 	excludedPoolTypes := []string{
-		"ambient",       // private
 		"maverick-v2",   // private
 		"kyber-pmm",     // private
 		"pmm-1",         // private
@@ -47,7 +46,7 @@ func TestCanCalcAmountIn(t *testing.T) {
 		"balancer-v2-weighted", "balancer-v3-eclp", "balancer-v3-stable", "balancer-v3-weighted", "bancor-v3",
 		"curve-compound", "curve-lending", "curve-llamma", "curve-stable-meta-ng", "curve-stable-ng",
 		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "ekubo",
-		"ekubo-v3", "euler-swap", "fluid-dex-t1", "iziswap", "limit-order", "liquiditybook-v21",
+		"ekubo-v3", "euler-swap", "fluid-dex-t1", "iziswap", "limit-order", "liquiditybook-v21", "baseline",
 		"maverick-v1", "muteswitch", "pancake-v3", "ringswap", "sky-psm", "slipstream", "solidly-v2", "solidly-v3",
 		"swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable", "uniswap-v1",
 		"uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
@@ -60,7 +59,7 @@ func TestCanCalcAmountIn(t *testing.T) {
 
 func TestUseSwapLimit(t *testing.T) {
 	t.Parallel()
-	dexes := []string{"kyberswap-limit-order-v2", "ringswap"}
+	dexes := []string{"kyberswap-limit-order-v2", "ringswap", "ambient"}
 	for _, tt := range dexes {
 		t.Run(tt, func(t *testing.T) {
 			assert.Contains(t, pool.UseSwapLimit, tt)
@@ -139,8 +138,19 @@ func TestTicksBasedPoolTrackerFactory(t *testing.T) {
 
 	for _, poolTracker := range poolTrackers {
 		t.Run(poolTracker, func(t *testing.T) {
-			got := pooltrack.TicksBasedFactory(poolTracker)
+			got := pooltrack.Factory(poolTracker)
 			assert.NotNil(t, got)
+			handler, err := got(string(poolTracker), pooltrack.FactoryParams{
+				Exchange:   string(poolTracker),
+				Properties: nil,
+				Dependencies: pooltrack.Dependencies{
+					EthrpcClient:  nil,
+					GraphqlClient: nil,
+				},
+			})
+			assert.NoError(t, err)
+			_, ok := handler.(pool.ITicksBasedPoolTracker)
+			assert.True(t, ok)
 		})
 	}
 }

@@ -35,7 +35,7 @@ func setupWasabiTest(t *testing.T) (entity.Pool, *PoolSimulator, *ethrpc.Client)
 
 	rpcURL := os.Getenv("BASE_RPC_URL")
 	if rpcURL == "" {
-		rpcURL = "https://base.kyberengineering.io"
+		rpcURL = "https://base-rpc.kyberswap.com"
 	}
 
 	cfg := Config{

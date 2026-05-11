@@ -33,7 +33,7 @@ func TestPoolTracker(t *testing.T) {
 
 	logger.Debugf("Starting TestPoolTracker with config: %+v", config)
 
-	client := ethrpc.New("https://ethereum.kyberengineering.io")
+	client := ethrpc.New("https://ethereum-rpc.kyberswap.com")
 	client.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 
 	poolTracker := NewPoolTracker(&config, client)

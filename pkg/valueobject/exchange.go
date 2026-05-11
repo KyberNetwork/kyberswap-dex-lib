@@ -54,6 +54,7 @@ const (
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
 	ExchangeBurrBearWeighted           = "burrbear-weighted"
+	ExchangeCanonic                    = "canonic"
 	ExchangeCarbon                     = "carbon"
 	ExchangeClear                      = "clear"
 	ExchangeClipper                    = "clipper"
@@ -106,6 +107,7 @@ const (
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidDexV2                 = "fluid-dex-v2"
 	ExchangeFluidVaultT1               = "fluid-vault-t1"
+	ExchangeFluidATokenSwap            = "fluid-atoken-swap"
 	ExchangeFrxETH                     = "frxeth"
 	ExchangeFrxUSD                     = "frxusd"
 	ExchangeGenericArm                 = "generic-arm"
@@ -183,6 +185,7 @@ const (
 	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeInfinityCLLO        = "pancake-infinity-cl-lo"
+	ExchangePancakeInfinityCLStable    = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax       = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
@@ -199,6 +202,9 @@ const (
 	ExchangePmm6                       = "pmm-6"
 	ExchangePmm7                       = "pmm-7"
 	ExchangePmm8                       = "pmm-8"
+	ExchangePmm9                       = "pmm-9"
+	ExchangePmm10                      = "pmm-10"
+	ExchangePmm11                      = "pmm-11"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolycat                    = "polycat"
 	ExchangePolyDex                    = "polydex"
@@ -262,8 +268,11 @@ const (
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
+	ExchangeUniswapV4Livo              = "uniswap-v4-livo"
 	ExchangeUniswapV4NftStrategy       = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
+	ExchangeUniswapV4ST0x              = "uniswap-v4-st0x"
+	ExchangeUniswapV4StableStable      = "uniswap-v4-stable-stable"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdAi                      = "usd-ai"
@@ -288,6 +297,7 @@ const (
 	ExchangeWRSETH                     = "wrseth"
 	ExchangeXSolvBTC                   = "xsolvbtc"
 	ExchangePrintr                     = "printr"
+	ExchangeBaseline                   = "baseline"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -309,6 +319,9 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm6:       {},
 	ExchangePmm7:       {},
 	ExchangePmm8:       {},
+	ExchangePmm9:       {},
+	ExchangePmm10:      {},
+	ExchangePmm11:      {},
 	ExchangeSwaapV2:    {},
 	ExchangeUniswapLO:  {},
 }
@@ -321,8 +334,10 @@ func IsRFQSource[T ~string](exchange T) bool {
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
 var needFallbackSourceSet = map[Exchange]struct{}{
-	ExchangeAxima:   {},
-	ExchangeAximaV2: {},
+	ExchangeAxima:     {},
+	ExchangeAximaV2:   {},
+	ExchangeWooFiV3:   {},
+	ExchangeBrownfiV2: {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {
@@ -352,13 +367,14 @@ func IsPropAMMSource[T ~string](exchange T) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeBebop:          {},
-	ExchangeClipper:        {},
-	ExchangeOvernightUsdp:  {},
-	ExchangeUniswapV4Euler: {},
-	ExchangeEulerSwap:      {},
-	ExchangeEulerSwapV2:    {},
-	ExchangeWooFiV3:        {},
+	ExchangeBebop:            {},
+	ExchangeClipper:          {},
+	ExchangeOvernightUsdp:    {},
+	ExchangeEulerSwap:        {},
+	ExchangeEulerSwapV2:      {},
+	ExchangeUniswapV4Euler:   {},
+	ExchangeUniswapV4EulerV2: {},
+	ExchangeWooFiV3:          {},
 }
 
 func IsSingleSwapSource[T ~string](exchange T) bool {

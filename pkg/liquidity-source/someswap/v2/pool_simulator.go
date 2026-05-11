@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -136,6 +137,16 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 		ModuleMask: s.moduleMask,
 		UserModule: s.userModule,
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return valueobject.IsZero(meta.TokenIn)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return valueobject.IsZero(meta.TokenOut)
 }
 
 func (s *PoolSimulator) calcAmountOutDetailed(amountIn *uint256.Int, tokenInIndex, tokenOutIndex int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {

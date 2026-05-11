@@ -46,8 +46,7 @@ func (d *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	var staticExtra StaticExtra
-	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
-	if err != nil {
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
 
@@ -64,7 +63,7 @@ func (d *PoolTracker) getNewPoolState(
 
 	graduated := !valueobject.IsZeroAddress(tokenInfo.AgentToken)
 
-	var extra = Extra{
+	extra := Extra{
 		Trading:                    tokenInfo.Trading,
 		LaunchExecuted:             tokenInfo.LaunchExecuted,
 		GradThreshold:              gradThreshold,

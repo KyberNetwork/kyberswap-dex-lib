@@ -580,12 +580,12 @@ func (s *PoolSimulator) updateBalanceSellQuote(params pool.UpdateBalanceParams) 
 		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
 		CapBal:          tokenInfoOut.CapBal,
 	}
-	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
-	s.wooracle.States[params.TokenAmountIn.Token] = State{
+	stateOut := s.wooracle.States[params.TokenAmountOut.Token]
+	s.wooracle.States[params.TokenAmountOut.Token] = State{
 		Price:      swapInfo.newPrice,
-		Spread:     stateIn.Spread,
-		Coeff:      stateIn.Coeff,
-		WoFeasible: stateIn.WoFeasible,
+		Spread:     stateOut.Spread,
+		Coeff:      stateOut.Coeff,
+		WoFeasible: stateOut.WoFeasible,
 	}
 }
 

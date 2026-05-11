@@ -20,7 +20,7 @@ type PoolListUpdaterTestSuite struct {
 
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	rpcClientByChainID := map[valueobject.ChainID]*ethrpc.Client{
-		valueobject.ChainIDArbitrumOne: ethrpc.New("https://arbitrum.drpc.org").
+		valueobject.ChainIDArbitrumOne: ethrpc.New("https://arbitrum-rpc.kyberswap.com").
 			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	}
 

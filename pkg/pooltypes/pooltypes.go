@@ -20,10 +20,12 @@ import (
 	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/baseline"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
@@ -95,8 +97,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
@@ -334,6 +336,7 @@ type Types struct {
 	FluidDexLite               string
 	MantleETH                  string
 	OndoUSDY                   string
+	Baseline                   string
 	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
@@ -405,6 +408,7 @@ type Types struct {
 	Obric                      string
 	Printr                     string
 	Poe                        string
+	Canonic                    string
 }
 
 var (
@@ -530,7 +534,7 @@ var (
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
 		UsdAi:                      usd_ai.DexType,
-		Ambient:                    ambient.DexTypeAmbient,
+		Ambient:                    ambient.DexType,
 		MaverickV2:                 maverickv2.DexType,
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
@@ -544,6 +548,7 @@ var (
 		FluidDexLite:               fluidDexLite.DexType,
 		MantleETH:                  meth.DexType,
 		OndoUSDY:                   ondousdy.DexType,
+		Baseline:                   baseline.DexType,
 		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
@@ -619,5 +624,6 @@ var (
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
+		Canonic:                    canonic.DexType,
 	}
 )

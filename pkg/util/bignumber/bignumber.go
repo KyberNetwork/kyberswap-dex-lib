@@ -113,6 +113,24 @@ func Min(a, b *big.Int) *big.Int {
 	return b
 }
 
+func ToStrings(vals []*big.Int) []string {
+	return lo.Map(vals, func(v *big.Int, _ int) string {
+		if v != nil {
+			return v.String()
+		}
+		return "0"
+	})
+}
+
+func Sum(vals []*big.Int) *big.Int {
+	return lo.Reduce(vals, func(sum *big.Int, v *big.Int, _ int) *big.Int {
+		if v != nil {
+			return new(big.Int).Add(sum, v)
+		}
+		return sum
+	}, new(big.Int))
+}
+
 // MulDivDown multiplies x and y, then divides by denominator, rounding down, and stores the result in res.
 func MulDivDown(res, x, y, denominator *big.Int) *big.Int {
 	return res.Mul(x, y).Quo(res, denominator)

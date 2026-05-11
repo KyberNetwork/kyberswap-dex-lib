@@ -100,10 +100,21 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	idx := sort.Search(len(samples), func(i int) bool {
 		return samples[i][0].Cmp(tokenAmountIn.Amount) > 0
 	})
-	sampleIndex := max(idx-1, 0)
 
 	var amountOut = new(big.Int)
-	bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, samples[sampleIndex][1], samples[sampleIndex][0])
+	if idx == 0 {
+		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, samples[0][1], samples[0][0])
+	} else if idx >= len(samples) {
+		last := samples[len(samples)-1]
+		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, last[1], last[0])
+	} else {
+		L, R := samples[idx-1], samples[idx]
+		span := new(big.Int).Sub(R[0], L[0])
+		step := new(big.Int).Sub(tokenAmountIn.Amount, L[0])
+		delta := new(big.Int).Sub(R[1], L[1])
+		bignumber.MulDivDown(amountOut, step, delta, span)
+		amountOut.Add(amountOut, L[1])
+	}
 
 	if limit := params.Limit; limit != nil {
 		inventoryLimit := limit.GetLimit(tokenOut)

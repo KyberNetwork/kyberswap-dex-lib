@@ -97,8 +97,8 @@ func (t *PoolTracker) getNewPoolState(
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(res.MaxSurgeFeePercentage)
 		extra.SurgeThresholdPercentage, _ = uint256.FromBig(res.SurgeThresholdPercentage)
-		extra.IsRisky = extra.isRisky(p, t.config.ChainID)
 	}
+	extra.IsRisky = isRisky(extra.SurgePercentages, p, t.config.ChainID)
 	extra.AmplificationParameter, _ = uint256.FromBig(res.Value)
 
 	extraBytes, err := json.Marshal(extra)
@@ -199,7 +199,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 	return &rpcRes, nil
 }
 
-func (s SurgePercentages) isRisky(p entity.Pool, chainId valueobject.ChainID) bool {
+func isRisky(s SurgePercentages, p entity.Pool, chainId valueobject.ChainID) bool {
 	if s.MaxSurgeFeePercentage == nil || s.SurgeThresholdPercentage == nil ||
 		s.MaxSurgeFeePercentage.Cmp(AcceptableMaxSurgeFeePercentage) <= 0 &&
 			math.StableSurgeMedian.CalculateFeeSurgeRatio(s.MaxSurgeFeePercentage, s.SurgeThresholdPercentage).
@@ -207,18 +207,18 @@ func (s SurgePercentages) isRisky(p entity.Pool, chainId valueobject.ChainID) bo
 		return false
 	}
 
-	var hasNative, hasStable bool
+	var hasNative, hasNonNative bool
 	for _, token := range p.Tokens {
 		if !hasNative && valueobject.IsWrappedNative(token.Address, chainId) {
-			if hasStable {
+			if hasNonNative {
 				return true
 			}
 			hasNative = true
-		} else if !hasStable && stablesByChain[chainId][token.Address] {
+		} else if !hasNonNative && nonNativesByChain[chainId][token.Address] {
 			if hasNative {
 				return true
 			}
-			hasStable = true
+			hasNonNative = true
 		}
 	}
 	return false

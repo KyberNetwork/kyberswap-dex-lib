@@ -63,8 +63,8 @@ func (t *PoolTracker) getNewPoolState(
 		samples[i] = make([][2]*big.Int, sampleSize)
 		start := lo.Ternary(p.Tokens[i].Decimals < sampleSize/2, 0, p.Tokens[i].Decimals-sampleSize/2)
 		index := 0
-		for k := start; k <= start+sampleSize-1; k++ {
-			samples[i][index] = [2]*big.Int{bignumber.TenPowInt(k), big.NewInt(0)}
+		for k := start; k < start+sampleSize; k++ {
+			samples[i][index] = [2]*big.Int{bignumber.TenPowInt(k), new(big.Int)}
 			req.AddCall(&ethrpc.Call{
 				ABI:    factoryABI,
 				Target: t.config.FactoryAddress,
@@ -99,8 +99,8 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i := range samples {
 		for _, sample := range samples[i] {
-			if sample[1] != nil && reserves[i].Cmp(sample[1]) < 0 {
-				reserves[1-i].Set(sample[1])
+			if sample[1] != nil && reserves[1-i].Cmp(sample[1]) < 0 {
+				reserves[1-i] = *sample[1]
 			}
 		}
 	}

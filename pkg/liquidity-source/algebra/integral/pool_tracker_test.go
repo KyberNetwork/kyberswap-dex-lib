@@ -26,7 +26,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 
 	d := &PoolTracker{
 		PoolTracker: algebra.PoolTracker[Timepoint, TimepointRPC]{
-			EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc.kyberengineering.io"))).
+			EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc-rpc.kyberswap.com"))).
 				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		},
 		config: &Config{
@@ -36,7 +36,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 		},
 		graphqlClient: graphqlpkg.NewClient("https://thegraph.com/explorer/api/playground/QmWSzHwZY9ZMNYMVbQLyL276V1toR3iZsnYMfQut166yit"),
 	}
-	got, err := d.GetNewPoolState(context.Background(), thenaEp, pool.GetNewPoolStateParams{})
+	got, err := d.BootstrapPoolState(context.Background(), thenaEp, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	t.Log(string(lo.Must(json.Marshal(got))))
 }

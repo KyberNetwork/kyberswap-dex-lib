@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -223,9 +224,8 @@ func (p *PoolSimulator) _getAmountOut(
 ) (*uint256.Int, error) {
 	if p.stable {
 		xy := p._k(_reserve0, _reserve1)
-		var _reserveA, _reserveB uint256.Int
-		_reserveA.Div(_reserveA.Mul(_reserve0, number.Number_1e18), p.decimals0)
-		_reserveB.Div(_reserveB.Mul(_reserve1, number.Number_1e18), p.decimals1)
+		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
+		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
 		decimalsA, decimalsB := p.decimals0, p.decimals1
 
 		if tokenIn != p.Info.Tokens[0] {
@@ -235,11 +235,11 @@ func (p *PoolSimulator) _getAmountOut(
 
 		amountIn = new(uint256.Int).Mul(amountIn, number.Number_1e18)
 		amountIn.Div(amountIn, decimalsA)
-		y, err := p._get_y(_reserveA.Add(amountIn, &_reserveA), xy, &_reserveB)
+		y, err := p._get_y(new(uint256.Int).Add(amountIn, _reserveA), xy, _reserveB)
 		if err != nil {
 			return nil, err
 		}
-		y = y.Sub(&_reserveB, y)
+		y = new(uint256.Int).Sub(_reserveB, y)
 
 		return y.Div(y.Mul(y, decimalsB), number.Number_1e18), nil
 	}
@@ -291,8 +291,11 @@ func (p *PoolSimulator) getAmountIn(
 		balance1 = new(uint256.Int).Sub(reserve1, amountOut)
 	}
 
-	if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
-		return nil, ErrK
+	// Skip K invariant check for stable pools since the invariant is different
+	if !p.stable {
+		if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
+			return nil, ErrK
+		}
 	}
 
 	return amountIn, nil
@@ -305,7 +308,34 @@ func (p *PoolSimulator) _getAmountIn(
 	_reserve1 *uint256.Int,
 ) (amountIn *uint256.Int, err error) {
 	if p.stable {
-		return nil, ErrUnimplemented
+		xy := p._k(_reserve0, _reserve1)
+		var tmp uint256.Int
+		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
+		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
+
+		if tokenOut == p.Info.Tokens[0] {
+			amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals0)
+			newReserveA := new(uint256.Int).Sub(_reserveA, amountOutScaled)
+			x, err := p._get_y(newReserveA, xy, _reserveB)
+			if err != nil {
+				return nil, err
+			}
+			amountIn = new(uint256.Int).Sub(x, _reserveB)
+			tmp.Sub(p.feePrecision, p.fee)
+			amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
+			return big256.MulWadUp(&tmp, amountIn, p.decimals1), nil
+		}
+
+		amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals1)
+		newReserveB := new(uint256.Int).Sub(_reserveB, amountOutScaled)
+		x, err := p._get_y(newReserveB, xy, _reserveA)
+		if err != nil {
+			return nil, err
+		}
+		amountIn = new(uint256.Int).Sub(x, _reserveA)
+		tmp.Sub(p.feePrecision, p.fee)
+		amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
+		return big256.MulWadUp(&tmp, amountIn, p.decimals0), nil
 	}
 
 	defer func() {

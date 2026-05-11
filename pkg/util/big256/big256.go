@@ -191,6 +191,14 @@ func Max(a, b *uint256.Int) *uint256.Int {
 	return b
 }
 
+func DivUp(x, y *uint256.Int) *uint256.Int {
+	var q, rem uint256.Int
+	if q.DivMod(x, y, &rem); !rem.IsZero() {
+		q.AddUint64(&q, 1)
+	}
+	return &q
+}
+
 // MulDivUp multiplies x and y, then divides by denominator, rounding up, and stores the result in res.
 func MulDivUp(res, x, y, denominator *uint256.Int) *uint256.Int {
 	_ = v3Utils.MulDivRoundingUpV2(x, y, denominator, res)

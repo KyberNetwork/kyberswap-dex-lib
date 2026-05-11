@@ -11,7 +11,7 @@ type (
 	Extra struct {
 		InitialA          *uint256.Int
 		InitialGamma      *uint256.Int
-		InitialAGammaTime int64
+		InitialAGammaTime int64 `json:",omitempty"`
 		FutureA           *uint256.Int
 		FutureGamma       *uint256.Int
 		FutureAGammaTime  int64
@@ -31,7 +31,7 @@ type (
 		VirtualPrice       *uint256.Int
 		AllowedExtraProfit *uint256.Int
 		AdjustmentStep     *uint256.Int
-		UseCustomMath      bool
+		UseCustomMath      bool `json:",omitempty"`
 	}
 
 	SwapInfo struct {

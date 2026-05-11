@@ -29,7 +29,6 @@ import (
 )
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypeRamsesV2, NewPoolTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG(DexTypeRamsesV2, NewPoolTracker)
 
 type PoolTracker struct {
 	config        *Config
@@ -50,7 +49,7 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (t *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	param sourcePool.GetNewPoolStateParams,
@@ -290,11 +289,10 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 	return ticks, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param sourcePool.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{"address": p.Address, "exchange": p.Exchange})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs)
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
 	if err != nil {
 		l.Error(err.Error())
 		return p, err

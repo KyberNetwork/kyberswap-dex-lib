@@ -32,7 +32,7 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
 
-	rpcClient := ethrpc.New("https://base.kyberengineering.io").
+	rpcClient := ethrpc.New("https://base-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	failingCases := []struct {
@@ -198,7 +198,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 		TesseraEngine:   "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
 		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
-	rpcClient := ethrpc.New("https://base.kyberengineering.io").
+	rpcClient := ethrpc.New("https://base-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	pAddr := "0xf524c1bc1c64a2c99bc7eccf19ede9a1d89d5a7c"

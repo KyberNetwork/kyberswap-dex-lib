@@ -1,6 +1,6 @@
 module github.com/KyberNetwork/kyberswap-dex-lib
 
-go 1.25.0
+go 1.25.10
 
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4

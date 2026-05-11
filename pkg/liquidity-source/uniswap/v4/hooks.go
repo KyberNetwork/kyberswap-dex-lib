@@ -145,6 +145,18 @@ type HookFactory func(param *HookParam) Hook
 
 var HookFactories = map[common.Address]HookFactory{}
 
+// fallbackHookFactory is called when a hook address is not in HookFactories.
+// It is set by SetFallbackHookFactory (typically from the auto package init).
+var fallbackHookFactory HookFactory
+
+// SetFallbackHookFactory registers a factory that is used for any hook address
+// not explicitly registered in HookFactories. Only one fallback can be active;
+// subsequent calls replace the previous value.
+func SetFallbackHookFactory(f HookFactory) bool {
+	fallbackHookFactory = f
+	return true
+}
+
 func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	return RegisterHooksFactory(func(*HookParam) Hook {
 		return hook
@@ -161,7 +173,15 @@ func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool
 func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
 	hookFactory, ok := HookFactories[hookAddress]
 	if hookFactory == nil {
-		hook = (*BaseHook)(nil)
+		if fallbackHookFactory != nil {
+			if param == nil {
+				param = &HookParam{}
+			}
+			param.HookAddress = hookAddress
+			hook = fallbackHookFactory(param)
+		} else {
+			hook = (*BaseHook)(nil)
+		}
 	} else {
 		if param == nil {
 			param = &HookParam{}
