@@ -29,7 +29,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*base.PoolSimulator, error) {
 	var hook hooks.IHook
 	switch staticExtra.HookType {
 	case shared.StableSurgeHookType:
-		if extra.isRisky(entityPool, params.ChainID) {
+		if isRisky(extra.SurgePercentages, entityPool, params.ChainID) {
 			return nil, shared.ErrUnsupportedHook
 		}
 		hook = hooks.NewStableSurgeHook(extra.MaxSurgeFeePercentage, extra.SurgeThresholdPercentage)
