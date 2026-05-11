@@ -10,14 +10,14 @@
     "name": "getPoolConfig",
     "outputs": [
       {
-        "internalType": "uint24",
+        "internalType": "uint32",
         "name": "buyFee",
-        "type": "uint24"
+        "type": "uint32"
       },
       {
-        "internalType": "uint24",
+        "internalType": "uint32",
         "name": "sellFee",
-        "type": "uint24"
+        "type": "uint32"
       },
       {
         "internalType": "bool",

@@ -2,7 +2,6 @@ package alphix
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -30,9 +29,15 @@ type ProHook struct {
 }
 
 type ProExtra struct {
-	BuyFee        int64 `json:"bf"`
-	SellFee       int64 `json:"sf"`
-	IsToken0Quote bool  `json:"q"`
+	BuyFee        uint32 `json:"bf"`
+	SellFee       uint32 `json:"sf"`
+	IsToken0Quote bool   `json:"q"`
+}
+
+type ProPoolConfig struct {
+	BuyFee        uint32 `json:"bf"`
+	SellFee       uint32 `json:"sf"`
+	IsToken0Quote bool   `json:"q"`
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -52,24 +57,21 @@ func (h *ProHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.R
 	hookTarget := hexutil.Encode(param.HookAddress[:])
 	poolId := common.HexToHash(param.Pool.Address)
 
-	var (
-		buyFee, sellFee *big.Int
-		isToken0Quote   bool
-	)
+	var proPoolConfig ProPoolConfig
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    proHookABI,
 			Target: hookTarget,
 			Method: "getPoolConfig",
 			Params: []any{poolId},
-		}, []any{&buyFee, &sellFee, &isToken0Quote}).
+		}, []any{&proPoolConfig}).
 		Aggregate(); err != nil {
 		return nil, err
 	}
 	return json.Marshal(ProExtra{
-		BuyFee:        buyFee.Int64(),
-		SellFee:       sellFee.Int64(),
-		IsToken0Quote: isToken0Quote,
+		BuyFee:        proPoolConfig.BuyFee,
+		SellFee:       proPoolConfig.SellFee,
+		IsToken0Quote: proPoolConfig.IsToken0Quote,
 	})
 }
 
