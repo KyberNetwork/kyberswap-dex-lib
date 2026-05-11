@@ -152,6 +152,7 @@ var fallbackHookFactory HookFactory
 // SetFallbackHookFactory registers a factory that is used for any hook address
 // not explicitly registered in HookFactories. Only one fallback can be active;
 // subsequent calls replace the previous value.
+// The factory should return nil for no-swap as well as unsupported hooks
 func SetFallbackHookFactory(f HookFactory) bool {
 	fallbackHookFactory = f
 	return true
@@ -171,23 +172,18 @@ func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool
 }
 
 func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
+	if param == nil {
+		param = &HookParam{}
+	}
+	param.HookAddress = hookAddress
 	hookFactory, ok := HookFactories[hookAddress]
-	if hookFactory == nil {
-		if fallbackHookFactory != nil {
-			if param == nil {
-				param = &HookParam{}
-			}
-			param.HookAddress = hookAddress
-			hook = fallbackHookFactory(param)
-		} else {
-			hook = (*BaseHook)(nil)
-		}
-	} else {
-		if param == nil {
-			param = &HookParam{}
-		}
-		param.HookAddress = hookAddress
+	if ok && hookFactory != nil {
 		hook = hookFactory(param)
+	} else if !ok && fallbackHookFactory != nil {
+		hook = fallbackHookFactory(param)
+		ok = hook != nil
+	} else {
+		hook = (*BaseHook)(nil)
 	}
 	return hook, ok
 }
