@@ -55,7 +55,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pools := lo.Map(pairMetadata, func(pm PairMetadata, _ int) entity.Pool {
-		staticExtra := StaticExtra{Pair: pm.Pair}
+		staticExtra := StaticExtra{Pair: pm.Pair, PriceProviderAddress: pm.PriceProviderAddress}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
