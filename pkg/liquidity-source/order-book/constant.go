@@ -15,6 +15,7 @@ const (
 var (
 	defaultGas = Gas{Base: 68331}
 	gasByDex   = map[string]Gas{
-		valueobject.ExchangePmm7: {Base: 922091},
+		valueobject.ExchangePmm7:     {Base: 922091},
+		valueobject.ExchangeNativeV2: {Base: 144648},
 	}
 )
