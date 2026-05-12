@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolSimulator struct {
@@ -111,13 +112,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if err != nil {
 		return nil, err
 	}
+	if amountOut.IsZero() {
+		return nil, ErrInsufficientOutput
+	}
 
-	// Compute post-swap reserves for SwapInfo. In NadFunPair the input-side LP fee is *kept in the pool*
-	// (k-invariant uses balance adjusted only by LP fee), but for off-chain quote we model reserves
-	// updating to reserveIn += amountIn and reserveOut -= amountOut (matching how aggregators chain
-	// quotes for routing).
-	newReserveIn := new(uint256.Int).Add(reserveIn, amountIn)
-	newReserveOut := new(uint256.Int).Sub(reserveOut, amountOut)
+	// Compute post-swap reserves for SwapInfo, accounting for quote-token swap fees transferred to
+	// FeeCollector before _update on meme pairs (see NadFunPair._collectFee).
+	newReserveIn, newReserveOut := s.computeNewReserves(amountIn, amountOut, reserveIn, reserveOut, s.isMeme, isBuy)
 	var newR0, newR1 *uint256.Int
 	if indexIn == 0 {
 		newR0, newR1 = newReserveIn, newReserveOut
@@ -134,6 +135,41 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		Gas:            gas,
 		SwapInfo:       SwapInfo{NewReserve0: newR0, NewReserve1: newR1},
 	}, nil
+}
+
+// computeNewReserves projects post-swap reserves accounting for quote-token swap fees
+// transferred to FeeCollector before _update (meme pairs only; general pairs and feeRate==0 use the simple delta).
+//
+//   - meme buy  (tokenIn == quoteToken): newReserveIn  = reserveIn  + amountIn  - swapFeeIn
+//     newReserveOut = reserveOut - amountOut
+//     where swapFeeIn  = floor(amountIn  * feeRate / BPS)
+//   - meme sell (tokenIn != quoteToken): newReserveIn  = reserveIn  + amountIn
+//     newReserveOut = reserveOut - amountOut - swapFeeOut
+//     where swapFeeOut = floor(amountOut * feeRate / (BPS - LpFeeRate - feeRate))
+//   - else: simple +amountIn / -amountOut
+//
+// Returns (newReserveIn, newReserveOut). All arithmetic uses floor (matches Solidity).
+func (s *PoolSimulator) computeNewReserves(amountIn, amountOut, reserveIn, reserveOut *uint256.Int, isMeme, isBuy bool) (*uint256.Int, *uint256.Int) {
+	newReserveIn := new(uint256.Int).Add(reserveIn, amountIn)
+	newReserveOut := new(uint256.Int).Sub(reserveOut, amountOut)
+	if !isMeme || s.feeRate == 0 {
+		return newReserveIn, newReserveOut
+	}
+	uFee := uint256.NewInt(uint64(s.feeRate))
+	if isBuy {
+		// swapFeeIn = amountIn * feeRate / BPS (floor)
+		var swapFeeIn uint256.Int
+		big256.MulDivDown(&swapFeeIn, amountIn, uFee, uBPS)
+		newReserveIn.Sub(newReserveIn, &swapFeeIn)
+	} else {
+		// swapFeeOut = amountOut * feeRate / (BPS - LpFeeRate - feeRate)
+		var denom, swapFeeOut uint256.Int
+		denom.Sub(uBPS, uLpFeeRate)
+		denom.Sub(&denom, uFee)
+		big256.MulDivDown(&swapFeeOut, amountOut, uFee, &denom)
+		newReserveOut.Sub(newReserveOut, &swapFeeOut)
+	}
+	return newReserveIn, newReserveOut
 }
 
 // computeReportedFee returns the input-side fee for reporting (informational only).
@@ -191,8 +227,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, err
 	}
 
-	newReserveIn := new(uint256.Int).Add(reserveIn, amountIn)
-	newReserveOut := new(uint256.Int).Sub(reserveOut, amountOut)
+	newReserveIn, newReserveOut := s.computeNewReserves(amountIn, amountOut, reserveIn, reserveOut, s.isMeme, isBuy)
 	var newR0, newR1 *uint256.Int
 	if indexIn == 0 {
 		newR0, newR1 = newReserveIn, newReserveOut

@@ -54,6 +54,8 @@ func TestPoolListUpdater_Mainnet(t *testing.T) {
 		p2, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
 		require.NotNil(t, p2)
+		t.Logf("pool=%s block=%d", p2.Address, p2.BlockNumber)
+		require.Greater(t, p2.BlockNumber, uint64(0), "tracker must populate BlockNumber from RPC fallback")
 	}
 }
 

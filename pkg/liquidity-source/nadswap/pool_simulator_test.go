@@ -144,6 +144,61 @@ func TestPoolSimulator_CloneState_InfoReservesIndependent(t *testing.T) {
 	assert.Equal(t, "10000", sim.Info.Reserves[0].String())
 }
 
+func TestPoolSimulator_CalcAmountOut_MemeBuy_ReserveDeltas(t *testing.T) {
+	t.Parallel()
+	// quote=T0, base=T1, reserves 10000/10000, feeRate=100
+	sim := buildPool(t, true, "0x0a", "0x0a", "0x0b", "10000", "10000", 100)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenOut:      tokenAddr("0x0b"),
+	})
+	require.NoError(t, err)
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenAmountOut: *res.TokenAmountOut,
+		SwapInfo:       res.SwapInfo,
+	})
+	// amountIn = 1000, feeRate=100, BPS=10000 -> swapFeeIn = 1000*100/10000 = 10
+	// newReserveQuote (token0) = 10000 + 1000 - 10 = 10990
+	// amountOut = 898
+	// newReserveBase (token1) = 10000 - 898 = 9102
+	assert.Equal(t, "10990", sim.reserve0.Dec())
+	assert.Equal(t, "9102", sim.reserve1.Dec())
+}
+
+func TestPoolSimulator_CalcAmountOut_MemeSell_ReserveDeltas(t *testing.T) {
+	t.Parallel()
+	// quote=T1, base=T0, reserves 10000/10000, feeRate=100
+	sim := buildPool(t, true, "0x0b", "0x0a", "0x0b", "10000", "10000", 100)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenOut:      tokenAddr("0x0b"),
+	})
+	require.NoError(t, err)
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenAmountOut: *res.TokenAmountOut,
+		SwapInfo:       res.SwapInfo,
+	})
+	// amountIn = 1000 (base), amountOut = 897 (net quote)
+	// swapFeeOut = floor(897 * 100 / (10000 - 25 - 100)) = floor(89700 / 9875) = 9
+	// newReserveBase  (token0) = 10000 + 1000 = 11000
+	// newReserveQuote (token1) = 10000 - 897 - 9 = 9094
+	assert.Equal(t, "11000", sim.reserve0.Dec())
+	assert.Equal(t, "9094", sim.reserve1.Dec())
+}
+
+func TestPoolSimulator_CalcAmountOut_RejectsZeroOutput(t *testing.T) {
+	t.Parallel()
+	// Reserves so disproportionate that 1 unit input rounds to 0 output.
+	sim := buildPool(t, false, "", "0x0a", "0x0b", "1000000000000000000", "1", 0)
+	_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1)},
+		TokenOut:      tokenAddr("0x0b"),
+	})
+	require.ErrorIs(t, err, ErrInsufficientOutput)
+}
+
 func TestPoolSimulator_UpdateBalance_SyncsInfoReserves(t *testing.T) {
 	t.Parallel()
 	sim := buildPool(t, false, "", "0x0a", "0x0b", "10000", "10000", 0)

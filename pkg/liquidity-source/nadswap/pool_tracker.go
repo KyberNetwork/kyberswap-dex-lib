@@ -82,7 +82,7 @@ func (t *PoolTracker) getReservesFromRPC(ctx context.Context, poolAddr string) (
 	req.AddCall(&ethrpc.Call{
 		ABI: pairABI, Target: poolAddr, Method: pairMethodGetReserves,
 	}, []any{&result})
-	resp, err := req.Call()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return ReserveData{}, nil, err
 	}
