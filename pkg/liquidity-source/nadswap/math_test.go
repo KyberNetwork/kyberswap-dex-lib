@@ -150,8 +150,9 @@ func TestBuySellSymmetry_WhenNoSwapFee(t *testing.T) {
 	assert.Equal(t, buyOut.Dec(), sellOut.Dec())
 }
 
-// Fixtures captured directly from the NadFunPair.getAmountOut Solidity implementation.
-// To regenerate: see scripts/generate-nadswap-fixtures.md (not included in this PR).
+// Placeholder fixtures pending capture from NadFunPair.getAmountOut on-chain.
+// TestFixtures_AmountOut stays t.Skip'd until these values are regenerated
+// (e.g. via `cast call <pair> "getAmountOut(address,uint256)" ...`).
 var amountOutFixtures = []struct {
 	name        string
 	reserve0    string
