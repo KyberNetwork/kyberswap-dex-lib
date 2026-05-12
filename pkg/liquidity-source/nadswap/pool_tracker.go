@@ -77,17 +77,16 @@ func (t *PoolTracker) getReserves(
 }
 
 func (t *PoolTracker) getReservesFromRPC(ctx context.Context, poolAddr string) (ReserveData, *big.Int, error) {
-	var r0, r1 *big.Int
-	var ts uint32
+	var result reservesRPCResult
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI: pairABI, Target: poolAddr, Method: pairMethodGetReserves,
-	}, []any{&r0, &r1, &ts})
+	}, []any{&result})
 	resp, err := req.Call()
 	if err != nil {
 		return ReserveData{}, nil, err
 	}
-	u0, _ := uint256.FromBig(r0)
-	u1, _ := uint256.FromBig(r1)
-	return ReserveData{Reserve0: u0, Reserve1: u1, BlockTimestampLast: ts}, resp.BlockNumber, nil
+	u0, _ := uint256.FromBig(result.Reserve0)
+	u1, _ := uint256.FromBig(result.Reserve1)
+	return ReserveData{Reserve0: u0, Reserve1: u1, BlockTimestampLast: result.BlockTimestampLast}, resp.BlockNumber, nil
 }

@@ -147,6 +147,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 	}
 
 	infos := make([]pairInfo, len(pairs))
+	reservesResults := make([]reservesRPCResult, len(pairs))
 
 	// 1) token0 / token1 / getReserves (all required; use Aggregate)
 	reqA := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -159,13 +160,21 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 		}, []any{&infos[i].Token1})
 		reqA.AddCall(&ethrpc.Call{
 			ABI: pairABI, Target: p.Hex(), Method: pairMethodGetReserves,
-		}, []any{&infos[i].Reserve0, &infos[i].Reserve1, &infos[i].Timestamp})
+		}, []any{&reservesResults[i]})
 	}
 	if _, err := reqA.Aggregate(); err != nil {
 		return nil, err
 	}
+	for i := range pairs {
+		infos[i].Reserve0 = reservesResults[i].Reserve0
+		infos[i].Reserve1 = reservesResults[i].Reserve1
+		infos[i].Timestamp = reservesResults[i].BlockTimestampLast
+	}
 
 	// 2) FeeCollector.getFeeConfig(pair) — revert-tolerant (TryAggregate)
+	// NOTE: getFeeConfig returns a single tuple output. go-ethereum's ABI Copy uses
+	// copyAtomic for single-output methods, which sets dst.Field(0). So we must wrap
+	// our target struct in another struct (FeeCfg field at index 0).
 	type feeCfgRaw struct {
 		BaseToken            common.Address
 		QuoteToken           common.Address
@@ -173,7 +182,10 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 		CurveProtocolFeeRate uint16
 		DexProtocolFeeRate   uint16
 	}
-	rawCfg := make([]feeCfgRaw, len(pairs))
+	type feeCfgWrapper struct {
+		FeeCfg feeCfgRaw
+	}
+	rawCfg := make([]feeCfgWrapper, len(pairs))
 	reqB := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, p := range pairs {
 		reqB.AddCall(&ethrpc.Call{
@@ -190,9 +202,9 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 	for i, ok := range respB.Result {
 		if ok {
 			infos[i].HasFeeCfg = true
-			infos[i].QuoteToken = rawCfg[i].QuoteToken
-			infos[i].CreatorFee = rawCfg[i].CreatorFeeRate
-			infos[i].DexProtFee = rawCfg[i].DexProtocolFeeRate
+			infos[i].QuoteToken = rawCfg[i].FeeCfg.QuoteToken
+			infos[i].CreatorFee = rawCfg[i].FeeCfg.CreatorFeeRate
+			infos[i].DexProtFee = rawCfg[i].FeeCfg.DexProtocolFeeRate
 		}
 	}
 
