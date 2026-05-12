@@ -246,6 +246,7 @@ const (
 	ExchangeSynthetix                  = "synthetix"
 	ExchangeTessera                    = "tessera"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
+	ExchangeUniPool                    = "unipool"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniSwapV1                  = "uniswap-v1"

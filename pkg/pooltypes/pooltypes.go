@@ -130,6 +130,7 @@ import (
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/unipool"
 	uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/lo"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
@@ -269,6 +270,7 @@ type Types struct {
 	Smardex                    string
 	Integral                   string
 	Fxdx                       string
+	UniPool                    string
 	UniswapV1                  string
 	UniswapV2                  string
 	QuickPerps                 string
@@ -484,6 +486,7 @@ var (
 		Smardex:                    smardex.DexTypeSmardex,
 		Integral:                   integral.DexTypeIntegral,
 		Fxdx:                       fxdx.DexTypeFxdx,
+		UniPool:                    unipool.DexType,
 		UniswapV1:                  uniswapv1.DexType,
 		UniswapV2:                  uniswapv2.DexType,
 		QuickPerps:                 quickperps.DexTypeQuickperps,

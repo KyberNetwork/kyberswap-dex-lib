@@ -48,8 +48,8 @@ func TestCanCalcAmountIn(t *testing.T) {
 		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "ekubo",
 		"ekubo-v3", "euler-swap", "fluid-dex-t1", "iziswap", "limit-order", "liquiditybook-v21", "baseline",
 		"maverick-v1", "muteswitch", "pancake-v3", "ringswap", "sky-psm", "slipstream", "solidly-v2", "solidly-v3",
-		"swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable", "uniswap-v1",
-		"uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
+		"swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable", "unipool",
+		"uniswap-v1", "uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
 	for _, tt := range dexes {
 		t.Run(tt, func(t *testing.T) {
 			assert.Contains(t, pool.CanCalcAmountIn, tt)
@@ -88,7 +88,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
 		"ekubo-v3", "erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap", "kelp-rseth-l2",
-		"valantis-stex", "nabla", "lunarbase"}
+		"unipool", "valantis-stex", "nabla", "lunarbase"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "valantis-stex", "nabla", "lunarbase"}
+		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "unipool", "valantis-stex", "nabla", "lunarbase"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {
