@@ -136,8 +136,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 // computeReportedFee returns the input-side fee for reporting (informational only).
-//   - general / meme buy: amountIn * (LP + feeRate) / BPS
-//   - meme sell:           amountIn * LP / BPS  (swap fee is on output and already netted)
+//   - general:   amountIn * LpFeeRate / BPS  (feeRate is 0 for general pools)
+//   - meme buy:  amountIn * (LpFeeRate + feeRate) / BPS
+//   - meme sell: amountIn * LpFeeRate / BPS  (swap fee is on output and already netted)
 func computeReportedFee(amountIn *uint256.Int, isMeme, isBuy bool, feeRate uint16) *uint256.Int {
 	rate := uint64(LpFeeRate)
 	if isMeme && isBuy {
@@ -153,7 +154,8 @@ func computeReportedFee(amountIn *uint256.Int, isMeme, isBuy bool, feeRate uint1
 // (consuming SwapInfo.NewReserve0/NewReserve1) lands in Task 8.
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-// GetMetaInfo returns pool metadata for the swap router. Currently exposes block number only.
+// GetMetaInfo returns a payload describing pool state at the time of quoting.
+// Exposes block number only, matching other v2-fork integrations in this repo.
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return struct {
 		BlockNumber uint64 `json:"blockNumber"`
