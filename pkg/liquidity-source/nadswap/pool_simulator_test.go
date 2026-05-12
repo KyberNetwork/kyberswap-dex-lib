@@ -92,3 +92,45 @@ func TestPoolSimulator_CalcAmountOut_MemeSell(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "897", res.TokenAmountOut.Amount.String())
 }
+
+func TestPoolSimulator_CalcAmountIn_MemeBuy(t *testing.T) {
+	t.Parallel()
+	sim := buildPool(t, true, "0x0a", "0x0a", "0x0b", "10000", "10000", 100)
+	res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: tokenAddr("0x0b"), Amount: big.NewInt(898)},
+		TokenIn:        tokenAddr("0x0a"),
+	})
+	require.NoError(t, err)
+	// Round-trip target was 1000, allow 1 unit ceiling slack.
+	got := res.TokenAmountIn.Amount.Int64()
+	assert.GreaterOrEqual(t, got, int64(1000))
+	assert.LessOrEqual(t, got, int64(1001))
+}
+
+func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
+	sim := buildPool(t, false, "", "0x0a", "0x0b", "10000", "10000", 0)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenOut:      tokenAddr("0x0b"),
+	})
+	require.NoError(t, err)
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenAmountOut: *res.TokenAmountOut,
+		SwapInfo:       res.SwapInfo,
+	})
+	// After update, reserves should reflect: r0 = 10000 + 1000 = 11000; r1 = 10000 - 907 = 9093
+	assert.Equal(t, "11000", sim.reserve0.Dec())
+	assert.Equal(t, "9093", sim.reserve1.Dec())
+}
+
+func TestPoolSimulator_CloneState(t *testing.T) {
+	t.Parallel()
+	sim := buildPool(t, false, "", "0x0a", "0x0b", "10000", "10000", 0)
+	clone := sim.CloneState().(*PoolSimulator)
+	// Mutate clone, original must be untouched.
+	clone.reserve0.SetUint64(1)
+	assert.Equal(t, "10000", sim.reserve0.Dec())
+}

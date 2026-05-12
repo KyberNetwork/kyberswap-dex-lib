@@ -150,9 +150,90 @@ func computeReportedFee(amountIn *uint256.Int, isMeme, isBuy bool, feeRate uint1
 	return &fee
 }
 
-// UpdateBalance is a placeholder satisfying IPoolSimulator. The real implementation
-// (consuming SwapInfo.NewReserve0/NewReserve1) lands in Task 8.
-func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
+func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	indexIn := s.GetTokenIndex(params.TokenIn)
+	indexOut := s.GetTokenIndex(params.TokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
+		return nil, ErrInvalidToken
+	}
+
+	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	reserveIn, reserveOut := s.reserve0, s.reserve1
+	if indexIn == 1 {
+		reserveIn, reserveOut = s.reserve1, s.reserve0
+	}
+
+	var (
+		amountIn *uint256.Int
+		err      error
+		gas      int64
+		isBuy    bool
+	)
+
+	switch {
+	case !s.isMeme:
+		amountIn, err = getAmountInGeneral(amountOut, reserveIn, reserveOut)
+		gas = sellGas
+	case s.tokenIsQuote(params.TokenIn):
+		amountIn, err = getAmountInMemeBuy(amountOut, reserveIn, reserveOut, s.feeRate)
+		gas = buyGas
+		isBuy = true
+	default:
+		amountIn, err = getAmountInMemeSell(amountOut, reserveIn, reserveOut, s.feeRate)
+		gas = sellGas
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	newReserveIn := new(uint256.Int).Add(reserveIn, amountIn)
+	newReserveOut := new(uint256.Int).Sub(reserveOut, amountOut)
+	var newR0, newR1 *uint256.Int
+	if indexIn == 0 {
+		newR0, newR1 = newReserveIn, newReserveOut
+	} else {
+		newR0, newR1 = newReserveOut, newReserveIn
+	}
+
+	feeAmount := computeReportedFee(amountIn, s.isMeme, isBuy, s.feeRate)
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
+		Fee:           &pool.TokenAmount{Token: params.TokenIn, Amount: feeAmount.ToBig()},
+		Gas:           gas,
+		SwapInfo:      SwapInfo{NewReserve0: newR0, NewReserve1: newR1},
+	}, nil
+}
+
+// UpdateBalance applies the post-swap reserves carried in SwapInfo to the simulator.
+// It is a no-op if SwapInfo is missing or has the wrong type, mirroring how other
+// v2-fork integrations defensively guard against routing/state mismatches.
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	si, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+	if si.NewReserve0 != nil {
+		s.reserve0 = si.NewReserve0
+	}
+	if si.NewReserve1 != nil {
+		s.reserve1 = si.NewReserve1
+	}
+}
+
+// CloneState returns a deep copy of the simulator suitable for speculative routing.
+// Reserves are cloned so mutations on the returned simulator do not affect the
+// original; immutable scalar configuration is copied by value via struct copy.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.reserve0 = s.reserve0.Clone()
+	cloned.reserve1 = s.reserve1.Clone()
+	return &cloned
+}
 
 // GetMetaInfo returns a payload describing pool state at the time of quoting.
 // Exposes block number only, matching other v2-fork integrations in this repo.
