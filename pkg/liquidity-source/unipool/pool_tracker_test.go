@@ -12,13 +12,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
-// NOTE: The tracker's main path (fetchState) hits an RPC node, so a full
-// integration test requires a deployed UniPool instance. These tests cover the
-// pieces that DON'T require network: instantiation and the Extra ↔ JSON ↔
-// simulator round-trip the tracker is expected to produce.
-//
-// Live integration coverage will be added under //go:build integration once
-// UniPool is deployed (cf. nabla / integral patterns in this repo).
+// NOTE: The tracker's main path (fetchState) hits an RPC node, so these tests
+// focus on the pieces that DON'T require network: instantiation and the
+// Extra ↔ JSON ↔ simulator round-trip the tracker is expected to produce.
 
 func TestNewPoolTracker_Smoke(t *testing.T) {
 	t.Parallel()
