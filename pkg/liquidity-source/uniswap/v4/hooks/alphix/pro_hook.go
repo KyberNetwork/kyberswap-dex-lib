@@ -34,12 +34,6 @@ type ProExtra struct {
 	IsToken0Quote bool   `json:"q"`
 }
 
-type ProPoolConfig struct {
-	BuyFee        uint32 `json:"bf"`
-	SellFee       uint32 `json:"sf"`
-	IsToken0Quote bool   `json:"q"`
-}
-
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &ProHook{
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
@@ -57,7 +51,7 @@ func (h *ProHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.R
 	hookTarget := hexutil.Encode(param.HookAddress[:])
 	poolId := common.HexToHash(param.Pool.Address)
 
-	var proPoolConfig ProPoolConfig
+	var proPoolConfig ProExtra
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    proHookABI,
