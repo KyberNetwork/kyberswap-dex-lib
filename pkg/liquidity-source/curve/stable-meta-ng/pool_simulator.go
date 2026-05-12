@@ -2,6 +2,7 @@ package stablemetang
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
@@ -228,6 +229,18 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	return &pool.CalcAmountInResult{},
 		fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.PoolSimulator = *t.PoolSimulator.CloneState().(*stableng.PoolSimulator)
+	cloned.Extra.RateMultipliers = slices.Clone(t.Extra.RateMultipliers)
+	if t.basePool != nil {
+		if clonedBase, ok := t.basePool.CloneState().(ICurveBasePool); ok {
+			cloned.basePool = clonedBase
+		}
+	}
+	return &cloned
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
