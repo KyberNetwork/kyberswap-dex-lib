@@ -13,6 +13,7 @@ import (
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // ICurveBasePool is the interface for curve base pool inside a meta pool
@@ -344,6 +345,26 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenOutIndex: baseToId,
 		Underlying:    true,
 	}
+}
+
+func (t *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, chainID valueobject.ChainID) bool {
+	if t.Info.GetTokenIndex(tokenIn) >= 0 {
+		return t.PoolSimulator.SwapReceiveNativeIn(tokenIn, tokenOut, chainID)
+	}
+	if baseNative, ok := t.basePool.(pool.IPoolSupportNativeSwap); ok {
+		return baseNative.SwapReceiveNativeIn(tokenIn, tokenOut, chainID)
+	}
+	return false
+}
+
+func (t *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainID valueobject.ChainID) bool {
+	if t.Info.GetTokenIndex(tokenOut) >= 0 {
+		return t.PoolSimulator.SwapReturnNativeOut(tokenIn, tokenOut, chainID)
+	}
+	if baseNative, ok := t.basePool.(pool.IPoolSupportNativeSwap); ok {
+		return baseNative.SwapReturnNativeOut(tokenIn, tokenOut, chainID)
+	}
+	return false
 }
 
 func (t *PoolSimulator) GetTokens() []string {

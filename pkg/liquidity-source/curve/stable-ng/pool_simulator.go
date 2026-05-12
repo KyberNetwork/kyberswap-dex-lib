@@ -214,8 +214,12 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Underlying:    false,
 	}
 	if len(t.StaticExtra.IsNativeCoins) == t.NumTokens {
-		meta.TokenInIsNative = &t.StaticExtra.IsNativeCoins[fromId]
-		meta.TokenOutIsNative = &t.StaticExtra.IsNativeCoins[toId]
+		if fromId >= 0 && fromId < t.NumTokens {
+			meta.TokenInIsNative = &t.StaticExtra.IsNativeCoins[fromId]
+		}
+		if toId >= 0 && toId < t.NumTokens {
+			meta.TokenOutIsNative = &t.StaticExtra.IsNativeCoins[toId]
+		}
 	}
 	return meta
 }
