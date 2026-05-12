@@ -77,3 +77,52 @@ func TestGetAmountOut_MemeSell_ZeroFee_EqualsGeneral(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, genOut.Dec(), memeOut.Dec())
 }
+
+// Round-trip property: getAmountIn(getAmountOut(x)) >= x, and the gap is within
+// at most 1 unit (rounding). Asserts the exact-output formula is the inverse.
+func TestRoundTrip_GeneralPair(t *testing.T) {
+	t.Parallel()
+	out, err := getAmountOutGeneral(u("1000"), u("10000"), u("10000"))
+	require.NoError(t, err)
+	in, err := getAmountInGeneral(out, u("10000"), u("10000"))
+	require.NoError(t, err)
+	// in should be >= 1000 (we may slightly over-collect due to ceil)
+	diff := new(uint256.Int).Sub(in, u("1000"))
+	assert.True(t, diff.LtUint64(2), "diff=%s", diff.Dec())
+}
+
+func TestRoundTrip_MemeBuy(t *testing.T) {
+	t.Parallel()
+	out, err := getAmountOutMemeBuy(u("1000"), u("10000"), u("10000"), 100)
+	require.NoError(t, err)
+	in, err := getAmountInMemeBuy(out, u("10000"), u("10000"), 100)
+	require.NoError(t, err)
+	diff := new(uint256.Int).Sub(in, u("1000"))
+	assert.True(t, diff.LtUint64(2), "diff=%s", diff.Dec())
+}
+
+func TestRoundTrip_MemeSell(t *testing.T) {
+	t.Parallel()
+	out, err := getAmountOutMemeSell(u("1000"), u("10000"), u("10000"), 100)
+	require.NoError(t, err)
+	in, err := getAmountInMemeSell(out, u("10000"), u("10000"), 100)
+	require.NoError(t, err)
+	diff := new(uint256.Int).Sub(in, u("1000"))
+	assert.True(t, diff.LtUint64(2), "diff=%s", diff.Dec())
+}
+
+func TestGetAmountIn_ZeroOutput(t *testing.T) {
+	t.Parallel()
+	_, err := getAmountInGeneral(u("0"), u("10000"), u("10000"))
+	assert.ErrorIs(t, err, ErrInsufficientOutput)
+	_, err = getAmountInMemeBuy(u("0"), u("10000"), u("10000"), 100)
+	assert.ErrorIs(t, err, ErrInsufficientOutput)
+	_, err = getAmountInMemeSell(u("0"), u("10000"), u("10000"), 100)
+	assert.ErrorIs(t, err, ErrInsufficientOutput)
+}
+
+func TestGetAmountIn_OutputExceedsReserve(t *testing.T) {
+	t.Parallel()
+	_, err := getAmountInGeneral(u("10000"), u("10000"), u("10000"))
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
