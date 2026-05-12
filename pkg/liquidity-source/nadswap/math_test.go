@@ -54,3 +54,26 @@ func TestGetAmountOut_MemeBuy_InvalidFeeRate(t *testing.T) {
 	_, err := getAmountOutMemeBuy(u("1000"), u("10000"), u("10000"), 9976)
 	assert.ErrorIs(t, err, ErrInvalidFeeRate)
 }
+
+// Meme sell: tokenIn = baseToken
+// reserveBase=10000, reserveQuote=10000, amountIn=1000, feeRate=100
+// amountInWithLpFee = 1000 * (10000 - 25) = 9_975_000
+// gross = 9_975_000 * 10000 / (10000*10000 + 9_975_000) = 907
+// swapFee = ceil(907 * 100 / (10000 - 25)) = ceil(90700 / 9975) = ceil(9.0927...) = 10
+// net = 907 - 10 = 897
+func TestGetAmountOut_MemeSell(t *testing.T) {
+	t.Parallel()
+	out, err := getAmountOutMemeSell(u("1000"), u("10000"), u("10000"), 100)
+	require.NoError(t, err)
+	assert.Equal(t, "897", out.Dec())
+}
+
+// Sell with feeRate=0 must equal the general-pair LP-only result.
+func TestGetAmountOut_MemeSell_ZeroFee_EqualsGeneral(t *testing.T) {
+	t.Parallel()
+	memeOut, err := getAmountOutMemeSell(u("1000"), u("10000"), u("10000"), 0)
+	require.NoError(t, err)
+	genOut, err := getAmountOutGeneral(u("1000"), u("10000"), u("10000"))
+	require.NoError(t, err)
+	assert.Equal(t, genOut.Dec(), memeOut.Dec())
+}

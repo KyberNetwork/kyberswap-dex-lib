@@ -73,3 +73,52 @@ func getAmountOutMemeBuy(amountIn, reserveQuote, reserveBase *uint256.Int, feeRa
 	big256.MulDivDown(&out, &amountInWithFee, reserveBase, &denom)
 	return &out, nil
 }
+
+// getAmountOutMemeSell: base token in -> net quote token out.
+// LP fee applied on input; swap fee (creator + dexProtocol) deducted from output (ceiling).
+func getAmountOutMemeSell(amountIn, reserveBase, reserveQuote *uint256.Int, feeRate uint16) (*uint256.Int, error) {
+	if amountIn.IsZero() {
+		return nil, ErrInsufficientInput
+	}
+	if reserveBase.IsZero() || reserveQuote.IsZero() {
+		return nil, ErrInsufficientLiquidity
+	}
+	if uint64(LpFeeRate)+uint64(feeRate) >= BPS {
+		return nil, ErrInvalidFeeRate
+	}
+
+	var bpsMinusLp uint256.Int
+	bpsMinusLp.Sub(uBPS, uLpFeeRate)
+
+	var amountInWithLpFee uint256.Int
+	if _, overflow := amountInWithLpFee.MulOverflow(amountIn, &bpsMinusLp); overflow {
+		return nil, ErrOverflow
+	}
+
+	var reserveBaseBPS, denom uint256.Int
+	if _, overflow := reserveBaseBPS.MulOverflow(reserveBase, uBPS); overflow {
+		return nil, ErrOverflow
+	}
+	if _, overflow := denom.AddOverflow(&reserveBaseBPS, &amountInWithLpFee); overflow {
+		return nil, ErrOverflow
+	}
+
+	var gross uint256.Int
+	big256.MulDivDown(&gross, &amountInWithLpFee, reserveQuote, &denom)
+
+	if feeRate == 0 {
+		return &gross, nil
+	}
+
+	// swapFee = ceil(gross * feeRate / (BPS - LP_FEE_RATE))
+	var swapFee uint256.Int
+	uFee := uint256.NewInt(uint64(feeRate))
+	big256.MulDivUp(&swapFee, &gross, uFee, &bpsMinusLp)
+
+	if swapFee.Gt(&gross) {
+		return nil, ErrInsufficientLiquidity
+	}
+	var out uint256.Int
+	out.Sub(&gross, &swapFee)
+	return &out, nil
+}
