@@ -68,11 +68,7 @@ func (h *ProHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.R
 		Aggregate(); err != nil {
 		return nil, err
 	}
-	return json.Marshal(ProExtra{
-		BuyFee:        proPoolConfig.BuyFee,
-		SellFee:       proPoolConfig.SellFee,
-		IsToken0Quote: proPoolConfig.IsToken0Quote,
-	})
+	return json.Marshal(ProExtra(proPoolConfig))
 }
 
 func (h *ProHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
