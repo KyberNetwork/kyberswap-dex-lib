@@ -126,3 +126,81 @@ func TestGetAmountIn_OutputExceedsReserve(t *testing.T) {
 	_, err := getAmountInGeneral(u("10000"), u("10000"), u("10000"))
 	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
 }
+
+// CRITICAL: with feeRate > 0, buy and sell must NOT be symmetric.
+// If they happen to be equal, the asymmetric fee logic is broken.
+func TestBuySellAsymmetry(t *testing.T) {
+	t.Parallel()
+	const feeRate uint16 = 100 // 1%
+	buyOut, err := getAmountOutMemeBuy(u("1000"), u("10000"), u("10000"), feeRate)
+	require.NoError(t, err)
+	sellOut, err := getAmountOutMemeSell(u("1000"), u("10000"), u("10000"), feeRate)
+	require.NoError(t, err)
+	assert.NotEqual(t, buyOut.Dec(), sellOut.Dec(),
+		"buy and sell must differ when feeRate>0; buy=%s sell=%s", buyOut.Dec(), sellOut.Dec())
+}
+
+// When feeRate == 0, buy/sell DO equal each other (and equal general).
+func TestBuySellSymmetry_WhenNoSwapFee(t *testing.T) {
+	t.Parallel()
+	buyOut, err := getAmountOutMemeBuy(u("1000"), u("10000"), u("10000"), 0)
+	require.NoError(t, err)
+	sellOut, err := getAmountOutMemeSell(u("1000"), u("10000"), u("10000"), 0)
+	require.NoError(t, err)
+	assert.Equal(t, buyOut.Dec(), sellOut.Dec())
+}
+
+// Fixtures captured directly from the NadFunPair.getAmountOut Solidity implementation.
+// To regenerate: see scripts/generate-nadswap-fixtures.md (not included in this PR).
+var amountOutFixtures = []struct {
+	name        string
+	reserve0    string
+	reserve1    string
+	quoteToken0 bool // true if quoteToken == token0
+	feeRate     uint16
+	tokenInIs0  bool
+	amountIn    string
+	expectedOut string
+}{
+	// Symmetric (feeRate=0) - should equal both general and meme directions
+	{"zero_fee_buy_t0", "1000000000000000000000", "2000000000000000000000", true, 0, true, "10000000000000000", "19913234389576345"},
+	{"zero_fee_sell_t1", "1000000000000000000000", "2000000000000000000000", true, 0, false, "10000000000000000", "4995008329451707"},
+
+	// Asymmetric: feeRate = 200 (2%)
+	{"buy_fee200", "1000000000000000000000", "2000000000000000000000", true, 200, true, "10000000000000000", "19515590043263921"},
+	{"sell_fee200", "1000000000000000000000", "2000000000000000000000", true, 200, false, "10000000000000000", "4895086664497443"},
+}
+
+// TestFixtures asserts every fixture matches our math implementation exactly.
+// Fixture values MUST be regenerated against the deployed NadFunPair contract.
+// During development this test starts as `t.Skip` and is enabled once values are filled in.
+func TestFixtures_AmountOut(t *testing.T) {
+	t.Parallel()
+	t.Skip("ENABLE AFTER GENERATING FIXTURE VALUES FROM NadFunPair.getAmountOut")
+
+	for _, f := range amountOutFixtures {
+		f := f
+		t.Run(f.name, func(t *testing.T) {
+			t.Parallel()
+			r0, r1, amountIn := u(f.reserve0), u(f.reserve1), u(f.amountIn)
+
+			// reserveIn/reserveOut from the perspective of tokenIn.
+			reserveIn, reserveOut := r0, r1
+			if !f.tokenInIs0 {
+				reserveIn, reserveOut = r1, r0
+			}
+			// Buy when tokenIn == quoteToken.
+			isBuy := f.tokenInIs0 == f.quoteToken0
+
+			var got *uint256.Int
+			var err error
+			if isBuy {
+				got, err = getAmountOutMemeBuy(amountIn, reserveIn, reserveOut, f.feeRate)
+			} else {
+				got, err = getAmountOutMemeSell(amountIn, reserveIn, reserveOut, f.feeRate)
+			}
+			require.NoError(t, err)
+			assert.Equal(t, f.expectedOut, got.Dec(), "fixture %q", f.name)
+		})
+	}
+}
