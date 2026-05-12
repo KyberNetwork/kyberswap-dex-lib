@@ -36,3 +36,21 @@ func TestGetAmountOut_GeneralPair_Guards(t *testing.T) {
 	_, err = getAmountOutGeneral(u("1000"), u("10000"), u("0"))
 	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
 }
+
+// Meme buy: tokenIn = quoteToken
+// reserveQuote=10000, reserveBase=10000, amountIn=1000, feeRate=100 (=1%)
+// totalFeeRate = 25 + 100 = 125
+// amountInWithFee = 1000 * (10000 - 125) = 9_875_000
+// amountOut = 9_875_000 * 10000 / (10000 * 10000 + 9_875_000) = 98_750_000_000 / 109_875_000 = 898
+func TestGetAmountOut_MemeBuy(t *testing.T) {
+	t.Parallel()
+	out, err := getAmountOutMemeBuy(u("1000"), u("10000"), u("10000"), 100)
+	require.NoError(t, err)
+	assert.Equal(t, "898", out.Dec())
+}
+
+func TestGetAmountOut_MemeBuy_InvalidFeeRate(t *testing.T) {
+	t.Parallel()
+	_, err := getAmountOutMemeBuy(u("1000"), u("10000"), u("10000"), 9976)
+	assert.ErrorIs(t, err, ErrInvalidFeeRate)
+}
