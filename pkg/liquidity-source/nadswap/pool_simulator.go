@@ -2,6 +2,7 @@ package nadswap
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -223,6 +224,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if si.NewReserve1 != nil {
 		s.reserve1 = si.NewReserve1
 	}
+	if len(s.Info.Reserves) == 2 {
+		s.Info.Reserves[0] = s.reserve0.ToBig()
+		s.Info.Reserves[1] = s.reserve1.ToBig()
+	}
 }
 
 // CloneState returns a deep copy of the simulator suitable for speculative routing.
@@ -230,6 +235,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 // original; immutable scalar configuration is copied by value via struct copy.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
 	cloned.reserve0 = s.reserve0.Clone()
 	cloned.reserve1 = s.reserve1.Clone()
 	return &cloned

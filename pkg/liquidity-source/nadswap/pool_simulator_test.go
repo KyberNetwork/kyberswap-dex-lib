@@ -134,3 +134,31 @@ func TestPoolSimulator_CloneState(t *testing.T) {
 	clone.reserve0.SetUint64(1)
 	assert.Equal(t, "10000", sim.reserve0.Dec())
 }
+
+func TestPoolSimulator_CloneState_InfoReservesIndependent(t *testing.T) {
+	t.Parallel()
+	sim := buildPool(t, false, "", "0x0a", "0x0b", "10000", "10000", 0)
+	clone := sim.CloneState().(*PoolSimulator)
+	// Mutate clone's Info.Reserves[0]; the original must not change.
+	clone.Info.Reserves[0] = big.NewInt(1)
+	assert.Equal(t, "10000", sim.Info.Reserves[0].String())
+}
+
+func TestPoolSimulator_UpdateBalance_SyncsInfoReserves(t *testing.T) {
+	t.Parallel()
+	sim := buildPool(t, false, "", "0x0a", "0x0b", "10000", "10000", 0)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenOut:      tokenAddr("0x0b"),
+	})
+	require.NoError(t, err)
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokenAddr("0x0a"), Amount: big.NewInt(1000)},
+		TokenAmountOut: *res.TokenAmountOut,
+		SwapInfo:       res.SwapInfo,
+	})
+	// Info.Reserves must reflect the new state too (not just the private fields).
+	assert.Equal(t, "11000", sim.Info.Reserves[0].String())
+	assert.Equal(t, "9093", sim.Info.Reserves[1].String())
+}
