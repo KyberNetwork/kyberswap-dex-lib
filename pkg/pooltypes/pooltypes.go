@@ -101,6 +101,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
+	nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
@@ -386,6 +387,7 @@ type Types struct {
 	MapleSyrup                 string
 	Gsm4626                    string
 	NadFun                     string
+	NadSwap                    string
 	CloberOB                   string
 	FluidDexV2                 string
 	Wildcard                   string
@@ -602,6 +604,7 @@ var (
 		MapleSyrup:                 maplesyrup.DexType,
 		Gsm4626:                    gsm4626.DexType,
 		NadFun:                     nadfun.DexType,
+		NadSwap:                    nadswap.DexType,
 		CloberOB:                   cloberob.DexType,
 		FluidDexV2:                 dexv2.DexType,
 		Wildcard:                   wildcard.DexType,
