@@ -810,7 +810,7 @@ func TestNewPoolSimulator_H1c_NullBigIntsTolerated(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// I. Token mapping symetry
+// I. Token mapping symmetry
 // ---------------------------------------------------------------------------
 
 func TestTokenMapping_I1_LexicoOrder(t *testing.T) {
