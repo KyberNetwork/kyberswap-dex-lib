@@ -47,6 +47,10 @@ var (
 			"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": true, // cbBTC
 			"0x0555e30da8f98308edb960aa94c0db47230d2b9c": true, // WBTC
 		},
+		valueobject.ChainIDEthereum: {
+			"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": true, // USDC
+			"0xdac17f958d2ee523a2206206994597c13d831ec7": true, // USDT
+		},
 		valueobject.ChainIDHyperEVM: {
 			"0xb88339cb7199b77e23db6e890353e22632ba630f": true, // USDC
 			"0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb": true, // USD₮0

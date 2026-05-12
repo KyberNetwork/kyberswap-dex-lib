@@ -200,13 +200,6 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 }
 
 func isRisky(s SurgePercentages, p entity.Pool, chainId valueobject.ChainID) bool {
-	if s.MaxSurgeFeePercentage == nil || s.SurgeThresholdPercentage == nil ||
-		s.MaxSurgeFeePercentage.Cmp(AcceptableMaxSurgeFeePercentage) <= 0 &&
-			math.StableSurgeMedian.CalculateFeeSurgeRatio(s.MaxSurgeFeePercentage, s.SurgeThresholdPercentage).
-				Cmp(AcceptableMaxSurgeFeeByImbalance) <= 0 {
-		return false
-	}
-
 	var hasNative, hasNonNative bool
 	for _, token := range p.Tokens {
 		if !hasNative && valueobject.IsWrappedNative(token.Address, chainId) {
@@ -221,5 +214,13 @@ func isRisky(s SurgePercentages, p entity.Pool, chainId valueobject.ChainID) boo
 			hasNonNative = true
 		}
 	}
-	return false
+
+	if s.MaxSurgeFeePercentage == nil || s.SurgeThresholdPercentage == nil ||
+		s.MaxSurgeFeePercentage.Cmp(AcceptableMaxSurgeFeePercentage) <= 0 &&
+			math.StableSurgeMedian.CalculateFeeSurgeRatio(s.MaxSurgeFeePercentage, s.SurgeThresholdPercentage).
+				Cmp(AcceptableMaxSurgeFeeByImbalance) <= 0 {
+		return false
+	}
+
+	return true
 }
