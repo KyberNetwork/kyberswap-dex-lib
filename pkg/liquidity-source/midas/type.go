@@ -2,9 +2,9 @@ package midas
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 )
@@ -195,7 +195,7 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 	vault := &VaultState{
 		MToken: mToken,
 		PaymentTokens: lo.Map(v.PaymentTokens, func(token common.Address, _ int) string {
-			return strings.ToLower(token.String())
+			return hexutil.Encode(token[:])
 		}),
 		Paused:            v.Paused,
 		FnPaused:          v.FnPaused,

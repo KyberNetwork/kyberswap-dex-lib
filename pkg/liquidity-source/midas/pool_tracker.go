@@ -3,7 +3,6 @@ package midas
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -361,7 +360,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			return nil, err
 		}
 
-		mTbillRv := strings.ToLower(mTbillRedemptionVault.String())
+		mTbillRv := hexutil.Encode(mTbillRedemptionVault[:])
 		mTbillRvCfg, ok := t.rvConfigs[mTbillRv]
 		if ok {
 			req = t.ethrpcClient.

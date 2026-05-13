@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -64,7 +65,7 @@ func setupWasabiTest(t *testing.T) (entity.Pool, *PoolSimulator, *ethrpc.Client)
 	t.Logf("Pool address: %s", poolAddr.Hex())
 
 	inputPool := entity.Pool{
-		Address: strings.ToLower(poolAddr.Hex()),
+		Address: hexutil.Encode(poolAddr[:]),
 		Tokens: []*entity.PoolToken{
 			{Address: strings.ToLower(testWeth), Decimals: 18, Swappable: true},
 			{Address: strings.ToLower(testUsdc), Decimals: 6, Swappable: true},

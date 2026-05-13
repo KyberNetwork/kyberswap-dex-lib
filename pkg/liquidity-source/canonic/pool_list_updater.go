@@ -3,12 +3,12 @@ package canonic
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -106,8 +106,8 @@ func (u *PoolsListUpdater) fetchPool(ctx context.Context, maobAddr string) (enti
 		return entity.Pool{}, err
 	}
 
-	baseToken := strings.ToLower(baseTokenAddr.Hex())
-	quoteToken := strings.ToLower(quoteTokenAddr.Hex())
+	baseToken := hexutil.Encode(baseTokenAddr[:])
+	quoteToken := hexutil.Encode(quoteTokenAddr[:])
 	baseDecimals := uint8(baseDecimalsBI.Uint64())
 	quoteDecimals := uint8(quoteDecimalsBI.Uint64())
 

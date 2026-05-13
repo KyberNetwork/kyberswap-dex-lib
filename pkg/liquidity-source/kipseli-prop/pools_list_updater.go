@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -99,8 +100,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Timestamp: now,
 			Reserves:  entity.PoolReserves{"0", "0"},
 			Tokens: []*entity.PoolToken{
-				{Address: strings.ToLower(token.Hex()), Swappable: true},
-				{Address: strings.ToLower(quoteToken.Hex()), Swappable: true},
+				{Address: hexutil.Encode(token[:]), Swappable: true},
+				{Address: hexutil.Encode(quoteToken[:]), Swappable: true},
 			},
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
