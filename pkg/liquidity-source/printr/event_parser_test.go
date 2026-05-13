@@ -2,10 +2,10 @@ package printr
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestEventParser_Decode(t *testing.T) {
 
 	printrAddr := common.HexToAddress("0xb77726291b125515d0a7affeea2b04f2ff243172")
 	token := common.HexToAddress("0xc37f74311b2C7A3bFb0Ea98a2158131fACB8b6e7")
-	poolAddr := strings.ToLower(token.Hex())
+	poolAddr := hexutil.Encode(token[:])
 
 	ep := NewPoolFactory(&Config{PrintrAddr: printrAddr.Hex()})
 

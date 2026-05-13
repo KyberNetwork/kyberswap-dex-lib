@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
@@ -67,7 +68,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 
 		newPools = append(newPools, entity.Pool{
-			Address:     strings.ToLower(poolHash.Hex()),
+			Address:     hexutil.Encode(poolHash[:]),
 			Exchange:    string(u.config.DexId),
 			Type:        DexType,
 			StaticExtra: string(staticExtraBytes),

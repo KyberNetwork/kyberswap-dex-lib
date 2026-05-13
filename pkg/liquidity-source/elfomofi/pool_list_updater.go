@@ -74,7 +74,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pools := lo.Map(pairs[offset:], func(pair Pair, _ int) entity.Pool {
-		poolAddress := fmt.Sprintf("%s_%s_%s", u.config.DexID, pair.Token0.Hex(), pair.Token1.Hex())
+		token0, token1 := hexutil.Encode(pair.Token0[:]), hexutil.Encode(pair.Token1[:])
+		poolAddress := fmt.Sprintf("%s_%s_%s", u.config.DexID, token0, token1)
 		p := entity.Pool{
 			Address:   poolAddress,
 			Exchange:  u.config.DexID,
@@ -82,8 +83,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
-				{Address: hexutil.Encode(pair.Token0[:]), Swappable: true},
-				{Address: hexutil.Encode(pair.Token1[:]), Swappable: true},
+				{Address: token0, Swappable: true},
+				{Address: token1, Swappable: true},
 			},
 			Extra: "{}",
 		}
