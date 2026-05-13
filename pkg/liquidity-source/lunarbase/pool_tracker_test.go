@@ -18,9 +18,9 @@ import (
 
 func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 	extraBytes, err := json.Marshal(Extra{
-		PriceX48:          uint256.NewInt(1),
-		AnchorPriceX48:    uint256.NewInt(1),
-		FeeQ48:            1,
+		SqrtPriceX48:      uint256.NewInt(1),
+		FeeAskX24:         0,
+		FeeBidX24:         1,
 		LatestUpdateBlock: 10,
 		BlockDelay:        5,
 		ConcentrationK:    5000,
@@ -40,9 +40,9 @@ func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 
 	subscriberInstance = &FlashBlockSubscriber{
 		latestState: &poolState{
-			PX48:              uint256.NewInt(2),
-			AnchorPX48:        uint256.NewInt(2),
-			FeeQ48:            2,
+			SqrtPriceX48:      uint256.NewInt(2),
+			FeeAskX24:         0,
+			FeeBidX24:         2,
 			ReserveX:          uint256.NewInt(111),
 			ReserveY:          uint256.NewInt(222),
 			LatestUpdateBlock: 11,
@@ -83,9 +83,9 @@ func TestGetNewPoolStatePrefersLogsOverFlashCache(t *testing.T) {
 
 func TestProcessLogsUpdatesLatestUpdateBlock(t *testing.T) {
 	extraBytes, err := json.Marshal(Extra{
-		PriceX48:          uint256.NewInt(1),
-		AnchorPriceX48:    uint256.NewInt(1),
-		FeeQ48:            1,
+		SqrtPriceX48:      uint256.NewInt(1),
+		FeeAskX24:         0,
+		FeeBidX24:         1,
 		LatestUpdateBlock: 10,
 		BlockDelay:        5,
 		ConcentrationK:    5000,
@@ -103,14 +103,11 @@ func TestProcessLogsUpdatesLatestUpdateBlock(t *testing.T) {
 		Extra:       string(extraBytes),
 	}
 
-	stateTuple := struct {
-		AnchorPX48 *big.Int `abi:"anchorPX48"`
-		Fee        *big.Int `abi:"fee"`
-	}{
-		AnchorPX48: big.NewInt(123),
-		Fee:        big.NewInt(456),
-	}
-	stateData, err := coreABI.Events["StateUpdated"].Inputs.Pack(stateTuple)
+	stateData, err := coreABI.Events["StateUpdated"].Inputs.Pack(
+		big.NewInt(123), // anchorPrice (uint80)
+		big.NewInt(456), // feeAskX24 (uint24)
+		big.NewInt(789), // feeBidX24 (uint24)
+	)
 	if err != nil {
 		t.Fatalf("pack state updated event: %v", err)
 	}
@@ -137,5 +134,11 @@ func TestProcessLogsUpdatesLatestUpdateBlock(t *testing.T) {
 	}
 	if got.BlockNumber != 25 {
 		t.Fatalf("expected pool block number 25, got %d", got.BlockNumber)
+	}
+	if extra.SqrtPriceX48 == nil || extra.SqrtPriceX48.Uint64() != 123 {
+		t.Fatalf("expected SqrtPriceX48 123, got %v", extra.SqrtPriceX48)
+	}
+	if extra.FeeAskX24 != 456 || extra.FeeBidX24 != 789 {
+		t.Fatalf("expected fees 456/789, got %d/%d", extra.FeeAskX24, extra.FeeBidX24)
 	}
 }

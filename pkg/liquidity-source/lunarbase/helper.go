@@ -45,12 +45,13 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		paused         bool
 		blockDelay     uint64
 		concentrationK uint32
-		anchorPX48     *big.Int
+		anchorPrice    *big.Int
 		reserveX       *big.Int
 		reserveY       *big.Int
 		state          struct {
-			PX48              *big.Int
-			Fee               uint64
+			AnchorPrice       *big.Int
+			FeeAskX24         *big.Int
+			FeeBidX24         *big.Int
 			LatestUpdateBlock uint64
 		}
 	)
@@ -91,7 +92,7 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		ABI:    coreABI,
 		Target: coreAddress,
 		Method: "anchorPrice",
-	}, []any{&anchorPX48}).Aggregate()
+	}, []any{&anchorPrice}).Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +101,26 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 	tokenXAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenX[:]), cfg.ChainID)
 	tokenYAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenY[:]), cfg.ChainID)
 
-	pX48 := lo.CoalesceOrEmpty(uint256.MustFromBig(state.PX48), big256.U0)
-	anchorPX48U := lo.CoalesceOrEmpty(uint256.MustFromBig(anchorPX48), big256.U0)
+	// Prefer the `state()` tuple as the authoritative source; fall back to the
+	// dedicated `anchorPrice()` view if the tuple decode produced nil.
+	sqrtPriceBig := state.AnchorPrice
+	if sqrtPriceBig == nil {
+		sqrtPriceBig = anchorPrice
+	}
+	sqrtPriceX48 := lo.CoalesceOrEmpty(uint256.MustFromBig(sqrtPriceBig), big256.U0)
 	if reserveX == nil {
 		reserveX = bignumber.ZeroBI
 	}
 	if reserveY == nil {
 		reserveY = bignumber.ZeroBI
+	}
+
+	var feeAsk, feeBid uint32
+	if state.FeeAskX24 != nil {
+		feeAsk = uint32(state.FeeAskX24.Uint64())
+	}
+	if state.FeeBidX24 != nil {
+		feeBid = uint32(state.FeeBidX24.Uint64())
 	}
 
 	return &rpcState{
@@ -117,9 +131,9 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		reserveX:    reserveX,
 		reserveY:    reserveY,
 		extra: Extra{
-			PriceX48:          pX48,
-			AnchorPriceX48:    anchorPX48U,
-			FeeQ48:            state.Fee,
+			SqrtPriceX48:      sqrtPriceX48,
+			FeeAskX24:         feeAsk,
+			FeeBidX24:         feeBid,
 			LatestUpdateBlock: state.LatestUpdateBlock,
 			Paused:            paused,
 			BlockDelay:        blockDelay,
@@ -150,7 +164,14 @@ func buildEntityPool(p *entity.Pool, cfg *Config, state *rpcState) (*entity.Pool
 		return nil, err
 	}
 
-	p.SwapFee = float64(state.extra.FeeQ48) / fQ48
+	// Report the larger of the two directional fees as the entity's nominal
+	// SwapFee — routers use it for coarse cost estimation; the simulator
+	// applies the precise per-direction value at quote time.
+	maxFee := state.extra.FeeAskX24
+	if state.extra.FeeBidX24 > maxFee {
+		maxFee = state.extra.FeeBidX24
+	}
+	p.SwapFee = float64(maxFee) / fQ24
 	p.BlockNumber = state.blockNumber
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{state.reserveX.String(), state.reserveY.String()}

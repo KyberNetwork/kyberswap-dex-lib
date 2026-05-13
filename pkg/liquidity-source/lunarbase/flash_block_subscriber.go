@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -33,9 +32,9 @@ const (
 )
 
 type poolState struct {
-	PX48              *uint256.Int
-	AnchorPX48        *uint256.Int
-	FeeQ48            uint64
+	SqrtPriceX48      *uint256.Int
+	FeeAskX24         uint32
+	FeeBidX24         uint32
 	ReserveX          *uint256.Int
 	ReserveY          *uint256.Int
 	LatestUpdateBlock uint64
@@ -107,9 +106,8 @@ func (s *FlashBlockSubscriber) GetLatestState() *poolState {
 	}
 
 	cp := *s.latestState
-	cp.PX48 = new(uint256.Int).Set(s.latestState.PX48)
-	if s.latestState.AnchorPX48 != nil {
-		cp.AnchorPX48 = new(uint256.Int).Set(s.latestState.AnchorPX48)
+	if s.latestState.SqrtPriceX48 != nil {
+		cp.SqrtPriceX48 = new(uint256.Int).Set(s.latestState.SqrtPriceX48)
 	}
 	cp.ReserveX = new(uint256.Int).Set(s.latestState.ReserveX)
 	cp.ReserveY = new(uint256.Int).Set(s.latestState.ReserveY)
@@ -350,10 +348,9 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 
 	if s.latestState == nil {
 		s.latestState = &poolState{
-			PX48:       new(uint256.Int),
-			AnchorPX48: new(uint256.Int),
-			ReserveX:   new(uint256.Int),
-			ReserveY:   new(uint256.Int),
+			SqrtPriceX48: new(uint256.Int),
+			ReserveX:     new(uint256.Int),
+			ReserveY:     new(uint256.Int),
 		}
 	}
 
@@ -384,24 +381,20 @@ func (s *FlashBlockSubscriber) handleStateUpdated(log types.Log) {
 	if err != nil {
 		return
 	}
-	if len(values) < 1 {
-		return
-	}
-	tuple := *abi.ConvertType(values[0], new(struct {
-		AnchorPX48 *big.Int `abi:"anchorPX48"`
-		Fee        *big.Int `abi:"fee"`
-	})).(*struct {
-		AnchorPX48 *big.Int `abi:"anchorPX48"`
-		Fee        *big.Int `abi:"fee"`
-	})
-	if tuple.AnchorPX48 == nil || tuple.Fee == nil {
+	if len(values) < 3 {
 		return
 	}
 
-	anchor := big256.FromBig(tuple.AnchorPX48)
-	s.latestState.AnchorPX48 = anchor
-	s.latestState.PX48 = anchor.Clone()
-	s.latestState.FeeQ48 = tuple.Fee.Uint64()
+	anchorBig, ok1 := values[0].(*big.Int)
+	feeAskBig, ok2 := values[1].(*big.Int)
+	feeBidBig, ok3 := values[2].(*big.Int)
+	if !ok1 || !ok2 || !ok3 {
+		return
+	}
+
+	s.latestState.SqrtPriceX48 = big256.FromBig(anchorBig)
+	s.latestState.FeeAskX24 = uint32(feeAskBig.Uint64())
+	s.latestState.FeeBidX24 = uint32(feeBidBig.Uint64())
 	s.latestState.LatestUpdateBlock = log.BlockNumber
 }
 
@@ -424,10 +417,12 @@ func (s *FlashBlockSubscriber) handleSync(log types.Log) {
 	s.latestState.ReserveY = big256.FromBig(reserveY)
 }
 
+// handleSwapExecuted projects (dx, dy) onto cached reserves. The on-chain
+// fix/incident contract does not mutate `anchorPrice` on swaps, so we do not
+// touch SqrtPriceX48 here. The matching Sync log lands later in the same tx
+// and overwrites reserves with the authoritative post-swap values.
 func (s *FlashBlockSubscriber) handleSwapExecuted(log types.Log) {
-	if s.latestState.PX48 == nil || s.latestState.AnchorPX48 == nil ||
-		s.latestState.PX48.IsZero() ||
-		s.latestState.ReserveX == nil || s.latestState.ReserveY == nil {
+	if s.latestState.ReserveX == nil || s.latestState.ReserveY == nil {
 		return
 	}
 
@@ -446,21 +441,19 @@ func (s *FlashBlockSubscriber) handleSwapExecuted(log types.Log) {
 	}
 
 	dx, dy := big256.FromBig(dxBig), big256.FromBig(dyBig)
-
-	params := &PoolParams{
-		SqrtPriceX48:       s.latestState.PX48,
-		AnchorSqrtPriceX48: s.latestState.AnchorPX48,
-		FeeQ48:             s.latestState.FeeQ48,
-		ReserveX:           s.latestState.ReserveX,
-		ReserveY:           s.latestState.ReserveY,
-		ConcentrationK:     s.latestState.ConcentrationK,
+	if xToY {
+		if s.latestState.ReserveY.Lt(dy) {
+			return
+		}
+		s.latestState.ReserveX = new(uint256.Int).Add(s.latestState.ReserveX, dx)
+		s.latestState.ReserveY = new(uint256.Int).Sub(s.latestState.ReserveY, dy)
+	} else {
+		if s.latestState.ReserveX.Lt(dx) {
+			return
+		}
+		s.latestState.ReserveY = new(uint256.Int).Add(s.latestState.ReserveY, dy)
+		s.latestState.ReserveX = new(uint256.Int).Sub(s.latestState.ReserveX, dx)
 	}
-
-	pNext := replaySwapPNext(params, xToY, dx, dy)
-	if pNext == nil || pNext.IsZero() {
-		return
-	}
-	s.latestState.PX48 = pNext
 }
 
 func (s *FlashBlockSubscriber) handleConcentrationKSet(log types.Log) {

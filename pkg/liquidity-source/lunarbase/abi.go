@@ -6,6 +6,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
+// coreABIJSON describes the on-chain `fix/incident` Pool surface used by
+// this adapter (single-price Q32.48, asymmetric Q24 fees). The contract's
+// `anchorPrice` field is what we cache as `SqrtPriceX48`.
 const coreABIJSON = `[
   {
     "inputs": [],
@@ -82,9 +85,10 @@ const coreABIJSON = `[
     "inputs": [],
     "name": "state",
     "outputs": [
-      {"internalType": "uint80", "name": "pX48", "type": "uint80"},
-      {"internalType": "uint48", "name": "fee", "type": "uint48"},
-      {"internalType": "uint48", "name": "latestUpdateBlock", "type": "uint48"}
+      {"internalType": "uint80",  "name": "anchorPrice",       "type": "uint80"},
+      {"internalType": "uint24",  "name": "feeAskX24",         "type": "uint24"},
+      {"internalType": "uint24",  "name": "feeBidX24",         "type": "uint24"},
+      {"internalType": "uint48",  "name": "latestUpdateBlock", "type": "uint48"}
     ],
     "stateMutability": "view",
     "type": "function"
@@ -92,23 +96,16 @@ const coreABIJSON = `[
   {
     "inputs": [],
     "name": "anchorPrice",
-    "outputs": [{"internalType": "uint80", "name": "anchorPX48", "type": "uint80"}],
+    "outputs": [{"internalType": "uint80", "name": "anchorPrice", "type": "uint80"}],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "anonymous": false,
     "inputs": [
-      {
-        "components": [
-          {"internalType": "uint80", "name": "anchorPX48", "type": "uint80"},
-          {"internalType": "uint48", "name": "fee", "type": "uint48"}
-        ],
-        "indexed": false,
-        "internalType": "struct StateUpdateParameters",
-        "name": "state",
-        "type": "tuple"
-      }
+      {"indexed": false, "internalType": "uint80", "name": "anchorPrice", "type": "uint80"},
+      {"indexed": false, "internalType": "uint24", "name": "feeAskX24",   "type": "uint24"},
+      {"indexed": false, "internalType": "uint24", "name": "feeBidX24",   "type": "uint24"}
     ],
     "name": "StateUpdated",
     "type": "event"
@@ -126,10 +123,10 @@ const coreABIJSON = `[
     "anonymous": false,
     "inputs": [
       {"indexed": false, "internalType": "address", "name": "recipient", "type": "address"},
-      {"indexed": false, "internalType": "bool", "name": "xToY", "type": "bool"},
-      {"indexed": false, "internalType": "uint256", "name": "dx", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "dy", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "fee", "type": "uint256"}
+      {"indexed": false, "internalType": "bool",    "name": "xToY",      "type": "bool"},
+      {"indexed": false, "internalType": "uint256", "name": "dx",        "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "dy",        "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "fee",       "type": "uint256"}
     ],
     "name": "SwapExecuted",
     "type": "event"

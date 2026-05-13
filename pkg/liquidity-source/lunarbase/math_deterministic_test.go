@@ -52,13 +52,20 @@ func TestAllDeterministicVectors(t *testing.T) {
 		total++
 
 		p := u(v.PX48)
+		feeX24 := uint32(u(v.Fee).Uint64())
+		var feeAsk, feeBid uint32
+		if v.Dir == "xToY" {
+			feeBid = feeX24
+		} else {
+			feeAsk = feeX24
+		}
 		params := &PoolParams{
-			SqrtPriceX48:       p,
-			AnchorSqrtPriceX48: p,
-			FeeQ48:             u(v.Fee).Uint64(),
-			ReserveX:           u(v.ResX),
-			ReserveY:           u(v.ResY),
-			ConcentrationK:     v.K,
+			SqrtPriceX48:   p,
+			FeeAskX24:      feeAsk,
+			FeeBidX24:      feeBid,
+			ReserveX:       u(v.ResX),
+			ReserveY:       u(v.ResY),
+			ConcentrationK: v.K,
 		}
 
 		if v.Dir == "xToY" {

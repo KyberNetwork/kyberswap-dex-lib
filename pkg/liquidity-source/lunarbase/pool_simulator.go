@@ -24,7 +24,7 @@ type PoolSimulator struct {
 }
 
 type SwapInfo struct {
-	nextPX48 *uint256.Int
+	nextSqrtPriceX48 *uint256.Int
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -71,7 +71,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	} else if s.Paused {
 		return nil, ErrPoolPaused
-	} else if s.PriceX48 == nil || s.PriceX48.IsZero() {
+	} else if s.SqrtPriceX48 == nil || s.SqrtPriceX48.IsZero() {
 		return nil, ErrZeroPrice
 	}
 
@@ -80,18 +80,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
-	anchor := s.AnchorPriceX48
-	if anchor == nil || anchor.IsZero() {
-		anchor = s.PriceX48
-	}
-
 	poolParams := &PoolParams{
-		SqrtPriceX48:       s.PriceX48,
-		AnchorSqrtPriceX48: anchor,
-		FeeQ48:             s.FeeQ48,
-		ReserveX:           s.reserves[0],
-		ReserveY:           s.reserves[1],
-		ConcentrationK:     s.ConcentrationK,
+		SqrtPriceX48:   s.SqrtPriceX48,
+		FeeAskX24:      s.FeeAskX24,
+		FeeBidX24:      s.FeeBidX24,
+		ReserveX:       s.reserves[0],
+		ReserveY:       s.reserves[1],
+		ConcentrationK: s.ConcentrationK,
 	}
 
 	var result *QuoteResult
@@ -109,7 +104,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: result.AmountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: result.Fee.ToBig()},
 		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{nextPX48: result.SqrtPriceNext},
+		SwapInfo:       SwapInfo{nextSqrtPriceX48: result.SqrtPriceNext},
 	}, nil
 }
 
@@ -131,9 +126,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.reserves = slices.Clone(s.reserves)
 	s.reserves[indexIn] = inAmount.Add(s.reserves[indexIn], inAmount)
 	s.reserves[indexOut] = outAmount.Sub(s.reserves[indexOut], outAmount)
-	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok && swapInfo.nextPX48 != nil {
-		s.PriceX48 = swapInfo.nextPX48
-	}
+	// SqrtPriceX48 is operator-set on the fix/incident contract; swaps do not
+	// mutate it. The SwapInfo.nextSqrtPriceX48 field is kept for diagnostic
+	// continuity but intentionally not written back to state.
+	_ = SwapInfo{}
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {

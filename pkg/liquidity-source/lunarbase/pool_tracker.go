@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
@@ -111,10 +110,11 @@ func (t *PoolTracker) processLogs(p entity.Pool, logs []types.Log) (entity.Pool,
 				changed = true
 			}
 		case topicSwapExecuted:
-			// Replay swap with pre-swap reserves (current p.Reserves) to derive the new pX48.
-			// Sync log for this tx, if present, comes after SwapExecuted in logIndex order
-			// and will overwrite reserves with post-swap values on the next iteration.
-			if err := t.processSwapExecuted(&extra, p.Reserves, lg); err == nil {
+			// On the fix/incident contract a swap does not mutate the
+			// operator-set sqrt-price; reserves change and arrive via a
+			// trailing Sync log. We apply the (dx, dy) deltas pessimistically
+			// so quote routing has a coherent post-swap view until Sync lands.
+			if err := t.processSwapExecuted(&p, lg); err == nil {
 				changed = true
 			}
 		case topicConcentrationKSet:
@@ -148,26 +148,21 @@ func (t *PoolTracker) processStateUpdated(extra *Extra, log types.Log) error {
 	if err != nil {
 		return err
 	}
-	if len(values) < 1 {
-		return ErrQuoteFailed
-	}
-	tuple := *abi.ConvertType(values[0], new(struct {
-		AnchorPX48 *big.Int `abi:"anchorPX48"`
-		Fee        *big.Int `abi:"fee"`
-	})).(*struct {
-		AnchorPX48 *big.Int `abi:"anchorPX48"`
-		Fee        *big.Int `abi:"fee"`
-	})
-	if tuple.AnchorPX48 == nil || tuple.Fee == nil {
+	if len(values) < 3 {
 		return ErrQuoteFailed
 	}
 
-	anchor := uint256.MustFromBig(tuple.AnchorPX48)
-	extra.AnchorPriceX48 = anchor
-	extra.PriceX48 = anchor.Clone()
-	extra.FeeQ48 = tuple.Fee.Uint64()
+	anchorBig, ok1 := values[0].(*big.Int)
+	feeAskBig, ok2 := values[1].(*big.Int)
+	feeBidBig, ok3 := values[2].(*big.Int)
+	if !ok1 || !ok2 || !ok3 {
+		return ErrQuoteFailed
+	}
+
+	extra.SqrtPriceX48 = uint256.MustFromBig(anchorBig)
+	extra.FeeAskX24 = uint32(feeAskBig.Uint64())
+	extra.FeeBidX24 = uint32(feeBidBig.Uint64())
 	extra.LatestUpdateBlock = log.BlockNumber
-
 	return nil
 }
 
@@ -208,11 +203,10 @@ func (t *PoolTracker) processConcentrationKSet(extra *Extra, log types.Log) erro
 	return nil
 }
 
-func (t *PoolTracker) processSwapExecuted(extra *Extra, preSwapReserves entity.PoolReserves, log types.Log) error {
-	if extra.PriceX48 == nil || extra.AnchorPriceX48 == nil || extra.PriceX48.IsZero() {
-		return ErrQuoteFailed
-	}
-
+// processSwapExecuted projects the swap's (dx, dy) deltas onto cached
+// reserves. The matching Sync log lands later in the same tx and overwrites
+// reserves with the authoritative post-swap values.
+func (t *PoolTracker) processSwapExecuted(p *entity.Pool, log types.Log) error {
 	values, err := coreABI.Events["SwapExecuted"].Inputs.Unpack(log.Data)
 	if err != nil {
 		return err
@@ -231,34 +225,34 @@ func (t *PoolTracker) processSwapExecuted(extra *Extra, preSwapReserves entity.P
 		return ErrQuoteFailed
 	}
 
-	if len(preSwapReserves) < 2 {
+	if len(p.Reserves) < 2 {
 		return ErrQuoteFailed
 	}
-	reserveX, err := uint256.FromDecimal(preSwapReserves[0])
+	reserveX, err := uint256.FromDecimal(p.Reserves[0])
 	if err != nil {
 		return ErrQuoteFailed
 	}
-	reserveY, err := uint256.FromDecimal(preSwapReserves[1])
+	reserveY, err := uint256.FromDecimal(p.Reserves[1])
 	if err != nil {
 		return ErrQuoteFailed
 	}
 
 	dx, dy := uint256.MustFromBig(dxBig), uint256.MustFromBig(dyBig)
-
-	params := &PoolParams{
-		SqrtPriceX48:       extra.PriceX48,
-		AnchorSqrtPriceX48: extra.AnchorPriceX48,
-		FeeQ48:             extra.FeeQ48,
-		ReserveX:           reserveX,
-		ReserveY:           reserveY,
-		ConcentrationK:     extra.ConcentrationK,
+	if xToY {
+		reserveX.Add(reserveX, dx)
+		if reserveY.Lt(dy) {
+			return ErrQuoteFailed
+		}
+		reserveY.Sub(reserveY, dy)
+	} else {
+		reserveY.Add(reserveY, dy)
+		if reserveX.Lt(dx) {
+			return ErrQuoteFailed
+		}
+		reserveX.Sub(reserveX, dx)
 	}
 
-	pNext := replaySwapPNext(params, xToY, dx, dy)
-	if pNext == nil || pNext.IsZero() {
-		return ErrQuoteFailed
-	}
-	extra.PriceX48 = pNext
+	p.Reserves = entity.PoolReserves{reserveX.Dec(), reserveY.Dec()}
 	return nil
 }
 
@@ -287,9 +281,11 @@ func (t *PoolTracker) buildPoolFromCachedState(p entity.Pool, state *poolState) 
 		return p, err
 	}
 
-	extra.PriceX48 = new(uint256.Int).Set(state.PX48)
-	extra.AnchorPriceX48 = new(uint256.Int).Set(state.AnchorPX48)
-	extra.FeeQ48 = state.FeeQ48
+	if state.SqrtPriceX48 != nil {
+		extra.SqrtPriceX48 = new(uint256.Int).Set(state.SqrtPriceX48)
+	}
+	extra.FeeAskX24 = state.FeeAskX24
+	extra.FeeBidX24 = state.FeeBidX24
 	if state.LatestUpdateBlock > 0 {
 		extra.LatestUpdateBlock = state.LatestUpdateBlock
 	}
