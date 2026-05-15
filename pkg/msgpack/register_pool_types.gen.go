@@ -108,6 +108,7 @@ import (
 	pkg_liquiditysource_mooniswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	pkg_liquiditysource_nabla "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	pkg_liquiditysource_nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
+	pkg_liquiditysource_nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_obric "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
@@ -335,6 +336,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mooniswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nabla.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadfun.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_obric.PoolSimulator{})
