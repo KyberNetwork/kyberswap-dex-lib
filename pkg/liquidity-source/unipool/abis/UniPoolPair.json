@@ -1,0 +1,87 @@
+[
+  {
+    "inputs": [],
+    "name": "getTokens",
+    "outputs": [
+      { "internalType": "address", "name": "token0", "type": "address" },
+      { "internalType": "address", "name": "token1", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getReserves",
+    "outputs": [
+      { "internalType": "uint256", "name": "reserve0", "type": "uint256" },
+      { "internalType": "uint256", "name": "reserve1", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getVirtualReserves",
+    "outputs": [
+      {
+        "internalType": "struct VirtualReserves",
+        "name": "reserves",
+        "type": "tuple",
+        "components": [
+          { "internalType": "uint128", "name": "virtualReserve0In",  "type": "uint128" },
+          { "internalType": "uint128", "name": "virtualReserve0Out", "type": "uint128" },
+          { "internalType": "uint128", "name": "virtualReserve1In",  "type": "uint128" },
+          { "internalType": "uint128", "name": "virtualReserve1Out", "type": "uint128" }
+        ]
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLastUpdateTimestamp",
+    "outputs": [{ "internalType": "uint256", "name": "timestamp", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPriceDecay",
+    "outputs": [{ "internalType": "uint128", "name": "decay", "type": "uint128" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getFeesBps",
+    "outputs": [
+      { "internalType": "uint16", "name": "feeLpBps",   "type": "uint16" },
+      { "internalType": "uint16", "name": "feePoolBps", "type": "uint16" },
+      { "internalType": "uint16", "name": "burnFeeBps", "type": "uint16" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalBorrowed0",
+    "outputs": [{ "internalType": "uint256", "name": "borrowed0", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalBorrowed1",
+    "outputs": [{ "internalType": "uint256", "name": "borrowed1", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getSwapPriceToleranceBps",
+    "outputs": [{ "internalType": "uint16", "name": "toleranceBps", "type": "uint16" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
