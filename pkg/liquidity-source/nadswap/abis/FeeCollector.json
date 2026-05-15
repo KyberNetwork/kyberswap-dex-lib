@@ -1,16 +1,9 @@
 [
   {
-    "type": "constructor",
-    "inputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
     "type": "function",
     "name": "UPGRADE_INTERFACE_VERSION",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "string",
         "internalType": "string"
       }
@@ -29,7 +22,6 @@
     ],
     "outputs": [
       {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -39,38 +31,13 @@
   {
     "type": "function",
     "name": "authority",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "collectFee",
-    "inputs": [
-      {
-        "name": "pair",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "protocolFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "creatorFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -84,7 +51,6 @@
     ],
     "outputs": [
       {
-        "name": "",
         "type": "tuple",
         "internalType": "struct IFeeCollector.FeeConfig",
         "components": [
@@ -120,39 +86,9 @@
   },
   {
     "type": "function",
-    "name": "initialize",
-    "inputs": [
-      {
-        "name": "protocolManager_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "creatorFeeProcessor_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "bondingCurve_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "router_",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "isConsumingScheduledOp",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "bytes4",
         "internalType": "bytes4"
       }
@@ -171,7 +107,6 @@
     ],
     "outputs": [
       {
-        "name": "",
         "type": "bool",
         "internalType": "bool"
       }
@@ -190,7 +125,6 @@
     ],
     "outputs": [
       {
-        "name": "",
         "type": "bool",
         "internalType": "bool"
       }
@@ -200,10 +134,8 @@
   {
     "type": "function",
     "name": "proxiableUUID",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -213,82 +145,13 @@
   {
     "type": "function",
     "name": "router",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "setAuthority",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setCurveProtocolFeeRate",
-    "inputs": [
-      {
-        "name": "pair",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "rate",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setDexProtocolFeeRate",
-    "inputs": [
-      {
-        "name": "pair",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "rate",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "settle",
-    "inputs": [
-      {
-        "name": "pair",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "minAmountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -302,68 +165,11 @@
     ],
     "outputs": [
       {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "setup",
-    "inputs": [
-      {
-        "name": "pair",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "baseToken",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "quoteToken_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "creatorFeeRate",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "curveProtocolFeeRate",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "dexProtocolFeeRate",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "upgradeToAndCall",
-    "inputs": [
-      {
-        "name": "newImplementation",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
   },
   {
     "type": "event",
@@ -372,11 +178,9 @@
       {
         "name": "authority",
         "type": "address",
-        "indexed": false,
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -397,11 +201,9 @@
       {
         "name": "amount",
         "type": "uint256",
-        "indexed": false,
         "internalType": "uint256"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -416,17 +218,14 @@
       {
         "name": "oldRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       },
       {
         "name": "newRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -441,17 +240,14 @@
       {
         "name": "oldRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       },
       {
         "name": "newRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -460,11 +256,9 @@
       {
         "name": "version",
         "type": "uint64",
-        "indexed": false,
         "internalType": "uint64"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -485,17 +279,14 @@
       {
         "name": "totalFee",
         "type": "uint256",
-        "indexed": false,
         "internalType": "uint256"
       },
       {
         "name": "creatorFee",
         "type": "uint256",
-        "indexed": false,
         "internalType": "uint256"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -516,23 +307,19 @@
       {
         "name": "creatorFeeRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       },
       {
         "name": "curveProtocolFeeRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       },
       {
         "name": "dexProtocolFeeRate",
         "type": "uint16",
-        "indexed": false,
         "internalType": "uint16"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -544,159 +331,6 @@
         "indexed": true,
         "internalType": "address"
       }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "AccessManagedInvalidAuthority",
-    "inputs": [
-      {
-        "name": "authority",
-        "type": "address",
-        "internalType": "address"
-      }
     ]
-  },
-  {
-    "type": "error",
-    "name": "AccessManagedRequiredDelay",
-    "inputs": [
-      {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "delay",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "AccessManagedUnauthorized",
-    "inputs": [
-      {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "AddressEmptyCode",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "AlreadyConfigured",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "BelowThreshold",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ERC1967InvalidImplementation",
-    "inputs": [
-      {
-        "name": "implementation",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC1967NonPayable",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "FailedCall",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InsufficientOutput",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidFeeAmount",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidInitialization",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidRates",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotAuthorized",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotConfigured",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotInitializing",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "PairLocked",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SafeERC20FailedOperation",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "UUPSUnauthorizedCallContext",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "UUPSUnsupportedProxiableUUID",
-    "inputs": [
-      {
-        "name": "slot",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ZeroAddress",
-    "inputs": []
   }
 ]

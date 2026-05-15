@@ -1,38 +1,15 @@
 [
   {
-    "type": "constructor",
-    "inputs": [
-      {
-        "name": "_protocolManager",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_feeCollector",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_implementation",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
     "type": "function",
     "name": "allPairs",
     "inputs": [
       {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
@@ -42,10 +19,8 @@
   {
     "type": "function",
     "name": "allPairsLength",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -54,35 +29,9 @@
   },
   {
     "type": "function",
-    "name": "createPair",
-    "inputs": [
-      {
-        "name": "tokenA",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "tokenB",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "pair",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "feeCollector",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
@@ -92,10 +41,8 @@
   {
     "type": "function",
     "name": "feeTo",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
@@ -107,19 +54,16 @@
     "name": "getPair",
     "inputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
@@ -129,10 +73,8 @@
   {
     "type": "function",
     "name": "implementation",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
@@ -142,41 +84,13 @@
   {
     "type": "function",
     "name": "protocolManager",
-    "inputs": [],
     "outputs": [
       {
-        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "setFeeTo",
-    "inputs": [
-      {
-        "name": "_feeTo",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setImplementation",
-    "inputs": [
-      {
-        "name": "_implementation",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "event",
@@ -194,8 +108,7 @@
         "indexed": true,
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -213,8 +126,7 @@
         "indexed": true,
         "internalType": "address"
       }
-    ],
-    "anonymous": false
+    ]
   },
   {
     "type": "event",
@@ -235,57 +147,13 @@
       {
         "name": "pair",
         "type": "address",
-        "indexed": false,
         "internalType": "address"
       },
       {
         "name": "pairCount",
         "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "FailedDeployment",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "Forbidden",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "IdenticalAddresses",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InsufficientBalance",
-    "inputs": [
-      {
-        "name": "balance",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "needed",
-        "type": "uint256",
         "internalType": "uint256"
       }
     ]
-  },
-  {
-    "type": "error",
-    "name": "PairExists",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ZeroAddress",
-    "inputs": []
   }
 ]

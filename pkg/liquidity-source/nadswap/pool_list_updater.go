@@ -149,8 +149,14 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 	infos := make([]pairInfo, len(pairs))
 	reservesResults := make([]reservesRPCResult, len(pairs))
 
+	var feeCollector common.Address
+
 	// 1) token0 / token1 / getReserves (all required; use Aggregate)
-	reqA := u.ethrpcClient.NewRequest().SetContext(ctx)
+	reqA := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodFeeCollector,
+	}, []any{&feeCollector})
 	for i, p := range pairs {
 		reqA.AddCall(&ethrpc.Call{
 			ABI: pairABI, Target: p.Hex(), Method: pairMethodToken0,
@@ -187,10 +193,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 	}
 	rawCfg := make([]feeCfgWrapper, len(pairs))
 	reqB := u.ethrpcClient.NewRequest().SetContext(ctx)
+	feeCollectorStr := hexutil.Encode(feeCollector[:])
 	for i, p := range pairs {
 		reqB.AddCall(&ethrpc.Call{
 			ABI:    feeCollectorABI,
-			Target: u.config.FeeCollectorAddress,
+			Target: feeCollectorStr,
 			Method: feeCollectorMethodGetFeeConfig,
 			Params: []any{p},
 		}, []any{&rawCfg[i]})

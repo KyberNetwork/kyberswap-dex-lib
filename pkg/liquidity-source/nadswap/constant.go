@@ -17,6 +17,7 @@ const (
 
 	factoryMethodAllPairs       = "allPairs"
 	factoryMethodAllPairsLength = "allPairsLength"
+	factoryMethodFeeCollector   = "feeCollector"
 
 	pairMethodToken0      = "token0"
 	pairMethodToken1      = "token1"

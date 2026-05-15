@@ -46,7 +46,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, nil
 	}
 
-	extra := Extra{Reserve0: rd.Reserve0, Reserve1: rd.Reserve1, BlockTimestampLast: rd.BlockTimestampLast}
+	extra := Extra(rd)
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
