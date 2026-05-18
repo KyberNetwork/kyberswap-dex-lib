@@ -81,7 +81,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		oracleList   = make([]common.Address, len(curvePools))
 	)
 
-	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
 
 	// for Plain pool we'll need APrecision (A_precise/A)
 	// (the original white-paper use A, but in code they use A_precise (A*APrecision) to do the calculation)
@@ -90,21 +90,14 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			ABI:    curvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodA,
-			Params: nil,
-		}, []any{&aList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
-			Params: nil,
-		}, []any{&aPreciseList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodOracle,
-			Params: nil,
 		}, []any{&oracleList[i]})
 	}
 

@@ -3,7 +3,6 @@ package stableng
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -26,8 +25,6 @@ const (
 )
 
 var (
-	nonZeroAddr = common.HexToAddress("1")
-
 	DefaultGas     = Gas{Exchange: 128000}
 	Precision      = uint256.MustFromDecimal("1000000000000000000")
 	FeeDenominator = uint256.MustFromDecimal("10000000000")

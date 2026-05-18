@@ -106,14 +106,13 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	req.SetFrom(nonZeroAddr) // poolMethodStoredRates behaves differently for tx.origin == 0
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-	}, []any{&initialA}).AddCall(&ethrpc.Call{
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
+		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
+		AddCall(&ethrpc.Call{
+			ABI:    curvePlainABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
