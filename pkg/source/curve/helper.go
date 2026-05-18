@@ -15,30 +15,22 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	var (
 		mainRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress common.Address
 	)
-	calls := ethrpcClient.NewRequest()
-
-	calls.AddCall(&ethrpc.Call{
+	calls := ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
 		Params: []any{big.NewInt(0)},
-	}, []any{&mainRegistryAddress})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&mainRegistryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
 		Params: []any{big.NewInt(3)},
-	}, []any{&metaFactoryAddress})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&metaFactoryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
 		Params: []any{big.NewInt(5)},
-	}, []any{&cryptoRegistryAddress})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&cryptoRegistryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,

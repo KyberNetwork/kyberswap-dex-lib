@@ -45,7 +45,6 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 				ABI:    metaABI,
 				Target: poolAndRegistry.PoolAddress.Hex(),
 				Method: poolMethodBasePool,
-				Params: nil,
 			}, []any{&basePools[i]})
 		}
 
@@ -54,34 +53,24 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&underlyingCoins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&decimals[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&decimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    metaABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodA,
-			Params: nil,
-		}, []any{&aList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
 			ABI:    metaABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodAPrecise,
-			Params: nil,
 		}, []any{&aPreciseList[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
@@ -152,58 +141,35 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 		balances                                                                  = make([]*big.Int, len(p.Tokens))
 	)
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		calls.SetOverrides(overrides)
-	}
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    metaABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-		Params: nil,
-	}, []any{&initialA})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    metaABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []any{&futureA})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []any{&initialATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []any{&futureATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []any{&swapFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []any{&adminFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: p.GetLpToken(),
 		Method: erc20MethodTotalSupply,
-		Params: nil,
 	}, []any{&lpSupply})
 
 	for i := range p.Tokens {
@@ -230,17 +196,12 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 	// is calculated using contract data.
 	if p.Address == RAIMetaPool {
 		var redemptionPriceSnapContract common.Address
-		req := d.ethrpcClient.NewRequest().SetContext(ctx)
-		if overrides != nil {
-			req.SetOverrides(overrides)
-		}
-
-		req.AddCall(&ethrpc.Call{
-			ABI:    metaABIV0_2_12,
-			Target: p.Address,
-			Method: poolMethodRedemptionPriceSnap,
-			Params: nil,
-		}, []any{&redemptionPriceSnapContract})
+		req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+			AddCall(&ethrpc.Call{
+				ABI:    metaABIV0_2_12,
+				Target: p.Address,
+				Method: poolMethodRedemptionPriceSnap,
+			}, []any{&redemptionPriceSnapContract})
 
 		if _, err := req.TryAggregate(); err != nil {
 			logger.WithFields(logger.Fields{
@@ -249,17 +210,12 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 				"error":       err,
 			}).Errorf("failed to aggregate RAI pool redemption_price_snap")
 		} else {
-			req = d.ethrpcClient.NewRequest().SetContext(ctx)
-			if overrides != nil {
-				req.SetOverrides(overrides)
-			}
-
-			req.AddCall(&ethrpc.Call{
-				ABI:    redemptionPriceSnap,
-				Target: redemptionPriceSnapContract.String(),
-				Method: oracleMethodSnappedRedemptionPrice,
-				Params: nil,
-			}, []any{&snappedRedemptionPrice})
+			req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionPriceSnap,
+					Target: redemptionPriceSnapContract.String(),
+					Method: oracleMethodSnappedRedemptionPrice,
+				}, []any{&snappedRedemptionPrice})
 
 			if _, err := req.TryAggregate(); err != nil {
 				logger.WithFields(logger.Fields{

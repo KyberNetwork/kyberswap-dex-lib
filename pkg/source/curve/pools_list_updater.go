@@ -372,7 +372,6 @@ func (d *PoolsListUpdater) getPoolAddresses(
 		ABI:    registryOrFactoryABI,
 		Target: registryOrFactoryAddress,
 		Method: registryOrFactoryMethodPoolCount,
-		Params: nil,
 	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,

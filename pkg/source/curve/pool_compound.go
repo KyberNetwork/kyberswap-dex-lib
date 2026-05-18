@@ -36,23 +36,17 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&underlyingCoins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderDecimals,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&decimals[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&decimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
@@ -122,33 +116,20 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 		balances             = make([]*big.Int, len(p.Tokens))
 	)
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		calls.SetOverrides(overrides)
-	}
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    baseABI,
-		Target: p.Address,
-		Method: poolMethodA,
-		Params: nil,
-	}, []any{&a})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    baseABI,
+			Target: p.Address,
+			Method: poolMethodA,
+		}, []any{&a}).AddCall(&ethrpc.Call{
 		ABI:    compoundABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []any{&swapFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    compoundABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []any{&adminFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    mainRegistryABI,
 		Target: d.config.MainRegistryAddress,
 		Method: registryOrFactoryMethodGetRates,
