@@ -1,6 +1,8 @@
 package shared
 
 import (
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -54,4 +56,6 @@ var (
 		valueobject.ChainIDPlasma:    "0x4574921eb950d3Fd5B01562162EC566Cb8bc3648",
 		valueobject.ChainIDSonic:     "0x87FE17697D0f14A222e8bEf386a0860eCffDD617",
 	}
+
+	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
 )

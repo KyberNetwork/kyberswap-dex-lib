@@ -69,6 +69,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	// })
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
+	hooks := make([]common.Address, 0, len(subgraphPools))
+	for _, p := range subgraphPools {
+		hooks = append(hooks, common.HexToAddress(p.Hooks))
+	}
+	classifiedStableHooks := classifyStableHooks(ctx, u.ethrpcClient, u.config.StableHookFactories, hooks)
 
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
@@ -115,11 +120,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: u.config})
+		exchange := ""
+		if classifiedStableHooks[staticExtra.HooksAddress] {
+			exchange = valueobject.ExchangePancakeInfinityCLStable
+		} else {
+			hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: u.config})
+			exchange = hook.GetExchange()
+		}
 		pool := entity.Pool{
 			Address:     p.ID,
 			SwapFee:     float64(fee),
-			Exchange:    hook.GetExchange(),
+			Exchange:    exchange,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},

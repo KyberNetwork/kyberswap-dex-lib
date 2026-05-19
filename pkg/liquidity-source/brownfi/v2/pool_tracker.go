@@ -84,10 +84,6 @@ func (d *PoolTracker) GetNewPoolState(
 			ABI:    brownFiV2FactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodPriceOracle,
-		}, []any{&priceOracle}).AddCall(&ethrpc.Call{
-			ABI:    brownFiV2FactoryABI,
-			Target: d.config.FactoryAddress,
-			Method: factoryMethodPriceOracle,
 		}, []any{&priceOracle}).Aggregate(); err != nil {
 			return p, errors.WithMessage(err, "fail to fetch price feed ids")
 		} else {

@@ -93,8 +93,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodAmms,
 			Params: []any{idx},
-		}, []any{&amms[i]})
-		factoryCalls.AddCall(&ethrpc.Call{
+		}, []any{&amms[i]}).AddCall(&ethrpc.Call{
 			ABI:    CurveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodCollaterals,
@@ -111,8 +110,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			ABI:    CurveLlammaABI,
 			Target: amms[i].String(),
 			Method: LlammaMethodA,
-		}, []any{&aCoefficients[i]})
-		ammCalls.AddCall(&ethrpc.Call{
+		}, []any{&aCoefficients[i]}).AddCall(&ethrpc.Call{
 			ABI:    shared.ERC20ABI,
 			Target: collaterals[i].String(),
 			Method: shared.ERC20MethodDecimals,

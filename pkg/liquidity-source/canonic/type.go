@@ -30,6 +30,7 @@ type StaticExtra struct {
 }
 
 type PoolMeta struct {
+	Pool        string `json:"p"`
 	BlockNumber uint64 `json:"bN"`
 	IsBuyBase   bool   `json:"isBuyBase,omitempty"`
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -82,7 +83,7 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 
 	tokens := make([]*entity.PoolToken, 0, len(assets)+1)
 	for _, asset := range assets {
-		tokens = append(tokens, &entity.PoolToken{Address: strings.ToLower(asset.String()), Swappable: true})
+		tokens = append(tokens, &entity.PoolToken{Address: hexutil.Encode(asset[:]), Swappable: true})
 	}
 	tokens = append(tokens, &entity.PoolToken{Address: strings.ToLower(p.Address), Swappable: true})
 
@@ -150,7 +151,7 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 			return item.toFeeData()
 		}),
 		Assets: lo.Map(assets, func(item common.Address, index int) string {
-			return strings.ToLower(item.String())
+			return hexutil.Encode(item[:])
 		}),
 		AvailableBalances: lo.Map(availableBalances, func(item *big.Int, index int) *uint256.Int {
 			return uint256.MustFromBig(item)

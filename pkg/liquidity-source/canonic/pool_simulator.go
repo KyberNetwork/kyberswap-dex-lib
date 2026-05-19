@@ -207,6 +207,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	return PoolMeta{
+		Pool:        s.Info.Address,
 		IsBuyBase:   tokenIn == s.quoteToken,
 		BlockNumber: s.Info.BlockNumber,
 	}

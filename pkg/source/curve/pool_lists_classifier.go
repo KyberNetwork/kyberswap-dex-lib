@@ -56,41 +56,28 @@ func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []any{poolAddress},
-		}, []any{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
 			Params: []any{poolAddress},
-		}, []any{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&underlyingCoins[i]}).AddCall(&ethrpc.Call{
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodIsMeta,
 			Params: []any{poolAddress},
-		}, []any{&isMetaList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&isMetaList[i]}).AddCall(&ethrpc.Call{
 			ABI:    aaveABI,
 			Target: poolAddresses[i].Hex(),
 			Method: aaveMethodOffpegFeeMultiplier,
-			Params: nil,
-		}, []any{&aaveSignatures[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aaveSignatures[i]}).AddCall(&ethrpc.Call{
 			ABI:    plainOracleABI,
 			Target: poolAddresses[i].Hex(),
 			Method: plainOracleMethodOracle,
-			Params: nil,
-		}, []any{&plainOracleSignatures[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&plainOracleSignatures[i]}).AddCall(&ethrpc.Call{
 			ABI:    twoABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGamma,
-			Params: nil,
 		}, []any{&gammaList[i]})
 	}
 
@@ -290,7 +277,6 @@ func (d *PoolsListUpdater) isCompoundPool(
 			ABI:    erc20ABI,
 			Target: coin.Hex(),
 			Method: erc20MethodName,
-			Params: nil,
 		}, []any{&tokenNames[i]})
 	}
 

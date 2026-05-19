@@ -1,13 +1,13 @@
 package integral
 
 import (
+	"cmp"
 	"sync"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
-	"golang.org/x/exp/constraints"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -608,6 +608,6 @@ func getNewPrice(
 // a <= c <  b | false
 // b <  a <= c | false
 // c <  b <  a | false
-func lteConsideringOverflow[T constraints.Ordered](a, b, currentTime T) bool {
+func lteConsideringOverflow[T cmp.Ordered](a, b, currentTime T) bool {
 	return algebra.LteConsideringOverflow(a, b, currentTime)
 }
