@@ -37,9 +37,9 @@ const (
 
 	ttlStatic      = time.Hour
 	maxAge         = 15 * time.Second
-	parsedDecimals = uint8(18)
+	parsedDecimals = 18
 
-	defaultGas = int64(400000)
+	defaultGas = 443940
 )
 
 var (
