@@ -18,11 +18,11 @@ import (
 )
 
 const (
-	poolAddr  = "0x3e6200dc34c3b5967e7bbdcf5fa74153348e9694"
-	wethAddr  = "0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590"
-	usdcAddr  = "0x549943e04f40284185054145c6e4e9568c1d3241"
+	poolAddr    = "0x3e6200dc34c3b5967e7bbdcf5fa74153348e9694"
+	wethAddr    = "0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590"
+	usdcAddr    = "0x549943e04f40284185054145c6e4e9568c1d3241"
 	factoryAddr = "0x83A329E93f7A36b9baAb5bF1EAFF319947387552"
-	mc3Addr   = "0xcA11bde05977b3631167028862bE2a173976CA11"
+	mc3Addr     = "0xcA11bde05977b3631167028862bE2a173976CA11"
 )
 
 // TestIntegration_CalcAmountOut fetches live state for the WETH/USDC pool and
@@ -131,11 +131,11 @@ func TestIntegration_CalcAmountOut(t *testing.T) {
 
 	// ── Compare prices ────────────────────────────────────────────────────
 	onChainPriceOut := uint256.MustFromBig(onChain.SPrice0) // sPrice0 = WETH price (base, isSell=true)
-	onChainPriceIn  := uint256.MustFromBig(onChain.SPrice1) // sPrice1 = USDC price
-	onChainAdj      := uint256.MustFromBig(onChain.AdjPrice)
+	onChainPriceIn := uint256.MustFromBig(onChain.SPrice1)  // sPrice1 = USDC price
+	onChainAdj := uint256.MustFromBig(onChain.AdjPrice)
 
 	diffOut := new(big.Int).Sub(offPriceOut.ToBig(), onChainPriceOut.ToBig())
-	diffIn  := new(big.Int).Sub(offPriceIn.ToBig(), onChainPriceIn.ToBig())
+	diffIn := new(big.Int).Sub(offPriceIn.ToBig(), onChainPriceIn.ToBig())
 	diffAdj := new(big.Int).Sub(offAdj.ToBig(), onChainAdj.ToBig())
 	t.Logf("=== Price deltas (off-chain minus on-chain) ===")
 	t.Logf("priceOut delta: %s", diffOut)

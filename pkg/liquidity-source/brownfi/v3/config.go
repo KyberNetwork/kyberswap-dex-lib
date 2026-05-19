@@ -13,7 +13,7 @@ type Config struct {
 	NewPoolLimit   int                 `json:"newPoolLimit"`
 	Pyth           struct {
 		kutils.HttpCfg
-		Urls    []string `json:"urls"`
+		Urls []string `json:"urls"`
 	} `json:"pyth"`
 	Multicall3 string `json:"multicall3"`
 }

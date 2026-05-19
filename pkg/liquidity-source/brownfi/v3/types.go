@@ -58,11 +58,11 @@ type Extra struct {
 	DisThreshold uint32 `json:"dt,omitempty"`
 
 	// Raw oracle state (Q64 dollar prices)
-	Price0   *uint256.Int `json:"p0,omitempty"`  // Pyth price of token0
-	Price1   *uint256.Int `json:"p1,omitempty"`  // Pyth price of token1
-	Conf0    *uint256.Int `json:"c0,omitempty"`  // Pyth confidence of token0
-	Conf1    *uint256.Int `json:"c1,omitempty"`  // Pyth confidence of token1
-	AmmPrice *uint256.Int `json:"am,omitempty"`  // on-chain AMM relative price Q64 (quote/base), 0 if no valid pool
+	Price0   *uint256.Int `json:"p0,omitempty"` // Pyth price of token0
+	Price1   *uint256.Int `json:"p1,omitempty"` // Pyth price of token1
+	Conf0    *uint256.Int `json:"c0,omitempty"` // Pyth confidence of token0
+	Conf1    *uint256.Int `json:"c1,omitempty"` // Pyth confidence of token1
+	AmmPrice *uint256.Int `json:"am,omitempty"` // on-chain AMM relative price Q64 (quote/base), 0 if no valid pool
 
 	PriceUpdateData []byte `json:"u,omitempty"`
 	PythTimestamp   int64  `json:"pt,omitempty"`

@@ -15,12 +15,12 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	approvalInfo        pool.ApprovalInfo
-	staticExtra         StaticExtra
-	extra               Extra
-	reserves            [2]*uint256.Int
+	approvalInfo         pool.ApprovalInfo
+	staticExtra          StaticExtra
+	extra                Extra
+	reserves             [2]*uint256.Int
 	token0Dec, token1Dec uint8
-	token0, token1      string
+	token0, token1       string
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)

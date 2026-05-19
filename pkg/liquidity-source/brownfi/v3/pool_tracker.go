@@ -165,7 +165,7 @@ func (d *PoolTracker) GetNewPoolState(
 			ABI: brownFiV3PairConfigABI, Target: staticExtra.PairConfig,
 			Method: pairConfigMethodGetConfig,
 			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&struct{*PairConfigResult}{&configResult}}).
+		}, []any{&struct{ *PairConfigResult }{&configResult}}).
 		AddCall(&ethrpc.Call{
 			ABI: brownFiV3FactoryABI, Target: d.config.FactoryAddress,
 			Method: factoryMethodGetAmmPrice,

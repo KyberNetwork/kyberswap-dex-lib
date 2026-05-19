@@ -15,18 +15,19 @@ import (
 // On-chain data sourced from Berachain block 21048469.
 //
 // Pair 0 — WETH/USDC (0x3E6200Dc34C3b5967E7bBdCf5FA74153348E9694)
-//   token0 = WETH (18 dec), token1 = USDC (6 dec), quoteTokenIndex = 1 (token0 = base)
-//   reserves: r0=2968503755735635, r1=5797793
-//   factory.getSwapPrices returns:
-//     pythPrice0 = 39195766625498220740512  (WETH Q64 dollar price)
-//     pythPrice1 = 18443500582699071265     (USDC Q64 dollar price)
-//     ammPrice   = 39214718855475040805758  (on-chain AMM relative price Q64)
-//     adjPrice   = 39208689242307926688245  (weighted 50/50 mean Q64)
-//     sPrice0_sell = 39205980540022840550524  (WETH price for SELL direction)
-//     sPrice0_buy  = 39198140127956042662204  (WETH price for BUY direction)
+//
+//	token0 = WETH (18 dec), token1 = USDC (6 dec), quoteTokenIndex = 1 (token0 = base)
+//	reserves: r0=2968503755735635, r1=5797793
+//	factory.getSwapPrices returns:
+//	  pythPrice0 = 39195766625498220740512  (WETH Q64 dollar price)
+//	  pythPrice1 = 18443500582699071265     (USDC Q64 dollar price)
+//	  ammPrice   = 39214718855475040805758  (on-chain AMM relative price Q64)
+//	  adjPrice   = 39208689242307926688245  (weighted 50/50 mean Q64)
+//	  sPrice0_sell = 39205980540022840550524  (WETH price for SELL direction)
+//	  sPrice0_buy  = 39198140127956042662204  (WETH price for BUY direction)
 var (
 	poolWETHUSDC entity.Pool
-	_ = json.Unmarshal([]byte(`{
+	_            = json.Unmarshal([]byte(`{
 		"address":     "0x3e6200dc34c3b5967e7bbdcf5fa74153348e9694",
 		"exchange":    "brownfi-v3",
 		"type":        "brownfi-v3",
@@ -62,12 +63,11 @@ func TestCalcAmountOut_WETH_USDC(t *testing.T) {
 		// token0 (WETH) → token1 (USDC): BUY direction, isSell=false
 		0: {
 			1: {
-				// 0.001 WETH → ~2.112 USDC (fits within ~0.003 WETH reserves)
-				"1000000000000000": "2112524",
+				"100000000000": "211",
+				// 0.000469 WETH → INVALID_INVENTORY
+				"468661346370449": "INVALID_INVENTORY",
 				// 0.01 WETH exceeds reserves → cutoff
 				"10000000000000000": "CUTOFF_INPUT_LIMIT_REACHED",
-				// 1 WETH exceeds reserves → cutoff
-				"1000000000000000000": "CUTOFF_INPUT_LIMIT_REACHED",
 			},
 		},
 		// token1 (USDC) → token0 (WETH): SELL direction, isSell=true

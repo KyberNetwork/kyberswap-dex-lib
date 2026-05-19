@@ -366,10 +366,13 @@ func getAmountOutWithoutCutoff(
 }
 
 // getAmountInWithoutCutoff computes the required amountIn for a desired amountOut without the §4.3 cutoff.
+// isSell must match the swap direction so the penalty formula aligns with checkInventoryBaseQuote:
+// SELL uses basePriceQ64/Q64 scaling; BUY values quote at Q64 (= $1, no priceOut factor).
 func getAmountInWithoutCutoff(
 	inDec, outDec uint8,
 	amountOut, reserveOut, priceIn, priceOut, kappa *uint256.Int,
 	fee uint32,
+	isSell bool,
 ) (*uint256.Int, error) {
 	if amountOut.Sign() == 0 {
 		return nil, ErrInsufficientOutputAmount
@@ -392,15 +395,22 @@ func getAmountInWithoutCutoff(
 	var scaled uint256.Int
 	big256.MulDivUp(&scaled, kappa, parsedAmountOut, &denom)
 
-	// penalty = ceil(priceOut * (scaled * parsedAmountOut) / Q64)
-	var scaledAmt, penalty uint256.Int
-	scaledAmt.Mul(&scaled, parsedAmountOut)
-	big256.MulDivUp(&penalty, priceOut, &scaledAmt, q64)
-
-	// pseudoIn = ceil((priceOut * parsedAmountOut + penalty) / priceIn)
+	// Build num to satisfy the checkInventoryBaseQuote invariant exactly:
+	//   SELL: invariant values output (base) at priceOut/Q64 → penalty has priceOut/Q64 factor
+	//   BUY:  invariant values output (quote) at Q64 ($1)     → penalty is scaled*quoteOut only
 	var num uint256.Int
-	num.Mul(priceOut, parsedAmountOut)
-	num.Add(&num, &penalty)
+	if isSell {
+		var scaledAmt, penalty uint256.Int
+		scaledAmt.Mul(&scaled, parsedAmountOut)
+		big256.MulDivUp(&penalty, priceOut, &scaledAmt, q64)
+		num.Mul(priceOut, parsedAmountOut)
+		num.Add(&num, &penalty)
+	} else {
+		var penalty uint256.Int
+		penalty.Mul(&scaled, parsedAmountOut)
+		num.Mul(q64, parsedAmountOut)
+		num.Add(&num, &penalty)
+	}
 	pseudoIn := big256.DivUp(&num, priceIn)
 
 	// amountIn18 = ceil(pseudoIn * (PRECISION + fee) / PRECISION)
@@ -580,9 +590,12 @@ func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.
 		// bc = 4*P*X18 + 2*X18*betaQ64 - 2*Y18*betaP_Q64
 		// If t3 > t1+t2, bc would be negative → num > 0 → underflow
 		var t1, t2, t3, bc uint256.Int
-		t1.Mul(P, X18); t1.Mul(&t1, big256.U4)
-		t2.Mul(X18, &betaQ64); t2.Mul(&t2, big256.U2)
-		t3.Mul(Y18, &betaP_Q64); t3.Mul(&t3, big256.U2)
+		t1.Mul(P, X18)
+		t1.Mul(&t1, big256.U4)
+		t2.Mul(X18, &betaQ64)
+		t2.Mul(&t2, big256.U2)
+		t3.Mul(Y18, &betaP_Q64)
+		t3.Mul(&t3, big256.U2)
 		bc.Add(&t1, &t2)
 		if t3.Gt(&bc) {
 			return nil, ErrMathUnderflow
@@ -791,7 +804,7 @@ func calcAmountIn(
 	if amountOut.Gt(outStarRaw) {
 		return nil, ErrCutoffLimitReached
 	}
-	amountIn, err := getAmountInWithoutCutoff(inDec, outDec, amountOut, reserveOut, priceIn, priceOut, kappa, fee)
+	amountIn, err := getAmountInWithoutCutoff(inDec, outDec, amountOut, reserveOut, priceIn, priceOut, kappa, fee, isSell)
 	if err != nil {
 		return nil, err
 	}
