@@ -15,7 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
@@ -67,59 +67,48 @@ func (t *PoolTracker) GetNewPoolState(
 		balances = make([]*big.Int, 2)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-	calls.AddCall(&ethrpc.Call{
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodGetBasePrice,
-	}, []any{&basePrice})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&basePrice}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodPriceOracle,
-	}, []any{&priceOracle})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&priceOracle}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodFee,
-	}, []any{&fee})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&fee}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFee,
-	}, []any{&adminFee})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFeesX,
-	}, []any{&adminFeesX})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFeesX}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFeesY,
-	}, []any{&adminFeesY})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFeesY}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodActiveBand,
-	}, []any{&activeBand})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&activeBand}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodMinBand,
-	}, []any{&minBand})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&minBand}).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodMaxBand,
-	}, []any{&maxBand})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&maxBand}).AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: p.Tokens[0].Address,
 		Method: shared.ERC20MethodBalanceOf,
 		Params: []any{common.HexToAddress(p.Address)},
-	}, []any{&balances[0]})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&balances[0]}).AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: p.Tokens[1].Address,
 		Method: shared.ERC20MethodBalanceOf,
@@ -192,7 +181,7 @@ func (t *PoolTracker) getBands(
 		bandsY = make([]*big.Int, bandCount)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
 	for i := int64(0); i < bandCount; i++ {
 		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
@@ -200,8 +189,7 @@ func (t *PoolTracker) getBands(
 			Target: poolAddress,
 			Method: llammaMethodBandsX,
 			Params: []any{bandIndex},
-		}, []any{&bandsX[i]})
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&bandsX[i]}).AddCall(&ethrpc.Call{
 			ABI:    CurveLlammaABI,
 			Target: poolAddress,
 			Method: llammaMethodBandsY,

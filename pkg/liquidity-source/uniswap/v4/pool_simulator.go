@@ -336,8 +336,8 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
-	var wrapTokens = make(map[string]struct{})
 
+	result := map[string]struct{}{}
 	if tokenIndex == -1 {
 		for _, wrapper := range p.tokenWrappers {
 			metadata, canWrap := wrapper.CanWrap(p.chainID, address)
@@ -350,20 +350,21 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 				continue
 			}
 
-			wrapTokens[metadata.GetWrapToken()] = struct{}{}
+			res := p.CanSwapTo(metadata.GetWrapToken())
+			for _, token := range res {
+				result[token] = struct{}{}
+			}
 		}
-	}
+	} else { // tokenIndex >= 0
+		for _, token := range p.Info.Tokens {
+			if token != address {
+				result[token] = struct{}{}
 
-	result := map[string]struct{}{}
-	for _, token := range p.Info.Tokens {
-		_, isWrapToken := wrapTokens[token]
-		if (tokenIndex >= 0 && token != address) || (tokenIndex == -1 && !isWrapToken) {
-			result[token] = struct{}{}
-
-			for _, wrapper := range p.tokenWrappers {
-				metadata, canUnwrap := wrapper.IsWrapped(p.chainID, token)
-				if canUnwrap && metadata.GetUnwrapToken() != address {
-					result[metadata.GetUnwrapToken()] = struct{}{}
+				for _, wrapper := range p.tokenWrappers {
+					metadata, canUnwrap := wrapper.IsWrapped(p.chainID, token)
+					if canUnwrap && metadata.GetUnwrapToken() != address {
+						result[metadata.GetUnwrapToken()] = struct{}{}
+					}
 				}
 			}
 		}

@@ -82,7 +82,7 @@ func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ 
 	underlyingCoins128 := make([][MaxTokenCount]common.Address, len(pools))
 	underlyingCoins256 := make([][MaxTokenCount]common.Address, len(pools))
 
-	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(false)
+	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(false).SetFrom(AddrDummy)
 
 	for poolIdx, pool := range pools {
 		for coinIdx := range pool.Coins {
@@ -91,9 +91,7 @@ func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ 
 				Target: pool.Address,
 				Method: poolMethodUnderlyingCoins,
 				Params: []any{big.NewInt(int64(coinIdx))},
-			}, []any{&underlyingCoins128[poolIdx][coinIdx]})
-
-			calls.AddCall(&ethrpc.Call{
+			}, []any{&underlyingCoins128[poolIdx][coinIdx]}).AddCall(&ethrpc.Call{
 				ABI:    underlyingCoins256ABI,
 				Target: pool.Address,
 				Method: poolMethodUnderlyingCoins,
@@ -105,7 +103,6 @@ func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ 
 			ABI:    gammaABI,
 			Target: pool.Address,
 			Method: poolMethodGamma,
-			Params: nil,
 		}, []any{&gammaList[poolIdx]})
 	}
 

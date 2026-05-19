@@ -1,0 +1,31 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getPoolConfig",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "buyFee",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "sellFee",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isToken0Quote",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

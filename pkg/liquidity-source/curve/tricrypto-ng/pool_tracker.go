@@ -85,100 +85,59 @@ func (t *PoolTracker) getNewPoolState(
 		lastPrices   = make([]*big.Int, numDepCoins)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		calls.SetOverrides(overrides)
-	}
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodD,
-		Params: nil,
-	}, []any{&d})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    curveTricryptoNGABI,
+			Target: p.Address,
+			Method: poolMethodD,
+		}, []any{&d}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodFeeGamma,
-		Params: nil,
-	}, []any{&feeGamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&feeGamma}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodMidFee,
-		Params: nil,
-	}, []any{&midFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&midFee}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodOutFee,
-		Params: nil,
-	}, []any{&outFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&outFee}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGammaTime,
-		Params: nil,
-	}, []any{&futureAGammaTime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureAGammaTime}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGamma,
-		Params: nil,
-	}, []any{&futureAGamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureAGamma}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGammaTime,
-		Params: nil,
-	}, []any{&initialAGammaTime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialAGammaTime}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGamma,
-		Params: nil,
-	}, []any{&initialAGamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialAGamma}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodXcpProfit,
-		Params: nil,
-	}, []any{&xcpProfit})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&xcpProfit}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodVirtualPrice,
-		Params: nil,
-	}, []any{&virtualPrice})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&virtualPrice}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodAllowedExtraProfit,
-		Params: nil,
-	}, []any{&allowedExtraProfit})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&allowedExtraProfit}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
-		Params: nil,
-	}, []any{&adjustmentStep})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adjustmentStep}).AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
-		Params: nil,
 	}, []any{&lpSupply})
 
 	for i := range p.Tokens {
@@ -196,16 +155,12 @@ func (t *PoolTracker) getNewPoolState(
 			Target: p.Address,
 			Method: poolMethodPriceScale,
 			Params: []any{big.NewInt(int64(i))},
-		}, []any{&priceScales[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&priceScales[i]}).AddCall(&ethrpc.Call{
 			ABI:    curveTricryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodPriceOracle,
 			Params: []any{big.NewInt(int64(i))},
-		}, []any{&priceOracles[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&priceOracles[i]}).AddCall(&ethrpc.Call{
 			ABI:    curveTricryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodLastPrices,

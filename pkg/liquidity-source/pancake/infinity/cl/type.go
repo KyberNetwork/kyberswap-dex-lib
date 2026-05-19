@@ -7,6 +7,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	factory "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -60,11 +61,12 @@ type Slot0Data struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int        `json:"liquidity"`
-	Slot0       Slot0Data       `json:"slot0"`
-	TickSpacing uint64          `json:"tickSpacing"`
-	SwapFee     uint32          `json:"swapFee"`
-	HookExtra   json.RawMessage `json:"hX,omitempty"`
+	Liquidity   *big.Int            `json:"liquidity"`
+	Slot0       Slot0Data           `json:"slot0"`
+	TickSpacing uint64              `json:"tickSpacing"`
+	Reserves    entity.PoolReserves `json:"reserves,omitempty"`
+	SwapFee     uint32              `json:"swapFee"`
+	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 }
 
 type TicksResp struct {

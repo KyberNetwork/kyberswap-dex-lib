@@ -2,9 +2,9 @@ package cl
 
 import (
 	"context"
-	"strings"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -15,20 +15,21 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
+var _ = poolfactory.RegisterFactoryCE(DexType, NewPoolFactory)
 
 type PoolFactory struct {
 	config              *Config
+	ethrpcClient        *ethrpc.Client
 	poolCreatedEventIds map[common.Hash]struct{}
 }
 
-func NewPoolFactory(config *Config) *PoolFactory {
+func NewPoolFactory(config *Config, ethrpcClient *ethrpc.Client) *PoolFactory {
 	return &PoolFactory{
-		config: config,
+		config:       config,
+		ethrpcClient: ethrpcClient,
 		poolCreatedEventIds: map[common.Hash]struct{}{
 			shared.CLPoolManagerABI.Events["Initialize"].ID: {},
 		},
@@ -66,7 +67,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	})
 	staticExtra := StaticExtra{
 		HasSwapPermissions: hasSwapPermissions,
-		IsNative:           [2]bool{eth.IsZeroAddress(p.Currency0), eth.IsZeroAddress(p.Currency1)},
+		IsNative:           [2]bool{valueobject.IsZeroAddress(p.Currency0), valueobject.IsZeroAddress(p.Currency1)},
 		Fee:                uint32(p.Fee.Uint64()),
 		TickSpacing:        tickSpacing,
 		Parameters:         hexutil.Encode(params),
@@ -78,17 +79,24 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	}
 	staticExtraBytes, _ := json.Marshal(staticExtra)
 
-	hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: f.config})
+	exchange := ""
+	if classifyStableHooks(context.Background(), f.ethrpcClient, f.config.StableHookFactories, []common.Address{p.Hooks})[p.Hooks] {
+		exchange = valueobject.ExchangePancakeInfinityCLStable
+	} else {
+		hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: f.config})
+		exchange = hook.GetExchange()
+	}
+
 	return &entity.Pool{
 		Address:   hexutil.Encode(p.Id[:]),
 		SwapFee:   swapFee,
-		Exchange:  hook.GetExchange(),
+		Exchange:  exchange,
 		Type:      DexType,
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
-			{Address: currencyToToken(p.Currency0, chainId), Swappable: true},
-			{Address: currencyToToken(p.Currency1, chainId), Swappable: true},
+			{Address: valueobject.ZeroToWrappedLower(p.Currency0.Hex(), chainId), Swappable: true},
+			{Address: valueobject.ZeroToWrappedLower(p.Currency1.Hex(), chainId), Swappable: true},
 		},
 		Extra:       string(extraBytes),
 		StaticExtra: string(staticExtraBytes),
@@ -96,15 +104,40 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	}, nil
 }
 
-func currencyToToken(currency common.Address, chainId valueobject.ChainID) string {
-	if eth.IsZeroAddress(currency) {
-		return strings.ToLower(valueobject.WrappedNativeMap[chainId])
+// StableHookClassifier returns the subset of `hooks` registered under any of
+// `stableHookFactories`. Wired in via RegisterStableHookClassifier from
+// cl/hooks/stable to break the import cycle.
+type StableHookClassifier func(
+	ctx context.Context,
+	rpcClient *ethrpc.Client,
+	stableHookFactories []string,
+	hooks []common.Address,
+) map[common.Address]bool
+
+var stableHookClassifier StableHookClassifier
+
+func RegisterStableHookClassifier(c StableHookClassifier) bool {
+	stableHookClassifier = c
+	return true
+}
+
+// nil-safe wrapper: returns nil (which is a usable empty map for reads) when
+// no classifier is registered or there's nothing to classify.
+func classifyStableHooks(
+	ctx context.Context,
+	rpcClient *ethrpc.Client,
+	stableHookFactories []string,
+	hooks []common.Address,
+) map[common.Address]bool {
+	if stableHookClassifier == nil || rpcClient == nil ||
+		len(stableHookFactories) == 0 || len(hooks) == 0 {
+		return nil
 	}
-	return hexutil.Encode(currency[:])
+	return stableHookClassifier(ctx, rpcClient, stableHookFactories, hooks)
 }
 
 func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
-	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
+	if len(log.Topics) == 0 || valueobject.IsZeroAddress(log.Address) {
 		return nil, nil
 	}
 

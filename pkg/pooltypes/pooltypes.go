@@ -20,6 +20,7 @@ import (
 	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/baseline"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
@@ -60,6 +61,7 @@ import (
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fermi"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
@@ -100,6 +102,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
+	nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
@@ -129,6 +132,7 @@ import (
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/unipool"
 	uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/lo"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
@@ -268,6 +272,7 @@ type Types struct {
 	Smardex                    string
 	Integral                   string
 	Fxdx                       string
+	UniPool                    string
 	UniswapV1                  string
 	UniswapV2                  string
 	QuickPerps                 string
@@ -335,6 +340,7 @@ type Types struct {
 	FluidDexLite               string
 	MantleETH                  string
 	OndoUSDY                   string
+	Baseline                   string
 	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
@@ -384,6 +390,7 @@ type Types struct {
 	MapleSyrup                 string
 	Gsm4626                    string
 	NadFun                     string
+	NadSwap                    string
 	CloberOB                   string
 	FluidDexV2                 string
 	Wildcard                   string
@@ -407,6 +414,7 @@ type Types struct {
 	Printr                     string
 	Poe                        string
 	Canonic                    string
+	Fermi                      string
 }
 
 var (
@@ -482,6 +490,7 @@ var (
 		Smardex:                    smardex.DexTypeSmardex,
 		Integral:                   integral.DexTypeIntegral,
 		Fxdx:                       fxdx.DexTypeFxdx,
+		UniPool:                    unipool.DexType,
 		UniswapV1:                  uniswapv1.DexType,
 		UniswapV2:                  uniswapv2.DexType,
 		QuickPerps:                 quickperps.DexTypeQuickperps,
@@ -546,6 +555,7 @@ var (
 		FluidDexLite:               fluidDexLite.DexType,
 		MantleETH:                  meth.DexType,
 		OndoUSDY:                   ondousdy.DexType,
+		Baseline:                   baseline.DexType,
 		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
@@ -599,6 +609,7 @@ var (
 		MapleSyrup:                 maplesyrup.DexType,
 		Gsm4626:                    gsm4626.DexType,
 		NadFun:                     nadfun.DexType,
+		NadSwap:                    nadswap.DexType,
 		CloberOB:                   cloberob.DexType,
 		FluidDexV2:                 dexv2.DexType,
 		Wildcard:                   wildcard.DexType,
@@ -622,5 +633,6 @@ var (
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
 		Canonic:                    canonic.DexType,
+		Fermi:                      fermi.DexType,
 	}
 )

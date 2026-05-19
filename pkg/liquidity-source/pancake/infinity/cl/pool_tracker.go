@@ -94,9 +94,18 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
 	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
 	p.Exchange = hook.GetExchange()
+
 	var err error
-	result.HookExtra, err = hook.Track(ctx, hookParam)
-	return result, err
+	if result.HookExtra, err = hook.Track(ctx, hookParam); err != nil {
+		return nil, err
+	}
+
+	hookParam.HookExtra = result.HookExtra
+	if result.Reserves, err = hook.GetReserves(ctx, hookParam); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (t *PoolTracker) BootstrapPoolState(
@@ -200,9 +209,11 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.SwapFee = float64(rpcData.SwapFee)
 
 	p.Extra = string(extraBytes)
-
-	reserve0, reserve1 := uniswapv4.EstimateReservesFromTicks(rpcData.Slot0.SqrtPriceX96, ticks)
-	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+	p.Reserves = rpcData.Reserves
+	if p.Reserves == nil {
+		r0, r1 := uniswapv4.EstimateReservesFromTicks(rpcData.Slot0.SqrtPriceX96, ticks)
+		p.Reserves = entity.PoolReserves{r0.String(), r1.String()}
+	}
 
 	p.BlockNumber = blockNumber
 
@@ -715,9 +726,11 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	p.SwapFee = float64(rpcState.SwapFee)
 	p.Extra = string(extraBytes)
-
-	reserve0, reserve1 := uniswapv4.EstimateReservesFromTicks(rpcState.Slot0.SqrtPriceX96, entityPoolTicks)
-	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+	p.Reserves = rpcState.Reserves
+	if p.Reserves == nil {
+		r0, r1 := uniswapv4.EstimateReservesFromTicks(rpcState.Slot0.SqrtPriceX96, entityPoolTicks)
+		p.Reserves = entity.PoolReserves{r0.String(), r1.String()}
+	}
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil

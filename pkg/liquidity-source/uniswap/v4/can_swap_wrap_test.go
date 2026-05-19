@@ -5,6 +5,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,10 +109,7 @@ func TestCanSwapFromWrapToken(t *testing.T) {
 		},
 	}
 
-	for idx, testcase := range testcases {
-		if idx != 5 {
-			continue
-		}
+	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
 			entityPool := entity.Pool{
 				Address:  "uniswapV4PoolAddress",
@@ -153,7 +151,25 @@ func TestCanSwapFromWrapToken(t *testing.T) {
 				return ""
 			})
 
-			assert.ElementsMatch(t, testcase.expectedResult, resultSymbol)
+			assert.ElementsMatch(t, testcase.expectedResult, resultSymbol, testcase.name)
 		})
 	}
+}
+
+func TestCanSwapFrom(t *testing.T) {
+	entityStr := "{\"address\":\"0xaf15cd1f9c3874bbcfddfc2b544544612c9de8c8bae28ba21c129c6b286c1e19\",\"swapFee\":90,\"exchange\":\"uniswap-v4-fairflow\",\"type\":\"uniswap-v4\",\"timestamp\":1778499111,\"reserves\":[\"103991434390571040768\",\"84204220469\"],\"tokens\":[{\"address\":\"0x4200000000000000000000000000000000000006\",\"symbol\":\"WETH\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"liquidity\\\":4078414673216039,\\\"sqrtPriceX96\\\":3827703858134242915043765,\\\"tickSpacing\\\":2,\\\"tick\\\":-198767,\\\"ticks\\\":[{\\\"index\\\":-887272,\\\"liquidityGross\\\":1619286354158333,\\\"liquidityNet\\\":1619286354158333},{\\\"index\\\":887272,\\\"liquidityGross\\\":1619286354158333,\\\"liquidityNet\\\":-1619286354158333}],\\\"hX\\\":{}}\",\"staticExtra\":\"{\\\"0x0\\\":[true,false],\\\"fee\\\":90,\\\"tS\\\":2,\\\"hooks\\\":\\\"0x0000000000000000000000000000000000000000\\\",\\\"uR\\\":\\\"0x6ff5693b99212da76ad316178a184ab56d299b43\\\",\\\"pm2\\\":\\\"0x000000000022d473030f116ddee9f6b43ac78ba3\\\",\\\"mc3\\\":\\\"0xca11bde05977b3631167028862be2a173976ca11\\\"}\",\"blockNumber\":45854882}"
+
+	var poolEntity entity.Pool
+	assert.NoError(t, json.Unmarshal([]byte(entityStr), &poolEntity))
+
+	simulator, err := NewPoolSimulator(poolEntity, valueobject.ChainIDBase)
+	assert.NoError(t, err)
+
+	result := simulator.CanSwapFrom("0x4200000000000000000000000000000000000006")
+
+	assert.Equal(t, []string{"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"}, result)
+
+	result = simulator.CanSwapFrom("0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825")
+
+	assert.Equal(t, []string(nil), result)
 }

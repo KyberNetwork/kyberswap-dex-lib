@@ -3,7 +3,6 @@ package stablemetang
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -29,8 +28,6 @@ const (
 )
 
 var (
-	nonZeroAddr = common.HexToAddress("1")
-
 	DefaultGasUnderlying int64 = 260000
 
 	Precision      = uint256.MustFromDecimal("1000000000000000000")

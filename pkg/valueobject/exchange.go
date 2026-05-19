@@ -103,6 +103,7 @@ const (
 	ExchangeEulerSwapV2                = "euler-swap-v2"
 	ExchangeFakePool                   = "fake-pool"
 	ExchangeFeltir                     = "feltir"
+	ExchangeFermi                      = "fermi"
 	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidDexV2                 = "fluid-dex-v2"
@@ -164,6 +165,7 @@ const (
 	ExchangeMuteSwitch                 = "muteswitch"
 	ExchangeNabla                      = "nabla"
 	ExchangeNadFun                     = "nad-fun"
+	ExchangeNadSwap                    = "nadswap"
 	ExchangeNativeV1                   = "native-v1"
 	ExchangeNativeV2                   = "native-v2"
 	ExchangeNativeV3                   = "native-v3"
@@ -185,6 +187,7 @@ const (
 	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeInfinityCLLO        = "pancake-infinity-cl-lo"
+	ExchangePancakeInfinityCLStable    = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax       = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
@@ -245,6 +248,7 @@ const (
 	ExchangeSynthetix                  = "synthetix"
 	ExchangeTessera                    = "tessera"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
+	ExchangeUniPool                    = "unipool"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniSwapV1                  = "uniswap-v1"
@@ -296,6 +300,7 @@ const (
 	ExchangeWRSETH                     = "wrseth"
 	ExchangeXSolvBTC                   = "xsolvbtc"
 	ExchangePrintr                     = "printr"
+	ExchangeBaseline                   = "baseline"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -355,6 +360,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeWasabiProp:  {},
 	ExchangeObric:       {},
 	ExchangePoe:         {},
+	ExchangeFermi:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
@@ -365,13 +371,14 @@ func IsPropAMMSource[T ~string](exchange T) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeBebop:          {},
-	ExchangeClipper:        {},
-	ExchangeOvernightUsdp:  {},
-	ExchangeUniswapV4Euler: {},
-	ExchangeEulerSwap:      {},
-	ExchangeEulerSwapV2:    {},
-	ExchangeWooFiV3:        {},
+	ExchangeBebop:            {},
+	ExchangeClipper:          {},
+	ExchangeOvernightUsdp:    {},
+	ExchangeEulerSwap:        {},
+	ExchangeEulerSwapV2:      {},
+	ExchangeUniswapV4Euler:   {},
+	ExchangeUniswapV4EulerV2: {},
+	ExchangeWooFiV3:          {},
 }
 
 func IsSingleSwapSource[T ~string](exchange T) bool {
