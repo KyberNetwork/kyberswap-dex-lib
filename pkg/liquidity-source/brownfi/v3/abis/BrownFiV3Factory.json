@@ -1,0 +1,172 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "allPairs",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "allPairsLength",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pair",
+        "type": "address"
+      }
+    ],
+    "name": "getAmmPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reserve0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reserve1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "token0Decimals",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "token1Decimals",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0Out",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1Out",
+        "type": "uint256"
+      }
+    ],
+    "name": "getSwapPrices",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256",
+        "name": "sPrice0"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256",
+        "name": "sPrice1"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256",
+        "name": "pythPrice0"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256",
+        "name": "pythPrice1"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256",
+        "name": "ammPrice"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256",
+        "name": "adjPrice"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "pairConfig",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "priceFeedIds",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "priceOracle",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "isPaused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
