@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	topicStateUpdated      = crypto.Keccak256Hash([]byte("StateUpdated(uint80,uint24,uint24)"))
+	topicStateUpdated      = crypto.Keccak256Hash([]byte("StateUpdated(uint160,uint24,uint24)"))
 	topicSync              = crypto.Keccak256Hash([]byte("Sync(uint128,uint128)"))
 	topicSwapExecuted      = crypto.Keccak256Hash([]byte("SwapExecuted(address,bool,uint256,uint256,uint256)"))
 	topicConcentrationKSet = crypto.Keccak256Hash([]byte("ConcentrationKSet(uint32)"))

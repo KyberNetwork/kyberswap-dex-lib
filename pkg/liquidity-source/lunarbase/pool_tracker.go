@@ -159,7 +159,7 @@ func (t *PoolTracker) processStateUpdated(extra *Extra, log types.Log) error {
 		return ErrQuoteFailed
 	}
 
-	extra.SqrtPriceX48 = uint256.MustFromBig(anchorBig)
+	extra.SqrtPriceX96 = uint256.MustFromBig(anchorBig)
 	extra.FeeAskX24 = uint32(feeAskBig.Uint64())
 	extra.FeeBidX24 = uint32(feeBidBig.Uint64())
 	extra.LatestUpdateBlock = log.BlockNumber
@@ -281,8 +281,8 @@ func (t *PoolTracker) buildPoolFromCachedState(p entity.Pool, state *poolState) 
 		return p, err
 	}
 
-	if state.SqrtPriceX48 != nil {
-		extra.SqrtPriceX48 = new(uint256.Int).Set(state.SqrtPriceX48)
+	if state.SqrtPriceX96 != nil {
+		extra.SqrtPriceX96 = new(uint256.Int).Set(state.SqrtPriceX96)
 	}
 	extra.FeeAskX24 = state.FeeAskX24
 	extra.FeeBidX24 = state.FeeBidX24

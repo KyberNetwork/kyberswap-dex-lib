@@ -107,7 +107,7 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 	if sqrtPriceBig == nil {
 		sqrtPriceBig = anchorPrice
 	}
-	sqrtPriceX48 := lo.CoalesceOrEmpty(uint256.MustFromBig(sqrtPriceBig), big256.U0)
+	sqrtPriceX96 := lo.CoalesceOrEmpty(uint256.MustFromBig(sqrtPriceBig), big256.U0)
 	if reserveX == nil {
 		reserveX = bignumber.ZeroBI
 	}
@@ -131,7 +131,7 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		reserveX:    reserveX,
 		reserveY:    reserveY,
 		extra: Extra{
-			SqrtPriceX48:      sqrtPriceX48,
+			SqrtPriceX96:      sqrtPriceX96,
 			FeeAskX24:         feeAsk,
 			FeeBidX24:         feeBid,
 			LatestUpdateBlock: state.LatestUpdateBlock,

@@ -15,14 +15,14 @@ import (
 )
 
 // TestCloneStateUpdateBalance verifies UpdateBalance mutates only the cloned
-// reserves and never the original. SqrtPriceX48 is operator-set on the
+// reserves and never the original. SqrtPriceX96 is operator-set on the
 // fix/incident contract and is never written by a swap, so we check it
 // stays put on both copies.
 func TestCloneStateUpdateBalance(t *testing.T) {
 	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
 
 	extraBytes, err := json.Marshal(Extra{
-		SqrtPriceX48:      uint256.NewInt(1),
+		SqrtPriceX96:      uint256.NewInt(1),
 		FeeAskX24:         0,
 		FeeBidX24:         1,
 		LatestUpdateBlock: 1,
@@ -61,19 +61,19 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 		TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(20)},
 		Fee:            pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(0)},
 		SwapInfo: SwapInfo{
-			nextSqrtPriceX48: uint256.NewInt(2),
+			nextSqrtPriceX96: uint256.NewInt(2),
 		},
 	})
 
 	if sim.GetReserves()[0].Cmp(big.NewInt(100)) != 0 || sim.GetReserves()[1].Cmp(big.NewInt(200)) != 0 {
 		t.Fatalf("original reserves mutated: got %s/%s", sim.GetReserves()[0], sim.GetReserves()[1])
 	}
-	if sim.SqrtPriceX48.Uint64() != 1 {
-		t.Fatalf("original price mutated: got %d", sim.SqrtPriceX48.Uint64())
+	if sim.SqrtPriceX96.Uint64() != 1 {
+		t.Fatalf("original price mutated: got %d", sim.SqrtPriceX96.Uint64())
 	}
-	if cloned.(*PoolSimulator).SqrtPriceX48.Uint64() != 1 {
-		t.Fatalf("cloned price unexpectedly mutated (swaps must not move SqrtPriceX48): got %d",
-			cloned.(*PoolSimulator).SqrtPriceX48.Uint64())
+	if cloned.(*PoolSimulator).SqrtPriceX96.Uint64() != 1 {
+		t.Fatalf("cloned price unexpectedly mutated (swaps must not move SqrtPriceX96): got %d",
+			cloned.(*PoolSimulator).SqrtPriceX96.Uint64())
 	}
 
 	meta := sim.GetMetaInfo(sim.GetTokens()[1], sim.GetTokens()[0]).(PoolMeta)
@@ -88,9 +88,9 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 func TestNewPoolSimulatorRejectsStalePool(t *testing.T) {
 	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
 
-	pX48 := uint256.NewInt(1 << 48)
+	pX96 := new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 	extraBytes, err := json.Marshal(Extra{
-		SqrtPriceX48:      pX48,
+		SqrtPriceX96:      pX96,
 		FeeAskX24:         0,
 		FeeBidX24:         1,
 		LatestUpdateBlock: 10,

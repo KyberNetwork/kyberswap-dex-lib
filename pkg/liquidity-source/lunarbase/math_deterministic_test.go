@@ -13,7 +13,7 @@ import (
 type deterministicVector struct {
 	Name   string `json:"name"`
 	Dir    string `json:"dir"`
-	PX48   string `json:"pX48"`
+	PX96   string `json:"pX96"`
 	Fee    string `json:"fee"`
 	ResX   string `json:"resX"`
 	ResY   string `json:"resY"`
@@ -51,7 +51,7 @@ func TestAllDeterministicVectors(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(line), &v), "parse error line %d", lineNum)
 		total++
 
-		p := u(v.PX48)
+		p := u(v.PX96)
 		feeX24 := uint32(u(v.Fee).Uint64())
 		var feeAsk, feeBid uint32
 		if v.Dir == "xToY" {
@@ -60,7 +60,7 @@ func TestAllDeterministicVectors(t *testing.T) {
 			feeAsk = feeX24
 		}
 		params := &PoolParams{
-			SqrtPriceX48:   p,
+			SqrtPriceX96:   p,
 			FeeAskX24:      feeAsk,
 			FeeBidX24:      feeBid,
 			ReserveX:       u(v.ResX),

@@ -7,8 +7,8 @@ import (
 )
 
 // coreABIJSON describes the on-chain `fix/incident` Pool surface used by
-// this adapter (single-price Q32.48, asymmetric Q24 fees). The contract's
-// `anchorPrice` field is what we cache as `SqrtPriceX48`.
+// this adapter (Q64.96 uint160 price, asymmetric Q24 fees). The contract's
+// `anchorPrice` field is what we cache as `SqrtPriceX96`.
 const coreABIJSON = `[
   {
     "inputs": [],
@@ -57,7 +57,7 @@ const coreABIJSON = `[
     "name": "quoteXToY",
     "outputs": [
       {"internalType": "uint256", "name": "dy", "type": "uint256"},
-      {"internalType": "uint80", "name": "pNext", "type": "uint80"},
+      {"internalType": "uint160", "name": "pNext", "type": "uint160"},
       {"internalType": "uint256", "name": "fee", "type": "uint256"}
     ],
     "stateMutability": "view",
@@ -68,7 +68,7 @@ const coreABIJSON = `[
     "name": "quoteYToX",
     "outputs": [
       {"internalType": "uint256", "name": "dx", "type": "uint256"},
-      {"internalType": "uint80", "name": "pNext", "type": "uint80"},
+      {"internalType": "uint160", "name": "pNext", "type": "uint160"},
       {"internalType": "uint256", "name": "fee", "type": "uint256"}
     ],
     "stateMutability": "view",
@@ -85,7 +85,7 @@ const coreABIJSON = `[
     "inputs": [],
     "name": "state",
     "outputs": [
-      {"internalType": "uint80",  "name": "anchorPrice",       "type": "uint80"},
+      {"internalType": "uint160", "name": "anchorPrice",       "type": "uint160"},
       {"internalType": "uint24",  "name": "feeAskX24",         "type": "uint24"},
       {"internalType": "uint24",  "name": "feeBidX24",         "type": "uint24"},
       {"internalType": "uint48",  "name": "latestUpdateBlock", "type": "uint48"}
@@ -96,14 +96,14 @@ const coreABIJSON = `[
   {
     "inputs": [],
     "name": "anchorPrice",
-    "outputs": [{"internalType": "uint80", "name": "anchorPrice", "type": "uint80"}],
+    "outputs": [{"internalType": "uint160", "name": "anchorPrice", "type": "uint160"}],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "anonymous": false,
     "inputs": [
-      {"indexed": false, "internalType": "uint80", "name": "anchorPrice", "type": "uint80"},
+      {"indexed": false, "internalType": "uint160", "name": "anchorPrice", "type": "uint160"},
       {"indexed": false, "internalType": "uint24", "name": "feeAskX24",   "type": "uint24"},
       {"indexed": false, "internalType": "uint24", "name": "feeBidX24",   "type": "uint24"}
     ],

@@ -32,7 +32,7 @@ const (
 )
 
 type poolState struct {
-	SqrtPriceX48      *uint256.Int
+	SqrtPriceX96      *uint256.Int
 	FeeAskX24         uint32
 	FeeBidX24         uint32
 	ReserveX          *uint256.Int
@@ -106,8 +106,8 @@ func (s *FlashBlockSubscriber) GetLatestState() *poolState {
 	}
 
 	cp := *s.latestState
-	if s.latestState.SqrtPriceX48 != nil {
-		cp.SqrtPriceX48 = new(uint256.Int).Set(s.latestState.SqrtPriceX48)
+	if s.latestState.SqrtPriceX96 != nil {
+		cp.SqrtPriceX96 = new(uint256.Int).Set(s.latestState.SqrtPriceX96)
 	}
 	cp.ReserveX = new(uint256.Int).Set(s.latestState.ReserveX)
 	cp.ReserveY = new(uint256.Int).Set(s.latestState.ReserveY)
@@ -348,7 +348,7 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 
 	if s.latestState == nil {
 		s.latestState = &poolState{
-			SqrtPriceX48: new(uint256.Int),
+			SqrtPriceX96: new(uint256.Int),
 			ReserveX:     new(uint256.Int),
 			ReserveY:     new(uint256.Int),
 		}
@@ -392,7 +392,7 @@ func (s *FlashBlockSubscriber) handleStateUpdated(log types.Log) {
 		return
 	}
 
-	s.latestState.SqrtPriceX48 = big256.FromBig(anchorBig)
+	s.latestState.SqrtPriceX96 = big256.FromBig(anchorBig)
 	s.latestState.FeeAskX24 = uint32(feeAskBig.Uint64())
 	s.latestState.FeeBidX24 = uint32(feeBidBig.Uint64())
 	s.latestState.LatestUpdateBlock = log.BlockNumber
@@ -419,7 +419,7 @@ func (s *FlashBlockSubscriber) handleSync(log types.Log) {
 
 // handleSwapExecuted projects (dx, dy) onto cached reserves. The on-chain
 // fix/incident contract does not mutate `anchorPrice` on swaps, so we do not
-// touch SqrtPriceX48 here. The matching Sync log lands later in the same tx
+// touch SqrtPriceX96 here. The matching Sync log lands later in the same tx
 // and overwrites reserves with the authoritative post-swap values.
 func (s *FlashBlockSubscriber) handleSwapExecuted(log types.Log) {
 	if s.latestState.ReserveX == nil || s.latestState.ReserveY == nil {

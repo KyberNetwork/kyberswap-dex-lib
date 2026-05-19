@@ -9,11 +9,11 @@ type Metadata struct {
 // Extra is the per-pool state cached in the entity. JSON tags are kept short
 // to minimise on-disk size; semantics map to the on-chain `state()` view:
 //
-//	SqrtPriceX48 — `anchorPrice` (uint80, Q32.48 canonical price)
+//	SqrtPriceX96 — `anchorPrice` (uint160, Q64.96 canonical price)
 //	FeeAskX24    — fee on Y → X (uint24, Q24 where 2^24 == 100%)
 //	FeeBidX24    — fee on X → Y (uint24, Q24)
 type Extra struct {
-	SqrtPriceX48      *uint256.Int `json:"p,omitempty"`
+	SqrtPriceX96      *uint256.Int `json:"p,omitempty"`
 	FeeAskX24         uint32       `json:"fa,omitempty"`
 	FeeBidX24         uint32       `json:"fb,omitempty"`
 	LatestUpdateBlock uint64       `json:"b,omitempty"`
@@ -41,10 +41,10 @@ type PoolMeta struct {
 }
 
 // PoolParams is the snapshot consumed by quoteXToY / quoteYToX. Mirrors the
-// shape of `math/go/lunarbasepmm.PoolParams` (single-price Q32.48, asymmetric
+// shape of `math/go/lunarbasepmm.PoolParams` (Q64.96 price, asymmetric
 // directional fees in Q24).
 type PoolParams struct {
-	SqrtPriceX48 *uint256.Int
+	SqrtPriceX96 *uint256.Int
 	FeeAskX24    uint32
 	FeeBidX24    uint32
 	ReserveX     *uint256.Int
