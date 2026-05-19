@@ -103,6 +103,7 @@ const (
 	ExchangeEulerSwapV2                = "euler-swap-v2"
 	ExchangeFakePool                   = "fake-pool"
 	ExchangeFeltir                     = "feltir"
+	ExchangeFermi                      = "fermi"
 	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidDexV2                 = "fluid-dex-v2"
@@ -359,6 +360,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeWasabiProp:  {},
 	ExchangeObric:       {},
 	ExchangePoe:         {},
+	ExchangeFermi:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
