@@ -27,6 +27,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
+	capricornpamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/capricorn-pamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
@@ -415,6 +416,7 @@ type Types struct {
 	Poe                        string
 	Canonic                    string
 	Fermi                      string
+	CapricornPamm              string
 }
 
 var (
@@ -634,5 +636,6 @@ var (
 		Poe:                        poe.DexType,
 		Canonic:                    canonic.DexType,
 		Fermi:                      fermi.DexType,
+		CapricornPamm:              capricornpamm.DexType,
 	}
 )

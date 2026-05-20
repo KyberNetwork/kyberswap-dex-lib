@@ -1,0 +1,59 @@
+[
+    {
+        "type": "function",
+        "name": "getPrice",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "oracleId",
+                "type": "bytes32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "priceUd60x18",
+                "type": "uint128"
+            },
+            {
+                "name": "publishTime",
+                "type": "uint32"
+            }
+        ]
+    },
+    {
+        "type": "function",
+        "name": "maxPushPriceAge",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "function",
+        "name": "pythValidTimePeriod",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "type": "function",
+        "name": "paused",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ]
+    }
+]
