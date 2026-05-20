@@ -60,7 +60,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim.Reserves = make([]uint256.Int, numTokens)
 	sim.precisionMultipliers = make([]uint256.Int, numTokens)
 
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 
 		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])

@@ -271,6 +271,65 @@ func TestUpdateBalance(t *testing.T) {
 	}
 }
 
+// TestBBTCPoolOverquote reproduces the bug where swapping sbtcCRV -> bBTC in pool
+// 0x071c661b4deefb59e2a3ddb20db036821eee8f4b returns a non-zero value instead of an error.
+// On-chain, the tx reverts because y > xp[j] (the pool can't fill the order), but our code
+// computes a wrong y due to incorrect handling of convergence in _get_y.
+func TestBBTCPoolOverquote(t *testing.T) {
+	t.Parallel()
+	// On-chain state captured from Ethereum mainnet
+	// sBTC base pool: 0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714
+	basePool, err := base.NewPoolSimulator(entity.Pool{
+		Exchange: "curve",
+		Type:     "curve-base",
+		Reserves: entity.PoolReserves{
+			"864312888",             // renBTC (8 decimals)
+			"148139312",             // wBTC (8 decimals)
+			"136938252654095145849", // sBTC (18 decimals)
+			"125597240793439340254", // sbtcCRV LP supply
+		},
+		Tokens: []*entity.PoolToken{
+			{Address: "0xeb4c2781e4eba804ce9a9803c67d0893436bb27d"}, // renBTC
+			{Address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"}, // wBTC
+			{Address: "0xfe18be6b3bd88a2d2a7f928d00292e7a9963cfc6"}, // sBTC
+		},
+		Extra:       `{"initialA":"100","futureA":"100","initialATime":0,"futureATime":0,"swapFee":"4000000","adminFee":"5000000000"}`,
+		StaticExtra: `{"lpToken":"0x075b1bb99792c9e1041ba13afef80c91a1e70fb3","aPrecision":"1","precisionMultipliers":["10000000000","10000000000","1"],"rates":["10000000000000000000000000000","10000000000000000000000000000","1000000000000000000"]}`,
+	})
+	require.NoError(t, err)
+
+	// bBTC meta pool: 0x071c661b4deefb59e2a3ddb20db036821eee8f4b
+	metaPool, err := NewPoolSimulator(entity.Pool{
+		Exchange: "curve",
+		Type:     "curve-meta",
+		Reserves: entity.PoolReserves{
+			"11788596",              // bBTC (8 decimals)
+			"14561935246859023484",  // sbtcCRV (18 decimals)
+			"125597240793439340254", // LP supply
+		},
+		Tokens: []*entity.PoolToken{
+			{Address: "0x9be89d2a4cd102d8fecc6bf9da793be995c22541"}, // bBTC
+			{Address: "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3"}, // sbtcCRV
+		},
+		Extra:       `{"initialA":"20000","futureA":"20000","initialATime":0,"futureATime":0,"swapFee":"4000000","adminFee":"5000000000"}`,
+		StaticExtra: `{"lpToken":"0x071c661b4deefb59e2a3ddb20db036821eee8f4b","basePool":"0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714","rateMultiplier":"10000000000000000000000000000","aPrecision":"100","underlyingTokens":["0x9be89d2a4cd102d8fecc6bf9da793be995c22541","0xeb4c2781e4eba804ce9a9803c67d0893436bb27d","0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","0xfe18be6b3bd88a2d2a7f928d00292e7a9963cfc6"],"precisionMultipliers":["10000000000","1"],"rates":["",""]}`,
+	}, map[string]pool.IPoolSimulator{
+		"0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714": basePool,
+	})
+	require.NoError(t, err)
+
+	// Swap 1000000000 sbtcCRV -> bBTC: on-chain tx reverts, so expected is error
+	amountIn, _ := new(big.Int).SetString("1000000000", 10)
+	_, err = metaPool.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0x075b1bb99792c9e1041ba13afef80c91a1e70fb3", // sbtcCRV
+			Amount: amountIn,
+		},
+		TokenOut: "0x9be89d2a4cd102d8fecc6bf9da793be995c22541", // bBTC
+	})
+	assert.Error(t, err, "swap should fail: on-chain tx reverts because pool cannot fill this order")
+}
+
 func BenchmarkGetDyUnderlying(b *testing.B) {
 
 	// {"Am", 1000, "A", 31},

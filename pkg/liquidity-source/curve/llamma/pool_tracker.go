@@ -182,7 +182,7 @@ func (t *PoolTracker) getBands(
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
-	for i := int64(0); i < bandCount; i++ {
+	for i := range bandCount {
 		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
 			ABI:    CurveLlammaABI,
@@ -201,7 +201,7 @@ func (t *PoolTracker) getBands(
 	}
 
 	bands := make([]Band, 0, bandCount)
-	for i := int64(0); i < bandCount; i++ {
+	for i := range bandCount {
 		if bandsX[i].Sign() == 0 && bandsY[i].Sign() == 0 {
 			continue
 		}

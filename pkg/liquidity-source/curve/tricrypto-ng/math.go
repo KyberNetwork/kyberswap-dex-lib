@@ -121,7 +121,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 	}
 
 	var D_prev, K0, diff uint256.Int
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		D_prev.Set(D)
 
 		// # K0 = 10**18 * x[0] * N_COINS / D * x[1] * N_COINS / D * x[2] * N_COINS / D
@@ -289,7 +289,7 @@ func get_y(
 		return ErrUnsafeD
 	}
 
-	for k := 0; k < NumTokens; k++ {
+	for k := range NumTokens {
 		if k == i {
 			continue
 		}
@@ -661,7 +661,7 @@ func newton_y(
 	Si.Clear()
 
 	var xSorted [NumTokens]uint256.Int
-	for j := 0; j < NumTokens; j += 1 {
+	for j := range NumTokens {
 		xSorted[j].Set(&x[j])
 	}
 	xSorted[i].Clear()
@@ -685,14 +685,14 @@ func newton_y(
 		y.Div(number.SafeMul(y, D), number.SafeMul(_x, NumTokensU256))
 		Si.Add(&Si, _x)
 	}
-	for j := 0; j < NumTokens-1; j += 1 {
+	for j := range NumTokens - 1 {
 		K0i.Div(number.SafeMul(number.SafeMul(&K0i, &xSorted[j]), NumTokensU256), D)
 	}
 
 	var yPrev, K0, S, _g1k0, mul1, yfprime uint256.Int
 	De18 := number.SafeMul(D, U_1e18)
 
-	for j := 0; j < 255; j += 1 {
+	for range 255 {
 		yPrev.Set(y)
 		K0.Div(number.SafeMul(number.SafeMul(&K0i, y), NumTokensU256), D)
 		S.Add(&Si, y)
