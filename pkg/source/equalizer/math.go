@@ -1,151 +1,186 @@
 package equalizer
 
 import (
-	"math/big"
+	"errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-// reference from smart-contract:
-//
-//	function getAmountOut(uint amountIn, address tokenIn) external view returns (uint)
-//	https://basescan.org/address/0xF3F1F5760a614B8146eec5D1c94658720c2425b9#code
+var errZeroDerivative = errors.New("zero derivative in _get_y")
+
 func getAmountOut(
-	amountIn *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	decimalIn *big.Int,
-	decimalOut *big.Int,
-	swapFee *big.Int,
+	amountIn *uint256.Int,
+	reserveIn *uint256.Int,
+	reserveOut *uint256.Int,
+	decimalIn *uint256.Int,
+	decimalOut *uint256.Int,
+	swapFee *uint256.Int,
 	stable bool,
-) *big.Int {
-	var amountAfterFee = calAmountAfterFee(amountIn, swapFee)
-	if amountAfterFee.Cmp(bignumber.ZeroBI) <= 0 {
-		return bignumber.ZeroBI
+) (*uint256.Int, error) {
+	amountAfterFee := calAmountAfterFee(amountIn, swapFee)
+	if amountAfterFee.IsZero() {
+		return uint256.NewInt(0), nil
 	}
 
 	return getExactQuote(amountAfterFee, reserveIn, reserveOut, decimalIn, decimalOut, stable)
 }
 
 func getExactQuote(
-	amountIn *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	decimalIn *big.Int,
-	decimalOut *big.Int,
+	amountIn *uint256.Int,
+	reserveIn *uint256.Int,
+	reserveOut *uint256.Int,
+	decimalIn *uint256.Int,
+	decimalOut *uint256.Int,
 	stable bool,
-) *big.Int {
-	amountOut := big.NewInt(0)
-
-	if amountIn.Cmp(bignumber.ZeroBI) <= 0 {
-		return amountOut
+) (*uint256.Int, error) {
+	if amountIn.IsZero() {
+		return uint256.NewInt(0), nil
 	}
 
 	if stable {
-		xy := _k(reserveIn, reserveOut, decimalIn, decimalOut, stable)
-		_reserveIn := new(big.Int).Div(new(big.Int).Mul(reserveIn, bignumber.BONE), decimalIn)
-		_reserveOut := new(big.Int).Div(new(big.Int).Mul(reserveOut, bignumber.BONE), decimalOut)
-		_amountIn := new(big.Int).Div(new(big.Int).Mul(amountIn, bignumber.BONE), decimalIn)
+		xy := _k(reserveIn, reserveOut, decimalIn, decimalOut)
+		var _reserveIn, _reserveOut uint256.Int
+		_reserveIn.Div(_reserveIn.Mul(reserveIn, big256.BONE), decimalIn)
+		_reserveOut.Div(_reserveOut.Mul(reserveOut, big256.BONE), decimalOut)
 
-		y := new(big.Int).Sub(_reserveOut, _get_y(new(big.Int).Add(_amountIn, _reserveIn), xy, _reserveOut))
+		var _amountIn uint256.Int
+		_amountIn.Div(_amountIn.Mul(amountIn, big256.BONE), decimalIn)
 
-		amountOut = new(big.Int).Div(new(big.Int).Mul(y, decimalOut), bignumber.BONE)
-	} else {
-		// (x*In)/(y+In)
-		numerator := new(big.Int).Mul(amountIn, reserveOut)
-		denominator := new(big.Int).Add(reserveIn, amountIn)
-
-		if denominator.Cmp(bignumber.ZeroBI) > 0 {
-			amountOut = new(big.Int).Div(numerator, denominator)
+		_reserveIn.Add(&_amountIn, &_reserveIn)
+		y, err := _get_y(&_reserveIn, xy, &_reserveOut)
+		if err != nil {
+			return nil, err
 		}
+
+		var amountOut uint256.Int
+		amountOut.Sub(&_reserveOut, y)
+		amountOut.Div(amountOut.Mul(&amountOut, decimalOut), big256.BONE)
+
+		if !validateAmountOut(amountIn, &amountOut, reserveIn, reserveOut, decimalIn, decimalOut) {
+			return uint256.NewInt(0), nil
+		}
+		return &amountOut, nil
 	}
 
-	if !validateAmountOut(amountIn, amountOut, reserveIn, reserveOut, decimalIn, decimalOut, stable) {
-		return bignumber.ZeroBI
+	// (amountIn * reserveOut) / (reserveIn + amountIn)
+	var amountOut, denom uint256.Int
+	denom.Add(reserveIn, amountIn)
+	if denom.IsZero() {
+		return uint256.NewInt(0), nil
 	}
+	amountOut.Div(amountOut.Mul(amountIn, reserveOut), &denom)
 
-	return amountOut
-}
-
-func calAmountAfterFee(amountIn, swapFee *big.Int) *big.Int {
-	// In - (fee*In)/Bone
-	return new(big.Int).Sub(amountIn, new(big.Int).Div(new(big.Int).Mul(swapFee, amountIn), bignumber.BONE))
-}
-
-func _k(x, y, decimals0, decimals1 *big.Int, stable bool) *big.Int {
-	if stable {
-		_x := new(big.Int).Div(new(big.Int).Mul(x, bignumber.BONE), decimals0)
-		_y := new(big.Int).Div(new(big.Int).Mul(y, bignumber.BONE), decimals1)
-
-		_a := new(big.Int).Div(new(big.Int).Mul(_x, _y), bignumber.BONE)
-		_b := new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(_x, _x), new(big.Int).Mul(_y, _y)), bignumber.BONE)
-
-		// x3y+y3x >= k
-		return new(big.Int).Div(new(big.Int).Mul(_a, _b), bignumber.BONE)
-	} else {
-		// xy >= k
-		return new(big.Int).Mul(x, y)
+	if !validateAmountOutVolatile(amountIn, &amountOut, reserveIn, reserveOut) {
+		return uint256.NewInt(0), nil
 	}
+	return &amountOut, nil
 }
 
-func _get_y(x0, xy, y *big.Int) *big.Int {
-	_y := new(big.Int).Set(y)
+func calAmountAfterFee(amountIn, swapFee *uint256.Int) *uint256.Int {
+	var fee uint256.Int
+	fee.Div(fee.Mul(swapFee, amountIn), big256.BONE)
+	result := new(uint256.Int).Sub(amountIn, &fee)
+	return result
+}
 
-	for i := 0; i < 255; i++ {
-		y_prev := new(big.Int).Set(_y)
+// _k computes the stable invariant: x³y + xy³ (normalized by decimals and BONE)
+// SC: _a = (_x * _y) / 1e18; _b = _x*_x/1e18 + _y*_y/1e18; return _a*_b/1e18
+func _k(x, y, decimals0, decimals1 *uint256.Int) *uint256.Int {
+	var _x, _y, _a uint256.Int
+	_x.Div(_x.Mul(x, big256.BONE), decimals0)
+	_y.Div(_y.Mul(y, big256.BONE), decimals1)
+	_a.Div(_a.Mul(&_x, &_y), big256.BONE)
+	_b := _x.Add(
+		_x.Div(_x.Mul(&_x, &_x), big256.BONE),
+		_y.Div(_y.Mul(&_y, &_y), big256.BONE),
+	)
+	return _a.Div(_a.Mul(&_a, _b), big256.BONE)
+}
 
-		k := _f(x0, _y)
-		d := _d(x0, _y)
-		if d.Cmp(bignumber.ZeroBI) <= 0 {
-			return bignumber.ZeroBI
+func _get_y(x0, xy, y *uint256.Int) (*uint256.Int, error) {
+	y = y.Clone()
+	var dy uint256.Int
+	for range 255 {
+		k := _f(x0, y)
+		d := _d(x0, y)
+		if d.IsZero() {
+			return nil, errZeroDerivative
 		}
 
 		if k.Cmp(xy) < 0 {
-			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(xy, k), bignumber.BONE), d)
-			_y.Add(_y, dy)
+			dy.Sub(xy, k)
+			dy.Div(dy.Mul(&dy, big256.BONE), d)
+			y.Add(y, &dy)
 		} else {
-			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(k, xy), bignumber.BONE), d)
-			_y.Sub(_y, dy)
+			dy.Sub(k, xy)
+			dy.Div(dy.Mul(&dy, big256.BONE), d)
+			y.Sub(y, &dy)
 		}
 
-		diff := new(big.Int).Sub(_y, y_prev)
-		if diff.CmpAbs(big.NewInt(1)) <= 0 {
-			return _y
+		if dy.CmpUint64(1) <= 0 {
+			return y, nil
 		}
 	}
-
-	return _y
+	return y, nil
 }
 
-func _f(x0, y *big.Int) *big.Int {
-	// y^3*x
-	y3x := new(big.Int).Mul(new(big.Int).Mul(y, y), new(big.Int).Mul(y, x0))
-	// x^3*y
-	x3y := new(big.Int).Mul(new(big.Int).Mul(x0, x0), new(big.Int).Mul(x0, y))
+// _f computes x0*y³/BONE³ + x0³*y/BONE³
+// SC: x0*(y*y/1e18*y/1e18)/1e18 + (x0*x0/1e18*x0/1e18)*y/1e18
+func _f(x0, y *uint256.Int) *uint256.Int {
+	var a, b uint256.Int
+	// part1 = x0 * (y²/BONE) * y / BONE / BONE = x0*y³/BONE³
+	a.Div(a.Mul(y, y), big256.BONE)
+	a.Div(a.Mul(&a, y), big256.BONE)
+	a.Div(a.Mul(x0, &a), big256.BONE)
 
-	numerator := new(big.Int).Add(y3x, x3y)
-	denominator := new(big.Int).Mul(new(big.Int).Mul(bignumber.BONE, bignumber.BONE), bignumber.BONE)
+	// part2 = (x0²/BONE * x0/BONE) * y / BONE = x0³*y/BONE³
+	b.Div(b.Mul(x0, x0), big256.BONE)
+	b.Div(b.Mul(&b, x0), big256.BONE)
+	b.Div(b.Mul(&b, y), big256.BONE)
 
-	return new(big.Int).Div(numerator, denominator)
+	return a.Add(&a, &b)
 }
 
-func _d(x0, y *big.Int) *big.Int {
-	// 3*x*y^2 + x^3
-	numerator := new(big.Int).Add(new(big.Int).Mul(new(big.Int).Mul(bignumber.Three, x0), new(big.Int).Mul(y, y)), new(big.Int).Mul(new(big.Int).Mul(x0, x0), x0))
-	denominator := new(big.Int).Mul(bignumber.BONE, bignumber.BONE)
+// _d computes 3*x0*y²/BONE² + x0³/BONE²
+// SC: 3*x0*(y*y/1e18)/1e18 + (x0*x0/1e18*x0/1e18)
+func _d(x0, y *uint256.Int) *uint256.Int {
+	var a, b uint256.Int
+	// b = y²/BONE (temp)
+	b.Div(b.Mul(y, y), big256.BONE)
+	// part1 = 3*x0*y²/BONE
+	a.Mul(big256.U3, x0)
+	a.Div(a.Mul(&a, &b), big256.BONE)
 
-	return new(big.Int).Div(numerator, denominator)
+	// part2 = x0²/BONE * x0/BONE = x0³/BONE²
+	b.Div(b.Mul(x0, x0), big256.BONE)
+	b.Div(b.Mul(&b, x0), big256.BONE)
+
+	return a.Add(&a, &b)
 }
 
-// The SC required `K` after swap with condition:
-//
-//	require(_k(_balance0, _balance1) >= _k(_reserve0, _reserve1), 'K');
-//
-// validateAmountOut to check if after swap, the condition still valid.
-func validateAmountOut(amountIn, amountOut, reserveIn, reserveOut, decimalIn, decimalOut *big.Int, stable bool) bool {
-	balanceIn := new(big.Int).Add(reserveIn, amountIn)
-	balanceOut := new(big.Int).Sub(reserveOut, amountOut)
+// validateAmountOut checks that k after swap >= k before swap (stable pools only)
+func validateAmountOut(amountIn, amountOut, reserveIn, reserveOut, decimalIn, decimalOut *uint256.Int) bool {
+	var balanceIn, balanceOut uint256.Int
+	balanceIn.Add(reserveIn, amountIn)
+	if balanceOut.Sub(reserveOut, amountOut); amountOut.Cmp(reserveOut) > 0 {
+		return false
+	}
+	kAfter := _k(&balanceIn, &balanceOut, decimalIn, decimalOut)
+	kBefore := _k(reserveIn, reserveOut, decimalIn, decimalOut)
+	return kAfter.Cmp(kBefore) >= 0
+}
 
-	return _k(balanceIn, balanceOut, decimalIn, decimalOut, stable).
-		Cmp(_k(reserveIn, reserveOut, decimalIn, decimalOut, stable)) >= 0
+// validateAmountOutVolatile checks that k after swap >= k before swap (volatile pools)
+func validateAmountOutVolatile(amountIn, amountOut, reserveIn, reserveOut *uint256.Int) bool {
+	if amountOut.Cmp(reserveOut) >= 0 {
+		return false
+	}
+	var balanceIn, balanceOut uint256.Int
+	balanceIn.Add(reserveIn, amountIn)
+	balanceOut.Sub(reserveOut, amountOut)
+	kAfter := new(uint256.Int).Mul(&balanceIn, &balanceOut)
+	kBefore := new(uint256.Int).Mul(reserveIn, reserveOut)
+	return kAfter.Cmp(kBefore) >= 0
 }
