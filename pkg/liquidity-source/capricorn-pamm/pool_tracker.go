@@ -33,14 +33,6 @@ func NewPoolTracker(cfg *Config, client *ethrpc.Client) (*PoolTracker, error) {
 
 const ladderPointsPerDirection = 5
 
-func uint256Or0(v *big.Int) *uint256.Int {
-	u, _ := uint256.FromBig(v) // FromBig returns 0 for nil; overflow ignored.
-	return u
-}
-
-// pushAgeStale reports whether the operator-pushed price is within the
-// safety buffer of the on-chain StalePrice gate. Future publishTime is
-// treated as fresh (clock skew).
 func pushAgeStale(publishTime, maxPushAge uint64) (stale bool, age, safeAge uint64) {
 	if publishTime == 0 || maxPushAge == 0 {
 		return false, 0, 0
@@ -56,8 +48,6 @@ func pushAgeStale(publishTime, maxPushAge uint64) (stale bool, age, safeAge uint
 	return age > safeAge, age, safeAge
 }
 
-// GetNewPoolState refreshes Reserves + Extra from on-chain views. See type
-// doc for refresh semantics; see Extra.Unquoteable for the gate list.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -123,7 +113,6 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 	oracleRegistryAddr := strings.ToLower(oracleRegistryHx.Hex())
 
-	// OracleRegistry views (TryAggregate; getPrice may revert).
 	var (
 		oraclePaused        bool
 		maxPushPriceAge     *big.Int
@@ -179,7 +168,6 @@ func (t *PoolTracker) GetNewPoolState(
 		return t.persist(p, extra, r0, r1, blockNumber), nil
 	}
 
-	// Depth ladder probes.
 	grid0 := buildGrid(p.Tokens[0].Decimals, reserves.Reserve0, maxAmountIn0)
 	grid1 := buildGrid(p.Tokens[1].Decimals, reserves.Reserve1, maxAmountIn1)
 	ladder0, ladder1, err := t.probeLadders(ctx, p.Address, token0Addr, token1Addr, grid0, grid1, blockNumber)
@@ -217,7 +205,6 @@ func buildGrid(decimals uint8, reserveIn, maxAmountIn *big.Int) []*big.Int {
 		return pts
 	}
 
-	// step = (largest/smallest) ^ (1/(n-1)). float64 precision is fine here.
 	smallestF := new(big.Float).SetInt(smallest)
 	largestF := new(big.Float).SetInt(largest)
 	rFloat, _ := new(big.Float).Quo(largestF, smallestF).Float64()
@@ -241,9 +228,6 @@ func buildGrid(decimals uint8, reserveIn, maxAmountIn *big.Int) []*big.Int {
 	return append(pts, new(big.Int).Set(largest))
 }
 
-// probeLadders fires both directions' quoteExactIn probes in one
-// TryAggregate batch. Reverted / zero probes are silently dropped — the
-// simulator requires only successful entries in the ladder.
 func (t *PoolTracker) probeLadders(
 	ctx context.Context,
 	poolAddress, token0Addr, token1Addr string,
@@ -279,9 +263,6 @@ func (t *PoolTracker) probeLadders(
 		nil
 }
 
-// collectLadder extracts (amountIn, amountOut) pairs from a TryAggregate
-// slice of results starting at offset. Failed / zero / unrepresentable
-// entries are skipped.
 func collectLadder(grid, out []*big.Int, results []bool, offset int) []LadderPoint {
 	ladder := make([]LadderPoint, 0, len(grid))
 	for i, amt := range grid {
@@ -302,7 +283,6 @@ func collectLadder(grid, out []*big.Int, results []bool, offset int) []LadderPoi
 	return ladder
 }
 
-// persist stamps the refreshed entity with reserves, Extra, block, and timestamp.
 func (t *PoolTracker) persist(p entity.Pool, extra Extra, r0, r1 *uint256.Int, blockNumber *big.Int) entity.Pool {
 	extraBytes, _ := json.Marshal(extra)
 	p.Extra = string(extraBytes)
