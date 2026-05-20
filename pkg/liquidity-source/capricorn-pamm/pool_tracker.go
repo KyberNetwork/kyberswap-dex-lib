@@ -59,9 +59,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
-	if len(p.Tokens) != 2 {
-		return p, errors.New("capricorn-pamm: pool must have exactly 2 tokens")
-	}
+
 	token0Addr := p.Tokens[0].Address
 	token1Addr := p.Tokens[1].Address
 
@@ -99,6 +97,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+
 	// [0]=maxAmountIn0, [1]=maxAmountIn1, [2]=oracleRegistry.
 	if len(resp2.Result) < 3 || !resp2.Result[2] {
 		return p, errors.New("capricorn-pamm: oracleRegistry() reverted")
@@ -189,11 +188,10 @@ func buildGrid(decimals uint8, reserveIn, maxAmountIn *big.Int) []*big.Int {
 		return nil
 	}
 
-	var largest *big.Int
-	if maxAmountIn == nil || maxAmountIn.Sign() == 0 {
-		largest = new(big.Int).Set(smallest)
-	} else {
-		largest = bignumber.Min(new(big.Int).Rsh(reserveIn, 1), maxAmountIn)
+	half := new(big.Int).Rsh(reserveIn, 1)
+	largest := half
+	if maxAmountIn != nil && maxAmountIn.Sign() > 0 && maxAmountIn.Cmp(half) < 0 {
+		largest = new(big.Int).Set(maxAmountIn)
 	}
 	if largest.Cmp(smallest) <= 0 {
 		return []*big.Int{new(big.Int).Set(smallest)}
