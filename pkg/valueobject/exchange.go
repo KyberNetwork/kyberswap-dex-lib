@@ -219,6 +219,8 @@ const (
 	ExchangeRenzoEZETH                 = "renzo-ezeth"
 	ExchangeRingSwap                   = "ringswap"
 	ExchangeRocketPoolRETH             = "rocketpool-reth"
+	ExchangeRubiconAquila              = "rubicon-aquila"
+	ExchangeRubiconCLMM                = "rubicon-clmm"
 	ExchangeSafeSwap                   = "safeswap"
 	ExchangeSavingsUSDS                = "savings-usds"
 	ExchangeSboom                      = "sboom"
