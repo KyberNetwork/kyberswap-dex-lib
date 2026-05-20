@@ -44,7 +44,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
 	multipliers := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = staticExtra.UnderlyingTokens[i]
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])

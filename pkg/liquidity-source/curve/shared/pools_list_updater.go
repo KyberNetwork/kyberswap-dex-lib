@@ -30,15 +30,15 @@ type (
 		DexID       string              `mapstructure:"dexID" json:"dexID,omitempty"`
 		ChainCode   string              `mapstructure:"chain_code" json:"chain_code,omitempty"`
 		ChainID     valueobject.ChainID `mapstructure:"chain_id" json:"chain_id,omitempty"`
-		HTTPConfig  HTTPConfig          `mapstructure:"http_config" json:"http_config,omitempty"`
+		HTTPConfig  HTTPConfig          `mapstructure:"http_config" json:"http_config"`
 		DataSources []CurveDataSource   `mapstructure:"data_sources" json:"data_sources,omitempty"`
 
-		FetchPoolsMinDuration durationjson.Duration `mapstructure:"fetch_pools_min_duration" json:"fetch_pools_min_duration,omitempty"`
+		FetchPoolsMinDuration durationjson.Duration `mapstructure:"fetch_pools_min_duration" json:"fetch_pools_min_duration"`
 	}
 
 	HTTPConfig struct {
 		BaseURL    string                `mapstructure:"base_url" json:"base_url,omitempty"`
-		Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
+		Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout"`
 		RetryCount int                   `mapstructure:"retry_count" json:"retry_count,omitempty"`
 	}
 )

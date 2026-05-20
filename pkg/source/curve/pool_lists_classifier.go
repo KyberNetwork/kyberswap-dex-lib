@@ -224,7 +224,7 @@ func (d *PoolsListUpdater) isPlainOraclePool(oracleAddress common.Address) bool 
 // isBasePool BasePool should
 // have underlying coins equals coins
 func (d *PoolsListUpdater) isBasePool(coins [8]common.Address, underlyingCoins [8]common.Address) bool {
-	for i := 0; i < len(coins); i++ {
+	for i := range len(coins) {
 		if !strings.EqualFold(underlyingCoins[i].Hex(), addressZero) && !strings.EqualFold(coins[i].Hex(), underlyingCoins[i].Hex()) {
 			return false
 		}

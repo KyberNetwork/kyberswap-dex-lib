@@ -99,7 +99,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		useStandardRate = true
 	}
 
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 
 		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])

@@ -173,7 +173,7 @@ func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numT
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if customRates[i] == nil {
 			return ErrInvalidStoredRates
 		}

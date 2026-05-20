@@ -59,7 +59,7 @@ func _get_y_custom(
 	Ann.Mul(_amp, NumTokensU256) // Ann = _amp * N_COINS
 
 	// Calculate S_ and c
-	for _i := 0; _i < NumTokens; _i++ {
+	for _i := range NumTokens {
 		if _i != i {
 			_x.Set(&xp[_i])
 			S_.Add(&S_, &_x)
@@ -84,7 +84,7 @@ func _get_y_custom(
 	y.Set(D)
 
 	// Newton's method: y = (y*y + c) // (2 * y + b - D)
-	for _i := 0; _i < 255; _i++ {
+	for range 255 {
 		y_prev.Set(y)
 
 		// y = (y*y + c) // (2 * y + b - D)
@@ -94,9 +94,7 @@ func _get_y_custom(
 
 		denominator.Mul(number.Number_2, y) // 2*y
 		denominator.Add(&denominator, &b)   // 2*y + b
-		denominator.Sub(&denominator, D)    // 2*y + b - D
-
-		if denominator.IsZero() {
+		if _, underflow := denominator.SubOverflow(&denominator, D); underflow || denominator.IsZero() {
 			return ErrZero
 		}
 
@@ -431,7 +429,7 @@ func _newton_D(
 
 	var __g1k0 = number.Add(gamma, U_1e18)
 	var D_prev, K0, diff uint256.Int
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		if D.Sign() <= 0 {
 			return nil, ErrUnsafeD
 		}
@@ -567,7 +565,7 @@ func _newton_D_custom(
 	nCoinsPow := new(uint256.Int).Set(NumTokensU256) // N_COINS^N_COINS
 	nCoinsPow.Mul(nCoinsPow, NumTokensU256)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		D_P.Set(D)
 		for _, x := range _xp {
 			D_P.Mul(&D_P, D)
@@ -813,7 +811,7 @@ func _newton_y(
 	var yPrev, K0, S, _g1k0, mul1, yfprime uint256.Int
 	De18 := number.SafeMul(D, U_1e18)
 
-	for j := 0; j < 255; j += 1 {
+	for range 255 {
 		yPrev.Set(y)
 		K0.Div(number.SafeMul(number.SafeMul(K0i, y), NumTokensU256), D)
 		S.Add(x_j, y)
@@ -1143,7 +1141,7 @@ func _get_p_custom(
 	ANN := new(uint256.Int).Mul(A, NumTokensU256)                            // ANN = _A_gamma[0] * N_COINS
 	Dr := new(uint256.Int).Div(_D, number.Mul(NumTokensU256, NumTokensU256)) // Dr = _D / N_COINS**N_COINS
 
-	for i := 0; i < NumTokens; i++ {
+	for i := range NumTokens {
 		Dr.Mul(Dr, _D)
 		Dr.Div(Dr, &_xp[i])
 	}

@@ -168,6 +168,9 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Gas: t.gas.Exchange,
 			}, nil
 		}
+		// Both tokens are direct meta pool tokens; exchange_underlying does not apply.
+		// Do not fall through — that path misroutes idx==maxCoin as a base pool token.
+		return &pool.CalcAmountOutResult{Gas: t.gas.Exchange}, fmt.Errorf("zero output for meta exchange from index %v to %v", idxIn, idxOut)
 	}
 	// check exchange_underlying
 	var baseInputIndex = t.basePool.GetTokenIndex(tokenAmountIn.Token)

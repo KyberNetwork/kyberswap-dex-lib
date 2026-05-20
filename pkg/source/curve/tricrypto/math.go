@@ -12,13 +12,13 @@ import (
 func sortArray(A0 []*big.Int) []*big.Int {
 	var nCoins = len(A0)
 	var ret = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		ret[i] = A0[i]
 	}
 	for i := 1; i < nCoins; i += 1 {
 		var x = ret[i]
 		var cur = i
-		for j := 0; j < nCoins; j += 1 {
+		for range nCoins {
 			var y = ret[cur-1]
 			if y.Cmp(x) > 0 {
 				break
@@ -43,7 +43,7 @@ func _geometric_mean(unsorted_x []*big.Int, sort bool) (*big.Int, error) {
 	}
 	var D = x[0]
 	var diff = bignumber.ZeroBI
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		var D_prev = D
 		var tmp = bignumber.BONE
 		for _, _x := range x {
@@ -68,7 +68,7 @@ func sqrt_int(x *big.Int) (*big.Int, error) {
 	}
 	var z = new(big.Int).Div(new(big.Int).Add(x, bignumber.BONE), bignumber.Two)
 	var y = x
-	for i := 0; i < 256; i += 1 {
+	for range 256 {
 		if z.Cmp(y) == 0 {
 			return y, nil
 		}
@@ -104,7 +104,7 @@ func newton_D(ANN *big.Int, gamma *big.Int, x_unsorted []*big.Int) (*big.Int, er
 	for _, x_i := range x {
 		S = new(big.Int).Add(S, x_i)
 	}
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		var D_prev = D
 		var K0 = bignumber.BONE
 		for _, _x := range x {
@@ -189,7 +189,7 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 	if D.Cmp(new(big.Int).Add(new(big.Int).Mul(bignumber.TenPowInt(15), bignumber.TenPowInt(18)), bignumber.One)) >= 0 {
 		return nil, errors.New("unsafe values D")
 	}
-	for k := 0; k < 3; k++ {
+	for k := range 3 {
 		if k == i {
 			continue
 		}
@@ -206,7 +206,7 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 	var Si = bignumber.ZeroBI
 
 	var xSorted = make([]*big.Int, nCoins)
-	for j := 0; j < nCoins; j += 1 {
+	for j := range nCoins {
 		xSorted[j] = x[j]
 	}
 	xSorted[i] = bignumber.ZeroBI
@@ -232,7 +232,7 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 	for j := 0; j < nCoins-1; j += 1 {
 		K0i = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(K0i, xSorted[j]), nCoinBi), D)
 	}
-	for j := 0; j < 255; j += 1 {
+	for range 255 {
 		var yPrev = y
 		var K0 = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(K0i, y), nCoinBi), D)
 		var S = new(big.Int).Add(Si, y)
@@ -414,16 +414,16 @@ func (t *PoolSimulator) FeeCalc(xp []*big.Int) *big.Int {
 func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
 	var xp = make([]*big.Int, 3)
 	var price_scale = make([]*big.Int, 2)
-	for k := 0; k < 2; k += 1 {
+	for k := range 2 {
 		price_scale[k] = t.price_scale(uint(k))
 	}
-	for k := 0; k < 3; k += 1 {
+	for k := range 3 {
 		xp[k] = t.Info.Reserves[k]
 	}
 	xp[i] = new(big.Int).Add(xp[i], dx)
 	xp[0] = new(big.Int).Mul(xp[0], t.Precisions[0])
 
-	for k := 0; k < 2; k += 1 {
+	for k := range 2 {
 		xp[k+1] = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(xp[k+1], price_scale[k]), t.Precisions[k+1]), Precision)
 	}
 	var y, err = newtonY(t.A, t.Gamma, xp, t.D, j)
@@ -456,7 +456,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 
 	var A_gamma = t._A_gamma()
 	var xp = make([]*big.Int, nCoins)
-	for k := 0; k < nCoins; k += 1 {
+	for k := range nCoins {
 		xp[k] = t.Info.Reserves[k]
 	}
 	var ix = j
@@ -595,7 +595,7 @@ func (t *PoolSimulator) tweak_price(A_gamma []*big.Int, _xp []*big.Int, i int, p
 		}
 	} else {
 		var __xp = make([]*big.Int, nCoins)
-		for k := 0; k < nCoins; k += 1 {
+		for k := range nCoins {
 			__xp[k] = new(big.Int).Set(_xp[k])
 		}
 		var dx_price = new(big.Int).Div(__xp[0], bignumber.TenPowInt(6))
@@ -673,7 +673,7 @@ func (t *PoolSimulator) tweak_price(A_gamma []*big.Int, _xp []*big.Int, i int, p
 						new(big.Int).Mul(adjustment_step, price_oracle[k]),
 					), norm)
 			}
-			for k := 0; k < nCoins; k += 1 {
+			for k := range nCoins {
 				xp[k] = new(big.Int).Set(_xp[k])
 			}
 			for k := 0; k < nCoins-1; k += 1 {

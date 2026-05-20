@@ -249,7 +249,7 @@ func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numT
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if overflow := extra.RateMultipliers[i].SetFromBig(customRates[i]); overflow {
 			lg.WithFields(logger.Fields{"storedRates": customRates}).Error("invalid stored rates")
 			return ErrInvalidStoredRates

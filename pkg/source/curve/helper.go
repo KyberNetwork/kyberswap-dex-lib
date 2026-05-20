@@ -55,7 +55,7 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 
 func getAPrecisions(aList, aPreciseList []*big.Int) ([]*big.Int, error) {
 	var aPrecisions = make([]*big.Int, len(aList))
-	for i := 0; i < len(aPrecisions); i++ {
+	for i := range aPrecisions {
 		if aList[i] != nil && aPreciseList[i] != nil {
 			aPrecisions[i] = new(big.Int).Div(aPreciseList[i], aList[i])
 		} else if aList[i] != nil {

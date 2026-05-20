@@ -49,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var tokens = make([]string, numTokens)
 	var reserves = make([]*big.Int, numTokens)
 	var multipliers = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
@@ -230,7 +230,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 func (t *PoolSimulator) getDPrecision(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var nCoins = len(xp)
 	_xp := make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		_xp[i] = new(big.Int).Mul(xp[i], t.Multipliers[i])
 	}
 	return getD(_xp, a)
@@ -241,7 +241,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var amp = _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
 	var old_balances = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		old_balances[i] = t.Info.Reserves[i]
 	}
 	D0, err := t.getDPrecision(old_balances, amp)
@@ -250,7 +250,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	}
 	var token_supply = t.LpSupply
 	var new_balances = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		new_balances[i] = new(big.Int).Add(old_balances[i], amounts[i])
 	}
 	D1, err := t.getDPrecision(new_balances, amp)
@@ -266,7 +266,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 		var _fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinsBi),
 			new(big.Int).Mul(bignumber.Four, big.NewInt(int64(nCoins-1))))
 		_feemul := t.OffpegFeeMultiplier
-		for i := 0; i < nCoins; i += 1 {
+		for i := range nCoins {
 			t.Info.Reserves[i] = new_balances[i] // cannot determine real amount transferred, so use this, close enough
 			var ideal_balance = new(big.Int).Div(new(big.Int).Mul(D1, old_balances[i]), D0)
 			var difference *big.Int
@@ -283,7 +283,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 		fmt.Println(err)
 		mint_amount = new(big.Int).Div(new(big.Int).Mul(token_supply, new(big.Int).Sub(D2, D0)), D0)
 	} else {
-		for i := 0; i < nCoins; i += 1 {
+		for i := range nCoins {
 			t.Info.Reserves[i] = new_balances[i]
 		}
 		mint_amount = D1
@@ -334,7 +334,7 @@ func (t *PoolSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*bi
 func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error) {
 	var nTokens = len(t.Info.Tokens)
 	xp := make([]*big.Int, nTokens)
-	for _i := 0; _i < nTokens; _i += 1 {
+	for _i := range nTokens {
 		xp[_i] = new(big.Int).Mul(t.Multipliers[_i], t.Info.Reserves[_i])
 	}
 

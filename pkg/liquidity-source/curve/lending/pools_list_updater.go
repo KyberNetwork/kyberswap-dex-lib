@@ -103,7 +103,7 @@ func (u *PoolsListUpdater) getLendingVaults(ctx context.Context) ([]LendingVault
 func (u *PoolsListUpdater) initPools(ctx context.Context, lendingVaults []LendingVault) ([]entity.Pool, error) {
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
 	aCoefficients := make([]*big.Int, len(lendingVaults))
-	for i := 0; i < len(lendingVaults); i++ {
+	for i := range lendingVaults {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    llamma.CurveLlammaABI,
 			Target: lendingVaults[i].AmmAddress,

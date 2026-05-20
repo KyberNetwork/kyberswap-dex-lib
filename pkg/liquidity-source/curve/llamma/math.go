@@ -120,7 +120,7 @@ func wadExp(x *int256.Int) (*uint256.Int, error) {
 
 func lnInt(x *uint256.Int) *int256.Int {
 	var res uint256.Int
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		t := new(uint256.Int).Exp(number.Number_2, uint256.NewInt(uint64(7-i)))
 		p := new(uint256.Int).Exp(number.Number_2, t)
 		if x.Cmp(new(uint256.Int).Mul(p, number.Number_1e18)) >= 0 {
@@ -130,7 +130,7 @@ func lnInt(x *uint256.Int) *int256.Int {
 	}
 
 	d := new(uint256.Int).Set(number.Number_1e18)
-	for i := 0; i < 59; i++ {
+	for range 59 {
 		if x.Cmp(new(uint256.Int).Mul(number.Number_2, number.Number_1e18)) >= 0 {
 			res.Add(&res, d)
 			x.Div(x, number.Number_2)
