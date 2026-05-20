@@ -51,9 +51,18 @@ func TestAllDeterministicVectors(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(line), &v), "parse error line %d", lineNum)
 		total++
 
+		p := u(v.PX96)
+		feeX24 := uint32(u(v.Fee).Uint64())
+		var feeAsk, feeBid uint32
+		if v.Dir == "xToY" {
+			feeBid = feeX24
+		} else {
+			feeAsk = feeX24
+		}
 		params := &PoolParams{
-			SqrtPriceX96:   u(v.PX96),
-			FeeQ48:         u(v.Fee).Uint64(),
+			SqrtPriceX96:   p,
+			FeeAskX24:      feeAsk,
+			FeeBidX24:      feeBid,
 			ReserveX:       u(v.ResX),
 			ReserveY:       u(v.ResY),
 			ConcentrationK: v.K,
