@@ -56,6 +56,7 @@ const (
 	ExchangeBurrBearStable             = "burrbear-stable"
 	ExchangeBurrBearWeighted           = "burrbear-weighted"
 	ExchangeCanonic                    = "canonic"
+	ExchangeCapricornPamm              = "capricorn-pamm"
 	ExchangeCarbon                     = "carbon"
 	ExchangeClear                      = "clear"
 	ExchangeClipper                    = "clipper"
