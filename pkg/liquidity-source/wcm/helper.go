@@ -19,9 +19,6 @@ func decodePrice(packed *big.Int) *big.Int {
 	u := packed.Uint64()
 	scale := u & priceScaleMask
 	mantissa := u >> priceScaleBits
-	if scale > 18 {
-		return Zero
-	}
 	out := new(big.Int).SetUint64(mantissa)
 	exp := 18 - int(scale)
 	if exp > 0 {
