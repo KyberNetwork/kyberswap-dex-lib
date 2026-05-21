@@ -10,17 +10,17 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	approvalInfo         pool.ApprovalInfo
-	staticExtra          StaticExtra
-	extra                Extra
-	reserves             [2]*uint256.Int
-	token0Dec, token1Dec uint8
-	token0, token1       string
+	approvalInfo pool.ApprovalInfo
+	StaticExtra
+	Extra
+	reserves  [2]*uint256.Int
+	tokenDecs [2]uint8
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -80,13 +80,10 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		approvalInfo: pool.ApprovalInfo{ApprovalAddress: hexutil.Encode(router[:])},
-		staticExtra:  staticExtra,
-		extra:        extra,
+		StaticExtra:  staticExtra,
+		Extra:        extra,
 		reserves:     reserves,
-		token0Dec:    entityPool.Tokens[0].Decimals,
-		token1Dec:    entityPool.Tokens[1].Decimals,
-		token0:       entityPool.Tokens[0].Address,
-		token1:       entityPool.Tokens[1].Address,
+		tokenDecs:    [2]uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
 	}, nil
 }
 
@@ -111,7 +108,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{PriceUpdateData: s.extra.PriceUpdateData},
+		SwapInfo:       SwapInfo{PriceUpdateData: s.PriceUpdateData},
 	}, nil
 }
 
@@ -144,13 +141,13 @@ func (s *PoolSimulator) doCalc(indexIn, indexOut int, input *uint256.Int, isCalc
 	if err != nil {
 		return nil, err
 	}
-	inDec, outDec := s.tokenDecimals(indexIn), s.tokenDecimals(indexOut)
+	inDec, outDec := s.tokenDecs[indexIn], s.tokenDecs[indexOut]
 
 	return lo.Ternary(isCalcOut, calcAmountOut, calcAmountIn)(
 		inDec, outDec,
 		input, s.reserves[indexIn], s.reserves[indexOut],
 		priceIn, priceOut, adjPrice, kappa,
-		s.extra.Gamma, s.extra.Fee, isSell,
+		s.Gamma, s.Fee, isSell,
 	)
 }
 
@@ -158,38 +155,33 @@ func (s *PoolSimulator) doCalc(indexIn, indexOut int, input *uint256.Int, isCalc
 // direction-aware priceIn/priceOut (Q64 dollar prices) and adjPrice (Q64 relative price).
 func (s *PoolSimulator) swapContext(indexOut int) (priceIn, priceOut, adjPrice, kappa *uint256.Int, isSell bool,
 	err error) {
+	quoteIdx := int(s.QuoteTokenIndex)
+	baseIdx := 1 - quoteIdx
 	// isSell = tokenOut is the base token
 	// quoteTokenIndex==0 → token0=quote, token1=base → SELL iff indexOut==1
 	// quoteTokenIndex==1 → token1=quote, token0=base → SELL iff indexOut==0
-	if s.staticExtra.QuoteTokenIndex == 0 {
-		isSell = indexOut == 1
-	} else {
-		isSell = indexOut == 0
-	}
+	isSell = indexOut != quoteIdx
 
-	quoteIdx := int(s.staticExtra.QuoteTokenIndex)
-	baseIdx := 1 - quoteIdx
+	reserveBase18 := parseRawToDefaultDecimals(s.reserves[baseIdx], s.tokenDecs[baseIdx])
+	reserveQuote18 := parseRawToDefaultDecimals(s.reserves[quoteIdx], s.tokenDecs[quoteIdx])
 
-	reserveBase18 := parseRawToDefaultDecimals(s.reserves[baseIdx], s.tokenDecimals(baseIdx))
-	reserveQuote18 := parseRawToDefaultDecimals(s.reserves[quoteIdx], s.tokenDecimals(quoteIdx))
-
-	conf0, conf1 := s.extra.Conf0, s.extra.Conf1
+	conf0, conf1 := s.Conf0, s.Conf1
 	if conf0 == nil {
-		conf0 = new(uint256.Int)
+		conf0 = big256.U0
 	}
 	if conf1 == nil {
-		conf1 = new(uint256.Int)
+		conf1 = big256.U0
 	}
 
 	priceIn, priceOut, adjPrice, err = computeSwapPrices(
-		s.extra.Price0, s.extra.Price1, conf0, conf1,
-		s.extra.AmmPrice,
+		s.Price0, s.Price1, conf0, conf1,
+		s.AmmPrice,
 		reserveBase18, reserveQuote18,
-		s.staticExtra.QuoteTokenIndex,
-		s.extra.PythWeight, s.extra.FixS, s.extra.Compress,
-		s.extra.SSell, s.extra.SBuy, s.extra.SBound, s.extra.DisThreshold,
-		s.extra.Lambda,
-		s.extra.Fee,
+		s.QuoteTokenIndex,
+		s.PythWeight, s.FixS, s.Compress,
+		s.SSell, s.SBuy, s.SBound, s.DisThreshold,
+		s.Lambda,
+		s.Fee,
 		isSell,
 	)
 	if err != nil {
@@ -197,18 +189,11 @@ func (s *PoolSimulator) swapContext(indexOut int) (priceIn, priceOut, adjPrice, 
 	}
 
 	if isSell {
-		kappa = s.extra.KB
+		kappa = s.KB
 	} else {
-		kappa = s.extra.KQ
+		kappa = s.KQ
 	}
 	return
-}
-
-func (s *PoolSimulator) tokenDecimals(index int) uint8 {
-	if index == 0 {
-		return s.token0Dec
-	}
-	return s.token1Dec
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -227,9 +212,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.reserves[indexOut] = amtOut.Sub(s.reserves[indexOut], amtOut)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		ApprovalInfo: s.approvalInfo,
-		Fee:          s.extra.Fee,
+		Fee:          s.Fee,
 	}
 }

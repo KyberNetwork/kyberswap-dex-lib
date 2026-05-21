@@ -372,7 +372,6 @@ func getAmountInWithoutCutoff(
 	inDec, outDec uint8,
 	amountOut, reserveOut, priceIn, priceOut, kappa *uint256.Int,
 	fee uint32,
-	isSell bool,
 ) (*uint256.Int, error) {
 	if amountOut.Sign() == 0 {
 		return nil, ErrInsufficientOutputAmount
@@ -397,20 +396,11 @@ func getAmountInWithoutCutoff(
 
 	// Build num to satisfy the checkInventoryBaseQuote invariant exactly:
 	//   SELL: invariant values output (base) at priceOut/Q64 → penalty has priceOut/Q64 factor
-	//   BUY:  invariant values output (quote) at Q64 ($1)     → penalty is scaled*quoteOut only
+	//   BUY:  invariant values output (quote) at Q64 ($1)    → penalty is scaled*quoteOut only
 	var num uint256.Int
-	if isSell {
-		var scaledAmt, penalty uint256.Int
-		scaledAmt.Mul(&scaled, parsedAmountOut)
-		big256.MulDivUp(&penalty, priceOut, &scaledAmt, q64)
-		num.Mul(priceOut, parsedAmountOut)
-		num.Add(&num, &penalty)
-	} else {
-		var penalty uint256.Int
-		penalty.Mul(&scaled, parsedAmountOut)
-		num.Mul(q64, parsedAmountOut)
-		num.Add(&num, &penalty)
-	}
+	var penalty uint256.Int
+	big256.MulDivUp(&penalty, priceOut, penalty.Mul(&scaled, parsedAmountOut), q64)
+	num.Mul(priceOut, parsedAmountOut).Add(&num, &penalty)
 	pseudoIn := big256.DivUp(&num, priceIn)
 
 	// amountIn18 = ceil(pseudoIn * (PRECISION + fee) / PRECISION)
@@ -419,7 +409,13 @@ func getAmountInWithoutCutoff(
 	pseudoIn.Mul(pseudoIn, &precPlusFee)
 	amountIn18 := big256.DivUp(pseudoIn, precisionU)
 
-	return parseDefaultDecimalsToRawUp(amountIn18, inDec), nil
+	amountIn := parseDefaultDecimalsToRawUp(amountIn18, inDec)
+	// When inDec < 18, the ceil downscale followed by the pair's floor fee-strip can lose up to
+	// one raw unit. Add one raw unit to guarantee the pair recovers >= pseudoIn after fee-strip.
+	if inDec < parsedDecimals {
+		amountIn.AddUint64(amountIn, 1)
+	}
+	return amountIn, nil
 }
 
 // getAmountOutCutoff returns the §4.3 gamma cap on amountOut given amountIn.
@@ -475,7 +471,8 @@ func getAmountOutCutoff(
 //
 // Returns (nil, nil) when pool is past gamma; returns (value, nil) otherwise.
 // Callers must handle the gamma==0 || adjPr==0 disabled case before calling.
-func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.Int, isSell bool) (*uint256.Int, error) {
+func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.Int, isSell bool) (*uint256.Int,
+	error) {
 	if K.Gt(q64x2) {
 		// K > 2*Q64: aQ64 sign flips, formula inapplicable; treat as underflow.
 		return nil, ErrMathUnderflow
@@ -676,89 +673,6 @@ func maxAmountOutRaw(
 	return parseDefaultDecimalsToRaw(outStar18, outDec), nil
 }
 
-// checkInventoryBaseQuote mirrors the on-chain BrownFiV3Pair._checkInventoryBaseQuote.
-// All amounts are in raw token decimals; the function normalises internally to 18-dec.
-//
-// isSell=true → tokenIn=quote, tokenOut=base.
-// adjPrice = basePriceQ64 (quote-per-base, Q64).
-func checkInventoryBaseQuote(
-	inDec, outDec uint8,
-	amountIn, amountOut, reserveIn, reserveOut *uint256.Int,
-	basePriceQ64, kappa *uint256.Int,
-	fee uint32,
-	isSell bool,
-) error {
-	pseudoIn18 := amountInNoFeeToDefaultDecimals(inDec, amountIn, fee)
-	amountOut18 := parseRawToDefaultDecimals(amountOut, outDec)
-	reserveIn18 := parseRawToDefaultDecimals(reserveIn, inDec)
-	reserveOut18 := parseRawToDefaultDecimals(reserveOut, outDec)
-
-	var preBase18, preQuote18, postBase18, postQuote18, baseOut18, quoteOut18 uint256.Int
-	if isSell {
-		// tokenIn=quote, tokenOut=base
-		preBase18.Set(reserveOut18)
-		preQuote18.Set(reserveIn18)
-		baseOut18.Set(amountOut18)
-		// quoteOut18 = 0
-		if !preBase18.Gt(&baseOut18) {
-			return ErrInsufficientLiquidity
-		}
-		postBase18.Sub(&preBase18, &baseOut18)
-		postQuote18.Add(&preQuote18, pseudoIn18)
-		if postBase18.Sign() <= 0 {
-			return ErrInvalidInventory
-		}
-	} else {
-		// tokenIn=base, tokenOut=quote
-		preBase18.Set(reserveIn18)
-		preQuote18.Set(reserveOut18)
-		// baseOut18 = 0
-		quoteOut18.Set(amountOut18)
-		if !preQuote18.Gt(&quoteOut18) {
-			return ErrInsufficientLiquidity
-		}
-		postBase18.Add(&preBase18, pseudoIn18)
-		postQuote18.Sub(&preQuote18, &quoteOut18)
-		if postQuote18.Sign() <= 0 {
-			return ErrInvalidInventory
-		}
-	}
-
-	// left = adjPrice * postBase + Q64 * postQuote
-	// right = adjPrice * preBase  + Q64 * preQuote
-	var left, right, t1, t2 uint256.Int
-	t1.Mul(basePriceQ64, &postBase18)
-	t2.Mul(q64, &postQuote18)
-	left.Add(&t1, &t2)
-
-	t1.Mul(basePriceQ64, &preBase18)
-	t2.Mul(q64, &preQuote18)
-	right.Add(&t1, &t2)
-
-	var penalty, denom, scaledOut uint256.Int
-	if isSell {
-		// scaled = mulDivUp(kappa, baseOut, postBase*2)
-		// penalty = mulDivUp(basePriceQ64, scaled*baseOut, Q64)
-		denom.Mul(&postBase18, big256.U2)
-		big256.MulDivUp(&scaledOut, kappa, &baseOut18, &denom)
-		scaledOut.Mul(&scaledOut, &baseOut18)
-		big256.MulDivUp(&penalty, basePriceQ64, &scaledOut, q64)
-	} else {
-		// scaled = mulDivUp(kappa, quoteOut, postQuote*2)
-		// penalty = scaled * quoteOut  (exact — no rounding, per contract comment)
-		denom.Mul(&postQuote18, big256.U2)
-		big256.MulDivUp(&scaledOut, kappa, &quoteOut18, &denom)
-		penalty.Mul(&scaledOut, &quoteOut18)
-	}
-
-	// require left >= right + penalty
-	right.Add(&right, &penalty)
-	if left.Lt(&right) {
-		return ErrInvalidInventory
-	}
-	return nil
-}
-
 // calcAmountOut computes amountOut with §4.3 cutoff protection.
 func calcAmountOut(
 	inDec, outDec uint8,
@@ -772,22 +686,9 @@ func calcAmountOut(
 	cutoff, err := getAmountOutCutoff(inDec, outDec, amountIn, reserveIn, reserveOut, adjPrice, gamma, fee, isSell)
 	if err != nil {
 		return nil, err
-	}
-	if amountOut.Gt(cutoff) {
+	} else if amountOut.Gt(cutoff) {
 		return nil, ErrCutoffInputLimitReached
 	}
-	// basePriceQ64 = dollar price of base token: priceOut when selling base, priceIn when buying base.
-	// On-chain: basePriceQ64 = token0IsBase ? sPrice0 : sPrice1.
-	basePriceQ64 := priceOut
-	if !isSell {
-		basePriceQ64 = priceIn
-	}
-	if err = checkInventoryBaseQuote(inDec, outDec, amountIn, amountOut, reserveIn, reserveOut, basePriceQ64, kappa, fee, isSell); err != nil {
-		return nil, err
-	}
-	// _checkPostTradeSkew is intentionally omitted: the gamma cutoff above enforces the same
-	// |S_post| <= gamma/PRECISION bound. A separate skew check would use our off-chain adjPrice,
-	// which can diverge from the on-chain value due to Pyth staleness, making it an unreliable gate.
 	return amountOut, nil
 }
 
@@ -797,22 +698,15 @@ func calcAmountIn(
 	amountOut, reserveIn, reserveOut, priceIn, priceOut, adjPrice, kappa *uint256.Int,
 	gamma uint32, fee uint32, isSell bool,
 ) (*uint256.Int, error) {
-	outStarRaw, err := maxAmountOutRaw(inDec, outDec, reserveIn, reserveOut, priceIn, priceOut, adjPrice, kappa, gamma, isSell)
+	outStarRaw, err := maxAmountOutRaw(inDec, outDec, reserveIn, reserveOut, priceIn, priceOut, adjPrice, kappa, gamma,
+		isSell)
 	if err != nil {
 		return nil, err
-	}
-	if amountOut.Gt(outStarRaw) {
+	} else if amountOut.Gt(outStarRaw) {
 		return nil, ErrCutoffLimitReached
 	}
-	amountIn, err := getAmountInWithoutCutoff(inDec, outDec, amountOut, reserveOut, priceIn, priceOut, kappa, fee, isSell)
+	amountIn, err := getAmountInWithoutCutoff(inDec, outDec, amountOut, reserveOut, priceIn, priceOut, kappa, fee)
 	if err != nil {
-		return nil, err
-	}
-	basePriceQ64 := priceOut
-	if !isSell {
-		basePriceQ64 = priceIn
-	}
-	if err = checkInventoryBaseQuote(inDec, outDec, amountIn, amountOut, reserveIn, reserveOut, basePriceQ64, kappa, fee, isSell); err != nil {
 		return nil, err
 	}
 	return amountIn, nil

@@ -70,8 +70,8 @@ type Extra struct {
 
 // StaticExtra holds infrequently-changing pool configuration (updated hourly).
 type StaticExtra struct {
-	PriceFeedIds    [2]common.Hash `json:"f,omitempty"`
-	PriceOracle     string         `json:"o,omitempty"`
+	PriceFeedIds    [2]common.Hash `json:"pf,omitempty"`
+	PriceOracle     string         `json:"po,omitempty"`
 	PairConfig      string         `json:"pc,omitempty"`
 	QuoteTokenIndex uint8          `json:"qi,omitempty"`
 	LastUpdated     int64          `json:"lu,omitempty"`

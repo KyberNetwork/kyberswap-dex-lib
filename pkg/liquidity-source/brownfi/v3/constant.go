@@ -44,7 +44,7 @@ const (
 
 var (
 	Router = map[valueobject.ChainID]common.Address{
-		valueobject.ChainIDBerachain: common.HexToAddress("0x1073854BA596789049A83aDb72F527a2dc5c09B4"),
+		valueobject.ChainIDBerachain: common.HexToAddress("0xFB473aEAe9b0d03c6974BCf5f2B67dA4AF7F6043"),
 	}
 
 	q64        = big256.U2Pow64
@@ -69,7 +69,6 @@ var (
 	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
 	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
-	ErrInvalidInventory         = errors.New("INVALID_INVENTORY")
 	ErrMathUnderflow            = errors.New("MATH_UNDERFLOW")
 	ErrZeroDenominator          = errors.New("ZERO_DENOMINATOR")
 	ErrZeroOutputAmount         = errors.New("ZERO_OUTPUT_AMOUNT")
