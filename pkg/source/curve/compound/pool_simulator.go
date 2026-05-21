@@ -3,6 +3,7 @@ package compound
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -73,6 +74,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Rates:       rates,
 		gas:         DefaultGas,
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

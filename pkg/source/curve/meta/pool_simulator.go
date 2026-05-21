@@ -3,6 +3,7 @@ package meta
 import (
 	"fmt"
 	"math/big"
+	"slices"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -122,6 +123,18 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		APrecision:     aPrecision,
 		gas:            DefaultGas,
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.Reserves = slices.Clone(t.Reserves)
+	if t.basePool != nil {
+		if clonedBase, ok := t.basePool.CloneState().(ICurveBasePool); ok {
+			cloned.basePool = clonedBase
+		}
+	}
+	return &cloned
 }
 
 func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {

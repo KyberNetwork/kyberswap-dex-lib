@@ -192,3 +192,20 @@ func TestGetDyVirtualPrice(t *testing.T) {
 		})
 	}
 }
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	p, err := NewPoolSimulator(entity.Pool{
+		Reserves: entity.PoolReserves{"101940884", "107546110", "208092128367874420986"},
+		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+		Extra:    `{"swapFee":"3000000","adminFee":"5000000000","initialA":"150000","futureA":"150000"}`,
+		StaticExtra: `{"lpToken":"LP","aPrecision":"100","precisionMultipliers":["1000000000000","1000000000000"],` +
+			`"rates":["1000000000000000000000000000000","1000000000000000000000000000000"]}`,
+	})
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(5000)},
+		TokenOut:      "B",
+	}, nil)
+}

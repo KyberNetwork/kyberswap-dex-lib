@@ -3,6 +3,7 @@ package plain
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -149,6 +150,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim.numTokens = numTokens
 	sim.numTokensU256.SetUint64(uint64(numTokens))
 	return sim, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.reserves = slices.Clone(t.reserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

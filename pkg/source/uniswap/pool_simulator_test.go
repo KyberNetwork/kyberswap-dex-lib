@@ -74,3 +74,29 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 		})
 	}
 }
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	var ep entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"address": "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
+		"swapFee": 0.003,
+		"type": "uniswap",
+		"reserves": ["32981129686811504138006","83362838693979"],
+		"tokens": [
+			{"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","weight": 50,"swappable": true},
+			{"address": "0xdac17f958d2ee523a2206206994597c13d831ec7","weight": 50,"swappable": true}
+		]
+	}`), &ep))
+
+	p, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			Amount: bignumber.NewBig10("1000000000000000000"),
+		},
+		TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+	}, nil)
+}

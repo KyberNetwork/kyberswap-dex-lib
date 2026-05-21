@@ -269,6 +269,7 @@ func TestLive_MidPriceFromOverrides(t *testing.T) {
 // TestLive_USDT_QuoteWithOverride runs the WETH/USDT pair through the same
 // override vs plain comparison.
 func TestLive_USDT_QuoteWithOverride(t *testing.T) {
+	test.SkipCI(t)
 	if testing.Short() {
 		t.Skip("live network test")
 	}

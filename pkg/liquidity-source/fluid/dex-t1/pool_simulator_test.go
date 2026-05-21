@@ -6,11 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func calculateReservesOutsideRange(geometricMeanPrice, priceAtRange, reserveX, reserveY *big.Int) (*big.Int, *big.Int) {
@@ -1028,4 +1031,33 @@ func TestSwapOutVerifyReservesInRange(t *testing.T) {
 		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_762)
 	})
+}
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	var ep entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"address": "0xb0960263e39c70c9b6e9ea2a382b18095264a364",
+		"swapFee": 0.01,
+		"exchange": "fluid-dex-t1",
+		"type": "fluid-dex-t1",
+		"reserves": ["925650467509030365000000","866923207330471395000000"],
+		"tokens": [
+			{"address": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3","symbol": "USDe","decimals": 18,"swappable": true},
+			{"address": "0xc139190f447e929f090edeb554d95abb8b18ac1c","symbol": "USDtb","decimals": 18,"swappable": true}
+		],
+		"extra": "{\"CollateralReserves\":{\"token0RealReserves\":925650467509030365,\"token1RealReserves\":866923207330471395,\"token0ImaginaryReserves\":716609929406203819794,\"token1ImaginaryReserves\":716551201949311867431},\"DebtReserves\":{\"token0Debt\":0,\"token1Debt\":0,\"token0RealReserves\":0,\"token1RealReserves\":0,\"token0ImaginaryReserves\":0,\"token1ImaginaryReserves\":0},\"IsSwapAndArbitragePaused\":false,\"DexLimits\":{\"withdrawableToken0\":{\"available\":925650467509030365001157,\"expandsTo\":925650467509030365001157,\"expandDuration\":0},\"withdrawableToken1\":{\"available\":866923207330471395111400,\"expandsTo\":866923207330471395111400,\"expandDuration\":0},\"borrowableToken0\":{\"available\":0,\"expandsTo\":0,\"expandDuration\":0},\"borrowableToken1\":{\"available\":0,\"expandsTo\":0,\"expandDuration\":0}},\"CenterPrice\":999999999725139423651692544}",
+		"staticExtra": "{\"dexReservesResolver\":\"0xC93876C0EEd99645DD53937b25433e311881A27C\",\"hasNative\":false}"
+	}`), &ep))
+
+	p, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, poolpkg.CalcAmountOutParams{
+		TokenAmountIn: poolpkg.TokenAmount{
+			Token:  "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+			Amount: new(big.Int).Mul(big.NewInt(1000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)),
+		},
+		TokenOut: "0xc139190f447e929f090edeb554d95abb8b18ac1c",
+	}, nil)
 }

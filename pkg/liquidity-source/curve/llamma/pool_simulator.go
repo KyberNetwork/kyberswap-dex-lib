@@ -2,6 +2,7 @@ package llamma
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
@@ -106,6 +107,22 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 
 		gas: defaultGas,
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.AdminFeesX = new(uint256.Int).Set(t.AdminFeesX)
+	cloned.AdminFeesY = new(uint256.Int).Set(t.AdminFeesY)
+	cloned.BandsX = make(map[int64]*uint256.Int, len(t.BandsX))
+	for k, v := range t.BandsX {
+		cloned.BandsX[k] = new(uint256.Int).Set(v)
+	}
+	cloned.BandsY = make(map[int64]*uint256.Int, len(t.BandsY))
+	for k, v := range t.BandsY {
+		cloned.BandsY[k] = new(uint256.Int).Set(v)
+	}
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

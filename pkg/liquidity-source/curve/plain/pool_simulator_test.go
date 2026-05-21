@@ -441,3 +441,28 @@ func TestPoolSimulatorPlain_CalcAmountIn(t *testing.T) {
 		})
 	}
 }
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange: "curve-stable-plain",
+		Type:     "curve-stable-plain",
+		Reserves: entity.PoolReserves{"103902458912250371998101", "96026429950922739854657", "90684626303", "289489289998600589912023"},
+		Tokens: []*entity.PoolToken{
+			{Address: "0xee586e7eaad39207f0549bc65f19e336942c992f", Decimals: 18},
+			{Address: "0x1a7e4e63778b4f12a199c062f3efdd288afcbce8", Decimals: 18},
+			{Address: "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c", Decimals: 6},
+		},
+		Extra:       `{"InitialA":"1000","FutureA":"1000","InitialATime":0,"FutureATime":0,"SwapFee":"4000000","AdminFee":"5000000000"}`,
+		StaticExtra: `{"APrecision":"100","LpToken":"0xe7A3b38c39F97E977723bd1239C3470702568e7B"}`,
+	})
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xee586e7eaad39207f0549bc65f19e336942c992f",
+			Amount: new(big.Int).Mul(big.NewInt(1000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)),
+		},
+		TokenOut: "0x1a7e4e63778b4f12a199c062f3efdd288afcbce8",
+	}, nil)
+}
