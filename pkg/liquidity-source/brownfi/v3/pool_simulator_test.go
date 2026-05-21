@@ -1,6 +1,7 @@
 package brownfiv3
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -63,9 +64,8 @@ func TestCalcAmountOut_WETH_USDC(t *testing.T) {
 		// token0 (WETH) → token1 (USDC): BUY direction, isSell=false
 		0: {
 			1: {
-				"100000000000": "211",
-				// 0.000469 WETH → INVALID_INVENTORY
-				"468661346370449": "INVALID_INVENTORY",
+				"100000000000":    "211",
+				"468661346370449": "991872",
 				// 0.01 WETH exceeds reserves → cutoff
 				"10000000000000000": "CUTOFF_INPUT_LIMIT_REACHED",
 			},
@@ -87,4 +87,12 @@ func TestCalcAmountOut_WETH_USDC(t *testing.T) {
 func TestCalcAmountIn_WETH_USDC(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, simWETHUSDC)
+}
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	testutil.TestCloneState(t, simWETHUSDC, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590", Amount: big.NewInt(468661346370449)},
+		TokenOut:      "0x549943e04f40284185054145c6e4e9568c1d3241",
+	}, nil)
 }
