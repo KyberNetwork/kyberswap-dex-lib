@@ -96,7 +96,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			return nil, err
 		}
 
-		feeQuotePD := calcSpotFee(totalGrossQuotePD, s.Extra.TakerFeeMultiplier, s.Extra.ToMaxFee)
+		toMaxFeeBuyPD := scaleAmountDecimals(s.Extra.ToMaxFee, s.StaticExtra.PayTokenPositionDecimals, s.StaticExtra.BuyTokenPositionDecimals)
+		feeQuotePD := calcSpotFee(totalGrossQuotePD, s.Extra.TakerFeeMultiplier, toMaxFeeBuyPD)
 		totalNetQuotePD := new(big.Int).Sub(totalGrossQuotePD, feeQuotePD)
 
 		amountOut = scaleAmountDecimals(totalNetQuotePD, s.StaticExtra.BuyTokenPositionDecimals, s.payTokenDecs)
