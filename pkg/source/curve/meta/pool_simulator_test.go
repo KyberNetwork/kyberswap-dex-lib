@@ -400,3 +400,31 @@ func TestRAISwap(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "8056187488661470351", res.TokenAmountOut.Amount.String())
 }
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	basePool, err := base.NewPoolSimulator(entity.Pool{
+		Reserves: entity.PoolReserves{"93649867132724477811796755", "92440712316473", "175421309630243", "352290453972395231054279357"},
+		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
+		Extra:    `{"initialA":"5000","futureA":"2000","initialATime":1653559305,"futureATime":1654158027,"swapFee":"1000000","adminFee":"5000000000"}`,
+		StaticExtra: `{"lpToken":"LPBase","aPrecision":"1","precisionMultipliers":["1","1000000000000","1000000000000"],` +
+			`"rates":["1000000000000000000","1000000000000000000000000000000","1000000000000000000000000000000"]}`,
+	})
+	require.NoError(t, err)
+
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange: "curve",
+		Type:     "curve-meta",
+		Reserves: entity.PoolReserves{"4763102571534863472313821", "15272752439110430673281", "0"},
+		Tokens:   []*entity.PoolToken{{Address: "Am"}, {Address: "Bm"}},
+		Extra:    `{"initialA":"10000","futureA":"25000","initialATime":1649327847,"futureATime":1649925962,"swapFee":"4000000","adminFee":"0"}`,
+		StaticExtra: `{"lpToken":"LPMeta","basePool":"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7","rateMultiplier":"1000000000000000000",` +
+			`"aPrecision":"100","underlyingTokens":["0x1","0x2","0x3","0x4"],"precisionMultipliers":["1","1"],"rates":["",""]}`,
+	}, map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool})
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "Am", Amount: big.NewInt(1000)},
+		TokenOut:      "Bm",
+	}, nil)
+}

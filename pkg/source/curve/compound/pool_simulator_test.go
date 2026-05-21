@@ -177,3 +177,33 @@ func TestCalcAmountIn(t *testing.T) {
 		})
 	}
 }
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	curBlock := big.NewInt(17484284)
+	rateStoredA, _ := new(big.Int).SetString("b839d9be811a1fd7f6ad81", 16)
+	supplyRateA, _ := new(big.Int).SetString("1393db059", 16)
+	oldBlockA, _ := new(big.Int).SetString("10ac9ba", 16)
+	rateStoredB, _ := new(big.Int).SetString("d02a08ebd736", 16)
+	supplyRateB, _ := new(big.Int).SetString("2292c55b6", 16)
+	oldBlockB, _ := new(big.Int).SetString("010ac9ea", 16)
+
+	storedRateA := new(big.Int).Add(rateStoredA,
+		new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(rateStoredA, supplyRateA), new(big.Int).Sub(curBlock, oldBlockA)), bignumber.BONE))
+	storedRateB := new(big.Int).Add(rateStoredB,
+		new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(rateStoredB, supplyRateB), new(big.Int).Sub(curBlock, oldBlockB)), bignumber.BONE))
+
+	p, err := NewPoolSimulator(entity.Pool{
+		Reserves: entity.PoolReserves{"6821027635846033", "21272421810258792"},
+		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+		Extra: fmt.Sprintf(`{"swapFee":"4000000","adminFee":"5000000000","a":"4500","rates":["%s","%s"]}`,
+			storedRateA.String(), storedRateB.String()),
+		StaticExtra: `{"lpToken":"LP","precisionMultipliers":["1","1000000000000"],"underlyingTokens":["Au","Bu"]}`,
+	})
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "Bu", Amount: big.NewInt(1)},
+		TokenOut:      "Au",
+	}, nil)
+}

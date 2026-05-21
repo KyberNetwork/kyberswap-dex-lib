@@ -85,6 +85,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	return &cloned
+}
+
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	idxIn, idxOut := t.GetTokenIndex(tokenAmountIn.Token), t.GetTokenIndex(tokenOut)

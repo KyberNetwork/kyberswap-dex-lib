@@ -2,6 +2,7 @@ package litepsm
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
@@ -88,6 +89,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            &pool.TokenAmount{Token: gem, Amount: fee.ToBig()},
 		Gas:            gas,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	cloned.DaiBal = new(uint256.Int).Set(p.DaiBal)
+	cloned.GemBal = new(uint256.Int).Set(p.GemBal)
+	return &cloned
 }
 
 func (p *PoolSimulator) CloneBalance() pool.IPoolSimulator {
