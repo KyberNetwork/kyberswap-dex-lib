@@ -21,7 +21,7 @@ func makeSmallPool(t *testing.T) *Pool {
 	sqrtPrice, _ := uint256.FromDecimal("4082682361430349352208957440")
 	liquidity, _ := uint256.FromDecimal("461286494113032089234462")
 
-	pool, err := newPool(FeeAmount(3000), sqrtPrice, liquidity, -59315, ticks, 60)
+	pool, err := NewPool(FeeAmount(3000), sqrtPrice, liquidity, -59315, ticks, 60)
 	require.NoError(t, err)
 	return pool
 }
@@ -46,7 +46,7 @@ func TestValidateList(t *testing.T) {
 
 	t.Run("zero tick spacing", func(t *testing.T) {
 		err := validateList(nil, 0)
-		require.ErrorIs(t, err, errZeroTickSpacing)
+		require.ErrorIs(t, err, ErrZeroTickSpacing)
 	})
 
 	t.Run("bad spacing alignment", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestValidateList(t *testing.T) {
 			{61, liq, netNeg},
 		}
 		err := validateList(ticks, 60)
-		require.ErrorIs(t, err, errInvalidTickSpacing)
+		require.ErrorIs(t, err, ErrInvalidTickSpacing)
 	})
 
 	t.Run("non-zero net sum", func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestValidateList(t *testing.T) {
 			{60, liq, net}, // net should be negative to sum to zero
 		}
 		err := validateList(ticks, 60)
-		require.ErrorIs(t, err, errZeroNet)
+		require.ErrorIs(t, err, ErrZeroNet)
 	})
 
 	t.Run("unsorted", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestValidateList(t *testing.T) {
 			{-60, liq, netNeg},
 		}
 		err := validateList(ticks, 60)
-		require.ErrorIs(t, err, errSorted)
+		require.ErrorIs(t, err, ErrSorted)
 	})
 }
 
@@ -110,14 +110,14 @@ func TestNextInitializedTickIndex(t *testing.T) {
 
 	// below smallest → error
 	_, _, err = nextInitializedTickIndex(ticks, -200, true)
-	require.ErrorIs(t, err, errBelowSmallest)
+	require.ErrorIs(t, err, ErrBelowSmallest)
 
 	// at or above largest (lte=false) → error
 	_, _, err = nextInitializedTickIndex(ticks, 120, false)
-	require.ErrorIs(t, err, errAtOrAboveLargest)
+	require.ErrorIs(t, err, ErrAtOrAboveLargest)
 }
 
-// ---------- newPool ----------
+// ---------- NewPool ----------
 
 func TestNewPool(t *testing.T) {
 	t.Parallel()
@@ -132,22 +132,22 @@ func TestNewPool(t *testing.T) {
 	sqrtPrice, _ := uint256.FromDecimal("79228162514264337593543950336")
 	liquidity := uint256.NewInt(1e9)
 
-	p, err := newPool(FeeMedium, sqrtPrice, liquidity, 0, ticks, 60)
+	p, err := NewPool(FeeMedium, sqrtPrice, liquidity, 0, ticks, 60)
 	require.NoError(t, err)
 	require.Equal(t, 0, p.TickCurrent)
 	require.Equal(t, FeeMedium, p.Fee)
 
 	// fee too high
-	_, err = newPool(FeeMax, sqrtPrice, liquidity, 0, ticks, 60)
-	require.ErrorIs(t, err, errFeeTooHigh)
+	_, err = NewPool(FeeMax, sqrtPrice, liquidity, 0, ticks, 60)
+	require.ErrorIs(t, err, ErrFeeTooHigh)
 
 	// sqrtPrice out of range for tick
 	bad, _ := uint256.FromDecimal("1")
-	_, err = newPool(FeeMedium, bad, liquidity, 0, ticks, 60)
-	require.ErrorIs(t, err, errInvalidSqrtRatioX96)
+	_, err = NewPool(FeeMedium, bad, liquidity, 0, ticks, 60)
+	require.ErrorIs(t, err, ErrInvalidSqrtRatioX96)
 }
 
-// ---------- getOutputAmountV2 (exact input) ----------
+// ---------- GetOutputAmountV2 (exact input) ----------
 
 func TestGetOutputAmountV2(t *testing.T) {
 	t.Parallel()
@@ -160,14 +160,14 @@ func TestGetOutputAmountV2(t *testing.T) {
 	// price limit: slightly above current sqrt price (going up, token1→token0)
 	priceLimit, _ := uint256.FromDecimal("1461446703485210103287273052203988822378723970341") // MaxSqrtRatio - 1
 
-	result, err := p.getOutputAmountV2(amountIn, false, priceLimit)
+	result, err := p.GetOutputAmountV2(amountIn, false, priceLimit)
 	require.NoError(t, err)
 	require.True(t, result.ReturnedAmount.Sign() > 0, "output must be positive")
 	require.NotNil(t, result.SqrtRatioX96)
 	require.NotNil(t, result.Liquidity)
 }
 
-// ---------- getInputAmountV2 (exact output) ----------
+// ---------- GetInputAmountV2 (exact output) ----------
 
 func TestGetInputAmountV2(t *testing.T) {
 	t.Parallel()
@@ -179,16 +179,16 @@ func TestGetInputAmountV2(t *testing.T) {
 
 	priceLimit, _ := uint256.FromDecimal("4295128740") // MinSqrtRatio + 1
 
-	amountIn, newState, err := p.getInputAmountV2(amountOut, true, priceLimit)
+	amountIn, newState, err := p.GetInputAmountV2(amountOut, true, priceLimit)
 	require.NoError(t, err)
 	require.True(t, amountIn.Sign() > 0, "input amount must be positive")
 	require.NotNil(t, newState)
 	require.NotNil(t, newState.SqrtRatioX96)
 
-	// Cross-check: feeding the computed amountIn into getOutputAmountV2 should yield
+	// Cross-check: feeding the computed amountIn into GetOutputAmountV2 should yield
 	// at least amountOut (may be slightly more due to rounding convention).
 	priceLimit2, _ := uint256.FromDecimal("4295128740")
-	outResult, err := p.getOutputAmountV2(amountIn, true, priceLimit2)
+	outResult, err := p.GetOutputAmountV2(amountIn, true, priceLimit2)
 	require.NoError(t, err)
 	gotOut := outResult.ReturnedAmount.ToBig()
 	require.True(t, gotOut.Cmp(amountOut.ToBig()) >= 0,

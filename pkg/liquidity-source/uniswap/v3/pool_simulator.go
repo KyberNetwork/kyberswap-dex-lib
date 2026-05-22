@@ -85,7 +85,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		}
 		tickSpacing = TickSpacings[feeTier]
 	}
-	v3Pool, err := newPool(
+	v3Pool, err := NewPool(
 		FeeAmount(entityPool.SwapFee),
 		extra.SqrtPriceX96,
 		extra.Liquidity,
@@ -151,7 +151,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
-	amountIn, newPoolState, err := p.V3Pool.getInputAmountV2(&amountOutI256, zeroForOne, &priceLimit)
+	amountIn, newPoolState, err := p.V3Pool.GetInputAmountV2(&amountOutI256, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		Gas: p.Gas.BaseGas, // TODO: update getInputAmountV2 to return crossed tick if we ever need this
+		Gas: p.Gas.BaseGas, // TODO: update GetInputAmountV2 to return crossed tick if we ever need this
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
 			nextStateLiquidity:    newPoolState.Liquidity,
@@ -197,7 +197,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
-	amountOutResult, err := p.V3Pool.getOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
+	amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, err
 	}
