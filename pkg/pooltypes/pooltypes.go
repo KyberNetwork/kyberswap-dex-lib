@@ -72,6 +72,7 @@ import (
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gohm"
 	gsm4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gsm-4626"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
@@ -381,6 +382,7 @@ type Types struct {
 	CompoundV3                 string
 	AngleTransmuter            string
 	GenericArm                 string
+	GOHM                       string
 	ArenaBC                    string
 	XsolvBTC                   string
 	Midas                      string
@@ -601,6 +603,7 @@ var (
 		CompoundV3:                 compoundv3.DexType,
 		AngleTransmuter:            angletransmuter.DexType,
 		GenericArm:                 genericarm.DexType,
+		GOHM:                       gohm.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
 		Midas:                      midas.DexType,
