@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ramsesv2/abis"
 )
 
 var (

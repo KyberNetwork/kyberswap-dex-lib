@@ -1,22 +1,23 @@
-package ramsesv2
+package solidlyv3
 
 import (
 	"context"
-	"maps"
 	"math/big"
-	"slices"
 	"sort"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -24,11 +25,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-var _ = pooltrack.RegisterFactoryCEG(DexTypeRamsesV2, NewPoolTracker)
 
 type PoolTracker struct {
 	config        *Config
@@ -36,29 +34,43 @@ type PoolTracker struct {
 	graphqlClient *graphqlpkg.Client
 }
 
+var _ = pooltrack.RegisterFactoryCEG0(DexTypeSolidlyV3, NewPoolTracker)
+
+func buildSolidlyExtra(rpcData *FetchRPCResult, ticks []uniswapv3.TickU256) uniswapv3.ExtraTickU256 {
+	liq, _ := uint256.FromBig(rpcData.Liquidity)
+	sqrtP, _ := uint256.FromBig(rpcData.Slot0.SqrtPriceX96)
+	tickInt := int(rpcData.Slot0.Tick.Int64())
+	return uniswapv3.ExtraTickU256{
+		Liquidity:    liq,
+		SqrtPriceX96: sqrtP,
+		TickSpacing:  rpcData.TickSpacing.Uint64(),
+		Tick:         &tickInt,
+		Ticks:        ticks,
+	}
+}
+
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-) (*PoolTracker, error) {
-
+) *PoolTracker {
 	return &PoolTracker{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
-	}, nil
+	}
 }
 
 func (t *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	param sourcePool.GetNewPoolStateParams,
+	_ sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	logger.Infof("[%s] Start getting new state of pool: %v", t.config.DexID, p.Address)
 
 	var (
 		rpcData   *FetchRPCResult
-		poolTicks []ticklens.TickResp
+		poolTicks []TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -70,22 +82,13 @@ func (t *PoolTracker) BootstrapPoolState(
 				"poolAddress": p.Address,
 				"error":       err,
 			}).Errorf("failed to fetch data from RPC")
+
 		}
 
 		return err
 	})
 	g.Go(func(context.Context) error {
 		var err error
-		if t.config.AlwaysUseTickLens {
-			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, t.ethrpcClient, t.config.TickLensAddress, p, nil)
-			if err != nil {
-				logger.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to call SC for pool ticks")
-			}
-			return err
-		}
-
 		poolTicks, err = t.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -105,7 +108,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
-	var ticks []Tick
+	ticks256 := make([]uniswapv3.TickU256, 0, len(poolTicks))
 	for _, tickResp := range poolTicks {
 		tick, err := transformTickRespToTick(tickResp)
 		if err != nil {
@@ -115,19 +118,12 @@ func (t *PoolTracker) BootstrapPoolState(
 			}).Errorf("failed to transform tickResp to tick")
 			continue
 		}
-
-		ticks = append(ticks, tick)
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, uniswapv3.TickU256{Index: tick.Index, LiquidityGross: lg, LiquidityNet: ln})
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		FeeTier:      rpcData.FeeTier,
-		TickSpacing:  rpcData.TickSpacing,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
-		Unlocked:     rpcData.Slot0.Unlocked,
-	})
+	extraBytes, err := json.Marshal(buildSolidlyExtra(rpcData, ticks256))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -136,9 +132,9 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
+	p.SwapFee = float64(rpcData.Slot0.Fee.Int64())
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = rpcData.BlockNumber
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
@@ -153,7 +149,6 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	var (
 		liquidity   *big.Int
 		slot0       Slot0
-		feeTier     *big.Int
 		tickSpacing *big.Int
 		reserve0    = zeroBI
 		reserve1    = zeroBI
@@ -167,36 +162,22 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		rpcRequest.SetBlockNumber(&blockNumberBI)
 	}
 
-	if t.config.IsPoolV3 {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    poolV3ABI,
-			Target: p.Address,
-			Method: methodV3Fee,
-		}, []any{&feeTier})
-	} else {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    poolV2ABI,
-			Target: p.Address,
-			Method: methodV2CurrentFee,
-		}, []any{&feeTier})
-	}
-
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    poolV2ABI,
+		ABI:    solidlyV3PoolABI,
 		Target: p.Address,
-		Method: methodV2GetLiquidity,
+		Method: methodGetLiquidity,
 	}, []any{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    poolV2ABI,
+		ABI:    solidlyV3PoolABI,
 		Target: p.Address,
-		Method: methodV2GetSlot0,
+		Method: methodGetSlot0,
 	}, []any{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    poolV2ABI,
+		ABI:    solidlyV3PoolABI,
 		Target: p.Address,
-		Method: methodV2TickSpacing,
+		Method: methodTickSpacing,
 	}, []any{&tickSpacing})
 
 	if len(p.Tokens) == 2 {
@@ -215,43 +196,41 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		}, []any{&reserve1})
 	}
 
-	resp, err := rpcRequest.Aggregate()
+	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
-		}).Errorf("failed to process Aggregate")
+		}).Errorf("failed to process tryAggregate")
 		return nil, err
 	}
 
 	return &FetchRPCResult{
 		Liquidity:   liquidity,
 		Slot0:       slot0,
-		FeeTier:     feeTier.Int64(),
-		TickSpacing: tickSpacing.Uint64(),
+		TickSpacing: tickSpacing,
 		Reserve0:    reserve0,
 		Reserve1:    reserve1,
-		BlockNumber: resp.BlockNumber.Uint64(),
 	}, err
 }
 
-func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
+func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
 	allowSubgraphError := t.config.IsAllowSubgraphError()
 	lastTickIdx := ""
-	var ticks []ticklens.TickResp
+	var ticks []TickResp
 
 	for {
 		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Ticks []ticklens.TickResp       `json:"ticks"`
-			Meta  *valueobject.SubgraphMeta `json:"_meta"`
+			Pool *SubgraphPoolTicks        `json:"pool"`
+			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
 		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
-				if resp.Ticks == nil {
+				if resp.Pool == nil {
 					logger.WithFields(logger.Fields{
 						"poolAddress":        poolAddress,
 						"error":              err,
@@ -273,24 +252,27 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 
 		resp.Meta.CheckIsLagging(t.config.DexID, poolAddress)
 
-		if len(resp.Ticks) == 0 {
+		if resp.Pool == nil || len(resp.Pool.Ticks) == 0 {
 			break
 		}
 
-		ticks = append(ticks, resp.Ticks...)
+		ticks = append(ticks, resp.Pool.Ticks...)
 
-		if len(resp.Ticks) < graphFirstLimit {
+		if len(resp.Pool.Ticks) < graphFirstLimit {
 			break
 		}
 
-		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].TickIdx
+		lastTickIdx = resp.Pool.Ticks[len(resp.Pool.Ticks)-1].TickIdx
 	}
 
 	return ticks, nil
 }
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param sourcePool.GetNewPoolStateParams) (entity.Pool, error) {
-	l := logger.WithFields(logger.Fields{"address": p.Address, "exchange": p.Exchange})
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"exchange":    p.Exchange,
+	})
 
 	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
 	if err != nil {
@@ -302,23 +284,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	// Extract current ticks from entity pool extra
-	var extra Extra
+	var extra uniswapv3.ExtraTickU256
 	if len(p.Extra) > 0 {
-		err := json.Unmarshal([]byte(p.Extra), &extra)
-		if err != nil {
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 			return p, err
 		}
 	}
 
-	ticks := map[int]struct{}{}
+	ticksToRefetch := make([]int, 0, len(extra.Ticks))
 	for _, tick := range extra.Ticks {
-		ticks[tick.Index] = struct{}{}
-	}
-
-	ticksToRefetch := make([]int, 0, len(ticks))
-	for tickIdx := range ticks {
-		ticksToRefetch = append(ticksToRefetch, tickIdx)
+		ticksToRefetch = append(ticksToRefetch, tick.Index)
 	}
 
 	if len(ticksToRefetch) == 0 {
@@ -330,36 +305,87 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		return p, err
 	}
 
-	// convert back to ramsesv2 ticks
-	entityPoolTicks := make([]Tick, 0, len(refetchedTicks))
+	ticks256 := make([]uniswapv3.TickU256, 0, len(refetchedTicks))
 	for _, tick := range refetchedTicks {
-		// skip uninitialized ticks
 		if tick.LiquidityGross.Sign() == 0 {
 			continue
 		}
-
-		entityPoolTicks = append(entityPoolTicks, Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, uniswapv3.TickU256{Index: tick.TickIdx, LiquidityGross: lg, LiquidityNet: ln})
 	}
 
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	sort.Slice(ticks256, func(i, j int) bool { return ticks256[i].Index < ticks256[j].Index })
 
-	extra.Ticks = entityPoolTicks
+	extra.Ticks = ticks256
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		logger.WithFields(logger.Fields{"error": err}).Error("failed to marshal extra data")
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to marshal extra data")
 		return p, err
 	}
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+
+	return p, nil
+}
+
+func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+	})
+
+	blockNumber := ticksBasedPool.BlockNumber
+
+	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	if err != nil {
+		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			rpcState, err = t.FetchRPCData(ctx, &p, 0)
+			if err != nil {
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to fetch latest state from RPC")
+				return p, err
+			}
+		} else {
+			l.WithFields(logger.Fields{
+				"error":       err,
+				"blockNumber": blockNumber,
+			}).Error("failed to fetch state from RPC")
+			return p, err
+		}
+	}
+
+	ticks256 := make([]uniswapv3.TickU256, 0, len(ticksBasedPool.Ticks))
+	for _, tick := range ticksBasedPool.Ticks {
+		if tick.LiquidityGross.Sign() == 0 {
+			continue
+		}
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, uniswapv3.TickU256{Index: tick.TickIdx, LiquidityGross: lg, LiquidityNet: ln})
+	}
+
+	sort.Slice(ticks256, func(i, j int) bool { return ticks256[i].Index < ticks256[j].Index })
+
+	extraBytes, err := json.Marshal(buildSolidlyExtra(rpcState, ticks256))
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to marshal extra data")
+		return entity.Pool{}, err
+	}
+
+	p.SwapFee, _ = rpcState.Slot0.Fee.Float64()
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	p.Reserves = entity.PoolReserves{
+		rpcState.Reserve0.String(),
+		rpcState.Reserve1.String(),
+	}
 
 	return p, nil
 }
@@ -376,13 +402,17 @@ func (t *PoolTracker) newTicksBasedPool(
 
 	ticksBasedPool, err := tickspkg.NewTicksBasedPool(p)
 	if err != nil {
-		l.WithFields(logger.Fields{"error": err}).Error("failed to transform entity pool to ticks based pool")
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to transform entity pool to ticks based pool")
 		return ticksBasedPool, err
 	}
 
 	ticks, err := t.fetchTicksFromLogs(ctx, p, logs)
 	if err != nil {
-		l.WithFields(logger.Fields{"error": err}).Error("failed to FetchTicksFromLogs")
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to FetchTicksFromLogs")
 		return ticksBasedPool, err
 	}
 
@@ -394,21 +424,29 @@ func (t *PoolTracker) newTicksBasedPool(
 	}
 
 	if err := tickspkg.ValidatePoolTicks(ticksBasedPool, ticks); err != nil {
-		l.WithFields(logger.Fields{"numTicks": len(ticks), "error": err}).
-			Warn("invalid pool ticks data after fetching ticks from logs")
+		l.WithFields(logger.Fields{
+			"numTicks": len(ticks),
+			"error":    err,
+		}).Warn("invalid pool ticks data after fetching ticks from logs")
 
-		l.WithFields(logger.Fields{"numTicks": len(ticksBasedPool.Ticks)}).Info("fetch all ticks for pool")
+		l.WithFields(logger.Fields{
+			"numTicks": len(ticksBasedPool.Ticks),
+		}).Info("fetch all ticks for pool")
 
 		ticks, err = t.fetchAllTicksForPool(ctx, ticksBasedPool, ticks)
 		if err != nil {
-			l.WithFields(logger.Fields{"error": err}).Error("failed to fetch all ticks")
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to fetch all ticks")
 
 			return ticksBasedPool, err
 		}
 
 		if err := tickspkg.ValidateAllPoolTicks(ticksBasedPool, ticks); err != nil {
-			l.WithFields(logger.Fields{"numTicks": len(ticks), "error": err}).
-				Warnf("invalid pool ticks data after fetching all ticks stored in pool")
+			l.WithFields(logger.Fields{
+				"numTicks": len(ticks),
+				"error":    err,
+			}).Warnf("invalid pool ticks data after fetching all ticks stored in pool")
 		}
 	}
 
@@ -417,73 +455,6 @@ func (t *PoolTracker) newTicksBasedPool(
 	}
 
 	return ticksBasedPool, nil
-}
-
-func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool,
-	error) {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": p.Address,
-	})
-
-	blockNumber := ticksBasedPool.BlockNumber
-
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
-	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{"error": err}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{"error": err, "blockNumber": blockNumber}).
-				Error("failed to fetch state from RPC")
-			return p, err
-		}
-	}
-
-	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
-	for _, tick := range ticksBasedPool.Ticks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
-
-	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcState.Liquidity,
-		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-		FeeTier:      rpcState.FeeTier,
-		TickSpacing:  rpcState.TickSpacing,
-		Tick:         rpcState.Slot0.Tick,
-		Ticks:        entityPoolTicks,
-		Unlocked:     rpcState.Slot0.Unlocked,
-	})
-	if err != nil {
-		l.WithFields(logger.Fields{"error": err}).Error("failed to marshal extra data")
-		return entity.Pool{}, err
-	}
-
-	p.SwapFee = float64(rpcState.FeeTier)
-	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{
-		rpcState.Reserve0.String(),
-		rpcState.Reserve1.String(),
-	}
-
-	return p, err
 }
 
 func (t *PoolTracker) fetchAllTicksForPool(
@@ -520,9 +491,14 @@ func (t *PoolTracker) fetchAllTicksForPool(
 }
 
 func (t *PoolTracker) fetchTicksFromLogs(
-	ctx context.Context, pool entity.Pool, logs []ethtypes.Log,
+	ctx context.Context,
+	p entity.Pool,
+	logs []ethtypes.Log,
 ) ([]tickspkg.Tick, error) {
-	l := logger.WithFields(logger.Fields{"address": pool.Address, "exchange": pool.Exchange})
+	l := logger.WithFields(logger.Fields{
+		"address":  p.Address,
+		"exchange": p.Exchange,
+	})
 
 	if len(logs) == 0 {
 		return nil, nil
@@ -530,7 +506,9 @@ func (t *PoolTracker) fetchTicksFromLogs(
 
 	tickIndexes, err := t.getTickIndexesFromLogs(logs)
 	if err != nil {
-		l.WithFields(logger.Fields{"error": err}).Error("failed to getTickIndexesFromEvents")
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to getTickIndexesFromEvents")
 		return nil, err
 	}
 
@@ -539,35 +517,22 @@ func (t *PoolTracker) fetchTicksFromLogs(
 	}
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	return t.queryRPCTicksByIndexes(ctx, pool.Address, tickIndexes, blockNumber)
+	return t.queryRPCTicksByIndexes(ctx, p.Address, tickIndexes, blockNumber)
 }
 
 func (t *PoolTracker) queryRPCTicksByIndexes(
 	ctx context.Context, address string, tickIndexes []int, blockNumber uint64,
 ) ([]tickspkg.Tick, error) {
 	if len(tickIndexes) <= tickChunkSize {
-		if t.config.IsPoolV3 {
-			return t.queryRPCTicksV3ByChunk(ctx, address, tickIndexes, blockNumber)
-		}
-
-		return t.queryRPCTicksV2ByChunk(ctx, address, tickIndexes, blockNumber)
+		return t.queryRPCTicksByChunk(ctx, address, tickIndexes, blockNumber)
 	}
 
-	var (
-		totalTicks = len(tickIndexes)
-		ticks      = make([]tickspkg.Tick, 0, totalTicks)
-
-		newTicks []tickspkg.Tick
-		err      error
-	)
+	totalTicks := len(tickIndexes)
+	ticks := make([]tickspkg.Tick, 0, totalTicks)
 	for i := 0; i < totalTicks; i += tickChunkSize {
 		toIdx := min(i+tickChunkSize, totalTicks)
 
-		if t.config.IsPoolV3 {
-			newTicks, err = t.queryRPCTicksV3ByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
-		} else {
-			newTicks, err = t.queryRPCTicksV2ByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
-		}
+		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
 		if err != nil {
 			return nil, err
 		}
@@ -587,55 +552,59 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 		}
 
 		switch event.Topics[0] {
-		case poolV2ABI.Events["Mint"].ID:
-			mint, err := poolFiltererV2.ParseMint(event)
+		case solidlyV3PoolABI.Events["Mint"].ID:
+			mint, err := poolFilterer.ParseMint(event)
 			if err != nil {
-				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse mint event")
+				logger.WithFields(logger.Fields{
+					"event": event,
+					"error": err,
+				}).Error("failed to parse mint event")
 				return nil, err
 			}
+
+			logger.WithFields(logger.Fields{
+				"address": event.Address,
+				"event":   mint,
+			}).Debug("decode mint event")
+
 			tickSet[int(mint.TickLower.Int64())] = struct{}{}
 			tickSet[int(mint.TickUpper.Int64())] = struct{}{}
 
-		case poolV3ABI.Events["Mint"].ID:
-			mint, err := poolFiltererV3.ParseMint(event)
+		case solidlyV3PoolABI.Events["Burn"].ID:
+			burn, err := poolFilterer.ParseBurn(event)
 			if err != nil {
-				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse mint event")
+				logger.WithFields(logger.Fields{
+					"event": event,
+					"error": err,
+				}).Error("failed to parse burn event")
 				return nil, err
 			}
-			tickSet[int(mint.TickLower.Int64())] = struct{}{}
-			tickSet[int(mint.TickUpper.Int64())] = struct{}{}
 
-		case poolV2ABI.Events["Burn"].ID:
-			burn, err := poolFiltererV2.ParseBurn(event)
-			if err != nil {
-				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse burn event")
-				return nil, err
-			}
-			tickSet[int(burn.TickLower.Int64())] = struct{}{}
-			tickSet[int(burn.TickUpper.Int64())] = struct{}{}
+			logger.WithFields(logger.Fields{
+				"address": event.Address,
+				"event":   burn,
+			}).Debug("decode burn event")
 
-		case poolV3ABI.Events["Burn"].ID:
-			burn, err := poolFiltererV3.ParseBurn(event)
-			if err != nil {
-				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse burn event")
-				return nil, err
-			}
 			tickSet[int(burn.TickLower.Int64())] = struct{}{}
 			tickSet[int(burn.TickUpper.Int64())] = struct{}{}
 
 		default:
-			metrics.IncrUnprocessedEventTopic(DexTypeRamsesV2, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(DexTypeSolidlyV3, event.Topics[0].Hex())
 		}
 	}
 
-	return slices.Collect(maps.Keys(tickSet)), nil
+	ticks := make([]int, 0, len(tickSet))
+	for tick := range tickSet {
+		ticks = append(ticks, tick)
+	}
+
+	return ticks, nil
 }
 
-func (t *PoolTracker) queryRPCTicksV2ByChunk(
+func (t *PoolTracker) queryRPCTicksByChunk(
 	ctx context.Context, addr string, ticks []int, blockNumber uint64,
 ) ([]tickspkg.Tick, error) {
 	tickResponses := make([]TicksResp, len(ticks))
-
 	ticksRequest := t.ethrpcClient.NewRequest()
 	ticksRequest.SetContext(ctx)
 	if blockNumber > 0 {
@@ -646,76 +615,35 @@ func (t *PoolTracker) queryRPCTicksV2ByChunk(
 
 	for id, tick := range ticks {
 		ticksRequest.AddCall(&ethrpc.Call{
-			ABI:    poolV2ABI,
+			ABI:    solidlyV3PoolABI,
 			Target: addr,
 			Method: methodTicks,
 			Params: []any{big.NewInt(int64(tick))},
 		}, []any{&tickResponses[id]})
 	}
 
-	l := logger.WithFields(logger.Fields{"address": addr})
-	l.WithFields(logger.Fields{"len": len(ticksRequest.Calls), "ticks": ticks}).Debug("fetching ticks")
+	l := logger.WithFields(logger.Fields{
+		"address": addr,
+	})
+
+	l.WithFields(logger.Fields{
+		"len":   len(ticksRequest.Calls),
+		"ticks": ticks,
+	}).Debug("fetching ticks")
 
 	if _, err := ticksRequest.Aggregate(); err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
 			// Re-query ticks data with latest block number
-			return t.queryRPCTicksV2ByChunk(ctx, addr, ticks, 0)
+			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0)
 		}
 
-		logger.WithFields(logger.Fields{"error": err}).Error("failed to process aggregate to get ticks")
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to process aggregate to get ticks")
 		return nil, err
 	}
 
 	result := make([]tickspkg.Tick, len(ticks))
-
-	for id, tickResponse := range tickResponses {
-		result[id] = tickspkg.Tick{
-			TickIdx:        ticks[id],
-			LiquidityGross: tickResponse.LiquidityGross,
-			LiquidityNet:   tickResponse.LiquidityNet,
-		}
-	}
-
-	return result, nil
-}
-
-func (t *PoolTracker) queryRPCTicksV3ByChunk(
-	ctx context.Context, addr string, ticks []int, blockNumber uint64,
-) ([]tickspkg.Tick, error) {
-	tickResponses := make([]TicksRespV3, len(ticks))
-
-	ticksRequest := t.ethrpcClient.NewRequest()
-	ticksRequest.SetContext(ctx)
-	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		ticksRequest.SetBlockNumber(&blockNumberBI)
-	}
-
-	for id, tick := range ticks {
-		ticksRequest.AddCall(&ethrpc.Call{
-			ABI:    poolV3ABI,
-			Target: addr,
-			Method: methodTicks,
-			Params: []any{big.NewInt(int64(tick))},
-		}, []any{&tickResponses[id]})
-	}
-
-	l := logger.WithFields(logger.Fields{"address": addr})
-	l.WithFields(logger.Fields{"len": len(ticksRequest.Calls), "ticks": ticks}).Debug("fetching ticks")
-
-	if _, err := ticksRequest.Aggregate(); err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			// Re-query ticks data with latest block number
-			return t.queryRPCTicksV3ByChunk(ctx, addr, ticks, 0)
-		}
-
-		logger.WithFields(logger.Fields{"error": err}).Error("failed to process aggregate to get ticks")
-		return nil, err
-	}
-
-	result := make([]tickspkg.Tick, len(ticks))
-
 	for id, tickResponse := range tickResponses {
 		result[id] = tickspkg.Tick{
 			TickIdx:        ticks[id],

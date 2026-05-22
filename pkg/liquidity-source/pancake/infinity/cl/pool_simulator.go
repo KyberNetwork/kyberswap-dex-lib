@@ -53,8 +53,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		allowEmptyTicks = hook.AllowEmptyTicks()
 	}
 
-	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256,
-		allowEmptyTicks)
+	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, extra.ExtraTickU256,
+		uniswapv3.SimulatorConfig{AllowEmptyTicks: allowEmptyTicks})
 	if err != nil {
 		return nil, err
 	}

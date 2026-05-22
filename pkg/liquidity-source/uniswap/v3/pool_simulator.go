@@ -27,22 +27,20 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimulator, error) {
 	var extra ExtraTickU256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
-	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra, false)
+	return NewPoolSimulatorWithExtra(entityPool, &extra, SimulatorConfig{})
 }
 
-func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.ChainID,
-	extra *ExtraTickU256, allowEmptyTicks bool) (*PoolSimulator, error) {
+func NewPoolSimulatorWithExtra(entityPool entity.Pool,
+	extra *ExtraTickU256, cfg SimulatorConfig) (*PoolSimulator, error) {
 	if extra.Tick == nil {
 		return nil, ErrTickNil
 	}
-
-	_ = chainID // chain ID not needed after removing coreEntities.Token
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
@@ -71,7 +69,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 
 	// if the tick list is empty, the pool should be ignored
 	// for some uniswap-v4 hooks, we want to bypass this check due to some hooks has no ticks
-	if !allowEmptyTicks && len(v3Ticks) == 0 {
+	if !cfg.AllowEmptyTicks && len(v3Ticks) == 0 {
 		return nil, ErrV3TicksEmpty
 	}
 
@@ -79,11 +77,15 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	// For some pools that not yet initialized tickSpacing in their extra,
 	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
+		fallback := cfg.TickSpacingFallback
+		if fallback == nil {
+			fallback = TickSpacings
+		}
 		feeTier := FeeAmount(entityPool.SwapFee)
-		if _, ok := TickSpacings[feeTier]; !ok {
+		if _, ok := fallback[feeTier]; !ok {
 			return nil, ErrInvalidFeeTier
 		}
-		tickSpacing = TickSpacings[feeTier]
+		tickSpacing = fallback[feeTier]
 	}
 	v3Pool, err := NewPool(
 		FeeAmount(entityPool.SwapFee),
@@ -116,7 +118,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		Gas:             defaultGas,
 		tickMin:         tickMin,
 		tickMax:         tickMax,
-		allowEmptyTicks: allowEmptyTicks,
+		allowEmptyTicks: cfg.AllowEmptyTicks,
 	}, nil
 }
 

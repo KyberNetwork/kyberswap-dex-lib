@@ -1,4 +1,4 @@
-package ramsesv2
+package solidlyv3
 
 import (
 	"time"
@@ -9,11 +9,12 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v3/abis"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
 )
 
-var _ = poolfactory.RegisterFactoryC(DexTypeRamsesV2, NewPoolFactory)
+var _ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewPoolFactory)
 
 type PoolFactory struct {
 	config              *Config
@@ -24,7 +25,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			factoryV2ABI.Events["PoolCreated"].ID: {},
+			solidlyV3FactoryABI.Events["PoolCreated"].ID: {},
 		},
 	}
 }
@@ -60,14 +61,14 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 
 	swapFee, _ := p.Fee.Float64()
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := json.Marshal(uniswapv3.ExtraTickU256{
 		TickSpacing: p.TickSpacing.Uint64(),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	staticExtraBytes, err := json.Marshal(StaticExtra{
+	staticExtraBytes, err := json.Marshal(uniswapv3.StaticExtra{
 		PoolId: poolAddress,
 	})
 	if err != nil {
@@ -78,7 +79,7 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 		Address:     poolAddress,
 		SwapFee:     swapFee,
 		Exchange:    f.config.DexID,
-		Type:        DexTypeRamsesV2,
+		Type:        DexTypeSolidlyV3,
 		Timestamp:   time.Now().Unix(),
 		Reserves:    reserves,
 		Tokens:      []*entity.PoolToken{&token0, &token1},

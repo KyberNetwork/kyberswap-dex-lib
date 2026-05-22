@@ -1,4 +1,4 @@
-package nuriv2
+package slipstream
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slipstream/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
@@ -43,7 +43,7 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 	return ok
 }
 
-func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*entity.Pool, error) {
+func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNbr uint64) (*entity.Pool, error) {
 	poolAddress := hexutil.Encode(p.Pool[:])
 
 	token0 := entity.PoolToken{
@@ -57,8 +57,6 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 	reserves := entity.PoolReserves{
 		"0", "0",
 	}
-
-	swapFee, _ := p.Fee.Float64()
 
 	extraBytes, err := json.Marshal(Extra{
 		TickSpacing: p.TickSpacing.Uint64(),
@@ -76,7 +74,6 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 
 	return &entity.Pool{
 		Address:     poolAddress,
-		SwapFee:     swapFee,
 		Exchange:    f.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),
@@ -84,6 +81,6 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 		Tokens:      []*entity.PoolToken{&token0, &token1},
 		StaticExtra: string(staticExtraBytes),
 		Extra:       string(extraBytes),
-		BlockNumber: blockNumber,
+		BlockNumber: blockNbr,
 	}, nil
 }

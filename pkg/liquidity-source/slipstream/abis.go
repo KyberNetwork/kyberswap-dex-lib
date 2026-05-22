@@ -1,4 +1,4 @@
-package nuriv2
+package slipstream
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slipstream/abis"
 )
 
 var (

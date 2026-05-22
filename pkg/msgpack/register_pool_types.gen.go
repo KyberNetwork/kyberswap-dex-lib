@@ -114,6 +114,7 @@ import (
 	pkg_liquiditysource_nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
+	pkg_liquiditysource_nuriv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nuriv2"
 	pkg_liquiditysource_obric "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	pkg_liquiditysource_orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
@@ -133,12 +134,15 @@ import (
 	pkg_liquiditysource_primeeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	pkg_liquiditysource_printr "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	pkg_liquiditysource_ramsesv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ramsesv2"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	pkg_liquiditysource_slipstream "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slipstream"
 	pkg_liquiditysource_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	pkg_liquiditysource_smoothy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	pkg_liquiditysource_solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
+	pkg_liquiditysource_solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v3"
 	pkg_liquiditysource_someswap_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
 	pkg_liquiditysource_someswap_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	pkg_liquiditysource_stabull "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/stabull"
@@ -216,14 +220,10 @@ import (
 	pkg_source_makerpsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
 	pkg_source_mantisswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
 	pkg_source_metavault "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
-	pkg_source_nuriv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	pkg_source_platypus "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	pkg_source_polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	pkg_source_quickperps "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
-	pkg_source_ramsesv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	pkg_source_saddle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
-	pkg_source_slipstream "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
-	pkg_source_solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	pkg_source_swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	pkg_source_syncswap_syncswapclassic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
 	pkg_source_syncswap_syncswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapstable"
@@ -346,6 +346,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nuriv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_obric.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_orderbook.PoolSimulator{})
@@ -365,12 +366,15 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_printr.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ramsesv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_slipstream.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smardex.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smoothy.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv2.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_someswap_v1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_someswap_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_stabull.PoolSimulator{})
@@ -448,14 +452,10 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_source_makerpsm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_mantisswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_metavault.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_nuriv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_platypus.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_polmatic.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_quickperps.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_ramsesv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_saddle.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_slipstream.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_solidlyv3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapclassic.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapstable.PoolSimulator{})

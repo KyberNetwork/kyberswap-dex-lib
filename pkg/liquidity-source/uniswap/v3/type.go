@@ -82,6 +82,13 @@ type ExtraTickU256 struct {
 	Ticks        []TickU256   `json:"ticks"`
 }
 
+// SimulatorConfig holds construction-time options for NewPoolSimulatorWithExtra.
+// It is not stored in the pool simulator struct.
+type SimulatorConfig struct {
+	AllowEmptyTicks     bool
+	TickSpacingFallback map[FeeAmount]int // nil = use base TickSpacings
+}
+
 type Slot0 struct {
 	SqrtPriceX96 *big.Int
 	Tick         *big.Int

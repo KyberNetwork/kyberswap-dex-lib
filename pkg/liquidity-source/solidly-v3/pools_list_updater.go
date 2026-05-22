@@ -1,4 +1,4 @@
-package ramsesv2
+package solidlyv3
 
 import (
 	"context"
@@ -25,7 +25,7 @@ type PoolsListUpdater struct {
 	graphqlClient *graphqlpkg.Client
 }
 
-var _ = poollist.RegisterFactoryCEG(DexTypeRamsesV2, NewPoolsListUpdater)
+var _ = poollist.RegisterFactoryCEG(DexTypeSolidlyV3, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -42,7 +42,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, first, skip int) ([]SubgraphPool, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
 
-	req := graphqlpkg.NewRequest(getPoolsListQuery(d.config.SubgraphPool, allowSubgraphError, lastCreatedAtTimestamp, first, skip))
+	req := graphqlpkg.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
@@ -85,8 +85,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		ctx,
 		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
 		d.ethrpcClient,
-		poolV2ABI,
-		methodV2TickSpacing,
+		solidlyV3PoolABI,
+		methodTickSpacing,
 	)
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
@@ -94,11 +94,11 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		tokens := make([]*entity.PoolToken, 0, 2)
 		reserves := make([]string, 0, 2)
 
-		extraField := Extra{
+		extraField := uniswapv3.ExtraTickU256{
 			TickSpacing: tickSpacings[p.ID],
 		}
 
-		if p.Token0.Address != "" {
+		if p.Token0.Address != emptyString {
 			token0Decimals, err := kutils.Atou[uint8](p.Token0.Decimals)
 
 			if err != nil {
@@ -113,10 +113,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, "0")
+			reserves = append(reserves, zeroString)
 		}
 
-		if p.Token1.Address != "" {
+		if p.Token1.Address != emptyString {
 			token1Decimals, err := kutils.Atou[uint8](p.Token1.Decimals)
 
 			if err != nil {
@@ -131,7 +131,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, "0")
+			reserves = append(reserves, zeroString)
 		}
 
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
@@ -149,7 +149,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			AmplifiedTvl: 0,
 			SwapFee:      swapFee,
 			Exchange:     d.config.DexID,
-			Type:         DexTypeRamsesV2,
+			Type:         DexTypeSolidlyV3,
 			Timestamp:    createdAtTimestamp,
 			Reserves:     reserves,
 			Tokens:       tokens,

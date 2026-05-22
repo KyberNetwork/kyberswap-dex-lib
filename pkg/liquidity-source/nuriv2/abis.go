@@ -1,4 +1,4 @@
-package solidlyv3
+package nuriv2
 
 import (
 	"bytes"
@@ -7,12 +7,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nuriv2/abis"
 )
 
 var (
-	solidlyV3PoolABI    abi.ABI
-	solidlyV3FactoryABI abi.ABI
+	poolABI    abi.ABI
+	factoryABI abi.ABI
 )
 
 var (
@@ -25,8 +25,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&solidlyV3PoolABI, solidlyV3PoolJson},
-		{&solidlyV3FactoryABI, solidlyV3FactoryJson},
+		{&poolABI, poolJson},
+		{&factoryABI, factoryJson},
 	}
 
 	for _, b := range builder {

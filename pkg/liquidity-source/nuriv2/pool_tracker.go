@@ -7,14 +7,17 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -26,6 +29,19 @@ import (
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
+
+func buildNuriExtra(rpcData *FetchRPCResult, ticks []uniswapv3.TickU256) uniswapv3.ExtraTickU256 {
+	liq, _ := uint256.FromBig(rpcData.Liquidity)
+	sqrtP, _ := uint256.FromBig(rpcData.Slot0.SqrtPriceX96)
+	tickInt := int(rpcData.Slot0.Tick.Int64())
+	return uniswapv3.ExtraTickU256{
+		Liquidity:    liq,
+		SqrtPriceX96: sqrtP,
+		TickSpacing:  rpcData.TickSpacing,
+		Tick:         &tickInt,
+		Ticks:        ticks,
+	}
+}
 
 type PoolTracker struct {
 	config        *Config
@@ -92,7 +108,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
-	var ticks []Tick
+	ticks256 := make([]uniswapv3.TickU256, 0, len(poolTicks))
 	for _, tickResp := range poolTicks {
 		tick, err := transformTickRespToTick(tickResp)
 		if err != nil {
@@ -102,18 +118,12 @@ func (t *PoolTracker) BootstrapPoolState(
 			}).Errorf("failed to transform tickResp to tick")
 			continue
 		}
-
-		ticks = append(ticks, tick)
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, uniswapv3.TickU256{Index: tick.Index, LiquidityGross: lg, LiquidityNet: ln})
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		FeeTier:      rpcData.FeeTier,
-		TickSpacing:  rpcData.TickSpacing,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
-	})
+	extraBytes, err := json.Marshal(buildNuriExtra(rpcData, ticks256))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -281,23 +291,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	// Extract current ticks from entity pool extra
-	var extra Extra
+	var extra uniswapv3.ExtraTickU256
 	if len(p.Extra) > 0 {
-		err := json.Unmarshal([]byte(p.Extra), &extra)
-		if err != nil {
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 			return p, err
 		}
 	}
 
-	ticks := map[int]struct{}{}
+	ticksToRefetch := make([]int, 0, len(extra.Ticks))
 	for _, tick := range extra.Ticks {
-		ticks[tick.Index] = struct{}{}
-	}
-
-	ticksToRefetch := make([]int, 0, len(ticks))
-	for tickIdx := range ticks {
-		ticksToRefetch = append(ticksToRefetch, tickIdx)
+		ticksToRefetch = append(ticksToRefetch, tick.Index)
 	}
 
 	if len(ticksToRefetch) == 0 {
@@ -309,27 +312,19 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		return p, err
 	}
 
-	// convert back to nuriv2 ticks
-	entityPoolTicks := make([]Tick, 0, len(refetchedTicks))
+	ticks256 := make([]uniswapv3.TickU256, 0, len(refetchedTicks))
 	for _, tick := range refetchedTicks {
-		// skip uninitialized ticks
 		if tick.LiquidityGross.Sign() == 0 {
 			continue
 		}
-
-		entityPoolTicks = append(entityPoolTicks, Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, uniswapv3.TickU256{Index: tick.TickIdx, LiquidityGross: lg, LiquidityNet: ln})
 	}
 
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	sort.Slice(ticks256, func(i, j int) bool { return ticks256[i].Index < ticks256[j].Index })
 
-	extra.Ticks = entityPoolTicks
+	extra.Ticks = ticks256
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -438,33 +433,19 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		}
 	}
 
-	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
+	ticks256 := make([]uniswapv3.TickU256, 0, len(ticksBasedPool.Ticks))
 	for _, tick := range ticksBasedPool.Ticks {
-		// skip uninitialized ticks
 		if tick.LiquidityGross.Sign() == 0 {
 			continue
 		}
-
-		entityPoolTicks = append(entityPoolTicks, Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, uniswapv3.TickU256{Index: tick.TickIdx, LiquidityGross: lg, LiquidityNet: ln})
 	}
 
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	sort.Slice(ticks256, func(i, j int) bool { return ticks256[i].Index < ticks256[j].Index })
 
-	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcState.Liquidity,
-		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-		FeeTier:      rpcState.FeeTier,
-		TickSpacing:  rpcState.TickSpacing,
-		Tick:         rpcState.Slot0.Tick,
-		Ticks:        entityPoolTicks,
-	})
+	extraBytes, err := json.Marshal(buildNuriExtra(rpcState, ticks256))
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,

@@ -1,15 +1,11 @@
-package pancakev3
+package nuriv2
 
 import (
 	"math/big"
-
-	"github.com/samber/lo"
-
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 )
 
 const (
-	DexTypePancakeV3     = "pancake-v3"
+	DexType              = "nuri-v2"
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
 	zeroString           = "0"
@@ -20,14 +16,11 @@ const (
 const (
 	methodGetLiquidity = "liquidity"
 	methodGetSlot0     = "slot0"
+	methodCurrentFee   = "currentFee"
 	methodTickSpacing  = "tickSpacing"
 	methodTicks        = "ticks"
 )
 
 var (
 	zeroBI = big.NewInt(0)
-
-	PancakeTickSpacings = lo.Assign(uniswapv3.TickSpacings, map[uniswapv3.FeeAmount]int{
-		uniswapv3.Fee2500: 50,
-	})
 )

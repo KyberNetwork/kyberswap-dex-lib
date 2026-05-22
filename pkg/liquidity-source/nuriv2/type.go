@@ -1,24 +1,10 @@
-package ramsesv2
+package nuriv2
 
 import (
 	"fmt"
 	"math/big"
 	"strconv"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
-
-type Gas struct {
-	BaseGas          int64
-	CrossInitTickGas int64
-}
-
-// RamsesV2SwapInfo present the after state of a swap
-type RamsesV2SwapInfo struct {
-	nextStateSqrtRatioX96 *big.Int
-	nextStateLiquidity    *big.Int
-	nextStateTickCurrent  int
-}
 
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
@@ -34,14 +20,21 @@ type Token struct {
 type SubgraphPool struct {
 	ID                 string `json:"id"`
 	FeeTier            string `json:"feeTier"`
+	PoolType           string `json:"poolType"`
 	CreatedAtTimestamp string `json:"createdAtTimestamp"`
 	Token0             Token  `json:"token0"`
 	Token1             Token  `json:"token1"`
 }
 
+type TickResp struct {
+	TickIdx        string `json:"tickIdx"`
+	LiquidityGross string `json:"liquidityGross"`
+	LiquidityNet   string `json:"liquidityNet"`
+}
+
 type SubgraphPoolTicks struct {
-	ID    string              `json:"id"`
-	Ticks []ticklens.TickResp `json:"ticks"`
+	ID    string     `json:"id"`
+	Ticks []TickResp `json:"ticks"`
 }
 
 type StaticExtra struct {
@@ -54,28 +47,13 @@ type Tick struct {
 	LiquidityNet   *big.Int `json:"liquidityNet"`
 }
 
-type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	FeeTier      int64    `json:"feeTier"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
-	Unlocked     bool     `json:"unlocked"`
-}
-
-type PoolMeta struct {
-	PriceLimit  *big.Int `json:"priceLimit"`
-	BlockNumber uint64   `json:"blockNumber"`
-}
-
 type Slot0 struct {
 	SqrtPriceX96               *big.Int `json:"sqrtPriceX96"`
 	Tick                       *big.Int `json:"tick"`
 	ObservationIndex           uint16   `json:"observationIndex"`
 	ObservationCardinality     uint16   `json:"observationCardinality"`
 	ObservationCardinalityNext uint16   `json:"observationCardinalityNext"`
-	FeeProtocol                uint32   `json:"feeProtocol"`
+	FeeProtocol                uint8    `json:"feeProtocol"`
 	Unlocked                   bool     `json:"unlocked"`
 }
 
@@ -86,7 +64,6 @@ type FetchRPCResult struct {
 	TickSpacing uint64
 	Reserve0    *big.Int
 	Reserve1    *big.Int
-	BlockNumber uint64
 }
 
 type TicksResp struct {
@@ -102,18 +79,7 @@ type TicksResp struct {
 	Initialized                    bool
 }
 
-type TicksRespV3 struct {
-	LiquidityGross                 *big.Int
-	LiquidityNet                   *big.Int
-	FeeGrowthOutside0X128          *big.Int
-	FeeGrowthOutside1X128          *big.Int
-	TickCumulativeOutside          *big.Int
-	SecondsPerLiquidityOutsideX128 *big.Int
-	SecondsOutside                 uint32
-	Initialized                    bool
-}
-
-func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
+func transformTickRespToTick(tickResp TickResp) (Tick, error) {
 	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
 	if !ok {
 		return Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)

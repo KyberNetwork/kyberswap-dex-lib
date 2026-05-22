@@ -94,7 +94,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		tokens := make([]*entity.PoolToken, 0, 2)
 		reserves := make([]string, 0, 2)
 
-		extraField := Extra{
+		extraField := uniswapv3.ExtraTickU256{
 			TickSpacing: tickSpacings[p.ID],
 		}
 

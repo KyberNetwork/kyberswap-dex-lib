@@ -1,4 +1,4 @@
-package slipstream
+package solidlyv3
 
 import (
 	"bytes"
@@ -7,12 +7,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v3/abis"
 )
 
 var (
-	poolABI    abi.ABI
-	factoryABI abi.ABI
+	solidlyV3PoolABI    abi.ABI
+	solidlyV3FactoryABI abi.ABI
 )
 
 var (
@@ -25,8 +25,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&poolABI, poolJson},
-		{&factoryABI, factoryJson},
+		{&solidlyV3PoolABI, solidlyV3PoolJson},
+		{&solidlyV3FactoryABI, solidlyV3FactoryJson},
 	}
 
 	for _, b := range builder {

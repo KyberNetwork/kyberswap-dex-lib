@@ -6,18 +6,6 @@ import (
 	"strconv"
 )
 
-type Gas struct {
-	BaseGas          int64
-	CrossInitTickGas int64
-}
-
-// SolidlyV3SwapInfo present the after state of a swap
-type SolidlyV3SwapInfo struct {
-	nextStateSqrtRatioX96 *big.Int
-	nextStateLiquidity    *big.Int
-	nextStateTickCurrent  int
-}
-
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
 }
@@ -59,18 +47,6 @@ type Tick struct {
 	Index          int      `json:"index"`
 	LiquidityGross *big.Int `json:"liquidityGross"`
 	LiquidityNet   *big.Int `json:"liquidityNet"`
-}
-
-type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
-}
-
-type PoolMeta struct {
-	PriceLimit *big.Int `json:"priceLimit"`
 }
 
 type Slot0 struct {
