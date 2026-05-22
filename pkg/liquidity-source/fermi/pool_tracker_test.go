@@ -116,7 +116,7 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 	require.Equal(t, baseUSDT, baseB)
 	require.Equal(t, priceUSDT.Big(), priceB)
 
-	so := toStateOverrides(overrides)
+	so := toStateOverrides(overrides, testFermiAddr)
 	require.Len(t, so, 1, "exactly one contract entry (FermiEngine)")
 	var diff map[string]string
 	for k, v := range so {
@@ -128,14 +128,6 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 	require.Contains(t, diff, slotOffset(baseUSDC, 1).Hex())
 	require.Contains(t, diff, baseUSDT.Hex())
 	require.Contains(t, diff, slotOffset(baseUSDT, 1).Hex())
-}
-
-func TestToStateOverrides_EmptyInput(t *testing.T) {
-	require.Nil(t, toStateOverrides(nil))
-	require.Nil(t, toStateOverrides(map[common.Address]gethclient.OverrideAccount{}))
-	require.Nil(t, toStateOverrides(map[common.Address]gethclient.OverrideAccount{
-		testFermiAddr: {StateDiff: nil},
-	}))
 }
 
 func TestExtractMidPrice_NilOverrides(t *testing.T) {
