@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
@@ -18,9 +17,9 @@ type Gas struct {
 }
 
 type SwapInfo struct {
-	RemainingAmountIn     *v3Utils.Int256  `json:"rAI,omitempty"`
-	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
-	nextStateLiquidity    *v3Utils.Uint128
+	RemainingAmountIn     *int256.Int  `json:"rAI,omitempty"`
+	NextStateSqrtRatioX96 *uint256.Int `json:"nSqrtRx96"`
+	nextStateLiquidity    *uint256.Int
 	NextStateTickCurrent  int `json:"nT"`
 }
 

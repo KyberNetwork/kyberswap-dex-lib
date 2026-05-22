@@ -6,11 +6,11 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -63,9 +63,9 @@ type AfterSwapParams struct {
 	AmountOut *big.Int
 }
 
-type FeeAmount = constants.FeeAmount
+type FeeAmount = uniswapv3.FeeAmount
 
-const FeeMax = constants.FeeMax
+const FeeMax = uniswapv3.FeeMax
 
 // HookOption represents different hook operation types
 type HookOption int

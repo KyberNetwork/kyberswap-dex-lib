@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
@@ -231,7 +230,7 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne 
 	h.PoolFVars.LastSwapTimestamp = blockTime
 
 	// overwrite new LPFee to simulate swap with this swapFee
-	h.poolSim.V3Pool.Fee = constants.FeeAmount(approxLPFee)
+	h.poolSim.V3Pool.Fee = uniswapv3.FeeAmount(approxLPFee)
 
 	tickAfter, err := h.getTicks(amountIn, zeroForOne)
 	if err != nil {

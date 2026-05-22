@@ -58,11 +58,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if err != nil {
 		return nil, err
 	}
-	if entityPool.Tokens[0].Address > entityPool.Tokens[1].Address {
-		// restore original order after V3Pool constructor forced sorting
-		v3Pool := v3PoolSimulator.V3Pool
-		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
-	}
 	v3PoolSimulator.Gas = defaultGas
 
 	return &PoolSimulator{
