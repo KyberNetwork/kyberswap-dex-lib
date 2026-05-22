@@ -11,10 +11,8 @@ const (
 
 	defaultGas int64 = 163500
 
-	fermiSwapperAddr     = "0xb1076fe3ab5e28005c7c323bac5ac06a680d452e"
-	fermiEngineAddr      = "0x1038c87766e36d1925889e6f26d10e0012d50fed"
-	fermiTraderVaultAddr = "0x585d44727129b9c69791b10238ca605932938b4f"
-
+	methodFermi         = "fermi"
+	methodTraderVault   = "traderVault"
 	methodGetPairs      = "getPairs"
 	methodQuote         = "quoteAmounts"
 	methodGetPairParams = "getPairParams"

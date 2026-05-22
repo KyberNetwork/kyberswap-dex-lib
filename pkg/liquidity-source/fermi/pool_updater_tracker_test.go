@@ -29,9 +29,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 	config := &Config{
 		DexId:        DexType,
 		ChainId:      1,
-		FermiSwapper: fermiSwapperAddr,
-		FermiEngine:  fermiEngineAddr,
-		TraderVault:  fermiTraderVaultAddr,
+		FermiSwapper: testFermiSwapper,
 		Titan: TitanConfig{
 			URLs: []string{testTitanURLEU, testTitanURLAP, testTitanURLUS},
 		},

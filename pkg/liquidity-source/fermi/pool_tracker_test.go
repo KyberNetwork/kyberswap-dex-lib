@@ -22,13 +22,17 @@ const (
 	testTitanURLAP = "https://ap.rpc.titanbuilder.xyz"
 )
 
+var (
+	testFermiSwapper = "0xb1076fe3ab5e28005c7c323bac5ac06a680d452e"
+	testFermi        = "0x1038c87766e36d1925889e6f26d10e0012d50fed"
+	testFermiAddr    = common.HexToAddress(testFermi)
+)
+
 // newTestTracker returns a PoolTracker configured for live Titan HTTP RPC
 // without an ethrpc client (use only for fetchStateOverrides / extractMidPrice).
 func newTestTracker() *PoolTracker {
 	cfg := &Config{
-		FermiSwapper: fermiSwapperAddr,
-		FermiEngine:  fermiEngineAddr,
-		TraderVault:  fermiTraderVaultAddr,
+		FermiSwapper: testFermiSwapper,
 		Titan: TitanConfig{
 			URLs: []string{testTitanURLEU, testTitanURLAP, testTitanURLUS},
 		},
@@ -50,7 +54,8 @@ func fetchTestOverrides(t *testing.T) (map[common.Address]gethclient.OverrideAcc
 
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
-	midPrice := tracker.extractMidPrice(weth, usdc, overrides)
+	fermi := common.HexToAddress(testFermi)
+	midPrice := tracker.extractMidPrice(weth, usdc, fermi, overrides)
 
 	return overrides, midPrice
 }
@@ -67,7 +72,7 @@ func fetchTestOverridesForPair(
 	overrides := tracker.fetchStateOverrides(context.Background())
 	require.NotNil(t, overrides, "titan HTTP RPC returned no overrides")
 
-	midPrice := tracker.extractMidPrice(token0, token1, overrides)
+	midPrice := tracker.extractMidPrice(token0, token1, testFermiAddr, overrides)
 	return overrides, midPrice
 }
 
@@ -75,7 +80,6 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 	usdt := common.HexToAddress("0xdac17f958d2ee523a2206206994597c13d831ec7")
-	engine := common.HexToAddress(fermiEngineAddr)
 
 	pickPairBase := func(t0, t1 common.Address) common.Hash {
 		fwd, _ := pairKeyForTokens(t0, t1)
@@ -90,7 +94,7 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 	priceUSDT := common.HexToHash("0x00000000000000000000000000000000000000000000000000000000beef0001")
 
 	overrides := map[common.Address]gethclient.OverrideAccount{
-		engine: {
+		testFermiAddr: {
 			StateDiff: map[common.Hash]common.Hash{
 				baseUSDC:                field0Val,
 				slotOffset(baseUSDC, 1): priceUSDC,
@@ -100,14 +104,14 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 		},
 	}
 
-	tracker := &PoolTracker{config: &Config{FermiEngine: fermiEngineAddr}}
+	tracker := &PoolTracker{config: &Config{FermiSwapper: testFermiSwapper}}
 
-	priceA, baseA, okA := tracker.findPairOverride(weth, usdc, overrides)
+	priceA, baseA, okA := tracker.findPairOverride(weth, usdc, testFermiAddr, overrides)
 	require.True(t, okA)
 	require.Equal(t, baseUSDC, baseA)
 	require.Equal(t, priceUSDC.Big(), priceA)
 
-	priceB, baseB, okB := tracker.findPairOverride(weth, usdt, overrides)
+	priceB, baseB, okB := tracker.findPairOverride(weth, usdt, testFermiAddr, overrides)
 	require.True(t, okB)
 	require.Equal(t, baseUSDT, baseB)
 	require.Equal(t, priceUSDT.Big(), priceB)
@@ -116,7 +120,7 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 	require.Len(t, so, 1, "exactly one contract entry (FermiEngine)")
 	var diff map[string]string
 	for k, v := range so {
-		require.True(t, strings.EqualFold(fermiEngineAddr, k))
+		require.True(t, strings.EqualFold(testFermi, k))
 		diff = v
 	}
 	require.Len(t, diff, 4, "all four slots must be present")
@@ -130,7 +134,7 @@ func TestToStateOverrides_EmptyInput(t *testing.T) {
 	require.Nil(t, toStateOverrides(nil))
 	require.Nil(t, toStateOverrides(map[common.Address]gethclient.OverrideAccount{}))
 	require.Nil(t, toStateOverrides(map[common.Address]gethclient.OverrideAccount{
-		common.HexToAddress(fermiEngineAddr): {StateDiff: nil},
+		testFermiAddr: {StateDiff: nil},
 	}))
 }
 
@@ -139,8 +143,8 @@ func TestExtractMidPrice_NilOverrides(t *testing.T) {
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 
-	require.Nil(t, tracker.extractMidPrice(weth, usdc, nil))
-	require.Nil(t, tracker.extractMidPrice(weth, usdc, map[common.Address]gethclient.OverrideAccount{}))
+	require.Nil(t, tracker.extractMidPrice(weth, usdc, testFermiAddr, nil))
+	require.Nil(t, tracker.extractMidPrice(weth, usdc, testFermiAddr, map[common.Address]gethclient.OverrideAccount{}))
 }
 
 func TestLive_QuoteWithVsWithoutOverride(t *testing.T) {
@@ -170,7 +174,7 @@ func TestLive_QuoteWithVsWithoutOverride(t *testing.T) {
 		req := rpcClient.NewRequest().SetContext(context.Background())
 		req.AddCall(&ethrpc.Call{
 			ABI:    fermiSwapperABI,
-			Target: fermiSwapperAddr,
+			Target: testFermiSwapper,
 			Method: methodQuote,
 			Params: []any{weth, usdc, big.NewInt(1_000_000_000_000_000_000)},
 		}, []any{&res})
@@ -178,7 +182,11 @@ func TestLive_QuoteWithVsWithoutOverride(t *testing.T) {
 			req.SetOverrides(overrides)
 		}
 		_, err := req.Call()
-		require.NoError(t, err, "eth_call (override=%t)", useOverride)
+		if useOverride {
+			require.NoError(t, err, "eth_call (override=%t)", useOverride)
+		} else {
+			require.Error(t, err, "eth_call (override=%t)", useOverride)
+		}
 		return res.AmountOut
 	}
 
@@ -199,9 +207,8 @@ func TestLive_OverridesHaveEngineSlots(t *testing.T) {
 		t.Skip("live network test")
 	}
 	overrides, midPrice := fetchTestOverrides(t)
-	engine := common.HexToAddress(fermiEngineAddr)
 
-	acct, ok := overrides[engine]
+	acct, ok := overrides[testFermiAddr]
 	require.True(t, ok, "overrides must contain FermiEngine")
 	require.NotEmpty(t, acct.StateDiff)
 	t.Logf("engine slots patched: %d", len(acct.StateDiff))
@@ -219,11 +226,10 @@ func TestLive_SlotKeysMatchOverrides(t *testing.T) {
 
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
-	engine := common.HexToAddress(fermiEngineAddr)
 	fwd, rev := pairKeyForTokens(weth, usdc)
 
 	overrides, _ := fetchTestOverrides(t)
-	acct := overrides[engine]
+	acct := overrides[testFermiAddr]
 
 	var matchedKey common.Hash
 	for _, pk := range []common.Hash{fwd, rev} {
@@ -241,9 +247,9 @@ func TestLive_SlotKeysMatchOverrides(t *testing.T) {
 	defer ec.Close()
 
 	ctx := t.Context()
-	t5Raw, err := ec.StorageAt(ctx, engine, slotOffset(base, 5), nil)
+	t5Raw, err := ec.StorageAt(ctx, testFermiAddr, slotOffset(base, 5), nil)
 	require.NoError(t, err)
-	t6Raw, err := ec.StorageAt(ctx, engine, slotOffset(base, 6), nil)
+	t6Raw, err := ec.StorageAt(ctx, testFermiAddr, slotOffset(base, 6), nil)
 	require.NoError(t, err)
 
 	tokenIn := common.BytesToAddress(t5Raw)
@@ -277,12 +283,11 @@ func TestLive_USDT_QuoteWithOverride(t *testing.T) {
 
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdt := common.HexToAddress("0xdac17f958d2ee523a2206206994597c13d831ec7")
-	engine := common.HexToAddress(fermiEngineAddr)
 
 	overrides, midPrice := fetchTestOverridesForPair(t, weth, usdt)
 	t.Logf("WETH/USDT midPrice = %v", midPrice)
 
-	acct, ok := overrides[engine]
+	acct, ok := overrides[testFermiAddr]
 	require.True(t, ok)
 	t.Logf("engine stateDiff slots: %d", len(acct.StateDiff))
 
@@ -308,9 +313,9 @@ func TestLive_USDT_QuoteWithOverride(t *testing.T) {
 	base := pairBaseSlot(matchedKey)
 	baseInt := new(big.Int).SetBytes(base[:])
 
-	f0Raw, err := ec.StorageAt(ctx, engine, common.BigToHash(baseInt), nil)
+	f0Raw, err := ec.StorageAt(ctx, testFermiAddr, common.BigToHash(baseInt), nil)
 	require.NoError(t, err)
-	priceRaw, err := ec.StorageAt(ctx, engine,
+	priceRaw, err := ec.StorageAt(ctx, testFermiAddr,
 		common.BigToHash(new(big.Int).Add(baseInt, big.NewInt(1))), nil)
 	require.NoError(t, err)
 
@@ -323,10 +328,10 @@ func TestLive_USDT_QuoteWithOverride(t *testing.T) {
 	}
 	t.Logf("on-chain: lastUpdated=%d midPrice=%s", lub, onchain)
 
-	t5Raw, err := ec.StorageAt(ctx, engine,
+	t5Raw, err := ec.StorageAt(ctx, testFermiAddr,
 		common.BigToHash(new(big.Int).Add(baseInt, big.NewInt(5))), nil)
 	require.NoError(t, err)
-	t6Raw, err := ec.StorageAt(ctx, engine,
+	t6Raw, err := ec.StorageAt(ctx, testFermiAddr,
 		common.BigToHash(new(big.Int).Add(baseInt, big.NewInt(6))), nil)
 	require.NoError(t, err)
 	t5 := common.BytesToAddress(t5Raw)
@@ -343,7 +348,7 @@ func TestLive_USDT_QuoteWithOverride(t *testing.T) {
 		req := rpcClient.NewRequest().SetContext(context.Background())
 		req.AddCall(&ethrpc.Call{
 			ABI:    fermiSwapperABI,
-			Target: fermiSwapperAddr,
+			Target: testFermiSwapper,
 			Method: methodQuote,
 			Params: []any{weth, usdt, big.NewInt(1_000_000_000_000_000_000)},
 		}, []any{&res})
