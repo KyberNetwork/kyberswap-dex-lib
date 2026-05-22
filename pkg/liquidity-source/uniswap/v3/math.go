@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/kutils"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -28,9 +29,10 @@ var (
 // Pool holds the mutable state needed to simulate Uniswap V3 swaps.
 type Pool struct {
 	Fee          FeeAmount
+	TickSpacing  int
+	TickCurrent  int
 	SqrtRatioX96 *uint256.Int
 	Liquidity    *uint256.Int
-	TickCurrent  int
 	Ticks        []TickU256
 }
 
@@ -61,19 +63,22 @@ func NewPool(fee FeeAmount, sqrtRatioX96 *uint256.Int, liquidity *uint256.Int, t
 	} else if err := validateList(ticks, tickSpacing); err != nil {
 		return nil, err
 	}
-	var lo, hi uint256.Int
-	if err := GetSqrtRatioAtTick(tickCurrent, &lo); err != nil {
+	var sqrtP uint256.Int
+	if err := GetSqrtRatioAtTick(tickCurrent, &sqrtP); err != nil {
 		return nil, err
-	} else if err = GetSqrtRatioAtTick(tickCurrent+1, &hi); err != nil {
+	} else if sqrtRatioX96.Lt(&sqrtP) {
+		return nil, ErrInvalidSqrtRatioX96
+	} else if err = GetSqrtRatioAtTick(tickCurrent+1, &sqrtP); err != nil {
 		return nil, err
-	} else if sqrtRatioX96.Lt(&lo) || !sqrtRatioX96.Lt(&hi) {
+	} else if !sqrtRatioX96.Lt(&sqrtP) {
 		return nil, ErrInvalidSqrtRatioX96
 	}
 	return &Pool{
 		Fee:          fee,
+		TickSpacing:  tickSpacing,
+		TickCurrent:  tickCurrent,
 		SqrtRatioX96: sqrtRatioX96,
 		Liquidity:    liquidity,
-		TickCurrent:  tickCurrent,
 		Ticks:        ticks,
 	}, nil
 }
@@ -173,42 +178,39 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified *int256.Int, sqrtPriceLimit
 			p.Fee, &nxtSqrtPriceX96, &amountIn, &amountOut, &feeAmount); err != nil {
 			return nil, err
 		}
-		sqrtPriceX96.Set(&nxtSqrtPriceX96)
 
-		var amountInPlusFee uint256.Int
-		amountInPlusFee.Add(&amountIn, &feeAmount)
-
-		var amountInPlusFeeSigned, amountOutSigned int256.Int
-		if err = ToInt256(&amountInPlusFee, &amountInPlusFeeSigned); err != nil {
-			return nil, err
-		} else if err = ToInt256(&amountOut, &amountOutSigned); err != nil {
-			return nil, err
-		}
-
+		// exactIn: contract floors amountOut per tick-spacing unit; simulate by flooring the aggregate to a multiple of ticksCrossed
+		// per-tick rounding: exactIn floors amountOut, exactOut ceils amountIn
+		fullyCrossed := sqrtPriceX96.Set(&nxtSqrtPriceX96).Eq(&sqrtPriceNextX96)
+		tc := targetValue.SetUint64(uint64(max(1, (kutils.Abs(tickNext-tick)-lo.Ternary(fullyCrossed, 1, 0))/p.TickSpacing)))
 		if exactInput {
-			amountSpecifiedRemaining.Sub(amountSpecifiedRemaining, &amountInPlusFeeSigned)
-			amountCalculated.Sub(amountCalculated, &amountOutSigned)
+			amountOut.SDiv(&amountOut, tc).Mul(&amountOut, tc)
 		} else {
-			amountSpecifiedRemaining.Add(amountSpecifiedRemaining, &amountOutSigned)
-			amountCalculated.Add(amountCalculated, &amountInPlusFeeSigned)
+			amountIn.Add(&amountIn, tc).SubUint64(&amountIn, 1).SDiv(&amountIn, tc).Mul(&amountIn, tc)
 		}
 
-		if sqrtPriceX96.Eq(&sqrtPriceNextX96) {
+		amountInPlusFee := feeAmount.Add(&amountIn, &feeAmount)
+		if exactInput {
+			amountSpecifiedRemaining.Sub(amountSpecifiedRemaining, (*int256.Int)(amountInPlusFee))
+			amountCalculated.Sub(amountCalculated, (*int256.Int)(&amountOut))
+		} else {
+			amountSpecifiedRemaining.Add(amountSpecifiedRemaining, (*int256.Int)(&amountOut))
+			amountCalculated.Add(amountCalculated, (*int256.Int)(amountInPlusFee))
+		}
+
+		if fullyCrossed {
 			if initialized {
 				t, err := getTick(p.Ticks, tickNext)
 				if err != nil {
 					return nil, err
 				}
-				liquidityNet := t.LiquidityNet
-				if zeroForOne {
-					liquidityNet = new(int256.Int).Neg(liquidityNet)
-				}
-				if err = AddDeltaInPlace(liquidity, liquidityNet); err != nil {
-					return nil, err
+				if lo.Ternary(zeroForOne, liquidity.Sub, liquidity.Add)(
+					liquidity, (*uint256.Int)(t.LiquidityNet)).Sign() < 0 {
+					return nil, errOverflowUint128
 				}
 				crossInitTickLoops++
 			}
-			tick = lo.Ternary(zeroForOne, tickNext - 1, tickNext)
+			tick = lo.Ternary(zeroForOne, tickNext-1, tickNext)
 		} else if !sqrtPriceX96.Eq(&sqrtPriceStartX96) {
 			if tick, err = GetTickAtSqrtRatio(sqrtPriceX96); err != nil {
 				return nil, err
@@ -237,9 +239,9 @@ func validateList(ticks []TickU256, tickSpacing int) error {
 			return ErrInvalidTickSpacing
 		}
 	}
-	sum := int256.NewInt(0)
+	var sum int256.Int
 	for _, t := range ticks {
-		sum.Add(sum, t.LiquidityNet)
+		sum.Add(&sum, t.LiquidityNet)
 	}
 	if !sum.IsZero() {
 		return ErrZeroNet
