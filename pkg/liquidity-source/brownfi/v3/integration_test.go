@@ -35,7 +35,7 @@ func TestIntegration_CalcAmountOut(t *testing.T) {
 
 	rpcURL := os.Getenv("BERACHAIN_RPC")
 	if rpcURL == "" {
-		rpcURL = "https://lb.drpc.live/berachain/Av_ucIUlR08slbBUFg1E4U0n6sODvwMR8JF6QmlfqV1j"
+		rpcURL = "https://berachain.drpc.org"
 	}
 
 	rpcClient := ethrpc.New(rpcURL)
