@@ -11,6 +11,8 @@ const (
 
 	defaultGas int64 = 163500
 
+	maxStaleBlocks uint64 = 2
+
 	methodFermi         = "fermi"
 	methodTraderVault   = "traderVault"
 	methodGetPairs      = "getPairs"

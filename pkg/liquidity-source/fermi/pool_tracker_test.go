@@ -55,7 +55,7 @@ func fetchTestOverrides(t *testing.T) (map[common.Address]gethclient.OverrideAcc
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 	fermi := common.HexToAddress(testFermi)
-	midPrice := tracker.extractMidPrice(weth, usdc, fermi, overrides)
+	midPrice, _ := tracker.extractMidPrice(weth, usdc, fermi, overrides)
 
 	return overrides, midPrice
 }
@@ -72,7 +72,7 @@ func fetchTestOverridesForPair(
 	overrides := tracker.fetchStateOverrides(context.Background())
 	require.NotNil(t, overrides, "titan HTTP RPC returned no overrides")
 
-	midPrice := tracker.extractMidPrice(token0, token1, testFermiAddr, overrides)
+	midPrice, _ := tracker.extractMidPrice(token0, token1, testFermiAddr, overrides)
 	return overrides, midPrice
 }
 
@@ -106,15 +106,17 @@ func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
 
 	tracker := &PoolTracker{config: &Config{FermiSwapper: testFermiSwapper}}
 
-	priceA, baseA, okA := tracker.findPairOverride(weth, usdc, testFermiAddr, overrides)
+	priceA, lubA, baseA, okA := tracker.findPairOverride(weth, usdc, testFermiAddr, overrides)
 	require.True(t, okA)
 	require.Equal(t, baseUSDC, baseA)
 	require.Equal(t, priceUSDC.Big(), priceA)
+	require.Equal(t, uint64(0), lubA, "field0Val=0x...01 has only isActive bit set; lub bytes are zero")
 
-	priceB, baseB, okB := tracker.findPairOverride(weth, usdt, testFermiAddr, overrides)
+	priceB, lubB, baseB, okB := tracker.findPairOverride(weth, usdt, testFermiAddr, overrides)
 	require.True(t, okB)
 	require.Equal(t, baseUSDT, baseB)
 	require.Equal(t, priceUSDT.Big(), priceB)
+	require.Equal(t, uint64(0), lubB, "field0Val=0x...01 has only isActive bit set; lub bytes are zero")
 
 	so := toStateOverrides(overrides, testFermiAddr)
 	require.Len(t, so, 1, "exactly one contract entry (FermiEngine)")
@@ -135,8 +137,45 @@ func TestExtractMidPrice_NilOverrides(t *testing.T) {
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 
-	require.Nil(t, tracker.extractMidPrice(weth, usdc, testFermiAddr, nil))
-	require.Nil(t, tracker.extractMidPrice(weth, usdc, testFermiAddr, map[common.Address]gethclient.OverrideAccount{}))
+	price, lub := tracker.extractMidPrice(weth, usdc, testFermiAddr, nil)
+	require.Nil(t, price)
+	require.Zero(t, lub)
+
+	price, lub = tracker.extractMidPrice(weth, usdc, testFermiAddr, map[common.Address]gethclient.OverrideAccount{})
+	require.Nil(t, price)
+	require.Zero(t, lub)
+}
+
+func TestExtractMidPrice_DecodesLastUpdatedBlock(t *testing.T) {
+	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
+	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+
+	fwd, _ := pairKeyForTokens(weth, usdc)
+	base := pairBaseSlot(fwd)
+
+	// PairState slot 0 layout matches Solidity packing:
+	//   byte 0 (LSB): bool isActive
+	//   bytes 1..8:   uint64 lastUpdatedBlock
+	// Mirror that here: (lub << 8) | isActive.
+	const wantLUB uint64 = 23_000_001
+	packed := new(big.Int).Lsh(new(big.Int).SetUint64(wantLUB), 8)
+	packed.Or(packed, big.NewInt(1))
+	field0 := common.BigToHash(packed)
+	price := common.HexToHash("0x000000000000000000000000000000000000000000000000000000003131b764e0")
+
+	overrides := map[common.Address]gethclient.OverrideAccount{
+		testFermiAddr: {
+			StateDiff: map[common.Hash]common.Hash{
+				base:                field0,
+				slotOffset(base, 1): price,
+			},
+		},
+	}
+
+	tracker := &PoolTracker{config: &Config{FermiSwapper: testFermiSwapper}}
+	gotPrice, gotLUB := tracker.extractMidPrice(weth, usdc, testFermiAddr, overrides)
+	require.Equal(t, price.Big(), gotPrice)
+	require.Equal(t, wantLUB, gotLUB)
 }
 
 func TestLive_QuoteWithVsWithoutOverride(t *testing.T) {

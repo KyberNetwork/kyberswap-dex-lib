@@ -1,6 +1,7 @@
 package fermi
 
 import (
+	"encoding/binary"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -42,7 +43,10 @@ func slotOffset(base common.Hash, n uint64) common.Hash {
 	return common.BigToHash(b)
 }
 
-// decodeMidPrice parses the slot at baseSlot+1 as a uint256.
 func decodeMidPrice(word common.Hash) *big.Int {
 	return new(big.Int).SetBytes(word[:])
+}
+
+func decodeLastUpdatedBlock(word common.Hash) uint64 {
+	return binary.BigEndian.Uint64(word[len(word)-9 : len(word)-1])
 }

@@ -35,7 +35,7 @@ func newTitanClients(cfg TitanConfig) []*rpc.Client {
 		c, err := rpc.DialContext(context.Background(), url)
 		if err != nil {
 			logger.WithFields(logger.Fields{"url": url, "error": err.Error()}).
-				Warn("fermi: titan RPC dial failed")
+				Warn("titan RPC dial failed")
 			continue
 		}
 		clients = append(clients, c)
@@ -58,7 +58,7 @@ func (t *PoolTracker) fetchStateOverrides(ctx context.Context) map[common.Addres
 		cancel()
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err.Error()}).
-				Warn("fermi: titan RPC failed, trying next")
+				Warn("titan RPC failed, trying next")
 			continue
 		}
 		return overrides

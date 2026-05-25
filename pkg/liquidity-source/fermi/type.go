@@ -5,11 +5,12 @@ import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 type StateOverrides map[string]map[string]string
 
 type Extra struct {
-	Fermi          string          `json:"fermi"`
-	TraderVault    string          `json:"traderVault"`
-	BlockNumber    uint64          `json:"bn"`
-	Curve          *CurveData      `json:"curve,omitempty"`
-	StateOverrides *StateOverrides `json:"so,omitempty"`
+	Fermi            string          `json:"fermi"`
+	TraderVault      string          `json:"traderVault"`
+	BlockNumber      uint64          `json:"bn"`
+	LastUpdatedBlock uint64          `json:"lub,omitempty"`
+	Curve            *CurveData      `json:"curve,omitempty"`
+	StateOverrides   *StateOverrides `json:"so,omitempty"`
 }
 
 type CurveData struct {
