@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -33,8 +32,9 @@ const (
 )
 
 type poolState struct {
-	PX96              *uint256.Int
-	FeeQ48            uint64
+	SqrtPriceX96      *uint256.Int
+	FeeAskX24         uint32
+	FeeBidX24         uint32
 	ReserveX          *uint256.Int
 	ReserveY          *uint256.Int
 	LatestUpdateBlock uint64
@@ -106,7 +106,9 @@ func (s *FlashBlockSubscriber) GetLatestState() *poolState {
 	}
 
 	cp := *s.latestState
-	cp.PX96 = new(uint256.Int).Set(s.latestState.PX96)
+	if s.latestState.SqrtPriceX96 != nil {
+		cp.SqrtPriceX96 = new(uint256.Int).Set(s.latestState.SqrtPriceX96)
+	}
 	cp.ReserveX = new(uint256.Int).Set(s.latestState.ReserveX)
 	cp.ReserveY = new(uint256.Int).Set(s.latestState.ReserveY)
 
@@ -346,9 +348,9 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 
 	if s.latestState == nil {
 		s.latestState = &poolState{
-			PX96:     new(uint256.Int),
-			ReserveX: new(uint256.Int),
-			ReserveY: new(uint256.Int),
+			SqrtPriceX96: new(uint256.Int),
+			ReserveX:     new(uint256.Int),
+			ReserveY:     new(uint256.Int),
 		}
 	}
 
@@ -361,6 +363,10 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 	case topicSync:
 		s.handleSync(log)
 		s.latestState.ReservesUpdatedAt = now
+	case topicSwapExecuted:
+		// Replay against current cached pre-swap reserves; the matching Sync
+		// log (later in tx order) will overwrite reserves on the next call.
+		s.handleSwapExecuted(log)
 	case topicConcentrationKSet:
 		s.handleConcentrationKSet(log)
 	case topicBlockDelaySet:
@@ -375,22 +381,20 @@ func (s *FlashBlockSubscriber) handleStateUpdated(log types.Log) {
 	if err != nil {
 		return
 	}
-	if len(values) < 1 {
-		return
-	}
-	tuple := *abi.ConvertType(values[0], new(struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
-	})).(*struct {
-		PX96 *big.Int `abi:"pX96"`
-		Fee  *big.Int `abi:"fee"`
-	})
-	if tuple.PX96 == nil || tuple.Fee == nil {
+	if len(values) < 3 {
 		return
 	}
 
-	s.latestState.PX96 = big256.FromBig(tuple.PX96)
-	s.latestState.FeeQ48 = tuple.Fee.Uint64()
+	anchorBig, ok1 := values[0].(*big.Int)
+	feeAskBig, ok2 := values[1].(*big.Int)
+	feeBidBig, ok3 := values[2].(*big.Int)
+	if !ok1 || !ok2 || !ok3 {
+		return
+	}
+
+	s.latestState.SqrtPriceX96 = big256.FromBig(anchorBig)
+	s.latestState.FeeAskX24 = uint32(feeAskBig.Uint64())
+	s.latestState.FeeBidX24 = uint32(feeBidBig.Uint64())
 	s.latestState.LatestUpdateBlock = log.BlockNumber
 }
 
@@ -411,6 +415,45 @@ func (s *FlashBlockSubscriber) handleSync(log types.Log) {
 
 	s.latestState.ReserveX = big256.FromBig(reserveX)
 	s.latestState.ReserveY = big256.FromBig(reserveY)
+}
+
+// handleSwapExecuted projects (dx, dy) onto cached reserves. The on-chain
+// fix/incident contract does not mutate `anchorPrice` on swaps, so we do not
+// touch SqrtPriceX96 here. The matching Sync log lands later in the same tx
+// and overwrites reserves with the authoritative post-swap values.
+func (s *FlashBlockSubscriber) handleSwapExecuted(log types.Log) {
+	if s.latestState.ReserveX == nil || s.latestState.ReserveY == nil {
+		return
+	}
+
+	values, err := coreABI.Events["SwapExecuted"].Inputs.Unpack(log.Data)
+	if err != nil || len(values) < 5 {
+		return
+	}
+	xToY, ok := values[1].(bool)
+	if !ok {
+		return
+	}
+	dxBig, ok1 := values[2].(*big.Int)
+	dyBig, ok2 := values[3].(*big.Int)
+	if !ok1 || !ok2 {
+		return
+	}
+
+	dx, dy := big256.FromBig(dxBig), big256.FromBig(dyBig)
+	if xToY {
+		if s.latestState.ReserveY.Lt(dy) {
+			return
+		}
+		s.latestState.ReserveX = new(uint256.Int).Add(s.latestState.ReserveX, dx)
+		s.latestState.ReserveY = new(uint256.Int).Sub(s.latestState.ReserveY, dy)
+	} else {
+		if s.latestState.ReserveX.Lt(dx) {
+			return
+		}
+		s.latestState.ReserveY = new(uint256.Int).Add(s.latestState.ReserveY, dy)
+		s.latestState.ReserveX = new(uint256.Int).Sub(s.latestState.ReserveX, dx)
+	}
 }
 
 func (s *FlashBlockSubscriber) handleConcentrationKSet(log types.Log) {
