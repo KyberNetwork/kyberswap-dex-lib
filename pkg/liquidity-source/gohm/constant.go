@@ -24,10 +24,10 @@ const (
 )
 
 var dfGas = Gas{
-	Stake:   200_000,
-	Unstake: 200_000,
-	Wrap:    150_000,
-	Unwrap:  150_000,
+	Stake:   42258,
+	Unstake: 40162,
+	Wrap:    37900,
+	Unwrap:  37739,
 }
 
 var (
