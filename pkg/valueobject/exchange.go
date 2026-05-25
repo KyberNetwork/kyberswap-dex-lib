@@ -114,6 +114,7 @@ const (
 	ExchangeFrxETH                     = "frxeth"
 	ExchangeFrxUSD                     = "frxusd"
 	ExchangeGenericArm                 = "generic-arm"
+	ExchangeGOHM                       = "gohm"
 	ExchangeGravity                    = "gravity"
 	ExchangeGsm4626                    = "gsm-4626"
 	ExchangeGyroscope2CLP              = "gyroscope-2clp"

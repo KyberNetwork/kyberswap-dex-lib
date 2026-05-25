@@ -43,21 +43,41 @@ func newTestTracker() *PoolTracker {
 	}
 }
 
+// fetchLiveFermiAddr reads the current engine address from the swapper contract.
+func fetchLiveFermiAddr(t *testing.T) common.Address {
+	t.Helper()
+	ec, err := ethclient.Dial(envRPCURL())
+	require.NoError(t, err)
+	defer ec.Close()
+
+	rpcClient := ethrpc.NewWithClient(ec)
+	var fermi common.Address
+	_, err = rpcClient.NewRequest().SetContext(context.Background()).
+		AddCall(&ethrpc.Call{
+			ABI:    fermiSwapperABI,
+			Target: testFermiSwapper,
+			Method: methodFermi,
+		}, []any{&fermi}).
+		Call()
+	require.NoError(t, err)
+	return fermi
+}
+
 // fetchTestOverrides calls Titan HTTP RPC and returns overrides + midPrice
-// for the WETH/USDC pair. Fails the test if the RPC returns nothing.
-func fetchTestOverrides(t *testing.T) (map[common.Address]gethclient.OverrideAccount, *big.Int) {
+// for the WETH/USDC pair plus the live engine address.
+func fetchTestOverrides(t *testing.T) (map[common.Address]gethclient.OverrideAccount, *big.Int, common.Address) {
 	t.Helper()
 	tracker := newTestTracker()
+	fermi := fetchLiveFermiAddr(t)
 
 	overrides := tracker.fetchStateOverrides(context.Background())
 	require.NotNil(t, overrides, "titan HTTP RPC returned no overrides")
 
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
-	fermi := common.HexToAddress(testFermi)
 	midPrice, _ := tracker.extractMidPrice(weth, usdc, fermi, overrides)
 
-	return overrides, midPrice
+	return overrides, midPrice, fermi
 }
 
 // fetchTestOverridesForPair calls Titan HTTP RPC and extracts midPrice for
@@ -65,15 +85,16 @@ func fetchTestOverrides(t *testing.T) (map[common.Address]gethclient.OverrideAcc
 func fetchTestOverridesForPair(
 	t *testing.T,
 	token0, token1 common.Address,
-) (map[common.Address]gethclient.OverrideAccount, *big.Int) {
+) (map[common.Address]gethclient.OverrideAccount, *big.Int, common.Address) {
 	t.Helper()
 	tracker := newTestTracker()
+	fermi := fetchLiveFermiAddr(t)
 
 	overrides := tracker.fetchStateOverrides(context.Background())
 	require.NotNil(t, overrides, "titan HTTP RPC returned no overrides")
 
-	midPrice, _ := tracker.extractMidPrice(token0, token1, testFermiAddr, overrides)
-	return overrides, midPrice
+	midPrice, _ := tracker.extractMidPrice(token0, token1, fermi, overrides)
+	return overrides, midPrice, fermi
 }
 
 func TestToStateOverrides_PreservesAllSlots(t *testing.T) {
@@ -189,7 +210,7 @@ func TestLive_QuoteWithVsWithoutOverride(t *testing.T) {
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 
-	overrides, midPrice := fetchTestOverrides(t)
+	overrides, midPrice, _ := fetchTestOverrides(t)
 	t.Logf("Titan overrides: engine slots patched, midPrice=%v", midPrice)
 
 	ec, err := ethclient.Dial(rpcURL)
@@ -234,12 +255,13 @@ func TestLive_QuoteWithVsWithoutOverride(t *testing.T) {
 }
 
 func TestLive_OverridesHaveEngineSlots(t *testing.T) {
+	test.SkipCI(t)
 	if testing.Short() {
 		t.Skip("live network test")
 	}
-	overrides, midPrice := fetchTestOverrides(t)
+	overrides, midPrice, fermi := fetchTestOverrides(t)
 
-	acct, ok := overrides[testFermiAddr]
+	acct, ok := overrides[fermi]
 	require.True(t, ok, "overrides must contain FermiEngine")
 	require.NotEmpty(t, acct.StateDiff)
 	t.Logf("engine slots patched: %d", len(acct.StateDiff))
@@ -250,6 +272,7 @@ func TestLive_OverridesHaveEngineSlots(t *testing.T) {
 }
 
 func TestLive_SlotKeysMatchOverrides(t *testing.T) {
+	test.SkipCI(t)
 	if testing.Short() {
 		t.Skip("live network test")
 	}
@@ -259,8 +282,8 @@ func TestLive_SlotKeysMatchOverrides(t *testing.T) {
 	usdc := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 	fwd, rev := pairKeyForTokens(weth, usdc)
 
-	overrides, _ := fetchTestOverrides(t)
-	acct := overrides[testFermiAddr]
+	overrides, _, fermi := fetchTestOverrides(t)
+	acct := overrides[fermi]
 
 	var matchedKey common.Hash
 	for _, pk := range []common.Hash{fwd, rev} {
@@ -278,9 +301,9 @@ func TestLive_SlotKeysMatchOverrides(t *testing.T) {
 	defer ec.Close()
 
 	ctx := t.Context()
-	t5Raw, err := ec.StorageAt(ctx, testFermiAddr, slotOffset(base, 5), nil)
+	t5Raw, err := ec.StorageAt(ctx, fermi, slotOffset(base, 5), nil)
 	require.NoError(t, err)
-	t6Raw, err := ec.StorageAt(ctx, testFermiAddr, slotOffset(base, 6), nil)
+	t6Raw, err := ec.StorageAt(ctx, fermi, slotOffset(base, 6), nil)
 	require.NoError(t, err)
 
 	tokenIn := common.BytesToAddress(t5Raw)
@@ -290,10 +313,11 @@ func TestLive_SlotKeysMatchOverrides(t *testing.T) {
 }
 
 func TestLive_MidPriceFromOverrides(t *testing.T) {
+	test.SkipCI(t)
 	if testing.Short() {
 		t.Skip("live network test")
 	}
-	_, midPrice := fetchTestOverrides(t)
+	_, midPrice, _ := fetchTestOverrides(t)
 	require.NotNil(t, midPrice)
 
 	lower := big.NewInt(10_000_000_000)     // $100 in 1e8
@@ -315,10 +339,10 @@ func TestLive_USDT_QuoteWithOverride(t *testing.T) {
 	weth := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 	usdt := common.HexToAddress("0xdac17f958d2ee523a2206206994597c13d831ec7")
 
-	overrides, midPrice := fetchTestOverridesForPair(t, weth, usdt)
+	overrides, midPrice, fermi := fetchTestOverridesForPair(t, weth, usdt)
 	t.Logf("WETH/USDT midPrice = %v", midPrice)
 
-	acct, ok := overrides[testFermiAddr]
+	acct, ok := overrides[fermi]
 	require.True(t, ok)
 	t.Logf("engine stateDiff slots: %d", len(acct.StateDiff))
 
@@ -344,25 +368,20 @@ func TestLive_USDT_QuoteWithOverride(t *testing.T) {
 	base := pairBaseSlot(matchedKey)
 	baseInt := new(big.Int).SetBytes(base[:])
 
-	f0Raw, err := ec.StorageAt(ctx, testFermiAddr, common.BigToHash(baseInt), nil)
+	f0Raw, err := ec.StorageAt(ctx, fermi, common.BigToHash(baseInt), nil)
 	require.NoError(t, err)
-	priceRaw, err := ec.StorageAt(ctx, testFermiAddr,
+	priceRaw, err := ec.StorageAt(ctx, fermi,
 		common.BigToHash(new(big.Int).Add(baseInt, big.NewInt(1))), nil)
 	require.NoError(t, err)
 
 	onchain := new(big.Int).SetBytes(priceRaw)
-	var lub uint64
-	if len(f0Raw) == 32 {
-		for k := 0; k < 8; k++ {
-			lub |= uint64(f0Raw[30-k]) << (8 * k)
-		}
-	}
+	lub := decodeLastUpdatedBlock(common.BytesToHash(f0Raw))
 	t.Logf("on-chain: lastUpdated=%d midPrice=%s", lub, onchain)
 
-	t5Raw, err := ec.StorageAt(ctx, testFermiAddr,
+	t5Raw, err := ec.StorageAt(ctx, fermi,
 		common.BigToHash(new(big.Int).Add(baseInt, big.NewInt(5))), nil)
 	require.NoError(t, err)
-	t6Raw, err := ec.StorageAt(ctx, testFermiAddr,
+	t6Raw, err := ec.StorageAt(ctx, fermi,
 		common.BigToHash(new(big.Int).Add(baseInt, big.NewInt(6))), nil)
 	require.NoError(t, err)
 	t5 := common.BytesToAddress(t5Raw)
