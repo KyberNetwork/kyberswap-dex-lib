@@ -149,7 +149,7 @@ func (t *PoolTracker) getNewPoolState(
 		}, []any{&balances[i]})
 	}
 
-	for i := 0; i < numDepCoins; i++ {
+	for i := range numDepCoins {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curveTricryptoNGABI,
 			Target: p.Address,

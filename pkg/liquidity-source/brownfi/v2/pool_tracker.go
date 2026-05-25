@@ -88,15 +88,14 @@ func (d *PoolTracker) GetNewPoolState(
 			return p, errors.WithMessage(err, "fail to fetch price feed ids")
 		} else {
 			staticExtra.PriceOracle = hexutil.Encode(priceOracle[:])
-			staticExtra.LastUpdated = time.Now().Unix()
+			staticExtra.LastUpdated = startTime.Unix()
 			staticExtraBytes, _ := json.Marshal(staticExtra)
 			p.StaticExtra = string(staticExtraBytes)
 		}
 	}
 
 	pythUpdateDataCh := lo.Async(func() *PythUpdateData {
-		now := time.Now()
-		if now.Sub(time.Unix(p.Timestamp, 0)) < 5*time.Second {
+		if startTime.Sub(time.Unix(p.Timestamp, 0)) < 5*time.Second {
 			return nil // don't need to fetch this too often
 		}
 		permu := rand.Perm(len(d.pythClients))[:min(2, len(d.pythClients))]
@@ -118,7 +117,7 @@ func (d *PoolTracker) GetNewPoolState(
 					return
 				}
 				for _, price := range pythUpdateData.Parsed {
-					if now.Sub(time.Unix(price.Price.PublishTime, 0)) > maxAge {
+					if startTime.Sub(time.Unix(price.Price.PublishTime, 0)) > maxAge {
 						return
 					}
 				}
@@ -222,9 +221,9 @@ func (d *PoolTracker) GetNewPoolState(
 			}
 		}
 		extra.PriceUpdateData, _ = hex.DecodeString(pythUpdateData.Binary.Data[0])
-		p.Timestamp = time.Now().Unix()
+		p.Timestamp = startTime.Unix()
 	} else {
-		p.Timestamp = min(p.Timestamp+1, time.Now().Unix()) // minimal increment for lower save priority
+		p.Timestamp = min(p.Timestamp+1, startTime.Unix()) // minimal increment for lower save priority
 	}
 
 	routerEnoughBalance := routerBalance == nil || updateFee == nil || updateFee.Sign() <= 0 ||

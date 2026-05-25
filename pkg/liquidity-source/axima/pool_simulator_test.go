@@ -6,10 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator(t *testing.T) {
@@ -164,4 +167,40 @@ func TestPoolSimulator(t *testing.T) {
 			assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount.String())
 		}
 	}
+}
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	file, err := os.ReadFile("./pool_state_test.json")
+	require.NoError(t, err)
+
+	var pairData PairData
+	require.NoError(t, json.Unmarshal(file, &pairData))
+
+	extra, reserves, err := convertAximaPoolState(pairData, &Config{MaxAge: 3600, IsV2: true})
+	require.NoError(t, err)
+
+	WETH := "0x4200000000000000000000000000000000000006"
+	USDC := "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+
+	p := &PoolSimulator{
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  "0xa07938ea73e9d8eb23535816d073c2731ea24946",
+			Exchange: "axima",
+			Type:     "axima",
+			Tokens:   []string{WETH, USDC},
+			Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
+		}},
+		poolTimestamp: time.Now().Unix(),
+		extra:         extra,
+		decimalsDiff:  12,
+	}
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  WETH,
+			Amount: bignumber.NewBig("1000000000000000000"), // 1 WETH
+		},
+		TokenOut: USDC,
+	}, nil)
 }

@@ -27,7 +27,7 @@ func xpMem_inplace(
 	xp []uint256.Int,
 ) int {
 	numTokens := len(rates)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		xp[i].Div(number.SafeMul(&rates[i], &balances[i]), Precision)
 	}
 	return numTokens
@@ -95,7 +95,7 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 	var nCoinsPlus1 uint256.Int
 	nCoinsPlus1.AddUint64(&t.NumTokensU256, 1)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		Dprev.Set(D)
 
 		D_P.Set(D)
@@ -216,7 +216,7 @@ func (t *PoolSimulator) GetY(
 
 	var yPrev uint256.Int
 	y.Set(&d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		// y_prev = y
 		yPrev.Set(y)
 
@@ -616,7 +616,7 @@ func (t *PoolSimulator) getYD(
 	)
 	var yPrev uint256.Int
 	y.Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		yPrev.Set(y)
 		// y = (y*y + c) / (2 * y + b - D)
 		y.Div(

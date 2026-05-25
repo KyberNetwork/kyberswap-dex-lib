@@ -3,14 +3,16 @@ package stable
 import (
 	"errors"
 	"math/big"
+	"slices"
+
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 )
 
 var (
@@ -59,6 +61,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		oraclePrices:       extra.OraclePrices,
 		priceDiffThreshold: extra.PriceDiffThreshold,
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	clonedBase := *t.baseSim
+	clonedBase.Info.Reserves = slices.Clone(t.baseSim.Info.Reserves)
+	cloned.baseSim = &clonedBase
+	cloned.Info.Reserves = clonedBase.Info.Reserves
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

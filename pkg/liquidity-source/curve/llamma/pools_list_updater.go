@@ -86,7 +86,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	)
 
 	factoryCalls := u.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		idx := big.NewInt(int64(offset + i))
 		factoryCalls.AddCall(&ethrpc.Call{
 			ABI:    CurveControllerFactoryABI,
@@ -105,7 +105,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	}
 
 	ammCalls := u.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		ammCalls.AddCall(&ethrpc.Call{
 			ABI:    CurveLlammaABI,
 			Target: amms[i].String(),

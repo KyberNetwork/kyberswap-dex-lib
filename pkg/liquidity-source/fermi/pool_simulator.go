@@ -26,10 +26,6 @@ type PoolSimulator struct {
 
 var (
 	_ = pool.RegisterFactory0(DexType, NewPoolSimulator)
-	// All Fermi pools share ONE TraderVault — spending WETH via WETH/USDC
-	// depletes the same balance that WETH/USDT can pay out. SwapLimit forces
-	// the router to collate per-exchange inventory across every Fermi pool and
-	// prevents double-spending vault tokens in a multi-hop route.
 	_ = pool.RegisterUseSwapLimit(DexType)
 )
 
@@ -83,11 +79,6 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return s.evalCurveAmountOut(tokenIn, amountIn, param.Limit)
 }
 
-// UpdateBalance mirrors on-chain vault accounting: tokenIn flows in, tokenOut
-// flows out. Updates the local Curve snapshot (so a subsequent CalcAmountOut
-// on this simulator sees the correct inventory ratio) and the shared SwapLimit
-// (so other Fermi pools sharing the vault see the updated inventory for their
-// next hop).
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if s.curve != nil {
 		isBid := strings.EqualFold(params.TokenAmountIn.Token, s.token0)

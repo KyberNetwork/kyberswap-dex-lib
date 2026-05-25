@@ -2,6 +2,7 @@ package llamma
 
 import (
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -13,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestStatefullCalcAmountOut(t *testing.T) {
@@ -1697,4 +1699,29 @@ func TestCalcAmountOut(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCloneState(t *testing.T) {
+	t.Parallel()
+	p, err := NewPoolSimulator(entity.Pool{
+		Address:  "0x37417b2238aa52d0dd2d6252d989e728e8f706e4",
+		Exchange: "curve-llamma",
+		Type:     "curve-llamma",
+		Reserves: entity.PoolReserves{"49828664119603930832028", "11355080189558361997908"},
+		Tokens: []*entity.PoolToken{
+			{Address: "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", Decimals: 18},
+			{Address: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", Decimals: 18},
+		},
+		Extra:       `{"basePrice":"2854878555921344768532","priceOracle":"2618215466601415672353","fee":"19000000000000000","adminFee":"1","adminFeesX":"0","adminFeesY":"0","activeBand":8,"minBand":-56,"maxBand":1034,"bands":[{"i":-7,"x":"217514886395324323598","y":"0"},{"i":-6,"x":"205290141914117288191","y":"0"},{"i":-5,"x":"205854020698238841123","y":"0"},{"i":-4,"x":"198478905102501451169","y":"0"},{"i":-3,"x":"183518101190038945310","y":"0"},{"i":-2,"x":"152273074206164248719","y":"0"},{"i":-1,"x":"783448131792494","y":"0"},{"i":0,"x":"778536549204771","y":"0"},{"i":1,"x":"724880822608670","y":"0"},{"i":2,"x":"769871546775748","y":"0"},{"i":3,"x":"1258092717147144","y":"0"},{"i":4,"x":"12131191430037204748265","y":"0"},{"i":5,"x":"11906314889569326298967","y":"0"},{"i":6,"x":"11871956479213117686747","y":"0"},{"i":7,"x":"11853616385840723546086","y":"0"},{"i":8,"x":"14794737560627462691","y":"3997195216012956"},{"i":9,"x":"0","y":"9812032739858999"},{"i":10,"x":"0","y":"2341432148965690839"},{"i":11,"x":"0","y":"2341432148965690837"},{"i":12,"x":"0","y":"2341432148965690837"},{"i":13,"x":"0","y":"2341432148965690837"},{"i":14,"x":"0","y":"1816826617169032385"},{"i":15,"x":"0","y":"1818547139701169932"},{"i":16,"x":"0","y":"1818547139701169897"},{"i":17,"x":"0","y":"1818547139701169897"},{"i":18,"x":"0","y":"4480717858208445561"},{"i":19,"x":"0","y":"4480717858208445534"},{"i":20,"x":"0","y":"504480717858208445534"},{"i":21,"x":"0","y":"504480717858208445534"},{"i":22,"x":"0","y":"505736412046297326918"}],"availableBalances":["48940807366557152369693","1540311289339222286497"]}`,
+		StaticExtra: `{"A":"100","useDynamicFee":false}`,
+	})
+	require.NoError(t, err)
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+			Amount: new(big.Int).Mul(big.NewInt(1000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)),
+		},
+		TokenOut: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+	}, nil)
 }

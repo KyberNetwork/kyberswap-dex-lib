@@ -325,7 +325,7 @@ func TestMergeSwaps(t *testing.T) {
 			var totalAmountOut *big.Int
 			var chunkedErr error
 
-			for i := 0; i < 20; i++ {
+			for range 20 {
 				chunkTokenAmountIn := poolpkg.TokenAmount{
 					Token:  pool.Tokens[tokenIn].Address,
 					Amount: chunkAmount,

@@ -3,6 +3,7 @@ package dexT1
 import (
 	"errors"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -67,6 +68,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		IsSwapAndArbitragePaused: extra.IsSwapAndArbitragePaused,
 		SyncTimestamp:            entityPool.Timestamp,
 	}, nil
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	return &cloned
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

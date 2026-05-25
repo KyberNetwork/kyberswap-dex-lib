@@ -33,8 +33,10 @@ import (
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_brownfi_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
+	pkg_liquiditysource_brownfi_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v3"
 	pkg_liquiditysource_canonic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	pkg_liquiditysource_cap_cusd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
+	pkg_liquiditysource_capricornpamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/capricorn-pamm"
 	pkg_liquiditysource_carbon "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon"
 	pkg_liquiditysource_clear "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clear"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
@@ -77,6 +79,7 @@ import (
 	pkg_liquiditysource_frax_sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	pkg_liquiditysource_genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	pkg_liquiditysource_genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
+	pkg_liquiditysource_gohm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gohm"
 	pkg_liquiditysource_gsm4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gsm-4626"
 	pkg_liquiditysource_gyroscope_2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	pkg_liquiditysource_gyroscope_3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
@@ -263,8 +266,10 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_canonic.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cap_cusd.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_capricornpamm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_carbon.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clear.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
@@ -307,6 +312,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxethconvertor.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_genericarm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_genericsimplerate.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gohm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gsm4626.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_2clp.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_3clp.PoolSimulator{})

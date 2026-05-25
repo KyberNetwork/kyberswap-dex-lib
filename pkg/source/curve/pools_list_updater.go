@@ -86,7 +86,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	)
 
 	if !d.config.SkipInitFactory {
-		for i := 0; i < len(registryOrFactoryList); i++ {
+		for i := range registryOrFactoryList {
 			if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
 				logger.Debugf("skip zero factory %v", i)
 				continue
@@ -105,7 +105,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				return nil, nil, err
 			}
 
-			for j := 0; j < len(poolAddresses); j++ {
+			for j := range poolAddresses {
 				// Skip unsupported pools
 				if poolTypes[j] == PoolTypeUnsupported {
 					continue

@@ -20,6 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -74,13 +75,31 @@ func (t *PoolTracker) getPoolState(ctx context.Context, p entity.Pool) (entity.P
 
 	t0Addr := common.HexToAddress(p.Tokens[0].Address)
 	t1Addr := common.HexToAddress(p.Tokens[1].Address)
-	traderVault := common.HexToAddress(t.config.TraderVault)
 
 	overridesCh := lo.Async(func() map[common.Address]gethclient.OverrideAccount {
 		return t.fetchStateOverrides(ctx)
 	})
 
-	var bal0, bal1 *big.Int
+	var (
+		bal0, bal1         *big.Int
+		fermi, traderVault common.Address
+	)
+	_, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    fermiSwapperABI,
+			Target: t.config.FermiSwapper,
+			Method: methodFermi,
+		}, []any{&fermi}).
+		AddCall(&ethrpc.Call{
+			ABI:    fermiSwapperABI,
+			Target: t.config.FermiSwapper,
+			Method: methodTraderVault,
+		}, []any{&traderVault}).
+		TryBlockAndAggregate()
+	if err != nil {
+		return p, fmt.Errorf("fetch fermi and vault balances: %w", err)
+	}
+
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    utilabi.Erc20ABI,
@@ -101,28 +120,38 @@ func (t *PoolTracker) getPoolState(ctx context.Context, p entity.Pool) (entity.P
 	blockNumber := resp.BlockNumber.Uint64()
 
 	overrides := <-overridesCh
-	midPrice := t.extractMidPrice(t0Addr, t1Addr, overrides)
+	midPrice, lastUpdatedBlock := t.extractMidPrice(t0Addr, t1Addr, fermi, overrides)
 
-	// Persist the FULL Titan override (all pairs' slots) into every pool's Extra.
-	// A multi-hop route through two Fermi pools needs both pairs' price +
-	// lastUpdatedBlock at the SAME block. Storing the whole snapshot per-pool
-	// means the aggregator-encoding merge produces a consistent state_overrides
-	// blob with matching lastUpdatedBlock values across every Fermi hop.
-	extra := Extra{BlockNumber: blockNumber}
-	if so := toStateOverrides(overrides); len(so) > 0 {
+	// Drop midPrice if the Titan snapshot lags the observed head by more than
+	// maxStaleBlocks. The curve is then skipped via the same path as a missing
+	// midPrice, keeping the pool quote-only until a fresh override arrives.
+	if midPrice != nil && lastUpdatedBlock > 0 && blockNumber > lastUpdatedBlock+maxStaleBlocks {
+		logger.WithFields(logger.Fields{
+			"dex":                t.config.DexId,
+			"pool":               p.Address,
+			"block_number":       blockNumber,
+			"last_updated_block": lastUpdatedBlock,
+		}).Warn("midPrice is stale, dropping curve")
+		midPrice = nil
+	}
+
+	extra := Extra{
+		Fermi:            fermi.String(),
+		TraderVault:      traderVault.String(),
+		BlockNumber:      blockNumber,
+		LastUpdatedBlock: lastUpdatedBlock,
+	}
+	if so := toStateOverrides(overrides, fermi); len(so) > 0 {
 		extra.StateOverrides = &so
 	}
 
-	// fetchCurveParams uses gethclient.CallContract when overrides are present.
-	// The response includes a 32-byte ABI tuple offset prefix that the
-	// auto-decoder cannot handle, so we call directly and strip it.
-	raw, curveErr := t.fetchCurveParams(ctx, t0Addr, t1Addr, overrides)
+	raw, curveErr := t.fetchCurveParams(ctx, t0Addr, t1Addr, fermi, overrides)
 	if curveErr != nil {
 		logger.WithFields(logger.Fields{
 			"error": curveErr.Error(),
 			"t0":    t0Addr.Hex(),
 			"t1":    t1Addr.Hex(),
-		}).Warn("fermi: getPairParams failed")
+		}).Warn("getPairParams failed")
 	} else {
 		curve := &CurveData{
 			FeeBaseBps:         raw.FeeBaseBps,
@@ -141,15 +170,15 @@ func (t *PoolTracker) getPoolState(ctx context.Context, p entity.Pool) (entity.P
 			logger.WithFields(logger.Fields{
 				"dex_id":       t.config.DexId,
 				"pool_address": p.Address,
-			}).Warn("fermi: midPrice not available from Titan, skipping curve")
+			}).Warn("midPrice not available from Titan, skipping curve")
 		}
 	}
 
 	t0Dec, t1Dec := p.Tokens[0].Decimals, p.Tokens[1].Decimals
 
 	if extra.Curve != nil && extra.Curve.TokenInDecScale == "" {
-		ds0 := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(t0Dec)), nil)
-		ds1 := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(t1Dec)), nil)
+		ds0 := new(big.Int).Exp(bignumber.Ten, big.NewInt(int64(t0Dec)), nil)
+		ds1 := new(big.Int).Exp(bignumber.Ten, big.NewInt(int64(t1Dec)), nil)
 		extra.Curve.TokenInDecScale = ds0.String()
 		extra.Curve.TokenOutDecScale = ds1.String()
 	}
@@ -182,15 +211,11 @@ func (t *PoolTracker) getPoolState(ctx context.Context, p entity.Pool) (entity.P
 	return p, nil
 }
 
-// fetchCurveParams calls FermiEngine.getPairParams via eth_call, optionally
-// with state overrides. We bypass ethrpc's auto-decoder because getPairParams
-// returns an ABI response with a 32-byte tuple offset prefix.
 func (t *PoolTracker) fetchCurveParams(
 	ctx context.Context,
-	t0, t1 common.Address,
+	t0, t1, fermi common.Address,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*engineCurveResult, error) {
-	engineAddr := common.HexToAddress(t.config.FermiEngine)
 	data, err := fermiEngineABI.Pack(methodGetPairParams, t0, t1)
 	if err != nil {
 		return nil, fmt.Errorf("pack getPairParams: %w", err)
@@ -199,9 +224,9 @@ func (t *PoolTracker) fetchCurveParams(
 	var resp []byte
 	if len(overrides) > 0 {
 		gc := gethclient.New(t.ethrpcClient.GetETHClient().Client())
-		resp, err = gc.CallContract(ctx, ethereum.CallMsg{To: &engineAddr, Data: data}, nil, &overrides)
+		resp, err = gc.CallContract(ctx, ethereum.CallMsg{To: &fermi, Data: data}, nil, &overrides)
 	} else {
-		resp, err = t.ethrpcClient.GetETHClient().CallContract(ctx, ethereum.CallMsg{To: &engineAddr, Data: data}, nil)
+		resp, err = t.ethrpcClient.GetETHClient().CallContract(ctx, ethereum.CallMsg{To: &fermi, Data: data}, nil)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("callContract getPairParams: %w", err)
@@ -254,38 +279,46 @@ func (t *PoolTracker) fetchCurveParams(
 	}, nil
 }
 
-// extractMidPrice reads midPrice from state overrides for the given token pair.
+// extractMidPrice reads midPrice and lastUpdatedBlock from state overrides for
+// the given token pair. lastUpdatedBlock is 0 when the override does not patch
+// slot base+0.
 func (t *PoolTracker) extractMidPrice(
-	t0, t1 common.Address,
+	t0, t1, fermi common.Address,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) *big.Int {
-	price, _, _ := t.findPairOverride(t0, t1, overrides)
-	return price
+) (*big.Int, uint64) {
+	price, lub, _, _ := t.findPairOverride(t0, t1, fermi, overrides)
+	return price, lub
 }
 
-// findPairOverride locates this pair's PairState in the Titan override set.
+// findPairOverride locates this pair's PairState in the Titan override set and
+// returns midPrice plus lastUpdatedBlock (read from slot base+0 lower 8 bytes).
 func (t *PoolTracker) findPairOverride(
-	t0, t1 common.Address,
+	t0, t1, fermi common.Address,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*big.Int, common.Hash, bool) {
+) (*big.Int, uint64, common.Hash, bool) {
 	if len(overrides) == 0 {
-		return nil, common.Hash{}, false
+		return nil, 0, common.Hash{}, false
 	}
-	engineAddr := common.HexToAddress(t.config.FermiEngine)
-	acct, ok := overrides[engineAddr]
+	acct, ok := overrides[fermi]
 	if !ok || len(acct.StateDiff) == 0 {
-		return nil, common.Hash{}, false
+		return nil, 0, common.Hash{}, false
 	}
 
 	fwd, rev := pairKeyForTokens(t0, t1)
 	for _, pk := range []common.Hash{fwd, rev} {
 		base := pairBaseSlot(pk)
 		priceSlot := slotOffset(base, 1)
-		if word, found := acct.StateDiff[priceSlot]; found {
-			return decodeMidPrice(word), base, true
+		word, found := acct.StateDiff[priceSlot]
+		if !found {
+			continue
 		}
+		var lub uint64
+		if f0, ok := acct.StateDiff[base]; ok {
+			lub = decodeLastUpdatedBlock(f0)
+		}
+		return decodeMidPrice(word), lub, base, true
 	}
-	return nil, common.Hash{}, false
+	return nil, 0, common.Hash{}, false
 }
 
 // toStateOverrides serializes the Titan override set into the JSON-friendly
@@ -294,13 +327,14 @@ func (t *PoolTracker) findPairOverride(
 // lastUpdatedBlock values across all Fermi pairs touched.
 func toStateOverrides(
 	overrides map[common.Address]gethclient.OverrideAccount,
+	fermi common.Address,
 ) StateOverrides {
 	if len(overrides) == 0 {
 		return nil
 	}
 	out := make(StateOverrides, len(overrides))
 	for addr, acct := range overrides {
-		if len(acct.StateDiff) == 0 {
+		if addr != fermi || len(acct.StateDiff) == 0 {
 			continue
 		}
 		diff := make(map[string]string, len(acct.StateDiff))

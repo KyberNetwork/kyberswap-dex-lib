@@ -3,6 +3,7 @@ package nomiswapstable
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -55,6 +56,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		gas:                       defaultGas,
 	}, nil
 }
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut

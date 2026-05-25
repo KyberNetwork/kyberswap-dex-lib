@@ -3,6 +3,7 @@ package uniswap
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -45,6 +46,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Weights: weights,
 		gas:     defaultGas,
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

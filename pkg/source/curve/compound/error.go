@@ -9,4 +9,5 @@ var (
 	ErrTokenFromEqualsTokenTo       = errors.New("can't compare token to itself")
 	ErrTokenIndexesOutOfRange       = errors.New("token index out of range")
 	ErrAmountOutNotConverge         = errors.New("approximation did not converge")
+	ErrDenominatorZero              = errors.New("denominator should not be 0")
 )

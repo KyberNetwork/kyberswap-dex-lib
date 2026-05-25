@@ -114,14 +114,14 @@ func (t *PoolTracker) getOrderBook(ctx context.Context, orderBookAddr string) (O
 		decoded := 0
 		for i := 1; i <= bucketCount && decoded < count; i++ {
 			p1, q1, p2, q2 := decodeDepthChartBucket(raw[i])
-			if p1.Sign() > 0 || q1.Sign() > 0 {
+			if p1.Sign() > 0 && q1.Sign() > 0 {
 				*out = append(*out, OrderBookLevel{Price: p1, Quantity: q1})
 			}
 			decoded++
 			if decoded >= count {
 				break
 			}
-			if p2.Sign() > 0 || q2.Sign() > 0 {
+			if p2.Sign() > 0 && q2.Sign() > 0 {
 				*out = append(*out, OrderBookLevel{Price: p2, Quantity: q2})
 			}
 			decoded++

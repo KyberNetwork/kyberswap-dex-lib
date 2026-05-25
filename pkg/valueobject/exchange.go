@@ -51,10 +51,12 @@ const (
 	ExchangeBMXGLP                     = "bmx-glp"
 	ExchangeBrownfi                    = "brownfi"
 	ExchangeBrownfiV2                  = "brownfi-v2"
+	ExchangeBrownfiV3                  = "brownfi-v3"
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
 	ExchangeBurrBearWeighted           = "burrbear-weighted"
 	ExchangeCanonic                    = "canonic"
+	ExchangeCapricornPamm              = "capricorn-pamm"
 	ExchangeCarbon                     = "carbon"
 	ExchangeClear                      = "clear"
 	ExchangeClipper                    = "clipper"
@@ -112,6 +114,7 @@ const (
 	ExchangeFrxETH                     = "frxeth"
 	ExchangeFrxUSD                     = "frxusd"
 	ExchangeGenericArm                 = "generic-arm"
+	ExchangeGOHM                       = "gohm"
 	ExchangeGravity                    = "gravity"
 	ExchangeGsm4626                    = "gsm-4626"
 	ExchangeGyroscope2CLP              = "gyroscope-2clp"
@@ -341,6 +344,7 @@ var needFallbackSourceSet = map[Exchange]struct{}{
 	ExchangeAximaV2:   {},
 	ExchangeWooFiV3:   {},
 	ExchangeBrownfiV2: {},
+	ExchangeBrownfiV3: {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {
