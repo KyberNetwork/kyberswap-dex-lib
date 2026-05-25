@@ -27,7 +27,7 @@ const coreABIJSON = `[
   {
     "inputs": [],
     "name": "blockDelay",
-    "outputs": [{"internalType": "uint48", "name": "", "type": "uint48"}],
+    "outputs": [{"internalType": "uint64", "name": "", "type": "uint64"}],
     "stateMutability": "view",
     "type": "function"
   },
@@ -86,9 +86,9 @@ const coreABIJSON = `[
     "name": "state",
     "outputs": [
       {"internalType": "uint160", "name": "anchorPrice",       "type": "uint160"},
-      {"internalType": "uint24",  "name": "feeAskX24",         "type": "uint24"},
-      {"internalType": "uint24",  "name": "feeBidX24",         "type": "uint24"},
-      {"internalType": "uint48",  "name": "latestUpdateBlock", "type": "uint48"}
+      {"internalType": "uint32",  "name": "feeAskX24",         "type": "uint32"},
+      {"internalType": "uint32",  "name": "feeBidX24",         "type": "uint32"},
+      {"internalType": "uint64",  "name": "latestUpdateBlock", "type": "uint64"}
     ],
     "stateMutability": "view",
     "type": "function"

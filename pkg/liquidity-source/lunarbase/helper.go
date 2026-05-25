@@ -50,8 +50,8 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		reserveY       *big.Int
 		state          struct {
 			AnchorPrice       *big.Int
-			FeeAskX24         *big.Int
-			FeeBidX24         *big.Int
+			FeeAskX24         uint32
+			FeeBidX24         uint32
 			LatestUpdateBlock uint64
 		}
 	)
@@ -115,14 +115,6 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		reserveY = bignumber.ZeroBI
 	}
 
-	var feeAsk, feeBid uint32
-	if state.FeeAskX24 != nil {
-		feeAsk = uint32(state.FeeAskX24.Uint64())
-	}
-	if state.FeeBidX24 != nil {
-		feeBid = uint32(state.FeeBidX24.Uint64())
-	}
-
 	return &rpcState{
 		blockNumber: blockNumber,
 		hasNative:   valueobject.IsNativeOrZeroAddr(tokenX) || valueobject.IsNativeOrZeroAddr(tokenY),
@@ -132,8 +124,8 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 		reserveY:    reserveY,
 		extra: Extra{
 			SqrtPriceX96:      sqrtPriceX96,
-			FeeAskX24:         feeAsk,
-			FeeBidX24:         feeBid,
+			FeeAskX24:         state.FeeAskX24,
+			FeeBidX24:         state.FeeBidX24,
 			LatestUpdateBlock: state.LatestUpdateBlock,
 			Paused:            paused,
 			BlockDelay:        blockDelay,
