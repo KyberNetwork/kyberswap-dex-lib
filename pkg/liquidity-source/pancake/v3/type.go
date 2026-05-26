@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
@@ -15,12 +14,6 @@ import (
 type Gas struct {
 	BaseGas          int64
 	CrossInitTickGas int64
-}
-
-type SwapInfo struct {
-	nextStateSqrtRatioX96 *v3Utils.Uint160
-	nextStateLiquidity    *v3Utils.Uint128
-	nextStateTickCurrent  int
 }
 
 type Metadata struct {

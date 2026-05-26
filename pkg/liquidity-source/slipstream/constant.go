@@ -10,7 +10,6 @@ import (
 
 const (
 	DexType              = "slipstream"
-	graphSkipLimit       = 5000
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
 	zeroString           = "0"
@@ -27,8 +26,7 @@ const (
 )
 
 var (
-	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
+	zeroBI = big.NewInt(0)
 )
 
 var (

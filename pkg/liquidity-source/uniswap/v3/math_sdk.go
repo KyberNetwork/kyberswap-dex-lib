@@ -58,7 +58,6 @@ var (
 // ---------- Errors ----------
 
 var (
-	errExceedMaxInt256       = errors.New("exceed max int256")
 	errOverflowUint128       = errors.New("overflow uint128")
 	errOverflowUint160       = errors.New("overflow uint160")
 	errInvalidTick           = errors.New("invalid tick")
