@@ -28,14 +28,14 @@ func TestCalcAmountOut(t *testing.T) {
 	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
 		0: {
 			1: {
-				"198168063968":      "10864758562295945",
-				"11616794234322811": "636811092586386185100",
+				"198168063968":      "10864758562295885",
+				"11616794234322811": "636811092586386185065",
 			},
 		},
 		1: {
 			0: {
-				"11616794234322811":     "198168063968",
-				"636811092586386185100": "10861657250609829",
+				"11616794234322811":     "198168063959",
+				"636811092586386185100": "10861657250609808",
 			},
 		},
 	})
@@ -53,7 +53,7 @@ func Test_CloneState_UpdateBalance(t *testing.T) {
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("10864758562295885"), result.TokenAmountOut.Amount)
 	cloned.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *result.TokenAmountOut,
@@ -66,12 +66,12 @@ func Test_CloneState_UpdateBalance(t *testing.T) {
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("10864758562295885"), result.TokenAmountOut.Amount)
 
 	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("10864758509295884"), result.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("10864758509295860"), result.TokenAmountOut.Amount)
 }

@@ -179,14 +179,17 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified *int256.Int, sqrtPriceLimit
 			return nil, err
 		}
 
-		// exactIn: contract floors amountOut per tick-spacing unit; simulate by flooring the aggregate to a multiple of ticksCrossed
-		// per-tick rounding: exactIn floors amountOut, exactOut ceils amountIn
+		// per-tick rounding: exactIn floors amountOut, exactOut ceils amountIn.
+		// The on-chain swap loop steps one bitmap word (256 compressed ticks) at a time via
+		// nextInitializedTickWithinOneWord; each step rounds amountOut down by ≤1 unit.
+		// wordCrossings ≈ number of bitmap words traversed = ceil(tick-spacings / 256).
 		fullyCrossed := sqrtPriceX96.Set(&nxtSqrtPriceX96).Eq(&sqrtPriceNextX96)
-		tc := targetValue.SetUint64(uint64(max(1, (kutils.Abs(tickNext-tick)-lo.Ternary(fullyCrossed, 1, 0))/p.TickSpacing)))
+		tickSpacingsCrossed := (kutils.Abs(tickNext-tick) - lo.Ternary(fullyCrossed, 1, 0)) / p.TickSpacing
+		wordCrossings := targetValue.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
 		if exactInput {
-			amountOut.SDiv(&amountOut, tc).Mul(&amountOut, tc)
+			amountOut.SDiv(&amountOut, wordCrossings).Mul(&amountOut, wordCrossings)
 		} else {
-			amountIn.Add(&amountIn, tc).SubUint64(&amountIn, 1).SDiv(&amountIn, tc).Mul(&amountIn, tc)
+			amountIn.Add(&amountIn, wordCrossings).SubUint64(&amountIn, 1).SDiv(&amountIn, wordCrossings).Mul(&amountIn, wordCrossings)
 		}
 
 		amountInPlusFee := feeAmount.Add(&amountIn, &feeAmount)

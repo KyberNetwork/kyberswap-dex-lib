@@ -25,7 +25,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		out               string
 		expectedOutAmount int64
 	}{
-		{token0, 1000000000000000000, token1, 1172197},
+		{token0, 1000000000000000000, token1, 1172208},
 	}
 	p, err := NewPoolSimulator(
 		entity.Pool{
