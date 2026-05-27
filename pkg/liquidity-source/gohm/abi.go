@@ -1,4 +1,4 @@
-package fermi
+package gohm
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	fermiSwapperABI abi.ABI
-	fermiEngineABI  abi.ABI
+	olympusStakingABI abi.ABI
+	gohmABI           abi.ABI
 )
 
 func init() {
@@ -16,9 +16,10 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&fermiSwapperABI, fermiSwapperABIJson},
-		{&fermiEngineABI, fermiEngineABIJson},
+		{&olympusStakingABI, olympusStakingABIJson},
+		{&gohmABI, gohmABIJson},
 	}
+
 	for _, b := range builder {
 		var err error
 		*b.ABI, err = abi.JSON(bytes.NewReader(b.data))

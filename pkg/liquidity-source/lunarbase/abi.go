@@ -6,6 +6,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
+// coreABIJSON describes the on-chain `fix/incident` Pool surface used by
+// this adapter (Q64.96 uint160 price, asymmetric Q24 fees). The contract's
+// `anchorPrice` field is what we cache as `SqrtPriceX96`.
 const coreABIJSON = `[
   {
     "inputs": [],
@@ -18,13 +21,6 @@ const coreABIJSON = `[
     "inputs": [],
     "name": "Y",
     "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "CONCENTRATION_ALPHA",
-    "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
     "stateMutability": "view",
     "type": "function"
   },
@@ -89,26 +85,27 @@ const coreABIJSON = `[
     "inputs": [],
     "name": "state",
     "outputs": [
-      {"internalType": "uint160", "name": "pX96", "type": "uint160"},
-      {"internalType": "uint64", "name": "fee", "type": "uint64"},
-      {"internalType": "uint64", "name": "latestUpdateBlock", "type": "uint64"}
+      {"internalType": "uint160", "name": "anchorPrice",       "type": "uint160"},
+      {"internalType": "uint32",  "name": "feeAskX24",         "type": "uint32"},
+      {"internalType": "uint32",  "name": "feeBidX24",         "type": "uint32"},
+      {"internalType": "uint64",  "name": "latestUpdateBlock", "type": "uint64"}
     ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "anchorPrice",
+    "outputs": [{"internalType": "uint160", "name": "anchorPrice", "type": "uint160"}],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "anonymous": false,
     "inputs": [
-      {
-        "components": [
-          {"internalType": "uint160", "name": "pX96", "type": "uint160"},
-          {"internalType": "uint48", "name": "fee", "type": "uint48"}
-        ],
-        "indexed": false,
-        "internalType": "struct StateUpdateParameters",
-        "name": "state",
-        "type": "tuple"
-      }
+      {"indexed": false, "internalType": "uint160", "name": "anchorPrice", "type": "uint160"},
+      {"indexed": false, "internalType": "uint24", "name": "feeAskX24",   "type": "uint24"},
+      {"indexed": false, "internalType": "uint24", "name": "feeBidX24",   "type": "uint24"}
     ],
     "name": "StateUpdated",
     "type": "event"
@@ -126,10 +123,10 @@ const coreABIJSON = `[
     "anonymous": false,
     "inputs": [
       {"indexed": false, "internalType": "address", "name": "recipient", "type": "address"},
-      {"indexed": false, "internalType": "bool", "name": "xToY", "type": "bool"},
-      {"indexed": false, "internalType": "uint256", "name": "dx", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "dy", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "fee", "type": "uint256"}
+      {"indexed": false, "internalType": "bool",    "name": "xToY",      "type": "bool"},
+      {"indexed": false, "internalType": "uint256", "name": "dx",        "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "dy",        "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "fee",       "type": "uint256"}
     ],
     "name": "SwapExecuted",
     "type": "event"
