@@ -140,6 +140,7 @@ const (
 	ExchangeKuruOB                     = "kuru-ob"
 	ExchangeKyberPMM                   = "kyber-pmm"
 	ExchangeKipseliProp                = "kipseli-prop"
+	ExchangeKipseliPamm                = "kipseli-pamm"
 	ExchangeKyberSwapLimitOrder        = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS      = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                 = "liquidcore"
@@ -363,6 +364,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeElfomofi:    {},
 	ExchangeAximaV2:     {},
 	ExchangeKipseliProp: {},
+	ExchangeKipseliPamm: {},
 	ExchangeWasabiProp:  {},
 	ExchangeObric:       {},
 	ExchangePoe:         {},

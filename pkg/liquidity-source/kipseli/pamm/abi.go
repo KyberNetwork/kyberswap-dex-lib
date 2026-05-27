@@ -1,4 +1,4 @@
-package kipseliprop
+package pamm
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	lensABI abi.ABI
-	swapABI abi.ABI
+	lensABI   abi.ABI
+	routerABI abi.ABI
 )
 
 func init() {
@@ -17,7 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&lensABI, lensABIData},
-		{&swapABI, swapABIData},
+		{&routerABI, routerABIData},
 	}
 
 	for _, b := range builder {
