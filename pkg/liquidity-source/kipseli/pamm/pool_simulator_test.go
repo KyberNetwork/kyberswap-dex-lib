@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,12 +20,6 @@ const (
 	testUSDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 )
 
-func hexToAddr(s string) common.Address {
-	return common.HexToAddress(s)
-}
-
-// mustSim builds a PoolSimulator from literal sample data, used by unit tests
-// that do not require live RPC.
 func mustSim(t *testing.T, samples [][][2]*big.Int, bal0, bal1 *big.Int) *PoolSimulator {
 	t.Helper()
 
@@ -58,7 +51,6 @@ func mustSim(t *testing.T, samples [][][2]*big.Int, bal0, bal1 *big.Int) *PoolSi
 	return sim
 }
 
-// knot builds a [2]*big.Int sample knot.
 func knot(in, out int64) [2]*big.Int {
 	return [2]*big.Int{big.NewInt(in), big.NewInt(out)}
 }
