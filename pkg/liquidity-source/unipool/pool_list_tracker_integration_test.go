@@ -286,85 +286,132 @@ func (ts *PoolListTrackerIntegrationSuite) assertValidExtra(e Extra, label strin
 
 // TestCrossCheckQuoter is the strongest correctness check: for the same
 // (tokenIn, tokenOut, amountIn) we ask the on-chain UniPoolQuoter and our
-// off-chain simulator. The two amountsOut should match exactly when the pool
-// has no pending liquidations (the only piece our simulator skips).
+// off-chain simulator and require an EXACT match.
+//
+// Determinism: we read the pair state AND every Quoter.getAmountOut in ONE
+// atomic multicall, so they all evaluate at the same block. We then read that
+// block's timestamp and inject it into the simulator clock, so our VR
+// projection uses the exact same instant as the on-chain quote. With state,
+// timestamp and quote all aligned to one block, getAmountOut must match to the
+// wei (the only thing we skip — pending liquidations — would otherwise be the
+// sole source of divergence).
 func (ts *PoolListTrackerIntegrationSuite) TestCrossCheckQuoter_WETHUSDT() {
 	quoterABI, err := abi.JSON(bytes.NewReader(quoterABIJsonForTest))
 	ts.Require().NoError(err)
 
-	// Track the pair so we have the same Extra a production simulator would see.
-	updated, err := ts.tracker.GetNewPoolState(
-		context.Background(),
-		entity.Pool{
-			Address: uniPoolArbWETHUSDTPair,
-			Type:    DexType,
-			Tokens: []*entity.PoolToken{
-				{Address: arbWETHAddr, Swappable: true},
-				{Address: arbUSDTAddr, Swappable: true},
-			},
-			Reserves: entity.PoolReserves{"0", "0"},
-		},
-		pool.GetNewPoolStateParams{},
-	)
-	ts.Require().NoError(err)
-
-	sim, err := NewPoolSimulator(updated)
-	ts.Require().NoError(err)
-
-	// Probe with several input sizes / both directions.
 	cases := []struct {
-		name        string
-		tokenIn     string
-		tokenOut    string
-		amountIn    *big.Int
-		maxAbsDiff  *big.Int // tolerance (wei) for rounding-only / micro-timing drift
+		name     string
+		tokenIn  string
+		tokenOut string
+		amountIn *big.Int
 	}{
-		{"0.001 WETH -> USDT", arbWETHAddr, arbUSDTAddr, big.NewInt(1e15), big.NewInt(2)},
-		{"0.1 WETH -> USDT", arbWETHAddr, arbUSDTAddr, big.NewInt(1e17), big.NewInt(2)},
-		{"1 USDT -> WETH", arbUSDTAddr, arbWETHAddr, big.NewInt(1e6), big.NewInt(2)},
-		{"1000 USDT -> WETH", arbUSDTAddr, arbWETHAddr, big.NewInt(1e9), big.NewInt(2)},
+		{"0.001 WETH -> USDT", arbWETHAddr, arbUSDTAddr, big.NewInt(1e15)},
+		{"0.1 WETH -> USDT", arbWETHAddr, arbUSDTAddr, big.NewInt(1e17)},
+		{"1 USDT -> WETH", arbUSDTAddr, arbWETHAddr, big.NewInt(1e6)},
+		{"1000 USDT -> WETH", arbUSDTAddr, arbWETHAddr, big.NewInt(1e9)},
 	}
 
-	for _, tc := range cases {
+	mc3ABI, err := abi.JSON(strings.NewReader(
+		`[{"inputs":[],"name":"getCurrentBlockTimestamp","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}]`))
+	ts.Require().NoError(err)
+
+	var (
+		blockTsBig      = new(big.Int)
+		reserves        reservesABI
+		vrWrap          struct{ Reserves virtualReservesABI }
+		lastUpdate      = new(big.Int)
+		priceDecay      = new(big.Int)
+		fees            feesBpsABI
+		totalBorrowed0  = new(big.Int)
+		totalBorrowed1  = new(big.Int)
+		swapPriceTolBps uint16
+		quoterOut       = make([]*big.Int, len(cases))
+	)
+	reserves.Reserve0, reserves.Reserve1 = new(big.Int), new(big.Int)
+
+	req := ts.client.NewRequest().SetContext(context.Background())
+	pair := uniPoolArbWETHUSDTPair
+	req.AddCall(&ethrpc.Call{ABI: mc3ABI, Target: arbitrumMulticall3, Method: "getCurrentBlockTimestamp"}, []any{&blockTsBig})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetReserves}, []any{&reserves})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetVirtualReserves}, []any{&vrWrap})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetLastUpdateTimestamp}, []any{&lastUpdate})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetPriceDecay}, []any{&priceDecay})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetFeesBps}, []any{&fees})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetTotalBorrowed0}, []any{&totalBorrowed0})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetTotalBorrowed1}, []any{&totalBorrowed1})
+	req.AddCall(&ethrpc.Call{ABI: uniPoolPairABI, Target: pair, Method: pairMethodGetSwapPriceToleranceBps}, []any{&swapPriceTolBps})
+	for i := range cases {
+		quoterOut[i] = new(big.Int)
+		req.AddCall(&ethrpc.Call{
+			ABI:    quoterABI,
+			Target: uniPoolArbQuoterAddr,
+			Method: "getAmountOut",
+			Params: []any{common.HexToAddress(cases[i].tokenIn), common.HexToAddress(cases[i].tokenOut), cases[i].amountIn},
+		}, []any{&quoterOut[i]})
+	}
+	_, err = req.TryBlockAndAggregate()
+	ts.Require().NoError(err)
+
+	extra := Extra{
+		Reserve0:              reserves.Reserve0,
+		Reserve1:              reserves.Reserve1,
+		VirtualReserve0In:     vrWrap.Reserves.VirtualReserve0In,
+		VirtualReserve0Out:    vrWrap.Reserves.VirtualReserve0Out,
+		VirtualReserve1In:     vrWrap.Reserves.VirtualReserve1In,
+		VirtualReserve1Out:    vrWrap.Reserves.VirtualReserve1Out,
+		LastUpdateTimestamp:   lastUpdate.Uint64(),
+		PriceDecay:            priceDecay.Uint64(),
+		FeeLpBps:              fees.FeeLpBps,
+		FeePoolBps:            fees.FeePoolBps,
+		TotalBorrowed0:        totalBorrowed0,
+		TotalBorrowed1:        totalBorrowed1,
+		SwapPriceToleranceBps: swapPriceTolBps,
+	}
+	extraBytes, err := json.Marshal(extra)
+	ts.Require().NoError(err)
+
+	blockTs := blockTsBig.Int64()
+	ts.Require().Positive(blockTs, "multicall must report a block timestamp")
+	restore := nowUnix
+	nowUnix = func() int64 { return blockTs }
+	defer func() { nowUnix = restore }()
+
+	sim, err := NewPoolSimulator(entity.Pool{
+		Address:  pair,
+		Exchange: DexType,
+		Type:     DexType,
+		Tokens: []*entity.PoolToken{
+			{Address: arbWETHAddr, Swappable: true},
+			{Address: arbUSDTAddr, Swappable: true},
+		},
+		Reserves: entity.PoolReserves{reserves.Reserve0.String(), reserves.Reserve1.String()},
+		Extra:    string(extraBytes),
+	})
+	ts.Require().NoError(err)
+
+	for i, tc := range cases {
 		ts.Run(tc.name, func() {
-			// Off-chain quote.
 			ours, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: tc.amountIn},
 				TokenOut:      tc.tokenOut,
 			})
 			ts.Require().NoError(err)
 
-			// On-chain quote via UniPoolQuoter.getAmountOut(tokenIn, tokenOut, amountIn).
-			var onchain *big.Int
-			req := ts.client.NewRequest().SetContext(context.Background())
-			req.AddCall(&ethrpc.Call{
-				ABI:    quoterABI,
-				Target: uniPoolArbQuoterAddr,
-				Method: "getAmountOut",
-				Params: []any{
-					common.HexToAddress(tc.tokenIn),
-					common.HexToAddress(tc.tokenOut),
-					tc.amountIn,
-				},
-			}, []any{&onchain})
-			_, err = req.Call()
-			ts.Require().NoError(err)
+			diff := new(big.Int).Sub(ours.TokenAmountOut.Amount, quoterOut[i])
+			ts.T().Logf("[xcheck @ts %d] %-22s simulator=%s on-chain=%s diff=%s",
+				blockTs, tc.name, ours.TokenAmountOut.Amount, quoterOut[i], diff)
 
-			diff := new(big.Int).Sub(ours.TokenAmountOut.Amount, onchain)
-			absDiff := new(big.Int).Abs(diff)
-
-			ts.T().Logf("[xcheck] %-22s simulator=%s on-chain=%s diff=%s",
-				tc.name, ours.TokenAmountOut.Amount, onchain, diff)
-
-			ts.Require().LessOrEqualf(absDiff.Cmp(tc.maxAbsDiff), 0,
-				"%s: off-chain vs on-chain quote diverges by %s wei (> tolerance %s)",
-				tc.name, absDiff, tc.maxAbsDiff)
+			ts.Require().Truef(diff.Sign() == 0,
+				"%s: off-chain vs on-chain quote must match exactly (same block), diff=%s",
+				tc.name, diff)
 		})
 	}
 }
 
 func TestPoolListTrackerIntegrationSuite(t *testing.T) {
-	t.Parallel()
+	// NOT parallel on purpose: TestCrossCheckQuoter overrides the package-level
+	// nowUnix clock. Running in the sequential phase guarantees no parallel unit
+	// test observes the override (parallel tests run only after sequential ones).
 	test.SkipCI(t)
 	suite.Run(t, new(PoolListTrackerIntegrationSuite))
 }
