@@ -3,6 +3,7 @@ package pamm
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
 )
 
 const titanDefaultTimeout = 10 * time.Second
@@ -109,19 +112,30 @@ func (t *PoolTracker) doTitanRPC(ctx context.Context, client *rpc.Client) (map[c
 	return overrides, nil
 }
 
-// titanOverridesToMap serializes overrides into Extra.SO for downstream
-// simulation tooling (router/build callers).
-func titanOverridesToMap(overrides map[common.Address]gethclient.OverrideAccount) map[string]map[string]string {
-	out := make(map[string]map[string]string, len(overrides))
+// titanOverridesToMap serializes the full quoter override set (storage +
+// balance + nonce) into Extra.SO. Every contract under the quoter is forwarded
+// so downstream simulation reproduces the exact Titan state, including
+// balance/nonce-only entries (e.g. funded EOAs).
+func titanOverridesToMap(overrides map[common.Address]gethclient.OverrideAccount) map[string]kipseli.StateOverride {
+	out := make(map[string]kipseli.StateOverride, len(overrides))
 	for addr, acct := range overrides {
-		if len(acct.StateDiff) == 0 {
+		entry := kipseli.StateOverride{}
+		if len(acct.StateDiff) > 0 {
+			entry.Storage = make(map[string]string, len(acct.StateDiff))
+			for slot, val := range acct.StateDiff {
+				entry.Storage[slot.Hex()] = val.Hex()
+			}
+		}
+		if acct.Balance != nil && acct.Balance.Sign() != 0 {
+			entry.Balance = "0x" + acct.Balance.Text(16)
+		}
+		if acct.Nonce != 0 {
+			entry.Nonce = "0x" + strconv.FormatUint(acct.Nonce, 16)
+		}
+		if entry.Storage == nil && entry.Balance == "" && entry.Nonce == "" {
 			continue
 		}
-		slots := make(map[string]string, len(acct.StateDiff))
-		for slot, val := range acct.StateDiff {
-			slots[slot.Hex()] = val.Hex()
-		}
-		out[strings.ToLower(addr.Hex())] = slots
+		out[strings.ToLower(addr.Hex())] = entry
 	}
 	if len(out) == 0 {
 		return nil

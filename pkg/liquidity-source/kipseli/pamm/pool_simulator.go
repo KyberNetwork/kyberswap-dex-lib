@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -11,7 +12,7 @@ import (
 
 type PoolSimulator struct {
 	*prop.PoolSimulator
-	so               map[string]map[string]string
+	so               map[string]kipseli.StateOverride
 	lastUpdatedBlock uint64
 }
 
@@ -34,20 +35,12 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	return sim, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	res, err := s.PoolSimulator.CalcAmountOut(params)
-	if err == nil && res != nil {
-		res.Gas = defaultGas
-	}
-	return res, err
-}
-
+// CloneState shallow-copies the struct (so + lub are immutable post-init, safe
+// to share) and recurses into the embedded prop simulator for state isolation.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
-	return &PoolSimulator{
-		PoolSimulator:    s.PoolSimulator.CloneState().(*prop.PoolSimulator),
-		so:               s.so,
-		lastUpdatedBlock: s.lastUpdatedBlock,
-	}
+	cloned := *s
+	cloned.PoolSimulator = s.PoolSimulator.CloneState().(*prop.PoolSimulator)
+	return &cloned
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {

@@ -3,16 +3,15 @@ package pamm
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/samber/lo"
@@ -92,7 +91,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	titanOverrides := <-overridesCh
 
-	samples, err := t.fetchQuotes(ctx, p, routerAddr, token0Addr, token1Addr, bal0, bal1, blockNumber, titanOverrides)
+	samples, err := t.fetchQuotes(ctx, p, token0Addr, token1Addr, bal0, bal1, blockNumber, titanOverrides)
 	if err != nil {
 		return p, err
 	}
@@ -122,113 +121,104 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-// fetchQuotes probes Router.swap() at each sample point via eth_call with state
-// overrides (Titan pricing + tokenIn.balanceOf[router] = amtIn).
+// fetchQuotes probes Lens.quote() at every sample point in a single Multicall3
+// eth_call, with Titan pricing overrides applied to the whole batch. quote()
+// matches Router.swap() within ~1 bps in the safe range; over-capacity samples
+// (Lens reports linear, swap caps at reserve) are dropped later by filterSamples.
 func (t *PoolTracker) fetchQuotes(
 	ctx context.Context,
 	p entity.Pool,
-	routerAddr common.Address,
 	token0, token1 common.Address,
 	bal0, bal1 *big.Int,
 	blockNumber *big.Int,
 	titanOverrides map[common.Address]gethclient.OverrideAccount,
 ) ([][][2]*big.Int, error) {
-	gc := gethclient.New(t.ethrpcClient.GetETHClient().Client())
+	type mcall struct {
+		Target   common.Address `json:"target"`
+		CallData []byte         `json:"callData"`
+	}
+	type mresult struct {
+		Success    bool   `json:"success"`
+		ReturnData []byte `json:"returnData"`
+	}
 
-	samples := make([][][2]*big.Int, 2)
+	lensAddr := common.HexToAddress(t.cfg.LensAddress)
 	tokens := [2]common.Address{token0, token1}
 	reserves := [2]*big.Int{bal0, bal1}
+
+	type sampleRef struct {
+		dir   int
+		amtIn *big.Int
+	}
+	var refs []sampleRef
+	var calls []mcall
 
 	for dir := range 2 {
 		tokenIn := tokens[dir]
 		tokenOut := tokens[1-dir]
-		outReserve := reserves[1-dir]
-
-		points := buildSamplePoints(int(p.Tokens[dir].Decimals), reserves[dir])
-		samples[dir] = make([][2]*big.Int, 0, len(points))
-
-		for _, amtIn := range points {
-			override := mergeOverrides(titanOverrides, tokenIn, routerAddr, amtIn)
-
-			callData, err := routerABI.Pack("swap", tokenIn, amtIn, tokenOut, routerAddr)
+		for _, amtIn := range buildSamplePoints(int(p.Tokens[dir].Decimals), reserves[dir]) {
+			cd, err := lensABI.Pack("quote", tokenIn, amtIn, tokenOut)
 			if err != nil {
 				return nil, err
 			}
-
-			raw, err := gc.CallContract(ctx, ethereum.CallMsg{To: &routerAddr, Data: callData}, blockNumber, &override)
-			if err != nil {
-				// Single-sample revert is non-fatal; record 0 so filterSamples drops it.
-				samples[dir] = append(samples[dir], [2]*big.Int{new(big.Int).Set(amtIn), big.NewInt(0)})
-				continue
-			}
-
-			amtOut := big.NewInt(0)
-			if len(raw) >= 32 {
-				amtOut = new(big.Int).SetBytes(raw[len(raw)-32:])
-			}
-			if outReserve != nil && outReserve.Sign() > 0 && amtOut.Cmp(outReserve) >= 0 {
-				amtOut = big.NewInt(0)
-			}
-
-			samples[dir] = append(samples[dir], [2]*big.Int{new(big.Int).Set(amtIn), amtOut})
+			calls = append(calls, mcall{Target: lensAddr, CallData: cd})
+			refs = append(refs, sampleRef{dir: dir, amtIn: amtIn})
 		}
+	}
+
+	mcCalldata, err := multicall3ABI.Pack("tryAggregate", false, calls)
+	if err != nil {
+		return nil, err
+	}
+
+	override := make(map[common.Address]gethclient.OverrideAccount, len(titanOverrides))
+	for addr, acc := range titanOverrides {
+		override[addr] = acc
+	}
+
+	gc := gethclient.New(t.ethrpcClient.GetETHClient().Client())
+	raw, err := gc.CallContract(ctx, ethereum.CallMsg{To: &multicall3Addr, Data: mcCalldata}, blockNumber, &override)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []mresult
+	if err := multicall3ABI.UnpackIntoInterface(&results, "tryAggregate", raw); err != nil {
+		return nil, err
+	}
+	if len(results) != len(refs) {
+		return nil, fmt.Errorf("multicall3 result count mismatch: got %d want %d", len(results), len(refs))
+	}
+
+	samples := make([][][2]*big.Int, 2)
+	for dir := range 2 {
+		samples[dir] = make([][2]*big.Int, 0, len(refs))
+	}
+
+	for i, ref := range refs {
+		res := results[i]
+		outReserve := reserves[1-ref.dir]
+
+		if !res.Success {
+			samples[ref.dir] = append(samples[ref.dir], [2]*big.Int{new(big.Int).Set(ref.amtIn), big.NewInt(0)})
+			continue
+		}
+
+		amtOut := big.NewInt(0)
+		if len(res.ReturnData) >= 32 {
+			amtOut = new(big.Int).SetBytes(res.ReturnData[len(res.ReturnData)-32:])
+		}
+		if outReserve != nil && outReserve.Sign() > 0 && amtOut.Cmp(outReserve) >= 0 {
+			amtOut = big.NewInt(0)
+		}
+		samples[ref.dir] = append(samples[ref.dir], [2]*big.Int{new(big.Int).Set(ref.amtIn), amtOut})
 	}
 
 	return samples, nil
 }
 
-// mergeOverrides combines Titan pricing overrides with the per-sample
-// tokenIn.balanceOf[router] = amtIn override. Balance slot wins on conflict.
-func mergeOverrides(
-	titan map[common.Address]gethclient.OverrideAccount,
-	tokenIn, routerAddr common.Address,
-	amtIn *big.Int,
-) map[common.Address]gethclient.OverrideAccount {
-	balSlot := balanceOfSlot(routerAddr, tokenIn)
-	balVal := common.BigToHash(amtIn)
-
-	out := make(map[common.Address]gethclient.OverrideAccount, len(titan)+1)
-	for addr, acc := range titan {
-		if addr != tokenIn {
-			out[addr] = acc
-		}
-	}
-
-	acc := gethclient.OverrideAccount{StateDiff: map[common.Hash]common.Hash{balSlot: balVal}}
-	if existing, ok := titan[tokenIn]; ok {
-		for slot, val := range existing.StateDiff {
-			if slot != balSlot {
-				acc.StateDiff[slot] = val
-			}
-		}
-		acc.Balance = existing.Balance
-		acc.Nonce = existing.Nonce
-		acc.Code = existing.Code
-	}
-	out[tokenIn] = acc
-	return out
-}
-
-// balanceOfSlot computes keccak256(account || mappingSlot) for ERC-20 balances.
-func balanceOfSlot(account common.Address, token common.Address) common.Hash {
-	var buf [64]byte
-	copy(buf[12:32], account.Bytes())
-	buf[63] = knownBalanceOfSlot(token)
-	return common.BytesToHash(crypto.Keccak256(buf[:]))
-}
-
-// Confirmed slots: WETH=3, USDC=9. Unknown tokens fall through to slot 0,
-// which yields amtOut=0 and is dropped by filterSamples.
-func knownBalanceOfSlot(token common.Address) byte {
-	switch strings.ToLower(token.Hex()) {
-	case "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": // WETH
-		return 3
-	case "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": // USDC
-		return 9
-	default:
-		return 0
-	}
-}
+// multicall3Addr is canonical at the same address on every chain.
+var multicall3Addr = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 
 // buildSamplePoints: 10^k + 3·10^k levels around tokenDecimals, plus reserve
 // fractions near capacity. Sorted, deduped.

@@ -421,49 +421,6 @@ func TestCalcAmountOut_ReferenceFixture(t *testing.T) {
 	assert.Equal(t, refOut, out, "simulator must return the seeded eth_call-override value for the reference input")
 }
 
-// ── balanceOfSlot unit tests ──────────────────────────────────────────────────
-
-// TestBalanceOfSlot_WETH verifies that the WETH slot matches the value from explorer.md.
-func TestBalanceOfSlot_WETH(t *testing.T) {
-	slot := balanceOfSlot(
-		hexToAddr("0x5cdbe59400cc2efdcc2b54acca4a99fe00dd588c"),
-		hexToAddr(testWETH),
-	)
-	// From explorer.md findings.balanceOf_slot_derivation.weth_slot
-	expected := "0x965967796c9b1e00dfcd3ae2f5dc4e91bc9e667073af99ad8139f4df7ebb8e80"
-	assert.Equal(t, expected, slot.Hex(), "WETH balanceOf slot must match explorer.md derivation")
-}
-
-// TestBalanceOfSlot_USDC verifies that the USDC slot matches the value from explorer.md.
-func TestBalanceOfSlot_USDC(t *testing.T) {
-	slot := balanceOfSlot(
-		hexToAddr("0x5cdbe59400cc2efdcc2b54acca4a99fe00dd588c"),
-		hexToAddr(testUSDC),
-	)
-	// From explorer.md findings.balanceOf_slot_derivation.usdc_slot
-	expected := "0x191f81907abcf17d10b083ed8449b76df8c13e715d72db907a352cded59e98a7"
-	assert.Equal(t, expected, slot.Hex(), "USDC balanceOf slot must match explorer.md derivation")
-}
-
-// TestKnownBalanceOfSlot verifies the known-slot lookup table for hardcoded tokens.
-func TestKnownBalanceOfSlot(t *testing.T) {
-	tests := []struct {
-		name     string
-		token    string
-		expected byte
-	}{
-		{"WETH slot=3", testWETH, 3},
-		{"USDC slot=9", testUSDC, 9},
-		{"unknown falls back to 0", "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", 0},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := knownBalanceOfSlot(hexToAddr(tc.token))
-			assert.Equal(t, tc.expected, got)
-		})
-	}
-}
-
 // TestGetMetaInfo verifies PoolMetaInfo contains the expected router address.
 func TestGetMetaInfo(t *testing.T) {
 	samples := [][][2]*big.Int{

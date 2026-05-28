@@ -69,14 +69,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	staticExtraBytes, _ := json.Marshal(StaticExtra{RouterAddress: strings.ToLower(u.cfg.RouterAddress)})
 
 	pools := make([]entity.Pool, 0, len(tokens))
-	now := time.Now().Unix()
 	for _, token := range tokens {
 		pools = append(pools, entity.Pool{
 			Address:   syntheticPoolAddress(u.cfg.DexID, token, quoteToken),
 			Exchange:  u.cfg.DexID,
 			Type:      DexType,
-			Timestamp: now,
-			Reserves:  entity.PoolReserves{"0", "0"},
+			Timestamp: time.Now().Unix(),
 			Tokens: []*entity.PoolToken{
 				{Address: hexutil.Encode(token[:]), Swappable: true},
 				{Address: hexutil.Encode(quoteToken[:]), Swappable: true},
