@@ -18,7 +18,7 @@ type httpClient struct {
 }
 
 func NewHTTPClient(baseURL string) *httpClient {
-	return NewHTTPClientWithRestyClient(baseURL, resty.NewWithClient(http.DefaultClient))
+	return NewHTTPClientWithRestyClient(baseURL, resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))))
 }
 
 func NewHTTPClientWithRestyClient(baseURL string, client *resty.Client) *httpClient {

@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/go-resty/resty/v2"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -37,7 +38,7 @@ func NewPoolsListUpdater(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
-	client := resty.NewWithClient(http.DefaultClient).
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)

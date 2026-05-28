@@ -14,6 +14,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -44,7 +45,7 @@ type (
 )
 
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client, logger logger.Logger) *PoolsListUpdater {
-	client := resty.NewWithClient(http.DefaultClient).
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)

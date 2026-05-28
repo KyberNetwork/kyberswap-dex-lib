@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kutils"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -29,7 +30,7 @@ func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
-	client := resty.NewWithClient(http.DefaultClient).
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(cfg.HTTPConfig.BaseURL).
 		SetTimeout(cfg.HTTPConfig.Timeout.Duration).
 		SetRetryCount(cfg.HTTPConfig.RetryCount)

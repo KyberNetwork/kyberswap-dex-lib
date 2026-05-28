@@ -24,7 +24,7 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryC(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
-	client := resty.NewWithClient(http.DefaultClient).
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)

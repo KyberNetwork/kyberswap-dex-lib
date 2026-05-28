@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
@@ -31,7 +32,7 @@ func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolTracker {
-	httpClient := resty.NewWithClient(http.DefaultClient).
+	httpClient := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)
