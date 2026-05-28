@@ -33,7 +33,7 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryC(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config) *PoolTracker {
-	client := resty.NewWithClient(http.DefaultClient).
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)

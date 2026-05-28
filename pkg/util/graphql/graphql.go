@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 )
 
 type RunFunc func(ctx context.Context, req *Request, resp any) error
@@ -36,7 +37,7 @@ func NewClient(endpoint string, opts ...ClientOption) *Client {
 		optionFunc(c)
 	}
 	if c.restyClient == nil {
-		c.restyClient = resty.NewWithClient(http.DefaultClient)
+		c.restyClient = resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient)))
 	}
 	chainClientInterceptors(c)
 	return c
