@@ -1,9 +1,9 @@
-package kipseliprop
+package prop
 
 import (
-	"errors"
-
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
 )
 
 const (
@@ -40,6 +40,6 @@ var (
 		},
 	}
 
-	ErrInvalidToken          = errors.New("invalid token")
-	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
+	ErrInvalidToken          = kipseli.ErrInvalidToken
+	ErrInsufficientLiquidity = kipseli.ErrInsufficientLiquidity
 )

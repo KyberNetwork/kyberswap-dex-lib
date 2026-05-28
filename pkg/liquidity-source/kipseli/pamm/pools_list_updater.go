@@ -1,4 +1,4 @@
-package kipseliprop
+package pamm
 
 import (
 	"context"
@@ -29,51 +29,33 @@ type (
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
-	return &PoolsListUpdater{
-		cfg:          cfg,
-		ethrpcClient: ethrpcClient,
-	}
+	return &PoolsListUpdater{cfg: cfg, ethrpcClient: ethrpcClient}
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	log := logger.WithFields(logger.Fields{"dexId": u.cfg.DexID})
-	log.Info("kipseli-prop: start get pools")
 
 	metadata, err := u.getMetadata(metadataBytes)
 	if err != nil {
-		log.Warnf("kipseli-prop: getMetadata failed: %v", err)
+		log.Warnf("getMetadata failed: %v", err)
 	}
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	var quoteToken common.Address
 	var listed []common.Address
 
-	req.AddCall(&ethrpc.Call{
-		ABI:    lensABI,
-		Target: u.cfg.LensAddress,
-		Method: "getQuoteToken",
-		Params: nil,
-	}, []any{&quoteToken})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    lensABI,
-		Target: u.cfg.LensAddress,
-		Method: "getListedTokens",
-		Params: nil,
-	}, []any{&listed})
-
-	if _, err := req.TryAggregate(); err != nil {
-		log.Errorf("kipseli-prop: lens calls failed: %v", err)
+	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{ABI: lensABI, Target: u.cfg.LensAddress, Method: "QUOTE_TOKEN"}, []any{&quoteToken}).
+		AddCall(&ethrpc.Call{ABI: lensABI, Target: u.cfg.LensAddress, Method: "getListedTokens"}, []any{&listed}).
+		TryAggregate(); err != nil {
+		log.Errorf("lens calls failed: %v", err)
 		return nil, metadataBytes, err
 	}
 
 	tokens := make([]common.Address, 0, len(listed))
 	for _, t := range listed {
-		if strings.EqualFold(t.Hex(), quoteToken.Hex()) {
-			continue
+		if !strings.EqualFold(t.Hex(), quoteToken.Hex()) {
+			tokens = append(tokens, t)
 		}
-		tokens = append(tokens, t)
 	}
 
 	if metadata.Offset > len(tokens) {
@@ -82,40 +64,31 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if metadata.Offset == len(tokens) {
 		return nil, metadataBytes, nil
 	}
-
 	tokens = tokens[metadata.Offset:]
 
-	staticExtraBytes, _ := json.Marshal(StaticExtra{
-		RouterAddress: strings.ToLower(u.cfg.RouterAddress),
-	})
+	staticExtraBytes, _ := json.Marshal(StaticExtra{RouterAddress: strings.ToLower(u.cfg.RouterAddress)})
 
 	pools := make([]entity.Pool, 0, len(tokens))
-	now := time.Now().Unix()
-
 	for _, token := range tokens {
-		p := entity.Pool{
+		pools = append(pools, entity.Pool{
 			Address:   syntheticPoolAddress(u.cfg.DexID, token, quoteToken),
 			Exchange:  u.cfg.DexID,
 			Type:      DexType,
-			Timestamp: now,
-			Reserves:  entity.PoolReserves{"0", "0"},
+			Timestamp: time.Now().Unix(),
 			Tokens: []*entity.PoolToken{
 				{Address: hexutil.Encode(token[:]), Swappable: true},
 				{Address: hexutil.Encode(quoteToken[:]), Swappable: true},
 			},
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
-		}
-		pools = append(pools, p)
+		})
 	}
 
-	// Lưu offset tích lũy cho lần chạy sau (đã xử lý metadata.Offset + len(tokens))
 	newMetadata, err := u.newMetadata(metadata.Offset + len(tokens))
 	if err != nil {
-		log.Warnf("kipseli-prop: newMetadata failed: %v", err)
+		log.Warnf("newMetadata failed: %v", err)
 		return pools, metadataBytes, nil
 	}
-
 	return pools, newMetadata, nil
 }
 
@@ -131,10 +104,9 @@ func (u *PoolsListUpdater) getMetadata(metadataBytes []byte) (PoolsListUpdaterMe
 }
 
 func (u *PoolsListUpdater) newMetadata(offset int) ([]byte, error) {
-	metadata := PoolsListUpdaterMetadata{Offset: offset}
-	return json.Marshal(metadata)
+	return json.Marshal(PoolsListUpdaterMetadata{Offset: offset})
 }
 
-func syntheticPoolAddress(dexID string, token common.Address, quote common.Address) string {
+func syntheticPoolAddress(dexID string, token, quote common.Address) string {
 	return strings.ToLower(dexID + "_" + token.Hex() + "_" + quote.Hex())
 }

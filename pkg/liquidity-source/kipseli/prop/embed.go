@@ -1,4 +1,4 @@
-package kipseliprop
+package prop
 
 import _ "embed"
 
