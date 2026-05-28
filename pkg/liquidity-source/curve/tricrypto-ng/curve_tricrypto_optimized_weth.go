@@ -36,6 +36,30 @@ func (t *PoolSimulator) GetDy(
 		return ErrExchange0Coins
 	}
 
+	A, gamma := t._A_gamma()
+
+	// When A/gamma is actively ramping, recompute D from current balances using the
+	// ramped A/gamma (mirrors _calc_D_ramp in CurveCryptoViews3Optimized.vy).
+	D := t.Extra.D
+	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+		for k := range NumTokens {
+			xp[k].Set(&t.Reserves[k])
+		}
+		number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
+		for k := range NumTokens - 1 {
+			xp[k+1].Div(
+				number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
+				Precision,
+			)
+		}
+		var zeroK0 uint256.Int
+		var err error
+		D, err = newton_D(A, gamma, xp[:], &zeroK0)
+		if err != nil {
+			return err
+		}
+	}
+
 	yOrg := number.Set(&t.Reserves[j])
 	for k := range NumTokens {
 		if k == i {
@@ -53,9 +77,8 @@ func (t *PoolSimulator) GetDy(
 		)
 	}
 
-	A, gamma := t._A_gamma()
 	var y uint256.Int
-	var err = get_y(A, gamma, xp[:], t.Extra.D, j, &y, K0)
+	var err = get_y(A, gamma, xp[:], D, j, &y, K0)
 	if err != nil {
 		return err
 	}
@@ -134,6 +157,28 @@ func (t *PoolSimulator) _getDxFee(
 	}
 
 	A, gamma := t._A_gamma()
+
+	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
+	D := t.Extra.D
+	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+		for k := range NumTokens {
+			xp[k].Set(&t.Reserves[k])
+		}
+		number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
+		for k := range NumTokens - 1 {
+			xp[k+1].Div(
+				number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
+				Precision,
+			)
+		}
+		var zeroK0 uint256.Int
+		var err error
+		D, err = newton_D(A, gamma, xp[:], &zeroK0)
+		if err != nil {
+			return err
+		}
+	}
+
 	for k := range NumTokens {
 		xp[k].Set(&t.Reserves[k])
 	}
@@ -150,7 +195,7 @@ func (t *PoolSimulator) _getDxFee(
 	}
 
 	var xOut uint256.Int
-	err := get_y(A, gamma, xp, t.Extra.D, i, &xOut, K0)
+	err := get_y(A, gamma, xp, D, i, &xOut, K0)
 	if err != nil {
 		return err
 	}
