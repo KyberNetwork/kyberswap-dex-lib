@@ -103,6 +103,39 @@ func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
 	assert.Equal(t, big.NewInt(153), out.Fee.Amount)
 }
 
+// TestCalcAmountOutGetDOverflow verifies that a pool state where D_P*D would overflow uint256
+// during getD returns an error instead of silently producing a result.
+// big.Int never overflows, so without the explicit BitLen check it would return a quote that
+// on-chain would revert (the contract uses uint256 arithmetic which overflows and reverts).
+func TestCalcAmountOutGetDOverflow(t *testing.T) {
+	t.Parallel()
+	// 3-token pool. Token C has a reserve of 1e36 (18-decimal, rate 1e18).
+	// xp[2] ≈ 1e36 → D ≈ 1e36 → at j=1 of the D_P loop: D_P*D ≈ 3.3e90, far above uint256 max (1.16e77).
+	p, err := NewPoolSimulator(entity.Pool{
+		Reserves: entity.PoolReserves{
+			"100000000000000000",                    // A: 1e17
+			"100000000000000000",                    // B: 1e17
+			"1000000000000000000000000000000000000", // C: 1e36 — degenerate
+			"1000000000000000000000000000000000000", // LP supply
+		},
+		Tokens: []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
+		Extra: `{"swapFee":"3000000","adminFee":"5000000000","initialA":"150000","futureA":"150000"}`,
+		StaticExtra: `{"lpToken":"LP","aPrecision":"1","precisionMultipliers":["1","1","1"],"rates":["1000000000000000000","1000000000000000000","1000000000000000000"]}`,
+	})
+	require.NoError(t, err)
+
+	pairs := [][2]string{{"A", "B"}, {"A", "C"}, {"B", "C"}}
+	for _, pair := range pairs {
+		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: pair[0], Amount: big.NewInt(1e15)},
+				TokenOut:      pair[1],
+			})
+		})
+		require.ErrorIs(t, err, ErrDDoesNotConverge, "expected overflow-detected error for %s→%s", pair[0], pair[1])
+	}
+}
+
 func BenchmarkCalcAmountOut(b *testing.B) {
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
