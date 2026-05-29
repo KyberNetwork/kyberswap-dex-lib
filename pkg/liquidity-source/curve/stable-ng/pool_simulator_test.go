@@ -329,6 +329,38 @@ func TestCalcAmountOutError(t *testing.T) {
 	}
 }
 
+// TestCalcAmountOutGetDOverflow verifies that a pool whose reserves cause D_P*D to overflow uint256
+// during getD iteration returns an error instead of a garbage result.
+// Repro: unichain 0x667591e49580669d639c0b9e37392aaa216dc000 — token[7] (U$D) has a reserve of
+// ~8.85e27, making xp[7] >> all other xp values and causing overflow at iteration j=2.
+// On-chain get_dy also reverts; our code must not silently return a wrong amount.
+func TestCalcAmountOutGetDOverflow(t *testing.T) {
+	t.Parallel()
+	// Pool data from router API at blockNumber 49216894.
+	const poolJSON = `{"address":"0x667591e49580669d639c0b9e37392aaa216dc000","exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1779965253,"reserves":["121427326643039963","20690490858159682","293395865083721","81525803642455233","92605","74528","66643","8854105080913800634538607271","8000000000000000000"],"tokens":[{"address":"0xa06b10db9f390990364a3984c04fadf1c13691b5","symbol":"sUSDS","decimals":18,"swappable":true},{"address":"0x7e10036acc4b56d4dfca3b77810356ce52313f9c","symbol":"USDS","decimals":18,"swappable":true},{"address":"0x20cab320a855b39f724131c69424240519573f81","symbol":"DAI","decimals":18,"swappable":true},{"address":"0x80eede496655fb9047dd39d9f418d5483ed600df","symbol":"frxUSD","decimals":18,"swappable":true},{"address":"0x078d782b760474a361dda0af3839290b0ef57ad6","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x588ce4f028d8e7b53b687865d6a67b3a54c75518","symbol":"USDT","decimals":6,"swappable":true},{"address":"0x9151434b16b9763660705744891fa906f660ecc5","symbol":"USD0","decimals":6,"swappable":true},{"address":"0x8afe3ad0ad6661230d032c25dfae2ff8c155430d","symbol":"USD","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"800000\",\"FutureA\":\"800000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"125000000000\",\"IsNativeCoins\":[false,false,false,false,false,false,false,false]}","blockNumber":49216894}`
+
+	var poolEntity entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(poolJSON), &poolEntity))
+	p, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	// Every pair should fail — the pool state is degenerate due to the massive U$D reserve.
+	pairs := [][2]string{
+		{"0xa06b10db9f390990364a3984c04fadf1c13691b5", "0x7e10036acc4b56d4dfca3b77810356ce52313f9c"}, // sUSDS → USDS
+		{"0x7e10036acc4b56d4dfca3b77810356ce52313f9c", "0xa06b10db9f390990364a3984c04fadf1c13691b5"}, // USDS → sUSDS
+		{"0xa06b10db9f390990364a3984c04fadf1c13691b5", "0x078d782b760474a361dda0af3839290b0ef57ad6"}, // sUSDS → USDC
+	}
+	for _, pair := range pairs {
+		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: pair[0], Amount: big.NewInt(1e15)},
+				TokenOut:      pair[1],
+			})
+		})
+		require.ErrorIs(t, err, ErrDDoesNotConverge, "expected overflow-detected error for %s→%s", pair[0], pair[1])
+	}
+}
+
 func BenchmarkCalcAmountOut(b *testing.B) {
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",

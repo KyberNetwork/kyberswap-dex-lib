@@ -89,22 +89,26 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 	var Ann uint256.Int
 	Ann.Mul(amp, &t.NumTokensU256)
 
-	var temp1, temp2, temp3, D_P, Dprev uint256.Int
+	var temp1, temp2, temp3, D_P, Dprev, denom uint256.Int
 
-	nCoinsPow := t.calculateNCoinsPow()
 	var nCoinsPlus1 uint256.Int
 	nCoinsPlus1.AddUint64(&t.NumTokensU256, 1)
 
 	for range 255 {
 		Dprev.Set(D)
 
+		// Match Vyper: D_P = D_P * D / (xp[j] * N_COINS + 1)
+		// Dividing by N_COINS at each step keeps intermediates N^N× smaller than deferring.
+		// If D_P * D overflows uint256, the pool state is degenerate (on-chain would also revert).
 		D_P.Set(D)
 		for j := range xp {
-			D_P.Mul(&D_P, D)
-			D_P.Div(&D_P, &xp[j])
+			denom.Mul(&xp[j], &t.NumTokensU256)
+			denom.AddUint64(&denom, 1)
+			if _, overflow := D_P.MulOverflow(&D_P, D); overflow {
+				return ErrDDoesNotConverge
+			}
+			D_P.Div(&D_P, &denom)
 		}
-
-		D_P.Div(&D_P, nCoinsPow)
 
 		// (Ann * S / A_PRECISION + D_P * N_COINS) * D
 		temp1.Mul(&Ann, &S)
@@ -132,21 +136,6 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 	}
 
 	return ErrDDoesNotConverge
-}
-
-// Helper func to calculate N_COINS^N_COINS
-func (t *PoolSimulator) calculateNCoinsPow() *uint256.Int {
-	result := uint256.NewInt(1)
-	if t.NumTokens <= 1 {
-		return result
-	}
-
-	base := uint256.NewInt(uint64(t.NumTokens))
-	for i := 0; i < t.NumTokens; i++ {
-		result.Mul(result, base)
-	}
-
-	return result
 }
 
 // Calculate x[j] if one makes x[i] = x
