@@ -132,6 +132,12 @@ func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 			// nominator
 			tmp0.Mul(&dP, &d)
 
+			// On-chain uses uint256; if D_P*D would overflow uint256 the contract reverts.
+			// big.Int never overflows so we must check explicitly.
+			if tmp0.BitLen() > 256 {
+				return nil, ErrDDoesNotConverge
+			}
+
 			// denominator
 			tmp1.Mul(xp[j], t.numTokensBI)
 			tmp1.Add(&tmp1, bignumber.One)
