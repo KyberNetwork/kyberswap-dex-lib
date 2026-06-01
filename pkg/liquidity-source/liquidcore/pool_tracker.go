@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
@@ -83,19 +82,8 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	precompile := common.HexToAddress("0x0000000000000000000000000000000000000807")
-	oraclePriceBytes, err := t.ethrpcClient.GetETHClient().CallContract(context.Background(), ethereum.CallMsg{
-		To:   &precompile,
-		Data: common.FromHex("0x000000000000000000000000000000000000000000000000000000000000009f"),
-	}, nil)
-	if err != nil {
-		logger.Errorf("failed to call precompile for oracle price: %v", err)
-		return p, err
-	}
-
 	extraBytes, err := json.Marshal(Extra{
-		SpotPrice:   uint256.NewInt(spotPrices.ForwardPrice),
-		OraclePrice: new(uint256.Int).SetBytes(oraclePriceBytes),
+		SpotPrice: uint256.NewInt(spotPrices.ForwardPrice),
 	})
 	if err != nil {
 		return p, err

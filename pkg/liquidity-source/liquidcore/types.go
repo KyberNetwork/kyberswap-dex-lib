@@ -11,8 +11,7 @@ type Metadata struct {
 }
 
 type Extra struct {
-	SpotPrice   *uint256.Int `json:"spotPrice"`
-	OraclePrice *uint256.Int `json:"oraclePrice"`
+	SpotPrice *uint256.Int `json:"s"`
 }
 
 type MetaInfo struct {
