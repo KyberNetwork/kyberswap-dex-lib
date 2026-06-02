@@ -14,6 +14,11 @@ import (
 
 var bpsDivisorU = uint256.NewInt(bpsDivisor)
 
+// nowUnix returns the current wall-clock time used to project the virtual
+// reserves forward. It is a package var so tests can pin it to a specific block
+// timestamp and compare against the on-chain quoter deterministically.
+var nowUnix = func() int64 { return time.Now().Unix() }
+
 // PoolSimulator replays UniPool's swap math fully off-chain.
 //
 // State stored: real reserves at lastUpdateTimestamp, the 4 virtual reserves at
@@ -144,7 +149,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	// Project the 4 VRs forward in time (port of previewVirtualReservesElapsed).
-	now := uint64(time.Now().Unix())
+	now := uint64(nowUnix())
 	vr0In, vr0Out, vr1In, vr1Out := s.projectVirtualReserves(now)
 
 	// Pick the effective reserves used by the AMM (port of getSwapInfo).
@@ -188,17 +193,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	// Spread validation (port of UniPoolPairSwap._validateSpreads). The contract
-	// runs it with: post-swap reserves, the pre-swap projected VRs, and the
-	// NET amountIn (= amountIn - poolFee).
+	// runs it with the post-swap reserves and the pre-swap projected VRs.
 	netAmountIn := poolFeeNetIn(amountIn, s.feePoolBps)
 	newReserveIn := new(uint256.Int).Add(realIn, netAmountIn)
 	newReserveOut := new(uint256.Int).Sub(realOut, amountOut)
-	isVrInUpdated := effIn.Cmp(realIn) != 0
-	isVrOutUpdated := effOut.Cmp(realOut) != 0
 	if err := s.validateSpreads(
 		isToken0Out, newReserveIn, newReserveOut,
-		isVrInUpdated, isVrOutUpdated,
-		netAmountIn, amountOut,
 		vr0In, vr0Out, vr1In, vr1Out,
 	); err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func poolFeeNetIn(amountIn, feePoolBps *uint256.Int) *uint256.Int {
 
 // CalcAmountIn is the exact-out counterpart of CalcAmountOut: given a desired
 // amountOut, compute the minimum amountIn required. Port of UniPoolPairSwap's
-// `getAmountIn` (UniPoolPairSwap.sol:339-350) which rounds the division UP so
+// `getAmountIn` (UniPoolPairSwap.sol) which rounds the division UP so
 // the user always supplies at least enough input on-chain.
 func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
@@ -241,7 +241,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrFeeExceedsMax
 	}
 
-	now := uint64(time.Now().Unix())
+	now := uint64(nowUnix())
 	vr0In, vr0Out, vr1In, vr1Out := s.projectVirtualReserves(now)
 
 	isToken0Out := indexOut == 0
@@ -358,7 +358,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 // UpdateBalance applies a swap to local state so subsequent CalcAmountOut calls
 // on the same simulator see the post-swap reserves.
 //
-// We mirror the on-chain UniPoolPairSwap.swap finalization (lines ~221-231):
+// We mirror the on-chain UniPoolPairSwap.swap finalization:
 //   - real reserves: in += netAmountIn (= amountIn * (BPS - feePoolBps)/BPS), out -= amountOut
 //   - virtualReserveIn  of input token  set to effectiveIn + netAmountIn  (if it was clamped up)
 //   - virtualReserveOut of output token set to effectiveOut - amountOut   (if it was clamped down)
@@ -383,7 +383,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	netAmountIn := poolFeeNetIn(amtIn, s.feePoolBps)
 
-	now := uint64(time.Now().Unix())
+	now := uint64(nowUnix())
 	vr0In, vr0Out, vr1In, vr1Out := s.projectVirtualReserves(now)
 
 	var reserveIn, reserveOut, effIn, effOut, newReserveIn, newReserveOut *uint256.Int
@@ -514,17 +514,20 @@ func min256(a, b *uint256.Int) *uint256.Int {
 
 // validateSpreads is the port of UniPoolPairSwap._validateSpreads.
 //
-// It bounds the spread between the AMM mid-price and the buy/sell prices induced
-// by the swap. The contract reverts with UniPoolPairExcessiveSpread if any of the
-// two |Δprice| / midprice ratios exceeds swapPriceToleranceBps.
+// It only checks the spread on the side OPPOSITE to the swap direction, using the
+// pre-swap (projected) virtual reserves. The active side is intentionally NOT
+// checked so that healing swaps (e.g. after a liquidation that left the active
+// side above tolerance) are not blocked; MEV stays bounded by the opposite-side
+// check. The contract reverts with UniPoolPairExcessiveSpread when:
 //
-// We compute in math/big to avoid uint256 overflow on the `abs * BPS` and
-// `tolerance * comp` products (worst case ~2^286).
+//	|reserveIn*max - reserveOut*min| * BPS  >  tolerance * min(reserveOut*min, reserveIn*max)
+//
+// where (max, min) select the opposite-side virtual reserves. reserveIn/Out are
+// the POST-swap reserves. We compute in math/big to avoid uint256 overflow on the
+// `abs * BPS` and `tolerance * comp` products (worst case ~2^286).
 func (s *PoolSimulator) validateSpreads(
 	isToken0Out bool,
 	newReserveIn, newReserveOut *uint256.Int,
-	isVrInUpdated, isVrOutUpdated bool,
-	netAmountIn, amountOut *uint256.Int,
 	vr0In, vr0Out, vr1In, vr1Out *uint256.Int,
 ) error {
 	if s.swapPriceToleranceBps == swapPriceToleranceDisabled {
@@ -547,70 +550,29 @@ func (s *PoolSimulator) validateSpreads(
 
 	rIn := toBI(newReserveIn)
 	rOut := toBI(newReserveOut)
-	nAmtIn := toBI(netAmountIn)
-	aOut := toBI(amountOut)
 	v0InB, v0OutB := toBI(vr0In), toBI(vr0Out)
 	v1InB, v1OutB := toBI(vr1In), toBI(vr1Out)
-	bpsBI := big.NewInt(bpsDivisor)
-	tolBI := big.NewInt(int64(s.swapPriceToleranceBps))
 
-	// check enforces:  |rL*maxVal - rR*minVal| * BPS  <=  tolerance * min(rR*minVal, rL*maxVal)
-	check := func(maxVal, minVal, rL, rR *big.Int) error {
-		rLmax := new(big.Int).Mul(rL, maxVal)
-		rRmin := new(big.Int).Mul(rR, minVal)
-		abs := new(big.Int).Sub(rLmax, rRmin)
-		abs.Abs(abs)
-		comp := bigMin(rRmin, rLmax)
-		lhs := new(big.Int).Mul(abs, bpsBI)
-		rhs := new(big.Int).Mul(tolBI, comp)
-		if lhs.Cmp(rhs) > 0 {
-			return ErrExcessiveSpread
-		}
-		return nil
+	// Select the opposite-side virtual reserves.
+	var maxVal, minVal *big.Int
+	if isToken0Out {
+		maxVal = bigMax(rOut, v0InB)
+		minVal = bigMin(rIn, v1OutB)
+	} else {
+		maxVal = bigMax(rOut, v1InB)
+		minVal = bigMin(rIn, v0OutB)
 	}
 
-	if isToken0Out {
-		// Check 1: buy-side, uses POST-update virtual reserves on the touched sides.
-		var inVR *big.Int
-		if isVrInUpdated {
-			inVR = new(big.Int).Add(v1InB, nAmtIn)
-		} else {
-			inVR = v1InB
-		}
-		var outVR *big.Int
-		if isVrOutUpdated {
-			outVR = new(big.Int).Sub(v0OutB, aOut)
-		} else {
-			outVR = v0OutB
-		}
-		if err := check(bigMax(rIn, inVR), bigMin(rOut, outVR), rOut, rIn); err != nil {
-			return err
-		}
-		// Check 2: sell-side, uses pre-swap (projected) virtual reserves untouched.
-		if err := check(bigMax(rOut, v0InB), bigMin(rIn, v1OutB), rIn, rOut); err != nil {
-			return err
-		}
-	} else {
-		// Check 1: sell-side, pre-swap VRs.
-		if err := check(bigMax(rOut, v1InB), bigMin(rIn, v0OutB), rIn, rOut); err != nil {
-			return err
-		}
-		// Check 2: buy-side, post-update VRs.
-		var inVR *big.Int
-		if isVrInUpdated {
-			inVR = new(big.Int).Add(v0InB, nAmtIn)
-		} else {
-			inVR = v0InB
-		}
-		var outVR *big.Int
-		if isVrOutUpdated {
-			outVR = new(big.Int).Sub(v1OutB, aOut)
-		} else {
-			outVR = v1OutB
-		}
-		if err := check(bigMax(rIn, inVR), bigMin(rOut, outVR), rOut, rIn); err != nil {
-			return err
-		}
+	rLmax := new(big.Int).Mul(rIn, maxVal)
+	rRmin := new(big.Int).Mul(rOut, minVal)
+	abs := new(big.Int).Sub(rLmax, rRmin)
+	abs.Abs(abs)
+	comp := bigMin(rRmin, rLmax)
+
+	lhs := new(big.Int).Mul(abs, big.NewInt(bpsDivisor))
+	rhs := new(big.Int).Mul(big.NewInt(int64(s.swapPriceToleranceBps)), comp)
+	if lhs.Cmp(rhs) > 0 {
+		return ErrExcessiveSpread
 	}
 	return nil
 }
