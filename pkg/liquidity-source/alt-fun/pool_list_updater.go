@@ -156,7 +156,7 @@ func (u *PoolsListUpdater) fetchPage(ctx context.Context, limit, offset int) ([]
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("alt-fun API returned HTTP %d", resp.StatusCode)

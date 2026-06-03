@@ -364,9 +364,6 @@ func (s *PoolSimulator) computeLtUntilGrad() *uint256.Int {
 
 // btExchangeRate extracts the exchangeRate from the bounce-tech base pool.
 func (s *PoolSimulator) btExchangeRate() *uint256.Int {
-	type exchangeRateProvider interface {
-		ExchangeRate() *uint256.Int
-	}
 	if erp, ok := s.btPool.(*bouncetech.PoolSimulator); ok {
 		return erp.ExchangeRate()
 	}

@@ -16,7 +16,6 @@ import (
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	initialized  bool
 }
 
 type Metadata struct {
