@@ -178,10 +178,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}
 	}
 
-	swapFeeE6 := new(uint256.Int).Div(lpFeeE12, oneE6).Uint64()
-	if swapFeeE6 > uint64(uniswapv4.FeeMax) {
-		swapFeeE6 = uint64(uniswapv4.FeeMax)
-	}
+	swapFeeE6 := min(new(uint256.Int).Div(lpFeeE12, oneE6).Uint64(), uint64(uniswapv4.FeeMax))
 
 	var info *stableStableSwapInfo
 	if isNewBlock {

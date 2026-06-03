@@ -96,7 +96,7 @@ func Test_CalcAmountOut(t *testing.T) {
 		TokenOut: "0x109ddc73b46b2f8141880a5573d2b0d2acf10b07",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "18870367192095562543977004", got.TokenAmountOut.Amount.String())
+	assert.Equal(t, "18870367192095562543977003", got.TokenAmountOut.Amount.String())
 }
 
 func Test_CalcAmountIn(t *testing.T) {

@@ -1,20 +1,10 @@
-package pancakev3
+package nuriv2
 
 import (
 	"fmt"
 	"math/big"
 	"strconv"
-
-	"github.com/KyberNetwork/int256"
-	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
-
-type Gas struct {
-	BaseGas          int64
-	CrossInitTickGas int64
-}
 
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
@@ -36,18 +26,11 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
-type TicksResp struct {
-	LiquidityGross                 *big.Int
-	LiquidityNet                   *big.Int
-	FeeGrowthOutside0X128          *big.Int
-	FeeGrowthOutside1X128          *big.Int
-	TickCumulativeOutside          *big.Int
-	SecondsPerLiquidityOutsideX128 *big.Int
-	SecondsOutside                 uint32
-	Initialized                    bool
+type TickResp struct {
+	TickIdx        string `json:"tickIdx"`
+	LiquidityGross string `json:"liquidityGross"`
+	LiquidityNet   string `json:"liquidityNet"`
 }
-
-type TickResp = ticklens.TickResp
 
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`
@@ -64,49 +47,36 @@ type Tick struct {
 	LiquidityNet   *big.Int `json:"liquidityNet"`
 }
 
-type TickU256 struct {
-	Index          int          `json:"index"`
-	LiquidityGross *uint256.Int `json:"liquidityGross"`
-	LiquidityNet   *int256.Int  `json:"liquidityNet"`
-}
-
-type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
-}
-
-type ExtraTickU256 struct {
-	Liquidity    *uint256.Int `json:"liquidity"`
-	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64       `json:"tickSpacing"`
-	Tick         *int         `json:"tick"`
-	Ticks        []TickU256   `json:"ticks"`
-}
-
 type Slot0 struct {
 	SqrtPriceX96               *big.Int `json:"sqrtPriceX96"`
 	Tick                       *big.Int `json:"tick"`
 	ObservationIndex           uint16   `json:"observationIndex"`
 	ObservationCardinality     uint16   `json:"observationCardinality"`
 	ObservationCardinalityNext uint16   `json:"observationCardinalityNext"`
-	FeeProtocol                uint32   `json:"feeProtocol"`
+	FeeProtocol                uint8    `json:"feeProtocol"`
 	Unlocked                   bool     `json:"unlocked"`
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int `json:"liquidity"`
-	Slot0       Slot0    `json:"slot0"`
-	TickSpacing *big.Int `json:"tickSpacing"`
-	Reserve0    *big.Int `json:"reserve0"`
-	Reserve1    *big.Int `json:"reserve1"`
+	Liquidity   *big.Int
+	Slot0       Slot0
+	FeeTier     int64
+	TickSpacing uint64
+	Reserve0    *big.Int
+	Reserve1    *big.Int
 }
 
-type PoolMeta struct {
-	BlockNumber uint64   `json:"blockNumber"`
-	PriceLimit  *big.Int `json:"priceLimit"`
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	BoostedLiquidityGross          *big.Int
+	BoostedLiquidityNet            *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

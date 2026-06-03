@@ -1,7 +1,6 @@
 package uniswapv3
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -46,46 +45,84 @@ var poolEncoded = `{
 	"blockNumber": 19015393
 }`
 
-func TestCalcAmountOutConcurrentSafe(t *testing.T) {
+func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
-	type testcase struct {
-		name        string
-		tokenIn     string
-		amountIn    string
-		tokenOut    string
-		expectedOut *big.Int
-	}
-	testcases := []testcase{
-		{
-			name:        "swap WETH for UNI",
-			tokenIn:     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			amountIn:    "1000000000000000000", // 1
-			tokenOut:    "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
-			expectedOut: bignumber.NewBig10("375443790259475125204"),
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded), poolEntity))
+	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	// map[idxIn]map[idxOut]map[amtIn]expectedOut  (empty string = error expected)
+	// token0 = UNI (0x1f98...), token1 = WETH (0xc02a...)
+	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
+		1: { // WETH -> UNI
+			0: {
+				"100000000000000000":           "37545796267979064399",      // 0.1 WETH
+				"1000000000000000000":          "375443790259475125204",     // 1 WETH
+				"10000000000000000000":         "3753021248804497424805",    // 10 WETH
+				"5000000000000000000000000000": "3379794010779937772256794", // 5e9 WETH (near full range)
+			},
 		},
-	}
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(poolEncoded), poolEntity)
-			require.NoError(t, err)
+		0: { // UNI -> WETH
+			1: {
+				"10000000000000000000":   "26474434492819241",   // 10 UNI
+				"100000000000000000000":  "264741691210056513",  // 100 UNI
+				"1000000000000000000000": "2647151569544127171", // 1000 UNI
+			},
+		},
+	})
+}
 
-			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
-			require.NoError(t, err)
+func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 
-			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  tc.tokenIn,
-						Amount: bignumber.NewBig10(tc.amountIn),
-					},
-					TokenOut: tc.tokenOut,
-				})
-			})
-			require.NoError(t, err)
-			require.Equal(t, tc.expectedOut, result.TokenAmountOut.Amount)
-		})
-	}
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded), poolEntity))
+	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	testutil.TestCalcAmountIn(t, poolSim)
+}
+
+// TestTickRoundingToZero is a regression test for the case where each individual tick step
+// rounds the output down to 0, but our simulator aggregates them into one computeSwapStep
+// and produces a non-zero (incorrect) result.
+// Pool: 0x7c9ad041dec4381eba8885321d4abba9e3fc536f on Arbitrum (blockNumber 438994300).
+// On-chain: swap 1636887572270 weETH -> WBTC returns 0 (each per-tick step rounds to 0).
+// Bug: our simulator returned 39.
+func TestTickRoundingToZero(t *testing.T) {
+	t.Parallel()
+	const poolEncoded438994300 = `{
+		"address": "0x7c9ad041dec4381eba8885321d4abba9e3fc536f",
+		"swapFee": 100,
+		"type": "uniswapv3",
+		"timestamp": 1772814285,
+		"reserves": ["52", "519998727172"],
+		"tokens": [
+			{"address": "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f", "symbol": "WBTC", "decimals": 8, "swappable": true},
+			{"address": "0x35751007a407ca6feffe80b3cb397736d2cf4dbe", "symbol": "weETH", "decimals": 18, "swappable": true}
+		],
+		"extra": "{\"liquidity\":5199993,\"sqrtPriceX96\":7922807523698269125109939133199873,\"tickSpacing\":1,\"tick\":230270,\"ticks\":[{\"index\":-887272,\"liquidityGross\":5199993,\"liquidityNet\":5199993},{\"index\":887272,\"liquidityGross\":5199993,\"liquidityNet\":-5199993}]}",
+		"staticExtra": "{\"poolId\":\"0x7c9ad041dec4381eba8885321d4abba9e3fc536f\"}",
+		"blockNumber": 438994300
+	}`
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded438994300), poolEntity))
+
+	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDArbitrumOne)
+	require.NoError(t, err)
+
+	// weETH (token1) -> WBTC (token0): on-chain amountOut = 0
+	_, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0x35751007a407ca6feffe80b3cb397736d2cf4dbe",
+			Amount: bignumber.NewBig10("1636887572270"),
+		},
+		TokenOut: "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+	})
+	require.ErrorIs(t, err, ErrZeroAmount)
 }
 
 func TestCloneState(t *testing.T) {
@@ -94,48 +131,14 @@ func TestCloneState(t *testing.T) {
 	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)
 
-	var poolSim pool.IPoolSimulator
-	poolSim, err = NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
 
-	// BenchmarkCloneState-16    	    1153	    978127 ns/op
-	// cloned = clone.Slowly(sim).(pool.IPoolSimulator)
-	// stack overflowed
-	// cloned = clone.Clone(sim).(pool.IPoolSimulator)
-	// BenchmarkCloneState-16    	 5774500	       212.4 ns/op
-	cloned := poolSim.CloneState()
-
-	tokenAmountIn := pool.TokenAmount{
-		Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
-		Amount: bignumber.NewBig10("1000000000000000000"),
-	}
-	tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
-	})
-	require.NoError(t, err)
-	expectedAmountOut := "2647446103029320"
-	require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
-
-	poolSim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  tokenAmountIn,
-		TokenAmountOut: *result.TokenAmountOut,
-		SwapInfo:       result.SwapInfo,
-	})
-
-	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
-	})
-	require.NoError(t, err)
-	require.NotEqual(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
-
-	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
-	})
-	require.NoError(t, err)
-	require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+	testutil.TestCloneState(t, poolSim, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+			Amount: bignumber.NewBig10("1000000000000000000"),
+		},
+		TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+	}, nil)
 }

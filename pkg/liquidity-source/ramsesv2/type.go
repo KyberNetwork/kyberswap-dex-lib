@@ -1,20 +1,12 @@
-package pancakev3
+package ramsesv2
 
 import (
 	"fmt"
 	"math/big"
 	"strconv"
 
-	"github.com/KyberNetwork/int256"
-	"github.com/holiman/uint256"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
-
-type Gas struct {
-	BaseGas          int64
-	CrossInitTickGas int64
-}
 
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
@@ -30,28 +22,14 @@ type Token struct {
 type SubgraphPool struct {
 	ID                 string `json:"id"`
 	FeeTier            string `json:"feeTier"`
-	PoolType           string `json:"poolType"`
 	CreatedAtTimestamp string `json:"createdAtTimestamp"`
 	Token0             Token  `json:"token0"`
 	Token1             Token  `json:"token1"`
 }
 
-type TicksResp struct {
-	LiquidityGross                 *big.Int
-	LiquidityNet                   *big.Int
-	FeeGrowthOutside0X128          *big.Int
-	FeeGrowthOutside1X128          *big.Int
-	TickCumulativeOutside          *big.Int
-	SecondsPerLiquidityOutsideX128 *big.Int
-	SecondsOutside                 uint32
-	Initialized                    bool
-}
-
-type TickResp = ticklens.TickResp
-
 type SubgraphPoolTicks struct {
-	ID    string     `json:"id"`
-	Ticks []TickResp `json:"ticks"`
+	ID    string              `json:"id"`
+	Ticks []ticklens.TickResp `json:"ticks"`
 }
 
 type StaticExtra struct {
@@ -62,28 +40,6 @@ type Tick struct {
 	Index          int      `json:"index"`
 	LiquidityGross *big.Int `json:"liquidityGross"`
 	LiquidityNet   *big.Int `json:"liquidityNet"`
-}
-
-type TickU256 struct {
-	Index          int          `json:"index"`
-	LiquidityGross *uint256.Int `json:"liquidityGross"`
-	LiquidityNet   *int256.Int  `json:"liquidityNet"`
-}
-
-type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
-}
-
-type ExtraTickU256 struct {
-	Liquidity    *uint256.Int `json:"liquidity"`
-	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64       `json:"tickSpacing"`
-	Tick         *int         `json:"tick"`
-	Ticks        []TickU256   `json:"ticks"`
 }
 
 type Slot0 struct {
@@ -97,19 +53,40 @@ type Slot0 struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int `json:"liquidity"`
-	Slot0       Slot0    `json:"slot0"`
-	TickSpacing *big.Int `json:"tickSpacing"`
-	Reserve0    *big.Int `json:"reserve0"`
-	Reserve1    *big.Int `json:"reserve1"`
+	Liquidity   *big.Int
+	Slot0       Slot0
+	FeeTier     int64
+	TickSpacing uint64
+	Reserve0    *big.Int
+	Reserve1    *big.Int
+	BlockNumber uint64
 }
 
-type PoolMeta struct {
-	BlockNumber uint64   `json:"blockNumber"`
-	PriceLimit  *big.Int `json:"priceLimit"`
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	BoostedLiquidityGross          *big.Int
+	BoostedLiquidityNet            *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
 }
 
-func transformTickRespToTick(tickResp TickResp) (Tick, error) {
+type TicksRespV3 struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
+func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
 	if !ok {
 		return Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)

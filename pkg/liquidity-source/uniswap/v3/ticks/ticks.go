@@ -2,6 +2,7 @@ package ticks
 
 import (
 	"errors"
+	"maps"
 	"math/big"
 	"strings"
 
@@ -96,9 +97,7 @@ func ValidateAllPoolTicks(pool TicksBasedPool, ticks []Tick) error {
 
 func ValidatePoolTicks(pool TicksBasedPool, ticks []Tick) error {
 	tickMap := make(map[int]Tick, len(pool.Ticks))
-	for k, v := range pool.Ticks {
-		tickMap[k] = v
-	}
+	maps.Copy(tickMap, pool.Ticks)
 
 	oldTicks := make([]Tick, 0, len(ticks))
 	for _, tick := range ticks {

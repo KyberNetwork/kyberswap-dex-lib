@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
@@ -223,7 +222,7 @@ func buildInner(p *entity.Pool, hookExtraBytes []byte) (*stableng.PoolSimulator,
 	nCoins := len(p.Tokens)
 
 	rates := make([]uint256.Int, nCoins)
-	for i := 0; i < nCoins; i++ {
+	for i := range nCoins {
 		if err := rates[i].SetFromDecimal(hx.Rates[i]); err != nil {
 			return nil, fmt.Errorf("parse rates[%d]=%q: %w", i, hx.Rates[i], err)
 		}
@@ -252,7 +251,7 @@ func buildInner(p *entity.Pool, hookExtraBytes []byte) (*stableng.PoolSimulator,
 	}
 
 	reserves := make(entity.PoolReserves, nCoins+1)
-	for i := 0; i < nCoins; i++ {
+	for i := range nCoins {
 		reserves[i] = hx.Balances[i]
 	}
 	reserves[nCoins] = hx.LpSupply
