@@ -1,0 +1,92 @@
+[
+  {
+    "inputs": [],
+    "name": "graduationThresholdUsd",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "token_", "type": "address" }],
+    "name": "getTokenInfo",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "creator",     "type": "address" },
+          { "internalType": "address", "name": "pair",        "type": "address" },
+          { "internalType": "address", "name": "ltAddress",   "type": "address" },
+          { "internalType": "string",  "name": "name",        "type": "string"  },
+          { "internalType": "string",  "name": "ticker",      "type": "string"  },
+          { "internalType": "string",  "name": "description", "type": "string"  },
+          { "internalType": "string",  "name": "image",       "type": "string"  },
+          { "internalType": "string[3]","name": "urls",       "type": "string[3]"},
+          { "internalType": "uint8",   "name": "lifecycle",   "type": "uint8"   }
+        ],
+        "internalType": "struct Bonding.TokenInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "token_", "type": "address" }],
+    "name": "previewLtUntilGraduation",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "address", "name": "token",    "type": "address" },
+      { "indexed": true,  "internalType": "address", "name": "creator",  "type": "address" },
+      { "indexed": true,  "internalType": "address", "name": "ltAddress","type": "address" },
+      { "indexed": false, "internalType": "string",  "name": "name",     "type": "string"  },
+      { "indexed": false, "internalType": "string",  "name": "ticker",   "type": "string"  },
+      { "indexed": false, "internalType": "uint256", "name": "k",        "type": "uint256" }
+    ],
+    "name": "TokenLaunched",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "address", "name": "token",         "type": "address" },
+      { "indexed": true,  "internalType": "address", "name": "trader",        "type": "address" },
+      { "indexed": true,  "internalType": "bool",    "name": "isBuy",         "type": "bool"    },
+      { "indexed": false, "internalType": "uint256", "name": "ltAmount",      "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "tokenAmount",   "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "newCurveSupply","type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "newLtReserve",  "type": "uint256" }
+    ],
+    "name": "Trade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "address", "name": "token",       "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "tokensForLP", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "ltFromPair",  "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "lpBurned",    "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "unsoldBurned","type": "uint256" }
+    ],
+    "name": "TokenGraduating",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "address", "name": "token",       "type": "address" },
+      { "indexed": true,  "internalType": "address", "name": "pairAddress", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "liquidity",   "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "tokensInLP",  "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "lpBurned",    "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "unsoldBurned","type": "uint256" }
+    ],
+    "name": "TokenGraduated",
+    "type": "event"
+  }
+]

@@ -4,6 +4,7 @@ type Exchange string
 
 const (
 	ExchangeAlienBaseStableSwap        = "alien-base-stableswap"
+	ExchangeAltFun                     = "alt-fun"
 	ExchangeAmbient                    = "ambient"
 	ExchangeApeSwap                    = "apeswap"
 	ExchangeArberaDen                  = "arbera-den"
@@ -49,6 +50,7 @@ const (
 	ExchangeBiSwap                     = "biswap"
 	ExchangeBMX                        = "bmx"
 	ExchangeBMXGLP                     = "bmx-glp"
+	ExchangeBounceTech                 = "bounce-tech"
 	ExchangeBrownfi                    = "brownfi"
 	ExchangeBrownfiV2                  = "brownfi-v2"
 	ExchangeBrownfiV3                  = "brownfi-v3"
