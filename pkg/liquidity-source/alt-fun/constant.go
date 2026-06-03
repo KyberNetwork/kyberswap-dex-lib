@@ -9,8 +9,8 @@ import (
 const (
 	DexType = "alt-fun"
 
-	buyGas  = 350000
-	sellGas = 300000
+	buyGas  = 300000
+	sellGas = 350000
 )
 
 var (

@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -44,7 +45,7 @@ type ListMetadata struct {
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	httpClient   *http.Client
+	httpClient   *resty.Client
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -53,10 +54,13 @@ func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsList
 	if config.APIURL == "" {
 		config.APIURL = defaultAPIURL
 	}
+	if config.HTTPConfig.Timeout.Duration == 0 {
+		config.HTTPConfig.Timeout = defaultTimeout
+	}
 	return &PoolsListUpdater{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		httpClient:   &http.Client{Timeout: 15 * time.Second},
+		httpClient:   resty.New().SetBaseURL(config.APIURL).SetTimeout(config.HTTPConfig.Timeout.Duration).SetRetryCount(config.HTTPConfig.RetryCount),
 	}
 }
 
@@ -147,24 +151,20 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) fetchPage(ctx context.Context, limit, offset int) ([]apiToken, error) {
-	url := fmt.Sprintf("%s?limit=%d&offset=%d", u.config.APIURL, limit, offset)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := u.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("alt-fun API returned HTTP %d", resp.StatusCode)
-	}
-
 	var result apiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	resp, err := u.httpClient.R().
+		SetContext(ctx).
+		SetQueryParams(map[string]string{
+			"limit":  fmt.Sprintf("%d", limit),
+			"offset": fmt.Sprintf("%d", offset),
+		}).
+		SetResult(&result).
+		Get("")
+	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("alt-fun API returned HTTP %d", resp.StatusCode())
 	}
 	return result.Data, nil
 }

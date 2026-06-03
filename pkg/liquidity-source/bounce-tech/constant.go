@@ -9,8 +9,8 @@ import (
 const (
 	DexType = "bounce-tech"
 
-	mintGas   = 200000
-	redeemGas = 150000
+	mintGas   = 150000
+	redeemGas = 200000
 )
 
 var (
