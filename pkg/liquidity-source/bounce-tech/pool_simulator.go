@@ -153,13 +153,13 @@ func (s *PoolSimulator) calcRedeemOut(ltIn *uint256.Int) (*uint256.Int, *uint256
 	// ltToBaseAmount: ltIn * exchangeRate / 1e18 / 1e12
 	grossUsdc := new(uint256.Int).Mul(ltIn, s.exchangeRate)
 	grossUsdc.Div(grossUsdc, precision) // / 1e18
-	grossUsdc.Div(grossUsdc, scaleUp)  // / 1e12
+	grossUsdc.Div(grossUsdc, scaleUp)   // / 1e12
 
 	// redemptionFee = grossUsdc * redemptionFee * targetLeverage / 1e36
 	fee := new(uint256.Int).Mul(grossUsdc, s.redemptionFee)
-	fee.Div(fee, precision)          // / 1e18
+	fee.Div(fee, precision) // / 1e18
 	fee.Mul(fee, s.targetLeverage)
-	fee.Div(fee, precision)          // / 1e18
+	fee.Div(fee, precision) // / 1e18
 
 	if fee.Gt(grossUsdc) {
 		fee.Set(grossUsdc)

@@ -8,8 +8,8 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
-	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -64,10 +64,10 @@ func TestCalcAmountOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
 	graduationThresholdUsd := mustU256("50000000000000000000") // 50 USD
 
 	btPool := newBtPool(t,
-		uint256.NewInt(1e18),  // exchangeRate 1:1
-		uint256.NewInt(1e16),  // 1% redemptionFee
-		uint256.NewInt(3e18),  // 3x leverage
-		uint256.NewInt(10_000_000), // 10 USDC min
+		uint256.NewInt(1e18),          // exchangeRate 1:1
+		uint256.NewInt(1e16),          // 1% redemptionFee
+		uint256.NewInt(3e18),          // 3x leverage
+		uint256.NewInt(10_000_000),    // 10 USDC min
 		uint256.NewInt(1_000_000_000), // 1000 USDC base balance
 		false,
 	)

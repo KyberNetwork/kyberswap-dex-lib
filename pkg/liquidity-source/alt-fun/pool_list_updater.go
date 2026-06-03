@@ -174,9 +174,9 @@ func (u *PoolsListUpdater) fetchZapParams(ctx context.Context) (
 	usdc string, buyFeeBps, sellFeeBps uint64, graduationThresholdUsd *big.Int, err error,
 ) {
 	var (
-		buyFee    = new(big.Int)
-		sellFee   = new(big.Int)
-		baseAsset common.Address
+		buyFee     = new(big.Int)
+		sellFee    = new(big.Int)
+		baseAsset  common.Address
 		gradThresh = new(big.Int)
 	)
 
