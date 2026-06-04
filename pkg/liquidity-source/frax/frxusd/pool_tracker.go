@@ -80,7 +80,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		Method: "mdwrComboView",
 	}, []any{&mdwrCombo})
 
-	if vaultCfg.SwapTypes == erc4626.Both || vaultCfg.SwapTypes == erc4626.Deposit {
+	if vaultCfg.Gas.Deposit > 0 {
 		for i, amt := range erc4626.PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
 				ABI:    erc4626.ABI,
@@ -91,7 +91,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		}
 	}
 
-	if vaultCfg.SwapTypes == erc4626.Both || vaultCfg.SwapTypes == erc4626.Redeem {
+	if vaultCfg.Gas.Redeem > 0 {
 		for i, amt := range erc4626.PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
 				ABI:    erc4626.ABI,

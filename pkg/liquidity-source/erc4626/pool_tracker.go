@@ -73,7 +73,12 @@ func (t *PoolTracker) getNewPoolState(
 	}()
 
 	vaultAddr := p.Tokens[0].Address
-	vaultCfg := t.cfg.Vaults[vaultAddr]
+	vaultCfg, ok := t.cfg.Vaults[vaultAddr]
+	if !ok { // manually added vault
+		var extra Extra
+		_ = json.Unmarshal([]byte(p.Extra), &extra)
+		vaultCfg.Gas = GasCfg(extra.Gas)
+	}
 	_, state, err := FetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
 	if err != nil {
 		lg.WithFields(logger.Fields{
@@ -89,7 +94,6 @@ func (t *PoolTracker) getNewPoolState(
 func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
 	extraBytes, err := json.Marshal(Extra{
 		Gas:          Gas(vaultCfg.Gas),
-		SwapTypes:    vaultCfg.SwapTypes,
 		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
 		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
@@ -127,7 +131,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		}, []any{&assetToken})
 	}
 
-	if vaultCfg.SwapTypes == Both || vaultCfg.SwapTypes == Deposit {
+	if vaultCfg.Gas.Deposit > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
@@ -148,7 +152,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			}, []any{&poolState.DepositRates[i]})
 		}
 	}
-	if vaultCfg.SwapTypes == Both || vaultCfg.SwapTypes == Redeem {
+	if vaultCfg.Gas.Redeem > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
