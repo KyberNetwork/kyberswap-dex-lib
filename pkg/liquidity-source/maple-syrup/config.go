@@ -8,8 +8,7 @@ type Config struct {
 }
 
 type VaultCfg struct {
-	Gas         erc4626.GasCfg   `json:"gas"`
-	SwapTypes   erc4626.SwapType `json:"swapTypes"`
-	Router      string           `json:"router"`
-	PoolManager string           `json:"poolManager"`
+	Gas         erc4626.GasCfg `json:"gas"`
+	Router      string         `json:"router"`
+	PoolManager string         `json:"poolManager"`
 }

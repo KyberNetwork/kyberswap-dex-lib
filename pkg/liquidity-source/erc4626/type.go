@@ -23,7 +23,6 @@ type (
 
 	Extra struct {
 		Gas          Gas            `json:"g"`
-		SwapTypes    SwapType       `json:"sT,omitempty"`
 		MaxDeposit   *uint256.Int   `json:"mD,omitempty"`
 		MaxRedeem    *uint256.Int   `json:"mR,omitempty"`
 		DepositRates []*uint256.Int `json:"dR,omitempty"`

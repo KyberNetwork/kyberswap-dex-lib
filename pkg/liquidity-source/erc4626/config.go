@@ -11,8 +11,7 @@ type Config struct {
 }
 
 type VaultCfg struct {
-	Gas       GasCfg   `json:"gas"`
-	SwapTypes SwapType `json:"swapTypes"`
+	Gas GasCfg `json:"gas"`
 }
 
 type GasCfg struct {
