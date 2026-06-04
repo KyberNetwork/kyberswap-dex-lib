@@ -81,6 +81,7 @@ pkg/liquidity-source/<dex>/
 - If a swap does not consume the full input amount, the remaining amount must be returned.
 - Gas estimation should reflect the actual swap execution cost.
 - Prefer `uint256.Int`/`int256.Int` over `big.Int` for math and state, and reuse helpers in `pkg/util` (`big256`, `int256`, ...) instead of reimplementing.
+- Test integration correctness, including pricing, limits, and protocol constraints. Port all relevant on-chain or documented math test cases.
 
 **Optional capabilities**: 
 - Implement `CalculateLimit()` and support `pool.SwapLimit` when the protocol has shared inventory/vault behavior.
