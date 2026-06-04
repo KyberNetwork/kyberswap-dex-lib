@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
-	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
-	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
-	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -20,7 +17,7 @@ import (
 )
 
 type PoolSimulator struct {
-	V3Pool *v3Entities.Pool
+	V3Pool *Pool
 	pool.Pool
 	Gas             Gas
 	tickMin         int
@@ -30,25 +27,20 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimulator, error) {
 	var extra ExtraTickU256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
-	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra, false)
+	return NewPoolSimulatorWithExtra(entityPool, &extra, SimulatorConfig{})
 }
 
-func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.ChainID,
-	extra *ExtraTickU256, allowEmptyTicks bool) (*PoolSimulator, error) {
+func NewPoolSimulatorWithExtra(entityPool entity.Pool,
+	extra *ExtraTickU256, cfg SimulatorConfig) (*PoolSimulator, error) {
 	if extra.Tick == nil {
 		return nil, ErrTickNil
 	}
-
-	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address),
-		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, "")
-	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address),
-		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, "")
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
@@ -60,17 +52,15 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
 	}
 
-	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
+	v3Ticks := make([]TickU256, 0, len(extra.Ticks))
 
-	// Ticks are sorted from the pool service, so we don't have to do it again here
-	// Purpose: to improve the latency
+	// Ticks are sorted from the pool service, so we don't have to do it again here.
 	for _, t := range extra.Ticks {
-		// LiquidityGross = 0 means that the tick is uninitialized
+		// LiquidityGross = 0 means the tick is uninitialized.
 		if t.LiquidityGross.IsZero() {
 			continue
 		}
-
-		v3Ticks = append(v3Ticks, v3Entities.Tick{
+		v3Ticks = append(v3Ticks, TickU256{
 			Index:          t.Index,
 			LiquidityGross: t.LiquidityGross,
 			LiquidityNet:   t.LiquidityNet,
@@ -79,7 +69,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 
 	// if the tick list is empty, the pool should be ignored
 	// for some uniswap-v4 hooks, we want to bypass this check due to some hooks has no ticks
-	if !allowEmptyTicks && len(v3Ticks) == 0 {
+	if !cfg.AllowEmptyTicks && len(v3Ticks) == 0 {
 		return nil, ErrV3TicksEmpty
 	}
 
@@ -87,31 +77,29 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	// For some pools that not yet initialized tickSpacing in their extra,
 	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
-		feeTier := constants.FeeAmount(entityPool.SwapFee)
-		if _, ok := constants.TickSpacings[feeTier]; !ok {
+		fallback := cfg.TickSpacingFallback
+		if fallback == nil {
+			fallback = TickSpacings
+		}
+		feeTier := FeeAmount(entityPool.SwapFee)
+		if _, ok := fallback[feeTier]; !ok {
 			return nil, ErrInvalidFeeTier
 		}
-		tickSpacing = constants.TickSpacings[feeTier]
+		tickSpacing = fallback[feeTier]
 	}
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
-	if err != nil {
-		return nil, err
-	}
-
-	v3Pool, err := v3Entities.NewPoolV2(
-		token0,
-		token1,
-		constants.FeeAmount(entityPool.SwapFee),
+	v3Pool, err := NewPool(
+		FeeAmount(entityPool.SwapFee),
 		extra.SqrtPriceX96,
 		extra.Liquidity,
 		*extra.Tick,
-		ticks,
+		v3Ticks,
+		tickSpacing,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	tickMin, tickMax := v3Utils.MinTick, v3Utils.MaxTick
+	tickMin, tickMax := MinTick, MaxTick
 	if len(v3Ticks) > 0 {
 		tickMin = v3Ticks[0].Index
 		tickMax = v3Ticks[len(v3Ticks)-1].Index
@@ -130,14 +118,14 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		Gas:             defaultGas,
 		tickMin:         tickMin,
 		tickMax:         tickMax,
-		allowEmptyTicks: allowEmptyTicks,
+		allowEmptyTicks: cfg.AllowEmptyTicks,
 	}, nil
 }
 
 // GetSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
-func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint160) error {
+func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *uint256.Int) error {
 	tickLimit := lo.Ternary(zeroForOne, p.tickMin, p.tickMax)
-	if err := v3Utils.GetSqrtRatioAtTickV2(tickLimit, result); err != nil {
+	if err := GetSqrtRatioAtTick(tickLimit, result); err != nil {
 		return err
 	}
 	lo.Ternary(zeroForOne, result.AddUint64, result.SubUint64)(result, 1)
@@ -155,18 +143,22 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	zeroForOne := tokenInIndex == 0
-	amountOut := coreEntities.FromRawAmount(lo.Ternary(zeroForOne, p.V3Pool.Token1, p.V3Pool.Token0),
-		tokenAmountOut.Amount)
-	var priceLimit v3Utils.Uint160
+
+	var amountOutI256 int256.Int
+	if overflow := amountOutI256.SetFromBig(tokenAmountOut.Amount); overflow {
+		return nil, ErrOverflow
+	}
+
+	var priceLimit uint256.Int
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
-	amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, &priceLimit)
+	amountIn, newPoolState, err := p.V3Pool.GetInputAmountV2(&amountOutI256, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	amountInBI := amountIn.Quotient()
+	amountInBI := amountIn.ToBig()
 	if !p.allowEmptyTicks {
 		if amountInBI.Sign() <= 0 {
 			return nil, ErrZeroAmount
@@ -181,7 +173,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		Gas: p.Gas.BaseGas, // TODO: update GetInputAmount to return crossed tick if we ever need this
+		Gas: p.Gas.BaseGas, // TODO: update GetInputAmountV2 to return crossed tick if we ever need this
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
 			nextStateLiquidity:    newPoolState.Liquidity,
@@ -198,12 +190,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidToken
 	}
 
-	var amountIn v3Utils.Int256
+	var amountIn int256.Int
 	if overflow := amountIn.SetFromBig(tokenAmountIn.Amount); overflow {
 		return nil, ErrOverflow
 	}
 	zeroForOne := tokenInIndex == 0
-	var priceLimit v3Utils.Uint160
+	var priceLimit uint256.Int
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
@@ -279,7 +271,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
-	var priceLimit v3Utils.Uint160
+	var priceLimit uint256.Int
 	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 	return PoolMeta{
 		SwapFee:    uint32(p.Info.SwapFee.Int64()),

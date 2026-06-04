@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 
@@ -130,7 +131,7 @@ func computeJitSwap(
 		sqrtPriceTargetX96,
 		liquidity,
 		&amountRemainingI256,
-		swapFee,
+		constants.FeeAmount(swapFee),
 		&sqrtPriceNextX96, &amountIn, &amountOut, &feeAmount,
 	)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
+	altfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/alt-fun"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
@@ -24,6 +25,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
@@ -107,6 +109,7 @@ import (
 	nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nuriv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
@@ -118,12 +121,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slipstream"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
+	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v3"
 	someswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
 	someswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
@@ -180,16 +186,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
-	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
@@ -420,6 +422,8 @@ type Types struct {
 	Canonic                    string
 	Fermi                      string
 	CapricornPamm              string
+	BounceTech                 string
+	AltFun                     string
 }
 
 var (
@@ -642,5 +646,7 @@ var (
 		Canonic:                    canonic.DexType,
 		Fermi:                      valueobject.ExchangeFermi,
 		CapricornPamm:              capricornpamm.DexType,
+		BounceTech:                 bouncetech.DexType,
+		AltFun:                     altfun.DexType,
 	}
 )

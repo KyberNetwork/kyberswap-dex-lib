@@ -581,13 +581,16 @@ func TestSpread_F2_VRsAlignedWithReserves_NoError(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestSpread_F3_VRsFarFromReserves_TripsSpread(t *testing.T) {
+func TestSpread_F3_OppositeSideVRFar_TripsSpread(t *testing.T) {
 	t.Parallel()
 	r := pow10(18)
 	extra := makeExtra(r, r)
-	// Token0 in -> effIn = max(VR0In, r0). Inflate VR0In by 10x to force a huge
-	// gap between post-update reserveIn and the spread reference.
-	extra.VirtualReserve0In = new(big.Int).Mul(r, big.NewInt(10))
+	// token0 in, token1 out => isToken0Out=false. The spread check reads the
+	// OPPOSITE-side VRs: max(reserveOut, vr1In) and min(reserveIn, vr0Out).
+	// Inflate vr1In 10x to blow past tolerance. Note vr1In does NOT feed the
+	// swap math (effIn uses vr0In, effOut uses vr1Out), so this isolates the
+	// spread check.
+	extra.VirtualReserve1In = new(big.Int).Mul(r, big.NewInt(10))
 	extra.LastUpdateTimestamp = uint64(time.Now().Unix()) + 10_000 // freeze
 	extra.SwapPriceToleranceBps = 100                              // 1%
 	sim := makePool(t, tokenA, tokenB, extra)
@@ -597,6 +600,26 @@ func TestSpread_F3_VRsFarFromReserves_TripsSpread(t *testing.T) {
 		TokenOut:      tokenB,
 	})
 	assert.ErrorIs(t, err, ErrExcessiveSpread)
+}
+
+// TestSpread_F3b_ActiveSideVRNotChecked: the spread guard only checks the side
+// opposite to the swap direction. Inflating ONLY the active-side input VR (vr0In
+// for a token0-in swap) must NOT trip the guard — it still bends the swap curve
+// via effIn, but the opposite-side spread stays within tolerance.
+func TestSpread_F3b_ActiveSideVRNotChecked(t *testing.T) {
+	t.Parallel()
+	r := pow10(18)
+	extra := makeExtra(r, r)
+	extra.VirtualReserve0In = new(big.Int).Mul(r, big.NewInt(2)) // active side only
+	extra.LastUpdateTimestamp = uint64(time.Now().Unix()) + 10_000
+	extra.SwapPriceToleranceBps = 100
+	sim := makePool(t, tokenA, tokenB, extra)
+
+	_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenA, Amount: pow10(15)},
+		TokenOut:      tokenB,
+	})
+	assert.NoError(t, err)
 }
 
 func TestSpread_F4_ToleranceZero_RevertsOnAnySwap(t *testing.T) {

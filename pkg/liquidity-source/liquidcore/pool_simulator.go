@@ -36,14 +36,12 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		}},
 
 		PoolState: &PoolState{
-			Token0:      ep.Tokens[0].Address,
-			Token1:      ep.Tokens[1].Address,
-			Decimals0:   ep.Tokens[0].Decimals,
-			Decimals1:   ep.Tokens[1].Decimals,
-			Reserve0:    uint256.MustFromDecimal(ep.Reserves[0]),
-			Reserve1:    uint256.MustFromDecimal(ep.Reserves[1]),
-			SpotPrice:   extra.SpotPrice,
-			OraclePrice: extra.OraclePrice,
+			Token0:    ep.Tokens[0].Address,
+			Decimals0: ep.Tokens[0].Decimals,
+			Decimals1: ep.Tokens[1].Decimals,
+			Reserve0:  uint256.MustFromDecimal(ep.Reserves[0]),
+			Reserve1:  uint256.MustFromDecimal(ep.Reserves[1]),
+			SpotPrice: extra.SpotPrice,
 		},
 	}, nil
 }
@@ -57,7 +55,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
 
-	result, err := CalcSwap(s.PoolState, tokenAmountIn.Token, tokenOut, amountIn)
+	result, err := CalcSwap(s.PoolState, tokenAmountIn.Token, amountIn)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +70,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: result.FeeAmount.ToBig(),
 		},
 		Gas:      defaultGas,
-		SwapInfo: lo.T4(s.SpotPrice, s.OraclePrice, result.NewReserve0, result.NewReserve1),
+		SwapInfo: [2]*uint256.Int{result.NewReserve0, result.NewReserve1},
 	}, nil
 }
 
@@ -83,15 +81,11 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	clonedPoolState := *s.PoolState
-	clonedPoolState.Reserve0 = new(uint256.Int).Set(s.Reserve0)
-	clonedPoolState.Reserve1 = new(uint256.Int).Set(s.Reserve1)
 	cloned.PoolState = &clonedPoolState
-
 	return &cloned
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	_, _, r0, r1 := params.SwapInfo.(lo.Tuple4[*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int]).Unpack()
-	s.Reserve0 = r0.Clone()
-	s.Reserve1 = r1.Clone()
+	newRs := params.SwapInfo.([2]*uint256.Int)
+	s.Reserve0, s.Reserve1 = newRs[0], newRs[1]
 }

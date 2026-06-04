@@ -44,7 +44,7 @@ func FetchTickSpacings(
 			return nil, err
 		}
 
-		for j := 0; j < len(chunk); j++ {
+		for j := range chunk {
 			poolAddress := poolAddresses[i+j]
 			tickSpacings[poolAddress] = rpcResponse[j].Uint64()
 		}
