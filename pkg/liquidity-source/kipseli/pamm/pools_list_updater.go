@@ -47,7 +47,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		AddCall(&ethrpc.Call{ABI: lensABI, Target: u.cfg.LensAddress, Method: "QUOTE_TOKEN"}, []any{&quoteToken}).
 		AddCall(&ethrpc.Call{ABI: lensABI, Target: u.cfg.LensAddress, Method: "getListedTokens"}, []any{&listed}).
 		TryAggregate(); err != nil {
-		log.Errorf("quote target calls failed: %v", err)
+		log.Errorf("lens calls failed: %v", err)
 		return nil, metadataBytes, err
 	}
 
