@@ -42,11 +42,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var quoteToken common.Address
 	var listed []common.Address
-	quoteTarget := common.HexToAddress(u.cfg.LensAddress)
 
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{ABI: lensABI, Target: quoteTarget.Hex(), Method: "QUOTE_TOKEN"}, []any{&quoteToken}).
-		AddCall(&ethrpc.Call{ABI: lensABI, Target: quoteTarget.Hex(), Method: "getListedTokens"}, []any{&listed}).
+		AddCall(&ethrpc.Call{ABI: lensABI, Target: u.cfg.LensAddress, Method: "QUOTE_TOKEN"}, []any{&quoteToken}).
+		AddCall(&ethrpc.Call{ABI: lensABI, Target: u.cfg.LensAddress, Method: "getListedTokens"}, []any{&listed}).
 		TryAggregate(); err != nil {
 		log.Errorf("quote target calls failed: %v", err)
 		return nil, metadataBytes, err
