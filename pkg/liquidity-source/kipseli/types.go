@@ -15,10 +15,10 @@ type StateOverride struct {
 }
 
 type Extra struct {
-	Samples          [][][2]*big.Int          `json:"samples"`
-	MaxIn            []*big.Int               `json:"maxIn,omitempty"`
-	SO               map[string]StateOverride `json:"so,omitempty"`
-	LastUpdatedBlock uint64                   `json:"lub,omitempty"`
+	Samples        [][][2]*big.Int          `json:"samples"`
+	MaxIn          []*big.Int               `json:"maxIn,omitempty"`
+	SO             map[string]StateOverride `json:"so,omitempty"`
+	BlockTimestamp uint64                   `json:"bt,omitempty"`
 }
 
 var (
