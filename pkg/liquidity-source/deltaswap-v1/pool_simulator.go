@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -74,7 +72,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, uniswapv2.ErrInvalidAmountIn
 	}
 
-	if amountIn.Cmp(number.Zero) <= 0 {
+	if amountIn.Sign() <= 0 {
 		return nil, uniswapv2.ErrInsufficientInputAmount
 	}
 
@@ -88,7 +86,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+	if reserveIn.Sign() <= 0 || reserveOut.Sign() <= 0 {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
@@ -98,13 +96,13 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut, fee)
-	if amountOut.Cmp(reserveOut) > 0 {
+	if !amountOut.Lt(reserveOut) {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
@@ -129,7 +127,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, uniswapv2.ErrInvalidAmountOut
 	}
 
-	if amountOut.Cmp(number.Zero) <= 0 {
+	if amountOut.Sign() <= 0 {
 		return nil, uniswapv2.ErrInsufficientOutputAmount
 	}
 
@@ -143,12 +141,16 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+	if reserveIn.Sign() <= 0 || reserveOut.Sign() <= 0 {
+		return nil, uniswapv2.ErrInsufficientLiquidity
+	}
+
+	if !amountOut.Lt(reserveOut) {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
 	var fee, amountIn, tradeLiquidity uint256.Int
-	fee.Set(number.Number_3)
+	fee.Set(u256.U3)
 
 	// Just a safe limit; with dsFeeThreshold=0, loop runs at most 2 times (once for dsFee=3)
 	maxIterations := 500
@@ -177,10 +179,6 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		fee.Set(newFee)
 	}
 
-	if amountIn.Cmp(reserveIn) > 0 {
-		return nil, uniswapv2.ErrInsufficientLiquidity
-	}
-
 	var balanceInAdjusted, balanceOutAdjusted uint256.Int
 	balanceInAdjusted.Add(reserveIn, &amountIn).
 		Mul(&balanceInAdjusted, s.feePrecision).
@@ -199,7 +197,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:           defaultGas,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
@@ -263,12 +261,12 @@ func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut, fee *uint2
 		uniswapv2.SafeSub(s.feePrecision, fee),
 	)
 
-	return uniswapv2.SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
+	return uniswapv2.SafeAdd(new(uint256.Int).Div(numerator, denominator), u256.U1), nil
 }
 
 func (s *PoolSimulator) calcPairTradingFee(amountIn, reserveIn, reserveOut *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	tradeLiquidity := calcTradeLiquidity(amountIn, number.Zero, reserveIn, reserveOut)
-	if !tradeLiquidity.Gt(number.Zero) {
+	tradeLiquidity := calcTradeLiquidity(amountIn, u256.U0, reserveIn, reserveOut)
+	if !tradeLiquidity.Gt(u256.U0) {
 		return nil, nil, ErrZeroTradeLiquidity
 	}
 
@@ -288,7 +286,7 @@ func (s *PoolSimulator) calcTradingFee(tradeLiquidity, lastLiquidityTradedEMA, l
 		return s.dsFee
 	}
 
-	return number.Zero
+	return u256.U0
 }
 
 func (s *PoolSimulator) _getTradeLiquidityEMA(
@@ -312,7 +310,7 @@ func (s *PoolSimulator) _getLastTradeLiquiditySum(tradeLiquidity *uint256.Int, b
 
 func (s *PoolSimulator) _getLastTradeLiquidityEMA(blockDiff uint64) *uint256.Int {
 	if blockDiff > 50 {
-		return number.Zero
+		return u256.U0
 	}
 	return s.tradeLiquidityEMA
 }
@@ -329,7 +327,7 @@ func (s *PoolSimulator) _updateLiquidityTradedEMA(tradeLiquidity *uint256.Int) {
 
 func calcSingleSideLiquidity(amount, reserve0, reserve1 *uint256.Int) *uint256.Int {
 	var amount0, amount1 uint256.Int
-	amount0.Set(amount).Div(&amount0, number.Number_2)
+	amount0.Set(amount).Div(&amount0, u256.U2)
 	amount1.Set(&amount0).Mul(&amount1, reserve1).Div(&amount1, reserve0)
 	return amount0.Mul(&amount0, &amount1).Sqrt(&amount0)
 }

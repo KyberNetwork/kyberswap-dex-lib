@@ -189,11 +189,11 @@ func (s *PoolSimulator) getAmountOut(
 		return nil, ErrInsufficientOutputAmount
 	}
 
-	if tokenIn == s.Info.Tokens[0] && amountOut.Cmp(reserve1) > 0 {
+	if tokenIn == s.Info.Tokens[0] && !amountOut.Lt(reserve1) {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	if tokenIn == s.Info.Tokens[1] && amountOut.Cmp(reserve0) > 0 {
+	if tokenIn == s.Info.Tokens[1] && !amountOut.Lt(reserve0) {
 		return nil, ErrInsufficientLiquidity
 	}
 

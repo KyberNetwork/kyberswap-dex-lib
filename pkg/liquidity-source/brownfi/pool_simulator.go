@@ -82,7 +82,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	zeroForOne := lo.Ternary(indexIn == 0, true, false)
 	amountOut := getAmountOut(amountIn, reserveOut, s.kappa, s.oPrice, s.fee, s.feePrecision, zeroForOne)
-	if amountOut.Cmp(reserveOut) > 0 {
+	if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
