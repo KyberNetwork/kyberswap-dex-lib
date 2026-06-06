@@ -116,7 +116,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		reserveOut.Sub(reserveOut, p.WithdrawsQueued).Add(reserveOut, p.WithdrawsClaimed)
 	}
 
-	if reserveOut.Sign() <= 0 || amountOut.Cmp(reserveOut) > 0 {
+	if reserveOut.Sign() <= 0 || !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 

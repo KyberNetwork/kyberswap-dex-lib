@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -95,7 +94,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	} else if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
-	} else if amountOut.Cmp(p.reserves[indexOut]) > 0 {
+	} else if !amountOut.Lt(p.reserves[indexOut]) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -119,7 +118,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountOut
-	} else if amountOut.Cmp(p.reserves[indexOut]) > 0 {
+	} else if !amountOut.Lt(p.reserves[indexOut]) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -247,7 +246,7 @@ func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	for range 255 {
 		k := _f(x0, y)
 
-		if k.Cmp(xy) < 0 {
+		if k.Lt(xy) {
 			dy.Div(
 				dy.Mul(dy.Sub(xy, k), big256.BONE),
 				_d(x0, y),
@@ -291,7 +290,7 @@ func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
 		a.Div(
 			a.Mul(
 				a.Mul(
-					number.Number_3,
+					big256.U3,
 					x0,
 				),
 				b.Div(b.Mul(y, y), big256.BONE),

@@ -92,7 +92,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
-	} else if amountOut.Cmp(reserveOut) > 0 {
+	} else if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 

@@ -72,7 +72,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	reserveOut := s.reserves[indexOut]
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-	if amountOut.Cmp(reserveOut) > 0 {
+	if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	} else if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
@@ -96,7 +96,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow || amountOut.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
-	} else if amountOut.Cmp(reserveOut) > 0 {
+	} else if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
