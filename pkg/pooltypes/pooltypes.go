@@ -156,6 +156,7 @@ import (
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v1"
 	virtualfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v2"
 	wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/whlp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
@@ -416,6 +417,7 @@ type Types struct {
 	SomeswapV1                 string
 	SomeswapV2                 string
 	WasabiProp                 string
+	Whlp                       string
 	Obric                      string
 	Printr                     string
 	Poe                        string
@@ -640,6 +642,7 @@ var (
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
 		WasabiProp:                 wasabiprop.DexType,
+		Whlp:                       whlp.DexType,
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
 		Poe:                        poe.DexType,
