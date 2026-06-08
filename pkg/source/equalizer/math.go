@@ -164,7 +164,7 @@ func _d(x0, y *uint256.Int) *uint256.Int {
 func validateAmountOut(amountIn, amountOut, reserveIn, reserveOut, decimalIn, decimalOut *uint256.Int) bool {
 	var balanceIn, balanceOut uint256.Int
 	balanceIn.Add(reserveIn, amountIn)
-	if balanceOut.Sub(reserveOut, amountOut); amountOut.Cmp(reserveOut) > 0 {
+	if balanceOut.Sub(reserveOut, amountOut); !amountOut.Lt(reserveOut) {
 		return false
 	}
 	kAfter := _k(&balanceIn, &balanceOut, decimalIn, decimalOut)

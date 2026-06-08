@@ -24,18 +24,20 @@ import (
 )
 
 type PoolTracker struct {
-	cfg          *Config
-	ethrpcClient *ethrpc.Client
-	titanClients []*rpc.Client
+	cfg            *Config
+	ethrpcClient   *ethrpc.Client
+	titanClients   []*rpc.Client
+	multicall3Addr common.Address
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
-		cfg:          cfg,
-		ethrpcClient: ethrpcClient,
-		titanClients: newTitanClients(cfg.Titan),
+		cfg:            cfg,
+		ethrpcClient:   ethrpcClient,
+		titanClients:   newTitanClients(cfg.Titan),
+		multicall3Addr: common.HexToAddress(cfg.Multicall3Address),
 	}
 }
 
@@ -53,7 +55,7 @@ func (t *PoolTracker) GetNewPoolState(
 	token0Addr := common.HexToAddress(p.Tokens[0].Address)
 	token1Addr := common.HexToAddress(p.Tokens[1].Address)
 
-	overridesCh := lo.Async(func() map[common.Address]gethclient.OverrideAccount {
+	overridesCh := lo.Async(func() titanPammState {
 		return t.fetchStateOverrides(ctx)
 	})
 
@@ -89,9 +91,9 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 	blockNumber := resp.BlockNumber
 
-	titanOverrides := <-overridesCh
+	titanState := <-overridesCh
 
-	samples, err := t.fetchQuotes(ctx, p, token0Addr, token1Addr, bal0, bal1, blockNumber, titanOverrides)
+	samples, err := t.fetchQuotes(ctx, p, token0Addr, token1Addr, bal0, bal1, blockNumber, titanState)
 	if err != nil {
 		return p, err
 	}
@@ -105,9 +107,9 @@ func (t *PoolTracker) GetNewPoolState(
 	warnGapInQuotes(p, samples)
 
 	extra := Extra{
-		Samples:          filterAllSamples(samples, bal0, bal1),
-		SO:               titanOverridesToMap(titanOverrides),
-		LastUpdatedBlock: blockNumber.Uint64(),
+		Samples:        filterAllSamples(samples, bal0, bal1),
+		SO:             titanOverridesToMap(titanState.Overrides),
+		BlockTimestamp: titanState.BlockTimestamp,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -121,17 +123,17 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-// fetchQuotes probes Lens.quote() at every sample point in a single Multicall3
-// eth_call, with Titan pricing overrides applied to the whole batch. quote()
-// matches Router.swap() within ~1 bps in the safe range; over-capacity samples
-// (Lens reports linear, swap caps at reserve) are dropped later by filterSamples.
+// fetchQuotes probes the PAMM quote target at every sample point in a single
+// Multicall3 eth_call, with Titan pricing overrides applied to the whole batch.
+// The PUR-aware target requires block.timestamp to equal the priority update
+// timestamp, so Titan's timestamp is forwarded as a block override when present.
 func (t *PoolTracker) fetchQuotes(
 	ctx context.Context,
 	p entity.Pool,
 	token0, token1 common.Address,
 	bal0, bal1 *big.Int,
 	blockNumber *big.Int,
-	titanOverrides map[common.Address]gethclient.OverrideAccount,
+	titanState titanPammState,
 ) ([][][2]*big.Int, error) {
 	type mcall struct {
 		Target   common.Address `json:"target"`
@@ -142,7 +144,7 @@ func (t *PoolTracker) fetchQuotes(
 		ReturnData []byte `json:"returnData"`
 	}
 
-	lensAddr := common.HexToAddress(t.cfg.LensAddress)
+	quoteTarget := common.HexToAddress(t.cfg.LensAddress)
 	tokens := [2]common.Address{token0, token1}
 	reserves := [2]*big.Int{bal0, bal1}
 
@@ -161,7 +163,7 @@ func (t *PoolTracker) fetchQuotes(
 			if err != nil {
 				return nil, err
 			}
-			calls = append(calls, mcall{Target: lensAddr, CallData: cd})
+			calls = append(calls, mcall{Target: quoteTarget, CallData: cd})
 			refs = append(refs, sampleRef{dir: dir, amtIn: amtIn})
 		}
 	}
@@ -171,13 +173,25 @@ func (t *PoolTracker) fetchQuotes(
 		return nil, err
 	}
 
-	override := make(map[common.Address]gethclient.OverrideAccount, len(titanOverrides))
-	for addr, acc := range titanOverrides {
+	override := make(map[common.Address]gethclient.OverrideAccount, len(titanState.Overrides))
+	for addr, acc := range titanState.Overrides {
 		override[addr] = acc
 	}
 
 	gc := gethclient.New(t.ethrpcClient.GetETHClient().Client())
-	raw, err := gc.CallContract(ctx, ethereum.CallMsg{To: &multicall3Addr, Data: mcCalldata}, blockNumber, &override)
+	callMsg := ethereum.CallMsg{To: &t.multicall3Addr, Data: mcCalldata}
+	var raw []byte
+	if titanState.BlockTimestamp != 0 {
+		raw, err = gc.CallContractWithBlockOverrides(
+			ctx,
+			callMsg,
+			blockNumber,
+			&override,
+			gethclient.BlockOverrides{Time: titanState.BlockTimestamp},
+		)
+	} else {
+		raw, err = gc.CallContract(ctx, callMsg, blockNumber, &override)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -216,9 +230,6 @@ func (t *PoolTracker) fetchQuotes(
 
 	return samples, nil
 }
-
-// multicall3Addr is canonical at the same address on every chain.
-var multicall3Addr = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 
 // buildSamplePoints: 10^k + 3·10^k levels around tokenDecimals, plus reserve
 // fractions near capacity. Sorted, deduped.

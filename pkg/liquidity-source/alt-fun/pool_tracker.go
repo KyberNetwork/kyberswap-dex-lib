@@ -124,8 +124,9 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		k            = new(big.Int)
-		tokenBalance = new(big.Int)
+		k                = new(big.Int)
+		tokenBalance     = new(big.Int)
+		baseAssetBalance = new(big.Int)
 
 		reserves = reserveResult{
 			TokenReserve: new(big.Int),
@@ -152,7 +153,12 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    pairABI,
 			Target: pairAddr,
 			Method: "tokenBalance",
-		}, []any{&tokenBalance})
+		}, []any{&tokenBalance}).
+		AddCall(&ethrpc.Call{
+			ABI:    leveragedTokenABI,
+			Target: staticExtra.LTAddress,
+			Method: "baseAssetBalance",
+		}, []any{&baseAssetBalance})
 
 	resp, err := req2.Aggregate()
 	if err != nil {
@@ -176,7 +182,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		reserves.TokenReserve.String(),
+		baseAssetBalance.String(),
 		tokenBalance.String(),
 	}
 

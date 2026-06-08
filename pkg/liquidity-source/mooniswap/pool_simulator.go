@@ -77,7 +77,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	reserveOut, _ := uint256.FromBig(s.Info.Reserves[indexOut])
-	if amountOut.Gt(reserveOut) {
+	if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 

@@ -309,6 +309,7 @@ const (
 	ExchangeXSolvBTC                   = "xsolvbtc"
 	ExchangePrintr                     = "printr"
 	ExchangeBaseline                   = "baseline"
+	ExchangeBopAMM                     = "bop-amm"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -372,6 +373,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeObric:       {},
 	ExchangePoe:         {},
 	ExchangeFermi:       {},
+	ExchangeBopAMM:      {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
@@ -395,4 +397,14 @@ var SingleSwapSourceSet = map[Exchange]struct{}{
 func IsSingleSwapSource[T ~string](exchange T) bool {
 	_, ok := SingleSwapSourceSet[Exchange(exchange)]
 	return ok
+}
+
+func HasLimitCheck[T ~string](exchange T) bool {
+	switch Exchange(exchange) {
+	case ExchangeKyberSwapLimitOrder, ExchangeKyberSwapLimitOrderDS:
+		return false
+	case ExchangeIntegral, ExchangeFluidDexT1, ExchangeMidas, ExchangeAltFun, ExchangeBounceTech:
+		return true
+	}
+	return IsRFQSource(exchange)
 }

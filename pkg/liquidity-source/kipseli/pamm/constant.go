@@ -1,15 +1,22 @@
 package pamm
 
 import (
+	"time"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
 )
 
 const (
-	DexType    = "kipseli-pamm"
-	defaultGas = 241_328
+	DexType = "kipseli-pamm"
 
 	// sampleSize: count of power-of-10 amountIn levels per direction.
 	sampleSize = 15
+
+	// Offchain TTL for a Titan/PUR snapshot. On-chain reads remain exact:
+	// Kipseli's target calls PUR.getState(..., block.timestamp, block.timestamp).
+	priorityUpdateFreshnessTTL = 30 * time.Second
+
+	priorityUpdateLaneIndex = 0
 )
 
 // maxInSampleBps: fractions of vault reserve to probe for tighter interpolation near capacity.

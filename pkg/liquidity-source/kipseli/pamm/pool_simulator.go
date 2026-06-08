@@ -2,6 +2,7 @@ package pamm
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
@@ -12,8 +13,8 @@ import (
 
 type PoolSimulator struct {
 	*prop.PoolSimulator
-	so               map[string]kipseli.StateOverride
-	lastUpdatedBlock uint64
+	so             map[string]kipseli.StateOverride
+	blockTimestamp uint64
 }
 
 var (
@@ -30,9 +31,18 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err == nil {
 		sim.so = extra.SO
-		sim.lastUpdatedBlock = extra.LastUpdatedBlock
+		sim.blockTimestamp = extra.BlockTimestamp
 	}
 	return sim, nil
+}
+
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	// A PAMM route is executable only while its PUR-backed snapshot is fresh
+	// enough for Kipseli/builder execution to provide the matching block state.
+	if !isPriorityUpdateFresh(s.blockTimestamp, uint64(time.Now().Unix())) {
+		return nil, ErrInsufficientLiquidity
+	}
+	return s.PoolSimulator.CalcAmountOut(params)
 }
 
 // CloneState shallow-copies the struct (so + lub are immutable post-init, safe
@@ -45,9 +55,20 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMetaInfo{
-		BlockNumber:      s.Info.BlockNumber,
-		RouterAddress:    s.RouterAddress,
-		SO:               s.so,
-		LastUpdatedBlock: s.lastUpdatedBlock,
+		BlockNumber:    s.Info.BlockNumber,
+		RouterAddress:  s.RouterAddress,
+		SO:             s.so,
+		BlockTimestamp: s.blockTimestamp,
 	}
+}
+
+func isPriorityUpdateFresh(updateTimestamp, now uint64) bool {
+	if updateTimestamp == 0 {
+		return false
+	}
+	maxSkew := uint64(priorityUpdateFreshnessTTL / time.Second)
+	if now >= updateTimestamp {
+		return now-updateTimestamp <= maxSkew
+	}
+	return updateTimestamp-now <= maxSkew
 }

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,9 +22,18 @@ const (
 )
 
 func mustSim(t *testing.T, samples [][][2]*big.Int, bal0, bal1 *big.Int) *PoolSimulator {
+	return mustSimWithBlockTimestamp(t, samples, bal0, bal1, uint64(time.Now().Unix()))
+}
+
+func mustSimWithBlockTimestamp(
+	t *testing.T,
+	samples [][][2]*big.Int,
+	bal0, bal1 *big.Int,
+	blockTimestamp uint64,
+) *PoolSimulator {
 	t.Helper()
 
-	extra := Extra{Samples: samples}
+	extra := Extra{Samples: samples, BlockTimestamp: blockTimestamp}
 	extraBytes, err := json.Marshal(extra)
 	require.NoError(t, err)
 
@@ -166,6 +176,29 @@ func TestCalcAmountOut_EmptySamples(t *testing.T) {
 		{knot(1000, 800)},
 	}
 	sim := mustSim(t, samples, big.NewInt(1_000_000), big.NewInt(1_000_000))
+
+	_, err := calcOut(t, sim, testWETH, testUSDC, big.NewInt(100))
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+func TestCalcAmountOut_MissingPriorityUpdateTimestamp(t *testing.T) {
+	samples := [][][2]*big.Int{
+		{knot(1000, 800)},
+		{knot(1000, 800)},
+	}
+	sim := mustSimWithBlockTimestamp(t, samples, big.NewInt(1_000_000), big.NewInt(1_000_000), 0)
+
+	_, err := calcOut(t, sim, testWETH, testUSDC, big.NewInt(100))
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+func TestCalcAmountOut_StalePriorityUpdateTimestamp(t *testing.T) {
+	samples := [][][2]*big.Int{
+		{knot(1000, 800)},
+		{knot(1000, 800)},
+	}
+	staleTimestamp := uint64(time.Now().Add(-(priorityUpdateFreshnessTTL + time.Second)).Unix())
+	sim := mustSimWithBlockTimestamp(t, samples, big.NewInt(1_000_000), big.NewInt(1_000_000), staleTimestamp)
 
 	_, err := calcOut(t, sim, testWETH, testUSDC, big.NewInt(100))
 	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
