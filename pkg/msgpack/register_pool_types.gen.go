@@ -192,6 +192,7 @@ import (
 	pkg_liquiditysource_virtualfun_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v2"
 	pkg_liquiditysource_wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
 	pkg_liquiditysource_wcm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
+	pkg_liquiditysource_whlp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/whlp"
 	pkg_liquiditysource_wildcard "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
@@ -427,6 +428,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wasabiprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wcm.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_whlp.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wildcard.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
