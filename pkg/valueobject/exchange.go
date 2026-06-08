@@ -298,6 +298,7 @@ const (
 	ExchangeWasabiProp                 = "wasabi-prop"
 	ExchangeWault                      = "wault"
 	ExchangeWBETH                      = "wbeth"
+	ExchangeWhlp                       = "whlp"
 	ExchangeWildcard                   = "wildcard"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
