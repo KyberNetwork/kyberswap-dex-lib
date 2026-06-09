@@ -306,7 +306,7 @@ func getAmountOutWithoutCutoff(
 
 	var amountOut uint256.Int
 
-	if kappa.Cmp(q64x2) == 0 {
+	if kappa.Eq(q64x2) {
 		// Uniswap-V2-like: mulDiv(reserveOut*pseudoIn, priceIn, priceOut*reserveOut + pseudoIn*priceIn)
 		var num, denom, tmp uint256.Int
 		num.Mul(parsedReserveOut, pseudoIn)
@@ -343,26 +343,7 @@ func getAmountOutWithoutCutoff(
 		amountOut.Div(leftNum.Sub(leftNum, sqrtTerm), &denom)
 	}
 
-	// Under-quote adjustment: m = (amountOut >> 64) + 2; amountOut = max(amountOut - m, 0)
-	var m uint256.Int
-	m.Rsh(&amountOut, 64)
-	m.AddUint64(&m, 2)
-	if amountOut.Gt(&m) {
-		amountOut.Sub(&amountOut, &m)
-	} else {
-		amountOut.Clear()
-	}
-
-	// Guard: amountOut must be strictly less than reserveOut (on-chain: require(postBase > 0) / require(postQuote > 0)).
-	if !amountOut.Lt(parsedReserveOut) {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	rawOut := parseDefaultDecimalsToRaw(&amountOut, outDec)
-	if rawOut.Sign() == 0 {
-		return nil, ErrZeroOutputAmount
-	}
-	return rawOut, nil
+	return parseDefaultDecimalsToRaw(&amountOut, outDec), nil
 }
 
 // getAmountInWithoutCutoff computes the required amountIn for a desired amountOut without the §4.3 cutoff.
@@ -464,6 +445,30 @@ func getAmountOutCutoff(
 	return parseDefaultDecimalsToRaw(&cutoff18, outDec), nil
 }
 
+// closedFormDiscShift returns the right-shift (always even) needed to prevent overflow when squaring
+// muSum and computing 2*KPXsol*muDiff inside the closed-form discriminant.
+// Both t1 = muSum²/2^shift and t2 = 2*KPXsol*muDiff/2^shift must fit in 256 bits.
+func closedFormDiscShift(muSum, KPXsol, muDiff *uint256.Int) uint {
+	msBits := uint(muSum.BitLen())
+	var shift uint
+	if 2*msBits > 255 {
+		shift = 2*msBits - 255
+	}
+	if KPXsol.Sign() != 0 && muDiff.Sign() != 0 {
+		kpBits := uint(KPXsol.BitLen()) + uint(muDiff.BitLen()) + 1 // +1 for the ×2
+		if kpBits > 255+shift {
+			need := kpBits - 255
+			if need > shift {
+				shift = need
+			}
+		}
+	}
+	if shift%2 != 0 {
+		shift++
+	}
+	return shift
+}
+
 // maxOutClosedForm computes the closed-form maximum amountOUT (in 18-dec) before the §4.3 cutoff fires.
 //
 // bc is always positive in both directions (X18 > Ymu is guarded above), so we track |aQ64| and
@@ -519,23 +524,44 @@ func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.
 		bc.Sub(&bc, &Ymu)
 		bc.Mul(&bc, big256.U2)
 
-		// Discriminant: PY = P*X18/Q64; sumPYX = PY+Y18; t1disc = (sumPYX² * gN * Q64 / gDxAdj)²/gDxAdj² (two-step)
-		var PY, sumPYX, sumSq uint256.Int
+		// Discriminant: muSum = sumPYX * gnQ / gDxAdj; t1 = muSum²/scale; t2 = 2*KPXsol*diff/scale.
+		// Scale prevents overflow when sumPYX > 2^128 (near-uint112 low-decimal reserves).
+		var PY, sumPYX uint256.Int
 		big256.MulDivDown(&PY, P, X18, q64)
 		sumPYX.Add(&PY, Y18)
-		sumSq.Mul(&sumPYX, &sumPYX)
 
-		var gnQ, rSumSq, t1disc uint256.Int
+		var gnQ, muSum uint256.Int
 		gnQ.Mul(&gN, q64)
-		big256.MulDivDown(&rSumSq, &sumSq, &gnQ, &gDxAdj)
-		big256.MulDivDown(&t1disc, &rSumSq, &gnQ, &gDxAdj)
+		big256.MulDivDown(&muSum, &sumPYX, &gnQ, &gDxAdj)
 
-		var KPQ64, KPX, kImp, t2disc uint256.Int
+		var KPQ64, KPXgo, KPXsol uint256.Int
 		big256.MulDivDown(&KPQ64, K, P, q64)
-		big256.MulDivDown(&KPX, &KPQ64, X18, q64)
-		kImp.Mul(&KPX, &diff)
-		kImp.Mul(&kImp, big256.U2)
-		big256.MulDivDown(&t2disc, &kImp, &gnQ, &gDxAdj)
+		big256.MulDivDown(&KPXgo, &KPQ64, X18, q64)
+		big256.MulDivDown(&KPXsol, &KPXgo, &gnQ, &gDxAdj)
+
+		shift := closedFormDiscShift(&muSum, &KPXsol, &diff)
+		var t1disc, t2disc uint256.Int
+		if shift == 0 {
+			t1disc.Mul(&muSum, &muSum)
+			if KPXsol.Sign() != 0 && diff.Sign() != 0 {
+				t2disc.Mul(&KPXsol, &diff)
+				t2disc.Mul(&t2disc, big256.U2)
+			}
+		} else {
+			scale := new(uint256.Int).Lsh(uint256.NewInt(1), shift)
+			var rem uint256.Int
+			_ = v3Utils.MulDivV2(&muSum, &muSum, scale, &t1disc, &rem)
+			if rem.Sign() > 0 {
+				t1disc.AddUint64(&t1disc, 1)
+			}
+			if KPXsol.Sign() != 0 && diff.Sign() != 0 {
+				scaleHalf := new(uint256.Int).Lsh(uint256.NewInt(1), shift-1)
+				_ = v3Utils.MulDivV2(&KPXsol, &diff, scaleHalf, &t2disc, &rem)
+				if rem.Sign() > 0 {
+					t2disc.AddUint64(&t2disc, 1)
+				}
+			}
+		}
 
 		var disc, sqrtDelta, sqrtSq uint256.Int
 		disc.Add(&t1disc, &t2disc)
@@ -543,6 +569,9 @@ func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.
 		sqrtDelta.Sqrt(&disc)
 		if sqrtSq.Mul(&sqrtDelta, &sqrtDelta).Lt(&disc) {
 			sqrtDelta.AddUint64(&sqrtDelta, 1)
+		}
+		if shift > 0 {
+			sqrtDelta.Lsh(&sqrtDelta, shift/2)
 		}
 
 		// |num| = bc - sqrtDelta; both negative in signed form → positive quotient
@@ -599,22 +628,42 @@ func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.
 		}
 		bc.Sub(&bc, &t3)
 
-		// Discriminant: PY = P*Y18/Q64; sumPYX = PY+X18
-		var PY, sumPYX, sumSq uint256.Int
+		// Discriminant: muSum = sumPYX * gnAdjPr / gDxQ64; t1 = muSum²/scale; t2 = 2*KPXsol*diff/scale.
+		var PY, sumPYX uint256.Int
 		big256.MulDivDown(&PY, P, Y18, q64)
 		sumPYX.Add(&PY, X18)
-		sumSq.Mul(&sumPYX, &sumPYX)
 
-		var rSumSq, t1disc uint256.Int
-		big256.MulDivDown(&rSumSq, &sumSq, &gnAdjPr, &gDxQ64)
-		big256.MulDivDown(&t1disc, &rSumSq, &gnAdjPr, &gDxQ64)
+		var muSum uint256.Int
+		big256.MulDivDown(&muSum, &sumPYX, &gnAdjPr, &gDxQ64)
 
-		var KPQ64, KPX, kImp, t2disc uint256.Int
+		var KPQ64, KPXgo, KPXsol uint256.Int
 		big256.MulDivDown(&KPQ64, K, P, q64)
-		big256.MulDivDown(&KPX, &KPQ64, X18, q64)
-		kImp.Mul(&KPX, &diff)
-		kImp.Mul(&kImp, big256.U2)
-		big256.MulDivDown(&t2disc, &kImp, &gnAdjPr, &gDxQ64)
+		big256.MulDivDown(&KPXgo, &KPQ64, X18, q64)
+		big256.MulDivDown(&KPXsol, &KPXgo, &gnAdjPr, &gDxQ64)
+
+		shift := closedFormDiscShift(&muSum, &KPXsol, &diff)
+		var t1disc, t2disc uint256.Int
+		if shift == 0 {
+			t1disc.Mul(&muSum, &muSum)
+			if KPXsol.Sign() != 0 && diff.Sign() != 0 {
+				t2disc.Mul(&KPXsol, &diff)
+				t2disc.Mul(&t2disc, big256.U2)
+			}
+		} else {
+			scale := new(uint256.Int).Lsh(uint256.NewInt(1), shift)
+			var rem uint256.Int
+			_ = v3Utils.MulDivV2(&muSum, &muSum, scale, &t1disc, &rem)
+			if rem.Sign() > 0 {
+				t1disc.AddUint64(&t1disc, 1)
+			}
+			if KPXsol.Sign() != 0 && diff.Sign() != 0 {
+				scaleHalf := new(uint256.Int).Lsh(uint256.NewInt(1), shift-1)
+				_ = v3Utils.MulDivV2(&KPXsol, &diff, scaleHalf, &t2disc, &rem)
+				if rem.Sign() > 0 {
+					t2disc.AddUint64(&t2disc, 1)
+				}
+			}
+		}
 
 		var disc, sqrtDelta, sqrtSq uint256.Int
 		disc.Add(&t1disc, &t2disc)
@@ -622,6 +671,9 @@ func maxOutClosedForm(X18, Y18, P, K *uint256.Int, gamma uint32, adjPr *uint256.
 		sqrtDelta.Sqrt(&disc)
 		if sqrtSq.Mul(&sqrtDelta, &sqrtDelta).Lt(&disc) {
 			sqrtDelta.AddUint64(&sqrtDelta, 1)
+		}
+		if shift > 0 {
+			sqrtDelta.Lsh(&sqrtDelta, shift/2)
 		}
 
 		// BUY: num = -bc + sqrtDelta*Q64 (bcScaled); |num| = bc - sqrtDelta*Q64
@@ -673,23 +725,78 @@ func maxAmountOutRaw(
 	return parseDefaultDecimalsToRaw(outStar18, outDec), nil
 }
 
-// calcAmountOut computes amountOut with §4.3 cutoff protection.
+// calcAmountOut computes the highest achievable amountOut with §4.3 cutoff protection.
+// After getting the raw quote it verifies achievability via the inverse (exact-out) formula,
+// then falls back to binary search if the raw quote is not directly achievable.
 func calcAmountOut(
 	inDec, outDec uint8,
 	amountIn, reserveIn, reserveOut, priceIn, priceOut, adjPrice, kappa *uint256.Int,
 	gamma uint32, fee uint32, isSell bool,
 ) (*uint256.Int, error) {
-	amountOut, err := getAmountOutWithoutCutoff(inDec, outDec, amountIn, reserveOut, priceIn, priceOut, kappa, fee)
+	if priceIn.Sign() == 0 || priceOut.Sign() == 0 {
+		return nil, ErrInvalidPrice
+	}
+	raw, err := getAmountOutWithoutCutoff(inDec, outDec, amountIn, reserveOut, priceIn, priceOut, kappa, fee)
 	if err != nil {
 		return nil, err
 	}
 	cutoff, err := getAmountOutCutoff(inDec, outDec, amountIn, reserveIn, reserveOut, adjPrice, gamma, fee, isSell)
 	if err != nil {
 		return nil, err
-	} else if amountOut.Gt(cutoff) {
+	}
+	if raw.Gt(cutoff) {
 		return nil, ErrCutoffInputLimitReached
 	}
-	return amountOut, nil
+
+	// high = min(raw, reserveOut-1): cap at one below reserve so post-trade balance is positive.
+	high := raw.Clone()
+	if reserveOut.Sign() == 0 {
+		return nil, ErrInsufficientLiquidity
+	}
+	var reserveOutM1 uint256.Int
+	reserveOutM1.SubUint64(reserveOut, 1)
+	if !raw.Lt(&reserveOutM1) {
+		high.Set(&reserveOutM1)
+	}
+	if high.Sign() == 0 {
+		return nil, ErrZeroOutputAmount
+	}
+
+	// Verify achievability: if the inverse formula needs ≤ amountIn, raw is directly usable.
+	amountInForHigh, err := getAmountInWithoutCutoff(inDec, outDec, high, reserveOut, priceIn, priceOut, kappa, fee)
+	if err == nil && !amountInForHigh.Gt(amountIn) {
+		return high, nil
+	}
+
+	// Binary search: find largest out in [0, high-1] where getAmountInWithoutCutoff(out) ≤ amountIn.
+	if high.IsZero() {
+		return nil, ErrZeroOutputAmount
+	}
+	high.SubUint64(high, 1)
+
+	var lo uint256.Int
+	for lo.Lt(high) {
+		// Ceiling midpoint: lo + (high-lo+1)/2, guarantees mid > lo so high shrinks.
+		var gap, mid uint256.Int
+		gap.Sub(high, &lo)
+		gap.AddUint64(&gap, 1)
+		gap.Rsh(&gap, 1)
+		mid.Add(&lo, &gap)
+
+		amountInForMid, err2 := getAmountInWithoutCutoff(inDec, outDec, &mid, reserveOut, priceIn, priceOut, kappa, fee)
+		if err2 == nil && !amountInForMid.Gt(amountIn) {
+			lo.Set(&mid)
+		} else {
+			high.SubUint64(&mid, 1)
+		}
+	}
+
+	// lo == high: verify the found candidate is actually achievable.
+	amountInForLo, err2 := getAmountInWithoutCutoff(inDec, outDec, &lo, reserveOut, priceIn, priceOut, kappa, fee)
+	if err2 != nil || amountInForLo.Gt(amountIn) || lo.Sign() == 0 {
+		return nil, ErrZeroOutputAmount
+	}
+	return &lo, nil
 }
 
 // calcAmountIn computes amountIn with §4.3 cutoff check (PDF §8.2 single-pass).
@@ -698,6 +805,9 @@ func calcAmountIn(
 	amountOut, reserveIn, reserveOut, priceIn, priceOut, adjPrice, kappa *uint256.Int,
 	gamma uint32, fee uint32, isSell bool,
 ) (*uint256.Int, error) {
+	if priceIn.Sign() == 0 || priceOut.Sign() == 0 {
+		return nil, ErrInvalidPrice
+	}
 	outStarRaw, err := maxAmountOutRaw(inDec, outDec, reserveIn, reserveOut, priceIn, priceOut, adjPrice, kappa, gamma,
 		isSell)
 	if err != nil {

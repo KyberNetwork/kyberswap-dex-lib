@@ -44,7 +44,8 @@ const (
 
 var (
 	Router = map[valueobject.ChainID]common.Address{
-		valueobject.ChainIDBerachain: common.HexToAddress("0xFB473aEAe9b0d03c6974BCf5f2B67dA4AF7F6043"),
+		valueobject.ChainIDBerachain: common.HexToAddress("0x63D8C045ebEc54c4C4bb3e24cA3bf7FD4fFd209a"),
+		valueobject.ChainIDHyperEVM:  common.HexToAddress("0xc0E55d0085266E9A33456610E08172f9c173F908"),
 	}
 
 	q64        = big256.U2Pow64
@@ -75,4 +76,5 @@ var (
 	ErrPoolPastGamma            = errors.New("POOL_PAST_GAMMA")
 	ErrCutoffLimitReached       = errors.New("CUTOFF_LIMIT_REACHED")
 	ErrCutoffInputLimitReached  = errors.New("CUTOFF_INPUT_LIMIT_REACHED")
+	ErrInvalidPrice             = errors.New("INVALID_PRICE")
 )

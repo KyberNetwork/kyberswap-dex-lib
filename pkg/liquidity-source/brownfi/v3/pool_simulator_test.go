@@ -6,6 +6,8 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -74,7 +76,7 @@ func TestCalcAmountOut_WETH_USDC(t *testing.T) {
 		1: {
 			0: {
 				// 1 USDC → ~0.000469 WETH (fits within ~5.8 USDC reserves)
-				"1000000": "468661346370449",
+				"1000000": "468661335135063",
 				// 10 USDC exceeds reserves → cutoff
 				"10000000": "CUTOFF_INPUT_LIMIT_REACHED",
 				// 100 USDC exceeds reserves → cutoff
@@ -95,4 +97,83 @@ func TestCloneState(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: "0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590", Amount: big.NewInt(468661346370449)},
 		TokenOut:      "0x549943e04f40284185054145c6e4e9568c1d3241",
 	}, nil)
+}
+
+// New factory (0x6Ccf36d3...) WETH/USDC.e pool — block 21995373, Berachain.
+var (
+	poolWETHUSDCNew entity.Pool
+	_               = json.Unmarshal([]byte(`{
+		"address":     "0xc123bc9259d1a99add5a2c512498ac146dd2bade",
+		"exchange":    "brownfi-v3",
+		"type":        "brownfi-v3",
+		"timestamp":   1999999999,
+		"blockNumber": 21995373,
+		"reserves":    ["296881910284765994","490783665"],
+		"tokens": [
+			{"address":"0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590","decimals":18,"swappable":true},
+			{"address":"0x549943e04f40284185054145c6e4e9568c1d3241","decimals":6, "swappable":true}
+		],
+		"extra": "{\"kB\":\"184467440737095516\",\"kQ\":\"184467440737095516\",\"f\":300000,\"g\":80000000,\"l\":36893488147419103,\"fs\":10000,\"pw\":50000000,\"dt\":300000,\"p0\":\"30821262219198118827300\",\"p1\":\"18442135339170176021\",\"c0\":\"11345248618900416195\",\"c1\":\"9312469810730792\",\"am\":\"30820011453736467775190\"}",
+		"staticExtra": "{\"pf\":[\"0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace\",\"0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a\"],\"po\":\"0x315062ea5686289bcbe138424fd10591beb37a75\",\"pc\":\"0x4955e0d8a7f25ba83216946c17fe791d8c49c43a\",\"qi\":1,\"lu\":1781005072}"
+	}`), &poolWETHUSDCNew)
+
+	simWETHUSDCNew = lo.Must(NewPoolSimulator(pool.FactoryParams{
+		EntityPool: poolWETHUSDCNew,
+		ChainID:    valueobject.ChainIDBerachain,
+	}))
+)
+
+// verifyOutputAchievable asserts that CalcAmountOut returns a positive amount and that
+// the binary-search result is both achievable (CalcAmountIn(out) <= amountIn) and maximal
+// (CalcAmountIn(out+1) > amountIn or returns an error).
+func verifyOutputAchievable(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn *big.Int) {
+	t.Helper()
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	out := res.TokenAmountOut.Amount
+	require.True(t, out.Sign() > 0, "output must be positive")
+
+	// Achievability: CalcAmountIn(out) must not exceed amountIn.
+	inRes, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: out},
+		TokenIn:        tokenIn,
+	})
+	require.NoError(t, err, "CalcAmountIn(out) must not error")
+	assert.True(t, inRes.TokenAmountIn.Amount.Cmp(amountIn) <= 0,
+		"CalcAmountIn(%s) = %s > amountIn %s: output is not achievable",
+		out, inRes.TokenAmountIn.Amount, amountIn)
+
+	// Maximality: CalcAmountIn(out+1) must exceed amountIn.
+	outPlus1 := new(big.Int).Add(out, big.NewInt(1))
+	inResPlus1, errPlus1 := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: outPlus1},
+		TokenIn:        tokenIn,
+	})
+	if errPlus1 == nil {
+		assert.True(t, inResPlus1.TokenAmountIn.Amount.Cmp(amountIn) > 0,
+			"CalcAmountIn(%s) = %s <= amountIn %s: output is not maximal",
+			outPlus1, inResPlus1.TokenAmountIn.Amount, amountIn)
+	}
+}
+
+// TestVerify_SearchInvariant_WETHUSDCNew checks the binary-search achievability/maximality
+// invariant for the new-factory WETH/USDC.e pool in both swap directions.
+func TestVerify_SearchInvariant_WETHUSDCNew(t *testing.T) {
+	t.Parallel()
+
+	weth := "0x2f6f07cdcf3588944bf4c42ac74ff24bf56e7590"
+	usdc := "0x549943e04f40284185054145c6e4e9568c1d3241"
+
+	// BUY: WETH → USDC.e (token0 → token1, isSell=false)
+	for _, amtWEI := range []int64{1e9, 1e11, 1e13, 1e14} {
+		verifyOutputAchievable(t, simWETHUSDCNew, weth, usdc, big.NewInt(amtWEI))
+	}
+
+	// SELL: USDC.e → WETH (token1 → token0, isSell=true)
+	for _, amtUSDC := range []int64{1e4, 1e5, 1e6, 1e7} {
+		verifyOutputAchievable(t, simWETHUSDCNew, usdc, weth, big.NewInt(amtUSDC))
+	}
 }
