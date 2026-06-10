@@ -2,7 +2,6 @@ package pamm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

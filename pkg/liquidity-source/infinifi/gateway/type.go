@@ -25,13 +25,14 @@ type Meta struct {
 type Action int
 
 const (
-	ActionMint           Action = iota // 0: mint => USDC → iUSD
-	ActionRedeem                       // 1: redeem => iUSD → USDC
-	ActionStake                        // 2: stake => iUSD → siUSD
-	ActionUnstake                      // 3: unstake => siUSD → iUSD
-	ActionMintAndStake                 // 4: mint and stake => USDC → siUSD
-	ActionCreatePosition               // 5: create position => iUSD → liUSD
-	ActionMintAndLock                  // 6: mint and lock => USDC → liUSD
+	ActionMint             Action = iota // 0: mint => USDC → iUSD
+	ActionRedeem                         // 1: redeem => iUSD → USDC
+	ActionStake                          // 2: stake => iUSD → siUSD
+	ActionUnstake                        // 3: unstake => siUSD → iUSD
+	ActionMintAndStake                   // 4: mint and stake => USDC → siUSD
+	ActionCreatePosition                 // 5: create position => iUSD → liUSD
+	ActionMintAndLock                    // 6: mint and lock => USDC → liUSD
+	ActionUnstakeAndRedeem               // 7: unstake and redeem => siUSD → USDC
 )
 
 type SwapInfo struct {

@@ -301,6 +301,7 @@ const (
 	ExchangeWBETH                      = "wbeth"
 	ExchangeWildcard                   = "wildcard"
 	ExchangeWombat                     = "wombat"
+	ExchangeWHLP                       = "whlp"
 	ExchangeWooFiV2                    = "woofi-v2"
 	ExchangeWCM                        = "wcm"
 	ExchangeWooFiV3                    = "woofi-v3"

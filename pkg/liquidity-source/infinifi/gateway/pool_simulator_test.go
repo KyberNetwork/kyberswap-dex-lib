@@ -72,8 +72,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			indexIn: 0, indexOut: 10, amountIn: "1000000", amountOut: "859001795994242172"},
 		{name: "USDC -> liUSD-13w (mintAndLock)",
 			indexIn: 0, indexOut: 15, amountIn: "1000000", amountOut: "854780114725924179"},
-		{name: "Unsupported swap (siUSD -> USDC) should fail",
-			indexIn: 2, indexOut: 0, amountIn: "1000000000000000000", amountOut: ""},
+		{name: "siUSD -> USDC (unstakeAndRedeem) - 1 siUSD to 2 USDC (2:1 rate)",
+			indexIn: 2, indexOut: 0, amountIn: "1000000000000000000", amountOut: "2000000"},
 	}
 	poolSim := getPoolSim(false)
 	for _, tc := range testCases {
@@ -257,7 +257,35 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		assert.Equal(t, expectedSIUSDSupply.String(), simulator.SIUSDSupply.String())
 	})
 
-	// Test 7: USDC → liUSD (mintAndLock)
+	// Test 7: siUSD → USDC (unstakeAndRedeem)
+	t.Run("siUSD -> USDC (unstakeAndRedeem)", func(t *testing.T) {
+		simulator, err := NewPoolSimulator(poolEntity)
+		require.NoError(t, err)
+
+		amountInSIUSD := mustParseBig("1000000000000000000") // 1 siUSD
+		amountOutUSDC := mustParseBig("2000000")             // 2 USDC (2:1 rate via 2 iUSD)
+
+		simulator.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: siusdAddr, Amount: amountInSIUSD},
+			TokenAmountOut: pool.TokenAmount{Token: usdcAddr, Amount: amountOutUSDC},
+			Fee:            pool.TokenAmount{Token: siusdAddr, Amount: big.NewInt(0)},
+		})
+
+		// intermediate iUSD = 1 siUSD * 2 = 2 iUSD
+		intermediateIUSD := mustParseBig("2000000000000000000")
+
+		// siUSD vault decreases (unstake)
+		expectedSIUSDAssets := new(big.Int).Sub(initialSIUSDAssets, intermediateIUSD)
+		expectedSIUSDSupply := new(big.Int).Sub(initialSIUSDSupply, amountInSIUSD)
+		assert.Equal(t, expectedSIUSDAssets.String(), simulator.SIUSDTotalAssets.String())
+		assert.Equal(t, expectedSIUSDSupply.String(), simulator.SIUSDSupply.String())
+
+		// iUSD supply decreases (redeem)
+		expectedIUSD := new(big.Int).Sub(initialIUSD, intermediateIUSD)
+		assert.Equal(t, expectedIUSD.String(), simulator.IUSDSupply.String())
+	})
+
+	// Test 8: USDC → liUSD (mintAndLock)
 	t.Run("USDC -> liUSD (mintAndLock)", func(t *testing.T) {
 		simulator, err := NewPoolSimulator(poolEntity)
 		require.NoError(t, err)

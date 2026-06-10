@@ -34,7 +34,7 @@ var (
 	DHooks = map[common.Address]func(json.RawMessage) IDHook{ // Doppler Hooks i.e. DopplerHookInitializer's internal hooks
 		h("0x97cAD5684FB7Cc2bEd9a9b5eBfba67138F4f2503"): NewRehypeDHook, // RehypeDopplerHook
 		h("0x3Ec4798A9B11e8243A8Db99687f7A23597B96623"): NewRehypeDHook, // RehypeDopplerHook
-		h("0xBF4195ab0B03e1eB3345dd1e83BeD7650b1ed123"): NewRehypeDHook, // RehypeDopplerHookInitializer TODO decay
+		h("0xBF4195ab0B03e1eB3345dd1e83BeD7650b1ed123"): NewRehypeDHook, // RehypeDopplerHookInitializer
 	}
 
 	ErrCannotSwapBeforeStartingTime = errors.New("cannot swap before starting time")
