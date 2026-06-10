@@ -27,6 +27,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/caliber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	capricornpamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/capricorn-pamm"
@@ -337,6 +338,7 @@ type Types struct {
 	GenericSimpleRate          string
 	RingSwap                   string
 	PrimeETH                   string
+	Caliber                    string
 	StaderETHx                 string
 	Feltir                     string
 	FluidVaultT1               string
@@ -557,6 +559,7 @@ var (
 		GenericSimpleRate:          genericsimplerate.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
+		Caliber:                    caliber.DexType,
 		StaderETHx:                 staderethx.DexType,
 		Feltir:                     feltir.DexType,
 		FluidVaultT1:               fluidVaultT1.DexType,

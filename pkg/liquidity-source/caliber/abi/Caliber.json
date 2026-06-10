@@ -1,0 +1,69 @@
+[
+  {
+    "type": "function",
+    "name": "getPoolBalances",
+    "inputs": [
+      { "name": "pairId", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "reserveX", "type": "uint256", "internalType": "uint256" },
+      { "name": "reserveY", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quote",
+    "inputs": [
+      { "name": "pairId", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "tokenIn", "type": "address", "internalType": "address" },
+      { "name": "tokenOut", "type": "address", "internalType": "address" },
+      { "name": "amountIn", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountOut", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "batchQuote",
+    "inputs": [
+      {
+        "name": "requests",
+        "type": "tuple[]",
+        "internalType": "struct Caliber.QuoteRequest[]",
+        "components": [
+          { "name": "pairId", "type": "bytes32", "internalType": "bytes32" },
+          { "name": "tokenIn", "type": "address", "internalType": "address" },
+          { "name": "tokenOut", "type": "address", "internalType": "address" },
+          { "name": "amountIn", "type": "uint256", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "results",
+        "type": "tuple[]",
+        "internalType": "struct Caliber.QuoteResult[]",
+        "components": [
+          { "name": "amountOut", "type": "uint256", "internalType": "uint256" },
+          { "name": "success", "type": "bool", "internalType": "bool" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPairId",
+    "inputs": [
+      { "name": "tokenX", "type": "address", "internalType": "address" },
+      { "name": "tokenY", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "stateMutability": "pure"
+  }
+]
