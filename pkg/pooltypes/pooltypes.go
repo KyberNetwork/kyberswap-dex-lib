@@ -81,6 +81,7 @@ import (
 	hiddenocean "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hidden-ocean"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyperamm"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
@@ -369,6 +370,7 @@ type Types struct {
 	ERC4626                    string
 	HiddenOcean                string
 	HyETH                      string
+	HyperAMM                   string
 	MimSwap                    string
 	Mooniswap                  string
 	InfinityPools              string
@@ -590,6 +592,7 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
+		HyperAMM:                   hyperamm.DexType,
 		MimSwap:                    mimswap.DexType,
 		Mooniswap:                  mooniswap.DexType,
 		InfinityPools:              infinitypools.DexType,

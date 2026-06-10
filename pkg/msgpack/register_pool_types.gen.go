@@ -88,6 +88,7 @@ import (
 	pkg_liquiditysource_hiddenocean "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hidden-ocean"
 	pkg_liquiditysource_honey "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	pkg_liquiditysource_hyeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	pkg_liquiditysource_hyperamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyperamm"
 	pkg_liquiditysource_infinifi_gateway "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	pkg_liquiditysource_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	pkg_liquiditysource_kelp_rseth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
@@ -324,6 +325,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hiddenocean.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_honey.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hyeth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hyperamm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_infinifi_gateway.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_integral.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rseth.PoolSimulator{})

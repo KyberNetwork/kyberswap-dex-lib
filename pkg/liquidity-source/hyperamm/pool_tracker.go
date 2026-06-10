@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -193,11 +192,6 @@ func (t *PoolTracker) getNewPoolState(
 	if err != nil {
 		return p, err
 	}
-
-	token0Hex := hexutil.Encode(common.HexToAddress(p.Tokens[0].Address).Bytes())
-	token1Hex := hexutil.Encode(common.HexToAddress(p.Tokens[1].Address).Bytes())
-	_ = token0Hex
-	_ = token1Hex
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

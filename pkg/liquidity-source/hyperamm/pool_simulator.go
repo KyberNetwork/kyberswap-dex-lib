@@ -3,7 +3,6 @@ package hyperamm
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -220,6 +219,3 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 		IsZeroToOne: s.GetTokenIndex(tokenIn) == 0,
 	}
 }
-
-// ensure number package is not unused
-var _ = number.Number_1e18
