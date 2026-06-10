@@ -230,7 +230,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	// Verify: swap an amount that requires more reserve1 than is now available.
 	// reserve1 after = 20000000000000 - 1994000000 ≈ 19999998006000000
 	// Requesting a huge swap that clearly exceeds remaining reserve1.
-	hugeIn, _ := new(big.Int).SetString("100000000000000000000000", 10) // 100k token0
+	hugeIn, ok := new(big.Int).SetString("100000000000000000000000", 10) // 100k token0
+	require.True(t, ok)
 	params2 := poolpkg.CalcAmountOutParams{
 		TokenAmountIn: poolpkg.TokenAmount{Token: tokens[0], Amount: hugeIn},
 		TokenOut:      tokens[1],

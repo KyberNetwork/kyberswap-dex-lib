@@ -160,26 +160,9 @@ func (t *PoolTracker) getNewPoolState(
 	fp01, _ := uint256.FromBig(fairPrice0To1)
 	fp10, _ := uint256.FromBig(fairPrice1To0)
 
-	var refFee01, refFee10 uint64
-	if feeData0To1.Data.FeeInBips != nil {
-		refFee01 = feeData0To1.Data.FeeInBips.Uint64()
-	} else {
-		refFee01 = uint64(baseFeeBpsRaw)
-	}
-	if feeData1To0.Data.FeeInBips != nil {
-		refFee10 = feeData1To0.Data.FeeInBips.Uint64()
-	} else {
-		refFee10 = uint64(baseFeeBpsRaw)
-	}
-
-	// Fall back to baseFeeBps when fair price calls succeeded but fee preview
-	// returned zero (shouldn't happen in production but guard against it).
-	if refFee01 == 0 {
-		refFee01 = uint64(baseFeeBpsRaw)
-	}
-	if refFee10 == 0 {
-		refFee10 = uint64(baseFeeBpsRaw)
-	}
+	fallback := uint64(baseFeeBpsRaw)
+	refFee01 := resolveRefFee(feeData0To1.Data.FeeInBips, fallback)
+	refFee10 := resolveRefFee(feeData1To0.Data.FeeInBips, fallback)
 
 	extraBytes, err := json.Marshal(Extra{
 		FairPrice0To1: fp01,
@@ -202,4 +185,13 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	return p, nil
+}
+
+// resolveRefFee returns the fee from feeInBips if non-nil and non-zero,
+// otherwise falls back to fallback (the pool's base fee).
+func resolveRefFee(feeInBips *big.Int, fallback uint64) uint64 {
+	if feeInBips != nil && feeInBips.Sign() > 0 {
+		return feeInBips.Uint64()
+	}
+	return fallback
 }
