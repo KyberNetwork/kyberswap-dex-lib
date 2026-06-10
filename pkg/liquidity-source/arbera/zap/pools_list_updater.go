@@ -2,11 +2,11 @@ package arberazap
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 

@@ -1,10 +1,10 @@
 package tessera
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/rs/zerolog/log"
 

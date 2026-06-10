@@ -2,12 +2,12 @@ package stabull
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 )
 
