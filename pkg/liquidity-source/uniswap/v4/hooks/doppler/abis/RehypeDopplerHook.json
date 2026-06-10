@@ -42,8 +42,47 @@
       },
       {
         "name": "customFee",
-        "type": "uint24",
-        "internalType": "uint24"
+        "type": "int64",
+        "internalType": "int64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "getFeeSchedule",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "startingTime",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "startFee",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "endFee",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "lastFee",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "durationSeconds",
+        "type": "int64",
+        "internalType": "int64"
       }
     ],
     "stateMutability": "view"

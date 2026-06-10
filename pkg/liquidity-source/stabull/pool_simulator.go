@@ -1,11 +1,11 @@
 package stabull
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
