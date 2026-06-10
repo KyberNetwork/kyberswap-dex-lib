@@ -91,7 +91,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Action: ActionMint,
 		}
 		amountOut = s.calculateMint(amountIn)
-		gas = defaultMintGas
+		gas = gasMint
 
 	case tokenIn == s.iusd && tokenOut == s.usdc:
 		// iUSD → USDC (redeem)
@@ -99,7 +99,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Action: ActionRedeem,
 		}
 		amountOut = s.calculateRedeem(amountIn)
-		gas = defaultRedeemGas
+		gas = gasRedeem
 
 	case tokenIn == s.iusd && tokenOut == s.siusd:
 		// iUSD → siUSD (stake)
@@ -107,7 +107,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Action: ActionStake,
 		}
 		amountOut = s.calculateStake(amountIn)
-		gas = defaultStakeGas
+		gas = gasStake
 
 	case tokenIn == s.siusd && tokenOut == s.iusd:
 		// siUSD → iUSD (unstake)
@@ -115,7 +115,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Action: ActionUnstake,
 		}
 		amountOut = s.calculateUnstake(amountIn)
-		gas = defaultUnstakeGas
+		gas = gasUnstake
 
 	case tokenIn == s.iusd && s.isLIUSD(tokenOut):
 		// iUSD → liUSD (lock/createPosition)
@@ -125,7 +125,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			UnwindingEpochs: int(s.LIUSDBuckets[bucketIndex].Index),
 		}
 		amountOut = s.calculateLock(amountIn, bucketIndex)
-		gas = defaultCreatePositionGas
+		gas = gasCreatePosition
 
 	case tokenIn == s.usdc && tokenOut == s.siusd:
 		// USDC → siUSD (mintAndStake)
@@ -133,7 +133,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Action: ActionMintAndStake,
 		}
 		amountOut = s.calculateMintAndStake(amountIn)
-		gas = defaultMintAndStakeGas
+		gas = gasMintAndStake
 
 	case tokenIn == s.usdc && s.isLIUSD(tokenOut):
 		// USDC → liUSD (mintAndLock)
@@ -143,7 +143,15 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			UnwindingEpochs: int(s.LIUSDBuckets[bucketIndex].Index),
 		}
 		amountOut = s.calculateMintAndLock(amountIn, bucketIndex)
-		gas = defaultMintAndLockGas
+		gas = gasMintAndLock
+
+	case tokenIn == s.siusd && tokenOut == s.usdc:
+		// siUSD → USDC (unstakeAndRedeem)
+		swapInfo = SwapInfo{
+			Action: ActionUnstakeAndRedeem,
+		}
+		amountOut = s.calculateUnstakeAndRedeem(amountIn)
+		gas = gasUnstakeAndRedeem
 
 	default:
 		// All other paths are unsupported
@@ -254,6 +262,15 @@ func (s *PoolSimulator) calculateMintAndLock(usdcAmount *big.Int, bucketIndex in
 	return liusdAmount
 }
 
+// calculateUnstakeAndRedeem: siUSD → USDC (combined unstake + redeem)
+func (s *PoolSimulator) calculateUnstakeAndRedeem(siusdAmount *big.Int) *big.Int {
+	// First: siUSD → iUSD (unstake with ERC4626 conversion)
+	iusdAmount := s.calculateUnstake(siusdAmount)
+
+	// Second: iUSD → USDC (redeem with decimal scaling)
+	return s.calculateRedeem(iusdAmount)
+}
+
 // getLIUSDIndex finds the index of a liUSD token in the liusdTokens array
 func (s *PoolSimulator) getLIUSDIndex(tokenAddr string) int {
 	for i, addr := range s.liusdTokens {
@@ -300,7 +317,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		for i, liusdAddr := range s.liusdTokens {
 			if tokenOut == liusdAddr {
 				s.LIUSDBuckets[i].TotalSupply = new(big.Int).Add(s.LIUSDBuckets[i].TotalSupply, amountOut)
-				s.LIUSDBuckets[i].BucketData.TotalReceiptTokens = new(big.Int).Add(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens, amountIn)
+				s.LIUSDBuckets[i].BucketData.TotalReceiptTokens = new(big.Int).Add(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens,
+					amountIn)
 				break
 			}
 		}
@@ -325,10 +343,21 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		for i, liusdAddr := range s.liusdTokens {
 			if tokenOut == liusdAddr {
 				s.LIUSDBuckets[i].TotalSupply = new(big.Int).Add(s.LIUSDBuckets[i].TotalSupply, amountOut)
-				s.LIUSDBuckets[i].BucketData.TotalReceiptTokens = new(big.Int).Add(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens, iusdAmount)
+				s.LIUSDBuckets[i].BucketData.TotalReceiptTokens = new(big.Int).Add(s.LIUSDBuckets[i].BucketData.TotalReceiptTokens,
+					iusdAmount)
 				break
 			}
 		}
+
+	case tokenIn == s.siusd && tokenOut == s.usdc:
+		// siUSD → USDC (unstakeAndRedeem)
+		// Calculate intermediate iUSD amount
+		iusdAmount := s.calculateUnstake(amountIn)
+		// Update siUSD vault state (unstake)
+		s.SIUSDTotalAssets = new(big.Int).Sub(s.SIUSDTotalAssets, iusdAmount)
+		s.SIUSDSupply = new(big.Int).Sub(s.SIUSDSupply, amountIn)
+		// Update iUSD supply (redeem)
+		s.IUSDSupply = new(big.Int).Sub(s.IUSDSupply, iusdAmount)
 	}
 	// Update reserves for display
 	s.Info.Reserves[1] = new(big.Int).Set(s.SIUSDTotalAssets)
