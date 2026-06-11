@@ -3,7 +3,6 @@ package lunarbase
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -30,15 +29,8 @@ type rpcState struct {
 	extra       Extra
 }
 
-func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClient *ethrpc.Client,
+func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.ChainID, ethrpcClient *ethrpc.Client,
 	overrides map[common.Address]gethclient.OverrideAccount) (*rpcState, error) {
-	var coreAddress string
-	if p != nil {
-		coreAddress = p.Address
-	} else {
-		coreAddress = strings.ToLower(cfg.CoreAddress)
-	}
-
 	var (
 		tokenX         common.Address
 		tokenY         common.Address
@@ -98,8 +90,8 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 	}
 	blockNumber := resp.BlockNumber.Uint64()
 
-	tokenXAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenX[:]), cfg.ChainID)
-	tokenYAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenY[:]), cfg.ChainID)
+	tokenXAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenX[:]), chainID)
+	tokenYAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenY[:]), chainID)
 
 	// Prefer the `state()` tuple as the authoritative source; fall back to the
 	// dedicated `anchorPrice()` view if the tuple decode produced nil.
@@ -134,23 +126,7 @@ func fetchRPCState(ctx context.Context, p *entity.Pool, cfg *Config, ethrpcClien
 	}, nil
 }
 
-func buildEntityPool(p *entity.Pool, cfg *Config, state *rpcState) (*entity.Pool, error) {
-	if p == nil {
-		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			HasNative: state.hasNative,
-		})
-		p = &entity.Pool{
-			Address:  strings.ToLower(cfg.CoreAddress),
-			Exchange: cfg.DexID,
-			Type:     DexType,
-			Tokens: []*entity.PoolToken{
-				{Address: state.tokenX, Swappable: true},
-				{Address: state.tokenY, Swappable: true},
-			},
-			StaticExtra: string(staticExtraBytes),
-		}
-	}
-
+func buildEntityPool(p *entity.Pool, state *rpcState) (*entity.Pool, error) {
 	extraBytes, err := json.Marshal(state.extra)
 	if err != nil {
 		return nil, err

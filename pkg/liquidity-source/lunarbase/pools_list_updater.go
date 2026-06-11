@@ -2,6 +2,7 @@ package lunarbase
 
 import (
 	"context"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -39,30 +40,46 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	state, err := fetchRPCState(ctx, nil, u.config, u.ethrpcClient, nil)
-	if err != nil {
-		return nil, metadataBytes, err
-	}
+	poolEntities := make([]entity.Pool, 0, len(u.config.Pools))
+	poolAddrs := make([]common.Address, 0, len(u.config.Pools))
+	for _, poolAddr := range u.config.Pools {
+		poolAddr = strings.ToLower(poolAddr)
+		state, err := fetchRPCState(ctx, poolAddr, u.config.ChainID, u.ethrpcClient, nil)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
 
-	poolEntity, err := buildEntityPool(nil, u.config, state)
-	if err != nil {
-		return nil, metadataBytes, err
+		staticExtraBytes, _ := json.Marshal(StaticExtra{
+			HasNative: state.hasNative,
+		})
+		poolEntity := &entity.Pool{
+			Address:  poolAddr,
+			Exchange: u.config.DexID,
+			Type:     DexType,
+			Tokens: []*entity.PoolToken{
+				{Address: state.tokenX, Swappable: true},
+				{Address: state.tokenY, Swappable: true},
+			},
+			StaticExtra: string(staticExtraBytes),
+		}
+		poolEntity, err = buildEntityPool(poolEntity, state)
+		if err != nil {
+			continue
+		}
+
+		poolEntities = append(poolEntities, *poolEntity)
+		poolAddrs = append(poolAddrs, common.HexToAddress(poolAddr))
 	}
 
 	if u.config.WsURL != "" || u.config.FlashWsURL != "" {
 		InitFlashBlockSubscriber(
 			u.config.WsURL,
 			u.config.FlashWsURL,
-			common.HexToAddress(u.config.CoreAddress),
+			poolAddrs,
 		)
 	}
 
 	u.hasInitialized = true
 
-	metadataBytes, err = json.Marshal(Metadata{Initialized: true})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []entity.Pool{*poolEntity}, metadataBytes, nil
+	return poolEntities, metadataBytes, nil
 }

@@ -56,9 +56,9 @@ type FlashBlockSubscriber struct {
 	mu          sync.RWMutex
 	latestState *poolState
 
-	wsURL       string
-	flashWsURL  string
-	coreAddress common.Address
+	wsURL      string
+	flashWsURL string
+	pools      []common.Address
 
 	lastBlockTime    atomic.Int64
 	lastFlashTime    atomic.Int64
@@ -79,15 +79,15 @@ var (
 	subscriberInstance *FlashBlockSubscriber
 )
 
-func InitFlashBlockSubscriber(wsURL, flashWsURL string, coreAddress common.Address) {
+func InitFlashBlockSubscriber(wsURL, flashWsURL string, pools []common.Address) {
 	subscriberOnce.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		subscriberInstance = &FlashBlockSubscriber{
-			wsURL:       wsURL,
-			flashWsURL:  flashWsURL,
-			coreAddress: coreAddress,
-			forceClose:  make(chan struct{}, 1),
-			cancel:      cancel,
+			wsURL:      wsURL,
+			flashWsURL: flashWsURL,
+			pools:      pools,
+			forceClose: make(chan struct{}, 1),
+			cancel:     cancel,
 		}
 		go subscriberInstance.run(ctx)
 	})
@@ -211,7 +211,7 @@ func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
 		{topicBlockDelaySet, "BlockDelaySet"},
 	}
 
-	subs, logsMethod, err := subscribePoolLogs(ctx, logsClient, s.coreAddress, topicNames)
+	subs, logsMethod, err := subscribePoolLogs(ctx, logsClient, s.pools, topicNames)
 	if err != nil {
 		return err
 	}
@@ -498,12 +498,12 @@ func subscribeFilterLogs(
 	ctx context.Context,
 	client *rpc.Client,
 	method string,
-	addr common.Address,
+	addrs []common.Address,
 	topic common.Hash,
 	ch chan<- types.Log,
 ) (*rpc.ClientSubscription, error) {
 	arg := map[string]interface{}{
-		"address": addr,
+		"address": addrs,
 		"topics":  []common.Hash{topic},
 	}
 	return client.Subscribe(ctx, "eth", ch, method, arg)
@@ -517,7 +517,7 @@ type logSub struct {
 func subscribePoolLogs(
 	ctx context.Context,
 	client *rpc.Client,
-	addr common.Address,
+	addrs []common.Address,
 	topics []struct {
 		topic common.Hash
 		name  string
@@ -529,7 +529,7 @@ func subscribePoolLogs(
 
 		for _, t := range topics {
 			ch := make(chan types.Log, 64)
-			sub, err := subscribeFilterLogs(ctx, client, method, addr, t.topic, ch)
+			sub, err := subscribeFilterLogs(ctx, client, method, addrs, t.topic, ch)
 			if err != nil {
 				for _, ls := range subs {
 					ls.sub.Unsubscribe()
