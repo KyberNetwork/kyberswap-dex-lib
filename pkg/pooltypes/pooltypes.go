@@ -95,6 +95,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/cmeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
@@ -343,6 +344,7 @@ type Types struct {
 	FluidVaultT1               string
 	FluidDexT1                 string
 	FluidDexLite               string
+	CmETH                      string
 	MantleETH                  string
 	OndoUSDY                   string
 	Baseline                   string
@@ -564,6 +566,7 @@ var (
 		FluidVaultT1:               fluidVaultT1.DexType,
 		FluidDexT1:                 fluidDexT1.DexType,
 		FluidDexLite:               fluidDexLite.DexType,
+		CmETH:                      cmeth.DexType,
 		MantleETH:                  meth.DexType,
 		OndoUSDY:                   ondousdy.DexType,
 		Baseline:                   baseline.DexType,

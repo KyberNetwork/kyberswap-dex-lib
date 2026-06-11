@@ -155,6 +155,7 @@ const (
 	ExchangeMakerPSM                   = "maker-psm"
 	ExchangeMakerSavingsDai            = "maker-savingsdai"
 	ExchangeMantisSwap                 = "mantisswap"
+	ExchangeCmETH                      = "cmeth"
 	ExchangeMantleETH                  = "meth"
 	ExchangeMapleSyrup                 = "maple-syrup"
 	ExchangeMaverickV2                 = "maverick-v2"
