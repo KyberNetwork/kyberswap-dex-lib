@@ -1,0 +1,38 @@
+[
+  {
+    "name": "feeType",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint8"}]
+  },
+  {
+    "name": "maxFee",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256"}]
+  },
+  {
+    "name": "halfAmount",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256"}]
+  },
+  {
+    "name": "quotes",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {"name": "destination", "type": "uint32"},
+      {"name": "recipient", "type": "bytes32"}
+    ],
+    "outputs": [
+      {"name": "maxFee", "type": "uint256"},
+      {"name": "halfAmount", "type": "uint256"},
+      {"name": "issuedAt", "type": "uint256"},
+      {"name": "expiry", "type": "uint256"}
+    ]
+  }
+]
