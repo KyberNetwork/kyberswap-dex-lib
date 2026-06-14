@@ -120,7 +120,7 @@ func (c *httpClient) GetOpSignatures(
 	var result getOpSignaturesResult
 	resp, err := req.SetResult(&result).Get(getOpSignaturesEndpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrGetOpSignaturesFailed, err)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
@@ -128,7 +128,7 @@ func (c *httpClient) GetOpSignatures(
 	}
 
 	if result.Code != 0 {
-		return nil, errors.New(result.Message)
+		return nil, fmt.Errorf("%w: %s", ErrGetOpSignaturesFailed, result.Message)
 	}
 
 	if result.Data == nil {
