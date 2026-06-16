@@ -12,23 +12,34 @@ type Config struct {
 	SubgraphAPI             string               `json:"subgraphAPI"`
 	Core                    common.Address       `json:"core"`
 	Oracle                  common.Address       `json:"oracle"`
-	Twamm                   common.Address       `json:"twamm"`
+	Twamm                   TwammConfig          `json:"twamm"`
 	MevCapture              common.Address       `json:"mevCapture"`
 	BoostedFeesConcentrated common.Address       `json:"boostedFeesConcentrated"`
 	MevCaptureRouter        common.Address       `json:"mevCaptureRouter"`
 	QuoteDataFetcher        string               `json:"quoteDataFetcher"`
-	TwammDataFetcher        string               `json:"twammDataFetcher"`
 	BoostedFeesDataFetcher  string               `json:"boostedFeesDataFetcher"`
 
 	supportedExtensions map[common.Address]ExtensionType
+}
+
+type TwammConfig struct {
+	V1 TwammDeployment `json:"v1"`
+	V2 TwammDeployment `json:"v2"`
+}
+
+type TwammDeployment struct {
+	Address     common.Address `json:"address"`
+	DataFetcher string         `json:"dataFetcher"`
 }
 
 func NewConfig(
 	dexId valueobject.Exchange,
 	chainId valueobject.ChainID,
 	subgraphAPI string,
-	core, oracle, twamm, mevCapture, boostedFeesConcentrated, mevCaptureRouter common.Address,
-	quoteDataFetcher, twammDataFetcher, boostedFeesDataFetcher string,
+	core, oracle common.Address,
+	twamm TwammConfig,
+	mevCapture, boostedFeesConcentrated, mevCaptureRouter common.Address,
+	quoteDataFetcher, boostedFeesDataFetcher string,
 ) *Config {
 	return &Config{
 		DexId:                   dexId,
@@ -41,10 +52,20 @@ func NewConfig(
 		BoostedFeesConcentrated: boostedFeesConcentrated,
 		MevCaptureRouter:        mevCaptureRouter,
 		QuoteDataFetcher:        quoteDataFetcher,
-		TwammDataFetcher:        twammDataFetcher,
 		BoostedFeesDataFetcher:  boostedFeesDataFetcher,
 
 		supportedExtensions: nil,
+	}
+}
+
+func (c *Config) TwammDataFetcher(address common.Address) string {
+	switch address {
+	case c.Twamm.V1.Address:
+		return c.Twamm.V1.DataFetcher
+	case c.Twamm.V2.Address:
+		return c.Twamm.V2.DataFetcher
+	default:
+		return ""
 	}
 }
 
@@ -52,7 +73,8 @@ func (c *Config) ExtensionType(extension common.Address) ExtensionType {
 	if c.supportedExtensions == nil {
 		c.supportedExtensions = map[common.Address]ExtensionType{
 			c.Oracle:                  ExtensionTypeOracle,
-			c.Twamm:                   ExtensionTypeTwamm,
+			c.Twamm.V1.Address:        ExtensionTypeTwamm,
+			c.Twamm.V2.Address:        ExtensionTypeTwamm,
 			c.MevCapture:              ExtensionTypeMevCapture,
 			c.BoostedFeesConcentrated: ExtensionTypeBoostedFeesConcentrated,
 		}

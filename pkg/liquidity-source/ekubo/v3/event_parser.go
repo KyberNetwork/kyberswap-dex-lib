@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -18,14 +17,14 @@ import (
 var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
 
 type EventParser struct {
-	Core  string
-	Twamm string
+	Core  common.Address
+	Twamm TwammConfig
 }
 
 func NewPoolFactory(config *Config) *EventParser {
 	return &EventParser{
-		Core:  hexutil.Encode(config.Core[:]),
-		Twamm: hexutil.Encode(config.Twamm[:]),
+		Core:  config.Core,
+		Twamm: config.Twamm,
 	}
 }
 
@@ -45,13 +44,11 @@ func (e *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string]
 }
 
 func (e *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
-	logAddress := hexutil.Encode(log.Address[:])
-
-	switch logAddress {
+	switch log.Address {
 	case e.Core:
 		return e.handleCoreLog(log)
-	case e.Twamm:
-		return e.handleTwammLog(log)
+	case e.Twamm.V1.Address, e.Twamm.V2.Address:
+		return e.handleTwammLog(log, log.Address)
 	default:
 		return nil, nil
 	}
@@ -83,7 +80,7 @@ func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {
 	return nil, nil
 }
 
-func (e *EventParser) handleTwammLog(log types.Log) ([]string, error) {
+func (e *EventParser) handleTwammLog(log types.Log, twamm common.Address) ([]string, error) {
 	if len(log.Topics) == 0 {
 		if len(log.Data) < 32 {
 			return nil, fmt.Errorf("invalid data length for VirtualOrdersExecuted event")
@@ -105,7 +102,7 @@ func (e *EventParser) handleTwammLog(log types.Log) ([]string, error) {
 		orderKey := pools.TwammOrderKey{TwammOrderKeyAbi: orderKeyAbi}
 
 		poolKey := pools.NewPoolKey(orderKey.Token0, orderKey.Token1,
-			pools.NewPoolConfig(common.HexToAddress(e.Twamm), orderKey.Fee(), pools.NewFullRangePoolTypeConfig()))
+			pools.NewPoolConfig(twamm, orderKey.Fee(), pools.NewFullRangePoolTypeConfig()))
 
 		poolAddress, err := poolKey.ToPoolAddress()
 		if err != nil {
