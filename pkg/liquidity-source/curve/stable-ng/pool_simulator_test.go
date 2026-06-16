@@ -75,6 +75,36 @@ func TestCalcAmountOut(t *testing.T) {
 	}
 }
 
+// TestCalcAmountOutDegeneratePool verifies that a pool whose on-chain get_D oscillates
+// (never satisfies |D - Dprev| <= 1 in 255 iterations) is correctly rejected by CalcAmountOut.
+//
+// Pool: 0x628350e16b665e0caa9bc8edbbbe0db31efb3bdc (Polygon)
+// Balances are heavily skewed (coins[0] ≈ 5000× coins[1-3]), causing the Newton iteration
+// for D to oscillate between two values that differ by 2.  Any on-chain exchange() call
+// reverts with "return D".  The old Go code used D_P / (x*N+1) instead of D_P / x then /N^N
+// which caused it to converge to a nearby (but wrong) D and return a spurious result.
+func TestCalcAmountOutDegeneratePool(t *testing.T) {
+	t.Parallel()
+
+	// State snapshot from Polygon at the time the bug was observed.
+	// coins[2]=DAI (18 dec), coins[3]=USDT (6 dec); stored_rates=[1e18,1e30,1e18,1e30]
+	poolJSON := `{"address":"0x628350e16b665e0caa9bc8edbbbe0db31efb3bdc","exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1718000000,"reserves":["5014519632205647151932","1436700","247681126439187553","2666751","293348907701467232911"],"tokens":[{"address":"0x1e4a2f01d401f5f58fe132dd14a270ab7c110cb3","decimals":18,"swappable":true},{"address":"0x2791bca1f2de4661ed88a30c99a7a9449aa84174","decimals":6,"swappable":true},{"address":"0x8f3cf7ad23cd3cadbd9735aff958023239c6a063","decimals":18,"swappable":true},{"address":"0xc2132d05d31c914a87c6611c10748aeb04b58e8f","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000\",\"1000000000000000000000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"20000000000\"}"}`
+
+	var poolEntity entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(poolJSON), &poolEntity))
+
+	sim, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	// 1e18 DAI → USDT: on-chain reverts because get_D oscillates; simulator must also error.
+	amtIn := new(big.Int).SetUint64(1_000_000_000_000_000_000)
+	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063", Amount: amtIn},
+		TokenOut:      "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+	})
+	require.ErrorIs(t, err, ErrDDoesNotConverge)
+}
+
 // TestCalcAmountIn how to test it? Go to the pool contract and use the `get_dx` function to get the expected amount in
 // For example, https://etherscan.io/address/0x02950460E2b9529D0E00284A5fA2d7bDF3fA4d72#readContract
 func TestCalcAmountIn(t *testing.T) {
