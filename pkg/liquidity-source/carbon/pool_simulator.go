@@ -276,6 +276,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 		BlockNumber:     s.Info.BlockNumber,
 		IsNativeIn:      valueobject.IsNative(lo.Ternary(isToken0In, s.Token0, s.Token1)),
 		IsNativeOut:     valueobject.IsNative(lo.Ternary(isToken0In, s.Token1, s.Token0)),
+		TradingFeePpm:   s.TradingFeePpm,
 		ApprovalAddress: s.Controller,
 	}
 }

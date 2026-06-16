@@ -34,7 +34,8 @@ type AximaBin struct {
 }
 
 type StaticExtra struct {
-	Pair string `json:"pair"`
+	Pair                 string `json:"pair"`
+	PriceProviderAddress string `json:"priceProvider"`
 }
 
 type Extra struct {
@@ -57,5 +58,6 @@ type Bin struct {
 }
 
 type PoolMeta struct {
-	SwapDirection bool `json:"swapDir"`
+	SwapDirection        bool   `json:"swapDir"`
+	PriceProviderAddress string `json:"priceProvider"`
 }
