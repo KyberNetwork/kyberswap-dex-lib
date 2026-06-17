@@ -94,6 +94,9 @@ func newLastRowInfo() subgraphCursor {
 }
 
 func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKey, subgraphCursor, error) {
+	if u.graphqlClient == nil {
+		return nil, subgraphCursor{}, nil
+	}
 	type poolInitialization struct {
 		Id                      string         `json:"id"`
 		BlockHash               string         `json:"blockHash"`
