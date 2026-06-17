@@ -11,16 +11,14 @@ type (
 	Extra = pools.PoolState
 
 	StaticExtra struct {
-		Core             common.Address   `json:"core"`
-		ExtensionType    ExtensionType    `json:"extensionType"`
-		PoolKey          pools.AnyPoolKey `json:"poolKey"`
-		MevCaptureRouter common.Address   `json:"mevCaptureRouter"`
+		Core          common.Address   `json:"core"`
+		ExtensionType ExtensionType    `json:"extensionType"`
+		PoolKey       pools.AnyPoolKey `json:"poolKey"`
 	}
 
 	Meta struct {
-		MevCaptureRouter common.Address   `json:"router"`
-		Core             common.Address   `json:"core"`
-		PoolKey          pools.AbiPoolKey `json:"poolKey"`
+		Core    common.Address   `json:"core"`
+		PoolKey pools.AbiPoolKey `json:"poolKey"`
 	}
 
 	PoolWithBlockNumber struct {

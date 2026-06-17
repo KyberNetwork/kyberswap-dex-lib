@@ -198,9 +198,14 @@ func (f *dataFetchers) fetchPools(
 
 		batchQuoteData := make([]struct{ twammQuoteData }, len(poolKeyBatch))
 		for i, poolKey := range poolKeyBatch {
+			dataFetcher := f.config.TwammDataFetcher(poolKey.Extension())
+			if dataFetcher == "" {
+				return nil, fmt.Errorf("missing TWAMMDataFetcher for extension %s", poolKey.Extension())
+			}
+
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.TwammDataFetcherABI,
-				Target: f.config.TwammDataFetcher,
+				Target: dataFetcher,
 				Method: twammDataFetcherMethod,
 				Params: []any{
 					poolKey.ToAbi(),
