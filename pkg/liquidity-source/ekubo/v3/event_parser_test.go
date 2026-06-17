@@ -21,7 +21,7 @@ func TestEventParserDecode(t *testing.T) {
 		New("https://ethereum.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
-	e := NewPoolFactory(MainnetConfig)
+	e := NewPoolFactory(MainnetConfig, rpcClient)
 
 	tests := []struct {
 		name            string

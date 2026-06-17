@@ -15,7 +15,6 @@ type Config struct {
 	Twamm                   TwammConfig          `json:"twamm"`
 	MevCapture              common.Address       `json:"mevCapture"`
 	BoostedFeesConcentrated common.Address       `json:"boostedFeesConcentrated"`
-	MevCaptureRouter        common.Address       `json:"mevCaptureRouter"`
 	QuoteDataFetcher        string               `json:"quoteDataFetcher"`
 	BoostedFeesDataFetcher  string               `json:"boostedFeesDataFetcher"`
 
@@ -38,7 +37,7 @@ func NewConfig(
 	subgraphAPI string,
 	core, oracle common.Address,
 	twamm TwammConfig,
-	mevCapture, boostedFeesConcentrated, mevCaptureRouter common.Address,
+	mevCapture, boostedFeesConcentrated common.Address,
 	quoteDataFetcher, boostedFeesDataFetcher string,
 ) *Config {
 	return &Config{
@@ -50,7 +49,6 @@ func NewConfig(
 		Twamm:                   twamm,
 		MevCapture:              mevCapture,
 		BoostedFeesConcentrated: boostedFeesConcentrated,
-		MevCaptureRouter:        mevCaptureRouter,
 		QuoteDataFetcher:        quoteDataFetcher,
 		BoostedFeesDataFetcher:  boostedFeesDataFetcher,
 
