@@ -99,7 +99,7 @@ Register the simulator, lister, and tracker factories (keyed by `DexType`; doubl
 ## uint256 Performance Rules
 
 ### Stack allocation
-- `var x uint256.Int` stays on stack. `new(uint256.Int)` always heap-allocates.
+- `var x uint256.Int` stays on stack if it doesn’t escape. `new(uint256.Int)` returns a pointer and may escape (heap); prefer stack locals (`var x uint256.Int`) in hot paths.
 - Return by value (`(hi, lo uint256.Int)`) avoids heap escape for multi-return.
 - `&localVar` passed to a function stays on stack as long as the function doesn't store the pointer.
 
