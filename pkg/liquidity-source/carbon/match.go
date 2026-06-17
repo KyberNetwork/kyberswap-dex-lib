@@ -108,7 +108,7 @@ func tradeTargetAmount(sourceAmount *uint256.Int, order *Order) *uint256.Int {
 // tradeSourceAmount x * z^2 / ((A * y + B * z) * (A * y + B * z - A * x))
 func tradeSourceAmount(targetAmount *uint256.Int, order *Order) *uint256.Int {
 	if targetAmount == nil || targetAmount.Sign() <= 0 {
-		return u256.UMax.Clone()
+		return u256.New0()
 	}
 	if order.Y == nil || order.Z == nil {
 		return u256.UMax.Clone()
@@ -179,7 +179,7 @@ func rateBySourceAmount(sourceAmount *uint256.Int, order *Order) Rate {
 		input = tradeSourceAmount(order.Y, order)
 		output = tradeTargetAmount(input, order)
 		for output.Gt(order.Y) && input.Sign() > 0 {
-			input.Sub(input, u256.U1)
+			input.SubUint64(input, 1)
 			output = tradeTargetAmount(input, order)
 		}
 	}
@@ -225,15 +225,21 @@ func equalTargetAmount(order *Order, limit *uint256.Int) *uint256.Int {
 		return y.Clone()
 	}
 
-	if B.Lt(limit) {
+	// num = A*y + B*z = getLimit(order) * z
+	var num, limitZ uint256.Int
+	num.Mul(y, &A)
+	var Bz uint256.Int
+	Bz.Mul(z, &B)
+	num.Add(&num, &Bz)
+
+	limitZ.Mul(z, limit)
+	if !num.Gt(&limitZ) {
 		return u256.New0()
 	}
 
-	var bMinusLimit, res, zBMinusLimit uint256.Int
-	bMinusLimit.Sub(&B, limit)
-	res.Mul(y, &A)
-	zBMinusLimit.Mul(z, &bMinusLimit)
-	res.Add(&res, &zBMinusLimit)
+	// (A*y + B*z - limit*z) / A — safe since num > limitZ
+	var res uint256.Int
+	res.Sub(&num, &limitZ)
 	return res.Div(&res, &A)
 }
 
@@ -374,7 +380,7 @@ func matchBest(
 			getLimit(&hi, orders[n-1])
 
 			var loPlus1 uint256.Int
-			loPlus1.Add(&lo, u256.U1)
+			loPlus1.AddUint64(&lo, 1)
 			for loPlus1.Lt(&hi) {
 				limit.Add(&lo, &hi)
 				limit.Div(&limit, u256.U2)
@@ -409,7 +415,7 @@ func matchBest(
 					hi.Set(&limit)
 				}
 
-				loPlus1.Add(&lo, u256.U1)
+				loPlus1.AddUint64(&lo, 1)
 			}
 			break
 		}
@@ -567,7 +573,7 @@ func minFactor(dst, x, y *uint256.Int) *uint256.Int {
 	var notLo uint256.Int
 	notLo.Not(&lo)
 	if hi.Gt(&notLo) {
-		return dst.Add(&hi, u256.U2)
+		return dst.AddUint64(&hi, 2)
 	}
-	return dst.Add(&hi, u256.U1)
+	return dst.AddUint64(&hi, 1)
 }
