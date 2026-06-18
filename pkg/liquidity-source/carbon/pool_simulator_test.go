@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/carbon/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -29,10 +30,7 @@ type PoolSimulatorTestSuite struct {
 }
 
 func (ts *PoolSimulatorTestSuite) SetupSuite() {
-	rpcUrl := os.Getenv("ETHEREUM_RPC_ENDPOINT")
-	if rpcUrl == "" {
-		rpcUrl = "https://ethereum-rpc.kyberswap.com"
-	}
+	rpcUrl := lo.CoalesceOrEmpty(os.Getenv("RPC_1"), "https://ethereum-rpc.kyberswap.com")
 
 	if client, err := ethclient.Dial(rpcUrl); err == nil {
 		ts.controller, _ = abis.NewControllerCaller(common.HexToAddress("0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1"), client)
@@ -318,6 +316,85 @@ func TestCalcAmountOutWETHToUSDC(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "114998227", res.TokenAmountOut.Amount.String())
 }
+
+// TestCalcAmountOutUSDCToWETH verifies multi-order matchFast routing:
+// the executor fills orders greedily in rate order, matching our matchFast output.
+// The expected value 55558047890551789 is verified on-chain at block 25339135.
+func TestCalcAmountOutUSDCToWETH(t *testing.T) {
+	t.Parallel()
+	sim := mustNewSim(t, wethUSDCPool)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: bignum.NewBig("100000000"),
+		},
+		TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "55558047890551789", res.TokenAmountOut.Amount.String())
+
+	test.SkipCI(t)
+
+	rpcUrl := lo.CoalesceOrEmpty(os.Getenv("RPC_1"), "https://ethereum-rpc.kyberswap.com")
+	client, err := ethclient.Dial(rpcUrl)
+	require.NoError(t, err)
+	controller, err := abis.NewControllerCaller(common.HexToAddress("0xC537e898CD774e2dCBa3B14Ea6f34C93d5eA45e1"), client)
+	require.NoError(t, err)
+
+	swapInfo, ok := res.SwapInfo.(SwapInfo)
+	require.True(t, ok)
+	targetAmount, err := controller.CalculateTradeTargetAmount(
+		&bind.CallOpts{Context: t.Context(), BlockNumber: big.NewInt(int64(sim.Info.BlockNumber))},
+		common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+		common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+		lo.Map(swapInfo.TradeActions, func(e TradeAction, _ int) abis.TradeAction {
+			return abis.TradeAction{StrategyId: bignum.NewBig(e.StrategyId), Amount: e.SourceAmount.ToBig()}
+		}),
+	)
+	require.NoError(t, err)
+	require.Equal(t, "55558047890551789", targetAmount.String())
+}
+
+// TestCalcAmountOutETHToGVNR verifies multi-order matchFast routing across 8 orders.
+// The expected value 1675381453123912654895 is verified on-chain at block 25343619.
+func TestCalcAmountOutETHToGVNR(t *testing.T) {
+	t.Parallel()
+	sim := mustNewSim(t, gvnrETHPool)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "",
+			Amount: bignum.NewBig("1000000000000000000"),
+		},
+		TokenOut: "0xfc60fc0145d7330e5abcfc52af7b043a1ce18e7d",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "1675381453123912654895", res.TokenAmountOut.Amount.String())
+
+	test.SkipCI(t)
+
+	rpcUrl := lo.CoalesceOrEmpty(os.Getenv("RPC_1"), "https://ethereum-rpc.kyberswap.com")
+	client, err := ethclient.Dial(rpcUrl)
+	require.NoError(t, err)
+	controller, err := abis.NewControllerCaller(common.HexToAddress("0xC537e898CD774e2dCBa3B14Ea6f34C93d5eA45e1"), client)
+	require.NoError(t, err)
+
+	swapInfo, ok := res.SwapInfo.(SwapInfo)
+	require.True(t, ok)
+	targetAmount, err := controller.CalculateTradeTargetAmount(
+		&bind.CallOpts{Context: t.Context(), BlockNumber: big.NewInt(int64(sim.Info.BlockNumber))},
+		common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+		common.HexToAddress("0xfc60fc0145d7330e5abcfc52af7b043a1ce18e7d"),
+		lo.Map(swapInfo.TradeActions, func(e TradeAction, _ int) abis.TradeAction {
+			return abis.TradeAction{StrategyId: bignum.NewBig(e.StrategyId), Amount: e.SourceAmount.ToBig()}
+		}),
+	)
+	require.NoError(t, err)
+	require.Equal(t, "1675381453123912654895", targetAmount.String())
+}
+
+const gvnrETHPool = `{"address":"0xb7b1badc0ed285b744226776c077b0c0b64cbfa37e2c599bf71e0595767d7cd6","exchange":"carbon","type":"carbon","timestamp":1781775706,"reserves":["546628477455079797","13813554495378836707802"],"tokens":[{"swappable":true},{"address":"0xfc60fc0145d7330e5abcfc52af7b043a1ce18e7d","swappable":true}],"extra":"{\"strategies\":[{\"id\":167759206892022662487443681463861728249248,\"orders\":[{\"y\":\"0\",\"z\":\"0\",\"A\":0,\"B\":0},{\"y\":\"7123091515159890664715\",\"z\":\"7123091515159890664715\",\"A\":829346168526880,\"B\":1848447761076517}]},{\"id\":167759206892022662487443681463861728249255,\"orders\":[{\"y\":\"0\",\"z\":\"18945094561582384\",\"A\":0,\"B\":6769956136068},{\"y\":\"32749502173002074184\",\"z\":\"32749502173002074184\",\"A\":0,\"B\":1869888244691704}]},{\"id\":167759206892022662487443681463861728249987,\"orders\":[{\"y\":\"0\",\"z\":\"0\",\"A\":0,\"B\":0},{\"y\":\"299\",\"z\":\"299\",\"A\":0,\"B\":1930954352567231}]},{\"id\":167759206892022662487443681463861728249270,\"orders\":[{\"y\":\"0\",\"z\":\"0\",\"A\":0,\"B\":0},{\"y\":\"5513758578180508293581\",\"z\":\"5513758578180508293581\",\"A\":836634041273504,\"B\":1848588714950796}]},{\"id\":167759206892022662487443681463861728249541,\"orders\":[{\"y\":\"0\",\"z\":\"30000000000000000\",\"A\":0,\"B\":5545202785084},{\"y\":\"77297593465663194709\",\"z\":\"77297593465663194709\",\"A\":0,\"B\":0}]},{\"id\":167759206892022662487443681463861728249549,\"orders\":[{\"y\":\"512871317677251318\",\"z\":\"512871317677251318\",\"A\":0,\"B\":0},{\"y\":\"684853964782233841763\",\"z\":\"1603688483912197474736\",\"A\":1000658676332360,\"B\":1861154143354315}]},{\"id\":167759206892022662487443681463861728249892,\"orders\":[{\"y\":\"28648385585018085\",\"z\":\"28648385585018085\",\"A\":0,\"B\":0},{\"y\":\"31789558130909812779\",\"z\":\"100000000000000000609\",\"A\":0,\"B\":1903452555814807}]},{\"id\":167759206892022662487443681463861728249919,\"orders\":[{\"y\":\"0\",\"z\":\"0\",\"A\":0,\"B\":0},{\"y\":\"54\",\"z\":\"54\",\"A\":0,\"B\":1945219439704770}]},{\"id\":167759206892022662487443681463861728250188,\"orders\":[{\"y\":\"0\",\"z\":\"0\",\"A\":0,\"B\":0},{\"y\":\"250000000000000000000\",\"z\":\"250000000000000000000\",\"A\":0,\"B\":1889592300521315}]},{\"id\":167759206892022662487443681463861728250200,\"orders\":[{\"y\":\"5108774192810394\",\"z\":\"5113472958553767\",\"A\":0,\"B\":0},{\"y\":\"13783486628825718\",\"z\":\"15000000000000000000\",\"A\":0,\"B\":1927052991234902}]},{\"id\":167759206892022662487443681463861728250217,\"orders\":[{\"y\":\"0\",\"z\":\"58181631311126802\",\"A\":0,\"B\":0},{\"y\":\"100000000000000000000\",\"z\":\"100000000000000000000\",\"A\":0,\"B\":1871183529175752}]}],\"tradingFeePpm\":2000}","staticExtra":"{\"t0\":\"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"t1\":\"0xfc60fc0145d7330e5abcfc52af7b043a1ce18e7d\",\"c\":\"0xC537e898CD774e2dCBa3B14Ea6f34C93d5eA45e1\"}","blockNumber":25343619}`
 
 func TestUpdateBalanceWETHToUSDC(t *testing.T) {
 	t.Parallel()
