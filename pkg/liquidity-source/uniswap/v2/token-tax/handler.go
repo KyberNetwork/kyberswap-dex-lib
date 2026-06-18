@@ -42,3 +42,13 @@ func deductTax(amount, taxBps *uint256.Int) *uint256.Int {
 	tax.Div(tax.Mul(amount, taxBps), big256.UBasisPoint)
 	return new(uint256.Int).Sub(amount, &tax)
 }
+
+type NoopHandler struct{}
+
+func (NoopHandler) ApplySellTax(_ string, amountIn *uint256.Int) *uint256.Int {
+	return amountIn
+}
+
+func (NoopHandler) ApplyBuyTax(_ string, grossOut *uint256.Int) *uint256.Int {
+	return grossOut
+}
