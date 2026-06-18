@@ -23,6 +23,7 @@ var (
 	ErrPairNotFound      = errors.New("pair not found")
 	ErrNoTrackedPairs    = errors.New("no tracked pairs")
 	ErrZeroAmount        = errors.New("zero amount")
+	ErrOverflow          = errors.New("bigInt overflow uint256")
 	ErrInsufficientFund  = errors.New("insufficient reserve")
 	ErrTickRangeExceeded = errors.New("swap exceeds fetched tick range")
 )

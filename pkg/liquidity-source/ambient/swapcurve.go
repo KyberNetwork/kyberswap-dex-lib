@@ -1,16 +1,16 @@
 package ambient
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type SwapDirective struct {
-	Qty        *big.Int
+	Qty        uint256.Int
 	InBaseQty  bool
 	IsBuy      bool
-	LimitPrice *big.Int
+	LimitPrice uint256.Int
 }
 
 type PoolParams struct {
@@ -22,65 +22,77 @@ type PoolParams struct {
 func SwapToLimit(curve *CurveState, accum *SwapAccum, swap *SwapDirective, pool *PoolParams, bumpTick int32) {
 	limitPrice := determineLimit(bumpTick, swap.LimitPrice, swap.IsBuy)
 
-	paidBase, paidQuote, paidProto := bookExchFees(curve, swap.Qty, pool, swap.InBaseQty, limitPrice)
+	paidBase, paidQuote, paidProto := bookExchFees(curve, &swap.Qty, pool, swap.InBaseQty, limitPrice)
 	accum.Accumulate(paidBase, paidQuote, paidProto)
 
 	paidBase, paidQuote, swap.Qty = swapOverCurve(curve, swap.InBaseQty, swap.IsBuy, swap.Qty, limitPrice)
-	accum.Accumulate(paidBase, paidQuote, bignum.ZeroBI)
+	accum.Accumulate(paidBase, paidQuote, uint256.Int{})
 }
 
-func CalcLimitFlows(curve *CurveState, swapQty *big.Int, inBaseQty bool, limitPrice *big.Int) *big.Int {
+func CalcLimitFlows(curve *CurveState, swapQty *uint256.Int, inBaseQty bool, limitPrice uint256.Int) uint256.Int {
 	limitFlow := calcLimitFlowsUncapped(curve, inBaseQty, limitPrice)
-	if limitFlow.Cmp(swapQty) > 0 {
-		return new(big.Int).Set(swapQty)
+	if limitFlow.Gt(swapQty) {
+		return *swapQty
 	}
 	return limitFlow
 }
 
-func calcLimitFlowsUncapped(curve *CurveState, inBaseQty bool, limitPrice *big.Int) *big.Int {
-	liq := ActiveLiquidity(curve)
+func calcLimitFlowsUncapped(curve *CurveState, inBaseQty bool, limitPrice uint256.Int) uint256.Int {
+	var liq uint256.Int
+	ActiveLiquidity(&liq, curve)
+	var result uint256.Int
 	if inBaseQty {
-		return DeltaBase(liq, curve.PriceRoot, limitPrice)
-	}
-	return DeltaQuote(liq, curve.PriceRoot, limitPrice)
-}
-
-func CalcLimitCounter(curve *CurveState, swapQty *big.Int, inBaseQty bool, limitPrice *big.Int) *big.Int {
-	isBuy := limitPrice.Cmp(curve.PriceRoot) > 0
-	denomFlow := CalcLimitFlows(curve, swapQty, inBaseQty, limitPrice)
-	return invertFlow(ActiveLiquidity(curve), curve.PriceRoot, denomFlow, isBuy, inBaseQty)
-}
-
-func invertFlow(liq, price, denomFlow *big.Int, isBuy, inBaseQty bool) *big.Int {
-	if liq.Sign() == 0 {
-		return new(big.Int)
-	}
-	invertReserve := ReserveAtPrice(liq, price, !inBaseQty)
-	initReserve := ReserveAtPrice(liq, price, inBaseQty)
-
-	var endReserve *big.Int
-	if isBuy == inBaseQty {
-		endReserve = new(big.Int).Add(initReserve, denomFlow)
+		DeltaBase(&result, &liq, &curve.PriceRoot, &limitPrice)
 	} else {
-		endReserve = new(big.Int).Sub(initReserve, denomFlow)
+		DeltaQuote(&result, &liq, &curve.PriceRoot, &limitPrice)
 	}
-	if endReserve.Sign() == 0 {
-		return new(big.Int).Set(mask128)
+	return result
+}
+
+func CalcLimitCounter(curve *CurveState, swapQty *uint256.Int, inBaseQty bool, limitPrice uint256.Int) uint256.Int {
+	isBuy := limitPrice.Gt(&curve.PriceRoot)
+	denomFlow := CalcLimitFlows(curve, swapQty, inBaseQty, limitPrice)
+	var liq uint256.Int
+	ActiveLiquidity(&liq, curve)
+	return invertFlow(liq, curve.PriceRoot, denomFlow, isBuy, inBaseQty)
+}
+
+func invertFlow(liq, price, denomFlow uint256.Int, isBuy, inBaseQty bool) uint256.Int {
+	if liq.IsZero() {
+		var zero uint256.Int
+		return zero
+	}
+	var invertReserve, initReserve uint256.Int
+	ReserveAtPrice(&invertReserve, &liq, &price, !inBaseQty)
+	ReserveAtPrice(&initReserve, &liq, &price, inBaseQty)
+
+	var endReserve uint256.Int
+	if isBuy == inBaseQty {
+		endReserve.Add(&initReserve, &denomFlow)
+	} else {
+		endReserve.Sub(&initReserve, &denomFlow)
+	}
+	if endReserve.IsZero() {
+		return *u256.UMaxU128
 	}
 
-	liqSq := new(big.Int).Mul(liq, liq)
-	endInvert := new(big.Int).Div(liqSq, endReserve)
+	var liqSq uint256.Int
+	liqSq.Mul(&liq, &liq)
+	var endInvert uint256.Int
+	endInvert.Div(&liqSq, &endReserve)
 
-	diff := new(big.Int).Sub(endInvert, invertReserve)
-	if diff.Sign() < 0 {
-		diff.Neg(diff)
+	var diff uint256.Int
+	if endInvert.Gt(&invertReserve) {
+		diff.Sub(&endInvert, &invertReserve)
+	} else {
+		diff.Sub(&invertReserve, &endInvert)
 	}
 	return diff
 }
 
-func swapOverCurve(curve *CurveState, inBaseQty, isBuy bool, swapQty, limitPrice *big.Int) (paidBase, paidQuote, qtyLeft *big.Int) {
-	realFlows := CalcLimitFlows(curve, swapQty, inBaseQty, limitPrice)
-	hitsLimit := realFlows.Cmp(swapQty) < 0
+func swapOverCurve(curve *CurveState, inBaseQty, isBuy bool, swapQty, limitPrice uint256.Int) (paidBase, paidQuote uint256.Int, qtyLeft uint256.Int) {
+	realFlows := CalcLimitFlows(curve, &swapQty, inBaseQty, limitPrice)
+	hitsLimit := realFlows.Lt(&swapQty)
 
 	if hitsLimit {
 		return RollPrice(curve, limitPrice, inBaseQty, isBuy, swapQty)
@@ -88,48 +100,48 @@ func swapOverCurve(curve *CurveState, inBaseQty, isBuy bool, swapQty, limitPrice
 	return RollFlow(curve, realFlows, inBaseQty, isBuy, swapQty)
 }
 
-func determineLimit(bumpTick int32, limitPrice *big.Int, isBuy bool) *big.Int {
+func determineLimit(bumpTick int32, limitPrice uint256.Int, isBuy bool) uint256.Int {
 	bounded := boundLimit(bumpTick, limitPrice, isBuy)
-	if bounded.Cmp(MinSqrtRatio) < 0 {
-		return new(big.Int).Set(MinSqrtRatio)
+	if bounded.Lt(&uMinSqrtRatio) {
+		return uMinSqrtRatio
 	}
-	if bounded.Cmp(MaxSqrtRatio) >= 0 {
-		return new(big.Int).Set(MaxSqrtRatioMinus1)
+	if bounded.Cmp(&uMaxSqrtRatio) >= 0 {
+		return uMaxSqrtRatioMinus1
 	}
 	return bounded
 }
 
-func boundLimit(bumpTick int32, limitPrice *big.Int, isBuy bool) *big.Int {
+func boundLimit(bumpTick int32, limitPrice uint256.Int, isBuy bool) uint256.Int {
 	if bumpTick <= MinTick || bumpTick >= MaxTick {
-		return new(big.Int).Set(limitPrice)
+		return limitPrice
 	}
 	if isBuy {
-		bumpPrice := new(big.Int).Sub(GetSqrtRatioAtTick(bumpTick), bignum.One)
-		if bumpPrice.Cmp(limitPrice) < 0 {
+		bumpPrice := GetSqrtRatioAtTick(bumpTick)
+		bumpPrice.Sub(&bumpPrice, u256.U1)
+		if bumpPrice.Lt(&limitPrice) {
 			return bumpPrice
 		}
-		return new(big.Int).Set(limitPrice)
+		return limitPrice
 	}
 	bumpPrice := GetSqrtRatioAtTick(bumpTick)
-	if bumpPrice.Cmp(limitPrice) > 0 {
+	if bumpPrice.Gt(&limitPrice) {
 		return bumpPrice
 	}
-	return new(big.Int).Set(limitPrice)
+	return limitPrice
 }
 
-func bookExchFees(curve *CurveState, swapQty *big.Int, pool *PoolParams, inBaseQty bool, limitPrice *big.Int) (paidBase, paidQuote, paidProto *big.Int) {
+func bookExchFees(curve *CurveState, swapQty *uint256.Int, pool *PoolParams, inBaseQty bool, limitPrice uint256.Int) (paidBase, paidQuote, paidProto uint256.Int) {
 	flow := CalcLimitCounter(curve, swapQty, inBaseQty, limitPrice)
 	liqFees, exchFees := CalcFeeOverFlow(flow, pool.FeeRate, pool.ProtocolTake)
 
-	AssimilateLiq(curve, liqFees, inBaseQty)
+	AssimilateLiq(curve, &liqFees, inBaseQty)
 
 	return assignFees(liqFees, exchFees, inBaseQty)
 }
 
-func assignFees(liqFees, exchFees *big.Int, inBaseQty bool) (paidBase, paidQuote, paidProto *big.Int) {
-	totalFees := liqFees.Add(liqFees, exchFees)
-	paidBase = bignum.ZeroBI
-	paidQuote = bignum.ZeroBI
+func assignFees(liqFees, exchFees uint256.Int, inBaseQty bool) (paidBase, paidQuote, paidProto uint256.Int) {
+	var totalFees uint256.Int
+	totalFees.Add(&liqFees, &exchFees)
 	if inBaseQty {
 		paidQuote = totalFees
 	} else {
@@ -140,17 +152,17 @@ func assignFees(liqFees, exchFees *big.Int, inBaseQty bool) (paidBase, paidQuote
 }
 
 var (
-	feeBPMult        = big.NewInt(1_000_000)
-	protoTakeDivisor = big.NewInt(256)
+	uFeeBPMult        = *uint256.NewInt(1_000_000)
+	uProtoTakeDivisor = *uint256.NewInt(256)
 )
 
-func CalcFeeOverFlow(flow *big.Int, feeRate uint16, protoProp uint8) (liqFee, protoFee *big.Int) {
-	totalFee := new(big.Int).SetUint64(uint64(feeRate))
-	totalFee.Mul(flow, totalFee)
-	totalFee.Div(totalFee, feeBPMult)
-	protoFee = new(big.Int).SetUint64(uint64(protoProp))
-	protoFee.Mul(totalFee, protoFee)
-	protoFee.Div(protoFee, protoTakeDivisor)
-	liqFee = new(big.Int).Sub(totalFee, protoFee)
+func CalcFeeOverFlow(flow uint256.Int, feeRate uint16, protoProp uint8) (liqFee, protoFee uint256.Int) {
+	liqFee.SetUint64(uint64(feeRate))
+	liqFee.Mul(&flow, &liqFee)
+	liqFee.Div(&liqFee, &uFeeBPMult)
+	protoFee.SetUint64(uint64(protoProp))
+	protoFee.Mul(&liqFee, &protoFee)
+	protoFee.Div(&protoFee, &uProtoTakeDivisor)
+	liqFee.Sub(&liqFee, &protoFee)
 	return
 }

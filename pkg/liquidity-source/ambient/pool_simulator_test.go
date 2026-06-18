@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -79,11 +80,9 @@ func TestPoolSimulatorCloneStateIsolatesPairState(t *testing.T) {
 	sim := newTestPoolSimulator(t)
 	cloned := sim.CloneState().(*PoolSimulator)
 
-	// Production never mutates Curve's big.Ints in place — SweepSwap always
-	// reassigns the fields via new(big.Int). Follow that invariant here and
-	// verify the clone's state pointer is independent of the original.
-	cloned.state.Curve.PriceRoot = new(big.Int).Add(cloned.state.Curve.PriceRoot, big.NewInt(1))
-	require.NotEqual(t, 0, cloned.state.Curve.PriceRoot.Cmp(sim.state.Curve.PriceRoot))
+	// PriceRoot is uint256.Int (value type); mutating cloned must not affect original.
+	cloned.state.Curve.PriceRoot.Add(&cloned.state.Curve.PriceRoot, uint256.NewInt(1))
+	require.NotEqual(t, 0, cloned.state.Curve.PriceRoot.Cmp(&sim.state.Curve.PriceRoot))
 }
 
 func newTestPoolSimulator(t *testing.T) *PoolSimulator {
@@ -102,6 +101,13 @@ func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 	})
 	require.NoError(t, err)
 
+	var seeds, concLiq uint256.Int
+	seeds.SetUint64(1_000_000_000)
+	concLiq.SetUint64(500_000_000)
+	var bidLots100, askLots100 uint256.Int
+	askLots100.SetUint64(100)
+	bidLots100.SetUint64(100)
+
 	state := &TrackerExtra{
 		Base:     base,
 		Quote:    quote,
@@ -109,8 +115,8 @@ func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 		PoolHash: poolHash,
 		Curve: CurveState{
 			PriceRoot:    GetSqrtRatioAtTick(0),
-			AmbientSeeds: big.NewInt(1_000_000_000),
-			ConcLiq:      big.NewInt(500_000_000),
+			AmbientSeeds: seeds,
+			ConcLiq:      concLiq,
 			SeedDeflator: 0,
 			ConcGrowth:   0,
 		},
@@ -118,8 +124,8 @@ func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 		PoolParams:  PoolParams{FeeRate: 2500, ProtocolTake: 0, TickSize: 16},
 		ActiveTicks: []int32{-256, 256},
 		Levels: []TrackedLevel{
-			{Tick: -256, Level: BookLevel{BidLots: big.NewInt(0), AskLots: big.NewInt(100)}},
-			{Tick: 256, Level: BookLevel{BidLots: big.NewInt(100), AskLots: big.NewInt(0)}},
+			{Tick: -256, Level: BookLevel{AskLots: askLots100}},
+			{Tick: 256, Level: BookLevel{BidLots: bidLots100}},
 		},
 	}
 

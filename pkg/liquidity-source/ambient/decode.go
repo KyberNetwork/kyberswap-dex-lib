@@ -1,32 +1,24 @@
 package ambient
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type CurveState struct {
-	PriceRoot    *big.Int // uint128 — Q64.64 sqrt price
-	AmbientSeeds *big.Int // uint128
-	ConcLiq      *big.Int // uint128
+	PriceRoot    uint256.Int // uint128 — Q64.64 sqrt price
+	AmbientSeeds uint256.Int // uint128
+	ConcLiq      uint256.Int // uint128 (on-chain int128, always ≥ 0 in valid state)
 	SeedDeflator uint64
 	ConcGrowth   uint64
 }
 
-func (c CurveState) Clone() CurveState {
-	return CurveState{
-		PriceRoot:    new(big.Int).Set(c.PriceRoot),
-		AmbientSeeds: new(big.Int).Set(c.AmbientSeeds),
-		ConcLiq:      new(big.Int).Set(c.ConcLiq),
-		SeedDeflator: c.SeedDeflator,
-		ConcGrowth:   c.ConcGrowth,
-	}
-}
+func (c CurveState) Clone() CurveState { return c } // value copy; all fields are value types
 
 type BookLevel struct {
-	BidLots     *big.Int // uint96
-	AskLots     *big.Int // uint96
+	BidLots     uint256.Int // uint96
+	AskLots     uint256.Int // uint96
 	FeeOdometer uint64
 }
 
@@ -41,60 +33,64 @@ type PoolSpec struct {
 }
 
 var (
-	maskU64  = new(big.Int).SetUint64(^uint64(0))
-	maskU96  = new(big.Int).Sub(new(big.Int).Lsh(bignum.One, 96), bignum.One)
-	maskU128 = bignum.MaxUint128
-	maskU16  = big.NewInt(0xffff)
-	maskU8   = big.NewInt(0xff)
+	maskU64  = new(uint256.Int).SetUint64(^uint64(0))
+	maskU96  = func() *uint256.Int { v := new(uint256.Int).Lsh(u256.U1, 96); return v.Sub(v, u256.U1) }()
+	maskU128 = u256.UMaxU128
+	maskU16  = new(uint256.Int).SetUint64(0xffff)
+	maskU8   = new(uint256.Int).SetUint64(0xff)
 )
 
-func slotToBig(slot [32]byte) *big.Int {
-	return new(big.Int).SetBytes(slot[:])
-}
-
 func DecodeCurve(slot0, slot1 [32]byte) CurveState {
-	v0 := slotToBig(slot0)
-	v1 := slotToBig(slot1)
+	s0 := new(uint256.Int).SetBytes(slot0[:])
+	s1 := new(uint256.Int).SetBytes(slot1[:])
 
-	priceRoot := new(big.Int).And(v0, maskU128)
-	ambientSeeds := new(big.Int).Rsh(v0, 128)
+	var c CurveState
+	c.PriceRoot.And(s0, maskU128)
+	c.AmbientSeeds.Rsh(s0, 128)
 
-	concLiq := new(big.Int).And(v1, maskU128)
-	seedDeflator := new(big.Int).And(new(big.Int).Rsh(v1, 128), maskU64).Uint64()
-	concGrowth := new(big.Int).Rsh(v1, 192).Uint64()
+	c.ConcLiq.And(s1, maskU128)
+	var tmp uint256.Int
+	tmp.Rsh(s1, 128)
+	tmp.And(&tmp, maskU64)
+	c.SeedDeflator = tmp.Uint64()
+	tmp.Rsh(s1, 192)
+	c.ConcGrowth = tmp.Uint64()
 
-	return CurveState{
-		PriceRoot:    priceRoot,
-		AmbientSeeds: ambientSeeds,
-		ConcLiq:      concLiq,
-		SeedDeflator: seedDeflator,
-		ConcGrowth:   concGrowth,
-	}
+	return c
 }
 
 func DecodeBookLevel(slot [32]byte) BookLevel {
-	v := slotToBig(slot)
+	v := new(uint256.Int).SetBytes(slot[:])
 
-	bidLots := new(big.Int).And(v, maskU96)
-	askLots := new(big.Int).And(new(big.Int).Rsh(v, 96), maskU96)
-	feeOdometer := new(big.Int).And(new(big.Int).Rsh(v, 192), maskU64).Uint64()
+	var bl BookLevel
+	bl.BidLots.And(v, maskU96)
 
-	return BookLevel{
-		BidLots:     bidLots,
-		AskLots:     askLots,
-		FeeOdometer: feeOdometer,
-	}
+	var tmp uint256.Int
+	tmp.Rsh(v, 96)
+	bl.AskLots.And(&tmp, maskU96)
+
+	tmp.Rsh(v, 192)
+	tmp.And(&tmp, maskU64)
+	bl.FeeOdometer = tmp.Uint64()
+
+	return bl
 }
 
 func DecodePoolSpec(slot [32]byte) PoolSpec {
-	v := slotToBig(slot)
+	v := new(uint256.Int).SetBytes(slot[:])
+	var tmp uint256.Int
+	field := func(rsh uint, mask *uint256.Int) uint64 {
+		tmp.Rsh(v, rsh)
+		tmp.And(&tmp, mask)
+		return tmp.Uint64()
+	}
 	return PoolSpec{
-		Schema:       uint8(new(big.Int).And(v, maskU8).Uint64()),
-		FeeRate:      uint16(new(big.Int).And(new(big.Int).Rsh(v, 8), maskU16).Uint64()),
-		ProtocolTake: uint8(new(big.Int).And(new(big.Int).Rsh(v, 24), maskU8).Uint64()),
-		TickSize:     uint16(new(big.Int).And(new(big.Int).Rsh(v, 32), maskU16).Uint64()),
-		JitThresh:    uint8(new(big.Int).And(new(big.Int).Rsh(v, 48), maskU8).Uint64()),
-		KnockoutBits: uint8(new(big.Int).And(new(big.Int).Rsh(v, 56), maskU8).Uint64()),
-		OracleFlags:  uint8(new(big.Int).And(new(big.Int).Rsh(v, 64), maskU8).Uint64()),
+		Schema:       uint8(field(0, maskU8)),
+		FeeRate:      uint16(field(8, maskU16)),
+		ProtocolTake: uint8(field(24, maskU8)),
+		TickSize:     uint16(field(32, maskU16)),
+		JitThresh:    uint8(field(48, maskU8)),
+		KnockoutBits: uint8(field(56, maskU8)),
+		OracleFlags:  uint8(field(64, maskU8)),
 	}
 }

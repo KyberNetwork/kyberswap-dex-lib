@@ -141,7 +141,7 @@ func (t *PoolTracker) tickWindow(prevCurve *CurveState) TickWindow {
 	if t.cfg.TickRange <= 0 {
 		return FullTickWindow
 	}
-	if prevCurve == nil || prevCurve.PriceRoot == nil || prevCurve.PriceRoot.Sign() == 0 {
+	if prevCurve == nil || prevCurve.PriceRoot.IsZero() {
 		return FullTickWindow
 	}
 

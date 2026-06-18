@@ -82,7 +82,7 @@ func (t *StateTracker) LoadCentered(
 	if err != nil {
 		return nil, fmt.Errorf("centered load: read curve: %w", err)
 	}
-	if curve.PriceRoot == nil || curve.PriceRoot.Sign() == 0 {
+	if curve.PriceRoot.IsZero() {
 		return &TrackerExtra{
 			Base: orderedBase, Quote: orderedQuote,
 			PoolIdx: poolIdx, PoolHash: poolHash,
@@ -119,7 +119,6 @@ func (t *StateTracker) LoadWindow(
 	maxLobby := int16(LobbyKey(window.MaxTick))
 	numLobbies := int(maxLobby-minLobby) + 1
 
-	// ---- Stage A: curve(2) + poolSpec(1) + lobby mezz reads.
 	const numFixed = 3
 	stageA := make([]common.Hash, 0, numFixed+numLobbies)
 	stageA = append(stageA,
@@ -141,7 +140,6 @@ func (t *StateTracker) LoadWindow(
 	poolSpec := DecodePoolSpec(slotWord(wordsA[2]))
 	mezzWords := wordsA[numFixed:]
 
-	// ---- Stage B: terminus reads for every non-empty mezz word.
 	type mezzHit struct {
 		lobby   int8
 		mezzBit uint8
@@ -184,7 +182,6 @@ func (t *StateTracker) LoadWindow(
 	}
 	sort.Slice(activeTicks, func(i, j int) bool { return activeTicks[i] < activeTicks[j] })
 
-	// ---- Stage C: per active tick, one level slot.
 	stageC := make([]common.Hash, 0, len(activeTicks))
 	for _, tick := range activeTicks {
 		stageC = append(stageC, LevelSlot(poolHash, tick))
@@ -218,10 +215,6 @@ func (t *StateTracker) LoadWindow(
 	}, nil
 }
 
-// Refresh reuses prev when curve + poolSpec fingerprints are unchanged,
-// else falls back to LoadWindow. Returns (extra, changed, err).
-// Caveat: mints/burns inside an already-active mezz word don't move the curve,
-// so pair with periodic full reload for bit-exact tick distribution.
 func (t *StateTracker) Refresh(
 	ctx context.Context,
 	prev *TrackerExtra,
@@ -260,16 +253,9 @@ func poolSpecEqual(a, b PoolSpec) bool {
 func curveEqual(a, b CurveState) bool {
 	return a.SeedDeflator == b.SeedDeflator &&
 		a.ConcGrowth == b.ConcGrowth &&
-		bigEqual(a.PriceRoot, b.PriceRoot) &&
-		bigEqual(a.AmbientSeeds, b.AmbientSeeds) &&
-		bigEqual(a.ConcLiq, b.ConcLiq)
-}
-
-func bigEqual(a, b *big.Int) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return a.Cmp(b) == 0
+		a.PriceRoot.Eq(&b.PriceRoot) &&
+		a.AmbientSeeds.Eq(&b.AmbientSeeds) &&
+		a.ConcLiq.Eq(&b.ConcLiq)
 }
 
 func normalizePair(base, quote string) (string, string) {
@@ -308,6 +294,5 @@ func slotWord(word *big.Int) [32]byte {
 	if word != nil {
 		word.FillBytes(out[:])
 	}
-
 	return out
 }
