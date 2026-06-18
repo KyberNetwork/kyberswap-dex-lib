@@ -100,6 +100,10 @@ func fetchVirtualTax(
 
 // fetchFourMemeTax probes a four.meme agent token (pair / feeRateBuy / feeRateSell, rates in percent).
 // It taxes only its canonical pair; rates are immutable, so this runs once per pool.
+//
+// Known limitation: a sell also triggers the token's _dispatchFee, which (when tokenAccumulated >=
+// minDispatch) swaps accumulated tax tokens into this same pair before the user's swap, shifting
+// reserves. That autoswap is not modeled, so sell quotes can be slightly high when dispatch fires.
 func fetchFourMemeTax(
 	ctx context.Context, client *ethrpc.Client, p entity.Pool, agent string, blockNumber *big.Int,
 ) (TokenTax, error) {
