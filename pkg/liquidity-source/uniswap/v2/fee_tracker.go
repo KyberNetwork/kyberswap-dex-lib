@@ -1,7 +1,6 @@
 package uniswapv2
 
 import (
-	"context"
 	"encoding/binary"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,25 +11,19 @@ import (
 
 type (
 	IFeeTracker interface {
-		GetFee(
-			ctx context.Context,
-			poolAddress string,
-			factoryAddress string,
-		) (uint64, error)
+		AddFeeCall(request *ethrpc.Request, factoryAddress, poolAddress string, feeOutput *uint64)
 	}
 
 	// GenericFeeTracker gets fee generically, using {pool} and {factory} as templates for input common.Hash params
 	GenericFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-		abi          abi.ABI
-		target       string
-		args         []string
+		abi    abi.ABI
+		target string
+		args   []string
 	}
 )
 
-func NewGenericFeeTracker(ethrpcClient *ethrpc.Client, feeTrackerCfg *FeeTrackerCfg) *GenericFeeTracker {
+func NewGenericFeeTracker(feeTrackerCfg *FeeTrackerCfg) *GenericFeeTracker {
 	return &GenericFeeTracker{
-		ethrpcClient: ethrpcClient,
 		abi: abi.ABI{
 			Methods: map[string]abi.Method{
 				genericMethodFee: {
@@ -60,20 +53,15 @@ func getGenericInput(input, poolAddress, factoryAddress string) string {
 	}
 }
 
-func (t *GenericFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	factoryAddress string,
-) (fee uint64, err error) {
-	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{
-			ABI:    t.abi,
-			Target: getGenericInput(t.target, poolAddress, factoryAddress),
-			Method: genericMethodFee,
-			Params: lo.Map(t.args, func(arg string, _ int) any {
-				return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress))
-			}),
-		}, []any{&fee}).
-		Call()
-	return fee, err
+// AddFeeCall appends the fee read to request so it can be batched with other pool reads.
+func (t *GenericFeeTracker) AddFeeCall(request *ethrpc.Request,
+	factoryAddress, poolAddress string, feeOutput *uint64) {
+	request.AddCall(&ethrpc.Call{
+		ABI:    t.abi,
+		Target: getGenericInput(t.target, poolAddress, factoryAddress),
+		Method: genericMethodFee,
+		Params: lo.Map(t.args, func(arg string, _ int) any {
+			return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress))
+		}),
+	}, []any{feeOutput})
 }

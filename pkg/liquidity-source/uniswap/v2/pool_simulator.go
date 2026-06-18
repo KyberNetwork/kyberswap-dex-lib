@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -20,7 +21,7 @@ type PoolSimulator struct {
 	reserves     []*uint256.Int
 	fee          *uint256.Int
 	feePrecision *uint256.Int
-	taxHandler   TokenTaxHandler
+	taxHandler   tokentax.Handler
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -54,7 +55,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
-		taxHandler:   NewTaxHandler(tokenAtIndex(entityPool, extra.TokenTaxID), extra.BuyTax, extra.SellTax),
+		taxHandler:   newTokenTaxHandler(tokenTaxResult(entityPool, extra)),
 	}, nil
 }
 

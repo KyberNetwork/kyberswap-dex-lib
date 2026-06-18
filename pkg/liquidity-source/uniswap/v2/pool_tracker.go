@@ -3,7 +3,6 @@ package uniswapv2
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -11,6 +10,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
@@ -36,7 +36,7 @@ func NewPoolTracker(
 		logDecoder:   NewLogDecoder(),
 	}
 	if feeTrackerCfg := config.FeeTracker; feeTrackerCfg != nil {
-		tracker.feeTracker = NewGenericFeeTracker(ethrpcClient, feeTrackerCfg)
+		tracker.feeTracker = NewGenericFeeTracker(feeTrackerCfg)
 	}
 	return tracker, nil
 }
@@ -50,33 +50,54 @@ func (d *PoolTracker) GetNewPoolState(
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	reserveData, blockNumber, err := d.getReserves(ctx, p.Address, &params)
-	if err != nil {
-		return p, err
-	}
-
-	if p.BlockNumber > blockNumber.Uint64() {
-		logger.
-			WithFields(
-				logger.Fields{
-					"pool_id":           p.Address,
-					"pool_block_number": p.BlockNumber,
-					"data_block_number": blockNumber.Uint64(),
-				},
-			).
-			Info("skip update: data block number is less than current pool block number")
+	// Reserves come from logs when available; that already gives the block, so drop stale updates
+	// before doing any RPC.
+	logsReserve, blockNumber, errLogs := d.getReservesFromLogs(&params)
+	fromLogs := errLogs == nil && !logsReserve.IsZero()
+	if fromLogs && p.BlockNumber > blockNumber.Uint64() {
+		logger.WithFields(logger.Fields{
+			"pool_id":           p.Address,
+			"pool_block_number": p.BlockNumber,
+			"data_block_number": blockNumber.Uint64(),
+		}).Info("skip update: data block number is less than current pool block number")
 		return p, nil
 	}
 
-	fee, err := d.getFee(ctx, p.Address)
-	if err != nil {
-		return p, err
+	// Each state adds its reads to one shared request; a single aggregate then fills every holder.
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	reserveData := logsReserve
+	if fromLogs {
+		req.SetBlockNumber(blockNumber)
+	} else {
+		d.addReservesCall(req, p, &reserveData)
 	}
 
-	tokenTaxes, err := d.getTokenTaxes(ctx, p, blockNumber)
-	if err != nil {
-		return p, err
+	fee := d.config.Fee
+	if d.feeTracker != nil {
+		d.feeTracker.AddFeeCall(req, d.config.FactoryAddress, p.Address, &fee)
 	}
+
+	var previousExtra Extra
+	_ = json.Unmarshal([]byte(p.Extra), &previousExtra)
+	taxTracker := newTokenTaxTracker(d.config.FactoryAddress, p, tokenTaxResult(p, previousExtra))
+	hasTaxCalls := taxTracker.AddTaxCalls(req)
+
+	if !fromLogs {
+		resp, err := req.TryBlockAndAggregate()
+		if err != nil {
+			return p, err
+		}
+		blockNumber = resp.BlockNumber
+		if p.BlockNumber > blockNumber.Uint64() {
+			return p, nil
+		}
+	} else if d.feeTracker != nil || hasTaxCalls {
+		if _, err := req.TryAggregate(); err != nil {
+			return p, err
+		}
+	}
+
+	taxResult := taxTracker.TaxResult()
 
 	logger.
 		WithFields(
@@ -91,49 +112,28 @@ func (d *PoolTracker) GetNewPoolState(
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, reserveData, fee, tokenTaxes, blockNumber)
+	return d.updatePool(p, reserveData, fee, taxResult, blockNumber)
 }
 
-func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, params *pool.GetNewPoolStateParams) (
-	ReserveData, *big.Int, error) {
-	reserveData, blockNumber, err := d.getReservesFromLogs(params)
-	if err != nil || reserveData.IsZero() {
-		return d.getReservesFromRPCNode(ctx, poolAddress)
-	}
-
-	return reserveData, blockNumber, nil
-}
-
-func (d *PoolTracker) getFee(ctx context.Context, poolAddress string) (uint64, error) {
-	feeTracker := d.feeTracker
-	if feeTracker == nil {
-		return d.config.Fee, nil
-	}
-	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress)
-}
-
-func (d *PoolTracker) getTokenTaxes(ctx context.Context, p entity.Pool, blockNumber *big.Int) (TokenTax, error) {
-	var prev Extra
-	_ = json.Unmarshal([]byte(p.Extra), &prev)
-	prevTax := TokenTax{
-		Token:   tokenAtIndex(p, prev.TokenTaxID),
-		BuyTax:  prev.BuyTax,
-		SellTax: prev.SellTax,
-		Checked: prev.TaxChecked,
-	}
-	factory := strings.ToLower(d.config.FactoryAddress)
-	return resolveTokenTax(ctx, d.ethrpcClient, p, prevTax, factory, blockNumber)
+// addReservesCall appends a getReserves call to req, filling out after the aggregate.
+func (d *PoolTracker) addReservesCall(req *ethrpc.Request, p entity.Pool, out *ReserveData) {
+	req.AddCall(&ethrpc.Call{
+		ABI:    uniswapV2PairABI,
+		Target: p.Address,
+		Method: pairMethodGetReserves,
+	}, []any{out})
 }
 
 func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uint64,
-	tax TokenTax, blockNumber *big.Int) (entity.Pool, error) {
+	taxResult tokentax.Result, blockNumber *big.Int) (entity.Pool, error) {
 	extra := Extra{
-		Fee:          fee,
-		FeePrecision: d.config.FeePrecision,
-		TokenTaxID:   findTokenIndex(p.Tokens, tax.Token),
-		BuyTax:       tax.BuyTax,
-		SellTax:      tax.SellTax,
-		TaxChecked:   tax.Checked,
+		Fee:           fee,
+		FeePrecision:  d.config.FeePrecision,
+		TaxProtocol:   taxResult.Protocol,
+		TaxTokenIndex: findTokenIndex(p.Tokens, taxResult.TokenAddress),
+		BuyTaxBps:     taxResult.BuyTaxBps,
+		SellTaxBps:    taxResult.SellTaxBps,
+		TaxChecked:    taxResult.Checked,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -152,27 +152,6 @@ func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uin
 	p.Timestamp = max(p.Timestamp, int64(reserveData.BlockTimestampLast))
 
 	return p, nil
-}
-
-func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
-	var getReservesResult ReserveData
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
-		Target: poolAddress,
-		Method: pairMethodGetReserves,
-	}, []any{&getReservesResult})
-
-	resp, err := req.TryBlockAndAggregate()
-	if err != nil {
-		return ReserveData{}, nil, err
-	}
-
-	return ReserveData{
-		Reserve0:           getReservesResult.Reserve0,
-		Reserve1:           getReservesResult.Reserve1,
-		BlockTimestampLast: getReservesResult.BlockTimestampLast,
-	}, resp.BlockNumber, nil
 }
 
 func (d *PoolTracker) getReservesFromLogs(params *pool.GetNewPoolStateParams) (ReserveData, *big.Int, error) {

@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax/virtual"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -49,7 +51,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("10066716097576")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler:   noopTokenTaxHandler{},
+				taxHandler:   tokentax.NoopHandler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("125224746"),
@@ -75,7 +77,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("54150601005")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler:   noopTokenTaxHandler{},
+				taxHandler:   tokentax.NoopHandler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("124570062"),
@@ -109,11 +111,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler: NewTaxHandler(
-					"0xff8104251e7761163fac3211ef5583fb3f8583d6",
-					uint256.NewInt(100),
-					uint256.NewInt(100),
-				),
+				taxHandler: virtual.NewHandler(tokentax.Result{
+					Protocol:     virtual.Protocol,
+					TokenAddress: "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+					BuyTaxBps:    uint256.NewInt(100),
+					SellTaxBps:   uint256.NewInt(100),
+				}),
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("1000000000000000000"),
@@ -296,15 +299,6 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	}
 }
 
-func TestPercentToBps(t *testing.T) {
-	t.Parallel()
-	// four.meme rates are in percent; the tracker normalizes to bps (rate * 100).
-	assert.Equal(t, uint256.NewInt(100), percentToBps(true, big.NewInt(1)))   // 1% -> 100bp
-	assert.Equal(t, uint256.NewInt(1000), percentToBps(true, big.NewInt(10))) // 10% -> 1000bp
-	assert.Nil(t, percentToBps(true, nil))
-	assert.Nil(t, percentToBps(false, big.NewInt(5)))
-}
-
 // newTaxPoolSim builds the VIRTUAL/agent tax pool used to verify tax-aware reserve updates.
 // token0 = VIRTUAL (no tax), token1 = agent token (0xff81..., buy=sell=100bp).
 func newTaxPoolSim() *PoolSimulator {
@@ -322,11 +316,12 @@ func newTaxPoolSim() *PoolSimulator {
 		},
 		fee:          number.NewUint256("3"),
 		feePrecision: number.NewUint256("1000"),
-		taxHandler: NewTaxHandler(
-			"0xff8104251e7761163fac3211ef5583fb3f8583d6",
-			uint256.NewInt(100),
-			uint256.NewInt(100),
-		),
+		taxHandler: virtual.NewHandler(tokentax.Result{
+			Protocol:     virtual.Protocol,
+			TokenAddress: "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			BuyTaxBps:    uint256.NewInt(100),
+			SellTaxBps:   uint256.NewInt(100),
+		}),
 	}
 }
 

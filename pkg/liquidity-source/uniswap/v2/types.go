@@ -28,14 +28,13 @@ type Extra struct {
 	Fee          uint64 `json:"fee"`
 	FeePrecision uint64 `json:"feePrecision"`
 
-	// TokenTaxID is the index of the tax token within the pool's token list (compact for storage),
-	// or -1 when the pool has no tax token. Resolve the address via pool.Tokens[TokenTaxID].
-	// BuyTax / SellTax are the rates in basis points; nil means no tax in that direction.
-	// TaxChecked marks the pool was probed; TaxChecked with TokenTaxID < 0 means it is not a tax pool.
-	TokenTaxID int          `json:"tokenTaxId,omitempty"`
-	BuyTax     *uint256.Int `json:"buyTax,omitempty"`
-	SellTax    *uint256.Int `json:"sellTax,omitempty"`
-	TaxChecked bool         `json:"taxChecked,omitempty"`
+	// TaxTokenIndex is the tax token's position in pool.Tokens, or -1 for non-tax pools.
+	// JSON field names remain stable for backward compatibility.
+	TaxProtocol   string       `json:"taxProtocol,omitempty"`
+	TaxTokenIndex int          `json:"tokenTaxId,omitempty"`
+	BuyTaxBps     *uint256.Int `json:"buyTax,omitempty"`
+	SellTaxBps    *uint256.Int `json:"sellTax,omitempty"`
+	TaxChecked    bool         `json:"taxChecked,omitempty"`
 }
 
 type PoolMeta struct {

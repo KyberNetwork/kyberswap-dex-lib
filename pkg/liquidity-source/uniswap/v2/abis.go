@@ -13,7 +13,6 @@ import (
 var (
 	uniswapV2PairABI         abi.ABI
 	uniswapV2FactoryABI      abi.ABI
-	tokenTaxABI              abi.ABI
 	uniswapV2FactoryFilterer *uniswapv2.UniswapV2FactoryFilterer
 )
 
@@ -27,9 +26,6 @@ func init() {
 		},
 		{
 			&uniswapV2FactoryABI, factoryABIJson,
-		},
-		{
-			&tokenTaxABI, tokenTaxABIJson,
 		},
 	}
 
