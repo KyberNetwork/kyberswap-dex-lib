@@ -139,11 +139,29 @@ func toUint256(ok bool, v *big.Int) *uint256.Int {
 	return out
 }
 
-// percentToBps normalizes a percent rate to basis points so the simulator hook stays uniform.
 func percentToBps(ok bool, v *big.Int) *uint256.Int {
 	out := toUint256(ok, v)
 	if out == nil {
 		return nil
 	}
 	return out.Mul(out, big256.U100)
+}
+
+func tokenAtIndex(p entity.Pool, idx int) string {
+	if idx < 0 || idx >= len(p.Tokens) {
+		return ""
+	}
+	return strings.ToLower(p.Tokens[idx].Address)
+}
+
+func findTokenIndex(tokens []*entity.PoolToken, token string) int {
+	if token == "" {
+		return -1
+	}
+	for i, tok := range tokens {
+		if strings.ToLower(tok.Address) == token {
+			return i
+		}
+	}
+	return -1
 }

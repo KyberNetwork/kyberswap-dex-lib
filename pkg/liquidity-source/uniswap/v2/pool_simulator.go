@@ -54,7 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
-		hook:         newTokenTaxHook(extra.TaxToken, extra.BuyTax, extra.SellTax),
+		hook:         newTokenTaxHook(tokenAtIndex(entityPool, extra.TokenTaxID), extra.BuyTax, extra.SellTax),
 	}, nil
 }
 

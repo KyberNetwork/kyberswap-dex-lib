@@ -116,7 +116,7 @@ func (d *PoolTracker) getTokenTaxes(ctx context.Context, p entity.Pool, blockNum
 	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 	prevTax := TokenTax{
-		Token:   prev.TaxToken,
+		Token:   tokenAtIndex(p, prev.TokenTaxID),
 		BuyTax:  prev.BuyTax,
 		SellTax: prev.SellTax,
 		Checked: prev.TaxChecked,
@@ -130,7 +130,7 @@ func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uin
 	extra := Extra{
 		Fee:          fee,
 		FeePrecision: d.config.FeePrecision,
-		TaxToken:     tax.Token,
+		TokenTaxID:   findTokenIndex(p.Tokens, tax.Token),
 		BuyTax:       tax.BuyTax,
 		SellTax:      tax.SellTax,
 		TaxChecked:   tax.Checked,
