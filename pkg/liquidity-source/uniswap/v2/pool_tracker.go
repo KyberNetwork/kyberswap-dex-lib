@@ -3,6 +3,7 @@ package uniswapv2
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -72,6 +73,11 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	tokenTaxes, err := d.getTokenTaxes(ctx, p, blockNumber)
+	if err != nil {
+		return p, err
+	}
+
 	logger.
 		WithFields(
 			logger.Fields{
@@ -85,7 +91,7 @@ func (d *PoolTracker) GetNewPoolState(
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, reserveData, fee, blockNumber)
+	return d.updatePool(p, reserveData, fee, tokenTaxes, blockNumber)
 }
 
 func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, params *pool.GetNewPoolStateParams) (
@@ -106,11 +112,28 @@ func (d *PoolTracker) getFee(ctx context.Context, poolAddress string) (uint64, e
 	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress)
 }
 
+func (d *PoolTracker) getTokenTaxes(ctx context.Context, p entity.Pool, blockNumber *big.Int) (TokenTax, error) {
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	prevTax := TokenTax{
+		Token:   prev.TaxToken,
+		BuyTax:  prev.BuyTax,
+		SellTax: prev.SellTax,
+		Checked: prev.TaxChecked,
+	}
+	factory := strings.ToLower(d.config.FactoryAddress)
+	return resolveTokenTax(ctx, d.ethrpcClient, p, prevTax, factory, blockNumber)
+}
+
 func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uint64,
-	blockNumber *big.Int) (entity.Pool, error) {
+	tax TokenTax, blockNumber *big.Int) (entity.Pool, error) {
 	extra := Extra{
 		Fee:          fee,
 		FeePrecision: d.config.FeePrecision,
+		TaxToken:     tax.Token,
+		BuyTax:       tax.BuyTax,
+		SellTax:      tax.SellTax,
+		TaxChecked:   tax.Checked,
 	}
 
 	extraBytes, err := json.Marshal(extra)

@@ -7,3 +7,6 @@ var pairABIJson []byte
 
 //go:embed abis/UniswapV2Factory.json
 var factoryABIJson []byte
+
+//go:embed abis/TokenTax.json
+var tokenTaxABIJson []byte
