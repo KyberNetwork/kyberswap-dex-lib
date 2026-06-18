@@ -63,7 +63,6 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, nil
 	}
 
-	// Each state adds its reads to one shared request; a single aggregate then fills every holder.
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	reserveData := logsReserve
 	if fromLogs {
@@ -72,18 +71,24 @@ func (d *PoolTracker) GetNewPoolState(
 		d.addReservesCall(req, p, &reserveData)
 	}
 
+	var previousExtra Extra
+	_ = json.Unmarshal([]byte(p.Extra), &previousExtra)
+
 	fee := d.config.Fee
 	if d.feeTracker != nil {
+		fee = previousExtra.Fee
 		d.feeTracker.AddFeeCall(req, d.config.FactoryAddress, p.Address, &fee)
 	}
 
-	var previousExtra Extra
-	_ = json.Unmarshal([]byte(p.Extra), &previousExtra)
-	taxTracker := newTokenTaxTracker(d.config.FactoryAddress, p, tokenTaxResult(p, previousExtra))
-	hasTaxCalls := taxTracker.AddTaxCalls(req)
+	taxTracker, taxInfo := newTokenTaxTracker(d.config.FactoryAddress, p, previousExtra)
+	if taxTracker != nil {
+		taxTracker.AddCalls(req)
+	}
 
+	var resp *ethrpc.Response
 	if !fromLogs {
-		resp, err := req.TryBlockAndAggregate()
+		var err error
+		resp, err = req.TryBlockAndAggregate()
 		if err != nil {
 			return p, err
 		}
@@ -91,13 +96,17 @@ func (d *PoolTracker) GetNewPoolState(
 		if p.BlockNumber > blockNumber.Uint64() {
 			return p, nil
 		}
-	} else if d.feeTracker != nil || hasTaxCalls {
-		if _, err := req.TryAggregate(); err != nil {
+	} else if d.feeTracker != nil || taxTracker != nil {
+		var err error
+		resp, err = req.TryAggregate()
+		if err != nil {
 			return p, err
 		}
 	}
 
-	taxResult := taxTracker.TaxResult()
+	if taxTracker != nil {
+		taxInfo = taxTracker.Resolve(resp)
+	}
 
 	logger.
 		WithFields(
@@ -112,7 +121,7 @@ func (d *PoolTracker) GetNewPoolState(
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, reserveData, fee, taxResult, blockNumber)
+	return d.updatePool(p, reserveData, fee, taxInfo, blockNumber)
 }
 
 // addReservesCall appends a getReserves call to req, filling out after the aggregate.
@@ -125,15 +134,13 @@ func (d *PoolTracker) addReservesCall(req *ethrpc.Request, p entity.Pool, out *R
 }
 
 func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uint64,
-	taxResult tokentax.Result, blockNumber *big.Int) (entity.Pool, error) {
+	taxInfo tokentax.TaxInfo, blockNumber *big.Int) (entity.Pool, error) {
 	extra := Extra{
-		Fee:           fee,
-		FeePrecision:  d.config.FeePrecision,
-		TaxProtocol:   taxResult.Protocol,
-		TaxTokenIndex: findTokenIndex(p.Tokens, taxResult.TokenAddress),
-		BuyTaxBps:     taxResult.BuyTaxBps,
-		SellTaxBps:    taxResult.SellTaxBps,
-		TaxChecked:    taxResult.Checked,
+		Fee:          fee,
+		FeePrecision: d.config.FeePrecision,
+	}
+	if taxInfo.Checked {
+		extra.TaxInfo = &taxInfo
 	}
 
 	extraBytes, err := json.Marshal(extra)

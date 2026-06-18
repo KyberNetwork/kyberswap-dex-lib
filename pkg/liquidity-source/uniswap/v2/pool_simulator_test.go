@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax/virtual"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -26,6 +25,11 @@ var (
 	poolSim     = lo.Must(NewPoolSimulator(poolEntity))
 )
 
+func TestNewPoolSimulator_ExtraWithoutTaxInfo(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, tokentax.Handler{}, poolSim.taxHandler)
+}
+
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
@@ -34,6 +38,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		tokenAmountIn     pool.TokenAmount
 		tokenOut          string
 		expectedAmountOut *big.Int
+		expectedSwapInfo  bool
 		expectedError     error
 	}{
 		{
@@ -51,7 +56,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("10066716097576")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler:   tokentax.NoopHandler{},
+				taxHandler:   tokentax.Handler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("125224746"),
@@ -77,7 +82,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("54150601005")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler:   tokentax.NoopHandler{},
+				taxHandler:   tokentax.Handler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("124570062"),
@@ -111,11 +116,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler: virtual.NewHandler(tokentax.Result{
-					Protocol:     virtual.Protocol,
-					TokenAddress: "0xff8104251e7761163fac3211ef5583fb3f8583d6",
-					BuyTaxBps:    uint256.NewInt(100),
-					SellTaxBps:   uint256.NewInt(100),
+				taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+					Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+					BuyTaxBps:  uint256.NewInt(100),
+					SellTaxBps: uint256.NewInt(100),
 				}),
 			},
 			tokenAmountIn: pool.TokenAmount{
@@ -124,6 +128,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			tokenOut:          "0xff8104251e7761163fac3211ef5583fb3f8583d6",
 			expectedAmountOut: bignumber.NewBig("31404648971357222354"),
+			expectedSwapInfo:  true,
 			expectedError:     nil,
 		},
 	}
@@ -142,6 +147,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				assert.ErrorIs(t, tc.expectedError, err)
 			} else {
 				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
+				if tc.expectedSwapInfo {
+					assert.IsType(t, SwapInfo{}, result.SwapInfo)
+				} else {
+					assert.Nil(t, result.SwapInfo)
+				}
 			}
 		})
 	}
@@ -316,11 +326,10 @@ func newTaxPoolSim() *PoolSimulator {
 		},
 		fee:          number.NewUint256("3"),
 		feePrecision: number.NewUint256("1000"),
-		taxHandler: virtual.NewHandler(tokentax.Result{
-			Protocol:     virtual.Protocol,
-			TokenAddress: "0xff8104251e7761163fac3211ef5583fb3f8583d6",
-			BuyTaxBps:    uint256.NewInt(100),
-			SellTaxBps:   uint256.NewInt(100),
+		taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+			Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			BuyTaxBps:  uint256.NewInt(100),
+			SellTaxBps: uint256.NewInt(100),
 		}),
 	}
 }

@@ -5,24 +5,26 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// Result is the normalized transfer-tax state persisted by the pool tracker.
+// TaxInfo is the normalized transfer-tax state persisted in pool Extra.
 // Tax rates are expressed in basis points.
-type Result struct {
-	Protocol     string
-	TokenAddress string
-	BuyTaxBps    *uint256.Int
-	SellTaxBps   *uint256.Int
-	Checked      bool
+type TaxInfo struct {
+	Protocol   string       `json:"protocol,omitempty"`
+	Token      string       `json:"token,omitempty"`
+	BuyTaxBps  *uint256.Int `json:"buyTax,omitempty"`
+	SellTaxBps *uint256.Int `json:"sellTax,omitempty"`
+	Checked    bool         `json:"checked,omitempty"`
 }
 
-// Tracker appends protocol-specific reads to a shared multicall and normalizes their outputs.
+// Tracker owns the protocol-specific calls it adds to a shared multicall and resolves their outputs.
 type Tracker interface {
-	AddTaxCalls(*ethrpc.Request) bool
-	TaxResult() Result
+	AddCalls(*ethrpc.Request)
+	Resolve(*ethrpc.Response) TaxInfo
 }
 
 // Handler applies normalized transfer tax around the AMM calculation.
-type Handler interface {
-	ApplySellTax(tokenIn string, amountIn *uint256.Int) *uint256.Int
-	ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.Int
+// Its zero value is a no-op handler.
+type Handler struct {
+	TokenAddress string       `msgpack:"tokenAddress"`
+	BuyTaxBps    *uint256.Int `msgpack:"buyTaxBps"`
+	SellTaxBps   *uint256.Int `msgpack:"sellTaxBps"`
 }

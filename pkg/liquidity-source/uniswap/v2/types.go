@@ -3,7 +3,7 @@ package uniswapv2
 import (
 	"math/big"
 
-	"github.com/holiman/uint256"
+	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 )
 
 type SwapInfo struct {
@@ -28,13 +28,7 @@ type Extra struct {
 	Fee          uint64 `json:"fee"`
 	FeePrecision uint64 `json:"feePrecision"`
 
-	// TaxTokenIndex is the tax token's position in pool.Tokens, or -1 for non-tax pools.
-	// JSON field names remain stable for backward compatibility.
-	TaxProtocol   string       `json:"taxProtocol,omitempty"`
-	TaxTokenIndex int          `json:"tokenTaxId,omitempty"`
-	BuyTaxBps     *uint256.Int `json:"buyTax,omitempty"`
-	SellTaxBps    *uint256.Int `json:"sellTax,omitempty"`
-	TaxChecked    bool         `json:"taxChecked,omitempty"`
+	TaxInfo *tokentax.TaxInfo `json:"taxInfo,omitempty"`
 }
 
 type PoolMeta struct {

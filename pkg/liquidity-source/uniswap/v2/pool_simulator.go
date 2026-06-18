@@ -55,7 +55,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
-		taxHandler:   newTokenTaxHandler(tokenTaxResult(entityPool, extra)),
+		taxHandler:   newTokenTaxHandler(extra.TaxInfo),
 	}, nil
 }
 
@@ -90,15 +90,19 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientOutputAmount
 	}
 
-	return &pool.CalcAmountOutResult{
+	result := &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas + extraGasByExchange[s.GetExchange()],
-		SwapInfo: SwapInfo{
+	}
+	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
+		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
+		result.SwapInfo = SwapInfo{
 			EffectiveAmountIn: effectiveAmountIn.ToBig(),
 			GrossAmountOut:    grossAmountOut.ToBig(),
-		},
-	}, nil
+		}
+	}
+	return result, nil
 }
 
 func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {

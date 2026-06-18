@@ -14,54 +14,102 @@ import (
 )
 
 func SupportsFactory(factoryAddress string) bool {
-	return strings.EqualFold(factoryAddress, factory)
+	_, ok := factories[strings.ToLower(factoryAddress)]
+	return ok
 }
 
-func NewTracker(pool entity.Pool, previous tokentax.Result) tokentax.Tracker {
-	tokenAddress := tokentax.FindPairedToken(pool, baseTokens)
-	if tokenAddress == "" {
-		return tokentax.NewStaticTracker(tokentax.Result{Checked: true})
+func FindTaxToken(pool entity.Pool) string {
+	return tokentax.FindPairedToken(pool, baseTokens)
+}
+
+func NewTracker(poolAddress, tokenAddress string, previous tokentax.TaxInfo) tokentax.Tracker {
+	return &tracker{
+		poolAddress:  poolAddress,
+		tokenAddress: tokenAddress,
+		previous:     previous,
+		pairVerified: previous.Protocol == Protocol && previous.Token == tokenAddress,
+		pairCall:     -1,
+		buyTaxCall:   -1,
+		sellTaxCall:  -1,
 	}
-	if previous.Checked {
-		previous.Protocol = Protocol
-		return tokentax.NewStaticTracker(previous)
-	}
-	return &tracker{poolAddress: pool.Address, tokenAddress: tokenAddress}
 }
 
 type tracker struct {
 	poolAddress  string
 	tokenAddress string
+	previous     tokentax.TaxInfo
+	pairVerified bool
+
+	pairCall    int
+	buyTaxCall  int
+	sellTaxCall int
 
 	pairAddress common.Address
 	buyTaxPct   *big.Int
 	sellTaxPct  *big.Int
 }
 
-func (t *tracker) AddTaxCalls(request *ethrpc.Request) bool {
-	request.AddCall(&ethrpc.Call{
-		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodPair,
-	}, []any{&t.pairAddress})
+func (t *tracker) AddCalls(request *ethrpc.Request) {
+	if !t.pairVerified {
+		t.pairCall = len(request.Calls)
+		request.AddCall(&ethrpc.Call{
+			ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodPair,
+		}, []any{&t.pairAddress})
+	}
+
+	t.buyTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
 		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodBuyTax,
 	}, []any{&t.buyTaxPct})
+
+	t.sellTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
 		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodSellTax,
 	}, []any{&t.sellTaxPct})
-	return true
 }
 
-func (t *tracker) TaxResult() tokentax.Result {
-	if t.pairAddress != common.HexToAddress(t.poolAddress) {
-		return tokentax.Result{Checked: true}
+func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
+	buyTaxOK := callSucceeded(response, t.buyTaxCall)
+	sellTaxOK := callSucceeded(response, t.sellTaxCall)
+
+	// Tax methods identify four.meme tokens. If both revert, this token is unsupported and should
+	// not be probed again. The immutable pair read only verifies the canonical pool on first run.
+	if !buyTaxOK && !sellTaxOK {
+		return tokentax.TaxInfo{Checked: true}
 	}
-	return tokentax.Result{
-		Protocol:     Protocol,
-		TokenAddress: t.tokenAddress,
-		BuyTaxBps:    percentToBps(t.buyTaxPct),
-		SellTaxBps:   percentToBps(t.sellTaxPct),
-		Checked:      true,
+
+	if !t.pairVerified {
+		if !callSucceeded(response, t.pairCall) {
+			return tokentax.TaxInfo{Checked: true}
+		}
+		if t.pairAddress != common.HexToAddress(t.poolAddress) {
+			return tokentax.TaxInfo{Checked: true}
+		}
 	}
+
+	info := tokentax.TaxInfo{
+		Protocol: Protocol,
+		Token:    t.tokenAddress,
+		Checked:  true,
+	}
+	if buyTaxOK {
+		info.BuyTaxBps = percentToBps(t.buyTaxPct)
+	} else {
+		info.BuyTaxBps = t.previous.BuyTaxBps
+	}
+	if sellTaxOK {
+		info.SellTaxBps = percentToBps(t.sellTaxPct)
+	} else {
+		info.SellTaxBps = t.previous.SellTaxBps
+	}
+	return info
+}
+
+func callSucceeded(response *ethrpc.Response, index int) bool {
+	return response != nil &&
+		index >= 0 &&
+		index < len(response.Result) &&
+		response.Result[index]
 }
 
 func percentToBps(value *big.Int) *uint256.Int {

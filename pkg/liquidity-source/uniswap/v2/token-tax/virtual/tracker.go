@@ -13,60 +13,102 @@ import (
 )
 
 func SupportsFactory(factory string) bool {
-	switch strings.ToLower(factory) {
-	case factoryBase, factoryEthereum:
-		return true
-	default:
-		return false
-	}
+	_, ok := factories[strings.ToLower(factory)]
+	return ok
 }
 
-func NewTracker(pool entity.Pool) tokentax.Tracker {
-	tokenAddress := tokentax.FindPairedToken(pool, baseTokens)
-	if tokenAddress == "" {
-		return tokentax.NewStaticTracker(tokentax.Result{Checked: true})
+func FindTaxToken(pool entity.Pool) string {
+	return tokentax.FindPairedToken(pool, baseTokens)
+}
+
+func NewTracker(poolAddress, tokenAddress string, previous tokentax.TaxInfo) tokentax.Tracker {
+	return &tracker{
+		poolAddress:         poolAddress,
+		tokenAddress:        tokenAddress,
+		previous:            previous,
+		isLiquidityPoolCall: -1,
+		buyTaxCall:          -1,
+		sellTaxCall:         -1,
 	}
-	return &tracker{poolAddress: pool.Address, tokenAddress: tokenAddress}
 }
 
 type tracker struct {
 	poolAddress  string
 	tokenAddress string
+	previous     tokentax.TaxInfo
+
+	isLiquidityPoolCall int
+	buyTaxCall          int
+	sellTaxCall         int
 
 	isLiquidityPool bool
 	buyTaxBps       *big.Int
 	sellTaxBps      *big.Int
 }
 
-func (t *tracker) AddTaxCalls(request *ethrpc.Request) bool {
+func (t *tracker) AddCalls(request *ethrpc.Request) {
+	t.isLiquidityPoolCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
 		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodIsLiquidityPool,
 		Params: []any{common.HexToAddress(t.poolAddress)},
 	}, []any{&t.isLiquidityPool})
+
+	t.buyTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
 		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodBuyTax,
 	}, []any{&t.buyTaxBps})
+
+	t.sellTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
 		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodSellTax,
 	}, []any{&t.sellTaxBps})
-	return true
 }
 
-func (t *tracker) TaxResult() tokentax.Result {
-	if t.buyTaxBps == nil && t.sellTaxBps == nil {
-		return tokentax.Result{Checked: true}
+func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
+	isLiquidityPoolOK := callSucceeded(response, t.isLiquidityPoolCall)
+	buyTaxOK := callSucceeded(response, t.buyTaxCall)
+	sellTaxOK := callSucceeded(response, t.sellTaxCall)
+
+	// A Virtual agent token supports these methods. Only mark it unsupported when all probes fail;
+	// any successful probe is enough to remember the token and refresh it again next cycle.
+	if !isLiquidityPoolOK && !buyTaxOK && !sellTaxOK {
+		if t.previous.Token != "" {
+			return t.previous
+		}
+		return tokentax.TaxInfo{Checked: true}
 	}
 
-	result := tokentax.Result{
-		Protocol:     Protocol,
-		TokenAddress: t.tokenAddress,
-		Checked:      true,
+	info := tokentax.TaxInfo{
+		Protocol: Protocol,
+		Token:    t.tokenAddress,
+		Checked:  true,
 	}
-	if t.isLiquidityPool {
-		result.BuyTaxBps = toUint256(t.buyTaxBps)
-		result.SellTaxBps = toUint256(t.sellTaxBps)
+	if !isLiquidityPoolOK {
+		info.BuyTaxBps = t.previous.BuyTaxBps
+		info.SellTaxBps = t.previous.SellTaxBps
+		return info
 	}
-	return result
+	if !t.isLiquidityPool {
+		return info
+	}
+	if buyTaxOK {
+		info.BuyTaxBps = toUint256(t.buyTaxBps)
+	} else {
+		info.BuyTaxBps = t.previous.BuyTaxBps
+	}
+	if sellTaxOK {
+		info.SellTaxBps = toUint256(t.sellTaxBps)
+	} else {
+		info.SellTaxBps = t.previous.SellTaxBps
+	}
+	return info
+}
+
+func callSucceeded(response *ethrpc.Response, index int) bool {
+	return response != nil &&
+		index >= 0 &&
+		index < len(response.Result) &&
+		response.Result[index]
 }
 
 func toUint256(value *big.Int) *uint256.Int {

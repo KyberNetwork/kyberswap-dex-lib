@@ -1,54 +1,58 @@
 package tokentax
 
 import (
+	"strings"
+
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-func NewBasisPointHandler(result Result) Handler {
-	if result.TokenAddress == "" {
-		return NoopHandler{}
-	}
-	return basisPointHandler{
-		tokenAddress: result.TokenAddress,
-		buyTaxBps:    result.BuyTaxBps,
-		sellTaxBps:   result.SellTaxBps,
+func NewHandler(info TaxInfo) Handler {
+	return Handler{
+		TokenAddress: info.Token,
+		BuyTaxBps:    info.BuyTaxBps,
+		SellTaxBps:   info.SellTaxBps,
 	}
 }
 
-type basisPointHandler struct {
-	tokenAddress string
-	buyTaxBps    *uint256.Int
-	sellTaxBps   *uint256.Int
+func (h Handler) HasSellTax(tokenIn string) bool {
+	return tokenIn == h.TokenAddress && h.SellTaxBps != nil && !h.SellTaxBps.IsZero()
 }
 
-func (h basisPointHandler) ApplySellTax(tokenIn string, amountIn *uint256.Int) *uint256.Int {
-	if tokenIn != h.tokenAddress || h.sellTaxBps == nil || h.sellTaxBps.IsZero() {
+func (h Handler) ApplySellTax(tokenIn string, amountIn *uint256.Int) *uint256.Int {
+	if !h.HasSellTax(tokenIn) {
 		return amountIn
 	}
-	return deductTax(amountIn, h.sellTaxBps)
+	return deductTax(amountIn, h.SellTaxBps)
 }
 
-func (h basisPointHandler) ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.Int {
-	if tokenOut != h.tokenAddress || h.buyTaxBps == nil || h.buyTaxBps.IsZero() {
+func (h Handler) HasBuyTax(tokenOut string) bool {
+	return tokenOut == h.TokenAddress && h.BuyTaxBps != nil && !h.BuyTaxBps.IsZero()
+}
+
+func (h Handler) ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.Int {
+	if !h.HasBuyTax(tokenOut) {
 		return grossOut
 	}
-	return deductTax(grossOut, h.buyTaxBps)
+	return deductTax(grossOut, h.BuyTaxBps)
 }
 
 func deductTax(amount, taxBps *uint256.Int) *uint256.Int {
 	var tax uint256.Int
 	tax.Div(tax.Mul(amount, taxBps), big256.UBasisPoint)
-	return new(uint256.Int).Sub(amount, &tax)
+	return tax.Sub(amount, &tax)
 }
 
-type NoopHandler struct{}
-
-func (NoopHandler) ApplySellTax(_ string, amountIn *uint256.Int) *uint256.Int {
-	return amountIn
-}
-
-func (NoopHandler) ApplyBuyTax(_ string, grossOut *uint256.Int) *uint256.Int {
-	return grossOut
+func FindPairedToken(pool entity.Pool, baseTokens map[string]struct{}) string {
+	if len(pool.Tokens) != 2 {
+		return ""
+	}
+	for i, token := range pool.Tokens {
+		if _, ok := baseTokens[strings.ToLower(token.Address)]; ok {
+			return strings.ToLower(pool.Tokens[1-i].Address)
+		}
+	}
+	return ""
 }
