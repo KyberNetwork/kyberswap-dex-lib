@@ -352,9 +352,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 	}
 
 	invariantRatio := new(uint256.Int).Set(FixedPoint.ONE)
-	taxableAmount := new(uint256.Int)
-	amountInWithoutFee := new(uint256.Int)
-	balanceRatio := new(uint256.Int)
+	var taxableAmount, amountInWithoutFee, balanceRatioVal uint256.Int
 	var nonTaxableAmount *uint256.Int
 
 	for i := range balances {
@@ -381,7 +379,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 				return nil, err
 			}
 
-			tmp, err = FixedPoint.MulDown(taxableAmount, tmp)
+			tmp, err = FixedPoint.MulDown(&taxableAmount, tmp)
 			if err != nil {
 				return nil, err
 			}
@@ -391,8 +389,8 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 			amountInWithoutFee.Set(amountsIn[i])
 		}
 
-		balanceRatio.Add(balances[i], amountInWithoutFee)
-		balanceRatio, err := FixedPoint.DivDown(balanceRatio, balances[i])
+		balanceRatioVal.Add(balances[i], &amountInWithoutFee)
+		balanceRatio, err := FixedPoint.DivDown(&balanceRatioVal, balances[i])
 		if err != nil {
 			return nil, err
 		}
@@ -456,9 +454,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 	}
 
 	invariantRatio := new(uint256.Int).Set(FixedPoint.ONE)
-	taxableAmount := new(uint256.Int)
-	amountInWithoutFee := new(uint256.Int)
-	balanceRatio := new(uint256.Int)
+	var taxableAmount, amountInWithoutFee, balanceRatioVal uint256.Int
 	var nonTaxableAmount *uint256.Int
 
 	for i := range balances {
@@ -485,7 +481,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 				return nil, err
 			}
 
-			tmp, err = FixedPoint.MulDown(taxableAmount, tmp)
+			tmp, err = FixedPoint.MulDown(&taxableAmount, tmp)
 			if err != nil {
 				return nil, err
 			}
@@ -495,8 +491,8 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 			amountInWithoutFee.Set(amountsIn[i])
 		}
 
-		balanceRatio.Add(balances[i], amountInWithoutFee)
-		balanceRatio, err := FixedPoint.DivDown(balanceRatio, balances[i])
+		balanceRatioVal.Add(balances[i], &amountInWithoutFee)
+		balanceRatio, err := FixedPoint.DivDown(&balanceRatioVal, balances[i])
 		if err != nil {
 			return nil, err
 		}
