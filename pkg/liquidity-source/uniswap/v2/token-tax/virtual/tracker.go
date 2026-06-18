@@ -6,7 +6,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
@@ -65,9 +64,9 @@ func (t *tracker) AddCalls(request *ethrpc.Request) {
 }
 
 func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
-	isLiquidityPoolOK := callSucceeded(response, t.isLiquidityPoolCall)
-	buyTaxOK := callSucceeded(response, t.buyTaxCall)
-	sellTaxOK := callSucceeded(response, t.sellTaxCall)
+	isLiquidityPoolOK := tokentax.CallSucceeded(response, t.isLiquidityPoolCall)
+	buyTaxOK := tokentax.CallSucceeded(response, t.buyTaxCall)
+	sellTaxOK := tokentax.CallSucceeded(response, t.sellTaxCall)
 
 	// A Virtual agent token supports these methods. Only mark it unsupported when all probes fail;
 	// any successful probe is enough to remember the token and refresh it again next cycle.
@@ -92,29 +91,14 @@ func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
 		return info
 	}
 	if buyTaxOK {
-		info.BuyTaxBps = toUint256(t.buyTaxBps)
+		info.BuyTaxBps = tokentax.ToUint256(t.buyTaxBps)
 	} else {
 		info.BuyTaxBps = t.previous.BuyTaxBps
 	}
 	if sellTaxOK {
-		info.SellTaxBps = toUint256(t.sellTaxBps)
+		info.SellTaxBps = tokentax.ToUint256(t.sellTaxBps)
 	} else {
 		info.SellTaxBps = t.previous.SellTaxBps
 	}
 	return info
-}
-
-func callSucceeded(response *ethrpc.Response, index int) bool {
-	return response != nil &&
-		index >= 0 &&
-		index < len(response.Result) &&
-		response.Result[index]
-}
-
-func toUint256(value *big.Int) *uint256.Int {
-	if value == nil {
-		return nil
-	}
-	result, _ := uint256.FromBig(value)
-	return result
 }

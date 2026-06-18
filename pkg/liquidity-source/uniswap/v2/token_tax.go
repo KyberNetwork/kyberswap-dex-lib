@@ -20,14 +20,14 @@ func newTokenTaxTracker(factory string, pool entity.Pool, extra Extra) (tokentax
 			info.Checked = true
 			return nil, info
 		}
-		return virtual.NewTracker(pool.Address, tokenAddress, info), info
+		return virtual.NewTracker(pool.Address, tokenAddress, info), tokentax.TaxInfo{}
 	case fourmeme.SupportsFactory(factory):
 		tokenAddress := fourmeme.FindTaxToken(pool)
 		if tokenAddress == "" || info.Checked && info.Token == "" {
 			info.Checked = true
 			return nil, info
 		}
-		return fourmeme.NewTracker(pool.Address, tokenAddress, info), info
+		return fourmeme.NewTracker(pool.Address, tokenAddress, info), tokentax.TaxInfo{}
 	default:
 		return nil, tokentax.TaxInfo{}
 	}

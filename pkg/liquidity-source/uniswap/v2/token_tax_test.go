@@ -61,7 +61,7 @@ func TestNewTokenTaxTracker(t *testing.T) {
 		p := poolWith(virtualToken)
 		tracker, info := newTokenTaxTracker(virtualFactory, p, Extra{TaxInfo: &previous})
 		assert.NotNil(t, tracker)
-		assert.Equal(t, previous, info)
+		assert.Equal(t, tokentax.TaxInfo{}, info)
 	})
 
 	t.Run("four meme refreshes tax but reuses canonical pair", func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestNewTokenTaxTracker(t *testing.T) {
 		p := poolWith(wbnb)
 		tracker, info := newTokenTaxTracker(fourMemeFactory, p, Extra{TaxInfo: &previous})
 		assert.NotNil(t, tracker)
-		assert.Equal(t, previous, info)
+		assert.Equal(t, tokentax.TaxInfo{}, info)
 	})
 
 	t.Run("four meme reuses cached unsupported pair", func(t *testing.T) {

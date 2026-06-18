@@ -69,8 +69,8 @@ func (t *tracker) AddCalls(request *ethrpc.Request) {
 }
 
 func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
-	buyTaxOK := callSucceeded(response, t.buyTaxCall)
-	sellTaxOK := callSucceeded(response, t.sellTaxCall)
+	buyTaxOK := tokentax.CallSucceeded(response, t.buyTaxCall)
+	sellTaxOK := tokentax.CallSucceeded(response, t.sellTaxCall)
 
 	// Tax methods identify four.meme tokens. If both revert, this token is unsupported and should
 	// not be probed again. The immutable pair read only verifies the canonical pool on first run.
@@ -79,7 +79,7 @@ func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
 	}
 
 	if !t.pairVerified {
-		if !callSucceeded(response, t.pairCall) {
+		if !tokentax.CallSucceeded(response, t.pairCall) {
 			return tokentax.TaxInfo{Checked: true}
 		}
 		if t.pairAddress != common.HexToAddress(t.poolAddress) {
@@ -105,17 +105,10 @@ func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
 	return info
 }
 
-func callSucceeded(response *ethrpc.Response, index int) bool {
-	return response != nil &&
-		index >= 0 &&
-		index < len(response.Result) &&
-		response.Result[index]
-}
-
 func percentToBps(value *big.Int) *uint256.Int {
-	if value == nil {
+	result := tokentax.ToUint256(value)
+	if result == nil {
 		return nil
 	}
-	result, _ := uint256.FromBig(value)
 	return result.Mul(result, big256.U100)
 }
