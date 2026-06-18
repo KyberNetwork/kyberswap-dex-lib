@@ -95,7 +95,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas + extraGasByExchange[s.GetExchange()],
 	}
-	if effectiveAmountIn != amountIn || amountOut != grossAmountOut {
+	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
+		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
 		result.SwapInfo = SwapInfo{
 			EffectiveAmountIn: effectiveAmountIn.ToBig(),
 			GrossAmountOut:    grossAmountOut.ToBig(),
