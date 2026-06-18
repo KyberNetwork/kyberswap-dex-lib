@@ -1,33 +1,38 @@
 package ambient
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
-	Q48  = new(big.Int).Lsh(bignum.One, 48)
-	Q128 = bignum.B2Pow128
-
-	mask128 = bignum.MaxUint128
+	// uQ48 = 2^48, uQ128 = 2^128.
+	uQ48  = new(uint256.Int).Lsh(u256.U1, 48)
+	uQ128 = u256.U2Pow128
 )
 
-func MulQ64(x, y *big.Int) *big.Int {
-	result := new(big.Int).Mul(x, y)
-	return result.Rsh(result, 64)
+// MulQ64 sets dst = floor(x * y / 2^64) and returns dst.
+func MulQ64(dst, x, y *uint256.Int) *uint256.Int {
+	dst.Mul(x, y)
+	return dst.Rsh(dst, 64)
 }
 
-func DivQ64(x, y *big.Int) *big.Int {
-	num := new(big.Int).Lsh(x, 64)
-	return num.Div(num, y)
+// DivQ64 sets dst = floor(x * 2^64 / y) and returns dst.
+func DivQ64(dst, x, y *uint256.Int) *uint256.Int {
+	dst.Lsh(x, 64)
+	return dst.Div(dst, y)
 }
 
-func MulQ48(x *big.Int, y uint64) *big.Int {
-	result := new(big.Int).Mul(x, new(big.Int).SetUint64(y))
-	return result.Rsh(result, 48)
+// MulQ48 sets dst = floor(x * y / 2^48) and returns dst (y is uint64).
+func MulQ48(dst, x *uint256.Int, y uint64) *uint256.Int {
+	var tmp uint256.Int
+	tmp.SetUint64(y)
+	dst.Mul(x, &tmp)
+	return dst.Rsh(dst, 48)
 }
 
-func RecipQ64(x *big.Int) *big.Int {
-	return new(big.Int).Div(Q128, x)
+// RecipQ64 sets dst = floor(2^128 / x) and returns dst.
+func RecipQ64(dst, x *uint256.Int) *uint256.Int {
+	return dst.Div(uQ128, x)
 }
