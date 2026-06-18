@@ -81,7 +81,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	swap.InBaseQty = inBaseQty
 	swap.IsBuy = isBuy
 	if overflow := swap.Qty.SetFromBig(params.TokenAmountIn.Amount); overflow {
-		return nil, ErrZeroAmount
+		return nil, ErrOverflow
 	}
 	swap.LimitPrice = defaultLimitPrice(isBuy)
 

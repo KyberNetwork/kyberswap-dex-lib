@@ -453,7 +453,9 @@ func calcChainBitmapOut(
 		IsBuy:      tc.isBuy,
 		LimitPrice: defaultLimitPrice(tc.isBuy),
 	}
-	simSwap.Qty.SetFromBig(tc.amountIn)
+	if overflow := simSwap.Qty.SetFromBig(tc.amountIn); overflow {
+		return nil, ErrOverflow
+	}
 	chainBmp := &ChainBitmapView{
 		Ctx:      h.ctx,
 		Client:   h.client,
