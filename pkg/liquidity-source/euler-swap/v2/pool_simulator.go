@@ -244,9 +244,8 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 		soldCollat, newDebt, isBuyVaultControlled = withdrawAssets(
 			amtOut, buySupplyVault.EulerAccountAssets, buySupplyVault.IsControllerEnabled)
 	} else {
-		var soldCollatZero, newDebtZero uint256.Int
-		soldCollat = &soldCollatZero
-		newDebt = &newDebtZero
+		soldCollat = big256.U0
+		newDebt = big256.U0
 		isBuyVaultControlled = false
 	}
 
@@ -263,10 +262,9 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 			amtIn, p.getFee(zeroForOne), sellDebt,
 			sellSupplyVault.IsControllerEnabled)
 	} else {
-		var vaultDepositZero, reserveDepositZero, repayZero uint256.Int
-		vaultDepositAmt = &vaultDepositZero
-		reserveDepositAmt = &reserveDepositZero
-		repayAmt = &repayZero
+		vaultDepositAmt = big256.U0
+		reserveDepositAmt = big256.U0
+		repayAmt = big256.U0
 		isSellVaultControlled = false
 	}
 
@@ -373,9 +371,7 @@ func (p *PoolSimulator) getFee(zeroForOne bool) *uint256.Int {
 			Reserve1:      p.reserves[1],
 		})
 		if err == nil {
-			var hookFee uint256.Int
-			hookFee.SetUint64(fee)
-			return &hookFee
+			return uint256.NewInt(fee)
 		}
 	}
 
@@ -387,8 +383,7 @@ func (p *PoolSimulator) getFee(zeroForOne bool) *uint256.Int {
 
 func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOne bool) (*uint256.Int, error) {
 	if amount.IsZero() {
-		var zero uint256.Int
-		return &zero, nil
+		return big256.U0, nil
 	}
 
 	fee := p.getFee(isZeroForOne)

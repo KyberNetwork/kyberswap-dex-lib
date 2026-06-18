@@ -183,19 +183,20 @@ func (s *PoolSimulator) _sellBase(
 
 	var feeRate uint256.Int
 	feeRate.SetUint64(uint64(s.tokenInfos[baseToken].FeeRate))
-	swapFee := new(uint256.Int).Mul(quoteAmount, &feeRate)
-	swapFee.Div(swapFee, u256.TenPow(5))
+	var swapFee uint256.Int
+	swapFee.Mul(quoteAmount, &feeRate)
+	swapFee.Div(&swapFee, u256.TenPow(5))
 
-	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
+	quoteAmount = new(uint256.Int).Sub(quoteAmount, &swapFee)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
 	var qSum uint256.Int
-	qSum.Add(quoteAmount, swapFee)
+	qSum.Add(quoteAmount, &swapFee)
 	if s.tokenInfos[s.quoteToken].Reserve.Lt(&qSum) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
-	return quoteAmount, swapFee, newPrice, nil
+	return quoteAmount, &swapFee, newPrice, nil
 }
 
 // _sellQuote
@@ -210,10 +211,11 @@ func (s *PoolSimulator) _sellQuote(
 
 	var feeRate uint256.Int
 	feeRate.SetUint64(uint64(s.tokenInfos[baseToken].FeeRate))
-	swapFee := new(uint256.Int).Mul(quoteAmount, &feeRate)
-	swapFee.Div(swapFee, u256.TenPow(5))
+	var swapFee uint256.Int
+	swapFee.Mul(quoteAmount, &feeRate)
+	swapFee.Div(&swapFee, u256.TenPow(5))
 
-	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
+	quoteAmount = new(uint256.Int).Sub(quoteAmount, &swapFee)
 
 	state := s._wooracleV2State(baseToken)
 
@@ -227,7 +229,7 @@ func (s *PoolSimulator) _sellQuote(
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
-	return baseAmount, swapFee, newPrice, nil
+	return baseAmount, &swapFee, newPrice, nil
 }
 
 // _swapBaseToBase
@@ -258,13 +260,14 @@ func (s *PoolSimulator) _swapBaseToBase(
 
 	var feeRateU256 uint256.Int
 	feeRateU256.SetUint64(uint64(feeRate))
-	swapFee := new(uint256.Int).Mul(quoteAmount, &feeRateU256)
-	swapFee.Div(swapFee, u256.TenPow(5))
+	var swapFee uint256.Int
+	swapFee.Mul(quoteAmount, &feeRateU256)
+	swapFee.Div(&swapFee, u256.TenPow(5))
 
-	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
+	quoteAmount = new(uint256.Int).Sub(quoteAmount, &swapFee)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Lt(swapFee) {
+	if s.tokenInfos[s.quoteToken].Reserve.Lt(&swapFee) {
 		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -278,7 +281,7 @@ func (s *PoolSimulator) _swapBaseToBase(
 		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
-	return base2Amount, swapFee, newBase1Price, newBase2Price, nil
+	return base2Amount, &swapFee, newBase1Price, newBase2Price, nil
 }
 
 // _calcBaseAmountSellQuote

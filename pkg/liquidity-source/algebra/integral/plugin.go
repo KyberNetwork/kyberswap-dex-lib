@@ -612,7 +612,7 @@ func getNewPrice(
 				if mulDivErr != nil {
 					return nil, mulDivErr
 				}
-				shiftedAmount.Set(shiftedAmountPtr)
+				shiftedAmount = *shiftedAmountPtr
 			}
 
 			resultPrice, overflow := shiftedAmount.SubOverflow(price, &shiftedAmount)
