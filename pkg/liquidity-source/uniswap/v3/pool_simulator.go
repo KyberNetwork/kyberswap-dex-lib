@@ -1,14 +1,11 @@
 package uniswapv3
 
 import (
-	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -19,10 +16,12 @@ import (
 type PoolSimulator struct {
 	V3Pool *Pool
 	pool.Pool
-	Gas             Gas
-	tickMin         int
-	tickMax         int
-	allowEmptyTicks bool
+	Gas               Gas
+	tickMin           int
+	tickMax           int
+	sqrtPriceLimitMin uint256.Int // GetSqrtRatioAtTick(tickMin) + 1 for zeroForOne swaps
+	sqrtPriceLimitMax uint256.Int // GetSqrtRatioAtTick(tickMax) - 1 for oneForZero swaps
+	allowEmptyTicks   bool
 }
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
@@ -89,8 +88,8 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 	}
 	v3Pool, err := NewPool(
 		FeeAmount(entityPool.SwapFee),
-		extra.SqrtPriceX96,
-		extra.Liquidity,
+		*extra.SqrtPriceX96,
+		*extra.Liquidity,
 		*extra.Tick,
 		v3Ticks,
 		tickSpacing,
@@ -105,7 +104,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 		tickMax = v3Ticks[len(v3Ticks)-1].Index
 	}
 
-	return &PoolSimulator{
+	sim := &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			SwapFee:  swapFee,
@@ -119,17 +118,25 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 		tickMin:         tickMin,
 		tickMax:         tickMax,
 		allowEmptyTicks: cfg.AllowEmptyTicks,
-	}, nil
+	}
+	if err := GetSqrtRatioAtTick(tickMin, &sim.sqrtPriceLimitMin); err != nil {
+		return nil, err
+	}
+	sim.sqrtPriceLimitMin.AddUint64(&sim.sqrtPriceLimitMin, 1)
+	if err := GetSqrtRatioAtTick(tickMax, &sim.sqrtPriceLimitMax); err != nil {
+		return nil, err
+	}
+	sim.sqrtPriceLimitMax.SubUint64(&sim.sqrtPriceLimitMax, 1)
+	return sim, nil
 }
 
 // GetSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
-func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *uint256.Int) error {
-	tickLimit := lo.Ternary(zeroForOne, p.tickMin, p.tickMax)
-	if err := GetSqrtRatioAtTick(tickLimit, result); err != nil {
-		return err
+func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool) *uint256.Int {
+	if zeroForOne {
+		return &p.sqrtPriceLimitMin
+	} else {
+		return &p.sqrtPriceLimitMax
 	}
-	lo.Ternary(zeroForOne, result.AddUint64, result.SubUint64)(result, 1)
-	return nil
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
@@ -144,21 +151,17 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	zeroForOne := tokenInIndex == 0
 
-	var amountOutI256 int256.Int
-	if overflow := amountOutI256.SetFromBig(tokenAmountOut.Amount); overflow {
+	var amountOut uint256.Int
+	if overflow := amountOut.SetFromBig(tokenAmountOut.Amount); overflow {
 		return nil, ErrOverflow
 	}
 
-	var priceLimit uint256.Int
-	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
-		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
-	}
-	amountIn, newPoolState, err := p.V3Pool.GetInputAmountV2(&amountOutI256, zeroForOne, &priceLimit)
+	result, err := p.V3Pool.GetInputAmountV2(zeroForOne, amountOut, uint256.Int{})
 	if err != nil {
 		return nil, err
 	}
 
-	amountInBI := amountIn.ToBig()
+	amountInBI := result.AmountCalculated.ToBig()
 	if !p.allowEmptyTicks {
 		if amountInBI.Sign() <= 0 {
 			return nil, ErrZeroAmount
@@ -166,18 +169,13 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: amountInBI,
-		},
-		Fee: &pool.TokenAmount{
-			Token: tokenIn,
-		},
-		Gas: p.Gas.BaseGas, // TODO: update GetInputAmountV2 to return crossed tick if we ever need this
+		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountInBI},
+		Fee:           &pool.TokenAmount{Token: tokenIn},
+		Gas:           p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops),
 		SwapInfo: SwapInfo{
-			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
-			nextStateLiquidity:    newPoolState.Liquidity,
-			NextStateTickCurrent:  newPoolState.TickCurrent,
+			NextStateSqrtRatioX96: &result.SqrtRatioX96,
+			nextStateLiquidity:    result.Liquidity,
+			NextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
 }
@@ -190,25 +188,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidToken
 	}
 
-	var amountIn int256.Int
+	var amountIn uint256.Int
 	if overflow := amountIn.SetFromBig(tokenAmountIn.Amount); overflow {
 		return nil, ErrOverflow
 	}
 	zeroForOne := tokenInIndex == 0
-	var priceLimit uint256.Int
-	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
-		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
-	}
-	amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
+	result, err := p.V3Pool.GetOutputAmountV2(zeroForOne, amountIn, uint256.Int{})
 	if err != nil {
 		return nil, err
-	}
-
-	amountOut := amountOutResult.ReturnedAmount
-	if !p.allowEmptyTicks && amountOut.Sign() <= 0 {
+	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
-	amountOutBI := amountOut.ToBig()
+	amountOutBI := result.AmountCalculated.ToBig()
 	if amountOutBI.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	}
@@ -217,29 +208,19 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Token:  tokenIn,
 		Amount: bignumber.ZeroBI,
 	}
-	if amountOutResult.RemainingAmountIn != nil {
-		if amountOutResult.RemainingAmountIn.Sign() == 0 {
-			amountOutResult.RemainingAmountIn = nil
-		} else {
-			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
-		}
+	if !result.RemainingAmountIn.IsZero() {
+		remainingTokenAmountIn.Amount = result.RemainingAmountIn.ToBig()
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOutBI,
-		},
-		RemainingTokenAmountIn: remainingTokenAmountIn,
-		Fee: &pool.TokenAmount{
-			Token: tokenIn,
-		},
-		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops),
+		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: amountOutBI},
+		RemainingTokenAmountIn: remainingTokenAmountIn, Fee: &pool.TokenAmount{Token: tokenIn},
+		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops),
 		SwapInfo: SwapInfo{
-			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
-			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
-			nextStateLiquidity:    amountOutResult.Liquidity,
-			NextStateTickCurrent:  amountOutResult.CurrentTick,
+			RemainingAmountIn:     &result.RemainingAmountIn,
+			NextStateSqrtRatioX96: &result.SqrtRatioX96,
+			nextStateLiquidity:    result.Liquidity,
+			NextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
 }
@@ -257,8 +238,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
 		return
 	}
-	p.V3Pool.SqrtRatioX96 = si.NextStateSqrtRatioX96
-	p.V3Pool.Liquidity = si.nextStateLiquidity
+	p.V3Pool.SqrtRatioX96.Set(si.NextStateSqrtRatioX96)
+	p.V3Pool.Liquidity.Set(&si.nextStateLiquidity)
 	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 	tokenAmtIn, tokenAmtOut := params.TokenAmountIn, params.TokenAmountOut
 	if p.GetTokenIndex(tokenAmtIn.Token) == 0 {
@@ -271,10 +252,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
-	var priceLimit uint256.Int
-	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 	return PoolMeta{
 		SwapFee:    uint32(p.Info.SwapFee.Int64()),
-		PriceLimit: &priceLimit,
+		PriceLimit: p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0]),
 	}
 }

@@ -6,12 +6,14 @@ package uniswapv3
 
 import (
 	"errors"
+	"math"
 	"math/bits"
 	"slices"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kutils"
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // ---------- Fee constants (from constants/constants.go) ----------
@@ -47,12 +49,15 @@ const (
 )
 
 var (
-	MinSqrtRatioU256 = uint256.NewInt(4295128739)
-	MaxSqrtRatioU256 = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970342")
-	q32U256          = uint256.NewInt(1 << 32)
-	q96U256          = new(uint256.Int).Exp(uint256.NewInt(2), uint256.NewInt(96))
-	maxUint256       = uint256.MustFromHex("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-	uint160Max       = uint256.MustFromHex("0xffffffffffffffffffffffffffffffffffffffff")
+	MinSqrtRatioU256   = uint256.NewInt(4295128739)
+	MinSqrtRatioU256P1 = uint256.NewInt(4295128740)
+	MaxSqrtRatioU256P1 = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970342")
+	MaxSqrtRatioU256   = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970341")
+	MaxSqrtRatioU256M1 = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970340")
+	q32U256            = uint256.NewInt(1 << 32)
+	q96U256            = new(uint256.Int).Exp(uint256.NewInt(2), uint256.NewInt(96))
+	maxUint256         = uint256.MustFromHex("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	uint160Max         = uint256.MustFromHex("0xffffffffffffffffffffffffffffffffffffffff")
 )
 
 // ---------- Errors ----------
@@ -289,36 +294,14 @@ func DivRoundingUp(a, denominator, result *uint256.Int) {
 
 // ---------- Most significant bit (from utils/most_significant_bit.go) ----------
 
-type powerOf2 struct {
-	power uint
-	value *uint256.Int
-}
-
-var powersOf2 = []powerOf2{
-	{128, uint256.MustFromHex("0x100000000000000000000000000000000")},
-	{64, uint256.MustFromHex("0x10000000000000000")},
-	{32, uint256.MustFromHex("0x100000000")},
-	{16, uint256.MustFromHex("0x10000")},
-	{8, uint256.MustFromHex("0x100")},
-	{4, uint256.MustFromHex("0x10")},
-	{2, uint256.MustFromHex("0x4")},
-	{1, uint256.MustFromHex("0x2")},
-}
-
+// MostSignificantBit returns floor(log2(x)) for x > 0.
+// Equivalent to x.BitLen()-1 but expressed as the named helper the rest of
+// the package uses.
 func MostSignificantBit(x *uint256.Int) (uint, error) {
 	if x.IsZero() {
 		return 0, errInvalidInput
 	}
-	var tmpX uint256.Int
-	tmpX.Set(x)
-	var msb uint
-	for _, p := range powersOf2 {
-		if !tmpX.Lt(p.value) {
-			tmpX.Rsh(&tmpX, p.power)
-			msb += p.power
-		}
-	}
-	return msb, nil
+	return uint(x.BitLen()) - 1, nil
 }
 
 // ---------- Tick math (from utils/tick_math.go) ----------
@@ -424,58 +407,44 @@ func GetSqrtRatioAtTick(tick int, result *uint256.Int) error {
 	return nil
 }
 
-var (
-	magicSqrt10001 = int256.MustFromDec("255738958999603826347141")
-	magicTickLow   = int256.MustFromDec("3402992956809132418596140100660247210")
-	magicTickHigh  = int256.MustFromDec("291339464771989622907027621153398088495")
-)
+// invLog2Sqrt1_0001 converts log2 of a Q96 sqrt-price to tick space.
+// tick = log_{sqrt(1.0001)}(sqrtPX96/2^96) = log2(sqrtPX96/2^96) / log2(sqrt(1.0001))
+//
+//	= log2(sqrtPX96/2^96) × (2 / log2(1.0001))
+var invLog2Sqrt1_0001 = 2.0 / math.Log2(1.0001)
+
+const q96 = 0x1p96 // 2^96, the Q96 denominator
 
 func GetTickAtSqrtRatio(sqrtPX96 *uint256.Int) (int, error) {
 	if sqrtPX96.Lt(MinSqrtRatioU256) || !sqrtPX96.Lt(MaxSqrtRatioU256) {
 		return 0, errInvalidSqrtRatio
 	}
-	var sqrtPX128 uint256.Int
-	sqrtPX128.Lsh(sqrtPX96, 32)
-	msb, err := MostSignificantBit(&sqrtPX128)
-	if err != nil {
+
+	// Synthesize uint256 to float64. Valid sqrtPX96 fits in ≤161 bits (MaxSqrtRatio < 2^161),
+	// so sqrtPX96[3] == 0 for all valid inputs and is omitted. float64's 53-bit mantissa
+	// gives ~4e-12 tick precision — far below 1 tick — so the estimate needs at most a ±1
+	// correction, verified by at most two GetSqrtRatioAtTick calls.
+	sqrtF := float64(sqrtPX96[2])*0x1p128 + float64(sqrtPX96[1])*0x1p64 + float64(sqrtPX96[0])
+	tick := int(math.Floor(math.Log2(sqrtF/q96) * invLog2Sqrt1_0001))
+	// Float error can push tick one past the valid range; clamp before calling GetSqrtRatioAtTick.
+	if tick < MinTick {
+		tick = MinTick
+	} else if tick >= MaxTick {
+		tick = MaxTick - 1
+	}
+
+	// Verify and correct by at most 1 tick.
+	var sqrt uint256.Int
+	if err := GetSqrtRatioAtTick(tick, &sqrt); err != nil {
 		return 0, err
-	}
-	var r uint256.Int
-	if msb >= 128 {
-		r.Rsh(&sqrtPX128, msb-127)
-	} else {
-		r.Lsh(&sqrtPX128, 127-msb)
-	}
-
-	log2 := int256.NewInt(int64(msb - 128))
-	log2.Lsh(log2, 64)
-
-	var tmp, f uint256.Int
-	for i := range 14 {
-		tmp.Mul(&r, &r)
-		r.Rsh(&tmp, 127)
-		f.Rsh(&r, 128)
-		tmp.Lsh(&f, uint(63-i))
-		log2.Or(log2, (*int256.Int)(&tmp))
-		r.Rsh(&r, uint(f.Uint64()))
-	}
-
-	var logSqrt10001, tmp1, tmp2 int256.Int
-	logSqrt10001.Mul(log2, magicSqrt10001)
-	tickLow := tmp2.Rsh(tmp1.Sub(&logSqrt10001, magicTickLow), 128).Uint64()
-	tickHigh := tmp2.Rsh(tmp1.Add(&logSqrt10001, magicTickHigh), 128).Uint64()
-
-	if tickLow == tickHigh {
-		return int(tickLow), nil
-	}
-	var sqrtP uint256.Int
-	if err = GetSqrtRatioAtTick(int(tickHigh), &sqrtP); err != nil {
+	} else if sqrt.Gt(sqrtPX96) {
+		return tick - 1, nil
+	} else if err = GetSqrtRatioAtTick(tick+1, &sqrt); err != nil {
 		return 0, err
+	} else if !sqrt.Gt(sqrtPX96) {
+		return tick + 1, nil
 	}
-	if !sqrtP.Gt(sqrtPX96) {
-		return int(tickHigh), nil
-	}
-	return int(tickLow), nil
+	return tick, nil
 }
 
 // ---------- Sqrt price math (from utils/sqrtprice_math.go) ----------
@@ -523,11 +492,9 @@ func GetNextSqrtPriceFromInput(sqrtPX96 *uint256.Int, liquidity *uint256.Int, am
 	result *uint256.Int) error {
 	if sqrtPX96.Sign() <= 0 {
 		return errSqrtPriceLessThanZero
-	}
-	if liquidity.Sign() <= 0 {
+	} else if liquidity.Sign() <= 0 {
 		return errLiquidityLessThanZero
-	}
-	if zeroForOne {
+	} else if zeroForOne {
 		return getNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amountIn, true, result)
 	}
 	return getNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amountIn, true, result)
@@ -537,11 +504,9 @@ func GetNextSqrtPriceFromOutput(sqrtPX96 *uint256.Int, liquidity *uint256.Int, a
 	result *uint256.Int) error {
 	if sqrtPX96.Sign() <= 0 {
 		return errSqrtPriceLessThanZero
-	}
-	if liquidity.Sign() <= 0 {
+	} else if liquidity.Sign() <= 0 {
 		return errLiquidityLessThanZero
-	}
-	if zeroForOne {
+	} else if zeroForOne {
 		return getNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amountOut, false, result)
 	}
 	return getNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amountOut, false, result)
@@ -567,10 +532,7 @@ func getNextSqrtPriceFromAmount0RoundingUp(sqrtPX96 *uint256.Int, liquidity *uin
 		DivRoundingUp(&numerator1, &tmp, result)
 		return nil
 	}
-	if !tmp.Div(&product, amount).Eq(sqrtPX96) {
-		return errInvariant
-	}
-	if !numerator1.Gt(&product) {
+	if !tmp.Div(&product, amount).Eq(sqrtPX96) || !numerator1.Gt(&product) {
 		return errInvariant
 	}
 	denominator.Sub(&numerator1, &product)
@@ -585,8 +547,7 @@ func getNextSqrtPriceFromAmount1RoundingDown(sqrtPX96 *uint256.Int, liquidity *u
 			tmp.Lsh(amount, 96)
 			quotient.Div(&tmp, liquidity)
 		} else {
-			tmp.Mul(amount, q96U256)
-			quotient.Div(&tmp, liquidity)
+			u256.MulDivDown(&quotient, amount, q96U256, liquidity)
 		}
 		_, overflow := quotient.AddOverflow(&quotient, sqrtPX96)
 		if overflow {
@@ -601,8 +562,7 @@ func getNextSqrtPriceFromAmount1RoundingDown(sqrtPX96 *uint256.Int, liquidity *u
 	var quotient uint256.Int
 	if err := MulDivRoundingUpV2(amount, q96U256, liquidity, &quotient); err != nil {
 		return err
-	}
-	if !sqrtPX96.Gt(&quotient) {
+	} else if !sqrtPX96.Gt(&quotient) {
 		return errInvariant
 	}
 	quotient.Sub(sqrtPX96, &quotient)
@@ -619,43 +579,38 @@ var maxFeeUint256 = uint256.NewInt(maxFeeInt)
 func ComputeSwapStep(
 	sqrtPCurrentX96, sqrtPTargetX96 *uint256.Int,
 	liquidity *uint256.Int,
-	amountRemaining *int256.Int,
+	amountRemaining *uint256.Int,
 	feePips FeeAmount,
 	sqrtPNextX96 *uint256.Int, amountIn, amountOut, feeAmount *uint256.Int,
 ) error {
 	zeroForOne := !sqrtPCurrentX96.Lt(sqrtPTargetX96)
 	exactIn := amountRemaining.Sign() >= 0
 
-	amountRemainingU := uint256.Int(*amountRemaining)
-	if !exactIn {
-		amountRemainingU.Neg(&amountRemainingU)
+	var amountRemainingU uint256.Int
+	if exactIn {
+		amountRemainingU.Set(amountRemaining)
+	} else {
+		amountRemainingU.Neg(amountRemaining)
 	}
 
 	var maxFeeMinusFeePips uint256.Int
 	maxFeeMinusFeePips.SetUint64(maxFeeInt - uint64(feePips))
 
 	if exactIn {
-		var amountRemainingLessFee, tmp uint256.Int
-		tmp.Mul(&amountRemainingU, &maxFeeMinusFeePips)
-		amountRemainingLessFee.Div(&tmp, maxFeeUint256)
 		if zeroForOne {
-			if err := GetAmount0DeltaV2(sqrtPTargetX96, sqrtPCurrentX96, liquidity, true,
-				amountIn); err != nil {
+			if err := GetAmount0DeltaV2(sqrtPTargetX96, sqrtPCurrentX96, liquidity, true, amountIn); err != nil {
 				return err
 			}
-		} else {
-			if err := GetAmount1DeltaV2(sqrtPCurrentX96, sqrtPTargetX96, liquidity, true,
-				amountIn); err != nil {
-				return err
-			}
+		} else if err := GetAmount1DeltaV2(sqrtPCurrentX96, sqrtPTargetX96, liquidity, true, amountIn); err != nil {
+			return err
 		}
+		var amountRemainingLessFee uint256.Int
+		u256.MulDivDown(&amountRemainingLessFee, &amountRemainingU, &maxFeeMinusFeePips, maxFeeUint256)
 		if !amountRemainingLessFee.Lt(amountIn) {
 			sqrtPNextX96.Set(sqrtPTargetX96)
-		} else {
-			if err := GetNextSqrtPriceFromInput(sqrtPCurrentX96, liquidity, &amountRemainingLessFee, zeroForOne,
-				sqrtPNextX96); err != nil {
-				return err
-			}
+		} else if err := GetNextSqrtPriceFromInput(sqrtPCurrentX96, liquidity, &amountRemainingLessFee, zeroForOne,
+			sqrtPNextX96); err != nil {
+			return err
 		}
 	} else {
 		if zeroForOne {
@@ -683,8 +638,7 @@ func ComputeSwapStep(
 			}
 		}
 		if !maxSqrt || exactIn {
-			if err := GetAmount1DeltaV2(sqrtPNextX96, sqrtPCurrentX96, liquidity, false,
-				amountOut); err != nil {
+			if err := GetAmount1DeltaV2(sqrtPNextX96, sqrtPCurrentX96, liquidity, false, amountOut); err != nil {
 				return err
 			}
 		}
@@ -695,8 +649,7 @@ func ComputeSwapStep(
 			}
 		}
 		if !maxSqrt || exactIn {
-			if err := GetAmount0DeltaV2(sqrtPCurrentX96, sqrtPNextX96, liquidity, false,
-				amountOut); err != nil {
+			if err := GetAmount0DeltaV2(sqrtPCurrentX96, sqrtPNextX96, liquidity, false, amountOut); err != nil {
 				return err
 			}
 		}
@@ -707,9 +660,12 @@ func ComputeSwapStep(
 	}
 	if exactIn && !sqrtPNextX96.Eq(sqrtPTargetX96) {
 		feeAmount.Sub(&amountRemainingU, amountIn)
-	} else if err := MulDivRoundingUpV2(amountIn, uint256.NewInt(uint64(feePips)), &maxFeeMinusFeePips,
-		feeAmount); err != nil {
-		return err
+	} else {
+		var feePipsU256 uint256.Int
+		feePipsU256.SetUint64(uint64(feePips))
+		if err := MulDivRoundingUpV2(amountIn, &feePipsU256, &maxFeeMinusFeePips, feeAmount); err != nil {
+			return err
+		}
 	}
 
 	return nil
