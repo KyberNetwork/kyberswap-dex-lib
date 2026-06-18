@@ -2,10 +2,12 @@ package carbon
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -21,7 +23,8 @@ type PoolListTrackerTestSuite struct {
 }
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {
-	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com").
+	rpcUrl := lo.CoalesceOrEmpty(os.Getenv("RPC_1"), "https://ethereum-rpc.kyberswap.com")
+	rpcClient := ethrpc.New(rpcUrl).
 		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 
 	config := Config{

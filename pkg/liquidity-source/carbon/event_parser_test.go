@@ -1,6 +1,7 @@
 package carbon
 
 import (
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -19,7 +20,8 @@ func TestEventParserDecode(t *testing.T) {
 
 	controller := common.HexToAddress("0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1")
 
-	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com").
+	rpcUrl := lo.CoalesceOrEmpty(os.Getenv("RPC_1"), "https://ethereum-rpc.kyberswap.com")
+	rpcClient := ethrpc.New(rpcUrl).
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	e := NewPoolFactory(&Config{Controller: controller}, rpcClient)
