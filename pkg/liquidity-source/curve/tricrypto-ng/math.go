@@ -81,12 +81,12 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 	// S: uint256 = unsafe_add(unsafe_add(x[0], x[1]), x[2])
 	// D: uint256 = 0
 	S := number.Add(number.Add(&x[0], &x[1]), &x[2])
-	D := uint256.NewInt(0)
+	var D uint256.Int
 
 	if K0_prev.IsZero() {
 		// # Geometric mean of 3 numbers cannot be larger than the largest number
 		// # so the following is safe to do:
-		D = number.Mul(NumTokensU256, geometric_mean(x[:]))
+		D.Mul(NumTokensU256, geometric_mean(x[:]))
 	} else {
 		if S.Cmp(U_1e36) > 0 {
 			_cbrt(
@@ -96,7 +96,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 						K0_prev,
 					),
 					U_27e12),
-				D)
+				&D)
 		} else if S.Cmp(U_1e24) > 0 {
 			_cbrt(
 				number.Mul(
@@ -105,7 +105,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 						K0_prev,
 					),
 					U_27e6),
-				D)
+				&D)
 		} else {
 			_cbrt(
 				number.Mul(
@@ -115,14 +115,14 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 					),
 					U_27,
 				),
-				D)
+				&D)
 		}
 		// # D not zero here if K0_prev > 0, and we checked if x[0] is gt 0.
 	}
 
 	var D_prev, K0, diff uint256.Int
 	for range 255 {
-		D_prev.Set(D)
+		D_prev.Set(&D)
 
 		// # K0 = 10**18 * x[0] * N_COINS / D * x[1] * N_COINS / D * x[2] * N_COINS / D
 		K0.Div(
@@ -135,19 +135,19 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 									number.Mul(
 										number.Mul(U_1e18, &x[0]), NumTokensU256,
 									),
-									D,
+									&D,
 								),
 								&x[1],
 							),
 							NumTokensU256,
 						),
-						D,
+						&D,
 					),
 					&x[2],
 				),
 				NumTokensU256,
 			),
-			D,
+			&D,
 		)
 		// # <-------- We can convert the entire expression using unsafe math.
 		// #   since x_i is not too far from D, so overflow is not expected. Also
@@ -175,7 +175,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 				number.Mul(
 					number.Div(
 						number.Mul(
-							number.Div(number.Mul(U_1e18, D), gamma), _g1k0,
+							number.Div(number.Mul(U_1e18, &D), gamma), _g1k0,
 						),
 						gamma,
 					),
@@ -204,7 +204,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 				number.Add(S, number.Div(number.Mul(S, mul2), U_1e18)),
 				number.Div(number.Mul(mul1, NumTokensU256), &K0),
 			),
-			number.Div(number.Mul(mul2, D), U_1e18),
+			number.Div(number.Mul(mul2, &D), U_1e18),
 		)
 		// # <--- mul1 is a big number but not huge: safe to unsafely multiply
 		// # with N_coins. neg_fprime > 0 if this expression executes.
@@ -215,10 +215,10 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 
 		// # D -= f / fprime
 		// # D * (neg_fprime + S) / neg_fprime
-		var D_plus = number.Div(number.SafeMul(D, number.Add(neg_fprime, S)), neg_fprime)
+		var D_plus = number.Div(number.SafeMul(&D, number.Add(neg_fprime, S)), neg_fprime)
 
 		// # D*D / neg_fprime
-		var D_minus = number.Div(number.SafeMul(D, D), neg_fprime)
+		var D_minus = number.Div(number.SafeMul(&D, &D), neg_fprime)
 
 		// # Since we know K0 > 0, and neg_fprime > 0, several unsafe operations
 		// # are possible in the following. Also, (10**18 - K0) is safe to mul.
@@ -227,7 +227,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 			// # D_minus += D * (mul1 / neg_fprime) / 10**18 * (10**18 - K0) / K0
 			D_minus = number.SafeAdd(D_minus,
 				number.Div(
-					number.Mul(number.Div(number.SafeMul(D, number.Div(mul1, neg_fprime)), U_1e18), number.Sub(U_1e18, &K0)),
+					number.Mul(number.Div(number.SafeMul(&D, number.Div(mul1, neg_fprime)), U_1e18), number.Sub(U_1e18, &K0)),
 					&K0,
 				),
 			)
@@ -235,38 +235,38 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 			// # D_minus -= D * (mul1 / neg_fprime) / 10**18 * (K0 - 10**18) / K0
 			D_minus = number.SafeSub(D_minus,
 				number.Div(
-					number.Mul(number.Div(number.SafeMul(D, number.Div(mul1, neg_fprime)), U_1e18), number.Sub(&K0, U_1e18)),
+					number.Mul(number.Div(number.SafeMul(&D, number.Div(mul1, neg_fprime)), U_1e18), number.Sub(&K0, U_1e18)),
 					&K0,
 				),
 			)
 		}
 		if D_plus.Cmp(D_minus) > 0 {
 			// D = unsafe_sub(D_plus, D_minus)  # <--------- Safe since we check.
-			D = number.Sub(D_plus, D_minus)
+			D.Set(number.Sub(D_plus, D_minus))
 		} else {
 			// D = unsafe_div(unsafe_sub(D_minus, D_plus), 2)
-			D = number.Div(number.Sub(D_minus, D_plus), number.Number_2)
+			D.Div(number.Sub(D_minus, D_plus), number.Number_2)
 		}
 
 		if D.Cmp(&D_prev) > 0 {
-			diff.Sub(D, &D_prev)
+			diff.Sub(&D, &D_prev)
 		} else {
-			diff.Sub(&D_prev, D)
+			diff.Sub(&D_prev, &D)
 		}
 
 		temp := U_1e16
 		if D.Cmp(U_1e16) > 0 {
-			temp = D
+			temp = &D
 		}
 		if number.Mul(&diff, U_1e14).Cmp(temp) < 0 {
 			// # Test that we are safe with the next get_y
 			for i := range x {
-				var frac = number.Div(number.Mul(&x[i], U_1e18), D)
+				var frac = number.Div(number.Mul(&x[i], U_1e18), &D)
 				if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
 					return nil, ErrUnsafeXi
 				}
 			}
-			return D, nil
+			return &D, nil
 		}
 	}
 	return nil, ErrDDoesNotConverge
@@ -553,13 +553,16 @@ func _cbrt(x *uint256.Int, a *uint256.Int) {
 	// #
 	// # initial_guess = 2 ** pow * 1260 ** remainder // 1000 ** remainder
 
-	remainder := new(uint256.Int).Mod(log2x, number.Number_3)
+	var remainder, u1260, u1000 uint256.Int
+	remainder.Mod(log2x, number.Number_3)
+	u1260.SetUint64(1260)
+	u1000.SetUint64(1000)
 	a.Div(
 		number.Mul(
 			pow_mod256(number.Number_2, number.Div(log2x, number.Number_3)), //# <- pow
-			pow_mod256(uint256.NewInt(1260), remainder),
+			pow_mod256(&u1260, &remainder),
 		),
-		pow_mod256(uint256.NewInt(1000), remainder),
+		pow_mod256(&u1000, &remainder),
 	)
 
 	// # Because we chose good initial values for cube roots, 7 newton raphson iterations
@@ -583,7 +586,9 @@ func _cbrt(x *uint256.Int, a *uint256.Int) {
 }
 
 func pow_mod256(x, y *uint256.Int) *uint256.Int {
-	return new(uint256.Int).Exp(x, y)
+	var z uint256.Int
+	z.Exp(x, y)
+	return &z
 }
 
 func snekmate_log_2(x *uint256.Int, roundup bool) *uint256.Int {
@@ -609,43 +614,52 @@ func _snekmate_log_2(x *uint256.Int, roundup bool, result *uint256.Int) {
 	*/
 	value := number.Set(x)
 	result.Clear()
+	var tmp, const1 uint256.Int
 
 	// # The following lines cannot overflow because we have the well-known
 	// # decay behaviour of `log_2(max_value(uint256)) < max_value(uint256)`.
-	if !new(uint256.Int).Rsh(x, 128).IsZero() {
+	tmp.Rsh(x, 128)
+	if !tmp.IsZero() {
 		value.Rsh(x, 128)
 		result.SetUint64(128)
 	}
-	if !new(uint256.Int).Rsh(value, 64).IsZero() {
+	tmp.Rsh(value, 64)
+	if !tmp.IsZero() {
 		value.Rsh(value, 64)
-		result.Add(result, uint256.NewInt(64))
+		result.AddUint64(result, 64)
 	}
-	if !new(uint256.Int).Rsh(value, 32).IsZero() {
+	tmp.Rsh(value, 32)
+	if !tmp.IsZero() {
 		value.Rsh(value, 32)
-		result.Add(result, uint256.NewInt(32))
+		result.AddUint64(result, 32)
 	}
-	if !new(uint256.Int).Rsh(value, 16).IsZero() {
+	tmp.Rsh(value, 16)
+	if !tmp.IsZero() {
 		value.Rsh(value, 16)
-		result.Add(result, uint256.NewInt(16))
+		result.AddUint64(result, 16)
 	}
-	if !new(uint256.Int).Rsh(value, 8).IsZero() {
+	tmp.Rsh(value, 8)
+	if !tmp.IsZero() {
 		value.Rsh(value, 8)
-		result.Add(result, uint256.NewInt(8))
+		result.AddUint64(result, 8)
 	}
-	if !new(uint256.Int).Rsh(value, 4).IsZero() {
+	tmp.Rsh(value, 4)
+	if !tmp.IsZero() {
 		value.Rsh(value, 4)
-		result.Add(result, uint256.NewInt(4))
+		result.AddUint64(result, 4)
 	}
-	if !new(uint256.Int).Rsh(value, 2).IsZero() {
+	tmp.Rsh(value, 2)
+	if !tmp.IsZero() {
 		value.Rsh(value, 2)
-		result.Add(result, uint256.NewInt(2))
+		result.AddUint64(result, 2)
 	}
-	if !new(uint256.Int).Rsh(value, 1).IsZero() {
-		result.Add(result, uint256.NewInt(1))
+	tmp.Rsh(value, 1)
+	if !tmp.IsZero() {
+		result.AddUint64(result, 1)
 	}
-	const1 := new(uint256.Int).Lsh(number.Number_1, uint(result.Uint64()))
+	const1.Lsh(number.Number_1, uint(result.Uint64()))
 	if roundup && const1.Cmp(x) < 0 {
-		result.Add(result, uint256.NewInt(1))
+		result.AddUint64(result, 1)
 	}
 }
 
@@ -813,15 +827,19 @@ func (t *PoolSimulator) _A_gamma_inplace(A, gamma *uint256.Int) {
 		t1 -= t0
 		t0 = now - t0
 		var t2 = t1 - t0
+		var t0U, t1U, t2U uint256.Int
+		t0U.SetUint64(uint64(t0))
+		t1U.SetUint64(uint64(t1))
+		t2U.SetUint64(uint64(t2))
 		A.Div(number.Add(
-			number.Mul(A0, uint256.NewInt(uint64(t2))),
-			number.Mul(A, uint256.NewInt(uint64(t0))),
-		), uint256.NewInt(uint64(t1)))
+			number.Mul(A0, &t2U),
+			number.Mul(A, &t0U),
+		), &t1U)
 
 		gamma.Div(number.Add(
-			number.Mul(gamma0, uint256.NewInt(uint64(t2))),
-			number.Mul(gamma, uint256.NewInt(uint64(t0))),
-		), uint256.NewInt(uint64(t1)))
+			number.Mul(gamma0, &t2U),
+			number.Mul(gamma, &t0U),
+		), &t1U)
 	}
 }
 
@@ -842,7 +860,8 @@ func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
 	// # If the result is `< 0.5`, we return zero. This happens when we have the following:
 	// # "x <= floor(log(0.5e18) * 1e18) ~ -42e18".
 	if x.Cmp(i256.MustFromDecimal("-42139678854452767551")) <= 0 {
-		return uint256.NewInt(0), nil
+		var z uint256.Int
+		return &z, nil
 	}
 
 	// # When the result is "> (2 ** 255 - 1) / 1e18" we cannot represent it as a signed integer.
@@ -919,7 +938,9 @@ func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
 	// # to use two's complement representation to handle signed integers.
 	tmp := number.Mul(i256.UnsafeToUInt256(r), uint256.MustFromDecimal("3822833074963236453042738258902158003155416615667"))
 	n := 195 - k.Int64()
-	return new(uint256.Int).Rsh(tmp, uint(n)), nil
+	var z uint256.Int
+	z.Rsh(tmp, uint(n))
+	return &z, nil
 }
 
 func get_p(_xp [NumTokens]uint256.Int, _D, A, gamma *uint256.Int, out []uint256.Int) error {

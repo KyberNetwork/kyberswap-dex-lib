@@ -3,6 +3,7 @@ package ldf
 import (
 	buythedipLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf/libs/buy-the-dip-geometric"
 
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -122,10 +123,10 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			altThreshold, altThresholdDirection,
 		)
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -156,7 +157,7 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -187,7 +188,7 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	} else {
 		success, roundedTick, err = buythedipLib.InverseCumulativeAmount1(
@@ -199,10 +200,10 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			altThreshold, altThresholdDirection,
 		)
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -233,7 +234,7 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -264,7 +265,7 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	}
 
@@ -281,7 +282,7 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 		altThresholdDirection,
 	)
 	if err != nil {
-		return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+		return false, 0, u256.U0, u256.U0, u256.U0, err
 	}
 
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)
