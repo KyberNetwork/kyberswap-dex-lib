@@ -5,35 +5,37 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// TokenTaxHook applies a token's transfer tax around the AMM formula:
+// TokenTaxHandler applies a token's transfer tax around the AMM formula:
 // sell tax shrinks the input the pair receives, buy tax shrinks the output the user receives.
-// The hook is immutable, so it is safe to share across cloned simulators.
-type TokenTaxHook interface {
+// The taxHandler is immutable, so it is safe to share across cloned simulators.
+type TokenTaxHandler interface {
 	ApplySellTax(tokenIn string, amountIn *uint256.Int) *uint256.Int
 	ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.Int
 }
 
-// noopTokenTaxHook is used for pools without a tax token.
-type noopTokenTaxHook struct{}
+// noopTokenTaxHandler is used for pools without a tax token.
+type noopTokenTaxHandler struct{}
 
-func (noopTokenTaxHook) ApplySellTax(_ string, amountIn *uint256.Int) *uint256.Int { return amountIn }
-func (noopTokenTaxHook) ApplyBuyTax(_ string, grossOut *uint256.Int) *uint256.Int  { return grossOut }
+func (noopTokenTaxHandler) ApplySellTax(_ string, amountIn *uint256.Int) *uint256.Int {
+	return amountIn
+}
+func (noopTokenTaxHandler) ApplyBuyTax(_ string, grossOut *uint256.Int) *uint256.Int { return grossOut }
 
-// virtualTokenTaxHook deducts floor(amount * bps / 10000) on swaps involving taxToken.
-type virtualTokenTaxHook struct {
+// virtualTokenTaxHandler deducts floor(amount * bps / 10000) on swaps involving taxToken.
+type virtualTokenTaxHandler struct {
 	taxToken string
 	buyTax   *uint256.Int
 	sellTax  *uint256.Int
 }
 
-func newTokenTaxHook(taxToken string, buyTax, sellTax *uint256.Int) TokenTaxHook {
+func NewTaxHandler(taxToken string, buyTax, sellTax *uint256.Int) TokenTaxHandler {
 	if taxToken == "" {
-		return noopTokenTaxHook{}
+		return noopTokenTaxHandler{}
 	}
-	return &virtualTokenTaxHook{taxToken: taxToken, buyTax: buyTax, sellTax: sellTax}
+	return &virtualTokenTaxHandler{taxToken: taxToken, buyTax: buyTax, sellTax: sellTax}
 }
 
-func (h *virtualTokenTaxHook) ApplySellTax(tokenIn string, amountIn *uint256.Int) *uint256.Int {
+func (h *virtualTokenTaxHandler) ApplySellTax(tokenIn string, amountIn *uint256.Int) *uint256.Int {
 	if tokenIn != h.taxToken || h.sellTax == nil || h.sellTax.IsZero() {
 		return amountIn
 	}
@@ -42,7 +44,7 @@ func (h *virtualTokenTaxHook) ApplySellTax(tokenIn string, amountIn *uint256.Int
 	return new(uint256.Int).Sub(amountIn, &tax)
 }
 
-func (h *virtualTokenTaxHook) ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.Int {
+func (h *virtualTokenTaxHandler) ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.Int {
 	if tokenOut != h.taxToken || h.buyTax == nil || h.buyTax.IsZero() {
 		return grossOut
 	}

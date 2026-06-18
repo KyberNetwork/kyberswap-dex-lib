@@ -49,7 +49,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("10066716097576")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				hook:         noopTokenTaxHook{},
+				taxHandler:   noopTokenTaxHandler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("125224746"),
@@ -75,7 +75,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("54150601005")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				hook:         noopTokenTaxHook{},
+				taxHandler:   noopTokenTaxHandler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("124570062"),
@@ -109,7 +109,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				hook: newTokenTaxHook(
+				taxHandler: NewTaxHandler(
 					"0xff8104251e7761163fac3211ef5583fb3f8583d6",
 					uint256.NewInt(100),
 					uint256.NewInt(100),
@@ -322,7 +322,7 @@ func newTaxPoolSim() *PoolSimulator {
 		},
 		fee:          number.NewUint256("3"),
 		feePrecision: number.NewUint256("1000"),
-		hook: newTokenTaxHook(
+		taxHandler: NewTaxHandler(
 			"0xff8104251e7761163fac3211ef5583fb3f8583d6",
 			uint256.NewInt(100),
 			uint256.NewInt(100),

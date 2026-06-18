@@ -20,7 +20,7 @@ type PoolSimulator struct {
 	reserves     []*uint256.Int
 	fee          *uint256.Int
 	feePrecision *uint256.Int
-	hook         TokenTaxHook
+	taxHandler   TokenTaxHandler
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -54,7 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
-		hook:         newTokenTaxHook(tokenAtIndex(entityPool, extra.TokenTaxID), extra.BuyTax, extra.SellTax),
+		taxHandler:   NewTaxHandler(tokenAtIndex(entityPool, extra.TokenTaxID), extra.BuyTax, extra.SellTax),
 	}, nil
 }
 
@@ -75,11 +75,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// Pair receives input net of sell tax; user receives output net of buy tax.
 	// Reserves move by the pair-side amounts (effectiveAmountIn / grossAmountOut), carried in SwapInfo.
-	hook := s.hook
-	if hook == nil {
-		hook = noopTokenTaxHook{}
-	}
-	effectiveAmountIn := hook.ApplySellTax(s.Info.Tokens[indexIn], amountIn)
+	effectiveAmountIn := s.taxHandler.ApplySellTax(s.Info.Tokens[indexIn], amountIn)
 
 	grossAmountOut := s.getAmountOut(effectiveAmountIn, reserveIn, reserveOut)
 	if !grossAmountOut.Lt(reserveOut) {
@@ -88,7 +84,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientOutputAmount
 	}
 
-	amountOut := hook.ApplyBuyTax(s.Info.Tokens[indexOut], grossAmountOut)
+	amountOut := s.taxHandler.ApplyBuyTax(s.Info.Tokens[indexOut], grossAmountOut)
 	if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
 	}
