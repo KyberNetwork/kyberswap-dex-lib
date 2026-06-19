@@ -122,13 +122,21 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		}
 	}
 
-	exactInput := amountSpecified.Sign() >= 0
+	if len(p.Ticks) == 0 {
+		return SwapResult{
+			RemainingAmountIn: amountSpecified,
+			SqrtRatioX96:      p.SqrtRatioX96,
+			Liquidity:         p.Liquidity,
+			CurrentTick:       p.TickCurrent,
+		}, nil
+	}
 
 	amountSpecifiedRemaining := amountSpecified
-	var amountCalculated uint256.Int
 	sqrtPriceX96 := p.SqrtRatioX96
-	liquidity := p.Liquidity
 	tick := p.TickCurrent
+	liquidity := p.Liquidity
+	exactInput := amountSpecified.Sign() >= 0
+	var amountCalculated uint256.Int
 	var crossInitTickLoops int
 
 	for !amountSpecifiedRemaining.IsZero() && !sqrtPriceLimitX96.Eq(&sqrtPriceX96) {

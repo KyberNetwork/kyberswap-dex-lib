@@ -163,8 +163,8 @@ func TestGetOutputAmountV2(t *testing.T) {
 	res, err := p.GetOutputAmountV2(false, amountIn, *priceLimit)
 	require.NoError(t, err)
 	require.True(t, res.AmountCalculated.Sign() > 0, "output must be positive")
-	require.NotNil(t, res.SqrtRatioX96)
-	require.NotNil(t, res.Liquidity)
+	require.False(t, res.SqrtRatioX96.IsZero(), "sqrt ratio must be non-zero")
+	require.False(t, res.Liquidity.IsZero(), "liquidity must be non-zero")
 }
 
 // ---------- GetInputAmountV2 (exact output) ----------
@@ -182,7 +182,7 @@ func TestGetInputAmountV2(t *testing.T) {
 	sr, err := p.GetInputAmountV2(true, amountOut, *priceLimit)
 	require.NoError(t, err)
 	require.True(t, sr.AmountCalculated.Sign() > 0, "input amount must be positive")
-	require.NotNil(t, sr.SqrtRatioX96)
+	require.False(t, sr.SqrtRatioX96.IsZero(), "sqrt ratio must be non-zero")
 
 	// Cross-check: feeding the computed amountIn back into GetOutputAmountV2 should yield
 	// approximately amountOut. Per-tick rounding in exactIn can reduce the output by up to
@@ -336,4 +336,43 @@ func TestGetTick(t *testing.T) {
 
 	_, err = getTick(ticks, 99)
 	require.Error(t, err)
+}
+
+// ---------- Swap with empty tick list (AllowEmptyTicks pools) ----------
+
+func TestSwapEmptyTicks(t *testing.T) {
+	t.Parallel()
+
+	// Pool at tick 0, sqrtPrice = sqrtRatioAtTick(0), no initialized ticks.
+	// This models a Uniswap V4 hook pool that manages liquidity outside the
+	// standard tick bitmap.
+	sqrtPrice := *uint256.MustFromDecimal("79228162514264337593543950336") // sqrtRatioAtTick(0)
+	liquidity := *uint256.MustFromDecimal("1000000000000000000")           // 1e18
+	p, err := NewPool(FeeMedium, sqrtPrice, liquidity, 0, nil, 60)
+	require.NoError(t, err)
+
+	amountIn := *uint256.MustFromDecimal("1000000000000") // 1e12
+
+	t.Run("exactInput zeroForOne", func(t *testing.T) {
+		res, err := p.GetOutputAmountV2(true, amountIn, uint256.Int{})
+		require.NoError(t, err)
+		require.True(t, res.AmountCalculated.IsZero(), "no output for empty-tick pool")
+		require.Equal(t, amountIn, res.RemainingAmountIn, "full input returned as remaining")
+		require.Equal(t, sqrtPrice, res.SqrtRatioX96, "price unchanged")
+	})
+
+	t.Run("exactInput !zeroForOne", func(t *testing.T) {
+		res, err := p.GetOutputAmountV2(false, amountIn, uint256.Int{})
+		require.NoError(t, err)
+		require.True(t, res.AmountCalculated.IsZero(), "no output for empty-tick pool")
+		require.Equal(t, amountIn, res.RemainingAmountIn, "full input returned as remaining")
+		require.Equal(t, sqrtPrice, res.SqrtRatioX96, "price unchanged")
+	})
+
+	t.Run("exactOutput zeroForOne", func(t *testing.T) {
+		amountOut := *uint256.MustFromDecimal("1000000000000")
+		res, err := p.GetInputAmountV2(true, amountOut, uint256.Int{})
+		require.NoError(t, err)
+		require.True(t, res.AmountCalculated.IsZero(), "no input computed for empty-tick pool")
+	})
 }
