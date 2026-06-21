@@ -95,6 +95,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/machima"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/cmeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
@@ -428,6 +429,7 @@ type Types struct {
 	CapricornPamm              string
 	BounceTech                 string
 	AltFun                     string
+	Machima                    string
 }
 
 var (
@@ -654,5 +656,6 @@ var (
 		CapricornPamm:              capricornpamm.DexType,
 		BounceTech:                 bouncetech.DexType,
 		AltFun:                     altfun.DexType,
+		Machima:                    machima.DexTypeMachima,
 	}
 )
