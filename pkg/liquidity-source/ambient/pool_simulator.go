@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -45,9 +46,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
 	}
-	if extra.State == nil ||
-		extra.State.Curve.PriceRoot == nil ||
-		extra.State.Curve.PriceRoot.Sign() == 0 {
+	if extra.State == nil || extra.State.Curve.PriceRoot.IsZero() {
 		return nil, ErrNoTrackedPairs
 	}
 
@@ -78,19 +77,21 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	isBuy := inBaseQty
 
 	curve := p.state.Curve
-	swap := &SwapDirective{
-		Qty:        new(big.Int).Set(params.TokenAmountIn.Amount),
-		InBaseQty:  inBaseQty,
-		IsBuy:      isBuy,
-		LimitPrice: defaultLimitPrice(isBuy),
+	var swap SwapDirective
+	swap.InBaseQty = inBaseQty
+	swap.IsBuy = isBuy
+	if overflow := swap.Qty.SetFromBig(params.TokenAmountIn.Amount); overflow {
+		return nil, ErrOverflow
 	}
+	swap.LimitPrice = defaultLimitPrice(isBuy)
+
 	bmpView := NewSnapshotBitmapView(p.state)
-	accum, err := SweepSwap(&curve, swap, &p.state.PoolParams, bmpView)
+	accum, err := SweepSwap(&curve, &swap, &p.state.PoolParams, bmpView)
 	if err != nil {
 		return nil, err
 	}
 
-	if bmpView.BoundaryExceeded() && swap.Qty.Sign() > 0 {
+	if bmpView.BoundaryExceeded() && !swap.Qty.IsZero() {
 		return nil, ErrTickRangeExceeded
 	}
 
@@ -114,7 +115,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 	}
 
-	remainingAmountIn := new(big.Int).Set(swap.Qty)
+	remainingAmountIn := swap.Qty.ToBig()
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  params.TokenOut,
@@ -168,7 +169,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
-	if !ok || swapInfo.nextCurve.PriceRoot == nil {
+	if !ok || swapInfo.nextCurve.PriceRoot.IsZero() {
 		return
 	}
 
@@ -202,7 +203,6 @@ func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	if !valueobject.IsZero(lo.Ternary(tokenInIndex == 0, p.base, p.quote)) {
 		return p.swapDex
 	}
-
 	return ""
 }
 
@@ -217,15 +217,18 @@ func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainId va
 }
 
 func outputAmount(accum *SwapAccum, inBaseQty bool) *big.Int {
+	// The output token's flow is negative (user receives). Negate to get positive amount.
 	if inBaseQty {
-		return new(big.Int).Neg(accum.QuoteFlow)
+		b := FlowToBig(accum.QuoteFlow)
+		return b.Neg(b)
 	}
-	return new(big.Int).Neg(accum.BaseFlow)
+	b := FlowToBig(accum.BaseFlow)
+	return b.Neg(b)
 }
 
-func defaultLimitPrice(isBuy bool) *big.Int {
+func defaultLimitPrice(isBuy bool) uint256.Int {
 	if isBuy {
-		return new(big.Int).Set(MaxSqrtRatioMinus1)
+		return uMaxSqrtRatioMinus1
 	}
-	return new(big.Int).Set(MinSqrtRatio)
+	return uMinSqrtRatio
 }

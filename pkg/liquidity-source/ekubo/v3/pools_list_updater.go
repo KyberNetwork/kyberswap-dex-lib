@@ -94,6 +94,9 @@ func newLastRowInfo() subgraphCursor {
 }
 
 func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKey, subgraphCursor, error) {
+	if u.graphqlClient == nil {
+		return nil, subgraphCursor{}, nil
+	}
 	type poolInitialization struct {
 		Id                      string         `json:"id"`
 		BlockHash               string         `json:"blockHash"`
@@ -113,7 +116,13 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKe
 	for {
 		req := graphql.NewRequest(subgraphQuery)
 		req.Var("startId", cursor.id)
-		req.Var("extensions", []common.Address{u.config.Oracle, u.config.Twamm, u.config.MevCapture, u.config.BoostedFeesConcentrated})
+		req.Var("extensions", []common.Address{
+			u.config.Oracle,
+			u.config.Twamm.V1.Address,
+			u.config.Twamm.V2.Address,
+			u.config.MevCapture,
+			u.config.BoostedFeesConcentrated,
+		})
 
 		var res struct {
 			PoolInitializations []poolInitialization `json:"poolInitializations"`
@@ -222,10 +231,9 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		poolKey := pool.key
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			Core:             u.config.Core,
-			ExtensionType:    u.config.ExtensionType(poolKey.Extension()),
-			PoolKey:          poolKey,
-			MevCaptureRouter: u.config.MevCaptureRouter,
+			Core:          u.config.Core,
+			ExtensionType: u.config.ExtensionType(poolKey.Extension()),
+			PoolKey:       poolKey,
 		})
 		if err != nil {
 			return nil, nil, err

@@ -152,7 +152,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
-		case d.config.Twamm:
+		case d.config.Twamm.V1.Address, d.config.Twamm.V2.Address:
 			if len(log.Topics) == 0 {
 				event = pools.EventVirtualOrdersExecuted
 			} else if log.Topics[0] == abis.OrderUpdatedEvent.ID {

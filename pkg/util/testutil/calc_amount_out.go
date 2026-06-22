@@ -65,11 +65,12 @@ func Test[TB interface {
 			tokens[idxOut],
 			nil,
 		)
-		if updateBalance {
+		if updateBalance && err == nil {
 			poolSim.UpdateBalance(pool.UpdateBalanceParams{
 				TokenAmountIn:  pool.TokenAmount{Token: tokens[idxIn], Amount: bignumber.NewBig10(amtIn)},
 				TokenAmountOut: *amtOut.TokenAmountOut,
 				Fee:            *amtOut.Fee,
+				SwapInfo:       amtOut.SwapInfo,
 			})
 		}
 		if expected == "" {

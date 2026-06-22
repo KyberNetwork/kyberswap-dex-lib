@@ -13,15 +13,22 @@ var (
 	MainnetConfig = NewConfig(
 		DexType,
 		valueobject.ChainIDEthereum,
-		"https://api.studio.thegraph.com/query/1718652/ekubo-v-3/version/latest",
+		"https://gateway.thegraph.com/api/18edf1db0b785b022d29fa48dc740617/subgraphs/id/6MLKVikss1iYdhhggAR1w6Vqw2Z386AqNLMZYr8qaeG9",
 		common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
 		common.HexToAddress("0x517E506700271AEa091b02f42756F5E174Af5230"),
-		common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
+		TwammConfig{
+			V1: TwammDeployment{
+				Address:     common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
+				DataFetcher: "0xc07e5b80750247c8b5d7234a9c79dfc58785392b",
+			},
+			V2: TwammDeployment{
+				Address:     common.HexToAddress("0xd47f1B1eDCfEaBb08F6eBd8FC337c27E636C75BA"),
+				DataFetcher: "0xdefe25e56a7891cc4c0e1401879f3dc81f1cc4a6",
+			},
+		},
 		common.HexToAddress("0x5555fF9Ff2757500BF4EE020DcfD0210CFfa41Be"),
 		common.HexToAddress("0xd4B54d0ca6979Da05F25895E6e269E678ba00f9e"),
-		common.HexToAddress("0xd26f20001a72a18C002b00e6710000d68700ce00"),
 		"0x5a3f0f1da4ac0c4b937d5685f330704c8e8303f1",
-		"0xc07e5b80750247c8b5d7234a9c79dfc58785392b",
 		"0x7A2fF5819Dc71Bb99133a97c38dA512E60c30475",
 	)
 	SepoliaConfig = NewConfig(
@@ -30,12 +37,19 @@ var (
 		"",
 		common.HexToAddress("0x00000000000014aA86C5d3c41765bb24e11bd701"),
 		common.HexToAddress("0x517E506700271AEa091b02f42756F5E174Af5230"),
-		common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
+		TwammConfig{
+			V1: TwammDeployment{
+				Address:     common.HexToAddress("0xd4F1060cB9c1A13e1d2d20379b8aa2cF7541eD9b"),
+				DataFetcher: "0xc07e5b80750247c8b5d7234a9c79dfc58785392b",
+			},
+			V2: TwammDeployment{
+				Address:     common.HexToAddress("0xd47f1B1eDCfEaBb08F6eBd8FC337c27E636C75BA"),
+				DataFetcher: "0xdefe25e56a7891cc4c0e1401879f3dc81f1cc4a6",
+			},
+		},
 		common.HexToAddress("0x5555fF9Ff2757500BF4EE020DcfD0210CFfa41Be"),
 		common.HexToAddress("0xd4B54d0ca6979Da05F25895E6e269E678ba00f9e"),
-		common.HexToAddress("0xd26f20001a72a18C002b00e6710000d68700ce00"),
 		"0x5a3f0f1da4ac0c4b937d5685f330704c8e8303f1",
-		"0xc07e5b80750247c8b5d7234a9c79dfc58785392b",
 		"0x7A2fF5819Dc71Bb99133a97c38dA512E60c30475",
 	)
 )

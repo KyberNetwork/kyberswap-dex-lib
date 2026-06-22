@@ -3,12 +3,8 @@ package uniswapv3
 import (
 	"errors"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kutils"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
@@ -28,35 +24,26 @@ var (
 
 // Pool holds the mutable state needed to simulate Uniswap V3 swaps.
 type Pool struct {
-	Fee          FeeAmount
-	TickSpacing  int
-	TickCurrent  int
-	SqrtRatioX96 *uint256.Int
-	Liquidity    *uint256.Int
-	Ticks        []TickU256
+	Fee            FeeAmount
+	TickSpacing    int
+	TickCurrent    int
+	SqrtRatioX96   uint256.Int
+	Liquidity      uint256.Int
+	Ticks          []TickU256
+	TickSqrtPrices []uint256.Int // precomputed GetSqrtRatioAtTick(Ticks[i].Index); read-only after construction
 }
 
 type SwapResult struct {
-	AmountCalculated   *int256.Int
-	SqrtRatioX96       *uint256.Int
-	Liquidity          *uint256.Int
-	RemainingAmountIn  *int256.Int
-	CurrentTick        int
-	CrossInitTickLoops int
-}
-
-// GetAmountResultV2 is returned by GetOutputAmountV2 and GetInputAmountV2.
-type GetAmountResultV2 struct {
-	ReturnedAmount     *int256.Int
-	RemainingAmountIn  *int256.Int
-	SqrtRatioX96       *uint256.Int
-	Liquidity          *uint256.Int
+	AmountCalculated   uint256.Int
+	SqrtRatioX96       uint256.Int
+	Liquidity          uint256.Int
+	RemainingAmountIn  uint256.Int
 	CurrentTick        int
 	CrossInitTickLoops int
 }
 
 // NewPool constructs a Pool, validating the fee tier and sqrtRatioX96 range.
-func NewPool(fee FeeAmount, sqrtRatioX96 *uint256.Int, liquidity *uint256.Int, tickCurrent int, ticks []TickU256,
+func NewPool(fee FeeAmount, sqrtRatioX96 uint256.Int, liquidity uint256.Int, tickCurrent int, ticks []TickU256,
 	tickSpacing int) (*Pool, error) {
 	if fee >= FeeMax {
 		return nil, ErrFeeTooHigh
@@ -73,110 +60,114 @@ func NewPool(fee FeeAmount, sqrtRatioX96 *uint256.Int, liquidity *uint256.Int, t
 	} else if !sqrtRatioX96.Lt(&sqrtP) {
 		return nil, ErrInvalidSqrtRatioX96
 	}
+	sqrtPrices := make([]uint256.Int, len(ticks))
+	for i, t := range ticks {
+		if err := GetSqrtRatioAtTick(t.Index, &sqrtPrices[i]); err != nil {
+			return nil, err
+		}
+	}
 	return &Pool{
-		Fee:          fee,
-		TickSpacing:  tickSpacing,
-		TickCurrent:  tickCurrent,
-		SqrtRatioX96: sqrtRatioX96,
-		Liquidity:    liquidity,
-		Ticks:        ticks,
+		Fee:            fee,
+		TickSpacing:    tickSpacing,
+		TickCurrent:    tickCurrent,
+		SqrtRatioX96:   sqrtRatioX96,
+		Liquidity:      liquidity,
+		Ticks:          ticks,
+		TickSqrtPrices: sqrtPrices,
 	}, nil
 }
 
 // GetOutputAmountV2 computes the output for an exact-input swap (positive amountSpecified).
-func (p *Pool) GetOutputAmountV2(inputAmount *int256.Int, zeroForOne bool,
-	sqrtPriceLimitX96 *uint256.Int) (*GetAmountResultV2, error) {
+// Returns (outputAmount, swapInfo, crossedTicks, err).
+func (p *Pool) GetOutputAmountV2(zeroForOne bool, inputAmount, sqrtPriceLimitX96 uint256.Int) (SwapResult, error) {
 	sr, err := p.Swap(zeroForOne, inputAmount, sqrtPriceLimitX96)
 	if err != nil {
-		return nil, err
+		return SwapResult{}, err
 	}
-	return &GetAmountResultV2{
-		ReturnedAmount:     new(int256.Int).Neg(sr.AmountCalculated),
-		RemainingAmountIn:  new(int256.Int).Set(sr.RemainingAmountIn),
-		SqrtRatioX96:       sr.SqrtRatioX96,
-		Liquidity:          sr.Liquidity,
-		CurrentTick:        sr.CurrentTick,
-		CrossInitTickLoops: sr.CrossInitTickLoops,
-	}, nil
+	sr.AmountCalculated.Neg(&sr.AmountCalculated)
+	return sr, nil
 }
 
 // GetInputAmountV2 computes the input for an exact-output swap.
-// outputAmount must be positive. Returns (inputAmount, newPoolState, err).
-func (p *Pool) GetInputAmountV2(outputAmount *int256.Int, zeroForOne bool, sqrtPriceLimitX96 *uint256.Int) (*int256.Int,
-	*Pool, error) {
-	negOut := new(int256.Int).Neg(outputAmount)
-	sr, err := p.Swap(zeroForOne, negOut, sqrtPriceLimitX96)
+// outputAmount must be positive. Returns (inputAmount, swapInfo, err).
+func (p *Pool) GetInputAmountV2(zeroForOne bool, outputAmount, sqrtPriceLimitX96 uint256.Int) (SwapResult, error) {
+	outputAmount.Neg(&outputAmount)
+	sr, err := p.Swap(zeroForOne, outputAmount, sqrtPriceLimitX96)
 	if err != nil {
-		return nil, nil, err
+		return SwapResult{}, err
 	}
-	pool := &Pool{
-		Fee:          p.Fee,
-		SqrtRatioX96: sr.SqrtRatioX96,
-		Liquidity:    sr.Liquidity,
-		TickCurrent:  sr.CurrentTick,
-		Ticks:        p.Ticks,
-	}
-	return sr.AmountCalculated, pool, nil
+	return sr, nil
 }
 
 // Swap is the core Uniswap V3 swap algorithm.
 // Positive amountSpecified → exact input. Negative → exact output.
-func (p *Pool) Swap(zeroForOne bool, amountSpecified *int256.Int, sqrtPriceLimitX96 *uint256.Int) (*SwapResult, error) {
-	if sqrtPriceLimitX96 == nil {
+func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.Int) (SwapResult, error) {
+	if sqrtPriceLimitX96.IsZero() {
 		if zeroForOne {
-			sqrtPriceLimitX96 = new(uint256.Int).AddUint64(MinSqrtRatioU256, 1)
+			sqrtPriceLimitX96 = *MinSqrtRatioU256P1
 		} else {
-			sqrtPriceLimitX96 = new(uint256.Int).SubUint64(MaxSqrtRatioU256, 1)
+			sqrtPriceLimitX96 = *MaxSqrtRatioU256M1
 		}
-	}
-
-	if zeroForOne {
+	} else if zeroForOne {
 		if sqrtPriceLimitX96.Lt(MinSqrtRatioU256) {
-			return nil, ErrSqrtPriceLimitX96TooLow
-		} else if !sqrtPriceLimitX96.Lt(p.SqrtRatioX96) {
-			return nil, ErrSqrtPriceLimitX96TooHigh
+			return SwapResult{}, ErrSqrtPriceLimitX96TooLow
+		} else if !sqrtPriceLimitX96.Lt(&p.SqrtRatioX96) {
+			return SwapResult{}, ErrSqrtPriceLimitX96TooHigh
 		}
 	} else {
 		if sqrtPriceLimitX96.Gt(MaxSqrtRatioU256) {
-			return nil, ErrSqrtPriceLimitX96TooHigh
-		} else if !sqrtPriceLimitX96.Gt(p.SqrtRatioX96) {
-			return nil, ErrSqrtPriceLimitX96TooLow
+			return SwapResult{}, ErrSqrtPriceLimitX96TooHigh
+		} else if !sqrtPriceLimitX96.Gt(&p.SqrtRatioX96) {
+			return SwapResult{}, ErrSqrtPriceLimitX96TooLow
 		}
 	}
 
-	exactInput := amountSpecified.Sign() >= 0
+	if len(p.Ticks) == 0 {
+		return SwapResult{
+			RemainingAmountIn: amountSpecified,
+			SqrtRatioX96:      p.SqrtRatioX96,
+			Liquidity:         p.Liquidity,
+			CurrentTick:       p.TickCurrent,
+		}, nil
+	}
 
-	amountSpecifiedRemaining := new(int256.Int).Set(amountSpecified)
-	amountCalculated := int256.NewInt(0)
-	sqrtPriceX96 := new(uint256.Int).Set(p.SqrtRatioX96)
+	amountSpecifiedRemaining := amountSpecified
+	sqrtPriceX96 := p.SqrtRatioX96
 	tick := p.TickCurrent
-	liquidity := new(uint256.Int).Set(p.Liquidity)
-	crossInitTickLoops := 0
+	liquidity := p.Liquidity
+	exactInput := amountSpecified.Sign() >= 0
+	var amountCalculated uint256.Int
+	var crossInitTickLoops int
 
-	for !amountSpecifiedRemaining.IsZero() && !sqrtPriceX96.Eq(sqrtPriceLimitX96) {
-		var sqrtPriceStartX96, sqrtPriceNextX96 uint256.Int
-		sqrtPriceStartX96.Set(sqrtPriceX96)
+	for !amountSpecifiedRemaining.IsZero() && !sqrtPriceLimitX96.Eq(&sqrtPriceX96) {
+		sqrtPriceStartX96 := sqrtPriceX96
+		var sqrtPriceNextX96 uint256.Int
 
-		tickNext, initialized, err := nextInitializedTickIndex(p.Ticks, tick, zeroForOne)
+		tickNext, slicePos, initialized, err := nextInitializedTickPos(p.Ticks, tick, zeroForOne)
 		if err != nil {
-			return nil, err
+			return SwapResult{}, err
 		} else if tickNext < MinTick {
 			tickNext = MinTick
+			sqrtPriceNextX96 = *MinSqrtRatioU256
 		} else if tickNext > MaxTick {
 			tickNext = MaxTick
-		}
-
-		if err = GetSqrtRatioAtTick(tickNext, &sqrtPriceNextX96); err != nil {
-			return nil, err
+			sqrtPriceNextX96 = *MaxSqrtRatioU256P1
+		} else {
+			sqrtPriceNextX96 = p.TickSqrtPrices[slicePos]
 		}
 
 		var targetValue uint256.Int
-		targetValue.Set(lo.Ternary(zeroForOne, big256.Max, big256.Min)(sqrtPriceLimitX96, &sqrtPriceNextX96))
+		if zeroForOne && sqrtPriceLimitX96.Gt(&sqrtPriceNextX96) ||
+			!zeroForOne && sqrtPriceLimitX96.Lt(&sqrtPriceNextX96) {
+			targetValue = sqrtPriceLimitX96
+		} else {
+			targetValue = sqrtPriceNextX96
+		}
 
 		var nxtSqrtPriceX96, amountIn, amountOut, feeAmount uint256.Int
-		if err = ComputeSwapStep(sqrtPriceX96, &targetValue, liquidity, amountSpecifiedRemaining,
+		if err = ComputeSwapStep(&sqrtPriceX96, &targetValue, &liquidity, &amountSpecifiedRemaining,
 			p.Fee, &nxtSqrtPriceX96, &amountIn, &amountOut, &feeAmount); err != nil {
-			return nil, err
+			return SwapResult{}, err
 		}
 
 		// per-tick rounding: exactIn floors amountOut, exactOut ceils amountIn.
@@ -184,44 +175,56 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified *int256.Int, sqrtPriceLimit
 		// nextInitializedTickWithinOneWord; each step rounds amountOut down by ≤1 unit.
 		// wordCrossings ≈ number of bitmap words traversed = ceil(tick-spacings / 256).
 		fullyCrossed := sqrtPriceX96.Set(&nxtSqrtPriceX96).Eq(&sqrtPriceNextX96)
-		tickSpacingsCrossed := (kutils.Abs(tickNext-tick) - lo.Ternary(fullyCrossed, 1, 0)) / p.TickSpacing
-		wordCrossings := targetValue.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
+		crossedBonus := 0
+		if fullyCrossed {
+			crossedBonus = 1
+		}
+		tickSpacingsCrossed := (kutils.Abs(tickNext-tick) - crossedBonus) / p.TickSpacing
+		wordCrossings := sqrtPriceNextX96.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
 		if exactInput {
 			amountOut.SDiv(&amountOut, wordCrossings).Mul(&amountOut, wordCrossings)
 		} else {
-			amountIn.Add(&amountIn, wordCrossings).SubUint64(&amountIn, 1).SDiv(&amountIn, wordCrossings).Mul(&amountIn, wordCrossings)
+			amountIn.Add(&amountIn, wordCrossings).SubUint64(&amountIn, 1).SDiv(&amountIn, wordCrossings).Mul(&amountIn,
+				wordCrossings)
 		}
 
 		amountInPlusFee := feeAmount.Add(&amountIn, &feeAmount)
 		if exactInput {
-			amountSpecifiedRemaining.Sub(amountSpecifiedRemaining, (*int256.Int)(amountInPlusFee))
-			amountCalculated.Sub(amountCalculated, (*int256.Int)(&amountOut))
+			amountSpecifiedRemaining.Sub(&amountSpecifiedRemaining, amountInPlusFee)
+			amountCalculated.Sub(&amountCalculated, &amountOut)
 		} else {
-			amountSpecifiedRemaining.Add(amountSpecifiedRemaining, (*int256.Int)(&amountOut))
-			amountCalculated.Add(amountCalculated, (*int256.Int)(amountInPlusFee))
+			amountSpecifiedRemaining.Add(&amountSpecifiedRemaining, &amountOut)
+			amountCalculated.Add(&amountCalculated, amountInPlusFee)
 		}
 
 		if fullyCrossed {
 			if initialized {
 				t, err := getTick(p.Ticks, tickNext)
 				if err != nil {
-					return nil, err
+					return SwapResult{}, err
+				} else if zeroForOne {
+					liquidity.Sub(&liquidity, (*uint256.Int)(t.LiquidityNet))
+				} else {
+					liquidity.Add(&liquidity, (*uint256.Int)(t.LiquidityNet))
 				}
-				if lo.Ternary(zeroForOne, liquidity.Sub, liquidity.Add)(
-					liquidity, (*uint256.Int)(t.LiquidityNet)).Sign() < 0 {
-					return nil, errOverflowUint128
+				if liquidity.Sign() < 0 {
+					return SwapResult{}, errOverflowUint128
 				}
 				crossInitTickLoops++
 			}
-			tick = lo.Ternary(zeroForOne, tickNext-1, tickNext)
+			if zeroForOne {
+				tick = tickNext - 1
+			} else {
+				tick = tickNext
+			}
 		} else if !sqrtPriceX96.Eq(&sqrtPriceStartX96) {
-			if tick, err = GetTickAtSqrtRatio(sqrtPriceX96); err != nil {
-				return nil, err
+			if tick, err = GetTickAtSqrtRatio(&sqrtPriceX96); err != nil {
+				return SwapResult{}, err
 			}
 		}
 	}
 
-	return &SwapResult{
+	return SwapResult{
 		AmountCalculated:   amountCalculated,
 		SqrtRatioX96:       sqrtPriceX96,
 		Liquidity:          liquidity,
@@ -237,22 +240,17 @@ func validateList(ticks []TickU256, tickSpacing int) error {
 	if tickSpacing <= 0 {
 		return ErrZeroTickSpacing
 	}
-	for _, t := range ticks {
-		if t.Index%tickSpacing != 0 {
+	var sum uint256.Int
+	for i, t := range ticks {
+		if i > 0 && ticks[i-1].Index > ticks[i].Index {
+			return ErrSorted
+		} else if t.Index%tickSpacing != 0 {
 			return ErrInvalidTickSpacing
 		}
-	}
-	var sum int256.Int
-	for _, t := range ticks {
-		sum.Add(&sum, t.LiquidityNet)
+		sum.Add(&sum, (*uint256.Int)(t.LiquidityNet))
 	}
 	if !sum.IsZero() {
 		return ErrZeroNet
-	}
-	for i := 0; i < len(ticks)-1; i++ {
-		if ticks[i].Index > ticks[i+1].Index {
-			return ErrSorted
-		}
 	}
 	return nil
 }
@@ -282,51 +280,45 @@ func getTick(ticks []TickU256, index int) (TickU256, error) {
 	return ticks[idx], nil
 }
 
-func nextInitializedTick(ticks []TickU256, tick int, lte bool) (TickU256, error) {
+// nextInitializedTickPos returns the tick value, its slice index, initialized
+// flag, and any error.  The slice index lets the caller look up the
+// precomputed sqrtPrice in Pool.TickSqrtPrices without a second binary search.
+func nextInitializedTickPos(ticks []TickU256, tick int, lte bool) (tickVal, slicePos int, initialized bool, err error) {
 	if lte {
-		below, err := isBelowSmallest(ticks, tick)
-		if err != nil {
-			return TickU256{}, err
+		below, berr := isBelowSmallest(ticks, tick)
+		if berr != nil {
+			return 0, 0, false, berr
 		} else if below {
-			return TickU256{}, ErrBelowSmallest
+			return 0, 0, false, ErrBelowSmallest
 		}
-		above, err := isAtOrAboveLargest(ticks, tick)
-		if err != nil {
-			return TickU256{}, err
-		} else if above {
-			return ticks[len(ticks)-1], nil
+		last := len(ticks) - 1
+		if above, _ := isAtOrAboveLargest(ticks, tick); above {
+			t := &ticks[last]
+			return t.Index, last, !t.LiquidityGross.IsZero(), nil
 		}
-		idx, err := binarySearch(ticks, tick)
-		if err != nil {
-			return TickU256{}, err
-		}
-		return ticks[idx], nil
+		idx := binarySearchRaw(ticks, tick)
+		t := &ticks[idx]
+		return t.Index, idx, !t.LiquidityGross.IsZero(), nil
 	}
-	above, err := isAtOrAboveLargest(ticks, tick)
-	if err != nil {
-		return TickU256{}, err
+	if above, aerr := isAtOrAboveLargest(ticks, tick); aerr != nil {
+		return 0, 0, false, aerr
 	} else if above {
-		return TickU256{}, ErrAtOrAboveLargest
+		return 0, 0, false, ErrAtOrAboveLargest
 	}
-	below, err := isBelowSmallest(ticks, tick)
-	if err != nil {
-		return TickU256{}, err
-	} else if below {
-		return ticks[0], nil
+	if below, _ := isBelowSmallest(ticks, tick); below {
+		t := &ticks[0]
+		return t.Index, 0, !t.LiquidityGross.IsZero(), nil
 	}
-	idx, err := binarySearch(ticks, tick)
-	if err != nil {
-		return TickU256{}, err
-	}
-	return ticks[idx+1], nil
+	idx := binarySearchRaw(ticks, tick) + 1
+	t := &ticks[idx]
+	return t.Index, idx, !t.LiquidityGross.IsZero(), nil
 }
 
+// nextInitializedTickIndex is kept for callers outside of Swap that don't need
+// the slice position.
 func nextInitializedTickIndex(ticks []TickU256, tick int, lte bool) (int, bool, error) {
-	t, err := nextInitializedTick(ticks, tick, lte)
-	if err != nil {
-		return 0, false, err
-	}
-	return t.Index, !t.LiquidityGross.IsZero(), nil
+	tickVal, _, initialized, err := nextInitializedTickPos(ticks, tick, lte)
+	return tickVal, initialized, err
 }
 
 func binarySearch(ticks []TickU256, tick int) (int, error) {
@@ -336,19 +328,22 @@ func binarySearch(ticks []TickU256, tick int) (int, error) {
 	} else if below {
 		return 0, ErrBelowSmallest
 	}
+	return binarySearchRaw(ticks, tick), nil
+}
+
+// binarySearchRaw finds the index of the largest tick with Index <= tick.
+// Caller must guarantee tick >= ticks[0].Index (isBelowSmallest is false).
+func binarySearchRaw(ticks []TickU256, tick int) int {
 	start, end := 0, len(ticks)-1
 	for start <= end {
 		mid := (start + end) / 2
 		if ticks[mid].Index == tick {
-			return mid, nil
+			return mid
 		} else if ticks[mid].Index < tick {
 			start = mid + 1
 		} else {
 			end = mid - 1
 		}
 	}
-	if start < len(ticks) && ticks[start].Index < tick {
-		return start, nil
-	}
-	return start - 1, nil
+	return start - 1
 }

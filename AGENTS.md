@@ -96,6 +96,26 @@ Register the simulator, lister, and tracker factories (keyed by `DexType`; doubl
 2. Add the dex type to `pkg/pooltypes`.
 3. Run `go generate ./pkg/msgpack/...` to register the simulator type for serialization.
 
+## uint256 Performance Rules
+
+### Stack allocation
+- `var x uint256.Int` stays on stack if it doesn’t escape. `new(uint256.Int)` returns a pointer and may escape (heap); prefer stack locals (`var x uint256.Int`) in hot paths.
+- Return by value (`(hi, lo uint256.Int)`) avoids heap escape for multi-return.
+- `&localVar` passed to a function stays on stack as long as the function doesn't store the pointer.
+
+### Aliasing safety
+These ops read all inputs before writing the result, so z==x or z==y is safe:
+`Add`, `Sub`, `Mul`, `Div`, `Lsh`, `Rsh`, `And`, `AddOverflow`, `MulDivOverflow`.
+
+### Never use MulMod to compute the high word of a 512-bit product
+- `MulMod(x, y, UMax)` triggers `Reciprocal(UMax)` (Barrett reduction precompute) + `reduce4` (5×5 multiply) inside holiman/uint256 — expensive CPU.
+- Use 128-bit split: split x,y into 128-bit halves, compute cross-terms, track 256-bit overflow carries with `AddOverflow`, add each carry as `u256.U2Pow128` to hi. See `pkg/liquidity-source/carbon/match.go:mul512` for the full implementation.
+- `AddOverflow(x, y)` returns `(*Int, bool)`; ignore the `*Int` with `_` when you just need the carry bool.
+
+### MulDivUp/Down are zero-alloc
+- `big256.MulDivUp/Down` use a stack-allocated `[8]uint64` internally — no heap. Safe to call in hot loops.
+- Prefer over `MulMod`-based remainder checks.
+
 ## Pull Request
 
 Create a PR from your feature branch to **kyberswap-dex-lib** `main`.

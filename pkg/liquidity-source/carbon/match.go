@@ -50,15 +50,15 @@ func tradeTargetAmount(sourceAmount *uint256.Int, order *Order) *uint256.Int {
 	if sourceAmount == nil || sourceAmount.Sign() <= 0 {
 		return u256.New0()
 	}
-
 	if order.Y == nil || order.Z == nil {
 		return u256.New0()
 	}
 
-	A := expandRate(order.A)
-	B := expandRate(order.B)
+	var A, B uint256.Int
+	expandRate(&A, order.A)
+	expandRate(&B, order.B)
 
-	if A.Sign() == 0 && B.Sign() == 0 {
+	if A.IsZero() && B.IsZero() {
 		return u256.New0()
 	}
 
@@ -66,35 +66,43 @@ func tradeTargetAmount(sourceAmount *uint256.Int, order *Order) *uint256.Int {
 	y := order.Y
 	z := order.Z
 
-	if A.Sign() == 0 {
-		return mulDivF(x, new(uint256.Int).Mul(B, B), oneSquared)
+	if A.IsZero() {
+		var bSq, res uint256.Int
+		bSq.Mul(&B, &B)
+		return u256.MulDivDown(&res, x, &bSq, oneSquared)
 	}
 
-	temp1 := new(uint256.Int).Mul(z, uOne)
+	var temp1 uint256.Int
+	temp1.Mul(z, uOne)
 
-	temp2 := new(uint256.Int).Mul(A, y)
-	temp2.Add(temp2, new(uint256.Int).Mul(B, z))
+	var temp2, zB uint256.Int
+	temp2.Mul(&A, y)
+	zB.Mul(&B, z)
+	temp2.Add(&temp2, &zB)
 
-	temp3 := new(uint256.Int).Mul(temp2, x)
+	var temp3 uint256.Int
+	temp3.Mul(&temp2, x)
 
-	factor := u256.Max(minFactor(temp1, temp1), minFactor(temp3, A))
-	if factor.Sign() == 0 {
-		factor = u256.U1.Clone()
+	var mf1, mf2 uint256.Int
+	factor := u256.Max(minFactor(&mf1, &temp1, &temp1), minFactor(&mf2, &temp3, &A))
+	if factor.IsZero() {
+		factor = u256.U1
 	}
 
-	temp4 := mulDivC(temp1, temp1, factor)
+	var temp4, temp5 uint256.Int
+	u256.MulDivUp(&temp4, &temp1, &temp1, factor)
+	u256.MulDivUp(&temp5, &temp3, &A, factor)
+	temp5.Add(&temp4, &temp5)
 
-	temp5 := mulDivC(temp3, A, factor)
-
-	temp5.Add(temp4, temp5)
-	if !temp5.Lt(temp4) {
-		return mulDivF(temp2, new(uint256.Int).Div(temp3, factor), temp5)
+	if !temp5.Lt(&temp4) {
+		var div, res uint256.Int
+		div.Div(&temp3, factor)
+		return u256.MulDivDown(&res, &temp2, &div, &temp5)
 	}
 
-	temp1 = mulDivC(temp1, temp1, temp3)
-	temp1.Add(A, temp1)
-
-	return temp2.Div(temp2, temp1)
+	u256.MulDivUp(&temp1, &temp1, &temp1, &temp3)
+	temp1.Add(&A, &temp1)
+	return temp2.Div(&temp2, &temp1)
 }
 
 // tradeSourceAmount x * z^2 / ((A * y + B * z) * (A * y + B * z - A * x))
@@ -102,15 +110,15 @@ func tradeSourceAmount(targetAmount *uint256.Int, order *Order) *uint256.Int {
 	if targetAmount == nil || targetAmount.Sign() <= 0 {
 		return u256.New0()
 	}
-
 	if order.Y == nil || order.Z == nil {
 		return u256.UMax.Clone()
 	}
 
-	A := expandRate(order.A)
-	B := expandRate(order.B)
+	var A, B uint256.Int
+	expandRate(&A, order.A)
+	expandRate(&B, order.B)
 
-	if A.Sign() == 0 && B.Sign() == 0 {
+	if A.IsZero() && B.IsZero() {
 		return u256.UMax.Clone()
 	}
 
@@ -118,39 +126,49 @@ func tradeSourceAmount(targetAmount *uint256.Int, order *Order) *uint256.Int {
 	y := order.Y
 	z := order.Z
 
-	if A.Sign() == 0 {
-		bSquared := new(uint256.Int).Mul(B, B)
-		if bSquared.Sign() == 0 {
+	if A.IsZero() {
+		var bSq uint256.Int
+		bSq.Mul(&B, &B)
+		if bSq.IsZero() {
 			return u256.UMax.Clone()
 		}
-		return mulDivC(x, oneSquared, bSquared)
+		var res uint256.Int
+		return u256.MulDivUp(&res, x, oneSquared, &bSq)
 	}
 
-	temp1 := new(uint256.Int).Mul(z, uOne)
+	var temp1 uint256.Int
+	temp1.Mul(z, uOne)
 
-	temp2 := new(uint256.Int).Mul(y, A)
-	temp2.Add(temp2, new(uint256.Int).Mul(z, B))
+	var temp2, zB uint256.Int
+	temp2.Mul(y, &A)
+	zB.Mul(z, &B)
+	temp2.Add(&temp2, &zB)
 
-	ax := new(uint256.Int).Mul(x, A)
-	if !temp2.Gt(ax) {
+	var ax uint256.Int
+	ax.Mul(x, &A)
+	if !temp2.Gt(&ax) {
 		return u256.UMax.Clone()
 	}
 
-	temp3 := new(uint256.Int).Sub(temp2, ax)
+	var temp3 uint256.Int
+	temp3.Sub(&temp2, &ax)
 
-	factor := u256.Max(minFactor(temp1, temp1), minFactor(temp2, temp3))
-	if factor.Sign() == 0 {
-		factor = u256.U1.Clone()
+	var mf1, mf2 uint256.Int
+	factor := u256.Max(minFactor(&mf1, &temp1, &temp1), minFactor(&mf2, &temp2, &temp3))
+	if factor.IsZero() {
+		factor = u256.U1
 	}
 
-	temp4 := mulDivC(temp1, temp1, factor)
-	temp5 := mulDivF(temp2, temp3, factor)
+	var temp4, temp5 uint256.Int
+	u256.MulDivUp(&temp4, &temp1, &temp1, factor)
+	u256.MulDivDown(&temp5, &temp2, &temp3, factor)
 
-	if temp5.Sign() == 0 {
+	if temp5.IsZero() {
 		return u256.UMax.Clone()
 	}
 
-	return mulDivC(x, temp4, temp5)
+	var res uint256.Int
+	return u256.MulDivUp(&res, x, &temp4, &temp5)
 }
 
 func rateBySourceAmount(sourceAmount *uint256.Int, order *Order) Rate {
@@ -161,7 +179,7 @@ func rateBySourceAmount(sourceAmount *uint256.Int, order *Order) Rate {
 		input = tradeSourceAmount(order.Y, order)
 		output = tradeTargetAmount(input, order)
 		for output.Gt(order.Y) && input.Sign() > 0 {
-			input.Sub(input, u256.U1)
+			input.SubUint64(input, 1)
 			output = tradeTargetAmount(input, order)
 		}
 	}
@@ -176,45 +194,53 @@ func rateByTargetAmount(targetAmount *uint256.Int, order *Order) Rate {
 	return Rate{Input: input, Output: output}
 }
 
-func getParams(order *Order) (y, z, A, B *uint256.Int) {
+func getParams(A, B *uint256.Int, order *Order) (y, z *uint256.Int) {
 	y = order.Y
 	z = order.Z
-	A = expandRate(order.A)
-	B = expandRate(order.B)
-
+	expandRate(A, order.A)
+	expandRate(B, order.B)
 	return
 }
 
-func getLimit(order *Order) *uint256.Int {
-	y, z, A, B := getParams(order)
+func getLimit(dst *uint256.Int, order *Order) *uint256.Int {
+	var A, B uint256.Int
+	y, z := getParams(&A, &B, order)
 
-	if z.Sign() == 0 {
-		return u256.New0()
+	if z.IsZero() {
+		return dst.Clear()
 	}
 
-	result := new(uint256.Int).Mul(y, A)
-	result.Add(result, new(uint256.Int).Mul(z, B))
-
-	return result.Div(result, z)
+	dst.Mul(y, &A)
+	var zB uint256.Int
+	zB.Mul(z, &B)
+	dst.Add(dst, &zB)
+	return dst.Div(dst, z)
 }
 
 func equalTargetAmount(order *Order, limit *uint256.Int) *uint256.Int {
-	y, z, A, B := getParams(order)
+	var A, B uint256.Int
+	y, z := getParams(&A, &B, order)
 
-	if A.Sign() == 0 {
+	if A.IsZero() {
 		return y.Clone()
 	}
 
-	if B.Lt(limit) {
+	// num = A*y + B*z = getLimit(order) * z
+	var num, limitZ uint256.Int
+	num.Mul(y, &A)
+	var Bz uint256.Int
+	Bz.Mul(z, &B)
+	num.Add(&num, &Bz)
+
+	limitZ.Mul(z, limit)
+	if !num.Gt(&limitZ) {
 		return u256.New0()
 	}
 
-	bMinusLimit := new(uint256.Int).Sub(B, limit)
-	res := new(uint256.Int).Mul(y, A)
-	zBMinusLimit := new(uint256.Int).Mul(z, bMinusLimit)
-	res.Add(res, zBMinusLimit)
-
-	return res.Div(res, A)
+	// (A*y + B*z - limit*z) / A — safe since num > limitZ
+	var res uint256.Int
+	res.Sub(&num, &limitZ)
+	return res.Div(&res, &A)
 }
 
 func equalSourceAmount(order *Order, limit *uint256.Int) *uint256.Int {
@@ -222,10 +248,11 @@ func equalSourceAmount(order *Order, limit *uint256.Int) *uint256.Int {
 }
 
 func sortByMinRate(x, y Rate) int {
-	lhs := new(uint256.Int).Mul(x.Output, y.Input)
-	rhs := new(uint256.Int).Mul(y.Output, x.Input)
+	var lhs, rhs uint256.Int
+	lhs.Mul(x.Output, y.Input)
+	rhs.Mul(y.Output, x.Input)
 
-	cmp := lhs.Cmp(rhs)
+	cmp := lhs.Cmp(&rhs)
 	if cmp != 0 {
 		return cmp
 	}
@@ -265,10 +292,11 @@ func matchFast(
 	trade func(*uint256.Int, *Order) Rate,
 ) []*MatchAction {
 	actions := make([]*MatchAction, 0)
-	remainingAmount := new(uint256.Int).Set(amount)
+	var remaining uint256.Int
+	remaining.Set(amount)
 
 	for _, quote := range quotes {
-		input := u256.Min(quote.Rate.Input, remainingAmount).Clone()
+		input := u256.Min(quote.Rate.Input, &remaining).Clone()
 		order := ordersMap[quote.Id]
 		output := trade(input, order).Output
 
@@ -279,8 +307,8 @@ func matchFast(
 				Input:  input,
 				Output: output,
 			})
-			remainingAmount.Sub(remainingAmount, input)
-			if remainingAmount.Sign() == 0 {
+			remaining.Sub(&remaining, input)
+			if remaining.IsZero() {
 				break
 			}
 		}
@@ -315,28 +343,29 @@ func matchBest(
 	orders = append(orders, zeroOrder)
 
 	var rates []Rate
-	delta := u256.New0()
+	var delta uint256.Int
 	deltaSign := 0
 
 	for n := 1; n < len(orders); n++ {
-		limit := getLimit(orders[n])
+		var limit uint256.Int
+		getLimit(&limit, orders[n])
 		rates = make([]Rate, n)
-		total := u256.New0()
+		var total uint256.Int
 
 		for i := 0; i < n; i++ {
-			equalAmt := equalize(orders[i], limit)
+			equalAmt := equalize(orders[i], &limit)
 			rates[i] = trade(equalAmt, orders[i])
-			total.Add(total, rates[i].Input)
+			total.Add(&total, rates[i].Input)
 		}
 
 		if total.Gt(amount) {
-			delta = new(uint256.Int).Sub(total, amount)
+			delta.Sub(&total, amount)
 			deltaSign = 1
 		} else if total.Lt(amount) {
-			delta = new(uint256.Int).Sub(amount, total)
+			delta.Sub(amount, &total)
 			deltaSign = -1
 		} else {
-			delta = u256.New0()
+			delta.Clear()
 			deltaSign = 0
 		}
 
@@ -345,28 +374,31 @@ func matchBest(
 		}
 
 		if deltaSign > 0 {
-			lo := new(uint256.Int).Set(limit)
-			hi := getLimit(orders[n-1])
+			var lo uint256.Int
+			lo.Set(&limit)
+			var hi uint256.Int
+			getLimit(&hi, orders[n-1])
 
-			loPlus1 := new(uint256.Int).Add(lo, u256.U1)
-			for loPlus1.Lt(hi) {
-				limit = new(uint256.Int).Add(lo, hi)
-				limit.Div(limit, u256.U2)
+			var loPlus1 uint256.Int
+			loPlus1.AddUint64(&lo, 1)
+			for loPlus1.Lt(&hi) {
+				limit.Add(&lo, &hi)
+				limit.Div(&limit, u256.U2)
 
 				rates = make([]Rate, n)
-				total = u256.New0()
+				total.Clear()
 
 				for i := 0; i < n; i++ {
-					equalAmt := equalize(orders[i], limit)
+					equalAmt := equalize(orders[i], &limit)
 					rates[i] = trade(equalAmt, orders[i])
-					total.Add(total, rates[i].Input)
+					total.Add(&total, rates[i].Input)
 				}
 
 				if total.Gt(amount) {
-					delta.Sub(total, amount)
+					delta.Sub(&total, amount)
 					deltaSign = 1
 				} else if total.Lt(amount) {
-					delta.Sub(amount, total)
+					delta.Sub(amount, &total)
 					deltaSign = -1
 				} else {
 					delta.Clear()
@@ -378,12 +410,12 @@ func matchBest(
 				}
 
 				if deltaSign > 0 {
-					lo.Set(limit)
+					lo.Set(&limit)
 				} else {
-					hi.Set(limit)
+					hi.Set(&limit)
 				}
 
-				loPlus1.Add(lo, u256.U1)
+				loPlus1.AddUint64(&lo, 1)
 			}
 			break
 		}
@@ -395,32 +427,35 @@ func matchBest(
 				continue
 			}
 
-			newInput := u256.New0()
-			if !rates[i].Input.Lt(delta) {
-				newInput.Sub(rates[i].Input, delta)
+			var newInput uint256.Int
+			if !rates[i].Input.Lt(&delta) {
+				newInput.Sub(rates[i].Input, &delta)
 			}
 
-			rate := trade(newInput, orders[i])
+			rate := trade(&newInput, orders[i])
 
 			if !rate.Input.Gt(rates[i].Input) {
-				actualReduction := new(uint256.Int).Sub(rates[i].Input, rate.Input)
-				delta.Sub(delta, actualReduction)
+				var actualReduction uint256.Int
+				actualReduction.Sub(rates[i].Input, rate.Input)
+				delta.Sub(&delta, &actualReduction)
 			}
 
 			rates[i] = rate
 		}
 	} else if deltaSign < 0 {
 		for i := 0; i < len(rates); i++ {
-			newInput := new(uint256.Int).Add(rates[i].Input, delta)
-			rate := trade(newInput, orders[i])
+			var newInput uint256.Int
+			newInput.Add(rates[i].Input, &delta)
+			rate := trade(&newInput, orders[i])
 
-			inputDiff := new(uint256.Int).Sub(rate.Input, rates[i].Input)
+			var inputDiff uint256.Int
+			inputDiff.Sub(rate.Input, rates[i].Input)
 
-			if !inputDiff.Lt(delta) {
+			if !inputDiff.Lt(&delta) {
 				break
 			}
 
-			delta.Sub(delta, inputDiff)
+			delta.Sub(&delta, &inputDiff)
 			rates[i] = rate
 		}
 	}
@@ -488,52 +523,57 @@ func MatchByTargetAmount(
 	return matchBy(amount, ordersMap, matchTypes, filter, rateByTargetAmount, sortByMaxRate, equalTargetAmount)
 }
 
-func expandRate(rate uint64) *uint256.Int {
+// expandRate writes the expanded value of rate into dst and returns dst.
+func expandRate(dst *uint256.Int, rate uint64) *uint256.Int {
 	if rate == 0 {
-		return u256.New0()
+		return dst.Clear()
 	}
-
-	res := uint256.NewInt(rate % one)
-	return res.Lsh(res, uint(rate/one))
+	dst.SetUint64(rate % one)
+	return dst.Lsh(dst, uint(rate/one))
 }
 
-func mulDivF(a, b, c *uint256.Int) *uint256.Int {
-	result := new(uint256.Int)
-	result.MulDivOverflow(a, b, c)
-	return result
-}
+// mul512 returns the full 512-bit product of x*y as (hi, lo) by value.
+// Uses 128-bit halving to compute hi without MulMod, avoiding the Reciprocal cost.
+func mul512(x, y *uint256.Int) (hi, lo uint256.Int) {
+	lo.Mul(x, y)
 
-func mulDivC(a, b, c *uint256.Int) *uint256.Int {
-	result := new(uint256.Int)
-	result.MulDivOverflow(a, b, c)
+	var xL, xH, yL, yH uint256.Int
+	xL.And(x, u256.UMaxU128)
+	xH.Rsh(x, 128)
+	yL.And(y, u256.UMaxU128)
+	yH.Rsh(y, 128)
 
-	remainder := new(uint256.Int)
-	remainder.MulMod(a, b, c)
-	if remainder.Sign() > 0 {
-		result.Add(result, u256.U1)
+	// cross = (xL*yL)>>128 + xH*yL + xL*yH
+	// Track 256-bit overflow carries: each carry contributes 2^128 to hi.
+	var cross, tmp uint256.Int
+	cross.Mul(&xL, &yL)
+	cross.Rsh(&cross, 128)
+
+	tmp.Mul(&xH, &yL)
+	_, c1 := cross.AddOverflow(&cross, &tmp)
+
+	tmp.Mul(&xL, &yH)
+	_, c2 := cross.AddOverflow(&cross, &tmp)
+
+	hi.Mul(&xH, &yH)
+	cross.Rsh(&cross, 128)
+	hi.Add(&hi, &cross)
+	if c1 {
+		hi.Add(&hi, u256.U2Pow128)
 	}
-	return result
-}
-
-func mul512(x, y *uint256.Int) (hi, lo *uint256.Int) {
-	lo = new(uint256.Int).Mul(x, y)
-	p := new(uint256.Int).MulMod(x, y, u256.UMax)
-	if !p.Lt(lo) {
-		hi = new(uint256.Int).Sub(p, lo)
-	} else {
-		hi = new(uint256.Int).Sub(p, lo)
-		hi.Sub(hi, u256.U1)
+	if c2 {
+		hi.Add(&hi, u256.U2Pow128)
 	}
-
 	return
 }
 
-func minFactor(x, y *uint256.Int) *uint256.Int {
+// minFactor writes the result into dst and returns dst.
+func minFactor(dst, x, y *uint256.Int) *uint256.Int {
 	hi, lo := mul512(x, y)
-	notLo := new(uint256.Int).Not(lo)
-	if hi.Gt(notLo) {
-		return new(uint256.Int).Add(hi, u256.U2)
+	var notLo uint256.Int
+	notLo.Not(&lo)
+	if hi.Gt(&notLo) {
+		return dst.AddUint64(&hi, 2)
 	}
-
-	return new(uint256.Int).Add(hi, u256.U1)
+	return dst.AddUint64(&hi, 1)
 }

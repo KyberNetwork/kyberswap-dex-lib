@@ -198,8 +198,7 @@ func (c *CarpetedDoubleGeometricDistribution) computeSwap(
 		if err != nil {
 			return false, 0, nil, nil, nil, err
 		}
-		swapLiquidity = uint256.NewInt(0)
-		swapLiquidity.Mul(liquidityDensityX96, totalLiquidity)
+		swapLiquidity = new(uint256.Int).Mul(liquidityDensityX96, totalLiquidity)
 		swapLiquidity.Rsh(swapLiquidity, 96)
 	} else {
 		success, roundedTick, err = carpetedDoubleGeoLib.InverseCumulativeAmount1(
@@ -257,8 +256,7 @@ func (c *CarpetedDoubleGeometricDistribution) computeSwap(
 		if err != nil {
 			return false, 0, nil, nil, nil, err
 		}
-		swapLiquidity = uint256.NewInt(0)
-		swapLiquidity.Mul(liquidityDensityX96, totalLiquidity)
+		swapLiquidity = new(uint256.Int).Mul(liquidityDensityX96, totalLiquidity)
 		swapLiquidity.Rsh(swapLiquidity, 96)
 	}
 

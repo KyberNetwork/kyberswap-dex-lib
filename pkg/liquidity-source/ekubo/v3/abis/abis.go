@@ -18,6 +18,7 @@ var (
 	OrderUpdatedEvent    abi.Event
 	PositionUpdatedEvent abi.Event
 	PoolBoostedEvent     abi.Event
+	PoolInitializedEvent abi.Event
 )
 
 func init() {
@@ -45,4 +46,5 @@ func init() {
 	PositionUpdatedEvent = CoreABI.Events["PositionUpdated"]
 	OrderUpdatedEvent = TwammABI.Events["OrderUpdated"]
 	PoolBoostedEvent = BoostedFeesABI.Events["PoolBoosted"]
+	PoolInitializedEvent = CoreABI.Events["PoolInitialized"]
 }

@@ -3,6 +3,7 @@ package math
 import (
 	"errors"
 
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -255,7 +256,7 @@ func (l *weightedMath) CalcDueTokenProtocolSwapFeeAmountV1(
 	protocolSwapFeePercentage *uint256.Int,
 ) (*uint256.Int, error) {
 	if currentInvariant.Cmp(previousInvariant) <= 0 {
-		return uint256.NewInt(0), nil
+		return u256.U0, nil
 	}
 
 	base, err := FixedPoint.DivUp(previousInvariant, currentInvariant)
@@ -289,7 +290,7 @@ func (l *weightedMath) CalcDueTokenProtocolSwapFeeAmount(
 	protocolSwapFeePercentage *uint256.Int,
 ) (*uint256.Int, error) {
 	if currentInvariant.Cmp(previousInvariant) <= 0 {
-		return uint256.NewInt(0), nil
+		return u256.U0, nil
 	}
 
 	base, err := FixedPoint.DivUp(previousInvariant, currentInvariant)
@@ -324,7 +325,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 ) (*uint256.Int, error) {
 	balanceRatiosWithFee := make([]*uint256.Int, len(balances))
 
-	invariantRatioWithFees := uint256.NewInt(0)
+	invariantRatioWithFees := new(uint256.Int)
 	var tmp *uint256.Int
 
 	var err error
@@ -351,9 +352,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 	}
 
 	invariantRatio := new(uint256.Int).Set(FixedPoint.ONE)
-	taxableAmount := new(uint256.Int)
-	amountInWithoutFee := new(uint256.Int)
-	balanceRatio := new(uint256.Int)
+	var taxableAmount, amountInWithoutFee, balanceRatioVal uint256.Int
 	var nonTaxableAmount *uint256.Int
 
 	for i := range balances {
@@ -380,7 +379,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 				return nil, err
 			}
 
-			tmp, err = FixedPoint.MulDown(taxableAmount, tmp)
+			tmp, err = FixedPoint.MulDown(&taxableAmount, tmp)
 			if err != nil {
 				return nil, err
 			}
@@ -390,8 +389,8 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 			amountInWithoutFee.Set(amountsIn[i])
 		}
 
-		balanceRatio.Add(balances[i], amountInWithoutFee)
-		balanceRatio, err := FixedPoint.DivDown(balanceRatio, balances[i])
+		balanceRatioVal.Add(balances[i], &amountInWithoutFee)
+		balanceRatio, err := FixedPoint.DivDown(&balanceRatioVal, balances[i])
 		if err != nil {
 			return nil, err
 		}
@@ -416,7 +415,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 		return FixedPoint.MulDown(bptTotalSupply, tmp)
 	}
 
-	return uint256.NewInt(0), nil
+	return u256.U0, nil
 }
 
 func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
@@ -428,7 +427,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 ) (*uint256.Int, error) {
 	balanceRatiosWithFee := make([]*uint256.Int, len(balances))
 
-	invariantRatioWithFees := uint256.NewInt(0)
+	invariantRatioWithFees := new(uint256.Int)
 	var tmp *uint256.Int
 
 	var err error
@@ -455,9 +454,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 	}
 
 	invariantRatio := new(uint256.Int).Set(FixedPoint.ONE)
-	taxableAmount := new(uint256.Int)
-	amountInWithoutFee := new(uint256.Int)
-	balanceRatio := new(uint256.Int)
+	var taxableAmount, amountInWithoutFee, balanceRatioVal uint256.Int
 	var nonTaxableAmount *uint256.Int
 
 	for i := range balances {
@@ -484,7 +481,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 				return nil, err
 			}
 
-			tmp, err = FixedPoint.MulDown(taxableAmount, tmp)
+			tmp, err = FixedPoint.MulDown(&taxableAmount, tmp)
 			if err != nil {
 				return nil, err
 			}
@@ -494,8 +491,8 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 			amountInWithoutFee.Set(amountsIn[i])
 		}
 
-		balanceRatio.Add(balances[i], amountInWithoutFee)
-		balanceRatio, err := FixedPoint.DivDown(balanceRatio, balances[i])
+		balanceRatioVal.Add(balances[i], &amountInWithoutFee)
+		balanceRatio, err := FixedPoint.DivDown(&balanceRatioVal, balances[i])
 		if err != nil {
 			return nil, err
 		}
@@ -520,7 +517,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 		return FixedPoint.MulDown(bptTotalSupply, tmp)
 	}
 
-	return uint256.NewInt(0), nil
+	return u256.U0, nil
 }
 
 func (w *weightedMath) CalcTokenOutGivenExactBptInV1(

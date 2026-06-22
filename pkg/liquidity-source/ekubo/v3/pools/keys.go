@@ -99,7 +99,7 @@ func (k *PoolKey[T]) ToAbi() AbiPoolKey {
 	return AbiPoolKey{
 		Token0: k.Token0,
 		Token1: k.Token1,
-		Config: common.Hash(k.Config.Compressed()),
+		Config: k.Config.Compressed(),
 	}
 }
 

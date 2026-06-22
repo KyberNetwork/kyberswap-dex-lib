@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -122,54 +123,62 @@ func (l *stableMath) CalculateInvariantV1(
 	balances []*uint256.Int,
 	roundUp bool,
 ) (*uint256.Int, error) {
-	sum := uint256.NewInt(0)
-	numTokens := uint256.NewInt(uint64(len(balances)))
+	var sum uint256.Int
+	var numTokens uint256.Int
+	numTokens.SetUint64(uint64(len(balances)))
+	sumPtr := &sum
 
 	for _, b := range balances {
 		var err error
-		sum, err = FixedPoint.Add(sum, b)
+		sumPtr, err = FixedPoint.Add(sumPtr, b)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if sum.IsZero() {
-		return sum, nil
+	if sumPtr.IsZero() {
+		return sumPtr, nil
 	}
 
-	invariant := new(uint256.Int).Set(sum)
-	ampTimesTotal := new(uint256.Int).Mul(amp, numTokens)
+	var invariant uint256.Int
+	invariant.Set(sumPtr)
+	invariantPtr := &invariant
+
+	var ampTimesTotal uint256.Int
+	ampTimesTotal.Mul(amp, &numTokens)
 
 	for i := 0; i < 255; i++ {
-		P_D := new(uint256.Int).Mul(balances[0], numTokens)
+		var pD uint256.Int
+		pD.Mul(balances[0], &numTokens)
+		P_D := &pD
 		for j := 1; j < len(balances); j++ {
 			v, err := Math.Mul(P_D, balances[j])
 			if err != nil {
 				return nil, err
 			}
-			v, err = Math.Mul(v, numTokens)
+			v, err = Math.Mul(v, &numTokens)
 			if err != nil {
 				return nil, err
 			}
-			P_D, err = Math.Div(v, invariant, roundUp)
+			P_D, err = Math.Div(v, invariantPtr, roundUp)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		prevInvariant := invariant
+		prevInvariant := invariantPtr
 
 		var numerator *uint256.Int
 		{
-			u, err := Math.Mul(numTokens, invariant)
+			u, err := Math.Mul(&numTokens, invariantPtr)
 			if err != nil {
 				return nil, err
 			}
-			u, err = Math.Mul(u, invariant)
+			u, err = Math.Mul(u, invariantPtr)
 			if err != nil {
 				return nil, err
 			}
 
-			v, err := Math.Mul(ampTimesTotal, sum)
+			v, err := Math.Mul(&ampTimesTotal, sumPtr)
 			if err != nil {
 				return nil, err
 			}
@@ -190,39 +199,42 @@ func (l *stableMath) CalculateInvariantV1(
 
 		var denominator *uint256.Int
 		{
-			u := new(uint256.Int).Add(numTokens, number.Number_1)
-			u, err := Math.Mul(u, invariant)
+			var u uint256.Int
+			u.Add(&numTokens, number.Number_1)
+			uPtr, err := Math.Mul(&u, invariantPtr)
 			if err != nil {
 				return nil, err
 			}
 
-			v := new(uint256.Int).Sub(ampTimesTotal, _AMP_PRECISION)
-			v, err = Math.Mul(v, P_D)
+			var v uint256.Int
+			v.Sub(&ampTimesTotal, _AMP_PRECISION)
+			vPtr, err := Math.Mul(&v, P_D)
 			if err != nil {
 				return nil, err
 			}
-			v, err = Math.Div(v, _AMP_PRECISION, !roundUp)
+			vPtr, err = Math.Div(vPtr, _AMP_PRECISION, !roundUp)
 			if err != nil {
 				return nil, err
 			}
 
-			denominator, err = FixedPoint.Add(u, v)
+			denominator, err = FixedPoint.Add(uPtr, vPtr)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		var err error
-		invariant, err = Math.Div(numerator, denominator, roundUp)
+		invariantPtr, err = Math.Div(numerator, denominator, roundUp)
 		if err != nil {
 			return nil, err
 		}
 
-		delta := new(uint256.Int).Abs(
-			new(uint256.Int).Sub(invariant, prevInvariant),
-		)
+		var diff uint256.Int
+		diff.Sub(invariantPtr, prevInvariant)
+		var delta uint256.Int
+		delta.Abs(&diff)
 		if delta.Cmp(number.Number_1) <= 0 {
-			return invariant, nil
+			return invariantPtr, nil
 		}
 	}
 
@@ -233,32 +245,38 @@ func (l *stableMath) CalculateInvariantV2(
 	amp *uint256.Int,
 	balances []*uint256.Int,
 ) (*uint256.Int, error) {
-	sum := uint256.NewInt(0)
-	numTokens := uint256.NewInt(uint64(len(balances)))
+	var sum uint256.Int
+	var numTokens uint256.Int
+	numTokens.SetUint64(uint64(len(balances)))
+	sumPtr := &sum
 
 	for _, b := range balances {
 		var err error
-		sum, err = FixedPoint.Add(sum, b)
+		sumPtr, err = FixedPoint.Add(sumPtr, b)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if sum.IsZero() {
-		return sum, nil
+	if sumPtr.IsZero() {
+		return sumPtr, nil
 	}
 
-	invariant := new(uint256.Int).Set(sum)
-	ampTimesTotal := new(uint256.Int).Mul(amp, numTokens)
+	var invariant uint256.Int
+	invariant.Set(sumPtr)
+	invariantPtr := &invariant
+
+	var ampTimesTotal uint256.Int
+	ampTimesTotal.Mul(amp, &numTokens)
 
 	for i := 0; i < 255; i++ {
-		D_P := invariant
+		D_P := invariantPtr
 		for j := 0; j < len(balances); j++ {
-			u, err := Math.Mul(D_P, invariant)
+			u, err := Math.Mul(D_P, invariantPtr)
 			if err != nil {
 				return nil, err
 			}
 
-			v, err := Math.Mul(balances[j], numTokens)
+			v, err := Math.Mul(balances[j], &numTokens)
 			if err != nil {
 				return nil, err
 			}
@@ -269,12 +287,11 @@ func (l *stableMath) CalculateInvariantV2(
 			}
 		}
 
-		prevInvariant := invariant
+		prevInvariant := invariantPtr
 
-		// numerator
 		var numerator *uint256.Int
 		{
-			u, err := Math.Mul(ampTimesTotal, sum)
+			u, err := Math.Mul(&ampTimesTotal, sumPtr)
 			if err != nil {
 				return nil, err
 			}
@@ -283,7 +300,7 @@ func (l *stableMath) CalculateInvariantV2(
 				return nil, err
 			}
 
-			v, err := Math.Mul(D_P, numTokens)
+			v, err := Math.Mul(D_P, &numTokens)
 			if err != nil {
 				return nil, err
 			}
@@ -293,47 +310,50 @@ func (l *stableMath) CalculateInvariantV2(
 				return nil, err
 			}
 
-			numerator, err = Math.Mul(u, invariant)
+			numerator, err = Math.Mul(u, invariantPtr)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		// denominator
 		var denominator *uint256.Int
 		{
-			u := new(uint256.Int).Sub(ampTimesTotal, _AMP_PRECISION)
-			u, err := Math.Mul(u, invariant)
+			var u uint256.Int
+			u.Sub(&ampTimesTotal, _AMP_PRECISION)
+			uPtr, err := Math.Mul(&u, invariantPtr)
 			if err != nil {
 				return nil, err
 			}
-			u, err = Math.DivDown(u, _AMP_PRECISION)
-			if err != nil {
-				return nil, err
-			}
-
-			v, err := Math.Mul(new(uint256.Int).Add(numTokens, number.Number_1), D_P)
+			uPtr, err = Math.DivDown(uPtr, _AMP_PRECISION)
 			if err != nil {
 				return nil, err
 			}
 
-			denominator, err = FixedPoint.Add(u, v)
+			var v uint256.Int
+			v.Add(&numTokens, number.Number_1)
+			vPtr, err := Math.Mul(&v, D_P)
+			if err != nil {
+				return nil, err
+			}
+
+			denominator, err = FixedPoint.Add(uPtr, vPtr)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		var err error
-		invariant, err = Math.DivDown(numerator, denominator)
+		invariantPtr, err = Math.DivDown(numerator, denominator)
 		if err != nil {
 			return nil, err
 		}
 
-		delta := new(uint256.Int).Abs(
-			new(uint256.Int).Sub(invariant, prevInvariant),
-		)
+		var diff uint256.Int
+		diff.Sub(invariantPtr, prevInvariant)
+		var delta uint256.Int
+		delta.Abs(&diff)
 		if delta.Cmp(number.Number_1) <= 0 {
-			return invariant, nil
+			return invariantPtr, nil
 		}
 	}
 
@@ -349,14 +369,17 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 	invariant *uint256.Int,
 	tokenIndex int,
 ) (*uint256.Int, error) {
-	numTokens := uint256.NewInt(uint64(len(balances)))
-	ampTimesTotal, err := Math.Mul(amp, numTokens)
+	var numTokens uint256.Int
+	numTokens.SetUint64(uint64(len(balances)))
+	ampTimesTotal, err := Math.Mul(amp, &numTokens)
 	if err != nil {
 		return nil, err
 	}
 
-	sum := new(uint256.Int).Set(balances[0])
-	P_D, err := Math.Mul(balances[0], numTokens)
+	var sum uint256.Int
+	sum.Set(balances[0])
+	sumPtr := &sum
+	P_D, err := Math.Mul(balances[0], &numTokens)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +388,7 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 		if err != nil {
 			return nil, err
 		}
-		v, err = Math.Mul(v, numTokens)
+		v, err = Math.Mul(v, &numTokens)
 		if err != nil {
 			return nil, err
 		}
@@ -374,13 +397,13 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 			return nil, err
 		}
 
-		sum, err = FixedPoint.Add(sum, balances[j])
+		sumPtr, err = FixedPoint.Add(sumPtr, balances[j])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	sum, _ = FixedPoint.Sub(sum, balances[tokenIndex])
+	sumPtr, _ = FixedPoint.Sub(sumPtr, balances[tokenIndex])
 
 	inv2, err := Math.Mul(invariant, invariant)
 	if err != nil {
@@ -419,7 +442,7 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 			return nil, err
 		}
 
-		b, err = FixedPoint.Add(sum, u)
+		b, err = FixedPoint.Add(sumPtr, u)
 		if err != nil {
 			return nil, err
 		}
@@ -474,9 +497,10 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 			}
 		}
 
-		delta := new(uint256.Int).Abs(
-			new(uint256.Int).Sub(tokenBalance, prevTokenBalance),
-		)
+		var diff uint256.Int
+		diff.Sub(tokenBalance, prevTokenBalance)
+		var delta uint256.Int
+		delta.Abs(&diff)
 		if delta.Cmp(number.Number_1) <= 0 {
 			return tokenBalance, nil
 		}
@@ -494,20 +518,22 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	currentInvariant *uint256.Int,
 	swapFeePercentage *uint256.Int,
 ) (*uint256.Int, error) {
-	sumBalances := uint256.NewInt(0)
+	var sumBalances uint256.Int
+	sumBalancesPtr := &sumBalances
 	for _, b := range balances {
 		var err error
-		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		sumBalancesPtr, err = FixedPoint.Add(sumBalancesPtr, b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	balanceRatiosWithFee := make([]*uint256.Int, len(amountsIn))
-	invariantRatioWithFee := uint256.NewInt(0)
+	var invariantRatioWithFee uint256.Int
+	invariantRatioWithFeePtr := &invariantRatioWithFee
 
 	for i := 0; i < len(balances); i++ {
-		currentWeight, err := FixedPoint.DivDown(balances[i], sumBalances)
+		currentWeight, err := FixedPoint.DivDown(balances[i], sumBalancesPtr)
 		if err != nil {
 			return nil, err
 		}
@@ -525,7 +551,7 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 		if err != nil {
 			return nil, err
 		}
-		invariantRatioWithFee, err = FixedPoint.Add(invariantRatioWithFee, u)
+		invariantRatioWithFeePtr, err = FixedPoint.Add(invariantRatioWithFeePtr, u)
 		if err != nil {
 			return nil, err
 		}
@@ -534,10 +560,10 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	newBalances := make([]*uint256.Int, len(balances))
 	for i := 0; i < len(balances); i++ {
 		var amountInWithoutFee *uint256.Int
-		if balanceRatiosWithFee[i].Gt(invariantRatioWithFee) {
+		if balanceRatiosWithFee[i].Gt(invariantRatioWithFeePtr) {
 			var nonTaxableAmount *uint256.Int
 			{
-				u, err := FixedPoint.Sub(invariantRatioWithFee, FixedPoint.ONE)
+				u, err := FixedPoint.Sub(invariantRatioWithFeePtr, FixedPoint.ONE)
 				if err != nil {
 					return nil, err
 				}
@@ -552,7 +578,9 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 				return nil, err
 			}
 
-			u, err := FixedPoint.MulDown(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
+			var feeComplement uint256.Int
+			feeComplement.Sub(FixedPoint.ONE, swapFeePercentage)
+			u, err := FixedPoint.MulDown(taxableAmount, &feeComplement)
 			if err != nil {
 				return nil, err
 			}
@@ -584,10 +612,12 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	}
 
 	if invariantRatio.Gt(FixedPoint.ONE) {
-		return FixedPoint.MulDown(bptTotalSupply, new(uint256.Int).Sub(invariantRatio, FixedPoint.ONE))
+		var invariantRatioDelta uint256.Int
+		invariantRatioDelta.Sub(invariantRatio, FixedPoint.ONE)
+		return FixedPoint.MulDown(bptTotalSupply, &invariantRatioDelta)
 	}
 
-	return uint256.NewInt(0), nil
+	return u256.U0, nil
 }
 
 // https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F17#L257
@@ -635,10 +665,11 @@ func (l *stableMath) CalcTokenInGivenExactBptOut(
 
 	// First calculate the sum of all token balances, which will be used to calculate
 	// the current weight of each token
-	sumBalances := uint256.NewInt(0)
+	var sumBalances uint256.Int
+	sumBalancesPtr := &sumBalances
 	for _, b := range balances {
 		var err error
-		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		sumBalancesPtr, err = FixedPoint.Add(sumBalancesPtr, b)
 		if err != nil {
 			return nil, err
 		}
@@ -646,7 +677,7 @@ func (l *stableMath) CalcTokenInGivenExactBptOut(
 
 	// We can now compute how much extra balance is being deposited and used in virtual swaps, and charge swap fees
 	// accordingly.
-	currentWeight, err := FixedPoint.DivDown(balances[tokenIndex], sumBalances)
+	currentWeight, err := FixedPoint.DivDown(balances[tokenIndex], sumBalancesPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -694,10 +725,11 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 
 	// First loop calculates the sum of all token balances, which will be used to calculate
 	// the current weights of each token relative to this sum
-	sumBalances := uint256.NewInt(0)
+	var sumBalances uint256.Int
+	sumBalancesPtr := &sumBalances
 	for _, b := range balances {
 		var err error
-		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		sumBalancesPtr, err = FixedPoint.Add(sumBalancesPtr, b)
 		if err != nil {
 			return nil, err
 		}
@@ -705,10 +737,11 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 
 	// Calculate the weighted balance ratio without considering fees
 	balanceRatiosWithoutFee := make([]*uint256.Int, len(amountsOut))
-	invariantRatioWithoutFees := uint256.NewInt(0)
+	var invariantRatioWithoutFees uint256.Int
+	invariantRatioWithoutFeesPtr := &invariantRatioWithoutFees
 
 	for i := 0; i < len(balances); i++ {
-		currentWeight, err := FixedPoint.DivUp(balances[i], sumBalances)
+		currentWeight, err := FixedPoint.DivUp(balances[i], sumBalancesPtr)
 		if err != nil {
 			return nil, err
 		}
@@ -727,7 +760,7 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 			return nil, err
 		}
 
-		invariantRatioWithoutFees, err = FixedPoint.Add(invariantRatioWithoutFees, u)
+		invariantRatioWithoutFeesPtr, err = FixedPoint.Add(invariantRatioWithoutFeesPtr, u)
 		if err != nil {
 			return nil, err
 		}
@@ -740,10 +773,10 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 		// 'token out'. This results in slightly larger price impact.
 
 		var amountOutWithFee *uint256.Int
-		if invariantRatioWithoutFees.Gt(balanceRatiosWithoutFee[i]) {
+		if invariantRatioWithoutFeesPtr.Gt(balanceRatiosWithoutFee[i]) {
 			var nonTaxableAmount *uint256.Int
 
-			nonTaxableAmount, err := FixedPoint.MulDown(balances[i], FixedPoint.Complement(invariantRatioWithoutFees))
+			nonTaxableAmount, err := FixedPoint.MulDown(balances[i], FixedPoint.Complement(invariantRatioWithoutFeesPtr))
 			if err != nil {
 				return nil, err
 			}
@@ -753,7 +786,9 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 				return nil, err
 			}
 
-			u, err := FixedPoint.DivUp(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
+			var feeComplement uint256.Int
+			feeComplement.Sub(FixedPoint.ONE, swapFeePercentage)
+			u, err := FixedPoint.DivUp(taxableAmount, &feeComplement)
 			if err != nil {
 				return nil, err
 			}
@@ -831,16 +866,17 @@ func (l *stableMath) CalcTokenOutGivenExactBptIn(
 		return nil, err
 	}
 
-	sumBalances := uint256.NewInt(0)
+	var sumBalances uint256.Int
+	sumBalancesPtr := &sumBalances
 	for _, b := range balances {
 		var err error
-		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		sumBalancesPtr, err = FixedPoint.Add(sumBalancesPtr, b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	currentWeight, err := FixedPoint.DivDown(balances[tokenIndex], sumBalances)
+	currentWeight, err := FixedPoint.DivDown(balances[tokenIndex], sumBalancesPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -856,7 +892,9 @@ func (l *stableMath) CalcTokenOutGivenExactBptIn(
 		return nil, err
 	}
 
-	u, err := FixedPoint.MulDown(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
+	var feeComplement uint256.Int
+	feeComplement.Sub(FixedPoint.ONE, swapFeePercentage)
+	u, err := FixedPoint.MulDown(taxableAmount, &feeComplement)
 	if err != nil {
 		return nil, err
 	}
@@ -889,7 +927,8 @@ func (l *stableMath) CalcDueTokenProtocolSwapFeeAmount(
 		return number.Zero, nil
 	}
 
-	accumulatedTokenSwapFees := new(uint256.Int).Sub(balances[tokenIndex], finalBalanceFeeToken)
+	var accumulatedTokenSwapFees uint256.Int
+	accumulatedTokenSwapFees.Sub(balances[tokenIndex], finalBalanceFeeToken)
 
-	return FixedPoint.MulDown(accumulatedTokenSwapFees, protocolSwapFeePercentage)
+	return FixedPoint.MulDown(&accumulatedTokenSwapFees, protocolSwapFeePercentage)
 }

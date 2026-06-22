@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -409,18 +410,9 @@ func percentile(sorted []int32, p float64) int32 {
 	return sorted[idx]
 }
 
-func absBI(x *big.Int) *big.Int {
-	if x == nil {
-		return new(big.Int)
-	}
-	if x.Sign() < 0 {
-		return new(big.Int).Neg(x)
-	}
-	return new(big.Int).Set(x)
-}
-
-func realLots(x *big.Int) *big.Int {
-	return new(big.Int).AndNot(absBI(x), knockoutFlagMask)
+func realLots(x uint256.Int) *big.Int {
+	x.And(&x, uKnockoutClearMask)
+	return x.ToBig()
 }
 
 func defaultSwapParityCases(wethAddr, usdcAddr common.Address) []swapParityCase {
@@ -457,10 +449,12 @@ func calcChainBitmapOut(
 ) (*big.Int, error) {
 	simCurve := fullState.Curve
 	simSwap := &SwapDirective{
-		Qty:        new(big.Int).Set(tc.amountIn),
 		InBaseQty:  tc.inBaseQty,
 		IsBuy:      tc.isBuy,
 		LimitPrice: defaultLimitPrice(tc.isBuy),
+	}
+	if overflow := simSwap.Qty.SetFromBig(tc.amountIn); overflow {
+		return nil, ErrOverflow
 	}
 	chainBmp := &ChainBitmapView{
 		Ctx:      h.ctx,
@@ -473,7 +467,7 @@ func calcChainBitmapOut(
 	if err != nil {
 		return nil, err
 	}
-	return deriveChainOutput(chainAccum.BaseFlow, chainAccum.QuoteFlow, tc.inBaseQty), nil
+	return deriveChainOutput(FlowToBig(chainAccum.BaseFlow), FlowToBig(chainAccum.QuoteFlow), tc.inBaseQty), nil
 }
 
 // --- indexer / on-chain helpers --------------------------------------------
@@ -582,9 +576,9 @@ func callCrocImpact(
 	isBuy, inBaseQty bool,
 	qty, blockNum *big.Int,
 ) (baseFlow, quoteFlow *big.Int, err error) {
-	limitPrice := new(big.Int).Set(MinSqrtRatio)
+	limitPrice := uMinSqrtRatio.ToBig()
 	if isBuy {
-		limitPrice = new(big.Int).Sub(MaxSqrtRatio, big.NewInt(1))
+		limitPrice = uMaxSqrtRatioMinus1.ToBig()
 	}
 	data, err := crocImpactParsedABI.Pack("calcImpact",
 		base, quote, new(big.Int).SetUint64(poolIdx),
