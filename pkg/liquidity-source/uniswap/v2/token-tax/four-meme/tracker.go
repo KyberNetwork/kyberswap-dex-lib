@@ -29,6 +29,7 @@ func NewTracker(poolAddress, tokenAddress string, previous tokentax.TaxInfo) tok
 		previous:     previous,
 		pairVerified: previous.Protocol == Protocol && previous.Token == tokenAddress,
 		pairCall:     -1,
+		feeRateCall:  -1,
 		buyTaxCall:   -1,
 		sellTaxCall:  -1,
 	}
@@ -41,10 +42,12 @@ type tracker struct {
 	pairVerified bool
 
 	pairCall    int
+	feeRateCall int
 	buyTaxCall  int
 	sellTaxCall int
 
 	pairAddress common.Address
+	feeRatePct  *big.Int
 	buyTaxPct   *big.Int
 	sellTaxPct  *big.Int
 }
@@ -56,6 +59,11 @@ func (t *tracker) AddCalls(request *ethrpc.Request) {
 			ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodPair,
 		}, []any{&t.pairAddress})
 	}
+
+	t.feeRateCall = len(request.Calls)
+	request.AddCall(&ethrpc.Call{
+		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodFeeRate,
+	}, []any{&t.feeRatePct})
 
 	t.buyTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
@@ -69,12 +77,13 @@ func (t *tracker) AddCalls(request *ethrpc.Request) {
 }
 
 func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
+	feeRateOK := tokentax.CallSucceeded(response, t.feeRateCall)
 	buyTaxOK := tokentax.CallSucceeded(response, t.buyTaxCall)
 	sellTaxOK := tokentax.CallSucceeded(response, t.sellTaxCall)
 
-	// Tax methods identify four.meme tokens. If both revert, this token is unsupported and should
+	// Fee methods identify four.meme tokens. If none responds, this token is unsupported and should
 	// not be probed again. The immutable pair read only verifies the canonical pool on first run.
-	if !buyTaxOK && !sellTaxOK {
+	if !feeRateOK && !buyTaxOK && !sellTaxOK {
 		return tokentax.TaxInfo{Checked: true}
 	}
 
@@ -92,6 +101,16 @@ func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
 		Token:    t.tokenAddress,
 		Checked:  true,
 	}
+
+	// Token5: fee = amount * feeRate / 10000, charged symmetrically on buy and sell, so feeRate is
+	// already the basis-point rate for both directions
+	if feeRateOK {
+		info.BuyTaxBps = tokentax.ToUint256(t.feeRatePct)
+		info.SellTaxBps = tokentax.ToUint256(t.feeRatePct)
+		return info
+	}
+
+	// Token8: feeRateBuy/feeRateSell are expressed in percent
 	if buyTaxOK {
 		info.BuyTaxBps = percentToBps(t.buyTaxPct)
 	} else {

@@ -3,7 +3,9 @@ package fourmeme
 const (
 	Protocol = "fourmeme"
 
-	methodPair    = "pair"
+	methodPair = "pair"
+
+	methodFeeRate = "feeRate"
 	methodBuyTax  = "feeRateBuy"
 	methodSellTax = "feeRateSell"
 )
