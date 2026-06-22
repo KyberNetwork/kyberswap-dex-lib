@@ -20,6 +20,7 @@ type IBatchRPCPoolTracker interface {
 type ILazyRequest interface {
 	GetUnpacks() []func([]byte) error
 	GetCallMsgs() []ethereum.CallMsg
+	GetEthRpcCall(idx int) *ethrpc.Call
 }
 
 type LazyRequest struct {
@@ -58,4 +59,8 @@ func (r *LazyRequest) GetUnpacks() []func([]byte) error {
 
 func (r *LazyRequest) GetCallMsgs() []ethereum.CallMsg {
 	return r.CallMsgs
+}
+
+func (r *LazyRequest) GetEthRpcCall(idx int) *ethrpc.Call {
+	return r.Calls[idx]
 }
