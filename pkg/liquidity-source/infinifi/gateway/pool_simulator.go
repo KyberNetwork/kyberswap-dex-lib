@@ -88,7 +88,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	case tokenIn == s.usdc && tokenOut == s.iusd:
 		// USDC → iUSD (mint)
 		swapInfo = SwapInfo{
-			Action: ActionMint,
+			Action:            ActionMint,
+			QuoterControllers: []string{MintControllerAddress},
 		}
 		amountOut = s.calculateMint(amountIn)
 		gas = gasMint
@@ -96,7 +97,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	case tokenIn == s.iusd && tokenOut == s.usdc:
 		// iUSD → USDC (redeem)
 		swapInfo = SwapInfo{
-			Action: ActionRedeem,
+			Action:            ActionRedeem,
+			QuoterControllers: []string{RedeemControllerAddress},
 		}
 		amountOut = s.calculateRedeem(amountIn)
 		gas = gasRedeem
@@ -121,8 +123,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		// iUSD → liUSD (lock/createPosition)
 		bucketIndex := s.getLIUSDIndex(tokenOut)
 		swapInfo = SwapInfo{
-			Action:          ActionCreatePosition,
-			UnwindingEpochs: int(s.LIUSDBuckets[bucketIndex].Index),
+			Action:            ActionCreatePosition,
+			QuoterControllers: []string{LockControllerAddress},
+			UnwindingEpochs:   int(s.LIUSDBuckets[bucketIndex].Index),
 		}
 		amountOut = s.calculateLock(amountIn, bucketIndex)
 		gas = gasCreatePosition
@@ -130,7 +133,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	case tokenIn == s.usdc && tokenOut == s.siusd:
 		// USDC → siUSD (mintAndStake)
 		swapInfo = SwapInfo{
-			Action: ActionMintAndStake,
+			Action:            ActionMintAndStake,
+			QuoterControllers: []string{MintControllerAddress},
 		}
 		amountOut = s.calculateMintAndStake(amountIn)
 		gas = gasMintAndStake
@@ -139,8 +143,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		// USDC → liUSD (mintAndLock)
 		bucketIndex := s.getLIUSDIndex(tokenOut)
 		swapInfo = SwapInfo{
-			Action:          ActionMintAndLock,
-			UnwindingEpochs: int(s.LIUSDBuckets[bucketIndex].Index),
+			Action:            ActionMintAndLock,
+			QuoterControllers: []string{MintControllerAddress, LockControllerAddress},
+			UnwindingEpochs:   int(s.LIUSDBuckets[bucketIndex].Index),
 		}
 		amountOut = s.calculateMintAndLock(amountIn, bucketIndex)
 		gas = gasMintAndLock
@@ -148,7 +153,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	case tokenIn == s.siusd && tokenOut == s.usdc:
 		// siUSD → USDC (unstakeAndRedeem)
 		swapInfo = SwapInfo{
-			Action: ActionUnstakeAndRedeem,
+			Action:            ActionUnstakeAndRedeem,
+			QuoterControllers: []string{RedeemControllerAddress},
 		}
 		amountOut = s.calculateUnstakeAndRedeem(amountIn)
 		gas = gasUnstakeAndRedeem
