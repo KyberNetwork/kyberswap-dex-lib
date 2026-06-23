@@ -13,6 +13,7 @@ const (
 	methodTokenAssets = "tokenAssets"
 	methodIouOf       = "iouOf"
 	methodPreviewSwap = "previewSwap"
+	methodOracle      = "oracle"
 
 	// ClearFactory contract methods
 	methodVaultsLength = "vaultsLength"
