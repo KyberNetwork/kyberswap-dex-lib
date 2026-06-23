@@ -86,6 +86,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
+		DepositPool: lrtDepositPool,
+		WETH:        WETH,
 	}
 }
 

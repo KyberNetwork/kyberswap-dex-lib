@@ -96,5 +96,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
+		XSolvBTC:    s.Tokens[1].Address,
 	}
 }
