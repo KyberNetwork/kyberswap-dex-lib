@@ -69,6 +69,8 @@ pkg/liquidity-source/<dex>/
 - Store mutable state in `Extra`, immutable state in `StaticExtra`.
 - Track all pool state required by the simulator for `CalcAmountOut` and `UpdateBalance`, including every flag/check used by the on-chain swap path (e.g. paused, swapEnabled, caps/limits, etc.) so the simulator can reject swaps that would revert on-chain.
 
+**Optional: batch RPC** — implement `IBatchRPCPoolTracker` (`pkg/source/pool/batch_rpc.go`) to enable cross-pool RPC batching by pool-service. `LazyNewPoolState` returns an `ILazyRequest` (call descriptors) and an `applyResult` closure (builds `entity.Pool` after results arrive). For sources already using the ethrpc library, use `LazyRequest.AddCall` which converts each `ethrpc.Call` into a raw `ethereum.CallMsg` so pool-service can dispatch via `go-ethereum`'s `BatchCallContext`; sources using other RPC patterns must populate `ILazyRequest` directly. In `applyResult`, validate required fields are non-nil — individual calls can revert independently — and return an error rather than producing corrupt state.
+
 ### Pool Simulator - IPoolSimulator
 
 - `CalcAmountOut` must be pure and must not mutate state on success or failure.

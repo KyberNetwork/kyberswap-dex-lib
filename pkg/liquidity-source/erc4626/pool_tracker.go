@@ -27,7 +27,10 @@ type PoolTracker struct {
 	logger logger.Logger
 }
 
-var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+var (
+	_ poolpkg.IBatchRPCPoolTracker = (*PoolTracker)(nil)
+	_ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	lg := logger.WithFields(logger.Fields{
