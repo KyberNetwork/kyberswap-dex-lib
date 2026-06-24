@@ -1,16 +1,16 @@
-package erc4626
+package eclp
 
 import (
 	"context"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -36,51 +36,39 @@ func (t *PoolTracker) lazyNewPoolState(
 	_ poolpkg.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (poolpkg.ILazyRequest, func(*big.Int) (entity.Pool, error), error) {
-	lg := t.logger.WithFields(logger.Fields{
-		"address": p.Address,
-	})
-	lg.Info("Start updating state.")
-	defer func() {
-		lg.Info("Finish updating state.")
-	}()
-
-	vaultAddr := p.Tokens[0].Address
-	vaultCfg, ok := t.cfg.Vaults[vaultAddr]
-	if !ok { // manually added vault
-		var extra Extra
-		_ = json.Unmarshal([]byte(p.Extra), &extra)
-		vaultCfg.Gas = GasCfg(extra.Gas)
+	var staticExtra shared.StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return nil, nil, err
 	}
-	req, applyResult := lazycall(ctx, &p, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
-
+	req, applyResult := t.lazycall(ctx, &p, staticExtra, overrides)
 	return req, applyResult, nil
 }
 
-func lazycall(
+func (t *PoolTracker) lazycall(
 	ctx context.Context,
-	pool *entity.Pool,
-	ethrpcClient *ethrpc.Client,
-	vaultAddr string,
-	vaultCfg VaultCfg,
-	fetchAsset bool,
+	p *entity.Pool,
+	staticExtra shared.StaticExtra,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (poolpkg.ILazyRequest, func(*big.Int) (entity.Pool, error)) {
-	var assetToken common.Address
-	poolState := PoolState{
-		DepositRates: make([]*big.Int, len(PrefetchAmounts)),
-		RedeemRates:  make([]*big.Int, len(PrefetchAmounts)),
-	}
-	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	var (
+		rpcRes               RpcResult
+		isVaultPaused        bool
+		isPoolPaused         bool
+		isPoolInRecoveryMode bool
+	)
+	r := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	req := poolpkg.LazyRequest{Request: r}
-	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
+	addFn := func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }
+	addRPCCalls(addFn, t.config.VaultExplorer, p.Address, &rpcRes, &isVaultPaused, &isPoolPaused, &isPoolInRecoveryMode)
+	rpcRes.Buffers = shared.GetBufferTokens(addFn, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
-		normalizePoolState(&poolState)
+		rpcRes.IsPoolDisabled = isVaultPaused || isPoolPaused || isPoolInRecoveryMode
 		if blockNumber != nil {
-			poolState.BlockNumber = blockNumber.Uint64()
+			rpcRes.BlockNumber = blockNumber.Uint64()
 		} else {
-			poolState.BlockNumber = pool.BlockNumber
+			rpcRes.BlockNumber = p.BlockNumber
 		}
-		return *pool, UpdateEntityState(pool, vaultCfg, &poolState)
+		return buildPoolState(p, &rpcRes, staticExtra)
 	}
 }

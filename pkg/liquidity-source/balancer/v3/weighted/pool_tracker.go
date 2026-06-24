@@ -166,7 +166,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Target: poolAddress,
 		Method: poolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights})
-	rpcRes.Buffers = shared.GetBufferTokens(req, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
+	rpcRes.Buffers = shared.GetBufferTokens(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
