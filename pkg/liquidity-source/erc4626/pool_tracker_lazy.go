@@ -139,6 +139,8 @@ func lazycall(
 
 		if blockNumber != nil {
 			poolState.BlockNumber = blockNumber.Uint64()
+		} else {
+			poolState.BlockNumber = pool.BlockNumber
 		}
 		return *pool, UpdateEntityState(pool, vaultCfg, &poolState)
 	}
