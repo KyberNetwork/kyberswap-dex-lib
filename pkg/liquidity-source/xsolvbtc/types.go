@@ -8,6 +8,7 @@ import (
 
 type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
+	XSolvBTC    string `json:"xSolvBTC"`
 }
 
 type PoolExtra struct {

@@ -194,6 +194,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
 		BlockNumber:     p.Info.BlockNumber,
 		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
+		Teller:          tellerAddress,
 	}
 }
 

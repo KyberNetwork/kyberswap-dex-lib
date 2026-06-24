@@ -136,7 +136,9 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
-		BlockNumber: s.Info.BlockNumber,
+		BlockNumber:    s.Info.BlockNumber,
+		RestakeManager: RestakeManager,
+		EzETH:          EzEthToken,
 	}
 }
 
