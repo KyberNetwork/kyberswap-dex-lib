@@ -118,5 +118,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return PoolMeta{
+		Oracle: p.extra.OracleAddress,
+	}
 }

@@ -14,22 +14,25 @@ func (t *PoolSimulator) getDyWithoutFee(
 ) (*big.Int, error) {
 	xp := t._xp(updatedBalances)
 
-	x := new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, t.baseSim.Rates[i]), Precision))
+	// x = xp[i] + dx * rates[i] / PRECISION
+	x := bignumber.MulDivDown(new(big.Int), dx, t.baseSim.Rates[i], bignumber.BONE)
+	x.Add(xp[i], x)
+
 	y, err := t.baseSim.GetY(i, j, x, xp, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	dy := new(big.Int).Sub(new(big.Int).Sub(xp[j], y), bignumber.One)
-
-	return dy, nil
+	// dy = (xp[j] - y - 1) * PRECISION / rates[j], converting XP → raw token units (matches get_dy_without_fee on-chain)
+	x.Sub(xp[j], y)
+	x.Sub(x, bignumber.One)
+	return bignumber.MulDivDown(x, x, bignumber.BONE, t.baseSim.Rates[j]), nil
 }
 
 func (t *PoolSimulator) _xp(balances []*big.Int) []*big.Int {
-	var nTokens = len(t.Info.Tokens)
-	result := make([]*big.Int, nTokens)
-	for i := 0; i < nTokens; i += 1 {
-		result[i] = new(big.Int).Div(new(big.Int).Mul(t.baseSim.Rates[i], balances[i]), Precision)
+	result := make([]*big.Int, len(t.Info.Tokens))
+	for i := range t.Info.Tokens {
+		result[i] = bignumber.MulDivDown(new(big.Int), t.baseSim.Rates[i], balances[i], bignumber.BONE)
 	}
 	return result
 }

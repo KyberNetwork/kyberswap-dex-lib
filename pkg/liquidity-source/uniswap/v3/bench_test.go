@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -44,7 +45,7 @@ var (
 )
 
 func benchmarkCalcAmountOut(b *testing.B, amount *big.Int, sim pool.IPoolSimulator) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = sim.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -81,7 +82,77 @@ func BenchmarkCalcAmountOutCrossManyTickV2(b *testing.B) {
 }
 
 func BenchmarkNewPoolSimulatorV2(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = NewPoolSimulator(poolEnt, valueobject.ChainIDEthereum)
+	}
+}
+
+// ---------- micro-benchmarks for hot-path functions ----------
+
+// BenchmarkGetSqrtRatioAtTick covers the per-tick-crossing cost paid on every
+// swap loop iteration.  Ticks are spread across the valid range to exercise
+// all 20 conditional multiply branches.
+func BenchmarkGetSqrtRatioAtTick(b *testing.B) {
+	ticks := []int{0, 1, 100, 1000, 10000, 27139, 100000, -1000, -27139, MinTick + 1, MaxTick - 1}
+	var result uint256.Int
+	b.ResetTimer()
+	for i := range b.N {
+		_ = GetSqrtRatioAtTick(ticks[i%len(ticks)], &result)
+	}
+}
+
+// BenchmarkGetTickAtSqrtRatio covers the reverse direction, which is called
+// when a swap step doesn't fully cross a tick.
+func BenchmarkGetTickAtSqrtRatio(b *testing.B) {
+	// build a few representative sqrtPriceX96 values from different ticks
+	tickSamples := []int{0, 1000, 10000, 27139, -1000, -27139}
+	prices := make([]*uint256.Int, len(tickSamples))
+	for i, t := range tickSamples {
+		p := new(uint256.Int)
+		_ = GetSqrtRatioAtTick(t, p)
+		prices[i] = p
+	}
+	b.ResetTimer()
+	for i := range b.N {
+		_, _ = GetTickAtSqrtRatio(prices[i%len(prices)])
+	}
+}
+
+// BenchmarkMostSignificantBit isolates the MSB subroutine inside
+// GetTickAtSqrtRatio.  sqrtPX128 values are ~192-bit numbers.
+func BenchmarkMostSignificantBit(b *testing.B) {
+	vals := make([]*uint256.Int, 8)
+	for i, t := range []int{0, 1000, 10000, 27139, -1000, -10000, -27139, MaxTick - 1} {
+		var p uint256.Int
+		_ = GetSqrtRatioAtTick(t, &p)
+		p.Lsh(&p, 32) // simulate sqrtPX128 = sqrtPX96 << 32
+		vals[i] = &p
+	}
+	b.ResetTimer()
+	for i := range b.N {
+		_, _ = MostSignificantBit(vals[i%len(vals)])
+	}
+}
+
+// BenchmarkBinarySearch benchmarks the tick-list binary search on the
+// realistic ~400-tick pool from the benchmark fixture.
+func BenchmarkBinarySearch(b *testing.B) {
+	ticks := simV2.V3Pool.Ticks
+	// query ticks spread across the list
+	queries := []int{ticks[0].Index, ticks[len(ticks)/4].Index, ticks[len(ticks)/2].Index,
+		ticks[3*len(ticks)/4].Index, ticks[len(ticks)-1].Index, 27139}
+	b.ResetTimer()
+	for i := range b.N {
+		_, _ = binarySearch(ticks, queries[i%len(queries)])
+	}
+}
+
+// BenchmarkNextInitializedTickIndex covers the full tick-lookup chain
+// (bounds check + binary search) that runs on every swap loop iteration.
+func BenchmarkNextInitializedTickIndex(b *testing.B) {
+	ticks := simV2.V3Pool.Ticks
+	b.ResetTimer()
+	for i := range b.N {
+		_, _, _ = nextInitializedTickIndex(ticks, 27139, i%2 == 0)
 	}
 }

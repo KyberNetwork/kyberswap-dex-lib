@@ -210,7 +210,8 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	amtOut *uint256.Int,
 	zeroForOne bool,
 ) (*shared.SwapInfo, error) {
-	debtVaultAddr, debtVaultIdx, debt := p.ControllerVault, 2, uint256.NewInt(0)
+	var debtZero uint256.Int
+	debtVaultAddr, debtVaultIdx, debt := p.ControllerVault, 2, &debtZero
 
 	controllerVault := p.BorrowVault[2]
 	if p.BorrowVault[0] != nil && p.BorrowVault[0].IsControllerEnabled {
@@ -243,13 +244,14 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 		soldCollat, newDebt, isBuyVaultControlled = withdrawAssets(
 			amtOut, buySupplyVault.EulerAccountAssets, buySupplyVault.IsControllerEnabled)
 	} else {
-		soldCollat = uint256.NewInt(0)
-		newDebt = uint256.NewInt(0)
+		soldCollat = big256.U0
+		newDebt = big256.U0
 		isBuyVaultControlled = false
 	}
 
 	// Deposit: repay borrow vault debt, then deposit to supply vault
-	sellDebt := uint256.NewInt(0)
+	var sellDebtZero uint256.Int
+	sellDebt := &sellDebtZero
 	if sellBorrowVault != nil && sellBorrowVault.Debt != nil {
 		sellDebt = sellBorrowVault.Debt
 	}
@@ -260,13 +262,14 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 			amtIn, p.getFee(zeroForOne), sellDebt,
 			sellSupplyVault.IsControllerEnabled)
 	} else {
-		vaultDepositAmt = uint256.NewInt(0)
-		reserveDepositAmt = uint256.NewInt(0)
-		repayAmt = uint256.NewInt(0)
+		vaultDepositAmt = big256.U0
+		reserveDepositAmt = big256.U0
+		repayAmt = big256.U0
 		isSellVaultControlled = false
 	}
 
-	newCollat := uint256.NewInt(0)
+	var newCollatZero uint256.Int
+	newCollat := &newCollatZero
 	if strings.EqualFold(debtVaultAddr, sellBorrowVaultAddr) {
 		if vaultDepositAmt.Lt(debt) {
 			if newDebt.Sign() > 0 {
@@ -380,7 +383,7 @@ func (p *PoolSimulator) getFee(zeroForOne bool) *uint256.Int {
 
 func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOne bool) (*uint256.Int, error) {
 	if amount.IsZero() {
-		return uint256.NewInt(0), nil
+		return big256.U0, nil
 	}
 
 	fee := p.getFee(isZeroForOne)
@@ -456,7 +459,8 @@ func (p *PoolSimulator) calcLimits(isZeroForOne bool, fee *uint256.Int) (*uint25
 	supplyOut := lo.Ternary(isZeroForOne, p.SupplyVault[1], p.SupplyVault[0])
 	borrowOut := lo.Ternary(isZeroForOne, p.BorrowVault[1], p.BorrowVault[0])
 
-	supplyBalance := uint256.NewInt(0)
+	var supplyBalanceZero uint256.Int
+	supplyBalance := &supplyBalanceZero
 	if supplyOut != nil && supplyOut.EulerAccountAssets != nil {
 		supplyBalance = supplyOut.EulerAccountAssets
 	}
@@ -464,7 +468,8 @@ func (p *PoolSimulator) calcLimits(isZeroForOne bool, fee *uint256.Int) (*uint25
 	if borrowOut != nil {
 		supplyCash := supplyOut.Cash
 		if supplyCash == nil {
-			supplyCash = uint256.NewInt(0)
+			var supplyCashZero uint256.Int
+			supplyCash = &supplyCashZero
 		}
 
 		isSameVault := (isZeroForOne && strings.EqualFold(p.SupplyVault1, p.BorrowVault1)) ||
@@ -487,7 +492,8 @@ func (p *PoolSimulator) calcLimits(isZeroForOne bool, fee *uint256.Int) (*uint25
 		if borrowOut.BorrowCap != nil && !borrowOut.BorrowCap.Eq(big256.UMax) {
 			totalBorrows := borrowOut.TotalBorrows
 			if totalBorrows == nil {
-				totalBorrows = uint256.NewInt(0)
+				var totalBorrowsZero uint256.Int
+				totalBorrows = &totalBorrowsZero
 			}
 
 			var maxWithdraw uint256.Int
@@ -604,7 +610,7 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 				output.Sub(p.reserves[1], yNew)
 				return output, nil
 			}
-			return uint256.NewInt(0), nil
+			return output, nil
 		}
 
 		yNew := new(uint256.Int).Add(p.reserves[1], amount)
@@ -623,7 +629,7 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 			output.Sub(p.reserves[0], xNew)
 			return output, nil
 		}
-		return uint256.NewInt(0), nil
+		return output, nil
 	}
 
 	if isZeroForOne {
@@ -646,7 +652,7 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 			output.Sub(xNew, p.reserves[0])
 			return output, nil
 		}
-		return uint256.NewInt(0), nil
+		return output, nil
 	}
 
 	if !p.reserves[0].Gt(amount) {
@@ -669,7 +675,7 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 		return output, nil
 	}
 
-	return uint256.NewInt(0), nil
+	return output, nil
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -797,7 +803,8 @@ func (p *PoolSimulator) depositAssets(
 	}
 
 	remainingAmount := reserveDeposit.Clone()
-	repaid = uint256.NewInt(0)
+	var repaidZero uint256.Int
+	repaid = &repaidZero
 
 	if isControllerEnabled && debt != nil {
 		if remainingAmount.Gt(debt) {

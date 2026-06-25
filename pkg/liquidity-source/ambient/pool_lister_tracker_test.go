@@ -137,10 +137,9 @@ func TestPoolTracker(t *testing.T) {
 	var trackedExtra Extra
 	require.NoError(t, json.Unmarshal([]byte(tracked.Extra), &trackedExtra))
 	require.NotNil(t, trackedExtra.State)
-	require.NotNil(t, trackedExtra.State.Curve.PriceRoot)
-	require.Equal(t, 1, trackedExtra.State.Curve.PriceRoot.Sign())
+	require.False(t, trackedExtra.State.Curve.PriceRoot.IsZero())
 	t.Logf("tracked ticks=%d sqrtPrice=%s",
-		len(trackedExtra.State.ActiveTicks), trackedExtra.State.Curve.PriceRoot)
+		len(trackedExtra.State.ActiveTicks), trackedExtra.State.Curve.PriceRoot.ToBig())
 
 	// --- Verify simulator can be built from tracked state ---
 	sim, err := NewPoolSimulator(tracked)

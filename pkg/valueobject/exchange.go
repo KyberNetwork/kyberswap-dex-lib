@@ -156,6 +156,7 @@ const (
 	ExchangeMakerPSM                   = "maker-psm"
 	ExchangeMakerSavingsDai            = "maker-savingsdai"
 	ExchangeMantisSwap                 = "mantisswap"
+	ExchangeCmETH                      = "cmeth"
 	ExchangeMantleETH                  = "meth"
 	ExchangeMapleSyrup                 = "maple-syrup"
 	ExchangeMaverickV2                 = "maverick-v2"
@@ -215,6 +216,7 @@ const (
 	ExchangePmm10                      = "pmm-10"
 	ExchangePmm11                      = "pmm-11"
 	ExchangePmm12                      = "pmm-12"
+	ExchangePmm13                      = "pmm-13"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolycat                    = "polycat"
 	ExchangePolyDex                    = "polydex"
@@ -336,6 +338,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm10:      {},
 	ExchangePmm11:      {},
 	ExchangePmm12:      {},
+	ExchangePmm13:      {},
 	ExchangeSwaapV2:    {},
 	ExchangeUniswapLO:  {},
 }

@@ -18,10 +18,10 @@ func makeSmallPool(t *testing.T) *Pool {
 		{Index: -79320, LiquidityGross: uint256.MustFromDecimal("59713631504779700614879"), LiquidityNet: int256.MustFromDec("59713631504779700614879")},
 		{Index: 887220, LiquidityGross: uint256.MustFromDecimal("62905097377105506759002"), LiquidityNet: int256.MustFromDec("-62905097377105506759002")},
 	}
-	sqrtPrice, _ := uint256.FromDecimal("4082682361430349352208957440")
-	liquidity, _ := uint256.FromDecimal("461286494113032089234462")
+	sqrtPrice := uint256.MustFromDecimal("4082682361430349352208957440")
+	liquidity := uint256.MustFromDecimal("461286494113032089234462")
 
-	pool, err := NewPool(FeeAmount(3000), sqrtPrice, liquidity, -59315, ticks, 60)
+	pool, err := NewPool(FeeAmount(3000), *sqrtPrice, *liquidity, -59315, ticks, 60)
 	require.NoError(t, err)
 	return pool
 }
@@ -129,8 +129,8 @@ func TestNewPool(t *testing.T) {
 
 	// valid pool at tick 0: sqrtPrice must be between sqrtRatioAtTick(0) and sqrtRatioAtTick(1)
 	// sqrtRatioAtTick(0) = 79228162514264337593543950336 (Q96)
-	sqrtPrice, _ := uint256.FromDecimal("79228162514264337593543950336")
-	liquidity := uint256.NewInt(1e9)
+	sqrtPrice := *uint256.MustFromDecimal("79228162514264337593543950336")
+	liquidity := *uint256.NewInt(1e9)
 
 	p, err := NewPool(FeeMedium, sqrtPrice, liquidity, 0, ticks, 60)
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestNewPool(t *testing.T) {
 	require.ErrorIs(t, err, ErrFeeTooHigh)
 
 	// sqrtPrice out of range for tick
-	bad, _ := uint256.FromDecimal("1")
+	bad := *uint256.MustFromDecimal("1")
 	_, err = NewPool(FeeMedium, bad, liquidity, 0, ticks, 60)
 	require.ErrorIs(t, err, ErrInvalidSqrtRatioX96)
 }
@@ -154,17 +154,17 @@ func TestGetOutputAmountV2(t *testing.T) {
 	p := makeSmallPool(t)
 
 	// Swap 1 WETH (1e18) in as token1 (zeroForOne=false, token1→token0)
-	amountIn := new(int256.Int)
-	amountIn.SetFromBig(new(big.Int).Mul(big.NewInt(1), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
+	var amountIn uint256.Int
+	amountIn.SetFromBig(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
 
 	// price limit: slightly above current sqrt price (going up, token1→token0)
 	priceLimit, _ := uint256.FromDecimal("1461446703485210103287273052203988822378723970341") // MaxSqrtRatio - 1
 
-	result, err := p.GetOutputAmountV2(amountIn, false, priceLimit)
+	res, err := p.GetOutputAmountV2(false, amountIn, *priceLimit)
 	require.NoError(t, err)
-	require.True(t, result.ReturnedAmount.Sign() > 0, "output must be positive")
-	require.NotNil(t, result.SqrtRatioX96)
-	require.NotNil(t, result.Liquidity)
+	require.True(t, res.AmountCalculated.Sign() > 0, "output must be positive")
+	require.False(t, res.SqrtRatioX96.IsZero(), "sqrt ratio must be non-zero")
+	require.False(t, res.Liquidity.IsZero(), "liquidity must be non-zero")
 }
 
 // ---------- GetInputAmountV2 (exact output) ----------
@@ -174,28 +174,145 @@ func TestGetInputAmountV2(t *testing.T) {
 	p := makeSmallPool(t)
 
 	// We want exactly 1e15 of token0 out (zeroForOne=true, token0 output)
-	amountOut := new(int256.Int)
+	var amountOut uint256.Int
 	amountOut.SetFromBig(new(big.Int).Exp(big.NewInt(10), big.NewInt(15), nil))
 
 	priceLimit, _ := uint256.FromDecimal("4295128740") // MinSqrtRatio + 1
 
-	amountIn, newState, err := p.GetInputAmountV2(amountOut, true, priceLimit)
+	sr, err := p.GetInputAmountV2(true, amountOut, *priceLimit)
 	require.NoError(t, err)
-	require.True(t, amountIn.Sign() > 0, "input amount must be positive")
-	require.NotNil(t, newState)
-	require.NotNil(t, newState.SqrtRatioX96)
+	require.True(t, sr.AmountCalculated.Sign() > 0, "input amount must be positive")
+	require.False(t, sr.SqrtRatioX96.IsZero(), "sqrt ratio must be non-zero")
 
 	// Cross-check: feeding the computed amountIn back into GetOutputAmountV2 should yield
 	// approximately amountOut. Per-tick rounding in exactIn can reduce the output by up to
 	// ticksCrossed-1 units, so gotOut may be slightly less than requested.
 	priceLimit2, _ := uint256.FromDecimal("4295128740")
-	outResult, err := p.GetOutputAmountV2(amountIn, true, priceLimit2)
+	res, err := p.GetOutputAmountV2(true, sr.AmountCalculated, *priceLimit2)
 	require.NoError(t, err)
-	gotOut := outResult.ReturnedAmount.ToBig()
-	requested := amountOut.ToBig()
-	delta := new(big.Int).Sub(requested, gotOut) // positive if gotOut < requested
-	require.True(t, delta.Sign() >= 0 && delta.Cmp(new(big.Int).Rsh(requested, 10)) <= 0,
-		"round-trip: out(%s) too far from requested(%s)", gotOut, requested)
+	gotOut := res.AmountCalculated.ToBig()
+	requestedBI := amountOut.ToBig()
+	delta := new(big.Int).Sub(requestedBI, gotOut) // positive if gotOut < requested
+	require.True(t, delta.Sign() >= 0 && delta.Cmp(new(big.Int).Rsh(requestedBI, 10)) <= 0,
+		"round-trip: out(%s) too far from requested(%s)", gotOut, requestedBI)
+}
+
+// ---------- GetTickAtSqrtRatio ----------
+
+func TestGetTickAtSqrtRatio(t *testing.T) {
+	t.Parallel()
+
+	// ── error cases ──────────────────────────────────────────────────────────
+
+	t.Run("error: below min sqrt ratio", func(t *testing.T) {
+		var below uint256.Int
+		below.SubUint64(MinSqrtRatioU256, 1)
+		_, err := GetTickAtSqrtRatio(&below)
+		require.ErrorIs(t, err, errInvalidSqrtRatio)
+	})
+
+	t.Run("error: at max sqrt ratio", func(t *testing.T) {
+		_, err := GetTickAtSqrtRatio(MaxSqrtRatioU256)
+		require.ErrorIs(t, err, errInvalidSqrtRatio)
+	})
+
+	t.Run("error: zero", func(t *testing.T) {
+		_, err := GetTickAtSqrtRatio(new(uint256.Int))
+		require.ErrorIs(t, err, errInvalidSqrtRatio)
+	})
+
+	// ── known absolute values ─────────────────────────────────────────────────
+
+	t.Run("min sqrt ratio → MinTick", func(t *testing.T) {
+		tick, err := GetTickAtSqrtRatio(MinSqrtRatioU256)
+		require.NoError(t, err)
+		require.Equal(t, MinTick, tick)
+	})
+
+	t.Run("max valid sqrt ratio → MaxTick-1", func(t *testing.T) {
+		var maxValid uint256.Int
+		maxValid.SubUint64(MaxSqrtRatioU256, 1)
+		tick, err := GetTickAtSqrtRatio(&maxValid)
+		require.NoError(t, err)
+		require.Equal(t, MaxTick-1, tick)
+	})
+
+	t.Run("tick 0 sqrt price", func(t *testing.T) {
+		// sqrtRatioAtTick(0) = 2^96 exactly
+		sqrtP, _ := uint256.FromDecimal("79228162514264337593543950336")
+		tick, err := GetTickAtSqrtRatio(sqrtP)
+		require.NoError(t, err)
+		require.Equal(t, 0, tick)
+	})
+
+	// ── round-trip: GetTickAtSqrtRatio(GetSqrtRatioAtTick(t)) == t ───────────
+	// This exercises all three code paths (no correction, over-estimate, under-estimate).
+
+	t.Run("round-trip dense [-1000, 1000]", func(t *testing.T) {
+		for tick := -1000; tick <= 1000; tick++ {
+			var sqrtP uint256.Int
+			require.NoError(t, GetSqrtRatioAtTick(tick, &sqrtP))
+			got, err := GetTickAtSqrtRatio(&sqrtP)
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "tick=%d", tick)
+		}
+	})
+
+	t.Run("round-trip near MinTick", func(t *testing.T) {
+		var sqrtP uint256.Int
+		require.NoError(t, GetSqrtRatioAtTick(MinTick, &sqrtP))
+		require.Equal(t, MinSqrtRatioU256, &sqrtP)
+		for tick := MinTick; tick <= MinTick+100; tick++ {
+			require.NoError(t, GetSqrtRatioAtTick(tick, &sqrtP))
+			got, err := GetTickAtSqrtRatio(&sqrtP)
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "tick=%d", tick)
+		}
+	})
+
+	t.Run("round-trip near MaxTick", func(t *testing.T) {
+		var sqrtP uint256.Int
+		require.NoError(t, GetSqrtRatioAtTick(MaxTick, &sqrtP))
+		require.Equal(t, MaxSqrtRatioU256P1, &sqrtP)
+		for tick := MaxTick - 101; tick < MaxTick; tick++ {
+			require.NoError(t, GetSqrtRatioAtTick(tick, &sqrtP))
+			got, err := GetTickAtSqrtRatio(&sqrtP)
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "tick=%d", tick)
+		}
+	})
+
+	t.Run("round-trip sparse full range", func(t *testing.T) {
+		for tick := MinTick; tick < MaxTick; tick += 1000 {
+			var sqrtP uint256.Int
+			require.NoError(t, GetSqrtRatioAtTick(tick, &sqrtP))
+			got, err := GetTickAtSqrtRatio(&sqrtP)
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "tick=%d", tick)
+		}
+	})
+
+	// ── intermediate values: sqrtP strictly between consecutive ticks ─────────
+	// For tick t, if sqrtRatioAtTick(t)+1 < sqrtRatioAtTick(t+1), then
+	// sqrtRatioAtTick(t)+1 must also map to t.
+
+	t.Run("intermediate values", func(t *testing.T) {
+		testTicks := []int{MinTick, -200000, -1000, -1, 0, 1, 1000, 200000, MaxTick - 2}
+		for _, tick := range testTicks {
+			var sqrtLo, sqrtHi uint256.Int
+			require.NoError(t, GetSqrtRatioAtTick(tick, &sqrtLo))
+			require.NoError(t, GetSqrtRatioAtTick(tick+1, &sqrtHi))
+			var mid uint256.Int
+			mid.AddUint64(&sqrtLo, 1)
+			if !mid.Lt(&sqrtHi) {
+				// consecutive ticks share only one sqrtP value; nothing to test
+				continue
+			}
+			got, err := GetTickAtSqrtRatio(&mid)
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "tick=%d mid=%s", tick, mid.Dec())
+		}
+	})
 }
 
 // ---------- getTick ----------
@@ -219,4 +336,43 @@ func TestGetTick(t *testing.T) {
 
 	_, err = getTick(ticks, 99)
 	require.Error(t, err)
+}
+
+// ---------- Swap with empty tick list (AllowEmptyTicks pools) ----------
+
+func TestSwapEmptyTicks(t *testing.T) {
+	t.Parallel()
+
+	// Pool at tick 0, sqrtPrice = sqrtRatioAtTick(0), no initialized ticks.
+	// This models a Uniswap V4 hook pool that manages liquidity outside the
+	// standard tick bitmap.
+	sqrtPrice := *uint256.MustFromDecimal("79228162514264337593543950336") // sqrtRatioAtTick(0)
+	liquidity := *uint256.MustFromDecimal("1000000000000000000")           // 1e18
+	p, err := NewPool(FeeMedium, sqrtPrice, liquidity, 0, nil, 60)
+	require.NoError(t, err)
+
+	amountIn := *uint256.MustFromDecimal("1000000000000") // 1e12
+
+	t.Run("exactInput zeroForOne", func(t *testing.T) {
+		res, err := p.GetOutputAmountV2(true, amountIn, uint256.Int{})
+		require.NoError(t, err)
+		require.True(t, res.AmountCalculated.IsZero(), "no output for empty-tick pool")
+		require.Equal(t, amountIn, res.RemainingAmountIn, "full input returned as remaining")
+		require.Equal(t, sqrtPrice, res.SqrtRatioX96, "price unchanged")
+	})
+
+	t.Run("exactInput !zeroForOne", func(t *testing.T) {
+		res, err := p.GetOutputAmountV2(false, amountIn, uint256.Int{})
+		require.NoError(t, err)
+		require.True(t, res.AmountCalculated.IsZero(), "no output for empty-tick pool")
+		require.Equal(t, amountIn, res.RemainingAmountIn, "full input returned as remaining")
+		require.Equal(t, sqrtPrice, res.SqrtRatioX96, "price unchanged")
+	})
+
+	t.Run("exactOutput zeroForOne", func(t *testing.T) {
+		amountOut := *uint256.MustFromDecimal("1000000000000")
+		res, err := p.GetInputAmountV2(true, amountOut, uint256.Int{})
+		require.NoError(t, err)
+		require.True(t, res.AmountCalculated.IsZero(), "no input computed for empty-tick pool")
+	})
 }

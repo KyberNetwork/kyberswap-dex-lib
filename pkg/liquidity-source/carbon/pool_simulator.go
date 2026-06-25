@@ -3,9 +3,9 @@ package carbon
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -111,11 +111,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if tradeResults.Fast != nil {
 		// If fast amount is greater than best amount
 		if tradeResults.Best != nil && tradeResults.Fast.AmountOutAfterFee.Gt(tradeResults.Best.AmountOutAfterFee) {
-			logger.WithFields(logger.Fields{
-				"pool":          s.Info.Address,
-				"bestAmountOut": tradeResults.Best.AmountOutAfterFee.String(),
-				"fastAmountOut": tradeResults.Fast.AmountOutAfterFee.String(),
-			}).Debug("Fast result has greater output than Best result")
+			log.Debug().Str("pool", s.Info.Address).
+				Stringer("bestAmountOut", tradeResults.Best.AmountOutAfterFee).
+				Stringer("fastAmountOut", tradeResults.Fast.AmountOutAfterFee).
+				Msg("Fast result has greater output than Best result")
 
 			output = tradeResults.Fast
 			swapInfo.TradeActions = output.TradeActions
@@ -160,7 +159,7 @@ func (s *PoolSimulator) trade(amountIn *uint256.Int, ordersMap EncodedOrderMap,
 			continue
 		}
 
-		output := s.processMatchActions(actions, strategyIdxMap, targetOrderIdx, sourceOrderIdx, isToken0To1, ppmMinusFee)
+		output := s.processMatchActions(amountIn, actions, strategyIdxMap, targetOrderIdx, sourceOrderIdx, isToken0To1, ppmMinusFee)
 		if output == nil {
 			continue
 		}
@@ -180,15 +179,12 @@ func (s *PoolSimulator) trade(amountIn *uint256.Int, ordersMap EncodedOrderMap,
 	return results, nil
 }
 
-func (s *PoolSimulator) processMatchActions(
-	actions []*MatchAction,
-	strategyIdxMap map[string]int,
-	targetOrderIdx, sourceOrderIdx int,
-	isToken0To1 bool,
-	ppmMinusFee *uint256.Int,
-) *TradeOutput {
+func (s *PoolSimulator) processMatchActions(amountIn *uint256.Int, actions []*MatchAction, strategyIdxMap map[string]int,
+	targetOrderIdx, sourceOrderIdx int, isToken0To1 bool, ppmMinusFee *uint256.Int) *TradeOutput {
 	totalAmountOut := u256.New0()
 
+	var remaining uint256.Int
+	remaining.Set(amountIn)
 	var tradeActions []TradeAction
 	for _, action := range actions {
 		strategyIdStr := action.Id
@@ -201,6 +197,11 @@ func (s *PoolSimulator) processMatchActions(
 		strategy := &s.Strategies[strategyIdx]
 		targetOrder := &strategy.Orders[targetOrderIdx]
 		sourceOrder := &strategy.Orders[sourceOrderIdx]
+
+		// this step is needed as our current executor doesn't support partial amountIn
+		rate := rateBySourceAmount(&remaining, targetOrder)
+		action.Input, action.Output = rate.Input, rate.Output
+		// remove the above when executor supports amountIn
 
 		newTargetY := new(uint256.Int).Sub(targetOrder.Y, action.Output)
 
@@ -222,6 +223,9 @@ func (s *PoolSimulator) processMatchActions(
 		})
 
 		totalAmountOut.Add(totalAmountOut, action.Output)
+		if remaining.Sub(&remaining, action.Input).IsZero() {
+			break
+		}
 	}
 
 	if totalAmountOut.Sign() <= 0 {
@@ -276,6 +280,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 		BlockNumber:     s.Info.BlockNumber,
 		IsNativeIn:      valueobject.IsNative(lo.Ternary(isToken0In, s.Token0, s.Token1)),
 		IsNativeOut:     valueobject.IsNative(lo.Ternary(isToken0In, s.Token1, s.Token0)),
+		TradingFeePpm:   s.TradingFeePpm,
 		ApprovalAddress: s.Controller,
 	}
 }

@@ -57,6 +57,7 @@ type Meta struct {
 	BlockNumber     uint64 `json:"bN"`
 	IsNativeIn      bool   `json:"iN,omitempty"`
 	IsNativeOut     bool   `json:"oN,omitempty"`
+	TradingFeePpm   uint32 `json:"tF,omitempty"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 

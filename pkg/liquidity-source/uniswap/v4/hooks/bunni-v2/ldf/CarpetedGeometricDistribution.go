@@ -5,6 +5,7 @@ import (
 	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf/shift-mode"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/math"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -178,10 +179,10 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			weightCarpet,
 		)
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -206,7 +207,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -231,7 +232,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	} else {
 		success, roundedTick, err = carpetedgeoLib.InverseCumulativeAmount1(
@@ -244,10 +245,10 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			weightCarpet,
 		)
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -272,7 +273,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -297,7 +298,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	}
 
@@ -310,7 +311,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 		weightCarpet,
 	)
 	if err != nil {
-		return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+		return false, 0, u256.U0, u256.U0, u256.U0, err
 	}
 
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)

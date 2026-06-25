@@ -4,15 +4,18 @@ import (
 	"errors"
 	"math/big"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-var roundPrecisionWei = bignum.Four
+// roundPrecisionWei is added to counter-flows to buffer rounding at tick boundaries.
+var roundPrecisionWei = uint256.NewInt(4)
 
 type SwapAccum struct {
-	BaseFlow  *big.Int
-	QuoteFlow *big.Int
-	ProtoFees *big.Int
+	BaseFlow  uint256.Int // signed two's complement
+	QuoteFlow uint256.Int // signed two's complement
+	ProtoFees uint256.Int // signed two's complement
 
 	CrossInitTickLoops int
 	PinSpillLoops      int
@@ -20,208 +23,219 @@ type SwapAccum struct {
 }
 
 func NewSwapAccum() *SwapAccum {
-	return &SwapAccum{
-		BaseFlow:  new(big.Int),
-		QuoteFlow: new(big.Int),
-		ProtoFees: new(big.Int),
-	}
+	return &SwapAccum{}
 }
 
-func (a *SwapAccum) Accumulate(baseFlow, quoteFlow, protoFees *big.Int) {
-	a.BaseFlow.Add(a.BaseFlow, baseFlow)
-	a.QuoteFlow.Add(a.QuoteFlow, quoteFlow)
-	a.ProtoFees.Add(a.ProtoFees, protoFees)
+func (a *SwapAccum) Accumulate(baseFlow, quoteFlow, protoFees uint256.Int) {
+	a.BaseFlow.Add(&a.BaseFlow, &baseFlow)
+	a.QuoteFlow.Add(&a.QuoteFlow, &quoteFlow)
+	a.ProtoFees.Add(&a.ProtoFees, &protoFees)
 }
 
-func RollFlow(curve *CurveState, flow *big.Int, inBaseQty, isBuy bool, swapQty *big.Int) (paidBase, paidQuote, qtyLeft *big.Int) {
+func RollFlow(curve *CurveState, flow uint256.Int, inBaseQty, isBuy bool, swapQty uint256.Int) (paidBase, paidQuote uint256.Int, qtyLeft uint256.Int) {
 	counterFlow, nextPrice := DeriveImpact(curve, flow, inBaseQty, isBuy)
 	paidFlow, paidCounter := signFlow(flow, counterFlow, inBaseQty, isBuy)
 	return setCurvePos(curve, inBaseQty, isBuy, swapQty, nextPrice, paidFlow, paidCounter)
 }
 
-func RollPrice(curve *CurveState, price *big.Int, inBaseQty, isBuy bool, swapQty *big.Int) (paidBase, paidQuote, qtyLeft *big.Int) {
+func RollPrice(curve *CurveState, price uint256.Int, inBaseQty, isBuy bool, swapQty uint256.Int) (paidBase, paidQuote uint256.Int, qtyLeft uint256.Int) {
 	flow, counterFlow := deriveDemand(curve, price, inBaseQty)
 	paidFlow, paidCounter := signFixed(flow, counterFlow, inBaseQty, isBuy)
 	return setCurvePos(curve, inBaseQty, isBuy, swapQty, price, paidFlow, paidCounter)
 }
 
-func DeriveImpact(curve *CurveState, flow *big.Int, inBaseQty, isBuy bool) (counterFlow, nextPrice *big.Int) {
-	liq := ActiveLiquidity(curve)
+func DeriveImpact(curve *CurveState, flow uint256.Int, inBaseQty, isBuy bool) (counterFlow uint256.Int, nextPrice uint256.Int) {
+	var liq uint256.Int
+	ActiveLiquidity(&liq, curve)
 	nextPrice = deriveFlowPrice(curve.PriceRoot, liq, flow, inBaseQty, isBuy)
 	if !inBaseQty {
-		counterFlow = DeltaBase(liq, curve.PriceRoot, nextPrice)
+		DeltaBase(&counterFlow, &liq, &curve.PriceRoot, &nextPrice)
 	} else {
-		counterFlow = DeltaQuote(liq, curve.PriceRoot, nextPrice)
+		DeltaQuote(&counterFlow, &liq, &curve.PriceRoot, &nextPrice)
 	}
 	return
 }
 
-func deriveDemand(curve *CurveState, price *big.Int, inBaseQty bool) (flow, counterFlow *big.Int) {
-	liq := ActiveLiquidity(curve)
-	baseFlow := DeltaBase(liq, curve.PriceRoot, price)
-	quoteFlow := DeltaQuote(liq, curve.PriceRoot, price)
+func deriveDemand(curve *CurveState, price uint256.Int, inBaseQty bool) (flow, counterFlow uint256.Int) {
+	var liq uint256.Int
+	ActiveLiquidity(&liq, curve)
+	var baseFlow, quoteFlow uint256.Int
+	DeltaBase(&baseFlow, &liq, &curve.PriceRoot, &price)
+	DeltaQuote(&quoteFlow, &liq, &curve.PriceRoot, &price)
 	if inBaseQty {
 		return baseFlow, quoteFlow
 	}
 	return quoteFlow, baseFlow
 }
 
-func deriveFlowPrice(price, liq, flow *big.Int, inBaseQty, isBuy bool) *big.Int {
-	var curvePrice *big.Int
+func deriveFlowPrice(price, liq, flow uint256.Int, inBaseQty, isBuy bool) uint256.Int {
+	var curvePrice uint256.Int
 	if inBaseQty {
 		curvePrice = calcBaseFlowPrice(price, liq, flow, isBuy)
 	} else {
 		curvePrice = calcQuoteFlowPrice(price, liq, flow, isBuy)
 	}
-	if curvePrice.Cmp(MaxSqrtRatio) >= 0 {
-		return new(big.Int).Set(MaxSqrtRatioMinus1)
+	if curvePrice.Cmp(&uMaxSqrtRatio) >= 0 {
+		return uMaxSqrtRatioMinus1
 	}
-	if curvePrice.Cmp(MinSqrtRatio) < 0 {
-		return new(big.Int).Set(MinSqrtRatio)
+	if curvePrice.Lt(&uMinSqrtRatio) {
+		return uMinSqrtRatio
 	}
 	return curvePrice
 }
 
-func calcBaseFlowPrice(price, liq, flow *big.Int, isBuy bool) *big.Int {
-	if liq.Sign() == 0 {
-		return new(big.Int).Set(mask128)
+func calcBaseFlowPrice(price, liq, flow uint256.Int, isBuy bool) uint256.Int {
+	if liq.IsZero() {
+		return uMaxSqrtRatioMinus1
 	}
-	deltaCalc := DivQ64(flow, liq)
-	if deltaCalc.Cmp(mask128) > 0 {
-		return new(big.Int).Set(mask128)
+	var deltaCalc uint256.Int
+	DivQ64(&deltaCalc, &flow, &liq)
+	if deltaCalc.Gt(u256.UMaxU128) {
+		return uMaxSqrtRatioMinus1
 	}
 	if isBuy {
-		return new(big.Int).Add(price, deltaCalc)
+		var result uint256.Int
+		result.Add(&price, &deltaCalc)
+		return result
 	}
-	if deltaCalc.Cmp(price) >= 0 {
-		return new(big.Int)
+	if deltaCalc.Cmp(&price) >= 0 {
+		var zero uint256.Int
+		return zero
 	}
-	result := new(big.Int).Sub(price, deltaCalc)
-	result.Sub(result, bignum.One)
+	var result uint256.Int
+	result.Sub(&price, &deltaCalc)
+	result.Sub(&result, u256.U1)
 	return result
 }
 
-func calcQuoteFlowPrice(price, liq, flow *big.Int, isBuy bool) *big.Int {
-	invPrice := RecipQ64(price)
+func calcQuoteFlowPrice(price, liq, flow uint256.Int, isBuy bool) uint256.Int {
+	var invPrice uint256.Int
+	RecipQ64(&invPrice, &price)
 	invNext := calcBaseFlowPrice(invPrice, liq, flow, !isBuy)
-	if invNext.Sign() == 0 {
-		return new(big.Int).Set(MaxSqrtRatio)
+	if invNext.IsZero() {
+		return uMaxSqrtRatio
 	}
-	result := RecipQ64(invNext)
-	result.Add(result, bignum.One)
+	var result uint256.Int
+	RecipQ64(&result, &invNext)
+	result.Add(&result, u256.U1)
 	return result
 }
 
-func signFlow(flowMagn, counterMagn *big.Int, inBaseQty, isBuy bool) (flow, counter *big.Int) {
+// signFlow applies sign to (flowMagn, counterMagn) based on direction, then adds
+// roundPrecisionWei to the counter to buffer rounding.
+func signFlow(flowMagn, counterMagn uint256.Int, inBaseQty, isBuy bool) (flow, counter uint256.Int) {
 	flow, counter = signMagn(flowMagn, counterMagn, inBaseQty, isBuy)
-	counter.Add(counter, roundPrecisionWei)
+	counter.Add(&counter, roundPrecisionWei)
 	return
 }
 
-func signFixed(flowMagn, counterMagn *big.Int, inBaseQty, isBuy bool) (flow, counter *big.Int) {
+func signFixed(flowMagn, counterMagn uint256.Int, inBaseQty, isBuy bool) (flow, counter uint256.Int) {
 	flow, counter = signMagn(flowMagn, counterMagn, inBaseQty, isBuy)
-	flow.Add(flow, roundPrecisionWei)
-	counter.Add(counter, roundPrecisionWei)
+	flow.Add(&flow, roundPrecisionWei)
+	counter.Add(&counter, roundPrecisionWei)
 	return
 }
 
-func signMagn(flowMagn, counterMagn *big.Int, inBaseQty, isBuy bool) (flow, counter *big.Int) {
+// signMagn assigns signs: the "paid" direction is positive, the "received" direction is negative.
+func signMagn(flowMagn, counterMagn uint256.Int, inBaseQty, isBuy bool) (flow, counter uint256.Int) {
 	if inBaseQty == isBuy {
-		flow = new(big.Int).Set(flowMagn)
-		counter = new(big.Int).Neg(counterMagn)
+		// flow is positive (user pays), counter is negative (user receives)
+		flow.Set(&flowMagn)
+		counter.Neg(&counterMagn)
 	} else {
-		flow = new(big.Int).Neg(flowMagn)
-		counter = new(big.Int).Set(counterMagn)
+		// flow is negative (user receives), counter is positive (user pays)
+		flow.Neg(&flowMagn)
+		counter.Set(&counterMagn)
 	}
 	return
 }
 
-func setCurvePos(curve *CurveState, inBaseQty, isBuy bool, swapQty, price, paidFlow, paidCounter *big.Int) (paidBase, paidQuote, qtyLeft *big.Int) {
+func setCurvePos(curve *CurveState, inBaseQty, isBuy bool, swapQty, price uint256.Int, paidFlow, paidCounter uint256.Int) (paidBase, paidQuote uint256.Int, qtyLeft uint256.Int) {
 	spent := flowToSpent(paidFlow, inBaseQty, isBuy)
-	if spent.Cmp(swapQty) >= 0 {
-		qtyLeft = new(big.Int)
-	} else {
-		qtyLeft = new(big.Int).Sub(swapQty, spent)
+	if spent.Cmp(&swapQty) < 0 {
+		qtyLeft.Sub(&swapQty, &spent)
 	}
 	if inBaseQty {
 		paidBase, paidQuote = paidFlow, paidCounter
 	} else {
 		paidBase, paidQuote = paidCounter, paidFlow
 	}
-	curve.PriceRoot = new(big.Int).Set(price)
+	curve.PriceRoot.Set(&price)
 	return
 }
 
-func flowToSpent(paidFlow *big.Int, inBaseQty, isBuy bool) *big.Int {
-	if inBaseQty == isBuy {
+func flowToSpent(paidFlow uint256.Int, inBaseQty, isBuy bool) uint256.Int {
+	// The "spent" side is whichever flow is positive (user pays).
+	if (inBaseQty == isBuy) == (paidFlow.Sign() > 0) {
+		var abs uint256.Int
 		if paidFlow.Sign() < 0 {
-			return new(big.Int)
+			abs.Neg(&paidFlow)
+		} else {
+			abs.Set(&paidFlow)
 		}
-		return paidFlow
+		return abs
 	}
-	spent := new(big.Int).Neg(paidFlow)
-	if spent.Sign() < 0 {
-		return new(big.Int)
-	}
-	return spent
+	return uint256.Int{}
 }
 
-func PriceToTokenPrecision(liq, price *big.Int, inBase bool) *big.Int {
+// PriceToTokenPrecision computes the minimum token precision buffer at the current price/liq.
+func PriceToTokenPrecision(dst, liq, price *uint256.Int, inBase bool) *uint256.Int {
 	if inBase {
-		result := new(big.Int).Rsh(liq, 64)
-		result.Add(result, bignum.One)
-		return result
+		dst.Rsh(liq, 64)
+		return dst.Add(dst, u256.U1)
 	}
-	priceMinus1 := new(big.Int).Sub(price, bignum.One)
-	step := DivQ64(liq, priceMinus1)
-	start := DivQ64(liq, price)
-	delta := new(big.Int).Sub(step, start)
-	delta.Add(delta, bignum.One)
-	return delta
+	var priceMinus1, step, start uint256.Int
+	priceMinus1.Sub(price, u256.U1)
+	DivQ64(&step, liq, &priceMinus1)
+	DivQ64(&start, liq, price)
+	dst.Sub(&step, &start)
+	return dst.Add(dst, u256.U1)
 }
 
-// ErrShaveBurnDown mirrors Solidity's require(swapLeft > burnDown).
-// In practice unreachable; kept as error (not panic) for safety.
 var ErrShaveBurnDown = errors.New("shave-at-bump: swapLeft <= burnDown")
 
-func ShaveAtBump(curve *CurveState, inBaseQty, isBuy bool, swapLeft *big.Int) (paidBase, paidQuote, burnSwap *big.Int, err error) {
-	liq := ActiveLiquidity(curve)
-	burnDown := PriceToTokenPrecision(liq, curve.PriceRoot, inBaseQty)
-	if swapLeft.Cmp(burnDown) <= 0 {
-		return nil, nil, nil, ErrShaveBurnDown
+func ShaveAtBump(curve *CurveState, inBaseQty, isBuy bool, swapLeft uint256.Int) (paidBase, paidQuote uint256.Int, burnSwap uint256.Int, err error) {
+	var liq uint256.Int
+	ActiveLiquidity(&liq, curve)
+	var burnDown uint256.Int
+	PriceToTokenPrecision(&burnDown, &liq, &curve.PriceRoot, inBaseQty)
+	if !swapLeft.Gt(&burnDown) {
+		return paidBase, paidQuote, burnSwap, ErrShaveBurnDown
 	}
 	if isBuy {
 		paidBase, paidQuote, burnSwap = setShaveUp(curve, inBaseQty, burnDown)
-		return paidBase, paidQuote, burnSwap, nil
+	} else {
+		paidBase, paidQuote, burnSwap = setShaveDown(curve, inBaseQty, burnDown)
 	}
-	paidBase, paidQuote, burnSwap = setShaveDown(curve, inBaseQty, burnDown)
 	return paidBase, paidQuote, burnSwap, nil
 }
 
-func setShaveDown(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBase, paidQuote, burnSwap *big.Int) {
-	if curve.PriceRoot.Cmp(MinSqrtRatio) > 0 {
-		curve.PriceRoot = new(big.Int).Sub(curve.PriceRoot, bignum.One)
+func setShaveDown(curve *CurveState, inBaseQty bool, burnDown uint256.Int) (paidBase, paidQuote uint256.Int, burnSwap uint256.Int) {
+	if curve.PriceRoot.Gt(&uMinSqrtRatio) {
+		curve.PriceRoot.Sub(&curve.PriceRoot, u256.U1)
 	}
-	paidBase = new(big.Int)
-	paidQuote = new(big.Int).Set(burnDown)
-	if inBaseQty {
-		burnSwap = new(big.Int)
-	} else {
-		burnSwap = new(big.Int).Set(burnDown)
+	// paidBase = 0 (zero value), paidQuote = burnDown
+	paidQuote.Set(&burnDown)
+	if !inBaseQty {
+		burnSwap = burnDown
 	}
 	return
 }
 
-func setShaveUp(curve *CurveState, inBaseQty bool, burnDown *big.Int) (paidBase, paidQuote, burnSwap *big.Int) {
-	if curve.PriceRoot.Cmp(MaxSqrtRatioMinus1) < 0 {
-		curve.PriceRoot = new(big.Int).Add(curve.PriceRoot, bignum.One)
+func setShaveUp(curve *CurveState, inBaseQty bool, burnDown uint256.Int) (paidBase, paidQuote uint256.Int, burnSwap uint256.Int) {
+	if curve.PriceRoot.Lt(&uMaxSqrtRatioMinus1) {
+		curve.PriceRoot.Add(&curve.PriceRoot, u256.U1)
 	}
-	paidQuote = new(big.Int)
-	paidBase = new(big.Int).Set(burnDown)
+	// paidQuote = 0 (zero value), paidBase = burnDown
+	paidBase.Set(&burnDown)
 	if inBaseQty {
-		burnSwap = new(big.Int).Set(burnDown)
-	} else {
-		burnSwap = new(big.Int)
+		burnSwap = burnDown
 	}
 	return
+}
+
+// FlowToBig converts a signed two's-complement uint256 to *big.Int.
+// f is passed by value so &f is a safe local pointer for big256.ToBig.
+func FlowToBig(f uint256.Int) *big.Int {
+	return u256.ToBig(&f)
 }

@@ -3,11 +3,7 @@ package unipool
 const (
 	DexType = "unipool"
 
-	// defaultGas is a conservative placeholder for routing cost estimation.
-	// Realistic mainnet measurements suggest 100-140k for a clean swap; we keep
-	// 150k as a safe upper bound. TODO: refine empirically once Unipool is
-	// deployed (forge test --gas-report on /test or measured swaps on-chain).
-	defaultGas = 150_000
+	defaultGas = 217659
 
 	bpsDivisor = 10_000
 

@@ -74,12 +74,12 @@ func (t *PoolTracker) getNewPoolState(
 	log.Ctx(ctx).Info().Str("pool", p.Address).Msg("getting new state")
 	defer log.Ctx(ctx).Info().Str("pool", p.Address).Msg("finished getting new state")
 
-	state, err := fetchRPCState(ctx, &p, t.config, t.ethrpcClient, overrides)
+	state, err := fetchRPCState(ctx, p.Address, t.config.ChainID, t.ethrpcClient, overrides)
 	if err != nil {
 		return p, err
 	}
 
-	_, err = buildEntityPool(&p, t.config, state)
+	_, err = buildEntityPool(&p, state)
 	return p, err
 }
 

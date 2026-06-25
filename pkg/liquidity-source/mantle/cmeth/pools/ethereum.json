@@ -1,0 +1,22 @@
+{
+  "teller": "0xB6f7D38e3EAbB8f69210AFc2212fe82e0f1912b0",
+  "accountant": "0x6049Bd892F14669a4466e46981ecEd75D610a2eC",
+  "base": "0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa",
+  "decimals": 18,
+  "tokens": [
+    {
+      "address": "0xE6829d9a7eE3040e1276Fa75293Bde931859e8fA",
+      "symbol": "cmETH",
+      "name": "Mantle Restaked ETH",
+      "decimals": 18,
+      "swappable": true
+    },
+    {
+      "address": "0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa",
+      "symbol": "mETH",
+      "name": "Mantle Staked Ether",
+      "decimals": 18,
+      "swappable": true
+    }
+  ]
+}
