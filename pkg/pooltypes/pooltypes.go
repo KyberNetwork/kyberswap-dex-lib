@@ -82,6 +82,7 @@ import (
 	hiddenocean "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hidden-ocean"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyperamm"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
@@ -373,6 +374,7 @@ type Types struct {
 	ERC4626                    string
 	HiddenOcean                string
 	HyETH                      string
+	HyperAMM                   string
 	MimSwap                    string
 	Mooniswap                  string
 	InfinityPools              string
@@ -553,27 +555,27 @@ var (
 		Slipstream:                 slipstream.DexType,
 		NuriV2:                     nuriv2.DexType,
 		EtherVista:                 ethervista.DexType,
-		MkrSky:            mkrsky.DexType,
-		DaiUsds:           daiusds.DexType,
-		UsdAi:             usd_ai.DexType,
-		Ambient:           ambient.DexType,
-		MaverickV2:        maverickv2.DexType,
-		LitePSM:           litepsm.DexTypeLitePSM,
-		Usd0PP:            usd0pp.DexType,
-		GenericSimpleRate: genericsimplerate.DexType,
-		RingSwap:          ringswap.DexType,
-		PrimeETH:          primeeth.DexType,
-		CaliberProp:       caliberprop.DexType,
-		StaderETHx:        staderethx.DexType,
-		Feltir:            feltir.DexType,
-		FluidVaultT1:      fluidVaultT1.DexType,
-		FluidDexT1:        fluidDexT1.DexType,
-		FluidDexLite:      fluidDexLite.DexType,
-		CmETH:             cmeth.DexType,
-		MantleETH:         meth.DexType,
-		OndoUSDY:          ondousdy.DexType,
-		Baseline:          baseline.DexType,
-		Clear:             clear.DexType,
+		MkrSky:                     mkrsky.DexType,
+		DaiUsds:                    daiusds.DexType,
+		UsdAi:                      usd_ai.DexType,
+		Ambient:                    ambient.DexType,
+		MaverickV2:                 maverickv2.DexType,
+		LitePSM:                    litepsm.DexTypeLitePSM,
+		Usd0PP:                     usd0pp.DexType,
+		GenericSimpleRate:          genericsimplerate.DexType,
+		RingSwap:                   ringswap.DexType,
+		PrimeETH:                   primeeth.DexType,
+		CaliberProp:                caliberprop.DexType,
+		StaderETHx:                 staderethx.DexType,
+		Feltir:                     feltir.DexType,
+		FluidVaultT1:               fluidVaultT1.DexType,
+		FluidDexT1:                 fluidDexT1.DexType,
+		FluidDexLite:               fluidDexLite.DexType,
+		CmETH:                      cmeth.DexType,
+		MantleETH:                  meth.DexType,
+		OndoUSDY:                   ondousdy.DexType,
+		Baseline:                   baseline.DexType,
+		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
 		SfrxETH:                    sfrxeth.DexType,
@@ -596,6 +598,7 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
+		HyperAMM:                   hyperamm.DexType,
 		MimSwap:                    mimswap.DexType,
 		Mooniswap:                  mooniswap.DexType,
 		InfinityPools:              infinitypools.DexType,

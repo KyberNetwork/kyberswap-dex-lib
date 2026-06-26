@@ -17,7 +17,7 @@ const (
 	methodBatchQuote      = "batchQuote"
 	methodQuote           = "quote"
 
-	defaultGas = 250000
+	defaultGas = 121632
 )
 
 var (
