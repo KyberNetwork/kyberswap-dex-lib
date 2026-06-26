@@ -47,6 +47,14 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	var oracleAddress common.Address
+	req.AddCall(&ethrpc.Call{
+		ABI:    clearSwapABI,
+		Target: d.config.SwapAddress,
+		Method: methodOracle,
+		Params: []any{},
+	}, []any{&oracleAddress})
+
 	poolAddr := common.HexToAddress(p.Address)
 	tokens := lo.Map(p.Tokens, func(token *entity.PoolToken, _ int) common.Address {
 		return common.HexToAddress(token.Address)
@@ -104,7 +112,8 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 	}
 	extra := Extra{
-		SwapAddress: d.config.SwapAddress,
+		SwapAddress:   d.config.SwapAddress,
+		OracleAddress: oracleAddress.String(),
 		IOUs: lo.Map(iouTokens,
 			func(iouToken common.Address, _ int) string { return hexutil.Encode(iouToken[:]) }),
 		Rates: rates,

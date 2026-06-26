@@ -2,30 +2,22 @@ package ambient
 
 import (
 	"math"
-	"math/big"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
 )
 
-// int24 sentinels used by Bitmaps.zeroTick() as "zero horizon" bump ticks.
 const (
 	TickInfinityUpper int32 = (1 << 23) - 1
 	TickInfinityLower int32 = -(1 << 23)
 )
 
-// BitmapView is the read surface SweepSwap needs. Mirrors CrocImpact.sol.
+// BitmapView is the read surface SweepSwap needs.
 type BitmapView interface {
-	// PinBitmap returns the next bump tick in the local mezz of startTick;
-	// spillsOver when no bit is found locally.
 	PinBitmap(isBuy bool, startTick int32) (bumpTick int32, spillsOver bool)
-	// SeekMezzSpill returns the next active tick across the whole bitmap,
-	// falling back to zeroTick(isBuy).
 	SeekMezzSpill(borderTick int32, isBuy bool) int32
-	// QueryLevel returns (bidLots, askLots) at tick; zeros if none.
-	QueryLevel(tick int32) (bidLots, askLots *big.Int)
+	QueryLevel(tick int32) (bidLots, askLots uint256.Int)
 }
 
-// EmptyBitmapView is the zero-liquidity implementation of BitmapView.
 type EmptyBitmapView struct{}
 
 func (EmptyBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
@@ -33,24 +25,21 @@ func (EmptyBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
 	return spillOverPin(isBuy, mezz), true
 }
 
-func (EmptyBitmapView) SeekMezzSpill(borderTick int32, isBuy bool) int32 {
+func (EmptyBitmapView) SeekMezzSpill(_ int32, isBuy bool) int32 {
 	return zeroTick(isBuy)
 }
 
-func (EmptyBitmapView) QueryLevel(tick int32) (*big.Int, *big.Int) {
-	return bignum.ZeroBI, bignum.ZeroBI
+func (EmptyBitmapView) QueryLevel(_ int32) (uint256.Int, uint256.Int) {
+	return uint256.Int{}, uint256.Int{}
 }
 
-// spillOverPin mirrors Bitmaps.spillOverPin: next mezz bucket in swap direction.
 func spillOverPin(isBuy bool, tickMezz int16) int32 {
 	if isBuy {
 		if tickMezz == math.MaxInt16 {
 			return zeroTick(true)
 		}
-		// weldMezzTerm(tickMezz+1, zeroTerm(!isBuy)=0)
 		return int32(tickMezz+1) << 8
 	}
-	// weldMezzTerm(tickMezz, 0)
 	return int32(tickMezz) << 8
 }
 
@@ -65,9 +54,6 @@ func isTickFinite(tick int32) bool {
 	return tick > TickInfinityLower && tick < TickInfinityUpper
 }
 
-// SweepSwap mirrors CrocImpact.sol sweepSwap: repeatedly SwapToLimit to the
-// next bump tick until swap exhausts or hits limit price; fees accumulate
-// segment-by-segment.
 func SweepSwap(
 	curve *CurveState,
 	swap *SwapDirective,
@@ -76,11 +62,10 @@ func SweepSwap(
 ) (*SwapAccum, error) {
 	accum := NewSwapAccum()
 
-	// Solidity short-circuit: already past limit → zero flow.
-	if swap.IsBuy && curve.PriceRoot.Cmp(swap.LimitPrice) >= 0 {
+	if swap.IsBuy && curve.PriceRoot.Cmp(&swap.LimitPrice) >= 0 {
 		return accum, nil
 	}
-	if !swap.IsBuy && curve.PriceRoot.Cmp(swap.LimitPrice) <= 0 {
+	if !swap.IsBuy && curve.PriceRoot.Cmp(&swap.LimitPrice) <= 0 {
 		return accum, nil
 	}
 
@@ -133,21 +118,18 @@ func SweepSwap(
 	return accum, nil
 }
 
-// sweepTrace is an optional debug callback for tests; nil disables tracing.
 var sweepTrace func(label string, tick int32, swap *SwapDirective, curve *CurveState)
 
 func hasSwapLeft(curve *CurveState, swap *SwapDirective) bool {
 	var inLimit bool
 	if swap.IsBuy {
-		inLimit = curve.PriceRoot.Cmp(swap.LimitPrice) < 0
+		inLimit = curve.PriceRoot.Lt(&swap.LimitPrice)
 	} else {
-		inLimit = curve.PriceRoot.Cmp(swap.LimitPrice) > 0
+		inLimit = curve.PriceRoot.Gt(&swap.LimitPrice)
 	}
-	return inLimit && swap.Qty.Sign() > 0
+	return inLimit && !swap.Qty.IsZero()
 }
 
-// adjTickLiq mirrors CrocImpact.sol adjTickLiq: on bump crossing, update
-// concLiq, shave one unit of precision, and return new midTick.
 func adjTickLiq(
 	accum *SwapAccum,
 	bumpTick int32,
@@ -164,23 +146,45 @@ func adjTickLiq(
 	if !swap.IsBuy {
 		crossedLots = bidLots
 	}
-	if HasKnockoutLiq(crossedLots) {
+	if HasKnockoutLiq(&crossedLots) {
 		accum.KnockoutCrossLoops++
 	}
 
-	// liqDelta = (int128(bid) - int128(ask)) * LOT_SIZE, negated on sell side.
-	liqDelta := new(big.Int).Sub(LotsToLiquidity(bidLots), LotsToLiquidity(askLots))
-	if !swap.IsBuy {
-		liqDelta.Neg(liqDelta)
+	// Apply liqDelta = (bidLiq - askLiq) * sign to ConcLiq (uint256 two's complement int128).
+	var bidLiq, askLiq uint256.Int
+	LotsToLiquidity(&bidLiq, &bidLots)
+	LotsToLiquidity(&askLiq, &askLots)
+
+	if swap.IsBuy {
+		// delta = bidLiq - askLiq
+		if bidLiq.Cmp(&askLiq) >= 0 {
+			var diff uint256.Int
+			diff.Sub(&bidLiq, &askLiq)
+			curve.ConcLiq.Add(&curve.ConcLiq, &diff)
+		} else {
+			var diff uint256.Int
+			diff.Sub(&askLiq, &bidLiq)
+			curve.ConcLiq.Sub(&curve.ConcLiq, &diff)
+		}
+	} else {
+		// delta = -(bidLiq - askLiq) = askLiq - bidLiq
+		if askLiq.Cmp(&bidLiq) >= 0 {
+			var diff uint256.Int
+			diff.Sub(&askLiq, &bidLiq)
+			curve.ConcLiq.Add(&curve.ConcLiq, &diff)
+		} else {
+			var diff uint256.Int
+			diff.Sub(&bidLiq, &askLiq)
+			curve.ConcLiq.Sub(&curve.ConcLiq, &diff)
+		}
 	}
-	curve.ConcLiq = liqDelta.Add(curve.ConcLiq, liqDelta)
 
 	paidBase, paidQuote, burnSwap, err := ShaveAtBump(curve, swap.InBaseQty, swap.IsBuy, swap.Qty)
 	if err != nil {
 		return 0, err
 	}
-	accum.Accumulate(paidBase, paidQuote, bignum.ZeroBI)
-	swap.Qty.Sub(swap.Qty, burnSwap)
+	accum.Accumulate(paidBase, paidQuote, uint256.Int{})
+	swap.Qty.Sub(&swap.Qty, &burnSwap)
 	accum.CrossInitTickLoops++
 
 	if swap.IsBuy {

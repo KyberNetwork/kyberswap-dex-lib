@@ -118,6 +118,7 @@ func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		BlockNumber: p.Info.BlockNumber,
+		DAOSettings: RocketDAOProtocolSettingsDeposit,
 	}
 }
 

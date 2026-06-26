@@ -7,21 +7,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
 )
 
-// mask96 is (1 << 96) - 1 — used to extract 96-bit lot fields from a uint256
-// storage slot. Hoisted so QueryLevel doesn't allocate on each call.
-var mask96 = func() *big.Int {
-	m := new(big.Int).Lsh(bignum.One, 96)
-	return m.Sub(m, bignum.One)
-}()
-
-// ChainBitmapView reads CrocSwapDex storage (mezzanine/terminus/levels) at a
-// pinned block; mirrors CrocImpact.sol pinBitmap/seekMezzSpill/queryLevel.
-// readSlot errors are captured and surfaced via Err(); later reads
-// short-circuit so the caller must check Err() after SweepSwap.
+// ChainBitmapView reads CrocSwapDex storage at a pinned block.
+// readSlot errors are captured; callers must check Err() after SweepSwap.
 type ChainBitmapView struct {
 	Ctx      context.Context
 	Client   *ethclient.Client
@@ -32,7 +22,6 @@ type ChainBitmapView struct {
 	err error
 }
 
-// Err returns the first readSlot error encountered, or nil if none.
 func (v *ChainBitmapView) Err() error { return v.err }
 
 func (v *ChainBitmapView) readSlot(slot common.Hash) *big.Int {
@@ -55,7 +44,6 @@ func (v *ChainBitmapView) ctx() context.Context {
 	return context.Background()
 }
 
-// PinBitmap mirrors CrocImpact.sol pinBitmap → pinTermMezz.
 func (v *ChainBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
 	termBitmap := v.readSlot(TerminusSlot(v.PoolHash, startTick))
 	shiftTerm := uint(TermBump(startTick, isBuy))
@@ -69,8 +57,6 @@ func (v *ChainBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
 	return WeldMezzTerm(tickMezz, nextTerm), false
 }
 
-// doesSpillBit mirrors CrocImpact.sol: sell-side bit 0 already set means
-// we're AT a bump, so don't spill.
 func doesSpillBit(isBuy bool, spillTrunc bool, termBitmap *big.Int) bool {
 	if isBuy {
 		return spillTrunc
@@ -81,7 +67,6 @@ func doesSpillBit(isBuy bool, spillTrunc bool, termBitmap *big.Int) bool {
 	return spillTrunc
 }
 
-// chainSpillOverPin mirrors CrocImpact.sol spillOverPin.
 func chainSpillOverPin(isBuy bool, tickMezz int16) int32 {
 	if isBuy {
 		if tickMezz == math.MaxInt16 {
@@ -99,8 +84,6 @@ func zeroTerm(isUpper bool) uint8 {
 	return 0
 }
 
-// SeekMezzSpill mirrors CrocImpact.sol seekMezzSpill → seekAtTerm/seekAtMezz/
-// seekOverLobby.
 func (v *ChainBitmapView) SeekMezzSpill(borderTick int32, isBuy bool) int32 {
 	lobbyBorder, mezzBorder := rootsForBorder(borderTick, isBuy)
 
@@ -139,7 +122,6 @@ func (v *ChainBitmapView) seekAtMezz(lobbyBit, mezzBorder uint8, isBuy bool) (in
 
 func (v *ChainBitmapView) seekOverLobby(lobbyBit uint8, isBuy bool) int32 {
 	if isBuy {
-		// Walk up through adjacent lobby words; wrap-around terminates.
 		for i := uint16(lobbyBit) + 1; i < 256; i++ {
 			if pin, ok := v.seekAtMezz(uint8(i), 0, true); ok {
 				return pin
@@ -147,7 +129,6 @@ func (v *ChainBitmapView) seekOverLobby(lobbyBit uint8, isBuy bool) int32 {
 		}
 		return zeroTick(true)
 	}
-	// sell: walk down through adjacent lobby words.
 	for i := int16(lobbyBit) - 1; i >= 0; i-- {
 		if pin, ok := v.seekAtMezz(uint8(i), 255, false); ok {
 			return pin
@@ -156,7 +137,6 @@ func (v *ChainBitmapView) seekOverLobby(lobbyBit uint8, isBuy bool) int32 {
 	return zeroTick(false)
 }
 
-// rootsForBorder mirrors CrocImpact.sol rootsForBorder.
 func rootsForBorder(borderTick int32, isBuy bool) (lobbyBit, mezzBit uint8) {
 	pinTick := borderTick
 	if !isBuy {
@@ -172,10 +152,15 @@ func weldLobbyPosMezzTerm(lobbyWord, mezzBit, termBit uint8) int32 {
 }
 
 // QueryLevel reads (bidLots, askLots) from levels_[poolHash, tick].
-// Layout: bidLots = bits [0,95], askLots = bits [96,191].
-func (v *ChainBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) {
+func (v *ChainBitmapView) QueryLevel(tick int32) (bidLots, askLots uint256.Int) {
 	val := v.readSlot(LevelSlot(v.PoolHash, tick))
-	bidLots = new(big.Int).And(val, mask96)
-	askLots = new(big.Int).And(new(big.Int).Rsh(val, 96), mask96)
+	var valU uint256.Int
+	var buf [32]byte
+	val.FillBytes(buf[:])
+	valU.SetBytes(buf[:])
+	bidLots.And(&valU, maskU96)
+	var tmp uint256.Int
+	tmp.Rsh(&valU, 96)
+	askLots.And(&tmp, maskU96)
 	return
 }

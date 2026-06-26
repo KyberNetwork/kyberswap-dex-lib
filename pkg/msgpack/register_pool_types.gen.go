@@ -36,6 +36,7 @@ import (
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_brownfi_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
 	pkg_liquiditysource_brownfi_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v3"
+	pkg_liquiditysource_caliberprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/caliberprop"
 	pkg_liquiditysource_canonic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	pkg_liquiditysource_cap_cusd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	pkg_liquiditysource_capricornpamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/capricorn-pamm"
@@ -105,6 +106,7 @@ import (
 	pkg_liquiditysource_lunarbase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	pkg_liquiditysource_maker_skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
+	pkg_liquiditysource_mantle_cmeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/cmeth"
 	pkg_liquiditysource_mantle_meth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	pkg_liquiditysource_maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
 	pkg_liquiditysource_maverick_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
@@ -273,6 +275,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v3.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_caliberprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_canonic.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cap_cusd.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_capricornpamm.PoolSimulator{})
@@ -342,6 +345,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunarbase.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_skypsm.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_cmeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_meth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maplesyrup.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maverick_v1.PoolSimulator{})

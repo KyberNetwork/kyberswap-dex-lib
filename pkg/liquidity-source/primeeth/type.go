@@ -4,6 +4,8 @@ import "math/big"
 
 type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
+	DepositPool string `json:"depositPool"`
+	WETH        string `json:"weth"`
 }
 
 type PoolExtra struct {

@@ -204,7 +204,13 @@ func (s *TimepointStorage) getAverageVolatility(currentTime uint32, tick int32,
 			oldestTimestamp, cumulativeVolatilityAtStart = windowStart.BlockTimestamp, windowStart.VolatilityCumulative
 			timeDeltaBetweenPoints := windowStartPlus1.BlockTimestamp - oldestTimestamp
 
-			var tmp uint256.Int
+			var (
+				tmp              uint256.Int
+				windowDelta      uint256.Int
+				timeDeltaUint256 uint256.Int
+			)
+			windowDelta.SetUint64(uint64(currentTime - WINDOW - oldestTimestamp))
+			timeDeltaUint256.SetUint64(uint64(timeDeltaBetweenPoints))
 			cumulativeVolatilityAtStart = tmp.Add(
 				cumulativeVolatilityAtStart,
 				tmp.Div(
@@ -213,9 +219,9 @@ func (s *TimepointStorage) getAverageVolatility(currentTime uint32, tick int32,
 							windowStartPlus1.VolatilityCumulative,
 							cumulativeVolatilityAtStart,
 						),
-						uint256.NewInt(uint64(currentTime-WINDOW-oldestTimestamp)),
+						&windowDelta,
 					),
-					uint256.NewInt(uint64(timeDeltaBetweenPoints)),
+					&timeDeltaUint256,
 				),
 			)
 		} else {
@@ -226,9 +232,11 @@ func (s *TimepointStorage) getAverageVolatility(currentTime uint32, tick int32,
 			}
 		}
 
+		var window uint256.Int
+		window.SetUint64(uint64(WINDOW))
 		return cumulativeVolatilityAtStart.Div(
 			cumulativeVolatilityAtStart.Sub(lastCumulativeVolatility, cumulativeVolatilityAtStart),
-			uint256.NewInt(uint64(WINDOW)),
+			&window,
 		), nil
 
 	} else if currentTime != oldestTimestamp {
@@ -238,10 +246,14 @@ func (s *TimepointStorage) getAverageVolatility(currentTime uint32, tick int32,
 			unbiasedDenominator--
 		}
 
-		var tmp uint256.Int
+		var (
+			tmp                  uint256.Int
+			unbiasedDenominatorU uint256.Int
+		)
+		unbiasedDenominatorU.SetUint64(uint64(unbiasedDenominator))
 		return tmp.Div(
 			tmp.Sub(lastCumulativeVolatility, oldestVolatilityCumulative),
-			uint256.NewInt(uint64(unbiasedDenominator)),
+			&unbiasedDenominatorU,
 		), nil
 	}
 
@@ -282,7 +294,13 @@ func (s *TimepointStorage) getVolatilityCumulativeAt(time, secondsAgo uint32, ti
 
 	timepointTimeDelta, targetDelta := timestampAfter-timestampBefore, target-timestampBefore
 
-	var ret uint256.Int
+	var (
+		ret                 uint256.Int
+		timepointTimeDeltaU uint256.Int
+		targetDeltaU        uint256.Int
+	)
+	timepointTimeDeltaU.SetUint64(uint64(timepointTimeDelta))
+	targetDeltaU.SetUint64(uint64(targetDelta))
 	return ret.Add(
 		volatilityCumulativeBefore,
 		ret.Mul(
@@ -291,9 +309,9 @@ func (s *TimepointStorage) getVolatilityCumulativeAt(time, secondsAgo uint32, ti
 					volatilityCumulativeAfter,
 					volatilityCumulativeBefore,
 				),
-				uint256.NewInt(uint64(timepointTimeDelta)),
+				&timepointTimeDeltaU,
 			),
-			uint256.NewInt(uint64(targetDelta)),
+			&targetDeltaU,
 		),
 	), nil
 }
@@ -332,11 +350,12 @@ func volatilityOnRange(dt uint32, tick0, tick1, avgTick0, avgTick1 int32) *uint2
 	var tmp uint256.Int
 
 	// sumOfSquares = sumOfSequence * (2 * dt + 1)
-	sumOfSquares := uint256.NewInt(sumOfSequence)
-	sumOfSquares.Mul(sumOfSquares, tmp.SetUint64(2*uint64(dt)+1))
+	var sumOfSquares uint256.Int
+	sumOfSquares.SetUint64(sumOfSequence)
+	sumOfSquares.Mul(&sumOfSquares, tmp.SetUint64(2*uint64(dt)+1))
 
 	// k^2 * sumOfSquares
-	term1 := sumOfSquares.Mul(tmp.SetUint64(uint64(k*k)), sumOfSquares)
+	term1 := sumOfSquares.Mul(tmp.SetUint64(uint64(k*k)), &sumOfSquares)
 
 	// 6 * b * k * sumOfSequence
 	term2, tmp2 := big256.NewI(6*k), big256.NewI(b)
@@ -433,8 +452,9 @@ func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceCh
 	}
 	priceChangeRatio := priceRatioSquared.Sub(priceRatioSquared, FEE_FACTOR_MULTIPLIER)
 
-	factor := uint256.NewInt(uint64(priceChangeFactor))
-	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, factor).Div(priceChangeRatio, FACTOR_DENOMINATOR)
+	var factor uint256.Int
+	factor.SetUint64(uint64(priceChangeFactor))
+	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, &factor).Div(priceChangeRatio, FACTOR_DENOMINATOR)
 
 	feeFactors := p.slidingFee
 	newZeroToOneFeeFactor := feeFactors.ZeroToOneFeeFactor.Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
@@ -472,11 +492,13 @@ func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool
 	if priceLower.Sign() < 0 {
 		return nil, ErrInvalidPriceLower
 	}
-	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
-	liquidityShifted := new(uint256.Int).Lsh(liquidity, RESOLUTION)
+	var priceDelta uint256.Int
+	priceDelta.Sub(priceUpper, priceLower)
+	var liquidityShifted uint256.Int
+	liquidityShifted.Lsh(liquidity, RESOLUTION)
 
 	if roundUp {
-		delta, err := v3Utils.MulDivRoundingUp(priceDelta, liquidityShifted, priceUpper)
+		delta, err := v3Utils.MulDivRoundingUp(&priceDelta, &liquidityShifted, priceUpper)
 		if err != nil {
 			return nil, err
 		}
@@ -485,7 +507,7 @@ func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool
 		return delta, nil
 	}
 
-	mulDivResult, overflow := priceDelta.MulDivOverflow(priceDelta, liquidityShifted, priceUpper)
+	mulDivResult, overflow := priceDelta.MulDivOverflow(&priceDelta, &liquidityShifted, priceUpper)
 	if overflow {
 		return nil, ErrOverflow
 	}
@@ -497,13 +519,14 @@ func getToken1Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool
 	if priceUpper.Cmp(priceLower) < 0 {
 		return nil, ErrInvalidPriceUpperLower
 	}
-	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
+	var priceDelta uint256.Int
+	priceDelta.Sub(priceUpper, priceLower)
 
 	if roundUp {
-		return v3Utils.MulDivRoundingUp(priceDelta, liquidity, Q96)
+		return v3Utils.MulDivRoundingUp(&priceDelta, liquidity, Q96)
 	}
 
-	token1Delta, overflow := priceDelta.MulDivOverflow(priceDelta, liquidity, Q96)
+	token1Delta, overflow := priceDelta.MulDivOverflow(&priceDelta, liquidity, Q96)
 	if overflow {
 		return nil, ErrOverflow
 	}
@@ -531,25 +554,27 @@ func getNewPrice(
 		return price.Clone(), nil
 	}
 
-	liquidityShifted := new(uint256.Int).Lsh(liquidity, RESOLUTION)
+	var liquidityShifted uint256.Int
+	liquidityShifted.Lsh(liquidity, RESOLUTION)
 
 	if zeroToOne == fromInput {
-		product, overflow := new(uint256.Int).MulOverflow(amount, price)
+		var product uint256.Int
+		_, overflow := product.MulOverflow(amount, price)
 		if overflow {
 			return nil, ErrOverflow
 		}
 
-		denominator := new(uint256.Int)
+		var denominator uint256.Int
 		if fromInput {
-			if denominator, overflow = denominator.AddOverflow(liquidityShifted, product); overflow {
+			if _, overflow = denominator.AddOverflow(&liquidityShifted, &product); overflow {
 				return nil, ErrOverflow
 			}
 		} else {
-			if denominator, overflow = denominator.SubOverflow(liquidityShifted, product); overflow {
+			if _, overflow = denominator.SubOverflow(&liquidityShifted, &product); overflow {
 				return nil, ErrUnderflow
 			}
 		}
-		resultPrice, err := v3Utils.MulDivRoundingUp(liquidityShifted, price, denominator)
+		resultPrice, err := v3Utils.MulDivRoundingUp(&liquidityShifted, price, &denominator)
 		if err != nil {
 			return nil, err
 		} else if resultPrice.BitLen() > 160 {
@@ -559,38 +584,38 @@ func getNewPrice(
 		return resultPrice, nil
 	} else {
 		if fromInput {
-			shiftedAmount := new(uint256.Int)
+			var shiftedAmount uint256.Int
 			if amount.BitLen() < 160 {
 				shiftedAmount.Lsh(amount, RESOLUTION)
-				shiftedAmount.Div(shiftedAmount, liquidity)
+				shiftedAmount.Div(&shiftedAmount, liquidity)
 			} else {
 				shiftedAmount.Lsh(uONE, RESOLUTION)
-				if _, overflow := shiftedAmount.MulDivOverflow(amount, shiftedAmount, liquidity); overflow {
+				if _, overflow := shiftedAmount.MulDivOverflow(amount, &shiftedAmount, liquidity); overflow {
 					return nil, ErrOverflow
 				}
 			}
 
-			resultPrice, overflow := shiftedAmount.AddOverflow(price, shiftedAmount)
+			resultPrice, overflow := shiftedAmount.AddOverflow(price, &shiftedAmount)
 			if overflow || resultPrice.BitLen() > 160 {
 				return nil, ErrOverflow
 			}
 			return resultPrice, nil
 		} else {
-			var (
-				shiftedAmount *uint256.Int
-				err           error
-			)
+			var shiftedAmount uint256.Int
 			if amount.BitLen() < 160 {
-				shiftedAmount = new(uint256.Int).Lsh(amount, RESOLUTION)
-				v3Utils.DivRoundingUp(shiftedAmount, liquidity, shiftedAmount)
+				shiftedAmount.Lsh(amount, RESOLUTION)
+				v3Utils.DivRoundingUp(&shiftedAmount, liquidity, &shiftedAmount)
 			} else {
-				shiftedAmount, err = v3Utils.MulDivRoundingUp(amount, new(uint256.Int).Lsh(uONE, RESOLUTION), liquidity)
-				if err != nil {
-					return nil, err
+				var oneShifted uint256.Int
+				oneShifted.Lsh(uONE, RESOLUTION)
+				shiftedAmountPtr, mulDivErr := v3Utils.MulDivRoundingUp(amount, &oneShifted, liquidity)
+				if mulDivErr != nil {
+					return nil, mulDivErr
 				}
+				shiftedAmount = *shiftedAmountPtr
 			}
 
-			resultPrice, overflow := shiftedAmount.SubOverflow(price, shiftedAmount)
+			resultPrice, overflow := shiftedAmount.SubOverflow(price, &shiftedAmount)
 			if overflow {
 				return nil, ErrUnderflow
 			} else if resultPrice.BitLen() > 160 {

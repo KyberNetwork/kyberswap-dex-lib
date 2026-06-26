@@ -23,6 +23,7 @@ var (
 )
 
 const (
+	tellerAddress                    = "0x6ee3aaccf9f2321e49063c4f8da775ddbd407268"
 	tellerMethodIsPaused             = "isPaused"
 	tellerMethodAssetData            = "assetData"
 	tellerMethodShareLockPeriod      = "shareLockPeriod"

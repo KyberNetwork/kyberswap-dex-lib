@@ -2,10 +2,6 @@ package lunarbase
 
 import "github.com/holiman/uint256"
 
-type Metadata struct {
-	Initialized bool `json:"initialized"`
-}
-
 // Extra is the per-pool state cached in the entity. JSON tags are kept short
 // to minimise on-disk size; semantics map to the on-chain `state()` view:
 //

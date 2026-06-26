@@ -18,6 +18,7 @@ type PoolSimulator struct {
 	pool.Pool
 	poolTimestamp int64
 	extra         Extra
+	staticExtra   StaticExtra
 	decimalsDiff  int
 }
 
@@ -36,6 +37,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  entityPool.Address,
@@ -48,6 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		poolTimestamp: entityPool.Timestamp,
 		extra:         extra,
+		staticExtra:   staticExtra,
 		decimalsDiff:  int(entityPool.Tokens[0].Decimals) - int(entityPool.Tokens[1].Decimals),
 	}, nil
 }
@@ -121,7 +128,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
-		SwapDirection: tokenIn == s.Info.Tokens[0],
+		SwapDirection:        tokenIn == s.Info.Tokens[0],
+		PriceProviderAddress: s.staticExtra.PriceProviderAddress,
 	}
 }
 

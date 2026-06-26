@@ -37,6 +37,7 @@ type StaticExtra struct {
 type PoolMeta struct {
 	BlockNumber     uint64 `json:"blockNumber"`
 	ApprovalAddress string `json:"approvalAddress"`
+	Teller          string `json:"teller"`
 }
 
 type Asset struct {

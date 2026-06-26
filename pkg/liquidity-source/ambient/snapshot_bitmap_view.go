@@ -1,19 +1,12 @@
 package ambient
 
 import (
-	"math/big"
 	"sort"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
 )
 
-// SnapshotBitmapView is an in-memory implementation of BitmapView backed by a
-// tracked pool snapshot. It avoids rebuilding the full on-chain bitmap words
-// while preserving the bump-selection behavior that SweepSwap needs.
-//
-// When MinTick/MaxTick are narrower than the full int24 range, the view
-// reports boundary-exceeded via BoundaryExceeded after any PinBitmap or
-// SeekMezzSpill call that would have returned a tick outside the window.
+// SnapshotBitmapView is an in-memory BitmapView backed by a tracked pool snapshot.
 type SnapshotBitmapView struct {
 	activeTicks      []int32
 	levels           map[int32]BookLevel
@@ -21,9 +14,6 @@ type SnapshotBitmapView struct {
 	boundaryExceeded bool
 }
 
-// NewSnapshotBitmapView builds a read-only view over state. Callers must not
-// mutate state.ActiveTicks or state.Levels for the lifetime of the view; the
-// view borrows them without copying.
 func NewSnapshotBitmapView(state *TrackerExtra) *SnapshotBitmapView {
 	levels := make(map[int32]BookLevel, len(state.Levels))
 	for _, level := range state.Levels {
@@ -45,9 +35,7 @@ func NewSnapshotBitmapView(state *TrackerExtra) *SnapshotBitmapView {
 	}
 }
 
-func (v *SnapshotBitmapView) BoundaryExceeded() bool {
-	return v.boundaryExceeded
-}
+func (v *SnapshotBitmapView) BoundaryExceeded() bool { return v.boundaryExceeded }
 
 func (v *SnapshotBitmapView) PinBitmap(isBuy bool, startTick int32) (int32, bool) {
 	tickMezz := MezzKey(startTick)
@@ -94,13 +82,11 @@ func (v *SnapshotBitmapView) SeekMezzSpill(borderTick int32, isBuy bool) int32 {
 	return zeroTick(false)
 }
 
-// QueryLevel returns bid/ask lots for tick. Callers must treat the returned
-// *big.Int as read-only; misses share bignum.ZeroBI, hits share the level's
-// own pointers.
-func (v *SnapshotBitmapView) QueryLevel(tick int32) (bidLots, askLots *big.Int) {
+// QueryLevel returns bidLots/askLots for tick as value copies (zero if tick absent).
+func (v *SnapshotBitmapView) QueryLevel(tick int32) (bidLots, askLots uint256.Int) {
 	level, ok := v.levels[tick]
 	if !ok {
-		return bignum.ZeroBI, bignum.ZeroBI
+		return
 	}
 	return level.BidLots, level.AskLots
 }

@@ -4,6 +4,7 @@ import (
 	doubleGeo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf/libs/double-geometric"
 	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf/shift-mode"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/math"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -183,10 +184,10 @@ func (d *DoubleGeometricDistribution) computeSwap(
 	if exactIn == zeroForOne {
 		success, roundedTick, err = doubleGeo.InverseCumulativeAmount0(d.tickSpacing, inverseCumulativeAmountInput, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -195,7 +196,7 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			cumulativeAmount0_, err = doubleGeo.CumulativeAmount0(d.tickSpacing, roundedTick, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -204,15 +205,15 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			cumulativeAmount1_, err = doubleGeo.CumulativeAmount1(d.tickSpacing, roundedTick-d.tickSpacing, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	} else {
 		success, roundedTick, err = doubleGeo.InverseCumulativeAmount1(d.tickSpacing, inverseCumulativeAmountInput, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -221,7 +222,7 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			cumulativeAmount1_, err = doubleGeo.CumulativeAmount1(d.tickSpacing, roundedTick, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -230,7 +231,7 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			cumulativeAmount0_, err = doubleGeo.CumulativeAmount0(d.tickSpacing, roundedTick+d.tickSpacing, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	}
 
@@ -246,7 +247,7 @@ func (d *DoubleGeometricDistribution) computeSwap(
 		weight1,
 	)
 	if err != nil {
-		return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+		return false, 0, u256.U0, u256.U0, u256.U0, err
 	}
 
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)
