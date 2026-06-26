@@ -713,13 +713,17 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	extraBytes, err := json.Marshal(Extra{
+	extra := Extra{
 		Liquidity:    rpcState.Liquidity,
 		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-		TickSpacing:  rpcState.TickSpacing.Uint64(),
 		Tick:         rpcState.Slot0.Tick,
 		Ticks:        entityPoolTicks,
-	})
+	}
+	if rpcState.TickSpacing != nil {
+		extra.TickSpacing = rpcState.TickSpacing.Uint64()
+	}
+
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
