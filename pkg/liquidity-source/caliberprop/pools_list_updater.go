@@ -83,7 +83,7 @@ func (l *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	metadataBytes = binary.BigEndian.AppendUint16(metadataBytes[:0], start+uint16(len(pairIds)))
-	return pools, nil, nil
+	return pools, metadataBytes, nil
 }
 
 func (l *PoolsListUpdater) fetchPairs(ctx context.Context, address common.Address,
