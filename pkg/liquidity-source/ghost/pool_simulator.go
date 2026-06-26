@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -60,8 +59,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	var reserve *uint256.Int
 	if ex.Reserve != nil {
-		r, _ := uint256.FromBig(ex.Reserve)
-		reserve = r
+		if r, overflow := uint256.FromBig(ex.Reserve); !overflow {
+			reserve = r
+		}
 	}
 
 	scaleNum := uint256.NewInt(1)
@@ -146,15 +146,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenIn,
 			Amount: fee.ToBig(),
 		},
-		Gas:      p.gas,
-		SwapInfo: SwapInfo{Amount: principal},
+		Gas: p.gas,
 	}, nil
 }
 
-// inverseFee solves for the principal such that principal + fee(principal) ≈ amountIn,
-// with at most 1 unit of dust from integer division.
+// inverseFee solves for the largest principal such that principal + fee(principal)
+// <= amountIn, recovering the integer-division dust so the quoted principal equals
+// what the swap transfers on-chain.
 //
-//	Linear region:  principal = amountIn * 2 * halfAmount / (2 * halfAmount + maxFee)
+//	Linear region:  principal = amountIn * 2 * halfAmount / (2 * halfAmount + maxFee), then +1 dust recovery
 //	Capped region:  principal = amountIn - maxFee
 func inverseFee(amountIn, maxFee, halfAmount *uint256.Int) (principal, fee *uint256.Int) {
 	if maxFee.IsZero() || halfAmount.IsZero() {
@@ -178,6 +178,23 @@ func inverseFee(amountIn, maxFee, halfAmount *uint256.Int) (principal, fee *uint
 	principal = new(uint256.Int)
 	if _, overflow := principal.MulDivOverflow(amountIn, &twoHalf, &denom); overflow {
 		return new(uint256.Int), new(uint256.Int)
+	}
+
+	// Recover up to 1 unit of integer-division dust when principal+1 still fits
+	// within amountIn, so the quoted principal matches what the swap transfers
+	// on-chain. We are provably in the linear region here (principal < twoHalf),
+	// so fee(principal+1) scales linearly and cannot exceed maxFee — no cap check
+	// needed.
+	var candidate uint256.Int
+	candidate.AddUint64(principal, 1)
+
+	var feeUp uint256.Int
+	if _, overflow := feeUp.MulDivOverflow(&candidate, maxFee, &twoHalf); !overflow {
+		var total uint256.Int
+		total.Add(&candidate, &feeUp)
+		if !total.Gt(amountIn) {
+			principal.Set(&candidate)
+		}
 	}
 
 	fee = calcFee(principal, maxFee, halfAmount)
@@ -210,8 +227,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	if p.reserve != nil {
-		amountOut, _ := uint256.FromBig(amountOutBig)
-		p.reserve = new(uint256.Int).Sub(p.reserve, amountOut)
+		if amountOut, overflow := uint256.FromBig(amountOutBig); !overflow {
+			p.reserve = new(uint256.Int).Sub(p.reserve, amountOut)
+		}
 	}
 	if len(p.Info.Reserves) > 1 {
 		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], amountOutBig)
@@ -251,11 +269,8 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	addr := common.HexToAddress(p.staticExtra.TargetRouter)
-	targetRouterBytes32 := common.BytesToHash(addr.Bytes()).Hex()
-
 	return PoolMeta{
-		SourceRouter:        p.staticExtra.SourceRouter,
-		TargetRouterBytes32: targetRouterBytes32,
+		SourceRouter: p.staticExtra.SourceRouter,
+		TargetRouter: p.staticExtra.TargetRouter,
 	}
 }
