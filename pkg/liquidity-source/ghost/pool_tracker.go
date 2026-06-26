@@ -19,12 +19,11 @@ import (
 )
 
 // WILDCARD_RECIPIENT = bytes32(type(uint256).max) = 0xfff…fff
-var wildcardRecipient [32]byte
-
-func init() {
-	for i := range wildcardRecipient {
-		wildcardRecipient[i] = 0xff
-	}
+var wildcardRecipient = [32]byte{
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 }
 
 type PoolTracker struct {
@@ -201,9 +200,11 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se StaticExtra) (c
 		return common.Address{}, fmt.Errorf("ghost: feeType() on feeRecipient failed: %w", err)
 	}
 
-	var resolved common.Address
-	targetRouterAddr := common.HexToAddress(se.TargetRouter)
-	targetRouterBytes32 := common.BytesToHash(targetRouterAddr.Bytes())
+	var (
+		resolved            common.Address
+		targetRouterAddr    = common.HexToAddress(se.TargetRouter)
+		targetRouterBytes32 = common.BytesToHash(targetRouterAddr.Bytes())
+	)
 
 	switch recipientFeeType {
 	case feeTypeCrossCollateralRouting:
