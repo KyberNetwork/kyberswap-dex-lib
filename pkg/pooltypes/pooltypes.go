@@ -4,9 +4,9 @@ import (
 	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
+	altfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/alt-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
-	altfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/alt-fun"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
@@ -27,7 +27,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/caliber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/caliberprop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	capricornpamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/capricorn-pamm"
@@ -108,7 +108,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
-	nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nuriv2"
@@ -158,8 +158,8 @@ import (
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v1"
 	virtualfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun/v2"
 	wasabiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wasabi-prop"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/whlp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wcm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/whlp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wildcard"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
@@ -340,7 +340,7 @@ type Types struct {
 	GenericSimpleRate          string
 	RingSwap                   string
 	PrimeETH                   string
-	Caliber                    string
+	CaliberProp                string
 	StaderETHx                 string
 	Feltir                     string
 	FluidVaultT1               string
@@ -553,27 +553,27 @@ var (
 		Slipstream:                 slipstream.DexType,
 		NuriV2:                     nuriv2.DexType,
 		EtherVista:                 ethervista.DexType,
-		MkrSky:                     mkrsky.DexType,
-		DaiUsds:                    daiusds.DexType,
-		UsdAi:                      usd_ai.DexType,
-		Ambient:                    ambient.DexType,
-		MaverickV2:                 maverickv2.DexType,
-		LitePSM:                    litepsm.DexTypeLitePSM,
-		Usd0PP:                     usd0pp.DexType,
-		GenericSimpleRate:          genericsimplerate.DexType,
-		RingSwap:                   ringswap.DexType,
-		PrimeETH:                   primeeth.DexType,
-		Caliber:                    caliber.DexType,
-		StaderETHx:                 staderethx.DexType,
-		Feltir:                     feltir.DexType,
-		FluidVaultT1:               fluidVaultT1.DexType,
-		FluidDexT1:                 fluidDexT1.DexType,
-		FluidDexLite:               fluidDexLite.DexType,
-		CmETH:                      cmeth.DexType,
-		MantleETH:                  meth.DexType,
-		OndoUSDY:                   ondousdy.DexType,
-		Baseline:                   baseline.DexType,
-		Clear:                      clear.DexType,
+		MkrSky:            mkrsky.DexType,
+		DaiUsds:           daiusds.DexType,
+		UsdAi:             usd_ai.DexType,
+		Ambient:           ambient.DexType,
+		MaverickV2:        maverickv2.DexType,
+		LitePSM:           litepsm.DexTypeLitePSM,
+		Usd0PP:            usd0pp.DexType,
+		GenericSimpleRate: genericsimplerate.DexType,
+		RingSwap:          ringswap.DexType,
+		PrimeETH:          primeeth.DexType,
+		CaliberProp:       caliberprop.DexType,
+		StaderETHx:        staderethx.DexType,
+		Feltir:            feltir.DexType,
+		FluidVaultT1:      fluidVaultT1.DexType,
+		FluidDexT1:        fluidDexT1.DexType,
+		FluidDexLite:      fluidDexLite.DexType,
+		CmETH:             cmeth.DexType,
+		MantleETH:         meth.DexType,
+		OndoUSDY:          ondousdy.DexType,
+		Baseline:          baseline.DexType,
+		Clear:             clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
 		SfrxETH:                    sfrxeth.DexType,

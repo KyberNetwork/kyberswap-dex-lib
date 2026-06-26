@@ -1,8 +1,9 @@
-package caliber
+package caliberprop
 
 import (
 	"errors"
 	"math/big"
+	"sort"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -67,12 +68,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if s.extra.Unquoteable {
-		return nil, ErrPoolUnavailable
-	}
-
-	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
-	indexOut := s.GetTokenIndex(params.TokenOut)
+	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
 	}
@@ -82,37 +78,29 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	ladder := s.extra.Ladder0
-	reserveOut := s.reserve1
+	ladder, reserveOut := s.extra.Ladders[0], s.reserve1
 	if indexIn == 1 {
-		ladder = s.extra.Ladder1
-		reserveOut = s.reserve0
+		ladder, reserveOut = s.extra.Ladders[1], s.reserve0
 	}
 
-	totalIn := new(uint256.Int).Add(&s.consumedIn[indexIn], amountIn)
+	totalIn := amountIn.Add(&s.consumedIn[indexIn], amountIn)
 	totalOut, err := QuoteAmountOut(ladder, totalIn)
 	if err != nil {
 		return nil, err
-	}
-	if totalOut.Cmp(&s.consumedOut[indexIn]) < 0 {
+	} else if totalOut.Cmp(&s.consumedOut[indexIn]) < 0 {
 		return nil, ErrNoQuote
 	}
-	amountOut := new(uint256.Int).Sub(totalOut, &s.consumedOut[indexIn])
+	amountOut := totalOut.Sub(totalOut, &s.consumedOut[indexIn])
 	if amountOut.IsZero() {
 		return nil, ErrNoQuote
-	}
-	if amountOut.Cmp(reserveOut) > 0 {
-		return nil, ErrPoolUnavailable
+	} else if amountOut.Gt(reserveOut) {
+		return nil, ErrInsufficientLiquidity
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: bignum.ZeroBI},
 		Gas:            defaultGas,
-		SwapInfo: SwapInfo{
-			Reserve0: new(uint256.Int).Set(s.reserve0),
-			Reserve1: new(uint256.Int).Set(s.reserve1),
-		},
 	}, nil
 }
 
@@ -129,62 +117,46 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	s.consumedIn[indexIn].Add(&s.consumedIn[indexIn], inU)
 	s.consumedOut[indexIn].Add(&s.consumedOut[indexIn], outU)
-
 	if indexIn == 0 {
-		s.reserve0.Add(s.reserve0, inU)
-		if s.reserve1.Cmp(outU) >= 0 {
-			s.reserve1.Sub(s.reserve1, outU)
-		} else {
-			s.reserve1.Clear()
-		}
+		s.reserve0 = new(uint256.Int).Add(s.reserve0, inU)
+		s.reserve1 = new(uint256.Int).Sub(s.reserve1, outU)
 	} else {
-		s.reserve1.Add(s.reserve1, inU)
-		if s.reserve0.Cmp(outU) >= 0 {
-			s.reserve0.Sub(s.reserve0, outU)
-		} else {
-			s.reserve0.Clear()
-		}
+		s.reserve1 = new(uint256.Int).Add(s.reserve1, inU)
+		s.reserve0 = new(uint256.Int).Sub(s.reserve0, outU)
 	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.reserve0 = new(uint256.Int).Set(s.reserve0)
-	cloned.reserve1 = new(uint256.Int).Set(s.reserve1)
 	return &cloned
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return MetaInfo{
+	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
-		Contract:    s.staticExtra.Contract,
-		PairID:      s.staticExtra.PairID,
+		Address:     s.staticExtra.Address,
 	}
 }
 
 func QuoteAmountOut(ladder []LadderPoint, amountIn *uint256.Int) (*uint256.Int, error) {
 	if amountIn == nil || amountIn.IsZero() {
 		return nil, ErrZeroAmount
-	}
-	if len(ladder) == 0 {
+	} else if len(ladder) == 0 {
 		return nil, ErrNoQuote
 	}
 
-	first := ladder[0]
-	if amountIn.Cmp(first.AmountIn) <= 0 {
+	if i := sort.Search(len(ladder), func(j int) bool {
+		return !ladder[j].AmountIn.Lt(amountIn)
+	}); i == len(ladder) {
+		return nil, ErrAmountInTooLarge
+	} else if i == 0 {
+		first := ladder[0]
 		return big256.MulDiv(amountIn, first.AmountOut, first.AmountIn), nil
+	} else if ladder[i].AmountIn.Eq(amountIn) {
+		return ladder[i].AmountOut.Clone(), nil
+	} else {
+		return interpolate(ladder[i-1], ladder[i], amountIn), nil
 	}
-
-	for i := 0; i < len(ladder)-1; i++ {
-		lo, hi := ladder[i], ladder[i+1]
-		if amountIn.Cmp(hi.AmountIn) == 0 {
-			return new(uint256.Int).Set(hi.AmountOut), nil
-		}
-		if amountIn.Cmp(lo.AmountIn) > 0 && amountIn.Cmp(hi.AmountIn) < 0 {
-			return interpolate(lo, hi, amountIn), nil
-		}
-	}
-	return nil, ErrAmountInTooLarge
 }
 
 func interpolate(lo, hi LadderPoint, amountIn *uint256.Int) *uint256.Int {
@@ -193,5 +165,5 @@ func interpolate(lo, hi LadderPoint, amountIn *uint256.Int) *uint256.Int {
 	rangeIn.Sub(hi.AmountIn, lo.AmountIn)
 	rangeOut.Sub(hi.AmountOut, lo.AmountOut)
 	big256.MulDivDown(&delta, &dxIn, &rangeOut, &rangeIn)
-	return new(uint256.Int).Add(lo.AmountOut, &delta)
+	return delta.Add(lo.AmountOut, &delta)
 }

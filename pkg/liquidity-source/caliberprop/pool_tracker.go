@@ -1,4 +1,4 @@
-package caliber
+package caliberprop
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -14,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -32,49 +32,38 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	lg := logger.WithFields(logger.Fields{"poolAddress": p.Address, "dexID": t.config.DexID})
-
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
-	pairID := common.HexToHash(staticExtra.PairID)
-	token0 := common.HexToAddress(p.Tokens[0].Address)
-	token1 := common.HexToAddress(p.Tokens[1].Address)
+	token0, token1 := common.HexToAddress(p.Tokens[0].Address), common.HexToAddress(p.Tokens[1].Address)
 
 	var balances struct {
-		ReserveX *big.Int
-		ReserveY *big.Int
+		ReserveX, ReserveY *big.Int
 	}
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
+	address, pairID := staticExtra.Address, common.HexToHash(p.Address)
+	for i, xor := range common.HexToAddress(address) {
+		pairID[i] ^= xor
+	}
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    caliberABI,
-		Target: staticExtra.Contract,
+		Target: address,
 		Method: methodGetPoolBalances,
 		Params: []any{pairID},
-	}, []any{&balances})
-	resp, err := req.Aggregate()
+	}, []any{&balances}).Aggregate()
 	if err != nil {
 		return p, err
 	}
 	blockNumber := resp.BlockNumber
 
-	r0 := uint256.MustFromBig(balances.ReserveX)
-	r1 := uint256.MustFromBig(balances.ReserveY)
-
-	points0 := buildPoints(balances.ReserveX)
-	points1 := buildPoints(balances.ReserveY)
-	ladder0, ladder1, err := t.probeQuotes(ctx, staticExtra.Contract, pairID, token0, token1, points0, points1, blockNumber)
+	points0, points1 := buildPoints(balances.ReserveX), buildPoints(balances.ReserveY)
+	ladders, err := t.probeQuotes(ctx, address, pairID, token0, token1, points0, points1, blockNumber)
 	if err != nil {
 		return p, err
 	}
+	r0, r1 := uint256.MustFromBig(balances.ReserveX), uint256.MustFromBig(balances.ReserveY)
 
-	extra := Extra{Ladder0: ladder0, Ladder1: ladder1}
-	if len(ladder0) == 0 && len(ladder1) == 0 {
-		extra.Unquoteable = true
-		lg.Warnf("no valid direction at block %s", blockNumber)
-	}
-
+	extra := Extra{Ladders: ladders}
 	return t.persist(p, extra, r0, r1, blockNumber), nil
 }
 
@@ -85,12 +74,10 @@ func buildPoints(reserveIn *big.Int) []*big.Int {
 	grid := make([]*big.Int, 0, len(sampleBps))
 	var last *big.Int
 	for _, bps := range sampleBps {
-		amt := new(big.Int).Mul(reserveIn, big.NewInt(int64(bps)))
-		amt.Div(amt, big.NewInt(bpsDenominator))
-		if amt.Sign() == 0 {
+		amt := big.NewInt(int64(bps))
+		if bignumber.MulDivDown(amt, reserveIn, amt, bignumber.BasisPoint); amt.Sign() == 0 {
 			continue
-		}
-		if last != nil && amt.Cmp(last) <= 0 {
+		} else if last != nil && amt.Cmp(last) <= 0 {
 			continue
 		}
 		grid = append(grid, amt)
@@ -106,7 +93,7 @@ func (t *PoolTracker) probeQuotes(
 	token0, token1 common.Address,
 	grid0, grid1 []*big.Int,
 	blockNumber *big.Int,
-) ([]LadderPoint, []LadderPoint, error) {
+) ([2][]LadderPoint, error) {
 	requests := make([]quoteCallArg, 0, len(grid0)+len(grid1))
 	for _, amt := range grid0 {
 		requests = append(requests, quoteCallArg{PairId: pairID, TokenIn: token0, TokenOut: token1, AmountIn: amt})
@@ -115,34 +102,27 @@ func (t *PoolTracker) probeQuotes(
 		requests = append(requests, quoteCallArg{PairId: pairID, TokenIn: token1, TokenOut: token0, AmountIn: amt})
 	}
 	if len(requests) == 0 {
-		return nil, nil, nil
+		return [2][]LadderPoint{}, nil
 	}
 
 	var results []quoteCallResult
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	req.AddCall(&ethrpc.Call{
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).AddCall(&ethrpc.Call{
 		ABI:    caliberABI,
 		Target: contract,
 		Method: methodBatchQuote,
 		Params: []any{requests},
-	}, []any{&results})
-	if _, err := req.TryAggregate(); err != nil {
-		return nil, nil, err
+	}, []any{&results}).TryAggregate(); err != nil {
+		return [2][]LadderPoint{}, err
 	}
 
-	ladder0 := collectLadder(grid0, results, 0)
-	ladder1 := collectLadder(grid1, results, len(grid0))
-	return ladder0, ladder1, nil
+	ladder0, ladder1 := collectLadder(grid0, results), collectLadder(grid1, results[len(grid0):])
+	return [2][]LadderPoint{ladder0, ladder1}, nil
 }
 
-func collectLadder(grid []*big.Int, results []quoteCallResult, offset int) []LadderPoint {
+func collectLadder(grid []*big.Int, results []quoteCallResult) []LadderPoint {
 	ladder := make([]LadderPoint, 0, len(grid))
 	for i, amt := range grid {
-		idx := offset + i
-		if idx >= len(results) {
-			break
-		}
-		res := results[idx]
+		res := results[i]
 		if !res.Success || res.AmountOut == nil || res.AmountOut.Sign() <= 0 {
 			continue
 		}

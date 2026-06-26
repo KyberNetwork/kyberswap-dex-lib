@@ -1,4 +1,4 @@
-package caliber
+package caliberprop
 
 import (
 	"math/big"
@@ -8,15 +8,11 @@ import (
 )
 
 type StaticExtra struct {
-	Contract string `json:"contract"`
-	PairID   string `json:"pairId"`
+	Address string `json:"a"`
 }
 
 type Extra struct {
-	Unquoteable bool `json:"unquoteable,omitempty"`
-
-	Ladder0 []LadderPoint `json:"ladder0"`
-	Ladder1 []LadderPoint `json:"ladder1"`
+	Ladders [2][]LadderPoint `json:"l"`
 }
 
 type LadderPoint struct {
@@ -24,15 +20,9 @@ type LadderPoint struct {
 	AmountOut *uint256.Int `json:"out"`
 }
 
-type SwapInfo struct {
-	Reserve0 *uint256.Int `json:"r0"`
-	Reserve1 *uint256.Int `json:"r1"`
-}
-
-type MetaInfo struct {
+type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
-	Contract    string `json:"contract"`
-	PairID      string `json:"pairId"`
+	Address     string `json:"a"`
 }
 
 type quoteCallArg struct {
