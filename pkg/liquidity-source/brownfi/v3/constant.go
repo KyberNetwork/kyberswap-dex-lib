@@ -44,8 +44,9 @@ const (
 
 var (
 	Router = map[valueobject.ChainID]common.Address{
-		valueobject.ChainIDBerachain: common.HexToAddress("0x63D8C045ebEc54c4C4bb3e24cA3bf7FD4fFd209a"),
-		valueobject.ChainIDHyperEVM:  common.HexToAddress("0xc0E55d0085266E9A33456610E08172f9c173F908"),
+		valueobject.ChainIDArbitrumOne: common.HexToAddress("0x96cE2973581C5bF362e0fc9f40e6B5f12AA59b61"),
+		valueobject.ChainIDBerachain:   common.HexToAddress("0x63D8C045ebEc54c4C4bb3e24cA3bf7FD4fFd209a"),
+		valueobject.ChainIDHyperEVM:    common.HexToAddress("0xc0E55d0085266E9A33456610E08172f9c173F908"),
 	}
 
 	q64        = big256.U2Pow64
