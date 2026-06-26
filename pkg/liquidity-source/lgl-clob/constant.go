@@ -22,8 +22,9 @@ var (
 	bMaxPriceLevels       = big.NewInt(maxPriceLevels)
 	uPriceLimitMultiplier = new(uint256.Int).AddUint64(big256.UBasisPoint, 12)
 
-	ErrInvalidToken         = errors.New("invalid token")
-	ErrInvalidAmount        = errors.New("invalid amount")
-	ErrEmptyOrders          = errors.New("empty orders")
-	ErrExceededSafetyBuffer = errors.New("exceed safety buffer")
+	ErrInvalidToken          = errors.New("invalid token")
+	ErrInvalidAmount         = errors.New("invalid amount")
+	ErrEmptyOrders           = errors.New("empty orders")
+	ErrExceededSafetyBuffer  = errors.New("exceed safety buffer")
+	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 )
