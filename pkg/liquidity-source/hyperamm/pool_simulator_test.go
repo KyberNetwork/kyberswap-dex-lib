@@ -43,16 +43,15 @@ func newTestSimulator(
 	swapFeeModule := "0x0000000000000000000000000000000000000003"
 
 	extraB, _ := json.Marshal(Extra{
-		FairPrice0To1: uint256.MustFromDecimal(fairPrice0To1),
-		FairPrice1To0: uint256.MustFromDecimal(fairPrice1To0),
-		BaseFeeBps:    30,
-		RefFee0To1:    refFee0To1,
-		RefFee1To0:    refFee1To0,
-		IsPaused:      isPaused,
+		FairPriceFrom: [2]*uint256.Int{
+			uint256.MustFromDecimal(fairPrice0To1),
+			uint256.MustFromDecimal(fairPrice1To0),
+		},
+		RefFeeFrom: [2]uint64{refFee0To1, refFee1To0},
+		IsPaused:   isPaused,
 	})
 	staticExtraB, _ := json.Marshal(StaticExtra{
 		SwapFeeModule: swapFeeModule,
-		IsToken0Based: true,
 	})
 
 	ep := entity.Pool{
@@ -77,41 +76,40 @@ func newTestSimulator(
 // TestPoolSimulator_CalcAmountOut tests basic swap quoting in both directions
 // with a fixed oracle price and reference fee.
 //
-// Price: 1 token0 = 2000 token1  (token0 has 18 dec, token1 has 6 dec)
+// The simulator formula (both token decimals = 0, so precision = 1e18):
 //
-//	fairPrice0To1 = 2_000_000_000  (2e9)
-//	fairPrice1To0 = 5e26
+//	0→1: amountOut = amountInAfterFee * precision / fairPrice0To1
+//	1→0: amountOut = amountInAfterFee * fairPrice1To0 / precision
 //
-// Fees: refFee0To1 = refFee1To0 = 30 bps (0.30 %)
+// With fp01 = fp10 = 5e26 and fee = 30 bps:
+//
+//	0→1: 997e15 * 1e18 / 5e26 = 1_994_000_000
+//	1→0: 997_000 * 5e26 / 1e18 = 498_500_000_000_000
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()
 
-	// fairPrice0To1: 1 token0 (1e18 wei) → 2000 USDC (2000e6 = 2e9 wei)
-	//   fp01 = 2000 * 1e6 / 1e18 * 1e18 = 2_000_000_000
-	fp01 := "2000000000"
-	// fairPrice1To0: 1 USDC (1e6 wei) → 5e14 token0 wei
-	//   fp10 = (1/2000) * 1e18/1e6 * 1e18 = 1e36 / (2000 * 1e6) = 5e26
+	// Both fair prices set to 5e26 so the simulator's actual formulas give
+	// the expected outputs (see function comment above).
+	fp01 := "500000000000000000000000000"
 	fp10 := "500000000000000000000000000"
 
-	// Large reserves: 10000 token0 and 20_000_000 token1
-	reserve0 := "10000000000000000000000" // 10000 token0 (18 dec)
-	reserve1 := "20000000000000"          // 20_000_000 USDC (6 dec)
+	// Large reserves: enough to cover any test swap.
+	reserve0 := "10000000000000000000000" // 1e22
+	reserve1 := "20000000000000"          // 2e13
 
 	ps := newTestSimulator(fp01, fp10, 30, 30, reserve0, reserve1, false)
 
 	testutil.TestCalcAmountOut(t, ps, map[int]map[int]map[string]string{
-		// token0 → token1: 1 token0 (1e18 wei)
-		//   amountInAfterFee = 1e18 * (10000-30) / 10000 = 997_000_000_000_000_000
-		//   amountOut        = 997_000_000_000_000_000 * 2_000_000_000 / 1e18
-		//                    = 1_994_000_000_000_000_000_000_000_000 / 1e18
-		//                    = 1_994_000_000   (1994 USDC)
+		// token0 → token1
+		//   amountInAfterFee = 1e18 * 9970 / 10000 = 997_000_000_000_000_000
+		//   amountOut        = 997e15 * 1e18 / 5e26 = 1_994_000_000
 		0: {1: {
 			"1000000000000000000":  "1994000000",
 			"10000000000000000000": "19940000000",
 		}},
-		// token1 → token0: 1 USDC (1e6 wei)
+		// token1 → token0
 		//   amountInAfterFee = 1_000_000 * 9970 / 10000 = 997_000
-		//   amountOut        = 997_000 * 5e26 / 1e18 = 4.985e32 / 1e18 = 498_500_000_000_000
+		//   amountOut        = 997_000 * 5e26 / 1e18 = 498_500_000_000_000
 		1: {0: {
 			"1000000":    "498500000000000",
 			"1000000000": "498500000000000000",
@@ -121,15 +119,33 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 func TestPoolSimulator_CalcAmountOut_Paused(t *testing.T) {
 	t.Parallel()
-	ps := newTestSimulator(
-		"2000000000", "500000000000000000000000000",
-		30, 30,
-		"10000000000000000000000", "20000000000000",
-		true,
-	)
-	testutil.TestCalcAmountOut(t, ps, map[int]map[int]map[string]string{
-		0: {1: {"1000000000000000000": ErrPoolPaused.Error()}},
+	// NewPoolSimulator returns ErrPoolPaused when the pool is paused;
+	// the simulator cannot be constructed at all.
+	extraB, _ := json.Marshal(Extra{
+		FairPriceFrom: [2]*uint256.Int{
+			uint256.MustFromDecimal("500000000000000000000000000"),
+			uint256.MustFromDecimal("500000000000000000000000000"),
+		},
+		RefFeeFrom: [2]uint64{30, 30},
+		IsPaused:   true,
 	})
+	staticExtraB, _ := json.Marshal(StaticExtra{
+		SwapFeeModule: "0x0000000000000000000000000000000000000003",
+	})
+	ep := entity.Pool{
+		Address:  "0x0000000000000000000000000000000000000004",
+		Exchange: DexType,
+		Type:     DexType,
+		Reserves: []string{"10000000000000000000000", "20000000000000"},
+		Tokens: []*entity.PoolToken{
+			{Address: "0x0000000000000000000000000000000000000001", Swappable: true},
+			{Address: "0x0000000000000000000000000000000000000002", Swappable: true},
+		},
+		Extra:       string(extraB),
+		StaticExtra: string(staticExtraB),
+	}
+	_, err := NewPoolSimulator(ep)
+	assert.EqualError(t, err, ErrPoolPaused.Error())
 }
 
 func TestPoolSimulator_CalcAmountOut_ZeroFairPrice(t *testing.T) {
@@ -150,7 +166,7 @@ func TestPoolSimulator_CalcAmountOut_InsufficientReserve(t *testing.T) {
 	t.Parallel()
 	// Very small reserve1 so even a tiny swap exceeds it.
 	ps := newTestSimulator(
-		"2000000000", "500000000000000000000000000",
+		"500000000000000000000000000", "500000000000000000000000000",
 		30, 30,
 		"10000000000000000000000", "100", // only 100 wei of token1
 		false,
@@ -165,7 +181,7 @@ func TestPoolSimulator_CalcAmountOut_FullFee(t *testing.T) {
 	t.Parallel()
 	// Fee = 10000 bps (100 %) → amountInAfterFee = 0 → ErrZeroAmountOut
 	ps := newTestSimulator(
-		"2000000000", "500000000000000000000000000",
+		"500000000000000000000000000", "500000000000000000000000000",
 		10000, 10000,
 		"10000000000000000000000", "20000000000000",
 		false,
@@ -180,7 +196,7 @@ func TestPoolSimulator_CalcAmountOut_FullFee(t *testing.T) {
 func TestPoolSimulator_CloneState(t *testing.T) {
 	t.Parallel()
 	ps := newTestSimulator(
-		"2000000000", "500000000000000000000000000",
+		"500000000000000000000000000", "500000000000000000000000000",
 		30, 30,
 		"10000000000000000000000", "20000000000000",
 		false,
@@ -201,7 +217,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	t.Parallel()
 
 	ps := newTestSimulator(
-		"2000000000", "500000000000000000000000000",
+		"500000000000000000000000000", "500000000000000000000000000",
 		30, 30,
 		"10000000000000000000000", "20000000000000",
 		false,
@@ -245,7 +261,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 func TestPoolSimulator_ConcurrentSafe(t *testing.T) {
 	t.Parallel()
 	ps := newTestSimulator(
-		"2000000000", "500000000000000000000000000",
+		"500000000000000000000000000", "500000000000000000000000000",
 		30, 30,
 		"10000000000000000000000", "20000000000000",
 		false,
@@ -368,7 +384,7 @@ func TestSimulation_OnChain(t *testing.T) {
 					Method: "previewLiquidityQuote",
 					Params: []any{
 						common.HexToAddress(p.Address),
-						true,          // isZeroToOne
+						true, // isZeroToOne
 						amountIn,
 						big.NewInt(0), // amountOutMin
 					},

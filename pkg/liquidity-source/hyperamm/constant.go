@@ -1,30 +1,27 @@
 package hyperamm
 
 import (
-	"errors"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
 	DexType = valueobject.ExchangeHyperAMM
 
-	// scale18 is 1e18, used as the fixed-point denominator for fairPriceInScale18
-	scale18Str = "1000000000000000000"
-
-	// bps is the basis-point denominator (10 000)
-	bpsStr = "10000"
-
-	defaultGas = int64(200_000)
+	defaultGas = int64(536883)
 )
 
 var (
-	ErrInvalidToken         = errors.New("hyperamm: invalid token")
-	ErrZeroAmountIn         = errors.New("hyperamm: zero amount in")
-	ErrZeroAmountOut        = errors.New("hyperamm: zero amount out")
-	ErrPoolPaused           = errors.New("hyperamm: pool is paused")
-	ErrInsufficientReserve  = errors.New("hyperamm: insufficient reserve")
-	ErrOverflow             = errors.New("hyperamm: overflow")
-	ErrNegativeLpValue      = errors.New("hyperamm: negative lp value")
-	ErrZeroFairPrice        = errors.New("hyperamm: zero fair price")
+	Router     = "0x18ebC3F95CD6B5db55A15864079019C5d2b83DBC"
+	RouterAddr = common.HexToAddress(Router)
+
+	ErrPoolPaused          = errors.WithMessage(pool.ErrUnsupported, "hyperamm: pool is paused")
+	ErrInvalidToken        = errors.New("hyperamm: invalid token")
+	ErrZeroAmountIn        = errors.New("hyperamm: zero amount in")
+	ErrZeroAmountOut       = errors.New("hyperamm: zero amount out")
+	ErrInsufficientReserve = errors.New("hyperamm: insufficient reserve")
+	ErrZeroFairPrice       = errors.New("hyperamm: zero fair price")
 )

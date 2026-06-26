@@ -32,7 +32,7 @@
       { "internalType": "address", "name": "", "type": "address" },
       { "internalType": "bytes", "name": "_swapFeeModuleContext", "type": "bytes" }
     ],
-    "name": "previewSwapFeeInBips",
+    "name": "getSwapFeeInBips",
     "outputs": [
       {
         "components": [

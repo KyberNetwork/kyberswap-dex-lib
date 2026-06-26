@@ -95,7 +95,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		// Read token0, token1, and isToken0Based from the HyperAMM contract.
 		var (
 			token0, token1 common.Address
-			isToken0Based  bool
 		)
 		if _, err := u.ethrpcClient.NewRequest().
 			SetContext(ctx).
@@ -109,11 +108,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Target: hyperAMM.String(),
 				Method: "token1",
 			}, []any{&token1}).
-			AddCall(&ethrpc.Call{
-				ABI:    hyperAMMABI,
-				Target: hyperAMM.String(),
-				Method: "isToken0Based",
-			}, []any{&isToken0Based}).
 			Aggregate(); err != nil {
 			logger.Errorf("hyperamm: failed to read pool metadata for pool %d: %v", poolID, err)
 			break
@@ -121,7 +115,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
 			SwapFeeModule: hexutil.Encode(swapFeeModule[:]),
-			IsToken0Based: isToken0Based,
 		})
 		if err != nil {
 			return nil, metadataBytes, err

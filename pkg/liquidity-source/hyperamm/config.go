@@ -9,6 +9,4 @@ type Config struct {
 	// Lens is the HyperAMMLens contract address.
 	// Obtain it once via HyperAMMSwapRouter.hyperAMMLens().
 	Lens string `json:"lens"`
-	// SwapRouter is the HyperAMMSwapRouter contract address.
-	SwapRouter string `json:"swapRouter"`
 }
