@@ -134,7 +134,8 @@ func (t *PoolTracker) processLogs(p entity.Pool, logs []types.Log) (entity.Pool,
 			return p, err
 		}
 		p.Extra = string(extraBytes)
-		if latestLogBlock > 0 {
+		// > LatestUpdateBlock: prevents p.BlockNumber==LatestUpdateBlock (0-diff stale check) when StateUpdated is the only event.
+		if latestLogBlock > extra.LatestUpdateBlock {
 			p.BlockNumber = latestLogBlock
 		}
 		p.Timestamp = time.Now().Unix()
