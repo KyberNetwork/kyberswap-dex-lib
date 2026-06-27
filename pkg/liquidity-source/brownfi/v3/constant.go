@@ -39,7 +39,7 @@ const (
 	maxAge         = 15 * time.Second
 	parsedDecimals = 18
 
-	defaultGas = 443940
+	defaultGas = 533708
 )
 
 var (
