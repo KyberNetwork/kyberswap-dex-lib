@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -31,7 +30,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-// CalcAmountOut implements constant product formula with fee
+// CalcAmountOut implements constant product formula with fee:
 // amountOut = amountIn*(10000-fee)*reserveOut / (reserveIn*10000 + amountIn*(10000-fee))
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
@@ -55,16 +54,13 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
-	fee := int64(p.extra.Fee) // bps
+	fee := int64(p.extra.Fee)
 	feeDenominator := big.NewInt(10000)
 	feeNumerator := big.NewInt(10000 - fee)
 
 	amountIn := params.TokenAmountIn.Amount
-	// amountInWithFee = amountIn * (10000 - fee)
 	amountInWithFee := new(big.Int).Mul(amountIn, feeNumerator)
-	// numerator = amountInWithFee * reserveOut
 	numerator := new(big.Int).Mul(amountInWithFee, reserveOut)
-	// denominator = reserveIn * 10000 + amountInWithFee
 	denominator := new(big.Int).Add(
 		new(big.Int).Mul(reserveIn, feeDenominator),
 		amountInWithFee,
@@ -75,9 +71,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
+	feeAmount := new(big.Int).Sub(amountIn, new(big.Int).Div(new(big.Int).Mul(amountIn, feeNumerator), feeDenominator))
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenAmountOut, Amount: amountOut},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: new(big.Int).Sub(amountIn, new(big.Int).Div(new(big.Int).Mul(amountIn, feeNumerator), feeDenominator))},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount},
 		Gas:            80000,
 		SwapInfo:       nil,
 	}, nil
@@ -103,8 +101,5 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) CanSwapTo(token string) []string {
-	tokens := p.Pool.CanSwapTo(token)
-	return tokens
+	return p.Pool.CanSwapTo(token)
 }
-
-var _ = bignumber.ZeroBI // ensure import used

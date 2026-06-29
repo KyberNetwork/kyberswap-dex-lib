@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -94,41 +93,44 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		var token0, token1 common.Address
-		var reserves struct {
-			Reserve0           *big.Int
-			Reserve1           *big.Int
-			BlockTimestampLast uint32
-		}
+		var reserve0, reserve1 *big.Int
+		var blockTimestampLast uint32
 
 		pairReq := u.ethrpcClient.NewRequest().SetContext(ctx)
 		pairReq.AddCall(&ethrpc.Call{ABI: pairABI, Target: addr.Hex(), Method: "token0"}, []interface{}{&token0})
 		pairReq.AddCall(&ethrpc.Call{ABI: pairABI, Target: addr.Hex(), Method: "token1"}, []interface{}{&token1})
-		pairReq.AddCall(&ethrpc.Call{ABI: pairABI, Target: addr.Hex(), Method: "getReserves"}, []interface{}{&reserves})
+		pairReq.AddCall(&ethrpc.Call{ABI: pairABI, Target: addr.Hex(), Method: "getReserves"}, []interface{}{&reserve0, &reserve1, &blockTimestampLast})
 		if _, err := pairReq.TryBlockAndAggregate(); err != nil {
 			continue
 		}
 
 		extra := Extra{
-			Reserve0: reserves.Reserve0,
-			Reserve1: reserves.Reserve1,
-			Fee:      30, // default 0.3%; ideally read from pool
+			Reserve0: reserve0,
+			Reserve1: reserve1,
+			Fee:      30, // default 0.3% bps; ideally read from pool.feeBps()
 		}
 		extraBytes, _ := json.Marshal(extra)
 
+		r0 := "0"
+		r1 := "0"
+		if reserve0 != nil {
+			r0 = reserve0.String()
+		}
+		if reserve1 != nil {
+			r1 = reserve1.String()
+		}
+
 		pools = append(pools, entity.Pool{
-			Address:  strings.ToLower(addr.Hex()),
-			Exchange: u.config.DexID,
-			Type:     DexTypeAeonVAMM,
+			Address:   strings.ToLower(addr.Hex()),
+			Exchange:  u.config.DexID,
+			Type:      DexTypeAeonVAMM,
 			Timestamp: time.Now().Unix(),
 			Tokens: []*entity.PoolToken{
 				{Address: strings.ToLower(token0.Hex()), Swappable: true},
 				{Address: strings.ToLower(token1.Hex()), Swappable: true},
 			},
-			Reserves: entity.PoolReserves{
-				util.FloatToString(reserves.Reserve0),
-				util.FloatToString(reserves.Reserve1),
-			},
-			Extra: string(extraBytes),
+			Reserves: entity.PoolReserves{r0, r1},
+			Extra:    string(extraBytes),
 		})
 	}
 
