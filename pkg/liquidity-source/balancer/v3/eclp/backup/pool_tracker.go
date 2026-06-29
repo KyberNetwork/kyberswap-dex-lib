@@ -1,4 +1,4 @@
-package eclp
+package backup
 
 import (
 	"context"
@@ -15,8 +15,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/eclp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
@@ -25,10 +26,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var (
-	_ pool.IBatchRPCPoolTracker = (*PoolTracker)(nil)
-	_ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
-)
+var _ = pooltrack.RegisterBackupFactoryCE(eclp.DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -64,7 +62,7 @@ func (t *PoolTracker) getNewPoolState(
 ) (entity.Pool, error) {
 	l := klog.WithFields(ctx, klog.Fields{
 		"dexId":       t.config.DexID,
-		"dexType":     DexType,
+		"dexType":     eclp.DexType,
 		"poolAddress": p.Address,
 	})
 	l.Info("Start updating state ...")
@@ -84,16 +82,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	result, err := buildPoolState(&p, res, staticExtra)
-	if err != nil {
-		l.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
-		return p, err
-	}
-	return result, nil
-}
-
-func buildPoolState(p *entity.Pool, res *RpcResult, staticExtra shared.StaticExtra) (entity.Pool, error) {
-	extra := Extra{Extra: &shared.Extra{}}
+	extra := eclp.Extra{Extra: &shared.Extra{}}
 	extra.EnableHookAdjustedAmounts = res.HooksConfigData.EnableHookAdjustedAmounts
 	extra.ShouldCallComputeDynamicSwapFee = res.HooksConfigData.ShouldCallComputeDynamicSwapFee
 	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap
@@ -108,7 +97,8 @@ func buildPoolState(p *entity.Pool, res *RpcResult, staticExtra shared.StaticExt
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		return *p, err
+		l.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
+		return p, err
 	}
 
 	p.BlockNumber = res.BlockNumber
@@ -120,22 +110,64 @@ func buildPoolState(p *entity.Pool, res *RpcResult, staticExtra shared.StaticExt
 	} else {
 		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
 	}
-	return *p, nil
+
+	return p, nil
 }
 
 func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticExtra shared.StaticExtra,
-	overrides map[common.Address]gethclient.OverrideAccount) (*RpcResult, error) {
+	overrides map[common.Address]gethclient.OverrideAccount) (*eclp.RpcResult, error) {
 	var (
-		rpcRes               RpcResult
+		rpcRes               eclp.RpcResult
 		isVaultPaused        bool
 		isPoolPaused         bool
 		isPoolInRecoveryMode bool
 	)
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
-	addRPCCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) },
-		t.config.VaultExplorer, p.Address, &rpcRes, &isVaultPaused, &isPoolPaused, &isPoolInRecoveryMode)
-	rpcRes.Buffers = shared.GetBufferTokens(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
+
+	poolAddress := p.Address
+	paramsPool := []any{common.HexToAddress(poolAddress)}
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetHooksConfig,
+		Params: paramsPool,
+	}, []any{&rpcRes.HooksConfigRPC}).AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetStaticSwapFeePercentage,
+		Params: paramsPool,
+	}, []any{&rpcRes.StaticSwapFeePercentage}).AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetAggregateFeePercentages,
+		Params: paramsPool,
+	}, []any{&rpcRes.AggregateFeePercentageRPC}).AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetPoolData,
+		Params: paramsPool,
+	}, []any{&rpcRes.PoolDataRPC}).AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsVaultPaused,
+	}, []any{&isVaultPaused}).AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolPaused,
+		Params: paramsPool,
+	}, []any{&isPoolPaused}).AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolInRecoveryMode,
+		Params: paramsPool,
+	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
+		ABI:    *eclp.PoolABI,
+		Target: poolAddress,
+		Method: eclp.PoolMethodGetECLPParams,
+	}, []any{&rpcRes.ECLPParamsRpc})
+	rpcRes.Buffers = shared.GetBufferTokens(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) },
+		t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -146,17 +178,4 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 	rpcRes.BlockNumber = res.BlockNumber.Uint64()
 
 	return &rpcRes, nil
-}
-
-func addRPCCalls(addFn func(*ethrpc.Call, []any), vaultExplorer, poolAddress string,
-	rpcRes *RpcResult, isVaultPaused, isPoolPaused, isPoolInRecoveryMode *bool) {
-	paramsPool := []any{common.HexToAddress(poolAddress)}
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetHooksConfig, Params: paramsPool}, []any{&rpcRes.HooksConfigRPC})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetStaticSwapFeePercentage, Params: paramsPool}, []any{&rpcRes.StaticSwapFeePercentage})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetAggregateFeePercentages, Params: paramsPool}, []any{&rpcRes.AggregateFeePercentageRPC})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetPoolData, Params: paramsPool}, []any{&rpcRes.PoolDataRPC})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsVaultPaused}, []any{isVaultPaused})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsPoolPaused, Params: paramsPool}, []any{isPoolPaused})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsPoolInRecoveryMode, Params: paramsPool}, []any{isPoolInRecoveryMode})
-	addFn(&ethrpc.Call{ABI: poolABI, Target: poolAddress, Method: PoolMethodGetECLPParams}, []any{&rpcRes.ECLPParamsRpc})
 }

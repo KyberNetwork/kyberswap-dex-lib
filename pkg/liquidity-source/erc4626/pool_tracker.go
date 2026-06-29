@@ -29,7 +29,7 @@ type PoolTracker struct {
 
 var (
 	_ poolpkg.IBatchRPCPoolTracker = (*PoolTracker)(nil)
-	_ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+	_                              = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 )
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
@@ -142,20 +142,20 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 // Works with any caller — ethrpc.Request or LazyRequest — by accepting a generic add function.
 func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr string, vaultCfg VaultCfg, fetchAsset bool, assetToken *common.Address, state *PoolState) {
 	if fetchAsset {
-		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodAsset}, []any{assetToken})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodAsset}, []any{assetToken})
 	}
 	if vaultCfg.Gas.Deposit > 0 {
-		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodMaxDeposit, Params: []any{AddrDummy}}, []any{&state.MaxDeposit})
-		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodTotalAssets}, []any{&state.TotalAssets})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodMaxDeposit, Params: []any{AddrDummy}}, []any{&state.MaxDeposit})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodTotalAssets}, []any{&state.TotalAssets})
 		for i, amt := range PrefetchAmounts {
-			addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: ERC4626MethodPreviewDeposit, Params: []any{amt.ToBig()}}, []any{&state.DepositRates[i]})
+			addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodPreviewDeposit, Params: []any{amt.ToBig()}}, []any{&state.DepositRates[i]})
 		}
 	}
 	if vaultCfg.Gas.Redeem > 0 {
-		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodMaxRedeem, Params: []any{AddrDummy}}, []any{&state.MaxRedeem})
-		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodTotalSupply}, []any{&state.TotalSupply})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodMaxRedeem, Params: []any{AddrDummy}}, []any{&state.MaxRedeem})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodTotalSupply}, []any{&state.TotalSupply})
 		for i, amt := range PrefetchAmounts {
-			addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: ERC4626MethodPreviewRedeem, Params: []any{amt.ToBig()}}, []any{&state.RedeemRates[i]})
+			addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: Erc4626MethodPreviewRedeem, Params: []any{amt.ToBig()}}, []any{&state.RedeemRates[i]})
 		}
 	}
 }
