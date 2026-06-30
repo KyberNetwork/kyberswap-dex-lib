@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
 
@@ -21,8 +20,10 @@ type PoolsListUpdater struct {
 	ethrpcClient *ethrpc.Client
 }
 
+// poolsListUpdaterMetadata tracks the set of assets already known to the lister so that only
+// new pairs (where at least one token is a newly discovered asset) are returned on each run.
 type poolsListUpdaterMetadata struct {
-	Initialized bool `json:"initialized"`
+	KnownAssets []string `json:"knownAssets"` // sorted lowercase hex addresses
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -43,11 +44,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			log.Warnf("1010-prop: failed to parse metadata: %v", err)
 		}
 	}
-	if meta.Initialized {
-		return nil, metadataBytes, nil
-	}
-
-	log.Info("1010-prop: start get pools")
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	var assets []common.Address
@@ -63,16 +59,45 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
+	// Build the set of previously known assets for O(1) lookup.
+	knownSet := make(map[string]struct{}, len(meta.KnownAssets))
+	for _, a := range meta.KnownAssets {
+		knownSet[a] = struct{}{}
+	}
+
+	// Identify which assets are new so we know which pairs to emit.
+	newAssetSet := make(map[string]struct{})
+	allAddrs := make([]string, len(assets))
+	for i, a := range assets {
+		addr := strings.ToLower(a.Hex())
+		allAddrs[i] = addr
+		if _, known := knownSet[addr]; !known {
+			newAssetSet[addr] = struct{}{}
+		}
+	}
+
+	if len(newAssetSet) == 0 {
+		return nil, metadataBytes, nil
+	}
+
+	log.Infof("1010-prop: %d new asset(s) discovered, building pairs", len(newAssetSet))
+
 	routerAddr := common.HexToAddress(u.cfg.RouterAddress)
 	staticExtraBytes, _ := json.Marshal(StaticExtra{
 		RouterAddress: strings.ToLower(u.cfg.RouterAddress),
 	})
 
 	now := time.Now().Unix()
-	pools := make([]entity.Pool, 0, len(assets)*(len(assets)-1)/2)
+	pools := make([]entity.Pool, 0, len(assets)*len(newAssetSet))
 
 	for i := range assets {
 		for j := i + 1; j < len(assets); j++ {
+			// Only emit the pair if at least one token is newly discovered.
+			_, iNew := newAssetSet[allAddrs[i]]
+			_, jNew := newAssetSet[allAddrs[j]]
+			if !iNew && !jNew {
+				continue
+			}
 			poolAddr := pairPoolAddress(routerAddr, assets[i], assets[j])
 			p := entity.Pool{
 				Address:   poolAddr,
@@ -81,8 +106,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Timestamp: now,
 				Reserves:  entity.PoolReserves{"0", "0"},
 				Tokens: []*entity.PoolToken{
-					{Address: strings.ToLower(hexutil.Encode(assets[i][:])), Swappable: true},
-					{Address: strings.ToLower(hexutil.Encode(assets[j][:])), Swappable: true},
+					{Address: allAddrs[i], Swappable: true},
+					{Address: allAddrs[j], Swappable: true},
 				},
 				Extra:       "{}",
 				StaticExtra: string(staticExtraBytes),
@@ -91,7 +116,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	newMeta, _ := json.Marshal(poolsListUpdaterMetadata{Initialized: true})
+	newMeta, _ := json.Marshal(poolsListUpdaterMetadata{KnownAssets: allAddrs})
 	return pools, newMeta, nil
 }
 
