@@ -48,7 +48,7 @@ type PoolMetaInfo struct {
 	ApprovalAddress string `json:"approvalAddress"`
 }
 
-type rpcRes struct {
+type RPCRes struct {
 	PoolTokens                PoolTokens
 	SwapFeePercentage         *uint256.Int
 	ProtocolSwapFeePercentage *uint256.Int

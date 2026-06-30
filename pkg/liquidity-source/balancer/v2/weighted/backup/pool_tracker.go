@@ -149,15 +149,6 @@ func (t *PoolTracker) initReserves(
 	return reserves, nil
 }
 
-type rpcResult struct {
-	PoolTokens                weighted.PoolTokens
-	SwapFeePercentage         *uint256.Int
-	ProtocolSwapFeePercentage *uint256.Int
-	PausedState               weighted.PausedState
-	LastInvariant             *uint256.Int
-	TotalSupply               *uint256.Int
-	BlockNumber               uint64
-}
 
 func (t *PoolTracker) queryRPC(
 	ctx context.Context,
@@ -165,7 +156,7 @@ func (t *PoolTracker) queryRPC(
 	poolTypeVer int,
 	poolID string,
 	vault string,
-) (*rpcResult, error) {
+) (*weighted.RPCRes, error) {
 	var (
 		poolTokens                weighted.PoolTokens
 		swapFeePercentage         *big.Int
@@ -235,7 +226,7 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
-	return &rpcResult{
+	return &weighted.RPCRes{
 		PoolTokens:                poolTokens,
 		SwapFeePercentage:         uint256.MustFromBig(swapFeePercentage),
 		ProtocolSwapFeePercentage: uint256.MustFromBig(protocolSwapFeePercentage),

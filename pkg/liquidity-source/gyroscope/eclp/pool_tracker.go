@@ -86,7 +86,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	d := &rpcData{}
+	d := &RPCResp{}
 	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, staticExtra.Vault, staticExtra.PoolID, staticExtra.PoolTypeVer, d)
 
@@ -100,72 +100,65 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	return buildPoolState(p, &staticExtra, d, res.BlockNumber)
+	d.BlockNumber = res.BlockNumber.Uint64()
+	return buildPoolState(p, &staticExtra, d)
 }
 
-type rpcData struct {
-	poolTokens        PoolTokensResp
-	swapFeePercentage *big.Int
-	pausedState       PausedStateResp
-	tokenRatesResp    TokenRatesResp
-	eclpParamsResp    ECLPParamsResp
-}
-
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, vault, poolID string, poolTypeVer int, d *rpcData) {
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, vault, poolID string, poolTypeVer int, d *RPCResp) {
 	poolIDHash := common.HexToHash(poolID)
 	addFn(&ethrpc.Call{
 		ABI:    shared.VaultABI,
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
 		Params: []any{poolIDHash},
-	}, []any{&d.poolTokens})
+	}, []any{&d.PoolTokens})
 	addFn(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetSwapFeePercentage,
-	}, []any{&d.swapFeePercentage})
+	}, []any{&d.SwapFeePercentage})
 	if poolTypeVer > PoolTypeVer1 {
 		addFn(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: PoolMethodGetTokenRates,
-		}, []any{&d.tokenRatesResp})
+		}, []any{&d.TokenRatesResp})
 	}
 	addFn(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetECLPParams,
-	}, []any{&d.eclpParamsResp})
+	}, []any{&d.ECLPParamsResp})
 	addFn(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetPausedState,
-	}, []any{&d.pausedState})
+	}, []any{&d.PausedState})
 }
 
-func buildPoolState(p entity.Pool, staticExtra *StaticExtra, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
-	paused := !IsNotPaused(d.pausedState)
-	swapFeePercentage, _ := uint256.FromBig(d.swapFeePercentage)
-	paramsAlpha, _ := int256.FromBig(d.eclpParamsResp.Params.Alpha)
-	paramsBeta, _ := int256.FromBig(d.eclpParamsResp.Params.Beta)
-	paramsC, _ := int256.FromBig(d.eclpParamsResp.Params.C)
-	paramsS, _ := int256.FromBig(d.eclpParamsResp.Params.S)
-	paramsLambda, _ := int256.FromBig(d.eclpParamsResp.Params.Lambda)
-	tauAlphaX, _ := int256.FromBig(d.eclpParamsResp.D.TauAlpha.X)
-	tauAlphaY, _ := int256.FromBig(d.eclpParamsResp.D.TauAlpha.Y)
-	tauBetaX, _ := int256.FromBig(d.eclpParamsResp.D.TauBeta.X)
-	tauBetaY, _ := int256.FromBig(d.eclpParamsResp.D.TauBeta.Y)
-	u, _ := int256.FromBig(d.eclpParamsResp.D.U)
-	v, _ := int256.FromBig(d.eclpParamsResp.D.V)
-	w, _ := int256.FromBig(d.eclpParamsResp.D.W)
-	z, _ := int256.FromBig(d.eclpParamsResp.D.Z)
-	dSq, _ := int256.FromBig(d.eclpParamsResp.D.DSq)
+func buildPoolState(p entity.Pool, staticExtra *StaticExtra, d *RPCResp) (entity.Pool, error) {
+	paused := !IsNotPaused(d.PausedState)
+	swapFeePercentage, _ := uint256.FromBig(d.SwapFeePercentage)
+	paramsAlpha, _ := int256.FromBig(d.ECLPParamsResp.Params.Alpha)
+	paramsBeta, _ := int256.FromBig(d.ECLPParamsResp.Params.Beta)
+	paramsC, _ := int256.FromBig(d.ECLPParamsResp.Params.C)
+	paramsS, _ := int256.FromBig(d.ECLPParamsResp.Params.S)
+	paramsLambda, _ := int256.FromBig(d.ECLPParamsResp.Params.Lambda)
+	tauAlphaX, _ := int256.FromBig(d.ECLPParamsResp.D.TauAlpha.X)
+	tauAlphaY, _ := int256.FromBig(d.ECLPParamsResp.D.TauAlpha.Y)
+	tauBetaX, _ := int256.FromBig(d.ECLPParamsResp.D.TauBeta.X)
+	tauBetaY, _ := int256.FromBig(d.ECLPParamsResp.D.TauBeta.Y)
+	u, _ := int256.FromBig(d.ECLPParamsResp.D.U)
+	v, _ := int256.FromBig(d.ECLPParamsResp.D.V)
+	w, _ := int256.FromBig(d.ECLPParamsResp.D.W)
+	z, _ := int256.FromBig(d.ECLPParamsResp.D.Z)
+	dSq, _ := int256.FromBig(d.ECLPParamsResp.D.DSq)
 
 	var tokenRates []*uint256.Int
 	if staticExtra.PoolTypeVer > PoolTypeVer1 {
 		tokenRates = make([]*uint256.Int, 2)
-		tokenRates[0], _ = uint256.FromBig(d.tokenRatesResp.Rate0)
-		tokenRates[1], _ = uint256.FromBig(d.tokenRatesResp.Rate1)
+		tokenRates[0], _ = uint256.FromBig(d.TokenRatesResp.Rate0)
+		tokenRates[1], _ = uint256.FromBig(d.TokenRatesResp.Rate1)
 	}
 
 	extra := Extra{
@@ -192,16 +185,14 @@ func buildPoolState(p entity.Pool, staticExtra *StaticExtra, d *rpcData, blockNu
 		return p, err
 	}
 
-	reserves, err := initReserves(p, d.poolTokens)
+	reserves, err := initReserves(p, d.PoolTokens)
 	if err != nil {
 		return p, err
 	}
 
 	p.Reserves = reserves
 	p.Extra = string(extraBytes)
-	if blockNumber != nil {
-		p.BlockNumber = blockNumber.Uint64()
-	}
+	p.BlockNumber = d.BlockNumber
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil

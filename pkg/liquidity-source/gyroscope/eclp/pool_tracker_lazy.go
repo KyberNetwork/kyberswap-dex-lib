@@ -52,13 +52,16 @@ func (t *PoolTracker) lazycall(
 	staticExtra *StaticExtra,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (poolpkg.ILazyRequest, func(*big.Int) (entity.Pool, error)) {
-	d := &rpcData{}
+	d := &RPCResp{}
 
 	r := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
 	req := poolpkg.LazyRequest{Request: r}
 	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, staticExtra.Vault, staticExtra.PoolID, staticExtra.PoolTypeVer, d)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
-		return buildPoolState(*p, staticExtra, d, blockNumber)
+		if blockNumber != nil {
+			d.BlockNumber = blockNumber.Uint64()
+		}
+		return buildPoolState(*p, staticExtra, d)
 	}
 }

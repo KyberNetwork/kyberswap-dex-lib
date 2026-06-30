@@ -174,31 +174,15 @@ func (t *PoolTracker) initReserves(p entity.Pool, poolTokens gyroeclp.PoolTokens
 	return reserves, nil
 }
 
-type localRPCResp struct {
-	PoolTokens        gyroeclp.PoolTokensResp
-	SwapFeePercentage *big.Int
-	PausedState       gyroeclp.PausedStateResp
-	TokenRatesResp    gyroeclp.TokenRatesResp
-	ECLPParamsResp    gyroeclp.ECLPParamsResp
-	BlockNumber       uint64
-}
-
 func (t *PoolTracker) queryRPC(
 	ctx context.Context,
 	poolAddress, poolID, vault string,
 	tokens []*entity.PoolToken,
 	poolTypeVer int,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*localRPCResp, error) {
-	var (
-		poolTokens        gyroeclp.PoolTokensResp
-		swapFeePercentage *big.Int
-		pausedState       gyroeclp.PausedStateResp
-		tokenRates        gyroeclp.TokenRatesResp
-		eclpParams        gyroeclp.ECLPParamsResp
-
-		poolIDHash = common.HexToHash(poolID)
-	)
+) (*gyroeclp.RPCResp, error) {
+	d := &gyroeclp.RPCResp{}
+	poolIDHash := common.HexToHash(poolID)
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
 
@@ -207,33 +191,33 @@ func (t *PoolTracker) queryRPC(
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
 		Params: []any{poolIDHash},
-	}, []any{&poolTokens})
+	}, []any{&d.PoolTokens})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    *gyroeclp.PoolABI,
 		Target: poolAddress,
 		Method: gyroeclp.PoolMethodGetSwapFeePercentage,
-	}, []any{&swapFeePercentage})
+	}, []any{&d.SwapFeePercentage})
 
 	if poolTypeVer > gyroeclp.PoolTypeVer1 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    *gyroeclp.PoolABI,
 			Target: poolAddress,
 			Method: gyroeclp.PoolMethodGetTokenRates,
-		}, []any{&tokenRates})
+		}, []any{&d.TokenRatesResp})
 	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    *gyroeclp.PoolABI,
 		Target: poolAddress,
 		Method: gyroeclp.PoolMethodGetECLPParams,
-	}, []any{&eclpParams})
+	}, []any{&d.ECLPParamsResp})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    *gyroeclp.PoolABI,
 		Target: poolAddress,
 		Method: gyroeclp.PoolMethodGetPausedState,
-	}, []any{&pausedState})
+	}, []any{&d.PausedState})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -245,12 +229,6 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
-	return &localRPCResp{
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		PausedState:       pausedState,
-		TokenRatesResp:    tokenRates,
-		ECLPParamsResp:    eclpParams,
-		BlockNumber:       res.BlockNumber.Uint64(),
-	}, nil
+	d.BlockNumber = res.BlockNumber.Uint64()
+	return d, nil
 }
