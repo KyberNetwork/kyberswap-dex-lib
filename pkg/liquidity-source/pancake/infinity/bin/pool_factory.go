@@ -79,6 +79,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 		Address:   hexutil.Encode(p.Id[:]),
 		SwapFee:   swapFee,
 		Exchange:  hook.GetExchange(),
+		Type:      DexType,
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
