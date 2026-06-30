@@ -1,4 +1,4 @@
-package aavev3
+package lazy
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
@@ -19,14 +20,14 @@ import (
 )
 
 type PoolTracker struct {
-	config       *Config
+	config       *aavev3.Config
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(aavev3.DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config *aavev3.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -59,82 +60,79 @@ func (d *PoolTracker) getNewPoolState(
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	staticExtra := StaticExtra{}
+	staticExtra := aavev3.StaticExtra{}
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to unmarshal staticExtra")
 		return p, err
 	}
 
-	rpcData, liquidity, totalSupply, err := d.getPoolData(ctx, staticExtra.AavePoolAddress, p.Tokens[0].Address,
-		p.Tokens[1].Address, overrides)
+	rd := newRPCData()
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) },
+		staticExtra.AavePoolAddress, p.Tokens[0].Address, p.Tokens[1].Address, rd)
+
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to getPoolData")
 		return p, err
 	}
 
-	newPool, err := d.updatePool(p, rpcData, liquidity, totalSupply)
-	if err != nil {
-		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to updatePool")
-		return p, err
-	}
-
-	return newPool, nil
+	return buildPoolState(p, rd, resp.BlockNumber)
 }
 
-func (d *PoolTracker) getPoolData(
-	ctx context.Context,
-	poolAddress,
-	aTokenAddress,
-	assetToken string,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (RPCConfiguration, *big.Int, *big.Int, error) {
-	var rpcData RPCConfiguration
-	var liquidity *big.Int
-	var totalSupply *big.Int
+type rpcData struct {
+	configuration aavev3.RPCConfiguration
+	liquidity     *big.Int
+	totalSupply   *big.Int
+}
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+func newRPCData() *rpcData {
+	return &rpcData{
+		liquidity:   new(big.Int),
+		totalSupply: new(big.Int),
+	}
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, aTokenAddress, assetToken string, d *rpcData) {
+	addFn(&ethrpc.Call{
+		ABI:    *aavev3.PoolABI,
 		Target: poolAddress,
-		Method: PoolMethodGetConfiguration,
+		Method: aavev3.PoolMethodGetConfiguration,
 		Params: []any{common.HexToAddress(assetToken)},
-	}, []any{&rpcData.Configuration}).AddCall(&ethrpc.Call{
+	}, []any{&d.configuration.Configuration})
+	addFn(&ethrpc.Call{
 		ABI:    utilabi.Erc20ABI,
 		Target: assetToken,
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{common.HexToAddress(aTokenAddress)},
-	}, []any{&liquidity}).AddCall(&ethrpc.Call{
+	}, []any{&d.liquidity})
+	addFn(&ethrpc.Call{
 		ABI:    utilabi.Erc20ABI,
 		Target: aTokenAddress,
 		Method: utilabi.Erc20TotalSupplyMethod,
-	}, []any{&totalSupply})
-
-	resp, err := req.Aggregate()
-	if err != nil {
-		return RPCConfiguration{}, nil, nil, err
-	}
-
-	rpcData.BlockNumber = resp.BlockNumber.Uint64()
-
-	return rpcData, liquidity, totalSupply, nil
+	}, []any{&d.totalSupply})
 }
 
-func (d *PoolTracker) updatePool(p entity.Pool, data RPCConfiguration, liquidity, totalSupply *big.Int) (entity.Pool, error) {
-	extra := ParseConfiguration(data.Configuration.Data.Data)
+func buildPoolState(p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
+	extra := aavev3.ParseConfiguration(d.configuration.Configuration.Data.Data)
 	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = calculateReserves(extra, data.Configuration.Data.Data, liquidity, totalSupply, p.Tokens[1].Decimals)
-	p.BlockNumber = data.BlockNumber
+	p.Reserves = calculateReserves(extra, d.configuration.Configuration.Data.Data, d.liquidity, d.totalSupply,
+		p.Tokens[1].Decimals)
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 
 	return p, nil
 }
 
-func calculateReserves(extra Extra, configuration, liquidity, totalSupply *big.Int, decimals uint8) entity.PoolReserves {
-	supplyCap := ParseSupplyCap(configuration)
+func calculateReserves(extra aavev3.Extra, configuration, liquidity, totalSupply *big.Int, decimals uint8) entity.PoolReserves {
+	supplyCap := aavev3.ParseSupplyCap(configuration)
 
 	var reserve0 *big.Int
 	if supplyCap > 0 {

@@ -25,7 +25,7 @@ type PoolTracker struct {
 	logger       logger.Logger
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -69,15 +69,60 @@ func (t *PoolTracker) getNewPoolState(
 	lg.Info("Start updating state ...")
 	defer func() { lg.Info("Finish updating state.") }()
 
+	var (
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
+
+		numTokens = len(p.Tokens)
+
+		balances = make([]*big.Int, numTokens)
+
+		storedRates [shared.MaxTokenCount]*big.Int
+	)
+
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return entity.Pool{}, err
 	}
 
-	d := &rpcData{balances: make([]*big.Int, len(p.Tokens))}
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
-		SetFrom(shared.AddrDummy) // poolMethodStoredRates behaves differently for tx.origin == 0
-	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, d)
+		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
+		AddCall(&ethrpc.Call{
+			ABI:    *CurveStableMetaNGABI,
+			Target: p.Address,
+			Method: PoolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodFutureA,
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodInitialATime,
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodFutureATime,
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodFee,
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodAdminFee,
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: shared.ERC20MethodTotalSupply,
+	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodStoredRates,
+	}, []any{&storedRates}).AddCall(&ethrpc.Call{
+		ABI:    *CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: PoolMethodGetBalances,
+	}, []any{&balances})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
@@ -86,42 +131,19 @@ func (t *PoolTracker) getNewPoolState(
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	return buildPoolState(lg, p, d)
-}
-
-type rpcData struct {
-	initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
-	storedRates                                                                [shared.MaxTokenCount]*big.Int
-	balances                                                                   []*big.Int
-}
-
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodInitialA}, []any{&d.initialA})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodFutureA}, []any{&d.futureA})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodInitialATime}, []any{&d.initialATime})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodFutureATime}, []any{&d.futureATime})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodFee}, []any{&d.swapFee})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodAdminFee}, []any{&d.adminFee})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodStoredRates}, []any{&d.storedRates})
-	addFn(&ethrpc.Call{ABI: curveStableMetaNGABI, Target: poolAddress, Method: poolMethodGetBalances}, []any{&d.balances})
-}
-
-func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
-	numTokens := len(p.Tokens)
 	var extra = Extra{
-		InitialA:     number.SetFromBig(d.initialA),
-		FutureA:      number.SetFromBig(d.futureA),
-		InitialATime: d.initialATime.Int64(),
-		FutureATime:  d.futureATime.Int64(),
-		SwapFee:      number.SetFromBig(d.swapFee),
-		AdminFee:     number.SetFromBig(d.adminFee),
+		InitialA:     number.SetFromBig(initialA),
+		FutureA:      number.SetFromBig(futureA),
+		InitialATime: initialATime.Int64(),
+		FutureATime:  futureATime.Int64(),
+		SwapFee:      number.SetFromBig(swapFee),
+		AdminFee:     number.SetFromBig(adminFee),
 	}
 
-	if err := updateRateMultipliers(lg, &extra, numTokens, d.storedRates[:numTokens]); err != nil {
+	if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
 		// if the rates is invalid then clear the pool and return err=nil
 		p.Timestamp = time.Now().Unix()
-		p.Reserves = make(entity.PoolReserves, len(d.balances)+1)
+		p.Reserves = make(entity.PoolReserves, len(balances)+1)
 		for i := range p.Reserves {
 			p.Reserves[i] = "0"
 		}
@@ -134,11 +156,11 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		return entity.Pool{}, err
 	}
 
-	var reserves = make(entity.PoolReserves, 0, len(d.balances)+1)
-	for i := range d.balances {
-		reserves = append(reserves, d.balances[i].String())
+	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
+	for i := range balances {
+		reserves = append(reserves, balances[i].String())
 	}
-	reserves = append(reserves, d.lpSupply.String())
+	reserves = append(reserves, lpSupply.String())
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
@@ -147,7 +169,7 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 	return p, nil
 }
 
-func updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
+func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 

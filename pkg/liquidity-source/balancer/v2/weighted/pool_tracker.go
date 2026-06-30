@@ -10,7 +10,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -28,7 +27,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -44,22 +43,6 @@ func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
-) (entity.Pool, error) {
-	return t.getNewPoolState(ctx, p, nil)
-}
-
-func (t *PoolTracker) GetNewPoolStateWithOverrides(
-	ctx context.Context,
-	p entity.Pool,
-	params poolpkg.GetNewPoolStateWithOverridesParams,
-) (entity.Pool, error) {
-	return t.getNewPoolState(ctx, p, params.Overrides)
-}
-
-func (t *PoolTracker) getNewPoolState(
-	ctx context.Context,
-	p entity.Pool,
-	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
@@ -86,94 +69,19 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	d := newTrackerData()
-	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
-	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) },
-		p.Address, staticExtra.PoolTypeVer, staticExtra.PoolID, staticExtra.Vault,
-		t.config.ProtocolFeesCollector, d)
-
-	res, err := req.TryBlockAndAggregate()
+	// call RPC
+	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolTypeVer, staticExtra.PoolID, staticExtra.Vault)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
-
 		return p, err
 	}
 
-	return buildPoolState(t, p, d, res.BlockNumber)
-}
-
-type trackerData struct {
-	poolTokens                PoolTokens
-	swapFeePercentage         *big.Int
-	protocolSwapFeePercentage *big.Int
-	pausedState               PausedState
-	lastInvariant             *big.Int
-	totalSupply               *big.Int
-}
-
-func newTrackerData() *trackerData {
-	return &trackerData{
-		protocolSwapFeePercentage: bignumber.ZeroBI,
-		lastInvariant:             bignumber.ZeroBI,
-	}
-}
-
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, poolTypeVer int,
-	poolID, vault, protocolFeesCollector string, d *trackerData) {
-	addFn(&ethrpc.Call{
-		ABI:    shared.VaultABI,
-		Target: vault,
-		Method: shared.VaultMethodGetPoolTokens,
-		Params: []any{common.HexToHash(poolID)},
-	}, []any{&d.poolTokens})
-	addFn(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetSwapFeePercentage,
-	}, []any{&d.swapFeePercentage})
-	addFn(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetPausedState,
-	}, []any{&d.pausedState})
-	if poolTypeVer == poolTypeVer1 {
-		addFn(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress,
-			Method: poolMethodGetLastInvariant,
-		}, []any{&d.lastInvariant})
-	} else {
-		addFn(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress,
-			Method: poolMethodGetInvariant,
-		}, []any{&d.lastInvariant})
-	}
-	addFn(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodTotalSupply,
-	}, []any{&d.totalSupply})
-	if protocolFeesCollector != "" {
-		addFn(&ethrpc.Call{
-			ABI:    shared.ProtocolFeesCollectorABI,
-			Target: protocolFeesCollector,
-			Method: protocolMethodGetSwapFeePercentage,
-		}, []any{&d.protocolSwapFeePercentage})
-	}
-}
-
-func buildPoolState(t *PoolTracker, p entity.Pool, d *trackerData, blockNumber *big.Int) (entity.Pool, error) {
+	// update pool
 	extra := Extra{
-		SwapFeePercentage:         uint256.MustFromBig(d.swapFeePercentage),
-		ProtocolSwapFeePercentage: uint256.MustFromBig(d.protocolSwapFeePercentage),
-		LastInvariant:             uint256.MustFromBig(d.lastInvariant),
-		TotalSupply:               uint256.MustFromBig(d.totalSupply),
-		Paused:                    !isNotPaused(d.pausedState),
+		SwapFeePercentage:         rpcRes.SwapFeePercentage,
+		ProtocolSwapFeePercentage: rpcRes.ProtocolSwapFeePercentage,
+		LastInvariant:             rpcRes.LastInvariant,
+		TotalSupply:               rpcRes.TotalSupply,
+		Paused:                    !isNotPaused(rpcRes.PausedState),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -182,17 +90,16 @@ func buildPoolState(t *PoolTracker, p entity.Pool, d *trackerData, blockNumber *
 			"dexType":     DexType,
 			"poolAddress": p.Address,
 		}).Error(err.Error())
+
 		return p, err
 	}
 
-	reserves, err := initReserves(t, p, d.poolTokens)
+	reserves, err := t.initReserves(p, rpcRes.PoolTokens)
 	if err != nil {
 		return p, err
 	}
 
-	if blockNumber != nil {
-		p.BlockNumber = blockNumber.Uint64()
-	}
+	p.BlockNumber = rpcRes.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = reserves
@@ -200,7 +107,10 @@ func buildPoolState(t *PoolTracker, p entity.Pool, d *trackerData, blockNumber *
 	return p, nil
 }
 
-func initReserves(t *PoolTracker, p entity.Pool, poolTokens PoolTokens) ([]string, error) {
+func (t *PoolTracker) initReserves(
+	p entity.Pool,
+	poolTokens PoolTokens,
+) ([]string, error) {
 	reserveByToken := make(map[string]*big.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
@@ -216,12 +126,101 @@ func initReserves(t *PoolTracker, p entity.Pool, poolTokens PoolTokens) ([]strin
 				"dexType":     DexType,
 				"poolAddress": p.Address,
 			}).Error("can not get reserve")
+
 			return nil, ErrReserveNotFound
 		}
+
 		reserves[idx] = r.String()
 	}
 
 	return reserves, nil
+}
+
+func (t *PoolTracker) queryRPC(
+	ctx context.Context,
+	poolAddress string,
+	poolTypeVer int,
+	poolID string,
+	vault string,
+) (*RPCRes, error) {
+	var (
+		poolTokens                PoolTokens
+		swapFeePercentage         *big.Int
+		protocolSwapFeePercentage = bignumber.ZeroBI
+		pausedState               PausedState
+		lastInvariant             = bignumber.ZeroBI
+		totalSupply               *big.Int
+	)
+
+	req := t.ethrpcClient.R().SetContext(ctx)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultABI,
+		Target: vault,
+		Method: shared.VaultMethodGetPoolTokens,
+		Params: []any{common.HexToHash(poolID)},
+	}, []any{&poolTokens})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetSwapFeePercentage,
+	}, []any{&swapFeePercentage})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetPausedState,
+	}, []any{&pausedState})
+
+	if poolTypeVer == poolTypeVer1 {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress,
+			Method: poolMethodGetLastInvariant,
+		}, []any{&lastInvariant})
+	} else {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress,
+			Method: poolMethodGetInvariant,
+		}, []any{&lastInvariant})
+	}
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodTotalSupply,
+	}, []any{&totalSupply})
+
+	if t.config.ProtocolFeesCollector != "" {
+		req.AddCall(&ethrpc.Call{
+			ABI:    shared.ProtocolFeesCollectorABI,
+			Target: t.config.ProtocolFeesCollector,
+			Method: protocolMethodGetSwapFeePercentage,
+		}, []any{&protocolSwapFeePercentage})
+	}
+
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": poolAddress,
+		}).Error(err.Error())
+
+		return nil, err
+	}
+
+	return &RPCRes{
+		PoolTokens:                poolTokens,
+		SwapFeePercentage:         uint256.MustFromBig(swapFeePercentage),
+		ProtocolSwapFeePercentage: uint256.MustFromBig(protocolSwapFeePercentage),
+		PausedState:               pausedState,
+		LastInvariant:             uint256.MustFromBig(lastInvariant),
+		TotalSupply:               uint256.MustFromBig(totalSupply),
+		BlockNumber:               res.BlockNumber.Uint64(),
+	}, nil
 }
 
 func isNotPaused(pausedState PausedState) bool {

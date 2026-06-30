@@ -28,7 +28,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -86,79 +86,33 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	d := &RPCResp{}
-	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
-	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, staticExtra.Vault, staticExtra.PoolID, staticExtra.PoolTypeVer, d)
-
-	res, err := req.TryBlockAndAggregate()
+	rpcResp, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, p.Tokens, staticExtra.PoolTypeVer, overrides)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
 		return p, err
 	}
 
-	d.BlockNumber = res.BlockNumber.Uint64()
-	return buildPoolState(p, &staticExtra, d)
-}
-
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, vault, poolID string, poolTypeVer int, d *RPCResp) {
-	poolIDHash := common.HexToHash(poolID)
-	addFn(&ethrpc.Call{
-		ABI:    shared.VaultABI,
-		Target: vault,
-		Method: shared.VaultMethodGetPoolTokens,
-		Params: []any{poolIDHash},
-	}, []any{&d.PoolTokens})
-	addFn(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: PoolMethodGetSwapFeePercentage,
-	}, []any{&d.SwapFeePercentage})
-	if poolTypeVer > PoolTypeVer1 {
-		addFn(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress,
-			Method: PoolMethodGetTokenRates,
-		}, []any{&d.TokenRatesResp})
-	}
-	addFn(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: PoolMethodGetECLPParams,
-	}, []any{&d.ECLPParamsResp})
-	addFn(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: PoolMethodGetPausedState,
-	}, []any{&d.PausedState})
-}
-
-func buildPoolState(p entity.Pool, staticExtra *StaticExtra, d *RPCResp) (entity.Pool, error) {
-	paused := !IsNotPaused(d.PausedState)
-	swapFeePercentage, _ := uint256.FromBig(d.SwapFeePercentage)
-	paramsAlpha, _ := int256.FromBig(d.ECLPParamsResp.Params.Alpha)
-	paramsBeta, _ := int256.FromBig(d.ECLPParamsResp.Params.Beta)
-	paramsC, _ := int256.FromBig(d.ECLPParamsResp.Params.C)
-	paramsS, _ := int256.FromBig(d.ECLPParamsResp.Params.S)
-	paramsLambda, _ := int256.FromBig(d.ECLPParamsResp.Params.Lambda)
-	tauAlphaX, _ := int256.FromBig(d.ECLPParamsResp.D.TauAlpha.X)
-	tauAlphaY, _ := int256.FromBig(d.ECLPParamsResp.D.TauAlpha.Y)
-	tauBetaX, _ := int256.FromBig(d.ECLPParamsResp.D.TauBeta.X)
-	tauBetaY, _ := int256.FromBig(d.ECLPParamsResp.D.TauBeta.Y)
-	u, _ := int256.FromBig(d.ECLPParamsResp.D.U)
-	v, _ := int256.FromBig(d.ECLPParamsResp.D.V)
-	w, _ := int256.FromBig(d.ECLPParamsResp.D.W)
-	z, _ := int256.FromBig(d.ECLPParamsResp.D.Z)
-	dSq, _ := int256.FromBig(d.ECLPParamsResp.D.DSq)
+	paused := !IsNotPaused(rpcResp.PausedState)
+	swapFeePercentage, _ := uint256.FromBig(rpcResp.SwapFeePercentage)
+	paramsAlpha, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Alpha)
+	paramsBeta, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Beta)
+	paramsC, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.C)
+	paramsS, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.S)
+	paramsLambda, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Lambda)
+	tauAlphaX, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauAlpha.X)
+	tauAlphaY, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauAlpha.Y)
+	tauBetaX, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauBeta.X)
+	tauBetaY, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauBeta.Y)
+	u, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.U)
+	v, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.V)
+	w, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.W)
+	z, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.Z)
+	dSq, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.DSq)
 
 	var tokenRates []*uint256.Int
 	if staticExtra.PoolTypeVer > PoolTypeVer1 {
 		tokenRates = make([]*uint256.Int, 2)
-		tokenRates[0], _ = uint256.FromBig(d.TokenRatesResp.Rate0)
-		tokenRates[1], _ = uint256.FromBig(d.TokenRatesResp.Rate1)
+		tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
+		tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
 	}
 
 	extra := Extra{
@@ -185,20 +139,20 @@ func buildPoolState(p entity.Pool, staticExtra *StaticExtra, d *RPCResp) (entity
 		return p, err
 	}
 
-	reserves, err := initReserves(p, d.PoolTokens)
+	reserves, err := t.initReserves(p, rpcResp.PoolTokens)
 	if err != nil {
 		return p, err
 	}
 
 	p.Reserves = reserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = d.BlockNumber
+	p.BlockNumber = rpcResp.BlockNumber
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
 
-func initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]string, error) {
+func (t *PoolTracker) initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]string, error) {
 	reserveByToken := make(map[string]*big.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
@@ -209,12 +163,76 @@ func initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]string, error) {
 	for idx, token := range p.Tokens {
 		r, ok := reserveByToken[token.Address]
 		if !ok {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": p.Address,
+			}).Error("can not get reserve")
 			return nil, ErrReserveNotFound
 		}
 		reserves[idx] = r.String()
 	}
 
 	return reserves, nil
+}
+
+func (t *PoolTracker) queryRPC(
+	ctx context.Context,
+	poolAddress, poolID, vault string,
+	tokens []*entity.PoolToken,
+	poolTypeVer int,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*RPCResp, error) {
+	d := &RPCResp{}
+	poolIDHash := common.HexToHash(poolID)
+
+	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultABI,
+		Target: vault,
+		Method: shared.VaultMethodGetPoolTokens,
+		Params: []any{poolIDHash},
+	}, []any{&d.PoolTokens})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetSwapFeePercentage,
+	}, []any{&d.SwapFeePercentage})
+
+	if poolTypeVer > PoolTypeVer1 {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress,
+			Method: PoolMethodGetTokenRates,
+		}, []any{&d.TokenRatesResp})
+	}
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetECLPParams,
+	}, []any{&d.ECLPParamsResp})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetPausedState,
+	}, []any{&d.PausedState})
+
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": poolAddress,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	d.BlockNumber = res.BlockNumber.Uint64()
+	return d, nil
 }
 
 func IsNotPaused(pausedState PausedStateResp) bool {

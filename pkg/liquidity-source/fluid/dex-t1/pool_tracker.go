@@ -22,7 +22,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -53,53 +53,15 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	d := newRPCData()
-	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
-	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, t.config.DexReservesResolver, d)
-
-	resp, err := req.Aggregate()
+	poolReserves, isSwapAndArbitragePaused, blockNumber, err := t.getPoolReserves(ctx, p.Address, overrides)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Failed to get pool reserves")
 		return p, err
 	}
 
-	return buildPoolState(p, d, resp.BlockNumber)
-}
-
-type rpcData struct {
-	poolReserves  *PoolWithReserves
-	dexVariables2 *big.Int
-}
-
-func newRPCData() *rpcData {
-	return &rpcData{
-		poolReserves:  &PoolWithReserves{},
-		dexVariables2: new(big.Int),
-	}
-}
-
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, resolverAddress string, d *rpcData) {
-	addFn(&ethrpc.Call{
-		ABI:    dexReservesResolverABI,
-		Target: resolverAddress,
-		Method: DRRMethodGetPoolReservesAdjusted,
-		Params: []any{common.HexToAddress(poolAddress)},
-	}, []any{&d.poolReserves})
-	addFn(&ethrpc.Call{
-		ABI:    storageReadABI,
-		Target: poolAddress,
-		Method: SRMethodReadFromStorage,
-		Params: []any{common.HexToHash("0x1")},
-	}, []any{&d.dexVariables2})
-}
-
-func buildPoolState(p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
-	isSwapAndArbitragePaused := d.dexVariables2.Bit(255) == 1
-
-	poolReserves := d.poolReserves
+	collateralReserves, debtReserves := poolReserves.CollateralReserves, poolReserves.DebtReserves
 	extra := PoolExtra{
-		CollateralReserves:       poolReserves.CollateralReserves,
-		DebtReserves:             poolReserves.DebtReserves,
+		CollateralReserves:       collateralReserves,
+		DebtReserves:             debtReserves,
 		IsSwapAndArbitragePaused: isSwapAndArbitragePaused,
 		DexLimits:                poolReserves.Limits,
 		CenterPrice:              poolReserves.CenterPrice,
@@ -113,9 +75,7 @@ func buildPoolState(p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Poo
 
 	p.SwapFee = float64(poolReserves.Fee.Int64()) / FeePercentPrecision
 	p.Extra = string(extraBytes)
-	if blockNumber != nil {
-		p.BlockNumber = blockNumber.Uint64()
-	}
+	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		GetMaxReserves(
@@ -133,6 +93,44 @@ func buildPoolState(p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Poo
 	}
 
 	return p, nil
+}
+
+func (t *PoolTracker) getPoolReserves(
+	ctx context.Context,
+	poolAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*PoolWithReserves, bool, uint64, error) {
+	poolReserves := &PoolWithReserves{}
+	dexVariables2 := new(big.Int)
+
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    *DexReservesResolverABI,
+		Target: t.config.DexReservesResolver,
+		Method: DRRMethodGetPoolReservesAdjusted,
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&poolReserves})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    *StorageReadABI,
+		Target: poolAddress,
+		Method: SRMethodReadFromStorage,
+		Params: []any{common.HexToHash("0x1")},
+	}, []any{&dexVariables2})
+
+	resp, err := req.Aggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("Failed to get pool reserves")
+		return nil, false, 0, err
+	}
+
+	isSwapAndArbitragePaused := dexVariables2.Bit(255) == 1
+
+	return poolReserves, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
 }
 
 func GetMaxReserves(

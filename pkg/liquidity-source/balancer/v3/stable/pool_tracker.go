@@ -27,7 +27,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -77,145 +77,125 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var (
-		rpcRes RpcResult
-		flags  rpcFlags
-	)
-	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
-	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, t.config.VaultExplorer,
-		&staticExtra, t.config.ChainID, t.config.DexID, &rpcRes, &flags)
-
-	res, err := req.TryBlockAndAggregate()
+	res, err := t.queryRPCData(ctx, &p, staticExtra, overrides)
 	if err != nil {
 		l.WithFields(klog.Fields{"error": err}).Error("failed to query RPC data")
-		return p, errors.WithMessage(err, "failed to query RPC data")
+		return p, err
 	}
 
-	rpcRes.IsPoolDisabled = flags.isVaultPaused || flags.isPoolPaused || flags.isPoolInRecoveryMode
-	rpcRes.BlockNumber = res.BlockNumber.Uint64()
+	extra := Extra{Extra: &shared.Extra{}}
+	extra.EnableHookAdjustedAmounts = res.HooksConfigData.EnableHookAdjustedAmounts
+	extra.ShouldCallComputeDynamicSwapFee = res.HooksConfigData.ShouldCallComputeDynamicSwapFee
+	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap
+	extra.ShouldCallAfterSwap = res.HooksConfigData.ShouldCallAfterSwap
+	extra.StaticSwapFeePercentage, _ = uint256.FromBig(res.StaticSwapFeePercentage)
+	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
+	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
+	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
+	extra.Buffers = res.Buffers()
+	if staticExtra.HookType == shared.StableSurgeHookType {
+		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(res.MaxSurgeFeePercentage)
+		extra.SurgeThresholdPercentage, _ = uint256.FromBig(res.SurgeThresholdPercentage)
+	}
+	extra.IsRisky = isRisky(extra.SurgePercentages, p, t.config.ChainID)
+	extra.AmplificationParameter, _ = uint256.FromBig(res.Value)
 
-	return buildPoolState(p, &staticExtra, &rpcRes, t.config.ChainID)
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		l.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
+		return p, err
+	}
+
+	p.BlockNumber = res.BlockNumber
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+
+	if res.IsPoolDisabled || extra.IsRisky || !shared.IsHookSupported(staticExtra.HookType) {
+		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
+	} else {
+		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
+	}
+
+	return p, nil
 }
 
-type rpcFlags struct {
-	isVaultPaused        bool
-	isPoolPaused         bool
-	isPoolInRecoveryMode bool
-}
+func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticExtra shared.StaticExtra,
+	overrides map[common.Address]gethclient.OverrideAccount) (*RpcResult, error) {
+	var (
+		rpcRes               RpcResult
+		isVaultPaused        bool
+		isPoolPaused         bool
+		isPoolInRecoveryMode bool
+	)
 
-func addRPCCalls(
-	addFn func(*ethrpc.Call, []any),
-	poolAddress, vaultExplorer string,
-	staticExtra *shared.StaticExtra,
-	chainID valueobject.ChainID,
-	dexID string,
-	rpcRes *RpcResult,
-	flags *rpcFlags,
-) {
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
+
+	poolAddress := p.Address
 	paramsPool := []any{common.HexToAddress(poolAddress)}
-	addFn(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetHooksConfig,
 		Params: paramsPool,
-	}, []any{&rpcRes.HooksConfigRPC})
-	addFn(&ethrpc.Call{
+	}, []any{&rpcRes.HooksConfigRPC}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetStaticSwapFeePercentage,
 		Params: paramsPool,
-	}, []any{&rpcRes.StaticSwapFeePercentage})
-	addFn(&ethrpc.Call{
+	}, []any{&rpcRes.StaticSwapFeePercentage}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetAggregateFeePercentages,
 		Params: paramsPool,
-	}, []any{&rpcRes.AggregateFeePercentageRPC})
-	addFn(&ethrpc.Call{
+	}, []any{&rpcRes.AggregateFeePercentageRPC}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetPoolData,
 		Params: paramsPool,
-	}, []any{&rpcRes.PoolDataRPC})
-	addFn(&ethrpc.Call{
+	}, []any{&rpcRes.PoolDataRPC}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsVaultPaused,
-	}, []any{&flags.isVaultPaused})
-	addFn(&ethrpc.Call{
+	}, []any{&isVaultPaused}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsPoolPaused,
 		Params: paramsPool,
-	}, []any{&flags.isPoolPaused})
-	addFn(&ethrpc.Call{
+	}, []any{&isPoolPaused}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
+		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsPoolInRecoveryMode,
 		Params: paramsPool,
-	}, []any{&flags.isPoolInRecoveryMode})
-	addFn(&ethrpc.Call{
+	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetAmplificationParameter,
 	}, []any{&rpcRes.AmplificationParameterRpc})
 	if staticExtra.HookType == shared.StableSurgeHookType {
-		addFn(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    stableSurgeABI,
 			Target: staticExtra.Hook,
 			Method: StableSurgeHookMethodGetMaxSurgeFeePercentage,
 			Params: paramsPool,
-		}, []any{&rpcRes.MaxSurgeFeePercentage})
-		addFn(&ethrpc.Call{
+		}, []any{&rpcRes.MaxSurgeFeePercentage}).AddCall(&ethrpc.Call{
 			ABI:    stableSurgeABI,
 			Target: staticExtra.Hook,
 			Method: StableSurgeHookMethodGetSurgeThresholdPercentage,
 			Params: paramsPool,
 		}, []any{&rpcRes.SurgeThresholdPercentage})
 	}
-	rpcRes.Buffers = shared.GetBufferTokens(addFn, chainID, dexID, staticExtra.BufferTokens)
-}
+	rpcRes.Buffers = shared.GetBufferTokens(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
-func buildPoolState(
-	p entity.Pool,
-	staticExtra *shared.StaticExtra,
-	rpcRes *RpcResult,
-	chainID valueobject.ChainID,
-) (entity.Pool, error) {
-	extra := Extra{Extra: &shared.Extra{}}
-	extra.EnableHookAdjustedAmounts = rpcRes.HooksConfigData.EnableHookAdjustedAmounts
-	extra.ShouldCallComputeDynamicSwapFee = rpcRes.HooksConfigData.ShouldCallComputeDynamicSwapFee
-	extra.ShouldCallBeforeSwap = rpcRes.HooksConfigData.ShouldCallBeforeSwap
-	extra.ShouldCallAfterSwap = rpcRes.HooksConfigData.ShouldCallAfterSwap
-	extra.StaticSwapFeePercentage, _ = uint256.FromBig(rpcRes.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(rpcRes.AggregateSwapFeePercentage)
-	extra.BalancesLiveScaled18 = shared.FromBigs(rpcRes.PoolData.BalancesLiveScaled18)
-	extra.DecimalScalingFactors = shared.FromBigs(rpcRes.PoolData.DecimalScalingFactors)
-	extra.TokenRates = shared.FromBigs(rpcRes.PoolData.TokenRates)
-	extra.Buffers = rpcRes.Buffers()
-	if staticExtra.HookType == shared.StableSurgeHookType {
-		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(rpcRes.MaxSurgeFeePercentage)
-		extra.SurgeThresholdPercentage, _ = uint256.FromBig(rpcRes.SurgeThresholdPercentage)
-	}
-	extra.IsRisky = isRisky(extra.SurgePercentages, p, chainID)
-	extra.AmplificationParameter, _ = uint256.FromBig(rpcRes.Value)
-
-	extraBytes, err := json.Marshal(extra)
+	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return p, err
+		return nil, errors.WithMessage(err, "failed to query RPC data")
 	}
 
-	p.BlockNumber = rpcRes.BlockNumber
-	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	rpcRes.IsPoolDisabled = isVaultPaused || isPoolPaused || isPoolInRecoveryMode
+	rpcRes.BlockNumber = res.BlockNumber.Uint64()
 
-	if rpcRes.IsPoolDisabled || extra.IsRisky || !shared.IsHookSupported(staticExtra.HookType) {
-		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
-	} else {
-		p.Reserves = lo.Map(rpcRes.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
-	}
-
-	return p, nil
+	return &rpcRes, nil
 }
 
 func isRisky(s SurgePercentages, p entity.Pool, chainId valueobject.ChainID) bool {

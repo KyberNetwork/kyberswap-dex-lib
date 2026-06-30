@@ -1,4 +1,4 @@
-package ringswap
+package lazy
 
 import (
 	"context"
@@ -14,23 +14,29 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
+	ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+const (
+	pairMethodGetReserves = "getReserves"
+	pairMethodBalanceOf   = "balanceOf"
+)
+
 type (
 	PoolTracker struct {
-		config       *Config
+		config       *ringswap.Config
 		ethrpcClient *ethrpc.Client
 		logDecoder   uniswapv2.ILogDecoder
 	}
 )
 
-var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(ringswap.DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config *ringswap.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -66,18 +72,29 @@ func (d *PoolTracker) getNewPoolState(
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	fwReserves, originalReserves, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
+	if err := validateTokens(p.Tokens); err != nil {
+		return p, err
+	}
+
+	rpc := newRPCData()
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, p.Tokens, rpc)
+
+	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err
 	}
 
-	if p.BlockNumber > blockNumber.Uint64() {
+	if p.BlockNumber > resp.BlockNumber.Uint64() {
 		logger.
 			WithFields(
 				logger.Fields{
 					"pool_id":           p.Address,
 					"pool_block_number": p.BlockNumber,
-					"data_block_number": blockNumber.Uint64(),
+					"data_block_number": resp.BlockNumber.Uint64(),
 				},
 			).
 			Info("skip update: data block number is less than current pool block number")
@@ -89,83 +106,80 @@ func (d *PoolTracker) getNewPoolState(
 			logger.Fields{
 				"pool_id":          p.Address,
 				"old_reserve":      p.Reserves,
-				"new_reserve":      fwReserves,
 				"old_block_number": p.BlockNumber,
-				"new_block_number": blockNumber,
+				"new_block_number": resp.BlockNumber,
 				"duration_ms":      time.Since(startTime).Milliseconds(),
 			},
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, fwReserves, originalReserves, blockNumber)
+	return buildPoolState(p, rpc, resp.BlockNumber)
 }
 
-func (d *PoolTracker) getReserves(
-	ctx context.Context,
-	poolAddress string,
-	tokens []*entity.PoolToken,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (uniswapv2.ReserveData, uniswapv2.ReserveData, *big.Int, error) {
+func validateTokens(tokens []*entity.PoolToken) error {
 	if len(tokens) < 4 {
-		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, errors.New("invalid number of tokens")
+		return errors.New("invalid number of tokens")
 	}
-
-	var (
-		getReservesResult uniswapv2.ReserveData
-
-		originalReserve0 = bignumber.ZeroBI
-		originalReserve1 = bignumber.ZeroBI
-
-		originalToken0, fwToken0 = tokens[0], tokens[2]
-		originalToken1, fwToken1 = tokens[1], tokens[3]
-	)
-
+	originalToken0, fwToken0 := tokens[0], tokens[2]
+	originalToken1, fwToken1 := tokens[1], tokens[3]
 	if (originalToken0.Address == fwToken0.Address) || (originalToken1.Address == fwToken1.Address) {
-		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, errors.New("waiting for fetching origin token address")
+		return errors.New("waiting for fetching origin token address")
 	}
+	return nil
+}
 
-	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		getReservesRequest.SetOverrides(overrides)
+type rpcData struct {
+	reservesResult   uniswapv2.ReserveData
+	originalReserve0 *big.Int
+	originalReserve1 *big.Int
+}
+
+func newRPCData() *rpcData {
+	return &rpcData{
+		originalReserve0: new(big.Int),
+		originalReserve1: new(big.Int),
 	}
-	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, tokens []*entity.PoolToken, d *rpcData) {
+	addFn(&ethrpc.Call{
+		ABI:    *ringswap.UniswapV2PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
-		Params: nil,
-	}, []any{&getReservesResult})
-	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
-		Target: originalToken0.Address,
+	}, []any{&d.reservesResult})
+	addFn(&ethrpc.Call{
+		ABI:    *ringswap.UniswapV2PairABI,
+		Target: tokens[0].Address,
 		Method: pairMethodBalanceOf,
-		Params: []any{common.HexToAddress(fwToken0.Address)},
-	}, []any{&originalReserve0})
-	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
-		Target: originalToken1.Address,
+		Params: []any{common.HexToAddress(tokens[2].Address)},
+	}, []any{&d.originalReserve0})
+	addFn(&ethrpc.Call{
+		ABI:    *ringswap.UniswapV2PairABI,
+		Target: tokens[1].Address,
 		Method: pairMethodBalanceOf,
-		Params: []any{common.HexToAddress(fwToken1.Address)},
-	}, []any{&originalReserve1})
-
-	resp, err := getReservesRequest.Aggregate()
-	if err != nil {
-		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, err
-	}
-
-	fwReserves := uniswapv2.ReserveData{
-		Reserve0: getReservesResult.Reserve0,
-		Reserve1: getReservesResult.Reserve1,
-	}
-
-	originalReserves := uniswapv2.ReserveData{
-		Reserve0: originalReserve0,
-		Reserve1: originalReserve1,
-	}
-
-	return fwReserves, originalReserves, resp.BlockNumber, nil
+		Params: []any{common.HexToAddress(tokens[3].Address)},
+	}, []any{&d.originalReserve1})
 }
 
-func (d *PoolTracker) updatePool(p entity.Pool, fwReserves, originalReserves uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
+func buildPoolState(p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
+	fwReserves := uniswapv2.ReserveData{
+		Reserve0: d.reservesResult.Reserve0,
+		Reserve1: d.reservesResult.Reserve1,
+	}
+	if d.originalReserve0 == nil {
+		d.originalReserve0 = bignumber.ZeroBI
+	}
+	if d.originalReserve1 == nil {
+		d.originalReserve1 = bignumber.ZeroBI
+	}
+	originalReserves := uniswapv2.ReserveData{
+		Reserve0: d.originalReserve0,
+		Reserve1: d.originalReserve1,
+	}
+	return updatePool(p, fwReserves, originalReserves, blockNumber)
+}
+
+func updatePool(p entity.Pool, fwReserves, originalReserves uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
 	extra, err := json.Marshal(&originalReserves)
 	if err != nil {
 		return entity.Pool{}, err
