@@ -9,6 +9,8 @@ import (
 var (
 	poolABI        abi.ABI
 	stableSurgeABI abi.ABI
+	PoolABI        *abi.ABI
+	StableSurgeABI *abi.ABI
 )
 
 func init() {
@@ -27,4 +29,6 @@ func init() {
 			panic(err)
 		}
 	}
+	PoolABI = &poolABI
+	StableSurgeABI = &stableSurgeABI
 }

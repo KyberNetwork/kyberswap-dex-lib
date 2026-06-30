@@ -8,6 +8,7 @@ import (
 
 var (
 	curveStableNGABI abi.ABI
+	CurveStableNGABI *abi.ABI
 )
 
 func init() {
@@ -25,4 +26,5 @@ func init() {
 			panic(err)
 		}
 	}
+	CurveStableNGABI = &curveStableNGABI
 }

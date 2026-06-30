@@ -75,105 +75,22 @@ func (t *PoolTracker) getNewPoolState(
 	lg.Info("Start updating state ...")
 	defer func() { lg.Info("Finish updating state.") }()
 
-	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply, oracleRate *big.Int
-
-		numTokens = len(p.Tokens)
-
-		balances   = make([]*big.Int, numTokens)
-		balancesV1 = make([]*big.Int, numTokens)
-
-		// for pools that have non-standard rate multipliers
-		storedRates   [shared.MaxTokenCount]*big.Int
-		registryRates [shared.MaxTokenCount]*big.Int
-	)
-
-	/*
-		all variants of Plain pools need these common info:
-			- InitialA, FutureA, InitialATime, FutureATime: to calculate A coefficient
-			- SwapFee, AdminFee
-			- Balances: pool can store balances themselves or call to external contract, but the `balances` method already abstract that away
-		some pool variants need additional info:
-			Rates: some pools don't use standard rates:
-				- if they expose `stored_rates` method, use that
-				- if they have `oracle` method without argument, call that to get 2nd coin's rate
-				- if call to main registry `get_rates` return non empty, use that
-				- otherwise leave it empty to use standard rate
-	*/
-
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return entity.Pool{}, err
 	}
 
+	mainRegistryAddress := t.mainRegistryAddress()
+	numTokens := len(p.Tokens)
+	d := &rpcData{
+		balances:   make([]*big.Int, numTokens),
+		balancesV1: make([]*big.Int, numTokens),
+	}
+
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
-		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
-		AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
-			Target: p.Address,
-			Method: poolMethodInitialA,
-		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodFutureA,
-	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodInitialATime,
-	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodFutureATime,
-	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodFee,
-	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodAdminFee,
-	}, []any{&adminFee}).AddCall(&ethrpc.Call{
-		ABI:    shared.ERC20ABI,
-		Target: staticExtra.LpToken,
-		Method: shared.ERC20MethodTotalSupply,
-	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    numTokenDependedABIs[numTokens],
-		Target: p.Address,
-		Method: poolMethodStoredRates,
-	}, []any{&storedRates})
-
-	if len(staticExtra.Oracle) > 0 {
-		req.AddCall(&ethrpc.Call{
-			ABI:    shared.OracleABI,
-			Target: staticExtra.Oracle,
-			Method: poolMethodLatestAnswer,
-		}, []any{&oracleRate})
-	}
-
-	if dataSourceAddresses, ok := shared.DataSourceAddresses[t.config.ChainCode]; ok {
-		if mainRegistryAddress, ok := dataSourceAddresses[shared.CURVE_DATASOURCE_MAIN]; ok {
-			req.AddCall(&ethrpc.Call{
-				ABI:    shared.MainRegistryABI,
-				Target: mainRegistryAddress,
-				Method: mainRegistryMethodGetRates,
-				Params: []any{common.HexToAddress(p.Address)},
-			}, []any{&registryRates})
-		}
-	}
-
-	for i := range p.Tokens {
-		req.AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
-			Target: p.Address,
-			Method: poolMethodBalances,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&balances[i]}).AddCall(&ethrpc.Call{
-			ABI:    getBalances128ABI,
-			Target: p.Address,
-			Method: poolMethodBalances,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&balancesV1[i]})
-	}
+		SetFrom(shared.AddrDummy) // poolMethodStoredRates behaves differently for tx.origin == 0
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) },
+		p.Address, numTokens, staticExtra.LpToken, staticExtra.Oracle, mainRegistryAddress, d)
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
@@ -182,38 +99,86 @@ func (t *PoolTracker) getNewPoolState(
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
+	return buildPoolState(lg, p, d)
+}
+
+func (t *PoolTracker) mainRegistryAddress() string {
+	if dataSourceAddresses, ok := shared.DataSourceAddresses[t.config.ChainCode]; ok {
+		if addr, ok := dataSourceAddresses[shared.CURVE_DATASOURCE_MAIN]; ok {
+			return addr
+		}
+	}
+	return ""
+}
+
+type rpcData struct {
+	initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
+	oracleRate                                                                 *big.Int
+	storedRates, registryRates                                                 [shared.MaxTokenCount]*big.Int
+	balances, balancesV1                                                       []*big.Int
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, numTokens int,
+	lpToken, oracle, mainRegistryAddress string, d *rpcData) {
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodInitialA}, []any{&d.initialA})
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodFutureA}, []any{&d.futureA})
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodInitialATime}, []any{&d.initialATime})
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodFutureATime}, []any{&d.futureATime})
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodFee}, []any{&d.swapFee})
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodAdminFee}, []any{&d.adminFee})
+	addFn(&ethrpc.Call{ABI: curvePlainABI, Target: lpToken, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: numTokenDependedABIs[numTokens], Target: poolAddress, Method: poolMethodStoredRates}, []any{&d.storedRates})
+	if len(oracle) > 0 {
+		addFn(&ethrpc.Call{ABI: shared.OracleABI, Target: oracle, Method: poolMethodLatestAnswer}, []any{&d.oracleRate})
+	}
+	if mainRegistryAddress != "" {
+		addFn(&ethrpc.Call{
+			ABI:    shared.MainRegistryABI,
+			Target: mainRegistryAddress,
+			Method: mainRegistryMethodGetRates,
+			Params: []any{common.HexToAddress(poolAddress)},
+		}, []any{&d.registryRates})
+	}
+	for i := range numTokens {
+		addFn(&ethrpc.Call{ABI: curvePlainABI, Target: poolAddress, Method: poolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
+		addFn(&ethrpc.Call{ABI: getBalances128ABI, Target: poolAddress, Method: poolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balancesV1[i]})
+	}
+}
+
+func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
+	numTokens := len(p.Tokens)
 	var extra = Extra{
-		InitialA:     number.SetFromBig(initialA),
-		FutureA:      number.SetFromBig(futureA),
-		InitialATime: initialATime.Int64(),
-		FutureATime:  futureATime.Int64(),
-		SwapFee:      number.SetFromBig(swapFee),
-		AdminFee:     number.SetFromBig(adminFee),
+		InitialA:     number.SetFromBig(d.initialA),
+		FutureA:      number.SetFromBig(d.futureA),
+		InitialATime: d.initialATime.Int64(),
+		FutureATime:  d.futureATime.Int64(),
+		SwapFee:      number.SetFromBig(d.swapFee),
+		AdminFee:     number.SetFromBig(d.adminFee),
 	}
 
 	// first check `stored_rates`
-	if checkValidCustomRates(&p, storedRates) {
-		lg.Infof("use custom stored rate %v", storedRates)
-		if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
+	if checkValidCustomRates(&p, d.storedRates) {
+		lg.Infof("use custom stored rate %v", d.storedRates)
+		if err := updateRateMultipliers(lg, &extra, numTokens, d.storedRates[:numTokens]); err != nil {
 			return entity.Pool{}, err
 		}
-	} else if oracleRate != nil && oracleRate.Sign() != 0 && numTokens == 2 {
+	} else if d.oracleRate != nil && d.oracleRate.Sign() != 0 && numTokens == 2 {
 		// then check if there is valid answer from oracle (only valid for 2 coins pool)
-		lg.Infof("use custom oracle rate %v", oracleRate)
-		if err := t.updateRateMultipliers(lg, &extra, 2, []*big.Int{bignumber.TenPowInt(18), oracleRate}); err != nil {
+		lg.Infof("use custom oracle rate %v", d.oracleRate)
+		if err := updateRateMultipliers(lg, &extra, 2, []*big.Int{bignumber.TenPowInt(18), d.oracleRate}); err != nil {
 			return entity.Pool{}, err
 		}
 	} else {
 		// check rates from main registry
 		// `rates` from registry need to be multiplied with Precision first
 		for i, token := range p.Tokens {
-			if registryRates[i] != nil {
-				registryRates[i].Mul(registryRates[i], bignumber.TenPowInt(18-token.Decimals))
+			if d.registryRates[i] != nil {
+				d.registryRates[i].Mul(d.registryRates[i], bignumber.TenPowInt(18-token.Decimals))
 			}
 		}
-		if checkValidCustomRates(&p, registryRates) {
-			lg.Infof("use custom registry rate %v", registryRates)
-			if err := t.updateRateMultipliers(lg, &extra, numTokens, registryRates[:numTokens]); err != nil {
+		if checkValidCustomRates(&p, d.registryRates) {
+			lg.Infof("use custom registry rate %v", d.registryRates)
+			if err := updateRateMultipliers(lg, &extra, numTokens, d.registryRates[:numTokens]); err != nil {
 				return entity.Pool{}, err
 			}
 		}
@@ -225,17 +190,17 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
-	for i := range balances {
-		if balances[i] != nil {
-			reserves = append(reserves, balances[i].String())
-		} else if balancesV1[i] != nil {
-			reserves = append(reserves, balancesV1[i].String())
+	var reserves = make(entity.PoolReserves, 0, len(d.balances)+1)
+	for i := range d.balances {
+		if d.balances[i] != nil {
+			reserves = append(reserves, d.balances[i].String())
+		} else if d.balancesV1[i] != nil {
+			reserves = append(reserves, d.balancesV1[i].String())
 		} else {
 			reserves = append(reserves, "0")
 		}
 	}
-	reserves = append(reserves, lpSupply.String())
+	reserves = append(reserves, d.lpSupply.String())
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
@@ -244,7 +209,7 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int,
+func updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int,
 	customRates []*big.Int) error {
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)

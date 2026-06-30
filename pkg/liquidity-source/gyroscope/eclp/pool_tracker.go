@@ -86,33 +86,86 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	rpcResp, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, p.Tokens, staticExtra.PoolTypeVer, overrides)
+	d := &rpcData{}
+	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, staticExtra.Vault, staticExtra.PoolID, staticExtra.PoolTypeVer, d)
+
+	res, err := req.TryBlockAndAggregate()
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error(err.Error())
 		return p, err
 	}
 
-	paused := !isNotPaused(rpcResp.PausedState)
-	swapFeePercentage, _ := uint256.FromBig(rpcResp.SwapFeePercentage)
-	paramsAlpha, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Alpha)
-	paramsBeta, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Beta)
-	paramsC, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.C)
-	paramsS, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.S)
-	paramsLambda, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Lambda)
-	tauAlphaX, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauAlpha.X)
-	tauAlphaY, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauAlpha.Y)
-	tauBetaX, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauBeta.X)
-	tauBetaY, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.TauBeta.Y)
-	u, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.U)
-	v, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.V)
-	w, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.W)
-	z, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.Z)
-	dSq, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.DSq)
+	return buildPoolState(p, &staticExtra, d, res.BlockNumber)
+}
+
+type rpcData struct {
+	poolTokens        PoolTokensResp
+	swapFeePercentage *big.Int
+	pausedState       PausedStateResp
+	tokenRatesResp    TokenRatesResp
+	eclpParamsResp    ECLPParamsResp
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, vault, poolID string, poolTypeVer int, d *rpcData) {
+	poolIDHash := common.HexToHash(poolID)
+	addFn(&ethrpc.Call{
+		ABI:    shared.VaultABI,
+		Target: vault,
+		Method: shared.VaultMethodGetPoolTokens,
+		Params: []any{poolIDHash},
+	}, []any{&d.poolTokens})
+	addFn(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetSwapFeePercentage,
+	}, []any{&d.swapFeePercentage})
+	if poolTypeVer > PoolTypeVer1 {
+		addFn(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress,
+			Method: PoolMethodGetTokenRates,
+		}, []any{&d.tokenRatesResp})
+	}
+	addFn(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetECLPParams,
+	}, []any{&d.eclpParamsResp})
+	addFn(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetPausedState,
+	}, []any{&d.pausedState})
+}
+
+func buildPoolState(p entity.Pool, staticExtra *StaticExtra, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
+	paused := !IsNotPaused(d.pausedState)
+	swapFeePercentage, _ := uint256.FromBig(d.swapFeePercentage)
+	paramsAlpha, _ := int256.FromBig(d.eclpParamsResp.Params.Alpha)
+	paramsBeta, _ := int256.FromBig(d.eclpParamsResp.Params.Beta)
+	paramsC, _ := int256.FromBig(d.eclpParamsResp.Params.C)
+	paramsS, _ := int256.FromBig(d.eclpParamsResp.Params.S)
+	paramsLambda, _ := int256.FromBig(d.eclpParamsResp.Params.Lambda)
+	tauAlphaX, _ := int256.FromBig(d.eclpParamsResp.D.TauAlpha.X)
+	tauAlphaY, _ := int256.FromBig(d.eclpParamsResp.D.TauAlpha.Y)
+	tauBetaX, _ := int256.FromBig(d.eclpParamsResp.D.TauBeta.X)
+	tauBetaY, _ := int256.FromBig(d.eclpParamsResp.D.TauBeta.Y)
+	u, _ := int256.FromBig(d.eclpParamsResp.D.U)
+	v, _ := int256.FromBig(d.eclpParamsResp.D.V)
+	w, _ := int256.FromBig(d.eclpParamsResp.D.W)
+	z, _ := int256.FromBig(d.eclpParamsResp.D.Z)
+	dSq, _ := int256.FromBig(d.eclpParamsResp.D.DSq)
 
 	var tokenRates []*uint256.Int
-	if staticExtra.PoolTypeVer > poolTypeVer1 {
+	if staticExtra.PoolTypeVer > PoolTypeVer1 {
 		tokenRates = make([]*uint256.Int, 2)
-		tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
-		tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
+		tokenRates[0], _ = uint256.FromBig(d.tokenRatesResp.Rate0)
+		tokenRates[1], _ = uint256.FromBig(d.tokenRatesResp.Rate1)
 	}
 
 	extra := Extra{
@@ -139,24 +192,22 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserves, err := t.initReserves(ctx, p, rpcResp.PoolTokens)
+	reserves, err := initReserves(p, d.poolTokens)
 	if err != nil {
 		return p, err
 	}
 
 	p.Reserves = reserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = rpcResp.BlockNumber
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
 
-func (t *PoolTracker) initReserves(
-	ctx context.Context,
-	p entity.Pool,
-	poolTokens PoolTokensResp,
-) ([]string, error) {
+func initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]string, error) {
 	reserveByToken := make(map[string]*big.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
@@ -167,96 +218,14 @@ func (t *PoolTracker) initReserves(
 	for idx, token := range p.Tokens {
 		r, ok := reserveByToken[token.Address]
 		if !ok {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-			}).Error("can not get reserve")
 			return nil, ErrReserveNotFound
 		}
-
 		reserves[idx] = r.String()
 	}
 
 	return reserves, nil
 }
 
-func (t *PoolTracker) queryRPC(
-	ctx context.Context,
-	poolAddress string,
-	poolID string,
-	vault string,
-	tokens []*entity.PoolToken,
-	poolTypeVer int,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (*rpcResp, error) {
-	var (
-		poolTokens        PoolTokensResp
-		swapFeePercentage *big.Int
-		pausedState       PausedStateResp
-		tokenRates        TokenRatesResp
-		eclpParams        ECLPParamsResp
-
-		poolIDHash = common.HexToHash(poolID)
-	)
-
-	req := t.ethrpcClient.R().
-		SetContext(ctx).
-		SetRequireSuccess(true).SetOverrides(overrides)
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    shared.VaultABI,
-		Target: vault,
-		Method: shared.VaultMethodGetPoolTokens,
-		Params: []any{poolIDHash},
-	}, []any{&poolTokens})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetSwapFeePercentage,
-	}, []any{&swapFeePercentage})
-
-	if poolTypeVer > poolTypeVer1 {
-		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress,
-			Method: poolMethodGetTokenRates,
-		}, []any{&tokenRates})
-	}
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetECLPParams,
-	}, []any{&eclpParams})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetPausedState,
-	}, []any{&pausedState})
-
-	res, err := req.TryBlockAndAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": poolAddress,
-		}).Error(err.Error())
-		return nil, err
-	}
-
-	return &rpcResp{
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		PausedState:       pausedState,
-		TokenRatesResp:    tokenRates,
-		ECLPParamsResp:    eclpParams,
-		BlockNumber:       res.BlockNumber.Uint64(),
-	}, nil
-}
-
-func isNotPaused(pausedState PausedStateResp) bool {
+func IsNotPaused(pausedState PausedStateResp) bool {
 	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
 }

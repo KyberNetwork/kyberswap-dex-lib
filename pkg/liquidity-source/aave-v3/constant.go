@@ -10,7 +10,7 @@ const (
 
 	poolMethodGetReservesList  = "getReservesList"
 	poolMethodGetReserveData   = "getReserveData"
-	poolMethodGetConfiguration = "getConfiguration"
+	PoolMethodGetConfiguration = "getConfiguration"
 )
 
 var (

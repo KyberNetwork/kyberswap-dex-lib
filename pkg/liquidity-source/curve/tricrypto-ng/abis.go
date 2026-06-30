@@ -8,6 +8,7 @@ import (
 
 var (
 	curveTricryptoNGABI abi.ABI
+	CurveTricryptoNGABI *abi.ABI
 )
 
 func init() {
@@ -25,4 +26,5 @@ func init() {
 			panic(err)
 		}
 	}
+	CurveTricryptoNGABI = &curveTricryptoNGABI
 }

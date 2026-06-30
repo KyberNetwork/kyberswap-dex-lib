@@ -102,13 +102,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Exchange: valueobject.ExchangeFluidDexT1,
 			Type:     DexType,
 			Reserves: entity.PoolReserves{
-				getMaxReserves(
+				GetMaxReserves(
 					token0Decimals,
 					curPool.Limits.WithdrawableToken0,
 					curPool.Limits.BorrowableToken0,
 					curPool.CollateralReserves.Token0RealReserves,
 					curPool.DebtReserves.Token0RealReserves).String(),
-				getMaxReserves(
+				GetMaxReserves(
 					token1Decimals,
 					curPool.Limits.WithdrawableToken1,
 					curPool.Limits.BorrowableToken1,

@@ -2,6 +2,7 @@ package vaultT1
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -51,11 +52,38 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	swapData, err := t.getPoolSwapData(ctx, p.Address, overrides)
-	if swapData == nil || err != nil {
-		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error getPoolSwapData")
+	d := &rpcData{output: &Swap{}}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, t.config.VaultLiquidationResolver, d)
+
+	if _, err := req.Call(); err != nil {
+		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error in GetSwapForProtocol Call")
 		return p, err
 	}
+
+	if d.output == nil {
+		logger.WithFields(logger.Fields{"dexType": DexType}).Error("Error getPoolSwapData")
+		return p, nil
+	}
+
+	return buildPoolState(p, d, nil)
+}
+
+type rpcData struct {
+	output *Swap
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, resolverAddress string, d *rpcData) {
+	addFn(&ethrpc.Call{
+		ABI:    vaultLiquidationResolverABI,
+		Target: resolverAddress,
+		Method: VLRMethodGetSwapForProtocol,
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&d.output})
+}
+
+func buildPoolState(p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
+	swapData := &d.output.Data
 
 	extra := PoolExtra{
 		WithAbsorb: swapData.WithAbsorb,
@@ -71,33 +99,9 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{swapData.InAmt.String(), swapData.OutAmt.String()}
-
-	return p, nil
-}
-
-func (t *PoolTracker) getPoolSwapData(
-	ctx context.Context,
-	poolAddress string,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (*SwapData, error) {
-	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
-
-	output := &Swap{}
-	req.AddCall(&ethrpc.Call{
-		ABI:    vaultLiquidationResolverABI,
-		Target: t.config.VaultLiquidationResolver,
-		Method: VLRMethodGetSwapForProtocol,
-		Params: []any{common.HexToAddress(poolAddress)},
-	}, []any{&output})
-
-	_, err := req.Call()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("Error in GetSwapForProtocol Call")
-		return nil, err
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
 	}
 
-	return &output.Data, nil
+	return p, nil
 }

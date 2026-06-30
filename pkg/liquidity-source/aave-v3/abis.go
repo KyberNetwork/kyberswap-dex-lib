@@ -8,6 +8,7 @@ import (
 
 var (
 	poolABI abi.ABI
+	PoolABI *abi.ABI
 )
 
 func init() {
@@ -25,4 +26,5 @@ func init() {
 			panic(err)
 		}
 	}
+	PoolABI = &poolABI
 }

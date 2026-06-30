@@ -85,7 +85,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			req.AddCall(&ethrpc.Call{
 				ABI:    erc4626.ABI,
 				Target: vaultAddr,
-				Method: erc4626.ERC4626MethodPreviewDeposit,
+				Method: erc4626.Erc4626MethodPreviewDeposit,
 				Params: []any{amt.ToBig()},
 			}, []any{&poolState.DepositRates[i]})
 		}
@@ -96,7 +96,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			req.AddCall(&ethrpc.Call{
 				ABI:    erc4626.ABI,
 				Target: vaultAddr,
-				Method: erc4626.ERC4626MethodPreviewRedeem,
+				Method: erc4626.Erc4626MethodPreviewRedeem,
 				Params: []any{amt.ToBig()},
 			}, []any{&poolState.RedeemRates[i]})
 		}

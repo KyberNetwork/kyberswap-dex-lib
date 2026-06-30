@@ -69,81 +69,64 @@ func (t *PoolTracker) getNewPoolState(
 	lg.Info("Start updating state ...")
 	defer func() { lg.Info("Finish updating state.") }()
 
-	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
-
-		numTokens = len(p.Tokens)
-
-		balances = make([]*big.Int, numTokens)
-
-		storedRates [shared.MaxTokenCount]*big.Int
-	)
-
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return entity.Pool{}, err
 	}
 
+	d := &rpcData{balances: make([]*big.Int, len(p.Tokens))}
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
-		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
-		AddCall(&ethrpc.Call{
-			ABI:    curveStableNGABI,
-			Target: p.Address,
-			Method: poolMethodInitialA,
-		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodFutureA,
-	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodInitialATime,
-	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodFutureATime,
-	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodFee,
-	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodAdminFee,
-	}, []any{&adminFee}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: shared.ERC20MethodTotalSupply,
-	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodStoredRates,
-	}, []any{&storedRates}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodGetBalances,
-	}, []any{&balances})
+		SetFrom(shared.AddrDummy) // poolMethodStoredRates behaves differently for tx.origin == 0
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, d)
 
-	if res, err := req.TryBlockAndAggregate(); err != nil {
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
-	} else if res.BlockNumber != nil {
-		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	var extra = Extra{
-		InitialA:     number.SetFromBig(initialA),
-		FutureA:      number.SetFromBig(futureA),
-		InitialATime: initialATime.Int64(),
-		FutureATime:  futureATime.Int64(),
-		SwapFee:      number.SetFromBig(swapFee),
-		AdminFee:     number.SetFromBig(adminFee),
+	return buildPoolState(lg, p, d, res.BlockNumber)
+}
+
+type rpcData struct {
+	initialA     *big.Int
+	futureA      *big.Int
+	initialATime *big.Int
+	futureATime  *big.Int
+	swapFee      *big.Int
+	adminFee     *big.Int
+	lpSupply     *big.Int
+	storedRates  [shared.MaxTokenCount]*big.Int
+	balances     []*big.Int
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodInitialA}, []any{&d.initialA})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodFutureA}, []any{&d.futureA})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodInitialATime}, []any{&d.initialATime})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodFutureATime}, []any{&d.futureATime})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodFee}, []any{&d.swapFee})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodAdminFee}, []any{&d.adminFee})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodStoredRates}, []any{&d.storedRates})
+	addFn(&ethrpc.Call{ABI: curveStableNGABI, Target: poolAddress, Method: poolMethodGetBalances}, []any{&d.balances})
+}
+
+func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
+	numTokens := len(d.balances)
+	extra := Extra{
+		InitialA:     number.SetFromBig(d.initialA),
+		FutureA:      number.SetFromBig(d.futureA),
+		InitialATime: d.initialATime.Int64(),
+		FutureATime:  d.futureATime.Int64(),
+		SwapFee:      number.SetFromBig(d.swapFee),
+		AdminFee:     number.SetFromBig(d.adminFee),
 	}
 
-	if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
+	if err := updateRateMultipliers(lg, &extra, numTokens, d.storedRates[:numTokens]); err != nil {
 		// if the rates is invalid then clear the pool and return err=nil
 		p.Timestamp = time.Now().Unix()
-		p.Reserves = make(entity.PoolReserves, len(balances)+1)
+		p.Reserves = make(entity.PoolReserves, numTokens+1)
 		for i := range p.Reserves {
 			p.Reserves[i] = "0"
 		}
@@ -156,12 +139,15 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
-	for i := range balances {
-		reserves = append(reserves, balances[i].String())
+	reserves := make(entity.PoolReserves, 0, numTokens+1)
+	for _, b := range d.balances {
+		reserves = append(reserves, b.String())
 	}
-	reserves = append(reserves, lpSupply.String())
+	reserves = append(reserves, d.lpSupply.String())
 
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = reserves
@@ -169,7 +155,7 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
+func updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 

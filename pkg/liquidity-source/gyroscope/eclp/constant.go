@@ -5,13 +5,13 @@ const (
 
 	poolType = "GyroE"
 
-	poolMethodGetSwapFeePercentage = "getSwapFeePercentage"
-	poolMethodGetPausedState       = "getPausedState"
+	PoolMethodGetSwapFeePercentage = "getSwapFeePercentage"
+	PoolMethodGetPausedState       = "getPausedState"
 	poolMethodGetVault             = "getVault"
-	poolMethodGetTokenRates        = "getTokenRates"
-	poolMethodGetECLPParams        = "getECLPParams"
+	PoolMethodGetTokenRates        = "getTokenRates"
+	PoolMethodGetECLPParams        = "getECLPParams"
 
-	poolTypeVer1 = 1
+	PoolTypeVer1 = 1
 )
 
 var (

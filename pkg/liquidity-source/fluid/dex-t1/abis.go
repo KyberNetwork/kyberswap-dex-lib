@@ -10,6 +10,8 @@ var (
 	dexReservesResolverABI abi.ABI
 	erc20                  abi.ABI
 	storageReadABI         abi.ABI
+	DexReservesResolverABI *abi.ABI
+	StorageReadABI         *abi.ABI
 )
 
 func init() {
@@ -29,4 +31,6 @@ func init() {
 			panic(err)
 		}
 	}
+	DexReservesResolverABI = &dexReservesResolverABI
+	StorageReadABI = &storageReadABI
 }

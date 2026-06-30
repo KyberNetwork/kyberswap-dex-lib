@@ -11,9 +11,11 @@ import (
 
 var (
 	curvePlainABI abi.ABI
+	CurvePlainABI *abi.ABI
 
 	// some ABIs depend on number of tokens, so we create one for each of them
 	numTokenDependedABIs [shared.MaxTokenCount]abi.ABI
+	NumTokenDependedABIs *[shared.MaxTokenCount]abi.ABI
 
 	numTokenDependedABITemplate = `[
 		{"stateMutability":"view","type":"function","name":"stored_rates","inputs":[],"outputs":[{"name":"","type":"uint256[{NUM_TOKEN}]"}]}
@@ -21,6 +23,7 @@ var (
 
 	// some old pools use int128 input instead of uint256
 	getBalances128ABI      abi.ABI
+	GetBalances128ABI      *abi.ABI
 	getBalances128ABIBytes = []byte(`[
 		{ "name": "balances", "outputs": [{ "type": "uint256", "name": "" }], "inputs": [{ "type": "int128", "name": "arg0" }], "constant": true, "payable": false, "type": "function"}
 	]`)
@@ -50,4 +53,7 @@ func init() {
 			panic(err)
 		}
 	}
+	CurvePlainABI = &curvePlainABI
+	NumTokenDependedABIs = &numTokenDependedABIs
+	GetBalances128ABI = &getBalances128ABI
 }

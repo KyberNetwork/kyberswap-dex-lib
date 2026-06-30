@@ -8,6 +8,7 @@ import (
 
 var (
 	vaultLiquidationResolverABI abi.ABI
+	VaultLiquidationResolverABI *abi.ABI
 )
 
 func init() {
@@ -25,4 +26,5 @@ func init() {
 			panic(err)
 		}
 	}
+	VaultLiquidationResolverABI = &vaultLiquidationResolverABI
 }

@@ -70,103 +70,13 @@ func (t *PoolTracker) getNewPoolState(
 	lg.Info("Start updating state ...")
 	defer func() { lg.Info("Finish updating state.") }()
 
-	var (
-		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
+	numTokens := len(p.Tokens)
+	numDepCoins := numTokens - 1
+	d := newRPCData(numTokens, numDepCoins)
 
-		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, d)
 
-		balances = make([]*big.Int, len(p.Tokens))
-
-		numDepCoins = len(p.Tokens) - 1 // other coins will have price based on the 1st coin
-
-		// These 3 slices only has length = number of tokens - 1 (check in the contract)
-		priceScales  = make([]*big.Int, numDepCoins)
-		priceOracles = make([]*big.Int, numDepCoins)
-		lastPrices   = make([]*big.Int, numDepCoins)
-	)
-
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
-		AddCall(&ethrpc.Call{
-			ABI:    curveTricryptoNGABI,
-			Target: p.Address,
-			Method: poolMethodD,
-		}, []any{&d}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodFeeGamma,
-	}, []any{&feeGamma}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodMidFee,
-	}, []any{&midFee}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodOutFee,
-	}, []any{&outFee}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodFutureAGammaTime,
-	}, []any{&futureAGammaTime}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodFutureAGamma,
-	}, []any{&futureAGamma}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodInitialAGammaTime,
-	}, []any{&initialAGammaTime}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodInitialAGamma,
-	}, []any{&initialAGamma}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodXcpProfit,
-	}, []any{&xcpProfit}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodVirtualPrice,
-	}, []any{&virtualPrice}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodAllowedExtraProfit,
-	}, []any{&allowedExtraProfit}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodAdjustmentStep,
-	}, []any{&adjustmentStep}).AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
-		Method: shared.ERC20MethodTotalSupply,
-	}, []any{&lpSupply})
-
-	for i := range p.Tokens {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    curveTricryptoNGABI,
-			Target: p.Address,
-			Method: poolMethodBalances,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&balances[i]})
-	}
-
-	for i := range numDepCoins {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    curveTricryptoNGABI,
-			Target: p.Address,
-			Method: poolMethodPriceScale,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&priceScales[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveTricryptoNGABI,
-			Target: p.Address,
-			Method: poolMethodPriceOracle,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&priceOracles[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveTricryptoNGABI,
-			Target: p.Address,
-			Method: poolMethodLastPrices,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&lastPrices[i]})
-	}
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
@@ -174,29 +84,72 @@ func (t *PoolTracker) getNewPoolState(
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	var extra = Extra{
-		InitialA:           number.SetFromBig(new(big.Int).Rsh(initialAGamma, 128)),
-		InitialGamma:       new(uint256.Int).And(number.SetFromBig(initialAGamma), PriceMask),
-		InitialAGammaTime:  initialAGammaTime.Int64(),
-		FutureA:            number.SetFromBig(new(big.Int).Rsh(futureAGamma, 128)),
-		FutureGamma:        new(uint256.Int).And(number.SetFromBig(futureAGamma), PriceMask),
-		FutureAGammaTime:   futureAGammaTime.Int64(),
-		D:                  number.SetFromBig(d),
-		FeeGamma:           number.SetFromBig(feeGamma),
-		MidFee:             number.SetFromBig(midFee),
-		OutFee:             number.SetFromBig(outFee),
-		LpSupply:           number.SetFromBig(lpSupply),
-		XcpProfit:          number.SetFromBig(xcpProfit),
-		VirtualPrice:       number.SetFromBig(virtualPrice),
-		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
-		AdjustmentStep:     number.SetFromBig(adjustmentStep),
+	return buildPoolState(lg, p, d)
+}
+
+type rpcData struct {
+	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
+	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply                         *big.Int
+	balances, priceScales, priceOracles, lastPrices                                                []*big.Int
+}
+
+func newRPCData(numTokens, numDepCoins int) *rpcData {
+	return &rpcData{
+		balances:     make([]*big.Int, numTokens),
+		priceScales:  make([]*big.Int, numDepCoins),
+		priceOracles: make([]*big.Int, numDepCoins),
+		lastPrices:   make([]*big.Int, numDepCoins),
 	}
-	extra.PriceScale = make([]uint256.Int, len(priceScales))
-	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
-	extra.PriceOracle = make([]uint256.Int, len(priceOracles))
-	lo.ForEach(priceOracles, func(item *big.Int, i int) { extra.PriceOracle[i].SetFromBig(item) })
-	extra.LastPrices = make([]uint256.Int, len(lastPrices))
-	lo.ForEach(lastPrices, func(item *big.Int, i int) { extra.LastPrices[i].SetFromBig(item) })
+}
+
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodD}, []any{&d.d})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodFeeGamma}, []any{&d.feeGamma})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodMidFee}, []any{&d.midFee})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodOutFee}, []any{&d.outFee})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodFutureAGammaTime}, []any{&d.futureAGammaTime})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodFutureAGamma}, []any{&d.futureAGamma})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodInitialAGammaTime}, []any{&d.initialAGammaTime})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodInitialAGamma}, []any{&d.initialAGamma})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodXcpProfit}, []any{&d.xcpProfit})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodVirtualPrice}, []any{&d.virtualPrice})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodAdjustmentStep}, []any{&d.adjustmentStep})
+	addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	for i := range d.balances {
+		addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
+	}
+	for i := range d.priceScales {
+		addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodPriceScale, Params: []any{big.NewInt(int64(i))}}, []any{&d.priceScales[i]})
+		addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodPriceOracle, Params: []any{big.NewInt(int64(i))}}, []any{&d.priceOracles[i]})
+		addFn(&ethrpc.Call{ABI: curveTricryptoNGABI, Target: poolAddress, Method: poolMethodLastPrices, Params: []any{big.NewInt(int64(i))}}, []any{&d.lastPrices[i]})
+	}
+}
+
+func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
+	var extra = Extra{
+		InitialA:           number.SetFromBig(new(big.Int).Rsh(d.initialAGamma, 128)),
+		InitialGamma:       new(uint256.Int).And(number.SetFromBig(d.initialAGamma), PriceMask),
+		InitialAGammaTime:  d.initialAGammaTime.Int64(),
+		FutureA:            number.SetFromBig(new(big.Int).Rsh(d.futureAGamma, 128)),
+		FutureGamma:        new(uint256.Int).And(number.SetFromBig(d.futureAGamma), PriceMask),
+		FutureAGammaTime:   d.futureAGammaTime.Int64(),
+		D:                  number.SetFromBig(d.d),
+		FeeGamma:           number.SetFromBig(d.feeGamma),
+		MidFee:             number.SetFromBig(d.midFee),
+		OutFee:             number.SetFromBig(d.outFee),
+		LpSupply:           number.SetFromBig(d.lpSupply),
+		XcpProfit:          number.SetFromBig(d.xcpProfit),
+		VirtualPrice:       number.SetFromBig(d.virtualPrice),
+		AllowedExtraProfit: number.SetFromBig(d.allowedExtraProfit),
+		AdjustmentStep:     number.SetFromBig(d.adjustmentStep),
+	}
+	extra.PriceScale = make([]uint256.Int, len(d.priceScales))
+	lo.ForEach(d.priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
+	extra.PriceOracle = make([]uint256.Int, len(d.priceOracles))
+	lo.ForEach(d.priceOracles, func(item *big.Int, i int) { extra.PriceOracle[i].SetFromBig(item) })
+	extra.LastPrices = make([]uint256.Int, len(d.lastPrices))
+	lo.ForEach(d.lastPrices, func(item *big.Int, i int) { extra.LastPrices[i].SetFromBig(item) })
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -204,9 +157,9 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
-	for i := range balances {
-		reserves = append(reserves, balances[i].String())
+	var reserves = make(entity.PoolReserves, 0, len(d.balances))
+	for i := range d.balances {
+		reserves = append(reserves, d.balances[i].String())
 	}
 
 	p.Extra = string(extraBytes)
