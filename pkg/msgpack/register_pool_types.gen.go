@@ -6,6 +6,7 @@ package msgpack
 import (
 	"github.com/KyberNetwork/msgpack/v5"
 
+	pkg_liquiditysource_1010prop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1010-prop"
 	pkg_liquiditysource_aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	pkg_liquiditysource_algebra_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	pkg_liquiditysource_algebra_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
@@ -245,6 +246,7 @@ import (
 )
 
 func init() {
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_1010prop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_aavev3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_v1.PoolSimulator{})
