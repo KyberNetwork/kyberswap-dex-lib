@@ -101,22 +101,23 @@ func (t *PoolTracker) getPoolReserves(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolWithReserves, bool, uint64, error) {
 	poolReserves := &PoolWithReserves{}
+
 	dexVariables2 := new(big.Int)
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    *DexReservesResolverABI,
+		ABI:    DexReservesResolverABI,
 		Target: t.config.DexReservesResolver,
 		Method: DRRMethodGetPoolReservesAdjusted,
 		Params: []any{common.HexToAddress(poolAddress)},
 	}, []any{&poolReserves})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    *StorageReadABI,
+		ABI:    StorageReadABI,
 		Target: poolAddress,
 		Method: SRMethodReadFromStorage,
-		Params: []any{common.HexToHash("0x1")},
+		Params: []any{common.HexToHash("0x1")}, // slot 1
 	}, []any{&dexVariables2})
 
 	resp, err := req.Aggregate()
@@ -125,6 +126,7 @@ func (t *PoolTracker) getPoolReserves(
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Failed to get pool reserves")
+
 		return nil, false, 0, err
 	}
 
@@ -140,6 +142,12 @@ func GetMaxReserves(
 	realColReserves *big.Int,
 	realDebtReserves *big.Int,
 ) *big.Int {
+	// max available reserves: the smaller possible value between real reserves and the expandTo limits
+	// the expandTo limits include liquidity layer balances, utilization limits, withdrawable and borrowable limits
+
+	// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
+	// or utilization limit. In that case expandTo can not be summed up. Otherwise it's the case of expanding withdrawal
+	// and borrow limits, for which we must sum up the max available reserve amount.
 	maxLimitReserves := new(big.Int).Set(borrowableLimit.ExpandsTo)
 	if borrowableLimit.ExpandsTo.Cmp(withdrawableLimit.ExpandsTo) != 0 {
 		maxLimitReserves.Add(maxLimitReserves, withdrawableLimit.ExpandsTo)

@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	uniswapV2PairABI    abi.ABI
-	UniswapV2PairABI    *abi.ABI
+	UniswapV2PairABI    abi.ABI
 	uniswapV2FactoryABI abi.ABI
 	fewWrappedTokenABI  abi.ABI
 )
@@ -19,7 +18,7 @@ func init() {
 		data []byte
 	}{
 		{
-			&uniswapV2PairABI, pairABIJson,
+			&UniswapV2PairABI, pairABIJson,
 		},
 		{
 			&uniswapV2FactoryABI, factoryABIJson,
@@ -36,5 +35,4 @@ func init() {
 			panic(err)
 		}
 	}
-	UniswapV2PairABI = &uniswapV2PairABI
 }

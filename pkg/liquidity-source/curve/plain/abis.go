@@ -10,20 +10,17 @@ import (
 )
 
 var (
-	curvePlainABI abi.ABI
-	CurvePlainABI *abi.ABI
+	CurvePlainABI abi.ABI
 
 	// some ABIs depend on number of tokens, so we create one for each of them
-	numTokenDependedABIs [shared.MaxTokenCount]abi.ABI
-	NumTokenDependedABIs *[shared.MaxTokenCount]abi.ABI
+	NumTokenDependedABIs [shared.MaxTokenCount]abi.ABI
 
 	numTokenDependedABITemplate = `[
 		{"stateMutability":"view","type":"function","name":"stored_rates","inputs":[],"outputs":[{"name":"","type":"uint256[{NUM_TOKEN}]"}]}
 	]`
 
 	// some old pools use int128 input instead of uint256
-	getBalances128ABI      abi.ABI
-	GetBalances128ABI      *abi.ABI
+	GetBalances128ABI      abi.ABI
 	getBalances128ABIBytes = []byte(`[
 		{ "name": "balances", "outputs": [{ "type": "uint256", "name": "" }], "inputs": [{ "type": "int128", "name": "arg0" }], "constant": true, "payable": false, "type": "function"}
 	]`)
@@ -34,8 +31,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&curvePlainABI, curvePlainABIBytes},
-		{&getBalances128ABI, getBalances128ABIBytes},
+		{&CurvePlainABI, curvePlainABIBytes},
+		{&GetBalances128ABI, getBalances128ABIBytes},
 	}
 
 	var err error
@@ -46,14 +43,11 @@ func init() {
 		}
 	}
 
-	for i := range numTokenDependedABIs {
+	for i := range NumTokenDependedABIs {
 		numTokenDependedABIJson := strings.ReplaceAll(numTokenDependedABITemplate, "{NUM_TOKEN}", strconv.Itoa(i))
-		numTokenDependedABIs[i], err = abi.JSON(strings.NewReader(numTokenDependedABIJson))
+		NumTokenDependedABIs[i], err = abi.JSON(strings.NewReader(numTokenDependedABIJson))
 		if err != nil {
 			panic(err)
 		}
 	}
-	CurvePlainABI = &curvePlainABI
-	NumTokenDependedABIs = &numTokenDependedABIs
-	GetBalances128ABI = &getBalances128ABI
 }

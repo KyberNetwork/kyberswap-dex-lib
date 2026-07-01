@@ -14,7 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -60,21 +60,28 @@ func (d *PoolTracker) getNewPoolState(
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
 	staticExtra := StaticExtra{}
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to unmarshal staticExtra")
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"pool_id": p.Address}).
+			Error("failed to unmarshal staticExtra")
 		return p, err
 	}
 
 	rpcData, liquidity, totalSupply, err := d.getPoolData(ctx, staticExtra.AavePoolAddress, p.Tokens[0].Address,
 		p.Tokens[1].Address, overrides)
 	if err != nil {
-		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to getPoolData")
+		logger.
+			WithFields(logger.Fields{"pool_id": p.Address}).
+			Error("failed to getPoolData")
 		return p, err
 	}
 
 	newPool, err := d.updatePool(p, rpcData, liquidity, totalSupply)
 	if err != nil {
-		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to updatePool")
+		logger.
+			WithFields(logger.Fields{"pool_id": p.Address}).
+			Error("failed to updatePool")
 		return p, err
 	}
 
@@ -93,19 +100,19 @@ func (d *PoolTracker) getPoolData(
 	var totalSupply *big.Int
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetConfiguration,
 		Params: []any{common.HexToAddress(assetToken)},
 	}, []any{&rpcData.Configuration}).AddCall(&ethrpc.Call{
-		ABI:    utilabi.Erc20ABI,
+		ABI:    abi.Erc20ABI,
 		Target: assetToken,
-		Method: utilabi.Erc20BalanceOfMethod,
+		Method: abi.Erc20BalanceOfMethod,
 		Params: []any{common.HexToAddress(aTokenAddress)},
 	}, []any{&liquidity}).AddCall(&ethrpc.Call{
-		ABI:    utilabi.Erc20ABI,
+		ABI:    abi.Erc20ABI,
 		Target: aTokenAddress,
-		Method: utilabi.Erc20TotalSupplyMethod,
+		Method: abi.Erc20TotalSupplyMethod,
 	}, []any{&totalSupply})
 
 	resp, err := req.Aggregate()
@@ -118,44 +125,61 @@ func (d *PoolTracker) getPoolData(
 	return rpcData, liquidity, totalSupply, nil
 }
 
-func (d *PoolTracker) updatePool(p entity.Pool, data RPCConfiguration, liquidity, totalSupply *big.Int) (entity.Pool, error) {
+func (d *PoolTracker) updatePool(pool entity.Pool, data RPCConfiguration, liquidity, totalSupply *big.Int) (entity.Pool,
+	error) {
 	extra := ParseConfiguration(data.Configuration.Data.Data)
 	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = calculateReserves(extra, data.Configuration.Data.Data, liquidity, totalSupply, p.Tokens[1].Decimals)
-	p.BlockNumber = data.BlockNumber
-	p.Timestamp = time.Now().Unix()
-	p.Extra = string(extraBytes)
+	pool.Reserves = d.calculateReserves(extra, data.Configuration.Data.Data, liquidity, totalSupply,
+		pool.Tokens[1].Decimals)
 
-	return p, nil
+	pool.BlockNumber = data.BlockNumber
+	pool.Timestamp = time.Now().Unix()
+	pool.Extra = string(extraBytes)
+
+	return pool, nil
 }
 
-func calculateReserves(extra Extra, configuration, liquidity, totalSupply *big.Int, decimals uint8) entity.PoolReserves {
+func (d *PoolTracker) calculateReserves(extra Extra, configuration, liquidity, totalSupply *big.Int,
+	decimals uint8) entity.PoolReserves {
 	supplyCap := ParseSupplyCap(configuration)
 
+	// Calculate reserve[0] (aToken): supply cap - totalSupply
+	// Supply cap is in whole tokens, need to scale by decimals
 	var reserve0 *big.Int
 	if supplyCap > 0 {
+		// Scale supply cap by decimals
 		scaledSupplyCap := new(big.Int).SetUint64(supplyCap)
 		scaledSupplyCap.Mul(scaledSupplyCap, bignumber.TenPowInt(decimals))
+
+		// Available supply = supply cap - total supply
 		reserve0 = scaledSupplyCap.Sub(scaledSupplyCap, totalSupply)
 		if reserve0.Sign() < 0 {
 			reserve0 = bignumber.ZeroBI
 		}
 	} else {
+		// No cap, use large default value
 		reserve0 = bignumber.TenPowInt(1000)
 	}
 
+	// Handle Frozen vs Paused logic
+	// Frozen: stops new supplies and borrows but allows withdrawals and repayments
+	// Paused: more restrictive, blocks almost all interactions including withdrawals
 	var reserve1 *big.Int
 	if !extra.IsActive || extra.IsPaused {
+		// Not active or paused: block all interactions
 		reserve0 = bignumber.ZeroBI
 		reserve1 = bignumber.ZeroBI
 	} else if extra.IsFrozen {
+		// Frozen: can withdraw (token[0] -> token[1]), cannot supply (token[1] -> token[0])
+		// So reserve[0] (aToken) = 0 (cannot supply)
 		reserve0 = bignumber.ZeroBI
 		reserve1 = liquidity
 	} else {
+		// Active and not frozen: allow both supply and withdraw
 		reserve1 = liquidity
 	}
 

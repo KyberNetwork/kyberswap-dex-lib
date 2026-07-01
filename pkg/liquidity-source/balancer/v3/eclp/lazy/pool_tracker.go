@@ -159,5 +159,5 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), vaultExplorer, poolAddress str
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsVaultPaused}, []any{isVaultPaused})
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsPoolPaused, Params: paramsPool}, []any{isPoolPaused})
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsPoolInRecoveryMode, Params: paramsPool}, []any{isPoolInRecoveryMode})
-	addFn(&ethrpc.Call{ABI: *eclp.PoolABI, Target: poolAddress, Method: eclp.PoolMethodGetECLPParams}, []any{&rpcRes.ECLPParamsRpc})
+	addFn(&ethrpc.Call{ABI: eclp.PoolABI, Target: poolAddress, Method: eclp.PoolMethodGetECLPParams}, []any{&rpcRes.ECLPParamsRpc})
 }

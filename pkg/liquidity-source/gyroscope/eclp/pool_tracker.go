@@ -170,6 +170,7 @@ func (t *PoolTracker) initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]
 			}).Error("can not get reserve")
 			return nil, ErrReserveNotFound
 		}
+
 		reserves[idx] = r.String()
 	}
 
@@ -178,7 +179,9 @@ func (t *PoolTracker) initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]
 
 func (t *PoolTracker) queryRPC(
 	ctx context.Context,
-	poolAddress, poolID, vault string,
+	poolAddress string,
+	poolID string,
+	vault string,
 	tokens []*entity.PoolToken,
 	poolTypeVer int,
 	overrides map[common.Address]gethclient.OverrideAccount,
@@ -186,7 +189,9 @@ func (t *PoolTracker) queryRPC(
 	d := &RPCResp{}
 	poolIDHash := common.HexToHash(poolID)
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
+	req := t.ethrpcClient.R().
+		SetContext(ctx).
+		SetRequireSuccess(true).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,
@@ -196,27 +201,27 @@ func (t *PoolTracker) queryRPC(
 	}, []any{&d.PoolTokens})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetSwapFeePercentage,
 	}, []any{&d.SwapFeePercentage})
 
 	if poolTypeVer > PoolTypeVer1 {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: poolAddress,
 			Method: PoolMethodGetTokenRates,
 		}, []any{&d.TokenRatesResp})
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetECLPParams,
 	}, []any{&d.ECLPParamsResp})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetPausedState,
 	}, []any{&d.PausedState})

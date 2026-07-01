@@ -155,7 +155,7 @@ func addRPCCalls(
 		Params: paramsPool,
 	}, []any{&flags.isPoolInRecoveryMode})
 	addFn(&ethrpc.Call{
-		ABI:    *weighted.PoolABI,
+		ABI:    weighted.PoolABI,
 		Target: poolAddress,
 		Method: weighted.PoolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights})

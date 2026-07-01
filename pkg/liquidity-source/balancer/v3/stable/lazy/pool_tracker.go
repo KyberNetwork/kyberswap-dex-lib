@@ -156,19 +156,19 @@ func addRPCCalls(
 		Params: paramsPool,
 	}, []any{&flags.isPoolInRecoveryMode})
 	addFn(&ethrpc.Call{
-		ABI:    *stable.PoolABI,
+		ABI:    stable.PoolABI,
 		Target: poolAddress,
 		Method: stable.PoolMethodGetAmplificationParameter,
 	}, []any{&rpcRes.AmplificationParameterRpc})
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		addFn(&ethrpc.Call{
-			ABI:    *stable.StableSurgeABI,
+			ABI:    stable.StableSurgeABI,
 			Target: staticExtra.Hook,
 			Method: stable.StableSurgeHookMethodGetMaxSurgeFeePercentage,
 			Params: paramsPool,
 		}, []any{&rpcRes.MaxSurgeFeePercentage})
 		addFn(&ethrpc.Call{
-			ABI:    *stable.StableSurgeABI,
+			ABI:    stable.StableSurgeABI,
 			Target: staticExtra.Hook,
 			Method: stable.StableSurgeHookMethodGetSurgeThresholdPercentage,
 			Params: paramsPool,

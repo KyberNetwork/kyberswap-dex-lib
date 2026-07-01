@@ -141,30 +141,30 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, poolTypeVe
 		Params: []any{common.HexToHash(poolID)},
 	}, []any{&d.poolTokens})
 	addFn(&ethrpc.Call{
-		ABI:    *weighted.PoolABI,
+		ABI:    weighted.PoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
 	}, []any{&d.swapFeePercentage})
 	addFn(&ethrpc.Call{
-		ABI:    *weighted.PoolABI,
+		ABI:    weighted.PoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
 	}, []any{&d.pausedState})
 	if poolTypeVer == poolTypeVer1 {
 		addFn(&ethrpc.Call{
-			ABI:    *weighted.PoolABI,
+			ABI:    weighted.PoolABI,
 			Target: poolAddress,
 			Method: poolMethodGetLastInvariant,
 		}, []any{&d.lastInvariant})
 	} else {
 		addFn(&ethrpc.Call{
-			ABI:    *weighted.PoolABI,
+			ABI:    weighted.PoolABI,
 			Target: poolAddress,
 			Method: poolMethodGetInvariant,
 		}, []any{&d.lastInvariant})
 	}
 	addFn(&ethrpc.Call{
-		ABI:    *weighted.PoolABI,
+		ABI:    weighted.PoolABI,
 		Target: poolAddress,
 		Method: poolMethodTotalSupply,
 	}, []any{&d.totalSupply})

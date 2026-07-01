@@ -76,7 +76,7 @@ type rpcData struct {
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, resolverAddress string, d *rpcData) {
 	addFn(&ethrpc.Call{
-		ABI:    *vaultT1.VaultLiquidationResolverABI,
+		ABI:    vaultT1.VaultLiquidationResolverABI,
 		Target: resolverAddress,
 		Method: vaultT1.VLRMethodGetSwapForProtocol,
 		Params: []any{common.HexToAddress(poolAddress)},

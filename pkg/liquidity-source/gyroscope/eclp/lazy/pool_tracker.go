@@ -110,24 +110,24 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, vault, poolID str
 		Params: []any{poolIDHash},
 	}, []any{&d.PoolTokens})
 	addFn(&ethrpc.Call{
-		ABI:    *gyroeclp.PoolABI,
+		ABI:    gyroeclp.PoolABI,
 		Target: poolAddress,
 		Method: gyroeclp.PoolMethodGetSwapFeePercentage,
 	}, []any{&d.SwapFeePercentage})
 	if poolTypeVer > gyroeclp.PoolTypeVer1 {
 		addFn(&ethrpc.Call{
-			ABI:    *gyroeclp.PoolABI,
+			ABI:    gyroeclp.PoolABI,
 			Target: poolAddress,
 			Method: gyroeclp.PoolMethodGetTokenRates,
 		}, []any{&d.TokenRatesResp})
 	}
 	addFn(&ethrpc.Call{
-		ABI:    *gyroeclp.PoolABI,
+		ABI:    gyroeclp.PoolABI,
 		Target: poolAddress,
 		Method: gyroeclp.PoolMethodGetECLPParams,
 	}, []any{&d.ECLPParamsResp})
 	addFn(&ethrpc.Call{
-		ABI:    *gyroeclp.PoolABI,
+		ABI:    gyroeclp.PoolABI,
 		Target: poolAddress,
 		Method: gyroeclp.PoolMethodGetPausedState,
 	}, []any{&d.PausedState})

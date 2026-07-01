@@ -105,6 +105,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	if res.IsPoolDisabled || !shared.IsHookSupported(staticExtra.HookType) {
+		// set all reserves to 0 to disable pool
 		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
 	} else {
 		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
@@ -161,7 +162,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Method: shared.VaultMethodIsPoolInRecoveryMode,
 		Params: paramsPool,
 	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights})

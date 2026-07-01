@@ -87,39 +87,39 @@ func (t *PoolTracker) getNewPoolState(
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
 		AddCall(&ethrpc.Call{
-			ABI:    *CurveStableNGABI,
+			ABI:    CurveStableNGABI,
 			Target: p.Address,
 			Method: poolMethodInitialA,
 		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
 	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
 	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
 	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFee,
 	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
 	}, []any{&adminFee}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodStoredRates,
 	}, []any{&storedRates}).AddCall(&ethrpc.Call{
-		ABI:    *CurveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
 	}, []any{&balances})

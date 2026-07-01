@@ -102,15 +102,15 @@ type rpcData struct {
 }
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodInitialA}, []any{&d.initialA})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodFutureA}, []any{&d.futureA})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodInitialATime}, []any{&d.initialATime})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodFutureATime}, []any{&d.futureATime})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodFee}, []any{&d.swapFee})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodAdminFee}, []any{&d.adminFee})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodStoredRates}, []any{&d.storedRates})
-	addFn(&ethrpc.Call{ABI: *stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodGetBalances}, []any{&d.balances})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodInitialA}, []any{&d.initialA})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodFutureA}, []any{&d.futureA})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodInitialATime}, []any{&d.initialATime})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodFutureATime}, []any{&d.futureATime})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodFee}, []any{&d.swapFee})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodAdminFee}, []any{&d.adminFee})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodStoredRates}, []any{&d.storedRates})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodGetBalances}, []any{&d.balances})
 }
 
 func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {

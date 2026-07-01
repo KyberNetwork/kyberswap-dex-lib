@@ -144,7 +144,7 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves,
 	req := u.ethrpcClient.R().SetContext(ctx)
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    dexReservesResolverABI,
+		ABI:    DexReservesResolverABI,
 		Target: u.config.DexReservesResolver,
 		Method: DRRMethodGetAllPoolsReservesAdjusted,
 	}, []any{&pools})

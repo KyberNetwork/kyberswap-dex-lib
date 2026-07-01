@@ -83,9 +83,23 @@ func (t *PoolTracker) getNewPoolState(
 		balances   = make([]*big.Int, numTokens)
 		balancesV1 = make([]*big.Int, numTokens)
 
+		// for pools that have non-standard rate multipliers
 		storedRates   [shared.MaxTokenCount]*big.Int
 		registryRates [shared.MaxTokenCount]*big.Int
 	)
+
+	/*
+		all variants of Plain pools need these common info:
+			- InitialA, FutureA, InitialATime, FutureATime: to calculate A coefficient
+			- SwapFee, AdminFee
+			- Balances: pool can store balances themselves or call to external contract, but the `balances` method already abstract that away
+		some pool variants need additional info:
+			Rates: some pools don't use standard rates:
+				- if they expose `stored_rates` method, use that
+				- if they have `oracle` method without argument, call that to get 2nd coin's rate
+				- if call to main registry `get_rates` return non empty, use that
+				- otherwise leave it empty to use standard rate
+	*/
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
@@ -95,37 +109,35 @@ func (t *PoolTracker) getNewPoolState(
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
 		AddCall(&ethrpc.Call{
-			ABI:    *CurvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: p.Address,
 			Method: PoolMethodInitialA,
 		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    *CurvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
 		Method: PoolMethodFutureA,
 	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    *CurvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
 		Method: PoolMethodInitialATime,
 	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    *CurvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
 		Method: PoolMethodFutureATime,
 	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    *CurvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
 		Method: PoolMethodFee,
 	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    *CurvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
 		Method: PoolMethodAdminFee,
 	}, []any{&adminFee}).AddCall(&ethrpc.Call{
-		ABI:    *CurvePlainABI,
+		ABI:    shared.ERC20ABI,
 		Target: staticExtra.LpToken,
 		Method: shared.ERC20MethodTotalSupply,
-	}, []any{&lpSupply})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    (*NumTokenDependedABIs)[numTokens],
+	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
+		ABI:    NumTokenDependedABIs[numTokens],
 		Target: p.Address,
 		Method: PoolMethodStoredRates,
 	}, []any{&storedRates})
@@ -151,12 +163,12 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i := range p.Tokens {
 		req.AddCall(&ethrpc.Call{
-			ABI:    *CurvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: p.Address,
 			Method: PoolMethodBalances,
 			Params: []any{big.NewInt(int64(i))},
 		}, []any{&balances[i]}).AddCall(&ethrpc.Call{
-			ABI:    *GetBalances128ABI,
+			ABI:    GetBalances128ABI,
 			Target: p.Address,
 			Method: PoolMethodBalances,
 			Params: []any{big.NewInt(int64(i))},
@@ -193,6 +205,7 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	} else {
 		// check rates from main registry
+		// `rates` from registry need to be multiplied with Precision first
 		for i, token := range p.Tokens {
 			if registryRates[i] != nil {
 				registryRates[i].Mul(registryRates[i], bignumber.TenPowInt(18-token.Decimals))
@@ -248,6 +261,8 @@ func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numT
 func checkValidCustomRates(p *entity.Pool, customRates [8]*big.Int) bool {
 	for i := range p.Tokens {
 		standardRate := bignumber.TenPowInt(36 - p.Tokens[i].Decimals)
+
+		// only compare if stored_rate from rpc is valid (not nil and not zero)
 		if customRates[i] != nil && customRates[i].Sign() != 0 && customRates[i].Cmp(standardRate) != 0 {
 			return true
 		}

@@ -105,7 +105,8 @@ func (d *PoolTracker) getReserves(
 	poolAddress string,
 	tokens []*entity.PoolToken,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (uniswapv2.ReserveData, uniswapv2.ReserveData, *big.Int, error) {
+) (uniswapv2.ReserveData,
+	uniswapv2.ReserveData, *big.Int, error) {
 	if len(tokens) < 4 {
 		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, errors.New("invalid number of tokens")
 	}
@@ -129,19 +130,19 @@ func (d *PoolTracker) getReserves(
 		getReservesRequest.SetOverrides(overrides)
 	}
 	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    UniswapV2PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 		Params: nil,
 	}, []any{&getReservesResult})
 	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    UniswapV2PairABI,
 		Target: originalToken0.Address,
 		Method: pairMethodBalanceOf,
 		Params: []any{common.HexToAddress(fwToken0.Address)},
 	}, []any{&originalReserve0})
 	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    UniswapV2PairABI,
 		Target: originalToken1.Address,
 		Method: pairMethodBalanceOf,
 		Params: []any{common.HexToAddress(fwToken1.Address)},
@@ -165,22 +166,22 @@ func (d *PoolTracker) getReserves(
 	return fwReserves, originalReserves, resp.BlockNumber, nil
 }
 
-func (d *PoolTracker) updatePool(p entity.Pool, fwReserves, originalReserves uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
+func (d *PoolTracker) updatePool(pool entity.Pool, fwReserves, originalReserves uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
 	extra, err := json.Marshal(&originalReserves)
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{
+	pool.Reserves = entity.PoolReserves{
 		fwReserves.Reserve0.String(),
 		fwReserves.Reserve1.String(),
 		"1",
 		"1",
 	}
 
-	p.BlockNumber = blockNumber.Uint64()
-	p.Timestamp = time.Now().Unix()
-	p.Extra = string(extra)
+	pool.BlockNumber = blockNumber.Uint64()
+	pool.Timestamp = time.Now().Unix()
+	pool.Extra = string(extra)
 
-	return p, nil
+	return pool, nil
 }

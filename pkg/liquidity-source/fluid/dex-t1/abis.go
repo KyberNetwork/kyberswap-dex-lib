@@ -7,11 +7,9 @@ import (
 )
 
 var (
-	dexReservesResolverABI abi.ABI
+	DexReservesResolverABI abi.ABI
 	erc20                  abi.ABI
-	storageReadABI         abi.ABI
-	DexReservesResolverABI *abi.ABI
-	StorageReadABI         *abi.ABI
+	StorageReadABI         abi.ABI
 )
 
 func init() {
@@ -19,9 +17,9 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&dexReservesResolverABI, dexReservesResolverJSON},
+		{&DexReservesResolverABI, dexReservesResolverJSON},
 		{&erc20, erc20JSON},
-		{&storageReadABI, storageReadJSON},
+		{&StorageReadABI, storageReadJSON},
 	}
 
 	for _, b := range builder {
@@ -31,6 +29,4 @@ func init() {
 			panic(err)
 		}
 	}
-	DexReservesResolverABI = &dexReservesResolverABI
-	StorageReadABI = &storageReadABI
 }

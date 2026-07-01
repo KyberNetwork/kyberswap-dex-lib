@@ -162,33 +162,33 @@ func (t *PoolTracker) queryRPC(
 	}, []any{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
 	}, []any{&swapFeePercentage})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
 	}, []any{&pausedState})
 
 	if poolTypeVer == poolTypeVer1 {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: poolAddress,
 			Method: poolMethodGetLastInvariant,
 		}, []any{&lastInvariant})
 	} else {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: poolAddress,
 			Method: poolMethodGetInvariant,
 		}, []any{&lastInvariant})
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: poolMethodTotalSupply,
 	}, []any{&totalSupply})

@@ -89,7 +89,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) getAssetList(ctx context.Context) ([]common.Address, error) {
 	var assets []common.Address
 	_, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: u.config.AavePoolAddress,
 		Method: poolMethodGetReservesList,
 	}, []any{&assets}).Call()
@@ -149,7 +149,7 @@ func (u *PoolsListUpdater) getReserveDatas(ctx context.Context, reserves []commo
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, reserve := range reserves {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: u.config.AavePoolAddress,
 			Method: poolMethodGetReserveData,
 			Params: []any{reserve},

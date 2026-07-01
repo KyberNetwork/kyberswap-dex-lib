@@ -15,7 +15,7 @@ import (
 	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -95,21 +95,21 @@ func newRPCData() *rpcData {
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, aTokenAddress, assetToken string, d *rpcData) {
 	addFn(&ethrpc.Call{
-		ABI:    *aavev3.PoolABI,
+		ABI:    aavev3.PoolABI,
 		Target: poolAddress,
 		Method: aavev3.PoolMethodGetConfiguration,
 		Params: []any{common.HexToAddress(assetToken)},
 	}, []any{&d.configuration.Configuration})
 	addFn(&ethrpc.Call{
-		ABI:    utilabi.Erc20ABI,
+		ABI:    abi.Erc20ABI,
 		Target: assetToken,
-		Method: utilabi.Erc20BalanceOfMethod,
+		Method: abi.Erc20BalanceOfMethod,
 		Params: []any{common.HexToAddress(aTokenAddress)},
 	}, []any{&d.liquidity})
 	addFn(&ethrpc.Call{
-		ABI:    utilabi.Erc20ABI,
+		ABI:    abi.Erc20ABI,
 		Target: aTokenAddress,
-		Method: utilabi.Erc20TotalSupplyMethod,
+		Method: abi.Erc20TotalSupplyMethod,
 	}, []any{&d.totalSupply})
 }
 

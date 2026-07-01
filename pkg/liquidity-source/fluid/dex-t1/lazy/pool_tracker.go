@@ -80,13 +80,13 @@ func newRPCData() *rpcData {
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, resolverAddress string, d *rpcData) {
 	addFn(&ethrpc.Call{
-		ABI:    *dexT1.DexReservesResolverABI,
+		ABI:    dexT1.DexReservesResolverABI,
 		Target: resolverAddress,
 		Method: dexT1.DRRMethodGetPoolReservesAdjusted,
 		Params: []any{common.HexToAddress(poolAddress)},
 	}, []any{&d.poolReserves})
 	addFn(&ethrpc.Call{
-		ABI:    *dexT1.StorageReadABI,
+		ABI:    dexT1.StorageReadABI,
 		Target: poolAddress,
 		Method: dexT1.SRMethodReadFromStorage,
 		Params: []any{common.HexToHash("0x1")},

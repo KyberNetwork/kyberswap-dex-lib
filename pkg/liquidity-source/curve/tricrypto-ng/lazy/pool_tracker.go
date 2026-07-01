@@ -104,26 +104,26 @@ func newRPCData(numTokens, numDepCoins int) *rpcData {
 }
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodD}, []any{&d.d})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodFeeGamma}, []any{&d.feeGamma})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodMidFee}, []any{&d.midFee})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodOutFee}, []any{&d.outFee})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodFutureAGammaTime}, []any{&d.futureAGammaTime})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodFutureAGamma}, []any{&d.futureAGamma})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodInitialAGammaTime}, []any{&d.initialAGammaTime})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodInitialAGamma}, []any{&d.initialAGamma})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodXcpProfit}, []any{&d.xcpProfit})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodVirtualPrice}, []any{&d.virtualPrice})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
-	addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodD}, []any{&d.d})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodFeeGamma}, []any{&d.feeGamma})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodMidFee}, []any{&d.midFee})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodOutFee}, []any{&d.outFee})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodFutureAGammaTime}, []any{&d.futureAGammaTime})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodFutureAGamma}, []any{&d.futureAGamma})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodInitialAGammaTime}, []any{&d.initialAGammaTime})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodInitialAGamma}, []any{&d.initialAGamma})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodXcpProfit}, []any{&d.xcpProfit})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodVirtualPrice}, []any{&d.virtualPrice})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
 	for i := range d.balances {
-		addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
+		addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
 	for i := range d.priceScales {
-		addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodPriceScale, Params: []any{big.NewInt(int64(i))}}, []any{&d.priceScales[i]})
-		addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodPriceOracle, Params: []any{big.NewInt(int64(i))}}, []any{&d.priceOracles[i]})
-		addFn(&ethrpc.Call{ABI: *tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodLastPrices, Params: []any{big.NewInt(int64(i))}}, []any{&d.lastPrices[i]})
+		addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodPriceScale, Params: []any{big.NewInt(int64(i))}}, []any{&d.priceScales[i]})
+		addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodPriceOracle, Params: []any{big.NewInt(int64(i))}}, []any{&d.priceOracles[i]})
+		addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodLastPrices, Params: []any{big.NewInt(int64(i))}}, []any{&d.lastPrices[i]})
 	}
 }
 

@@ -16,7 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
-	pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
@@ -105,6 +105,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	if res.IsPoolDisabled || !shared.IsHookSupported(staticExtra.HookType) {
+		// set all reserves to 0 to disable pool
 		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
 	} else {
 		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
@@ -161,7 +162,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Method: shared.VaultMethodIsPoolInRecoveryMode,
 		Params: paramsPool,
 	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetECLPParams,
 	}, []any{&rpcRes.ECLPParamsRpc})

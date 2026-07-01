@@ -77,15 +77,15 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curveStableMetaNGABI,
+			ABI:    CurveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodA,
 		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveStableMetaNGABI,
+			ABI:    CurveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
 		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveStableMetaNGABI,
+			ABI:    CurveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodOffpegFeeMul,
 		}, []any{&feeMultipliers[i]})

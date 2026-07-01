@@ -97,15 +97,15 @@ type rpcData struct {
 }
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodInitialA}, []any{&d.initialA})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodFutureA}, []any{&d.futureA})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodInitialATime}, []any{&d.initialATime})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodFutureATime}, []any{&d.futureATime})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodFee}, []any{&d.swapFee})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodAdminFee}, []any{&d.adminFee})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodStoredRates}, []any{&d.storedRates})
-	addFn(&ethrpc.Call{ABI: *stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodGetBalances}, []any{&d.balances})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodInitialA}, []any{&d.initialA})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodFutureA}, []any{&d.futureA})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodInitialATime}, []any{&d.initialATime})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodFutureATime}, []any{&d.futureATime})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodFee}, []any{&d.swapFee})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodAdminFee}, []any{&d.adminFee})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodStoredRates}, []any{&d.storedRates})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodGetBalances}, []any{&d.balances})
 }
 
 func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {

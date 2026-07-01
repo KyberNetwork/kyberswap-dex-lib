@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	curveTwocryptoNGABI abi.ABI
-	CurveTwocryptoNGABI *abi.ABI
+	CurveTwocryptoNGABI abi.ABI
 )
 
 func init() {
@@ -16,7 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&curveTwocryptoNGABI, curveTwocryptoNGABIBytes},
+		{&CurveTwocryptoNGABI, curveTwocryptoNGABIBytes},
 	}
 
 	var err error
@@ -26,5 +25,4 @@ func init() {
 			panic(err)
 		}
 	}
-	CurveTwocryptoNGABI = &curveTwocryptoNGABI
 }

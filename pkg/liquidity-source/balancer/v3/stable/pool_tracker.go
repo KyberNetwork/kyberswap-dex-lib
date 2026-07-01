@@ -112,6 +112,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	if res.IsPoolDisabled || extra.IsRisky || !shared.IsHookSupported(staticExtra.HookType) {
+		// set all reserves to 0 to disable pool
 		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
 	} else {
 		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
@@ -168,18 +169,18 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Method: shared.VaultMethodIsPoolInRecoveryMode,
 		Params: paramsPool,
 	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetAmplificationParameter,
 	}, []any{&rpcRes.AmplificationParameterRpc})
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		req.AddCall(&ethrpc.Call{
-			ABI:    stableSurgeABI,
+			ABI:    StableSurgeABI,
 			Target: staticExtra.Hook,
 			Method: StableSurgeHookMethodGetMaxSurgeFeePercentage,
 			Params: paramsPool,
 		}, []any{&rpcRes.MaxSurgeFeePercentage}).AddCall(&ethrpc.Call{
-			ABI:    stableSurgeABI,
+			ABI:    StableSurgeABI,
 			Target: staticExtra.Hook,
 			Method: StableSurgeHookMethodGetSurgeThresholdPercentage,
 			Params: paramsPool,

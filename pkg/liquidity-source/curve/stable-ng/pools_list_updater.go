@@ -77,15 +77,15 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 	// for Stable-NG pool we'll need APrecision (similar to Plain) and also OffpegFeeMultiplier
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curveStableNGABI,
+			ABI:    CurveStableNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodA,
 		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveStableNGABI,
+			ABI:    CurveStableNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
 		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveStableNGABI,
+			ABI:    CurveStableNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodOffpegFeeMul,
 		}, []any{&feeMultipliers[i]})

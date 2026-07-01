@@ -143,18 +143,18 @@ func newRPCData() *rpcData {
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, tokens []*entity.PoolToken, d *rpcData) {
 	addFn(&ethrpc.Call{
-		ABI:    *ringswap.UniswapV2PairABI,
+		ABI:    ringswap.UniswapV2PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 	}, []any{&d.reservesResult})
 	addFn(&ethrpc.Call{
-		ABI:    *ringswap.UniswapV2PairABI,
+		ABI:    ringswap.UniswapV2PairABI,
 		Target: tokens[0].Address,
 		Method: pairMethodBalanceOf,
 		Params: []any{common.HexToAddress(tokens[2].Address)},
 	}, []any{&d.originalReserve0})
 	addFn(&ethrpc.Call{
-		ABI:    *ringswap.UniswapV2PairABI,
+		ABI:    ringswap.UniswapV2PairABI,
 		Target: tokens[1].Address,
 		Method: pairMethodBalanceOf,
 		Params: []any{common.HexToAddress(tokens[3].Address)},

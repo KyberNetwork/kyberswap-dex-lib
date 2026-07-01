@@ -121,14 +121,14 @@ type rpcData struct {
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, numTokens int,
 	lpToken, oracle, mainRegistryAddress string, d *rpcData) {
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodInitialA}, []any{&d.initialA})
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodFutureA}, []any{&d.futureA})
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodInitialATime}, []any{&d.initialATime})
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodFutureATime}, []any{&d.futureATime})
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodFee}, []any{&d.swapFee})
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodAdminFee}, []any{&d.adminFee})
-	addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: lpToken, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
-	addFn(&ethrpc.Call{ABI: (*plain.NumTokenDependedABIs)[numTokens], Target: poolAddress, Method: plain.PoolMethodStoredRates}, []any{&d.storedRates})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodInitialA}, []any{&d.initialA})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodFutureA}, []any{&d.futureA})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodInitialATime}, []any{&d.initialATime})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodFutureATime}, []any{&d.futureATime})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodFee}, []any{&d.swapFee})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodAdminFee}, []any{&d.adminFee})
+	addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: lpToken, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: plain.NumTokenDependedABIs[numTokens], Target: poolAddress, Method: plain.PoolMethodStoredRates}, []any{&d.storedRates})
 	if len(oracle) > 0 {
 		addFn(&ethrpc.Call{ABI: shared.OracleABI, Target: oracle, Method: plain.PoolMethodLatestAnswer}, []any{&d.oracleRate})
 	}
@@ -141,8 +141,8 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, numTokens 
 		}, []any{&d.registryRates})
 	}
 	for i := range numTokens {
-		addFn(&ethrpc.Call{ABI: *plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
-		addFn(&ethrpc.Call{ABI: *plain.GetBalances128ABI, Target: poolAddress, Method: plain.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balancesV1[i]})
+		addFn(&ethrpc.Call{ABI: plain.CurvePlainABI, Target: poolAddress, Method: plain.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
+		addFn(&ethrpc.Call{ABI: plain.GetBalances128ABI, Target: poolAddress, Method: plain.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balancesV1[i]})
 	}
 }
 
