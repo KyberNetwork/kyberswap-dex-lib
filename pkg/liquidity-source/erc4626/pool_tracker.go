@@ -117,84 +117,58 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 
 func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
 	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *PoolState, error) {
-	var (
-		assetToken common.Address
-		poolState  = PoolState{
-			DepositRates: make([]*big.Int, len(PrefetchAmounts)),
-			RedeemRates:  make([]*big.Int, len(PrefetchAmounts)),
-		}
-	)
+	var assetToken common.Address
+	poolState := PoolState{
+		DepositRates: make([]*big.Int, len(PrefetchAmounts)),
+		RedeemRates:  make([]*big.Int, len(PrefetchAmounts)),
+	}
 
 	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	if fetchAsset {
-		req.AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodAsset,
-		}, []any{&assetToken})
-	}
-
-	if vaultCfg.Gas.Deposit > 0 {
-		req.AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodMaxDeposit,
-			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxDeposit}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodTotalAssets,
-		}, []any{&poolState.TotalAssets})
-
-		for i, amt := range PrefetchAmounts {
-			req.AddCall(&ethrpc.Call{
-				ABI:    ABI,
-				Target: vaultAddr,
-				Method: ERC4626MethodPreviewDeposit,
-				Params: []any{amt.ToBig()},
-			}, []any{&poolState.DepositRates[i]})
-		}
-	}
-	if vaultCfg.Gas.Redeem > 0 {
-		req.AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodMaxRedeem,
-			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxRedeem}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodTotalSupply,
-		}, []any{&poolState.TotalSupply})
-
-		for i, amt := range PrefetchAmounts {
-			req.AddCall(&ethrpc.Call{
-				ABI:    ABI,
-				Target: vaultAddr,
-				Method: ERC4626MethodPreviewRedeem,
-				Params: []any{amt.ToBig()},
-			}, []any{&poolState.RedeemRates[i]})
-		}
-	}
+	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return assetToken, nil, err
 	}
 
-	if poolState.MaxDeposit == nil || poolState.MaxDeposit.Sign() == 0 {
-		poolState.MaxDeposit = poolState.TotalAssets // fallback to a sensible value
-	} else if poolState.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
-		poolState.MaxDeposit = nil // no limit
-	}
-	if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
-		poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value
-	} else if poolState.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
-		poolState.MaxRedeem = nil // no limit
-	}
-
+	normalizePoolState(&poolState)
 	if resp.BlockNumber != nil {
 		poolState.BlockNumber = resp.BlockNumber.Uint64()
 	}
 	return assetToken, &poolState, nil
+}
+
+// addStateCalls registers all RPC reads for the given vault into addFn, writing results into assetToken and state.
+// Works with any caller — ethrpc.Request or LazyRequest — by accepting a generic add function.
+func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr string, vaultCfg VaultCfg, fetchAsset bool, assetToken *common.Address, state *PoolState) {
+	if fetchAsset {
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodAsset}, []any{assetToken})
+	}
+	if vaultCfg.Gas.Deposit > 0 {
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodMaxDeposit, Params: []any{AddrDummy}}, []any{&state.MaxDeposit})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodTotalAssets}, []any{&state.TotalAssets})
+		for i, amt := range PrefetchAmounts {
+			addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: ERC4626MethodPreviewDeposit, Params: []any{amt.ToBig()}}, []any{&state.DepositRates[i]})
+		}
+	}
+	if vaultCfg.Gas.Redeem > 0 {
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodMaxRedeem, Params: []any{AddrDummy}}, []any{&state.MaxRedeem})
+		addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: erc4626MethodTotalSupply}, []any{&state.TotalSupply})
+		for i, amt := range PrefetchAmounts {
+			addFn(&ethrpc.Call{ABI: ABI, Target: vaultAddr, Method: ERC4626MethodPreviewRedeem, Params: []any{amt.ToBig()}}, []any{&state.RedeemRates[i]})
+		}
+	}
+}
+
+func normalizePoolState(state *PoolState) {
+	if state.MaxDeposit == nil || state.MaxDeposit.Sign() == 0 {
+		state.MaxDeposit = state.TotalAssets // fallback to a sensible value
+	} else if state.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
+		state.MaxDeposit = nil // no limit
+	}
+	if state.MaxRedeem == nil || state.MaxRedeem.Sign() == 0 {
+		state.MaxRedeem = state.TotalSupply // fallback to a sensible value
+	} else if state.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
+		state.MaxRedeem = nil // no limit
+	}
 }
