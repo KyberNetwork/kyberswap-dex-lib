@@ -1,0 +1,50 @@
+[
+  {
+    "inputs": [
+      { "internalType": "bool", "name": "isZeroToOne", "type": "bool" }
+    ],
+    "name": "fairPriceInScale18",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "baseFeeBps",
+    "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "miFactor",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_tokenIn", "type": "address" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "_amountIn", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "bytes", "name": "_swapFeeModuleContext", "type": "bytes" }
+    ],
+    "name": "getSwapFeeInBips",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "feeInBips", "type": "uint256" },
+          { "internalType": "bytes", "name": "internalContext", "type": "bytes" }
+        ],
+        "internalType": "struct SwapFeeModuleData",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

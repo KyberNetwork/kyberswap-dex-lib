@@ -32,6 +32,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/caliberprop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	capricornpamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/capricorn-pamm"
@@ -95,6 +96,7 @@ import (
 	hiddenocean "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hidden-ocean"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyperamm"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
@@ -121,7 +123,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mooniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nabla"
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
-	nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nuriv2"
@@ -354,6 +356,7 @@ type Types struct {
 	GenericSimpleRate          string
 	RingSwap                   string
 	PrimeETH                   string
+	CaliberProp                string
 	StaderETHx                 string
 	Feltir                     string
 	FluidVaultT1               string
@@ -386,6 +389,7 @@ type Types struct {
 	ERC4626                    string
 	HiddenOcean                string
 	HyETH                      string
+	HyperAMM                   string
 	MimSwap                    string
 	Mooniswap                  string
 	InfinityPools              string
@@ -576,6 +580,7 @@ var (
 		GenericSimpleRate:          genericsimplerate.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
+		CaliberProp:                caliberprop.DexType,
 		StaderETHx:                 staderethx.DexType,
 		Feltir:                     feltir.DexType,
 		FluidVaultT1:               fluidVaultT1.DexType,
@@ -608,6 +613,7 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
+		HyperAMM:                   hyperamm.DexType,
 		MimSwap:                    mimswap.DexType,
 		Mooniswap:                  mooniswap.DexType,
 		InfinityPools:              infinitypools.DexType,

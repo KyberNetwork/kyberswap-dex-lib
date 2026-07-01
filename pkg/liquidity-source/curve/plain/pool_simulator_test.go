@@ -13,9 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -440,6 +442,48 @@ func TestPoolSimulatorPlain_CalcAmountIn(t *testing.T) {
 			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
 		})
 	}
+}
+
+// TestGetMetaInfo_UnknownToken is a regression test for a panic in GetMetaInfo when called
+// with a token address not present in the pool. This happens when stable-meta-ng delegates
+// SwapReturnNativeOut/SwapReceiveNativeIn to the base plain pool but passes a meta-pool token
+// (not in the base pool) as the counterpart, causing GetTokenIndex to return -1 and then
+// IsNativeCoin[-1] to panic.
+func TestGetMetaInfo_UnknownToken(t *testing.T) {
+	t.Parallel()
+
+	// Pool with IsNativeCoin set — this triggers the guarded path in GetMetaInfo.
+	// Two tokens: ETH (native, index 0) and wstETH (index 1).
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange: "curve-stable-plain",
+		Type:     "curve-stable-plain",
+		Reserves: entity.PoolReserves{"53671077891842067019", "46820071324304930671", "104084464891898466723"},
+		Tokens: []*entity.PoolToken{
+			{Address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Decimals: 18},
+			{Address: "0x5979d7b546e38e414f7e9822514be443a4800529", Decimals: 18},
+		},
+		Extra:       `{"InitialA":"5000","FutureA":"5000","InitialATime":0,"FutureATime":0,"SwapFee":"4000000","AdminFee":"5000000000","RateMultipliers":["1000000000000000000","1167796240393419728"]}`,
+		StaticExtra: `{"APrecision":"100","LpToken":"0xDbcD16e622c95AcB2650b38eC799f76BFC557a0b","IsNativeCoin":[true,false]}`,
+	})
+	require.NoError(t, err)
+
+	// These are the exact token addresses from the production panic: USDV is a meta-pool coin,
+	// USDT is a base-pool coin — neither belongs to this plain pool.
+	unknownIn := "0x0e573ce2736dd9637a0b21058352e1667925c7a8"  // USDV
+	unknownOut := "0xdac17f958d2ee523a2206206994597c13d831ec7" // USDT
+
+	// Without the fix, GetTokenIndex returns -1 and IsNativeCoin[-1] panics.
+	require.NotPanics(t, func() {
+		meta := p.GetMetaInfo(unknownIn, unknownOut).(curve.Meta)
+		// Tokens not in the pool must not be flagged as native.
+		assert.Nil(t, meta.TokenInIsNative)
+		assert.Nil(t, meta.TokenOutIsNative)
+	})
+
+	require.NotPanics(t, func() {
+		assert.False(t, p.SwapReceiveNativeIn(unknownIn, unknownOut, valueobject.ChainIDEthereum))
+		assert.False(t, p.SwapReturnNativeOut(unknownIn, unknownOut, valueobject.ChainIDEthereum))
+	})
 }
 
 func TestCloneState(t *testing.T) {
