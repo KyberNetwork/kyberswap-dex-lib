@@ -12,14 +12,14 @@ import (
 const (
 	DexType = "erc4626"
 
-	erc4626MethodAsset           = "asset"
-	erc4626MethodMaxDeposit      = "maxDeposit"
-	erc4626MethodMaxRedeem       = "maxRedeem"
-	erc4626MethodTotalAssets     = "totalAssets"
-	erc4626MethodTotalSupply     = "totalSupply"
-	ERC4626MethodPreviewDeposit  = "previewDeposit"
-	ERC4626MethodPreviewRedeem   = "previewRedeem"
-	ERC4626MethodConvertToAssets = "convertToAssets"
+	Erc4626MethodAsset           = "asset"
+	Erc4626MethodMaxDeposit      = "maxDeposit"
+	Erc4626MethodMaxRedeem       = "maxRedeem"
+	Erc4626MethodTotalAssets     = "totalAssets"
+	Erc4626MethodTotalSupply     = "totalSupply"
+	Erc4626MethodPreviewDeposit  = "previewDeposit"
+	Erc4626MethodPreviewRedeem   = "previewRedeem"
+	Erc4626MethodConvertToAssets = "convertToAssets"
 )
 
 var (

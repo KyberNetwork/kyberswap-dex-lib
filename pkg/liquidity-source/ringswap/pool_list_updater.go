@@ -271,14 +271,14 @@ func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []c
 
 	for i, pairAddress := range pairAddresses {
 		listTokensRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
+			ABI:    UniswapV2PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken0,
 			Params: nil,
 		}, []any{&listToken0Result[i]})
 
 		listTokensRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
+			ABI:    UniswapV2PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken1,
 			Params: nil,

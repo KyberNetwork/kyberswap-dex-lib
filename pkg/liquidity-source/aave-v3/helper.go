@@ -4,7 +4,7 @@ import (
 	"math/big"
 )
 
-func parseConfiguration(configuration *big.Int) Extra {
+func ParseConfiguration(configuration *big.Int) Extra {
 	// Bit 56: reserve is active
 	isActive := configuration.Bit(56) == 1
 
@@ -21,7 +21,7 @@ func parseConfiguration(configuration *big.Int) Extra {
 	}
 }
 
-func parseSupplyCap(configuration *big.Int) uint64 {
+func ParseSupplyCap(configuration *big.Int) uint64 {
 	// Bits 116-151: supply cap (36 bits)
 	// Supply cap is in whole tokens (not scaled)
 	// supplyCap == 0 means no cap

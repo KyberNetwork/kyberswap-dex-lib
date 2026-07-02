@@ -27,7 +27,7 @@ type (
 	}
 )
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -130,19 +130,19 @@ func (d *PoolTracker) getReserves(
 		getReservesRequest.SetOverrides(overrides)
 	}
 	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    UniswapV2PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 		Params: nil,
 	}, []any{&getReservesResult})
 	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    UniswapV2PairABI,
 		Target: originalToken0.Address,
 		Method: pairMethodBalanceOf,
 		Params: []any{common.HexToAddress(fwToken0.Address)},
 	}, []any{&originalReserve0})
 	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    UniswapV2PairABI,
 		Target: originalToken1.Address,
 		Method: pairMethodBalanceOf,
 		Params: []any{common.HexToAddress(fwToken1.Address)},

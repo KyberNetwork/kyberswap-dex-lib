@@ -144,7 +144,7 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	req := u.ethrpcClient.R()
 	for idx, subgraphPool := range subgraphPools {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
 		}, []any{&vaultAddresses[idx]})

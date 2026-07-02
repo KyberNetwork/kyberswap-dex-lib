@@ -26,7 +26,7 @@ type PoolTracker struct {
 	logger       logger.Logger
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -109,44 +109,44 @@ func (t *PoolTracker) getNewPoolState(
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
 		AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: p.Address,
-			Method: poolMethodInitialA,
+			Method: PoolMethodInitialA,
 		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
-		Method: poolMethodFutureA,
+		Method: PoolMethodFutureA,
 	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
-		Method: poolMethodInitialATime,
+		Method: PoolMethodInitialATime,
 	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
-		Method: poolMethodFutureATime,
+		Method: PoolMethodFutureATime,
 	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
-		Method: poolMethodFee,
+		Method: PoolMethodFee,
 	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
+		ABI:    CurvePlainABI,
 		Target: p.Address,
-		Method: poolMethodAdminFee,
+		Method: PoolMethodAdminFee,
 	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: staticExtra.LpToken,
 		Method: shared.ERC20MethodTotalSupply,
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    numTokenDependedABIs[numTokens],
+		ABI:    NumTokenDependedABIs[numTokens],
 		Target: p.Address,
-		Method: poolMethodStoredRates,
+		Method: PoolMethodStoredRates,
 	}, []any{&storedRates})
 
 	if len(staticExtra.Oracle) > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    shared.OracleABI,
 			Target: staticExtra.Oracle,
-			Method: poolMethodLatestAnswer,
+			Method: PoolMethodLatestAnswer,
 		}, []any{&oracleRate})
 	}
 
@@ -155,7 +155,7 @@ func (t *PoolTracker) getNewPoolState(
 			req.AddCall(&ethrpc.Call{
 				ABI:    shared.MainRegistryABI,
 				Target: mainRegistryAddress,
-				Method: mainRegistryMethodGetRates,
+				Method: MainRegistryMethodGetRates,
 				Params: []any{common.HexToAddress(p.Address)},
 			}, []any{&registryRates})
 		}
@@ -163,14 +163,14 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i := range p.Tokens {
 		req.AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: p.Address,
-			Method: poolMethodBalances,
+			Method: PoolMethodBalances,
 			Params: []any{big.NewInt(int64(i))},
 		}, []any{&balances[i]}).AddCall(&ethrpc.Call{
-			ABI:    getBalances128ABI,
+			ABI:    GetBalances128ABI,
 			Target: p.Address,
-			Method: poolMethodBalances,
+			Method: PoolMethodBalances,
 			Params: []any{big.NewInt(int64(i))},
 		}, []any{&balancesV1[i]})
 	}

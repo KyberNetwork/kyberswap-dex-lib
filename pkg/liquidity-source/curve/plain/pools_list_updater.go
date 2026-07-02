@@ -87,15 +87,15 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 	// (the original white-paper use A, but in code they use A_precise (A*APrecision) to do the calculation)
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodA,
 		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
 		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
-			ABI:    curvePlainABI,
+			ABI:    CurvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodOracle,
 		}, []any{&oracleList[i]})

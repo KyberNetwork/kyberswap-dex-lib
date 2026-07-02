@@ -23,7 +23,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -100,9 +100,9 @@ func (d *PoolTracker) getPoolData(
 	var totalSupply *big.Int
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
-		Method: poolMethodGetConfiguration,
+		Method: PoolMethodGetConfiguration,
 		Params: []any{common.HexToAddress(assetToken)},
 	}, []any{&rpcData.Configuration}).AddCall(&ethrpc.Call{
 		ABI:    abi.Erc20ABI,
@@ -127,7 +127,7 @@ func (d *PoolTracker) getPoolData(
 
 func (d *PoolTracker) updatePool(pool entity.Pool, data RPCConfiguration, liquidity, totalSupply *big.Int) (entity.Pool,
 	error) {
-	extra := parseConfiguration(data.Configuration.Data.Data)
+	extra := ParseConfiguration(data.Configuration.Data.Data)
 	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
 		return entity.Pool{}, err
@@ -145,7 +145,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data RPCConfiguration, liquid
 
 func (d *PoolTracker) calculateReserves(extra Extra, configuration, liquidity, totalSupply *big.Int,
 	decimals uint8) entity.PoolReserves {
-	supplyCap := parseSupplyCap(configuration)
+	supplyCap := ParseSupplyCap(configuration)
 
 	// Calculate reserve[0] (aToken): supply cap - totalSupply
 	// Supply cap is in whole tokens, need to scale by decimals

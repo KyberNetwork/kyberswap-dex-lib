@@ -27,7 +27,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -169,24 +169,24 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Method: shared.VaultMethodIsPoolInRecoveryMode,
 		Params: paramsPool,
 	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
-		Method: poolMethodGetAmplificationParameter,
+		Method: PoolMethodGetAmplificationParameter,
 	}, []any{&rpcRes.AmplificationParameterRpc})
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		req.AddCall(&ethrpc.Call{
-			ABI:    stableSurgeABI,
+			ABI:    StableSurgeABI,
 			Target: staticExtra.Hook,
-			Method: stableSurgeHookMethodGetMaxSurgeFeePercentage,
+			Method: StableSurgeHookMethodGetMaxSurgeFeePercentage,
 			Params: paramsPool,
 		}, []any{&rpcRes.MaxSurgeFeePercentage}).AddCall(&ethrpc.Call{
-			ABI:    stableSurgeABI,
+			ABI:    StableSurgeABI,
 			Target: staticExtra.Hook,
-			Method: stableSurgeHookMethodGetSurgeThresholdPercentage,
+			Method: StableSurgeHookMethodGetSurgeThresholdPercentage,
 			Params: paramsPool,
 		}, []any{&rpcRes.SurgeThresholdPercentage})
 	}
-	rpcRes.Buffers = shared.GetBufferTokens(req, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
+	rpcRes.Buffers = shared.GetBufferTokens(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -207,7 +207,7 @@ func isRisky(s SurgePercentages, p entity.Pool, chainId valueobject.ChainID) boo
 				return true
 			}
 			hasNative = true
-		} else if !hasNonNative && nonNativesByChain[chainId][token.Address] {
+		} else if !hasNonNative && NonNativesByChain[chainId][token.Address] {
 			if hasNative {
 				return true
 			}

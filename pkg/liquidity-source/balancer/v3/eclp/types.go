@@ -50,7 +50,7 @@ type ECLPParamsRpc struct {
 	}
 }
 
-func (p *ECLPParamsRpc) toInt256() *ECLPParams {
+func (p *ECLPParamsRpc) ToInt256() *ECLPParams {
 	var result ECLPParams
 
 	result.Params.Alpha = int256.MustFromBig(p.Params.Alpha)

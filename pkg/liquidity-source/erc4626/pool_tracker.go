@@ -28,8 +28,7 @@ type PoolTracker struct {
 }
 
 var (
-	_ poolpkg.IBatchRPCPoolTracker = (*PoolTracker)(nil)
-	_ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+	_ = pooltrack.RegisterBackupFactoryCE0(DexType, NewPoolTracker)
 )
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
@@ -130,7 +129,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
-			Method: erc4626MethodAsset,
+			Method: Erc4626MethodAsset,
 		}, []any{&assetToken})
 	}
 
@@ -138,19 +137,19 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
-			Method: erc4626MethodMaxDeposit,
+			Method: Erc4626MethodMaxDeposit,
 			Params: []any{AddrDummy},
 		}, []any{&poolState.MaxDeposit}).AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
-			Method: erc4626MethodTotalAssets,
+			Method: Erc4626MethodTotalAssets,
 		}, []any{&poolState.TotalAssets})
 
 		for i, amt := range PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
 				ABI:    ABI,
 				Target: vaultAddr,
-				Method: ERC4626MethodPreviewDeposit,
+				Method: Erc4626MethodPreviewDeposit,
 				Params: []any{amt.ToBig()},
 			}, []any{&poolState.DepositRates[i]})
 		}
@@ -159,19 +158,19 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
-			Method: erc4626MethodMaxRedeem,
+			Method: Erc4626MethodMaxRedeem,
 			Params: []any{AddrDummy},
 		}, []any{&poolState.MaxRedeem}).AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
-			Method: erc4626MethodTotalSupply,
+			Method: Erc4626MethodTotalSupply,
 		}, []any{&poolState.TotalSupply})
 
 		for i, amt := range PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
 				ABI:    ABI,
 				Target: vaultAddr,
-				Method: ERC4626MethodPreviewRedeem,
+				Method: Erc4626MethodPreviewRedeem,
 				Params: []any{amt.ToBig()},
 			}, []any{&poolState.RedeemRates[i]})
 		}

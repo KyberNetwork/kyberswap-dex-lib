@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	curveStableMetaNGABI abi.ABI
+	CurveStableMetaNGABI abi.ABI
 )
 
 func init() {
@@ -15,7 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&curveStableMetaNGABI, curveStableMetaNGABIBytes},
+		{&CurveStableMetaNGABI, curveStableMetaNGABIBytes},
 	}
 
 	var err error

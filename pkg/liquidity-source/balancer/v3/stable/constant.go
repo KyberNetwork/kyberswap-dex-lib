@@ -11,10 +11,10 @@ const (
 
 	SubgraphPoolType = "STABLE"
 
-	poolMethodGetAmplificationParameter = "getAmplificationParameter"
+	PoolMethodGetAmplificationParameter = "getAmplificationParameter"
 
-	stableSurgeHookMethodGetMaxSurgeFeePercentage    = "getMaxSurgeFeePercentage"
-	stableSurgeHookMethodGetSurgeThresholdPercentage = "getSurgeThresholdPercentage"
+	StableSurgeHookMethodGetMaxSurgeFeePercentage    = "getMaxSurgeFeePercentage"
+	StableSurgeHookMethodGetSurgeThresholdPercentage = "getSurgeThresholdPercentage"
 
 	baseGas = 237494
 )
@@ -25,7 +25,7 @@ var (
 	// AcceptableMaxSurgeFeeByImbalance caps max acceptable surge fee per imbalance to avoid high slippage
 	AcceptableMaxSurgeFeeByImbalance = uint256.NewInt(0.1e18) // 0.1% per 1% of imbalance
 
-	nonNativesByChain = map[valueobject.ChainID]map[string]bool{
+	NonNativesByChain = map[valueobject.ChainID]map[string]bool{
 		valueobject.ChainIDArbitrumOne: {
 			"0xaf88d065e77c8cc2239327c5edb3a432268e5831": true, // USDC
 			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": true, // USDC.e

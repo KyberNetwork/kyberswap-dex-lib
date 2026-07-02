@@ -1,4 +1,4 @@
-package erc4626
+package lazy
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	erc4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func (t *PoolTracker) LazyNewPoolState(
@@ -48,9 +48,9 @@ func (t *PoolTracker) lazyNewPoolState(
 	vaultAddr := p.Tokens[0].Address
 	vaultCfg, ok := t.cfg.Vaults[vaultAddr]
 	if !ok { // manually added vault
-		var extra Extra
+		var extra erc4626.Extra
 		_ = json.Unmarshal([]byte(p.Extra), &extra)
-		vaultCfg.Gas = GasCfg(extra.Gas)
+		vaultCfg.Gas = erc4626.GasCfg(extra.Gas)
 	}
 	req, applyResult := lazycall(ctx, &p, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
 
@@ -62,81 +62,21 @@ func lazycall(
 	pool *entity.Pool,
 	ethrpcClient *ethrpc.Client,
 	vaultAddr string,
-	vaultCfg VaultCfg,
+	vaultCfg erc4626.VaultCfg,
 	fetchAsset bool,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (poolpkg.ILazyRequest, func(*big.Int) (entity.Pool, error)) {
-	var (
-		assetToken common.Address
-		poolState  = PoolState{
-			DepositRates: make([]*big.Int, len(PrefetchAmounts)),
-			RedeemRates:  make([]*big.Int, len(PrefetchAmounts)),
-		}
-	)
+	var assetToken common.Address
+	poolState := erc4626.PoolState{
+		DepositRates: make([]*big.Int, len(erc4626.PrefetchAmounts)),
+		RedeemRates:  make([]*big.Int, len(erc4626.PrefetchAmounts)),
+	}
 	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req := poolpkg.LazyRequest{Request: r}
-	if fetchAsset {
-		req.AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodAsset,
-		}, []any{&assetToken})
-	}
+	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
 
-	if vaultCfg.Gas.Deposit > 0 {
-		req.AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodMaxDeposit,
-			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxDeposit}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodTotalAssets,
-		}, []any{&poolState.TotalAssets})
-
-		for i, amt := range PrefetchAmounts {
-			req.AddCall(&ethrpc.Call{
-				ABI:    ABI,
-				Target: vaultAddr,
-				Method: ERC4626MethodPreviewDeposit,
-				Params: []any{amt.ToBig()},
-			}, []any{&poolState.DepositRates[i]})
-		}
-	}
-	if vaultCfg.Gas.Redeem > 0 {
-		req.AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodMaxRedeem,
-			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxRedeem}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodTotalSupply,
-		}, []any{&poolState.TotalSupply})
-
-		for i, amt := range PrefetchAmounts {
-			req.AddCall(&ethrpc.Call{
-				ABI:    ABI,
-				Target: vaultAddr,
-				Method: ERC4626MethodPreviewRedeem,
-				Params: []any{amt.ToBig()},
-			}, []any{&poolState.RedeemRates[i]})
-		}
-	}
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
-		if poolState.MaxDeposit == nil || poolState.MaxDeposit.Sign() == 0 {
-			poolState.MaxDeposit = poolState.TotalAssets // fallback to a sensible value
-		} else if poolState.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
-			poolState.MaxDeposit = nil // no limit
-		}
-		if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
-			poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value
-		} else if poolState.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
-			poolState.MaxRedeem = nil // no limit
-		}
-
+		normalizePoolState(&poolState)
 		if blockNumber != nil {
 			poolState.BlockNumber = blockNumber.Uint64()
 		} else {

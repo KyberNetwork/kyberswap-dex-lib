@@ -21,6 +21,15 @@ const (
 	poolMethodGetBalances  = "get_balances"
 	poolMethodStoredRates  = "stored_rates"
 
+	PoolMethodInitialA     = poolMethodInitialA
+	PoolMethodInitialATime = poolMethodInitialATime
+	PoolMethodFutureA      = poolMethodFutureA
+	PoolMethodFutureATime  = poolMethodFutureATime
+	PoolMethodFee          = poolMethodFee
+	PoolMethodAdminFee     = poolMethodAdminFee
+	PoolMethodGetBalances  = poolMethodGetBalances
+	PoolMethodStoredRates  = poolMethodStoredRates
+
 	MaxLoopLimit = 256
 )
 
