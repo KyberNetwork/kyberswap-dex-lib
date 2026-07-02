@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"sort"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -180,7 +180,7 @@ func (t *StateTracker) LoadWindow(
 			activeTicks = append(activeTicks, tick)
 		}
 	}
-	sort.Slice(activeTicks, func(i, j int) bool { return activeTicks[i] < activeTicks[j] })
+	slices.Sort(activeTicks)
 
 	stageC := make([]common.Hash, 0, len(activeTicks))
 	for _, tick := range activeTicks {
