@@ -56,7 +56,10 @@ func (d *PoolTracker) lazycall(
 	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, p.Tokens, rpc)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
-		if blockNumber != nil && p.BlockNumber > blockNumber.Uint64() {
+		if blockNumber == nil {
+			blockNumber = new(big.Int).SetUint64(p.BlockNumber)
+		}
+		if p.BlockNumber > blockNumber.Uint64() {
 			logger.WithFields(logger.Fields{
 				"pool_id":           p.Address,
 				"pool_block_number": p.BlockNumber,

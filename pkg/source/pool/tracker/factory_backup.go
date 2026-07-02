@@ -23,9 +23,8 @@ func RegisterBackupFactoryCE[C any, P IPoolsTracker](poolType string, factory fu
 }
 
 // RegisterFactory registers a factory function for a pool tracker with config and factoryParams
-func RegisterBackupFactory[C any, P IPoolsTracker](poolType string, factory func(PoolsTrackerParams[C]) (P, error)) bool {
 	if backupFactoryMap[poolType] != nil {
-		return false
+		panic(poolType + " pool tracker backup factory already registered")
 	}
 
 	backupFactoryMap[poolType] = func(exchange string, factoryParams FactoryParams) (IPoolsTracker, error) {
