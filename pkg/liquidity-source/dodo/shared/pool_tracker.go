@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -328,7 +327,8 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool, 
 }
 
 func isDPPMinSwapAmountSupported(version string) bool {
-	return strings.HasSuffix(version, dodoV2VersionWithMinSwapAmount)
+	_, ok := dodoV2VersionsWithMinSwapAmount[version]
+	return ok
 }
 
 func (d *PoolTracker) getMinSwapAmounts(
