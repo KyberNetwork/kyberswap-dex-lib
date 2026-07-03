@@ -6,8 +6,8 @@ import (
 
 const (
 	DexType    = "1010-prop"
-	defaultGas = 125_000 // TODO: update this after simulate with SC
-	sampleSize = 15      // power-of-10 levels
+	defaultGas = 135_000
+	sampleSize = 15 // power-of-10 levels
 )
 
 var maxInSampleBps = []int{

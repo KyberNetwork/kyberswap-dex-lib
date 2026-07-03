@@ -86,7 +86,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	if len(s.Samples[indexIn]) == 0 {
+	if indexIn >= len(s.Samples) || len(s.Samples[indexIn]) == 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
