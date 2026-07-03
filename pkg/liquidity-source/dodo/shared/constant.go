@@ -32,13 +32,7 @@ const (
 	dodoV2MethodGetUserFeeRate     = "getUserFeeRate"
 	dodoV2MethodMinBaseSwapAmount  = "_MIN_BASE_SWAP_AMOUNT_"
 	dodoV2MethodMinQuoteSwapAmount = "_MIN_QUOTE_SWAP_AMOUNT_"
-	dodoV2MethodVersion            = "version"
 )
-
-var dodoV2VersionsWithMinSwapAmount = map[string]struct{}{
-	"DPP 1.1.0":          {},
-	"DPP Advanced 1.1.0": {},
-}
 
 var (
 	V2DefaultGas = V2Gas{

@@ -59,7 +59,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return d.getNewPoolStateDodoV1(ctx, p)
 	}
 
-	return d.getNewPoolStateDodoV2(ctx, p, staticExtraData.Type)
+	return d.getNewPoolStateDodoV2(ctx, p)
 }
 
 func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) (entity.Pool, error) {
@@ -200,7 +200,7 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 	return p, nil
 }
 
-func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool, poolType string) (entity.Pool, error) {
+func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.Infof("[%v] Start getting new state of pool: %v", p.Type, p.Address)
 
 	_, ok := d.blackList.Get(p.Address)
@@ -209,10 +209,11 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool, 
 	}
 
 	var (
-		state     V2PMMState
-		feeRate   V2FeeRate
-		lpFeeRate *big.Int
-		version   string
+		state              V2PMMState
+		feeRate            V2FeeRate
+		lpFeeRate          *big.Int
+		minBaseSwapAmount  *big.Int
+		minQuoteSwapAmount *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -234,14 +235,18 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool, 
 		Method: dodoV2MethodGetUserFeeRate,
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&feeRate})
-	if poolType == SubgraphPoolTypeDodoPrivate {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    V2PoolABI,
-			Target: p.Address,
-			Method: dodoV2MethodVersion,
-			Params: nil,
-		}, []any{&version})
-	}
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodMinBaseSwapAmount,
+		Params: nil,
+	}, []any{&minBaseSwapAmount})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodMinQuoteSwapAmount,
+		Params: nil,
+	}, []any{&minQuoteSwapAmount})
 
 	resp, err := calls.TryBlockAndAggregate()
 	if err != nil {
@@ -293,18 +298,13 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool, 
 		MtFeeRate: number.SetFromBig(feeRate.MtFeeRate),
 		LpFeeRate: number.SetFromBig(lpFeeRate),
 	}
-	if poolType == SubgraphPoolTypeDodoPrivate {
-		const versionCallOffset = 3
-		if len(resp.Result) > versionCallOffset &&
-			resp.Result[versionCallOffset] &&
-			isDPPMinSwapAmountSupported(version) {
-			minBaseSwapAmount, minQuoteSwapAmount, err := d.getMinSwapAmounts(ctx, p.Address, resp.BlockNumber)
-			if err != nil {
-				return entity.Pool{}, err
-			}
-			extra.MinBaseSwapAmount = number.SetFromBig(minBaseSwapAmount)
-			extra.MinQuoteSwapAmount = number.SetFromBig(minQuoteSwapAmount)
-		}
+	if len(resp.Result) > 4 &&
+		resp.Result[3] &&
+		resp.Result[4] &&
+		minBaseSwapAmount != nil &&
+		minQuoteSwapAmount != nil {
+		extra.MinBaseSwapAmount = number.SetFromBig(minBaseSwapAmount)
+		extra.MinQuoteSwapAmount = number.SetFromBig(minQuoteSwapAmount)
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -324,49 +324,4 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool, 
 	logger.Infof("[%v] Finish updating state of pool: %v", p.Type, p.Address)
 
 	return p, nil
-}
-
-func isDPPMinSwapAmountSupported(version string) bool {
-	_, ok := dodoV2VersionsWithMinSwapAmount[version]
-	return ok
-}
-
-func (d *PoolTracker) getMinSwapAmounts(
-	ctx context.Context,
-	poolAddress string,
-	blockNumber *big.Int,
-) (*big.Int, *big.Int, error) {
-	var (
-		minBaseSwapAmount  *big.Int
-		minQuoteSwapAmount *big.Int
-	)
-
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	calls.AddCall(&ethrpc.Call{
-		ABI:    V2PoolABI,
-		Target: poolAddress,
-		Method: dodoV2MethodMinBaseSwapAmount,
-		Params: nil,
-	}, []any{&minBaseSwapAmount})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    V2PoolABI,
-		Target: poolAddress,
-		Method: dodoV2MethodMinQuoteSwapAmount,
-		Params: nil,
-	}, []any{&minQuoteSwapAmount})
-
-	resp, err := calls.TryBlockAndAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": poolAddress,
-			"error":       err,
-		}).Errorf("[DodoV2] failed to aggregate min swap amounts")
-		return nil, nil, err
-	}
-	if len(resp.Result) < 2 || !resp.Result[0] || !resp.Result[1] ||
-		minBaseSwapAmount == nil || minQuoteSwapAmount == nil {
-		return nil, nil, fmt.Errorf("get min swap amounts failed")
-	}
-
-	return minBaseSwapAmount, minQuoteSwapAmount, nil
 }

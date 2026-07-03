@@ -93,8 +93,8 @@ type (
 		R                  *uint256.Int `json:"R"`
 		MtFeeRate          *uint256.Int `json:"mtFeeRate"`
 		LpFeeRate          *uint256.Int `json:"lpFeeRate"`
-		MinBaseSwapAmount  *uint256.Int `json:"minBaseSwapAmount,omitempty"`
-		MinQuoteSwapAmount *uint256.Int `json:"minQuoteSwapAmount,omitempty"`
+		MinBaseSwapAmount  *uint256.Int `json:"mB,omitempty"`
+		MinQuoteSwapAmount *uint256.Int `json:"mQ,omitempty"`
 	}
 
 	V2Meta struct {
