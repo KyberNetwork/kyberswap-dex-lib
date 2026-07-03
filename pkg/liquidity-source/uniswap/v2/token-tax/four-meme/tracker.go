@@ -118,7 +118,7 @@ func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
 	}
 
 	// Token5: fee = amount * feeRate / 10000, charged symmetrically on buy and sell, so feeRate is
-	// already the basis-point rate for both directions.
+	// already the basis-point rate for both directions
 	if feeRateOK {
 		info.BuyTaxBps = tokentax.ToUint256(t.feeRatePct)
 		info.SellTaxBps = tokentax.ToUint256(t.feeRatePct)
