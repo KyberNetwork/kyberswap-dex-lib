@@ -102,25 +102,28 @@ func (t *tracker) Resolve(response *ethrpc.Response) tokentax.TaxInfo {
 		Checked:  true,
 	}
 
+	// Token8: feeRateBuy/feeRateSell are expressed in percent
+	if buyTaxOK || sellTaxOK {
+		if buyTaxOK {
+			info.BuyTaxBps = percentToBps(t.buyTaxPct)
+		} else {
+			info.BuyTaxBps = t.previous.BuyTaxBps
+		}
+		if sellTaxOK {
+			info.SellTaxBps = percentToBps(t.sellTaxPct)
+		} else {
+			info.SellTaxBps = t.previous.SellTaxBps
+		}
+		return info
+	}
+
 	// Token5: fee = amount * feeRate / 10000, charged symmetrically on buy and sell, so feeRate is
 	// already the basis-point rate for both directions
 	if feeRateOK {
 		info.BuyTaxBps = tokentax.ToUint256(t.feeRatePct)
 		info.SellTaxBps = tokentax.ToUint256(t.feeRatePct)
-		return info
 	}
 
-	// Token8: feeRateBuy/feeRateSell are expressed in percent
-	if buyTaxOK {
-		info.BuyTaxBps = percentToBps(t.buyTaxPct)
-	} else {
-		info.BuyTaxBps = t.previous.BuyTaxBps
-	}
-	if sellTaxOK {
-		info.SellTaxBps = percentToBps(t.sellTaxPct)
-	} else {
-		info.SellTaxBps = t.previous.SellTaxBps
-	}
 	return info
 }
 
