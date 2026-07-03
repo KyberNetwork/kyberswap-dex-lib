@@ -209,9 +209,11 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	}
 
 	var (
-		state     V2PMMState
-		feeRate   V2FeeRate
-		lpFeeRate *big.Int
+		state              V2PMMState
+		feeRate            V2FeeRate
+		lpFeeRate          *big.Int
+		minBaseSwapAmount  *big.Int
+		minQuoteSwapAmount *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -233,8 +235,21 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		Method: dodoV2MethodGetUserFeeRate,
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&feeRate})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodMinBaseSwapAmount,
+		Params: nil,
+	}, []any{&minBaseSwapAmount})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodMinQuoteSwapAmount,
+		Params: nil,
+	}, []any{&minQuoteSwapAmount})
 
-	if _, err := calls.TryBlockAndAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -282,6 +297,14 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		R:         number.SetFromBig(state.R),
 		MtFeeRate: number.SetFromBig(feeRate.MtFeeRate),
 		LpFeeRate: number.SetFromBig(lpFeeRate),
+	}
+	if len(resp.Result) > 4 &&
+		resp.Result[3] &&
+		resp.Result[4] &&
+		minBaseSwapAmount != nil &&
+		minQuoteSwapAmount != nil {
+		extra.MinBaseSwapAmount = number.SetFromBig(minBaseSwapAmount)
+		extra.MinQuoteSwapAmount = number.SetFromBig(minQuoteSwapAmount)
 	}
 
 	extraBytes, err := json.Marshal(extra)

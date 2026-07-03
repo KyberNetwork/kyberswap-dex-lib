@@ -22,8 +22,10 @@ type PoolSimulator struct {
 	*sync.RWMutex
 	pool.Pool
 	libv2.PMMState
-	Meta shared.V2Meta
-	gas  shared.V2Gas
+	Meta               shared.V2Meta
+	MinBaseSwapAmount  *uint256.Int
+	MinQuoteSwapAmount *uint256.Int
+	gas                shared.V2Gas
 }
 
 var _ = pool.RegisterFactory0(PoolType, NewPoolSimulator)
@@ -45,6 +47,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra shared.V2Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	}
+	if extra.MinBaseSwapAmount == nil {
+		extra.MinBaseSwapAmount = number.Zero
+	}
+	if extra.MinQuoteSwapAmount == nil {
+		extra.MinQuoteSwapAmount = number.Zero
 	}
 
 	// swapFee isn't used to calculate the amountOut, poolState.mtFeeRate and poolState.lpFeeRate are used instead
@@ -82,9 +90,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Pool: pool.Pool{
 			Info: info,
 		},
-		PMMState: poolState,
-		Meta:     meta,
-		gas:      shared.V2DefaultGas,
+		PMMState:           poolState,
+		Meta:               meta,
+		MinBaseSwapAmount:  extra.MinBaseSwapAmount,
+		MinQuoteSwapAmount: extra.MinQuoteSwapAmount,
+		gas:                shared.V2DefaultGas,
 	}, nil
 }
 
@@ -96,6 +106,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	switch tokenAmountIn.Token {
 	case p.Info.Tokens[0]: // tokenIn is base token
+		if amountIn.Cmp(p.MinBaseSwapAmount) < 0 {
+			return nil, shared.ErrBaseSwapAmountTooSmall
+		}
+
 		receiveQuoteAmount, lpFee, mtFee, err := p.querySellBase(amountIn)
 		if err != nil {
 			return nil, err
@@ -119,6 +133,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Gas: p.gas.SellBase,
 		}, nil
 	case p.Info.Tokens[1]: // tokenIn is quote token
+		if amountIn.Cmp(p.MinQuoteSwapAmount) < 0 {
+			return nil, shared.ErrQuoteSwapAmountTooSmall
+		}
+
 		receiveBaseAmount, lpFee, mtFee, err := p.querySellQuote(amountIn)
 		if err != nil {
 			return nil, err
