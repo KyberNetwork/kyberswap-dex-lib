@@ -30,6 +30,8 @@ const (
 	// Dodo V2 contract methods
 	dodoV2MethodGetPMMStateForCall = "getPMMStateForCall"
 	dodoV2MethodGetUserFeeRate     = "getUserFeeRate"
+	dodoV2MethodMinBaseSwapAmount  = "_MIN_BASE_SWAP_AMOUNT_"
+	dodoV2MethodMinQuoteSwapAmount = "_MIN_QUOTE_SWAP_AMOUNT_"
 )
 
 var (
