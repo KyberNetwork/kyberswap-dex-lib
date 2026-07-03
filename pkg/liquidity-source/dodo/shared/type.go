@@ -84,15 +84,17 @@ type (
 	}
 
 	V2Extra struct {
-		I         *uint256.Int `json:"i"`
-		K         *uint256.Int `json:"K"`
-		B         *uint256.Int `json:"B"`
-		Q         *uint256.Int `json:"Q"`
-		B0        *uint256.Int `json:"B0"`
-		Q0        *uint256.Int `json:"Q0"`
-		R         *uint256.Int `json:"R"`
-		MtFeeRate *uint256.Int `json:"mtFeeRate"`
-		LpFeeRate *uint256.Int `json:"lpFeeRate"`
+		I                  *uint256.Int `json:"i"`
+		K                  *uint256.Int `json:"K"`
+		B                  *uint256.Int `json:"B"`
+		Q                  *uint256.Int `json:"Q"`
+		B0                 *uint256.Int `json:"B0"`
+		Q0                 *uint256.Int `json:"Q0"`
+		R                  *uint256.Int `json:"R"`
+		MtFeeRate          *uint256.Int `json:"mtFeeRate"`
+		LpFeeRate          *uint256.Int `json:"lpFeeRate"`
+		MinBaseSwapAmount  *uint256.Int `json:"minBaseSwapAmount,omitempty"`
+		MinQuoteSwapAmount *uint256.Int `json:"minQuoteSwapAmount,omitempty"`
 	}
 
 	V2Meta struct {
