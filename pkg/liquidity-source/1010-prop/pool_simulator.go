@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -19,7 +21,7 @@ type PoolSimulator struct {
 	pool.Pool
 	Extra
 	StaticExtra
-	remainingIn [2]*big.Int
+	remainingIn [2]*uint256.Int
 }
 
 var (
@@ -56,21 +58,22 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 
 	// cumulative cap: prefer MaxIn, otherwise fallback to sampleMaxIn
 	for dir := range 2 {
-		var sampleMax *big.Int
-		if dir < len(sim.Samples) && len(sim.Samples[dir]) > 0 {
-			sampleMax = sim.Samples[dir][len(sim.Samples[dir])-1][0]
+		var rem *uint256.Int
+		if dir < len(extra.MaxIn) && extra.MaxIn[dir] != nil {
+			rem = new(uint256.Int)
+			if rem.SetFromBig(extra.MaxIn[dir]) {
+				rem = nil // overflow: treat as uncapped
+			}
+		} else if dir < len(extra.Samples) && len(extra.Samples[dir]) > 0 {
+			last := extra.Samples[dir][len(extra.Samples[dir])-1][0]
+			if last != nil {
+				rem = new(uint256.Int)
+				if rem.SetFromBig(last) {
+					rem = nil // overflow: treat as uncapped
+				}
+			}
 		}
-		var capMax *big.Int
-		if dir < len(sim.MaxIn) {
-			capMax = sim.MaxIn[dir]
-		}
-
-		switch {
-		case capMax != nil:
-			sim.remainingIn[dir] = new(big.Int).Set(capMax)
-		case sampleMax != nil:
-			sim.remainingIn[dir] = new(big.Int).Set(sampleMax)
-		}
+		sim.remainingIn[dir] = rem
 	}
 
 	return sim, nil
@@ -90,45 +93,61 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
-	if rem := s.remainingIn[indexIn]; rem != nil {
-		if tokenAmountIn.Amount.Cmp(rem) > 0 {
-			return nil, ErrInsufficientLiquidity
-		}
+	var amtIn uint256.Int
+	if amtIn.SetFromBig(tokenAmountIn.Amount) {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	if rem := s.remainingIn[indexIn]; rem != nil && amtIn.Gt(rem) {
+		return nil, ErrInsufficientLiquidity
 	}
 
 	samples := s.Samples[indexIn]
 	idx := sort.Search(len(samples), func(i int) bool {
-		return samples[i][0].Cmp(tokenAmountIn.Amount) > 0
+		var si uint256.Int
+		si.SetFromBig(samples[i][0])
+		return si.Gt(&amtIn)
 	})
 
-	var amountOut = new(big.Int)
+	var amountOut uint256.Int
 	if idx == 0 {
-		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, samples[0][1], samples[0][0])
+		var s0in, s0out uint256.Int
+		s0in.SetFromBig(samples[0][0])
+		s0out.SetFromBig(samples[0][1])
+		big256.MulDivDown(&amountOut, &amtIn, &s0out, &s0in)
 	} else if idx >= len(samples) {
 		last := samples[len(samples)-1]
-		bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, last[1], last[0])
+		var lastIn, lastOut uint256.Int
+		lastIn.SetFromBig(last[0])
+		lastOut.SetFromBig(last[1])
+		big256.MulDivDown(&amountOut, &amtIn, &lastOut, &lastIn)
 	} else {
 		L, R := samples[idx-1], samples[idx]
-		span := new(big.Int).Sub(R[0], L[0])
-		step := new(big.Int).Sub(tokenAmountIn.Amount, L[0])
-		delta := new(big.Int).Sub(R[1], L[1])
-		bignumber.MulDivDown(amountOut, step, delta, span)
-		amountOut.Add(amountOut, L[1])
+		var lIn, lOut, rIn, rOut, span, step, delta uint256.Int
+		lIn.SetFromBig(L[0])
+		lOut.SetFromBig(L[1])
+		rIn.SetFromBig(R[0])
+		rOut.SetFromBig(R[1])
+		span.Sub(&rIn, &lIn)
+		step.Sub(&amtIn, &lIn)
+		delta.Sub(&rOut, &lOut)
+		big256.MulDivDown(&amountOut, &step, &delta, &span)
+		amountOut.Add(&amountOut, &lOut)
 	}
 
-	if amountOut.Sign() <= 0 {
+	if amountOut.IsZero() {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	if limit := params.Limit; limit != nil {
 		inventoryLimit := limit.GetLimit(tokenOut)
-		if amountOut.Cmp(inventoryLimit) > 0 {
+		if amountOut.ToBig().Cmp(inventoryLimit) > 0 {
 			return nil, pool.ErrNotEnoughInventory
 		}
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut},
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: big.NewInt(0)},
 		Gas:            defaultGas,
 	}, nil
@@ -141,10 +160,13 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
-	if s.remainingIn[indexIn] != nil {
-		s.remainingIn[indexIn] = new(big.Int).Sub(s.remainingIn[indexIn], params.TokenAmountIn.Amount)
-		if s.remainingIn[indexIn].Sign() < 0 {
-			s.remainingIn[indexIn] = big.NewInt(0)
+	if rem := s.remainingIn[indexIn]; rem != nil {
+		var amtIn uint256.Int
+		amtIn.SetFromBig(params.TokenAmountIn.Amount)
+		if rem.Lt(&amtIn) {
+			rem.Clear()
+		} else {
+			rem.Sub(rem, &amtIn)
 		}
 	}
 
@@ -173,7 +195,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	}
 	for i := range s.remainingIn {
 		if s.remainingIn[i] != nil {
-			cloned.remainingIn[i] = new(big.Int).Set(s.remainingIn[i])
+			cloned.remainingIn[i] = new(uint256.Int).Set(s.remainingIn[i])
 		}
 	}
 	return &cloned
