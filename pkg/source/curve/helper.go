@@ -13,7 +13,7 @@ import (
 
 func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	var (
-		mainRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress common.Address
+		mainRegistryAddress, metaRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress common.Address
 	)
 	calls := ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
@@ -21,6 +21,14 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 		Method: addressProviderMethodGetAddress,
 		Params: []any{big.NewInt(0)},
 	}, []any{&mainRegistryAddress}).AddCall(&ethrpc.Call{
+		ABI:    addressProviderABI,
+		Target: config.AddressProvider,
+		Method: addressProviderMethodGetAddress,
+		// id 7 = MetaRegistry per Curve's AddressProvider (get_id_info(7).description
+		// == "Metaregistry"). Returns the zero address on chains without one, in which
+		// case base-pool resolution falls back to the pool's own base_pool() getter.
+		Params: []any{big.NewInt(7)},
+	}, []any{&metaRegistryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
@@ -46,6 +54,7 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	}
 
 	config.MainRegistryAddress = mainRegistryAddress.Hex()
+	config.MetaRegistryAddress = metaRegistryAddress.Hex()
 	config.MetaPoolsFactoryAddress = metaFactoryAddress.Hex()
 	config.CryptoPoolsRegistryAddress = cryptoRegistryAddress.Hex()
 	config.CryptoPoolsFactoryAddress = cryptoFactoryAddress.Hex()
