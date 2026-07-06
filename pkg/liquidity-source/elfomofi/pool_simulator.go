@@ -1,31 +1,28 @@
 package elfomofi
 
 import (
-	"math"
-
 	"github.com/goccy/go-json"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
 type PoolSimulator struct {
 	*orderbook.PoolSimulator
 	factoryAddress string
 }
 
-func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
-	poolSim, err := orderbook.NewPoolSimulatorWith(p, math.MaxInt64)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	poolSim, err := orderbook.NewPoolSimulator(params)
 	if err != nil {
 		return nil, err
 	}
 	poolSim.Gas = orderbook.Gas{Base: defaultGas}
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := json.Unmarshal([]byte(params.EntityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
