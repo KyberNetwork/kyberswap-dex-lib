@@ -8,10 +8,10 @@ import (
 )
 
 type Order struct {
-	Y *uint256.Int `json:"y"`
-	Z *uint256.Int `json:"z"`
-	A uint64       `json:"A"`
-	B uint64       `json:"B"`
+	Y *uint256.Int `json:"y,omitempty"`
+	Z *uint256.Int `json:"z,omitempty"`
+	A uint64       `json:"A,omitempty"`
+	B uint64       `json:"B,omitempty"`
 }
 
 func (o *Order) Clone() Order {
@@ -49,8 +49,13 @@ type Pair struct {
 }
 
 type Extra struct {
-	Strategies    []Strategy `json:"strategies"`
-	TradingFeePpm uint32     `json:"tradingFeePpm"`
+	Strategies       []Strategy `json:"strategies"`
+	TradingFeePpm    uint32     `json:"tradingFeePpm"`
+	LastFullScanTime int64      `json:"u,omitempty"`
+	// StrategyCount is the on-chain strategiesByPairCount as of this state. Strategies
+	// dust-filtered on both sides aren't stored at all, so this - not len(Strategies) - is
+	// what incrementalScan diffs against to detect newly created strategies.
+	StrategyCount int64 `json:"n,omitempty"`
 }
 
 type Meta struct {
