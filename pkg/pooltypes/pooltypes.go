@@ -1,6 +1,7 @@
 package pooltypes
 
 import (
+	prop1010 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1010-prop"
 	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
@@ -434,6 +435,7 @@ type Types struct {
 	CapricornPamm              string
 	BounceTech                 string
 	AltFun                     string
+	Prop1010                   string
 }
 
 var (
@@ -663,5 +665,6 @@ var (
 		CapricornPamm:              capricornpamm.DexType,
 		BounceTech:                 bouncetech.DexType,
 		AltFun:                     altfun.DexType,
+		Prop1010:                   prop1010.DexType,
 	}
 )

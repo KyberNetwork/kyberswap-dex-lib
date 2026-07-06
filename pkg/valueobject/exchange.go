@@ -3,6 +3,7 @@ package valueobject
 type Exchange string
 
 const (
+	Exchange1010Prop                   = "1010-prop"
 	ExchangeAlienBaseStableSwap        = "alien-base-stableswap"
 	ExchangeAltFun                     = "alt-fun"
 	ExchangeAmbient                    = "ambient"
@@ -369,6 +370,7 @@ func NeedsFallbackSource[T ~string](exchange T) bool {
 }
 
 var PropAMMSourceSet = map[Exchange]struct{}{
+	Exchange1010Prop:    {},
 	ExchangeWildcard:    {},
 	ExchangeTessera:     {},
 	ExchangeElfomofi:    {},

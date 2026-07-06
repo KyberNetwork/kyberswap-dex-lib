@@ -10,6 +10,7 @@ type Config struct {
 
 	AddressProvider            string `json:"addressProvider"`
 	MainRegistryAddress        string `json:"mainRegistryAddress"`
+	MetaRegistryAddress        string `json:"metaRegistryAddress"`
 	MetaPoolsFactoryAddress    string `json:"metaPoolsFactoryAddress"`
 	CryptoPoolsRegistryAddress string `json:"cryptoPoolsRegistryAddress"`
 	CryptoPoolsFactoryAddress  string `json:"cryptoPoolsFactoryAddress"`
