@@ -73,6 +73,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
+	staticExtraBytes, err := json.Marshal(StaticExtra{FactoryAddress: u.config.FactoryAddress})
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+
 	pools := lo.Map(pairs[offset:], func(pair Pair, _ int) entity.Pool {
 		token0, token1 := hexutil.Encode(pair.Token0[:]), hexutil.Encode(pair.Token1[:])
 		poolAddress := fmt.Sprintf("%s_%s_%s", u.config.DexID, token0, token1)
@@ -86,7 +91,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				{Address: token0, Swappable: true},
 				{Address: token1, Swappable: true},
 			},
-			Extra: "{}",
+			Extra:       "{}",
+			StaticExtra: string(staticExtraBytes),
 		}
 		return p
 	})
