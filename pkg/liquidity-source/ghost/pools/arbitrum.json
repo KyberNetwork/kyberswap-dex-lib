@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ghost_0xaf88d065e77c8cc2239327c5edb3a432268e5831_0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+    "type": "ghost",
+    "tokens": [
+      {
+        "address": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+      },
+      {
+        "address": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
+      }
+    ],
+    "staticExtra": {
+      "z2o": {
+        "src": "0xeBC079D41C41a0ef7e54aa7Af867df9a621C9bE0",
+        "dst": "0x75a9297db5F0349fd1d6f4030953Fe17175e06d4",
+        "dom": 42161,
+        "sNum": "1",
+        "sDen": "1"
+      },
+      "o2z": {
+        "src": "0x75a9297db5F0349fd1d6f4030953Fe17175e06d4",
+        "dst": "0xeBC079D41C41a0ef7e54aa7Af867df9a621C9bE0",
+        "dom": 42161,
+        "sNum": "1",
+        "sDen": "1"
+      }
+    }
+  }
+]

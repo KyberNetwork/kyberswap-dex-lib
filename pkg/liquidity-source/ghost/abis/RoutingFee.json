@@ -1,0 +1,19 @@
+[
+  {
+    "name": "feeType",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint8"}]
+  },
+  {
+    "name": "feeContracts",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {"name": "domain", "type": "uint32"},
+      {"name": "router", "type": "bytes32"}
+    ],
+    "outputs": [{"name": "", "type": "address"}]
+  }
+]

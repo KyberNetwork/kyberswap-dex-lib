@@ -130,6 +130,7 @@ const (
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperAMM                   = "hyperamm"
 	ExchangeHyperpieV2                 = "hyperpie-v2"
+	ExchangeGhost                      = "ghost"
 	ExchangeInfinifi                   = "infinifi-gateway"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeIntegral                   = "integral"

@@ -75,6 +75,7 @@ import (
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
+	ghost "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gohm"
 	gsm4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gsm-4626"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -376,6 +377,7 @@ type Types struct {
 	HiddenOcean                string
 	HyETH                      string
 	HyperAMM                   string
+	Ghost                      string
 	MimSwap                    string
 	Mooniswap                  string
 	InfinityPools              string
@@ -601,6 +603,7 @@ var (
 		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
 		HyperAMM:                   hyperamm.DexType,
+		Ghost:                      ghost.DexType,
 		MimSwap:                    mimswap.DexType,
 		Mooniswap:                  mooniswap.DexType,
 		InfinityPools:              infinitypools.DexType,
