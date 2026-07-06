@@ -11,7 +11,13 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+)
+
+const (
+	token0 = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+	token1 = "0xdac17f958d2ee523a2206206994597c13d831ec7"
 )
 
 func mustMarshal(v any) string {
@@ -19,31 +25,57 @@ func mustMarshal(v any) string {
 	return string(b)
 }
 
-func makePool(
-	maxFee, halfAmount, reserve int64,
-	scaleNum, scaleDen string,
+// makePool builds a pool whose zeroToOne (token0->token1) and oneToZero (token1->token0)
+// directions use the SAME fee curve/reserve/scale — convenient for tests that only exercise
+// one direction. makeAsymmetricPool below covers the case where the two directions differ.
+func makePool(maxFee, halfAmount, reserve int64, scaleNum, scaleDen string) entity.Pool {
+	return makeAsymmetricPool(
+		maxFee, halfAmount, reserve, scaleNum, scaleDen,
+		maxFee, halfAmount, reserve, scaleNum, scaleDen,
+	)
+}
+
+func makeAsymmetricPool(
+	fwdMaxFee, fwdHalfAmount, fwdReserve int64, fwdScaleNum, fwdScaleDen string,
+	bwdMaxFee, bwdHalfAmount, bwdReserve int64, bwdScaleNum, bwdScaleDen string,
 ) entity.Pool {
 	se := StaticExtra{
-		SourceRouter:     "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
-		TargetRouter:     "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
-		LocalDomain:      1,
-		ScaleNumerator:   scaleNum,
-		ScaleDenominator: scaleDen,
+		ZeroToOne: DirectionStatic{
+			SourceRouter:     "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
+			TargetRouter:     "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
+			LocalDomain:      1,
+			ScaleNumerator:   fwdScaleNum,
+			ScaleDenominator: fwdScaleDen,
+		},
+		OneToZero: DirectionStatic{
+			SourceRouter:     "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
+			TargetRouter:     "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
+			LocalDomain:      1,
+			ScaleNumerator:   bwdScaleNum,
+			ScaleDenominator: bwdScaleDen,
+		},
 	}
 	ex := Extra{
-		MaxFee:     big.NewInt(maxFee),
-		HalfAmount: big.NewInt(halfAmount),
-		Reserve:    big.NewInt(reserve),
+		ZeroToOne: DirectionExtra{
+			MaxFee:     big.NewInt(fwdMaxFee),
+			HalfAmount: big.NewInt(fwdHalfAmount),
+			Reserve:    big.NewInt(fwdReserve),
+		},
+		OneToZero: DirectionExtra{
+			MaxFee:     big.NewInt(bwdMaxFee),
+			HalfAmount: big.NewInt(bwdHalfAmount),
+			Reserve:    big.NewInt(bwdReserve),
+		},
 	}
 
 	return entity.Pool{
-		Address:  "0xa9c9a8fb36ce3e5ffbac3757da7141262723541f:0xeb1b48b238e15a62e1858a601b6bffdf41163ae3",
+		Address:  "ghost_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48_0xdac17f958d2ee523a2206206994597c13d831ec7",
 		Exchange: "ghost",
 		Type:     DexType,
 		Reserves: []string{"10000000000", "10000000000"},
 		Tokens: []*entity.PoolToken{
-			{Address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Symbol: "USDC", Decimals: 6, Swappable: true},
-			{Address: "0xdac17f958d2ee523a2206206994597c13d831ec7", Symbol: "USDT", Decimals: 6, Swappable: true},
+			{Address: token0, Symbol: "USDC", Decimals: 6, Swappable: true},
+			{Address: token1, Symbol: "USDT", Decimals: 6, Swappable: true},
 		},
 		StaticExtra: mustMarshal(se),
 		Extra:       mustMarshal(ex),
@@ -52,11 +84,6 @@ func makePool(
 
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
-
-	const (
-		token0 = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-		token1 = "0xdac17f958d2ee523a2206206994597c13d831ec7"
-	)
 
 	tests := []struct {
 		name                        string
@@ -130,10 +157,16 @@ func TestCalcAmountOut(t *testing.T) {
 			amountIn: big.NewInt(0), wantErr: true,
 		},
 		{
-			// swapping token1 → token0 (wrong direction for this unidirectional pool)
-			name:   "wrong direction",
+			// swapping token1 → token0 (oneToZero direction), using the same symmetric curve.
+			name:   "oneToZero direction",
 			maxFee: 10_000, halfAmount: 5_000_000, reserve: 10_000_000_000, scaleNum: "1", scaleDen: "1",
 			tokenIn: token1, tokenOut: token0,
+			amountIn: big.NewInt(1_000_000), wantOut: big.NewInt(999_001), wantFee: big.NewInt(999),
+		},
+		{
+			name:   "wrong token pair",
+			maxFee: 10_000, halfAmount: 5_000_000, reserve: 10_000_000_000, scaleNum: "1", scaleDen: "1",
+			tokenIn: token1, tokenOut: "0x0000000000000000000000000000000000dead",
 			amountIn: big.NewInt(1_000_000), errIs: ErrInvalidToken,
 		},
 	}
@@ -175,6 +208,84 @@ func TestCalcAmountOut(t *testing.T) {
 			if tc.wantFee != nil {
 				assert.Zerof(t, tc.wantFee.Cmp(result.Fee.Amount), "fee: want %s got %s", tc.wantFee, result.Fee.Amount)
 			}
+
+			si, ok := result.SwapInfo.(SwapInfo)
+			require.True(t, ok)
+			assert.GreaterOrEqual(t, si.TotalFeeBps, int64(0))
+		})
+	}
+}
+
+func TestCalcAmountOut_AsymmetricDirections(t *testing.T) {
+	t.Parallel()
+
+	// ZeroToOne (token0->token1) and oneToZero (token1->token0) use deliberately different fee
+	// curves, mirroring that each direction is an independent on-chain call with its own
+	// market-maker-set curve.
+	p := makeAsymmetricPool(
+		10_000, 5_000_000, 10_000_000_000, "1", "1", // zeroToOne: 0.1%-ish
+		20_000, 5_000_000, 10_000_000_000, "1", "1", // oneToZero: double the fee
+	)
+	sim, err := NewPoolSimulator(p)
+	require.NoError(t, err)
+
+	zeroToOne, err := sim.CalcAmountOut(poolPkg.CalcAmountOutParams{
+		TokenAmountIn: poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(1_000_000)},
+		TokenOut:      token1,
+	})
+	require.NoError(t, err)
+
+	oneToZero, err := sim.CalcAmountOut(poolPkg.CalcAmountOutParams{
+		TokenAmountIn: poolPkg.TokenAmount{Token: token1, Amount: big.NewInt(1_000_000)},
+		TokenOut:      token0,
+	})
+	require.NoError(t, err)
+
+	assert.True(t, oneToZero.Fee.Amount.Cmp(zeroToOne.Fee.Amount) > 0,
+		"oneToZero fee %s should exceed zeroToOne fee %s given its higher maxFee",
+		oneToZero.Fee.Amount, zeroToOne.Fee.Amount)
+}
+
+func TestTotalFeeBps(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		principal, fee  uint64
+		wantTotalFeeBps int64
+	}{
+		{"linear region", 999_001, 999, 1000},
+		{"cap region", 19_990_000, 10_000, 501},
+		{"zero fee", 1_000_000, 0, 0},
+		{"zero principal", 0, 100, 0},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := totalFeeBps(uint256.NewInt(tc.principal), uint256.NewInt(tc.fee))
+			assert.Equal(t, tc.wantTotalFeeBps, got)
+
+			if tc.principal == 0 {
+				return
+			}
+
+			// Verify the on-chain recovery formula (mirroring executeGhost) never recovers more
+			// than the quoted principal — otherwise transferRemoteTo would pull more than
+			// amountIn and revert.
+			amountIn := new(big.Int).Add(new(big.Int).SetUint64(tc.principal), new(big.Int).SetUint64(tc.fee))
+			denom := big.NewInt(GhostFeeDenominator + got)
+			num := new(big.Int).Add(amountIn, big.NewInt(1))
+			num.Mul(num, big.NewInt(GhostFeeDenominator))
+			recovered := new(big.Int).Div(num, denom)
+			if new(big.Int).Mod(num, denom).Sign() != 0 {
+				recovered.Add(recovered, big.NewInt(1))
+			}
+			recovered.Sub(recovered, big.NewInt(1))
+
+			assert.True(t, recovered.Cmp(new(big.Int).SetUint64(tc.principal)) <= 0,
+				"recovered principal %s must be <= quoted principal %d", recovered, tc.principal)
 		})
 	}
 }
@@ -187,21 +298,20 @@ func TestUpdateBalance(t *testing.T) {
 	require.NoError(t, err)
 
 	result, err := sim.CalcAmountOut(poolPkg.CalcAmountOutParams{
-		TokenAmountIn: poolPkg.TokenAmount{
-			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Amount: big.NewInt(1_000_000),
-		},
-		TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+		TokenAmountIn: poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(1_000_000)},
+		TokenOut:      token1,
 	})
 	require.NoError(t, err)
 
 	sim.UpdateBalance(poolPkg.UpdateBalanceParams{
-		TokenAmountIn:  poolPkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: big.NewInt(1_000_000)},
+		TokenAmountIn:  poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(1_000_000)},
 		TokenAmountOut: *result.TokenAmountOut,
 	})
 
 	expectedReserve := new(big.Int).Sub(big.NewInt(10_000_000), result.TokenAmountOut.Amount)
-	assert.Equal(t, expectedReserve, sim.reserve.ToBig())
+	assert.Equal(t, expectedReserve, sim.zeroToOne.reserve.ToBig())
+	// OneToZero direction's reserve is untouched by a zeroToOne swap.
+	assert.Equal(t, "10000000", sim.oneToZero.reserve.Dec())
 }
 
 func TestCanSwapDirections(t *testing.T) {
@@ -211,48 +321,92 @@ func TestCanSwapDirections(t *testing.T) {
 	sim, err := NewPoolSimulator(p)
 	require.NoError(t, err)
 
-	// CanSwapTo: given output token (token1), returns valid input tokens
-	from := sim.CanSwapTo("0xdac17f958d2ee523a2206206994597c13d831ec7")
-	assert.Equal(t, []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}, from)
+	// Both directions are swappable: CanSwapTo(token1) means token0 can swap to it, and
+	// CanSwapTo(token0) means token1 can swap to it.
+	from := sim.CanSwapTo(token1)
+	assert.Equal(t, []string{token0}, from)
 
-	// CanSwapTo: given wrong output token (token0), returns nil
-	from = sim.CanSwapTo("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
-	assert.Nil(t, from)
+	from = sim.CanSwapTo(token0)
+	assert.Equal(t, []string{token1}, from)
 
-	// CanSwapFrom: given input token (token0), returns valid output tokens
-	to := sim.CanSwapFrom("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
-	assert.Equal(t, []string{"0xdac17f958d2ee523a2206206994597c13d831ec7"}, to)
+	to := sim.CanSwapFrom(token0)
+	assert.Equal(t, []string{token1}, to)
 
-	// CanSwapFrom: given wrong input token (token1), returns nil
-	to = sim.CanSwapFrom("0xdac17f958d2ee523a2206206994597c13d831ec7")
-	assert.Nil(t, to)
+	to = sim.CanSwapFrom(token1)
+	assert.Equal(t, []string{token0}, to)
 }
 
 func TestGetMetaInfo(t *testing.T) {
 	t.Parallel()
 
-	p := makePool(10_000, 5_000_000, 10_000_000_000, "1", "1")
+	p := makeAsymmetricPool(
+		10_000, 5_000_000, 10_000_000_000, "1", "1",
+		20_000, 5_000_000, 10_000_000_000, "1", "1",
+	)
 	sim, err := NewPoolSimulator(p)
 	require.NoError(t, err)
 
-	meta := sim.GetMetaInfo("", "")
-	pm, ok := meta.(PoolMeta)
+	zeroToOneMeta, ok := sim.GetMetaInfo(token0, token1).(PoolMeta)
 	require.True(t, ok)
+	assert.Equal(t, "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F", zeroToOneMeta.SourceRouter)
+	assert.Equal(t, "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3", zeroToOneMeta.TargetRouter)
 
-	assert.Equal(t, "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F", pm.SourceRouter)
-	assert.Equal(t, "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3", pm.TargetRouter)
+	oneToZeroMeta, ok := sim.GetMetaInfo(token1, token0).(PoolMeta)
+	require.True(t, ok)
+	assert.Equal(t, "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3", oneToZeroMeta.SourceRouter)
+	assert.Equal(t, "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F", oneToZeroMeta.TargetRouter)
 }
 
 func TestCalculateLimit(t *testing.T) {
 	t.Parallel()
 
-	p := makePool(10_000, 5_000_000, 10_000_000_000, "1", "1")
+	p := makeAsymmetricPool(
+		10_000, 5_000_000, 10_000_000_000, "1", "1",
+		20_000, 5_000_000, 20_000_000_000, "1", "1",
+	)
 	sim, err := NewPoolSimulator(p)
 	require.NoError(t, err)
 
 	limits := sim.CalculateLimit()
 	require.NotNil(t, limits)
-	assert.Equal(t, big.NewInt(10_000_000_000), limits["0xdac17f958d2ee523a2206206994597c13d831ec7"])
+	assert.Equal(t, big.NewInt(10_000_000_000), limits[token1]) // zeroToOne reserve
+	assert.Equal(t, big.NewInt(20_000_000_000), limits[token0]) // oneToZero reserve
+}
+
+func TestCalcAmountOut_SharedSwapLimit(t *testing.T) {
+	t.Parallel()
+
+	// Pool-local reserve is generous, but a shared inventory limit (as if another ghost pool
+	// already drew down the same targetRouter/token vault) caps token1 much lower.
+	sim, err := NewPoolSimulator(makePool(10_000, 5_000_000, 10_000_000_000, "1", "1"))
+	require.NoError(t, err)
+
+	limit := swaplimit.NewInventory(DexType, map[string]*big.Int{token1: big.NewInt(500_000)})
+
+	result, err := sim.CalcAmountOut(poolPkg.CalcAmountOutParams{
+		TokenAmountIn: poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(1_000_000)},
+		TokenOut:      token1,
+		Limit:         limit,
+	})
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+	assert.Nil(t, result)
+
+	// Under the shared limit, the swap succeeds and depletes the shared inventory, not just
+	// the pool-local reserve.
+	result, err = sim.CalcAmountOut(poolPkg.CalcAmountOutParams{
+		TokenAmountIn: poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(300_000)},
+		TokenOut:      token1,
+		Limit:         limit,
+	})
+	require.NoError(t, err)
+
+	sim.UpdateBalance(poolPkg.UpdateBalanceParams{
+		TokenAmountIn:  poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(300_000)},
+		TokenAmountOut: *result.TokenAmountOut,
+		SwapLimit:      limit,
+	})
+
+	assert.Equal(t, new(big.Int).Sub(big.NewInt(500_000), result.TokenAmountOut.Amount), limit.GetLimit(token1))
 }
 
 func TestCloneState(t *testing.T) {
@@ -263,8 +417,8 @@ func TestCloneState(t *testing.T) {
 	require.NoError(t, err)
 
 	clone := sim.CloneState().(*PoolSimulator)
-	clone.reserve = uint256.NewInt(1)
-	assert.Equal(t, "10000000", sim.reserve.Dec())
+	clone.zeroToOne.reserve = uint256.NewInt(1)
+	assert.Equal(t, "10000000", sim.zeroToOne.reserve.Dec())
 }
 
 func TestCloneState_InfoReservesIndependent(t *testing.T) {

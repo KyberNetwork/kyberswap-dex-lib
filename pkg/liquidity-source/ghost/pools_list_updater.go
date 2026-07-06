@@ -89,7 +89,7 @@ func (d *PoolsListUpdater) buildPool(item *PoolItem) (entity.Pool, error) {
 	}
 
 	return entity.Pool{
-		Address:     item.ID,
+		Address:     strings.ToLower(item.ID),
 		Exchange:    d.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),

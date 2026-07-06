@@ -1,6 +1,6 @@
 [
   {
-    "id": "0xa9c9a8fb36ce3e5ffbac3757da7141262723541f:0xeb1b48b238e15a62e1858a601b6bffdf41163ae3",
+    "id": "ghost_0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48_0xdac17f958d2ee523a2206206994597c13d831ec7",
     "type": "ghost",
     "tokens": [
       {
@@ -11,30 +11,20 @@
       }
     ],
     "staticExtra": {
-      "sourceRouter": "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
-      "targetRouter": "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
-      "localDomain": 1,
-      "scaleNumerator": "1",
-      "scaleDenominator": "1"
-    }
-  },
-  {
-    "id": "0xeb1b48b238e15a62e1858a601b6bffdf41163ae3:0xa9c9a8fb36ce3e5ffbac3757da7141262723541f",
-    "type": "ghost",
-    "tokens": [
-      {
-        "address": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      "z2o": {
+        "src": "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
+        "dst": "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
+        "dom": 1,
+        "sNum": "1",
+        "sDen": "1"
       },
-      {
-        "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+      "o2z": {
+        "src": "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
+        "dst": "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
+        "dom": 1,
+        "sNum": "1",
+        "sDen": "1"
       }
-    ],
-    "staticExtra": {
-      "sourceRouter": "0xeB1b48b238E15A62e1858a601B6BfFdf41163AE3",
-      "targetRouter": "0xA9C9a8FB36Ce3e5ffBAC3757dA7141262723541F",
-      "localDomain": 1,
-      "scaleNumerator": "1",
-      "scaleDenominator": "1"
     }
   }
 ]

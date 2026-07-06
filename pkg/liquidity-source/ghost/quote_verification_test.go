@@ -48,6 +48,8 @@ func quoteOnChain(t *testing.T, client *ethrpc.Client, sourceRouter string, prin
 }
 
 func TestInverseFee_MatchesOnChainQuote(t *testing.T) {
+	t.Skip("Skipping testing in CI environment")
+
 	client := ethrpc.New(rpcURL).
 		SetMulticallContract(common.HexToAddress(multicall3))
 
@@ -79,16 +81,17 @@ func TestInverseFee_MatchesOnChainQuote(t *testing.T) {
 
 	var extra Extra
 	require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
-	require.NotNil(t, extra.MaxFee, "maxFee is nil — tracker failed to fetch fee params")
-	require.NotNil(t, extra.HalfAmount, "halfAmount is nil — tracker failed to fetch fee params")
+	require.NotNil(t, extra.ZeroToOne.MaxFee, "maxFee is nil — tracker failed to fetch fee params")
+	require.NotNil(t, extra.ZeroToOne.HalfAmount, "halfAmount is nil — tracker failed to fetch fee params")
 
-	maxFee, _ := uint256.FromBig(extra.MaxFee)
-	halfAmount, _ := uint256.FromBig(extra.HalfAmount)
-	t.Logf("tracker fetched: maxFee=%s halfAmount=%s reserve=%s", extra.MaxFee, extra.HalfAmount, extra.Reserve)
+	maxFee, _ := uint256.FromBig(extra.ZeroToOne.MaxFee)
+	halfAmount, _ := uint256.FromBig(extra.ZeroToOne.HalfAmount)
+	t.Logf("tracker fetched: maxFee=%s halfAmount=%s reserve=%s",
+		extra.ZeroToOne.MaxFee, extra.ZeroToOne.HalfAmount, extra.ZeroToOne.Reserve)
 
 	// Now verify: for various amountIn values, inverseFee with tracker's params
 	// produces a principal that the on-chain router quotes back to amountIn.
-	targetRouterAddr := common.HexToAddress(item.StaticExtra.TargetRouter)
+	targetRouterAddr := common.HexToAddress(item.StaticExtra.ZeroToOne.TargetRouter)
 	targetRouterBytes32 := common.BytesToHash(targetRouterAddr.Bytes())
 
 	amountsIn := []uint64{
@@ -105,7 +108,7 @@ func TestInverseFee_MatchesOnChainQuote(t *testing.T) {
 		principal, fee := inverseFee(amountIn, maxFee, halfAmount)
 
 		// Quote the principal on-chain to get the real total cost
-		totalCost := quoteOnChain(t, client, item.StaticExtra.SourceRouter, principal.ToBig(), targetRouterBytes32)
+		totalCost := quoteOnChain(t, client, item.StaticExtra.ZeroToOne.SourceRouter, principal.ToBig(), targetRouterBytes32)
 		totalCostU, _ := uint256.FromBig(totalCost)
 
 		var diff uint256.Int

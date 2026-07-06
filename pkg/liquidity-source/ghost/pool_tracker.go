@@ -58,12 +58,27 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	extra, blockNumber, err := t.fetchState(ctx, p, staticExtra)
+	outputTokenZeroToOne, outputTokenOneToZero := "", ""
+	if len(p.Tokens) >= 2 {
+		// zeroToOne (tokens[0]->tokens[1]) reserve is tokens[1] held by the zeroToOne targetRouter;
+		// oneToZero (tokens[1]->tokens[0]) reserve is tokens[0] held by the oneToZero targetRouter.
+		outputTokenZeroToOne = p.Tokens[1].Address
+		outputTokenOneToZero = p.Tokens[0].Address
+	}
+
+	zeroToOneExtra, blockNumber, err := t.fetchDirectionState(ctx, staticExtra.ZeroToOne, outputTokenZeroToOne, nil)
 	if err != nil {
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	// Pin the oneToZero direction's reads to the same block as zeroToOne so the pool's combined
+	// state is internally consistent for this refresh cycle.
+	oneToZeroExtra, _, err := t.fetchDirectionState(ctx, staticExtra.OneToZero, outputTokenOneToZero, &blockNumber)
+	if err != nil {
+		return p, err
+	}
+
+	extraBytes, err := json.Marshal(Extra{ZeroToOne: zeroToOneExtra, OneToZero: oneToZeroExtra})
 	if err != nil {
 		return p, err
 	}
@@ -75,7 +90,8 @@ func (t *PoolTracker) GetNewPoolState(
 	if len(p.Tokens) >= 2 {
 		reserves := make(entity.PoolReserves, len(p.Reserves))
 		copy(reserves, p.Reserves)
-		reserves[1] = extra.Reserve.String()
+		reserves[1] = zeroToOneExtra.Reserve.String()
+		reserves[0] = oneToZeroExtra.Reserve.String()
 		p.Reserves = reserves
 	}
 
@@ -94,14 +110,15 @@ type storedQuoteResult struct {
 	Expiry     *big.Int
 }
 
-func (t *PoolTracker) fetchState(
+func (t *PoolTracker) fetchDirectionState(
 	ctx context.Context,
-	p entity.Pool,
-	se StaticExtra,
-) (Extra, uint64, error) {
+	se DirectionStatic,
+	outputToken string,
+	pinBlock *uint64,
+) (DirectionExtra, uint64, error) {
 	feeContract, err := t.resolveFeeContract(ctx, se)
 	if err != nil {
-		return Extra{}, 0, err
+		return DirectionExtra{}, 0, err
 	}
 
 	var (
@@ -111,15 +128,13 @@ func (t *PoolTracker) fetchState(
 		reserve             *big.Int
 	)
 
-	outputToken := ""
-	if len(p.Tokens) >= 2 {
-		outputToken = p.Tokens[1].Address
-	}
-
 	targetRouterAddr := common.HexToAddress(se.TargetRouter)
 	feeTarget := strings.ToLower(feeContract.Hex())
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if pinBlock != nil {
+		req = req.SetBlockNumber(new(big.Int).SetUint64(*pinBlock))
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    feeABI,
@@ -149,7 +164,7 @@ func (t *PoolTracker) fetchState(
 
 	resp, err := req.Aggregate()
 	if err != nil {
-		return Extra{}, 0, err
+		return DirectionExtra{}, 0, err
 	}
 
 	blockNumber := uint64(0)
@@ -168,14 +183,14 @@ func (t *PoolTracker) fetchState(
 		}
 	}
 
-	return Extra{
+	return DirectionExtra{
 		MaxFee:     effectiveMaxFee,
 		HalfAmount: effectiveHalfAmount,
 		Reserve:    reserve,
 	}, blockNumber, nil
 }
 
-func (t *PoolTracker) resolveFeeContract(ctx context.Context, se StaticExtra) (common.Address, error) {
+func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic) (common.Address, error) {
 	var feeRecipient common.Address
 	_, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    routerABI,

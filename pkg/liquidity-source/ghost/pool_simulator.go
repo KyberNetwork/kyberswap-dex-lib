@@ -12,23 +12,35 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type PoolSimulator struct {
-	pool.Pool
-
-	staticExtra StaticExtra
-
+// directionState holds one swap direction's fee curve, reserve limit, and router/scale info.
+type directionState struct {
+	static           DirectionStatic
 	maxFee           *uint256.Int
 	halfAmount       *uint256.Int
 	reserve          *uint256.Int // nil = no limit
 	scaleNumerator   *uint256.Int
 	scaleDenominator *uint256.Int
+}
+
+type PoolSimulator struct {
+	pool.Pool
+
+	// zeroToOne is tokens[0] -> tokens[1]; oneToZero is tokens[1] -> tokens[0]. The two are
+	// independent on-chain calls (own sourceRouter/fee-curve/targetRouter reserve) that happen
+	// to connect the same token pair — not a shared AMM reserve.
+	zeroToOne directionState
+	oneToZero directionState
 
 	gas int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var (
+	_ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+	_ = pool.RegisterUseSwapLimit(valueobject.ExchangeGhost)
+)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if len(entityPool.Tokens) != 2 || len(entityPool.Reserves) != 2 {
@@ -54,16 +66,23 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
-	maxFee := bigToUint256OrZero(ex.MaxFee)
-	halfAmount := bigToUint256OrZero(ex.HalfAmount)
+	return &PoolSimulator{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address:  strings.ToLower(entityPool.Address),
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
+			},
+		},
+		zeroToOne: buildDirectionState(se.ZeroToOne, ex.ZeroToOne),
+		oneToZero: buildDirectionState(se.OneToZero, ex.OneToZero),
+		gas:       DefaultGas,
+	}, nil
+}
 
-	var reserve *uint256.Int
-	if ex.Reserve != nil {
-		if r, overflow := uint256.FromBig(ex.Reserve); !overflow {
-			reserve = r
-		}
-	}
-
+func buildDirectionState(se DirectionStatic, ex DirectionExtra) directionState {
 	scaleNum := uint256.NewInt(1)
 	if se.ScaleNumerator != "" {
 		if n, err := uint256.FromDecimal(se.ScaleNumerator); err == nil {
@@ -77,24 +96,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 	}
 
-	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
-			},
-		},
-		staticExtra:      se,
-		maxFee:           maxFee,
-		halfAmount:       halfAmount,
+	var reserve *uint256.Int
+	if ex.Reserve != nil {
+		if r, overflow := uint256.FromBig(ex.Reserve); !overflow {
+			reserve = r
+		}
+	}
+
+	return directionState{
+		static:           se,
+		maxFee:           bigToUint256OrZero(ex.MaxFee),
+		halfAmount:       bigToUint256OrZero(ex.HalfAmount),
 		reserve:          reserve,
 		scaleNumerator:   scaleNum,
 		scaleDenominator: scaleDen,
-		gas:              DefaultGas,
-	}, nil
+	}
 }
 
 func bigToUint256OrZero(b *big.Int) *uint256.Int {
@@ -105,12 +121,26 @@ func bigToUint256OrZero(b *big.Int) *uint256.Int {
 	return u
 }
 
+// directionFor resolves which direction a swap uses from tokenIn, returning the direction
+// state along with the tokenIn/tokenOut indices into p.Info.Tokens.
+func (p *PoolSimulator) directionFor(tokenIn string) (dir *directionState, idxIn, idxOut int, ok bool) {
+	switch {
+	case strings.EqualFold(p.Info.Tokens[0], tokenIn):
+		return &p.zeroToOne, 0, 1, true
+	case strings.EqualFold(p.Info.Tokens[1], tokenIn):
+		return &p.oneToZero, 1, 0, true
+	default:
+		return nil, 0, 0, false
+	}
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn := param.TokenAmountIn.Token
 	tokenOut := param.TokenOut
 	amountInBig := param.TokenAmountIn.Amount
 
-	if p.GetTokenIndex(tokenIn) != 0 || p.GetTokenIndex(tokenOut) != 1 {
+	dir, _, idxOut, ok := p.directionFor(tokenIn)
+	if !ok || !strings.EqualFold(p.Info.Tokens[idxOut], tokenOut) {
 		return nil, ErrInvalidToken
 	}
 
@@ -123,18 +153,27 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrOverflow
 	}
 
-	principal, fee := inverseFee(amountIn, p.maxFee, p.halfAmount)
+	principal, fee := inverseFee(amountIn, dir.maxFee, dir.halfAmount)
 	if principal.IsZero() {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	var amountOut uint256.Int
-	if _, overflow := amountOut.MulDivOverflow(principal, p.scaleNumerator, p.scaleDenominator); overflow {
+	if _, overflow := amountOut.MulDivOverflow(principal, dir.scaleNumerator, dir.scaleDenominator); overflow {
 		return nil, ErrOverflow
 	}
 
-	if p.reserve != nil && amountOut.Gt(p.reserve) {
+	if dir.reserve != nil && amountOut.Gt(dir.reserve) {
 		return nil, ErrInsufficientLiquidity
+	}
+
+	// Multiple ghost pools can share the same underlying targetRouter/token vault balance, so
+	// param.Limit (aggregated across all ghost pools by the pathfinder) guards against
+	// overselling that shared inventory within a single route build.
+	if limit := param.Limit; limit != nil {
+		if inventoryLimit := limit.GetLimit(tokenOut); inventoryLimit != nil && amountOut.ToBig().Cmp(inventoryLimit) > 0 {
+			return nil, ErrInsufficientLiquidity
+		}
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -146,8 +185,29 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenIn,
 			Amount: fee.ToBig(),
 		},
-		Gas: p.gas,
+		Gas:      p.gas,
+		SwapInfo: SwapInfo{TotalFeeBps: totalFeeBps(principal, fee)},
 	}, nil
+}
+
+// totalFeeBps is the feeBps executeGhost needs to recover `principal` from `amountIn` on-chain
+// (amount = mulDivRoundingUp(amountIn+1, D, D+totalFeeBps) - 1). Rounded UP (never down): a
+// floor-rounded value would make the on-chain amount come out larger than principal, so
+// transferRemoteTo would try to pull more than the executor's amountIn balance and revert.
+// Rounding up guarantees on-chain amount <= principal, at the cost of ghost keeping at most a
+// few wei of extra dust as fee.
+func totalFeeBps(principal, fee *uint256.Int) int64 {
+	if principal.IsZero() {
+		return 0
+	}
+
+	num := new(uint256.Int).Mul(fee, uint256.NewInt(uint64(GhostFeeDenominator)))
+	var totalFeeBps, rem uint256.Int
+	totalFeeBps.DivMod(num, principal, &rem)
+	if !rem.IsZero() {
+		totalFeeBps.AddUint64(&totalFeeBps, 1)
+	}
+	return int64(totalFeeBps.Uint64())
 }
 
 // inverseFee solves for the largest principal such that principal + fee(principal)
@@ -226,51 +286,60 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if amountOutBig == nil {
 		return
 	}
-	if p.reserve != nil {
+
+	dir, _, idxOut, ok := p.directionFor(params.TokenAmountIn.Token)
+	if !ok {
+		return
+	}
+
+	if dir.reserve != nil {
 		if amountOut, overflow := uint256.FromBig(amountOutBig); !overflow {
-			p.reserve = new(uint256.Int).Sub(p.reserve, amountOut)
+			dir.reserve = new(uint256.Int).Sub(dir.reserve, amountOut)
 		}
 	}
-	if len(p.Info.Reserves) > 1 {
-		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], amountOutBig)
+	p.Info.Reserves[idxOut] = new(big.Int).Sub(p.Info.Reserves[idxOut], amountOutBig)
+
+	if limit := params.SwapLimit; limit != nil {
+		_, _, _ = limit.UpdateLimit(
+			params.TokenAmountOut.Token, params.TokenAmountIn.Token,
+			amountOutBig, params.TokenAmountIn.Amount,
+		)
 	}
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
-	if p.reserve != nil {
-		cloned.reserve = p.reserve.Clone()
+	if p.zeroToOne.reserve != nil {
+		cloned.zeroToOne.reserve = p.zeroToOne.reserve.Clone()
+	}
+	if p.oneToZero.reserve != nil {
+		cloned.oneToZero.reserve = p.oneToZero.reserve.Clone()
 	}
 	return &cloned
 }
 
-func (p *PoolSimulator) CanSwapTo(address string) []string {
-	if strings.EqualFold(p.Info.Tokens[1], address) {
-		return []string{p.Info.Tokens[0]}
-	}
-	return nil
-}
-
-func (p *PoolSimulator) CanSwapFrom(address string) []string {
-	if strings.EqualFold(p.Info.Tokens[0], address) {
-		return []string{p.Info.Tokens[1]}
-	}
-	return nil
-}
-
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	if p.reserve == nil {
+	limits := make(map[string]*big.Int, 2)
+	if p.zeroToOne.reserve != nil {
+		limits[p.Info.Tokens[1]] = p.zeroToOne.reserve.ToBig()
+	}
+	if p.oneToZero.reserve != nil {
+		limits[p.Info.Tokens[0]] = p.oneToZero.reserve.ToBig()
+	}
+	if len(limits) == 0 {
 		return nil
 	}
-	return map[string]*big.Int{
-		p.Info.Tokens[1]: p.reserve.ToBig(),
-	}
+	return limits
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
+	dir, _, _, ok := p.directionFor(tokenIn)
+	if !ok {
+		dir = &p.zeroToOne
+	}
 	return PoolMeta{
-		SourceRouter: p.staticExtra.SourceRouter,
-		TargetRouter: p.staticExtra.TargetRouter,
+		SourceRouter: dir.static.SourceRouter,
+		TargetRouter: dir.static.TargetRouter,
 	}
 }

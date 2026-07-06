@@ -5,7 +5,7 @@ import "errors"
 const (
 	DexType = "ghost"
 
-	defaultReserves = "100000000000"
+	defaultReserves = "0"
 
 	DefaultGas int64 = 250_000
 
@@ -15,6 +15,10 @@ const (
 
 	feeTypeCrossCollateralRouting uint8 = 5
 	feeTypeOffchainQuotedLinear   uint8 = 6
+
+	// GhostFeeDenominator mirrors ExecutorV3Helper7's GHOST_FEE_DENOMINATOR — the
+	// denominator executeGhost uses to recover the principal from totalFeeBps on-chain.
+	GhostFeeDenominator int64 = 1_000_000
 )
 
 // DEFAULT_ROUTER is the fallback bytes32 key used in feeContracts() lookups.
