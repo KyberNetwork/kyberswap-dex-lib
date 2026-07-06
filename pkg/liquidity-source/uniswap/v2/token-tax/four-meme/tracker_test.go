@@ -70,6 +70,25 @@ func TestTrackerTaxInfo(t *testing.T) {
 		}, result)
 	})
 
+	t.Run("token8 specific rates override feeRate", func(t *testing.T) {
+		tracker := tracker{
+			poolAddress:  poolAddress,
+			tokenAddress: "0xagent",
+			pairAddress:  common.HexToAddress(poolAddress),
+			feeRatePct:   big.NewInt(0),
+			buyTaxPct:    big.NewInt(3),
+			sellTaxPct:   big.NewInt(10),
+		}
+		result := resolveTracker(&tracker, []bool{true, true, true, true})
+		assert.Equal(t, tokentax.TaxInfo{
+			Protocol:   Protocol,
+			Token:      "0xagent",
+			BuyTaxBps:  uint256.NewInt(300),
+			SellTaxBps: uint256.NewInt(1000),
+			Checked:    true,
+		}, result)
+	})
+
 	t.Run("different pair is unsupported", func(t *testing.T) {
 		tracker := tracker{
 			poolAddress: poolAddress,
