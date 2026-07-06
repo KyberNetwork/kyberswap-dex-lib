@@ -22,30 +22,46 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 	poolAndRegistries []PoolAndRegistries,
 ) ([]entity.Pool, error) {
 	var (
-		basePools       = make([]common.Address, len(poolAndRegistries))
-		coins           = make([][8]common.Address, len(poolAndRegistries))
-		underlyingCoins = make([][8]common.Address, len(poolAndRegistries))
-		decimals        = make([][8]*big.Int, len(poolAndRegistries))
-		aList           = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList    = make([]*big.Int, len(poolAndRegistries))
+		basePools         = make([]common.Address, len(poolAndRegistries))
+		poolBasePools     = make([]common.Address, len(poolAndRegistries))
+		registryBasePools = make([]common.Address, len(poolAndRegistries))
+		coins             = make([][8]common.Address, len(poolAndRegistries))
+		underlyingCoins   = make([][8]common.Address, len(poolAndRegistries))
+		decimals          = make([][8]*big.Int, len(poolAndRegistries))
+		aList             = make([]*big.Int, len(poolAndRegistries))
+		aPreciseList      = make([]*big.Int, len(poolAndRegistries))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, poolAndRegistry := range poolAndRegistries {
+		// Base pool is resolved from up to two candidates; we pick the first non-zero
+		// after aggregation (see below), so coverage is the union of all sources.
+		// Candidate A: the pool's own base_pool() getter. Newer templates (e.g.
+		// GUSD/3Crv) implement it; legacy metapools (MIM/FRAX/LUSD/TUSD-3Crv) do not,
+		// so this call may revert and leave the slot zero (TryAggregate tolerates it).
+		calls.AddCall(&ethrpc.Call{
+			ABI:    metaABI,
+			Target: poolAndRegistry.PoolAddress.Hex(),
+			Method: poolMethodBasePool,
+		}, []any{&poolBasePools[i]})
+
+		// Candidate B: a registry that indexes base pools — the meta factory for
+		// factory-listed pools, otherwise the MetaRegistry (which covers legacy pools
+		// lacking base_pool()). Skipped when neither is configured (e.g. some chains).
+		registryTarget := ""
 		if strings.EqualFold(poolAndRegistry.RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
+			registryTarget = d.config.MetaPoolsFactoryAddress
+		} else if d.config.MetaRegistryAddress != "" && !strings.EqualFold(d.config.MetaRegistryAddress, addressZero) {
+			registryTarget = d.config.MetaRegistryAddress
+		}
+		if registryTarget != "" {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    metaPoolFactoryABI,
-				Target: d.config.MetaPoolsFactoryAddress,
+				Target: registryTarget,
 				Method: registryOrFactoryMethodGetBasePool,
 				Params: []any{poolAndRegistry.PoolAddress},
-			}, []any{&basePools[i]})
-		} else {
-			calls.AddCall(&ethrpc.Call{
-				ABI:    metaABI,
-				Target: poolAndRegistry.PoolAddress.Hex(),
-				Method: poolMethodBasePool,
-			}, []any{&basePools[i]})
+			}, []any{&registryBasePools[i]})
 		}
 
 		calls.AddCall(&ethrpc.Call{
@@ -76,6 +92,15 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.Errorf("failed to aggregate call to get pool data, err: %v", err)
 		return nil, err
+	}
+
+	// Prefer the registry answer, fall back to the pool's own base_pool() getter.
+	// A base pool stays zero only if none of the sources know it.
+	for i := range poolAndRegistries {
+		basePools[i] = registryBasePools[i]
+		if basePools[i] == (common.Address{}) {
+			basePools[i] = poolBasePools[i]
+		}
 	}
 
 	aPrecisions, err := getAPrecisions(aList, aPreciseList)
