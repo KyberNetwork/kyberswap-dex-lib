@@ -2,6 +2,7 @@ package elfomofi
 
 import (
 	"context"
+	"math"
 	"math/big"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -94,18 +96,39 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	// Use the maximum amountOut as the token reserves
+	// Turn the cumulative (amountIn, amountOut) samples into marginal order-book price levels: each
+	// level's price is the marginal rate for that increment only, so consuming a level shifts later
+	// quotes to the next (worse) rate instead of reusing one bracket's average rate for its whole range.
+	var extra orderbook.Extra
 	var reserves [2]big.Int
-
 	for i := range samples {
+		decIn, decOut := math.Pow10(int(p.Tokens[i].Decimals)), math.Pow10(int(p.Tokens[1-i].Decimals))
+
+		levels := make([]orderbook.Level, 1, sampleSize+1) // first level == min trade == 0
+		var prevIn, prevOut float64
+		var prevOutWei big.Int
 		for _, sample := range samples[i] {
-			if sample[1] != nil && reserves[1-i].Cmp(sample[1]) < 0 {
-				reserves[1-i] = *sample[1]
+			outWei := sample[1]
+			if outWei == nil || outWei.Cmp(&prevOutWei) <= 0 {
+				break
 			}
+
+			inF, _ := sample[0].Float64()
+			outF, _ := outWei.Float64()
+			in, out := inF/decIn, outF/decOut
+			size := in - prevIn
+			levels = append(levels, orderbook.Level{size, (out - prevOut) / size})
+
+			prevIn, prevOut = in, out
+			prevOutWei = *outWei
 		}
+		extra.LevelsFrom[i] = levels
+
+		// The largest cumulative amountOut reached before liquidity ran out is the max reserve
+		// obtainable on the other side.
+		reserves[1-i] = prevOutWei
 	}
 
-	extra := Extra{Samples: samples, FactoryAddress: t.config.FactoryAddress}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
