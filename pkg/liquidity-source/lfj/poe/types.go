@@ -16,8 +16,3 @@ type PoolMeta struct {
 	BlockNumber uint64 `json:"bN"`
 	IsXtoY      bool   `json:"isXtoY,omitempty"`
 }
-
-type virtualReserves struct {
-	xv *uint256.Int
-	yv *uint256.Int
-}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -61,43 +62,40 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidToken
 	}
 
-	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
-	if amountIn.Sign() <= 0 {
-		return nil, ErrInvalidAmountIn
-	}
-
 	if err := s.validate(); err != nil {
 		return nil, err
 	}
 
 	isXtoY := indexIn == 0
 
-	vr := computeVirtualReserves(s.reserveX, s.reserveY, s.price, s.alpha)
-	if vr.xv.IsZero() || vr.yv.IsZero() {
-		return nil, ErrZeroVirtualReserve
+	q, err := getQuote(u256.ToBig(s.reserveX), u256.ToBig(s.reserveY), tokenAmountIn.Amount, isXtoY,
+		u256.ToBig(s.price), u256.ToBig(s.feeHbps), u256.ToBig(s.alpha))
+	if err != nil {
+		return nil, err
 	}
 
-	feeIn := applyFeeCeil(amountIn, s.feeHbps)
-	netAmountIn := new(uint256.Int).Sub(amountIn, feeIn)
+	remaining := new(big.Int).Sub(tokenAmountIn.Amount, q.actualIn)
 
-	xvIn, xvOut := lo.Ternary(isXtoY, vr.xv, vr.yv), lo.Ternary(isXtoY, vr.yv, vr.xv)
-	realReserveOut := lo.Ternary(isXtoY, s.reserveY, s.reserveX)
-	amountOut := calcAmountOutCPMM(xvIn, xvOut, netAmountIn)
-	if amountOut.IsZero() {
-		return nil, ErrInvalidAmountOut
-	}
-
-	if amountOut.Gt(realReserveOut) {
-		return nil, ErrInsufficientLiquidity
+	fee := q.feeOut
+	if !isXtoY {
+		fee = q.feeIn
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: feeIn.ToBig()},
-		Gas:            defaultGas,
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: q.amountOut},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: fee},
+		RemainingTokenAmountIn: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: remaining,
+		},
+		Gas: defaultGas,
 	}, nil
 }
 
+// CalcAmountIn estimates the input required for a desired output. The
+// on-chain pool has no exact-out entrypoint (getQuote/swap only take
+// amountIn), so this binary-searches getQuote — which is monotonic in
+// amountIn — for the smallest input whose quoted output meets the target.
 func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut := param.TokenAmountOut
 	tokenIn := param.TokenIn
@@ -107,8 +105,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrInvalidToken
 	}
 
-	amountOut := uint256.MustFromBig(tokenAmountOut.Amount)
-	if amountOut.Sign() <= 0 {
+	if tokenAmountOut.Amount.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
 	}
 
@@ -117,33 +114,64 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	isXtoY := indexIn == 0
-
-	realReserveOut := lo.Ternary(isXtoY, s.reserveY, s.reserveX)
-	if amountOut.Cmp(realReserveOut) >= 0 {
+	realReserveOut := u256.ToBig(lo.Ternary(isXtoY, s.reserveY, s.reserveX))
+	if tokenAmountOut.Amount.Cmp(realReserveOut) >= 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	vr := computeVirtualReserves(s.reserveX, s.reserveY, s.price, s.alpha)
-	if vr.xv.IsZero() || vr.yv.IsZero() {
-		return nil, ErrZeroVirtualReserve
+	reserveX, reserveY := u256.ToBig(s.reserveX), u256.ToBig(s.reserveY)
+	price, fee, alpha := u256.ToBig(s.price), u256.ToBig(s.feeHbps), u256.ToBig(s.alpha)
+
+	quoteOut := func(amountIn *big.Int) *big.Int {
+		q, err := getQuote(reserveX, reserveY, amountIn, isXtoY, price, fee, alpha)
+		if err != nil {
+			return new(big.Int)
+		}
+		return q.amountOut
 	}
 
-	xvIn, xvOut := lo.Ternary(isXtoY, vr.xv, vr.yv), lo.Ternary(isXtoY, vr.yv, vr.xv)
-	netAmountIn := calcAmountInCPMM(xvIn, xvOut, amountOut)
-	if netAmountIn == nil {
+	loAmt, hiAmt := new(big.Int), big.NewInt(1)
+	for quoteOut(hiAmt).Cmp(tokenAmountOut.Amount) < 0 {
+		loAmt.Set(hiAmt)
+		hiAmt = new(big.Int).Lsh(hiAmt, 1)
+		if hiAmt.Cmp(realReserveOut) >= 0 {
+			hiAmt = new(big.Int).Set(realReserveOut)
+			break
+		}
+	}
+
+	if quoteOut(hiAmt).Cmp(tokenAmountOut.Amount) < 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	feeForNet := deductFeeCeil(netAmountIn, s.feeHbps)
-	if feeForNet == nil {
-		return nil, ErrInsufficientLiquidity
+	for i := 0; i < 256; i++ {
+		diff := new(big.Int).Sub(hiAmt, loAmt)
+		if diff.Cmp(big.NewInt(1)) <= 0 {
+			break
+		}
+		mid := new(big.Int).Add(loAmt, diff)
+		mid.Rsh(mid, 1)
+
+		if quoteOut(mid).Cmp(tokenAmountOut.Amount) >= 0 {
+			hiAmt = mid
+		} else {
+			loAmt = mid
+		}
 	}
-	amountIn := new(uint256.Int).Add(netAmountIn, feeForNet)
-	feeIn := applyFeeCeil(amountIn, s.feeHbps)
+
+	q, err := getQuote(reserveX, reserveY, hiAmt, isXtoY, price, fee, alpha)
+	if err != nil {
+		return nil, err
+	}
+
+	feeAmt := q.feeOut
+	if !isXtoY {
+		feeAmt = q.feeIn
+	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: tokenIn, Amount: feeIn.ToBig()},
+		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: q.actualIn},
+		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: feeAmt},
 		Gas:           defaultGas,
 	}, nil
 }
@@ -159,15 +187,13 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
 	amountOut := uint256.MustFromBig(params.TokenAmountOut.Amount)
-	fee := uint256.MustFromBig(params.Fee.Amount)
-	netIn := new(uint256.Int).Sub(amountIn, fee)
 
 	isXtoY := indexIn == 0
 	if isXtoY {
-		s.reserveX.Add(s.reserveX, netIn)
+		s.reserveX.Add(s.reserveX, amountIn)
 		s.reserveY.Sub(s.reserveY, amountOut)
 	} else {
-		s.reserveY.Add(s.reserveY, netIn)
+		s.reserveY.Add(s.reserveY, amountIn)
 		s.reserveX.Sub(s.reserveX, amountOut)
 	}
 }
@@ -188,7 +214,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 }
 
 func (s *PoolSimulator) validate() error {
-	if s.alpha.Cmp(bps) <= 0 {
+	if s.alpha.Cmp(uBps) <= 0 {
 		return ErrInvalidAlpha
 	}
 

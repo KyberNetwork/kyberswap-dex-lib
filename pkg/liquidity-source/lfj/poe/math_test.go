@@ -1,90 +1,107 @@
 package poe
 
 import (
+	"math/big"
 	"testing"
 
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
-
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-func TestApplyFeeCeil(t *testing.T) {
-	amount := uint256.NewInt(1_000_000)
+// Reference values below were generated from the Python `get_quote` in
+// native.md (verified bit-exact against on-chain getQuote), so these Go
+// tests must match them exactly, to the last wei.
 
-	require.Equal(t, uint256.NewInt(3000), applyFeeCeil(amount, uint256.NewInt(3000)))
-	require.Equal(t, uint256.NewInt(3001), applyFeeCeil(uint256.NewInt(1_000_001), uint256.NewInt(3000)))
-	require.Equal(t, u256.New0(), applyFeeCeil(amount, u256.New0()))
+func mustBig(s string) *big.Int {
+	v, _ := new(big.Int).SetString(s, 10)
+	return v
 }
 
-func TestComputeVirtualReserves(t *testing.T) {
-	price := uint256.MustFromDecimal("1000000000000000000000000")
-	reserveX := uint256.NewInt(1_000_000_000)
-	reserveY := uint256.NewInt(1_000_000_000)
+func TestGetQuote_XtoY_NotCapped(t *testing.T) {
+	reserveX := mustBig("10000000000000000000")    // 1e19
+	reserveY := big.NewInt(20_000_000_000)         // 2e10
+	price := big.NewInt(2_000_000_000_000_000_000) // 2e18
+	fee := big.NewInt(3000)
+	alpha := big.NewInt(10500)
 
-	vr := computeVirtualReserves(reserveX, reserveY, price, uint256.NewInt(10100))
-
-	require.True(t, vr.xv.Gt(reserveX))
-	require.True(t, vr.yv.Gt(reserveY))
-
-	diff := new(uint256.Int)
-	if vr.xv.Gt(vr.yv) {
-		diff.Sub(vr.xv, vr.yv)
-	} else {
-		diff.Sub(vr.yv, vr.xv)
-	}
-	require.True(t, diff.Lt(new(uint256.Int).Div(vr.xv, uint256.NewInt(100))))
+	q, err := getQuote(reserveX, reserveY, big.NewInt(10_000_000_000), true, price, fee, alpha)
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(18991), q.amountOut)
+	require.Equal(t, big.NewInt(10_000_000_000), q.actualIn)
+	require.Equal(t, big.NewInt(0), q.feeIn)
+	require.Equal(t, big.NewInt(58), q.feeOut)
 }
 
-func TestComputeVirtualReserves_ZeroReserves(t *testing.T) {
-	price, _ := uint256.FromDecimal("1000000000000000000000000")
+func TestGetQuote_XtoY_Capped(t *testing.T) {
+	reserveX := mustBig("10000000000000000000")    // 1e19
+	reserveY := big.NewInt(20_000_000_000)         // 2e10
+	price := big.NewInt(2_000_000_000_000_000_000) // 2e18
+	fee := big.NewInt(3000)
+	alpha := big.NewInt(10500)
 
-	vr := computeVirtualReserves(u256.New0(), u256.New0(), price, uint256.NewInt(10100))
+	q, err := getQuote(reserveX, reserveY, big.NewInt(100_000_000_000_000_000), true, price, fee, alpha)
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(19_940_000_000), q.amountOut)
+	actualIn, _ := new(big.Int).SetString("10499475576837990", 10)
+	require.Equal(t, actualIn, q.actualIn)
+	require.Equal(t, big.NewInt(0), q.feeIn)
+	require.Equal(t, big.NewInt(60_000_000), q.feeOut)
 
-	require.True(t, vr.xv.IsZero())
-	require.True(t, vr.yv.IsZero())
+	// partial fill: actualIn must be strictly less than the requested amount.
+	require.True(t, q.actualIn.Cmp(big.NewInt(100_000_000_000_000_000)) < 0)
 }
 
-func TestCalcAmountOutCPMM(t *testing.T) {
-	xv := uint256.NewInt(100_000_000_000)
-	yv := uint256.NewInt(100_000_000_000)
-	netIn := uint256.NewInt(1_000_000)
+func TestGetQuote_YtoX_NotCapped(t *testing.T) {
+	reserveX := mustBig("10000000000000000000")    // 1e19
+	reserveY := big.NewInt(20_000_000_000)         // 2e10
+	price := big.NewInt(2_000_000_000_000_000_000) // 2e18
+	fee := big.NewInt(3000)
+	alpha := big.NewInt(10500)
 
-	amountOut := calcAmountOutCPMM(xv, yv, netIn)
-
-	require.True(t, amountOut.Gt(uint256.NewInt(999_000)))
-	require.True(t, amountOut.Lt(netIn))
+	q, err := getQuote(reserveX, reserveY, big.NewInt(5_000_000_000), false, price, fee, alpha)
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(2_492_500_000_000_000), q.amountOut)
+	require.Equal(t, big.NewInt(5_000_000_000), q.actualIn)
+	require.Equal(t, big.NewInt(15_000_000), q.feeIn)
+	require.Equal(t, big.NewInt(0), q.feeOut)
 }
 
-func TestCalcAmountInCPMM(t *testing.T) {
-	xv := uint256.NewInt(100_000_000_000)
-	yv := uint256.NewInt(100_000_000_000)
-	desiredOut := uint256.NewInt(999_990)
+func TestGetQuote_YtoX_Capped(t *testing.T) {
+	reserveX := mustBig("10000000000000000000")    // 1e19
+	reserveY := big.NewInt(20_000_000_000)         // 2e10
+	price := big.NewInt(2_000_000_000_000_000_000) // 2e18
+	fee := big.NewInt(3000)
+	alpha := big.NewInt(10500)
 
-	netIn := calcAmountInCPMM(xv, yv, desiredOut)
-	require.NotNil(t, netIn)
+	q, err := getQuote(reserveX, reserveY, big.NewInt(100_000_000_000_000), false, price, fee, alpha)
+	require.NoError(t, err)
+	require.Equal(t, reserveX, q.amountOut) // fully drains the real reserve of X
+	require.Equal(t, big.NewInt(20_308_122_082_975), q.actualIn)
+	require.Equal(t, big.NewInt(60_924_366_249), q.feeIn)
+	require.Equal(t, big.NewInt(0), q.feeOut)
 
-	require.True(t, calcAmountOutCPMM(xv, yv, netIn).Cmp(desiredOut) >= 0)
+	// partial fill: actualIn must be strictly less than the requested amount.
+	require.True(t, q.actualIn.Cmp(big.NewInt(100_000_000_000_000)) < 0)
 }
 
-func TestCalcAmountInCPMM_ExceedsReserve(t *testing.T) {
-	require.Nil(t, calcAmountInCPMM(uint256.NewInt(100_000_000), uint256.NewInt(100_000_000), uint256.NewInt(100_000_001)))
+func TestGetQuote_ZeroAmountIn(t *testing.T) {
+	_, err := getQuote(big.NewInt(1), big.NewInt(1), big.NewInt(0), true, big.NewInt(1), big.NewInt(0), big.NewInt(20000))
+	require.ErrorIs(t, err, ErrInvalidAmountIn)
 }
 
-func TestSwapXtoY(t *testing.T) {
-	price, _ := uint256.FromDecimal("2000000000000000")
-	reserveX := uint256.MustFromDecimal("10000000000000000000")
-	reserveY := uint256.MustFromDecimal("20000000000")
+func TestFeeInclusive(t *testing.T) {
+	require.Equal(t, big.NewInt(3000), feeInclusive(big.NewInt(1_000_000), big.NewInt(3000)))
+	require.Equal(t, big.NewInt(3001), feeInclusive(big.NewInt(1_000_001), big.NewInt(3000)))
+}
 
-	vr := computeVirtualReserves(reserveX, reserveY, price, uint256.NewInt(10500))
-	require.True(t, vr.xv.Gt(reserveX))
-	require.True(t, vr.yv.Gt(reserveY))
+func TestFeeExclusive_RoundTrip(t *testing.T) {
+	// feeExclusive(net, fee) should be the fee that, added on top of net,
+	// makes feeInclusive(gross, fee) recover (approximately) that same fee.
+	net := big.NewInt(1_000_000)
+	fee := big.NewInt(3000)
 
-	amountIn := uint256.MustFromDecimal("100000000000000000")
-	netIn := new(uint256.Int).Sub(amountIn, applyFeeCeil(amountIn, uint256.NewInt(3000)))
-	amountOut := calcAmountOutCPMM(vr.xv, vr.yv, netIn)
+	feeOnTop := feeExclusive(net, fee)
+	gross := new(big.Int).Add(net, feeOnTop)
 
-	t.Logf("Swap 0.1 ETH -> USDC: amountOut = %s (expected ~200e6)", amountOut.String())
-	require.True(t, amountOut.Gt(uint256.NewInt(190_000_000)))
-	require.True(t, amountOut.Lt(uint256.NewInt(210_000_000)))
+	recovered := feeInclusive(gross, fee)
+	require.Equal(t, feeOnTop, recovered)
 }
