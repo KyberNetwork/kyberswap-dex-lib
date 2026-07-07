@@ -97,14 +97,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	case Pricable4626:
 		tokenInIsBaseAsset := strings.EqualFold(p.Info.Tokens[indexIn], p.Vault.BaseAsset.Hex())
 		if tokenInIsBaseAsset {
-			// convertToAssets
+			// Trader sells the base asset for the liquidity asset (ARM buys the base asset).
+			// convertToAssets: base shares -> liquidity-value assets, then apply buyPrice.
 			amountOut.MulDivOverflow(amountIn, p.Vault.TotalAssets, p.Vault.TotalSupply)
+			amountOut.MulDivOverflow(amountOut, p.Vault.BuyPrice, p.PriceScale)
 		} else {
-			// convertToShares
+			// Trader sells the liquidity asset for the base asset (ARM sells the base asset).
+			// convertToShares: liquidity assets -> base-equivalent shares, then apply sellPrice (divide,
+			// since sellPrice is liquidity-per-base and the ARM charges a premium when selling).
 			amountOut.MulDivOverflow(amountIn, p.Vault.TotalSupply, p.Vault.TotalAssets)
+			amountOut.MulDivOverflow(amountOut, p.PriceScale, p.Vault.SellPrice)
 		}
-		price := lo.Ternary(indexIn == 0, p.TradeRate0, p.TradeRate1)
-		amountOut.MulDivOverflow(amountOut, price, p.PriceScale)
 	default:
 		return nil, ErrUnsupportedArmType
 	}
