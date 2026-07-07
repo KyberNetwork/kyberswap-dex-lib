@@ -1,0 +1,30 @@
+[
+  {
+    "type": "function",
+    "name": "poolCount",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "getAllPools",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "offset", "type": "uint256" },
+      { "name": "limit", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "pools", "type": "address[]" }]
+  },
+  {
+    "type": "event",
+    "name": "PartyStarted",
+    "anonymous": false,
+    "inputs": [
+      { "name": "pool", "type": "address", "indexed": true },
+      { "name": "name", "type": "string", "indexed": false },
+      { "name": "symbol", "type": "string", "indexed": false },
+      { "name": "tokens", "type": "address[]", "indexed": false }
+    ]
+  }
+]

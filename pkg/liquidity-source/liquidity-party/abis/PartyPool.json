@@ -1,0 +1,22 @@
+[
+  {
+    "type": "function",
+    "name": "allTokens",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address[]" }]
+  },
+  {
+    "type": "function",
+    "name": "killed",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "event",
+    "name": "Killed",
+    "anonymous": false,
+    "inputs": []
+  }
+]
