@@ -36,6 +36,8 @@ type AximaBin struct {
 type StaticExtra struct {
 	Pair                 string `json:"pair"`
 	PriceProviderAddress string `json:"priceProvider"`
+
+	SwapWhitelistingEnabled bool `json:"swapWhitelisting,omitempty"`
 }
 
 type Extra struct {
