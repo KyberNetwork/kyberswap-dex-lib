@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -131,6 +132,105 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		Gas:            gas,
 		SwapInfo:       SwapInfo{IsMint: isMint},
 	}, nil
+}
+
+// CalcAmountIn computes the input required for a mint (USDC→LT) or redeem (LT→USDC) swap
+// to produce at least tokenAmountOut. It inverts the flooring done by CalcAmountOut, so the
+// returned amountIn is rounded up (ceiling) to guarantee the requested output is met.
+func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
+
+	indexIn := s.GetTokenIndex(tokenIn)
+	indexOut := s.GetTokenIndex(tokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrInvalidToken
+	}
+	if tokenAmountOut.Amount == nil || tokenAmountOut.Amount.Sign() <= 0 {
+		return nil, ErrZeroAmount
+	}
+	if s.exchangeRate.IsZero() {
+		return nil, ErrZeroExchangeRate
+	}
+
+	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrZeroAmount
+	}
+
+	isMint := indexIn == 0
+	if isMint && s.mintPaused {
+		return nil, ErrMintPaused
+	}
+
+	var amountIn *uint256.Int
+	var fee *uint256.Int
+	var gas int64
+
+	if isMint {
+		amountIn = s.calcMintIn(amountOut)
+		fee = new(uint256.Int)
+		gas = mintGas
+
+		if !s.minTxSize.IsZero() && amountIn.Lt(s.minTxSize) {
+			return nil, ErrBelowMinAmount
+		}
+	} else {
+		grossUsdc, err := s.calcRedeemGrossOut(amountOut)
+		if err != nil {
+			return nil, err
+		}
+		gas = redeemGas
+
+		if !s.minTxSize.IsZero() && grossUsdc.Lt(s.minTxSize) {
+			return nil, ErrBelowMinAmount
+		}
+
+		reserve := s.Info.Reserves[0] // USDC reserve = baseAssetBalance
+		if grossUsdc.ToBig().Cmp(reserve) > 0 {
+			return nil, ErrInsufficientBalance
+		}
+
+		fee = new(uint256.Int).Mul(grossUsdc, s.redemptionFee)
+		fee.Div(fee, precision) // / 1e18
+		fee.Mul(fee, s.targetLeverage)
+		fee.Div(fee, precision) // / 1e18
+		if fee.Gt(grossUsdc) {
+			fee.Set(grossUsdc)
+		}
+
+		amountIn = big256.MulDivUp(new(uint256.Int), grossUsdc, mintScale, s.exchangeRate)
+	}
+
+	if amountIn.IsZero() {
+		return nil, ErrZeroAmount
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
+		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
+		Gas:           gas,
+		SwapInfo:      SwapInfo{IsMint: isMint},
+	}, nil
+}
+
+// calcMintIn inverts calcMintOut: usdcIn = ceil(ltOut * exchangeRate / 1e30)
+func (s *PoolSimulator) calcMintIn(ltOut *uint256.Int) *uint256.Int {
+	return big256.MulDivUp(new(uint256.Int), ltOut, s.exchangeRate, mintScale)
+}
+
+// calcRedeemGrossOut inverts the net side of calcRedeemOut: given the desired net usdcOut,
+// find the gross USDC amount (pre-fee) that yields at least usdcOut after the redemption fee.
+//
+//	netMultiplier = 1e18 - redemptionFee*targetLeverage/1e18
+//	grossUsdc = ceil(usdcOut * 1e18 / netMultiplier)
+func (s *PoolSimulator) calcRedeemGrossOut(usdcOut *uint256.Int) (*uint256.Int, error) {
+	feeRate := big256.MulDivDown(new(uint256.Int), s.redemptionFee, s.targetLeverage, precision)
+	if feeRate.Cmp(precision) >= 0 {
+		return nil, ErrFeeRateTooHigh
+	}
+	netMultiplier := new(uint256.Int).Sub(precision, feeRate)
+
+	return big256.MulDivUp(new(uint256.Int), usdcOut, precision, netMultiplier), nil
 }
 
 // calcMintOut: ltOut = usdcIn.scaleFrom(6).div(exchangeRate)

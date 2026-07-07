@@ -67,6 +67,13 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCf
 		SwapTypes:          armCfg.SwapType,
 		ArmType:            armCfg.ArmType,
 		HasWithdrawalQueue: armCfg.HasWithdrawalQueue,
+		Vault: ERC4626Extra{
+			BaseAsset:   poolState.Vault.BaseAsset,
+			TotalAssets: uint256FromBigOrNil(poolState.Vault.TotalAssets),
+			TotalSupply: uint256FromBigOrNil(poolState.Vault.TotalSupply),
+			BuyPrice:    uint256FromBigOrNil(poolState.Vault.BuyPrice),
+			SellPrice:   uint256FromBigOrNil(poolState.Vault.SellPrice),
+		},
 	})
 
 	if err != nil {

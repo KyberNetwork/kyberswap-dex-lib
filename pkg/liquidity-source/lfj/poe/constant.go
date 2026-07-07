@@ -11,13 +11,17 @@ const (
 	DexType = valueobject.ExchangePoe
 
 	defaultGas int64 = 200000
+
+	poolMethodGetTokens   = "getTokens"
+	poolMethodGetBalances = "getBalances"
+	poolMethodGetOracle   = "getOracle"
+
+	factoryMethodGetPoolsLength = "getPoolsLength"
+	factoryMethodGetPoolAt      = "getPoolAt"
 )
 
-var (
-	bps            = u256.UBasisPoint
-	pricePrecision = u256.TenPow(24)
-	feePrecision   = u256.TenPow(6)
-)
+// uBps is alpha's scale (10000 = 1.0x), used to validate the oracle's alpha.
+var uBps = u256.UBasisPoint
 
 var (
 	ErrInvalidToken          = errors.New("invalid token")

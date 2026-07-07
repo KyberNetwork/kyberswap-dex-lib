@@ -75,6 +75,8 @@ func (t *PoolTracker) getNewPoolState(
 			BaseAsset:   poolState.Vault.BaseAsset,
 			TotalAssets: uint256.MustFromBig(poolState.Vault.TotalAssets),
 			TotalSupply: uint256.MustFromBig(poolState.Vault.TotalSupply),
+			BuyPrice:    uint256FromBigOrNil(poolState.Vault.BuyPrice),
+			SellPrice:   uint256FromBigOrNil(poolState.Vault.SellPrice),
 		},
 		SwapTypes:          t.config.Arms[p.Address].SwapType,
 		ArmType:            t.config.Arms[p.Address].ArmType,

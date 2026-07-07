@@ -45,8 +45,8 @@ func (t *PoolTracker) GetNewPoolState(
 	var (
 		oracle   common.Address
 		reserves struct {
-			ReserveX *big.Int
-			ReserveY *big.Int
+			AmountX *big.Int
+			AmountY *big.Int
 		}
 	)
 
@@ -54,12 +54,12 @@ func (t *PoolTracker) GetNewPoolState(
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: p.Address,
-			Method: "getOracle",
+			Method: poolMethodGetOracle,
 		}, []any{&oracle}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: p.Address,
-			Method: "getReserves",
+			Method: poolMethodGetBalances,
 		}, []any{&reserves})
 	_, err := req.Aggregate()
 	if err != nil {
@@ -99,8 +99,8 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{
-		reserves.ReserveX.String(),
-		reserves.ReserveY.String(),
+		reserves.AmountX.String(),
+		reserves.AmountY.String(),
 	}
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()

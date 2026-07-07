@@ -53,6 +53,57 @@ func TestPoolSimulator10(t *testing.T) {
 	assert.Equal(t, big.NewInt(5019014848646185045), amountOut.TokenAmountOut.Amount)
 }
 
+// getEthenaARMPool builds a Pricable4626 pool (USDe/sUSDe) from a live on-chain snapshot of
+// 0xCEDa2d856238aA0D12f6329de20B9115f07C366d taken after the ARM's upgrade to the shared
+// AbstractARM contract (buyPrice/sellPrice via baseAssetConfigs(), no more token0/token1/traderate0/1).
+func getEthenaARMPool() *PoolSimulator {
+	var poolE entity.Pool
+	_ = json.Unmarshal([]byte(`{
+		"address":"0xceda2d856238aa0d12f6329de20b9115f07c366d",
+		"exchange":"ethenaarm",
+		"type":"ethenaarm",
+		"timestamp":1749541899,
+		"reserves":["9719573042480775686418","51606389896075379654910"],
+		"tokens":[
+			{"address":"0x4c9edd5852cd905f086c759e8383e09bff1e68b3","symbol":"USDe","decimals":18,"swappable":true},
+			{"address":"0x9d39a5de30e57443bff2a8307a4256c8797a3497","symbol":"sUSDe","decimals":18,"swappable":true}
+		],
+		"extra":"{\"la\":\"0x4c9edd5852cd905f086c759e8383e09bff1e68b3\",\"ps\":\"1000000000000000000000000000000000000\",\"swapType\":3,\"armType\":2,\"hasWithdrawalQueue\":false,\"v\":{\"ba\":\"0x9d39a5de30e57443bff2a8307a4256c8797a3497\",\"ta\":\"1642140898458895542142337558\",\"ts\":\"1326183113092221454904213555\",\"bp\":\"999600000000000000000000000000000000\",\"sp\":\"999990000000000000000000000000000000\"}}"
+	}`), &poolE)
+	pool, _ := NewPoolSimulator(poolE)
+	return pool
+}
+
+func TestPoolSimulatorPricable4626_USDeToSUSDe(t *testing.T) {
+	p := getEthenaARMPool()
+	amountOut, err := p.CalcAmountOut(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+				Amount: bignumber.NewBig("1000000000000000000000"),
+			},
+			TokenOut: "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig("807602061613940163083"), amountOut.TokenAmountOut.Amount)
+}
+
+func TestPoolSimulatorPricable4626_SUSDeToUSDe(t *testing.T) {
+	p := getEthenaARMPool()
+	amountOut, err := p.CalcAmountOut(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+				Amount: bignumber.NewBig("1000000000000000000000"),
+			},
+			TokenOut: "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig("1237750674016737246720"), amountOut.TokenAmountOut.Amount)
+}
+
 func TestPoolSimulatorErrInsufficientLiquidity(t *testing.T) {
 	p := getPool()
 	// https://etherscan.io/tx/0x332289850d386bef8bc8a90fb6ec31519b6a64a0756e442f2546dc51db87fb32
