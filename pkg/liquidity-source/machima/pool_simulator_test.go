@@ -2,8 +2,10 @@ package machima
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,9 +26,11 @@ import (
 const (
 
 
-	// Deployed contracts on Base
-	aggregatorQuoter = "0x9dA94300DEC6ac282880f71df3270a922Bcbd034"
-	aggregatorRouter = "0x566250347E1401615B3e043918fc290B98448578"
+	// Deployed contracts on Base — aggregator v1.1.0 (2026-07-07): residual
+	// refund to recipient, per-token sell floors in the quoter, native ETH
+	// entry points, and a swapAvailability(token) anti-sniper view.
+	aggregatorQuoter = "0xafB47806e61c9888Eb4A1047BfBf59C29680B8e4"
+	aggregatorRouter = "0xa25D1158B7Cf373DC3787793A52933dB0A0CaD89"
 	clankNowAddr     = "0x44FefF82302D231dcC30f97280D1c9843F308D1a"
 	tickLensAddr     = "0x3FAD85D470f87e4fa615a9dA06032c0E264D4DF4"
 
@@ -202,7 +206,18 @@ func TestPoolSimulatorParityWithQuoter(t *testing.T) {
 						TokenAmountIn: pool.TokenAmount{Token: tp.token, Amount: amountIn},
 						TokenOut:      tp.counterAsset,
 					})
-					require.NoError(t, err, "sim sell should not error")
+					if err != nil {
+						// When the live pool price is pinned at the sell floor
+						// (floor == last initialized tick), the sim refuses ALL
+						// sells with ErrAtOrAboveLargest. That is correct — the
+						// on-chain quoter reverts ("SPL") in the same state, so
+						// assert error parity instead of output parity.
+						_, qErr := tryQuoter(rpcURL, tp.token, tp.counterAsset, amountIn)
+						require.Error(t, qErr,
+							"sim refused sell (%v) but on-chain quoter succeeded — real parity break", err)
+						t.Logf("floor-pinned state: sim err=%v; on-chain quoter also reverts (%v)", err, qErr)
+						return
+					}
 
 					onChainOut := callQuoter(t, rpcURL, tp.token, tp.counterAsset, amountIn)
 
@@ -284,6 +299,15 @@ func TestCalcAmountOut_ErrAntiSniperActive(t *testing.T) {
 func callQuoter(t *testing.T, rpcURL, tokenIn, tokenOut string, amountIn *big.Int) *big.Int {
 	t.Helper()
 
+	amountOut, err := tryQuoter(rpcURL, tokenIn, tokenOut, amountIn)
+	require.NoError(t, err, "eth_call to quoter should succeed")
+	return amountOut
+}
+
+// tryQuoter is callQuoter without assertions: returns the quoter revert as an
+// error so callers can assert error-parity. Retries transient rate limits
+// (public Base RPC 429s) so they don't masquerade as quoter reverts.
+func tryQuoter(rpcURL, tokenIn, tokenOut string, amountIn *big.Int) (*big.Int, error) {
 	qABI := mustParseABI(quoterABIJSON)
 
 	calldata, err := qABI.Pack("quote",
@@ -291,26 +315,46 @@ func callQuoter(t *testing.T, rpcURL, tokenIn, tokenOut string, amountIn *big.In
 		common.HexToAddress(tokenOut),
 		amountIn,
 	)
-	require.NoError(t, err, "pack quote calldata")
+	if err != nil {
+		return nil, err
+	}
 
 	client, err := ethclient.Dial(rpcURL)
-	require.NoError(t, err, "dial ethclient")
+	if err != nil {
+		return nil, err
+	}
 	defer client.Close()
 
 	to := common.HexToAddress(aggregatorQuoter)
-	result, err := client.CallContract(context.Background(), ethereum.CallMsg{
-		To:   &to,
-		Data: calldata,
-	}, nil)
-	require.NoError(t, err, "eth_call to quoter should succeed")
+	var result []byte
+	for attempt := 0; ; attempt++ {
+		result, err = client.CallContract(context.Background(), ethereum.CallMsg{
+			To:   &to,
+			Data: calldata,
+		}, nil)
+		if err == nil {
+			break
+		}
+		if attempt < 4 && strings.Contains(err.Error(), "rate limit") {
+			time.Sleep(time.Duration(attempt+1) * 2 * time.Second)
+			continue
+		}
+		return nil, err
+	}
 
 	outputs, err := qABI.Unpack("quote", result)
-	require.NoError(t, err, "unpack quote result")
-	require.True(t, len(outputs) >= 1, "expected at least 1 output")
+	if err != nil {
+		return nil, err
+	}
+	if len(outputs) < 1 {
+		return nil, errors.New("expected at least 1 output")
+	}
 
 	amountOut, ok := outputs[0].(*big.Int)
-	require.True(t, ok, "first output should be *big.Int")
-	return amountOut
+	if !ok {
+		return nil, errors.New("first output should be *big.Int")
+	}
+	return amountOut, nil
 }
 
 func mustJSON(v interface{}) string {
