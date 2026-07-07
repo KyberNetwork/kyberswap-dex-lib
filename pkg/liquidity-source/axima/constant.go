@@ -7,9 +7,8 @@ import (
 )
 
 const (
-	DexType              = "axima"
-	DexTypeMetricPropAMM = "metric-propamm"
-	defaultGas           = 175000
+	DexType    = "axima"
+	defaultGas = 175000
 )
 
 var Q64BI = new(big.Int).Lsh(bignumber.One, 64)
