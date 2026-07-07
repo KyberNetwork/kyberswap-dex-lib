@@ -1,43 +1,17 @@
 [
     {
         "inputs": [],
-        "name": "getTokenX",
+        "name": "getTokens",
         "outputs": [
             {
                 "internalType": "address",
-                "name": "",
+                "name": "tokenX",
                 "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getTokenY",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getReserves",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "reserveX",
-                "type": "uint256"
             },
             {
-                "internalType": "uint256",
-                "name": "reserveY",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "tokenY",
+                "type": "address"
             }
         ],
         "stateMutability": "view",
@@ -102,6 +76,11 @@
             {
                 "internalType": "uint256",
                 "name": "feeIn",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "feeOut",
                 "type": "uint256"
             }
         ],

@@ -7,3 +7,6 @@ var poolABIJson []byte
 
 //go:embed abi/Oracle.json
 var oracleABIJson []byte
+
+//go:embed abi/Factory.json
+var factoryABIJson []byte
