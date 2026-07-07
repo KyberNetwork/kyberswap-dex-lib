@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -19,20 +22,29 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+// metricPropAMMPoolABI exposes the Uniswap-V4-style external storage read used to
+// check the pool's pause state on-chain. _setPause is packed in storage slot 0;
+// its low byte is the pause level (0 = active).
+var metricPropAMMPoolABI, _ = abi.JSON(strings.NewReader(
+	`[{"inputs":[{"type":"bytes32"}],"name":"extsload","outputs":[{"type":"bytes32"}],"stateMutability":"view","type":"function"}]`))
+
 var _ = poolpkg.RegisterFactory0(DexTypeMetricPropAMM, NewPoolSimulator)
 
 type MetricPropAMMMetadataResponse struct {
-	Data []MetricPropAMMPairMetadata `json:"data"`
+	Data       []MetricPropAMMPairMetadata `json:"data"`
+	Total      int                         `json:"total"`
+	NextOffset *int64                      `json:"nextOffset"` // nil on the last page
 }
 
 type MetricPropAMMPairMetadata struct {
-	Pair               string `json:"pair"`
-	PoolAddress        string `json:"poolAddress"`
-	Token0             string `json:"token0"`
-	Token1             string `json:"token1"`
-	Token0Decimals     uint8  `json:"token0Decimals"`
-	Token1Decimals     uint8  `json:"token1Decimals"`
-	PoolFactoryAddress string `json:"poolFactoryAddress"`
+	Pair                    string `json:"pair"`
+	PoolAddress             string `json:"poolAddress"`
+	Token0                  string `json:"token0"`
+	Token1                  string `json:"token1"`
+	Token0Decimals          uint8  `json:"token0Decimals"`
+	Token1Decimals          uint8  `json:"token1Decimals"`
+	PoolFactoryAddress      string `json:"poolFactoryAddress"`
+	SwapWhitelistingEnabled bool   `json:"swapWhitelistingEnabled"`
 }
 
 type metricPropAMMBidAsk struct {
@@ -44,16 +56,19 @@ type metricPropAMMBidAsk struct {
 	Depth                Depth  `json:"depth"`
 }
 
-func parseMetricPropAMMMetadata(body []byte) ([]MetricPropAMMPairMetadata, error) {
+func parseMetricPropAMMMetadata(body []byte) (*MetricPropAMMMetadataResponse, error) {
 	var resp MetricPropAMMMetadataResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
-	return resp.Data, nil
+	return &resp, nil
 }
 
 func metricPropAMMPoolFromMetadata(pm MetricPropAMMPairMetadata, cfg *Config) (entity.Pool, error) {
-	staticExtraBytes, err := json.Marshal(StaticExtra{Pair: pm.Pair})
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		Pair:                    pm.Pair,
+		SwapWhitelistingEnabled: pm.SwapWhitelistingEnabled,
+	})
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -92,16 +107,7 @@ func NewMetricPropAMMPoolsListUpdater(config *Config) *MetricPropAMMPoolsListUpd
 }
 
 func (u *MetricPropAMMPoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	res, err := u.client.R().
-		SetContext(ctx).
-		Get(fmt.Sprintf("/public/v1/evm/%d/metadata", u.config.ChainID))
-	if err != nil {
-		return nil, metadataBytes, err
-	} else if res.IsError() {
-		return nil, metadataBytes, fmt.Errorf("metadata API error: %s", res.String())
-	}
-
-	pairMetadata, err := parseMetricPropAMMMetadata(res.Body())
+	pairMetadata, err := u.fetchAllPairMetadata(ctx)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -119,14 +125,52 @@ func (u *MetricPropAMMPoolsListUpdater) GetNewPools(ctx context.Context, metadat
 	return pools, metadataBytes, nil
 }
 
-type MetricPropAMMPoolTracker struct {
-	config *Config
-	client *resty.Client
+const metricPropAMMMetadataPageSize = 50
+
+// fetchAllPairMetadata walks the paginated /metadata endpoint: read nextOffset
+// from each page and pass it back as offset until it is null (last page).
+func (u *MetricPropAMMPoolsListUpdater) fetchAllPairMetadata(ctx context.Context) ([]MetricPropAMMPairMetadata, error) {
+	var (
+		all    []MetricPropAMMPairMetadata
+		offset int64
+	)
+	for page := 0; ; page++ {
+		res, err := u.client.R().
+			SetContext(ctx).
+			SetQueryParams(map[string]string{
+				"count":  strconv.Itoa(metricPropAMMMetadataPageSize),
+				"offset": strconv.FormatInt(offset, 10),
+			}).
+			Get(fmt.Sprintf("/public/v1/evm/%d/metadata", u.config.ChainID))
+		if err != nil {
+			return nil, err
+		} else if res.IsError() {
+			return nil, fmt.Errorf("metadata API error: %s", res.String())
+		}
+
+		resp, err := parseMetricPropAMMMetadata(res.Body())
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, resp.Data...)
+
+		if resp.NextOffset == nil || *resp.NextOffset <= offset || len(resp.Data) == 0 {
+			break
+		}
+		offset = *resp.NextOffset
+	}
+	return all, nil
 }
 
-var _ = pooltrack.RegisterFactoryC(DexTypeMetricPropAMM, NewMetricPropAMMPoolTracker)
+type MetricPropAMMPoolTracker struct {
+	config       *Config
+	client       *resty.Client
+	ethrpcClient *ethrpc.Client
+}
 
-func NewMetricPropAMMPoolTracker(config *Config) *MetricPropAMMPoolTracker {
+var _ = pooltrack.RegisterFactoryCE0(DexTypeMetricPropAMM, NewMetricPropAMMPoolTracker)
+
+func NewMetricPropAMMPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *MetricPropAMMPoolTracker {
 	client := resty.NewWithClient(http.DefaultClient).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
@@ -134,7 +178,7 @@ func NewMetricPropAMMPoolTracker(config *Config) *MetricPropAMMPoolTracker {
 	if config.HTTPConfig.APIKey != "" {
 		client = client.SetAuthToken(config.HTTPConfig.APIKey)
 	}
-	return &MetricPropAMMPoolTracker{config: config, client: client}
+	return &MetricPropAMMPoolTracker{config: config, client: client, ethrpcClient: ethrpcClient}
 }
 
 func (t *MetricPropAMMPoolTracker) GetNewPoolState(
@@ -150,6 +194,14 @@ func (t *MetricPropAMMPoolTracker) GetNewPoolStateWithOverrides(
 }
 
 func (t *MetricPropAMMPoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	if t.unswappable(ctx, p) {
+		extra := Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true}
+		if extraBytes, err := json.Marshal(extra); err == nil {
+			p.Extra = string(extraBytes)
+		}
+		return p, nil
+	}
+
 	extra, reserves, err := t.fetchState(ctx, strings.ToLower(p.Address))
 	if err != nil {
 		extra.QuoteAvailable = false
@@ -167,6 +219,29 @@ func (t *MetricPropAMMPoolTracker) getNewPoolState(ctx context.Context, p entity
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	return p, nil
+}
+
+func (t *MetricPropAMMPoolTracker) unswappable(ctx context.Context, p entity.Pool) bool {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err == nil && staticExtra.SwapWhitelistingEnabled {
+		return true
+	}
+
+	if t.ethrpcClient == nil {
+		return false
+	}
+	var slot0 [32]byte
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		ABI:    metricPropAMMPoolABI,
+		Target: p.Address,
+		Method: "extsload",
+		Params: []any{[32]byte{}}, // storage slot 0
+	}, []any{&slot0}).Call(); err != nil {
+		logger.WithFields(logger.Fields{"dexType": DexTypeMetricPropAMM, "pool": p.Address}).
+			Warnf("failed to read on-chain pause state: %v", err)
+		return false
+	}
+	return slot0[31] != 0 // low byte of slot 0 = pause level (0 = active)
 }
 
 func (t *MetricPropAMMPoolTracker) fetchState(ctx context.Context, poolAddr string) (Extra, []string, error) {
