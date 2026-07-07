@@ -3,19 +3,17 @@ package v2
 import (
 	"context"
 	"math/big"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -24,8 +22,16 @@ type (
 		ethrpcClient *ethrpc.Client
 	}
 
+	// PoolsListUpdaterMetadata tracks the last shared.BackupTailWindow pool
+	// addresses seen at the tail of the registry's pool list. The registry
+	// stores pools in an OpenZeppelin EnumerableSet: unregistering a pool swaps
+	// the last element into the removed slot, reshuffling indices, so a numeric
+	// offset can't be trusted to page through the list safely. This is only a
+	// backup for the primary PoolFactory block-subscription flow though, so it
+	// just needs to notice pools appended since the last check, not replay the
+	// whole history.
 	PoolsListUpdaterMetadata struct {
-		Offset int `json:"offset"`
+		LastPools []common.Address `json:"lp"`
 	}
 )
 
@@ -41,14 +47,12 @@ func NewPoolsListUpdater(
 	}
 }
 
-func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadata []byte) ([]entity.Pool, []byte, error) {
-	var offset int
-	if len(metadata) > 0 {
-		var m PoolsListUpdaterMetadata
-		if err := json.Unmarshal(metadata, &m); err != nil {
+func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	var metadata PoolsListUpdaterMetadata
+	if len(metadataBytes) > 0 {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, nil, err
 		}
-		offset = m.Offset
 	}
 
 	length, err := u.getPoolsLength(ctx)
@@ -56,33 +60,44 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadata []byte) ([]
 		return nil, nil, err
 	}
 
-	if offset >= length {
-		return nil, metadata, nil
+	if length == 0 {
+		return nil, metadataBytes, nil
 	}
 
-	batchSizeToUse := shared.BatchSize
-	if offset+batchSizeToUse > length {
-		batchSizeToUse = length - offset
-	}
-
-	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSizeToUse)
+	tailSize := min(shared.BackupTailWindow, length)
+	tailAddresses, err := u.listPoolAddresses(ctx, length-tailSize, tailSize)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, poolAddresses)
+	newAddresses := make([]common.Address, 0)
+	for _, addr := range tailAddresses {
+		if !slices.Contains(metadata.LastPools, addr) {
+			newAddresses = append(newAddresses, addr)
+		}
+	}
+
+	metadata.LastPools = tailAddresses
+
+	if len(newAddresses) == 0 {
+		newMetadataBytes, err := json.Marshal(metadata)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+		return nil, newMetadataBytes, nil
+	}
+
+	pools, err := u.initPools(ctx, newAddresses)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newMetadata, err := json.Marshal(PoolsListUpdaterMetadata{
-		Offset: offset + len(pools),
-	})
+	newMetadataBytes, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return pools, newMetadata, nil
+	return pools, newMetadataBytes, nil
 }
 
 func (u *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
@@ -101,14 +116,14 @@ func (u *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
 	return int(length.Int64()), nil
 }
 
-func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, limit int) ([]common.Address, error) {
+func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, count int) ([]common.Address, error) {
 	var poolAddresses []common.Address
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    registryABI,
 		Target: u.config.FactoryAddress,
 		Method: shared.FactoryMethodPoolsSlice,
-		Params: []any{big.NewInt(int64(offset)), big.NewInt(int64(limit))},
+		Params: []any{big.NewInt(int64(offset)), big.NewInt(int64(offset + count))},
 	}, []any{&poolAddresses})
 
 	if _, err := req.Call(); err != nil {
@@ -178,47 +193,16 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 	pools := make([]entity.Pool, 0, numPools)
 
 	for i, poolAddress := range poolAddresses {
-		staticExtra := StaticExtra{
-			SupplyVault0: staticParams[i].Data.SupplyVault0.Hex(),
-			SupplyVault1: staticParams[i].Data.SupplyVault1.Hex(),
-			EulerAccount: staticParams[i].Data.EulerAccount.Hex(),
-			EVC:          evcAddresses[i].Hex(),
-		}
-
-		if !valueobject.IsZeroAddress(staticParams[i].Data.BorrowVault0) {
-			staticExtra.BorrowVault0 = staticParams[i].Data.BorrowVault0.Hex()
-		}
-		if !valueobject.IsZeroAddress(staticParams[i].Data.BorrowVault1) {
-			staticExtra.BorrowVault1 = staticParams[i].Data.BorrowVault1.Hex()
-		}
-		if !valueobject.IsZeroAddress(staticParams[i].Data.FeeRecipient) {
-			staticExtra.FeeRecipient = staticParams[i].Data.FeeRecipient.Hex()
-		}
+		staticExtra := buildStaticExtra(staticParams[i].Data, evcAddresses[i])
 
 		staticExtraBytes, err := json.Marshal(&staticExtra)
 		if err != nil {
 			return nil, err
 		}
 
-		dParams := DynamicParams{
-			EquilibriumReserve0: uint256.MustFromBig(dynamicParams[i].Data.EquilibriumReserve0),
-			EquilibriumReserve1: uint256.MustFromBig(dynamicParams[i].Data.EquilibriumReserve1),
-			MinReserve0:         uint256.MustFromBig(dynamicParams[i].Data.MinReserve0),
-			MinReserve1:         uint256.MustFromBig(dynamicParams[i].Data.MinReserve1),
-			PriceX:              uint256.MustFromBig(dynamicParams[i].Data.PriceX),
-			PriceY:              uint256.MustFromBig(dynamicParams[i].Data.PriceY),
-			ConcentrationX:      uint256.NewInt(dynamicParams[i].Data.ConcentrationX),
-			ConcentrationY:      uint256.NewInt(dynamicParams[i].Data.ConcentrationY),
-			Fee0:                uint256.NewInt(dynamicParams[i].Data.Fee0),
-			Fee1:                uint256.NewInt(dynamicParams[i].Data.Fee1),
-			Expiration:          dynamicParams[i].Data.Expiration.Uint64(),
-			SwapHookedOps:       dynamicParams[i].Data.SwapHookedOperations,
-			SwapHook:            dynamicParams[i].Data.SwapHook.Hex(),
-		}
-
 		extra := Extra{
 			Pause:         1, // unlocked
-			DynamicParams: dParams,
+			DynamicParams: buildDynamicParams(dynamicParams[i].Data),
 		}
 
 		extraBytes, err := json.Marshal(&extra)
@@ -228,11 +212,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 
 		var tokens []*entity.PoolToken
 		tokens = append(tokens, &entity.PoolToken{
-			Address:   strings.ToLower(tokensByPool[i][0].Hex()),
+			Address:   hexutil.Encode(tokensByPool[i][0][:]),
 			Swappable: true,
 		})
 		tokens = append(tokens, &entity.PoolToken{
-			Address:   strings.ToLower(tokensByPool[i][1].Hex()),
+			Address:   hexutil.Encode(tokensByPool[i][1][:]),
 			Swappable: true,
 		})
 

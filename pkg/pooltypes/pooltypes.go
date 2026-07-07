@@ -13,6 +13,7 @@ import (
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
+	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima/metric-propamm"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/stable"
@@ -88,6 +89,7 @@ import (
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
+	ghost "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gohm"
 	gsm4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gsm-4626"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -391,6 +393,7 @@ type Types struct {
 	HiddenOcean                string
 	HyETH                      string
 	HyperAMM                   string
+	Ghost                      string
 	MimSwap                    string
 	Mooniswap                  string
 	InfinityPools              string
@@ -434,6 +437,7 @@ type Types struct {
 	Smoothy                    string
 	Carbon                     string
 	Axima                      string
+	MetricPropAMM              string
 	KipseliProp                string
 	KipseliPamm                string
 	SomeswapV1                 string
@@ -616,6 +620,7 @@ var (
 		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
 		HyperAMM:                   hyperamm.DexType,
+		Ghost:                      ghost.DexType,
 		MimSwap:                    mimswap.DexType,
 		Mooniswap:                  mooniswap.DexType,
 		InfinityPools:              infinitypools.DexType,
@@ -663,6 +668,7 @@ var (
 		Smoothy:                    smoothy.DexType,
 		Carbon:                     carbon.DexType,
 		Axima:                      axima.DexType,
+		MetricPropAMM:              metricpropamm.DexType,
 		KipseliProp:                kipseliprop.DexType,
 		KipseliPamm:                kipselipamm.DexType,
 		SomeswapV1:                 someswapv1.DexType,

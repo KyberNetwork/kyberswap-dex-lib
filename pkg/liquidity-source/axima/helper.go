@@ -41,22 +41,15 @@ func convertAximaPoolState(pairData PairData, config *Config) (Extra, []string, 
 	extra.MaxAge = config.MaxAge
 	extra.IsV2 = config.IsV2
 
-	if bids, err := convertAximaBins(pairData.Depth.Bids); err != nil {
-		return Extra{}, nil, err
-	} else {
-		extra.Bids = bids
-	}
-
-	if asks, err := convertAximaBins(pairData.Depth.Asks); err != nil {
-		return Extra{}, nil, err
-	} else {
-		extra.Asks = asks
-	}
+	extra.Bids = ConvertBins(pairData.Depth.Bids)
+	extra.Asks = ConvertBins(pairData.Depth.Asks)
 
 	return extra, reserves, nil
 }
 
-func convertAximaBins(aximaBins []AximaBin) ([]Bin, error) {
+// ConvertBins maps API bid/ask bins into simulator Bins. Shared by the axima and
+// metric-propamm paths.
+func ConvertBins(aximaBins []AximaBin) []Bin {
 	bins := make([]Bin, len(aximaBins))
 	for i, bin := range aximaBins {
 		bins[i] = Bin{
@@ -65,6 +58,5 @@ func convertAximaBins(aximaBins []AximaBin) ([]Bin, error) {
 			CumulativeVolume: bignumber.NewBig(bin.CummlativeVolume),
 		}
 	}
-
-	return bins, nil
+	return bins
 }

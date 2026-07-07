@@ -159,7 +159,7 @@ func (s *PoolSimulator) trade(amountIn *uint256.Int, ordersMap EncodedOrderMap,
 			continue
 		}
 
-		output := s.processMatchActions(amountIn, actions, strategyIdxMap, targetOrderIdx, sourceOrderIdx, isToken0To1, ppmMinusFee)
+		output := s.processMatchActions(actions, strategyIdxMap, targetOrderIdx, sourceOrderIdx, isToken0To1, ppmMinusFee)
 		if output == nil {
 			continue
 		}
@@ -179,12 +179,10 @@ func (s *PoolSimulator) trade(amountIn *uint256.Int, ordersMap EncodedOrderMap,
 	return results, nil
 }
 
-func (s *PoolSimulator) processMatchActions(amountIn *uint256.Int, actions []*MatchAction, strategyIdxMap map[string]int,
+func (s *PoolSimulator) processMatchActions(actions []*MatchAction, strategyIdxMap map[string]int,
 	targetOrderIdx, sourceOrderIdx int, isToken0To1 bool, ppmMinusFee *uint256.Int) *TradeOutput {
 	totalAmountOut := u256.New0()
 
-	var remaining uint256.Int
-	remaining.Set(amountIn)
 	var tradeActions []TradeAction
 	for _, action := range actions {
 		strategyIdStr := action.Id
@@ -197,11 +195,6 @@ func (s *PoolSimulator) processMatchActions(amountIn *uint256.Int, actions []*Ma
 		strategy := &s.Strategies[strategyIdx]
 		targetOrder := &strategy.Orders[targetOrderIdx]
 		sourceOrder := &strategy.Orders[sourceOrderIdx]
-
-		// this step is needed as our current executor doesn't support partial amountIn
-		rate := rateBySourceAmount(&remaining, targetOrder)
-		action.Input, action.Output = rate.Input, rate.Output
-		// remove the above when executor supports amountIn
 
 		newTargetY := new(uint256.Int).Sub(targetOrder.Y, action.Output)
 
@@ -223,9 +216,6 @@ func (s *PoolSimulator) processMatchActions(amountIn *uint256.Int, actions []*Ma
 		})
 
 		totalAmountOut.Add(totalAmountOut, action.Output)
-		if remaining.Sub(&remaining, action.Input).IsZero() {
-			break
-		}
 	}
 
 	if totalAmountOut.Sign() <= 0 {

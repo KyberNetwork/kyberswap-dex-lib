@@ -5,8 +5,9 @@ import (
 )
 
 type Config struct {
-	DexID string `json:"dexID"`
-	Chain string `json:"chain"`
+	DexID   string `json:"dexID"`
+	Chain   string `json:"chain"`
+	ChainID int64  `json:"chainID"`
 
 	// MaxAge is the maximum age of the pool data in seconds.
 	// If the pool state is older than this (p.Timestamp + MaxAge < CurrentTime),

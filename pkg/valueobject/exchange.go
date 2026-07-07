@@ -18,6 +18,7 @@ const (
 	ExchangeAxial                      = "axial"
 	ExchangeAxima                      = "axima"
 	ExchangeAximaV2                    = "axima-v2"
+	ExchangeMetricPropAMM              = "metric-propamm"
 	ExchangeBabyDogeSwap               = "babydogeswap"
 	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalancerV1                 = "balancer-v1"
@@ -130,6 +131,7 @@ const (
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperAMM                   = "hyperamm"
 	ExchangeHyperpieV2                 = "hyperpie-v2"
+	ExchangeGhost                      = "ghost"
 	ExchangeInfinifi                   = "infinifi-gateway"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeIntegral                   = "integral"
@@ -353,11 +355,12 @@ func IsRFQSource[T ~string](exchange T) bool {
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
 var needFallbackSourceSet = map[Exchange]struct{}{
-	ExchangeAxima:     {},
-	ExchangeAximaV2:   {},
-	ExchangeWooFiV3:   {},
-	ExchangeBrownfiV2: {},
-	ExchangeBrownfiV3: {},
+	ExchangeAxima:         {},
+	ExchangeAximaV2:       {},
+	ExchangeMetricPropAMM: {},
+	ExchangeWooFiV3:       {},
+	ExchangeBrownfiV2:     {},
+	ExchangeBrownfiV3:     {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {
@@ -369,18 +372,20 @@ func NeedsFallbackSource[T ~string](exchange T) bool {
 }
 
 var PropAMMSourceSet = map[Exchange]struct{}{
-	Exchange1010Prop:    {},
-	ExchangeWildcard:    {},
-	ExchangeTessera:     {},
-	ExchangeElfomofi:    {},
-	ExchangeAximaV2:     {},
-	ExchangeKipseliProp: {},
-	ExchangeKipseliPamm: {},
-	ExchangeWasabiProp:  {},
-	ExchangeObric:       {},
-	ExchangePoe:         {},
-	ExchangeFermi:       {},
-	ExchangeBopAMM:      {},
+	Exchange1010Prop:      {},
+	ExchangeWildcard:      {},
+	ExchangeTessera:       {},
+	ExchangeElfomofi:      {},
+	ExchangeAximaV2:       {},
+	ExchangeMetricPropAMM: {},
+	ExchangeKipseliProp:   {},
+	ExchangeKipseliPamm:   {},
+	ExchangeWasabiProp:    {},
+	ExchangeObric:         {},
+	ExchangePoe:           {},
+	ExchangeFermi:         {},
+	ExchangeBopAMM:        {},
+	ExchangeGhost:         {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
