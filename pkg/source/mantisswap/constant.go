@@ -22,8 +22,7 @@ const (
 	lpMethodLiabilityLimit = "liabilityLimit"
 	lpMethodUnderlier      = "underlier"
 
-	defaultWeight = 1
-	zeroString    = "0"
+	zeroString = "0"
 )
 
 var (

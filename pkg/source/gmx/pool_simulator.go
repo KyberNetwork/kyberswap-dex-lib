@@ -1,26 +1,25 @@
 package gmx
 
 import (
-	"encoding/json"
+	"maps"
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
-
-type Gas struct {
-	Swap int64
-}
 
 type PoolSimulator struct {
 	pool.Pool
 
 	vault      *Vault
 	vaultUtils *VaultUtils
-	gas        Gas
 }
+
+var _ = pool.RegisterFactory0(DexTypeGmx, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -33,11 +32,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens = append(tokens, poolToken.Address)
 	}
 
+	reserves := make([]*big.Int, len(entityPool.Reserves))
+	for i, reserve := range entityPool.Reserves {
+		reserveBI, ok := new(big.Int).SetString(reserve, 10)
+		if !ok {
+			reserveBI = integer.Zero()
+		}
+
+		reserves[i] = reserveBI
+	}
+
 	info := pool.PoolInfo{
 		Address:  entityPool.Address,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
 		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -46,7 +56,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		vault:      extra.Vault,
 		vaultUtils: NewVaultUtils(extra.Vault),
-		gas:        DefaultGas,
 	}, nil
 }
 
@@ -55,7 +64,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -70,8 +79,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
-		Gas:            p.gas.Swap,
+		Gas:            defaultGas,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	vault := *p.vault
+	vault.USDGAmounts = maps.Clone(p.vault.USDGAmounts)
+	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.vault = &vault
+	return &cloned
 }
 
 // UpdateBalance update UsdgAmount only
@@ -83,7 +101,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	usdgAmount := new(big.Int).Div(new(big.Int).Mul(input.Amount, priceIn), PricePrecision)
+	usdgAmount := new(big.Int).Mul(input.Amount, priceIn)
+	usdgAmount = usdgAmount.Div(usdgAmount, PricePrecision)
 	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, input.Token, p.vault.USDG.Address)
 
 	p.vault.IncreaseUSDGAmount(input.Token, usdgAmount)
@@ -101,6 +120,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	for _, token := range whitelistedTokens {
 		if strings.EqualFold(token, address) {
 			isTokenExists = true
+			break
 		}
 	}
 
@@ -122,7 +142,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
 
 // getAmountOut returns amountOutAfterFees, feeAmount and error
 func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
@@ -140,11 +160,11 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 		return nil, nil, err
 	}
 
-	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
-	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
-
-	usdgAmount := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), PricePrecision)
+	amountOut := new(big.Int).Mul(amountIn, priceIn)
+	usdgAmount := new(big.Int).Div(amountOut, PricePrecision)
 	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, tokenIn, p.vault.USDG.Address)
+	amountOut = amountOut.Div(amountOut, priceOut)
+	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
 
 	// in smart contract, this validation is implemented inside _increaseUsdgAmount method
 	if err = p.validateMaxUsdgExceed(tokenIn, usdgAmount); err != nil {
@@ -181,7 +201,7 @@ func (p *PoolSimulator) validateMaxUsdgExceed(token string, amount *big.Int) err
 
 	maxUsdgAmount := p.vault.MaxUSDGAmounts[token]
 
-	if maxUsdgAmount.Cmp(bignumber.ZeroBI) == 0 {
+	if maxUsdgAmount.Sign() == 0 {
 		return nil
 	}
 
@@ -219,5 +239,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
 	return nil
 }

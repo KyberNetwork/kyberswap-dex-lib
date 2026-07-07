@@ -1,0 +1,36 @@
+{
+  "teller": "0x6ee3aaccf9f2321e49063c4f8da775ddbd407268",
+  "accountant": "0x1b293dc39f94157fa0d1d36d7e0090c8b8b8c13f",
+  "base": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+  "decimals": 8,
+  "tokens": [
+    {
+      "address": "0x657e8c867d8b37dcc18fa4caead9c45eb088c642",
+      "symbol": "eBTC",
+      "name": "ether.fi BTC",
+      "decimals": 8,
+      "swappable": true
+    },
+    {
+      "address": "0x8236a87084f8b84306f72007f36f2618a5634494",
+      "symbol": "LBTC",
+      "name": "Lombard Staked Bitcoin",
+      "decimals": 8,
+      "swappable": true
+    },
+    {
+      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "symbol": "WBTC",
+      "name": "Wrapped BTC",
+      "decimals": 8,
+      "swappable": true
+    },
+    {
+      "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+      "symbol": "cbBTC",
+      "name": "Coinbase Wrapped BTC",
+      "decimals": 8,
+      "swappable": true
+    }
+  ]
+}

@@ -146,7 +146,7 @@ func bindUniswap(address common.Address, caller bind.ContractCaller, transactor 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Uniswap *UniswapRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_Uniswap *UniswapRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _Uniswap.Contract.UniswapCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_Uniswap *UniswapRaw) Transfer(opts *bind.TransactOpts) (*types.Transactio
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Uniswap *UniswapRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_Uniswap *UniswapRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _Uniswap.Contract.UniswapTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_Uniswap *UniswapRaw) Transact(opts *bind.TransactOpts, method string, par
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Uniswap *UniswapCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_Uniswap *UniswapCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _Uniswap.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_Uniswap *UniswapTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Uniswap *UniswapTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_Uniswap *UniswapTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _Uniswap.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_Uniswap *UniswapTransactorRaw) Transact(opts *bind.TransactOpts, method s
 //
 // Solidity: function DOMAIN_SEPARATOR() view returns(bytes32)
 func (_Uniswap *UniswapCaller) DOMAINSEPARATOR(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "DOMAIN_SEPARATOR")
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_Uniswap *UniswapCallerSession) DOMAINSEPARATOR() ([32]byte, error) {
 //
 // Solidity: function MINIMUM_LIQUIDITY() view returns(uint256)
 func (_Uniswap *UniswapCaller) MINIMUMLIQUIDITY(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "MINIMUM_LIQUIDITY")
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_Uniswap *UniswapCallerSession) MINIMUMLIQUIDITY() (*big.Int, error) {
 //
 // Solidity: function PERMIT_TYPEHASH() view returns(bytes32)
 func (_Uniswap *UniswapCaller) PERMITTYPEHASH(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "PERMIT_TYPEHASH")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_Uniswap *UniswapCallerSession) PERMITTYPEHASH() ([32]byte, error) {
 //
 // Solidity: function allowance(address , address ) view returns(uint256)
 func (_Uniswap *UniswapCaller) Allowance(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "allowance", arg0, arg1)
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (_Uniswap *UniswapCallerSession) Allowance(arg0 common.Address, arg1 common
 //
 // Solidity: function balanceOf(address ) view returns(uint256)
 func (_Uniswap *UniswapCaller) BalanceOf(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "balanceOf", arg0)
 
 	if err != nil {
@@ -339,7 +339,7 @@ func (_Uniswap *UniswapCallerSession) BalanceOf(arg0 common.Address) (*big.Int, 
 //
 // Solidity: function decimals() view returns(uint8)
 func (_Uniswap *UniswapCaller) Decimals(opts *bind.CallOpts) (uint8, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "decimals")
 
 	if err != nil {
@@ -370,7 +370,7 @@ func (_Uniswap *UniswapCallerSession) Decimals() (uint8, error) {
 //
 // Solidity: function factory() view returns(address)
 func (_Uniswap *UniswapCaller) Factory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "factory")
 
 	if err != nil {
@@ -405,7 +405,7 @@ func (_Uniswap *UniswapCaller) GetReserves(opts *bind.CallOpts) (struct {
 	Reserve1           *big.Int
 	BlockTimestampLast uint32
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "getReserves")
 
 	outstruct := new(struct {
@@ -451,7 +451,7 @@ func (_Uniswap *UniswapCallerSession) GetReserves() (struct {
 //
 // Solidity: function kLast() view returns(uint256)
 func (_Uniswap *UniswapCaller) KLast(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "kLast")
 
 	if err != nil {
@@ -482,7 +482,7 @@ func (_Uniswap *UniswapCallerSession) KLast() (*big.Int, error) {
 //
 // Solidity: function name() view returns(string)
 func (_Uniswap *UniswapCaller) Name(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "name")
 
 	if err != nil {
@@ -513,7 +513,7 @@ func (_Uniswap *UniswapCallerSession) Name() (string, error) {
 //
 // Solidity: function nonces(address ) view returns(uint256)
 func (_Uniswap *UniswapCaller) Nonces(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "nonces", arg0)
 
 	if err != nil {
@@ -544,7 +544,7 @@ func (_Uniswap *UniswapCallerSession) Nonces(arg0 common.Address) (*big.Int, err
 //
 // Solidity: function price0CumulativeLast() view returns(uint256)
 func (_Uniswap *UniswapCaller) Price0CumulativeLast(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "price0CumulativeLast")
 
 	if err != nil {
@@ -575,7 +575,7 @@ func (_Uniswap *UniswapCallerSession) Price0CumulativeLast() (*big.Int, error) {
 //
 // Solidity: function price1CumulativeLast() view returns(uint256)
 func (_Uniswap *UniswapCaller) Price1CumulativeLast(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "price1CumulativeLast")
 
 	if err != nil {
@@ -606,7 +606,7 @@ func (_Uniswap *UniswapCallerSession) Price1CumulativeLast() (*big.Int, error) {
 //
 // Solidity: function symbol() view returns(string)
 func (_Uniswap *UniswapCaller) Symbol(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "symbol")
 
 	if err != nil {
@@ -637,7 +637,7 @@ func (_Uniswap *UniswapCallerSession) Symbol() (string, error) {
 //
 // Solidity: function token0() view returns(address)
 func (_Uniswap *UniswapCaller) Token0(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "token0")
 
 	if err != nil {
@@ -668,7 +668,7 @@ func (_Uniswap *UniswapCallerSession) Token0() (common.Address, error) {
 //
 // Solidity: function token1() view returns(address)
 func (_Uniswap *UniswapCaller) Token1(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "token1")
 
 	if err != nil {
@@ -699,7 +699,7 @@ func (_Uniswap *UniswapCallerSession) Token1() (common.Address, error) {
 //
 // Solidity: function totalSupply() view returns(uint256)
 func (_Uniswap *UniswapCaller) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Uniswap.contract.Call(opts, &out, "totalSupply")
 
 	if err != nil {
@@ -1016,11 +1016,11 @@ type UniswapApproval struct {
 // Solidity: event Approval(address indexed owner, address indexed spender, uint256 value)
 func (_Uniswap *UniswapFilterer) FilterApproval(opts *bind.FilterOpts, owner []common.Address, spender []common.Address) (*UniswapApprovalIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var spenderRule []interface{}
+	var spenderRule []any
 	for _, spenderItem := range spender {
 		spenderRule = append(spenderRule, spenderItem)
 	}
@@ -1037,11 +1037,11 @@ func (_Uniswap *UniswapFilterer) FilterApproval(opts *bind.FilterOpts, owner []c
 // Solidity: event Approval(address indexed owner, address indexed spender, uint256 value)
 func (_Uniswap *UniswapFilterer) WatchApproval(opts *bind.WatchOpts, sink chan<- *UniswapApproval, owner []common.Address, spender []common.Address) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var spenderRule []interface{}
+	var spenderRule []any
 	for _, spenderItem := range spender {
 		spenderRule = append(spenderRule, spenderItem)
 	}
@@ -1171,12 +1171,12 @@ type UniswapBurn struct {
 // Solidity: event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to)
 func (_Uniswap *UniswapFilterer) FilterBurn(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*UniswapBurnIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1193,12 +1193,12 @@ func (_Uniswap *UniswapFilterer) FilterBurn(opts *bind.FilterOpts, sender []comm
 // Solidity: event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to)
 func (_Uniswap *UniswapFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *UniswapBurn, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1327,7 +1327,7 @@ type UniswapMint struct {
 // Solidity: event Mint(address indexed sender, uint256 amount0, uint256 amount1)
 func (_Uniswap *UniswapFilterer) FilterMint(opts *bind.FilterOpts, sender []common.Address) (*UniswapMintIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1344,7 +1344,7 @@ func (_Uniswap *UniswapFilterer) FilterMint(opts *bind.FilterOpts, sender []comm
 // Solidity: event Mint(address indexed sender, uint256 amount0, uint256 amount1)
 func (_Uniswap *UniswapFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *UniswapMint, sender []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1476,12 +1476,12 @@ type UniswapSwap struct {
 // Solidity: event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)
 func (_Uniswap *UniswapFilterer) FilterSwap(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*UniswapSwapIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1498,12 +1498,12 @@ func (_Uniswap *UniswapFilterer) FilterSwap(opts *bind.FilterOpts, sender []comm
 // Solidity: event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)
 func (_Uniswap *UniswapFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *UniswapSwap, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1767,11 +1767,11 @@ type UniswapTransfer struct {
 // Solidity: event Transfer(address indexed from, address indexed to, uint256 value)
 func (_Uniswap *UniswapFilterer) FilterTransfer(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*UniswapTransferIterator, error) {
 
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1788,11 +1788,11 @@ func (_Uniswap *UniswapFilterer) FilterTransfer(opts *bind.FilterOpts, from []co
 // Solidity: event Transfer(address indexed from, address indexed to, uint256 value)
 func (_Uniswap *UniswapFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *UniswapTransfer, from []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}

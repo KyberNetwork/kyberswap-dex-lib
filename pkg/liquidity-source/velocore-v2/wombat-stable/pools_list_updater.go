@@ -8,16 +8,19 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -58,9 +61,6 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	// Add timestamp to the context so that each run iteration will have something different
-	ctx = util.NewContextWithTimestamp(ctx)
-
 	newPoolAddresses, err := p.getNewPoolAddresses(ctx, metadata)
 	if err != nil {
 		return nil, metadataBytes, err
@@ -98,7 +98,7 @@ func (p *PoolsListUpdater) getNewPoolAddresses(ctx context.Context, metadata Met
 		ABI:    registryABI,
 		Target: p.config.RegistryAddress,
 		Method: registryMethodGetPools,
-	}, []interface{}{&addresses})
+	}, []any{&addresses})
 
 	if _, err := req.Call(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -129,8 +129,8 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 			ABI:    lensABI,
 			Target: p.config.LensAddress,
 			Method: lensMethodQueryPool,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&poolData[i]})
+			Params: []any{poolAddress},
+		}, []any{&poolData[i]})
 	}
 
 	if _, err := req.Aggregate(); err != nil {
@@ -147,7 +147,7 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 	}
 
 	for i, poolAddress := range poolAddreses {
-		poolAddr := strings.ToLower(poolAddress.Hex())
+		poolAddr := hexutil.Encode(poolAddress[:])
 		poolDat := newPoolData(poolData[i])
 
 		extra := Extra{

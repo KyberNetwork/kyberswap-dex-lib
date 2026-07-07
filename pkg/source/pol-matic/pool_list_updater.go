@@ -2,18 +2,19 @@ package polmatic
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -33,6 +34,8 @@ type (
 	}
 )
 
+var _ = poollist.RegisterFactoryCE(DexTypePolMatic, NewPoolsListUpdater)
+
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
@@ -44,7 +47,7 @@ func NewPoolsListUpdater(
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	ctx = util.NewContextWithTimestamp(ctx)
+
 	startTime := time.Now()
 
 	logger.WithFields(logger.Fields{"dex_id": u.config.DexID}).Debug("Start getting new pools")
@@ -81,15 +84,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    polygonMigrationABI,
 			Target: u.config.PolygonMigrationAddress,
 			Method: polygonMigrationMethodMatic,
-			Params: []interface{}{},
-		}, []interface{}{&matic})
+			Params: []any{},
+		}, []any{&matic})
 	getTokens.AddCall(
 		&ethrpc.Call{
 			ABI:    polygonMigrationABI,
 			Target: u.config.PolygonMigrationAddress,
 			Method: polygonMigrationMethodPolygon,
-			Params: []interface{}{},
-		}, []interface{}{&polygon})
+			Params: []any{},
+		}, []any{&polygon})
 
 	if _, err := getTokens.TryAggregate(); err != nil {
 		logger.
@@ -104,7 +107,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, ErrFailedToGetTokens
 	}
 
-	if account.IsZeroAddress(matic) || account.IsZeroAddress(polygon) {
+	if valueobject.IsZeroAddress(matic) || valueobject.IsZeroAddress(polygon) {
 		return nil, nil, ErrTokenIsNotSet
 	}
 
@@ -119,15 +122,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    erc20ABI,
 			Target: matic.String(),
 			Method: erc20MethodDecimals,
-			Params: []interface{}{},
-		}, []interface{}{&maticDecimals})
+			Params: []any{},
+		}, []any{&maticDecimals})
 	getTokenDecimals.AddCall(
 		&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: polygon.String(),
 			Method: erc20MethodDecimals,
-			Params: []interface{}{},
-		}, []interface{}{&polygonDecimals})
+			Params: []any{},
+		}, []any{&polygonDecimals})
 	if _, err := getTokenDecimals.TryAggregate(); err != nil {
 		logger.
 			WithFields(
@@ -151,8 +154,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		{
 			Address: strings.ToLower(u.config.PolygonMigrationAddress),
 			Tokens: []*entity.PoolToken{
-				{Address: strings.ToLower(matic.String()), Decimals: maticDecimals, Swappable: true},
-				{Address: strings.ToLower(polygon.String()), Decimals: polygonDecimals, Swappable: true},
+				{Address: hexutil.Encode(matic[:]), Decimals: maticDecimals, Swappable: true},
+				{Address: hexutil.Encode(polygon[:]), Decimals: polygonDecimals, Swappable: true},
 			},
 			Reserves:  []string{"0", "0"},
 			Exchange:  u.config.DexID,

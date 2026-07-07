@@ -10,19 +10,22 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var ErrWETHNotFound = errors.New("WETH not found")
+var ErrWrappedNativeNotFound = errors.New("wrapped native not found")
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -55,8 +58,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			"duration": time.Since(s).String(),
 		}).Info("finish get new pools")
 	}(time.Now())
-
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	totalNumberOfPools, err := d.getPoolsLength(ctx)
 	if err != nil {
@@ -101,21 +102,21 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		weights = make([][maxPoolTokenNumber]*big.Int, limit)
 	)
 
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetContext(ctx)
 	for i := 0; i < limit; i++ {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodRelevantTokens,
 			Params: nil,
-		}, []interface{}{&tokens[i]})
+		}, []any{&tokens[i]})
 
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodTokenWeights,
 			Params: nil,
-		}, []interface{}{&weights[i]})
+		}, []any{&weights[i]})
 	}
 
 	if _, err := req.Aggregate(); err != nil {
@@ -128,7 +129,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	for i, poolAddress := range poolAddresses {
 		var (
-			p                = strings.ToLower(poolAddress.Hex())
+			p                = hexutil.Encode(poolAddress[:])
 			nativeTokenIndex = unknownInt
 
 			poolTokens   = []*entity.PoolToken{}
@@ -143,13 +144,13 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				break
 			}
 
-			if strings.EqualFold(t, valueobject.EtherAddress) {
+			if strings.EqualFold(t, valueobject.NativeAddress) {
 				nativeTokenIndex = j
-				weth, ok := valueobject.WETHByChainID[d.config.ChainID]
+				native, ok := valueobject.WrappedNativeMap[d.config.ChainID]
 				if !ok {
-					return nil, ErrWETHNotFound
+					return nil, ErrWrappedNativeNotFound
 				}
-				t = strings.ToLower(weth)
+				t = strings.ToLower(native)
 			}
 
 			poolTokens = append(poolTokens, &entity.PoolToken{
@@ -192,16 +193,17 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	return pools, nil
 }
 
-func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
+func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address,
+	error) {
 	poolAddresses := make([]common.Address, batchSize)
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetContext(ctx)
 	for j := 0; j < batchSize; j++ {
 		req.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(offset + j))},
-		}, []interface{}{&poolAddresses[j]})
+			Params: []any{big.NewInt(int64(offset + j))},
+		}, []any{&poolAddresses[j]})
 	}
 
 	resp, err := req.TryAggregate()
@@ -225,13 +227,13 @@ func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, b
 
 func (d *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
 	var l *big.Int
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodPoolsLength,
 		Params: nil,
-	}, []interface{}{&l})
+	}, []any{&l})
 	if _, err := req.Call(); err != nil {
 		logger.WithFields(
 			logger.Fields{

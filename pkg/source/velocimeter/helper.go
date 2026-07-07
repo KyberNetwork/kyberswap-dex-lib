@@ -1,6 +1,6 @@
 package velocimeter
 
-import "encoding/json"
+import "github.com/goccy/go-json"
 
 func extractStaticExtra(s string) (staticExtra StaticExtra, err error) {
 	err = json.Unmarshal([]byte(s), &staticExtra)

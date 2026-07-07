@@ -1,13 +1,16 @@
 package wombatmain
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestQuotePotentialSwap(t *testing.T) {
+	t.Parallel()
 	fromToken := "0x1a7e4e63778B4f12a199C062f3eFdD288afCBce8"
 	toToken := "0x3231Cb76718CDeF2155FC47b5286d82e6eDA273f"
 	fromAmount := bignumber.NewBig10("1000000")
@@ -38,6 +41,7 @@ func TestQuotePotentialSwap(t *testing.T) {
 }
 
 func TestCovRatioLimitExceeded(t *testing.T) {
+	t.Parallel()
 	// https://bscscan.com/address/0x0520451b19ad0bb00ed35ef391086a692cfc74b2#readProxyContract
 	fromToken := "0x55d398326f99059ff775485246999027b3197955"
 	toToken := "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"

@@ -7,6 +7,7 @@ import (
 )
 
 func TestFormatKey(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		sep    string
 		args   []string

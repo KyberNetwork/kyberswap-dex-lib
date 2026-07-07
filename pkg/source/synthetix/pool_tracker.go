@@ -2,7 +2,6 @@ package synthetix
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -11,9 +10,12 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -27,6 +29,8 @@ type PoolTracker struct {
 	chainlinkDataFeedReader               IChainlinkDataFeedReader
 	dexPriceAggregatorUniswapV3Reader     IDexPriceAggregatorUniswapV3Reader
 }
+
+var _ = pooltrack.RegisterFactoryCE0(DexTypeSynthetix, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	poolStateVersion := getPoolStateVersion(valueobject.ChainID(cfg.ChainID))
@@ -132,7 +136,7 @@ func (d *PoolTracker) GetNewPoolState(
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
-		}).Error("can not initialze new pool")
+		}).Error("can not initialize new pool")
 		return entity.Pool{}, err
 	}
 
@@ -150,7 +154,7 @@ func (d *PoolTracker) newPool(address string, poolState *PoolState) (*entity.Poo
 	for _, currencyKey := range poolState.CurrencyKeys {
 		synthAddress := poolState.Synths[currencyKey]
 		poolTokens = append(poolTokens, &entity.PoolToken{
-			Address:   strings.ToLower(synthAddress.String()),
+			Address:   hexutil.Encode(synthAddress[:]),
 			Swappable: true,
 		})
 		reserves = append(reserves, poolState.SynthsTotalSupply[currencyKey].String())

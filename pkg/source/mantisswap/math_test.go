@@ -1,13 +1,16 @@
 package mantisswap_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	from := "0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
 	to := "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
 	amount := bignumber.NewBig10("38817001")
@@ -50,6 +53,7 @@ func TestGetAmountOut(t *testing.T) {
 }
 
 func TestGetSlippage(t *testing.T) {
+	t.Parallel()
 	slippage, err := mantisswap.GetSlippage(
 		bignumber.NewBig10("1231175244823262255"),
 		&mantisswap.PoolState{

@@ -2,22 +2,25 @@ package gmxglp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexTypeGmxGlp, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,

@@ -55,43 +55,30 @@ func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAddress},
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAddress},
+		}, []any{&underlyingCoins[i]}).AddCall(&ethrpc.Call{
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodIsMeta,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&isMetaList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAddress},
+		}, []any{&isMetaList[i]}).AddCall(&ethrpc.Call{
 			ABI:    aaveABI,
 			Target: poolAddresses[i].Hex(),
 			Method: aaveMethodOffpegFeeMultiplier,
-			Params: nil,
-		}, []interface{}{&aaveSignatures[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aaveSignatures[i]}).AddCall(&ethrpc.Call{
 			ABI:    plainOracleABI,
 			Target: poolAddresses[i].Hex(),
 			Method: plainOracleMethodOracle,
-			Params: nil,
-		}, []interface{}{&plainOracleSignatures[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&plainOracleSignatures[i]}).AddCall(&ethrpc.Call{
 			ABI:    twoABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGamma,
-			Params: nil,
-		}, []interface{}{&gammaList[i]})
+		}, []any{&gammaList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -168,8 +155,8 @@ func (d *PoolsListUpdater) classifyPoolsFromMetaPoolsFactory(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodIsMeta,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&isMetaList[i]})
+			Params: []any{poolAddress},
+		}, []any{&isMetaList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -203,8 +190,8 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&coins[i]})
+			Params: []any{poolAddress},
+		}, []any{&coins[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -228,7 +215,7 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 	return poolTypes, nil
 }
 
-// isBasePool PlainOraclePool should
+// isPlainOraclePool PlainOraclePool should
 // be a BasePool but having method "oracle" in its contract
 func (d *PoolsListUpdater) isPlainOraclePool(oracleAddress common.Address) bool {
 	return !strings.EqualFold(oracleAddress.String(), addressZero)
@@ -237,7 +224,7 @@ func (d *PoolsListUpdater) isPlainOraclePool(oracleAddress common.Address) bool 
 // isBasePool BasePool should
 // have underlying coins equals coins
 func (d *PoolsListUpdater) isBasePool(coins [8]common.Address, underlyingCoins [8]common.Address) bool {
-	for i := 0; i < len(coins); i++ {
+	for i := range len(coins) {
 		if !strings.EqualFold(underlyingCoins[i].Hex(), addressZero) && !strings.EqualFold(coins[i].Hex(), underlyingCoins[i].Hex()) {
 			return false
 		}
@@ -290,8 +277,7 @@ func (d *PoolsListUpdater) isCompoundPool(
 			ABI:    erc20ABI,
 			Target: coin.Hex(),
 			Method: erc20MethodName,
-			Params: nil,
-		}, []interface{}{&tokenNames[i]})
+		}, []any{&tokenNames[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

@@ -29,7 +29,7 @@ type PriceDataItem struct {
 	CumulativeFastDelta uint64   `json:"cumulativeFastDelta"`
 }
 
-func (fp FastPriceFeedV2) GetVersion() int {
+func (pf *FastPriceFeedV2) GetVersion() int {
 	return int(SecondaryPriceFeedVersion2)
 }
 

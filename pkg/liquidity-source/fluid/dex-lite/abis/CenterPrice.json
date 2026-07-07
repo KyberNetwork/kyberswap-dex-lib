@@ -1,0 +1,25 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token0_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token1_",
+        "type": "address"
+      }
+    ],
+    "name": "centerPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

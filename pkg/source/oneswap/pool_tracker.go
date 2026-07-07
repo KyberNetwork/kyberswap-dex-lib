@@ -2,21 +2,24 @@ package oneswap
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryE0(DexTypeOneSwap, NewPoolTracker)
 
 func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -43,14 +46,14 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodSwapStorage,
 		Params: nil,
-	}, []interface{}{&swapStorage})
+	}, []any{&swapStorage})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    oneSwapABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
 		Params: nil,
-	}, []interface{}{&balances})
+	}, []any{&balances})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -96,7 +99,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: lpToken,
 		Method: methodGetTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{

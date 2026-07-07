@@ -11,17 +11,23 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
+	cfg          *Config
 }
 
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+
 func NewPoolTracker(
+	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
 		ethrpcClient: ethrpcClient,
+		cfg:          cfg,
 	}, nil
 }
 
@@ -51,21 +57,21 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Target: p.Address,
 		Method: poolMethodPoolBalances,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodFee1e9,
 		Params: nil,
-	}, []interface{}{&fee1e9})
+	}, []any{&fee1e9})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodFeeMultiplier,
 		Params: nil,
-	}, []interface{}{&feeMultiplier})
+	}, []any{&feeMultiplier})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -92,6 +98,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extra := Extra{
+		ChainID:       d.cfg.ChainID,
 		Fee1e9:        fee1e9,
 		FeeMultiplier: feeMultiplier,
 	}

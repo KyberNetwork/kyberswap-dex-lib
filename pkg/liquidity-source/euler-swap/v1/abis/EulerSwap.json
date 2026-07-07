@@ -1,0 +1,336 @@
+[
+  {
+    "inputs": [],
+    "name": "EVC",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenIn",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "exactIn",
+        "type": "bool"
+      }
+    ],
+    "name": "computeQuote",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "curve",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAssets",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "asset0",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "asset1",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getHookPermissions",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "beforeInitialize",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterInitialize",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeSwap",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterSwap",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeDonate",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterDonate",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeSwapReturnDelta",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterSwapReturnDelta",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterAddLiquidityReturnDelta",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterRemoveLiquidityReturnDelta",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct Hooks.Permissions",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenIn",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut",
+        "type": "address"
+      }
+    ],
+    "name": "getLimits",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getParams",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "vault0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "vault1",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "eulerAccount",
+            "type": "address"
+          },
+          {
+            "internalType": "uint112",
+            "name": "equilibriumReserve0",
+            "type": "uint112"
+          },
+          {
+            "internalType": "uint112",
+            "name": "equilibriumReserve1",
+            "type": "uint112"
+          },
+          {
+            "internalType": "uint256",
+            "name": "priceX",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "priceY",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "concentrationX",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "concentrationY",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "protocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "protocolFeeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct IEulerSwap.Params",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getReserves",
+    "outputs": [
+      {
+        "internalType": "uint112",
+        "name": "reserve0",
+        "type": "uint112"
+      },
+      {
+        "internalType": "uint112",
+        "name": "reserve1",
+        "type": "uint112"
+      },
+      {
+        "internalType": "uint32",
+        "name": "status",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolKey",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "Currency",
+            "name": "currency0",
+            "type": "address"
+          },
+          {
+            "internalType": "Currency",
+            "name": "currency1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "int24",
+            "name": "tickSpacing",
+            "type": "int24"
+          },
+          {
+            "internalType": "contract IHooks",
+            "name": "hooks",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct PoolKey",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolManager",
+    "outputs": [
+      {
+        "internalType": "contract IPoolManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -13,7 +13,5 @@ const (
 
 	methodGetTotalSupply = "totalSupply"
 
-	defaultWeight = 1
-
 	zeroString = "0"
 )

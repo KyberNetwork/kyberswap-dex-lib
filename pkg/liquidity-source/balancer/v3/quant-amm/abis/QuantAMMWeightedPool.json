@@ -1,0 +1,127 @@
+[
+  {
+    "inputs": [],
+    "name": "getQuantAMMWeightedPoolDynamicData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256[]",
+            "name": "balancesLiveScaled18",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "tokenRates",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolInitialized",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolInRecoveryMode",
+            "type": "bool"
+          },
+          {
+            "internalType": "int256[]",
+            "name": "firstFourWeightsAndMultipliers",
+            "type": "int256[]"
+          },
+          {
+            "internalType": "int256[]",
+            "name": "secondFourWeightsAndMultipliers",
+            "type": "int256[]"
+          },
+          {
+            "internalType": "uint64",
+            "name": "lastUpdateTime",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "lastInteropTime",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IQuantAMMWeightedPool.QuantAMMWeightedPoolDynamicData",
+        "name": "data",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getQuantAMMWeightedPoolImmutableData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "contract IERC20[]",
+            "name": "tokens",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "oracleStalenessThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "poolRegistry",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int256[][]",
+            "name": "ruleParameters",
+            "type": "int256[][]"
+          },
+          {
+            "internalType": "uint64[]",
+            "name": "lambda",
+            "type": "uint64[]"
+          },
+          {
+            "internalType": "uint64",
+            "name": "epsilonMax",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "absoluteWeightGuardRail",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "updateInterval",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxTradeSizeRatio",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IQuantAMMWeightedPool.QuantAMMWeightedPoolImmutableData",
+        "name": "data",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

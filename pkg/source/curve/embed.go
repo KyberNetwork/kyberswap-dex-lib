@@ -20,6 +20,12 @@ var cryptoRegistryABIBytes []byte
 //go:embed abi/MetaPool.json
 var metaABIBytes []byte
 
+//go:embed abi/MetaPoolV0.2.12.json
+var metaV0_2_12ABIBytes []byte
+
+//go:embed abi/RedemptionPriceSnap.json
+var redemptionPriceSnapABIBytes []byte
+
 //go:embed abi/Aave.json
 var aaveABIBytes []byte
 
@@ -70,11 +76,6 @@ var basePoolsBytes []byte
 //go:embed pools/ellipsis/bsc.json
 var ellipsisBscPoolsBytes []byte
 
-// Pancake-stable pool bytes
-
-//go:embed pools/pancake-stable/bsc.json
-var pancakeStablePoolsBytes []byte
-
 var bytesByPath = map[string][]byte{
 	"pools/arbitrum.json":  arbitrumPoolsBytes,
 	"pools/avalanche.json": avalanchePoolsBytes,
@@ -84,6 +85,5 @@ var bytesByPath = map[string][]byte{
 	"pools/polygon.json":   polygonPoolsBytes,
 	"pools/base.json":      basePoolsBytes,
 
-	"pools/ellipsis/bsc.json":       ellipsisBscPoolsBytes,
-	"pools/pancake-stable/bsc.json": pancakeStablePoolsBytes,
+	"pools/ellipsis/bsc.json": ellipsisBscPoolsBytes,
 }

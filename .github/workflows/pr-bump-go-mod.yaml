@@ -1,0 +1,16 @@
+name: 'PR to bump go mod version'
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  bump:
+    uses: KyberNetwork/service-framework/.github/workflows/pr-bump-go-mod.yaml@main
+    secrets: inherit
+    with:
+      repos: '["aggregator-encoding", "pool-service", "router-service", "onchain-price-service", "zap-service", "kyberswap-dex-lib-private"]'

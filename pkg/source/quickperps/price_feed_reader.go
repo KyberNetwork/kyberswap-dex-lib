@@ -2,10 +2,11 @@ package quickperps
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"math/big"
 )
 
 type PriceFeedReader struct {
@@ -50,7 +51,7 @@ func (r *PriceFeedReader) read(ctx context.Context, address string, priceFeed *P
 		Target: address,
 		Method: priceFeedMethodRead,
 		Params: nil,
-	}, []interface{}{&priceFeedState})
+	}, []any{&priceFeedState})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		return err

@@ -1,0 +1,692 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "orderId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint40",
+        "name": "flippedId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint96",
+        "name": "size",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint32",
+        "name": "price",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "flippedPrice",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      }
+    ],
+    "name": "FlipOrderCreated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "orderId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint96",
+        "name": "size",
+        "type": "uint96"
+      }
+    ],
+    "name": "FlipOrderUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40[]",
+        "name": "orderIds",
+        "type": "uint40[]"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "FlipOrdersCanceled",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "orderId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint40",
+        "name": "flippedId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint96",
+        "name": "size",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint32",
+        "name": "price",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "flippedPrice",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      }
+    ],
+    "name": "FlippedOrderCreated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IOrderBook.MarketState",
+        "name": "previousState",
+        "type": "uint8"
+      },
+      {
+        "internalType": "enum IOrderBook.MarketState",
+        "name": "newState",
+        "type": "uint8"
+      }
+    ],
+    "name": "MarketStateUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "orderId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint32",
+        "name": "price",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint96",
+        "name": "size",
+        "type": "uint96"
+      },
+      {
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      }
+    ],
+    "name": "OrderCanceled",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "orderId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint96",
+        "name": "size",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint32",
+        "name": "price",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      }
+    ],
+    "name": "OrderCreated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40[]",
+        "name": "orderId",
+        "type": "uint40[]"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OrdersCanceled",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "orderId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "address",
+        "name": "makerAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint96",
+        "name": "updatedSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "address",
+        "name": "takerAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "txOrigin",
+        "type": "address"
+      },
+      {
+        "internalType": "uint96",
+        "name": "filledSize",
+        "type": "uint96"
+      }
+    ],
+    "name": "Trade",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "Upgraded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "_vaultAskOrderSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "_vaultAskPartiallyFilledSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "_vaultBidOrderSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "_vaultBidPartiallyFilledSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_askPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_bidPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "VaultParamsUpdated",
+    "type": "event"
+  },
+  {
+    "name": "SPREAD_CONSTANT",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "bestBidAsk",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "getL2Book",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "_bidPricePoints",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_askPricePoints",
+        "type": "uint32"
+      }
+    ],
+    "name": "getL2Book",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "getMarketParams",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "pricePrecision",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint96",
+        "name": "sizePrecision",
+        "type": "uint96"
+      },
+      {
+        "internalType": "address",
+        "name": "baseAssetAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseAssetDecimals",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "quoteAssetAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quoteAssetDecimals",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "tickSize",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint96",
+        "name": "minSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "maxSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint256",
+        "name": "takerFeeBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "makerFeeBps",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "getVaultParams",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "kuruAmmVault",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "vaultBestBid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint96",
+        "name": "bidPartiallyFilledSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint256",
+        "name": "vaultBestAsk",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint96",
+        "name": "askPartiallyFilledSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "vaultBidOrderSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "vaultAskOrderSize",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "spread",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "forwarder",
+        "type": "address"
+      }
+    ],
+    "name": "isTrustedForwarder",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "kuruAmmVault",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "marketState",
+    "outputs": [
+      {
+        "internalType": "enum IOrderBook.MarketState",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "proxiableUUID",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "s_buyPricePoints",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "name": "head",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint40",
+        "name": "tail",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "s_buyTree",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "level0",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "s_orderIdCounter",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "type": "uint40"
+      }
+    ],
+    "name": "s_orders",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "ownerAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint96",
+        "name": "size",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint40",
+        "name": "prev",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint40",
+        "name": "next",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint40",
+        "name": "flippedId",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint32",
+        "name": "price",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "flippedPrice",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isBuy",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "name": "s_sellPricePoints",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "name": "head",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint40",
+        "name": "tail",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "s_sellTree",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "level0",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "vaultAskOrderSize",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "vaultBestAsk",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -1,120 +1,128 @@
 package pool
 
 import (
-	"errors"
+	"context"
 	"math/big"
+	"strings"
+	"time"
 
-	"github.com/KyberNetwork/logger"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
-	ErrCalcAmountOutPanic = errors.New("calcAmountOut was panic")
+	errLogSampler = &zerolog.BurstSampler{Burst: 2, Period: 15 * time.Second}
 )
 
 type Pool struct {
 	Info PoolInfo
 }
 
-func (t *Pool) GetInfo() PoolInfo {
-	return t.Info
-}
-
-func (t *Pool) GetTokens() []string {
-	return t.Info.Tokens
-}
-
-func (t *Pool) GetReserves() []*big.Int {
-	return t.Info.Reserves
-}
-
-func (t *Pool) CalculateLimit() map[string]*big.Int {
+func (p *Pool) CloneState() IPoolSimulator {
 	return nil
+}
+
+func (p *Pool) GetInfo() PoolInfo {
+	return p.Info
+}
+
+func (p *Pool) GetTokens() []string {
+	return p.Info.Tokens
+}
+
+func (p *Pool) GetReserves() []*big.Int {
+	return p.Info.Reserves
+}
+
+func (p *Pool) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
+func (p *Pool) GetApprovalAddress(tokenIn, tokenOut string) string {
+	return ""
 }
 
 // CanSwapTo is the base method to get all swappable tokens from a pool by a given token address
 // Pools with custom logic should override this method
-func (t *Pool) CanSwapTo(address string) []string {
-	result := make([]string, 0, len(t.Info.Tokens))
-	var tokenIndex = t.GetTokenIndex(address)
-	if tokenIndex < 0 {
-		return result
+func (p *Pool) CanSwapTo(address string) []string {
+	if p.GetTokenIndex(address) == -1 {
+		return nil
 	}
-
-	for i := 0; i < len(t.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			result = append(result, t.Info.Tokens[i])
+	result := make([]string, len(p.Info.Tokens)-1)
+	i := 0
+	for _, token := range p.Info.Tokens {
+		if token != address {
+			result[i] = token
+			i++
 		}
 	}
 
 	return result
 }
 
-// by default pool is bi-directional so just call CanSwapTo here
+// CanSwapFrom by default just call CanSwapTo assuming the pool is bidirectional.
 // Pools with custom logic should override this method
-func (t *Pool) CanSwapFrom(address string) []string {
-	return t.CanSwapTo(address)
+func (p *Pool) CanSwapFrom(address string) []string {
+	return p.CanSwapTo(address)
 }
 
-func (t *Pool) GetAddress() string {
-	return t.Info.Address
+func (p *Pool) GetAddress() string {
+	return p.Info.Address
 }
 
-func (t *Pool) GetExchange() string {
-	return t.Info.Exchange
+func (p *Pool) GetExchange() string {
+	return p.Info.Exchange
 }
 
-func (t *Pool) Equals(other IPoolSimulator) bool {
-	return t.GetAddress() == other.GetAddress()
+func (p *Pool) Equals(other IPoolSimulator) bool {
+	return p.GetAddress() == other.GetAddress()
 }
 
-func (t *Pool) GetTokenIndex(address string) int {
-	return t.Info.GetTokenIndex(address)
+func (p *Pool) GetTokenIndex(address string) int {
+	return p.Info.GetTokenIndex(address)
 }
 
-func (t *Pool) GetType() string {
-	return t.Info.Type
+func (p *Pool) GetType() string {
+	return p.Info.Type
 }
 
 type CalcAmountOutResult struct {
-	TokenAmountOut *TokenAmount
-	Fee            *TokenAmount
-	Gas            int64
-	SwapInfo       interface{}
+	TokenAmountOut         *TokenAmount
+	Fee                    *TokenAmount
+	RemainingTokenAmountIn *TokenAmount
+	Gas                    int64
+	SwapInfo               any
 }
 
 func (r *CalcAmountOutResult) IsValid() bool {
-	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0
+	isRemainingValid := r.RemainingTokenAmountIn == nil || (r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Sign() >= 0)
+	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Sign() > 0 && isRemainingValid
 }
 
 type UpdateBalanceParams struct {
 	TokenAmountIn  TokenAmount
 	TokenAmountOut TokenAmount
 	Fee            TokenAmount
-	SwapInfo       interface{}
+	SwapInfo       any
 
-	//Inventory is a reference to a per-request inventory balances.
+	// Inventory is a reference to a per-request inventory balances.
 	// key is tokenAddress, balance is big.Float
 	// Must use reference (not copy)
 	SwapLimit SwapLimit
 }
 
-type PoolToken struct {
-	Token               string
-	Balance             *big.Int
-	Weight              uint
-	PrecisionMultiplier *big.Int
-	VReserve            *big.Int
-}
-
 type PoolInfo struct {
 	Address     string
-	ReserveUsd  float64
-	SwapFee     *big.Int
 	Exchange    string
 	Type        string
 	Tokens      []string
 	Reserves    []*big.Int
-	Checked     bool
+	SwapFee     *big.Int
 	BlockNumber uint64
 }
 
@@ -133,16 +141,28 @@ type CalcAmountOutParams struct {
 	Limit         SwapLimit
 }
 
-// wrap around pool.CalcAmountOut and catch panic
-func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string, limit SwapLimit) (res *CalcAmountOutResult, err error) {
+type CalcAmountInParams struct {
+	TokenAmountOut TokenAmount
+	TokenIn        string
+	Limit          SwapLimit
+}
+
+type CalcAmountInResult struct {
+	TokenAmountIn           *TokenAmount
+	RemainingTokenAmountOut *TokenAmount
+	Fee                     *TokenAmount
+	Gas                     int64
+	SwapInfo                any
+}
+
+// CalcAmountOut wraps pool.CalcAmountOut and catch panic
+func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
+	limit SwapLimit) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = ErrCalcAmountOutPanic
-			logger.WithFields(
-				logger.Fields{
-					"recover":     r,
-					"poolAddress": pool.GetAddress(),
-				}).Warn(err.Error())
+			err = errors.Errorf("calcAmountOut panicked: %v", r)
+			lg := log.Ctx(ctx).Sample(errLogSampler)
+			lg.Warn().Stack().Err(err).Str("pool", pool.GetAddress()).Send()
 		}
 	}()
 
@@ -152,4 +172,16 @@ func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut stri
 			TokenOut:      tokenOut,
 			Limit:         limit,
 		})
+}
+
+func FromEntity(e entity.Pool) Pool {
+	return Pool{PoolInfo{
+		Address:     e.Address,
+		Exchange:    e.Exchange,
+		Type:        e.Type,
+		Tokens:      lo.Map(e.Tokens, func(t *entity.PoolToken, _ int) string { return strings.ToLower(t.Address) }),
+		Reserves:    lo.Map(e.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
+		SwapFee:     big.NewInt(int64(e.SwapFee)),
+		BlockNumber: e.BlockNumber,
+	}}
 }

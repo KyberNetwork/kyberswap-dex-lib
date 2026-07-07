@@ -1,0 +1,527 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "liquidityIncreaseRaw",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogDeposit",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId",
+        "type": "bytes32"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "fee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "tickSpacing",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "controller",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "sqrtPriceX96",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogInitialize",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "liquidityDecreaseRaw",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogWithdraw",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "liquidityIncreaseRaw",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogBorrow",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positionSalt",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feeAccruedToken1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "liquidityDecreaseRaw",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogPayback",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "amount",
+        "type": "int256"
+      }
+    ],
+    "name": "LogAddOrRemoveTokens",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "implementationId",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogOperate",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "implementationId",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogOperateAdmin",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "supplyAmount",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "borrowAmount",
+        "type": "int256"
+      }
+    ],
+    "name": "LogRebalance",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "supplyAmount",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "borrowAmount",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "storeAmount",
+        "type": "int256"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "LogSettle",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "auth",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bool",
+        "name": "isAuth",
+        "type": "bool"
+      }
+    ],
+    "name": "LogUpdateAuth",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "adminImplementationId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "adminImplementation",
+        "type": "address"
+      }
+    ],
+    "name": "LogUpdateDexTypeToAdminImplementation",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "LogUpgraded",
+    "type": "event"
+  },
+  {
+    "name": "proxiableUUID",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "slot_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "readFromStorage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "result_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "slot_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "readFromTransientStorage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "result_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -2,15 +2,19 @@ package mantisswap
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -18,6 +22,8 @@ type PoolsListUpdater struct {
 	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeMantisSwap, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -56,8 +62,8 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			ABI:    MainPoolABI,
 			Target: d.config.MainPoolAddress,
 			Method: mainPoolMethodLpList,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&lpList[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&lpList[i]})
 	}
 	if _, err := callLpList.TryAggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)
@@ -80,7 +86,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			Target: lpList[i].Hex(),
 			Method: lpMethodUnderlier,
 			Params: nil,
-		}, []interface{}{&underliers[i]})
+		}, []any{&underliers[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)
@@ -94,13 +100,12 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 	)
 	for i, tokenAddress := range underliers {
 		tokens[i] = &entity.PoolToken{
-			Address:   strings.ToLower(tokenAddress.Hex()),
-			Weight:    defaultWeight,
+			Address:   hexutil.Encode(tokenAddress[:]),
 			Swappable: true,
 		}
 		reserves[i] = zeroString
 		lps[tokens[i].Address] = &LP{
-			Address: strings.ToLower(lpList[i].Hex()),
+			Address: hexutil.Encode(lpList[i][:]),
 		}
 	}
 

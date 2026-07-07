@@ -1,0 +1,24 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getReserves",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

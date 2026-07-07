@@ -1,29 +1,41 @@
 package liquiditybookv21
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 type Metadata struct {
 	Offset int `json:"offset"`
 }
 
 type Extra struct {
-	RpcBlockTimestamp      uint64            `json:"rpcBlockTimestamp"`
-	SubgraphBlockTimestamp uint64            `json:"subgraphBlockTimestamp"`
-	StaticFeeParams        staticFeeParams   `json:"staticFeeParams"`
-	VariableFeeParams      variableFeeParams `json:"variableFeeParams"`
-	ActiveBinID            uint32            `json:"activeBinId"`
-	BinStep                uint16            `json:"binStep"`
-	Bins                   []bin             `json:"bins"`
+	RpcBlockTimestamp uint64            `json:"rpcBlockTimestamp"`
+	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
+	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
+	ActiveBinID       uint32            `json:"activeBinId"`
+	BinStep           uint16            `json:"binStep"`
+	Bins              []Bin             `json:"bins"`
+}
+
+type ExtraU256 struct {
+	RpcBlockTimestamp uint64            `json:"rpcBlockTimestamp"`
+	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
+	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
+	ActiveBinID       uint32            `json:"activeBinId"`
+	BinStep           uint16            `json:"binStep"`
+	Bins              []BinU256         `json:"bins"`
 }
 
 type SwapInfo struct {
-	AmountsInLeft      *big.Int            `json:"-"`
+	AmountsInLeft      *uint256.Int        `json:"-"`
 	NewParameters      *parameters         `json:"-"`
 	NewActiveID        uint32              `json:"-"`
 	BinsReserveChanges []binReserveChanges `json:"-"`
 }
 
-type queryRpcPoolStateResult struct {
+type QueryRpcPoolStateResult struct {
 	BlockTimestamp    uint64            `json:"blockTimestamp"`
 	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
 	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
@@ -33,8 +45,7 @@ type queryRpcPoolStateResult struct {
 }
 
 type querySubgraphPoolStateResult struct {
-	BlockTimestamp uint64 `json:"blockTimestamp"`
-	Bins           []bin  `json:"bins"`
+	Bins []Bin `json:"bins"`
 }
 
 type staticFeeParams struct {
@@ -59,9 +70,9 @@ type reserves struct {
 	ReserveY *big.Int `json:"reserveY"`
 }
 
-type getSwapOutResult struct {
-	AmountOut          *big.Int
-	Fee                *big.Int
+type swapResult struct {
+	Amount             *uint256.Int
+	Fee                *uint256.Int
 	BinsReserveChanges []binReserveChanges
 	Parameters         *parameters
 	NewActiveID        uint32
@@ -105,4 +116,9 @@ type variableFeeParamsResp struct {
 	VolatilityReference   *big.Int
 	IdReference           *big.Int
 	TimeOfLastUpdate      *big.Int
+}
+
+type bin struct {
+	BinReserveX *big.Int
+	BinReserveY *big.Int
 }

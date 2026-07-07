@@ -111,17 +111,9 @@ func (dp *DexPriceAggregatorUniswapV3) _fetchAmountFromSinglePool(
 	// we need to treat the tick as an inverse
 	var minTick int
 	if _tokenIn.String() < _tokenOut.String() {
-		if spotTick < twapTick {
-			minTick = spotTick
-		} else {
-			minTick = twapTick
-		}
+		minTick = min(spotTick, twapTick)
 	} else {
-		if spotTick > twapTick {
-			minTick = spotTick
-		} else {
-			minTick = twapTick
-		}
+		minTick = max(spotTick, twapTick)
 	}
 
 	return getQuoteAtTick(

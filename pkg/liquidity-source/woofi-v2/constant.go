@@ -1,12 +1,11 @@
 package woofiv2
 
-import "github.com/ethereum/go-ethereum/common"
-
 const (
 	DexTypeWooFiV2 = "woofi-v2"
 
 	integrationHelperMethodAllBaseTokens = "allBaseTokens"
 
+	wooPPV2MethodPaused     = "paused"
 	wooPPV2MethodQuoteToken = "quoteToken"
 	wooPPV2MethodTokenInfos = "tokenInfos"
 	wooPPV2MethodWooracle   = "wooracle"
@@ -22,11 +21,9 @@ const (
 
 	erc20MethodDecimals = "decimals"
 
-	defaultWeight = 1
-	zeroString    = "0"
+	zeroString = "0"
 )
 
 var (
-	DefaultGas  = Gas{Swap: 125000}
-	zeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	DefaultGas = Gas{Swap: 125000}
 )

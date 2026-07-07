@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0xaf37c1167910ebc994e266949387d2c7c326b879",
+    "type": "ondo-usdy",
+    "tokens": [
+      {
+        "address": "0x96f6ef951840721adbf46ac996b59e0235cb985c",
+        "name": "Ondo U.S. Dollar Yield",
+        "symbol": "USDY",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0xaf37c1167910ebc994e266949387d2c7c326b879",
+        "name": "Ondo U.S. Dollar Yield (Rebasing)",
+        "symbol": "rUSDY",
+        "decimals": 18,
+        "swappable": true
+      }
+    ],
+    "RWADynamicOracleAddress": "0xa0219aa5b31e65bc920b5b6dfb8edf0988121de0"
+  }
+]

@@ -1,6 +1,10 @@
 package curve
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 const (
 	DexTypeCurve = "curve"
@@ -47,6 +51,9 @@ const (
 	poolMethodLastPrices          = "last_prices"
 	poolMethodBasePool            = "base_pool"
 
+	poolMethodRedemptionPriceSnap      = "redemption_price_snap"
+	oracleMethodSnappedRedemptionPrice = "snappedRedemptionPrice"
+
 	aaveMethodOffpegFeeMultiplier = "offpeg_fee_multiplier"
 	oracleMethodLatestAnswer      = "latestAnswer"
 	plainOracleMethodOracle       = "oracle"
@@ -57,8 +64,9 @@ const (
 	addressEther = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 	addressZero  = "0x0000000000000000000000000000000000000000"
 
-	zeroString    = "0"
-	defaultWeight = 1
+	zeroString = "0"
+
+	RAIMetaPool = "0x618788357d0ebd8a37e763adab3bc575d54c2c7d"
 )
 
 const (
@@ -70,6 +78,8 @@ const (
 	PoolTypeCompound    = "curve-compound"
 	PoolTypeTricrypto   = "curve-tricrypto"
 	PoolTypeTwo         = "curve-two"
+
+	PoolTypeListaSwap   = "lista-stable"
 	PoolTypeUnsupported = "unsupported"
 )
 
@@ -107,7 +117,8 @@ var weth9 = map[int]string{
 }
 
 var (
-	zeroBI            = big.NewInt(0)
-	emptyString       = ""
-	zero        int64 = 0
+	zeroBI       = big.NewInt(0)
+	zero   int64 = 0
+
+	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
 )

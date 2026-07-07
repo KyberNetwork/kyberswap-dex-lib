@@ -6,15 +6,20 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexTypeBiswap, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -29,7 +34,24 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -37,6 +59,9 @@ func (d *PoolTracker) GetNewPoolState(
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
+	if overrides != nil {
+		rpcRequest.SetOverrides(overrides)
+	}
 
 	var (
 		reserves Reserves
@@ -48,14 +73,14 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    biswapPairABI,
 		Target: p.Address,
 		Method: pairMethodGetSwapFee,
 		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 
 	resp, err := rpcRequest.TryAggregate()
 	if err != nil {

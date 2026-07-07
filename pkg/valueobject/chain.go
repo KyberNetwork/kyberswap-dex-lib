@@ -1,5 +1,9 @@
 package valueobject
 
+import (
+	"strconv"
+)
+
 type ChainID uint
 
 const (
@@ -24,53 +28,85 @@ const (
 	ChainIDArbitrumRinkeby ChainID = 421611
 	ChainIDEthereumW       ChainID = 10001
 	ChainIDFuji            ChainID = 43113
+	ChainIDLineaGoerli     ChainID = 59140
 	ChainIDLinea           ChainID = 59144
 	ChainIDZKSync          ChainID = 324
+	ChainIDPolygonZkEVM    ChainID = 1101
+	ChainIDBase            ChainID = 8453
+	ChainIDScroll          ChainID = 534352
+	ChainIDBlast           ChainID = 81457
+	ChainIDMantle          ChainID = 5000
+	ChainIDSonic           ChainID = 146
+	ChainIDBerachain       ChainID = 80094
+	ChainIDRonin           ChainID = 2020
+	ChainIDUnichain        ChainID = 130
+	ChainIDHyperEVM        ChainID = 999
+	ChainIDPlasma          ChainID = 9745
+	ChainIDEtherlink       ChainID = 42793
+	ChainIDMonad           ChainID = 143
+	ChainIDMegaETH         ChainID = 4326
+	ChainIDRise            ChainID = 4153
 
 	// ChainIDSolana is currently used in case of store price to db, that we should transform token addr into lowercase or not.
 	ChainIDSolana ChainID = 0
 )
 
+var ChainNameMap = map[ChainID]string{
+	ChainIDEthereum:        "ethereum",
+	ChainIDRopsten:         "ethereum-ropsten",
+	ChainIDRinkeBy:         "ethereum-rinkeby",
+	ChainIDGoerli:          "ethereum-goerli",
+	ChainIDOptimism:        "optimism",
+	ChainIDKovan:           "ethereum-kovan",
+	ChainIDBSC:             "bsc",
+	ChainIDOptimismKovan:   "optimism-kovan",
+	ChainIDPolygon:         "polygon",
+	ChainIDMumbai:          "mumbai",
+	ChainIDAvalancheCChain: "avalanche",
+	ChainIDFantom:          "fantom",
+	ChainIDCronos:          "cronos",
+	ChainIDBitTorrent:      "bttc",
+	ChainIDVelasEVM:        "velas",
+	ChainIDAurora:          "aurora",
+	ChainIDOasisEmerald:    "oasis",
+	ChainIDArbitrumOne:     "arbitrum",
+	ChainIDArbitrumRinkeby: "arbitrum-rinkeby",
+	ChainIDEthereumW:       "ethereum-w",
+	ChainIDFuji:            "avalanche-fuji",
+	ChainIDLineaGoerli:     "linea-goerli",
+	ChainIDLinea:           "linea",
+	ChainIDZKSync:          "zkSync",
+	ChainIDPolygonZkEVM:    "polygon-zkevm",
+	ChainIDBase:            "base",
+	ChainIDScroll:          "scroll",
+	ChainIDBlast:           "blast",
+	ChainIDMantle:          "mantle",
+	ChainIDSonic:           "sonic",
+	ChainIDBerachain:       "berachain",
+	ChainIDRonin:           "ronin",
+	ChainIDUnichain:        "unichain",
+	ChainIDHyperEVM:        "hyperevm",
+	ChainIDPlasma:          "plasma",
+	ChainIDEtherlink:       "etherlink",
+	ChainIDMonad:           "monad",
+	ChainIDMegaETH:         "megaeth",
+	ChainIDRise:            "rise",
+
+	ChainIDSolana: "solana",
+}
+
+func (c ChainID) String() string {
+	str, err := ToString(c)
+	if err != nil {
+		return strconv.Itoa(int(c))
+	}
+	return str
+}
+
 func ToString(chainID ChainID) (string, error) {
-	switch chainID {
-	case 1:
-		return "ethereum", nil
-	case 4:
-		return "ethereum-rinkeby", nil
-	case 5:
-		return "bsc", nil
-	case 42161:
-		return "arbitrum", nil
-	case 1313161554:
-		return "aurora", nil
-	case 43114:
-		return "avalanche", nil
-	case 56:
-		return "bsc", nil
-	case 199:
-		return "bttc", nil
-	case 25:
-		return "cronos", nil
-	case 10001:
-		return "ethw", nil
-	case 250:
-		return "fantom", nil
-	case 43113:
-		return "fuji", nil
-	case 42262:
-		return "oasis", nil
-	case 10:
-		return "optimism", nil
-	case 137:
-		return "polygon", nil
-	case 0:
-		return "solana", nil
-	case 106:
-		return "velas", nil
-	case 1001:
-		return "ethw", nil
-	default:
+	if name, ok := ChainNameMap[chainID]; ok {
+		return name, nil
+	} else {
 		return "", ErrChainUnsupported
 	}
-
 }

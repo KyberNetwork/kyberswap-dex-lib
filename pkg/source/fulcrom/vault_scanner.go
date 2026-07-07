@@ -2,6 +2,7 @@ package fulcrom
 
 import (
 	"context"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 )
@@ -60,10 +61,6 @@ func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, e
 
 func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, tokens []string) (*VaultPriceFeed, error) {
 	vaultPriceFeed, err := vs.vaultPriceFeedReader.Read(ctx, address, tokens)
-	if err != nil {
-		return nil, err
-	}
-
 	if err != nil {
 		return nil, err
 	}

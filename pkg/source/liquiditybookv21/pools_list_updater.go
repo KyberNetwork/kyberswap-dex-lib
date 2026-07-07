@@ -2,23 +2,24 @@ package liquiditybookv21
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
-	"strings"
-	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeLiquidityBookV21, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -35,28 +36,22 @@ func (p *PoolsListUpdater) InitPool(_ context.Context) error {
 }
 
 func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	l := log.Ctx(ctx).With().Str("exchange", p.config.DexID).Logger()
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
-		if err != nil {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, metadataBytes, err
 		}
 	}
 
-	// Add timestamp to the context so that each run iteration will have something different
-	ctx = util.NewContextWithTimestamp(ctx)
-
 	var lengthBI *big.Int
 
-	getNumPoolsRequest := p.ethrpcClient.NewRequest()
-	getNumPoolsRequest.AddCall(&ethrpc.Call{
+	if _, err := p.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: p.config.FactoryAddress,
 		Method: factoryMethodGetNumberOfLBPairs,
-	}, []interface{}{&lengthBI})
-
-	if _, err := getNumPoolsRequest.Call(); err != nil {
-		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
+	}, []any{&lengthBI}).Call(); err != nil {
+		l.Err(err).Msg("failed to get number of pairs from factory")
 		return nil, metadataBytes, err
 	}
 
@@ -71,7 +66,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	getPairAddressRequest := p.ethrpcClient.NewRequest()
+	getPairAddressRequest := p.ethrpcClient.NewRequest().SetContext(ctx)
 
 	var pairAddresses = make([]common.Address, batchSize)
 	for j := 0; j < batchSize; j++ {
@@ -79,12 +74,12 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    factoryABI,
 			Target: p.config.FactoryAddress,
 			Method: factoryMethodGetLBPairAtIndex,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&pairAddresses[j]})
 	}
 	resp, err := getPairAddressRequest.TryAggregate()
 	if err != nil {
-		logger.Errorf("failed to process aggregate, err: %v", err)
+		l.Err(err).Msg("failed to process aggregate")
 		return nil, metadataBytes, err
 	}
 
@@ -95,9 +90,9 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	pools, err := p.processBatch(ctx, successPairAddresses)
+	pools, err := p.processBatch(ctx, successPairAddresses, currentOffset)
 	if err != nil {
-		logger.Errorf("failed to process update new pool, err: %v", err)
+		l.Err(err).Msg("failed to process update new pool")
 		return nil, metadataBytes, err
 	}
 
@@ -110,53 +105,48 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan Liquidity Book V2.1 LBFactory with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
+		l.Info().Msgf("scan Liquidity Book V2.1 LBFactory with batch size %v, progress: %d/%d",
+			batchSize, currentOffset+batchSize, totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
 }
 
-func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []common.Address) ([]entity.Pool, error) {
+func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []common.Address, currentOffset int) ([]entity.Pool, error) {
 	var tokenXAddresses = make([]common.Address, len(pairAddresses))
 	var tokenYAddresses = make([]common.Address, len(pairAddresses))
 
-	rpcRequest := p.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
-
-	for i := 0; i < len(pairAddresses); i++ {
-		rpcRequest.AddCall(&ethrpc.Call{
+	req := p.ethrpcClient.NewRequest().SetContext(ctx)
+	for i, pairAddr := range pairAddresses {
+		pair := hexutil.Encode(pairAddr[:])
+		req.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddresses[i].Hex(),
+			Target: pair,
 			Method: pairMethodGetTokenX,
-		}, []interface{}{&tokenXAddresses[i]})
-
-		rpcRequest.AddCall(&ethrpc.Call{
+		}, []any{&tokenXAddresses[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddresses[i].Hex(),
+			Target: pair,
 			Method: pairMethodGetTokenY,
-		}, []interface{}{&tokenYAddresses[i]})
+		}, []any{&tokenYAddresses[i]})
 	}
-
-	if _, err := rpcRequest.Aggregate(); err != nil {
-		logger.Errorf("failed to process aggregate to get 2 tokens from pair contract, err: %v", err)
+	if _, err := req.Aggregate(); err != nil {
+		log.Ctx(ctx).Err(err).Msg("failed to process aggregate to get 2 tokens from pair contract")
 		return nil, err
 	}
 
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
-		address := strings.ToLower(pairAddress.Hex())
-		tokenXAddress := strings.ToLower(tokenXAddresses[i].Hex())
-		tokenYAddress := strings.ToLower(tokenYAddresses[i].Hex())
+		address := hexutil.Encode(pairAddress[:])
+		tokenXAddress := hexutil.Encode(tokenXAddresses[i][:])
+		tokenYAddress := hexutil.Encode(tokenYAddresses[i][:])
 
 		var tokenX = entity.PoolToken{
 			Address:   tokenXAddress,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		var tokenY = entity.PoolToken{
 			Address:   tokenYAddress,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 
@@ -164,7 +154,7 @@ func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Address:   address,
 			Exchange:  p.config.DexID,
 			Type:      DexTypeLiquidityBookV21,
-			Timestamp: time.Now().Unix(),
+			Timestamp: int64(currentOffset),
 			Reserves:  []string{"0", "0"},
 			Tokens:    []*entity.PoolToken{&tokenX, &tokenY},
 		}

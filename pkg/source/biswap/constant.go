@@ -1,9 +1,8 @@
 package biswap
 
 const (
-	DexTypeBiswap      = "biswap"
-	defaultTokenWeight = 50
-	reserveZero        = "0"
+	DexTypeBiswap = "biswap"
+	reserveZero   = "0"
 )
 
 const (

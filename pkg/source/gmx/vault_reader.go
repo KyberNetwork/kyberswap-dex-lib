@@ -9,15 +9,27 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type VaultReader struct {
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
+
+	vaultMethodUSDG           string
+	vaultMethodUSDGAmounts    string
+	vaultMethodMaxUSDGAmounts string
 }
 
-func NewVaultReader(ethrpcClient *ethrpc.Client) *VaultReader {
+func NewVaultReader(ethrpcClient *ethrpc.Client, usdgForkName string) *VaultReader {
+	if usdgForkName == "" {
+		usdgForkName = "usdg"
+	}
+	vaultABI, err := abi.JSON(strings.NewReader(replaceUsdgForkName(string(vaultJson), usdgForkName)))
+	if err != nil {
+		panic(err)
+	}
 	return &VaultReader{
 		abi:          vaultABI,
 		ethrpcClient: ethrpcClient,
@@ -25,7 +37,18 @@ func NewVaultReader(ethrpcClient *ethrpc.Client) *VaultReader {
 			"liquiditySource": DexTypeGmx,
 			"reader":          "VaultReader",
 		}),
+
+		vaultMethodUSDG:           replaceUsdgForkName("usdg", usdgForkName),
+		vaultMethodUSDGAmounts:    replaceUsdgForkName("usdgAmounts", usdgForkName),
+		vaultMethodMaxUSDGAmounts: replaceUsdgForkName("maxUsdgAmounts", usdgForkName),
 	}
+}
+
+func replaceUsdgForkName(s string, usdgForkName string) string {
+	s = strings.ReplaceAll(s, "usdg", usdgForkName)
+	s = strings.ReplaceAll(s, "Usdg", strings.ToUpper(usdgForkName[:1])+usdgForkName[1:])
+	s = strings.ReplaceAll(s, "USDG", strings.ToUpper(usdgForkName))
+	return s
 }
 
 // Read reads all data required for finding route
@@ -66,17 +89,20 @@ func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(callParamsFactory(vaultMethodHasDynamicFees, nil), []interface{}{&vault.HasDynamicFees})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodIncludeAmmPrice, nil), []interface{}{&vault.IncludeAmmPrice})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodIsSwapEnabled, nil), []interface{}{&vault.IsSwapEnabled})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodPriceFeed, nil), []interface{}{&vault.PriceFeedAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodStableSwapFeeBasisPoints, nil), []interface{}{&vault.StableSwapFeeBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodStableTaxBasisPoints, nil), []interface{}{&vault.StableTaxBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodSwapFeeBasisPoints, nil), []interface{}{&vault.SwapFeeBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodTaxBasisPoints, nil), []interface{}{&vault.TaxBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodTotalTokenWeights, nil), []interface{}{&vault.TotalTokenWeights})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodUSDG, nil), []interface{}{&vault.USDGAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodWhitelistedTokenCount, nil), []interface{}{&vault.WhitelistedTokensCount})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodHasDynamicFees, nil), []any{&vault.HasDynamicFees})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodIncludeAmmPrice, nil), []any{&vault.IncludeAmmPrice})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodIsSwapEnabled, nil), []any{&vault.IsSwapEnabled})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodPriceFeed, nil), []any{&vault.PriceFeedAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodStableSwapFeeBasisPoints, nil),
+		[]any{&vault.StableSwapFeeBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodStableTaxBasisPoints, nil),
+		[]any{&vault.StableTaxBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodSwapFeeBasisPoints, nil), []any{&vault.SwapFeeBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodTaxBasisPoints, nil), []any{&vault.TaxBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodTotalTokenWeights, nil), []any{&vault.TotalTokenWeights})
+	rpcRequest.AddCall(callParamsFactory(r.vaultMethodUSDG, nil), []any{&vault.USDGAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodAllWhitelistedTokensLength, nil),
+		[]any{&vault.WhitelistedTokensCount})
 
 	_, err := rpcRequest.TryAggregate()
 
@@ -91,7 +117,7 @@ func (r *VaultReader) readWhitelistedTokens(
 ) error {
 	tokensLen := int(vault.WhitelistedTokensCount.Int64())
 
-	whitelistedTokens := make([]common.Address, tokensLen)
+	tokenList := make([]common.Address, tokensLen)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < tokensLen; i++ {
@@ -99,19 +125,38 @@ func (r *VaultReader) readWhitelistedTokens(
 			ABI:    r.abi,
 			Target: address,
 			Method: vaultMethodAllWhitelistedTokens,
-			Params: []interface{}{new(big.Int).SetInt64(int64(i))},
-		}, []interface{}{&whitelistedTokens[i]})
+			Params: []any{new(big.Int).SetInt64(int64(i))},
+		}, []any{&tokenList[i]})
 	}
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	res, err := rpcRequest.TryAggregate()
+	if err != nil {
 		return err
 	}
 
-	tokens := make([]string, tokensLen)
-	for i := range whitelistedTokens {
-		tokens[i] = strings.ToLower(whitelistedTokens[i].String())
+	isWhitelistedTokens := make([]bool, len(tokenList))
+	rpcRequest = r.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
+
+	for i := 0; i < len(tokenList); i++ {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    r.abi,
+			Target: address,
+			Method: vaultMethodWhitelistedTokens,
+			Params: []any{tokenList[i]},
+		}, []any{&isWhitelistedTokens[i]})
+	}
+	_, err = rpcRequest.TryAggregate()
+	if err != nil {
+		return err
 	}
 
-	vault.WhitelistedTokens = tokens
+	currentWhiteListTokens := make([]string, 0, tokensLen)
+	for i := range tokenList {
+		if isWhitelistedTokens[i] {
+			currentWhiteListTokens = append(currentWhiteListTokens, hexutil.Encode(tokenList[i][:]))
+		}
+	}
+
+	vault.WhitelistedTokens = currentWhiteListTokens
 
 	return nil
 }
@@ -144,14 +189,22 @@ func (r *VaultReader) readTokensData(
 	for i, token := range vault.WhitelistedTokens {
 		tokenAddress := common.HexToAddress(token)
 
-		rpcRequest.AddCall(callParamsFactory(vaultMethodPoolAmounts, []interface{}{tokenAddress}), []interface{}{&poolAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodBufferAmounts, []interface{}{tokenAddress}), []interface{}{&bufferAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodReservedAmounts, []interface{}{tokenAddress}), []interface{}{&reservedAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenDecimals, []interface{}{tokenAddress}), []interface{}{&tokenDecimals[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodStableTokens, []interface{}{tokenAddress}), []interface{}{&stableTokens[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodUSDGAmounts, []interface{}{tokenAddress}), []interface{}{&usdgAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodMaxUSDGAmounts, []interface{}{tokenAddress}), []interface{}{&maxUSDGAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenWeights, []interface{}{tokenAddress}), []interface{}{&tokenWeights[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodPoolAmounts, []any{tokenAddress}),
+			[]any{&poolAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodBufferAmounts, []any{tokenAddress}),
+			[]any{&bufferAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodReservedAmounts, []any{tokenAddress}),
+			[]any{&reservedAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenDecimals, []any{tokenAddress}),
+			[]any{&tokenDecimals[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodStableTokens, []any{tokenAddress}),
+			[]any{&stableTokens[i]})
+		rpcRequest.AddCall(callParamsFactory(r.vaultMethodUSDGAmounts, []any{tokenAddress}),
+			[]any{&usdgAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(r.vaultMethodMaxUSDGAmounts, []any{tokenAddress}),
+			[]any{&maxUSDGAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenWeights, []any{tokenAddress}),
+			[]any{&tokenWeights[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

@@ -21,10 +21,11 @@ type Extra struct {
 }
 
 type Meta struct {
-	StakeGLP      string `json:"stakeGLP"`
-	GlpManager    string `json:"glpManager"`
-	YearnVault    string `json:"yearnVault"`
-	DirectionFlag uint8  `json:"directionFlag"`
+	StakeGLP        string `json:"stakeGLP"`
+	GlpManager      string `json:"glpManager"`
+	YearnVault      string `json:"yearnVault"`
+	DirectionFlag   uint8  `json:"directionFlag"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type ChainID uint
@@ -32,9 +33,10 @@ type ChainID uint
 type SecondaryPriceFeedVersion int
 
 type gmxGlpSwapInfo struct {
-	calcAmountOutType string
-	mintAmount        *big.Int
-	amountAfterFees   *big.Int
-	redemptionAmount  *big.Int
-	usdgAmount        *big.Int
+	calcAmountOutType       string
+	mintAmount              *big.Int
+	amountAfterFees         *big.Int
+	redemptionAmount        *big.Int
+	usdgAmount              *big.Int
+	yearnTokenVaultModified *YearnTokenVault
 }

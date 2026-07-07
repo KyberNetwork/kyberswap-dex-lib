@@ -36,7 +36,7 @@ func (r *USDMReader) Read(ctx context.Context, address string) (*USDM, error) {
 		Target: address,
 		Method: USDMMethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	if _, err := rpcRequest.Call(); err != nil {
 		r.log.Errorf("error when call rpc request %v", err)

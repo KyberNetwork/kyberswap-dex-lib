@@ -7,5 +7,6 @@ var (
 	ErrLimitOrderNil         = errors.New("limit Orders is nil")
 	ErrInvalidReservesLength = errors.New("invalid reverses length")
 	ErrInvalidTokensLength   = errors.New("invalid tokens length")
-	ErrInvalidReserve        = errors.New("invalid reserve")
+	ErrInvalidToken          = errors.New("invalid token")
+	ErrInvalidAmount         = errors.New("invalid amount")
 )

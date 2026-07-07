@@ -1,8 +1,7 @@
 package fraxswap
 
 const (
-	DexTypeFraxswap    = "fraxswap"
-	defaultTokenWeight = 50
+	DexTypeFraxswap = "fraxswap"
 
 	poolFactoryMethodAllPairsLength = "allPairsLength"
 	poolFactoryMethodAllPairs       = "allPairs"

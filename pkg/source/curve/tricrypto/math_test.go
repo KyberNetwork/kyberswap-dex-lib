@@ -4,11 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestNewtonY(t *testing.T) {
+	t.Parallel()
 	var precisions = []*big.Int{
 		bignumber.NewBig10("1000000000000"),
 		bignumber.NewBig10("10000000000"),
@@ -31,13 +33,13 @@ func TestNewtonY(t *testing.T) {
 	var i = 0
 
 	var xp = make([]*big.Int, 3)
-	for k := 0; k < 3; k += 1 {
+	for k := range 3 {
 		xp[k] = balances[k]
 	}
 	xp[i] = new(big.Int).Add(xp[i], dx)
 	xp[0] = new(big.Int).Mul(xp[0], precisions[0])
 
-	for k := 0; k < 2; k += 1 {
+	for k := range 2 {
 		xp[k+1] = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(xp[k+1], priceScale[k]), precisions[k+1]), precision)
 	}
 	var ret, err = newtonY(ann, gamma, xp, D, 2)

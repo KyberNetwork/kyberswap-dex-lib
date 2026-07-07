@@ -1,10 +1,12 @@
 package compound
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -12,7 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type CompoundPool struct {
+type PoolSimulator struct {
 	pool.Pool
 	A           *big.Int
 	Multipliers []*big.Int
@@ -26,7 +28,9 @@ type Gas struct {
 	ExchangeUnderlying int64
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*CompoundPool, error) {
+var _ = pool.RegisterFactory0(curve.PoolTypeCompound, NewPoolSimulator)
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra curve.PoolCompoundStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -41,7 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*CompoundPool, error) {
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
 	multipliers := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = staticExtra.UnderlyingTokens[i]
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
@@ -53,17 +57,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*CompoundPool, error) {
 		rates = append(rates, rate)
 	}
 
-	return &CompoundPool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    bignumber.NewBig10(extra.SwapFee),
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  bignumber.NewBig10(extra.SwapFee),
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		Multipliers: multipliers,
@@ -74,7 +76,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*CompoundPool, error) {
 	}, nil
 }
 
-func (t *CompoundPool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	return &cloned
+}
+
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
@@ -92,7 +100,7 @@ func (t *CompoundPool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Calc
 			tokenAmountIn.Amount,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		if err == nil && amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
@@ -111,7 +119,50 @@ func (t *CompoundPool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Calc
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
 }
-func (t *CompoundPool) UpdateBalance(params pool.UpdateBalanceParams) {
+
+func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn := strings.ToLower(param.TokenIn)
+	tokenAmountOut := param.TokenAmountOut
+	tokenOut := strings.ToLower(tokenAmountOut.Token)
+	var tokenIndexFrom = t.GetTokenIndex(tokenIn)
+	var tokenIndexTo = t.GetTokenIndex(tokenOut)
+
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
+	}
+
+	amountIn, fee, err := GetDxUnderlying(
+		t.Info.Reserves,
+		t.Rates,
+		t.Multipliers,
+		t.A,
+		t.Info.SwapFee,
+		tokenIndexFrom,
+		tokenIndexTo,
+		tokenAmountOut.Amount,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if amountIn.Cmp(bignumber.ZeroBI) > 0 {
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountIn,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: fee,
+			},
+			Gas: t.gas.ExchangeUnderlying,
+		}, nil
+	}
+
+	return &pool.CalcAmountInResult{}, ErrZero
+}
+
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
 	var outputAmount = output.Amount
@@ -136,11 +187,11 @@ func (t *CompoundPool) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 	}
 }
-func (t *CompoundPool) GetLpToken() string {
+func (t *PoolSimulator) GetLpToken() string {
 	return ""
 }
 
-func (t *CompoundPool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

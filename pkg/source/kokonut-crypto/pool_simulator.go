@@ -1,17 +1,16 @@
 package kokonutcrypto
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -51,6 +50,8 @@ type Gas struct {
 	Exchange int64
 }
 
+var _ = pool.RegisterFactory0(DexTypeKokonutCrypto, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
@@ -68,55 +69,53 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	precisions := make([]*big.Int, numTokens)
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
-		precisions[i] = utils.NewBig10(staticExtra.PrecisionMultipliers[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		precisions[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
 	}
 
-	priceScale := utils.NewBig10(extraStr.PriceScale)
-	lastPrices := utils.NewBig10(extraStr.LastPrices)
-	priceOracle := utils.NewBig10(extraStr.PriceOracle)
+	priceScale := bignumber.NewBig10(extraStr.PriceScale)
+	lastPrices := bignumber.NewBig10(extraStr.LastPrices)
+	priceOracle := bignumber.NewBig10(extraStr.PriceOracle)
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    constant.ZeroBI,
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  bignumber.ZeroBI,
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		Precisions: precisions,
-		A:          utils.NewBig10(extraStr.A),
-		D:          utils.NewBig10(extraStr.D),
-		Gamma:      utils.NewBig10(extraStr.Gamma),
-		FeeGamma:   utils.NewBig10(extraStr.FeeGamma),
-		MidFee:     utils.NewBig10(extraStr.MidFee),
-		OutFee:     utils.NewBig10(extraStr.OutFee),
+		A:          bignumber.NewBig10(extraStr.A),
+		D:          bignumber.NewBig10(extraStr.D),
+		Gamma:      bignumber.NewBig10(extraStr.Gamma),
+		FeeGamma:   bignumber.NewBig10(extraStr.FeeGamma),
+		MidFee:     bignumber.NewBig10(extraStr.MidFee),
+		OutFee:     bignumber.NewBig10(extraStr.OutFee),
 
 		PriceScale:  priceScale,
 		LastPrices:  lastPrices,
 		PriceOracle: priceOracle,
 
 		FutureAGammaTime:               extraStr.FutureAGammaTime,
-		FutureA:                        utils.NewBig10(extraStr.FutureA),
-		FutureGamma:                    utils.NewBig10(extraStr.FutureGamma),
+		FutureA:                        bignumber.NewBig10(extraStr.FutureA),
+		FutureGamma:                    bignumber.NewBig10(extraStr.FutureGamma),
 		InitialAGammaTime:              extraStr.InitialAGammaTime,
-		InitialA:                       utils.NewBig10(extraStr.InitialA),
-		InitialGamma:                   utils.NewBig10(extraStr.InitialGamma),
-		MinRemainingPostRebalanceRatio: utils.NewBig10(extraStr.MinRemainingPostRebalanceRatio),
+		InitialA:                       bignumber.NewBig10(extraStr.InitialA),
+		InitialGamma:                   bignumber.NewBig10(extraStr.InitialGamma),
+		MinRemainingPostRebalanceRatio: bignumber.NewBig10(extraStr.MinRemainingPostRebalanceRatio),
 
 		LastPricesTimestamp: extraStr.LastPricesTimestamp,
 		LpToken:             staticExtra.LpToken,
-		LpSupply:            utils.NewBig10(extraStr.LpSupply),
-		XcpProfit:           utils.NewBig10(extraStr.XcpProfit),
-		VirtualPrice:        utils.NewBig10(extraStr.VirtualPrice),
-		AllowedExtraProfit:  utils.NewBig10(extraStr.AllowedExtraProfit),
-		AdjustmentStep:      utils.NewBig10(extraStr.AdjustmentStep),
-		MaHalfTime:          utils.NewBig10(extraStr.MaHalfTime),
+		LpSupply:            bignumber.NewBig10(extraStr.LpSupply),
+		XcpProfit:           bignumber.NewBig10(extraStr.XcpProfit),
+		VirtualPrice:        bignumber.NewBig10(extraStr.VirtualPrice),
+		AllowedExtraProfit:  bignumber.NewBig10(extraStr.AllowedExtraProfit),
+		AdjustmentStep:      bignumber.NewBig10(extraStr.AdjustmentStep),
+		MaHalfTime:          bignumber.NewBig10(extraStr.MaHalfTime),
 		NotAdjusted:         false,
 		gas:                 DefaultGas,
 	}, nil
@@ -135,9 +134,9 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			tokenAmountIn.Amount,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
-		if amountOut.Cmp(constant.ZeroBI) > 0 {
+		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
@@ -178,11 +177,11 @@ func (t *PoolSimulator) Swap(
 			Amount: amountOut,
 		}, &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: constant.ZeroBI,
+			Amount: bignumber.ZeroBI,
 		}, t.gas.Exchange, nil
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

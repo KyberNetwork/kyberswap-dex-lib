@@ -1,0 +1,216 @@
+[
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "AlreadyInitialized",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "inCap",
+        "type": "bool"
+      }
+    ],
+    "name": "CapToggled",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseFeePpm",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "surgeFeePpm",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "inCapEvent",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint40",
+        "name": "timestamp",
+        "type": "uint40"
+      }
+    ],
+    "name": "FeeStateChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "PoolInitialized",
+    "type": "event"
+  },
+  {
+    "name": "authorizedHook",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "baseFeeFromCap",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "feeQuote",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "activeFee",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getFeeState",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "baseFee",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "surgeFee",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "isCAPEventActive",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "oracle",
+    "outputs": [
+      {
+        "internalType": "contract TruncGeoOracleMulti",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "policyManager",
+    "outputs": [
+      {
+        "internalType": "contract IPoolPolicyManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

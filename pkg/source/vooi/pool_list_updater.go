@@ -2,7 +2,6 @@ package vooi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -10,10 +9,12 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 var (
@@ -31,6 +32,8 @@ type (
 		HasInitialized bool `json:"hasInitialized"`
 	}
 )
+
+var _ = poollist.RegisterFactoryCE(DexTypeVooi, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -96,7 +99,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity.Pool, error) {
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	// Get lastIndex
 	lastIndex, err := u.getLastIndex(ctx, address)
@@ -118,8 +120,8 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 				ABI:    poolABI,
 				Target: address,
 				Method: poolMethodIndexToAsset,
-				Params: []interface{}{big.NewInt(int64(i))},
-			}, []interface{}{&assets[i]})
+				Params: []any{big.NewInt(int64(i))},
+			}, []any{&assets[i]})
 	}
 
 	getPoolState.AddCall(&ethrpc.Call{
@@ -127,21 +129,21 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 		Target: address,
 		Method: poolMethodPaused,
 		Params: nil,
-	}, []interface{}{&paused})
+	}, []any{&paused})
 
 	getPoolState.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: address,
 		Method: poolMethodA,
 		Params: nil,
-	}, []interface{}{&a})
+	}, []any{&a})
 
 	getPoolState.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: address,
 		Method: poolMethodLpFee,
 		Params: nil,
-	}, []interface{}{&lpFee})
+	}, []any{&lpFee})
 
 	if _, err = getPoolState.TryAggregate(); err != nil {
 		logger.
@@ -162,7 +164,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 	indexByToken := make(map[string]int, len(assets))
 
 	for i, asset := range assets {
-		token := strings.ToLower(asset.Token.Hex())
+		token := hexutil.Encode(asset.Token[:])
 
 		poolTokens = append(poolTokens, &entity.PoolToken{
 			Address:   token,
@@ -207,7 +209,7 @@ func (u *PoolsListUpdater) getLastIndex(_ context.Context, address string) (int,
 		Target: address,
 		Method: poolMethodLastIndex,
 		Params: nil,
-	}, []interface{}{&lastIndex})
+	}, []any{&lastIndex})
 
 	if _, err := getLastIndexRequest.Call(); err != nil {
 		logger.

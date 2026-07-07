@@ -7,6 +7,7 @@ import (
 )
 
 func TestPool_GetLpToken(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		pool           Pool
@@ -26,18 +27,14 @@ func TestPool_GetLpToken(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -61,18 +58,14 @@ func TestPool_GetLpToken(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -94,6 +87,7 @@ func TestPool_GetLpToken(t *testing.T) {
 }
 
 func TestPool_HasReserves(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		pool           Pool
@@ -113,18 +107,14 @@ func TestPool_HasReserves(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -148,18 +138,14 @@ func TestPool_HasReserves(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -170,7 +156,7 @@ func TestPool_HasReserves(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "it should return false when at least one reserve is empty string",
+			name: "it should return true when at least one reserve is not empty",
 			pool: Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -183,18 +169,14 @@ func TestPool_HasReserves(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -202,10 +184,10 @@ func TestPool_HasReserves(t *testing.T) {
 				StaticExtra: "staticExtra1",
 				TotalSupply: "totalSupply1",
 			},
-			expectedResult: false,
+			expectedResult: true,
 		},
 		{
-			name: "it should return false when at least one reserve is 0",
+			name: "it should return true when at least one reserve is not 0",
 			pool: Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -218,18 +200,14 @@ func TestPool_HasReserves(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -237,7 +215,7 @@ func TestPool_HasReserves(t *testing.T) {
 				StaticExtra: "staticExtra1",
 				TotalSupply: "totalSupply1",
 			},
-			expectedResult: false,
+			expectedResult: true,
 		},
 	}
 
@@ -251,6 +229,7 @@ func TestPool_HasReserves(t *testing.T) {
 }
 
 func TestPool_HasAmplifiedTvl(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		pool           Pool
@@ -270,18 +249,14 @@ func TestPool_HasAmplifiedTvl(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -305,18 +280,14 @@ func TestPool_HasAmplifiedTvl(t *testing.T) {
 				Tokens: []*PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},

@@ -18,6 +18,8 @@ type PoolSimulator struct {
 	gas      Gas
 }
 
+var _ = pool.RegisterFactory0(DexTypeUSDFi, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var swapFeeFl = new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
 	var swapFee, _ = swapFeeFl.Int(nil)
@@ -35,14 +37,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	decimals[1] = bignumber.TenPowInt(entityPool.Tokens[1].Decimals)
 
 	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	staticExtra, err := extractStaticExtra(entityPool.StaticExtra)
@@ -124,7 +124,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return StaticExtra{
 		Stable: p.stable,
 	}

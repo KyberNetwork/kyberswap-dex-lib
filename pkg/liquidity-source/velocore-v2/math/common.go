@@ -358,7 +358,6 @@ func (*common) RPow(x, n, base *uint256.Int) (*uint256.Int, error) {
 	return z, nil
 }
 
-
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/lib/openzeppelin-contracts/contracts/utils/math/Math.sol#L194
 func (*common) SqrtRounding(x *uint256.Int, up bool) *uint256.Int {
 	result := Common.Sqrt(x)

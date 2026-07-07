@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
@@ -88,7 +89,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			tokenOut:          "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
 			expectedAmountOut: &poolPkg.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: new(big.Int).SetInt64(530263907448717)},
 			expectedFee:       &poolPkg.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: new(big.Int).SetInt64(2129573925497)},
-			expectedGas:       165000,
+			expectedGas:       286524,
 			expectedErr:       nil,
 		},
 		{
@@ -155,7 +156,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			tokenOut:          "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
 			expectedAmountOut: &poolPkg.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: new(big.Int).SetInt64(530263907448717)},
 			expectedFee:       &poolPkg.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: new(big.Int).SetInt64(2129573925497)},
-			expectedGas:       165000,
+			expectedGas:       286524,
 			expectedErr:       nil,
 		},
 		{
@@ -365,16 +366,20 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, _ := NewPoolSimulator(tc.entityPool)
 
-			calcAmountOutResult, err := pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
-				TokenAmountIn: tc.tokenAmountIn,
-				TokenOut:      tc.tokenOut,
-				Limit:         nil,
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
+				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit:         nil,
+				})
 			})
 
-			assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
-			assert.Equal(t, tc.expectedFee, calcAmountOutResult.Fee)
-			assert.Equal(t, tc.expectedGas, calcAmountOutResult.Gas)
 			assert.Equal(t, tc.expectedErr, err)
+			if err == nil {
+				assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
+				assert.Equal(t, tc.expectedFee, calcAmountOutResult.Fee)
+				assert.Equal(t, tc.expectedGas, calcAmountOutResult.Gas)
+			}
 		})
 	}
 }
@@ -493,6 +498,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 }
 
 func TestPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
 		pool := PoolSimulator{
 			vault: &Vault{
@@ -526,6 +532,7 @@ func TestPool_CanSwapTo(t *testing.T) {
 }
 
 func TestPool_GetMetaInfo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return nil", func(t *testing.T) {
 		pool := PoolSimulator{}
 

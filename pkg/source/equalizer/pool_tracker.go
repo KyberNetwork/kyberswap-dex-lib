@@ -11,12 +11,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexTypeEqualizer, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
@@ -38,9 +41,8 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		reserve                         Reserves
-		stableFee, volatileFee, realFee *big.Int
-
+		reserve     Reserves
+		realFee     *big.Int
 		poolAddress = common.HexToAddress(p.Address)
 	)
 
@@ -51,30 +53,17 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserve})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodStableFee,
-		Params: nil,
-	}, []interface{}{&stableFee})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodVolatileFee,
-		Params: nil,
-	}, []interface{}{&volatileFee})
+	}, []any{&reserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodGetRealFee,
-		Params: []interface{}{poolAddress},
-	}, []interface{}{&realFee})
+		Params: []any{poolAddress},
+	}, []any{&realFee})
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -83,8 +72,12 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
+
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
-	p.SwapFee = float64(realFee.Uint64()) / float64(bps.Uint64())
+	p.SwapFee = float64(realFee.Uint64()) / 1e18
 	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{

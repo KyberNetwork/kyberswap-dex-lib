@@ -1,0 +1,22 @@
+[
+  {
+    "id": "0x3225737a9bbb6473cb4a45b7244aca2befdb276a",
+    "name": "daiUsds",
+    "type": "dai-usds",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "name": "DAI",
+        "symbol": "DAI",
+        "decimals": 18
+      },
+      {
+        "address": "0xdc035d45d973e3ec169d2276ddab16f1e407384f",
+        "name": "USDS",
+        "symbol": "USDS",
+        "decimals": 18
+      }
+    ]
+  }
+]

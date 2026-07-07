@@ -12,12 +12,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -52,8 +55,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		ABI:    lensABI,
 		Target: d.cfg.LensAddress,
 		Method: lensMethodQueryPool,
-		Params: []interface{}{common.HexToAddress(p.Address)},
-	}, []interface{}{&poolDataResp})
+		Params: []any{common.HexToAddress(p.Address)},
+	}, []any{&poolDataResp})
 	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -74,8 +77,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 			ABI:    poolABI,
 			Target: p.Address,
 			Method: poolMethodTokenInfo,
-			Params: []interface{}{tokenBytes32},
-		}, []interface{}{&tokenInfos[i]})
+			Params: []any{tokenBytes32},
+		}, []any{&tokenInfos[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

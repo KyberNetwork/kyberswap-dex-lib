@@ -2,17 +2,18 @@ package client
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 )
 
 type httpClient struct {
 	client *resty.Client
-	config *iziswap.HTTPConfig
+	config *HTTPConfig
 }
 
 const (
@@ -22,8 +23,8 @@ const (
 	POOL_TYPE_VALUE = "10"
 )
 
-func NewHTTPClient(config *iziswap.HTTPConfig) *httpClient {
-	client := resty.New().
+func NewHTTPClient(config *HTTPConfig) *httpClient {
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)
@@ -35,8 +36,8 @@ func NewHTTPClient(config *iziswap.HTTPConfig) *httpClient {
 }
 
 // ListPools example params="chain_id=324&type=10&version=v2&time_start=2023-06-02T13:53:13&page=1&page_size=10&order_by=time"
-func (c *httpClient) ListPools(ctx context.Context, params iziswap.ListPoolsParams) ([]iziswap.PoolInfo, error) {
-	var result iziswap.ListPoolsResponse
+func (c *httpClient) ListPools(ctx context.Context, params ListPoolsParams) ([]PoolInfo, error) {
+	var result ListPoolsResponse
 	resp, err := c.client.R().
 		SetQueryParams(map[string]string{
 			"chain_id":   strconv.Itoa(params.ChainId),
@@ -55,7 +56,8 @@ func (c *httpClient) ListPools(ctx context.Context, params iziswap.ListPoolsPara
 		return nil, err
 	}
 	if !resp.IsSuccess() {
-		return nil, errors.Wrapf(ErrListPoolsFailed, "response status: %v, response error %v", resp.Status(), resp.Error())
+		return nil, errors.WithMessagef(ErrListPoolsFailed, "[iziswap] response status: %v, response error %v",
+			resp.Status(), resp.Error())
 	}
 
 	return result.Data, nil

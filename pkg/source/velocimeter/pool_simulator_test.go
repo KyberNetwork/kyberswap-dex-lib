@@ -10,9 +10,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://ftmscan.com/address/0x0e8f117a563be78eb5a391a066d0d43dd187a9e0#readContract#F8
 	testcases := []struct {
 		in                string
@@ -24,7 +26,7 @@ func TestCalcAmountOut(t *testing.T) {
 		{"A", "100000000000", "B", "243206804406"},
 	}
 
-	p, err := NewPool(entity.Pool{
+	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
 		Type:        "",
 		SwapFee:     0.003, // from factory getFee https://ftmscan.com/address/0x472f3c3c9608fe0ae8d702f3f8a2d12c410c881a#readContract#F6
@@ -41,9 +43,11 @@ func TestCalcAmountOut(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: amountIn,
-				TokenOut:      tc.out,
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: amountIn,
+					TokenOut:      tc.out,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)

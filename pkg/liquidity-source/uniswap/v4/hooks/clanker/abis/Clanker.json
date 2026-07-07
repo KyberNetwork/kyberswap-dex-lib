@@ -1,0 +1,452 @@
+[
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ClaimTeamFees",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "extension",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "extensionSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "msgValue",
+        "type": "uint256"
+      }
+    ],
+    "name": "ExtensionTriggered",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "admin",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "SetAdmin",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "deprecated",
+        "type": "bool"
+      }
+    ],
+    "name": "SetDeprecated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "extension",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "SetExtension",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "hook",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "SetHook",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "locker",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "hook",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "SetLocker",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "mevModule",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "SetMevModule",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "oldTeamFeeRecipient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "newTeamFeeRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "SetTeamFeeRecipient",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "msgSender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "tokenAdmin",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenImage",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenSymbol",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenMetadata",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenContext",
+        "type": "string"
+      },
+      {
+        "internalType": "int24",
+        "name": "startingTick",
+        "type": "int24"
+      },
+      {
+        "internalType": "address",
+        "name": "poolHook",
+        "type": "address"
+      },
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "pairedToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "locker",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "mevModule",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "extensionsSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address[]",
+        "name": "extensions",
+        "type": "address[]"
+      }
+    ],
+    "name": "TokenCreated",
+    "type": "event"
+  },
+  {
+    "name": "BPS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "MAX_EXTENSIONS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "MAX_EXTENSION_BPS",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "TOKEN_SUPPLY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "admins",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "deploymentInfoForToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "hook",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "locker",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "deprecated",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "locker",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "hook",
+        "type": "address"
+      }
+    ],
+    "name": "enabledLockers",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "teamFeeRecipient",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "tokenDeploymentInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "locker",
+            "type": "address"
+          },
+          {
+            "internalType": "address[]",
+            "name": "extensions",
+            "type": "address[]"
+          }
+        ],
+        "internalType": "struct IClanker.DeploymentInfo",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

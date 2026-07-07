@@ -1,9 +1,10 @@
 package makerpsm
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -16,6 +17,8 @@ type PoolSimulator struct {
 
 	gas Gas
 }
+
+var _ = pool.RegisterFactory0(DexTypeMakerPSM, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -62,7 +65,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if strings.EqualFold(tokenAmountIn.Token, DAIAddress) {
 		daiAmt, fee, err := p.PSM.buyGem(tokenAmountIn.Amount)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
@@ -80,7 +83,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	gemAmt, fee, err := p.PSM.sellGem(tokenAmountIn.Amount)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -99,11 +102,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	if strings.EqualFold(input.Token, DAIAddress) {
 		p.PSM.updateBalanceBuyingGem(input.Amount)
+		return
 	}
 
 	p.PSM.updateBalanceSellingGem(output.Amount)
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
 }

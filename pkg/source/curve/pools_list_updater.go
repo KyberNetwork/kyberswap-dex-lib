@@ -2,7 +2,6 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -11,8 +10,10 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 // PoolsSource is a struct to store the source of the pools, includes:
@@ -31,6 +32,8 @@ type PoolsListUpdater struct {
 	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE1(DexTypeCurve, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -83,7 +86,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	)
 
 	if !d.config.SkipInitFactory {
-		for i := 0; i < len(registryOrFactoryList); i++ {
+		for i := range registryOrFactoryList {
 			if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
 				logger.Debugf("skip zero factory %v", i)
 				continue
@@ -102,7 +105,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				return nil, nil, err
 			}
 
-			for j := 0; j < len(poolAddresses); j++ {
+			for j := range poolAddresses {
 				// Skip unsupported pools
 				if poolTypes[j] == PoolTypeUnsupported {
 					continue
@@ -189,10 +192,11 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 	newPoolBytes, ok := bytesByPath[d.config.PoolPath]
 	if !ok {
+		// if we don't have any hardcoded pool then just ignore
 		logger.WithFields(logger.Fields{
 			"poolPath": d.config.PoolPath,
-		}).Errorf("not found the pool path bytes data")
-		return nil, errors.New("not found the pool path bytes data")
+		}).Info("not found the pool path bytes data")
+		return nil, nil
 	}
 
 	var poolItems []PoolItem
@@ -295,13 +299,11 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			if poolItem.Type == PoolTypeAave {
 				tokens[j] = &entity.PoolToken{
 					Address:   strings.ToLower(poolItem.Tokens[j].Address),
-					Weight:    defaultWeight,
 					Swappable: false,
 				}
 			} else {
 				tokens[j] = &entity.PoolToken{
 					Address:   strings.ToLower(poolItem.Tokens[j].Address),
-					Weight:    defaultWeight,
 					Swappable: true,
 				}
 			}
@@ -370,8 +372,7 @@ func (d *PoolsListUpdater) getPoolAddresses(
 		ABI:    registryOrFactoryABI,
 		Target: registryOrFactoryAddress,
 		Method: registryOrFactoryMethodPoolCount,
-		Params: nil,
-	}, []interface{}{&lengthBI}).Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get pool count")
@@ -394,8 +395,8 @@ func (d *PoolsListUpdater) getPoolAddresses(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+			Params: []any{big.NewInt(int64(currentOffset + i))},
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

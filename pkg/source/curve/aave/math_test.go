@@ -4,76 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/sirupsen/logrus"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-//func TestCalculateSwap(t *testing.T) {
-//	var tokens = []store.PoolToken {
-//		{
-//			Token:               "0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3",
-//			Balance:             bignumber.NewBig10("5509778105938260159312596"),
-//			Weight:              0,
-//			Multiplier: utils.One,
-//		},
-//		{
-//			Token:               "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
-//			Balance:             bignumber.NewBig10("6798101710196342168913370"),
-//			Weight:              0,
-//			Multiplier: utils.One,
-//		},
-//		{
-//			Token:               "0x55d398326f99059ff775485246999027b3197955",
-//			Balance:             bignumber.NewBig10("6851312148755656450649249"),
-//			Weight:              0,
-//			Multiplier: utils.One,
-//		},
-//		{
-//			Token:               "0xe9e7cea3dedca5984780bafc599bd69add087d56",
-//			Balance:             bignumber.NewBig10("7451611297377057689912146"),
-//			Weight:              0,
-//			Multiplier: utils.One,
-//		},
-//	}
-//	pool := store.Pool{
-//		Address:    "0xabc",
-//		ReserveUsd: 0,
-//		SwapFee:    big.NewInt(4000000),
-//		Exchange:   "firebird-oneswap",
-//		Tokens:     tokens,
-//		Extra:      store.ExtraProperties{
-//			InitialA:           big.NewInt(20000),
-//			FutureA:            big.NewInt(20000),
-//			InitialATime:       0,
-//			FutureATime:        0,
-//			AdminFee:           big.NewInt(5000000000),
-//			DefaultWithdrawFee: big.NewInt(0),
-//		},
-//		Checked:    false,
-//	}
-//	balances := make([]*big.Int, 0)
-//	precisions := make([]*big.Int, 0)
-//	for _, token := range tokens {
-//		balances = append(balances, token.Balance)
-//		precisions = append(precisions, token.Multiplier)
-//	}
-//	var amountIn = bignumber.NewBig10("10000000000000000000000")
-//	var amountOut, _ = CalculateSwap(
-//		balances,
-//		precisions,
-//		pool.Extra.FutureATime,
-//		pool.Extra.FutureA,
-//		pool.Extra.InitialATime,
-//		pool.Extra.InitialA,
-//		pool.SwapFee,
-//		0,
-//		3,
-//		amountIn,
-//	)
-//	logrus.Info(amountOut.String())
-//}
-
 func TestCalculateWithdrawOneToken(t *testing.T) {
+	t.Parallel()
 	var balances = []*big.Int{
 		bignumber.NewBig10("1762846108183174838018939"),
 		bignumber.NewBig10("3674225304303"),
@@ -106,6 +43,7 @@ func TestCalculateWithdrawOneToken(t *testing.T) {
 }
 
 func TestCalculateTokenAmount(t *testing.T) {
+	t.Parallel()
 	var balances = []*big.Int{
 		bignumber.NewBig10("1762846108183174838018939"),
 		bignumber.NewBig10("3674225304303"),
@@ -141,6 +79,7 @@ func TestCalculateTokenAmount(t *testing.T) {
 }
 
 func TestGetDyUnderlying(t *testing.T) {
+	t.Parallel()
 	var balances = []*big.Int{
 		bignumber.NewBig10("70382246141748845587674511"),
 		bignumber.NewBig10("164292114057107"),

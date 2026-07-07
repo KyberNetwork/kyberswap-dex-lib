@@ -1,0 +1,152 @@
+[
+  {
+    "inputs": [],
+    "name": "factory",
+    "outputs": [
+      {
+        "internalType": "contract ILBFactory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ILBPair",
+        "name": "_LBPair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_price",
+        "type": "uint256"
+      }
+    ],
+    "name": "getIdFromPrice",
+    "outputs": [
+      {
+        "internalType": "uint24",
+        "type": "uint24"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ILBPair",
+        "name": "_LBPair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint24",
+        "name": "_id",
+        "type": "uint24"
+      }
+    ],
+    "name": "getPriceFromId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ILBPair",
+        "name": "_LBPair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amountOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_swapForY",
+        "type": "bool"
+      }
+    ],
+    "name": "getSwapIn",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feesIn",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ILBPair",
+        "name": "_LBPair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_swapForY",
+        "type": "bool"
+      }
+    ],
+    "name": "getSwapOut",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "feesIn",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "oldFactory",
+    "outputs": [
+      {
+        "internalType": "contract IJoeFactory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wavax",
+    "outputs": [
+      {
+        "internalType": "contract IWAVAX",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

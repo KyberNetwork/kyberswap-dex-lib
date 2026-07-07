@@ -32,6 +32,8 @@ type PoolSimulator struct {
 	wrappers map[string]string
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
 		tokenNbr = len(entityPool.Tokens)
@@ -56,14 +58,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:    entityPool.Address,
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    nil,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    true,
+		Address:  entityPool.Address,
+		SwapFee:  nil,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -136,7 +136,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return Meta{
 		Vault:       t.vault,
 		Wrappers:    t.wrappers,

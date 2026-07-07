@@ -1,20 +1,21 @@
 package plainoracle
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	Multipliers []*big.Int
 	// extra fields
@@ -27,14 +28,12 @@ type Pool struct {
 	LpToken      string
 	LpSupply     *big.Int
 	APrecision   *big.Int
-	gas          Gas
+	gas          curve.Gas
 }
 
-type Gas struct {
-	Exchange int64
-}
+var _ = pool.RegisterFactory0(curve.PoolTypePlainOracle, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra curve.PoolPlainOracleStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -51,46 +50,50 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	var multipliers = make([]*big.Int, numTokens)
 	var rates = make([]*big.Int, numTokens)
 
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
-		multipliers[i] = utils.NewBig10(staticExtra.PrecisionMultipliers[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
 		rates[i] = extra.Rates[i]
 	}
 
-	var aPrecision = constant.One
+	var aPrecision = bignumber.One
 	if len(staticExtra.APrecision) > 0 {
-		aPrecision = utils.NewBig10(staticExtra.APrecision)
+		aPrecision = bignumber.NewBig10(staticExtra.APrecision)
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    utils.NewBig10(extra.SwapFee),
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  bignumber.NewBig10(extra.SwapFee),
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		Multipliers:  multipliers,
 		Rates:        rates,
-		InitialA:     utils.NewBig10(extra.InitialA),
-		FutureA:      utils.NewBig10(extra.FutureA),
+		InitialA:     bignumber.NewBig10(extra.InitialA),
+		FutureA:      bignumber.NewBig10(extra.FutureA),
 		InitialATime: extra.InitialATime,
 		FutureATime:  extra.FutureATime,
-		AdminFee:     utils.NewBig10(extra.AdminFee),
+		AdminFee:     bignumber.NewBig10(extra.AdminFee),
 		LpToken:      staticExtra.LpToken,
-		LpSupply:     utils.NewBig10(entityPool.Reserves[numTokens]),
+		LpSupply:     bignumber.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:   aPrecision,
 		gas:          DefaultGas,
 	}, nil
 }
 
-func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	return &cloned
+}
+
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	// swap from token to token
@@ -101,12 +104,13 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			tokenIndexFrom,
 			tokenIndexTo,
 			tokenAmountIn.Amount,
+			nil,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
-		if amountOut.Cmp(constant.ZeroBI) > 0 {
+		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
@@ -121,12 +125,12 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 
 		}
 
-		return &pool.CalcAmountOutResult{}, errors.New("[core.CurvePlainOracle] - GetDy returns 0")
+		return nil, errors.New("[core.CurvePlainOracle] - GetDy returns 0")
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
-func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
 	var outputAmount = output.Amount
@@ -154,11 +158,11 @@ func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *Pool) GetLpToken() string {
+func (t *PoolSimulator) GetLpToken() string {
 	return t.LpToken
 }
 
-func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

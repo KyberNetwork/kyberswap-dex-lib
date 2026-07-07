@@ -35,7 +35,7 @@ func (r *USDBReader) Read(ctx context.Context, address string) (*USDB, error) {
 		Target: address,
 		Method: usdbMethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	if _, err := rpcRequest.Call(); err != nil {
 		r.log.Errorf("error when call rpc request %v", err)

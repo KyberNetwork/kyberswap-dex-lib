@@ -7,9 +7,9 @@ import (
 )
 
 type PriceFeed struct {
-	RoundID *big.Int            `json:"roundId"`
-	Answer  *big.Int            `json:"answer"`
-	Answers map[string]*big.Int `json:"answers"`
+	RoundID *big.Int            `json:"roundId,omitempty"`
+	Answer  *big.Int            `json:"answer,omitempty"`
+	Answers map[string]*big.Int `json:"answers,omitempty"`
 }
 
 type RoundData struct {

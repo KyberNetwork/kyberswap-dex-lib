@@ -40,7 +40,7 @@ func (r *PancakePairReader) Read(ctx context.Context, address string) (*PancakeP
 		Target: address,
 		Method: pancakePairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	if _, err := rpcRequest.Call(); err != nil {
 		r.log.Errorf("error when call rpc request %v", err)

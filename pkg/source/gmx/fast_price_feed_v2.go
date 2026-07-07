@@ -3,23 +3,21 @@ package gmx
 import (
 	"math/big"
 	"time"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type FastPriceFeedV2 struct {
-	DisableFastPriceVoteCount     *big.Int                 `json:"disableFastPriceVoteCount"`
-	IsSpreadEnabled               bool                     `json:"isSpreadEnabled"`
-	LastUpdatedAt                 *big.Int                 `json:"lastUpdatedAt"`
-	MaxDeviationBasisPoints       *big.Int                 `json:"maxDeviationBasisPoints"`
-	MinAuthorizations             *big.Int                 `json:"minAuthorizations"`
-	PriceDuration                 *big.Int                 `json:"priceDuration"`
-	MaxPriceUpdateDelay           *big.Int                 `json:"maxPriceUpdateDelay"`
-	SpreadBasisPointsIfChainError *big.Int                 `json:"spreadBasisPointsIfChainError"`
-	SpreadBasisPointsIfInactive   *big.Int                 `json:"spreadBasisPointsIfInactive"`
-	Prices                        map[string]*big.Int      `json:"prices"`
-	PriceData                     map[string]PriceDataItem `json:"priceData"`
-	MaxCumulativeDeltaDiffs       map[string]*big.Int      `json:"maxCumulativeDeltaDiffs"`
+	DisableFastPriceVoteCount     *big.Int                 `json:"disableFastPriceVoteCount,omitempty"`
+	IsSpreadEnabled               bool                     `json:"isSpreadEnabled,omitempty"`
+	LastUpdatedAt                 *big.Int                 `json:"lastUpdatedAt,omitempty"`
+	MaxDeviationBasisPoints       *big.Int                 `json:"maxDeviationBasisPoints,omitempty"`
+	MinAuthorizations             *big.Int                 `json:"minAuthorizations,omitempty"`
+	PriceDuration                 *big.Int                 `json:"priceDuration,omitempty"`
+	MaxPriceUpdateDelay           *big.Int                 `json:"maxPriceUpdateDelay,omitempty"`
+	SpreadBasisPointsIfChainError *big.Int                 `json:"spreadBasisPointsIfChainError,omitempty"`
+	SpreadBasisPointsIfInactive   *big.Int                 `json:"spreadBasisPointsIfInactive,omitempty"`
+	Prices                        map[string]*big.Int      `json:"prices,omitempty"`
+	PriceData                     map[string]PriceDataItem `json:"priceData,omitempty"`
+	MaxCumulativeDeltaDiffs       map[string]*big.Int      `json:"maxCumulativeDeltaDiffs,omitempty"`
 }
 
 type PriceDataItem struct {
@@ -29,7 +27,7 @@ type PriceDataItem struct {
 	CumulativeFastDelta uint64   `json:"cumulativeFastDelta"`
 }
 
-func (fp FastPriceFeedV2) GetVersion() int {
+func (pf *FastPriceFeedV2) GetVersion() int {
 	return int(secondaryPriceFeedVersion2)
 }
 
@@ -57,24 +55,28 @@ const (
 )
 
 func (pf *FastPriceFeedV2) GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int {
-	if new(big.Int).SetInt64(time.Now().Unix()).Cmp(new(big.Int).Add(pf.LastUpdatedAt, pf.MaxPriceUpdateDelay)) > 0 {
+	if time.Now().Unix() > pf.LastUpdatedAt.Int64()+pf.MaxPriceUpdateDelay.Int64() {
 		if maximise {
-			return new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Add(BasisPointsDivisor, pf.SpreadBasisPointsIfChainError)), BasisPointsDivisor)
+			price := new(big.Int).Add(BasisPointsDivisor, pf.SpreadBasisPointsIfChainError)
+			return price.Div(price.Mul(refPrice, price), BasisPointsDivisor)
 		}
 
-		return new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Sub(BasisPointsDivisor, pf.SpreadBasisPointsIfChainError)), BasisPointsDivisor)
+		price := new(big.Int).Sub(BasisPointsDivisor, pf.SpreadBasisPointsIfChainError)
+		return price.Div(price.Mul(refPrice, price), BasisPointsDivisor)
 	}
 
-	if new(big.Int).SetInt64(time.Now().Unix()).Cmp(new(big.Int).Add(pf.LastUpdatedAt, pf.PriceDuration)) > 0 {
+	if time.Now().Unix() > pf.LastUpdatedAt.Int64()+pf.PriceDuration.Int64() {
 		if maximise {
-			return new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Add(BasisPointsDivisor, pf.SpreadBasisPointsIfInactive)), BasisPointsDivisor)
+			price := new(big.Int).Add(BasisPointsDivisor, pf.SpreadBasisPointsIfInactive)
+			return price.Div(price.Mul(refPrice, price), BasisPointsDivisor)
 		}
 
-		return new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Sub(BasisPointsDivisor, pf.SpreadBasisPointsIfInactive)), BasisPointsDivisor)
+		price := new(big.Int).Sub(BasisPointsDivisor, pf.SpreadBasisPointsIfInactive)
+		return price.Div(price.Mul(refPrice, price), BasisPointsDivisor)
 	}
 
 	fastPrice := pf.Prices[token]
-	if fastPrice.Cmp(bignumber.ZeroBI) == 0 {
+	if fastPrice.Sign() == 0 {
 		return refPrice
 	}
 
@@ -85,7 +87,7 @@ func (pf *FastPriceFeedV2) GetPrice(token string, refPrice *big.Int, maximise bo
 		diffBasisPoints = new(big.Int).Sub(fastPrice, refPrice)
 	}
 
-	diffBasisPoints = new(big.Int).Div(new(big.Int).Mul(diffBasisPoints, BasisPointsDivisor), refPrice)
+	diffBasisPoints = diffBasisPoints.Div(diffBasisPoints.Mul(diffBasisPoints, BasisPointsDivisor), refPrice)
 
 	hasSpread := !pf.favorFastPrice(token) || diffBasisPoints.Cmp(pf.MaxDeviationBasisPoints) > 0
 

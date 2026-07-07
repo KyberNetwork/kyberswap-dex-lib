@@ -2,12 +2,14 @@ package gmxglp
 
 import (
 	"context"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
@@ -65,50 +67,50 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 		Target: address,
 		Method: yearnTokenVaultMethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.TotalSupply})
+	}, []any{&yearnTokenVault.TotalSupply})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodTotalAssets,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.TotalAsset})
+	}, []any{&yearnTokenVault.TotalAsset})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodLastReport,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.LastReport})
+	}, []any{&yearnTokenVault.LastReport})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodLockedProfitDegradation,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.LockedProfitDegradation})
+	}, []any{&yearnTokenVault.LockedProfitDegradation})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodLockedProfit,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.LockedProfit})
+	}, []any{&yearnTokenVault.LockedProfit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodDepositLimit,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.DepositLimit})
+	}, []any{&yearnTokenVault.DepositLimit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodTotalIdle,
 		Params: nil,
-	}, []interface{}{&yearnTokenVault.TotalIdle})
+	}, []any{&yearnTokenVault.TotalIdle})
 	for i := 0; i < 10; i++ {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    yearnTokenVaultABI,
 			Target: address,
 			Method: yearnTokenVaultMethodWithdrawalQueue,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&withdrawalQueue[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&withdrawalQueue[i]})
 	}
 	for i, strategyAddress := range strategyList {
 		calls.AddCall(&ethrpc.Call{
@@ -116,13 +118,13 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 			Target: strategyAddress,
 			Method: yearnTokenVaultStrategyMethodEstimatedTotalAssets,
 			Params: nil,
-		}, []interface{}{&strategyListEstimatedTotalAssetsResult[i]})
+		}, []any{&strategyListEstimatedTotalAssetsResult[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    yearnTokenVaultABI,
 			Target: address,
 			Method: yearnTokenVaultMethodStrategies,
-			Params: []interface{}{common.HexToAddress(strategyAddress)},
-		}, []interface{}{&yearnStrategy[i]})
+			Params: []any{common.HexToAddress(strategyAddress)},
+		}, []any{&yearnStrategy[i]})
 
 	}
 	if _, err := calls.TryAggregate(); err != nil {

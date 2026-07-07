@@ -2,7 +2,10 @@ package liquiditybookv21
 
 import (
 	"math"
-	"math/big"
+
+	"github.com/holiman/uint256"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/LBPair.sol#L60
@@ -66,38 +69,39 @@ func (p *parameters) updateVolatilityAccumulator(activeID uint32) *parameters {
 	return p
 }
 
-func (p *parameters) getTotalFee(binStep uint16) *big.Int {
-	baseFee := p.getBaseFee(binStep)
-	variableFee := p.getVariableFee(binStep)
-	return new(big.Int).Add(baseFee, variableFee)
+func (p *parameters) getTotalFee(binStep uint16) *uint256.Int {
+	var baseFee, variableFee uint256.Int
+	p.getBaseFee(binStep, &baseFee)
+	p.getVariableFee(binStep, &variableFee)
+	return baseFee.Add(&baseFee, &variableFee)
 }
 
-func (p *parameters) getBaseFee(binStep uint16) *big.Int {
-	baseFactor := p.StaticFeeParams.BaseFactor
-	result := new(big.Int).Mul(
-		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(binStep))),
-		big.NewInt(1e10),
+func (p *parameters) getBaseFee(binStep uint16, baseFee *uint256.Int) *uint256.Int {
+	baseFactor := uint256.NewInt(uint64(p.StaticFeeParams.BaseFactor))
+	baseFee.Mul(
+		baseFee.Mul(baseFactor, baseFee.SetUint64(uint64(binStep))),
+		big256.TenPow(10), // 1e10
 	)
-	return result
+	return baseFee
 }
 
-func (p *parameters) getVariableFee(binStep uint16) *big.Int {
+func (p *parameters) getVariableFee(binStep uint16, variableFee *uint256.Int) *uint256.Int {
 	variableFeeControl := p.StaticFeeParams.VariableFeeControl
 	if variableFeeControl == 0 {
-		return big.NewInt(0)
+		return big256.U0
 	}
 
-	volAcc := p.VariableFeeParams.VolatilityAccumulator
-	prod := new(big.Int).Mul(big.NewInt(int64(volAcc)), big.NewInt(int64(binStep)))
-	variableFee := new(big.Int).Div(
-		new(big.Int).Add(
-			new(big.Int).Mul(
-				new(big.Int).Mul(prod, prod),
-				big.NewInt(int64(variableFeeControl)),
+	volAcc := uint256.NewInt(uint64(p.VariableFeeParams.VolatilityAccumulator))
+	variableFee.Mul(volAcc, variableFee.SetUint64(uint64(binStep)))
+	variableFee.Div(
+		variableFee.Add(
+			variableFee.Mul(
+				variableFee.Mul(variableFee, variableFee),
+				volAcc.SetUint64(uint64(variableFeeControl)),
 			),
-			big.NewInt(99),
+			volAcc.SetUint64(99),
 		),
-		big.NewInt(100),
+		big256.TenPow(2), // 100
 	)
 	return variableFee
 }

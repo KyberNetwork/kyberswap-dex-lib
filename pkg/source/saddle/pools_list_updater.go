@@ -2,15 +2,17 @@ package saddle
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
@@ -18,6 +20,8 @@ type PoolsListUpdater struct {
 	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeSaddle, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -84,7 +88,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 			Target: poolItems[i].ID,
 			Method: poolMethodSwapStorage,
 			Params: nil,
-		}, []interface{}{&swapStorages[i]})
+		}, []any{&swapStorages[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.Errorf("failed to try aggregate call with error %v", err)
@@ -100,7 +104,6 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 		for _, token := range pool.Tokens {
 			tokenModel := entity.PoolToken{
 				Address:   token.Address,
-				Weight:    defaultWeight,
 				Swappable: true,
 			}
 			tokens = append(tokens, &tokenModel)
@@ -109,7 +112,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 		}
 
 		staticExtra := StaticExtra{
-			LpToken:              strings.ToLower(swapStorages[i].LpToken.Hex()),
+			LpToken:              hexutil.Encode(swapStorages[i].LpToken[:]),
 			PrecisionMultipliers: precisionMultipliers,
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)

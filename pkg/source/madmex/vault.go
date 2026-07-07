@@ -3,8 +3,9 @@ package madmex
 import (
 	"math/big"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Vault struct {
@@ -87,8 +88,8 @@ func (v *Vault) GetMaxPrice(token string) (*big.Int, error) {
 func (v *Vault) GetTargetUSDGAmount(token string) *big.Int {
 	supply := v.USDG.TotalSupply
 
-	if supply.Cmp(constant.ZeroBI) == 0 {
-		return constant.ZeroBI
+	if supply.Cmp(bignumber.ZeroBI) == 0 {
+		return bignumber.ZeroBI
 	}
 
 	weight := v.TokenWeights[token]
@@ -128,7 +129,7 @@ func (v *Vault) DecreaseUSDGAmount(token string, amount *big.Int) {
 	currentUSDGAmount := v.USDGAmounts[token]
 
 	if currentUSDGAmount.Cmp(amount) < 0 {
-		v.USDGAmounts[token] = constant.ZeroBI
+		v.USDGAmounts[token] = bignumber.ZeroBI
 		return
 	}
 

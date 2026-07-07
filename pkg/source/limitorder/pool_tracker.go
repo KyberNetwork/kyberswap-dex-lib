@@ -2,22 +2,25 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config           *Config
 	limitOrderClient *httpClient
 }
+
+var _ = pooltrack.RegisterFactoryC(DexTypeLimitOrder, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config) *PoolTracker {
 	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
@@ -64,6 +67,8 @@ func (d *PoolTracker) GetNewPoolState(
 			MakerAsset:      token0.Address,
 			TakerAsset:      token1.Address,
 			ContractAddress: contractAddress,
+
+			IncludeInsufficientBalanceOrder: !d.config.DisableInsufficientBalance,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -81,6 +86,8 @@ func (d *PoolTracker) GetNewPoolState(
 			MakerAsset:      token1.Address,
 			TakerAsset:      token0.Address,
 			ContractAddress: contractAddress,
+
+			IncludeInsufficientBalanceOrder: !d.config.DisableInsufficientBalance,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{

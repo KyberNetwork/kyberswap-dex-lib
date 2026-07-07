@@ -1,11 +1,12 @@
 package fxdx
 
 import (
-	"encoding/json"
+	"maps"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -23,6 +24,8 @@ type PoolSimulator struct {
 	gas      Gas
 }
 
+var _ = pool.RegisterFactory0(DexTypeFxdx, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -34,11 +37,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens = append(tokens, poolToken.Address)
 	}
 
+	reserves := make([]*big.Int, len(entityPool.Reserves))
+	for i, reserve := range entityPool.Reserves {
+		reserveBI, ok := new(big.Int).SetString(reserve, 10)
+		if !ok {
+			reserveBI = integer.Zero()
+		}
+
+		reserves[i] = reserveBI
+	}
+
 	info := pool.PoolInfo{
 		Address:  entityPool.Address,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
 		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	vault := extra.Vault
@@ -64,7 +78,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	)
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -81,6 +95,15 @@ func (p *PoolSimulator) CalcAmountOut(
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	vault := *p.vault
+	vault.USDFAmounts = maps.Clone(p.vault.USDFAmounts)
+	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.vault = &vault
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -129,7 +152,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
 
 func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
 	if !p.vault.IsSwapEnabled {
@@ -228,5 +251,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.feeUtils != nil {
+		p.feeUtils.Vault = p.vault
+	}
 	return nil
 }

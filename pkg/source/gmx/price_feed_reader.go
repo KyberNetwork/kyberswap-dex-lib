@@ -7,15 +7,31 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
+
+type PriceFeedType int
+
+const (
+	PriceFeedTypeLatestRoundData PriceFeedType = iota
+	PriceFeedTypeLatestRoundAnswer
+	PriceFeedTypeDirect // should prefer direct if VaultPriceFeed exposes getPrimaryPrice method
 )
 
 type PriceFeedReader struct {
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
+
+	PriceFeedType PriceFeedType
 }
 
 func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
+	return NewPriceFeedReaderWithParam(ethrpcClient, PriceFeedTypeLatestRoundData)
+}
+
+func NewPriceFeedReaderWithParam(ethrpcClient *ethrpc.Client, priceFeedType PriceFeedType) *PriceFeedReader {
 	return &PriceFeedReader{
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
@@ -23,6 +39,8 @@ func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 			"liquiditySource": DexTypeGmx,
 			"reader":          "PriceFeedReader",
 		}),
+
+		PriceFeedType: priceFeedType,
 	}
 }
 
@@ -43,29 +61,62 @@ func (r *PriceFeedReader) Read(ctx context.Context, address string, roundCount i
 }
 
 func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string, priceFeed *PriceFeed) error {
-	var latestRoundData RoundData
+	var (
+		latestRoundData RoundData
+		latestRound     = bignumber.ZeroBI
+		latestAnswer    = bignumber.ZeroBI
+	)
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    r.abi,
-		Target: address,
-		Method: priceFeedMethodLatestRoundData,
-		Params: nil,
-	}, []interface{}{&latestRoundData})
+	switch r.PriceFeedType {
+	case PriceFeedTypeLatestRoundData:
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    r.abi,
+			Target: address,
+			Method: priceFeedMethodLatestRoundData,
+			Params: nil,
+		}, []any{&latestRoundData})
 
-	if _, err := rpcRequest.Call(); err != nil {
-		return err
+		if _, err := rpcRequest.Call(); err != nil {
+			return err
+		}
+
+		priceFeed.RoundID = latestRoundData.RoundId
+		priceFeed.Answer = latestRoundData.Answer
+		priceFeed.Answers[latestRoundData.RoundId.String()] = latestRoundData.Answer
+
+	case PriceFeedTypeLatestRoundAnswer:
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    r.abi,
+			Target: address,
+			Method: "latestRound",
+			Params: nil,
+		}, []any{&latestRound})
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    r.abi,
+			Target: address,
+			Method: "latestAnswer",
+			Params: nil,
+		}, []any{&latestAnswer})
+
+		if _, err := rpcRequest.Aggregate(); err != nil {
+			return err
+		}
+
+		priceFeed.RoundID = latestRound
+		priceFeed.Answer = latestAnswer
+		priceFeed.Answers[latestRound.String()] = latestAnswer
+
+	case PriceFeedTypeDirect: // already read directly by VaultPriceFeedReader
+		return nil
 	}
-
-	priceFeed.RoundID = latestRoundData.RoundId
-	priceFeed.Answer = latestRoundData.Answer
-	priceFeed.Answers[latestRoundData.RoundId.String()] = latestRoundData.Answer
 
 	return nil
 }
 
-func (r *PriceFeedReader) getHistoryRoundData(ctx context.Context, address string, priceFeed *PriceFeed, roundCount int) error {
+func (r *PriceFeedReader) getHistoryRoundData(ctx context.Context, address string, priceFeed *PriceFeed,
+	roundCount int) error {
 	if roundCount < minRoundCount {
 		return nil
 	}
@@ -79,8 +130,8 @@ func (r *PriceFeedReader) getHistoryRoundData(ctx context.Context, address strin
 			ABI:    r.abi,
 			Target: address,
 			Method: priceFeedMethodGetRoundData,
-			Params: []interface{}{roundID},
-		}, []interface{}{&roundDataList[i-1]})
+			Params: []any{roundID},
+		}, []any{&roundDataList[i-1]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

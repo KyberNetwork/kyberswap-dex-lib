@@ -27,6 +27,7 @@ type SwapInfo struct {
 
 type FilledOrderInfo struct {
 	OrderID              int64  `json:"orderId"`
+	OrderHash            string `json:"orderHash"`
 	FilledTakingAmount   string `json:"filledTakingAmount"`
 	FilledMakingAmount   string `json:"filledMakingAmount"`
 	FeeAmount            string `json:"feeAmount"`

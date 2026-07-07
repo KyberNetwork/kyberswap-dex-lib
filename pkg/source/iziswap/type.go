@@ -3,36 +3,16 @@ package iziswap
 import (
 	"math/big"
 
-	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
+
+	iziswapclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/client"
 )
 
-type PoolInfo struct {
-	Fee            int    `json:"fee"`
-	TokenX         string `json:"tokenX"`
-	TokenY         string `json:"tokenY"`
-	Address        string `json:"address"`
-	Timestamp      int    `json:"timestamp"`
-	TokenXAddress  string `json:"tokenX_address"`
-	TokenYAddress  string `json:"tokenY_address"`
-	TokenXDecimals int    `json:"tokenX_decimals"`
-	TokenYDecimals int    `json:"tokenY_decimals"`
-	Version        string `json:"version"`
-}
-
-type ListPoolsParams struct {
-	ChainId int
-	// v1 or v2
-	Version string
-	// timestamp in second
-	TimeStart int
-	// response size
-	Limit int
-}
-
-type ListPoolsResponse struct {
-	Data  []PoolInfo `json:"data,omitempty"`
-	Total int        `json:"total"`
-}
+type PoolInfo = iziswapclient.PoolInfo
+type ListPoolsParams = iziswapclient.ListPoolsParams
+type ListPoolsResponse = iziswapclient.ListPoolsResponse
 
 type State struct {
 	SqrtPrice_96            *big.Int `abi:"sqrtPrice_96"`
@@ -45,7 +25,8 @@ type State struct {
 	LiquidityX              *big.Int `abi:"liquidityX"`
 }
 
-type Extra swap.PoolInfo
+type Extra = swap.PoolInfo
+type ExtraU256 = swap.PoolInfoU256
 
 type FetchRPCResult struct {
 	state    State
@@ -65,8 +46,8 @@ type LimitOrder struct {
 
 type iZiSwapInfo struct {
 	nextPoint      int
-	nextLiquidity  *big.Int
-	nextLiquidityX *big.Int
+	nextLiquidity  *uint256.Int
+	nextLiquidityX *uint256.Int
 }
 
 type Metadata struct {

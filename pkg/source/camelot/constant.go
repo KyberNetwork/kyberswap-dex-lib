@@ -1,6 +1,10 @@
 package camelot
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 const DexTypeCamelot = "camelot"
 
@@ -9,9 +13,7 @@ const (
 	factoryMethodAllPairsLength = "allPairsLength"
 	factoryMethodFeeTo          = "feeTo"
 	factoryMethodOwnerFeeShare  = "ownerFeeShare"
-)
 
-const (
 	pairMethodToken0               = "token0"
 	pairMethodToken1               = "token1"
 	pairMethodFeeDenominator       = "FEE_DENOMINATOR"
@@ -23,12 +25,10 @@ const (
 	pairMethodGetReserves          = "getReserves"
 )
 
-const (
-	defaultTokenWeight = 50
-)
-
 var (
 	DefaultGas = Gas{Swap: 128000}
+
+	ZeroAddress = common.Address{}
 
 	ErrInsufficientOutputAmount = errors.New("CamelotPair: INSUFFICIENT_OUTPUT_AMOUNT")
 	ErrInsufficientLiquidity    = errors.New("CamelotPair: INSUFFICIENT_LIQUIDITY")

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0xa2e3356610840701bdf5611a53974510ae27e2e1",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+        "name": "Ethereum Token",
+        "symbol": "ETH",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0xa2e3356610840701bdf5611a53974510ae27e2e1",
+        "name": "Wrapped Binance Beacon ETH",
+        "symbol": "wBETH",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]

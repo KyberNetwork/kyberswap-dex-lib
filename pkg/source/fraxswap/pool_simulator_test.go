@@ -11,9 +11,11 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string
@@ -78,12 +80,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			got, err := p.CalcAmountOut(
-				pool.CalcAmountOutParams{
-					TokenAmountIn: tt.args.tokenAmountIn,
-					TokenOut:      tt.args.tokenOut,
-					Limit:         nil,
-				})
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(
+					pool.CalcAmountOutParams{
+						TokenAmountIn: tt.args.tokenAmountIn,
+						TokenOut:      tt.args.tokenOut,
+						Limit:         nil,
+					})
+			})
 
 			require.ErrorIs(t, err, tt.wantErr)
 			if err == nil {

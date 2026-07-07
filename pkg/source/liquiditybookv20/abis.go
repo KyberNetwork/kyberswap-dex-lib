@@ -4,11 +4,21 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv20/abis"
 )
 
 var (
 	pairABI    abi.ABI
 	factoryABI abi.ABI
+	routerABI  abi.ABI
+)
+
+var (
+	pairFilterer    *abis.LBPairFilterer
+	factoryFilterer *abis.LBFactoryFilterer
 )
 
 func init() {
@@ -22,6 +32,9 @@ func init() {
 		{
 			&factoryABI, factoryABIJson,
 		},
+		{
+			&routerABI, routerABIJson,
+		},
 	}
 
 	for _, b := range builder {
@@ -31,4 +44,7 @@ func init() {
 			panic(err)
 		}
 	}
+
+	pairFilterer = lo.Must(abis.NewLBPairFilterer(common.Address{}, nil))
+	factoryFilterer = lo.Must(abis.NewLBFactoryFilterer(common.Address{}, nil))
 }

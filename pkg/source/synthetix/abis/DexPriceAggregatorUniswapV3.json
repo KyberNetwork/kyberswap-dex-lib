@@ -3,96 +3,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_uniswapV3Factory",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_weth",
-        "type": "address"
-      },
-      {
-        "internalType": "uint24",
-        "name": "_defaultPoolFee",
-        "type": "uint24"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "oldOwner",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnerChanged",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnerNominated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token0",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token1",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "PoolForRouteSet",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "acceptOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
         "name": "_tokenIn",
         "type": "address"
       },
@@ -158,7 +68,6 @@
     "outputs": [
       {
         "internalType": "uint24",
-        "name": "",
         "type": "uint24"
       }
     ],
@@ -321,25 +230,11 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_owner",
-        "type": "address"
-      }
-    ],
-    "name": "nominateNewOwner",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "nominatedOwner",
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -350,7 +245,6 @@
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -358,7 +252,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -371,34 +264,10 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_tokenA",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_tokenB",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_pool",
-        "type": "address"
-      }
-    ],
-    "name": "setPoolForRoute",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -407,7 +276,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -420,7 +288,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],

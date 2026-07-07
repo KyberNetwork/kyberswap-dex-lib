@@ -31,7 +31,7 @@ func (v *Vat) validateSellingGem(dart *big.Int) error {
 	return nil
 }
 
-// validateSellingGem implements validation when dart < 0 in frob
+// validateBuyingGem implements validation when dart < 0 in frob
 // https://github.com/makerdao/dss/blob/master/src/vat.sol#L143
 func (v *Vat) validateBuyingGem(dart *big.Int) error {
 	if dart.Cmp(v.ILK.Art) > 0 {

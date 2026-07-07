@@ -10,12 +10,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexTypeMuteSwitch, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
@@ -48,14 +51,14 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserve})
+	}, []any{&reserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: poolMethodPairFee,
 		Params: nil,
-	}, []interface{}{&pairFee})
+	}, []any{&pairFee})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

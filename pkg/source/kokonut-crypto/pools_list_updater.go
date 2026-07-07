@@ -2,21 +2,25 @@ package kokonutcrypto
 
 import (
 	"context"
-	"encoding/json"
+	"math/big"
+	"time"
+
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
-	"strings"
-	"time"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeKokonutCrypto, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -40,9 +44,6 @@ func (d *PoolsListUpdater) GetNewPools(
 		}
 	}
 
-	// Add timestamp to the context so that each run iteration will have something different
-	ctx = util.NewContextWithTimestamp(ctx)
-
 	var lengthBI *big.Int
 
 	getNumPoolsRequest := d.ethrpcClient.NewRequest()
@@ -51,7 +52,7 @@ func (d *PoolsListUpdater) GetNewPools(
 		Target: d.config.RegistryAddress,
 		Method: registryMethodPoolCount,
 		Params: nil,
-	}, []interface{}{&lengthBI})
+	}, []any{&lengthBI})
 
 	if _, err := getNumPoolsRequest.Call(); err != nil {
 		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
@@ -77,8 +78,8 @@ func (d *PoolsListUpdater) GetNewPools(
 			ABI:    poolRegistryABI,
 			Target: d.config.RegistryAddress,
 			Method: registryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&pairAddresses[j]})
 	}
 	if _, err := getPairAddressRequest.Aggregate(); err != nil {
 		logger.Errorf("failed to process aggregate, err: %v", err)
@@ -104,7 +105,8 @@ func (d *PoolsListUpdater) GetNewPools(
 	if len(pools) > 0 {
 		logger.WithFields(logger.Fields{
 			"dexID": d.config.DexID,
-		}).Infof("scan KokonutRegistry with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools, totalNumberOfPools)
+		}).Infof("scan KokonutRegistry with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools,
+			totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
@@ -125,8 +127,8 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				ABI:    cryptoSwap2PoolABI,
 				Target: poolAddress.Hex(),
 				Method: poolMethodCoins,
-				Params: []interface{}{big.NewInt(int64(j))},
-			}, []interface{}{&coins[i][j]})
+				Params: []any{big.NewInt(int64(j))},
+			}, []any{&coins[i][j]})
 		}
 	}
 	if _, err := calls.Aggregate(); err != nil {
@@ -142,14 +144,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				Target: coins[i][j].Hex(),
 				Method: poolMethodDecimals,
 				Params: nil,
-			}, []interface{}{&decimals[i][j]})
+			}, []any{&decimals[i][j]})
 		}
 		calls.AddCall(&ethrpc.Call{
 			ABI:    cryptoSwap2PoolABI,
 			Target: poolAddress.Hex(),
 			Method: poolMethodToken,
 			Params: nil,
-		}, []interface{}{&lpTokens[i]})
+		}, []any{&lpTokens[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate call to get coin data, err: %v", err)
@@ -161,16 +163,15 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = StaticExtra{
-			LpToken: strings.ToLower(lpTokens[i].Hex()),
+			LpToken: hexutil.Encode(lpTokens[i][:]),
 		}
 		for j := range coins[i] {
 			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), big.NewInt(int64(decimals[i][j]))), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
-				Address:   strings.ToLower(coins[i][j].Hex()),
+				Address:   hexutil.Encode(coins[i][j][:]),
 				Decimals:  decimals[i][j],
-				Weight:    defaultWeight,
 				Swappable: true,
 			})
 		}
@@ -181,7 +182,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAddresses[i].Hex()),
+			Address:     hexutil.Encode(poolAddresses[i][:]),
 			Exchange:    d.config.DexID,
 			Type:        DexTypeKokonutCrypto,
 			Timestamp:   time.Now().Unix(),

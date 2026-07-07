@@ -6,6 +6,8 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PSMReader struct {
@@ -20,7 +22,7 @@ func NewPSMReader(ethrpcClient *ethrpc.Client) *PSMReader {
 	}
 }
 
-func (r *PSMReader) Read(ctx context.Context, address string) (*PSM, error) {
+func (r *PSMReader) Read(ctx context.Context, address string, overrides map[common.Address]gethclient.OverrideAccount) (*PSM, error) {
 	var psm PSM
 
 	req := r.ethrpcClient.
@@ -31,26 +33,25 @@ func (r *PSMReader) Read(ctx context.Context, address string) (*PSM, error) {
 			Target: address,
 			Method: psmMethodTIn,
 			Params: nil,
-		}, []interface{}{&psm.TIn}).
+		}, []any{&psm.TIn}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: psmMethodTOut,
 			Params: nil,
-		}, []interface{}{&psm.TOut}).
+		}, []any{&psm.TOut}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: psmMethodVat,
 			Params: nil,
-		}, []interface{}{&psm.VatAddress}).
+		}, []any{&psm.VatAddress}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: psmMethodIlk,
 			Params: nil,
-		}, []interface{}{&psm.ILK})
-
+		}, []any{&psm.ILK}).SetOverrides(overrides)
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{

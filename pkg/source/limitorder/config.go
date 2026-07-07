@@ -7,4 +7,7 @@ type Config struct {
 	SupportMultiSCs   bool   `json:"supportMultiSCs"`
 
 	ContractAddresses []string `json:"contractAddresses"`
+
+	// default=false -> include orders with insufficient balance/allowance
+	DisableInsufficientBalance bool `json:"disableInsufficientBalance"`
 }

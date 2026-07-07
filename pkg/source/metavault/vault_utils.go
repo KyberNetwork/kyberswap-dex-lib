@@ -9,7 +9,7 @@ import (
 // VaultUtils
 // https://github.com/gmx-io/gmx-contracts/blob/master/contracts/core/VaultUtils.sol
 type VaultUtils struct {
-	vault *Vault
+	vault *Vault `msgpack:"-"`
 }
 
 func NewVaultUtils(vault *Vault) *VaultUtils {

@@ -5,21 +5,14 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
-	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
 )
 
 func getPointDelta(fee int) int {
 	return pointDeltas[fee]
-}
-
-func minInt(a int, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo) ([]swap.LiquidityPoint, error) {
@@ -49,15 +42,15 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 	liqudityPointLen := (rightPoint - leftPoint) / pointDelta
 	liquidityPointData := make([]swap.LiquidityPoint, 0, liqudityPointLen)
 	for start := leftPoint; start < rightPoint; start += batchLen {
-		end := minInt(start+batchLen, rightPoint)
+		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
-		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+		rpcRequest.SetContext(ctx)
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,
 			Method: methodGetLiquiditySnapshot,
-			Params: []interface{}{big.NewInt(int64(start)), big.NewInt(int64(end))},
-		}, []interface{}{&deltaLiquidities})
+			Params: []any{big.NewInt(int64(start)), big.NewInt(int64(end))},
+		}, []any{&deltaLiquidities})
 		resp, err := rpcRequest.TryAggregate()
 		if err != nil {
 			return nil, err
@@ -117,15 +110,15 @@ func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Poo
 	limitOrderPointLen := (rightPoint - leftPoint) / pointDelta
 	limitOrderPointData := make([]swap.LimitOrderPoint, 0, limitOrderPointLen)
 	for start := leftPoint; start < rightPoint; start += batchLen {
-		end := minInt(start+batchLen, rightPoint)
+		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
-		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+		rpcRequest.SetContext(ctx)
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,
 			Method: methodGetLimitOrderSnapshot,
-			Params: []interface{}{big.NewInt(int64(start)), big.NewInt(int64(end))},
-		}, []interface{}{&limitOrderDataRaw})
+			Params: []any{big.NewInt(int64(start)), big.NewInt(int64(end))},
+		}, []any{&limitOrderDataRaw})
 		resp, err := rpcRequest.TryAggregate()
 		if err != nil {
 			return nil, err

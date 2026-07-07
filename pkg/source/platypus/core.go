@@ -3,7 +3,7 @@ package platypus
 import (
 	"math/big"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // _slippageFunc calculates g(xr,i) or g(xr,j). This function always returns >= 0
@@ -83,7 +83,7 @@ func _slippage(
 	}
 
 	if covBefore.Cmp(covAfter) == 0 {
-		return constant.ZeroBI, nil
+		return bignumber.ZeroBI, nil
 	}
 
 	slippageBefore, err := _slippageFunc(k, n, c1, xThreshold, covBefore)

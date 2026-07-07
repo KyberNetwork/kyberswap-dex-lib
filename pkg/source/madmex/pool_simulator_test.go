@@ -11,10 +11,12 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://polygonscan.com/address/0xE990519F19DCc6c1589A544C331c4Ec046593e7A#readContract
 	// need to set bufferAmounts to all 1 to allow swap
 	// need to set lastUpdatedAt to Now so it will get same price as simulation
@@ -41,10 +43,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
-				TokenOut:      tc.out,
-				Limit:         nil,
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
@@ -54,6 +58,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	// test data from https://polygonscan.com/address/0xE990519F19DCc6c1589A544C331c4Ec046593e7A#readContract
 	// need to set bufferAmounts to all 1 to allow swap
 	// need to set lastUpdatedAt to Now so it will get same price as simulation
@@ -78,9 +83,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: amountIn,
-				TokenOut:      tc.out,
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: amountIn,
+					TokenOut:      tc.out,
+				})
 			})
 			require.Nil(t, err)
 
@@ -95,11 +102,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			fmt.Println(p.Info.Reserves)
 			for i, expPoolAmount := range tc.expPoolAmounts {
 				tok := p.vault.WhitelistedTokens[i]
-				assert.Equal(t, utils.NewBig10(expPoolAmount), p.vault.PoolAmounts[tok])
+				assert.Equal(t, bignumber.NewBig10(expPoolAmount), p.vault.PoolAmounts[tok])
 			}
 			for i, expUsdg := range tc.expUsdg {
 				tok := p.vault.WhitelistedTokens[i]
-				assert.Equal(t, utils.NewBig10(expUsdg), p.vault.USDGAmounts[tok])
+				assert.Equal(t, bignumber.NewBig10(expUsdg), p.vault.USDGAmounts[tok])
 			}
 		})
 	}

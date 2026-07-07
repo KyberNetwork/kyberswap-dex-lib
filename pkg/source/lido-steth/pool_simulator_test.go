@@ -12,10 +12,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 
 	tokens := []string{"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xae7ab96520de3a18e5e111b5eaab095312d7fe84"}
 	p, err := NewPoolSimulator(entity.Pool{
@@ -42,10 +44,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	for _, amountIn := range testamount {
 		t.Run(fmt.Sprintf("deposit %v ETH in should get %v stETH out", amountIn, amountIn), func(t *testing.T) {
 			tokAmountIn := pool.TokenAmount{Token: tokens[0], Amount: amountIn}
-			got, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokAmountIn,
-				TokenOut:      tokens[1],
-				Limit:         nil,
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: tokAmountIn,
+					TokenOut:      tokens[1],
+					Limit:         nil,
+				})
 			})
 
 			require.Nil(t, err)
@@ -65,6 +69,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_WrongChain(t *testing.T) {
+	t.Parallel()
 
 	tokens := []string{"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xae7ab96520de3a18e5e111b5eaab095312d7fe84"}
 	_, err := NewPoolSimulator(entity.Pool{

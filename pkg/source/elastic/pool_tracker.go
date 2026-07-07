@@ -2,34 +2,35 @@ package elastic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/machinebox/graphql"
+	"github.com/goccy/go-json"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
+
+var _ = pooltrack.RegisterFactoryCEG(DexTypeElastic, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
-
 	return &PoolTracker{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
@@ -45,14 +46,14 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.Infof("[Elastic] Start getting new state of pool: %v", p.Address)
 
 	var (
-		rpcData   FetchRPCResult
+		rpcData   *FetchRPCResult
 		poolTicks []TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.fetchRPCData(ctx, p)
+		rpcData, err = d.FetchRPCData(ctx, &p)
 		if err != nil {
 			logger.Errorf("failed to fetch data from RPC for pool: %v, err: %v", p.Address, err)
 		}
@@ -110,7 +111,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool) (*FetchRPCResult, error) {
 	var (
 		liquidityState LiquidityState
 		poolState      PoolState
@@ -126,38 +127,38 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Target: p.Address,
 		Method: methodGetLiquidityState,
 		Params: nil,
-	}, []interface{}{&liquidityState})
+	}, []any{&liquidityState})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    elasticPoolABI,
 		Target: p.Address,
 		Method: methodGetPoolState,
 		Params: nil,
-	}, []interface{}{&poolState})
+	}, []any{&poolState})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve0})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve1})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve1})
 	}
 
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		logger.Errorf("failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
-		return FetchRPCResult{}, err
+		return nil, err
 	}
 
-	return FetchRPCResult{
+	return &FetchRPCResult{
 		liquidityState: liquidityState,
 		poolState:      poolState,
 		reserve0:       reserve0,
@@ -170,7 +171,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(
+		req := graphqlpkg.NewRequest(
 			fmt.Sprintf(`{
 				pool(id: "%v") {
 					id

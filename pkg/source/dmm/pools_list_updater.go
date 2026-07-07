@@ -2,23 +2,25 @@ package dmm
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeDMM, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -39,9 +41,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	// Add timestamp to the context so that each run iteration will have something different
-	ctx = util.NewContextWithTimestamp(ctx)
-
 	var lengthBI *big.Int
 
 	getNumPoolsRequest := d.ethrpcClient.NewRequest()
@@ -50,7 +49,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodAllPoolsLength,
 		Params: nil,
-	}, []interface{}{&lengthBI})
+	}, []any{&lengthBI})
 
 	if _, err := getNumPoolsRequest.Call(); err != nil {
 		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
@@ -76,8 +75,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    dmmFactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodGetPool,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&pairAddresses[j]})
 	}
 
 	if _, err := getPairAddressRequest.Aggregate(); err != nil {
@@ -104,7 +103,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if len(pools) > 0 {
 		logger.WithFields(logger.Fields{
 			"dexID": d.config.DexID,
-		}).Infof("scan DmmFactory with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools, totalNumberOfPools)
+		}).Infof("scan DmmFactory with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools,
+			totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
@@ -124,14 +124,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodToken0,
 			Params: nil,
-		}, []interface{}{&token0Addresses[i]})
+		}, []any{&token0Addresses[i]})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    dmmPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodToken1,
 			Params: nil,
-		}, []interface{}{&token1Addresses[i]})
+		}, []any{&token1Addresses[i]})
 	}
 
 	if _, err := rpcRequest.Aggregate(); err != nil {
@@ -142,18 +142,16 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	pools := make([]entity.Pool, 0, len(poolAddresses))
 
 	for i, poolAddress := range poolAddresses {
-		p := strings.ToLower(poolAddress.Hex())
-		token0Address := strings.ToLower(token0Addresses[i].Hex())
-		token1Address := strings.ToLower(token1Addresses[i].Hex())
+		p := hexutil.Encode(poolAddress[:])
+		token0Address := hexutil.Encode(token0Addresses[i][:])
+		token1Address := hexutil.Encode(token1Addresses[i][:])
 
 		var token0 = entity.PoolToken{
 			Address:   token0Address,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		var token1 = entity.PoolToken{
 			Address:   token1Address,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 

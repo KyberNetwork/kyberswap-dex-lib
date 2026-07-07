@@ -1,18 +1,24 @@
 package limitorder
 
 import (
-	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
-
+	t.Parallel()
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string
@@ -38,14 +44,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -125,11 +129,11 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "300",
 					SwapSide: Buy,
@@ -202,14 +206,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -287,11 +289,11 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "1210000",
 					SwapSide: Sell,
@@ -362,14 +364,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -447,11 +447,11 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 					Amount:    big.NewInt(4),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "300",
 					SwapSide: Buy,
@@ -522,14 +522,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -657,11 +655,11 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 159924,
+				Gas: 426624,
 				SwapInfo: SwapInfo{
 					AmountIn: "700",
 					SwapSide: Sell,
@@ -758,14 +756,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -844,12 +840,15 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
-			got, err := p.CalcAmountOut(
-				pool.CalcAmountOutParams{
-					TokenAmountIn: tt.args.tokenAmountIn,
-					TokenOut:      tt.args.tokenOut,
-					Limit:         nil,
-				})
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				limit := swaplimit.NewInventory("", p.CalculateLimit())
+				return p.CalcAmountOut(
+					pool.CalcAmountOutParams{
+						TokenAmountIn: tt.args.tokenAmountIn,
+						TokenOut:      tt.args.tokenOut,
+						Limit:         limit,
+					})
+			})
 			assert.Equal(t, tt.err, err)
 			assert.Equal(t, tt.want, got)
 		})
@@ -864,4 +863,598 @@ func parseBigInt(value string) *big.Int {
 func marshalPoolExtra(extra *Extra) string {
 	bytesData, _ := json.Marshal(extra)
 	return string(bytesData)
+}
+
+func TestPool_CalcAmountOut_v2(t *testing.T) {
+	t.Parallel()
+	type testorder struct {
+		id               int64
+		makingAmount     string
+		takingAmount     string
+		avaiMakingAmount string
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "100", "1000", "100"},
+			{1002, "100", "2000", "50"},
+		},
+		"pool2": {
+			{1001, "100", "1000", "100"},
+			{1002, "100", "2000", "50"},
+			{1003, "100", "2000", "100"},
+		},
+		"pool3": {
+			{1001, "39", "777000000000000000000", "39"},
+		},
+		"pool4": {
+			{1001, "39", "777000000000000000000", "39"},
+			{1002, "390000", "777000000000000000", "390000"},
+		},
+	}
+
+	testcases := []struct {
+		name         string
+		pool         string
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}{
+		{"fully fill 1st order", "pool1", "100", "10", []int64{1001}},
+		{"f-fill 1st order, p-fill 2nd one", "pool1", "1100", "105", []int64{1001, 1002}},
+		{"f-fill both orders", "pool1", "2000", "150", []int64{1001, 1002}}, // reach 1002's avaiFillAmount (50)
+		{"cannot be filled", "pool1", "2001", "", nil},                      // cannot exceed 1002's avaiFillAmount (50)
+
+		{"f-fill 1st order, p-fill 2nd one", "pool2", "1100", "105", []int64{1001, 1002}},
+		{"f-fill 1st/2nd order", "pool2", "2000", "150", []int64{1001, 1002, 1003}}, // include 1003 with fill=0 as fallback
+		{"f-fill 1st/2nd order, p-fill 3rd one", "pool2", "2100", "155", []int64{1001, 1002, 1003}},
+		{"f-fill all order", "pool2", "4000", "250", []int64{1001, 1002, 1003}},
+		{"cannot be filled", "pool1", "4001", "", nil},
+
+		{"cannot be filled (too small, round to 0)", "pool3", "5874584652643", "", nil},
+
+		{"skip 1st order (too small, round to 0) and use 2nd one", "pool4", "5874584652643", "2", []int64{1002}},
+	}
+
+	sims := lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+		extra := Extra{
+			BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+				return &order{
+					ID:                    o.id,
+					MakingAmount:          bignumber.NewBig10(o.makingAmount),
+					TakingAmount:          bignumber.NewBig10(o.takingAmount),
+					AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+					MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000"),
+				}
+			}),
+		}
+		sExtra, _ := json.Marshal(extra)
+		poolEnt := entity.Pool{
+			Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+			Reserves:    entity.PoolReserves{"0", "0"},
+			StaticExtra: `{"ContractAddress":""}`,
+			Extra:       string(sExtra),
+		}
+		p, err := NewPoolSimulator(poolEnt)
+		require.Nil(t, err)
+		return p
+	})
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  "A",
+					Amount: bignumber.NewBig10(tc.amountIn),
+				},
+				TokenOut: "B",
+				Limit:    limit,
+			})
+
+			if tc.expOrderIds == nil {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+
+			assert.Equal(t, tc.expAmountOut, res.TokenAmountOut.Amount.String())
+
+			si := res.SwapInfo.(SwapInfo)
+			oid := make([]int64, 0, len(si.FilledOrders))
+			oinfo := ""
+			for _, o := range si.FilledOrders {
+				if o.FilledTakingAmount == "" {
+					break
+				}
+				oid = append(oid, o.OrderID)
+				oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+			}
+			assert.Equal(t, tc.expOrderIds, oid, oinfo)
+			fmt.Println(oinfo)
+		})
+	}
+}
+
+func TestPool_UpdateBalance(t *testing.T) {
+	t.Parallel()
+	type testorder struct {
+		id               int64
+		makingAmount     string
+		takingAmount     string
+		avaiMakingAmount string
+	}
+
+	type testswap struct {
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "100", "1000", "100"},
+			{1002, "100", "2000", "50"},
+		},
+	}
+
+	testcases := []struct {
+		name string
+		pool string
+
+		swaps []testswap
+	}{
+		{"case 1", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"600", "", nil},                     // only 25 makingAmount left (500 takingAmount), so this swap will fail
+		}},
+		{"case 2", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"300", "15", []int64{1002}},         // still use 1002
+			{"200", "10", []int64{1002}},         // still use 1002
+		}},
+	}
+
+	var sims map[string]*PoolSimulator
+	resetSim := func() {
+		sims = lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+			extra := Extra{
+				BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+					return &order{
+						ID:                    o.id,
+						MakingAmount:          bignumber.NewBig10(o.makingAmount),
+						TakingAmount:          bignumber.NewBig10(o.takingAmount),
+						AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+						MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000"),
+						FilledMakingAmount:    big.NewInt(0),
+						FilledTakingAmount:    big.NewInt(0),
+					}
+				}),
+			}
+			sExtra, _ := json.Marshal(extra)
+			poolEnt := entity.Pool{
+				Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+				Reserves:    entity.PoolReserves{"0", "0"},
+				StaticExtra: `{"ContractAddress":""}`,
+				Extra:       string(sExtra),
+			}
+			p, err := NewPoolSimulator(poolEnt)
+			require.Nil(t, err)
+			return p
+		})
+	}
+
+	for _, tc := range testcases {
+		resetSim()
+		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+		for i, swap := range tc.swaps {
+			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
+				cloned := sims[tc.pool].CloneState()
+				calcAmountOutParams := pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  "A",
+						Amount: bignumber.NewBig10(swap.amountIn),
+					},
+					TokenOut: "B",
+					Limit:    limit,
+				}
+				res, err := sims[tc.pool].CalcAmountOut(calcAmountOutParams)
+
+				if swap.expOrderIds == nil {
+					require.NotNil(t, err)
+					return
+				}
+
+				require.Nil(t, err)
+
+				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
+
+				clonedRes, err := cloned.CalcAmountOut(calcAmountOutParams)
+				require.Nil(t, err)
+				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
+
+				si := res.SwapInfo.(SwapInfo)
+				oid := make([]int64, 0, len(si.FilledOrders))
+				oinfo := ""
+				for _, o := range si.FilledOrders {
+					if o.FilledTakingAmount == "" {
+						break
+					}
+					oid = append(oid, o.OrderID)
+					oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+				}
+				assert.Equal(t, swap.expOrderIds, oid, oinfo)
+				fmt.Println(oinfo)
+
+				sims[tc.pool].UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  "A",
+						Amount: bignumber.NewBig10(swap.amountIn),
+					},
+					TokenAmountOut: *res.TokenAmountOut,
+					Fee:            *res.Fee,
+					SwapInfo:       res.SwapInfo,
+					SwapLimit:      limit,
+				})
+
+				clonedRes, err = cloned.CalcAmountOut(calcAmountOutParams)
+				require.Nil(t, err)
+				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
+			})
+		}
+	}
+}
+
+func TestPool_Inventory(t *testing.T) {
+	t.Parallel()
+	type testorder struct {
+		id               int64
+		maker            string
+		makingAmount     string
+		takingAmount     string
+		avaiMakingAmount string
+	}
+
+	type testswap struct {
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "maker1", "100", "1000", "100"},
+			{1002, "maker1", "100", "2000", "100"},
+			{1003, "maker1", "100", "4000", "50"},
+			{1004, "maker2", "100", "5000", "100"},
+		},
+	}
+
+	makerBalances := map[string]*big.Int{
+		"maker1": bignumber.NewBig10("250"),
+		"maker2": bignumber.NewBig10("100"),
+	}
+	makerAssetBalance := map[makerAndAsset]*big.Int{
+		NewMakerAndAsset("maker1", "B"): bignumber.NewBig10("150"), // maker1 original balance is 250, but 100 has been spent in previous paths (order with same makerAsset but different takerAsset)
+		NewMakerAndAsset("maker2", "B"): bignumber.NewBig10("50"),  // same, maker2 has spent 50 already
+	}
+
+	testcases := []struct {
+		name string
+		pool string
+
+		swaps []testswap
+	}{
+		{"case 1", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"500", "25", []int64{1002, 1004}},   // maker1 has 25 makingAmount left, so will fully filled the rest of 1002 (1004 included as backup instead of 1003 because 1003 is from maker1 who has no balance left)
+			{"500", "10", []int64{1004}},         // only 1004 is available now
+		}},
+
+		{"case 2", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"600", "27", []int64{1002, 1004}},   // 500-25 from 1002 and 100-2 from 1004
+		}},
+
+		{"case 3", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"3000", "75", []int64{1002, 1004}},  // 500-25 from 1002 and 2500-50 from 1004 (fully filled)
+		}},
+
+		{"case 4", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"3001", "", nil},                    // a bit larger than case 3 above, so no balance left and swap fail
+		}},
+	}
+
+	var sims map[string]*PoolSimulator
+	resetSim := func() {
+		sims = lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+			extra := Extra{
+				BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+					return &order{
+						ID:                    o.id,
+						Maker:                 o.maker,
+						MakerAsset:            "B",
+						TakerAsset:            "A",
+						MakingAmount:          bignumber.NewBig10(o.makingAmount),
+						TakingAmount:          bignumber.NewBig10(o.takingAmount),
+						AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+						MakerBalanceAllowance: makerBalances[o.maker],
+						FilledMakingAmount:    big.NewInt(0),
+						FilledTakingAmount:    big.NewInt(0),
+					}
+				}),
+			}
+			sExtra, _ := json.Marshal(extra)
+			poolEnt := entity.Pool{
+				Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+				Reserves:    entity.PoolReserves{"0", "0"},
+				StaticExtra: `{"ContractAddress":""}`,
+				Extra:       string(sExtra),
+			}
+			p, err := NewPoolSimulator(poolEnt)
+			require.Nil(t, err)
+			// fake spent balance
+			p.allMakersBalanceAllowance = makerAssetBalance
+			return p
+		})
+	}
+
+	for _, tc := range testcases {
+		resetSim()
+		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+		for i, swap := range tc.swaps {
+			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
+				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  "A",
+						Amount: bignumber.NewBig10(swap.amountIn),
+					},
+					TokenOut: "B",
+					Limit:    limit,
+				})
+
+				if swap.expOrderIds == nil {
+					require.NotNil(t, err)
+					return
+				}
+
+				require.Nil(t, err)
+
+				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
+
+				si := res.SwapInfo.(SwapInfo)
+				oid := make([]int64, 0, len(si.FilledOrders))
+				oinfo := ""
+				for _, o := range si.FilledOrders {
+					if o.FilledTakingAmount == "" {
+						break
+					}
+					oid = append(oid, o.OrderID)
+					oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+				}
+				assert.Equal(t, swap.expOrderIds, oid, oinfo)
+				fmt.Println(oinfo)
+
+				sims[tc.pool].UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  "A",
+						Amount: bignumber.NewBig10(swap.amountIn),
+					},
+					TokenAmountOut: *res.TokenAmountOut,
+					Fee:            *res.Fee,
+					SwapInfo:       res.SwapInfo,
+					SwapLimit:      limit,
+				})
+			})
+		}
+	}
+}
+
+func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
+	t.Parallel()
+	type testorder struct {
+		id              int64
+		makingAmount    string
+		takingAmount    string
+		feePct          uint32
+		IsTakerAssetFee bool
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "10000000", "12000000", 100, true},
+			{1002, "10000000", "10000000", 100, true},
+		},
+		"pool2": { // mixed takerAssetFee and makerAssetFee
+			{1001, "10000000", "12000000", 100, true},
+			{1002, "10000000", "10000000", 100, false},
+		},
+		"pool3": { // test order on prerelease
+			{1001, "10000000000000", "99522200853987088", 100, true},
+		},
+	}
+
+	testcases := []struct {
+		name         string
+		pool         string
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}{
+		{"p-fill 1st order", "pool1", "10000000", "8250825", []int64{1001, 1002}},  // 1002 as backup
+		{"p-fill 1st order", "pool1", "12000000", "9900990", []int64{1001, 1002}},  // 1002 as backup
+		{"f-fill 1st order", "pool1", "12120000", "10000000", []int64{1001, 1002}}, // 1002 as backup
+		{"f-fill 1st order, p-fill 2nd one", "pool1", "15000000", "12851485", []int64{1001, 1002}},
+		{"f-fill both orders", "pool1", "22220000", "20000000", []int64{1001, 1002}},
+		{"cannot be filled", "pool1", "22220003", "", nil}, // we expect 22220001 to not be filled, but due to fee rounding down it need 22220003
+
+		{"p-fill 1st order", "pool2", "10000000", "8250825", []int64{1001, 1002}},  // 1002 as backup
+		{"p-fill 1st order", "pool2", "12000000", "9900990", []int64{1001, 1002}},  // 1002 as backup
+		{"f-fill 1st order", "pool2", "12120000", "10000000", []int64{1001, 1002}}, // 1002 as backup
+		{"f-fill 1st order, p-fill 2nd one", "pool2", "15000000", "12851200", []int64{1001, 1002}},
+		{"f-fill both orders", "pool2", "22120000", "19900000", []int64{1001, 1002}},
+		{"cannot be filled", "pool2", "22120001", "", nil},
+
+		// 49522200853987088 + 495222008539871
+		{"p-fill 1st order", "pool3", "50017422862526959", "4975995348680", []int64{1001}},
+	}
+
+	sims := lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+		extra := Extra{
+			BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+				return &order{
+					ID:                    o.id,
+					MakingAmount:          bignumber.NewBig10(o.makingAmount),
+					TakingAmount:          bignumber.NewBig10(o.takingAmount),
+					AvailableMakingAmount: bignumber.NewBig10(o.makingAmount),
+					MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000"),
+					MakerTokenFeePercent:  o.feePct,
+					IsTakerAssetFee:       o.IsTakerAssetFee,
+				}
+			}),
+		}
+		sExtra, _ := json.Marshal(extra)
+		poolEnt := entity.Pool{
+			Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+			Reserves:    entity.PoolReserves{"0", "0"},
+			StaticExtra: `{"ContractAddress":""}`,
+			Extra:       string(sExtra),
+		}
+		p, err := NewPoolSimulator(poolEnt)
+		require.Nil(t, err)
+		return p
+	})
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  "A",
+					Amount: bignumber.NewBig10(tc.amountIn),
+				},
+				TokenOut: "B",
+				Limit:    limit,
+			})
+
+			if tc.expOrderIds == nil {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+
+			assert.Equal(t, tc.expAmountOut, res.TokenAmountOut.Amount.String())
+
+			si := res.SwapInfo.(SwapInfo)
+			oid := make([]int64, 0, len(si.FilledOrders))
+			oinfo := ""
+			for _, o := range si.FilledOrders {
+				if o.FilledTakingAmount == "" {
+					break
+				}
+				oid = append(oid, o.OrderID)
+				oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+			}
+			assert.Equal(t, tc.expOrderIds, oid, oinfo)
+			fmt.Println(oinfo)
+		})
+	}
+}
+
+func TestPool_FilterAllowedSenders(t *testing.T) {
+	t.Parallel()
+	extra := Extra{
+		BuyOrders: []*order{
+			{
+				ID:             1,
+				AllowedSenders: "0x0000000000000000000000000000000000000000",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+			{
+				ID:             2,
+				AllowedSenders: "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+			{
+				ID:             3,
+				AllowedSenders: "0xf081470f5c6fbccf48cc4e5b82dd926409dcdd67",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+			{
+				ID:             4,
+				AllowedSenders: "0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+		},
+	}
+	sExtra, _ := json.Marshal(extra)
+	poolEnt := entity.Pool{
+		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+		Reserves:    entity.PoolReserves{"10000", "10000"},
+		StaticExtra: `{"ContractAddress":""}`,
+		Extra:       string(sExtra),
+	}
+
+	p, err := NewPoolSimulator(poolEnt)
+	assert.NoError(t, err)
+
+	// Use all orders if we don't pass swapLimit
+	res, _ := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "A",
+			Amount: parseBigInt("400"),
+		},
+		TokenOut: "B",
+		Limit:    nil,
+	})
+
+	assert.Equal(t, "400", res.TokenAmountOut.Amount.String())
+
+	// Use the first 3 orders when filter allowedSenders
+	// Use all orders if we don't pass swapLimit
+	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "A",
+			Amount: parseBigInt("400"),
+		},
+		TokenOut: "B",
+		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
+	})
+	assert.Equal(t, ErrCannotFulfillAmountIn, err)
+
+	res, _ = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "A",
+			Amount: parseBigInt("300"),
+		},
+		TokenOut: "B",
+		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
+	})
+	assert.Equal(t, "300", res.TokenAmountOut.Amount.String())
 }

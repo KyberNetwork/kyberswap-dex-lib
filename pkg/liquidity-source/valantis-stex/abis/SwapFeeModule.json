@@ -1,0 +1,663 @@
+[
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "alm",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            }
+        ],
+        "name": "ALMDeployed",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "feeMaxToken0",
+                "type": "uint16"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "feeMaxToken1",
+                "type": "uint16"
+            }
+        ],
+        "name": "AMMFeeSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [],
+        "name": "EIP712DomainChanged",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "fee0Bips",
+                "type": "uint16"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "fee1Bips",
+                "type": "uint16"
+            }
+        ],
+        "name": "HotFeeSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "hotHash",
+                "type": "bytes32"
+            }
+        ],
+        "name": "HotSwap",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "manager",
+                "type": "address"
+            }
+        ],
+        "name": "ManagerUpdate",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint8",
+                "name": "maxQuotes",
+                "type": "uint8"
+            }
+        ],
+        "name": "MaxAllowedQuoteSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "maxOracleDeviationBipsLower",
+                "type": "uint16"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "maxOracleDeviationBipsUpper",
+                "type": "uint16"
+            }
+        ],
+        "name": "MaxOracleDeviationBipsSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+            }
+        ],
+        "name": "MaxTokenVolumeSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "feed0",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "feed1",
+                "type": "address"
+            }
+        ],
+        "name": "OracleFeedsProposed",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [],
+        "name": "OracleFeedsSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "pause",
+                "type": "bool"
+            }
+        ],
+        "name": "PauseSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint160",
+                "name": "sqrtSpotPriceX96",
+                "type": "uint160"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint128",
+                "name": "preWithdrawalLiquidity",
+                "type": "uint128"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint128",
+                "name": "postWithdrawalLiquidity",
+                "type": "uint128"
+            }
+        ],
+        "name": "PostWithdrawalLiquidityCapped",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint160",
+                "name": "sqrtPriceLowX96",
+                "type": "uint160"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint160",
+                "name": "sqrtPriceHighX96",
+                "type": "uint160"
+            }
+        ],
+        "name": "PriceBoundSet",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "signer",
+                "type": "address"
+            }
+        ],
+        "name": "SignerUpdate",
+        "type": "event"
+    },
+    {
+        "inputs": [],
+        "name": "effectiveAMMLiquidity",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "type": "uint128"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "eip712Domain",
+        "outputs": [
+            {
+                "internalType": "bytes1",
+                "name": "fields",
+                "type": "bytes1"
+            },
+            {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "version",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "chainId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "verifyingContract",
+                "type": "address"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "salt",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "extensions",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "feedToken0",
+        "outputs": [
+            {
+                "internalType": "contract AggregatorV3Interface",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "feedToken1",
+        "outputs": [
+            {
+                "internalType": "contract AggregatorV3Interface",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getAMMState",
+        "outputs": [
+            {
+                "internalType": "uint160",
+                "name": "sqrtSpotPriceX96",
+                "type": "uint160"
+            },
+            {
+                "internalType": "uint160",
+                "name": "sqrtPriceLowX96",
+                "type": "uint160"
+            },
+            {
+                "internalType": "uint160",
+                "name": "sqrtPriceHighX96",
+                "type": "uint160"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint160",
+                "name": "sqrtSpotPriceX96New",
+                "type": "uint160"
+            }
+        ],
+        "name": "getReservesAtPrice",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getSqrtOraclePriceX96",
+        "outputs": [
+            {
+                "internalType": "uint160",
+                "name": "sqrtOraclePriceX96",
+                "type": "uint160"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_tokenIn",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "type": "address"
+            },
+            {
+                "internalType": "bytes",
+                "name": "_swapFeeModuleContext",
+                "type": "bytes"
+            }
+        ],
+        "name": "getSwapFeeInBips",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "feeInBips",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bytes",
+                        "name": "internalContext",
+                        "type": "bytes"
+                    }
+                ],
+                "internalType": "struct SwapFeeModuleData",
+                "name": "swapFeeModuleData",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "hotReadSlot",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "isPaused",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint8",
+                "name": "maxAllowedQuotes",
+                "type": "uint8"
+            },
+            {
+                "internalType": "uint16",
+                "name": "maxOracleDeviationBipsLower",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "maxOracleDeviationBipsUpper",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "hotFeeBipsToken0",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "hotFeeBipsToken1",
+                "type": "uint16"
+            },
+            {
+                "internalType": "address",
+                "name": "signer",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "hotWriteSlot",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "lastProcessedBlockQuoteCount",
+                "type": "uint8"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeGrowthE6Token0",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeMaxToken0",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeMinToken0",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeGrowthE6Token1",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeMaxToken1",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeMinToken1",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint32",
+                "name": "lastStateUpdateTimestamp",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "lastProcessedQuoteTimestamp",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "lastProcessedSignatureTimestamp",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint56",
+                "name": "alternatingNonceBitmap",
+                "type": "uint56"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "immutables",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "liquidityProvider",
+                "type": "address"
+            },
+            {
+                "internalType": "uint32",
+                "name": "maxDelay",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint16",
+                "name": "hotMaxDiscountBipsLower",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "hotMaxDiscountBipsUpper",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "maxOracleDeviationBound",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "minAMMFeeGrowthE6",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "maxAMMFeeGrowthE6",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint16",
+                "name": "minAMMFee",
+                "type": "uint16"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "manager",
+        "outputs": [
+            {
+                "internalType": "address",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "maxOracleUpdateDurationFeed0",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "maxOracleUpdateDurationFeed1",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "maxTokenVolumes",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "proposedFeedToken0",
+        "outputs": [
+            {
+                "internalType": "address",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "proposedFeedToken1",
+        "outputs": [
+            {
+                "internalType": "address",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

@@ -1,6 +1,8 @@
 package iziswap
 
-import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+import (
+	iziswapclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/client"
+)
 
 type Config struct {
 	DexID        string
@@ -20,14 +22,8 @@ type Config struct {
 	// is [currentPrice/1.2, currentPrice * 1.2)
 	PointRange int `mapstructure:"point_range" json:"point_range,omitempty"`
 
-	HTTP HTTPConfig `mapstructure:"http" json:"http,omitempty"`
+	HTTP iziswapclient.HTTPConfig `mapstructure:"http" json:"http,omitempty"`
 
 	// //todo: we may use it in the future for speed up
 	// preGenesisPoolAddrs []string
-}
-
-type HTTPConfig struct {
-	BaseURL    string                `mapstructure:"base_url" json:"base_url,omitempty"`
-	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
-	RetryCount int                   `mapstructure:"retry_count" json:"retry_count,omitempty"`
 }

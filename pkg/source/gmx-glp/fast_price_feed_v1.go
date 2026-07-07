@@ -18,7 +18,7 @@ type FastPriceFeedV1 struct {
 	Prices                    map[string]*big.Int `json:"prices"`
 }
 
-func (fp FastPriceFeedV1) GetVersion() int {
+func (pf *FastPriceFeedV1) GetVersion() int {
 	return int(secondaryPriceFeedVersion1)
 }
 

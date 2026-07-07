@@ -1,0 +1,79 @@
+[
+  {
+    "name": "getReserves",
+    "outputs": [
+      {
+        "internalType": "uint112",
+        "name": "_reserve0",
+        "type": "uint112"
+      },
+      {
+        "internalType": "uint112",
+        "name": "_reserve1",
+        "type": "uint112"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_blockTimestampLast",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "quoteTokenIndex",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "token0",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "token0Decimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "token1",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "token1Decimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -2,7 +2,6 @@ package wombat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -10,25 +9,27 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/machinebox/graphql"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
+
+var _ = poollist.RegisterFactoryCEG(DexTypeWombat, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
-
 	return &PoolsListUpdater{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
@@ -45,7 +46,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	ctx = util.NewContextWithTimestamp(ctx)
 	pools, lastCreatedTime, err := d.getNewPoolFromSubgraph(ctx, metadata.LastCreateTime)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -95,7 +95,6 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 		for j, asset := range p.Assets {
 			tokens[j] = &entity.PoolToken{
 				Address:   asset.UnderlyingToken.ID,
-				Weight:    defaultTokenWeight,
 				Decimals:  asset.UnderlyingToken.Decimals,
 				Swappable: true,
 			}
@@ -110,6 +109,16 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 			continue
 		}
 
+		extraByte, err := json.Marshal(Extra{
+			AssetMap: lo.SliceToMap(p.Assets, func(item AssetSubgraph) (string, Asset) {
+				return item.ID, Asset{Address: item.ID}
+			}),
+			DependenciesStored: false,
+		})
+		if err != nil {
+			return nil, lastCreateTime, err
+		}
+
 		var newPool = entity.Pool{
 			Address:   p.ID,
 			Exchange:  d.config.DexID,
@@ -117,6 +126,7 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 			Timestamp: time.Now().Unix(),
 			Reserves:  reserves,
 			Tokens:    tokens,
+			Extra:     string(extraByte),
 		}
 
 		pools = append(pools, newPool)
@@ -141,7 +151,7 @@ func (d *PoolsListUpdater) querySubgraph(
 	ctx context.Context,
 	lastCreateTime uint64,
 ) ([]*SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools(
 			orderBy: createdTimestamp
 			orderDirection: asc
@@ -192,13 +202,13 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool
 		Target: assetAddress,
 		Method: assetMethodGetRelativePrice,
 		Params: nil,
-	}, []interface{}{&relativePrice})
+	}, []any{&relativePrice})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    CrossChainPoolABI,
 		Target: p.ID,
 		Method: poolMethodCreditForTokensHaircut,
 		Params: nil,
-	}, []interface{}{&creditForTokensHaircut})
+	}, []any{&creditForTokensHaircut})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{

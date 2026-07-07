@@ -1,0 +1,545 @@
+[
+  {
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256"
+      }
+    ],
+    "name": "coins",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "price_oracle",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dynamic_fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "get_rate_mul",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "get_base_price",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "n",
+        "type": "int256"
+      }
+    ],
+    "name": "p_current_up",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "n",
+        "type": "int256"
+      }
+    ],
+    "name": "p_current_down",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "n",
+        "type": "int256"
+      }
+    ],
+    "name": "p_oracle_up",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "n",
+        "type": "int256"
+      }
+    ],
+    "name": "p_oracle_down",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "get_p",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "read_user_tick_numbers",
+    "outputs": [
+      {
+        "type": "int256[2]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "n_end",
+        "type": "int256"
+      }
+    ],
+    "name": "can_skip_bands",
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "active_band_with_skip",
+    "outputs": [
+      {
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "has_liquidity",
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256"
+      },
+      {
+        "name": "j",
+        "type": "uint256"
+      },
+      {
+        "name": "in_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "get_dy",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256"
+      },
+      {
+        "name": "j",
+        "type": "uint256"
+      },
+      {
+        "name": "in_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "get_dxdy",
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256"
+      },
+      {
+        "name": "j",
+        "type": "uint256"
+      },
+      {
+        "name": "out_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "get_dx",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "i",
+        "type": "uint256"
+      },
+      {
+        "name": "j",
+        "type": "uint256"
+      },
+      {
+        "name": "out_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "get_dydx",
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "get_y_up",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "get_x_down",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "get_sum_xy",
+    "outputs": [
+      {
+        "type": "uint256[2]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "get_xy",
+    "outputs": [
+      {
+        "type": "uint256[][2]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "p",
+        "type": "uint256"
+      }
+    ],
+    "name": "get_amount_for_price",
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "A",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin_fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rate",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "active_band",
+    "outputs": [
+      {
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "min_band",
+    "outputs": [
+      {
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "max_band",
+    "outputs": [
+      {
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin_fees_x",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin_fees_y",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "price_oracle_contract",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "arg0",
+        "type": "int256"
+      }
+    ],
+    "name": "bands_x",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "arg0",
+        "type": "int256"
+      }
+    ],
+    "name": "bands_y",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liquidity_mining_callback",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

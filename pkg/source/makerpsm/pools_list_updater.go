@@ -2,20 +2,23 @@ package makerpsm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	cfg            *Config
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryC(DexTypeMakerPSM, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config) *PoolsListUpdater {
 	return &PoolsListUpdater{

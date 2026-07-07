@@ -3,6 +3,7 @@ package uniswap
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -15,6 +16,8 @@ type PoolSimulator struct {
 	gas     Gas
 }
 
+var _ = pool.RegisterFactory0(DexTypeUniswap, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bOneFloat)
 	swapFee, _ := swapFeeFl.Int(nil)
@@ -22,30 +25,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	weights := make([]uint, 2)
 	reserves := make([]*big.Int, 2)
 	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
-		var weight0 = uint(50)
-		if entityPool.Tokens[0].Weight > 0 {
-			weight0 = entityPool.Tokens[0].Weight
-		}
-		var weight1 = uint(50)
-		if entityPool.Tokens[1].Weight > 0 {
-			weight1 = entityPool.Tokens[1].Weight
-		}
 		tokens[0] = entityPool.Tokens[0].Address
-		weights[0] = weight0
+		weights[0] = defaultTokenWeight
 		reserves[0] = NewBig10(entityPool.Reserves[0])
 		tokens[1] = entityPool.Tokens[1].Address
-		weights[1] = weight1
+		weights[1] = defaultTokenWeight
 		reserves[1] = NewBig10(entityPool.Reserves[1])
 	}
 	info := pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -53,6 +46,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Weights: weights,
 		gas:     defaultGas,
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -74,7 +73,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		t.Info.SwapFee,
 	)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	var totalGas = t.gas.SwapBase
@@ -113,7 +112,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	if t.GetInfo().SwapFee == nil {
 		return Meta{
 			SwapFee: defaultSwapFee,

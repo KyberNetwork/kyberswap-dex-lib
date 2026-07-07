@@ -19,11 +19,11 @@ var (
 	Buy  SwapSide = "BUY"
 	Sell SwapSide = "SELL"
 
-	// BasGas is base gas to executor a tx for LO.
+	// BaseGas is base gas to executor a tx for LO.
 	BaseGas = 90000
 
 	// GasPerOrderExecutor is gas for executing an order.
-	GasPerOrderExecutor = 11100
+	GasPerOrderExecutor = 100000
 	// GasPerOrderRouter need to burn when sending in call data.
 	GasPerOrderRouter = 12208
 	// FallbackPercentageOfTotalMakingAmount is fallback percentage of total remain making amount with amount out.

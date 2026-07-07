@@ -10,6 +10,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -204,12 +206,14 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, _ := NewPoolSimulator(tc.entityPool, tc.chainId)
 			fmt.Println("atomic vol", pool.poolState.AtomicMaxVolumePerBlock.String())
-			result, err := pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
-				TokenAmountIn: tc.tokenAmountIn,
-				TokenOut:      tc.tokenOut,
-				Limit: NewLimits(map[string]*big.Int{
-					strconv.FormatUint(pool.poolState.BlockTimestamp, 10): big.NewInt(0).Set(pool.poolState.AtomicMaxVolumePerBlock),
-				}),
+			result, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
+				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit: swaplimit.NewInventory("", map[string]*big.Int{
+						strconv.FormatUint(pool.poolState.BlockTimestamp, 10): big.NewInt(0).Set(pool.poolState.AtomicMaxVolumePerBlock),
+					}),
+				})
 			})
 
 			assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut)
@@ -221,6 +225,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 }
 
 func TestPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
 		entityPool := entity.Pool{
 			Address:  "0x08f30ecf2c15a783083ab9d5b9211c22388d0564",
@@ -517,6 +522,7 @@ func TestPool_GetMetaInfo(t *testing.T) {
 }
 
 func TestPool_GetAtomicVolume(t *testing.T) {
+	t.Parallel()
 	expectedAtomicVolumeEthereum, _ := new(big.Int).SetString("1348222480000000000000", 10)
 
 	testCases := []struct {

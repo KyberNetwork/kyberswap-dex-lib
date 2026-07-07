@@ -1,0 +1,87 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pair",
+        "type": "address"
+      }
+    ],
+    "name": "getConfig",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "kB",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "kQ",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "lambda",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fee",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "feeSplit",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "compress",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "sSell",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "sBuy",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixS",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "disThreshold",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "sBound",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "pythWeight",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "gamma",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct IBrownFiV3PairConfig.Config",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

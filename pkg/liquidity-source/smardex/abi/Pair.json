@@ -1,0 +1,350 @@
+[
+  {
+    "inputs": [
+    ],
+    "name": "DOMAIN_SEPARATOR",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      }
+    ],
+    "name": "allowance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "decimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "factory",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "getFees",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fees0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fees1_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "getFictiveReserves",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fictiveReserve0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fictiveReserve1_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "getPriceAverage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "priceAverage0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAverage1_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAverageLastTimestamp_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "getReserves",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "reserve0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reserve1_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_fictiveReserveIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_fictiveReserveOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_priceAverageLastTimestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_priceAverageIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_priceAverageOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_currentTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "getUpdatedPriceAverage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "priceAverageIn_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAverageOut_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "name",
+    "outputs": [
+      {
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "nonces",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "symbol",
+    "outputs": [
+      {
+        "internalType": "string",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "token0",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "token1",
+    "outputs": [
+      {
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "totalSupply",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+    ],
+    "name": "getFees",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fees0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fees1_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPairFees",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "feesLP_",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "feesPool_",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getFeeToAmounts",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fees0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fees1_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

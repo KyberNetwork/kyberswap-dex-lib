@@ -1,12 +1,14 @@
 package gmxglp
 
 import (
-	"encoding/json"
 	"fmt"
+	"maps"
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -23,8 +25,9 @@ type PoolSimulator struct {
 	glpManager      *GlpManager
 	yearnTokenVault *YearnTokenVault
 	gas             Gas
-	swapInfo        *gmxGlpSwapInfo
 }
+
+var _ = pool.RegisterFactory0(DexTypeGmxGlp, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -37,11 +40,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens = append(tokens, poolToken.Address)
 	}
 
+	reserves := make([]*big.Int, len(entityPool.Reserves))
+	for i, reserve := range entityPool.Reserves {
+		reserveBI, ok := new(big.Int).SetString(reserve, 10)
+		if !ok {
+			reserveBI = integer.Zero()
+		}
+
+		reserves[i] = reserveBI
+	}
+
 	info := pool.PoolInfo{
 		Address:  entityPool.Address,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
 		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -61,30 +75,31 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	var amountOut, feeAmount *big.Int
 	var err error
-	p.swapInfo = &gmxGlpSwapInfo{}
+	swapInfo := &gmxGlpSwapInfo{yearnTokenVaultModified: &YearnTokenVault{}}
 
 	if strings.EqualFold(tokenOut, p.yearnTokenVault.Address) {
-		amountOut, err = p.MintAndStakeGlp(tokenAmountIn.Token, tokenAmountIn.Amount)
+		amountOut, err = p.MintAndStakeGlp(swapInfo, tokenAmountIn.Token, tokenAmountIn.Amount)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		amountOut, err = p.yearnTokenVault.Deposit(amountOut)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
-		p.swapInfo.calcAmountOutType = calcAmountOutTypeStake
+		swapInfo.calcAmountOutType = calcAmountOutTypeStake
 	} else if strings.EqualFold(tokenAmountIn.Token, p.yearnTokenVault.Address) {
-		amountOut, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount)
+		amountOut, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount, swapInfo.yearnTokenVaultModified)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
-		amountOut, err = p.UnstakeAndRedeemGlp(tokenOut, amountOut)
+		amountOut, err = p.UnstakeAndRedeemGlp(swapInfo, tokenOut, amountOut)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
-		p.swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
+		swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
 	} else {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to wBLT token %v", p.Info.Address, p.yearnTokenVault.Address)
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to wBLT token %v",
+			p.Info.Address, p.yearnTokenVault.Address)
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -100,14 +115,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
-		SwapInfo: gmxGlpSwapInfo{
-			calcAmountOutType: p.swapInfo.calcAmountOutType,
-			mintAmount:        p.swapInfo.mintAmount,
-			amountAfterFees:   p.swapInfo.amountAfterFees,
-			redemptionAmount:  p.swapInfo.redemptionAmount,
-			usdgAmount:        p.swapInfo.usdgAmount,
-		},
+		SwapInfo:       *swapInfo,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	vault := *p.vault
+	vault.USDGAmounts = maps.Clone(p.vault.USDGAmounts)
+	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.vault = &vault
+	yearnTokenVault := *p.yearnTokenVault
+	yearnTokenVault.TotalIdle = new(big.Int).Set(p.yearnTokenVault.TotalIdle)
+	yearnTokenVault.YearnStrategyMap = maps.Clone(p.yearnTokenVault.YearnStrategyMap)
+	cloned.yearnTokenVault = &yearnTokenVault
+	return &cloned
 }
 
 // UpdateBalance update UsdgAmount only
@@ -127,6 +149,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.vault.DecreaseUSDGAmount(params.TokenAmountOut.Token, swapInfo.usdgAmount)
 		p.vault.DecreasePoolAmount(params.TokenAmountOut.Token, swapInfo.redemptionAmount)
 	}
+
+	p.yearnTokenVault.Merge(swapInfo.yearnTokenVaultModified)
 }
 
 // CanSwapFrom only allows wBLT swap to other tokens or other tokens to wBLT
@@ -155,16 +179,24 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var directionFlag uint8 = 0
 
 	if strings.EqualFold(tokenIn, p.yearnTokenVault.Address) {
 		directionFlag = 1
 	}
 	return Meta{
-		GlpManager:    p.glpManager.Address,
-		StakeGLP:      p.glpManager.StakeGlp,
-		YearnVault:    p.yearnTokenVault.Address,
-		DirectionFlag: directionFlag,
+		GlpManager:      p.glpManager.Address,
+		StakeGLP:        p.glpManager.StakeGlp,
+		YearnVault:      p.yearnTokenVault.Address,
+		DirectionFlag:   directionFlag,
+		ApprovalAddress: p.glpManager.Address,
 	}
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
+	return nil
 }

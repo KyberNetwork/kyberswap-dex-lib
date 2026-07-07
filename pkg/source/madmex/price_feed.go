@@ -3,7 +3,7 @@ package madmex
 import (
 	"math/big"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PriceFeed struct {
@@ -42,5 +42,5 @@ func (pf *PriceFeed) LatestAnswer() *big.Int {
 
 // GetRoundData returns roundId, answer, startedAt, updatedAt, answeredInRound
 func (pf *PriceFeed) GetRoundData(roundID *big.Int) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
-	return roundID, pf.Answers[roundID.String()], constant.ZeroBI, constant.ZeroBI, constant.ZeroBI
+	return roundID, pf.Answers[roundID.String()], bignumber.ZeroBI, bignumber.ZeroBI, bignumber.ZeroBI
 }

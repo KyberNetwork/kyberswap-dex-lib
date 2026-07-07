@@ -2,12 +2,16 @@ package woofiv2
 
 import (
 	"context"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"strings"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
@@ -15,6 +19,8 @@ type PoolsListUpdater struct {
 	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeWooFiV2, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -54,13 +60,13 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 		Target: d.config.IntegrationHelperAddress,
 		Method: integrationHelperMethodAllBaseTokens,
 		Params: nil,
-	}, []interface{}{&baseTokens})
+	}, []any{&baseTokens})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: d.config.WooPPV2Address,
 		Method: wooPPV2MethodQuoteToken,
 		Params: nil,
-	}, []interface{}{&quoteToken})
+	}, []any{&quoteToken})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)
@@ -77,7 +83,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			Target: token.Hex(),
 			Method: erc20MethodDecimals,
 			Params: nil,
-		}, []interface{}{&tokenDecimals[i]})
+		}, []any{&tokenDecimals[i]})
 	}
 	if _, err := decimalCalls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate decimalCalls with error %v", err)
@@ -90,9 +96,8 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 	)
 	for i, tokenAddress := range supportedToken {
 		tokens[i] = &entity.PoolToken{
-			Address:   strings.ToLower(tokenAddress.Hex()),
+			Address:   hexutil.Encode(tokenAddress[:]),
 			Decimals:  tokenDecimals[i],
-			Weight:    defaultWeight,
 			Swappable: true,
 		}
 		reserves[i] = zeroString

@@ -181,7 +181,7 @@ func (er *ExchangeRates) _getCurrentRoundId(currencyKey string) (*big.Int, error
 func (er *ExchangeRates) _getRateAndTimestampAtRound(currencyKey string, roundId *big.Int) (*big.Int, *big.Int, error) {
 	// short circuit sUSD
 	if currencyKey == er.SUSDCurrencyKey {
-		// sUSD has no rounds, and 0 time is preferrable for "volatility" heuristics
+		// sUSD has no rounds, and 0 time is preferable for "volatility" heuristics
 		// which are used in atomic swaps and fee reclamation
 		return unit(), bignumber.ZeroBI, nil
 	}

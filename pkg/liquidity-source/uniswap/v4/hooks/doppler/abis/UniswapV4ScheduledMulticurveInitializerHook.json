@@ -1,0 +1,21 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "startingTimeOf",
+    "outputs": [
+      {
+        "internalType": "int64",
+        "name": "startingTime",
+        "type": "int64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

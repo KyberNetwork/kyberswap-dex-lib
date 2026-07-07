@@ -25,6 +25,7 @@ type Extra struct {
 	AdminFee     string `json:"adminFee"`
 
 	DefaultWithdrawFee string `json:"defaultWithdrawFee"`
+	Paused             bool   `json:"paused"`
 }
 
 type PoolItem struct {
@@ -50,7 +51,8 @@ type Gas struct {
 }
 
 type Meta struct {
-	TokenInIndex  int `json:"tokenInIndex"`
-	TokenOutIndex int `json:"tokenOutIndex"`
-	PoolLength    int `json:"poolLength"`
+	TokenInIndex  int    `json:"tokenInIndex"`
+	TokenOutIndex int    `json:"tokenOutIndex"`
+	PoolLength    int    `json:"poolLength"`
+	LpToken       string `json:"lpToken"`
 }

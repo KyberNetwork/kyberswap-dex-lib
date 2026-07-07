@@ -20,7 +20,6 @@
         "type": "uint32"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function"
   }

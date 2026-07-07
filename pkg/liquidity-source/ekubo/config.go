@@ -1,0 +1,33 @@
+package ekubo
+
+import (
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+type Config struct {
+	DexId            string              `json:"dexId"`
+	ChainId          valueobject.ChainID `json:"chainId"`
+	Core             common.Address      `json:"core"`
+	Oracle           common.Address      `json:"oracle"`
+	Twamm            common.Address      `json:"twamm"`
+	MevResist        common.Address      `json:"mevResist"`
+	BasicDataFetcher string              `json:"basicDataFetcher"`
+	TwammDataFetcher string              `json:"twammDataFetcher"`
+	Router           string              `json:"router"`
+
+	supportedExtensions map[common.Address]ExtensionType
+}
+
+func (c *Config) SupportedExtensions() map[common.Address]ExtensionType {
+	if c.supportedExtensions == nil {
+		c.supportedExtensions = map[common.Address]ExtensionType{
+			{}:          ExtensionTypeBase,
+			c.Oracle:    ExtensionTypeOracle,
+			c.Twamm:     ExtensionTypeTwamm,
+			c.MevResist: ExtensionTypeMevResist,
+		}
+	}
+	return c.supportedExtensions
+}

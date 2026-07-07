@@ -1,0 +1,315 @@
+[
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "FeeManagerNotificationFailed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint128",
+        "name": "feeAmount0",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "feeAmount1",
+        "type": "uint128"
+      }
+    ],
+    "name": "HookFee",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint128",
+        "name": "feeAmount0",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "feeAmount1",
+        "type": "uint128"
+      }
+    ],
+    "name": "HookFeeReinvested",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "OracleUpdateFailed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "PolicyInitializationFailed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "ReinvestmentFailed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "paused",
+        "type": "bool"
+      }
+    ],
+    "name": "ReinvestmentPausedChanged",
+    "type": "event"
+  },
+  {
+    "name": "dynamicFeeManager",
+    "outputs": [
+      {
+        "internalType": "contract IDynamicFeeManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "DYNAMIC_FEE_MANAGER",
+    "outputs": [
+      {
+        "internalType": "contract IDynamicFeeManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "hookFeePpm",
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "internalType": "uint24",
+        "type": "uint24"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "getHookPermissions",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "beforeInitialize",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterInitialize",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeSwap",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterSwap",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeDonate",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterDonate",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "beforeSwapReturnDelta",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterSwapReturnDelta",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterAddLiquidityReturnDelta",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "afterRemoveLiquidityReturnDelta",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct Hooks.Permissions",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "name": "liquidityManager",
+    "outputs": [
+      {
+        "internalType": "contract IFullRangeLiquidityManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "policyManager",
+    "outputs": [
+      {
+        "internalType": "contract PoolPolicyManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "poolManager",
+    "outputs": [
+      {
+        "internalType": "contract IPoolManager",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "reinvestmentPaused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "truncGeoOracle",
+    "outputs": [
+      {
+        "internalType": "contract TruncGeoOracleMulti",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

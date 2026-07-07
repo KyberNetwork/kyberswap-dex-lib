@@ -1,7 +1,7 @@
 package gmx
 
 type ChainlinkFlags struct {
-	Flags map[string]bool `json:"flags"`
+	Flags map[string]bool `json:"flags,omitempty"`
 }
 
 const (

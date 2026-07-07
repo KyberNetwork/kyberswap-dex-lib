@@ -24,8 +24,6 @@ type Gas struct {
 	SwapConvertOut int64
 }
 
-type bytes32 [32]byte
-
 type Extra struct {
 	Amp             *big.Int             `json:"amp"`
 	Fee1e18         *big.Int             `json:"fee1e18"`
@@ -58,9 +56,9 @@ type poolDataResp struct {
 	Data struct {
 		Pool           common.Address
 		PoolType       string
-		LpTokens       []bytes32
+		LpTokens       []common.Hash
 		MintedLPTokens []*big.Int
-		ListedTokens   []bytes32
+		ListedTokens   []common.Hash
 		Reserves       []*big.Int
 		PoolParams     []byte
 	}

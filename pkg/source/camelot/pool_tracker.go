@@ -2,16 +2,17 @@ package camelot
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 )
 
@@ -19,6 +20,8 @@ type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE0(DexTypeCamelot, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -89,37 +92,37 @@ func (d *PoolTracker) getPair(ctx context.Context, address string) (*Pair, error
 			Target: address,
 			Method: pairMethodStableSwap,
 			Params: nil,
-		}, []interface{}{&pair.StableSwap}).
+		}, []any{&pair.StableSwap}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodToken0FeePercent,
 			Params: nil,
-		}, []interface{}{&pair.Token0FeePercent}).
+		}, []any{&pair.Token0FeePercent}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodToken1FeePercent,
 			Params: nil,
-		}, []interface{}{&pair.Token1FeePercent}).
+		}, []any{&pair.Token1FeePercent}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodPrecisionMultiplier0,
 			Params: nil,
-		}, []interface{}{&pair.PrecisionMultiplier0}).
+		}, []any{&pair.PrecisionMultiplier0}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodPrecisionMultiplier1,
 			Params: nil,
-		}, []interface{}{&pair.PrecisionMultiplier1}).
+		}, []any{&pair.PrecisionMultiplier1}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodGetReserves,
 			Params: nil,
-		}, []interface{}{&pair})
+		}, []any{&pair})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -143,13 +146,13 @@ func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, error) {
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodFeeTo,
 			Params: nil,
-		}, []interface{}{&factory.FeeTo}).
+		}, []any{&factory.FeeTo}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotFactoryABI,
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodOwnerFeeShare,
 			Params: nil,
-		}, []interface{}{&factory.OwnerFeeShare})
+		}, []any{&factory.OwnerFeeShare})
 
 	_, err := req.Aggregate()
 	if err != nil {

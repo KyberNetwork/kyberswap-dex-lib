@@ -2,21 +2,24 @@ package camelot
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolListsUpdater struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeCamelot, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolListsUpdater {
 	return &PoolListsUpdater{
@@ -102,19 +105,19 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 				Target: pairAddr.Hex(),
 				Method: pairMethodToken0,
 				Params: nil,
-			}, []interface{}{&token0Addresses[i]}).
+			}, []any{&token0Addresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    camelotPairABI,
 				Target: pairAddr.Hex(),
 				Method: pairMethodToken1,
 				Params: nil,
-			}, []interface{}{&token1Addresses[i]}).
+			}, []any{&token1Addresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    camelotPairABI,
 				Target: pairAddr.Hex(),
 				Method: pairMethodFeeDenominator,
 				Params: nil,
-			}, []interface{}{&feeDenominators[i]})
+			}, []any{&feeDenominators[i]})
 	}
 
 	_, err := req.Aggregate()
@@ -129,13 +132,11 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 	for i, pairAddr := range pairAddresses {
 		token0 := entity.PoolToken{
-			Address:   strings.ToLower(token0Addresses[i].Hex()),
-			Weight:    defaultTokenWeight,
+			Address:   hexutil.Encode(token0Addresses[i][:]),
 			Swappable: true,
 		}
 		token1 := entity.PoolToken{
-			Address:   strings.ToLower(token1Addresses[i].Hex()),
-			Weight:    defaultTokenWeight,
+			Address:   hexutil.Encode(token1Addresses[i][:]),
 			Swappable: true,
 		}
 
@@ -152,7 +153,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 		}
 
 		pool := entity.Pool{
-			Address:     strings.ToLower(pairAddr.Hex()),
+			Address:     hexutil.Encode(pairAddr[:]),
 			Exchange:    d.cfg.DexID,
 			Type:        DexTypeCamelot,
 			Reserves:    entity.PoolReserves{"0", "0"},
@@ -168,10 +169,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 
 func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, pairCount uint64) ([]common.Address, error) {
 	start := offset
-	end := offset + uint64(d.cfg.NewPoolLimit)
-	if end > pairCount {
-		end = pairCount
-	}
+	end := min(offset+uint64(d.cfg.NewPoolLimit), pairCount)
 
 	if start >= end {
 		return []common.Address{}, nil
@@ -184,8 +182,8 @@ func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, 
 			ABI:    camelotFactoryABI,
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodAllPairs,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&pairAddresses[i-start]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&pairAddresses[i-start]})
 	}
 
 	_, err := req.Aggregate()
@@ -211,7 +209,7 @@ func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, error) {
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodAllPairsLength,
 			Params: nil,
-		}, []interface{}{&pairCount})
+		}, []any{&pairCount})
 
 	_, err := req.Call()
 	if err != nil {

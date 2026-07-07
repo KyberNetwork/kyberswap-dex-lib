@@ -5,14 +5,17 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_NewPool(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0x3b3e4b4741e91af52d0e9ad8660573e951c88524",
 		Exchange: "woofi-v2",
@@ -28,13 +31,11 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
@@ -57,13 +58,16 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
 
-	result, err := pool.CalcAmountOut(params)
+	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+		return pool.CalcAmountOut(params)
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "102869361275421525", result.TokenAmountOut.Amount.String())
 }
 
 func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0xeff23b4be1091b53205e35f3afcd9c7182bf3062",
 		Exchange: "woofi-v2",
@@ -80,43 +84,36 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
-				Weight:    1,
 				Decimals:  8,
 				Swappable: true,
 			},
 			{
 				Address:   "0xcafcd85d8ca7ad1e1c6f82f651fa15e33aefd07b",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x912ce59144191c1204e64559fe8253a0e49e6548",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
@@ -136,13 +133,16 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 
 	pool.wooracle.Timestamp = time.Now().Unix()
 
-	result, err := pool.CalcAmountOut(params)
+	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+		return pool.CalcAmountOut(params)
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "58285296607413161", result.TokenAmountOut.Amount.String())
 }
 
 func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0xd1778f9df3eee5473a9640f13682e3846f61febc",
 		Exchange: "woofi-v2",
@@ -158,37 +158,31 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0x4200000000000000000000000000000000000006",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x68f180fcce6836688e9084f035309e29bf0a2095",
-				Weight:    1,
 				Decimals:  8,
 				Swappable: true,
 			},
 			{
 				Address:   "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0x4200000000000000000000000000000000000042",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
@@ -210,12 +204,15 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
 
-	_, err = pool.CalcAmountOut(params)
+	_, err = testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+		return pool.CalcAmountOut(params)
+	})
 
 	assert.Equal(t, ErrArithmeticOverflowUnderflow, err)
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name           string
 		quoteToken     string
@@ -448,7 +445,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				gas:        DefaultGas,
 			}
 
-			result, err := pool.CalcAmountOut(tc.params)
+			result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+				return pool.CalcAmountOut(tc.params)
+			})
 			assert.Equal(t, tc.expectedErr, err)
 			assert.Equal(t, tc.expectedResult, result)
 		})
@@ -456,6 +455,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		quoteToken       string
@@ -658,7 +658,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				gas:        DefaultGas,
 			}
 
-			result, err := pool.CalcAmountOut(tc.params)
+			result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+				return pool.CalcAmountOut(tc.params)
+			})
 			assert.Equal(t, tc.expectedErr, err)
 
 			updateBalanceParams := poolpkg.UpdateBalanceParams{

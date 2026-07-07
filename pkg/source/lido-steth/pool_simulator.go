@@ -17,9 +17,11 @@ type PoolSimulator struct {
 	chainID valueobject.ChainID
 }
 
+var _ = pool.RegisterFactory1(DexTypeLidoStETH, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
-	if numTokens != 2 || !isWrappedEther(entityPool.Tokens[0].Address, chainID) {
+	if numTokens != 2 || !valueobject.IsWrappedNative(entityPool.Tokens[0].Address, chainID) {
 		return nil, fmt.Errorf("invalid pool tokens %v, %v", entityPool, numTokens)
 	}
 	if numTokens != len(entityPool.Reserves) {
@@ -53,8 +55,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	stEth := p.Info.Tokens[1]
 	// can only swap from ETH to stETH
-	if !isWrappedEther(tokenAmountIn.Token, p.chainID) || !strings.EqualFold(tokenOut, stEth) {
-		return nil, fmt.Errorf("Invalid tokenIn/Out %v %v", tokenAmountIn.Token, tokenOut)
+	if !valueobject.IsWrappedNative(tokenAmountIn.Token, p.chainID) || !strings.EqualFold(tokenOut, stEth) {
+		return nil, fmt.Errorf("invalid tokenIn/Out %v %v", tokenAmountIn.Token, tokenOut)
 	}
 
 	/*
@@ -118,10 +120,14 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return nil
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
 }
 
-func isWrappedEther(address string, chainID valueobject.ChainID) bool {
-	return strings.EqualFold(valueobject.WETHByChainID[chainID], address)
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
 }

@@ -1,16 +1,14 @@
 package aave
 
 import (
-
 	// "errors"
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var FeeDenominator = utils.NewBig10("10000000000")
+var FeeDenominator = bignumber.NewBig10("10000000000")
 
 const MaxLoopLimit = 256
 
@@ -38,7 +36,7 @@ func _xp(
 	if numTokens != len(precisionMultipliers) {
 		return nil, ErrBalancesMustMatchMultipliers
 	}
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		xp = append(xp, new(big.Int).Mul(balances[i], precisionMultipliers[i]))
 	}
 	return xp, nil
@@ -99,40 +97,44 @@ func _getAPrecise(
  */
 func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
-	var s = new(big.Int).SetInt64(0)
-	for i := 0; i < numTokens; i++ {
-		s = new(big.Int).Add(s, xp[i])
+	var s = new(big.Int)
+	for i := range numTokens {
+		s = s.Add(s, xp[i])
 	}
-	if s.Cmp(big.NewInt(0)) == 0 {
+	if s.Sign() == 0 {
 		return s, nil
 	}
 	var numTokensBI = big.NewInt(int64(numTokens))
-	var prevD *big.Int
+	var prevD big.Int
 	var d = new(big.Int).Set(s)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var tmp, tmp2, mul big.Int
+	for range MaxLoopLimit {
 		var dP = new(big.Int).Set(d)
-		for j := 0; j < numTokens; j++ {
-			dP = new(big.Int).Div(
-				new(big.Int).Mul(dP, d),
-				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), constant.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+		for j := range numTokens {
+			dP = dP.Div(
+				dP.Mul(dP, d),
+				tmp.Add(tmp.Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			)
 		}
-		prevD = d
-		d = new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Add(
-					new(big.Int).Div(new(big.Int).Mul(nA, s), APrecision),
-					new(big.Int).Mul(dP, numTokensBI),
-				),
-				d,
+		prevD.Set(d)
+		if mul.Mul(
+			tmp.Add(
+				tmp.Div(tmp.Mul(nA, s), APrecision),
+				tmp2.Mul(dP, numTokensBI),
 			),
-			new(big.Int).Add(
-				new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(nA, APrecision), d), APrecision),
-				new(big.Int).Mul(dP, big.NewInt(int64(numTokens+1))),
+			d,
+		).Cmp(bignumber.MaxUint256) > 0 {
+			return nil, ErrOverflow
+		}
+		d = d.Div(
+			&mul,
+			tmp.Add(
+				tmp.Div(tmp.Mul(tmp.Sub(nA, APrecision), d), APrecision),
+				tmp2.Mul(dP, big.NewInt(int64(numTokens+1))),
 			),
 		)
-		if new(big.Int).Sub(d, prevD).CmpAbs(big.NewInt(1)) <= 0 {
+		if tmp.Sub(d, &prevD).CmpAbs(bignumber.One) <= 0 {
 			return d, nil
 		}
 	}
@@ -161,6 +163,7 @@ func getY(
 	tokenIndexTo int,
 	x *big.Int,
 	xp []*big.Int,
+	dCached *big.Int,
 ) (*big.Int, error) {
 	var numTokens = len(xp)
 	if tokenIndexFrom == tokenIndexTo {
@@ -171,15 +174,19 @@ func getY(
 	}
 	var numTokensBI = big.NewInt(int64(numTokens))
 	var a = _getAPrecise(futureATime, futureA, initialATime, initialA)
-	var d, err = getD(xp, a)
-	if err != nil {
-		return nil, err
+	d := dCached
+	if d == nil {
+		var err error
+		d, err = getD(xp, a)
+		if err != nil {
+			return nil, err
+		}
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
 	var _x *big.Int
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i == tokenIndexFrom {
 			_x = new(big.Int).Set(x)
 		} else if i != tokenIndexTo {
@@ -187,7 +194,7 @@ func getY(
 		} else {
 			continue
 		}
-		if _x.Cmp(constant.ZeroBI) == 0 {
+		if _x.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrZero
 		}
 		s = new(big.Int).Add(s, _x)
@@ -196,7 +203,7 @@ func getY(
 			new(big.Int).Mul(_x, numTokensBI),
 		)
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -209,13 +216,15 @@ func getY(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(new(big.Int).Mul(y, y), c),
-			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		denom.Sub(denom.Add(denom.Mul(y, big.NewInt(2)), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
+		y = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(y, y), c), &denom)
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
@@ -253,11 +262,11 @@ func _calculateSwap(
 		return nil, nil, err
 	}
 	var x = new(big.Int).Add(new(big.Int).Mul(dx, tokenPrecisionMultipliers[tokenIndexFrom]), xp[tokenIndexFrom])
-	y, err := getY(futureATime, futureA, initialATime, initialA, tokenIndexFrom, tokenIndexTo, x, xp)
+	y, err := getY(futureATime, futureA, initialATime, initialA, tokenIndexFrom, tokenIndexTo, x, xp, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[tokenIndexTo], y), constant.One)
+	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[tokenIndexTo], y), bignumber.One)
 	var dyFee = new(big.Int).Div(new(big.Int).Mul(dy, swapFee), FeeDenominator)
 	dy = new(big.Int).Div(new(big.Int).Sub(dy, dyFee), tokenPrecisionMultipliers[tokenIndexTo])
 	return dy, dyFee, nil
@@ -323,7 +332,7 @@ func getYD(
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
@@ -332,7 +341,7 @@ func getYD(
 			)
 		}
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -351,22 +360,15 @@ func getYD(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(
-				new(big.Int).Mul(y, y),
-				c,
-			),
-			new(big.Int).Sub(
-				new(big.Int).Add(
-					new(big.Int).Mul(y, constant.Two),
-					b,
-				),
-				d,
-			),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		denom.Sub(denom.Add(denom.Mul(y, bignumber.Two), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
+		y = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(y, y), c), &denom)
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
@@ -388,8 +390,8 @@ func _feePerToken(
 			numTokensBI,
 		),
 		new(big.Int).Mul(
-			new(big.Int).Sub(numTokensBI, constant.One),
-			constant.Four,
+			new(big.Int).Sub(numTokensBI, bignumber.One),
+			bignumber.Four,
 		),
 	)
 }
@@ -443,7 +445,7 @@ func calculateWithdrawOneTokenDy(
 	}
 	var feePerToken = _feePerToken(swapFee, numTokens)
 	var xpReduced = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		var norm *big.Int
 		if i == tokenIndex {
 			norm = new(big.Int).Sub(new(big.Int).Div(new(big.Int).Mul(xp[i], d1), d0), newY)
@@ -467,7 +469,7 @@ func calculateWithdrawOneTokenDy(
 	}
 	var dy = new(big.Int).Sub(xpReduced[tokenIndex], yd)
 	dy = new(big.Int).Div(
-		new(big.Int).Sub(dy, constant.One),
+		new(big.Int).Sub(dy, bignumber.One),
 		tokenPrecisionMultipliers[tokenIndex],
 	)
 	return dy, newY, nil
@@ -588,7 +590,7 @@ func calculateTokenAmount(
 		return nil, err
 	}
 	var balances1 = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if deposit {
 			balances1[i] = new(big.Int).Add(balances[i], amounts[i])
 		} else {
@@ -637,7 +639,7 @@ func CalculateAddLiquidityOneToken(
 ) (*big.Int, *big.Int, error) {
 	var numTokens = len(balances)
 	var amounts = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		amounts[i] = big.NewInt(0)
 	}
 	amounts[tokenIndex] = new(big.Int).Set(tokenAmount)
@@ -652,7 +654,7 @@ func CalculateAddLiquidityOneToken(
 		lpSupply,
 		amounts,
 		true)
-	return amount, constant.ZeroBI, err
+	return amount, bignumber.ZeroBI, err
 }
 
 func _dynamicFee(
@@ -674,7 +676,7 @@ func _dynamicFee(
 						new(big.Int).Mul(
 							new(big.Int).Mul(
 								new(big.Int).Sub(_feemul, FeeDenominator),
-								constant.Four),
+								bignumber.Four),
 							xpi),
 						xpj),
 					xps2,
@@ -712,6 +714,7 @@ func GetDyUnderlying(
 		tokenIndexTo,
 		x,
 		xp,
+		nil,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -721,8 +724,8 @@ func GetDyUnderlying(
 		tokenPrecisionMultipliers[tokenIndexTo],
 	)
 	var dynamicFee = _dynamicFee(
-		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexFrom], x), constant.Two),
-		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexTo], y), constant.Two),
+		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexFrom], x), bignumber.Two),
+		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexTo], y), bignumber.Two),
 		swapFee,
 		offPegFeeMultiplier,
 	)

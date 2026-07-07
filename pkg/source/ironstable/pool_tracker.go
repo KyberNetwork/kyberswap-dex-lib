@@ -2,16 +2,17 @@ package ironstable
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 )
 
@@ -19,6 +20,8 @@ type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexTypeIronStable, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -49,19 +52,19 @@ func (d *PoolTracker) GetNewPoolState(
 			Target: p.Address,
 			Method: ironSwapMethodSwapStorage,
 			Params: nil,
-		}, []interface{}{&swapStorage}).
+		}, []any{&swapStorage}).
 		AddCall(&ethrpc.Call{
 			ABI:    ironSwap,
 			Target: p.Address,
 			Method: ironSwapMethodGetTokenBalances,
 			Params: nil,
-		}, []interface{}{&tokenBalances}).
+		}, []any{&tokenBalances}).
 		AddCall(&ethrpc.Call{
 			ABI:    erc20,
 			Target: p.GetLpToken(),
 			Method: erc20MethodTotalSupply,
 			Params: nil,
-		}, []interface{}{&lpTokenTotalSupply})
+		}, []any{&lpTokenTotalSupply})
 
 	_, err := req.Aggregate()
 	if err != nil {

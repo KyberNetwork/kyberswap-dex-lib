@@ -9,25 +9,27 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math/sd59x18"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	ErrInvalidToken         = errors.New("invalid token")
 	ErrInvalidTokenGrowth   = errors.New("invalid token growth")
 	ErrInvalidR             = errors.New("invalid r")
-	ErrNotFoundR            = errors.New("r not found")
 	ErrNonPositiveAmountOut = errors.New("non positive amount out")
 )
 
 type PoolSimulator struct {
 	pool.Pool
 
+	chainID         valueobject.ChainID
 	poolTokenNumber uint
 	weights         []*big.Int
 	sumWeight       *big.Int
@@ -40,6 +42,8 @@ type PoolSimulator struct {
 	vault            string
 	nativeTokenIndex int
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
@@ -64,17 +68,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    true,
+		Address:  strings.ToLower(entityPool.Address),
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
 		Pool:                         pool.Pool{Info: info},
+		chainID:                      extra.ChainID,
 		poolTokenNumber:              staticExtra.PoolTokenNumber,
 		weights:                      staticExtra.Weights,
 		sumWeight:                    staticExtra.Weights[0],
@@ -142,12 +145,17 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return Meta{
 		Vault:            p.vault,
 		NativeTokenIndex: p.nativeTokenIndex,
 		BlockNumber:      p.Info.BlockNumber,
+		ApprovalAddress:  p.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(valueobject.IsWrappedNative(tokenIn, p.chainID), "", p.vault)
 }
 
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/constant-product/ConstantProductPool.sol#L164
@@ -422,8 +430,10 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/constant-product/ConstantProductLibrary.sol#L25
 func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) (*velocoreExecuteResult, error) {
 	var (
-		t   = p.Info.Tokens
-		a   = p.Info.Reserves
+		t = p.Info.Tokens
+		// we have to clone p.Info.Reserves because we're going to assign its by index,
+		// shallow clone is enough since its elements are read-only in this method
+		a   = append(([]*big.Int)(nil), p.Info.Reserves...)
 		idx = make([]int, len(tokens))
 		w   = p.weights
 
@@ -440,15 +450,19 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 	for i := range r {
 		r[i] = integer.Zero()
 	}
-	j := 1
 	for i, token := range tokens {
 		if tokens[i] == t[0] {
 			idx[i] = 0
 			r[0] = r_[i]
 		} else {
-			for token != t[j] {
-				j++
+			var j int
+			for idx, tToken := range t {
+				if token == tToken {
+					j = idx
+					break
+				}
 			}
+
 			idx[i] = j
 			r[j] = r_[i]
 		}

@@ -3,21 +3,27 @@ package gmx
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type VaultPriceFeedReader struct {
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
+
+	priceFeedType PriceFeedType
 }
 
 func NewVaultPriceFeedReader(ethrpcClient *ethrpc.Client) *VaultPriceFeedReader {
+	return NewVaultPriceFeedReaderWithParam(ethrpcClient, PriceFeedTypeLatestRoundData)
+}
+
+func NewVaultPriceFeedReaderWithParam(ethrpcClient *ethrpc.Client, priceFeedType PriceFeedType) *VaultPriceFeedReader {
 	return &VaultPriceFeedReader{
 		abi:          vaultPriceFeedABI,
 		ethrpcClient: ethrpcClient,
@@ -25,6 +31,8 @@ func NewVaultPriceFeedReader(ethrpcClient *ethrpc.Client) *VaultPriceFeedReader 
 			"liquiditySource": DexTypeGmx,
 			"reader":          "VaultPriceFeedReader",
 		}),
+
+		priceFeedType: priceFeedType,
 	}
 }
 
@@ -34,6 +42,7 @@ func (r *VaultPriceFeedReader) Read(
 	tokens []string,
 ) (*VaultPriceFeed, error) {
 	vaultPriceFeed := NewVaultPriceFeed()
+	vaultPriceFeed.Address = address
 
 	if err := r.readData(ctx, address, vaultPriceFeed); err != nil {
 		r.log.Errorf("error when read data: %s", err)
@@ -74,30 +83,41 @@ func (r *VaultPriceFeedReader) readData(
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNB, nil), []interface{}{&bnb})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNBBUSD, nil), []interface{}{&vaultPriceFeed.BNBBUSDAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBTC, nil), []interface{}{&btc})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBTCBNB, nil), []interface{}{&vaultPriceFeed.BTCBNBAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodChainlinkFlags, nil), []interface{}{&vaultPriceFeed.ChainlinkFlagsAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodETH, nil), []interface{}{&eth})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodETHBNB, nil), []interface{}{&vaultPriceFeed.ETHBNBAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodFavorPrimaryPrice, nil), []interface{}{&vaultPriceFeed.FavorPrimaryPrice})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsAmmEnabled, nil), []interface{}{&vaultPriceFeed.IsAmmEnabled})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsSecondaryPriceEnabled, nil), []interface{}{&vaultPriceFeed.IsSecondaryPriceEnabled})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodMaxStrictPriceDeviation, nil), []interface{}{&vaultPriceFeed.MaxStrictPriceDeviation})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceSampleSpace, nil), []interface{}{&vaultPriceFeed.PriceSampleSpace})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSecondaryPriceFeed, nil), []interface{}{&vaultPriceFeed.SecondaryPriceFeedAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSpreadThresholdBasisPoints, nil), []interface{}{&vaultPriceFeed.SpreadThresholdBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodUseV2Pricing, nil), []interface{}{&vaultPriceFeed.UseV2Pricing})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNB, nil), []any{&bnb})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNBBUSD, nil),
+		[]any{&vaultPriceFeed.BNBBUSDAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBTC, nil), []any{&btc})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBTCBNB, nil), []any{&vaultPriceFeed.BTCBNBAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodChainlinkFlags, nil),
+		[]any{&vaultPriceFeed.ChainlinkFlagsAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodETH, nil), []any{&eth})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodETHBNB, nil), []any{&vaultPriceFeed.ETHBNBAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodFavorPrimaryPrice, nil),
+		[]any{&vaultPriceFeed.FavorPrimaryPrice})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsAmmEnabled, nil),
+		[]any{&vaultPriceFeed.IsAmmEnabled})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsSecondaryPriceEnabled, nil),
+		[]any{&vaultPriceFeed.IsSecondaryPriceEnabled})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodMaxStrictPriceDeviation, nil),
+		[]any{&vaultPriceFeed.MaxStrictPriceDeviation})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceSampleSpace, nil),
+		[]any{&vaultPriceFeed.PriceSampleSpace})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSecondaryPriceFeed, nil),
+		[]any{&vaultPriceFeed.SecondaryPriceFeedAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSpreadThresholdBasisPoints, nil),
+		[]any{&vaultPriceFeed.SpreadThresholdBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodUseV2Pricing, nil),
+		[]any{&vaultPriceFeed.UseV2Pricing})
+	vaultPriceFeed.PriceFeedType = r.priceFeedType
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}
 
-	vaultPriceFeed.BNB = strings.ToLower(bnb.String())
-	vaultPriceFeed.BTC = strings.ToLower(btc.String())
-	vaultPriceFeed.ETH = strings.ToLower(eth.String())
+	vaultPriceFeed.BNB = hexutil.Encode(bnb[:])
+	vaultPriceFeed.BTC = hexutil.Encode(btc[:])
+	vaultPriceFeed.ETH = hexutil.Encode(eth[:])
 
 	return nil
 }
@@ -123,6 +143,10 @@ func (r *VaultPriceFeedReader) readTokenData(
 	adjustmentBasisPoints := make([]*big.Int, tokensLen)
 	strictStableTokens := make([]bool, tokensLen)
 	isAdjustmentAdditive := make([]bool, tokensLen)
+	var prices [][2]*big.Int
+	if r.priceFeedType == PriceFeedTypeDirect {
+		prices = make([][2]*big.Int, tokensLen)
+	}
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
@@ -130,12 +154,21 @@ func (r *VaultPriceFeedReader) readTokenData(
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)
 
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceFeeds, []interface{}{tokenAddress}), []interface{}{&priceFeedsAddresses[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceDecimals, []interface{}{tokenAddress}), []interface{}{&priceDecimals[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSpreadBasisPoints, []interface{}{tokenAddress}), []interface{}{&spreadBasisPoints[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodAdjustmentBasisPoints, []interface{}{tokenAddress}), []interface{}{&adjustmentBasisPoints[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodStrictStableTokens, []interface{}{tokenAddress}), []interface{}{&strictStableTokens[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsAdjustmentAdditive, []interface{}{tokenAddress}), []interface{}{&isAdjustmentAdditive[i]})
+		if r.priceFeedType != PriceFeedTypeDirect {
+			rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceFeeds, []any{tokenAddress}),
+				[]any{&priceFeedsAddresses[i]})
+		} else {
+			priceFeedsAddresses[i] = tokenAddress
+			rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrimaryPrice, []any{tokenAddress, false}),
+				[]any{&prices[i][0]})
+			rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrimaryPrice, []any{tokenAddress, true}),
+				[]any{&prices[i][1]})
+		}
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceDecimals, []any{tokenAddress}), []any{&priceDecimals[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSpreadBasisPoints, []any{tokenAddress}), []any{&spreadBasisPoints[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodAdjustmentBasisPoints, []any{tokenAddress}), []any{&adjustmentBasisPoints[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodStrictStableTokens, []any{tokenAddress}), []any{&strictStableTokens[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsAdjustmentAdditive, []any{tokenAddress}), []any{&isAdjustmentAdditive[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
@@ -150,6 +183,14 @@ func (r *VaultPriceFeedReader) readTokenData(
 		vaultPriceFeed.AdjustmentBasisPoints[token] = adjustmentBasisPoints[i]
 		vaultPriceFeed.StrictStableTokens[token] = strictStableTokens[i]
 		vaultPriceFeed.IsAdjustmentAdditive[token] = isAdjustmentAdditive[i]
+		if r.priceFeedType == PriceFeedTypeDirect {
+			vaultPriceFeed.PriceFeeds[token] = &PriceFeed{
+				Answers: map[string]*big.Int{
+					"false": prices[i][0],
+					"true":  prices[i][1],
+				},
+			}
+		}
 	}
 
 	return nil

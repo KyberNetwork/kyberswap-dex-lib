@@ -10,9 +10,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://optimistic.etherscan.io/address/0x79c912fef520be002c2b6e57ec4324e260f38e50#readContract
 	testcases := []struct {
 		in                string
@@ -42,9 +44,11 @@ func TestCalcAmountOut(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: amountIn,
-				TokenOut:      tc.out,
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: amountIn,
+					TokenOut:      tc.out,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)

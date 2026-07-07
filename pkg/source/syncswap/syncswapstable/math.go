@@ -3,9 +3,12 @@ package syncswapstable
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+// https://github.com/syncswap/core-contracts/blob/5285a3a7b2b00ca8b7ffc5ae5ce6f6c6195e4aa7/contracts/pool/stable/SyncSwapStablePool.sol#L494
 func getAmountOut(
 	amountIn *big.Int,
 	reserveIn *big.Int,
@@ -17,6 +20,47 @@ func getAmountOut(
 	amountOut, _ := getExactQuote(swapFee, amountIn, reserveIn, reserveOut, tokenInPrecisionMultiplier, tokenOutPrecisionMultiplier)
 
 	return amountOut
+}
+
+// https://github.com/syncswap/core-contracts/blob/5285a3a7b2b00ca8b7ffc5ae5ce6f6c6195e4aa7/contracts/pool/stable/SyncSwapStablePool.sol#L525
+func _getAmountIn(
+	swapFee *big.Int,
+	amountOut *big.Int,
+	reserveIn *big.Int,
+	reserveOut *big.Int,
+	tokenInPrecisionMultiplier *big.Int,
+	tokenOutPrecisionMultiplier *big.Int,
+) *big.Int {
+	if amountOut.Cmp(bignumber.ZeroBI) <= 0 {
+		return integer.Zero()
+	}
+
+	var adjustedReserveIn = new(big.Int).Mul(reserveIn, tokenInPrecisionMultiplier)
+	var adjustedReserveOut = new(big.Int).Mul(reserveOut, tokenOutPrecisionMultiplier)
+	var d = computeDFromAdjustedBalances(adjustedReserveIn, adjustedReserveOut)
+
+	y := new(big.Int).Sub(adjustedReserveOut, new(big.Int).Mul(amountOut, tokenOutPrecisionMultiplier))
+	if y.Cmp(bignumber.One) <= 0 {
+		return integer.One()
+	}
+
+	x := getY(y, d)
+
+	// amountIn = MAX_FEE * (x - adjustedReserveIn) / (MAX_FEE - swapFee) + 1;
+	// amountIn /= tokenInPrecisionMultiplier;
+	amountIn := new(big.Int).Add(
+		new(big.Int).Div(
+			new(big.Int).Mul(
+				MaxFee,
+				new(big.Int).Sub(x, adjustedReserveIn),
+			),
+			new(big.Int).Sub(MaxFee, swapFee),
+		),
+		integer.One(),
+	)
+	amountIn.Div(amountIn, tokenInPrecisionMultiplier)
+
+	return amountIn
 }
 
 func getExactQuote(

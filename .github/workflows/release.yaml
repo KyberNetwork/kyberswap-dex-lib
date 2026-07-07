@@ -1,0 +1,28 @@
+name: 'Release'
+
+permissions: write-all
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      version:
+        description: 'Or specific release version'
+        type: string
+
+jobs:
+  release:
+    uses: KyberNetwork/service-framework/.github/workflows/release.yaml@main
+    with:
+      service: ${{ github.event.repository.name }}
+      version_bump: ${{ inputs.version_bump }}
+      version: ${{ inputs.version }}
+      runs-on: ubuntu-latest
+    secrets: inherit

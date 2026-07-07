@@ -2,7 +2,6 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -10,6 +9,9 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -35,43 +37,30 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&decimals[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&decimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    plainOracleABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodA,
-			Params: nil,
-		}, []interface{}{&aList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
 			ABI:    plainOracleABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodAPrecise,
-			Params: nil,
-		}, []interface{}{&aPreciseList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
 			ABI:    plainOracleABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: plainOracleMethodOracle,
-			Params: nil,
-		}, []interface{}{&plainOracles[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&plainOracles[i]}).AddCall(&ethrpc.Call{
 			ABI:    mainRegistryABI,
 			Target: d.config.MainRegistryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&lpAddresses[i]})
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&lpAddresses[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -93,13 +82,13 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = PoolPlainOracleStaticExtra{
-			LpToken:    strings.ToLower(lpAddresses[i].Hex()),
+			LpToken:    hexutil.Encode(lpAddresses[i][:]),
 			APrecision: aPrecisions[i].String(),
 			Oracle:     plainOracles[i].Hex(),
 		}
 		// The curve-base found inside the metaFactory has the lpToken equals its own pool Address and has the totalSupply method.
 		if strings.EqualFold(staticExtra.LpToken, addressZero) && strings.EqualFold(poolAndRegistries[i].RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
-			staticExtra.LpToken = strings.ToLower(poolAndRegistries[i].PoolAddress.Hex())
+			staticExtra.LpToken = hexutil.Encode(poolAndRegistries[i].PoolAddress[:])
 		}
 		for j := range coins[i] {
 			coinAddress := convertToEtherAddress(coins[i][j].Hex(), d.config.ChainID)
@@ -111,7 +100,6 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
 				Address:   strings.ToLower(coinAddress),
-				Weight:    defaultWeight,
 				Swappable: true,
 			})
 		}
@@ -124,7 +112,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
+			Address:     hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			Exchange:    DexTypeCurve,
 			Type:        PoolTypePlainOracle,
 			Timestamp:   time.Now().Unix(),
@@ -140,6 +128,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 	ctx context.Context,
 	p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
@@ -158,78 +147,52 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 		return entity.Pool{}, err
 	}
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    plainOracleABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-		Params: nil,
-	}, []interface{}{&initialA})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    plainOracleABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []interface{}{&futureA})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []interface{}{&initialATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []interface{}{&futureATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []interface{}{&swapFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []interface{}{&adminFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []interface{}{&adminFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    oracleABI,
 		Target: staticExtra.Oracle,
 		Method: oracleMethodLatestAnswer,
-		Params: nil,
-	}, []interface{}{&oracleLatestAnswer})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&oracleLatestAnswer}).AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: p.GetLpToken(),
 		Method: erc20MethodTotalSupply,
-		Params: nil,
-	}, []interface{}{&lpSupply})
+	}, []any{&lpSupply})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    baseABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balances[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balances[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

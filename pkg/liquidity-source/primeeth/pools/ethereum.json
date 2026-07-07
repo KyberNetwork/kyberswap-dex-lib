@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0x3cf4db4c59dcb082d1a9719c54df3c04db93c6b7",
+    "type": "primeethx",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "name": "Wrapped Ether",
+        "symbol": "WETH",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x6ef3d766dfe02dc4bf04aae9122eb9a0ded25615",
+        "name": "Prime Staked ETH",
+        "symbol": "primeETH",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]

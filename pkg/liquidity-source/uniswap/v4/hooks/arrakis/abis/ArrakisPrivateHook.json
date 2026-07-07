@@ -1,0 +1,31 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "id_",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getFeesData",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "module",
+        "type": "address"
+      },
+      {
+        "internalType": "uint32",
+        "name": "zeroForOneFee",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "oneForZeroFee",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

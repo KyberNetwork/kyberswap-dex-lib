@@ -1,9 +1,10 @@
 package platypus
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -27,6 +28,11 @@ type (
 		gas            Gas
 	}
 )
+
+var _ = pool.RegisterFactory1(DexTypePlatypus, NewPoolSimulator)
+var _ = pool.RegisterFactory1(PoolTypePlatypusBase, NewPoolSimulator)
+var _ = pool.RegisterFactory1(PoolTypePlatypusAvax, NewPoolSimulator)
+var _ = pool.RegisterFactory1(PoolTypePlatypusPure, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
@@ -80,12 +86,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	fromAsset, err := p._assetOf(tokenAmountIn.Token)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	toAsset, err := p._assetOf(tokenOut)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	if fromAsset.AggregateAccount != toAsset.AggregateAccount {
@@ -94,7 +100,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	actualToAmount, hairCut, err := p._quoteFrom(fromAsset, toAsset, tokenAmountIn.Amount)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -178,7 +184,7 @@ func (p *PoolSimulator) CalcExactQuote(
 func (p *PoolSimulator) GetMetaInfo(
 	tokenIn string,
 	tokenOut string,
-) interface{} {
+) any {
 	return nil
 }
 
@@ -261,19 +267,19 @@ func (p *PoolSimulator) _quoteIdealToAmountSAvax(
 	toAsset Asset,
 	fromAmount *big.Int,
 ) (*big.Int, error) {
-	weth, ok := valueobject.WETHByChainID[p.ChainID]
+	native, ok := valueobject.WrappedNativeMap[p.ChainID]
 	if !ok {
-		return nil, ErrWETHNotFound
+		return nil, ErrWrappedNativeNotFound
 	}
 
 	fromToken := fromAsset.UnderlyingToken
 	toToken := toAsset.UnderlyingToken
 
-	if strings.EqualFold(toToken, weth) {
+	if strings.EqualFold(toToken, native) {
 		return wmul(fromAmount, p.SAvaxRate), nil
 	}
 
-	if strings.EqualFold(fromToken, weth) {
+	if strings.EqualFold(fromToken, native) {
 		return wdiv(fromAmount, p.SAvaxRate)
 	}
 

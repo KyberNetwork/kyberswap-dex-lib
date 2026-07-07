@@ -2,19 +2,23 @@ package mantisswap
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE0(DexTypeMantisSwap, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -44,43 +48,43 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodPaused,
 		Params: nil,
-	}, []interface{}{&extra.Paused})
+	}, []any{&extra.Paused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    MainPoolABI,
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodSwapAlloed,
 		Params: nil,
-	}, []interface{}{&extra.SwapAllowed})
+	}, []any{&extra.SwapAllowed})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    MainPoolABI,
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodBaseFee,
 		Params: nil,
-	}, []interface{}{&extra.BaseFee})
+	}, []any{&extra.BaseFee})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    MainPoolABI,
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodLpRatio,
 		Params: nil,
-	}, []interface{}{&extra.LpRatio})
+	}, []any{&extra.LpRatio})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    MainPoolABI,
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodSlippageA,
 		Params: nil,
-	}, []interface{}{&extra.SlippageA})
+	}, []any{&extra.SlippageA})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    MainPoolABI,
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodSlippageK,
 		Params: nil,
-	}, []interface{}{&extra.SlippageK})
+	}, []any{&extra.SlippageK})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    MainPoolABI,
 		Target: d.config.MainPoolAddress,
 		Method: mainPoolMethodSlippageN,
 		Params: nil,
-	}, []interface{}{&extra.SlippageN})
+	}, []any{&extra.SlippageN})
 	for _, token := range p.Tokens {
 		lp := extra.LPs[token.Address]
 		calls.AddCall(&ethrpc.Call{
@@ -88,25 +92,25 @@ func (d *PoolTracker) GetNewPoolState(
 			Target: lp.Address,
 			Method: lpMethodDecimals,
 			Params: nil,
-		}, []interface{}{&lp.Decimals})
+		}, []any{&lp.Decimals})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    LPABI,
 			Target: lp.Address,
 			Method: lpMethodAsset,
 			Params: nil,
-		}, []interface{}{&lp.Asset})
+		}, []any{&lp.Asset})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    LPABI,
 			Target: lp.Address,
 			Method: lpMethodLiability,
 			Params: nil,
-		}, []interface{}{&lp.Liability})
+		}, []any{&lp.Liability})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    LPABI,
 			Target: lp.Address,
 			Method: lpMethodLiabilityLimit,
 			Params: nil,
-		}, []interface{}{&lp.LiabilityLimit})
+		}, []any{&lp.LiabilityLimit})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate calls with err %v", err)

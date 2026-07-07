@@ -2,7 +2,6 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -10,6 +9,9 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -32,22 +34,17 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&decimals[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&decimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    tricryptoABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodToken,
-			Params: nil,
-		}, []interface{}{&lpTokens[i]})
+		}, []any{&lpTokens[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {
@@ -62,7 +59,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = PoolTricryptoStaticExtra{
-			LpToken: strings.ToLower(lpTokens[i].Hex()),
+			LpToken: hexutil.Encode(lpTokens[i][:]),
 		}
 		for j := range coins[i] {
 			coinAddress := convertToEtherAddress(coins[i][j].Hex(), d.config.ChainID)
@@ -74,7 +71,6 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
 				Address:   strings.ToLower(coinAddress),
-				Weight:    defaultWeight,
 				Swappable: true,
 			})
 		}
@@ -87,7 +83,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
+			Address:     hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			Exchange:    DexTypeCurve,
 			Type:        PoolTypeTricrypto,
 			Timestamp:   time.Now().Unix(),
@@ -104,6 +100,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 	ctx context.Context,
 	p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
@@ -120,119 +117,72 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		lastPrices   = make([]*big.Int, len(p.Tokens)-1)
 	)
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    tricryptoABI,
-		Target: p.Address,
-		Method: poolMethodA,
-		Params: nil,
-	}, []interface{}{&a})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    tricryptoABI,
+			Target: p.Address,
+			Method: poolMethodA,
+		}, []any{&a}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodD,
-		Params: nil,
-	}, []interface{}{&dExtra})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&dExtra}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodGamma,
-		Params: nil,
-	}, []interface{}{&gamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&gamma}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodFeeGamma,
-		Params: nil,
-	}, []interface{}{&feeGamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&feeGamma}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodMidFee,
-		Params: nil,
-	}, []interface{}{&midFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&midFee}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodOutFee,
-		Params: nil,
-	}, []interface{}{&outFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&outFee}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGammaTime,
-		Params: nil,
-	}, []interface{}{&futureAGammaTime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureAGammaTime}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGamma,
-		Params: nil,
-	}, []interface{}{&futureAGamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureAGamma}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGammaTime,
-		Params: nil,
-	}, []interface{}{&initialAGammaTime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialAGammaTime}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGamma,
-		Params: nil,
-	}, []interface{}{&initialAGamma})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialAGamma}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodLastPricesTimestamp,
-		Params: nil,
-	}, []interface{}{&lastPriceTimestamp})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&lastPriceTimestamp}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodXcpProfit,
-		Params: nil,
-	}, []interface{}{&xcpProfit})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&xcpProfit}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodVirtualPrice,
-		Params: nil,
-	}, []interface{}{&virtualPrice})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&virtualPrice}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodAllowedExtraProfit,
-		Params: nil,
-	}, []interface{}{&allowedExtraProfit})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&allowedExtraProfit}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
-		Params: nil,
-	}, []interface{}{&adjustmentStep})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adjustmentStep}).AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
 		Method: poolMethodMaHalfTime,
-		Params: nil,
-	}, []interface{}{&maHalfTime})
+	}, []any{&maHalfTime})
 
 	lpToken := p.GetLpToken()
 	if len(lpToken) > 0 {
@@ -240,8 +190,7 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 			ABI:    erc20ABI,
 			Target: lpToken,
 			Method: erc20MethodTotalSupply,
-			Params: nil,
-		}, []interface{}{&lpSupply})
+		}, []any{&lpSupply})
 	}
 
 	for i := range p.Tokens {
@@ -249,8 +198,8 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 			ABI:    tricryptoABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balances[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balances[i]})
 	}
 
 	for i := 0; i < len(p.Tokens)-1; i++ {
@@ -258,22 +207,18 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 			ABI:    tricryptoABI,
 			Target: p.Address,
 			Method: poolMethodPriceScale,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&priceScales[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&priceScales[i]}).AddCall(&ethrpc.Call{
 			ABI:    tricryptoABI,
 			Target: p.Address,
 			Method: poolMethodPriceOracle,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&priceOracles[i]})
-
-		calls.AddCall(&ethrpc.Call{
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&priceOracles[i]}).AddCall(&ethrpc.Call{
 			ABI:    tricryptoABI,
 			Target: p.Address,
 			Method: poolMethodLastPrices,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&lastPrices[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&lastPrices[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

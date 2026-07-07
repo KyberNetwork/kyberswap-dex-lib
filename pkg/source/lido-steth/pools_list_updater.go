@@ -2,20 +2,23 @@ package lido_steth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config         *Config
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryC(DexTypeLidoStETH, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config) *PoolsListUpdater {
 	return &PoolsListUpdater{
@@ -93,10 +96,8 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 	for _, token := range pool.Tokens {
 		tokenEntity := entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
-			Name:      token.Name,
 			Symbol:    token.Symbol,
 			Decimals:  token.Decimals,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 

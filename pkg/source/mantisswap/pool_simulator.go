@@ -1,10 +1,10 @@
 package mantisswap
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -15,6 +15,8 @@ type PoolSimulator struct {
 	state *PoolState
 	gas   Gas
 }
+
+var _ = pool.RegisterFactory0(DexTypeMantisSwap, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -34,7 +36,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Exchange: entityPool.Type,
 				Type:     entityPool.Exchange,
 				Tokens:   tokens,
-				Checked:  false,
 			},
 		},
 		state: &PoolState{
@@ -47,6 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			SlippageK:   extra.SlippageK,
 			LPs:         extra.LPs,
 		},
+		gas: DefaultGas,
 	}, nil
 }
 
@@ -57,16 +59,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct",
+			tokenInIndex, tokenOutIndex)
 	}
 
 	newState, err := p.deepCopy(p.state)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 	amountOut, err := GetAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount, newState)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -93,7 +96,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.LPs = newState.lps
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return nil
 }
 

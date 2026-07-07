@@ -3,22 +3,24 @@ package syncswap
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
-	"encoding/json"
-
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeSyncSwap, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	config *Config,
@@ -38,15 +40,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	ctx = util.NewContextWithTimestamp(ctx)
-
 	var lengthBI *big.Int
 	if _, err := d.ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    masterABI,
 		Target: d.config.MasterAddress,
 		Method: poolMasterMethodPoolsLength,
 		Params: nil,
-	}, []interface{}{&lengthBI}).Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get number of pools from master address")
@@ -71,8 +71,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    masterABI,
 			Target: d.config.MasterAddress,
 			Method: poolMasterMethodPools,
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+			Params: []any{big.NewInt(int64(currentOffset + i))},
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := getPoolAddressRequest.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -100,10 +100,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Info("scan SyncSwapPoolMaster")
 	}
 
-	nextOffset := currentOffset + batchSize
-	if nextOffset > totalNumberOfPools {
-		nextOffset = totalNumberOfPools
-	}
+	nextOffset := min(currentOffset+batchSize, totalNumberOfPools)
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
 	})
@@ -127,14 +124,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodPoolType,
 			Params: nil,
-		}, []interface{}{&poolTypes[i]})
+		}, []any{&poolTypes[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    classicPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGetAssets,
 			Params: nil,
-		}, []interface{}{&assets[i]})
+		}, []any{&assets[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -146,9 +143,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	var pools = make([]entity.Pool, 0, len(poolAddresses))
 	for i := 0; i < len(poolAddresses); i++ {
-		poolAddress := strings.ToLower(poolAddresses[i].Hex())
-		token0Address := strings.ToLower(assets[i][0].Hex())
-		token1Address := strings.ToLower(assets[i][1].Hex())
+		poolAddress := hexutil.Encode(poolAddresses[i][:])
+		token0Address := hexutil.Encode(assets[i][0][:])
+		token1Address := hexutil.Encode(assets[i][1][:])
 
 		var poolType = PoolTypeSyncSwapClassic
 		if int(poolTypes[i]) == poolTypeSyncSwapStableInContract {
@@ -157,12 +154,10 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 		var token0 = entity.PoolToken{
 			Address:   token0Address,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		var token1 = entity.PoolToken{
 			Address:   token1Address,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 

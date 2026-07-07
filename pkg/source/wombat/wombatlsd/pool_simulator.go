@@ -1,10 +1,11 @@
 package wombatlsd
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/logger"
 	"math/big"
+
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -27,6 +28,8 @@ type wombatSwapInfo struct {
 	newToAssetCash   *big.Int
 }
 
+var _ = pool.RegisterFactory0(wombat.PoolTypeWombatLSD, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra wombat.Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -45,7 +48,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Type:     entityPool.Type,
 				Exchange: entityPool.Exchange,
 				Tokens:   tokens,
-				Checked:  false,
 			},
 		},
 		paused:        extra.Paused,
@@ -74,7 +76,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		p.assets,
 	)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -113,6 +115,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.assets[params.TokenAmountOut.Token] = toAsset
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return nil
 }

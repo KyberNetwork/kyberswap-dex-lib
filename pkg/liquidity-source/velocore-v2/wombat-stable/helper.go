@@ -2,9 +2,9 @@ package wombatstable
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -17,10 +17,9 @@ func newPoolData(p poolDataResp) *poolData {
 	)
 
 	for i, token := range p.Data.ListedTokens {
-		t := strings.ToLower(common.BytesToAddress(token[:]).Hex())
+		t := hexutil.Encode(token[common.HashLength-common.AddressLength:])
 		poolTokens[i] = &entity.PoolToken{
 			Address:   t,
-			Weight:    defaultWeight,
 			Swappable: true,
 		}
 		poolReserves[i] = p.Data.Reserves[i].String()

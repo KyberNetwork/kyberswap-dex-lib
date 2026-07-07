@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 /**
@@ -20,22 +20,22 @@ func _xpMem(
 		return nil, ErrBalancesMustMatchMultipliers
 	}
 	xp := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		xp[i] = new(big.Int).Div(new(big.Int).Mul(rates[i], balances[i]), Precision)
 	}
 	return xp, nil
 }
 
-func (t *Pool) _xp() []*big.Int {
+func (t *PoolSimulator) _xp() []*big.Int {
 	var nTokens = len(t.GetInfo().Tokens)
 	result := make([]*big.Int, nTokens)
-	for i := 0; i < nTokens; i += 1 {
+	for i := range nTokens {
 		result[i] = new(big.Int).Div(new(big.Int).Mul(t.Rates[i], t.Info.Reserves[i]), Precision)
 	}
 	return result
 }
 
-func (t *Pool) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
 	var xp, err = _xpMem(balances, t.Rates)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (t *Pool) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
 	return t.getD(xp, amp)
 }
 
-func (t *Pool) _A() *big.Int {
+func (t *PoolSimulator) _A() *big.Int {
 	var t1 = t.FutureATime
 	var a1 = t.FutureA
 	var now = time.Now().Unix()
@@ -77,25 +77,25 @@ func (t *Pool) _A() *big.Int {
 	return a1
 }
 
-func (t *Pool) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int).SetInt64(0)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		s = new(big.Int).Add(s, xp[i])
 	}
-	if s.Cmp(big.NewInt(0)) == 0 {
+	if s.Sign() == 0 {
 		return s, nil
 	}
 	var numTokensBI = big.NewInt(int64(numTokens))
 	var prevD *big.Int
 	var d = new(big.Int).Set(s)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		var dP = new(big.Int).Set(d)
-		for j := 0; j < numTokens; j++ {
+		for j := range numTokens {
 			dP = new(big.Int).Div(
 				new(big.Int).Mul(dP, d),
-				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), constant.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			)
 		}
 		prevD = d
@@ -119,11 +119,12 @@ func (t *Pool) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	return nil, ErrDDoesNotConverge
 }
 
-func (t *Pool) getY(
+func (t *PoolSimulator) getY(
 	tokenIndexFrom int,
 	tokenIndexTo int,
 	x *big.Int,
 	xp []*big.Int,
+	dCached *big.Int,
 ) (*big.Int, error) {
 	var numTokens = len(xp)
 	if tokenIndexFrom == tokenIndexTo {
@@ -138,15 +139,19 @@ func (t *Pool) getY(
 		return nil, ErrInvalidAValue
 	}
 
-	var d, err = t.getD(xp, a)
-	if err != nil {
-		return nil, err
+	d := dCached
+	if d == nil {
+		var err error
+		d, err = t.getD(xp, a)
+		if err != nil {
+			return nil, err
+		}
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
 	var _x *big.Int
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i == tokenIndexFrom {
 			_x = new(big.Int).Set(x)
 		} else if i != tokenIndexTo {
@@ -154,7 +159,7 @@ func (t *Pool) getY(
 		} else {
 			continue
 		}
-		if _x.Cmp(constant.ZeroBI) == 0 {
+		if _x.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrZero
 		}
 		s = new(big.Int).Add(s, _x)
@@ -163,7 +168,7 @@ func (t *Pool) getY(
 			new(big.Int).Mul(_x, numTokensBI),
 		)
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -176,30 +181,33 @@ func (t *Pool) getY(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(new(big.Int).Mul(y, y), c),
-			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		denom.Sub(denom.Add(denom.Mul(y, big.NewInt(2)), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
+		y = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(y, y), c), &denom)
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
 	return nil, ErrAmountOutNotConverge
 }
 
-func (t *Pool) GetDy(
+func (t *PoolSimulator) GetDy(
 	i int,
 	j int,
 	dx *big.Int,
+	dCached *big.Int,
 ) (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	// x: uint256 = xp[i] + (dx * rates[i] / PRECISION)
 	var x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, t.Rates[i]), Precision))
 
 	// y: uint256 = self.get_y(i, j, x, xp)
-	var y, err = t.getY(i, j, x, xp)
+	var y, err = t.getY(i, j, x, xp, dCached)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -218,7 +226,7 @@ func (t *Pool) GetDy(
 	return dy, fee, nil
 }
 
-func (t *Pool) getYD(
+func (t *PoolSimulator) getYD(
 	a *big.Int,
 	tokenIndex int,
 	xp []*big.Int,
@@ -232,7 +240,7 @@ func (t *Pool) getYD(
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
@@ -241,7 +249,7 @@ func (t *Pool) getYD(
 			)
 		}
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -254,29 +262,22 @@ func (t *Pool) getYD(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(
-				new(big.Int).Mul(y, y),
-				c,
-			),
-			new(big.Int).Sub(
-				new(big.Int).Add(
-					new(big.Int).Mul(y, constant.Two),
-					b,
-				),
-				d,
-			),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		denom.Sub(denom.Add(denom.Mul(y, bignumber.Two), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
+		y = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(y, y), c), &denom)
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
 	return nil, ErrAmountOutNotConverge
 }
 
-func (t *Pool) CalculateWithdrawOneCoin(
+func (t *PoolSimulator) CalculateWithdrawOneCoin(
 	tokenAmount *big.Int,
 	i int,
 ) (*big.Int, *big.Int, error) {
@@ -295,8 +296,8 @@ func (t *Pool) CalculateWithdrawOneCoin(
 	var nCoins = len(t.Info.Reserves)
 	var xpReduced = make([]*big.Int, nCoins)
 	var nCoinBI = big.NewInt(int64(nCoins))
-	var fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinBI), new(big.Int).Mul(constant.Four, new(big.Int).Sub(nCoinBI, constant.One)))
-	for j := 0; j < nCoins; j += 1 {
+	var fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinBI), new(big.Int).Mul(bignumber.Four, new(big.Int).Sub(nCoinBI, bignumber.One)))
+	for j := range nCoins {
 		var dxExpected *big.Int
 		if j == i {
 			dxExpected = new(big.Int).Sub(new(big.Int).Div(new(big.Int).Mul(xp[j], D1), D0), newY)
@@ -310,12 +311,12 @@ func (t *Pool) CalculateWithdrawOneCoin(
 		return nil, nil, err
 	}
 	var dy = new(big.Int).Sub(xpReduced[i], newYD)
-	dy = new(big.Int).Div(new(big.Int).Sub(dy, constant.One), t.Multipliers[i])
+	dy = new(big.Int).Div(new(big.Int).Sub(dy, bignumber.One), t.Multipliers[i])
 	var dy0 = new(big.Int).Div(new(big.Int).Sub(xp[i], newY), t.Multipliers[i])
 	return dy, new(big.Int).Sub(dy0, dy), nil
 }
 
-func (t *Pool) CalculateTokenAmount(
+func (t *PoolSimulator) CalculateTokenAmount(
 	amounts []*big.Int,
 	deposit bool,
 ) (*big.Int, error) {
@@ -326,7 +327,7 @@ func (t *Pool) CalculateTokenAmount(
 		return nil, err
 	}
 	var balances1 = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if deposit {
 			balances1[i] = new(big.Int).Add(t.Info.Reserves[i], amounts[i])
 		} else {
@@ -350,12 +351,12 @@ func (t *Pool) CalculateTokenAmount(
 	return new(big.Int).Div(new(big.Int).Mul(diff, totalSupply), d0), nil
 }
 
-func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
+func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	var nCoins = len(amounts)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var amp = t._A()
 	var old_balances = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		old_balances[i] = t.Info.Reserves[i]
 	}
 	D0, err := t.get_D_mem(old_balances, amp)
@@ -364,7 +365,7 @@ func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	}
 	var token_supply = t.LpSupply
 	var new_balances = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		new_balances[i] = new(big.Int).Add(old_balances[i], amounts[i])
 	}
 	D1, err := t.get_D_mem(new_balances, amp)
@@ -376,11 +377,11 @@ func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	}
 	var D2 *big.Int
 	var mint_amount *big.Int
-	if token_supply.Cmp(constant.ZeroBI) > 0 {
+	if token_supply.Cmp(bignumber.ZeroBI) > 0 {
 		var _fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinsBi),
-			new(big.Int).Mul(constant.Four, big.NewInt(int64(nCoins-1))))
+			new(big.Int).Mul(bignumber.Four, big.NewInt(int64(nCoins-1))))
 		var _admin_fee = t.AdminFee
-		for i := 0; i < nCoins; i += 1 {
+		for i := range nCoins {
 			var ideal_balance = new(big.Int).Div(new(big.Int).Mul(D1, old_balances[i]), D0)
 			var difference *big.Int
 			if ideal_balance.Cmp(new_balances[i]) > 0 {
@@ -395,7 +396,7 @@ func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 		D2, _ = t.get_D_mem(new_balances, amp)
 		mint_amount = new(big.Int).Div(new(big.Int).Mul(token_supply, new(big.Int).Sub(D2, D0)), D0)
 	} else {
-		for i := 0; i < nCoins; i += 1 {
+		for i := range nCoins {
 			t.Info.Reserves[i] = new_balances[i]
 		}
 		mint_amount = D1
@@ -404,7 +405,7 @@ func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	return mint_amount, nil
 }
 
-func (t *Pool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
+func (t *PoolSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
 	var dy, dy_fee, err = t.CalculateWithdrawOneCoin(tokenAmount, i)
 	if err != nil {
 		return nil, err
@@ -414,15 +415,15 @@ func (t *Pool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, er
 	return dy, nil
 }
 
-func (t *Pool) GetVirtualPrice() (*big.Int, error) {
+func (t *PoolSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
 	var D, err = t.getD(xp, A)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if t.LpSupply.Cmp(constant.ZeroBI) == 0 {
-		return nil, ErrDenominatorZero
+	if t.LpSupply.Cmp(bignumber.ZeroBI) == 0 {
+		return nil, nil, ErrDenominatorZero
 	}
-	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), nil
+	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), D, nil
 }

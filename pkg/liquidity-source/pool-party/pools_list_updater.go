@@ -1,0 +1,149 @@
+package poolparty
+
+import (
+	"context"
+	"strings"
+
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+type PoolsListUpdater struct {
+	config        *Config
+	graphqlClient *graphql.Client
+}
+
+var _ = poollist.RegisterFactoryCG(DexType, NewPoolsListUpdater)
+
+func NewPoolsListUpdater(
+	cfg *Config,
+	graphqlClient *graphql.Client,
+) *PoolsListUpdater {
+	return &PoolsListUpdater{
+		config:        cfg,
+		graphqlClient: graphqlClient,
+	}
+}
+
+func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	metadata := Metadata{
+		LastCreatedAtTimestamp: 0,
+	}
+	if len(metadataBytes) != 0 {
+		err := json.Unmarshal(metadataBytes, &metadata)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+	}
+
+	subgraphPools, err := d.getPoolsList(ctx, metadata.LastCreatedAtTimestamp, metadata.LastPoolIds)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("failed to get pools list from subgraph")
+		return nil, metadataBytes, err
+	}
+
+	numSubgraphPools := len(subgraphPools)
+
+	if numSubgraphPools == 0 {
+		return nil, metadataBytes, nil
+	}
+
+	// Track the last pool's CreatedAtTimestamp
+	var lastPoolIds []string
+	lastCreatedAtTimestamp := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp.Int64()
+
+	pools := make([]entity.Pool, 0, len(subgraphPools))
+	for _, p := range subgraphPools {
+		tokenNative := entity.PoolToken{
+			Address:   strings.ToLower(valueobject.WrappedNativeMap[d.config.ChainID]),
+			Symbol:    "WETH",
+			Decimals:  18,
+			Swappable: true,
+		}
+
+		tokenTarget := entity.PoolToken{
+			Address:   strings.ToLower(p.TokenAddress),
+			Symbol:    p.TokenSymbol,
+			Decimals:  uint8(p.TokenDecimals),
+			Swappable: true,
+		}
+
+		publicAmountAvailableBI := p.PublicAmountAvailable
+		if publicAmountAvailableBI.Sign() <= 0 {
+			publicAmountAvailableBI.SetUint64(0)
+		}
+		p.PublicAmountAvailable = publicAmountAvailableBI
+
+		tokens := []*entity.PoolToken{&tokenNative, &tokenTarget}
+		reserves := []string{"0", p.PublicAmountAvailable.String()}
+
+		createdAtTimestamp := p.CreatedAtTimestamp.Int64()
+
+		extra := Extra{
+			PoolStatus:            p.PoolStatus,
+			IsVisible:             p.IsVisible,
+			BoostPriceBps:         d.config.BoostPriceBps,
+			PublicAmountAvailable: publicAmountAvailableBI,
+		}
+		extraBytes, _ := json.Marshal(extra)
+
+		var newPool = entity.Pool{
+			Address:   p.PoolAddress,
+			Exchange:  d.config.DexID,
+			Type:      DexType,
+			Timestamp: createdAtTimestamp,
+			Reserves:  reserves,
+			Tokens:    tokens,
+			Extra:     string(extraBytes),
+		}
+
+		pools = append(pools, newPool)
+		if p.CreatedAtTimestamp.Int64() == lastCreatedAtTimestamp {
+			lastPoolIds = append(lastPoolIds, p.ID)
+		}
+	}
+
+	newMetadataBytes, err := json.Marshal(Metadata{
+		LastCreatedAtTimestamp: int(lastCreatedAtTimestamp),
+		LastPoolIds:            lastPoolIds,
+	})
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+
+	logger.WithFields(logger.Fields{
+		"dex":   d.config.DexID,
+		"pools": len(pools),
+	}).Info("fetched new pools from subgraph")
+
+	return pools, newMetadataBytes, nil
+}
+
+func (d *PoolsListUpdater) getPoolsList(
+	ctx context.Context,
+	lastCreatedAtTimestamp int,
+	lastPoolIds []string,
+) ([]SubgraphPool, error) {
+	req := graphql.NewRequest(getPoolsListQuery(d.config.ChainID, lastCreatedAtTimestamp, lastPoolIds))
+
+	var response struct {
+		Pools []SubgraphPool `json:"Pool"`
+	}
+
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+		logger.WithFields(logger.Fields{
+			"dex":   d.config.DexID,
+			"error": err,
+		}).Errorf("failed to query subgraph")
+		return nil, err
+	}
+
+	return response.Pools, nil
+}

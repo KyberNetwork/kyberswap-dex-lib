@@ -1,8 +1,9 @@
 package kokonutcrypto
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -40,20 +41,16 @@ const (
 
 	erc20MethodTotalSupply = "totalSupply"
 
-	zeroString    = "0"
-	defaultWeight = 1
+	zeroString = "0"
 )
 
 var (
-	DefaultGas               = Gas{Exchange: 220000}
-	MinGamma                 = bignumber.NewBig10("10000000000")
-	MaxGamma                 = new(big.Int).Mul(big.NewInt(2), bignumber.NewBig10("10000000000000000"))
-	AMultiplier              = bignumber.NewBig10("10000")
-	MinA                     = new(big.Int).Div(new(big.Int).Mul(bignumber.Four, AMultiplier), big.NewInt(10)) // 4 == NCoins ** NCoins, NCoins = 2
-	MaxA                     = new(big.Int).Mul(new(big.Int).Mul(bignumber.Four, AMultiplier), big.NewInt(100000))
-	Precision                = bignumber.BONE
-	PriceMask                = new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 128), bignumber.One)
-	PriceSize           uint = 128
-	PrecisionPriceScale      = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	PrecisionFee             = new(big.Int).Exp(big.NewInt(10), big.NewInt(10), nil)
+	DefaultGas          = Gas{Exchange: 220000}
+	MinGamma            = bignumber.NewBig10("10000000000")
+	MaxGamma            = new(big.Int).Mul(big.NewInt(2), bignumber.NewBig10("10000000000000000"))
+	AMultiplier         = bignumber.NewBig10("10000")
+	MinA                = new(big.Int).Div(new(big.Int).Mul(bignumber.Four, AMultiplier), big.NewInt(10)) // 4 == NCoins ** NCoins, NCoins = 2
+	MaxA                = new(big.Int).Mul(new(big.Int).Mul(bignumber.Four, AMultiplier), big.NewInt(100000))
+	PrecisionPriceScale = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	PrecisionFee        = new(big.Int).Exp(big.NewInt(10), big.NewInt(10), nil)
 )

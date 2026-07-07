@@ -2,31 +2,37 @@ package velodromev2
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
 	ErrPoolIsPaused             = errors.New("pool is paused")
 	ErrInvalidAmountIn          = errors.New("invalid amountIn")
+	ErrInvalidAmountOut         = errors.New("invalid amountOut")
 	ErrInvalidReserve           = errors.New("invalid reserve")
 	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
+	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrK                        = errors.New("K")
 	ErrY                        = errors.New("!Y")
+	ErrUnimplemented            = errors.New("unimplemented")
 )
 
 type (
 	PoolSimulator struct {
-		poolpkg.Pool
+		pool.Pool
 
 		stable       bool
 		decimals0    *uint256.Int
@@ -44,6 +50,8 @@ type (
 	}
 )
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra PoolStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
@@ -56,13 +64,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
-			Address:     entityPool.Address,
-			ReserveUsd:  entityPool.ReserveUsd,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
@@ -78,8 +87,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if s.isPaused {
+func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if p.isPaused {
 		return nil, ErrPoolIsPaused
 	}
 
@@ -88,10 +97,11 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrInvalidAmountIn
 	}
 
-	feeAmount := new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, s.fee), s.feePrecision)
-	amountInAfterFee := new(uint256.Int).Sub(amountIn, feeAmount)
+	var feeAmount uint256.Int
+	feeAmount.Div(feeAmount.Mul(amountIn, p.fee), p.feePrecision)
+	amountInAfterFee := new(uint256.Int).Sub(amountIn, &feeAmount)
 
-	amountOut, err := s.getAmountOut(
+	amountOut, err := p.getAmountOut(
 		amountInAfterFee,
 		params.TokenAmountIn.Token,
 	)
@@ -99,64 +109,99 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount.ToBig()},
-		Gas:            s.gas.Swap,
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount.ToBig()},
+		Gas:            p.gas.Swap,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
-	indexOut := s.GetTokenIndex(params.TokenAmountOut.Token)
-	if indexIn < 0 || indexOut < 0 {
-		return
+func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	if p.isPaused {
+		return nil, ErrPoolIsPaused
 	}
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Sub(new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount), params.Fee.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
-}
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return PoolMeta{
-		Fee:          s.fee.Uint64(),
-		FeePrecision: s.feePrecision.Uint64(),
-		BlockNumber:  s.Pool.Info.BlockNumber,
-	}
-}
-
-func (s *PoolSimulator) getAmountOut(
-	amountIn *uint256.Int,
-	tokenIn string,
-) (*uint256.Int, error) {
-	reserve0, overflow := uint256.FromBig(s.Info.Reserves[0])
+	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
 	if overflow {
-		return nil, ErrInvalidReserve
+		return nil, ErrInvalidAmountOut
 	}
 
-	reserve1, overflow := uint256.FromBig(s.Info.Reserves[1])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	amountOut, err := s._getAmountOut(amountIn, tokenIn, reserve0, reserve1)
+	amountIn, err := p.getAmountIn(
+		amountOut,
+		params.TokenAmountOut.Token,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	if amountOut.Cmp(number.Zero) <= 0 {
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
+		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
+		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: integer.Zero()},
+		Gas: p.gas.Swap,
+	}, nil
+}
+
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	indexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
+	indexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 {
+		return
+	}
+	p.Info.Reserves[indexIn] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[indexIn],
+		params.TokenAmountIn.Amount), params.Fee.Amount)
+	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+}
+
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+	return PoolMeta{
+		Fee:          p.fee.Uint64(),
+		FeePrecision: p.feePrecision.Uint64(),
+		BlockNumber:  p.Info.BlockNumber,
+	}
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = lo.Map(p.Info.Reserves, func(v *big.Int, i int) *big.Int {
+		return new(big.Int).Set(v)
+	})
+	return &cloned
+}
+
+func (p *PoolSimulator) getAmountOut(
+	amountIn *uint256.Int,
+	tokenIn string,
+) (*uint256.Int, error) {
+	reserve0, overflow := uint256.FromBig(p.Info.Reserves[0])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	reserve1, overflow := uint256.FromBig(p.Info.Reserves[1])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	amountOut, err := p._getAmountOut(amountIn, tokenIn, reserve0, reserve1)
+	if err != nil {
+		return nil, err
+	}
+
+	if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
 	}
 
-	if tokenIn == s.Info.Tokens[0] && amountOut.Cmp(reserve1) > 0 {
+	if tokenIn == p.Info.Tokens[0] && !amountOut.Lt(reserve1) {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	if tokenIn == s.Info.Tokens[1] && amountOut.Cmp(reserve0) > 0 {
+	if tokenIn == p.Info.Tokens[1] && !amountOut.Lt(reserve0) {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	var balance0, balance1 *uint256.Int
-	if tokenIn == s.Info.Tokens[0] {
+	if tokenIn == p.Info.Tokens[0] {
 		balance0 = new(uint256.Int).Add(reserve0, amountIn)
 		balance1 = new(uint256.Int).Sub(reserve1, amountOut)
 	} else {
@@ -164,112 +209,221 @@ func (s *PoolSimulator) getAmountOut(
 		balance1 = new(uint256.Int).Add(reserve1, amountIn)
 	}
 
-	if s._k(balance0, balance1).Cmp(s._k(reserve0, reserve1)) < 0 {
+	if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
 		return nil, ErrK
 	}
 
 	return amountOut, nil
 }
 
-func (s *PoolSimulator) _getAmountOut(
+func (p *PoolSimulator) _getAmountOut(
 	amountIn *uint256.Int,
 	tokenIn string,
 	_reserve0 *uint256.Int,
 	_reserve1 *uint256.Int,
 ) (*uint256.Int, error) {
-	if s.stable {
-		xy := s._k(_reserve0, _reserve1)
-		_reserve0 = new(uint256.Int).Div(new(uint256.Int).Mul(_reserve0, number.Number_1e18), s.decimals0)
-		_reserve1 = new(uint256.Int).Div(new(uint256.Int).Mul(_reserve1, number.Number_1e18), s.decimals1)
+	if p.stable {
+		xy := p._k(_reserve0, _reserve1)
+		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
+		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
+		decimalsA, decimalsB := p.decimals0, p.decimals1
 
-		if tokenIn == s.Info.Tokens[0] {
-			amountIn = new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, number.Number_1e18), s.decimals0)
-			y, err := s._get_y(new(uint256.Int).Add(amountIn, _reserve0), xy, _reserve1)
-			if err != nil {
-				return nil, err
-			}
-
-			y = new(uint256.Int).Sub(_reserve1, y)
-
-			return new(uint256.Int).Div(new(uint256.Int).Mul(y, s.decimals1), number.Number_1e18), nil
+		if tokenIn != p.Info.Tokens[0] {
+			_reserveA, _reserveB = _reserveB, _reserveA
+			decimalsA, decimalsB = decimalsB, decimalsA
 		}
 
-		amountIn = new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, number.Number_1e18), s.decimals1)
-		y, err := s._get_y(new(uint256.Int).Add(amountIn, _reserve1), xy, _reserve0)
+		amountIn = new(uint256.Int).Mul(amountIn, number.Number_1e18)
+		amountIn.Div(amountIn, decimalsA)
+		y, err := p._get_y(new(uint256.Int).Add(amountIn, _reserveA), xy, _reserveB)
 		if err != nil {
 			return nil, err
 		}
+		y = new(uint256.Int).Sub(_reserveB, y)
 
-		y = new(uint256.Int).Sub(_reserve0, y)
-		return new(uint256.Int).Div(new(uint256.Int).Mul(y, s.decimals0), number.Number_1e18), nil
+		return y.Div(y.Mul(y, decimalsB), number.Number_1e18), nil
 	}
 
-	if tokenIn == s.Info.Tokens[0] {
-		return new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, _reserve1), new(uint256.Int).Add(_reserve0, amountIn)), nil
+	var amountOut, newReserve uint256.Int
+	if tokenIn == p.Info.Tokens[0] {
+		return amountOut.Div(amountOut.Mul(amountIn, _reserve1), newReserve.Add(_reserve0, amountIn)), nil
 	}
-
-	return new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, _reserve0), new(uint256.Int).Add(_reserve1, amountIn)), nil
+	return amountOut.Div(amountOut.Mul(amountIn, _reserve0), newReserve.Add(_reserve1, amountIn)), nil
 }
 
-func (s *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
-	if s.stable {
-		_x := new(uint256.Int).Div(new(uint256.Int).Mul(x, number.Number_1e18), s.decimals0)
-		_y := new(uint256.Int).Div(new(uint256.Int).Mul(y, number.Number_1e18), s.decimals1)
-		_a := new(uint256.Int).Div(new(uint256.Int).Mul(_x, _y), number.Number_1e18)
-		_b := new(uint256.Int).Add(
-			new(uint256.Int).Div(
-				new(uint256.Int).Mul(_x, _x),
+func (p *PoolSimulator) getAmountIn(
+	amountOut *uint256.Int,
+	tokenOut string,
+) (*uint256.Int, error) {
+	reserve0, overflow := uint256.FromBig(p.Info.Reserves[0])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	reserve1, overflow := uint256.FromBig(p.Info.Reserves[1])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	if tokenOut == p.Info.Tokens[0] && !amountOut.Lt(reserve0) {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	if tokenOut == p.Info.Tokens[1] && !amountOut.Lt(reserve1) {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	amountIn, err := p._getAmountIn(amountOut, tokenOut, reserve0, reserve1)
+	if err != nil {
+		return nil, err
+	}
+
+	if amountIn.Sign() <= 0 {
+		return nil, ErrInsufficientInputAmount
+	}
+
+	var balance0, balance1 *uint256.Int
+	if tokenOut == p.Info.Tokens[0] {
+		balance0 = new(uint256.Int).Sub(reserve0, amountOut)
+		balance1 = new(uint256.Int).Add(reserve1, amountIn)
+	} else {
+		balance0 = new(uint256.Int).Add(reserve0, amountIn)
+		balance1 = new(uint256.Int).Sub(reserve1, amountOut)
+	}
+
+	// Skip K invariant check for stable pools since the invariant is different
+	if !p.stable {
+		if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
+			return nil, ErrK
+		}
+	}
+
+	return amountIn, nil
+}
+
+func (p *PoolSimulator) _getAmountIn(
+	amountOut *uint256.Int,
+	tokenOut string,
+	_reserve0 *uint256.Int,
+	_reserve1 *uint256.Int,
+) (amountIn *uint256.Int, err error) {
+	if p.stable {
+		xy := p._k(_reserve0, _reserve1)
+		var tmp uint256.Int
+		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
+		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
+
+		if tokenOut == p.Info.Tokens[0] {
+			amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals0)
+			newReserveA := new(uint256.Int).Sub(_reserveA, amountOutScaled)
+			x, err := p._get_y(newReserveA, xy, _reserveB)
+			if err != nil {
+				return nil, err
+			}
+			amountIn = new(uint256.Int).Sub(x, _reserveB)
+			tmp.Sub(p.feePrecision, p.fee)
+			amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
+			return big256.MulWadUp(&tmp, amountIn, p.decimals1), nil
+		}
+
+		amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals1)
+		newReserveB := new(uint256.Int).Sub(_reserveB, amountOutScaled)
+		x, err := p._get_y(newReserveB, xy, _reserveA)
+		if err != nil {
+			return nil, err
+		}
+		amountIn = new(uint256.Int).Sub(x, _reserveA)
+		tmp.Sub(p.feePrecision, p.fee)
+		amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
+		return big256.MulWadUp(&tmp, amountIn, p.decimals0), nil
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
+		}
+	}()
+
+	var reserveIn, reserveOut *uint256.Int
+	if tokenOut == p.Info.Tokens[0] {
+		reserveIn = _reserve1
+		reserveOut = _reserve0
+	} else {
+		reserveIn = _reserve0
+		reserveOut = _reserve1
+	}
+
+	numerator := SafeMul(
+		SafeMul(reserveIn, amountOut),
+		p.feePrecision,
+	)
+	denominator := SafeMul(
+		SafeSub(reserveOut, amountOut),
+		SafeSub(p.feePrecision, p.fee),
+	)
+
+	return SafeAdd(numerator.Div(numerator, denominator), number.Number_1), nil
+}
+
+func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
+	if p.stable {
+		var _x, _y, _a uint256.Int
+		_x.Div(_x.Mul(x, number.Number_1e18), p.decimals0)
+		_y.Div(_y.Mul(y, number.Number_1e18), p.decimals1)
+		_a.Div(_a.Mul(&_x, &_y), number.Number_1e18)
+		_b := _x.Add(
+			_x.Div(
+				_x.Mul(&_x, &_x),
 				number.Number_1e18,
 			),
-			new(uint256.Int).Div(
-				new(uint256.Int).Mul(_y, _y),
+			_y.Div(
+				_y.Mul(&_y, &_y),
 				number.Number_1e18,
 			),
 		)
-		return new(uint256.Int).Div(new(uint256.Int).Mul(_a, _b), number.Number_1e18)
+		return _a.Div(_a.Mul(&_a, _b), number.Number_1e18)
 	}
 
 	return new(uint256.Int).Mul(x, y)
 }
 
-func (s *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
-	for i := 0; i < 255; i++ {
+func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
+	var dy uint256.Int
+	y = y.Clone()
+	for range 255 {
 		k := _f(x0, y)
 
 		if k.Cmp(xy) < 0 {
-			dy := new(uint256.Int).Div(
-				new(uint256.Int).Mul(new(uint256.Int).Sub(xy, k), number.Number_1e18),
+			dy.Div(
+				dy.Mul(dy.Sub(xy, k), number.Number_1e18),
 				_d(x0, y),
 			)
-
-			if dy.Cmp(number.Zero) == 0 {
+			if dy.Sign() == 0 {
 				if k.Cmp(xy) == 0 {
 					return y, nil
 				}
-
-				if s._k(x0, new(uint256.Int).Add(y, number.Number_1)).Cmp(xy) > 0 {
-					return new(uint256.Int).Add(y, number.Number_1), nil
-				}
-
-				dy = number.Number_1
-			}
-
-			y = new(uint256.Int).Add(y, dy)
-		} else {
-			dy := new(uint256.Int).Div(
-				new(uint256.Int).Mul(new(uint256.Int).Sub(k, xy), number.Number_1e18),
-				_d(x0, y),
-			)
-
-			if dy.Cmp(number.Zero) == 0 {
-				if k.Cmp(xy) == 0 || _f(x0, new(uint256.Int).Sub(y, number.Number_1)).Cmp(xy) < 0 {
+				if y := new(uint256.Int).AddUint64(y, 1); p._k(x0, y).Cmp(xy) > 0 {
 					return y, nil
 				}
-
-				dy = number.Number_1
+				dy.SetOne()
 			}
-
-			y = new(uint256.Int).Sub(y, dy)
+			y.Add(y, &dy)
+		} else {
+			dy.Div(
+				dy.Mul(dy.Sub(k, xy), number.Number_1e18),
+				_d(x0, y),
+			)
+			if dy.Sign() == 0 {
+				if k.Cmp(xy) == 0 || _f(x0, new(uint256.Int).SubUint64(y, 1)).Cmp(xy) < 0 {
+					return y, nil
+				}
+				dy.SetOne()
+			}
+			y.Sub(y, &dy)
 		}
 	}
 
@@ -277,35 +431,38 @@ func (s *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 }
 
 func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
-	_a := new(uint256.Int).Div(new(uint256.Int).Mul(x0, y), number.Number_1e18)
-	_b := new(uint256.Int).Add(
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(x0, x0),
+	var _a, _b uint256.Int
+	_b.Add(
+		_a.Div(
+			_a.Mul(x0, x0),
 			number.Number_1e18,
 		),
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(y, y),
+		_b.Div(
+			_b.Mul(y, y),
 			number.Number_1e18,
 		),
 	)
-	return new(uint256.Int).Div(new(uint256.Int).Mul(_a, _b), number.Number_1e18)
+	_a.Div(_a.Mul(x0, y), number.Number_1e18)
+	return _a.Div(_a.Mul(&_a, &_b), number.Number_1e18)
 }
 
 func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
-	return new(uint256.Int).Add(
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				number.Number_3,
-				new(uint256.Int).Mul(
+	var a, b uint256.Int
+	return a.Add(
+		a.Div(
+			a.Mul(
+				a.Mul(
+					number.Number_3,
 					x0,
-					new(uint256.Int).Div(new(uint256.Int).Mul(y, y), number.Number_1e18),
 				),
+				b.Div(b.Mul(y, y), number.Number_1e18),
 			),
 			number.Number_1e18,
 		),
-		new(uint256.Int).Mul(
-			new(uint256.Int).Div(new(uint256.Int).Mul(x0, x0), number.Number_1e18),
-			new(uint256.Int).Div(x0, number.Number_1e18),
-		),
+		b.Div(
+			b.Mul(
+				b.Div(b.Mul(x0, x0), number.Number_1e18),
+				x0),
+			number.Number_1e18),
 	)
 }

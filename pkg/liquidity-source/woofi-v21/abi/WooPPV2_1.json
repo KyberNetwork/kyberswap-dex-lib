@@ -1,0 +1,79 @@
+[
+    {
+        "inputs": [],
+        "name": "quoteToken",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "tokenInfos",
+        "outputs": [
+            {
+                "internalType": "uint192",
+                "name": "reserve",
+                "type": "uint192"
+            },
+            {
+                "internalType": "uint16",
+                "name": "feeRate",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint128",
+                "name": "maxGamma",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "maxNotionalSwap",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint192",
+                "name": "capBal",
+                "type": "uint192"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "wooracle",
+        "outputs": [
+            {
+                "internalType": "contract IWooracleV2_2",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "name": "paused",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ]
+    }
+]

@@ -1,16 +1,17 @@
 package quickperps
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
@@ -93,10 +94,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			tc.entityPool.Extra = string(extraBytes)
 			pool, _ := NewPoolSimulator(tc.entityPool)
 
-			calcAmountOutResult, err := pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
-				TokenAmountIn: tc.tokenAmountIn,
-				TokenOut:      tc.tokenOut,
-				Limit:         nil,
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
+				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit:         nil,
+				})
 			})
 
 			assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)

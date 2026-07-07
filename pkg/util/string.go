@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Join(args ...interface{}) string {
+func Join(args ...any) string {
 	s := make([]string, len(args))
 	for i, v := range args {
 		switch v := v.(type) {
@@ -48,4 +48,12 @@ func Join(args ...interface{}) string {
 // FormatKey returns a key from a list of strings.
 func FormatKey(sep string, args ...string) string {
 	return strings.Join(args, sep)
+}
+
+// MaxBytesToString returns a string up to maxBytes of bytes.
+func MaxBytesToString(b []byte, maxBytes int) string {
+	if len(b) > maxBytes {
+		return string(b[:maxBytes]) + ".."
+	}
+	return string(b)
 }

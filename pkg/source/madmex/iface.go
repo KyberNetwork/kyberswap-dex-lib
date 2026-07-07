@@ -1,13 +1,7 @@
 package madmex
 
 // NOTE: we generate mock files in the same package to avoid cycle dependencies
-//go:generate mockgen -destination ./mock_vault_reader.go -package madmex pool-service/internal/dex/madmex IVaultReader
-//go:generate mockgen -destination ./mock_vault_price_feed_reader.go -package madmex pool-service/internal/dex/madmex IVaultPriceFeedReader
-//go:generate mockgen -destination ./mock_fast_price_feed_reader_v1.go -package madmex pool-service/internal/dex/madmex IFastPriceFeedV1Reader
-//go:generate mockgen -destination ./mock_price_feed_reader.go -package madmex pool-service/internal/dex/madmex IPriceFeedReader
-//go:generate mockgen -destination ./mock_usdg_reader.go -package madmex pool-service/internal/dex/madmex IUSDGReader
-//go:generate mockgen -destination ./mock_chainlink_flags_reader.go -package madmex pool-service/internal/dex/madmex IChainlinkFlagsReader
-//go:generate mockgen -destination ./mock_pancake_pair_reader.go -package madmex pool-service/internal/dex/madmex IPancakePairReader
+//go:generate go run go.uber.org/mock/mockgen -destination ./mocks.go -package madmex . IVaultReader,IVaultPriceFeedReader,IFastPriceFeedV1Reader,IPriceFeedReader,IUSDGReader,IChainlinkFlagsReader,IPancakePairReader
 
 import (
 	"context"

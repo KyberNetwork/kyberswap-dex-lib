@@ -2,15 +2,16 @@ package ironstable
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 )
 
@@ -20,6 +21,8 @@ type PoolsListUpdater struct {
 
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeIronStable, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{
@@ -60,13 +63,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Target: p.ID,
 				Method: ironSwapMethodGetTokenPrecisionMultipliers,
 				Params: nil,
-			}, []interface{}{&multipliers}).
+			}, []any{&multipliers}).
 			AddCall(&ethrpc.Call{
 				ABI:    ironSwap,
 				Target: p.ID,
 				Method: ironSwapMethodSwapStorage,
 				Params: nil,
-			}, []interface{}{&swapStorage})
+			}, []any{&swapStorage})
 
 		_, err := req.Aggregate()
 		if err != nil {
@@ -82,14 +85,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = make(entity.PoolReserves, 0, len(p.Tokens))
 
 			staticExtra = PoolStaticExtra{
-				LpToken: strings.ToLower(swapStorage.LpToken.Hex()),
+				LpToken: hexutil.Encode(swapStorage.LpToken[:]),
 			}
 		)
 
 		for j, t := range p.Tokens {
 			newToken := entity.PoolToken{
 				Address:   t.Address,
-				Weight:    poolTokenDefaultWeight,
 				Swappable: true,
 			}
 			tokens = append(tokens, &newToken)

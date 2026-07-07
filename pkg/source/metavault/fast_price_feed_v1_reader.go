@@ -59,13 +59,13 @@ func (r *FastPriceFeedV1Reader) readData(ctx context.Context, address string, fa
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1DisableFastPriceVoteCount, nil), []interface{}{&fastPriceFeed.DisableFastPriceVoteCount})
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1IsSpreadEnabled, nil), []interface{}{&fastPriceFeed.IsSpreadEnabled})
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1LastUpdatedAt, nil), []interface{}{&fastPriceFeed.LastUpdatedAt})
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1MaxDeviationBasisPoints, nil), []interface{}{&fastPriceFeed.MaxDeviationBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1MinAuthorizations, nil), []interface{}{&fastPriceFeed.MinAuthorizations})
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1PriceDuration, nil), []interface{}{&fastPriceFeed.PriceDuration})
-	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1VolBasisPoints, nil), []interface{}{&fastPriceFeed.VolBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1DisableFastPriceVoteCount, nil), []any{&fastPriceFeed.DisableFastPriceVoteCount})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1IsSpreadEnabled, nil), []any{&fastPriceFeed.IsSpreadEnabled})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1LastUpdatedAt, nil), []any{&fastPriceFeed.LastUpdatedAt})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1MaxDeviationBasisPoints, nil), []any{&fastPriceFeed.MaxDeviationBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1MinAuthorizations, nil), []any{&fastPriceFeed.MinAuthorizations})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1PriceDuration, nil), []any{&fastPriceFeed.PriceDuration})
+	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV1VolBasisPoints, nil), []any{&fastPriceFeed.VolBasisPoints})
 
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
@@ -90,8 +90,8 @@ func (r *FastPriceFeedV1Reader) readTokenData(
 			ABI:    r.abi,
 			Target: address,
 			Method: FastPriceFeedMethodV1Prices,
-			Params: []interface{}{common.HexToAddress(token)},
-		}, []interface{}{&prices[i]})
+			Params: []any{common.HexToAddress(token)},
+		}, []any{&prices[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

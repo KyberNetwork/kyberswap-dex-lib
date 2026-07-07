@@ -8,6 +8,7 @@ import (
 )
 
 func TestRPow(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		expected := "2587978906837309703137361322131041"
 		x := uint256.MustFromDecimal("3145121")

@@ -1,16 +1,17 @@
 package gmxglp
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func (p *PoolSimulator) UnstakeAndRedeemGlp(tokenOut string, glpAmount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) UnstakeAndRedeemGlp(swapInfo *gmxGlpSwapInfo, tokenOut string, glpAmount *big.Int) (*big.Int, error) {
 	if glpAmount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrRewardRouterInvalidGlpAmount
 	}
 
-	amountOut, err := p.removeLiquidityForAccount(tokenOut, glpAmount)
+	amountOut, err := p.removeLiquidityForAccount(swapInfo, tokenOut, glpAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +19,7 @@ func (p *PoolSimulator) UnstakeAndRedeemGlp(tokenOut string, glpAmount *big.Int)
 	return amountOut, nil
 }
 
-func (p *PoolSimulator) removeLiquidityForAccount(tokenOut string, glpAmount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) removeLiquidityForAccount(swapInfo *gmxGlpSwapInfo, tokenOut string, glpAmount *big.Int) (*big.Int, error) {
 	if glpAmount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrGlpManagerInvalidAmount
 	}
@@ -42,7 +43,7 @@ func (p *PoolSimulator) removeLiquidityForAccount(tokenOut string, glpAmount *bi
 	//IMintable(glp).burn(_account, _glpAmount);
 	//IERC20(usdg).transfer(address(vault), usdgAmount);
 
-	amountOut, err := p.SellUSDG(tokenOut, usdgAmount)
+	amountOut, err := p.SellUSDG(swapInfo, tokenOut, usdgAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -50,15 +51,15 @@ func (p *PoolSimulator) removeLiquidityForAccount(tokenOut string, glpAmount *bi
 	return amountOut, nil
 }
 
-func (p *PoolSimulator) SellUSDG(token string, usdgAmount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) SellUSDG(swapInfo *gmxGlpSwapInfo, token string, usdgAmount *big.Int) (*big.Int, error) {
 	//_validate(whitelistedTokens[_token], 19);  // handled at canSwapTo
-	p.vault.UseSwapPricing = true
+	useSwapPricing := true
 
 	if usdgAmount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrVaultNegativeUsdgAmount
 	}
 
-	redemptionAmount, err := p.getRedemptionAmount(token, usdgAmount)
+	redemptionAmount, err := p.getRedemptionAmount(token, usdgAmount, useSwapPricing)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +67,8 @@ func (p *PoolSimulator) SellUSDG(token string, usdgAmount *big.Int) (*big.Int, e
 		return nil, ErrVaultNegativeRedemptionAmount
 	}
 
-	p.swapInfo.usdgAmount = new(big.Int).Set(usdgAmount)
-	p.swapInfo.redemptionAmount = new(big.Int).Set(redemptionAmount)
+	swapInfo.usdgAmount = new(big.Int).Set(usdgAmount)
+	swapInfo.redemptionAmount = new(big.Int).Set(redemptionAmount)
 	//p.vault.DecreaseUSDGAmount(token, usdgAmount)
 	//p.vault.DecreasePoolAmount(token, redemptionAmount)
 	if err = p.validateMinPoolAmount(token, redemptionAmount); err != nil {
@@ -84,13 +85,11 @@ func (p *PoolSimulator) SellUSDG(token string, usdgAmount *big.Int) (*big.Int, e
 		return nil, ErrVaultNegativeAmountOut
 	}
 
-	p.vault.UseSwapPricing = false
-
 	return amountOut, nil
 }
 
-func (p *PoolSimulator) getRedemptionAmount(token string, usdgAmount *big.Int) (*big.Int, error) {
-	price, err := p.vault.GetMaxPrice(token)
+func (p *PoolSimulator) getRedemptionAmount(token string, usdgAmount *big.Int, useSwapPricing bool) (*big.Int, error) {
+	price, err := p.vault.GetMaxPrice(token, useSwapPricing)
 	if err != nil {
 		return nil, err
 	}

@@ -2,11 +2,9 @@ package gmx
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -30,11 +28,11 @@ func NewVaultScanner(
 ) *VaultScanner {
 	return &VaultScanner{
 		config:                config,
-		vaultReader:           NewVaultReader(ethrpcClient),
-		vaultPriceFeedReader:  NewVaultPriceFeedReader(ethrpcClient),
+		vaultReader:           NewVaultReader(ethrpcClient, config.UsdgForkName),
+		vaultPriceFeedReader:  NewVaultPriceFeedReaderWithParam(ethrpcClient, config.PriceFeedType),
 		fastPriceFeedV1Reader: NewFastPriceFeedV1Reader(ethrpcClient),
 		fastPriceFeedV2Reader: NewFastPriceFeedV2Reader(ethrpcClient),
-		priceFeedReader:       NewPriceFeedReader(ethrpcClient),
+		priceFeedReader:       NewPriceFeedReaderWithParam(ethrpcClient, config.PriceFeedType),
 		usdgReader:            NewUSDGReader(ethrpcClient),
 		chainlinkFlagsReader:  NewChainlinkFlagsReader(ethrpcClient),
 		pancakePairReader:     NewPancakePairReader(ethrpcClient),
@@ -73,7 +71,8 @@ func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, e
 
 // ================================================================================
 
-func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, tokens []string) (*VaultPriceFeed, error) {
+func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, tokens []string) (*VaultPriceFeed,
+	error) {
 	vaultPriceFeed, err := vs.vaultPriceFeedReader.Read(ctx, address, tokens)
 	if err != nil {
 		return nil, err
@@ -131,25 +130,29 @@ func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, t
 
 	vaultPriceFeed.SecondaryPriceFeed = fastPriceFeed
 
-	priceFeeds, err := vs.getPriceFeeds(ctx, vaultPriceFeed.PriceFeedsAddresses, vaultPriceFeed.PriceSampleSpace)
+	vaultPriceFeed.PriceFeeds, err = vs.getPriceFeeds(ctx, vaultPriceFeed)
 	if err != nil {
 		return nil, err
 	}
-
-	vaultPriceFeed.PriceFeeds = priceFeeds
 
 	return vaultPriceFeed, nil
 }
 
 func (vs *VaultScanner) getPriceFeeds(
 	ctx context.Context,
-	priceFeedAddresses map[string]common.Address,
-	priceSampleSpace *big.Int,
+	vaultPriceFeed *VaultPriceFeed,
 ) (map[string]*PriceFeed, error) {
-	roundCount := int(priceSampleSpace.Int64())
-	priceFeeds := make(map[string]*PriceFeed, len(priceFeedAddresses))
+	if vaultPriceFeed.PriceFeedType == PriceFeedTypeDirect {
+		return vaultPriceFeed.PriceFeeds, nil
+	}
 
-	for tokenAddress, priceFeedAddress := range priceFeedAddresses {
+	var roundCount int
+	if priceSampleSpace := vaultPriceFeed.PriceSampleSpace; priceSampleSpace != nil {
+		roundCount = int(priceSampleSpace.Int64())
+	}
+	priceFeeds := make(map[string]*PriceFeed, len(vaultPriceFeed.PriceFeedsAddresses))
+
+	for tokenAddress, priceFeedAddress := range vaultPriceFeed.PriceFeedsAddresses {
 		priceFeed, err := vs.priceFeedReader.Read(ctx, priceFeedAddress.String(), roundCount)
 		if err != nil {
 			return nil, err
@@ -161,7 +164,7 @@ func (vs *VaultScanner) getPriceFeeds(
 	return priceFeeds, nil
 }
 
-func (vs VaultScanner) getFastPriceFeed(
+func (vs *VaultScanner) getFastPriceFeed(
 	ctx context.Context,
 	version SecondaryPriceFeedVersion,
 	address string,

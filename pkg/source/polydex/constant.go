@@ -1,9 +1,8 @@
 package polydex
 
 const (
-	DexTypePolydex     = "polydex"
-	defaultTokenWeight = 50
-	reserveZero        = "0"
+	DexTypePolydex = "polydex"
+	reserveZero    = "0"
 
 	bps = 10000
 )

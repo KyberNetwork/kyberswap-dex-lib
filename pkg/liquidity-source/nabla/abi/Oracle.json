@@ -1,0 +1,250 @@
+[
+    {
+        "type": "function",
+        "name": "getAssetPrice",
+        "inputs": [
+            {
+                "name": "_asset",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getUpdateFee",
+        "inputs": [
+            {
+                "name": "_updateData",
+                "type": "bytes[]",
+                "internalType": "bytes[]"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "updateFee_",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isPriceFeedRegistered",
+        "inputs": [
+            {
+                "name": "_asset",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "isRegistered_",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "AssetRegistered",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "assetName",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            },
+            {
+                "name": "priceFeedId",
+                "type": "bytes32",
+                "indexed": false,
+                "internalType": "bytes32"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "BackstopPoolRemoved",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "backstopPool",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "BackstopPoolSet",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "backstopPool",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ]
+    },
+    {
+        "type": "event",
+        "name": "PriceFeedUpdate",
+        "inputs": [
+            {
+                "name": "id",
+                "type": "bytes32",
+                "indexed": true,
+                "internalType": "bytes32"
+            },
+            {
+                "name": "publishTime",
+                "type": "uint64",
+                "indexed": false,
+                "internalType": "uint64"
+            },
+            {
+                "name": "price",
+                "type": "int64",
+                "indexed": false,
+                "internalType": "int64"
+            },
+            {
+                "name": "conf",
+                "type": "uint64",
+                "indexed": false,
+                "internalType": "uint64"
+            }
+        ]
+    },
+    {
+        "type": "event",
+        "name": "PriceFeedsUpdated",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "updateFee",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "PriceMaxAgeSet",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "nablaContract",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newPriceMaxAge",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "SignerSet",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "newSigner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "oldSigner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "TokenRegistered",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "token",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "priceFeedId",
+                "type": "bytes32",
+                "indexed": false,
+                "internalType": "bytes32"
+            },
+            {
+                "name": "assetName",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ]
+    }
+]

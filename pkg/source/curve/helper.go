@@ -8,41 +8,42 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	var (
-		mainRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress common.Address
+		mainRegistryAddress, metaRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress common.Address
 	)
-	calls := ethrpcClient.NewRequest()
-
-	calls.AddCall(&ethrpc.Call{
+	calls := ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(0)},
-	}, []interface{}{&mainRegistryAddress})
-
-	calls.AddCall(&ethrpc.Call{
+		Params: []any{big.NewInt(0)},
+	}, []any{&mainRegistryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(3)},
-	}, []interface{}{&metaFactoryAddress})
-
-	calls.AddCall(&ethrpc.Call{
+		// id 7 = MetaRegistry per Curve's AddressProvider (get_id_info(7).description
+		// == "Metaregistry"). Returns the zero address on chains without one, in which
+		// case base-pool resolution falls back to the pool's own base_pool() getter.
+		Params: []any{big.NewInt(7)},
+	}, []any{&metaRegistryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(5)},
-	}, []interface{}{&cryptoRegistryAddress})
-
-	calls.AddCall(&ethrpc.Call{
+		Params: []any{big.NewInt(3)},
+	}, []any{&metaFactoryAddress}).AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(6)},
-	}, []interface{}{&cryptoFactoryAddress})
+		Params: []any{big.NewInt(5)},
+	}, []any{&cryptoRegistryAddress}).AddCall(&ethrpc.Call{
+		ABI:    addressProviderABI,
+		Target: config.AddressProvider,
+		Method: addressProviderMethodGetAddress,
+		Params: []any{big.NewInt(6)},
+	}, []any{&cryptoFactoryAddress})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -53,6 +54,7 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	}
 
 	config.MainRegistryAddress = mainRegistryAddress.Hex()
+	config.MetaRegistryAddress = metaRegistryAddress.Hex()
 	config.MetaPoolsFactoryAddress = metaFactoryAddress.Hex()
 	config.CryptoPoolsRegistryAddress = cryptoRegistryAddress.Hex()
 	config.CryptoPoolsFactoryAddress = cryptoFactoryAddress.Hex()
@@ -62,13 +64,13 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 
 func getAPrecisions(aList, aPreciseList []*big.Int) ([]*big.Int, error) {
 	var aPrecisions = make([]*big.Int, len(aList))
-	for i := 0; i < len(aPrecisions); i++ {
+	for i := range aPrecisions {
 		if aList[i] != nil && aPreciseList[i] != nil {
 			aPrecisions[i] = new(big.Int).Div(aPreciseList[i], aList[i])
 		} else if aList[i] != nil {
 			aPrecisions[i] = big.NewInt(1)
 		} else {
-			return nil, errors.New("A data did not get")
+			return nil, errors.New("missing A data")
 		}
 	}
 
@@ -83,7 +85,7 @@ func extractNonZeroAddressesToStrings(addresses [8]common.Address) []string {
 		if strings.EqualFold(address.Hex(), addressZero) {
 			break
 		}
-		s = append(s, strings.ToLower(address.Hex()))
+		s = append(s, hexutil.Encode(address[:]))
 	}
 	return s
 }
@@ -98,7 +100,7 @@ func convertToEtherAddress(address string, chain int) string {
 
 func safeCastBigIntToString(num *big.Int) string {
 	if num == nil {
-		return emptyString
+		return zeroString
 	}
 
 	return num.String()

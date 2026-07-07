@@ -3,11 +3,11 @@ package fxdx
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type FeeUtilsV2Reader struct {
@@ -35,7 +35,7 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		addressValues = make([]common.Address, 2)
 		intValues     = make([]*big.Int, 3+len(vault.WhitelistedTokens))
 
-		getStateResponse = []interface{}{&addressValues, &intValues, &boolValues}
+		getStateResponse = []any{&addressValues, &intValues, &boolValues}
 	)
 
 	for i, token := range vault.WhitelistedTokens {
@@ -48,14 +48,14 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		ABI:    r.abi,
 		Target: address,
 		Method: feeUtilsV2IsInitialized,
-	}, []interface{}{&isInitialized})
+	}, []any{&isInitialized})
 
 	request.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
 		Method: feeUtilsV2MethodGetStates,
-		Params: []interface{}{tokens},
-	}, []interface{}{&getStateResponse})
+		Params: []any{tokens},
+	}, []any{&getStateResponse})
 
 	if _, err := request.Aggregate(); err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 
 	index := 3
 	for _, token := range tokens {
-		tokenAddr := strings.ToLower(token.Hex())
+		tokenAddr := hexutil.Encode(token[:])
 		feeUtils.TaxBasisPoints[tokenAddr] = intValues[index]
 		feeUtils.SwapFeeBasisPoints[tokenAddr] = intValues[index+2]
 	}

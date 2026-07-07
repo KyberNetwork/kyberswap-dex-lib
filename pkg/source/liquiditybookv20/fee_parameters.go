@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type feeParameters struct {
@@ -41,11 +41,7 @@ func (fp *feeParameters) updateVariableFeeParameters(blockTimestamp uint64, acti
 
 func (fp *feeParameters) updateVolatilityAccumulated(activeID uint32) {
 	absSub := math.Abs(float64(activeID) - float64(fp.IndexRef))
-	volatilityAccumulated := uint64(absSub)*basisPointMax + uint64(fp.VolatilityReference)
-
-	if volatilityAccumulated > uint64(fp.MaxVolatilityAccumulated) {
-		volatilityAccumulated = uint64(fp.MaxVolatilityAccumulated)
-	}
+	volatilityAccumulated := min(uint64(absSub)*basisPointMax+uint64(fp.VolatilityReference), uint64(fp.MaxVolatilityAccumulated))
 
 	fp.VolatilityAccumulated = uint32(volatilityAccumulated)
 }
@@ -56,7 +52,7 @@ func (fp *feeParameters) getFeeAmount(amount *big.Int) *big.Int {
 	result := new(big.Int).Div(
 		new(big.Int).Sub(
 			new(big.Int).Add(new(big.Int).Mul(amount, fee), denominator),
-			integer.One(),
+			bignumber.One,
 		),
 		denominator,
 	)
@@ -64,30 +60,30 @@ func (fp *feeParameters) getFeeAmount(amount *big.Int) *big.Int {
 }
 
 func (fp *feeParameters) getTotalFee() *big.Int {
-	baseFee := fp.getBaseFee()
-	variableFee := fp.getVariableFee()
-	return new(big.Int).Add(baseFee, variableFee)
+	var baseFee, variableFee big.Int
+	baseFee = *fp.getBaseFee(&baseFee)
+	variableFee = *fp.getVariableFee(&variableFee)
+	return new(big.Int).Add(&baseFee, &variableFee)
 }
 
-func (fp *feeParameters) getBaseFee() *big.Int {
+func (fp *feeParameters) getBaseFee(baseFee *big.Int) *big.Int {
 	baseFactor := fp.BaseFactor
-	result := new(big.Int).Mul(
+	return baseFee.Mul(
 		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(fp.BinStep))),
-		big.NewInt(1e10),
+		bignumber.TenPowInt(10), // 1e10
 	)
-	return result
 }
 
-func (fp *feeParameters) getVariableFee() *big.Int {
+func (fp *feeParameters) getVariableFee(variableFee *big.Int) *big.Int {
 	if fp.VariableFeeControl == 0 {
-		return integer.Zero()
+		return bignumber.ZeroBI
 	}
 
 	prod := new(big.Int).Mul(
 		big.NewInt(int64(fp.VolatilityAccumulated)),
 		big.NewInt(int64(fp.BinStep)),
 	)
-	variableFee := new(big.Int).Div(
+	return variableFee.Div(
 		new(big.Int).Add(
 			new(big.Int).Mul(
 				new(big.Int).Mul(prod, prod),
@@ -95,9 +91,8 @@ func (fp *feeParameters) getVariableFee() *big.Int {
 			),
 			big.NewInt(99),
 		),
-		big.NewInt(100),
+		bignumber.TenPowInt(2), // 100
 	)
-	return variableFee
 }
 
 func (fp *feeParameters) getFeeAmountDistribution(fees *big.Int) (*big.Int, *big.Int) {

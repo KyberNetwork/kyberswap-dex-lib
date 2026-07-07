@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type FastPriceFeedV2 struct {
@@ -29,7 +29,7 @@ type PriceDataItem struct {
 	CumulativeFastDelta uint64   `json:"cumulativeFastDelta"`
 }
 
-func (fp FastPriceFeedV2) GetVersion() int {
+func (pf *FastPriceFeedV2) GetVersion() int {
 	return int(SecondaryPriceFeedVersion2)
 }
 
@@ -74,7 +74,7 @@ func (pf *FastPriceFeedV2) GetPrice(token string, refPrice *big.Int, maximise bo
 	}
 
 	fastPrice := pf.Prices[token]
-	if fastPrice.Cmp(constant.ZeroBI) == 0 {
+	if fastPrice.Cmp(bignumber.ZeroBI) == 0 {
 		return refPrice
 	}
 

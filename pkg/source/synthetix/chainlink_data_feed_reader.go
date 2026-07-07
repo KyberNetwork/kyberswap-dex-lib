@@ -56,7 +56,7 @@ func (r *ChainlinkDataFeedReader) getLatestRoundData(ctx context.Context, addres
 			Target: address,
 			Method: ChainlinkDataFeedMethodLatestRoundData,
 			Params: nil,
-		}, []interface{}{&latestRoundData})
+		}, []any{&latestRoundData})
 
 	_, err := req.Call()
 	if err != nil {
@@ -93,8 +93,8 @@ func (r *ChainlinkDataFeedReader) getHistoryRoundData(ctx context.Context, addre
 			ABI:    r.abi,
 			Target: address,
 			Method: ChainlinkDataFeedMethodGetRoundData,
-			Params: []interface{}{roundID},
-		}, []interface{}{&roundDataList[i-1]})
+			Params: []any{roundID},
+		}, []any{&roundDataList[i-1]})
 	}
 
 	_, err := req.Aggregate()

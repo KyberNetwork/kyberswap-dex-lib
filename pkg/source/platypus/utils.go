@@ -1,9 +1,8 @@
 package platypus
 
 import (
-	"strings"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -34,7 +33,7 @@ func newPoolTokens(tokens []common.Address) []*entity.PoolToken {
 	poolTokens := make([]*entity.PoolToken, 0, len(tokens))
 	for _, token := range tokens {
 		poolTokens = append(poolTokens, &entity.PoolToken{
-			Address:   strings.ToLower(token.Hex()),
+			Address:   hexutil.Encode(token[:]),
 			Swappable: true,
 		})
 	}

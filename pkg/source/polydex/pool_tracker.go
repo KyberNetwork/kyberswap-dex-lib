@@ -9,11 +9,14 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryE(DexTypePolydex, NewPoolTracker)
 
 func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
@@ -44,14 +47,14 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetSwapFee,
 		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {

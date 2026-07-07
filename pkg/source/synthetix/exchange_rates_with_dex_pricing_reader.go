@@ -62,7 +62,7 @@ func (r *ExchangeRatesWithDexPricingReader) readData(
 			Target: address,
 			Method: ExchangeRatesWithDexPricingMethodDexPriceAggregator,
 			Params: nil,
-		}, []interface{}{&poolState.DexPriceAggregatorAddress})
+		}, []any{&poolState.DexPriceAggregatorAddress})
 
 	_, err := req.Call()
 	if err != nil {
@@ -104,26 +104,26 @@ func (r *ExchangeRatesWithDexPricingReader) readCurrencyKeyData(
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesWithDexPricingMethodAggregators,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&aggregatorAddresses[i]}).
+				Params: []any{keyByte},
+			}, []any{&aggregatorAddresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesWithDexPricingMethodCurrencyKeyDecimals,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&currencyKeyDecimals[i]}).
+				Params: []any{keyByte},
+			}, []any{&currencyKeyDecimals[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesWithDexPricingMethodGetCurrentRoundId,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&currentRoundIds[i]}).
+				Params: []any{keyByte},
+			}, []any{&currentRoundIds[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesWithDexPricingMethodSynthTooVolatileForAtomicExchange,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&synthTooVolatileForAtomicExchanges[i]})
+				Params: []any{keyByte},
+			}, []any{&synthTooVolatileForAtomicExchanges[i]})
 	}
 
 	_, err := req.Aggregate()

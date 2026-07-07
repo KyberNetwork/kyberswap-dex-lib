@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type FastPriceFeedV1 struct {
@@ -18,7 +18,7 @@ type FastPriceFeedV1 struct {
 	Prices                    map[string]*big.Int `json:"prices"`
 }
 
-func (fp FastPriceFeedV1) GetVersion() int {
+func (pf *FastPriceFeedV1) GetVersion() int {
 	return int(SecondaryPriceFeedVersion1)
 }
 
@@ -45,7 +45,7 @@ func (pf *FastPriceFeedV1) GetPrice(token string, refPrice *big.Int, maximise bo
 	}
 
 	fastPrice := pf.Prices[token]
-	if fastPrice.Cmp(constant.ZeroBI) == 0 {
+	if fastPrice.Cmp(bignumber.ZeroBI) == 0 {
 		return refPrice
 	}
 

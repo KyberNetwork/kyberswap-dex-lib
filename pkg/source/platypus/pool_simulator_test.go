@@ -10,10 +10,12 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolSimulator_CalcAmountOut_Base(t *testing.T) {
+	t.Parallel()
 	// test data from https://snowtrace.io/address/0xbe52548488992cc76ffa1b42f3a58f646864df45#readProxyContract
 	testcases := []struct {
 		in                string
@@ -39,10 +41,12 @@ func TestPoolSimulator_CalcAmountOut_Base(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
-				TokenOut:      tc.out,
-				Limit:         nil,
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
@@ -52,6 +56,7 @@ func TestPoolSimulator_CalcAmountOut_Base(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_SAvax(t *testing.T) {
+	t.Parallel()
 	// test data from https://snowtrace.io/address/0x4658ea7e9960d6158a261104aaa160cc953bb6ba#readProxyContract
 	testcases := []struct {
 		in                string
@@ -76,10 +81,12 @@ func TestPoolSimulator_CalcAmountOut_SAvax(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
-				TokenOut:      tc.out,
-				Limit:         nil,
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
@@ -89,6 +96,7 @@ func TestPoolSimulator_CalcAmountOut_SAvax(t *testing.T) {
 }
 
 func TestPoolSimulator_DiffAggAccount(t *testing.T) {
+	t.Parallel()
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
 		Type:     "",
@@ -98,10 +106,12 @@ func TestPoolSimulator_DiffAggAccount(t *testing.T) {
 	}, valueobject.ChainIDAvalancheCChain)
 	require.Nil(t, err)
 
-	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(1)},
-		TokenOut:      "B",
-		Limit:         nil,
+	_, err = testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+		return p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(1)},
+			TokenOut:      "B",
+			Limit:         nil,
+		})
 	})
 	assert.Equal(t, ErrDiffAggAcc, err)
 }

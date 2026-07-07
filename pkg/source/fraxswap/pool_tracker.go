@@ -2,20 +2,23 @@ package fraxswap
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryE0(DexTypeFraxswap, NewPoolTracker)
 
 func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -33,8 +36,14 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	log.Infof("[Fraxswap] Start updating state ...")
 
-	var reserveAfterTwammOutput ReserveAfterTwammOutput
-	var feeOutput FeeOutput
+	var reserveAfterTwammOutput = ReserveAfterTwammOutput{
+		Reserve0: big.NewInt(0),
+		Reserve1: big.NewInt(0),
+	}
+
+	var feeOutput = FeeOutput{
+		Fee: big.NewInt(0),
+	}
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -42,15 +51,15 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: poolMethodGetReserveAfterTwamm,
-		Params: []interface{}{big.NewInt(time.Now().Unix())},
-	}, []interface{}{&reserveAfterTwammOutput})
+		Params: []any{big.NewInt(time.Now().Unix())},
+	}, []any{&reserveAfterTwammOutput})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: poolMethodFee,
 		Params: nil,
-	}, []interface{}{&feeOutput})
+	}, []any{&feeOutput})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		log.WithFields(logger.Fields{
@@ -74,7 +83,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{reserveAfterTwammOutput.Reserve0.String(), reserveAfterTwammOutput.Reserve1.String()}
+	p.Reserves = entity.PoolReserves{extra.Reserve0.String(), extra.Reserve1.String()}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 

@@ -2,19 +2,22 @@ package dmm
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryE(DexTypeDMM, NewPoolTracker)
 
 func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
@@ -45,7 +48,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodGetTradeInfo,
 		Params: nil,
-	}, []interface{}{&tradeInfo})
+	}, []any{&tradeInfo})
 
 	_, err := rpcRequest.Call()
 	if err != nil {

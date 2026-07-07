@@ -1,0 +1,130 @@
+[
+    {
+        "inputs": [],
+        "name": "bound",
+        "outputs": [
+            {
+                "internalType": "uint64",
+                "name": "",
+                "type": "uint64"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "clOracles",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "oracle",
+                "type": "address"
+            },
+            {
+                "internalType": "uint8",
+                "name": "decimal",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "cloPreferred",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "decimals",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "staleDuration",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "timestamp",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_base",
+                "type": "address"
+            }
+        ],
+        "name": "woState",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint128",
+                        "name": "price",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "spread",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "coeff",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "woFeasible",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct IWooracleV2_2.State",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

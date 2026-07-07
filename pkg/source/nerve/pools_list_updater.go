@@ -2,14 +2,15 @@ package nerve
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
@@ -17,6 +18,8 @@ type PoolsListUpdater struct {
 	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeNerve, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -69,7 +72,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Target: pool.ID,
 			Method: methodGetSwapStorage,
 			Params: nil,
-		}, []interface{}{&swapStorage})
+		}, []any{&swapStorage})
 
 		if _, err := rpcRequest.Call(); err != nil {
 			log.Errorf("failed to get swap storage, err: %v", err)
@@ -83,7 +86,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		for _, item := range pool.Tokens {
 			tokenModel := entity.PoolToken{
 				Address:   item.Address,
-				Weight:    1,
 				Swappable: true,
 			}
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, item.Precision)

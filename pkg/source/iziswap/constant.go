@@ -10,20 +10,19 @@ const (
 	methodGetLimitOrderSnapshot = "limitOrderSnapshot"
 	erc20MethodBalanceOf        = "balanceOf"
 
-	defaultTokenWeight = 50
-	emptyString        = ""
-	zeroString         = "0"
-
-	SNAPSHOT_BATCH     = 256
-	RIGHT_MOST_PT  int = 800000
-
-	LEFT_MOST_PT int = -800000
+	SNAPSHOT_BATCH = 256
+	RIGHT_MOST_PT  = 800000
 
 	DEFAULT_PT_RANGE   = 2000
 	SIMULATOR_PT_RANGE = 2000
+
+	gasBase            = 83901
+	gasPerCrossedLiqPt = 28675
 )
 
-var zeroBI = big.NewInt(0)
+var (
+	zeroBI = big.NewInt(0)
+)
 
 var pointDeltas = map[int]int{
 	100:   1,

@@ -1,8 +1,9 @@
 package liquiditybookv21
 
 import (
-	"math/big"
-	"time"
+	"github.com/holiman/uint256"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -20,13 +21,14 @@ const (
 	pairMethodGetReserves              = "getReserves"
 	pairMethodGetBinStep               = "getBinStep"
 	pairMethodGetActiveID              = "getActiveId"
+	pairGetPriceFromID                 = "getPriceFromId"
+	pairMethodGetBin                   = "getBin"
 )
 
 const (
-	defaultTokenWeight = 50
+	binChunk = 100
 
-	graphQLRequestTimeout = 20 * time.Second
-	graphFirstLimit       = 1000
+	graphFirstLimit = 1000
 
 	// https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/Constants.sol#L20
 	basisPointMax = 10000
@@ -37,14 +39,15 @@ const (
 	// https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/PriceHelper.sol#L20
 	realIDShift = 1 << 23
 
-	defaultGas = 125000
+	baseGas   = 71109
+	perBinGas = 14992
 )
 
 var (
-	scale    = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
-	precison = big.NewInt(1e18)
+	scale          = new(uint256.Int).Lsh(big256.U1, scaleOffset)
+	uBasisPointMax = uint256.NewInt(basisPointMax)
+	precision      = big256.BONE
 
-	maxUint256 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
-
-	maxFee = big.NewInt(1e17)
+	maxFee = uint256.NewInt(1e17)
+	powU   = uint256.NewInt(0x100000)
 )

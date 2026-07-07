@@ -1,0 +1,272 @@
+[
+  {
+    "type": "event",
+    "name": "PositionUpdated",
+    "inputs": [
+      {
+        "name": "locker",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct UpdatePositionParameters",
+        "components": [
+          {
+            "name": "salt",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "bounds",
+            "type": "tuple",
+            "internalType": "struct Bounds",
+            "components": [
+              {
+                "name": "lower",
+                "type": "int32",
+                "internalType": "int32"
+              },
+              {
+                "name": "upper",
+                "type": "int32",
+                "internalType": "int32"
+              }
+            ]
+          },
+          {
+            "name": "liquidityDelta",
+            "type": "int128",
+            "internalType": "int128"
+          }
+        ]
+      },
+      {
+        "name": "delta0",
+        "type": "int128",
+        "internalType": "int128"
+      },
+      {
+        "name": "delta1",
+        "type": "int128",
+        "internalType": "int128"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getPoolFeesPerLiquidityInside",
+    "inputs": [
+      {
+        "name": "poolKey",
+        "type": "tuple",
+        "internalType": "struct PoolKey",
+        "components": [
+          {
+            "name": "token0",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token1",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "config",
+            "type": "bytes32",
+            "internalType": "Config"
+          }
+        ]
+      },
+      {
+        "name": "bounds",
+        "type": "tuple",
+        "internalType": "struct Bounds",
+        "components": [
+          {
+            "name": "lower",
+            "type": "int32",
+            "internalType": "int32"
+          },
+          {
+            "name": "upper",
+            "type": "int32",
+            "internalType": "int32"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "internalType": "struct FeesPerLiquidity",
+        "components": [
+          {
+            "name": "value0",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "value1",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextInitializedTick",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fromTick",
+        "type": "int32",
+        "internalType": "int32"
+      },
+      {
+        "name": "tickSpacing",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "skipAhead",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tick",
+        "type": "int32",
+        "internalType": "int32"
+      },
+      {
+        "name": "isInitialized",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "result",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ownershipHandoverExpiresAt",
+    "inputs": [
+      {
+        "name": "pendingOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "result",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "prevInitializedTick",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fromTick",
+        "type": "int32",
+        "internalType": "int32"
+      },
+      {
+        "name": "tickSpacing",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "skipAhead",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tick",
+        "type": "int32",
+        "internalType": "int32"
+      },
+      {
+        "name": "isInitialized",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "sload",
+    "inputs": [
+      {
+        "name": "slot",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tload",
+    "inputs": [
+      {
+        "name": "slot",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

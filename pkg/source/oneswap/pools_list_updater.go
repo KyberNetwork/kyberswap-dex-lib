@@ -2,22 +2,25 @@ package oneswap
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeOneSwap, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -47,7 +50,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodAllPoolsLength,
 		Params: nil,
-	}, []interface{}{&lengthBI}).Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get all pool length")
@@ -71,8 +74,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    oneSwapFactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: poolFactoryMethodAllPools,
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+			Params: []any{big.NewInt(int64(currentOffset + i))},
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := poolAddressRequest.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -112,14 +115,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddress.Hex(),
 			Method: poolMethodGetTokenPrecisionMultipliers,
 			Params: nil,
-		}, []interface{}{&precisionMultipliers[i]})
+		}, []any{&precisionMultipliers[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    oneSwapABI,
 			Target: poolAddress.Hex(),
 			Method: poolMethodGetPoolTokens,
 			Params: nil,
-		}, []interface{}{&poolTokens[i]})
+		}, []any{&poolTokens[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -135,10 +138,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		var staticExtra StaticExtra
 
 		for j := 0; j < len(poolTokens[i]); j++ {
-			tokenAddress := strings.ToLower(poolTokens[i][j].Hex())
+			tokenAddress := hexutil.Encode(poolTokens[i][j][:])
 			tokenModel := entity.PoolToken{
 				Address:   tokenAddress,
-				Weight:    defaultWeight,
 				Swappable: true,
 			}
 			tokens = append(tokens, &tokenModel)
@@ -155,7 +157,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			return nil, err
 		}
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    d.config.DexID,
 			Type:        DexTypeOneSwap,
 			StaticExtra: string(staticExtraBytes),

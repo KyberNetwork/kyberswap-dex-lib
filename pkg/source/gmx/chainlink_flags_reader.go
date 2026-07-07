@@ -35,8 +35,8 @@ func (r *ChainlinkFlagsReader) Read(ctx context.Context, address string) (*Chain
 		ABI:    r.abi,
 		Target: address,
 		Method: chainlinkFlagsMethodGetFlag,
-		Params: []interface{}{common.HexToAddress(flagArbitrumSeqOffline)},
-	}, []interface{}{&value})
+		Params: []any{common.HexToAddress(FlagArbitrumSeqOffline)},
+	}, []any{&value})
 
 	if _, err := rpcRequest.Call(); err != nil {
 		r.log.Errorf("error when call rpc: %s", err)
@@ -45,7 +45,7 @@ func (r *ChainlinkFlagsReader) Read(ctx context.Context, address string) (*Chain
 
 	return &ChainlinkFlags{
 		Flags: map[string]bool{
-			flagArbitrumSeqOffline: value,
+			FlagArbitrumSeqOffline: value,
 		},
 	}, nil
 }

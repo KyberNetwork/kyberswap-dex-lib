@@ -1,0 +1,290 @@
+[
+  {
+    "name": "A",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "A_precise",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "balances",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "i"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "get_virtual_price",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "calc_token_amount",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [
+      {
+        "type": "uint256[2]",
+        "name": "amounts"
+      },
+      {
+        "type": "bool",
+        "name": "is_deposit"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "get_dy",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [
+      {
+        "type": "int128",
+        "name": "i"
+      },
+      {
+        "type": "int128",
+        "name": "j"
+      },
+      {
+        "type": "uint256",
+        "name": "dx"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "calc_withdraw_one_coin",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "_token_amount"
+      },
+      {
+        "type": "int128",
+        "name": "i"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "coins",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "arg0"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "admin_balances",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "arg0"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "admin_fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "owner",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "lp_token",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "initial_A",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "future_A",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "initial_A_time",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "future_A_time",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "admin_actions_deadline",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "transfer_ownership_deadline",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "future_fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "future_admin_fee",
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "name": "future_owner",
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "inputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

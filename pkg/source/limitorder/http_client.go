@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -17,7 +18,10 @@ type httpClient struct {
 }
 
 func NewHTTPClient(baseURL string) *httpClient {
-	client := resty.New()
+	return NewHTTPClientWithRestyClient(baseURL, resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))))
+}
+
+func NewHTTPClientWithRestyClient(baseURL string, client *resty.Client) *httpClient {
 	client.SetBaseURL(baseURL)
 	return &httpClient{
 		client: client,
@@ -62,6 +66,8 @@ func (c *httpClient) ListOrders(
 			"makerAsset":      filter.MakerAsset,
 			"chainId":         strconv.Itoa(int(filter.ChainID)),
 			"contractAddress": filter.ContractAddress,
+
+			"includeInsufficientBalance": strconv.FormatBool(filter.IncludeInsufficientBalanceOrder),
 		})
 	var result listOrdersResult
 	resp, err := req.SetResult(&result).Get(listOrdersEndpoint)
@@ -114,15 +120,15 @@ func (c *httpClient) GetOpSignatures(
 	var result getOpSignaturesResult
 	resp, err := req.SetResult(&result).Get(getOpSignaturesEndpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrGetOpSignaturesFailed, err)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("error when getting Op Signatures, url: %v, response: %v", resp.Request.URL, resp.String())
+		return nil, fmt.Errorf("%w: error when getting Op Signatures, url: %v, response: %v", ErrGetOpSignaturesFailed, resp.Request.URL, resp.String())
 	}
 
 	if result.Code != 0 {
-		return nil, errors.New(result.Message)
+		return nil, fmt.Errorf("%w: %s", ErrGetOpSignaturesFailed, result.Message)
 	}
 
 	if result.Data == nil {

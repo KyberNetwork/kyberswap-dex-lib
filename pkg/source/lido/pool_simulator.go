@@ -1,9 +1,10 @@
 package lido
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -23,6 +24,8 @@ type Gas struct {
 	Wrap   int64
 	Unwrap int64
 }
+
+var _ = pool.RegisterFactory0(DexTypeLido, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
@@ -49,14 +52,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    bignumber.ZeroBI,
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  bignumber.ZeroBI,
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		StEthPerToken:  extraStr.StEthPerToken,
@@ -95,6 +96,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
 }

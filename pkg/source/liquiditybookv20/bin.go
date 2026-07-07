@@ -2,38 +2,33 @@ package liquiditybookv20
 
 import (
 	"math/big"
-
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
-type bin struct {
-	ID          uint32   `json:"id"`
-	ReserveX    *big.Int `json:"reserveX"`
-	ReserveY    *big.Int `json:"reserveY"`
-	TotalSupply *big.Int `json:"totalSupply"`
+type Bin struct {
+	ID       uint32   `json:"id"`
+	ReserveX *big.Int `json:"reserveX"`
+	ReserveY *big.Int `json:"reserveY"`
 }
 
-func (b *bin) isEmptyForSwap(swapForX bool) bool {
-	zero := integer.Zero()
+func (b *Bin) isEmptyForSwap(swapForX bool) bool {
 	if swapForX {
-		return b.ReserveX.Cmp(zero) == 0
+		return b.ReserveX.Sign() == 0
 	}
-	return b.ReserveY.Cmp(zero) == 0
+	return b.ReserveY.Sign() == 0
 }
 
-func (b *bin) isEmpty() bool {
-	zero := integer.Zero()
-	return b.ReserveX.Cmp(zero) == 0 && b.ReserveY.Cmp(zero) == 0
+func (b *Bin) isEmpty() bool {
+	return b.ReserveX.Sign() == 0 && b.ReserveY.Sign() == 0
 }
 
-func (b *bin) getReserveOut(swapForX bool) *big.Int {
+func (b *Bin) getReserveOut(swapForX bool) *big.Int {
 	if swapForX {
 		return b.ReserveX
 	}
 	return b.ReserveY
 }
 
-func (b *bin) getAmounts(
+func (b *Bin) getAmounts(
 	fp *feeParameters,
 	activeID uint32,
 	swapForY bool,
@@ -111,17 +106,17 @@ func newBinReserveChanges(
 	if swapForX {
 		return binReserveChanges{
 			BinID:      binID,
-			AmountXIn:  integer.Zero(),
+			AmountXIn:  new(big.Int),
 			AmountXOut: amountOut,
 			AmountYIn:  amountIn,
-			AmountYOut: integer.Zero(),
+			AmountYOut: new(big.Int),
 		}
 	}
 	return binReserveChanges{
 		BinID:      binID,
 		AmountXIn:  amountIn,
-		AmountXOut: integer.Zero(),
-		AmountYIn:  integer.Zero(),
+		AmountXOut: new(big.Int),
+		AmountYIn:  new(big.Int),
 		AmountYOut: amountOut,
 	}
 }

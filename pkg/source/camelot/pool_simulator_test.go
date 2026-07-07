@@ -2,15 +2,18 @@ package camelot
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPool_getAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		pool              PoolSimulator
@@ -159,9 +162,30 @@ func TestPool_getAmountOut(t *testing.T) {
 			assert.Equal(t, []string{tc.pool.Info.Tokens[1]}, tc.pool.CanSwapTo(tc.pool.Info.Tokens[0]))
 			assert.Equal(t, []string{tc.pool.Info.Tokens[0]}, tc.pool.CanSwapTo(tc.pool.Info.Tokens[1]))
 			assert.Equal(t, 0, len(tc.pool.CanSwapTo("XXX")))
-			amountOut := tc.pool.getAmountOut(tc.amountIn, tc.tokenIn)
+			amountOut, _ := testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
+				return tc.pool.getAmountOut(tc.amountIn, tc.tokenIn), nil
+			})
 
 			assert.Equal(t, tc.expectedAmountOut, amountOut)
+
+			var tokenOut string
+			for _, token := range tc.pool.Info.Tokens {
+				if !strings.EqualFold(tc.tokenIn, token) {
+					tokenOut = token
+					break
+				}
+			}
+			// When using CalcAmountOut(), some test case will fail the K invariant check. So we don't check the returned (result, err).
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return tc.pool.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  tc.tokenIn,
+						Amount: tc.amountIn,
+					},
+					TokenOut: tokenOut,
+				})
+			})
+			_, _ = result, err
 		})
 	}
 }

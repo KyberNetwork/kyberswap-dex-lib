@@ -1,0 +1,159 @@
+[
+  {
+    "type": "function",
+    "name": "allPairs",
+    "inputs": [
+      {
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "allPairsLength",
+    "outputs": [
+      {
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "feeCollector",
+    "outputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "feeTo",
+    "outputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPair",
+    "inputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "implementation",
+    "outputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "protocolManager",
+    "outputs": [
+      {
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "FeeToUpdate",
+    "inputs": [
+      {
+        "name": "oldFeeTo",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newFeeTo",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ImplementationUpdate",
+    "inputs": [
+      {
+        "name": "oldImplementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newImplementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PairCreated",
+    "inputs": [
+      {
+        "name": "token0",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token1",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "pair",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "pairCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  }
+]

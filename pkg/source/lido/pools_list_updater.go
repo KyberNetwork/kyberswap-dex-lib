@@ -2,7 +2,6 @@ package lido
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -10,14 +9,18 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	config         *Config
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryC(DexTypeLido, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config) *PoolsListUpdater {
 	return &PoolsListUpdater{
@@ -83,10 +86,8 @@ func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, er
 		for _, token := range pool.Tokens {
 			tokenEntity := entity.PoolToken{
 				Address:   strings.ToLower(token.Address),
-				Name:      token.Name,
 				Symbol:    token.Symbol,
 				Decimals:  token.Decimals,
-				Weight:    defaultTokenWeight,
 				Swappable: true,
 			}
 

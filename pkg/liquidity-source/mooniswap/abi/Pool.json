@@ -1,0 +1,264 @@
+[
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "getBalanceForAddition",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "getBalanceForRemoval",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "fee",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slippageFee",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "decayPeriod",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "token0",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "token1",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTokens",
+    "outputs": [
+      {
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "src",
+        "type": "address"
+      },
+      {
+        "name": "dst",
+        "type": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "getReturn",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "virtualBalancesForAddition",
+    "outputs": [
+      {
+        "name": "balance",
+        "type": "uint216"
+      },
+      {
+        "name": "time",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "virtualBalancesForRemoval",
+    "outputs": [
+      {
+        "name": "balance",
+        "type": "uint216"
+      },
+      {
+        "name": "time",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "srcToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "dstToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "result",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "srcAdditionBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "dstRemovalBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "referral",
+        "type": "address"
+      }
+    ],
+    "name": "Swapped",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "srcBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "dstBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "fee",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "slippageFee",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "referralShare",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "governanceShare",
+        "type": "uint256"
+      }
+    ],
+    "name": "Sync",
+    "type": "event"
+  }
+]

@@ -1,13 +1,16 @@
 package metavault
 
 import (
-	"encoding/json"
+	"maps"
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Gas struct {
@@ -22,6 +25,8 @@ type PoolSimulator struct {
 	gas        Gas
 }
 
+var _ = pool.RegisterFactory0(DexTypeMetavault, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -33,11 +38,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens = append(tokens, poolToken.Address)
 	}
 
+	reserves := make([]*big.Int, len(entityPool.Reserves))
+	for i, reserve := range entityPool.Reserves {
+		reserveBI, ok := new(big.Int).SetString(reserve, 10)
+		if !ok {
+			reserveBI = integer.Zero()
+		}
+
+		reserves[i] = reserveBI
+	}
+
 	info := pool.PoolInfo{
 		Address:  entityPool.Address,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
 		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -55,7 +71,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -72,6 +88,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	vault := *p.vault
+	vault.USDMAmounts = maps.Clone(p.vault.USDMAmounts)
+	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.vault = &vault
+	return &cloned
 }
 
 // UpdateBalance update UsdmAmount only
@@ -124,7 +149,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
 
 // getAmountOut returns amountOutAfterFees, feeAmount and error
 func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
@@ -182,7 +207,7 @@ func (p *PoolSimulator) validateMaxUsdmExceed(token string, amount *big.Int) err
 
 	maxUsdmAmount := p.vault.MaxUSDMAmounts[token]
 
-	if maxUsdmAmount.Cmp(constant.ZeroBI) == 0 {
+	if maxUsdmAmount.Cmp(bignumber.ZeroBI) == 0 {
 		return nil
 	}
 
@@ -220,5 +245,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
 	return nil
 }

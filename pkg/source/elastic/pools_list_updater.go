@@ -2,29 +2,32 @@ package elastic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
-	"github.com/machinebox/graphql"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
 	config        *Config
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
+
+var _ = poollist.RegisterFactoryCG(DexTypeElastic, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
 	return &PoolsListUpdater{
 		config:        cfg,
 		graphqlClient: graphqlClient,
@@ -32,7 +35,7 @@ func NewPoolsListUpdater(
 }
 
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, first, skip int) ([]SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools(where : {createdAtTimestamp_gte: %v}, first: %v, skip: %v, orderBy: createdAtTimestamp, orderDirection: asc) {
 			id
 			liquidity
@@ -104,7 +107,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		if p.Token0.Address != "" {
-			token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
+			token0Decimals, err := kutils.Atou[uint8](p.Token0.Decimals)
 
 			if err != nil {
 				token0Decimals = defaultTokenDecimals
@@ -112,10 +115,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 			tokenModel := entity.PoolToken{
 				Address:   p.Token0.Address,
-				Name:      p.Token0.Name,
 				Symbol:    p.Token0.Symbol,
-				Decimals:  uint8(token0Decimals),
-				Weight:    defaultTokenWeight,
+				Decimals:  token0Decimals,
 				Swappable: true,
 			}
 
@@ -128,7 +129,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		if p.Token1.Address != "" {
-			token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
+			token1Decimals, err := kutils.Atou[uint8](p.Token1.Decimals)
 
 			if err != nil {
 				token1Decimals = defaultTokenDecimals
@@ -136,10 +137,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 			tokenModel := entity.PoolToken{
 				Address:   p.Token1.Address,
-				Name:      p.Token1.Name,
 				Symbol:    p.Token1.Symbol,
-				Decimals:  uint8(token1Decimals),
-				Weight:    defaultTokenWeight,
+				Decimals:  token1Decimals,
 				Swappable: true,
 			}
 
