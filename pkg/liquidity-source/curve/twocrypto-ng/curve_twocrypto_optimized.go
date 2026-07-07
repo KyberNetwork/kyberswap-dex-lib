@@ -234,12 +234,10 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	blockTimestamp := time.Now().Unix()
 	var err error
 
-	if t.tweakedPrice {
-		// this block update price_oracle and last_price_timestamp
-		// but in pool tracker we've fetched the calculated price_oracle, not the raw packed value,
-		// so we can use that here without updating. we only check that we tweak only once
-		return nil
-	}
+	// On-chain, this also updates cached_price_oracle and last_timestamp, but only once per
+	// block. The pool tracker already fetches the EMA-computed price_oracle directly, so there
+	// is nothing to recompute here; D, virtual_price, xcp_profit, last_prices and price_scale
+	// below, however, are updated unconditionally on every exchange on-chain and must be too.
 
 	// #                  price_oracle is used further on to calculate its vector
 	// #            distance from price_scale. This distance is used to calculate

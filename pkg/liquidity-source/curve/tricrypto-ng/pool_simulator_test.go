@@ -196,28 +196,28 @@ func TestUpdateBalance(t *testing.T) {
 	}{
 		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304718298868"},
 		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304675974788"},
-		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304898571422510"},
-		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1306024453847454"},
-		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "3393536839049"},
-		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1822607809867"},
-		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1819677288075988"},
-		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1821248242501378"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1574126861158"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "2056531723"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "696648048123"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "697248127714"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "362851"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191462"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191255367"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191420171"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "302552"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137440"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137149910"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137268281"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "444235376"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "358363928"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "358242922283"},
-		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "358551652118"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304906600525870"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304912860512857"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1819369083371"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1819713988051"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1819890952200330"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1819912010671452"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "599088140"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "83966477"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "696670096424"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "696617191992"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "61379"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "104742"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191147306"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191237005"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "102047"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "115007"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "136987980"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137061149"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", ErrExchange0Coins},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", ErrExchange0Coins},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "357723621952"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "357762042492"},
 	}
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
@@ -264,6 +264,46 @@ func TestUpdateBalance(t *testing.T) {
 			fmt.Println("D", p.Extra.D.Dec())
 		})
 	}
+}
+
+func TestUpdateBalanceUpdatesStateOnEverySwap(t *testing.T) {
+	t.Parallel()
+
+	poolRedis := `{"address":"0x4ebdf703948ddcea3b11f675b4d1fba9d2414a14","exchange":"curve-tricrypto-ng","type":"curve-tricrypto-ng","timestamp":1747387794,"reserves":["2861820037467305203466191","1093506849144527022340","3982280374395661297312344"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","name":"","symbol":"crvUSD","decimals":18,"weight":0,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","name":"","symbol":"WETH","decimals":18,"weight":0,"swappable":true},{"address":"0xd533a949740bb3306d119cc777fa900ba034cd52","name":"","symbol":"CRV","decimals":18,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"2700000\",\"InitialGamma\":\"1300000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"2700000\",\"FutureGamma\":\"1300000000000\",\"FutureAGammaTime\":0,\"D\":\"8532048735922426944154787\",\"PriceScale\":[\"2593891046098680504189\",\"711612014969964544\"],\"PriceOracle\":[\"2597753463916981281317\",\"712667936366669756\"],\"LastPrices\":[\"2612188986152217640529\",\"717156747966546519\"],\"LastPricesTimestamp\":1747387787,\"FeeGamma\":\"350000000000000\",\"MidFee\":\"2999999\",\"OutFee\":\"80000000\",\"LpSupply\":\"200731208332421373598995\",\"XcpProfit\":\"1133157971398689394\",\"VirtualPrice\":\"1155009367459460589\",\"AllowedExtraProfit\":\"100000000000\",\"AdjustmentStep\":\"100000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false,false]}"}`
+
+	var poolEntity entity.Pool
+	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	require.Nil(t, err)
+	p, err := NewPoolSimulator(poolEntity)
+	require.Nil(t, err)
+
+	weth := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+	crvUsd := "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e"
+
+	swap := func(amountIn string) {
+		out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: bignumber.NewBig10(amountIn)},
+			TokenOut:      crvUsd,
+		})
+		require.NoError(t, err)
+		p.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: weth, Amount: bignumber.NewBig10(amountIn)},
+			TokenAmountOut: *out.TokenAmountOut,
+			Fee:            *out.Fee,
+			SwapInfo:       out.SwapInfo,
+		})
+	}
+
+	swap("500000000000")
+	dAfterFirstSwap := p.Extra.D.Clone()
+
+	swap("500000000000")
+	dAfterSecondSwap := p.Extra.D.Clone()
+
+	// D must be recalculated from the new balances on every swap, matching the
+	// on-chain contract, which updates self.D unconditionally in tweak_price.
+	assert.NotEqual(t, dAfterFirstSwap, dAfterSecondSwap,
+		"D is frozen after the first swap instead of being recalculated on every UpdateBalance")
 }
 
 func BenchmarkCalcAmountOut(b *testing.B) {

@@ -25,8 +25,6 @@ type PoolSimulator struct {
 	precisionMultipliers []uint256.Int
 	Reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
 
-	tweakedPrice bool
-
 	Extra       Extra
 	StaticExtra StaticExtra
 
@@ -215,14 +213,11 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], outputAmount)
 	t.Reserves[outputIndex] = *new(uint256.Int).Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
-	if !t.tweakedPrice {
-		t.tweakedPrice = true
-		t.Extra.LastPrices = swapInfo.LastPrices[:]
-		t.Extra.PriceScale = swapInfo.PriceScale[:]
-		t.Extra.XcpProfit = &swapInfo.XcpProfit
-		t.Extra.D = &swapInfo.D
-		t.Extra.VirtualPrice = &swapInfo.VirtualPrice
-	}
+	t.Extra.LastPrices = swapInfo.LastPrices[:]
+	t.Extra.PriceScale = swapInfo.PriceScale[:]
+	t.Extra.XcpProfit = &swapInfo.XcpProfit
+	t.Extra.D = &swapInfo.D
+	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
