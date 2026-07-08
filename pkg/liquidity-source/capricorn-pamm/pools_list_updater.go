@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -62,8 +63,8 @@ func (l *PoolsListUpdater) resolvePool(ctx context.Context, addr string, ts int6
 		return entity.Pool{}, err
 	}
 
-	token0Addr := strings.ToLower(token0Hx.Hex())
-	token1Addr := strings.ToLower(token1Hx.Hex())
+	token0Addr := hexutil.Encode(token0Hx[:])
+	token1Addr := hexutil.Encode(token1Hx[:])
 
 	var d0, d1 uint8
 	dReq := l.ethrpcClient.NewRequest().SetContext(ctx)
@@ -74,7 +75,7 @@ func (l *PoolsListUpdater) resolvePool(ctx context.Context, addr string, ts int6
 	}
 
 	staticExtra, err := json.Marshal(StaticExtra{
-		Factory:  strings.ToLower(factoryHx.Hex()),
+		Factory:  hexutil.Encode(factoryHx[:]),
 		OracleId: "0x" + common.Bytes2Hex(oracleIdRaw[:]),
 	})
 	if err != nil {

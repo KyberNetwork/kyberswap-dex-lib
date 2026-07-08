@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	poolABI   abi.ABI
-	oracleABI abi.ABI
+	poolABI    abi.ABI
+	oracleABI  abi.ABI
+	factoryABI abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&poolABI, poolABIJson},
 		{&oracleABI, oracleABIJson},
+		{&factoryABI, factoryABIJson},
 	}
 
 	for _, b := range builder {

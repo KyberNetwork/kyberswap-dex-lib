@@ -44,6 +44,12 @@ const (
 	RouterMethodGetQuotes = "getQuotes"
 
 	BatchSize = 100
+
+	// BackupTailWindow bounds how many of the most-recently-appended pools
+	// PoolsListUpdater rechecks each cycle. It's a backup for the primary
+	// PoolFactory block-subscription flow, catching pools missed if a block was
+	// skipped - not a full historical scan, so it only needs to look at the tail.
+	BackupTailWindow = 5
 )
 
 var (

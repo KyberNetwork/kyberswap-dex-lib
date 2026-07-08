@@ -1,6 +1,7 @@
 package poe
 
 type Config struct {
-	DexId string   `json:"dexId"`
-	Pools []string `json:"pools"`
+	DexId          string `json:"dexId"`
+	FactoryAddress string `json:"factoryAddress"`
+	NewPoolLimit   int    `json:"newPoolLimit"`
 }

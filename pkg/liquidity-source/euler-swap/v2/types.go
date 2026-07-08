@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type StaticExtra struct {
@@ -54,32 +55,83 @@ type AssetsRPC struct {
 	Asset1 common.Address
 }
 
+// StaticParamsFields mirrors IEulerSwap.StaticParams. It is also the shape of
+// the "sParams" tuple carried inline by the registry's PoolRegistered event,
+// so it's reused for decoding that event without an extra RPC round trip.
+type StaticParamsFields struct {
+	SupplyVault0 common.Address `abi:"supplyVault0"`
+	SupplyVault1 common.Address `abi:"supplyVault1"`
+	BorrowVault0 common.Address `abi:"borrowVault0"`
+	BorrowVault1 common.Address `abi:"borrowVault1"`
+	EulerAccount common.Address `abi:"eulerAccount"`
+	FeeRecipient common.Address `abi:"feeRecipient"`
+}
+
 type StaticParamsRPC struct {
-	Data struct {
-		SupplyVault0 common.Address `abi:"supplyVault0"`
-		SupplyVault1 common.Address `abi:"supplyVault1"`
-		BorrowVault0 common.Address `abi:"borrowVault0"`
-		BorrowVault1 common.Address `abi:"borrowVault1"`
-		EulerAccount common.Address `abi:"eulerAccount"`
-		FeeRecipient common.Address `abi:"feeRecipient"`
-	}
+	Data StaticParamsFields
+}
+
+type DynamicParamsFields struct {
+	EquilibriumReserve0  *big.Int       `abi:"equilibriumReserve0"`
+	EquilibriumReserve1  *big.Int       `abi:"equilibriumReserve1"`
+	MinReserve0          *big.Int       `abi:"minReserve0"`
+	MinReserve1          *big.Int       `abi:"minReserve1"`
+	PriceX               *big.Int       `abi:"priceX"`
+	PriceY               *big.Int       `abi:"priceY"`
+	ConcentrationX       uint64         `abi:"concentrationX"`
+	ConcentrationY       uint64         `abi:"concentrationY"`
+	Fee0                 uint64         `abi:"fee0"`
+	Fee1                 uint64         `abi:"fee1"`
+	Expiration           *big.Int       `abi:"expiration"`
+	SwapHookedOperations uint8          `abi:"swapHookedOperations"`
+	SwapHook             common.Address `abi:"swapHook"`
 }
 
 type DynamicParamsRPC struct {
-	Data struct {
-		EquilibriumReserve0  *big.Int       `abi:"equilibriumReserve0"`
-		EquilibriumReserve1  *big.Int       `abi:"equilibriumReserve1"`
-		MinReserve0          *big.Int       `abi:"minReserve0"`
-		MinReserve1          *big.Int       `abi:"minReserve1"`
-		PriceX               *big.Int       `abi:"priceX"`
-		PriceY               *big.Int       `abi:"priceY"`
-		ConcentrationX       uint64         `abi:"concentrationX"`
-		ConcentrationY       uint64         `abi:"concentrationY"`
-		Fee0                 uint64         `abi:"fee0"`
-		Fee1                 uint64         `abi:"fee1"`
-		Expiration           *big.Int       `abi:"expiration"`
-		SwapHookedOperations uint8          `abi:"swapHookedOperations"`
-		SwapHook             common.Address `abi:"swapHook"`
+	Data DynamicParamsFields
+}
+
+// buildStaticExtra maps a pool's static params (from RPC or the
+// PoolRegistered event log, both share this shape) plus its EVC address into
+// the persisted StaticExtra.
+func buildStaticExtra(sp StaticParamsFields, evc common.Address) StaticExtra {
+	staticExtra := StaticExtra{
+		SupplyVault0: sp.SupplyVault0.Hex(),
+		SupplyVault1: sp.SupplyVault1.Hex(),
+		EulerAccount: sp.EulerAccount.Hex(),
+		EVC:          evc.Hex(),
+	}
+
+	if !valueobject.IsZeroAddress(sp.BorrowVault0) {
+		staticExtra.BorrowVault0 = sp.BorrowVault0.Hex()
+	}
+	if !valueobject.IsZeroAddress(sp.BorrowVault1) {
+		staticExtra.BorrowVault1 = sp.BorrowVault1.Hex()
+	}
+	if !valueobject.IsZeroAddress(sp.FeeRecipient) {
+		staticExtra.FeeRecipient = sp.FeeRecipient.Hex()
+	}
+
+	return staticExtra
+}
+
+// buildDynamicParams maps a pool's dynamic params fetched via RPC into the
+// persisted DynamicParams.
+func buildDynamicParams(dp DynamicParamsFields) DynamicParams {
+	return DynamicParams{
+		EquilibriumReserve0: uint256.MustFromBig(dp.EquilibriumReserve0),
+		EquilibriumReserve1: uint256.MustFromBig(dp.EquilibriumReserve1),
+		MinReserve0:         uint256.MustFromBig(dp.MinReserve0),
+		MinReserve1:         uint256.MustFromBig(dp.MinReserve1),
+		PriceX:              uint256.MustFromBig(dp.PriceX),
+		PriceY:              uint256.MustFromBig(dp.PriceY),
+		ConcentrationX:      uint256.NewInt(dp.ConcentrationX),
+		ConcentrationY:      uint256.NewInt(dp.ConcentrationY),
+		Fee0:                uint256.NewInt(dp.Fee0),
+		Fee1:                uint256.NewInt(dp.Fee1),
+		Expiration:          dp.Expiration.Uint64(),
+		SwapHookedOps:       dp.SwapHookedOperations,
+		SwapHook:            dp.SwapHook.Hex(),
 	}
 }
 

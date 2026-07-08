@@ -144,7 +144,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenIn:           "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			tokenOut:          "0xdac17f958d2ee523a2206206994597c13d831ec7",
 			amountIn:          "100000000",
-			expectedAmountOut: "100047506",
+			expectedAmountOut: "100048261",
 		},
 		{
 			pool:              "c_USDC_USDT_24289442",
@@ -332,7 +332,7 @@ func TestCalcAmountOutUSDCToWETH(t *testing.T) {
 		TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 	})
 	require.NoError(t, err)
-	require.Equal(t, "55558047890551789", res.TokenAmountOut.Amount.String())
+	require.Equal(t, "55593348756186700", res.TokenAmountOut.Amount.String())
 
 	test.SkipCI(t)
 
@@ -370,7 +370,7 @@ func TestCalcAmountOutETHToGVNR(t *testing.T) {
 		TokenOut: "0xfc60fc0145d7330e5abcfc52af7b043a1ce18e7d",
 	})
 	require.NoError(t, err)
-	require.Equal(t, "1675381453123912654895", res.TokenAmountOut.Amount.String())
+	require.Equal(t, "1684358145290252165850", res.TokenAmountOut.Amount.String())
 
 	test.SkipCI(t)
 

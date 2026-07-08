@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -23,9 +24,16 @@ type (
 		ethrpcClient *ethrpc.Client
 	}
 
+	// PoolsListUpdaterMetadata tracks the last shared.BackupTailWindow pool
+	// addresses seen at the tail of the factory's pool list. The factory stores
+	// pools in an OpenZeppelin EnumerableSet: unregistering a pool swaps the
+	// last element into the removed slot, reshuffling indices, so a numeric
+	// offset can't be trusted to page through the list safely. This is only a
+	// backup for the primary PoolFactory block-subscription flow though, so it
+	// just needs to notice pools appended since the last check, not replay the
+	// whole history.
 	PoolsListUpdaterMetadata struct {
-		Offset     int            `json:"offset"`
-		LatestPool common.Address `json:"lp"`
+		LastPools []common.Address `json:"lp"`
 	}
 )
 
@@ -73,41 +81,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	needResetOffset := metadata.Offset > allPoolsLength
-
-	if metadata.Offset == allPoolsLength {
-		poolList, err := u.listPoolAddresses(ctx, allPoolsLength-1, 1)
-		if err != nil {
-			logger.
-				WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-				Error("getLatestPool failed")
-
-			return nil, metadataBytes, err
-		}
-
-		latestPool := poolList[0]
-
-		if latestPool.Cmp(metadata.LatestPool) == 0 {
-			return nil, metadataBytes, nil
-		}
-
-		metadata.LatestPool = latestPool
-
-		needResetOffset = true
-	}
-
-	if needResetOffset {
-		logger.WithFields(logger.Fields{
-			"dex_id": dexID,
-			"offset": metadata.Offset,
-			"length": allPoolsLength,
-		}).Info("Resetting offset to 0 due to factory uninstall pools")
-		metadata.Offset = 0
-	}
-
-	batchSize := u.getBatchSize(allPoolsLength, metadata.Offset)
-
-	poolAddresses, err := u.listPoolAddresses(ctx, metadata.Offset, batchSize)
+	tailSize := min(shared.BackupTailWindow, allPoolsLength)
+	tailAddresses, err := u.listPoolAddresses(ctx, allPoolsLength-tailSize, tailSize)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -116,7 +91,24 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	pools, err := u.initPools(ctx, poolAddresses)
+	newAddresses := make([]common.Address, 0)
+	for _, addr := range tailAddresses {
+		if !slices.Contains(metadata.LastPools, addr) {
+			newAddresses = append(newAddresses, addr)
+		}
+	}
+
+	metadata.LastPools = tailAddresses
+
+	if len(newAddresses) == 0 {
+		newMetadataBytes, err := u.newMetadata(metadata)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+		return nil, newMetadataBytes, nil
+	}
+
+	pools, err := u.initPools(ctx, newAddresses)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -125,8 +117,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	newOffset := metadata.Offset + batchSize
-	newMetadataBytes, err := u.newMetadata(newOffset, metadata.LatestPool)
+	newMetadataBytes, err := u.newMetadata(metadata)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -179,7 +170,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 	pools := make([]entity.Pool, 0, len(poolAddresses))
 
 	for i, poolAddress := range poolAddresses {
-		staticPoolData, err := u.getPoolStaticData(ctx, poolAddress.Hex())
+		staticPoolData, err := getPoolStaticData(ctx, u.ethrpcClient, poolAddress.Hex())
 		if err != nil {
 			return nil, err
 		}
@@ -235,8 +226,12 @@ func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []c
 	return poolTokens, nil
 }
 
-func (d *PoolsListUpdater) getPoolStaticData(
+// getPoolStaticData fetches a pool's immutable params directly, so it can be
+// reused both by the batch backfill (PoolsListUpdater) and the per-pool decode
+// on the PoolDeployed event (PoolFactory).
+func getPoolStaticData(
 	ctx context.Context,
+	ethrpcClient *ethrpc.Client,
 	poolAddress string,
 ) (StaticExtra, error) {
 	var (
@@ -244,7 +239,7 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		evc    common.Address
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	req := ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
@@ -299,12 +294,7 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 	return int(allPoolsLength.Int64()), nil
 }
 
-func (u *PoolsListUpdater) newMetadata(newOffset int, newLatestPool common.Address) ([]byte, error) {
-	metadata := PoolsListUpdaterMetadata{
-		Offset:     newOffset,
-		LatestPool: newLatestPool,
-	}
-
+func (u *PoolsListUpdater) newMetadata(metadata PoolsListUpdaterMetadata) ([]byte, error) {
 	metadataBytes, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
@@ -324,16 +314,4 @@ func (u *PoolsListUpdater) getMetadata(metadataBytes []byte) (PoolsListUpdaterMe
 	}
 
 	return metadata, nil
-}
-
-func (u *PoolsListUpdater) getBatchSize(length int, offset int) int {
-	if offset >= length {
-		return 0
-	}
-
-	if offset+shared.BatchSize >= length {
-		return length - offset
-	}
-
-	return shared.BatchSize
 }
