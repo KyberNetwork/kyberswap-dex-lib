@@ -2,10 +2,10 @@ package ambient
 
 import (
 	"math/big"
-	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ const (
 	testUSDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 )
 
-var testNative = strings.ToLower(valueobject.AddrZero.Hex())
+var testNative = hexutil.Encode(valueobject.AddrZero[:])
 
 func TestPoolSimulatorCalcAmountOutAndUpdateBalance(t *testing.T) {
 	t.Parallel()

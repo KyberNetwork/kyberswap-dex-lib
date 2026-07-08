@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -62,7 +63,7 @@ func (p *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log t
 	case bondingABI.Events["Trade"].ID,
 		bondingABI.Events["TokenGraduating"].ID,
 		bondingABI.Events["TokenGraduated"].ID:
-		token := strings.ToLower(common.HexToAddress(log.Topics[1].Hex()).Hex())
+		token := hexutil.Encode(log.Topics[1][12:])
 		return []string{token}, nil
 	}
 	return nil, nil
@@ -87,8 +88,8 @@ func (ep *EventParser) DecodePoolCreated(log types.Log) (*entity.Pool, error) {
 		return nil, nil
 	}
 
-	tokenAddr := strings.ToLower(common.HexToAddress(log.Topics[1].Hex()).Hex())
-	ltAddr := strings.ToLower(common.HexToAddress(log.Topics[3].Hex()).Hex())
+	tokenAddr := hexutil.Encode(log.Topics[1][12:])
+	ltAddr := hexutil.Encode(log.Topics[3][12:])
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -156,7 +157,7 @@ func (ep *EventParser) fetchPairAddress(ctx context.Context, tokenAddr string) (
 	if _, err := req.Aggregate(); err != nil {
 		return "", err
 	}
-	return strings.ToLower(pairAddr.Hex()), nil
+	return hexutil.Encode(pairAddr[:]), nil
 }
 
 // fetchProtocolParams fetches immutable on-chain constants in one multicall.
@@ -193,7 +194,7 @@ func (ep *EventParser) fetchProtocolParams(ctx context.Context) (*protocolParams
 		return nil, err
 	}
 	return &protocolParams{
-		usdc:                   strings.ToLower(baseAsset.Hex()),
+		usdc:                   hexutil.Encode(baseAsset[:]),
 		buyFeeBps:              buyFee.Uint64(),
 		sellFeeBps:             sellFee.Uint64(),
 		graduationThresholdUsd: uint256.MustFromBig(gradThresh),

@@ -11,6 +11,7 @@ import (
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 )
 
@@ -218,11 +219,11 @@ func (u *PoolsListUpdater) getTradingPairs(ctx context.Context, tokenMap map[uin
 func (u *PoolsListUpdater) createPool(pair TradingPair) (entity.Pool, error) {
 	poolTokens := []*entity.PoolToken{
 		{
-			Address:   strings.ToLower(pair.TokenA.Hex()),
+			Address:   hexutil.Encode(pair.TokenA[:]),
 			Swappable: true,
 		},
 		{
-			Address:   strings.ToLower(pair.TokenB.Hex()),
+			Address:   hexutil.Encode(pair.TokenB[:]),
 			Swappable: true,
 		},
 	}
@@ -239,7 +240,7 @@ func (u *PoolsListUpdater) createPool(pair TradingPair) (entity.Pool, error) {
 	}
 
 	pool := entity.Pool{
-		Address:     strings.ToLower(pair.OrderBookAddr.Hex()),
+		Address:     hexutil.Encode(pair.OrderBookAddr[:]),
 		Exchange:    u.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),

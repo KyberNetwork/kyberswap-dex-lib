@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -66,8 +67,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	result := make([]entity.Pool, 0, len(newPools))
 	for _, p := range newPools {
-		token0 := strings.ToLower(p.Token0.Hex())
-		token1 := strings.ToLower(p.Token1.Hex())
+		token0 := hexutil.Encode(p.Token0[:])
+		token1 := hexutil.Encode(p.Token1[:])
 
 		result = append(result, entity.Pool{
 			Address:   u.cfg.DexID + "_" + token0 + "_" + token1,
