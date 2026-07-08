@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"slices"
 
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
@@ -39,28 +38,20 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: int(chainID)},
+		Cfg:       &Config{ChainID: chainID},
 		Pool:      &entityPool,
-		HookExtra: extra.HookExtra,
+		HookExtra: HookExtra(extra.HookExtra),
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook
 	}
 
-	var allowEmptyTicks bool
-	switch hook.GetExchange() {
-	case valueobject.ExchangeUniswapV4BunniV2, valueobject.ExchangeUniswapV4Deli:
-		allowEmptyTicks = true
-	}
+	allowEmptyTicks := hook.AllowEmptyTicks()
 
-	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256, allowEmptyTicks)
+	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, extra.ExtraTickU256,
+		uniswapv3.SimulatorConfig{AllowEmptyTicks: allowEmptyTicks})
 	if err != nil {
 		return nil, err
-	}
-	if entityPool.Tokens[0].Address > entityPool.Tokens[1].Address {
-		// restore original order after V3Pool constructor forced sorting
-		v3Pool := v3PoolSimulator.V3Pool
-		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
 	}
 	v3PoolSimulator.Gas = defaultGas
 
@@ -149,7 +140,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
 		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-			ExactIn:         true,
+			CalcOut:         true,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountIn,
 		}); err != nil {
@@ -162,7 +153,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			return nil, ErrInvalidAmountIn
 		}
 
-		if beforeSwapResult.SwapFee >= FeeMax {
+		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
+		} else if beforeSwapResult.SwapFee >= FeeMax {
 			return nil, ErrInvalidFee
 		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
 			cloned := *poolSim
@@ -186,7 +178,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	if p.hook.CanAfterSwap(p.staticExtra.HooksAddress) {
 		afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 			BeforeSwapParams: &BeforeSwapParams{
-				ExactIn:         true,
+				CalcOut:         true,
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountIn,
 			},
@@ -256,7 +248,6 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			}
 		}
 	}
-
 	if p.GetTokenIndex(param.TokenIn) == -1 {
 		for _, wrapper := range p.tokenWrappers {
 			metadata, canUnwrap := wrapper.CanWrap(p.chainID, param.TokenIn)
@@ -280,7 +271,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
 		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-			ExactIn:         false,
+			CalcOut:         false,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountOut,
 		}); err != nil {
@@ -293,7 +284,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			return nil, ErrInvalidAmountOut
 		}
 
-		if beforeSwapResult.SwapFee >= FeeMax {
+		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
+		} else if beforeSwapResult.SwapFee >= FeeMax {
 			return nil, ErrInvalidFee
 		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
 			cloned := *poolSim
@@ -317,7 +309,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	if p.hook.CanAfterSwap(p.staticExtra.HooksAddress) {
 		if afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 			BeforeSwapParams: &BeforeSwapParams{
-				ExactIn:         false,
+				CalcOut:         false,
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountOut,
 			},
@@ -339,8 +331,8 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
-	var wrapTokens = make(map[string]struct{})
 
+	result := map[string]struct{}{}
 	if tokenIndex == -1 {
 		for _, wrapper := range p.tokenWrappers {
 			metadata, canWrap := wrapper.CanWrap(p.chainID, address)
@@ -353,20 +345,21 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 				continue
 			}
 
-			wrapTokens[metadata.GetWrapToken()] = struct{}{}
+			res := p.CanSwapTo(metadata.GetWrapToken())
+			for _, token := range res {
+				result[token] = struct{}{}
+			}
 		}
-	}
+	} else { // tokenIndex >= 0
+		for _, token := range p.Info.Tokens {
+			if token != address {
+				result[token] = struct{}{}
 
-	result := map[string]struct{}{}
-	for _, token := range p.Info.Tokens {
-		_, isWrapToken := wrapTokens[token]
-		if (tokenIndex >= 0 && token != address) || (tokenIndex == -1 && !isWrapToken) {
-			result[token] = struct{}{}
-
-			for _, wrapper := range p.tokenWrappers {
-				metadata, canUnwrap := wrapper.IsWrapped(p.chainID, token)
-				if canUnwrap && metadata.GetUnwrapToken() != address {
-					result[metadata.GetUnwrapToken()] = struct{}{}
+				for _, wrapper := range p.tokenWrappers {
+					metadata, canUnwrap := wrapper.IsWrapped(p.chainID, token)
+					if canUnwrap && metadata.GetUnwrapToken() != address {
+						result[metadata.GetUnwrapToken()] = struct{}{}
+					}
 				}
 			}
 		}
@@ -491,8 +484,6 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOutBeforeUnwrap)] {
 		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrap)
 	}
-	var priceLimit v3Utils.Uint160
-	_ = p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0], &priceLimit)
 
 	return PoolMetaInfo{
 		Router:            p.staticExtra.UniversalRouterAddress,
@@ -503,7 +494,17 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TickSpacing:       p.staticExtra.TickSpacing,
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          p.hook.GetHookData(),
-		PriceLimit:        &priceLimit,
+		PriceLimit:        p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0]),
 		TokenWrapMetadata: wrapMetadata,
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
+	return meta.TokenIn == NativeTokenAddress
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
+	return meta.TokenOut == NativeTokenAddress
 }

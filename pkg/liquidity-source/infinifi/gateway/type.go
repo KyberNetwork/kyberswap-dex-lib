@@ -25,15 +25,25 @@ type Meta struct {
 type Action int
 
 const (
-	ActionMint           Action = iota // 0: mint
-	ActionRedeem                       // 1: redeem
-	ActionStake                        // 2: stake
-	ActionUnstake                      // 3: unstake
-	ActionMintAndStake                 // 4: mint and stake
-	ActionCreatePosition Action = 5    // >4: create position
+	ActionMint             Action = iota // 0: mint => USDC → iUSD
+	ActionRedeem                         // 1: redeem => iUSD → USDC
+	ActionStake                          // 2: stake => iUSD → siUSD
+	ActionUnstake                        // 3: unstake => siUSD → iUSD
+	ActionMintAndStake                   // 4: mint and stake => USDC → siUSD
+	ActionCreatePosition                 // 5: create position => iUSD → liUSD
+	ActionMintAndLock                    // 6: mint and lock => USDC → liUSD
+	ActionUnstakeAndRedeem               // 7: unstake and redeem => siUSD → USDC
+)
+
+const (
+	// https://github.com/InfiniFi-Labs/infinifi-protocol/blob/master/deployment/configuration/addresses.1.json
+	MintControllerAddress   = "0x49877d937B9a00d50557bdC3D87287b5c3a4C256"
+	RedeemControllerAddress = "0xCb1747E89a43DEdcF4A2b831a0D94859EFeC7601"
+	LockControllerAddress   = "0x1d95cC100D6Cd9C7BbDbD7Cb328d99b3D6037fF7"
 )
 
 type SwapInfo struct {
-	Action          Action `json:"action"`
-	UnwindingEpochs int    `json:"unwindingEpochs"`
+	Action            Action   `json:"action"`
+	QuoterControllers []string `json:"quoterControllers"`
+	UnwindingEpochs   int      `json:"unwindingEpochs"`
 }

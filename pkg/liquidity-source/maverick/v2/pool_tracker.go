@@ -74,7 +74,7 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	params pool.GetNewPoolStateParams,
+	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	startTime := time.Now()
@@ -158,7 +158,6 @@ func (t *PoolTracker) getState(
 	return State{
 		ReserveA:           getStateResult.ReserveA,
 		ReserveB:           getStateResult.ReserveB,
-		LastTimestamp:      getStateResult.LastTimestamp.Int64(),
 		LastTwaD8:          getStateResult.LastTwaD8,
 		LastLogPriceD8:     getStateResult.LastLogPriceD8,
 		ActiveTick:         getStateResult.ActiveTick,
@@ -229,12 +228,9 @@ func (t *PoolTracker) getFullPoolState(
 			binId := binIndex + startIndex
 			// Convert BinStateMapping to Bin
 			bin := Bin{
-				MergeBinBalance: uint256.MustFromBig(binState.MergeBinBalance),
-				MergeId:         binState.MergeId,
-				TotalSupply:     uint256.MustFromBig(binState.TotalSupply),
-				Kind:            binState.Kind,
-				Tick:            binState.Tick,
-				TickBalance:     uint256.MustFromBig(binState.TickBalance),
+				Tick:        binState.Tick,
+				TotalSupply: uint256.MustFromBig(binState.TotalSupply),
+				TickBalance: uint256.MustFromBig(binState.TickBalance),
 			}
 
 			tickState := fullPoolState.TickStateMapping[binIndex]
@@ -295,7 +291,6 @@ func (t *PoolTracker) updatePool(
 		Ticks:            ticks,
 		ActiveTick:       state.ActiveTick,
 		LastTwaD8:        state.LastTwaD8,
-		Timestamp:        state.LastTimestamp,
 	}
 
 	extraBytes, err := json.Marshal(extra)

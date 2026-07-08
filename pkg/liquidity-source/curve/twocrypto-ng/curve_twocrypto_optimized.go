@@ -36,8 +36,31 @@ func (t *PoolSimulator) GetDy(
 		return ErrExchange0Coins
 	}
 
+	A, gamma := t._A_gamma()
+
+	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
+	D := t.Extra.D
+	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+		for k := range NumTokens {
+			xp[k].Set(&t.Reserves[k])
+		}
+		number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
+		for k := range NumTokens - 1 {
+			xp[k+1].Div(
+				number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
+				Precision,
+			)
+		}
+		var zeroK0 uint256.Int
+		var err error
+		D, err = newton_D(A, gamma, &zeroK0, xp[:], t.Extra.UseCustomMath)
+		if err != nil {
+			return err
+		}
+	}
+
 	yOrg := number.Set(&t.Reserves[j])
-	for k := 0; k < NumTokens; k += 1 {
+	for k := range NumTokens {
 		if k == i {
 			number.SafeAddZ(&t.Reserves[k], dx, &xp[k])
 			continue
@@ -46,16 +69,15 @@ func (t *PoolSimulator) GetDy(
 	}
 
 	number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
-	for k := 0; k < NumTokens-1; k += 1 {
+	for k := range NumTokens - 1 {
 		xp[k+1].Div(
 			number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
 			Precision,
 		)
 	}
 
-	A, gamma := t._A_gamma()
 	var y uint256.Int
-	var err = get_y(t.Extra.UseCustomMath, j, A, gamma, t.Extra.D, xp[:], &y, K0)
+	var err = get_y(t.Extra.UseCustomMath, j, A, gamma, D, xp[:], &y, K0)
 	if err != nil {
 		return err
 	}
@@ -99,7 +121,7 @@ func (t *PoolSimulator) GetDx(
 ) error {
 	_dy := number.Set(dy)
 
-	for k := 0; k < 5; k += 1 {
+	for range 5 {
 		var err = t._getDxFee(i, j, _dy, dx, K0, xp[:])
 		if err != nil {
 			return err
@@ -134,7 +156,29 @@ func (t *PoolSimulator) _getDxFee(
 	}
 
 	A, gamma := t._A_gamma()
-	for k := 0; k < NumTokens; k += 1 {
+
+	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
+	D := t.Extra.D
+	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+		for k := range NumTokens {
+			xp[k].Set(&t.Reserves[k])
+		}
+		number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
+		for k := range NumTokens - 1 {
+			xp[k+1].Div(
+				number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
+				Precision,
+			)
+		}
+		var zeroK0 uint256.Int
+		var err error
+		D, err = newton_D(A, gamma, &zeroK0, xp[:], t.Extra.UseCustomMath)
+		if err != nil {
+			return err
+		}
+	}
+
+	for k := range NumTokens {
 		xp[k].Set(&t.Reserves[k])
 	}
 
@@ -142,7 +186,7 @@ func (t *PoolSimulator) _getDxFee(
 
 	number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
 
-	for k := 0; k < NumTokens-1; k += 1 {
+	for k := range NumTokens - 1 {
 		xp[k+1].Div(
 			number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
 			Precision,
@@ -150,7 +194,7 @@ func (t *PoolSimulator) _getDxFee(
 	}
 
 	var xOut uint256.Int
-	err := get_y(t.Extra.UseCustomMath, i, A, gamma, t.Extra.D, xp, &xOut, K0)
+	err := get_y(t.Extra.UseCustomMath, i, A, gamma, D, xp, &xOut, K0)
 	if err != nil {
 		return err
 	}
@@ -190,12 +234,10 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	blockTimestamp := time.Now().Unix()
 	var err error
 
-	if t.tweakedPrice {
-		// this block update price_oracle and last_price_timestamp
-		// but in pool tracker we've fetched the calculated price_oracle, not the raw packed value,
-		// so we can use that here without updating. we only check that we tweak only once
-		return nil
-	}
+	// On-chain, this also updates cached_price_oracle and last_timestamp, but only once per
+	// block. The pool tracker already fetches the EMA-computed price_oracle directly, so there
+	// is nothing to recompute here; D, virtual_price, xcp_profit, last_prices and price_scale
+	// below, however, are updated unconditionally on every exchange on-chain and must be too.
 
 	// #                  price_oracle is used further on to calculate its vector
 	// #            distance from price_scale. This distance is used to calculate
@@ -215,14 +257,14 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	if err != nil {
 		return err
 	}
-	for k := 0; k < NumTokens-1; k += 1 {
+	for k := range NumTokens - 1 {
 		lastPrices[k].Div(number.SafeMul(&lastPrices[k], &t.Extra.PriceScale[k]), U_1e18)
 	}
 
 	// # ---------- Update profit numbers without price adjustment first --------
 	var xp [NumTokens]uint256.Int
 	xp[0].Div(D_unadjusted, NumTokensU256)
-	for k := 0; k < NumTokens-1; k += 1 {
+	for k := range NumTokens - 1 {
 		xp[k+1].Div(
 			number.SafeMul(D_unadjusted, U_1e18),
 			number.SafeMul(NumTokensU256, &t.Extra.PriceScale[k]),
@@ -281,7 +323,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			// # ------------------------------------- Calculate new price scale.
 
 			var p_new [NumTokens - 1]uint256.Int
-			for k := 0; k < NumTokens-1; k += 1 {
+			for k := range NumTokens - 1 {
 				p_new[k].Div(
 					number.SafeAdd(
 						number.SafeMul(&t.Extra.PriceScale[k], number.Sub(norm, adjustment_step)),
@@ -290,10 +332,10 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			}
 
 			// # ---------------- Update stale xp (using price_scale) with p_new.
-			for k := 0; k < NumTokens; k += 1 {
+			for k := range NumTokens {
 				xp[k].Set(&_xp[k])
 			}
-			for k := 0; k < NumTokens-1; k += 1 {
+			for k := range NumTokens - 1 {
 				xp[k+1].Div(number.SafeMul(&_xp[k+1], &p_new[k]), &t.Extra.PriceScale[k])
 			}
 
@@ -303,7 +345,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 				return err
 			}
 
-			for k := 0; k < NumTokens; k += 1 {
+			for k := range NumTokens {
 				frac := number.Div(number.SafeMul(&xp[k], U_1e18), D)
 				if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
 					return ErrUnsafeXi
@@ -311,7 +353,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			}
 
 			xp[0].Div(D, NumTokensU256)
-			for k := 0; k < NumTokens-1; k += 1 {
+			for k := range NumTokens - 1 {
 				xp[k+1].Div(number.SafeMul(D, U_1e18), number.SafeMul(NumTokensU256, &p_new[k]))
 			}
 
@@ -322,7 +364,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 
 			// # ---------------------------- Proceed if we've got enough profit.
 			if old_virtual_price.Cmp(U_1e18) > 0 && number.SafeSub(number.SafeMul(number.Number_2, old_virtual_price), U_1e18).Cmp(xcp_profit) > 0 {
-				for k := 0; k < NumTokens-1; k += 1 {
+				for k := range NumTokens - 1 {
 					priceScale[k].Set(&p_new[k])
 				}
 				d.Set(D)

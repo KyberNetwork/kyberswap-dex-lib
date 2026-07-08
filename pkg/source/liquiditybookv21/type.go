@@ -11,27 +11,21 @@ type Metadata struct {
 }
 
 type Extra struct {
-	RpcBlockTimestamp      uint64            `json:"rpcBlockTimestamp"`
-	SubgraphBlockTimestamp uint64            `json:"subgraphBlockTimestamp,omitempty"`
-	StaticFeeParams        staticFeeParams   `json:"staticFeeParams"`
-	VariableFeeParams      variableFeeParams `json:"variableFeeParams"`
-	ActiveBinID            uint32            `json:"activeBinId"`
-	BinStep                uint16            `json:"binStep"`
-	Bins                   []Bin             `json:"bins"`
-	Liquidity              *big.Int          `json:"liquidity"`
-	PriceX128              *big.Int          `json:"priceX128"`
+	RpcBlockTimestamp uint64            `json:"rpcBlockTimestamp"`
+	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
+	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
+	ActiveBinID       uint32            `json:"activeBinId"`
+	BinStep           uint16            `json:"binStep"`
+	Bins              []Bin             `json:"bins"`
 }
 
 type ExtraU256 struct {
-	RpcBlockTimestamp      uint64            `json:"rpcBlockTimestamp"`
-	SubgraphBlockTimestamp uint64            `json:"subgraphBlockTimestamp,omitempty"`
-	StaticFeeParams        staticFeeParams   `json:"staticFeeParams"`
-	VariableFeeParams      variableFeeParams `json:"variableFeeParams"`
-	ActiveBinID            uint32            `json:"activeBinId"`
-	BinStep                uint16            `json:"binStep"`
-	Bins                   []BinU256         `json:"bins"`
-	Liquidity              *big.Int          `json:"liquidity"`
-	PriceX128              *big.Int          `json:"priceX128"`
+	RpcBlockTimestamp uint64            `json:"rpcBlockTimestamp"`
+	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
+	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
+	ActiveBinID       uint32            `json:"activeBinId"`
+	BinStep           uint16            `json:"binStep"`
+	Bins              []BinU256         `json:"bins"`
 }
 
 type SwapInfo struct {
@@ -48,13 +42,10 @@ type QueryRpcPoolStateResult struct {
 	Reserves          reserves          `json:"reserves"`
 	ActiveBinID       uint32            `json:"activeBinId"`
 	BinStep           uint16            `json:"binStep"`
-	Liquidity         *big.Int          `json:"liquidity"`
-	PriceX128         *big.Int          `json:"priceX128"`
 }
 
 type querySubgraphPoolStateResult struct {
-	BlockTimestamp uint64 `json:"blockTimestamp"`
-	Bins           []Bin  `json:"bins"`
+	Bins []Bin `json:"bins"`
 }
 
 type staticFeeParams struct {

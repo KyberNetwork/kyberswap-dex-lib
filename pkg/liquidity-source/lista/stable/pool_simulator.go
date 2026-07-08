@@ -3,13 +3,16 @@ package stable
 import (
 	"errors"
 	"math/big"
+	"slices"
+
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/goccy/go-json"
-	"github.com/samber/lo"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -23,8 +26,8 @@ type PoolSimulator struct {
 	baseSim            *base.PoolSimulator
 	decimals           []uint8
 	isNativeCoins      []bool
-	oraclePrices       [2]*big.Int
-	priceDiffThreshold [2]*big.Int
+	oraclePrices       [2]*uint256.Int
+	priceDiffThreshold [2]*uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -55,9 +58,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		baseSim:            curveBaseSimulator,
 		decimals:           decimals,
 		isNativeCoins:      staticExtra.IsNativeCoins,
-		oraclePrices:       extra.OraclePrices,
-		priceDiffThreshold: extra.PriceDiffThreshold,
+		oraclePrices:       [2]*uint256.Int{uint256.MustFromBig(extra.OraclePrices[0]), uint256.MustFromBig(extra.OraclePrices[1])},
+		priceDiffThreshold: [2]*uint256.Int{uint256.MustFromBig(extra.PriceDiffThreshold[0]), uint256.MustFromBig(extra.PriceDiffThreshold[1])},
 	}, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	clonedBase := *t.baseSim
+	clonedBase.Info.Reserves = slices.Clone(t.baseSim.Info.Reserves)
+	cloned.baseSim = &clonedBase
+	cloned.Info.Reserves = clonedBase.Info.Reserves
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -66,9 +78,6 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	// Now we check if the oracle prices are still satisfied
-	// after the swap (checkPriceDiff() in the contract).
-	// Prepare to update balance (without actually modifying the simulator state).
 	updatedBalances := t.prepareUpdateBalance(param, res)
 
 	if err := t.checkPriceDiff(updatedBalances); err != nil {
@@ -99,33 +108,39 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return meta
 }
 
-// prepareUpdateBalance has the same logic as UpdateBalance,
-// but returns the updated balances value instead of modifying the simulator state.
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return meta.TokenInIsNative
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return meta.TokenOutIsNative
+}
+
+// prepareUpdateBalance mirrors the on-chain balance update after exchange,
+// returning the post-swap stored balances that checkPriceDiff operates on.
 func (t *PoolSimulator) prepareUpdateBalance(
 	param pool.CalcAmountOutParams,
 	res *pool.CalcAmountOutResult,
 ) []*big.Int {
-	var inputAmount = param.TokenAmountIn.Amount
-	var outputAmount = res.TokenAmountOut.Amount
-	// swap fee
-	// output = output + output * swapFee * adminFee
-	outputAmount = new(big.Int).Add(
-		outputAmount,
-		new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Div(new(big.Int).Mul(outputAmount, t.Info.SwapFee), FeeDenominator),
-				t.baseSim.AdminFee,
-			),
-			FeeDenominator,
-		),
-	)
+	outAmt := uint256.MustFromBig(res.TokenAmountOut.Amount)
+	fd := big256.TenPow(10)
+
+	// admin_fee = outAmt * swapFee / fd * adminFee / fd
+	out := big256.MulDivDown(new(uint256.Int), outAmt, uint256.MustFromBig(t.Info.SwapFee), fd)
+	big256.MulDivDown(out, out, uint256.MustFromBig(t.baseSim.AdminFee), fd)
+	out.Add(outAmt, out) // balance decrease = user output + admin fee portion
+
 	updatedBalances := make([]*big.Int, len(t.Info.Reserves))
-	for i := range t.Info.Tokens {
-		if t.Info.Tokens[i] == param.TokenAmountIn.Token {
-			updatedBalances[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
+	for i, tok := range t.Info.Tokens {
+		if tok == param.TokenAmountIn.Token {
+			r := uint256.MustFromBig(t.Info.Reserves[i])
+			updatedBalances[i] = r.Add(r, uint256.MustFromBig(param.TokenAmountIn.Amount)).ToBig()
 		}
-		if t.Info.Tokens[i] == param.TokenOut {
-			updatedBalances[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+		if tok == param.TokenOut {
+			r := uint256.MustFromBig(t.Info.Reserves[i])
+			updatedBalances[i] = r.Sub(r, out).ToBig()
 		}
 	}
 
@@ -139,69 +154,56 @@ func (t *PoolSimulator) checkPriceDiff(updatedBalances []*big.Int) error {
 		return ErrInvalidValue
 	}
 
-	value := bignumber.NewBig10("100000000000000000000") // (100 * 1e18)
-	dsp0 := t.decimals[0]
-	dsp1 := t.decimals[1]
+	// dx = $100 worth of each token in raw units: 100 * 10^(18+decimals) / oraclePrice
+	hundred := uint256.NewInt(100)
+	dx0 := big256.MulDivDown(new(uint256.Int), hundred, big256.TenPow(int(t.decimals[0])+18), t.oraclePrices[0])
+	dx1 := big256.MulDivDown(hundred, hundred, big256.TenPow(int(t.decimals[1])+18), t.oraclePrices[1])
 
-	dx0 := new(big.Int).Div(
-		new(big.Int).Mul(
-			value,
-			bignumber.TenPowInt(dsp0),
-		),
-		t.oraclePrices[0],
-	)
-
-	dx1 := new(big.Int).Div(
-		new(big.Int).Mul(
-			value,
-			bignumber.TenPowInt(dsp1),
-		),
-		t.oraclePrices[1],
-	)
-
-	dy1, err := t.getDyWithoutFee(updatedBalances, 0, 1, dx0)
+	dy1, err := t.getDyWithoutFee(updatedBalances, 0, 1, dx0.ToBig())
 	if err != nil {
 		return err
 	}
-	dy0, err := t.getDyWithoutFee(updatedBalances, 1, 0, dx1)
+	dy0, err := t.getDyWithoutFee(updatedBalances, 1, 0, dx1.ToBig())
 	if err != nil {
 		return err
 	}
 
-	price0 := new(big.Int).Div(
-		new(big.Int).Mul(
-			new(big.Int).Mul(dx1, t.baseSim.Multipliers[1]),
-			t.oraclePrices[1],
-		),
-		new(big.Int).Mul(dy0, t.baseSim.Multipliers[0]),
-	)
-	price1 := new(big.Int).Div(
-		new(big.Int).Mul(
-			new(big.Int).Mul(dx0, t.baseSim.Multipliers[0]),
-			t.oraclePrices[0],
-		),
-		new(big.Int).Mul(dy1, t.baseSim.Multipliers[1]),
-	)
+	mul0 := uint256.MustFromBig(t.baseSim.Multipliers[0])
+	mul1 := uint256.MustFromBig(t.baseSim.Multipliers[1])
 
-	priceDiff0 := lo.Ternary(
-		price0.Cmp(t.oraclePrices[0]) > 0,
-		new(big.Int).Sub(price0, t.oraclePrices[0]),
-		new(big.Int).Sub(t.oraclePrices[0], price0),
-	)
+	// price0 = (dx1 * mul1 * oracle1) / (dy0 * mul0)  — implied price of token0 in oracle units
+	dx1.Mul(dx1, mul1)                                                  // dx1 = dx1_xp
+	dy0u := uint256.MustFromBig(dy0)
+	dy0u.Mul(dy0u, mul0)                                                // dy0u = dy0_xp
+	price0 := big256.MulDivDown(dx1, dx1, t.oraclePrices[1], dy0u)    // reuse dx1 as price0
 
-	priceDiff1 := lo.Ternary(
-		price1.Cmp(t.oraclePrices[1]) > 0,
-		new(big.Int).Sub(price1, t.oraclePrices[1]),
-		new(big.Int).Sub(t.oraclePrices[1], price1),
-	)
+	// price1 = (dx0 * mul0 * oracle0) / (dy1 * mul1)  — implied price of token1 in oracle units
+	dx0.Mul(dx0, mul0)                                                  // dx0 = dx0_xp
+	dy1u := uint256.MustFromBig(dy1)
+	dy1u.Mul(dy1u, mul1)                                                // dy1u = dy1_xp
+	price1 := big256.MulDivDown(dx0, dx0, t.oraclePrices[0], dy1u)    // reuse dx0 as price1
 
-	priceDiff0.Mul(priceDiff0, bignumber.TenPowInt(18))
-	if priceDiff0.Cmp(new(big.Int).Mul(t.oraclePrices[0], t.priceDiffThreshold[0])) > 0 {
+	// check: |price - oracle| * 1e18 <= oracle * threshold
+	var diff, rhs uint256.Int
+	if price0.Gt(t.oraclePrices[0]) {
+		diff.Sub(price0, t.oraclePrices[0])
+	} else {
+		diff.Sub(t.oraclePrices[0], price0)
+	}
+	diff.Mul(&diff, big256.BONE)
+	rhs.Mul(t.oraclePrices[0], t.priceDiffThreshold[0])
+	if diff.Gt(&rhs) {
 		return ErrPriceDiffToken0
 	}
 
-	priceDiff1.Mul(priceDiff1, bignumber.TenPowInt(18))
-	if priceDiff1.Cmp(new(big.Int).Mul(t.oraclePrices[1], t.priceDiffThreshold[1])) > 0 {
+	if price1.Gt(t.oraclePrices[1]) {
+		diff.Sub(price1, t.oraclePrices[1])
+	} else {
+		diff.Sub(t.oraclePrices[1], price1)
+	}
+	diff.Mul(&diff, big256.BONE)
+	rhs.Mul(t.oraclePrices[1], t.priceDiffThreshold[1])
+	if diff.Gt(&rhs) {
 		return ErrPriceDiffToken1
 	}
 

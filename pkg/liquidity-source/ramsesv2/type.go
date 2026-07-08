@@ -1,0 +1,110 @@
+package ramsesv2
+
+import (
+	"fmt"
+	"math/big"
+	"strconv"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
+)
+
+type Metadata struct {
+	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
+}
+
+type Token struct {
+	Address  string `json:"id"`
+	Name     string `json:"name"`
+	Symbol   string `json:"symbol"`
+	Decimals string `json:"decimals"`
+}
+
+type SubgraphPool struct {
+	ID                 string `json:"id"`
+	FeeTier            string `json:"feeTier"`
+	CreatedAtTimestamp string `json:"createdAtTimestamp"`
+	Token0             Token  `json:"token0"`
+	Token1             Token  `json:"token1"`
+}
+
+type SubgraphPoolTicks struct {
+	ID    string              `json:"id"`
+	Ticks []ticklens.TickResp `json:"ticks"`
+}
+
+type StaticExtra struct {
+	PoolId string `json:"poolId"`
+}
+
+type Tick struct {
+	Index          int      `json:"index"`
+	LiquidityGross *big.Int `json:"liquidityGross"`
+	LiquidityNet   *big.Int `json:"liquidityNet"`
+}
+
+type Slot0 struct {
+	SqrtPriceX96               *big.Int `json:"sqrtPriceX96"`
+	Tick                       *big.Int `json:"tick"`
+	ObservationIndex           uint16   `json:"observationIndex"`
+	ObservationCardinality     uint16   `json:"observationCardinality"`
+	ObservationCardinalityNext uint16   `json:"observationCardinalityNext"`
+	FeeProtocol                uint32   `json:"feeProtocol"`
+	Unlocked                   bool     `json:"unlocked"`
+}
+
+type FetchRPCResult struct {
+	Liquidity   *big.Int
+	Slot0       Slot0
+	FeeTier     int64
+	TickSpacing uint64
+	Reserve0    *big.Int
+	Reserve1    *big.Int
+	BlockNumber uint64
+}
+
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	BoostedLiquidityGross          *big.Int
+	BoostedLiquidityNet            *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
+type TicksRespV3 struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
+func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
+	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
+	if !ok {
+		return Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)
+	}
+
+	liquidityNet, ok := new(big.Int).SetString(tickResp.LiquidityNet, 10)
+	if !ok {
+		return Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", tickResp.TickIdx)
+	}
+
+	tickIdx, err := strconv.Atoi(tickResp.TickIdx)
+	if err != nil {
+		return Tick{}, fmt.Errorf("can not convert tickIdx string to int, tick: %v", tickResp.TickIdx)
+	}
+
+	return Tick{
+		Index:          tickIdx,
+		LiquidityGross: liquidityGross,
+		LiquidityNet:   liquidityNet,
+	}, nil
+}

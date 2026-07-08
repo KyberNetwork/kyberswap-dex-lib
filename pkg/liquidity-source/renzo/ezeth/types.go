@@ -35,5 +35,7 @@ type PoolExtra struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber    uint64 `json:"blockNumber"`
+	RestakeManager string `json:"restakeManager"`
+	EzETH          string `json:"ezEthToken"`
 }

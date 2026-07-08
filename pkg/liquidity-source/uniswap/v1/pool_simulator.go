@@ -64,7 +64,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	amountOut, err := s.getInputPrice(amountIn, reserveIn, reserveOut)
 	if err != nil {
 		return nil, err
-	} else if amountOut.Cmp(reserveOut) > 0 {
+	} else if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	} else if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
@@ -88,7 +88,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow || amountOut.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
-	} else if amountOut.Cmp(reserveOut) > 0 {
+	} else if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -131,6 +131,14 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 // def getInputPrice(input_amount: uint256, input_reserve: uint256, output_reserve: uint256) -> uint256:

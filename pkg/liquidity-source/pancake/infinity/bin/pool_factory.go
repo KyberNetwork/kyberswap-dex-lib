@@ -1,6 +1,7 @@
 package bin
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -78,6 +79,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 		Address:   hexutil.Encode(p.Id[:]),
 		SwapFee:   swapFee,
 		Exchange:  hook.GetExchange(),
+		Type:      DexType,
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
@@ -97,9 +99,9 @@ func currencyToToken(currency common.Address, chainId valueobject.ChainID) strin
 	return hexutil.Encode(currency[:])
 }
 
-func DecodePoolAddress(log ethtypes.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
-		return "", nil
+		return nil, nil
 	}
 
 	switch log.Topics[0] {
@@ -113,8 +115,8 @@ func DecodePoolAddress(log ethtypes.Log) (string, error) {
 		if len(log.Topics) < 2 {
 			break
 		}
-		return hexutil.Encode(log.Topics[1][:]), nil
+		return []string{hexutil.Encode(log.Topics[1][:])}, nil
 	}
 
-	return "", nil
+	return nil, nil
 }

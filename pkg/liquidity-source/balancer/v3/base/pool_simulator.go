@@ -126,25 +126,17 @@ func (p *PoolSimulator) isBufferSwap(indexIn, indexOut int, isTokenInUnderlying,
 func (p *PoolSimulator) handleBufferConversion(
 	index int,
 	amount *uint256.Int,
-	isUnderlyingToken bool,
+	isTokenInUnderlying bool,
 	isExactOut bool,
 ) (convertedAmount *uint256.Int, err error) {
 	if index >= len(p.buffers) || p.buffers[index] == nil {
 		return nil, fmt.Errorf("buffer not found for token at index %d", index)
 	}
 
-	if isUnderlyingToken {
-		if p.buffers[index].MaxDeposit != nil && amount.Gt(p.buffers[index].MaxDeposit) {
-			return nil, shared.ErrMaxDepositExceeded
-		}
-
+	if isTokenInUnderlying {
 		// Converting from underlying to wrapped: underlying -> shares -> wrapped
 		convertedAmount, err = p.buffers[index].ConvertToShares(amount, isExactOut)
 	} else {
-		if p.buffers[index].MaxRedeem != nil && amount.Gt(p.buffers[index].MaxRedeem) {
-			return nil, shared.ErrMaxRedeemExceeded
-		}
-
 		// Converting from wrapped to underlying: wrapped -> assets -> underlying
 		convertedAmount, err = p.buffers[index].ConvertToAssets(amount, isExactOut)
 	}
@@ -210,10 +202,6 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
 		}
 
-		if p.buffers[indexIn].MaxDeposit != nil && amountIn.Gt(p.buffers[indexIn].MaxDeposit) {
-			return nil, shared.ErrMaxDepositExceeded
-		}
-
 		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn, false)
 		if err != nil {
 			return nil, err
@@ -231,13 +219,12 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
+	var amountOutBeforeConvert uint256.Int
+	amountOutBeforeConvert.Set(amountOut)
+
 	if isTokenOutUnderlying {
 		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
-		}
-
-		if p.buffers[indexOut].MaxRedeem != nil && amountOut.Gt(p.buffers[indexOut].MaxRedeem) {
-			return nil, shared.ErrMaxRedeemExceeded
 		}
 
 		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut, false)
@@ -257,7 +244,8 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: totalSwapFee.ToBig(),
 		},
 		SwapInfo: shared.SwapInfo{
-			AggregateFee: aggregateFee.ToBig(),
+			AggregateFee:           aggregateFee.ToBig(),
+			AmountOutBeforeConvert: amountOutBeforeConvert.ToBig(),
 		},
 		Gas: gas,
 	}, nil
@@ -285,7 +273,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	// Check if this is a same-index underlying/wrapped token conversion
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
-		amountIn, err := p.handleBufferConversion(indexOut, amountOut, isTokenOutUnderlying, true)
+		amountIn, err := p.handleBufferConversion(indexOut, amountOut, isTokenInUnderlying, true)
 		if err != nil {
 			return nil, err
 		}
@@ -312,10 +300,6 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
 		}
 
-		if p.buffers[indexOut].MaxDeposit != nil && amountOut.Gt(p.buffers[indexOut].MaxDeposit) {
-			return nil, shared.ErrMaxDepositExceeded
-		}
-
 		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut, true)
 		if err != nil {
 			return nil, err
@@ -332,14 +316,12 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	if err != nil {
 		return nil, err
 	}
+	var amountInBeforeConvert uint256.Int
+	amountInBeforeConvert.Set(amountIn)
 
 	if isTokenInUnderlying {
 		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
-		}
-
-		if p.buffers[indexIn].MaxRedeem != nil && amountIn.Gt(p.buffers[indexIn].MaxRedeem) {
-			return nil, shared.ErrMaxRedeemExceeded
 		}
 
 		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn, true)
@@ -359,7 +341,8 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Amount: totalSwapFee.ToBig(),
 		},
 		SwapInfo: shared.SwapInfo{
-			AggregateFee: aggregateSwapFee.ToBig(),
+			AggregateFee:          aggregateSwapFee.ToBig(),
+			AmountInBeforeConvert: amountInBeforeConvert.ToBig(),
 		},
 		Gas: gas,
 	}, nil
@@ -388,11 +371,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	amountIn := params.TokenAmountIn.Amount
+	amountIn := lo.Ternary(swapInfo.AmountInBeforeConvert != nil,
+		swapInfo.AmountInBeforeConvert,
+		params.TokenAmountIn.Amount,
+	)
 	if isTokenInUnderlying {
 		// If token in is underlying we must use the converted shares amount for the balance update
 		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(
-			uint256.MustFromBig(params.TokenAmountIn.Amount), false)
+			uint256.MustFromBig(amountIn), false)
 		amountIn = convertedAmount.ToBig()
 	}
 
@@ -409,11 +395,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	amountOut := params.TokenAmountOut.Amount
+	amountOut := lo.Ternary(swapInfo.AmountOutBeforeConvert != nil,
+		swapInfo.AmountOutBeforeConvert,
+		params.TokenAmountOut.Amount,
+	)
 	if isTokenOutUnderlying {
-		// If token out is underlying we must use the converted shares amount for the balance update
-		convertedAmount, _ := p.buffers[indexOut].ConvertToShares(
-			uint256.MustFromBig(params.TokenAmountOut.Amount), false)
+		// If token out is underlying we must use the converted assets amount for the balance update
+		convertedAmount, _ := p.buffers[indexOut].ConvertToAssets(
+			uint256.MustFromBig(amountOut), false)
 		amountOut = convertedAmount.ToBig()
 	}
 

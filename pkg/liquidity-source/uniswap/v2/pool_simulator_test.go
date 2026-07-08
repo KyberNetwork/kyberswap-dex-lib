@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -24,6 +25,11 @@ var (
 	poolSim     = lo.Must(NewPoolSimulator(poolEntity))
 )
 
+func TestNewPoolSimulator_ExtraWithoutTaxInfo(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, tokentax.Handler{}, poolSim.taxHandler)
+}
+
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
@@ -32,6 +38,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		tokenAmountIn     pool.TokenAmount
 		tokenOut          string
 		expectedAmountOut *big.Int
+		expectedSwapInfo  bool
 		expectedError     error
 	}{
 		{
@@ -49,6 +56,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("10066716097576")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
+				taxHandler:   tokentax.Handler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("125224746"),
@@ -74,6 +82,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					uint256.MustFromDecimal("54150601005")},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
+				taxHandler:   tokentax.Handler{},
 			},
 			tokenAmountIn: pool.TokenAmount{
 				Amount: bignumber.NewBig("124570062"),
@@ -81,6 +90,45 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			tokenOut:          "0x32a7c02e79c4ea1008dd6564b35f131428673c41",
 			expectedAmountOut: bignumber.NewBig("161006857684289764421"),
+			expectedError:     nil,
+		},
+		{
+			// VIRTUAL => REPPO with 1% buy tax on REPPO
+			// Verified against on-chain tx output: 31404648971357222354
+			name: "[swap0to1] token-tax buy: VIRTUAL=>REPPO exact match",
+			poolSimulator: PoolSimulator{
+				Pool: pool.Pool{
+					Info: pool.PoolInfo{
+						Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
+						Tokens: []string{
+							"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+							"0xff8104251e7761163fac3211ef5583fb3f8583d6",
+						},
+						Reserves: []*big.Int{
+							bignumber.NewBig("64759685176877841920"),
+							bignumber.NewBig("2092201468546951388637"),
+						},
+					},
+				},
+				reserves: []*uint256.Int{
+					uint256.MustFromDecimal("64759685176877841920"),
+					uint256.MustFromDecimal("2092201468546951388637"),
+				},
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
+				taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+					Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+					BuyTaxBps:  uint256.NewInt(100),
+					SellTaxBps: uint256.NewInt(100),
+				}),
+			},
+			tokenAmountIn: pool.TokenAmount{
+				Amount: bignumber.NewBig("1000000000000000000"),
+				Token:  "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+			},
+			tokenOut:          "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			expectedAmountOut: bignumber.NewBig("31404648971357222354"),
+			expectedSwapInfo:  true,
 			expectedError:     nil,
 		},
 	}
@@ -99,6 +147,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				assert.ErrorIs(t, tc.expectedError, err)
 			} else {
 				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
+				if tc.expectedSwapInfo {
+					assert.IsType(t, SwapInfo{}, result.SwapInfo)
+				} else {
+					assert.Nil(t, result.SwapInfo)
+				}
 			}
 		})
 	}
@@ -254,6 +307,104 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			assert.Equal(t, tc.expectedReserves[1], tc.poolSimulator.reserves[1])
 		})
 	}
+}
+
+// newTaxPoolSim builds the VIRTUAL/agent tax pool used to verify tax-aware reserve updates.
+// token0 = VIRTUAL (no tax), token1 = agent token (0xff81..., buy=sell=100bp).
+func newTaxPoolSim() *PoolSimulator {
+	return &PoolSimulator{
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
+			Tokens: []string{
+				"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+				"0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			},
+		}},
+		reserves: []*uint256.Int{
+			uint256.MustFromDecimal("64759685176877841920"),
+			uint256.MustFromDecimal("2092201468546951388637"),
+		},
+		fee:          number.NewUint256("3"),
+		feePrecision: number.NewUint256("1000"),
+		taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+			Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			BuyTaxBps:  uint256.NewInt(100),
+			SellTaxBps: uint256.NewInt(100),
+		}),
+	}
+}
+
+// TestPoolSimulator_UpdateBalance_Tax verifies that reserves move by the pair-side amounts:
+// the pair receives effectiveAmountIn (after sell tax) and sends grossAmountOut (before buy tax).
+func TestPoolSimulator_UpdateBalance_Tax(t *testing.T) {
+	t.Parallel()
+
+	const (
+		virtual = "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"
+		agent   = "0xff8104251e7761163fac3211ef5583fb3f8583d6"
+	)
+
+	t.Run("sell agent: reserve grows by effectiveAmountIn, not full amountIn", func(t *testing.T) {
+		s := newTaxPoolSim()
+		reserveAgent0 := new(uint256.Int).Set(s.reserves[1])
+		reserveVirtual0 := new(uint256.Int).Set(s.reserves[0])
+
+		amountIn := bignumber.NewBig("1000000000000000000") // 1e18 agent
+		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: agent, Amount: amountIn},
+			TokenOut:      virtual,
+		})
+		assert.NoError(t, err)
+
+		swapInfo := res.SwapInfo.(SwapInfo)
+		// sell tax 100bp: effective = 1e18 - floor(1e18*100/10000) = 0.99e18
+		assert.Equal(t, bignumber.NewBig("990000000000000000"), swapInfo.EffectiveAmountIn)
+
+		s.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: agent, Amount: amountIn},
+			TokenAmountOut: pool.TokenAmount{Token: virtual, Amount: res.TokenAmountOut.Amount},
+			SwapInfo:       swapInfo,
+		})
+
+		// agent reserve += effectiveAmountIn (0.99e18), NOT full 1e18
+		wantAgent := new(uint256.Int).Add(reserveAgent0, uint256.MustFromDecimal("990000000000000000"))
+		assert.Equal(t, wantAgent, s.reserves[1])
+		// virtual reserve -= grossAmountOut (virtual is untaxed, gross == net)
+		wantVirtual := new(uint256.Int).Sub(reserveVirtual0, uint256.MustFromBig(swapInfo.GrossAmountOut))
+		assert.Equal(t, wantVirtual, s.reserves[0])
+	})
+
+	t.Run("buy agent: reserve shrinks by grossAmountOut, not user net out", func(t *testing.T) {
+		s := newTaxPoolSim()
+		reserveAgent0 := new(uint256.Int).Set(s.reserves[1])
+		reserveVirtual0 := new(uint256.Int).Set(s.reserves[0])
+
+		amountIn := bignumber.NewBig("1000000000000000000") // 1e18 virtual
+		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: virtual, Amount: amountIn},
+			TokenOut:      agent,
+		})
+		assert.NoError(t, err)
+
+		swapInfo := res.SwapInfo.(SwapInfo)
+		// virtual has no sell tax: effective == full amountIn
+		assert.Equal(t, amountIn, swapInfo.EffectiveAmountIn)
+		// buy tax 100bp makes user net < pair gross
+		assert.True(t, swapInfo.GrossAmountOut.Cmp(res.TokenAmountOut.Amount) > 0)
+
+		s.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: virtual, Amount: amountIn},
+			TokenAmountOut: pool.TokenAmount{Token: agent, Amount: res.TokenAmountOut.Amount},
+			SwapInfo:       swapInfo,
+		})
+
+		// virtual reserve += full amountIn
+		wantVirtual := new(uint256.Int).Add(reserveVirtual0, uint256.MustFromBig(amountIn))
+		assert.Equal(t, wantVirtual, s.reserves[0])
+		// agent reserve -= grossAmountOut (pair sends gross, not the user's net amount)
+		wantAgent := new(uint256.Int).Sub(reserveAgent0, uint256.MustFromBig(swapInfo.GrossAmountOut))
+		assert.Equal(t, wantAgent, s.reserves[1])
+	})
 }
 
 func TestPoolSimulator_getAmountOut(t *testing.T) {

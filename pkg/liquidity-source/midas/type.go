@@ -2,9 +2,9 @@ package midas
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 )
@@ -195,7 +195,7 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 	vault := &VaultState{
 		MToken: mToken,
 		PaymentTokens: lo.Map(v.PaymentTokens, func(token common.Address, _ int) string {
-			return strings.ToLower(token.String())
+			return hexutil.Encode(token[:])
 		}),
 		Paused:            v.Paused,
 		FnPaused:          v.FnPaused,
@@ -210,9 +210,9 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 				Stable:    cfg.Stable,
 			}
 		}),
-		MTokenRate: uint256.MustFromBig(v.MTokenRate),
+		MTokenRate: lo.Ternary(v.MTokenRate == nil, new(uint256.Int), uint256.MustFromBig(v.MTokenRate)),
 		TokenRates: lo.Map(v.TokenRates, func(rate *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(rate)
+			return lo.Ternary(rate == nil, new(uint256.Int), uint256.MustFromBig(rate))
 		}),
 		WaivedFeeRestriction: v.WaivedFeeRestriction,
 		MTokenDecimals:       v.MTokenDecimals,

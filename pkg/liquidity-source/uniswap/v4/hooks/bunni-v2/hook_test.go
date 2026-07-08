@@ -31,7 +31,7 @@ func TestHookV121_OracleUniGeo_Track(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
+	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 
 	p := &entity.Pool{
@@ -51,7 +51,7 @@ func TestHookV121_OracleUniGeo_Track(t *testing.T) {
 		ChainID: 1,
 	}
 
-	hookExtra := ""
+	var hookExtra []byte
 
 	h := NewHook(&uniswapv4.HookParam{
 		Cfg:         cfg,
@@ -77,7 +77,7 @@ func TestHookV121_Track(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
+	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 
 	p := &entity.Pool{
@@ -97,7 +97,7 @@ func TestHookV121_Track(t *testing.T) {
 		ChainID: 1,
 	}
 
-	hookExtra := ""
+	var hookExtra []byte
 
 	h := NewHook(&uniswapv4.HookParam{
 		Cfg:         cfg,
@@ -151,7 +151,7 @@ func TestHookV120_Track(t *testing.T) {
 		ChainID: 130,
 	}
 
-	hookExtra := ""
+	var hookExtra []byte
 
 	h := NewHook(&uniswapv4.HookParam{
 		Cfg:         cfg,
@@ -334,7 +334,7 @@ func Test_Quoter(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
+	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 
 	sender := common.HexToAddress("0x7b42Ed932f26509465F7cE3FAF76FfCe1275312f")

@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -163,13 +163,13 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "maxDeposit",
-			Params: []any{eth.AddressZero},
+			Params: []any{valueobject.AddrZero},
 		}, []any{&maxDeposit}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "maxRedeem",
-			Params: []any{eth.AddressZero},
+			Params: []any{valueobject.AddrZero},
 		}, []any{&maxRedeem})
 
 	_, err = calls.Aggregate()

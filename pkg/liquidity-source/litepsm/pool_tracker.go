@@ -67,7 +67,7 @@ func (t *PoolTracker) getNewPoolState(
 			Info("finished GetNewPoolState")
 	}(time.Now())
 
-	reserves, extra, err := t.fetchRPCData(ctx, &pool, overrides)
+	reserves, extra, blockNumber, err := t.fetchRPCData(ctx, &pool, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"exchange": pool.Exchange,
@@ -88,6 +88,14 @@ func (t *PoolTracker) getNewPoolState(
 	pool.Reserves = []string{reserves[0].String(), reserves[1].String()}
 	pool.Extra = string(extraBytes)
 	pool.Timestamp = time.Now().Unix()
+	// Stamp the block the state was read at. PSM wrapper pools emit no swap event under
+	// their own address, so the log-driven update path never sets BlockNumber for them;
+	// without this an interval refresh would leave BlockNumber at 0 and downstream
+	// staleness guards would treat the pool as inactive. When this update IS log-driven,
+	// the caller overwrites BlockNumber with the triggering log's block, which is finer.
+	if blockNumber > 0 {
+		pool.BlockNumber = blockNumber
+	}
 	return pool, nil
 }
 
@@ -95,14 +103,14 @@ func (t *PoolTracker) fetchRPCData(
 	ctx context.Context,
 	pool *entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) ([]*big.Int, *Extra, error) {
+) ([]*big.Int, *Extra, uint64, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"exchange": pool.Exchange,
 			"error":    err,
 		}).Error("can not unmarshal static extra")
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
 	psm := common.HexToAddress(pool.Address)
@@ -134,12 +142,18 @@ func (t *PoolTracker) fetchRPCData(
 			Params: []any{*lo.CoalesceOrEmpty(staticExtra.GemJoin, &psm)},
 		}, []any{&reserves[0]})
 	}
-	if _, err := req.Aggregate(); err != nil {
+	resp, err := req.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": DexTypeLitePSM,
 			"error": err,
 		}).Error("[fetchRPCData] eth rpc call error")
-		return nil, nil, err
+		return nil, nil, 0, err
+	}
+
+	var blockNumber uint64
+	if resp.BlockNumber != nil {
+		blockNumber = resp.BlockNumber.Uint64()
 	}
 
 	if staticExtra.IsMint {
@@ -153,5 +167,5 @@ func (t *PoolTracker) fetchRPCData(
 	if tOut.Sign() > 0 {
 		extra.TOut = big256.FromBig(tOut)
 	}
-	return reserves, &extra, nil
+	return reserves, &extra, blockNumber, nil
 }

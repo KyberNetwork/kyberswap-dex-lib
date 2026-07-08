@@ -14,6 +14,10 @@ type (
 		BasePoolMap map[string]IPoolSimulator
 		ChainID     valueobject.ChainID
 		EthClient   ethereum.ContractCaller
+		Opts        FactoryOpts
+	}
+	FactoryOpts struct {
+		StaleCheck bool // whether to reject stale pools or not - route finding sets this true while indexing false
 	}
 	FactoryFn func(FactoryParams) (IPoolSimulator, error)
 )

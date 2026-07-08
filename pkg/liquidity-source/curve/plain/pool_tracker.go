@@ -106,14 +106,13 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	req.SetFrom(nonZeroAddr) // poolMethodStoredRates behaves differently for tx.origin == 0
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    curvePlainABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-	}, []any{&initialA}).AddCall(&ethrpc.Call{
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
+		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
+		AddCall(&ethrpc.Call{
+			ABI:    curvePlainABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
@@ -250,7 +249,7 @@ func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numT
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if overflow := extra.RateMultipliers[i].SetFromBig(customRates[i]); overflow {
 			lg.WithFields(logger.Fields{"storedRates": customRates}).Error("invalid stored rates")
 			return ErrInvalidStoredRates

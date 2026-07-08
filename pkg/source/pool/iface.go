@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type IPoolsListUpdater interface {
@@ -19,10 +20,6 @@ type IPoolsListUpdater interface {
 	// @return []byte the new metadataBytes for the next round
 	// @return error if there is any error
 	GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error)
-}
-
-type IPoolsListUpdaterWithDependencies interface {
-	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
 }
 
 type GetNewPoolStateParams struct {
@@ -46,6 +43,7 @@ type IPoolTracker interface {
 
 type IPoolTrackerWithDependencies interface {
 	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
+	SetDependenciesStored(p *entity.Pool, isStored bool) error
 }
 
 type IPoolSimulator interface {
@@ -83,6 +81,11 @@ type IMetaPoolSimulator interface {
 	IPoolSimulator
 	GetBasePools() []IPoolSimulator      // get base pools
 	SetBasePool(basePool IPoolSimulator) // set base pool
+}
+
+type IPoolSupportNativeSwap interface {
+	SwapReceiveNativeIn(tokenIn, tokenOut string, chainId valueobject.ChainID) bool
+	SwapReturnNativeOut(tokenIn, tokenOut string, chainId valueobject.ChainID) bool
 }
 
 type (
@@ -124,7 +127,6 @@ type IPoolRFQ interface {
 
 type IPoolDecoder interface {
 	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
-	GetKeys(ctx context.Context) ([]string, error)
 }
 
 type ITBPoolTracker[T any] interface {
@@ -132,14 +134,15 @@ type ITBPoolTracker[T any] interface {
 }
 
 // ITicksBasedPoolTracker fetches ticks for pool from Swap, Mint and Burn events.
+// GetNewPoolState (from IPoolTracker) applies log-based updates using params.Logs and params.BlockHeaders.
+// BootstrapPoolState performs full RPC/subgraph refresh (e.g. when params have no logs).
 type ITicksBasedPoolTracker interface {
-	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
-	GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
-		blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error)
+	IPoolTracker
+	BootstrapPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 	FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error)
 }
 
 type IPoolFactoryDecoder interface {
 	DecodePoolCreated(event types.Log) (*entity.Pool, error)
-	IsEventSupported(event common.Hash) bool
+	IsEventSupported(hash common.Hash) bool
 }

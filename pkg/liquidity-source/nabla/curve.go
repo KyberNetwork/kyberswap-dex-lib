@@ -3,7 +3,7 @@ package nabla
 import (
 	"github.com/KyberNetwork/int256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/int256"
+	i256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/int256"
 )
 
 type Curve struct {

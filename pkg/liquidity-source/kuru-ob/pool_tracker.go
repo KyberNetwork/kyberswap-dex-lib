@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -81,7 +82,7 @@ func (t *PoolTracker) GetNewPoolState(
 				price = price / pricePrecision
 			} else {
 				price = pricePrecision / price
-				size *= price
+				size /= price
 			}
 			offset += 64
 			book = append(book, orderbook.Level{size, price})
@@ -119,7 +120,7 @@ func (t *PoolTracker) GetNewPoolState(
 					price = price / 1e18
 				} else {
 					price = 1e18 / price
-					sizeF *= price
+					sizeF /= price
 				}
 				ammLevels[from] = append(ammLevels[from], orderbook.Level{sizeF, price})
 				if from == 0 {
@@ -175,6 +176,7 @@ func (t *PoolTracker) GetNewPoolState(
 		reserve1 += level.Size() * level.Price()
 	}
 
+	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{strconv.FormatFloat(reserve0*math.Pow10(int(p.Tokens[0].Decimals)), 'f', 0, 64),
 		strconv.FormatFloat(reserve1*math.Pow10(int(p.Tokens[1].Decimals)), 'f', 0, 64)}
 	p.Extra = string(extraBytes)

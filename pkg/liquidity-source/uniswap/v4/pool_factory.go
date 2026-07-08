@@ -1,7 +1,7 @@
 package uniswapv4
 
 import (
-	"strings"
+	"context"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -13,7 +13,6 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -47,9 +46,9 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 	return ok
 }
 
-func DecodePoolAddress(log ethtypes.Log) (string, error) {
-	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
-		return "", nil
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
+	if len(log.Topics) == 0 || valueobject.IsZeroAddress(log.Address) {
+		return nil, nil
 	}
 
 	switch log.Topics[0] {
@@ -61,14 +60,14 @@ func DecodePoolAddress(log ethtypes.Log) (string, error) {
 		if len(log.Topics) < 2 {
 			break
 		}
-		return hexutil.Encode(log.Topics[1][:]), nil
+		return []string{hexutil.Encode(log.Topics[1][:])}, nil
 	}
 
-	return "", nil
+	return nil, nil
 }
 
 func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr uint64) (*entity.Pool, error) {
-	chainId := valueobject.ChainID(f.cfg.ChainID)
+	chainId := f.cfg.ChainID
 	hook, _ := GetHook(p.Hooks, &HookParam{
 		Cfg: f.cfg,
 	})
@@ -84,7 +83,7 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 		},
 	})
 	staticExtra := StaticExtra{
-		IsNative:               [2]bool{eth.IsZeroAddress(p.Currency0), eth.IsZeroAddress(p.Currency1)},
+		IsNative:               [2]bool{valueobject.IsZeroAddress(p.Currency0), valueobject.IsZeroAddress(p.Currency1)},
 		Fee:                    uint32(p.Fee.Uint64()),
 		TickSpacing:            int32(p.TickSpacing.Int64()),
 		HooksAddress:           p.Hooks,
@@ -102,18 +101,11 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
-			{Address: currencyToToken(p.Currency0, chainId), Swappable: true},
-			{Address: currencyToToken(p.Currency1, chainId), Swappable: true},
+			{Address: valueobject.ZeroToWrappedLower(p.Currency0.Hex(), chainId), Swappable: true},
+			{Address: valueobject.ZeroToWrappedLower(p.Currency1.Hex(), chainId), Swappable: true},
 		},
 		Extra:       string(extraBytes),
 		StaticExtra: string(staticExtraBytes),
 		BlockNumber: blockNbr,
 	}, nil
-}
-
-func currencyToToken(currency common.Address, chainId valueobject.ChainID) string {
-	if eth.IsZeroAddress(currency) {
-		return strings.ToLower(valueobject.WrappedNativeMap[chainId])
-	}
-	return hexutil.Encode(currency[:])
 }

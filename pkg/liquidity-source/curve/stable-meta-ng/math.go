@@ -88,7 +88,7 @@ func (t *PoolSimulator) GetDyUnderlying(
 		// x = self._base_calc_token_amount(
 		//   dx, base_i, base_n_coins, BASE_POOL, True
 		// ) * rates[1] / PRECISION
-		for k := 0; k < baseNCoins; k += 1 {
+		for k := range baseNCoins {
 			addLiquidityInfo.Amounts[k].Clear()
 		}
 		addLiquidityInfo.Amounts[base_i].Set(_dx)
@@ -172,14 +172,14 @@ func (t *PoolSimulator) GetDxUnderlying(
 	//    2. get_dx on metapool for i = 0, and j = 1 (base lp token) with amt calculated in (1).
 	if output_is_base_coin {
 		baseInputs := make([]uint256.Int, baseNCoins)
-		for k := 0; k < baseNCoins; k++ {
+		for k := range baseNCoins {
 			baseInputs[k].Clear()
 		}
 		baseInputs[base_j].Set(dy)
 
 		var lpAmountBurnt uint256.Int
 		feeAmounts := make([]uint256.Int, baseNCoins)
-		for k := 0; k < baseNCoins; k++ {
+		for k := range baseNCoins {
 			feeAmounts[k].Clear()
 		}
 
@@ -231,7 +231,7 @@ func (t *PoolSimulator) GetDxUnderlying(
 	metaSwapInfo.AdminFee.Set(&adminFee)
 
 	// update addLiquidityInfo
-	for k := 0; k < baseNCoins; k++ {
+	for k := range baseNCoins {
 		addLiquidityInfo.Amounts[k].Clear()
 		addLiquidityInfo.FeeAmounts[k].Clear()
 	}

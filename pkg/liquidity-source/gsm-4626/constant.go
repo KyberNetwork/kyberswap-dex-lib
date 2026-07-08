@@ -16,6 +16,7 @@ const (
 	gsmMethodGetAvailableLiquidity = "getAvailableLiquidity"
 	gsmMethodGetExposureCap        = "getExposureCap"
 	gsmMethodGetFeeStrategy        = "getFeeStrategy"
+	gsmMethodGetGhoReserve         = "getGhoReserve"
 
 	priceStrategyMethodPriceRatio = "PRICE_RATIO"
 

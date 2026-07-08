@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -23,8 +24,6 @@ type PoolSimulator struct {
 
 	precisionMultipliers []uint256.Int
 	Reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
-
-	tweakedPrice bool
 
 	Extra       Extra
 	StaticExtra StaticExtra
@@ -59,7 +58,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim.Reserves = make([]uint256.Int, numTokens)
 	sim.precisionMultipliers = make([]uint256.Int, numTokens)
 
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 
 		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])
@@ -214,14 +213,11 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], outputAmount)
 	t.Reserves[outputIndex] = *new(uint256.Int).Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
-	if !t.tweakedPrice {
-		t.tweakedPrice = true
-		t.Extra.LastPrices = swapInfo.LastPrices[:]
-		t.Extra.PriceScale = swapInfo.PriceScale[:]
-		t.Extra.XcpProfit = &swapInfo.XcpProfit
-		t.Extra.D = &swapInfo.D
-		t.Extra.VirtualPrice = &swapInfo.VirtualPrice
-	}
+	t.Extra.LastPrices = swapInfo.LastPrices[:]
+	t.Extra.PriceScale = swapInfo.PriceScale[:]
+	t.Extra.XcpProfit = &swapInfo.XcpProfit
+	t.Extra.D = &swapInfo.D
+	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
@@ -237,4 +233,14 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		meta.TokenOutIsNative = &t.StaticExtra.IsNativeCoins[toId]
 	}
 	return meta
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
+	return meta.TokenInIsNative != nil && *meta.TokenInIsNative
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
+	return meta.TokenOutIsNative != nil && *meta.TokenOutIsNative
 }

@@ -3,6 +3,7 @@ package meta
 import (
 	"fmt"
 	"math/big"
+	"slices"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -124,6 +125,18 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	}, nil
 }
 
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.Reserves = slices.Clone(t.Reserves)
+	if t.basePool != nil {
+		if clonedBase, ok := t.basePool.CloneState().(ICurveBasePool); ok {
+			cloned.basePool = clonedBase
+		}
+	}
+	return &cloned
+}
+
 func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
 	return []pool.IPoolSimulator{t.basePool}
 }
@@ -168,6 +181,9 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Gas: t.gas.Exchange,
 			}, nil
 		}
+		// Both tokens are direct meta pool tokens; exchange_underlying does not apply.
+		// Do not fall through — that path misroutes idx==maxCoin as a base pool token.
+		return &pool.CalcAmountOutResult{Gas: t.gas.Exchange}, fmt.Errorf("zero output for meta exchange from index %v to %v", idxIn, idxOut)
 	}
 	// check exchange_underlying
 	var baseInputIndex = t.basePool.GetTokenIndex(tokenAmountIn.Token)

@@ -5,9 +5,7 @@ import (
 	"os"
 	"slices"
 	"testing"
-	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -19,13 +17,8 @@ import (
 )
 
 var MainnetConfig = Config{
-	DexId:   DexType,
-	ChainId: valueobject.ChainIDEthereum,
-	HTTPConfig: HTTPConfig{
-		BaseURL:    "https://eth-mainnet-api.ekubo.org",
-		Timeout:    durationjson.Duration{Duration: 10 * time.Second},
-		RetryCount: 1,
-	},
+	DexId:            DexType,
+	ChainId:          valueobject.ChainIDEthereum,
 	Core:             common.HexToAddress("0xe0e0e08A6A4b9Dc7bD67BCB7aadE5cF48157d444"),
 	Oracle:           common.HexToAddress("0x51d02a5948496a67827242eabc5725531342527c"),
 	Twamm:            common.HexToAddress("0xd4279c050da1f5c5b2830558c7a08e57e12b54ec"),
@@ -33,6 +26,18 @@ var MainnetConfig = Config{
 	BasicDataFetcher: "0x91cB8a896cAF5e60b1F7C4818730543f849B408c",
 	TwammDataFetcher: "0x8C4C1F26A9F26372b88f418A939044773eE5dC01",
 	Router:           "0x9995855C00494d039aB6792f18e368e530DFf931",
+}
+
+func TestPoolListUpdaterInitialized(t *testing.T) {
+	t.Parallel()
+
+	plUpdater := NewPoolListUpdater(&MainnetConfig, nil)
+	plUpdater.initialized = true
+
+	newPools, metadataBytes, err := plUpdater.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	require.Nil(t, newPools)
+	require.Nil(t, metadataBytes)
 }
 
 func TestPoolListUpdater(t *testing.T) {

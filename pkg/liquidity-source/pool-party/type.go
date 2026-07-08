@@ -23,12 +23,13 @@ type Extra struct {
 }
 
 type SubgraphPool struct {
-	ID                    string `json:"id"`
-	TokenAddress          string `json:"tokenAddress"`
-	TokenSymbol           string `json:"tokenSymbol"`
-	TokenDecimals         int    `json:"tokenDecimals"`
-	IsVisible             bool   `json:"isVisible"`
-	PoolStatus            string `json:"poolStatus"`
-	PublicAmountAvailable string `json:"publicAmountAvailable"`
-	CreatedAtTimestamp    string `json:"createdAtTimestamp"`
+	ID                    string   `json:"id"`
+	PoolAddress           string   `json:"poolAddress"`
+	TokenAddress          string   `json:"tokenAddress"`
+	TokenSymbol           string   `json:"tokenSymbol"`
+	TokenDecimals         int      `json:"tokenDecimals"`
+	IsVisible             bool     `json:"isVisible"`
+	PoolStatus            string   `json:"poolStatus"`
+	PublicAmountAvailable *big.Int `json:"publicAmountAvailable"`
+	CreatedAtTimestamp    *big.Int `json:"createdAtTimestamp"`
 }

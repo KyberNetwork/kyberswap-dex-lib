@@ -65,35 +65,29 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
+	error) {
 	var (
 		aList          = make([]*big.Int, len(curvePools))
 		aPreciseList   = make([]*big.Int, len(curvePools))
 		feeMultipliers = make([]*big.Int, len(curvePools))
 	)
 
-	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
 
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodA,
-			Params: nil,
-		}, []any{&aList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
 			ABI:    curveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
-			Params: nil,
-		}, []any{&aPreciseList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
 			ABI:    curveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodOffpegFeeMul,
-			Params: nil,
 		}, []any{&feeMultipliers[i]})
 	}
 
@@ -113,37 +107,24 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
-		invalidDecimal := false
 		isNativeCoins := make([]bool, 0, len(curvePool.Coins))
 		for _, c := range curvePool.Coins {
-			dec := c.GetDecimals()
-			if dec == 0 {
-				invalidDecimal = true
-				break
-			}
-			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address:   strings.ToLower(c.Address),
-				Symbol:    c.Symbol,
-				Decimals:  dec,
-				Swappable: true,
-			})
+			poolTokens = append(poolTokens, &entity.PoolToken{Address: strings.ToLower(c.Address), Swappable: true})
 			isNativeCoins = append(isNativeCoins, c.IsOrgNative)
 			reserves = append(reserves, "0")
-		}
-		if invalidDecimal {
-			lg.Warn("ignore pool with invalid coin decimal")
-			continue
 		}
 		reserves = append(reserves, "0")
 
 		var staticExtra = StaticExtra{
-			IsNativeCoins:    isNativeCoins,
-			BasePool:         strings.ToLower(curvePool.BasePoolAddress),
-			UnderlyingTokens: lo.Map(curvePool.UnderlyingCoins, func(c shared.CurveCoin, _ int) string { return strings.ToLower(c.Address) }),
+			IsNativeCoins: isNativeCoins,
+			BasePool:      strings.ToLower(curvePool.BasePoolAddress),
+			UnderlyingTokens: lo.Map(curvePool.UnderlyingCoins,
+				func(c shared.CurveCoin, _ int) string { return strings.ToLower(c.Address) }),
 		}
 
 		if aList[i] != nil && aPreciseList[i] != nil {
-			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]), number.SetFromBig(aList[i]))
+			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]),
+				number.SetFromBig(aList[i]))
 		} else if aList[i] != nil {
 			staticExtra.APrecision = uint256.NewInt(1)
 		} else {

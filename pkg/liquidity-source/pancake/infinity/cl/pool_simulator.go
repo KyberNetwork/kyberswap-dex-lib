@@ -3,9 +3,7 @@ package cl
 import (
 	"fmt"
 	"math/big"
-	"strings"
 
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
@@ -13,7 +11,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -41,7 +38,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: int(chainID)},
+		Cfg:       &Config{ChainID: int(chainID), DexID: entityPool.Exchange},
 		Pool:      &entityPool,
 		HookExtra: extra.HookExtra,
 	})
@@ -49,17 +46,15 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, shared.ErrUnsupportedHook
 	}
 
-	var allowEmptyTicks bool
+	allowEmptyTicks := false
+	if hook != nil {
+		allowEmptyTicks = hook.AllowEmptyTicks()
+	}
 
-	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256,
-		allowEmptyTicks)
+	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, extra.ExtraTickU256,
+		uniswapv3.SimulatorConfig{AllowEmptyTicks: allowEmptyTicks})
 	if err != nil {
 		return nil, err
-	}
-	if entityPool.Tokens[0].Address > entityPool.Tokens[1].Address {
-		// restore original order after V3Pool constructor forced sorting
-		v3Pool := v3PoolSimulator.V3Pool
-		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
 	}
 	v3PoolSimulator.Gas = defaultGas
 
@@ -126,7 +121,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-		ExactIn:         true,
+		CalcOut:         true,
 		ZeroForOne:      zeroForOne,
 		AmountSpecified: amountIn,
 	}); err != nil {
@@ -149,7 +144,23 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		poolSim = &cloned
 	}
 
-	if swapResult, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	if amountIn.Sign() == 0 {
+		// Hook consumed the full input — math is fully overridden by the
+		// hook's BeforeSwap delta. Skip the v3 tick simulator (which would
+		// error on amountIn=0 for pools with no real CL liquidity, e.g.
+		// curve-style stable hooks). The deferred handler subtracts
+		// DeltaUnspecified (negative for full overrides) from the zero
+		// output to produce the hook-provided amountOut.
+		//
+		// PoolSwapInfo carries nil tick fields so UpdateBalance can detect
+		// "v3 was skipped" and avoid touching v3 tick state.
+		swapResult = &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: new(big.Int)},
+			Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: new(big.Int)},
+			Gas:            0,
+			SwapInfo:       PoolSwapInfo{}, // all-nil → UpdateBalance skips v3
+		}
+	} else if swapResult, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn,
@@ -161,7 +172,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 	afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 		BeforeSwapParams: &BeforeSwapParams{
-			ExactIn:         true,
+			CalcOut:         true,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountIn,
 		},
@@ -230,7 +241,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	amountOut := new(big.Int).Set(param.TokenAmountOut.Amount)
 
 	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
-		ExactIn:         false,
+		CalcOut:         false,
 		ZeroForOne:      zeroForOne,
 		AmountSpecified: amountOut,
 	}); err != nil {
@@ -253,7 +264,18 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		poolSim = &cloned
 	}
 
-	if swapResult, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
+	if amountOut.Sign() == 0 {
+		// Hook fully provides the output (full math override). See the matching
+		// short-circuit in CalcAmountOut above for the rationale. The deferred
+		// handler adds DeltaUnspecified (positive for full overrides) to the
+		// zero input to produce the hook-provided amountIn.
+		swapResult = &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: new(big.Int)},
+			Fee:           &pool.TokenAmount{Token: param.TokenIn, Amount: new(big.Int)},
+			Gas:           0,
+			SwapInfo:      PoolSwapInfo{},
+		}
+	} else if swapResult, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut,
@@ -265,7 +287,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 
 	if afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
 		BeforeSwapParams: &BeforeSwapParams{
-			ExactIn:         false,
+			CalcOut:         false,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountOut,
 		},
@@ -309,22 +331,21 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if p.hook != nil {
 		p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
 	}
+	if v4SwapInfo.NextStateSqrtRatioX96 == nil {
+		return
+	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
 	p.PoolSimulator.UpdateBalance(params)
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	tokenInAddress, tokenOutAddress := eth.AddressZero, eth.AddressZero
+	tokenInAddress, tokenOutAddress := valueobject.AddrZero, valueobject.AddrZero
 	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenIn)] {
 		tokenInAddress = common.HexToAddress(tokenIn)
 	}
 	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOut)] {
 		tokenOutAddress = common.HexToAddress(tokenOut)
 	}
-
-	zeroForOne := strings.EqualFold(tokenIn, p.GetTokens()[0])
-	var priceLimit v3Utils.Uint160
-	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
 
 	return PoolMetaInfo{
 		Vault:       p.staticExtra.VaultAddress,
@@ -336,7 +357,17 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Parameters:  p.staticExtra.Parameters,
 		HookAddress: p.staticExtra.HooksAddress,
 		HookData:    []byte{},
-		PriceLimit:  &priceLimit,
+		PriceLimit:  p.GetSqrtPriceLimit(tokenIn == p.GetTokens()[0]),
 		SwapFee:     p.Info.SwapFee.Uint64(),
 	}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
+	return meta.TokenIn == valueobject.AddrZero
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
+	return meta.TokenOut == valueobject.AddrZero
 }

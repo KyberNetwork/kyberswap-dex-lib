@@ -26,10 +26,10 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 
 	pt := &PoolTracker{
 		config:        &Config{DexID: DexType, StateViewAddress: "0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227"},
-		ethrpcClient:  ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+		ethrpcClient:  ethrpc.New("https://ethereum-rpc.kyberswap.com").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		graphqlClient: graphqlpkg.NewClient(os.ExpandEnv("https://gateway.thegraph.com/api/$THEGRAPH_API_KEY/subgraphs/id/DiYPVdygkfjDWhbxGSqAQxwBKmfKnkWQojqeM2rkLb3G")),
 	}
-	got, err := pt.GetNewPoolState(context.Background(),
+	got, err := pt.BootstrapPoolState(context.Background(),
 		entity.Pool{Address: "0x6b77c5119ea25b4b46ec79166075eed433bf8ad4bfe907490bb06305e3c0012a",
 			StaticExtra: `{"tS":200}`},
 		pool.GetNewPoolStateParams{})
@@ -49,7 +49,7 @@ func TestPoolTracker_GetTickFromStateView(t *testing.T) {
 			StateViewAddress:       "0x76fd297e2d437cd7f76d50f01afe6160f86e9990",
 			FetchTickFromStateView: true,
 		},
-		ethrpcClient: ethrpc.New("https://arbitrum.kyberengineering.io").
+		ethrpcClient: ethrpc.New("https://arbitrum-rpc.kyberswap.com").
 			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	}
 

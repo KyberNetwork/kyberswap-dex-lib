@@ -3,6 +3,8 @@ package deli
 import (
 	"math/big"
 
+	"github.com/samber/lo"
+
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -27,12 +29,12 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, HookAddresses...)
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	deltaSpecific := bignumber.ZeroBI
+	deltaSpecified := bignumber.ZeroBI
 	if params.ZeroForOne == h.isWBTLToken0 {
-		deltaSpecific = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, h.FeeTier, FeeDenom)
+		deltaSpecified = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, h.FeeTier, FeeDenom)
 	}
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   deltaSpecific,
+		DeltaSpecified:   deltaSpecified,
 		DeltaUnspecified: bignumber.ZeroBI,
 	}, nil
 }
@@ -40,7 +42,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	hookFeeAmt := bignumber.ZeroBI
 	if params.ZeroForOne != h.isWBTLToken0 {
-		hookFeeAmt = bignumber.MulDivDown(new(big.Int), params.AmountOut, h.FeeTier, FeeDenom)
+		hookFeeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
+			h.FeeTier, FeeDenom)
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: hookFeeAmt,

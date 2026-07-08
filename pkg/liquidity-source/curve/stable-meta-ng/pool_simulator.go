@@ -2,6 +2,7 @@ package stablemetang
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
@@ -12,6 +13,7 @@ import (
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // ICurveBasePool is the interface for curve base pool inside a meta pool
@@ -230,6 +232,18 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.PoolSimulator = *t.PoolSimulator.CloneState().(*stableng.PoolSimulator)
+	cloned.Extra.RateMultipliers = slices.Clone(t.Extra.RateMultipliers)
+	if t.basePool != nil {
+		if clonedBase, ok := t.basePool.CloneState().(ICurveBasePool); ok {
+			cloned.basePool = clonedBase
+		}
+	}
+	return &cloned
+}
+
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputIndex = t.GetTokenIndex(input.Token)
@@ -331,6 +345,26 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenOutIndex: baseToId,
 		Underlying:    true,
 	}
+}
+
+func (t *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, chainID valueobject.ChainID) bool {
+	if t.Info.GetTokenIndex(tokenIn) >= 0 {
+		return t.PoolSimulator.SwapReceiveNativeIn(tokenIn, tokenOut, chainID)
+	}
+	if baseNative, ok := t.basePool.(pool.IPoolSupportNativeSwap); ok {
+		return baseNative.SwapReceiveNativeIn(tokenIn, tokenOut, chainID)
+	}
+	return false
+}
+
+func (t *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainID valueobject.ChainID) bool {
+	if t.Info.GetTokenIndex(tokenOut) >= 0 {
+		return t.PoolSimulator.SwapReturnNativeOut(tokenIn, tokenOut, chainID)
+	}
+	if baseNative, ok := t.basePool.(pool.IPoolSupportNativeSwap); ok {
+		return baseNative.SwapReturnNativeOut(tokenIn, tokenOut, chainID)
+	}
+	return false
 }
 
 func (t *PoolSimulator) GetTokens() []string {

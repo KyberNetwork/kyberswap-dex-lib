@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,6 +14,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -31,7 +33,7 @@ func NewPoolListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolListUpdater {
-	httpClient := resty.NewWithClient(http.DefaultClient).
+	httpClient := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(cfg.HTTPConfig.BaseURL).
 		SetTimeout(cfg.HTTPConfig.Timeout.Duration).
 		SetRetryCount(cfg.HTTPConfig.RetryCount)
@@ -114,8 +116,9 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			SwapFee:     fee / 10000,
 			Exchange:    u.config.DexID,
 			Type:        DexType,
-			Tokens:      tokens,
+			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},
+			Tokens:      tokens,
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 		}

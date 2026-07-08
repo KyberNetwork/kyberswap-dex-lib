@@ -27,7 +27,7 @@ func xpMem_inplace(
 	xp []uint256.Int,
 ) int {
 	numTokens := len(rates)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		xp[i].Div(number.SafeMul(&rates[i], &balances[i]), Precision)
 	}
 	return numTokens
@@ -89,22 +89,29 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 	var Ann uint256.Int
 	Ann.Mul(amp, &t.NumTokensU256)
 
-	var temp1, temp2, temp3, D_P, Dprev uint256.Int
+	var temp1, temp2, temp3, D_P, Dprev, nCoinsN uint256.Int
 
-	nCoinsPow := t.calculateNCoinsPow()
+	// N_COINS ^ N_COINS, matches Vyper's pow_mod256(N_COINS, N_COINS)
+	nCoinsN.Exp(&t.NumTokensU256, &t.NumTokensU256)
+
 	var nCoinsPlus1 uint256.Int
 	nCoinsPlus1.AddUint64(&t.NumTokensU256, 1)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		Dprev.Set(D)
 
+		// Match Vyper exactly:
+		//   for x in _xp: D_P = D_P * D / x
+		//   D_P /= N_COINS ** N_COINS
+		// If D_P * D overflows uint256, pool state is degenerate (on-chain also reverts).
 		D_P.Set(D)
 		for j := range xp {
-			D_P.Mul(&D_P, D)
+			if _, overflow := D_P.MulOverflow(&D_P, D); overflow {
+				return ErrDDoesNotConverge
+			}
 			D_P.Div(&D_P, &xp[j])
 		}
-
-		D_P.Div(&D_P, nCoinsPow)
+		D_P.Div(&D_P, &nCoinsN)
 
 		// (Ann * S / A_PRECISION + D_P * N_COINS) * D
 		temp1.Mul(&Ann, &S)
@@ -132,21 +139,6 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 	}
 
 	return ErrDDoesNotConverge
-}
-
-// Helper func to calculate N_COINS^N_COINS
-func (t *PoolSimulator) calculateNCoinsPow() *uint256.Int {
-	result := uint256.NewInt(1)
-	if t.NumTokens <= 1 {
-		return result
-	}
-
-	base := uint256.NewInt(uint64(t.NumTokens))
-	for i := 0; i < t.NumTokens; i++ {
-		result.Mul(result, base)
-	}
-
-	return result
 }
 
 // Calculate x[j] if one makes x[i] = x
@@ -216,7 +208,7 @@ func (t *PoolSimulator) GetY(
 
 	var yPrev uint256.Int
 	y.Set(&d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		// y_prev = y
 		yPrev.Set(y)
 
@@ -269,6 +261,10 @@ func (t *PoolSimulator) GetDyByX(
 	var err = t.GetY(i, j, x, xp, dCached, &y)
 	if err != nil {
 		return err
+	}
+	// y == 0 ⇒ on-chain upkeep_oracles → _get_p reverts at `Dr * D / xp[j]`
+	if y.IsZero() {
+		return ErrPoolDrained
 	}
 
 	// dy: uint256 = _xp[j] - y - 1  # -1 just in case there were some rounding errors
@@ -358,6 +354,10 @@ func (t *PoolSimulator) GetDx(
 			number.SafeSub(FeeDenominator, &dynamicFee),
 		),
 	)
+	// y == 0 ⇒ targets a post-state where on-chain `_get_p` reverts.
+	if y.IsZero() {
+		return ErrPoolDrained
+	}
 
 	// x: uint256 = self.get_y(j, i, y, xp, amp, D, N_COINS)
 	var x uint256.Int
@@ -608,7 +608,7 @@ func (t *PoolSimulator) getYD(
 	)
 	var yPrev uint256.Int
 	y.Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		yPrev.Set(y)
 		// y = (y*y + c) / (2 * y + b - D)
 		y.Div(

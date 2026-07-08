@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/samber/lo"
 )
 
 const (
@@ -20,7 +21,7 @@ type UniSwapXClient struct {
 }
 
 func NewUniSwapXClient(baseURL string) *UniSwapXClient {
-	client := resty.NewWithClient(http.DefaultClient)
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient)))
 	client.SetBaseURL(baseURL)
 	client.SetTimeout(defaultTimeout)
 

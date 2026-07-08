@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -429,4 +430,186 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	})
 	assert.Equal(t, "2800410", poolSim.Bids.ArrayShares[0].String())
 	assert.Equal(t, "3116", poolSim.Bids.ArrayPrices[0].String())
+}
+
+// CalcAmountIn tests — exact-out direction, verifying inverse of CalcAmountOut.
+
+func TestPoolSimulator_CalcAmountIn_Y_To_X(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	err := json.Unmarshal([]byte(susdcPool), poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	// Want 3.2 S (tokenX). From CalcAmountOut: amtIn=998380 USDC produces 3.2 S.
+	result, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+			Amount: bignumber.NewBig10("3200000000000000000"),
+		},
+		TokenIn: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "998380", result.TokenAmountIn.Amount.String())
+	assert.Equal(t, "0x29219dd400f2bf60e5a23d13be72b486d4038894", result.TokenAmountIn.Token)
+	assert.Equal(t, "300", result.Fee.Amount.String())
+	assert.Equal(t, "0", result.RemainingTokenAmountOut.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.GtUint64(100000000))
+}
+
+func TestPoolSimulator_CalcAmountIn_X_To_Y(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	err := json.Unmarshal([]byte(susdcPool), poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	// Want 311606 USDC (tokenY). From CalcAmountOut: amtIn=1e18 S produces 311606 USDC.
+	result, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+			Amount: bignumber.NewBig10("311606"),
+		},
+		TokenIn: "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "1000000000000000000", result.TokenAmountIn.Amount.String())
+	assert.Equal(t, "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38", result.TokenAmountIn.Token)
+	assert.Equal(t, "94", result.Fee.Amount.String())
+	assert.Equal(t, "0", result.RemainingTokenAmountOut.Amount.String())
+	assert.True(t, result.SwapInfo.(SwapInfo).PriceLimit.LtUint64(890))
+}
+
+func TestPoolSimulator_CalcAmountIn_Y_To_X_FillLevel(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	err := json.Unmarshal([]byte(susdcPool), poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	// Want exactly 9334.70 S (fills all of asks level 0).
+	// From CalcAmountOut: amtIn=2912366378 USDC produces 9334700000000000000000 S, fee=873448.
+	result, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+			Amount: bignumber.NewBig10("9334700000000000000000"),
+		},
+		TokenIn: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "2912366378", result.TokenAmountIn.Amount.String())
+	assert.Equal(t, "873448", result.Fee.Amount.String())
+	assert.Equal(t, "0", result.RemainingTokenAmountOut.Amount.String())
+}
+
+func TestPoolSimulator_CalcAmountIn_InsufficientLiquidity(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	err := json.Unmarshal([]byte(susdcPool), poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	// Ask for more S than the entire ask book can provide.
+	_, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+			Amount: bignumber.NewBig10("9999999999999999999999999"),
+		},
+		TokenIn: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+	})
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+func TestPoolSimulator_CalcAmountIn_EmptyPool(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	err := json.Unmarshal([]byte(susdcPoolEmpty), poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	_, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+			Amount: bignumber.NewBig10("1000000000000000000"),
+		},
+		TokenIn: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+	})
+	require.ErrorIs(t, err, ErrEmptyOrders)
+}
+
+// CalcAmountIn → CalcAmountOut round-trip: amtOut from CalcAmountOut must be >= desired.
+func TestPoolSimulator_CalcAmountIn_RoundTrip_Y_To_X(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(susdcPool), poolEntity))
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	desiredOut := bignumber.NewBig10("5000000000000000000") // 5 S
+
+	inResult, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38", Amount: desiredOut},
+		TokenIn:        "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+	})
+	require.NoError(t, err)
+
+	outResult, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "0x29219dd400f2bf60e5a23d13be72b486d4038894", Amount: inResult.TokenAmountIn.Amount},
+		TokenOut:      "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+	})
+	require.NoError(t, err)
+	assert.True(t, outResult.TokenAmountOut.Amount.Cmp(desiredOut) >= 0, "CalcAmountOut must produce at least desired")
+}
+
+func TestPoolSimulator_CalcAmountIn_RoundTrip_X_To_Y(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(susdcPool), poolEntity))
+	poolSim, err := NewPoolSimulator(*poolEntity)
+	require.NoError(t, err)
+
+	desiredOut := bignumber.NewBig10("500000") // 0.5 USDC
+
+	inResult, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: "0x29219dd400f2bf60e5a23d13be72b486d4038894", Amount: desiredOut},
+		TokenIn:        "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38",
+	})
+	require.NoError(t, err)
+
+	outResult, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38", Amount: inResult.TokenAmountIn.Amount},
+		TokenOut:      "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+	})
+	require.NoError(t, err)
+	assert.True(t, outResult.TokenAmountOut.Amount.Cmp(desiredOut) >= 0, "CalcAmountOut must produce at least desired")
+}
+
+// BenchmarkRoundFloat-16    14106196    123.6  ns/op
+// BenchmarkRound-16         96619128     12.32 ns/op
+func BenchmarkRound(b *testing.B) {
+	a, c := uint256.NewInt(1234567891), uint256.NewInt(12345)
+	for range b.N {
+		round(a, 6, true)
+		round(c, 6, false)
+	}
 }

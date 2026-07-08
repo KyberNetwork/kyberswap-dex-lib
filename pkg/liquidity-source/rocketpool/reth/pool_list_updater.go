@@ -13,6 +13,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -32,7 +34,7 @@ func NewPoolListUpdater(
 	}
 }
 
-func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.Pool, []byte, error) {
 	if u.hasInitialized {
 		return nil, nil, nil
 	}
@@ -49,13 +51,17 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		return nil, nil, err
 	}
 
+	var tmp big.Int
+	reserve0 := tmp.Add(extra.ExcessBalance, extra.RETHBalance).String()
+	reserve1 := bignumber.MulDivDown(&tmp, &tmp, extra.TotalRETHSupply, extra.TotalETHBalance).String()
+
 	return []entity.Pool{
 		{
 			Address:   strings.ToLower(RocketDepositPool),
-			Exchange:  string(valueobject.ExchangeRocketPoolRETH),
+			Exchange:  valueobject.ExchangeRocketPoolRETH,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
-			Reserves:  []string{reserves, reserves},
+			Reserves:  []string{reserve0, reserve1},
 			Tokens: []*entity.PoolToken{
 				{Address: strings.ToLower(WETH), Symbol: "WETH", Decimals: 18, Swappable: true},
 				{Address: strings.ToLower(RocketTokenRETH), Symbol: "rETH", Decimals: 18, Swappable: true},
@@ -66,97 +72,64 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}, nil, nil
 }
 
-func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client, overrides map[common.Address]gethclient.OverrideAccount) (PoolExtra, uint64, error) {
+func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount) (PoolExtra, uint64, error) {
 	var poolExtra PoolExtra
-	balanceAt, err := ethrpcClient.BalanceAt(ctx, common.HexToAddress(RocketTokenRETH), nil)
-	if err != nil {
-		return poolExtra, 0, err
-	}
-	poolExtra.RETHBalance = balanceAt
-
-	rpcCalls := ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		rpcCalls.SetOverrides(overrides)
-	}
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	resp, err := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
+		ABI:    abi.Multicall3ABI,
+		Target: Multicall3,
+		Method: abi.Multicall3GetEthBalance,
+		Params: []any{common.HexToAddress(RocketTokenRETH)},
+	}, []any{&poolExtra.RETHBalance}).AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getDepositEnabled",
-		Params: []any{},
-	}, []any{&poolExtra.DepositEnabled})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.DepositEnabled}).AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getMinimumDeposit",
-		Params: []any{},
-	}, []any{&poolExtra.MinimumDeposit})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.MinimumDeposit}).AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getMaximumDepositPoolSize",
-		Params: []any{},
-	}, []any{&poolExtra.MaximumDepositPoolSize})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.MaximumDepositPoolSize}).AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getAssignDepositsEnabled",
-		Params: []any{},
-	}, []any{&poolExtra.AssignDepositsEnabled})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.AssignDepositsEnabled}).AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getDepositFee",
-		Params: []any{},
-	}, []any{&poolExtra.DepositFee})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.DepositFee}).AddCall(&ethrpc.Call{
 		ABI:    RocketVaultABI,
 		Target: RocketVault,
 		Method: "balanceOf",
 		Params: []any{"rocketDepositPool"},
-	}, []any{&poolExtra.Balance})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.Balance}).AddCall(&ethrpc.Call{
 		ABI:    RocketMinipoolQueueABI,
 		Target: RocketMinipoolQueue,
 		Method: "getEffectiveCapacity",
-		Params: []any{},
-	}, []any{&poolExtra.EffectiveCapacity})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.EffectiveCapacity}).AddCall(&ethrpc.Call{
 		ABI:    RocketNetworkBalancesABI,
 		Target: RocketNetworkBalances,
 		Method: "getTotalETHBalance",
-		Params: []any{},
-	}, []any{&poolExtra.TotalETHBalance})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.TotalETHBalance}).AddCall(&ethrpc.Call{
 		ABI:    RocketNetworkBalancesABI,
 		Target: RocketNetworkBalances,
 		Method: "getTotalRETHSupply",
-		Params: []any{},
-	}, []any{&poolExtra.TotalRETHSupply})
-
-	rpcCalls.AddCall(&ethrpc.Call{
+	}, []any{&poolExtra.TotalRETHSupply}).AddCall(&ethrpc.Call{
 		ABI:    RocketDepositPoolABI,
 		Target: RocketDepositPool,
 		Method: "getExcessBalance",
-		Params: []any{},
-	}, []any{&poolExtra.ExcessBalance})
-
-	resp, err := rpcCalls.TryAggregate()
+	}, []any{&poolExtra.ExcessBalance}).TryAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
 
-	if resp.BlockNumber == nil {
-		resp.BlockNumber = big.NewInt(0)
+	var blockNumber uint64
+	if resp.BlockNumber != nil {
+		blockNumber = resp.BlockNumber.Uint64()
 	}
 
-	return poolExtra, resp.BlockNumber.Uint64(), nil
+	return poolExtra, blockNumber, nil
 }

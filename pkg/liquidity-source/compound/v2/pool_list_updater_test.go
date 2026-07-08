@@ -20,7 +20,7 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	client := ethrpc.New("https://ethereum.kyberengineering.io").
+	client := ethrpc.New("https://ethereum-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	cfg := &Config{

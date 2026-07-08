@@ -3,12 +3,12 @@ package gateway
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -138,7 +138,7 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		}
 		p.Tokens = append(p.Tokens, lo.Map(newLiusdBuckets, func(bucket bucket, _ int) *entity.PoolToken {
 			return &entity.PoolToken{
-				Address:   strings.ToLower(bucket.BucketData.ShareToken.Hex()),
+				Address:   hexutil.Encode(bucket.BucketData.ShareToken[:]),
 				Swappable: true,
 			}
 		})...)

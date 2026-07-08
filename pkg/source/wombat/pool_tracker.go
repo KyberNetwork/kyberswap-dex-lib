@@ -18,6 +18,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -142,7 +143,7 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	for i, assetAddress := range assetAddresses {
-		if assetAddress.Cmp(eth.AddressZero) != 0 {
+		if assetAddress.Cmp(valueobject.AddrZero) != 0 {
 			assetCalls.AddCall(&ethrpc.Call{
 				ABI:    DynamicAssetABI,
 				Target: assetAddress.Hex(),
@@ -225,7 +226,7 @@ func (d *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error) {
+func (d *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]string, bool, error) {
 	var extra Extra
 	err := json.Unmarshal([]byte(p.Extra), &extra)
 	if err != nil {
@@ -235,4 +236,20 @@ func (d *PoolTracker) GetDependencies(ctx context.Context, p entity.Pool) ([]str
 	return lo.MapToSlice(extra.AssetMap, func(_ string, asset Asset) string {
 		return asset.Address
 	}), extra.DependenciesStored, nil
+}
+
+func (t *PoolTracker) SetDependenciesStored(p *entity.Pool, isStored bool) error {
+	var extra Extra
+	err := json.Unmarshal([]byte(p.Extra), &extra)
+	if err != nil {
+		return err
+	}
+	extra.DependenciesStored = isStored
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return err
+	}
+	p.Extra = string(extraBytes)
+
+	return err
 }

@@ -32,7 +32,7 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
 
-	rpcClient := ethrpc.New("https://base.kyberengineering.io").
+	rpcClient := ethrpc.New("https://base-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	failingCases := []struct {
@@ -167,20 +167,20 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				fmt.Printf("Simulator output: %s\n", simRes.TokenAmountOut.Amount.String())
 			}
 
-			if quoterErr == nil && simErr == nil {
+			quoterUnavailable := quoterErr != nil || (quoterRes.AmountOut == nil || quoterRes.AmountOut.Sign() == 0)
+			if quoterUnavailable && simErr != nil {
+				fmt.Printf("Both agree: swap unavailable (quoter: %v, sim: %v)\n", quoterErr, simErr)
+			} else if quoterUnavailable && simErr == nil {
+				t.Errorf("Quoter returned unavailable but simulator gave output: %s", simRes.TokenAmountOut.Amount)
+			} else if !quoterUnavailable && simErr != nil {
+				t.Errorf("Quoter succeeded (out=%s) but simulator failed: %v", quoterRes.AmountOut, simErr)
+			} else {
 				diff := new(big.Int).Abs(new(big.Int).Sub(quoterRes.AmountOut, simRes.TokenAmountOut.Amount))
-				bps := int64(0)
-				if quoterRes.AmountOut.Sign() > 0 {
-					bps = new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), quoterRes.AmountOut).Int64()
-				}
+				bps := new(big.Int).Div(new(big.Int).Mul(diff, bignumber.BasisPoint), quoterRes.AmountOut).Int64()
 				fmt.Printf("Difference: %s, BPS: %d\n", diff.String(), bps)
 				if bps > 1 {
 					t.Errorf("High BPS difference: %d (expected <= 1)", bps)
 				}
-			} else if quoterErr != nil && simErr == nil {
-				t.Errorf("Quoter reverted but simulator succeeded")
-			} else if quoterErr == nil && simErr != nil {
-				t.Errorf("Quoter succeeded but simulator failed")
 			}
 		})
 	}
@@ -198,7 +198,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 		TesseraEngine:   "0x31E99E05fEE3DCe580aF777c3fd63Ee1b3b40c17",
 		TesseraSwap:     "0x55555522005BcAE1c2424D474BfD5ed477749E3e",
 	}
-	rpcClient := ethrpc.New("https://base.kyberengineering.io").
+	rpcClient := ethrpc.New("https://base-rpc.kyberswap.com").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	pAddr := "0xf524c1bc1c64a2c99bc7eccf19ede9a1d89d5a7c"

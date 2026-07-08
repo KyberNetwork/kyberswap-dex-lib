@@ -16,7 +16,7 @@ func _xpMem(
 		return nil, ErrBalancesMustMatchMultipliers
 	}
 	xp := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		xp[i] = new(big.Int).Div(new(big.Int).Mul(rates[i], balances[i]), Precision)
 	}
 	return xp, nil
@@ -25,7 +25,7 @@ func _xpMem(
 func (t *PoolSimulator) _xp() []*big.Int {
 	var nTokens = len(t.Info.Tokens)
 	result := make([]*big.Int, nTokens)
-	for i := 0; i < nTokens; i += 1 {
+	for i := range nTokens {
 		result[i] = new(big.Int).Div(new(big.Int).Mul(t.Rates[i], t.Info.Reserves[i]), Precision)
 	}
 	return result
@@ -85,7 +85,7 @@ func (t *PoolSimulator) APrecise() *big.Int {
 func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int).SetInt64(0)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		s = new(big.Int).Add(s, xp[i])
 	}
 	if s.Sign() == 0 {
@@ -121,16 +121,22 @@ func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	nA_mul_s_div_APrec.Div(&nA_mul_s_div_APrec, t.APrecision)
 	nA_sub_APrec.Sub(&nA, t.APrecision)
 
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		// D_P: uint256 = D
 		dP.Set(&d)
 
-		for j := 0; j < numTokens; j++ {
+		for j := range numTokens {
 			// D_P = D_P * D / (_x * N_COINS +1)
 			// +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 
 			// nominator
 			tmp0.Mul(&dP, &d)
+
+			// On-chain uses uint256; if D_P*D would overflow uint256 the contract reverts.
+			// big.Int never overflows so we must check explicitly.
+			if tmp0.BitLen() > 256 {
+				return nil, ErrDDoesNotConverge
+			}
 
 			// denominator
 			tmp1.Mul(xp[j], t.numTokensBI)
@@ -198,7 +204,7 @@ func (t *PoolSimulator) GetY(
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, t.numTokensBI)
 	var _x *big.Int
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i == tokenIndexFrom {
 			_x = new(big.Int).Set(x)
 		} else if i != tokenIndexTo {
@@ -247,7 +253,7 @@ func (t *PoolSimulator) GetY(
 	var y big.Int
 	y.Set(d)
 	var diff big.Int
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		// y_prev = y
 		yPrev.Set(&y)
 
@@ -256,6 +262,9 @@ func (t *PoolSimulator) GetY(
 		tmp.Mul(&y, bignumber.Two)
 		tmp.Add(&tmp, b)
 		tmp.Sub(&tmp, d)
+		if tmp.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
 		// then calc nominator into tmp1
 		tmp1.Mul(&y, &y)
 		tmp1.Add(&tmp1, c)
@@ -315,7 +324,7 @@ func (t *PoolSimulator) getYD(
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, t.numTokensBI)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
@@ -337,20 +346,16 @@ func (t *PoolSimulator) getYD(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
+		denom.Sub(denom.Add(denom.Mul(y, bignumber.Two), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
 		y = new(big.Int).Div(
-			new(big.Int).Add(
-				new(big.Int).Mul(y, y),
-				c,
-			),
-			new(big.Int).Sub(
-				new(big.Int).Add(
-					new(big.Int).Mul(y, bignumber.Two),
-					b,
-				),
-				d,
-			),
+			new(big.Int).Add(new(big.Int).Mul(y, y), c),
+			&denom,
 		)
 		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
@@ -400,7 +405,7 @@ func (t *PoolSimulator) CalculateWithdrawOneCoin(
 	var xpReduced = make([]*big.Int, nCoins)
 	var nCoinBI = big.NewInt(int64(nCoins))
 	var fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinBI), new(big.Int).Mul(bignumber.Four, new(big.Int).Sub(nCoinBI, bignumber.One)))
-	for j := 0; j < nCoins; j += 1 {
+	for j := range nCoins {
 		var dxExpected *big.Int
 		if j == i {
 			dxExpected = new(big.Int).Sub(new(big.Int).Div(new(big.Int).Mul(xp[j], D1), D0), newY)
@@ -430,7 +435,7 @@ func (t *PoolSimulator) CalculateTokenAmount(
 		return nil, err
 	}
 	var balances1 = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if deposit {
 			balances1[i] = new(big.Int).Add(t.Info.Reserves[i], amounts[i])
 		} else {
@@ -460,7 +465,7 @@ func (t *PoolSimulator) CalculateAddLiquidityOneToken(
 ) (*big.Int, *big.Int, error) {
 	var numTokens = len(t.Info.Reserves)
 	var amounts = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		amounts[i] = big.NewInt(0)
 	}
 	amounts[tokenIndex] = new(big.Int).Set(tokenAmount)
@@ -475,7 +480,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var amp = t._A()
 	var old_balances = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		old_balances[i] = t.Info.Reserves[i]
 	}
 	D0, err := t.get_D_mem(old_balances, amp)
@@ -484,7 +489,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	}
 	var token_supply = t.LpSupply
 	var new_balances = make([]*big.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		new_balances[i] = new(big.Int).Add(old_balances[i], amounts[i])
 	}
 	D1, err := t.get_D_mem(new_balances, amp)
@@ -499,7 +504,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 		var _fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinsBi),
 			new(big.Int).Mul(bignumber.Four, big.NewInt(int64(nCoins-1))))
 		var _admin_fee = t.AdminFee
-		for i := 0; i < nCoins; i += 1 {
+		for i := range nCoins {
 			var ideal_balance = new(big.Int).Div(new(big.Int).Mul(D1, old_balances[i]), D0)
 			var difference *big.Int
 			if ideal_balance.Cmp(new_balances[i]) > 0 {
@@ -514,7 +519,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 		D2, _ := t.get_D_mem(new_balances, amp)
 		mint_amount = new(big.Int).Div(new(big.Int).Mul(token_supply, new(big.Int).Sub(D2, D0)), D0)
 	} else {
-		for i := 0; i < nCoins; i += 1 {
+		for i := range nCoins {
 			t.Info.Reserves[i] = new_balances[i]
 		}
 		mint_amount = D1

@@ -29,16 +29,14 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Cult},
 	}
 
-	if param.HookExtra != "" {
-		var extra Extra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
-			hook.totalFeeBps = big.NewInt(extra.TotalFeeBps)
-		}
+	var extra Extra
+	if err := param.HookExtra.Unmarshal(&extra); err == nil {
+		hook.totalFeeBps = big.NewInt(extra.TotalFeeBps)
 	}
 	return hook
 }, lo.Keys(FactoryByHook)...)
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra Extra
 	factory := FactoryByHook[param.HookAddress]
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
@@ -46,15 +44,14 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Target: hexutil.Encode(factory[:]),
 		Method: "totalFeeBps",
 	}, []any{&extra.TotalFeeBps}).Call(); err != nil {
-		return "", err
+		return nil, err
 	}
-	extraBytes, _ := json.Marshal(extra)
-	return string(extraBytes), nil
+	return json.Marshal(extra)
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	feeAmt := bignumber.ZeroBI
-	if params.ZeroForOne && params.ExactIn {
+	if params.ZeroForOne && params.CalcOut {
 		feeAmt = new(big.Int)
 		feeAmt.Mul(params.AmountSpecified, h.totalFeeBps).Div(feeAmt, bignumber.BasisPoint)
 	}
@@ -65,11 +62,11 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	feeAmt := bignumber.ZeroBI
-	if !swapHookParams.ZeroForOne {
-		feeAmt = new(big.Int)
-		feeAmt.Mul(swapHookParams.AmountOut, h.totalFeeBps).Div(feeAmt, bignumber.BasisPoint)
+	if !params.ZeroForOne {
+		feeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
+			h.totalFeeBps, bignumber.BasisPoint)
 	}
 
 	return &uniswapv4.AfterSwapResult{

@@ -26,15 +26,21 @@ type PoolSimulator struct {
 	fee         float64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm1)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm2)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm3)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm4)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm5)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm6)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm7)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm8)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm9)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm10)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm11)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	return NewPoolSimulatorWith(entityPool, MaxAge)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	return NewPoolSimulatorWith(params.EntityPool, lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64))
 }
 
 func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
@@ -60,7 +66,7 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 					func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			},
 		},
-		Gas:         defaultGas,
+		Gas:         lo.ValueOr(gasByDex, entityPool.Exchange, defaultGas),
 		levelsFroms: extra.LevelsFrom,
 		tokens:      [2]*entity.PoolToken(entity.ClonePoolTokens(entityPool.Tokens)),
 		minTrades:   [2]float64{firstLevelFrom0.Size(), firstLevelFrom1.Size()},

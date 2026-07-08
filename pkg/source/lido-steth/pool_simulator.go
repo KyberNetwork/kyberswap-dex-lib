@@ -123,3 +123,11 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
 }
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
+}

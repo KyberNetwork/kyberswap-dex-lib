@@ -45,8 +45,8 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 		result.Set(scale)
 		squared.Set(x)
 
-		if x.Cmp(bignumber.MAX_UINT_128) > 0 {
-			squared.Div(bignumber.MAX_UINT_256, &squared)
+		if x.Cmp(bignumber.MaxUint128) > 0 {
+			squared.Div(bignumber.MaxUint256, &squared)
 			invert = !invert
 		}
 
@@ -66,7 +66,7 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 	}
 
 	if invert {
-		result.Div(bignumber.MAX_UINT_256, &result)
+		result.Div(bignumber.MaxUint256, &result)
 	}
 
 	return &result, nil
@@ -199,7 +199,7 @@ func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 }
 
 func getMulProds(x *big.Int, y *big.Int, prod0, prod1 *big.Int) (*big.Int, *big.Int) {
-	mm := new(big.Int).Mod(new(big.Int).Mul(x, y), bignumber.MAX_UINT_256)
+	mm := new(big.Int).Mod(new(big.Int).Mul(x, y), bignumber.MaxUint256)
 	prod0.Mul(x, y)
 	prod1.Sub(
 		new(big.Int).Sub(mm, prod0),
@@ -216,5 +216,5 @@ func lt(x *big.Int, y *big.Int) *big.Int {
 }
 
 func bitwiseNotUint256(x *big.Int) *big.Int {
-	return new(big.Int).Xor(x, bignumber.MAX_UINT_256)
+	return new(big.Int).Xor(x, bignumber.MaxUint256)
 }

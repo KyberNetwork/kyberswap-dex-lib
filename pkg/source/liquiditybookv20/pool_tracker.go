@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
@@ -33,7 +32,6 @@ type PoolTracker struct {
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexTypeLiquidityBookV20, NewPoolTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG0(DexTypeLiquidityBookV20, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
@@ -47,7 +45,7 @@ func NewPoolTracker(
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
+func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
@@ -60,14 +58,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		rpcData, err = d.FetchRPCData(ctx, &p, 0)
+		rpcData, err = t.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			return err
 		}
 		return nil
 	})
 	g.Go(func() error {
-		subgraphResult, err = d.querySubgraph(ctx, p)
+		subgraphResult, err = t.querySubgraph(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -78,13 +76,10 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extra := Extra{
-		RpcBlockTimestamp:      rpcData.BlockTimestamp,
-		SubgraphBlockTimestamp: subgraphResult.BlockTimestamp,
-		FeeParameters:          rpcData.FeeParameters,
-		ActiveBinID:            uint32(rpcData.ReservesAndID.ActiveId.Uint64()),
-		Bins:                   subgraphResult.Bins,
-		PriceX128:              rpcData.PriceX128,
-		Liquidity:              rpcData.Liquidity,
+		RpcBlockTimestamp: rpcData.BlockTimestamp,
+		FeeParameters:     rpcData.FeeParameters,
+		ActiveBinID:       uint32(rpcData.ReservesAndID.ActiveId.Uint64()),
+		Bins:              subgraphResult.Bins,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -105,61 +100,37 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return p, nil
 }
 
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
 	var (
 		blockTimestamp uint64
 
 		feeParamsResp feeParametersRpcResp
 		reservesAndID reservesAndID
-		priceX128     *big.Int
 
 		err error
 	)
 
-	req := d.ethrpcClient.R().SetContext(ctx)
+	req := t.ethrpcClient.R().SetContext(ctx)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
 		blockNumberBI.SetUint64(blockNumber)
 		req.SetBlockNumber(&blockNumberBI)
 	}
 
-	req.AddCall(&ethrpc.Call{
+	if _, err := req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodFeeParameters,
-	}, []any{&feeParamsResp})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&feeParamsResp}).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetReservesAndID,
-	}, []any{&reservesAndID})
-
-	if _, err := req.Aggregate(); err != nil {
+	}, []any{&reservesAndID}).Aggregate(); err != nil {
 		return nil, err
 	}
 
-	req = d.ethrpcClient.R().SetContext(ctx)
+	req = t.ethrpcClient.R().SetContext(ctx)
 	if blockTimestamp, err = req.GetCurrentBlockTimestamp(); err != nil {
-		return nil, err
-	}
-
-	req = d.ethrpcClient.R().SetContext(ctx)
-	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		req.SetBlockNumber(&blockNumberBI)
-	}
-	req.AddCall(&ethrpc.Call{
-		ABI:    routerABI,
-		Target: d.cfg.RouterAddress,
-		Method: routerGetPriceFromIDMethod,
-		Params: []any{
-			common.HexToAddress(p.Address),
-			reservesAndID.ActiveId,
-		},
-	}, []any{&priceX128})
-	if _, err := req.Aggregate(); err != nil {
 		return nil, err
 	}
 
@@ -176,25 +147,22 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		VolatilityAccumulated:    uint32(feeParamsResp.State.VolatilityAccumulated.Uint64()),
 		VolatilityReference:      uint32(feeParamsResp.State.VolatilityReference.Uint64()),
 		IndexRef:                 uint32(feeParamsResp.State.IndexRef.Uint64()),
-		Time:                     uint64(feeParamsResp.State.Time.Uint64()),
+		Time:                     feeParamsResp.State.Time.Uint64(),
 	}
 
 	return &QueryRpcPoolStateResult{
 		BlockTimestamp: blockTimestamp,
 		FeeParameters:  feeParameters,
 		ReservesAndID:  reservesAndID,
-		PriceX128:      priceX128,
-		Liquidity:      CalculateLiquidity(priceX128, reservesAndID.ReserveX, reservesAndID.ReserveY),
 	}, nil
 }
 
-func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*querySubgraphPoolStateResult, error) {
+func (t *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*querySubgraphPoolStateResult, error) {
 	var (
-		bins           []Bin
-		blockTimestamp int64
-		unitX          *big.Float
-		unitY          *big.Float
-		binIDGT        int64 = -1
+		bins    []Bin
+		unitX   *big.Float
+		unitY   *big.Float
+		binIDGT int64 = -1
 	)
 
 	// bins
@@ -210,12 +178,12 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 			}
 		)
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
-			if !d.cfg.AllowSubgraphError {
+		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
+			if !t.cfg.AllowSubgraphError {
 				logger.WithFields(logger.Fields{
 					"poolAddress":        p.Address,
 					"error":              err,
-					"allowSubgraphError": d.cfg.AllowSubgraphError,
+					"allowSubgraphError": t.cfg.AllowSubgraphError,
 				}).Errorf("failed to query subgraph")
 				return nil, err
 			}
@@ -224,17 +192,12 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 				logger.WithFields(logger.Fields{
 					"poolAddress":        p.Address,
 					"error":              err,
-					"allowSubgraphError": d.cfg.AllowSubgraphError,
+					"allowSubgraphError": t.cfg.AllowSubgraphError,
 				}).Errorf("failed to query subgraph")
 				return nil, err
 			}
 		}
-		resp.Meta.CheckIsLagging(d.cfg.DexID, p.Address)
-
-		// init value
-		if blockTimestamp == 0 && resp.Meta != nil {
-			blockTimestamp = resp.Meta.Block.Timestamp
-		}
+		resp.Meta.CheckIsLagging(t.cfg.DexID, p.Address)
 
 		// if no bin returned, stop
 		if resp.Pair == nil || len(resp.Pair.Bins) == 0 {
@@ -281,19 +244,17 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 	})
 
 	return &querySubgraphPoolStateResult{
-		BlockTimestamp: uint64(blockTimestamp),
-		Bins:           bins,
+		Bins: bins,
 	}, nil
 }
 
-func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param pool.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
 	})
 
-	if err := t.updateStateByDexLib(ctx, &p, logs); err != nil {
+	if err := t.updateStateByDexLib(ctx, &p, param.Logs); err != nil {
 		l.WithFields(logger.Fields{
 			"msg": err.Error(),
 		}).Error(ErrUpdateStateByDexLibFailed.Error())
@@ -301,7 +262,7 @@ func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []eth
 		return p, errors.Wrap(ErrUpdateStateByDexLibFailed, err.Error())
 	}
 
-	if err := t.updateBinsData(ctx, &p, logs); err != nil {
+	if err := t.updateBinsData(ctx, &p, param.Logs); err != nil {
 		l.WithFields(logger.Fields{
 			"msg": err.Error(),
 		}).Error(ErrUpdateBinsDataFailed.Error())
@@ -396,8 +357,6 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	extra.RpcBlockTimestamp = rpcState.BlockTimestamp
 	extra.FeeParameters = rpcState.FeeParameters
 	extra.ActiveBinID = uint32(rpcState.ReservesAndID.ActiveId.Uint64())
-	extra.PriceX128 = rpcState.PriceX128
-	extra.Liquidity = rpcState.Liquidity
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -550,10 +509,7 @@ func (t *PoolTracker) queryRPCBins(ctx context.Context, poolAddress string, binI
 
 	var bins []Bin
 	for from := 0; from < len(binIDs); {
-		to := from + binChunk
-		if to > len(binIDs) {
-			to = len(binIDs)
-		}
+		to := min(from+binChunk, len(binIDs))
 
 		b, err := t.queryRPCBinsByChunk(ctx, poolAddress, binIDs[from:to], blockNumber)
 		if err != nil {
@@ -643,7 +599,7 @@ func (t *PoolTracker) binIDsFromLogs(logs []ethtypes.Log) ([]uint32, error) {
 	binSet := map[uint64]struct{}{}
 
 	for _, event := range logs {
-		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
+		if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
 			continue
 		}
 

@@ -2,13 +2,13 @@ package angstrom
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -43,14 +43,7 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook.asset1 = common.HexToAddress(param.Pool.Tokens[1].Address)
 	}
 
-	if param.HookExtra != "" {
-		var extra HookExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return nil
-		}
-
-		hook.extra = extra
-	}
+	_ = param.HookExtra.Unmarshal(&hook.extra)
 
 	hookCfgProperties, exist := param.Cfg.HookConfigs[param.HookAddress]
 	if exist {
@@ -70,13 +63,9 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return hook
 }
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var extra HookExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return "", err
-		}
-	}
+	_ = param.HookExtra.Unmarshal(&extra)
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
 	if param.BlockNumber != nil {
@@ -96,7 +85,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}, []any{&extsloadRes})
 
 	if _, err := req.Aggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	unlockedFee, protocolUnlockedFee := extractUnlockedFee(extsloadRes)
@@ -111,15 +100,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		}
 	}
 
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(extraBytes), nil
+	return json.Marshal(extra)
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if time.Since(time.Unix(h.extra.LatestAttestationsTime, 0)) > time.Minute {
 		return nil, ErrOutdatedAttestations
 	}
@@ -136,9 +120,9 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	exactIn := swapHookParams.ExactIn
-	targetAmount := swapHookParams.AmountOut
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+	exactIn := params.CalcOut
+	targetAmount := params.AmountOut
 
 	var tmp big.Int
 

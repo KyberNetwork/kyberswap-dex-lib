@@ -3,6 +3,7 @@ package dexT1
 import (
 	"errors"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -67,6 +68,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		IsSwapAndArbitragePaused: extra.IsSwapAndArbitragePaused,
 		SyncTimestamp:            entityPool.Timestamp,
 	}, nil
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	return &cloned
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -219,6 +226,14 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return s.HasNative && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return s.HasNative && valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 // ------------------------------------------------------------------------------------------------

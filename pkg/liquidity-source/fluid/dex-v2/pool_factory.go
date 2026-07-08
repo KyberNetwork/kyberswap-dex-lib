@@ -1,6 +1,7 @@
 package dexv2
 
 import (
+	"context"
 	"math/big"
 	"time"
 
@@ -95,9 +96,9 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 	}, nil
 }
 
-func DecodePoolAddress(log ethtypes.Log) (string, error) {
+func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log ethtypes.Log) ([]string, error) {
 	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
-		return "", nil
+		return nil, nil
 	}
 
 	dexId, dexType, err := func() ([32]byte, *big.Int, error) {
@@ -148,8 +149,8 @@ func DecodePoolAddress(log ethtypes.Log) (string, error) {
 	}()
 
 	if err != nil || dexType == nil {
-		return "", err
+		return nil, err
 	}
 
-	return encodeFluidDexV2PoolAddress(hexutil.Encode(dexId[:]), uint32(dexType.Uint64())), nil
+	return []string{encodeFluidDexV2PoolAddress(hexutil.Encode(dexId[:]), uint32(dexType.Uint64()))}, nil
 }

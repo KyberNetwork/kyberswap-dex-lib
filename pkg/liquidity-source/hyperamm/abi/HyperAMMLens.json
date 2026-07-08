@@ -1,0 +1,37 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "hyperAMM", "type": "address" }
+    ],
+    "name": "getAvailableLiquidity",
+    "outputs": [
+      { "internalType": "uint256", "name": "token0Amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "token1Amount", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_hyperAMM", "type": "address" },
+      { "internalType": "bool", "name": "isZeroToOne", "type": "bool" },
+      { "internalType": "uint256", "name": "amountIn", "type": "uint256" },
+      { "internalType": "uint256", "name": "amountOutMin", "type": "uint256" }
+    ],
+    "name": "previewLiquidityQuote",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "bool", "name": "isCallbackOnSwap", "type": "bool" },
+          { "internalType": "uint256", "name": "amountOut", "type": "uint256" },
+          { "internalType": "uint256", "name": "amountInFilled", "type": "uint256" }
+        ],
+        "internalType": "struct ALMLiquidityQuote",
+        "name": "quote",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

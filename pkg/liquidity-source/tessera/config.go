@@ -7,4 +7,5 @@ type Config struct {
 	TesseraIndexer    string `json:"tesseraIndexer"`
 	TesseraSwap       string `json:"tesseraSwap"`
 	MaxPrefetchPoints int    `json:"maxPrefetchPoints"`
+	PriceTolerance    uint64 `json:"priceTolerance"`
 }

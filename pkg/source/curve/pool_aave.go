@@ -35,23 +35,17 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&underlyingCoins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderDecimals,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&decimals[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&decimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
@@ -118,65 +112,39 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 		balances                                                                   = make([]*big.Int, len(p.Tokens))
 	)
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		calls.SetOverrides(overrides)
-	}
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    aaveABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-		Params: nil,
-	}, []any{&initialA})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    aaveABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []any{&futureA})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []any{&initialATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []any{&futureATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []any{&swapFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []any{&adminFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: aaveMethodOffpegFeeMultiplier,
-		Params: nil,
-	}, []any{&offpegFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&offpegFee}).AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: p.GetLpToken(),
 		Method: erc20MethodTotalSupply,
-		Params: nil,
 	}, []any{&lpSupply})
 
 	for i := range p.Tokens {

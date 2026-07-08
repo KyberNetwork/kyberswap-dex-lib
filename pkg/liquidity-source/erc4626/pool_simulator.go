@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -159,10 +160,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	isDeposit, _ := s.getSwapType(tokenIn, tokenOut)
 	return Meta{
 		BlockNumber:   s.Info.BlockNumber,
 		IsNativeAsset: s.IsNativeAsset,
+		IsDeposit:     isDeposit == Deposit,
 	}
 }
 
@@ -173,9 +176,8 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 		return []string{}
 	}
 
-	if s.SwapTypes == Both ||
-		(s.SwapTypes == Deposit && tokenOutIndex == 0) ||
-		(s.SwapTypes == Redeem && tokenOutIndex == 1) {
+	if (s.Gas.Deposit > 0 && tokenOutIndex == 0) ||
+		(s.Gas.Redeem > 0 && tokenOutIndex == 1) {
 		return []string{s.Info.Tokens[1-tokenOutIndex]}
 	}
 
@@ -189,13 +191,22 @@ func (s *PoolSimulator) CanSwapFrom(address string) []string {
 		return []string{}
 	}
 
-	if s.SwapTypes == Both ||
-		(s.SwapTypes == Deposit && tokenInIndex == 1) ||
-		(s.SwapTypes == Redeem && tokenInIndex == 0) {
+	if (s.Gas.Deposit > 0 && tokenInIndex == 1) ||
+		(s.Gas.Redeem > 0 && tokenInIndex == 0) {
 		return []string{s.Info.Tokens[1-tokenInIndex]}
 	}
 
 	return []string{}
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, chainId valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return meta.IsNativeAsset && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainId valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(Meta)
+	return meta.IsNativeAsset && valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 func (s *PoolSimulator) getSwapType(tokenIn string, tokenOut string) (SwapType, error) {
@@ -206,7 +217,7 @@ func (s *PoolSimulator) getSwapType(tokenIn string, tokenOut string) (SwapType, 
 
 	swapType := lo.Ternary(tokenInIndex < tokenOutIndex, Redeem, Deposit)
 
-	if s.SwapTypes != swapType && s.SwapTypes != Both {
+	if swapType == Redeem && s.Gas.Redeem == 0 || swapType == Deposit && s.Gas.Deposit == 0 {
 		return None, errors.Wrapf(ErrUnsupportedSwap, "unsupported swap type: %v", swapType)
 	}
 

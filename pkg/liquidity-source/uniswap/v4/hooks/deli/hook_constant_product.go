@@ -12,7 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -33,6 +33,10 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	}
 	return hook
 }, ConstantProductAddresses...)
+
+func (h *ConstantProductHook) AllowEmptyTicks() bool {
+	return true
+}
 
 func (h *ConstantProductHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves,
 	error) {

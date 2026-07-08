@@ -1,0 +1,31 @@
+[
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "poolId", "type": "bytes32" }],
+    "name": "getPrice",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "price",     "type": "uint256" },
+          { "internalType": "uint256", "name": "updatedAt", "type": "uint256" },
+          { "internalType": "uint256", "name": "spreadBps", "type": "uint256" }
+        ],
+        "internalType": "struct PriceOracle.PriceData",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true,  "internalType": "bytes32", "name": "poolId",    "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256", "name": "price",     "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "spreadBps", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "updatedAt", "type": "uint256" }
+    ],
+    "name": "PriceUpdated",
+    "type": "event"
+  }
+]

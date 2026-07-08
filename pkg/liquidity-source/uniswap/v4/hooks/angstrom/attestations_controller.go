@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
+	"github.com/samber/lo"
 )
 
 type AttestationController struct {
@@ -24,7 +25,7 @@ var (
 
 func GetAttestationController(config HookConfig) *AttestationController {
 	once.Do(func() {
-		httpClient := resty.NewWithClient(http.DefaultClient).
+		httpClient := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 			SetBaseURL(config.HTTP.BaseURL).
 			SetTimeout(config.HTTP.Timeout.Duration).
 			SetRetryCount(config.HTTP.RetryCount).
@@ -68,7 +69,7 @@ func (h *AttestationController) fetchAttestations() ([]Attestation, error) {
 			"blocks_in_future": h.cfg.BlocksInFuture,
 		}).
 		SetResult(&resp).
-		Post(GET_ATTESTATIONS_PATH)
+		Post(PathGetAttestations)
 
 	if err != nil {
 		return nil, err

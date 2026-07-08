@@ -1,14 +1,14 @@
 package reth
 
 const (
-	DexType  = "rocketpool-reth"
-	reserves = "10000000000000000000"
+	DexType = "rocketpool-reth"
 
-	RocketDepositPool                = "0xdd3f50f8a6cafbe9b31a427582963f465e745af8"
-	RocketDAOProtocolSettingsDeposit = "0xac2245be4c2c1e9752499bcd34861b761d62fc27"
-	RocketVault                      = "0x3bdc69c4e5e13e52a65f5583c23efb9636b469d6"
-	RocketMinipoolQueue              = "0x9e966733e3e9bfa56af95f762921859417cf6faa"
-	RocketNetworkBalances            = "0x07fcabcbe4ff0d80c2b1eb42855c0131b6cba2f4"
-	RocketTokenRETH                  = "0xae78736cd615f374d3085123a210448e74fc6393"
-	WETH                             = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+	RocketDepositPool                = "0xCE15294273CFb9D9b628F4D61636623decDF4fdC"
+	RocketDAOProtocolSettingsDeposit = "0x227BE8dD01DF8ad9BED0178e4F8cEC2996C5c365"
+	RocketVault                      = "0x3bDC69C4E5e13E52A65f5583c23EFB9636b469d6"
+	RocketMinipoolQueue              = "0x9e966733e3E9BFA56aF95f762921859417cF6FaA"
+	RocketNetworkBalances            = "0x1D9F14C6Bfd8358b589964baD8665AdD248E9473"
+	RocketTokenRETH                  = "0xae78736Cd615f374D3085123A210448E74Fc6393"
+	WETH                             = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+	Multicall3                       = "0xcA11bde05977b3631167028862bE2a173976CA11"
 )

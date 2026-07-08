@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Integrate `nadswap` (nadfun-contract-v2 DEX) on Monad. Supports meme-token pairs with asymmetric quote-token fee model and general pairs with LP-only constant-product math.
+- Integrate `ghost` (cross-collateral router) on Ethereum, Arbitrum, and Base. Supports directional stablecoin pairs with a linear-then-capped input fee and a target-side reserve limit.
+
+
 ## [v0.11.6] - 2023-09-11
 
 ### Added

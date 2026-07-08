@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -21,22 +20,15 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	blackList    cmap.ConcurrentMap
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	blackList, err := InitBlackList(cfg.BlacklistFilePath)
-	if err != nil {
-		return nil, err
-	}
-
 	return &PoolTracker{
 		config:       cfg,
 		ethrpcClient: ethrpcClient,
-		blackList:    blackList,
 	}, nil
 }
 
@@ -203,15 +195,12 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.Infof("[%v] Start getting new state of pool: %v", p.Type, p.Address)
 
-	_, ok := d.blackList.Get(p.Address)
-	if ok {
-		return entity.Pool{}, ErrPoolAddressBanned
-	}
-
 	var (
-		state     V2PMMState
-		feeRate   V2FeeRate
-		lpFeeRate *big.Int
+		state              V2PMMState
+		feeRate            V2FeeRate
+		lpFeeRate          *big.Int
+		minBaseSwapAmount  *big.Int
+		minQuoteSwapAmount *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -233,8 +222,21 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		Method: dodoV2MethodGetUserFeeRate,
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&feeRate})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodMinBaseSwapAmount,
+		Params: nil,
+	}, []any{&minBaseSwapAmount})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodMinQuoteSwapAmount,
+		Params: nil,
+	}, []any{&minQuoteSwapAmount})
 
-	if _, err := calls.TryBlockAndAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -258,10 +260,12 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"exchange":    p.Exchange,
-		}).Errorf("[DodoV2] added pool to blacklist")
+		}).Errorf("[DodoV2] failed to get pool feeRate, clear pool data")
 
-		if state.K.Sign() == 0 && (state.B.Sign() == 0 || state.Q.Sign() == 0) {
-			d.blackList.Set(p.Address, struct{}{})
+		if state.K.Sign() == 0 && (state.B.Sign() == 0 || state.Q.Sign() == 0) && p.Extra != "" {
+			p.Extra = ""
+			p.Reserves = entity.PoolReserves{"0", "0"}
+			return p, nil
 		}
 
 		return entity.Pool{}, fmt.Errorf("get pool feeRate failed")
@@ -277,6 +281,14 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		R:         number.SetFromBig(state.R),
 		MtFeeRate: number.SetFromBig(feeRate.MtFeeRate),
 		LpFeeRate: number.SetFromBig(lpFeeRate),
+	}
+	if len(resp.Result) > 4 &&
+		resp.Result[3] &&
+		resp.Result[4] &&
+		minBaseSwapAmount != nil &&
+		minQuoteSwapAmount != nil {
+		extra.MinBaseSwapAmount = number.SetFromBig(minBaseSwapAmount)
+		extra.MinQuoteSwapAmount = number.SetFromBig(minQuoteSwapAmount)
 	}
 
 	extraBytes, err := json.Marshal(extra)

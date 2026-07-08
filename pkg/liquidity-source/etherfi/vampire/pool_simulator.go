@@ -174,7 +174,7 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 		Mul(&dx, s.EETH.TotalShares).
 		Div(&eEthShare, s.LiquidityPool.TotalPooledEther)
 
-	if dx.Cmp(bignumber.MAX_UINT_128) > 0 || dx.Sign() == 0 || eEthShare.Sign() == 0 {
+	if dx.Cmp(bignumber.MaxUint128) > 0 || dx.Sign() == 0 || eEthShare.Sign() == 0 {
 		return nil, nil, ErrInvalidAmount
 	}
 

@@ -1,6 +1,10 @@
 package curve
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 const (
 	DexTypeCurve = "curve"
@@ -115,4 +119,6 @@ var weth9 = map[int]string{
 var (
 	zeroBI       = big.NewInt(0)
 	zero   int64 = 0
+
+	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
 )

@@ -1,0 +1,90 @@
+[
+  {
+    "name": "getHookFees",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fees0",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "fees1",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "beneficiaryFees0",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "beneficiaryFees1",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "airlockOwnerFees0",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "airlockOwnerFees1",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "customFee",
+        "type": "int64",
+        "internalType": "int64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "getFeeSchedule",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "startingTime",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "startFee",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "endFee",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "lastFee",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "durationSeconds",
+        "type": "int64",
+        "internalType": "int64"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

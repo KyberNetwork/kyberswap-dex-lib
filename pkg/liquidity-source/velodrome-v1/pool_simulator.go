@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -95,7 +94,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	} else if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
-	} else if amountOut.Cmp(p.reserves[indexOut]) > 0 {
+	} else if !amountOut.Lt(p.reserves[indexOut]) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -119,7 +118,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountOut
-	} else if amountOut.Cmp(p.reserves[indexOut]) > 0 {
+	} else if !amountOut.Lt(p.reserves[indexOut]) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -193,13 +192,30 @@ func (p *PoolSimulator) getAmountOut(amountIn *uint256.Int, indexIn, indexOut in
 
 func (p *PoolSimulator) getAmountIn(amountOut *uint256.Int, indexIn, indexOut int) (*uint256.Int, error) {
 	if p.stable {
-		return nil, ErrUnimplemented
+		xy := p._k(p.reserves[0], p.reserves[1])
+		decimalsA, decimalsB := p.decimals[indexIn], p.decimals[indexOut]
+		var _reserveIn, _reserveOut uint256.Int
+		_reserveIn.Div(_reserveIn.Mul(p.reserves[indexIn], big256.BONE), decimalsA)
+		_reserveOut.Div(_reserveOut.Mul(p.reserves[indexOut], big256.BONE), decimalsB)
+
+		var tmp uint256.Int
+		amountOutScaled := tmp.Mul(amountOut, big256.BONE)
+		amountOutScaled.Div(amountOutScaled, decimalsB)
+
+		y, err := p._get_y(_reserveOut.Sub(&_reserveOut, amountOutScaled), xy, &_reserveIn)
+		if err != nil {
+			return nil, err
+		}
+		x := y.Sub(y, &_reserveIn)
+
+		result := x.Div(x.Mul(x, decimalsA), big256.BONE)
+
+		return big256.MulDivUp(result, result, p.feePrecision, tmp.Sub(p.feePrecision, p.fee)), nil
 	}
 
 	var tmp1, tmp2 uint256.Int
 	tmp2.Mul(tmp1.Sub(p.reserves[indexOut], amountOut), tmp2.Sub(p.feePrecision, p.fee))
-	tmp1.MulDivOverflow(tmp1.Mul(p.reserves[indexIn], amountOut), p.feePrecision, &tmp2)
-	return tmp1.AddUint64(&tmp1, 1), nil
+	return big256.MulDivUp(&tmp1, tmp1.Mul(p.reserves[indexIn], amountOut), p.feePrecision, &tmp2), nil
 }
 
 func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
@@ -230,7 +246,7 @@ func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	for range 255 {
 		k := _f(x0, y)
 
-		if k.Cmp(xy) < 0 {
+		if k.Lt(xy) {
 			dy.Div(
 				dy.Mul(dy.Sub(xy, k), big256.BONE),
 				_d(x0, y),
@@ -274,7 +290,7 @@ func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
 		a.Div(
 			a.Mul(
 				a.Mul(
-					number.Number_3,
+					big256.U3,
 					x0,
 				),
 				b.Div(b.Mul(y, y), big256.BONE),

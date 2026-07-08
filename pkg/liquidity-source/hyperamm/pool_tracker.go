@@ -1,0 +1,189 @@
+package hyperamm
+
+import (
+	"context"
+	"math/big"
+	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+
+// PoolTracker refreshes the mutable on-chain state of each HyperAMM pool.
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
+
+func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	return &PoolTracker{
+		config:       config,
+		ethrpcClient: ethrpcClient,
+	}
+}
+
+func (t *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
+	logger.Infof("hyperamm: refreshing pool %s", p.Address)
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return p, err
+	}
+
+	swapFeeModuleAddr := staticExtra.SwapFeeModule
+
+	// ── Phase 1: read paused state, fair prices, base fee, miFactor ─────────
+	var (
+		isPaused      bool
+		fairPrice0To1 *big.Int
+		fairPrice1To0 *big.Int
+		baseFeeBpsRaw uint16
+	)
+	resp, err := t.ethrpcClient.NewRequest().
+		SetContext(ctx).
+		SetOverrides(overrides).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMABI,
+			Target: p.Address,
+			Method: "paused",
+		}, []any{&isPaused}).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMSwapFeeModuleABI,
+			Target: swapFeeModuleAddr,
+			Method: "fairPriceInScale18",
+			Params: []any{true},
+		}, []any{&fairPrice0To1}).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMSwapFeeModuleABI,
+			Target: swapFeeModuleAddr,
+			Method: "fairPriceInScale18",
+			Params: []any{false},
+		}, []any{&fairPrice1To0}).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMSwapFeeModuleABI,
+			Target: swapFeeModuleAddr,
+			Method: "baseFeeBps",
+		}, []any{&baseFeeBpsRaw}).
+		Aggregate()
+	if err != nil {
+		return p, err
+	}
+
+	// ── Phase 2: read reserves and reference fees at the same block ──────────
+	// Use 0 as reference amount for fee preview; the fee module accepts any
+	// amount, and we treat its output as a snapshot representative fee.
+	var (
+		liquidity struct {
+			Token0Amount, Token1Amount *big.Int
+		}
+		feeData0To1, feeData1To0 struct {
+			Data valantisstex.SwapFeeModuleData
+		}
+	)
+	if _, err := t.ethrpcClient.NewRequest().
+		SetContext(ctx).
+		SetOverrides(overrides).
+		SetBlockNumber(resp.BlockNumber).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMLensABI,
+			Target: t.config.Lens,
+			Method: "getAvailableLiquidity",
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&liquidity}).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMSwapFeeModuleABI,
+			Target: swapFeeModuleAddr,
+			Method: "getSwapFeeInBips",
+			Params: []any{
+				common.HexToAddress(p.Tokens[0].Address),
+				valueobject.AddrZero,
+				bignumber.ZeroBI,
+				valueobject.AddrZero,
+				[]byte{},
+			},
+		}, []any{&feeData0To1}).
+		AddCall(&ethrpc.Call{
+			ABI:    hyperAMMSwapFeeModuleABI,
+			Target: swapFeeModuleAddr,
+			Method: "getSwapFeeInBips",
+			Params: []any{
+				common.HexToAddress(p.Tokens[1].Address),
+				valueobject.AddrZero,
+				bignumber.ZeroBI,
+				valueobject.AddrZero,
+				[]byte{},
+			},
+		}, []any{&feeData1To0}).
+		Aggregate(); err != nil {
+		return p, err
+	}
+
+	fp01, _ := uint256.FromBig(fairPrice0To1)
+	fp10, _ := uint256.FromBig(fairPrice1To0)
+
+	fallback := uint64(baseFeeBpsRaw)
+	refFee01 := resolveRefFee(feeData0To1.Data.FeeInBips, fallback)
+	refFee10 := resolveRefFee(feeData1To0.Data.FeeInBips, fallback)
+
+	extraBytes, err := json.Marshal(Extra{
+		FairPriceFrom: [2]*uint256.Int{fp01, fp10},
+		RefFeeFrom:    [2]uint64{refFee01, refFee10},
+		IsPaused:      isPaused,
+	})
+	if err != nil {
+		return p, err
+	}
+
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = resp.BlockNumber.Uint64()
+	p.Reserves = entity.PoolReserves{
+		liquidity.Token0Amount.String(),
+		liquidity.Token1Amount.String(),
+	}
+
+	return p, nil
+}
+
+// resolveRefFee returns the fee from feeInBips if non-nil and non-zero,
+// otherwise falls back to fallback (the pool's base fee).
+func resolveRefFee(feeInBips *big.Int, fallback uint64) uint64 {
+	if feeInBips != nil && feeInBips.Sign() > 0 {
+		return feeInBips.Uint64()
+	}
+	return fallback
+}

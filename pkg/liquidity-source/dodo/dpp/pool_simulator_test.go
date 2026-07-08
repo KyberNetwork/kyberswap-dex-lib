@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/libv2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -170,4 +171,35 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			assert.Equalf(t, tc.expectedFee, amountOut.Fee.Amount, "expected fee %v, got %v", tc.expectedFee, amountOut.Fee.Amount)
 		})
 	}
+}
+
+func TestPoolSimulator_MinSwapAmount(t *testing.T) {
+	t.Parallel()
+
+	poolRedis := "{\"address\":\"0xa7548448f4c774e3c3005bcfe81cd21b5925e91a\",\"swapFee\":673452870000000,\"exchange\":\"dodo-dpp\",\"type\":\"dodo-dpp\",\"timestamp\":1783052459,\"reserves\":[\"271642564\",\"107968931941\"],\"tokens\":[{\"address\":\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\",\"symbol\":\"BTC.b\",\"decimals\":8,\"swappable\":true},{\"address\":\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"i\\\":\\\"613303610000000000000\\\",\\\"K\\\":\\\"1000000000000000\\\",\\\"B\\\":\\\"271642564\\\",\\\"Q\\\":\\\"107968931941\\\",\\\"B0\\\":\\\"222879308\\\",\\\"Q0\\\":\\\"137867333514\\\",\\\"R\\\":\\\"2\\\",\\\"mtFeeRate\\\":\\\"0\\\",\\\"lpFeeRate\\\":\\\"673452870000000\\\",\\\"mB\\\":\\\"1000\\\",\\\"mQ\\\":\\\"1000000\\\"}\",\"staticExtra\":\"{\\\"poolId\\\":\\\"0xa7548448f4c774e3c3005bcfe81cd21b5925e91a\\\",\\\"type\\\":\\\"DPP\\\",\\\"dodoV1SellHelper\\\":\\\"0xf7c5311b618e6dfbbc34210c92d2c9675d7eddca\\\"}\"}"
+
+	var poolEntity entity.Pool
+	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+			Amount: bignumber.NewBig10("786892"),
+		},
+		TokenOut: "0x152b9d0fdc40c096757f570a51e494bd4b943e50",
+	})
+	require.ErrorIs(t, err, shared.ErrQuoteSwapAmountTooSmall)
+
+	amountOut, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+			Amount: bignumber.NewBig10("1000000"),
+		},
+		TokenOut: "0x152b9d0fdc40c096757f570a51e494bd4b943e50",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig10("1630"), amountOut.TokenAmountOut.Amount)
 }

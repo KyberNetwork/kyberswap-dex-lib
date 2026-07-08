@@ -124,14 +124,12 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (PoolFactoryD
 		ABI:    poolFactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: poolFactoryMethodIsPaused,
-		Params: nil,
 	}, []any{&pairFactoryData.IsPaused})
 
 	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
 		ABI:    poolFactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: poolFactoryMethodAllPoolsLength,
-		Params: nil,
 	}, []any{&pairFactoryData.AllPairsLength})
 
 	if _, err := getAllPairsLengthRequest.TryBlockAndAggregate(); err != nil {
@@ -257,20 +255,18 @@ func (u *PoolsListUpdater) listPoolData(
 	for i, poolAddress := range poolAddresses {
 		listPoolMetadataRequest.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
-			Target: poolAddress.Hex(),
+			Target: hexutil.Encode(poolAddress[:]),
 			Method: poolMethodMetadata,
-			Params: nil,
 		}, []any{&poolMetadataList[i]})
 	}
 
-	resp, err := listPoolMetadataRequest.Aggregate()
-	if err != nil {
+	if _, err := listPoolMetadataRequest.Aggregate(); err != nil {
 		return nil, nil, 0, err
 	}
 
 	feeList := make([]*big.Int, len(poolAddresses))
 
-	listPoolFeeRequest := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	listPoolFeeRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, poolAddress := range poolAddresses {
 		listPoolFeeRequest.AddCall(&ethrpc.Call{
@@ -281,7 +277,7 @@ func (u *PoolsListUpdater) listPoolData(
 		}, []any{&feeList[i]})
 	}
 
-	resp, err = listPoolFeeRequest.Aggregate()
+	resp, err := listPoolFeeRequest.Aggregate()
 	if err != nil {
 		return nil, nil, 0, err
 	}

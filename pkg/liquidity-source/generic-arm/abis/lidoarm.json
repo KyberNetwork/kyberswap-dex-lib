@@ -638,6 +638,73 @@
     },
     {
         "inputs": [],
+        "name": "getBaseAssets",
+        "outputs": [
+            {
+                "internalType": "address[]",
+                "name": "",
+                "type": "address[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "baseAssetConfigs",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "name": "buyPrice",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "sellPrice",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "buyLiquidityRemaining",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "sellLiquidityRemaining",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "crossPrice",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint120",
+                "name": "pendingRedeemAssets",
+                "type": "uint120"
+            },
+            {
+                "internalType": "bool",
+                "name": "peggedToLiquidityAsset",
+                "type": "bool"
+            },
+            {
+                "internalType": "address",
+                "name": "adapter",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
         "name": "capManager",
         "outputs": [
             {
@@ -1585,6 +1652,32 @@
     {
         "inputs": [],
         "name": "withdrawsQueued",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "name": "",
+                "type": "uint128"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "withdrawsClaimedShares",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "name": "",
+                "type": "uint128"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "withdrawsQueuedShares",
         "outputs": [
             {
                 "internalType": "uint128",

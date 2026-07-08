@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -123,6 +124,16 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
+}
+
+func (p *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	_, ok := supportNativeSwapExchanges[p.Info.Exchange]
+	return ok && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (p *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	_, ok := supportNativeSwapExchanges[p.Info.Exchange]
+	return ok && valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *big.Int) (*uint256.Int, error) {

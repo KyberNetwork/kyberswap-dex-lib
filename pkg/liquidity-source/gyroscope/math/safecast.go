@@ -5,28 +5,20 @@ import (
 	"github.com/holiman/uint256"
 )
 
-var SafeCast *safecast
+var SafeCast *safeCast
 
-type safecast struct{}
+type safeCast struct{}
 
-func init() {
-	SafeCast = &safecast{}
-}
-
-func (s *safecast) ToInt256(value *uint256.Int) (*int256.Int, error) {
-	v, err := int256.FromBig(value.ToBig())
-	if err != nil {
-		return nil, err
-	}
-	if v.IsNegative() {
+func (s *safeCast) ToInt256(value *uint256.Int) (*int256.Int, error) {
+	if value.Sign() < 0 {
 		return nil, ErrSafeCast
 	}
-	return v, nil
+	return (*int256.Int)(value), nil
 }
 
-func (s *safecast) ToUint256(value *int256.Int) (*uint256.Int, error) {
+func (s *safeCast) ToUint256(value *int256.Int) (*uint256.Int, error) {
 	if value.IsNegative() {
 		return nil, ErrSafeCast
 	}
-	return uint256.MustFromBig(value.ToBig()), nil
+	return (*uint256.Int)(value), nil
 }

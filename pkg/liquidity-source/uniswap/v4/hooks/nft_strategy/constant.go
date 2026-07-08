@@ -5,6 +5,7 @@ import (
 )
 
 var HookAddresses = []common.Address{
+	// TokenWorks
 	common.HexToAddress("0xfAaad5B731F52cDc9746F2414c823eca9B06E844"),
 	common.HexToAddress("0xe3C63A9813Ac03BE0e8618B627cb8170cfA468c4"),
 	common.HexToAddress("0x5d8A61FA2Ced43EEaBffC00c85f705E3e08c28c4"),
@@ -14,6 +15,17 @@ var HookAddresses = []common.Address{
 	common.HexToAddress("0xfdFA1DFAB150fE6B2FDFdd609F37B2459C7b6444"),
 	common.HexToAddress("0x5e8A308B07194d115bcF78dac9a426C7b46Ae444"),
 	common.HexToAddress("0x8fb66C6E0f3cbb25001e0f1C0352Cc888cFF6444"),
+
+	// copycat that bypasses TokenWorks' protocol fee
+	common.HexToAddress("0x473432BB27499fcc3C3664418bFaF2c91690A044"),
+	common.HexToAddress("0xb7945204F1f72b3adFFB166b09f52a027a122fCc"),
+	common.HexToAddress("0x46640F138800Ca968DD0A201B46AABebDC3aA044"),
+	common.HexToAddress("0x4eFC4997b4882B8a7Bf696597347FaCDD221a044"),
+	common.HexToAddress("0x005e55F057f31206BfBa5149aC7ac2669495A044"),
+	common.HexToAddress("0xe6937CB7564F8e2B0c25B80eE3AD36d049e6e044"),
+	common.HexToAddress("0x4c0CcbBe56d418F757C250EeA4ffF3c5B9166044"),
+	common.HexToAddress("0x0f5336D7046E90C9cE99b101C320a62e9aDC6044"),
+	common.HexToAddress("0xE9FDa41c94f98666d1d141C53A624F46852b2044"),
 }
 
 var PunkHookAddress = common.HexToAddress("0xfAaad5B731F52cDc9746F2414c823eca9B06E844")

@@ -22,31 +22,46 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 	poolAndRegistries []PoolAndRegistries,
 ) ([]entity.Pool, error) {
 	var (
-		basePools       = make([]common.Address, len(poolAndRegistries))
-		coins           = make([][8]common.Address, len(poolAndRegistries))
-		underlyingCoins = make([][8]common.Address, len(poolAndRegistries))
-		decimals        = make([][8]*big.Int, len(poolAndRegistries))
-		aList           = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList    = make([]*big.Int, len(poolAndRegistries))
+		basePools         = make([]common.Address, len(poolAndRegistries))
+		poolBasePools     = make([]common.Address, len(poolAndRegistries))
+		registryBasePools = make([]common.Address, len(poolAndRegistries))
+		coins             = make([][8]common.Address, len(poolAndRegistries))
+		underlyingCoins   = make([][8]common.Address, len(poolAndRegistries))
+		decimals          = make([][8]*big.Int, len(poolAndRegistries))
+		aList             = make([]*big.Int, len(poolAndRegistries))
+		aPreciseList      = make([]*big.Int, len(poolAndRegistries))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, poolAndRegistry := range poolAndRegistries {
+		// Base pool is resolved from up to two candidates; we pick the first non-zero
+		// after aggregation (see below), so coverage is the union of all sources.
+		// Candidate A: the pool's own base_pool() getter. Newer templates (e.g.
+		// GUSD/3Crv) implement it; legacy metapools (MIM/FRAX/LUSD/TUSD-3Crv) do not,
+		// so this call may revert and leave the slot zero (TryAggregate tolerates it).
+		calls.AddCall(&ethrpc.Call{
+			ABI:    metaABI,
+			Target: poolAndRegistry.PoolAddress.Hex(),
+			Method: poolMethodBasePool,
+		}, []any{&poolBasePools[i]})
+
+		// Candidate B: a registry that indexes base pools — the meta factory for
+		// factory-listed pools, otherwise the MetaRegistry (which covers legacy pools
+		// lacking base_pool()). Skipped when neither is configured (e.g. some chains).
+		registryTarget := ""
 		if strings.EqualFold(poolAndRegistry.RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
+			registryTarget = d.config.MetaPoolsFactoryAddress
+		} else if d.config.MetaRegistryAddress != "" && !strings.EqualFold(d.config.MetaRegistryAddress, addressZero) {
+			registryTarget = d.config.MetaRegistryAddress
+		}
+		if registryTarget != "" {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    metaPoolFactoryABI,
-				Target: d.config.MetaPoolsFactoryAddress,
+				Target: registryTarget,
 				Method: registryOrFactoryMethodGetBasePool,
 				Params: []any{poolAndRegistry.PoolAddress},
-			}, []any{&basePools[i]})
-		} else {
-			calls.AddCall(&ethrpc.Call{
-				ABI:    metaABI,
-				Target: poolAndRegistry.PoolAddress.Hex(),
-				Method: poolMethodBasePool,
-				Params: nil,
-			}, []any{&basePools[i]})
+			}, []any{&registryBasePools[i]})
 		}
 
 		calls.AddCall(&ethrpc.Call{
@@ -54,39 +69,38 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&coins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&underlyingCoins[i]}).AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
 			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&decimals[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&decimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    metaABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodA,
-			Params: nil,
-		}, []any{&aList[i]})
-
-		calls.AddCall(&ethrpc.Call{
+		}, []any{&aList[i]}).AddCall(&ethrpc.Call{
 			ABI:    metaABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodAPrecise,
-			Params: nil,
 		}, []any{&aPreciseList[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.Errorf("failed to aggregate call to get pool data, err: %v", err)
 		return nil, err
+	}
+
+	// Prefer the registry answer, fall back to the pool's own base_pool() getter.
+	// A base pool stays zero only if none of the sources know it.
+	for i := range poolAndRegistries {
+		basePools[i] = registryBasePools[i]
+		if basePools[i] == (common.Address{}) {
+			basePools[i] = poolBasePools[i]
+		}
 	}
 
 	aPrecisions, err := getAPrecisions(aList, aPreciseList)
@@ -152,58 +166,35 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 		balances                                                                  = make([]*big.Int, len(p.Tokens))
 	)
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		calls.SetOverrides(overrides)
-	}
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    metaABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-		Params: nil,
-	}, []any{&initialA})
-
-	calls.AddCall(&ethrpc.Call{
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+		AddCall(&ethrpc.Call{
+			ABI:    metaABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []any{&futureA})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []any{&initialATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []any{&futureATime})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []any{&swapFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    metaABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []any{&adminFee})
-
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: p.GetLpToken(),
 		Method: erc20MethodTotalSupply,
-		Params: nil,
 	}, []any{&lpSupply})
 
 	for i := range p.Tokens {
@@ -230,17 +221,12 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 	// is calculated using contract data.
 	if p.Address == RAIMetaPool {
 		var redemptionPriceSnapContract common.Address
-		req := d.ethrpcClient.NewRequest().SetContext(ctx)
-		if overrides != nil {
-			req.SetOverrides(overrides)
-		}
-
-		req.AddCall(&ethrpc.Call{
-			ABI:    metaABIV0_2_12,
-			Target: p.Address,
-			Method: poolMethodRedemptionPriceSnap,
-			Params: nil,
-		}, []any{&redemptionPriceSnapContract})
+		req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+			AddCall(&ethrpc.Call{
+				ABI:    metaABIV0_2_12,
+				Target: p.Address,
+				Method: poolMethodRedemptionPriceSnap,
+			}, []any{&redemptionPriceSnapContract})
 
 		if _, err := req.TryAggregate(); err != nil {
 			logger.WithFields(logger.Fields{
@@ -249,17 +235,12 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 				"error":       err,
 			}).Errorf("failed to aggregate RAI pool redemption_price_snap")
 		} else {
-			req = d.ethrpcClient.NewRequest().SetContext(ctx)
-			if overrides != nil {
-				req.SetOverrides(overrides)
-			}
-
-			req.AddCall(&ethrpc.Call{
-				ABI:    redemptionPriceSnap,
-				Target: redemptionPriceSnapContract.String(),
-				Method: oracleMethodSnappedRedemptionPrice,
-				Params: nil,
-			}, []any{&snappedRedemptionPrice})
+			req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionPriceSnap,
+					Target: redemptionPriceSnapContract.String(),
+					Method: oracleMethodSnappedRedemptionPrice,
+				}, []any{&snappedRedemptionPrice})
 
 			if _, err := req.TryAggregate(); err != nil {
 				logger.WithFields(logger.Fields{

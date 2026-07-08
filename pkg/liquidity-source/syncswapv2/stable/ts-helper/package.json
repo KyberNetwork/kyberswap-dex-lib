@@ -9,6 +9,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "ethers": "^5"
+    "ethers": "^6"
   }
 }

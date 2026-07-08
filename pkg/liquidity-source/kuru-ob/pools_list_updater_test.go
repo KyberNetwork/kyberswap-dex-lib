@@ -45,7 +45,7 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 		pools[i], err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
 	}
-	t.Log(string(lo.Must(json.Marshal(pools[10]))))
+	t.Log(string(lo.Must(json.Marshal(pools[0]))))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), poolsMetadataBytes)
 	require.NoError(t, err)

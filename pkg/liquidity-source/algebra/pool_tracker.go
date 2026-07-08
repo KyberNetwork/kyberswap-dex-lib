@@ -1,13 +1,13 @@
 package algebra
 
 import (
+	"cmp"
 	"context"
 	"math/big"
 	"sort"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"golang.org/x/exp/constraints"
 )
 
 const (
@@ -145,7 +145,7 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 // a <= c <  b | false
 // b <  a <= c | false
 // c <  b <  a | false
-func LteConsideringOverflow[T constraints.Ordered](a, b, currentTime T) bool {
+func LteConsideringOverflow[T cmp.Ordered](a, b, currentTime T) bool {
 	res := a > currentTime
 	if res == (b > currentTime) {
 		res = a <= b

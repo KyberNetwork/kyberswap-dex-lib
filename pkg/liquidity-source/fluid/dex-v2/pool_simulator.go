@@ -322,3 +322,13 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		IsNativeOut: p.staticExtra.IsNative[tokenOutIndex],
 	}
 }
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return meta.IsNativeIn
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMeta)
+	return meta.IsNativeOut
+}

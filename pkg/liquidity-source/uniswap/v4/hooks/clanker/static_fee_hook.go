@@ -6,148 +6,96 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type StaticFeeHook struct {
-	uniswapv4.Hook
-
-	hook            string
-	protocolFee     *big.Int
-	clankerFee      uniswapv4.FeeAmount
-	pairedFee       uniswapv4.FeeAmount
-	clankerIsToken0 bool
+	uniswapv4.Hook  `json:"-"`
+	*Fork           `json:"-"`
+	ProtocolFee     *big.Int            `json:"p,omitempty"`
+	ClankerFee      uniswapv4.FeeAmount `json:"c,omitempty"`
+	PairedFee       uniswapv4.FeeAmount `json:"f,omitempty"`
+	ClankerIsToken0 bool                `json:"0,omitempty"`
+	ClankerTracked  bool                `json:"t,omitempty"`
 }
 
-type StaticFeeExtra struct {
-	ProtocolFee     *big.Int
-	ClankerFee      *big.Int
-	PairedFee       *big.Int
-	ClankerIsToken0 bool
-	ClankerTracked  bool
+var _ = uniswapv4.RegisterHooksFactory(NewStaticFeeHook(Clanker), StaticFeeHookAddresses...)
+var _ = uniswapv4.RegisterHooksFactory(NewStaticFeeHook(Liquid), LiquidStaticFeeHookAddresses...)
+
+func NewStaticFeeHook(fork *Fork) func(param *uniswapv4.HookParam) uniswapv4.Hook {
+	return func(param *uniswapv4.HookParam) uniswapv4.Hook {
+		hook := &StaticFeeHook{
+			Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Clanker},
+			Fork: fork,
+		}
+		_ = param.HookExtra.Unmarshal(&hook)
+		return hook
+	}
 }
 
-var _ = uniswapv4.RegisterHooksFactory(NewStaticFeeHook, StaticFeeHookAddresses...)
-
-func NewStaticFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
-	hook := &StaticFeeHook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Clanker},
-		hook: param.HookAddress.Hex(),
-	}
-
-	if param.HookExtra != "" {
-		var extra StaticFeeExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return nil
-		}
-
-		hook.clankerIsToken0 = extra.ClankerIsToken0
-		hook.protocolFee = extra.ProtocolFee
-
-		if extra.PairedFee != nil {
-			hook.pairedFee = uniswapv4.FeeAmount(extra.PairedFee.Uint64())
-		}
-		if extra.ClankerFee != nil {
-			hook.clankerFee = uniswapv4.FeeAmount(extra.ClankerFee.Uint64())
-		}
-	}
-
-	return hook
-}
-
-func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
-	var extra StaticFeeExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
-			return "", err
-		}
-	}
-
-	poolBytes := eth.StringToBytes32(param.Pool.Address)
+func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
+	hook := hexutil.Encode(param.HookAddress[:])
+	poolBytes := common.HexToHash(param.Pool.Address)
 	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
-	var info ClankerDeploymentInfo
 
-	req := param.RpcClient.NewRequest().SetContext(ctx)
-	if param.BlockNumber != nil {
-		req.SetBlockNumber(param.BlockNumber)
-	}
-
-	req.AddCall(&ethrpc.Call{
+	var info TokenDeploymentInfo
+	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
 		ABI:    dynamicFeeHookABI,
-		Target: h.hook,
+		Target: hook,
 		Method: "protocolFee",
-	}, []any{&extra.ProtocolFee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&h.ProtocolFee}).AddCall(&ethrpc.Call{
 		ABI:    staticFeeHookABI,
-		Target: h.hook,
-		Method: "clankerFee",
+		Target: hook,
+		Method: h.Name + "Fee",
 		Params: []any{poolBytes},
-	}, []any{&extra.ClankerFee})
-	req.AddCall(&ethrpc.Call{
+	}, []any{(*uint64)(&h.ClankerFee)}).AddCall(&ethrpc.Call{
 		ABI:    staticFeeHookABI,
-		Target: h.hook,
+		Target: hook,
 		Method: "pairedFee",
 		Params: []any{poolBytes},
-	}, []any{&extra.PairedFee})
-
-	if !extra.ClankerTracked {
+	}, []any{(*uint64)(&h.PairedFee)})
+	if !h.ClankerTracked {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clankerABI,
-			Target: ClankerAddressByChain[valueobject.ChainID(param.Cfg.ChainID)],
+			Target: h.AddressByChain[param.Cfg.ChainID],
 			Method: "tokenDeploymentInfo",
 			Params: []any{token0},
 		}, []any{&info})
-
-		extra.ClankerTracked = true
-		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
 	}
 
 	if _, err := req.Aggregate(); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if !extra.ClankerTracked {
-		extra.ClankerTracked = true
-		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
+	if !h.ClankerTracked {
+		h.ClankerTracked = true
+		h.ClankerIsToken0 = info.Data.Token == token0
 	}
 
-	extraBytes, err := json.Marshal(&extra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(extraBytes), nil
+	return json.Marshal(h)
 }
 
 func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if h.protocolFee == nil {
+	if h.ProtocolFee == nil {
 		return nil, ErrPoolIsNotTracked
 	}
 
-	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
-
-	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
+	if params.ZeroForOne == h.ClankerIsToken0 {
 		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecified:   bignumber.ZeroBI,
 			DeltaUnspecified: bignumber.ZeroBI,
-			SwapFee:          h.clankerFee,
+			SwapFee:          h.ClankerFee,
 		}, nil
 	}
 
 	var scaledProtocolFee, fee big.Int
-
-	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	if params.ExactIn && swappingForClanker {
-		fee.Add(Million, h.protocolFee)
-	} else { // !params.ExactIn && !swappingForClanker
-		fee.Sub(Million, h.protocolFee)
-	}
+	scaledProtocolFee.Mul(h.ProtocolFee, bignumber.BONE)
+	fee.Add(Million, h.ProtocolFee)
 	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
 	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
@@ -155,29 +103,22 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   &fee,
 		DeltaUnspecified: bignumber.ZeroBI,
-		SwapFee:          h.pairedFee,
+		SwapFee:          h.PairedFee,
 	}, nil
 }
 
 func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
-
-	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
+	if params.ZeroForOne != h.ClankerIsToken0 {
 		return &uniswapv4.AfterSwapResult{
 			HookFee: bignumber.ZeroBI,
 		}, nil
 	}
 
 	var delta big.Int
-	if params.ExactIn && !swappingForClanker {
-		delta.Mul(params.AmountOut, h.protocolFee)
-	} else { // !params.ExactIn && swappingForClanker
-		delta.Mul(params.AmountIn, h.protocolFee)
-	}
+	delta.Mul(params.AmountOut, h.ProtocolFee)
 	delta.Div(&delta, FeeDenominator)
 
 	return &uniswapv4.AfterSwapResult{
 		HookFee: &delta,
-		Gas:     0,
 	}, nil
 }

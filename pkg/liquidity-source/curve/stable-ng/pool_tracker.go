@@ -84,70 +84,44 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	req.SetFrom(nonZeroAddr) // poolMethodStoredRates behaves differently for tx.origin == 0
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
-		Target: p.Address,
-		Method: poolMethodInitialA,
-		Params: nil,
-	}, []any{&initialA})
-
-	req.AddCall(&ethrpc.Call{
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
+		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
+		AddCall(&ethrpc.Call{
+			ABI:    curveStableNGABI,
+			Target: p.Address,
+			Method: poolMethodInitialA,
+		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []any{&futureA})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []any{&initialATime})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []any{&futureATime})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []any{&swapFee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []any{&adminFee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
-		Params: nil,
-	}, []any{&lpSupply})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodStoredRates,
-		Params: nil,
-	}, []any{&storedRates})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&storedRates}).AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
-		Params: nil,
 	}, []any{&balances})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
@@ -199,7 +173,7 @@ func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numT
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if customRates[i] == nil {
 			return ErrInvalidStoredRates
 		}

@@ -13,6 +13,8 @@ type Config struct {
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
 
 	FetchTickFromRPC bool // instead of fetching from subgraph
+
+	StableHookFactories []string `json:"stableHookFactories,omitempty"`
 }
 
 func (c *Config) IsAllowSubgraphError() bool {

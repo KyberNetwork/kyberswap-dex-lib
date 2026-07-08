@@ -14,7 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -523,7 +523,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 // WooracleV2._cloPriceInQuote
 // https://arbiscan.io/address/0xCf4EA1688bc23DD93D933edA535F8B72FC8934Ec#code#F1#L391
 func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken string) (*uint256.Int, int64) {
-	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(eth.AddressZero) == 0 {
+	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(valueobject.AddrZero) == 0 {
 		return number.Zero, 0
 	}
 
@@ -580,12 +580,12 @@ func (s *PoolSimulator) updateBalanceSellQuote(params pool.UpdateBalanceParams) 
 		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
 		CapBal:          tokenInfoOut.CapBal,
 	}
-	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
-	s.wooracle.States[params.TokenAmountIn.Token] = State{
+	stateOut := s.wooracle.States[params.TokenAmountOut.Token]
+	s.wooracle.States[params.TokenAmountOut.Token] = State{
 		Price:      swapInfo.newPrice,
-		Spread:     stateIn.Spread,
-		Coeff:      stateIn.Coeff,
-		WoFeasible: stateIn.WoFeasible,
+		Spread:     stateOut.Spread,
+		Coeff:      stateOut.Coeff,
+		WoFeasible: stateOut.WoFeasible,
 	}
 }
 

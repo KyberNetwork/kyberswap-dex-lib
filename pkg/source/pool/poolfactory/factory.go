@@ -1,14 +1,24 @@
 package poolfactory
 
-import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+import (
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+)
 
 type (
 	IPoolFactoryDecoder       = pool.IPoolFactoryDecoder
 	PoolsDecoderParams[C any] struct {
 		Cfg *C
+		Dependencies
+	}
+	Dependencies struct {
+		EthrpcClient *ethrpc.Client
 	}
 	FactoryParams struct {
 		Properties
+		Dependencies
 	}
 	Properties map[string]any
 	FactoryFn  func(string, FactoryParams) (IPoolFactoryDecoder, error)
@@ -33,7 +43,8 @@ func RegisterFactory[C any, P IPoolFactoryDecoder](poolType string, factory func
 			return nil, err
 		}
 		return factory(PoolsDecoderParams[C]{
-			Cfg: &cfg,
+			Cfg:          &cfg,
+			Dependencies: factoryParams.Dependencies,
 		})
 	}
 	return true
@@ -45,7 +56,31 @@ func RegisterFactoryC[C any, P IPoolFactoryDecoder](poolType string, factory fun
 	})
 }
 
+func RegisterFactoryCE[C any, P IPoolFactoryDecoder](poolType string, factory func(*C, *ethrpc.Client) P) bool {
+	return RegisterFactory(poolType, func(params PoolsDecoderParams[C]) (IPoolFactoryDecoder, error) {
+		return factory(params.Cfg, params.EthrpcClient), nil
+	})
+}
+
 // Factory returns the factory function for a pool type
 func Factory(poolType string) FactoryFn {
 	return factoryMap[poolType]
+}
+
+var (
+	staticFactoryMap = make(map[common.Address]IPoolFactoryDecoder)
+)
+
+func RegisterStaticFactory(decoder IPoolFactoryDecoder, addresses ...common.Address) bool {
+	for _, addr := range addresses {
+		if _, exists := staticFactoryMap[addr]; exists {
+			panic("static pool factory decoder already registered for address " + addr.Hex())
+		}
+		staticFactoryMap[addr] = decoder
+	}
+	return true
+}
+
+func StaticFactoryMap() map[common.Address]IPoolFactoryDecoder {
+	return staticFactoryMap
 }

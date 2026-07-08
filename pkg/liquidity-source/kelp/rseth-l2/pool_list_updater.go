@@ -2,13 +2,14 @@ package rsethl2
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -125,7 +126,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 	)
 	newOracles := len(extra.SupportedTokenOracles) != len(supportedTokenOracles) || !lo.Every(
 		extra.SupportedTokenOracles,
-		lo.Map(supportedTokenOracles, func(oracle common.Address, _ int) string { return strings.ToLower(oracle.Hex()) }),
+		lo.Map(supportedTokenOracles, func(oracle common.Address, _ int) string { return hexutil.Encode(oracle[:]) }),
 	)
 
 	if newSupportedTokens {
@@ -154,7 +155,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		}
 	}
 
-	extra.SupportedTokenOracles = lo.Map(supportedTokenOracles, func(oracle common.Address, _ int) string { return strings.ToLower(oracle.Hex()) })
+	extra.SupportedTokenOracles = lo.Map(supportedTokenOracles, func(oracle common.Address, _ int) string { return hexutil.Encode(oracle[:]) })
 	extra.SupportedTokenRates = rates
 	extra.RSETHRate = rseTHRate
 	extra.Fee = feeBps
@@ -168,7 +169,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		append(supportedTokens, common.HexToAddress(valueobject.WrappedNativeMap[cfg.ChainId]), wrsETH),
 		func(token common.Address, _ int) *entity.PoolToken {
 			return &entity.PoolToken{
-				Address:   strings.ToLower(token.Hex()),
+				Address:   hexutil.Encode(token[:]),
 				Swappable: true,
 			}
 		})

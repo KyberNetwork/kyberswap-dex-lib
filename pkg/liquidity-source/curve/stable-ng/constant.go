@@ -3,7 +3,6 @@ package stableng
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -26,23 +25,21 @@ const (
 )
 
 var (
-	nonZeroAddr = common.HexToAddress("1")
-
 	DefaultGas     = Gas{Exchange: 128000}
 	Precision      = uint256.MustFromDecimal("1000000000000000000")
 	FeeDenominator = uint256.MustFromDecimal("10000000000")
 )
 
 var (
-	ErrInvalidReserve               = errors.New("invalid reserve")
-	ErrInvalidStoredRates           = errors.New("invalid stored rates")
-	ErrInvalidNumToken              = errors.New("invalid number of token")
-	ErrInvalidAValue                = errors.New("invalid A value")
-	ErrZero                         = errors.New("zero")
-	ErrBalancesMustMatchMultipliers = errors.New("balances must match multipliers")
-	ErrDDoesNotConverge             = errors.New("d does not converge")
-	ErrTokenFromEqualsTokenTo       = errors.New("can't compare token to itself")
-	ErrTokenIndexesOutOfRange       = errors.New("token index out of range")
-	ErrAmountOutNotConverge         = errors.New("approximation did not converge")
-	ErrExecutionReverted            = errors.New("execution reverted")
+	ErrInvalidReserve         = errors.New("invalid reserve")
+	ErrInvalidStoredRates     = errors.New("invalid stored rates")
+	ErrInvalidNumToken        = errors.New("invalid number of token")
+	ErrInvalidAValue          = errors.New("invalid A value")
+	ErrZero                   = errors.New("zero")
+	ErrDDoesNotConverge       = errors.New("d does not converge")
+	ErrTokenFromEqualsTokenTo = errors.New("can't compare token to itself")
+	ErrTokenIndexesOutOfRange = errors.New("token index out of range")
+	ErrAmountOutNotConverge   = errors.New("approximation did not converge")
+	ErrExecutionReverted      = errors.New("execution reverted")
+	ErrPoolDrained            = errors.New("pool drained: y == 0 from get_y")
 )

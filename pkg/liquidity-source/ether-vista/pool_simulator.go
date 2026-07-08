@@ -92,7 +92,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
-	} else if amountOut.Cmp(reserveOut) > 0 {
+	} else if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -128,6 +128,14 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	}
 
 	return s.extra.RouterAddress
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {

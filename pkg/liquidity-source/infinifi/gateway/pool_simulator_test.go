@@ -44,20 +44,36 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			indexIn: 1, indexOut: 2, amountIn: "1000000000000000000", amountOut: "500000000000000000"},
 		{name: "siUSD -> iUSD (unstake) - 1 siUSD to 2 iUSD (2:1 rate)",
 			indexIn: 2, indexOut: 1, amountIn: "1000000000000000000", amountOut: "2000000000000000000"},
-		{name: "iUSD -> liUSD-1mo (lock) - 1 iUSD to 1 liUSD",
+		{name: "iUSD -> liUSD-1w (lock)",
 			indexIn: 1, indexOut: 3, amountIn: "1000000000000000000", amountOut: "1000000000000000000"},
-		{name: "iUSD -> liUSD-2mo (lock) - 1 iUSD to 0.8 liUSD (0.8:1 rate)",
+		{name: "iUSD -> liUSD-2w (lock)",
 			indexIn: 1, indexOut: 4, amountIn: "1000000000000000000", amountOut: "800000000000000000"},
+		{name: "iUSD -> liUSD-4w (lock)",
+			indexIn: 1, indexOut: 6, amountIn: "1000000000000000000", amountOut: "864993387619035064"},
+		{name: "iUSD -> liUSD-6w (lock)",
+			indexIn: 1, indexOut: 8, amountIn: "1000000000000000000", amountOut: "861247699607288733"},
+		{name: "iUSD -> liUSD-8w (lock)",
+			indexIn: 1, indexOut: 10, amountIn: "1000000000000000000", amountOut: "859001795994242172"},
+		{name: "iUSD -> liUSD-13w (lock)",
+			indexIn: 1, indexOut: 15, amountIn: "1000000000000000000", amountOut: "854780114725924179"},
 		{name: "Contract paused should fail",
 			indexIn: 0, indexOut: 1, amountIn: "1000000", amountOut: "", poolSim: getPoolSim(true)},
 		{name: "USDC -> siUSD (mintAndStake) - 1 USDC to 0.5 siUSD",
 			indexIn: 0, indexOut: 2, amountIn: "1000000", amountOut: "500000000000000000"},
-		// {name: "USDC -> liUSD-1mo (mintAndLock) - 1 USDC to 1 liUSD",
-		// 	indexIn: 0, indexOut: 3, amountIn: "1000000", amountOut: "1000000000000000000"},
-		// {name: "USDC -> liUSD-2mo (mintAndLock) - 1 USDC to 0.8 liUSD",
-		// 	indexIn: 0, indexOut: 4, amountIn: "1000000", amountOut: "800000000000000000"},
-		{name: "Unsupported swap (siUSD -> USDC) should fail",
-			indexIn: 2, indexOut: 0, amountIn: "1000000000000000000", amountOut: ""},
+		{name: "USDC -> liUSD-1w (mintAndLock)",
+			indexIn: 0, indexOut: 3, amountIn: "1000000", amountOut: "1000000000000000000"},
+		{name: "USDC -> liUSD-2w (mintAndLock)",
+			indexIn: 0, indexOut: 4, amountIn: "1000000", amountOut: "800000000000000000"},
+		{name: "USDC -> liUSD-4w (mintAndLock)",
+			indexIn: 0, indexOut: 6, amountIn: "1000000", amountOut: "864993387619035064"},
+		{name: "USDC -> liUSD-6w (mintAndLock)",
+			indexIn: 0, indexOut: 8, amountIn: "1000000", amountOut: "861247699607288733"},
+		{name: "USDC -> liUSD-8w (mintAndLock)",
+			indexIn: 0, indexOut: 10, amountIn: "1000000", amountOut: "859001795994242172"},
+		{name: "USDC -> liUSD-13w (mintAndLock)",
+			indexIn: 0, indexOut: 15, amountIn: "1000000", amountOut: "854780114725924179"},
+		{name: "siUSD -> USDC (unstakeAndRedeem) - 1 siUSD to 2 USDC (2:1 rate)",
+			indexIn: 2, indexOut: 0, amountIn: "1000000000000000000", amountOut: "2000000"},
 	}
 	poolSim := getPoolSim(false)
 	for _, tc := range testCases {
@@ -241,7 +257,35 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		assert.Equal(t, expectedSIUSDSupply.String(), simulator.SIUSDSupply.String())
 	})
 
-	// Test 7: USDC → liUSD (mintAndLock)
+	// Test 7: siUSD → USDC (unstakeAndRedeem)
+	t.Run("siUSD -> USDC (unstakeAndRedeem)", func(t *testing.T) {
+		simulator, err := NewPoolSimulator(poolEntity)
+		require.NoError(t, err)
+
+		amountInSIUSD := mustParseBig("1000000000000000000") // 1 siUSD
+		amountOutUSDC := mustParseBig("2000000")             // 2 USDC (2:1 rate via 2 iUSD)
+
+		simulator.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: siusdAddr, Amount: amountInSIUSD},
+			TokenAmountOut: pool.TokenAmount{Token: usdcAddr, Amount: amountOutUSDC},
+			Fee:            pool.TokenAmount{Token: siusdAddr, Amount: big.NewInt(0)},
+		})
+
+		// intermediate iUSD = 1 siUSD * 2 = 2 iUSD
+		intermediateIUSD := mustParseBig("2000000000000000000")
+
+		// siUSD vault decreases (unstake)
+		expectedSIUSDAssets := new(big.Int).Sub(initialSIUSDAssets, intermediateIUSD)
+		expectedSIUSDSupply := new(big.Int).Sub(initialSIUSDSupply, amountInSIUSD)
+		assert.Equal(t, expectedSIUSDAssets.String(), simulator.SIUSDTotalAssets.String())
+		assert.Equal(t, expectedSIUSDSupply.String(), simulator.SIUSDSupply.String())
+
+		// iUSD supply decreases (redeem)
+		expectedIUSD := new(big.Int).Sub(initialIUSD, intermediateIUSD)
+		assert.Equal(t, expectedIUSD.String(), simulator.IUSDSupply.String())
+	})
+
+	// Test 8: USDC → liUSD (mintAndLock)
 	t.Run("USDC -> liUSD (mintAndLock)", func(t *testing.T) {
 		simulator, err := NewPoolSimulator(poolEntity)
 		require.NoError(t, err)

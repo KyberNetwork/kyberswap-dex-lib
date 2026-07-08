@@ -2,26 +2,25 @@ package ekubo
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
 
 func TestEventParserDecode(t *testing.T) {
 	t.Parallel()
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
+	test.SkipCI(t)
 
 	rpcClient := ethrpc.
 		New("https://ethereum.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
-	e := NewEventParser(&Config{
+	e := NewPoolFactory(&Config{
 		Core:  common.HexToAddress("0xe0e0e08A6A4b9Dc7bD67BCB7aadE5cF48157d444"),
 		Twamm: common.HexToAddress("0xd4279c050da1f5c5b2830558c7a08e57e12b54ec"),
 	})

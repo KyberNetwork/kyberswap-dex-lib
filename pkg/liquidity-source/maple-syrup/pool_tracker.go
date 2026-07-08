@@ -5,14 +5,15 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
@@ -34,7 +35,7 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	erc4626Tracker := erc4626.NewPoolTracker(&erc4626.Config{
 		DexId: cfg.DexId,
 		Vaults: lo.MapValues(cfg.Vaults, func(vCfg VaultCfg, key string) erc4626.VaultCfg {
-			return erc4626.VaultCfg{Gas: vCfg.Gas, SwapTypes: vCfg.SwapTypes}
+			return erc4626.VaultCfg{Gas: vCfg.Gas}
 		}),
 	}, ethrpcClient)
 

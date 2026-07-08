@@ -26,10 +26,10 @@ import (
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewTracker)
-var _ = pooltrack.RegisterTicksBasedFactoryCEG(DexTypeUniswapV3, NewTracker)
 
 type Tracker struct {
 	config        *Config
@@ -82,9 +82,8 @@ func initializeConfig(cfg *Config) (*Config, error) {
 	return cfg, nil
 }
 
-func (t *Tracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error) {
-	if len(logs) == 0 {
+func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, param poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
+	if len(param.Logs) == 0 {
 		return p, nil
 	}
 
@@ -93,12 +92,12 @@ func (t *Tracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtype
 		"exchange": p.Exchange,
 	})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs, l)
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs, l)
 	if err != nil {
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool, logs, blockHeaders, l)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders, l)
 }
 
 func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
@@ -270,7 +269,7 @@ func (t *Tracker) computeTicksFromLogs(
 	affectedTickSet := make(map[int]struct{})
 
 	for _, event := range logs {
-		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
+		if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
 			continue
 		}
 
@@ -411,13 +410,16 @@ func (t *Tracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	extraBytes, err := json.Marshal(Extra{
+	extra := Extra{
 		Liquidity:    rpcState.Liquidity,
 		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-		TickSpacing:  rpcState.TickSpacing.Uint64(),
 		Tick:         rpcState.Slot0.Tick,
 		Ticks:        entityPoolTicks,
-	})
+	}
+	if rpcState.TickSpacing != nil {
+		extra.TickSpacing = rpcState.TickSpacing.Uint64()
+	}
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -439,7 +441,7 @@ func (t *Tracker) getAffectedTickIdsFromLogs(logs []ethtypes.Log) ([]int, error)
 	affectedTickIds := make(map[int]struct{})
 
 	for _, event := range logs {
-		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
+		if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
 			continue
 		}
 
@@ -460,7 +462,7 @@ func (t *Tracker) getAffectedTickIdsFromLogs(logs []ethtypes.Log) ([]int, error)
 }
 
 func (t *Tracker) extractEventData(event ethtypes.Log) (int, int, *big.Int, error) {
-	if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
+	if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
 		return 0, 0, big.NewInt(0), nil
 	}
 
@@ -606,7 +608,7 @@ func (t *Tracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
 	return p.Timestamp
 }
 
-func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
+func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       t.config.DexID,
@@ -646,7 +648,7 @@ func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ poolpkg.
 		// Link to issue: https://www.notion.so/kybernetwork/Aggregator-1-20-defect-1caec6062f9d4da0918fc3443e6e1963#0810d1462cc14f0a9465f935c9e641fe
 		// TLDR: Optimism has some pre-genesis Uniswap V3 pool. Subgraph does not have data for these pools
 		// So we have to fetch ticks data from the TickLens smart contract (which is slower).
-		if t.config.AlwaysUseTickLens || lo.Contains[string](t.config.preGenesisPoolIDs, p.Address) {
+		if t.config.AlwaysUseTickLens || lo.Contains(t.config.preGenesisPoolIDs, p.Address) {
 			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, t.ethrpcClient, t.config.TickLensAddress, p, nil)
 			if err != nil {
 				l.WithFields(logger.Fields{

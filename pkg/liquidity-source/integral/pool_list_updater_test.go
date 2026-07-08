@@ -20,7 +20,7 @@ type PoolListUpdaterTestSuite struct {
 
 func (ts *PoolListUpdaterTestSuite) SetupTest() {
 	// Setup RPC server
-	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io")
+	rpcClient := ethrpc.New("https://arbitrum-rpc.kyberswap.com")
 	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	ts.client = rpcClient

@@ -16,8 +16,6 @@ const (
 
 	pairMethodToken0      = "token0"
 	pairMethodToken1      = "token1"
-	pairMethodReserve0    = "reserve0"
-	pairMethodReserve1    = "reserve1"
 	pairMethodGetReserves = "getReserves"
 
 	genericMethodFee       = "fee"

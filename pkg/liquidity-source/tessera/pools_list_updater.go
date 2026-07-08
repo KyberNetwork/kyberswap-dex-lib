@@ -2,13 +2,13 @@ package tessera
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -79,10 +79,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	numToProcess := totalPairs - metadata.Offset
-	if numToProcess > batchSize {
-		numToProcess = batchSize
-	}
+	numToProcess := min(totalPairs-metadata.Offset, batchSize)
 
 	pairsToProcess := allPairs[metadata.Offset : metadata.Offset+numToProcess]
 
@@ -117,8 +114,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		tokens := []*entity.PoolToken{
-			{Address: strings.ToLower(pairsToProcess[i][0].Hex()), Swappable: true},
-			{Address: strings.ToLower(pairsToProcess[i][1].Hex()), Swappable: true},
+			{Address: hexutil.Encode(pairsToProcess[i][0][:]), Swappable: true},
+			{Address: hexutil.Encode(pairsToProcess[i][1][:]), Swappable: true},
 		}
 
 		staticExtra, _ := json.Marshal(StaticExtra{
@@ -126,9 +123,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		})
 
 		p := entity.Pool{
-			Address:     strings.ToLower(r.Pool.Hex()),
+			Address:     hexutil.Encode(r.Pool[:]),
 			Exchange:    u.cfg.DexId,
-			Type:        "tessera",
+			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Tokens:      tokens,

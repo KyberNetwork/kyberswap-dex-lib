@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -20,6 +21,7 @@ type PoolSimulator struct {
 	reserves     []*uint256.Int
 	fee          *uint256.Int
 	feePrecision *uint256.Int
+	taxHandler   tokentax.Handler
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -53,6 +55,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
+		taxHandler:   newTokenTaxHandler(extra.TaxInfo),
 	}, nil
 }
 
@@ -71,18 +74,35 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	reserveIn := s.reserves[indexIn]
 	reserveOut := s.reserves[indexOut]
 
-	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-	if amountOut.Cmp(reserveOut) > 0 {
+	// Pair receives input net of sell tax; user receives output net of buy tax.
+	// Reserves move by the pair-side amounts (effectiveAmountIn / grossAmountOut), carried in SwapInfo.
+	effectiveAmountIn := s.taxHandler.ApplySellTax(s.Info.Tokens[indexIn], amountIn)
+
+	grossAmountOut := s.getAmountOut(effectiveAmountIn, reserveIn, reserveOut)
+	if !grossAmountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
-	} else if amountOut.Sign() <= 0 {
+	} else if grossAmountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
 	}
 
-	return &pool.CalcAmountOutResult{
+	amountOut := s.taxHandler.ApplyBuyTax(s.Info.Tokens[indexOut], grossAmountOut)
+	if amountOut.Sign() <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	}
+
+	result := &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas + extraGasByExchange[s.GetExchange()],
-	}, nil
+	}
+	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
+		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
+		result.SwapInfo = SwapInfo{
+			EffectiveAmountIn: effectiveAmountIn.ToBig(),
+			GrossAmountOut:    grossAmountOut.ToBig(),
+		}
+	}
+	return result, nil
 }
 
 func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
@@ -96,7 +116,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow || amountOut.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
-	} else if amountOut.Cmp(reserveOut) > 0 {
+	} else if !amountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -126,8 +146,23 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
+	// Reserves move by the pair-side amounts, which differ from user-side amounts when a token taxes:
+	//   - sell tax: pair receives effectiveAmountIn (< amountIn); the tax stays at the token contract.
+	//   - buy tax:  pair sends grossAmountOut (> user's net out); the tax stays at the token contract.
+	amountIn := params.TokenAmountIn.Amount
+	grossOut := params.TokenAmountOut.Amount
+	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
+		if swapInfo.EffectiveAmountIn != nil {
+			amountIn = swapInfo.EffectiveAmountIn
+		}
+		if swapInfo.GrossAmountOut != nil {
+			grossOut = swapInfo.GrossAmountOut
+		}
+	}
+
+	amtIn := uint256.MustFromBig(amountIn)
 	s.reserves[indexIn] = amtIn.Add(s.reserves[indexIn], amtIn)
+	amtOut := uint256.MustFromBig(grossOut)
 	s.reserves[indexOut] = amtOut.Sub(s.reserves[indexOut], amtOut)
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
@@ -30,7 +31,7 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *shared.Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
-	client := resty.NewWithClient(http.DefaultClient).
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)
@@ -103,7 +104,7 @@ func (u *PoolsListUpdater) getLendingVaults(ctx context.Context) ([]LendingVault
 func (u *PoolsListUpdater) initPools(ctx context.Context, lendingVaults []LendingVault) ([]entity.Pool, error) {
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
 	aCoefficients := make([]*big.Int, len(lendingVaults))
-	for i := 0; i < len(lendingVaults); i++ {
+	for i := range lendingVaults {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    llamma.CurveLlammaABI,
 			Target: lendingVaults[i].AmmAddress,

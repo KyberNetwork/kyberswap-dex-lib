@@ -6,23 +6,24 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type BeforeSwapParams struct {
-	ExactIn         bool
+	CalcOut         bool
 	ZeroForOne      bool
-	AmountSpecified *big.Int
+	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut
 }
 
 type BeforeSwapResult struct {
-	DeltaSpecified   *big.Int
-	DeltaUnspecified *big.Int
+	DeltaSpecified   *big.Int // CalcOut: in -= specified   ; CalcIn: out += specified
+	DeltaUnspecified *big.Int // CalcOut: out -= unspecified; CalcIn: in += unspecified
 	SwapFee          FeeAmount
 	Gas              int64
 	SwapInfo         any
@@ -30,22 +31,17 @@ type BeforeSwapResult struct {
 
 func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
 	if result == nil {
-		return errors.New("before swap result is nil")
+		return ErrNilBeforeSwapResult
+	} else if result.DeltaSpecified == nil {
+		return ErrNilDeltaSpecified
+	} else if result.DeltaUnspecified == nil {
+		return ErrNilDeltaUnspecified
 	}
-
-	if result.DeltaSpecified == nil {
-		return errors.New("delta specified is nil")
-	}
-
-	if result.DeltaUnspecified == nil {
-		return errors.New("delta unspecified is nil")
-	}
-
 	return nil
 }
 
 type AfterSwapResult struct {
-	HookFee *big.Int
+	HookFee *big.Int // CalcOut: out -= hook fee; CalcIn: in += hook fee
 	Gas     int64
 }
 
@@ -67,9 +63,9 @@ type AfterSwapParams struct {
 	AmountOut *big.Int
 }
 
-type FeeAmount = constants.FeeAmount
+type FeeAmount = uniswapv3.FeeAmount
 
-const FeeMax = constants.FeeMax
+const FeeMax = uniswapv3.FeeMax
 
 // HookOption represents different hook operation types
 type HookOption int
@@ -108,10 +104,11 @@ func HasSwapPermissions(address common.Address) bool {
 
 type Hook interface {
 	GetExchange() string
+	AllowEmptyTicks() bool
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
-	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error)
-	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
+	Track(context.Context, *HookParam) (json.RawMessage, error)
+	BeforeSwap(params *BeforeSwapParams) (*BeforeSwapResult, error)
+	AfterSwap(params *AfterSwapParams) (*AfterSwapResult, error)
 	CanBeforeSwap(address common.Address) bool
 	CanAfterSwap(address common.Address) bool
 	CloneState() Hook
@@ -123,14 +120,43 @@ type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
 	Pool        *entity.Pool
-	HookExtra   string
+	HookExtra   HookExtra
 	HookAddress common.Address
 	BlockNumber *big.Int
+}
+
+type HookExtra json.RawMessage
+
+func (x HookExtra) Unmarshal(dest any) error {
+	if len(x) == 0 {
+		return ErrEmptyExtra
+	}
+	if x[0] == '"' { // backwards-compatibility
+		var unescaped string
+		if err := json.Unmarshal(x, &unescaped); err != nil {
+			return err
+		}
+		return json.Unmarshal([]byte(unescaped), dest)
+	}
+	return json.Unmarshal(x, dest)
 }
 
 type HookFactory func(param *HookParam) Hook
 
 var HookFactories = map[common.Address]HookFactory{}
+
+// fallbackHookFactory is called when a hook address is not in HookFactories.
+// It is set by SetFallbackHookFactory (typically from the auto package init).
+var fallbackHookFactory HookFactory
+
+// SetFallbackHookFactory registers a factory that is used for any hook address
+// not explicitly registered in HookFactories. Only one fallback can be active;
+// subsequent calls replace the previous value.
+// The factory should return nil for no-swap as well as unsupported hooks
+func SetFallbackHookFactory(f HookFactory) bool {
+	fallbackHookFactory = f
+	return true
+}
 
 func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	return RegisterHooksFactory(func(*HookParam) Hook {
@@ -146,15 +172,20 @@ func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool
 }
 
 func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
+	if param == nil {
+		param = &HookParam{}
+	}
+	param.HookAddress = hookAddress
 	hookFactory, ok := HookFactories[hookAddress]
-	if hookFactory == nil {
-		hook = (*BaseHook)(nil)
-	} else {
-		if param == nil {
-			param = &HookParam{}
-		}
-		param.HookAddress = hookAddress
+	if ok && hookFactory != nil {
 		hook = hookFactory(param)
+	} else if !ok && fallbackHookFactory != nil {
+		hook = fallbackHookFactory(param)
+		if ok = hook != nil; !ok {
+			hook = (*BaseHook)(nil)
+		}
+	} else {
+		hook = (*BaseHook)(nil)
 	}
 	return hook, ok
 }
@@ -168,12 +199,16 @@ func (h *BaseHook) GetExchange() string {
 	return DexType
 }
 
+func (h *BaseHook) AllowEmptyTicks() bool {
+	return false
+}
+
 func (h *BaseHook) GetReserves(context.Context, *HookParam) (entity.PoolReserves, error) {
 	return nil, nil
 }
 
-func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
-	return "", nil
+func (h *BaseHook) Track(context.Context, *HookParam) (json.RawMessage, error) {
+	return nil, nil
 }
 
 func (h *BaseHook) BeforeSwap(_ *BeforeSwapParams) (*BeforeSwapResult, error) {

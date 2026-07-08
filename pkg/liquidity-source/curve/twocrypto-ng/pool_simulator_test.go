@@ -252,6 +252,44 @@ func TestUpdateBalance(t *testing.T) {
 	}
 }
 
+func TestUpdateBalanceUpdatesStateOnEverySwap(t *testing.T) {
+	t.Parallel()
+
+	var poolEntity entity.Pool
+	err := json.Unmarshal([]byte(pools[0]), &poolEntity)
+	require.Nil(t, err)
+	p, err := NewPoolSimulator(poolEntity)
+	require.Nil(t, err)
+
+	weth := "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+	ethPlus := "0x18c14c2d707b2212e17d1579789fc06010cfca23"
+
+	swap := func(amountIn string) {
+		out, err := p.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{Token: weth, Amount: bignumber.NewBig10(amountIn)},
+			TokenOut:      ethPlus,
+		})
+		require.NoError(t, err)
+		p.UpdateBalance(poolpkg.UpdateBalanceParams{
+			TokenAmountIn:  poolpkg.TokenAmount{Token: weth, Amount: bignumber.NewBig10(amountIn)},
+			TokenAmountOut: *out.TokenAmountOut,
+			Fee:            *out.Fee,
+			SwapInfo:       out.SwapInfo,
+		})
+	}
+
+	swap("500000000000000000")
+	dAfterFirstSwap := p.Extra.D.Clone()
+
+	swap("500000000000000000")
+	dAfterSecondSwap := p.Extra.D.Clone()
+
+	// D must be recalculated from the new balances on every swap, matching the
+	// on-chain contract, which updates self.D unconditionally in tweak_price.
+	assert.NotEqual(t, dAfterFirstSwap, dAfterSecondSwap,
+		"D is frozen after the first swap instead of being recalculated on every UpdateBalance")
+}
+
 func BenchmarkCalcAmountOut(b *testing.B) {
 	// https://arbiscan.io/address/0x1Fb84Fa6D252762e8367eA607A6586E09dceBe3D
 	benchPoolRedis := `{"address":"0x1fb84fa6d252762e8367ea607a6586e09dcebe3d","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1726463373,"reserves":["968569777414549410834","1045106588251996643768"],"tokens":[{"address":"0x18c14c2d707b2212e17d1579789fc06010cfca23","name":"","symbol":"ETH+","decimals":18,"weight":0,"swappable":true},{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","name":"","symbol":"WETH","decimals":18,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"20000000\",\"InitialGamma\":\"20000000000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"20000000\",\"FutureGamma\":\"20000000000000000\",\"FutureAGammaTime\":0,\"D\":\"1996236386986675947911\",\"PriceScale\":[\"983313638977093334\"],\"PriceOracle\":[\"983239528662393033\"],\"LastPrices\":[\"983244856693732906\"],\"LastPricesTimestamp\":1726463246,\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"500000\",\"OutFee\":\"8000000\",\"LpSupply\":\"1006167834136870835627\",\"XcpProfit\":\"1000760564011364559\",\"VirtualPrice\":\"1000381175737496082\",\"AllowedExtraProfit\":\"1000000000000\",\"AdjustmentStep\":\"25000000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}"}`
@@ -325,7 +363,7 @@ func TestMergeSwaps(t *testing.T) {
 			var totalAmountOut *big.Int
 			var chunkedErr error
 
-			for i := 0; i < 20; i++ {
+			for range 20 {
 				chunkTokenAmountIn := poolpkg.TokenAmount{
 					Token:  pool.Tokens[tokenIn].Address,
 					Amount: chunkAmount,

@@ -3,6 +3,7 @@ package plain
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -14,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -98,7 +100,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		useStandardRate = true
 	}
 
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 
 		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])
@@ -148,6 +150,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim.numTokens = numTokens
 	sim.numTokensU256.SetUint64(uint64(numTokens))
 	return sim, nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.reserves = slices.Clone(t.reserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -268,8 +277,22 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Underlying:    false,
 	}
 	if len(t.staticExtra.IsNativeCoin) == t.numTokens {
-		meta.TokenInIsNative = &t.staticExtra.IsNativeCoin[fromId]
-		meta.TokenOutIsNative = &t.staticExtra.IsNativeCoin[toId]
+		if fromId >= 0 {
+			meta.TokenInIsNative = &t.staticExtra.IsNativeCoin[fromId]
+		}
+		if toId >= 0 {
+			meta.TokenOutIsNative = &t.staticExtra.IsNativeCoin[toId]
+		}
 	}
 	return meta
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
+	return meta.TokenInIsNative != nil && *meta.TokenInIsNative
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
+	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
+	return meta.TokenOutIsNative != nil && *meta.TokenOutIsNative
 }

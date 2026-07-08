@@ -21,7 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -176,9 +175,9 @@ func TestPancakeInfinityCL(t *testing.T) {
 			quoteParams = shared.QuoteExactSingleParams{
 				PoolKey: shared.PoolKey{
 					Currency0: lo.Ternary(valueobject.IsWrappedNative(p.Tokens[0].Address, valueobject.ChainIDBSC),
-						eth.AddressZero, common.HexToAddress(p.Tokens[0].Address)),
+						valueobject.AddrZero, common.HexToAddress(p.Tokens[0].Address)),
 					Currency1: lo.Ternary(valueobject.IsWrappedNative(p.Tokens[1].Address, valueobject.ChainIDBSC),
-						eth.AddressZero, common.HexToAddress(p.Tokens[1].Address)),
+						valueobject.AddrZero, common.HexToAddress(p.Tokens[1].Address)),
 					Hooks:       poolMeta.HookAddress,
 					PoolManager: poolMeta.PoolManager,
 					Fee:         big.NewInt(int64(poolMeta.Fee)),

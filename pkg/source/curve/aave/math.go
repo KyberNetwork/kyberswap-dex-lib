@@ -36,7 +36,7 @@ func _xp(
 	if numTokens != len(precisionMultipliers) {
 		return nil, ErrBalancesMustMatchMultipliers
 	}
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		xp = append(xp, new(big.Int).Mul(balances[i], precisionMultipliers[i]))
 	}
 	return xp, nil
@@ -98,7 +98,7 @@ func _getAPrecise(
 func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		s = s.Add(s, xp[i])
 	}
 	if s.Sign() == 0 {
@@ -109,9 +109,9 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var d = new(big.Int).Set(s)
 	var nA = new(big.Int).Mul(a, numTokensBI)
 	var tmp, tmp2, mul big.Int
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		var dP = new(big.Int).Set(d)
-		for j := 0; j < numTokens; j++ {
+		for j := range numTokens {
 			dP = dP.Div(
 				dP.Mul(dP, d),
 				tmp.Add(tmp.Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
@@ -124,7 +124,7 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 				tmp2.Mul(dP, numTokensBI),
 			),
 			d,
-		).Cmp(bignumber.MAX_UINT_256) > 0 {
+		).Cmp(bignumber.MaxUint256) > 0 {
 			return nil, ErrOverflow
 		}
 		d = d.Div(
@@ -186,7 +186,7 @@ func getY(
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
 	var _x *big.Int
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i == tokenIndexFrom {
 			_x = new(big.Int).Set(x)
 		} else if i != tokenIndexTo {
@@ -216,12 +216,14 @@ func getY(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(new(big.Int).Mul(y, y), c),
-			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
-		)
+		denom.Sub(denom.Add(denom.Mul(y, big.NewInt(2)), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
+		y = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(y, y), c), &denom)
 		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
@@ -330,7 +332,7 @@ func getYD(
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
@@ -358,21 +360,14 @@ func getYD(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	var denom big.Int
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(
-				new(big.Int).Mul(y, y),
-				c,
-			),
-			new(big.Int).Sub(
-				new(big.Int).Add(
-					new(big.Int).Mul(y, bignumber.Two),
-					b,
-				),
-				d,
-			),
-		)
+		denom.Sub(denom.Add(denom.Mul(y, bignumber.Two), b), d)
+		if denom.Sign() <= 0 {
+			return nil, ErrDenominatorZero
+		}
+		y = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(y, y), c), &denom)
 		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
@@ -450,7 +445,7 @@ func calculateWithdrawOneTokenDy(
 	}
 	var feePerToken = _feePerToken(swapFee, numTokens)
 	var xpReduced = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		var norm *big.Int
 		if i == tokenIndex {
 			norm = new(big.Int).Sub(new(big.Int).Div(new(big.Int).Mul(xp[i], d1), d0), newY)
@@ -595,7 +590,7 @@ func calculateTokenAmount(
 		return nil, err
 	}
 	var balances1 = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if deposit {
 			balances1[i] = new(big.Int).Add(balances[i], amounts[i])
 		} else {
@@ -644,7 +639,7 @@ func CalculateAddLiquidityOneToken(
 ) (*big.Int, *big.Int, error) {
 	var numTokens = len(balances)
 	var amounts = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		amounts[i] = big.NewInt(0)
 	}
 	amounts[tokenIndex] = new(big.Int).Set(tokenAmount)
