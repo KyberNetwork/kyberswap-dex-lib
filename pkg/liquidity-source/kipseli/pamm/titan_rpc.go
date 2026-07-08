@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -177,7 +178,7 @@ func titanOverridesToMap(overrides map[common.Address]gethclient.OverrideAccount
 		if entry.Storage == nil && entry.Balance == "" && entry.Nonce == "" {
 			continue
 		}
-		out[strings.ToLower(addr.Hex())] = entry
+		out[hexutil.Encode(addr[:])] = entry
 	}
 	if len(out) == 0 {
 		return nil

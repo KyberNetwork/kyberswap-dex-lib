@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
@@ -147,7 +148,7 @@ func (u *PoolsListUpdater) buildPools(ctx context.Context, tokenList *TokenListR
 			continue
 		}
 		tokenAddr := strings.ToLower(candidates[i].Address)
-		basePairAddr := strings.ToLower(curveResults[i].Data.BasePair.Hex())
+		basePairAddr := hexutil.Encode(curveResults[i].Data.BasePair[:])
 
 		staticExtraBytes, _ := json.Marshal(StaticExtra{
 			PrintrAddr:     strings.ToLower(u.config.PrintrAddr),

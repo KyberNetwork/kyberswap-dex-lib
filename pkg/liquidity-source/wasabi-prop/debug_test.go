@@ -147,7 +147,7 @@ func TestWasabiPropDebug(t *testing.T) {
 				}
 
 				if simErr != nil || simRes == nil {
-					outIdx := sim.GetTokenIndex(strings.ToLower(dir.tokenOut.Hex()))
+					outIdx := sim.GetTokenIndex(hexutil.Encode(dir.tokenOut[:]))
 					if outIdx >= 0 && quoterOut.Cmp(sim.GetReserves()[outIdx]) >= 0 {
 						t.Logf("quoter %s >= reserve %s → exceeds inventory", quoterOut, sim.GetReserves()[outIdx])
 						return

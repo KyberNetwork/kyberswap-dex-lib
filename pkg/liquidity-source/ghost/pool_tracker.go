@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -129,7 +130,7 @@ func (t *PoolTracker) fetchDirectionState(
 	)
 
 	targetRouterAddr := common.HexToAddress(se.TargetRouter)
-	feeTarget := strings.ToLower(feeContract.Hex())
+	feeTarget := hexutil.Encode(feeContract[:])
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if pinBlock != nil {
@@ -208,7 +209,7 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 	var recipientFeeType uint8
 	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    routingFeeABI,
-		Target: strings.ToLower(feeRecipient.Hex()),
+		Target: hexutil.Encode(feeRecipient[:]),
 		Method: "feeType",
 	}, []any{&recipientFeeType}).Call()
 	if err != nil {
@@ -225,7 +226,7 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 	case feeTypeCrossCollateralRouting:
 		_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 			ABI:    routingFeeABI,
-			Target: strings.ToLower(feeRecipient.Hex()),
+			Target: hexutil.Encode(feeRecipient[:]),
 			Method: "feeContracts",
 			Params: []any{se.LocalDomain, targetRouterBytes32},
 		}, []any{&resolved}).Call()
@@ -236,7 +237,7 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 		if resolved == (common.Address{}) {
 			_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 				ABI:    routingFeeABI,
-				Target: strings.ToLower(feeRecipient.Hex()),
+				Target: hexutil.Encode(feeRecipient[:]),
 				Method: "feeContracts",
 				Params: []any{se.LocalDomain, defaultRouterKey},
 			}, []any{&resolved}).Call()
@@ -259,7 +260,7 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 	var resolvedFeeType uint8
 	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    feeABI,
-		Target: strings.ToLower(resolved.Hex()),
+		Target: hexutil.Encode(resolved[:]),
 		Method: "feeType",
 	}, []any{&resolvedFeeType}).Call()
 	if err != nil {

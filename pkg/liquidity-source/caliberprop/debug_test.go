@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -132,8 +132,8 @@ func checkDirection(
 		}, []any{&quoterOut})
 		_, qErr := req.Call()
 
-		tokenInLower := strings.ToLower(tokenIn.Hex())
-		tokenOutLower := strings.ToLower(tokenOut.Hex())
+		tokenInLower := hexutil.Encode(tokenIn[:])
+		tokenOutLower := hexutil.Encode(tokenOut[:])
 		simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: tokenInLower, Amount: amt},
 			TokenOut:      tokenOutLower,

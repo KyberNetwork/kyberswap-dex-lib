@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -90,10 +91,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var newPoolAddresses []string
 	for _, index := range indexes {
-		if lo.Contains(metadata.Addresses, strings.ToLower(index.Index.Hex())) {
+		if lo.Contains(metadata.Addresses, hexutil.Encode(index.Index[:])) {
 			continue
 		}
-		newPoolAddresses = append(newPoolAddresses, strings.ToLower(index.Index.Hex()))
+		newPoolAddresses = append(newPoolAddresses, hexutil.Encode(index.Index[:]))
 	}
 
 	if len(newPoolAddresses) == 0 {
@@ -134,10 +135,10 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 		bytes, err := json.Marshal(Extra{
 			Assets: lo.Map(poolState.Assets, func(asset RPCAsset, _ int) Asset {
 				return Asset{
-					Token:           strings.ToLower(asset.Token.Hex()),
+					Token:           hexutil.Encode(asset.Token[:]),
 					Weighting:       uint256.MustFromBig(asset.Weight),
 					BasePriceUSDX96: uint256.MustFromBig(asset.BasePriceUSDX96),
-					C1:              strings.ToLower(asset.C1.Hex()),
+					C1:              hexutil.Encode(asset.C1[:]),
 					Q1:              uint256.MustFromBig(asset.Q1),
 				}
 			}),
@@ -161,7 +162,7 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 			},
 			lo.Map(poolState.Assets, func(asset RPCAsset, _ int) *entity.PoolToken {
 				return &entity.PoolToken{
-					Address:   strings.ToLower(asset.Token.Hex()),
+					Address:   hexutil.Encode(asset.Token[:]),
 					Swappable: true,
 				}
 			})...,

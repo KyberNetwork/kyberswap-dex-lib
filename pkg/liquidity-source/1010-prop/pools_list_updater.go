@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
 
@@ -69,7 +70,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	newAssetSet := make(map[string]struct{})
 	allAddrs := make([]string, len(assets))
 	for i, a := range assets {
-		addr := strings.ToLower(a.Hex())
+		addr := hexutil.Encode(a[:])
 		allAddrs[i] = addr
 		if _, known := knownSet[addr]; !known {
 			newAssetSet[addr] = struct{}{}
