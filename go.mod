@@ -24,7 +24,6 @@ require (
 	github.com/klauspost/compress v1.17.9
 	github.com/machinebox/graphql v0.2.2
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/orcaman/concurrent-map v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.49.1
