@@ -96,12 +96,12 @@ func (l *PoolsListUpdater) fetchPairs(ctx context.Context, address common.Addres
 		slotToken1 := (common.Hash)(tmp.SetBytes32(slotToken0[:]).AddUint64(&tmp, 1).Bytes32())
 		batch[2*i] = rpc.BatchElem{
 			Method: "eth_getStorageAt",
-			Args:   []any{address, slotToken0},
+			Args:   []any{address, slotToken0, "latest"},
 			Result: &results[i][0],
 		}
 		batch[2*i+1] = rpc.BatchElem{
 			Method: "eth_getStorageAt",
-			Args:   []any{address, slotToken1},
+			Args:   []any{address, slotToken1, "latest"},
 			Result: &results[i][1],
 		}
 	}
