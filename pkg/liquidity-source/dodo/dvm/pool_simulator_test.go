@@ -159,3 +159,48 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		})
 	}
 }
+
+// Pool data fetched from production (bsc dodo-dvm)
+// https://bscscan.com/address/0x4bdf13cd36d527c98a3839377dea877ac5977114#code
+const dvmFixturePoolRedis = `{"address":"0x4bdf13cd36d527c98a3839377dea877ac5977114","swapFee":3000000000000000,"exchange":"dodo-dvm","type":"dodo-dvm","timestamp":1782098100,"reserves":["899997143521148880124520648","12863423632915920"],"tokens":[{"address":"0x1b68b82f4e148acd287f0efece4c743278e463a9","symbol":"CHEEMSCANDY","decimals":18,"swappable":true},{"address":"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c","symbol":"WBNB","decimals":18,"swappable":true}],"extra":"{\"i\":\"1000000000000\",\"K\":\"1000000000000000000\",\"B\":\"899997143521148880124520648\",\"Q\":\"12863423632915920\",\"B0\":\"900010006760933503889871250\",\"Q0\":\"0\",\"R\":\"1\",\"mtFeeRate\":\"600000000000000\",\"lpFeeRate\":\"2400000000000000\"}","staticExtra":"{\"poolId\":\"0x4bdf13cd36d527c98a3839377dea877ac5977114\",\"lpToken\":\"0x4bdf13cd36d527c98a3839377dea877ac5977114\",\"type\":\"DVM\",\"tokens\":[\"0x1b68b82f4e148acd287f0efece4c743278e463a9\",\"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c\"],\"dodoV1SellHelper\":\"0x0f859706aee7fcf61d5a8939e8cb9dbb6c1eda33\"}"}`
+
+func newDvmFixtureSimulator(t *testing.T) *PoolSimulator {
+	t.Helper()
+	var poolEntity entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(dvmFixturePoolRedis), &poolEntity))
+	p, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+	return p
+}
+
+func TestPoolSimulator_CalcAmountOut_Fixture(t *testing.T) {
+	t.Parallel()
+	p := newDvmFixtureSimulator(t)
+
+	// tokens[0] = CHEEMSCANDY, tokens[1] = WBNB
+	testutil.TestCalcAmountOut(t, p, map[int]map[int]map[string]string{
+		1: { // WBNB -> CHEEMSCANDY
+			0: {
+				"10000000000000000": "9969604242415810328715",
+				"1000000000000000":  "996970393580694521554",
+			},
+		},
+		0: { // CHEEMSCANDY -> WBNB
+			1: {
+				"1000000000000000000000":  "997027391704755",
+				"10000000000000000000000": "9970174215099738",
+			},
+		},
+	})
+}
+
+func TestPoolSimulator_CloneState_Fixture(t *testing.T) {
+	t.Parallel()
+	p := newDvmFixtureSimulator(t)
+	tokens := p.GetTokens()
+
+	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokens[1], Amount: bignumber.NewBig10("10000000000000000")},
+		TokenOut:      tokens[0],
+	}, nil)
+}

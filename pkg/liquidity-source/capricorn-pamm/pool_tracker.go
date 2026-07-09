@@ -5,12 +5,12 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -82,7 +82,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 	blockNumber := resp.BlockNumber
-	pricingEngineAddr := strings.ToLower(pricingEngineHx.Hex())
+	pricingEngineAddr := hexutil.Encode(pricingEngineHx[:])
 
 	var (
 		maxAmountIn0     *big.Int
@@ -110,7 +110,7 @@ func (t *PoolTracker) GetNewPoolState(
 		lg.Warnf("maxAmountIn(token1) reverted — using reserve/2")
 		maxAmountIn1 = nil
 	}
-	oracleRegistryAddr := strings.ToLower(oracleRegistryHx.Hex())
+	oracleRegistryAddr := hexutil.Encode(oracleRegistryHx[:])
 
 	var (
 		oraclePaused        bool

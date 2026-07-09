@@ -118,6 +118,8 @@ These ops read all inputs before writing the result, so z==x or z==y is safe:
 - `big256.MulDivUp/Down` use a stack-allocated `[8]uint64` internally — no heap. Safe to call in hot loops.
 - Prefer over `MulMod`-based remainder checks.
 
+### common.Address: always use hexutil.Encode(address[:]) instead of strings.ToLower(address.String/Hex())
+
 ## Pull Request
 
 Create a PR from your feature branch to **kyberswap-dex-lib** `main`.
