@@ -263,6 +263,8 @@ const (
 	ExchangeSynthetix                  = "synthetix"
 	ExchangeTessera                    = "tessera"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
+	ExchangeUmbraeDamm                 = "umbrae-damm"
+	ExchangeUmbraeDlmm                 = "umbrae-dlmm"
 	ExchangeUniPool                    = "unipool"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniswapLO                  = "uniswap-lo"

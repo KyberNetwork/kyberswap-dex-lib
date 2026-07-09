@@ -1,0 +1,62 @@
+[
+  {
+    "type": "function",
+    "name": "tokenX",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "tokenY",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "getReserves",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "reserveX", "type": "uint112" },
+      { "name": "reserveY", "type": "uint112" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "currentFeeBps",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint16" }]
+  },
+  {
+    "type": "function",
+    "name": "feeToken",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "getAmountOut",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "xToY", "type": "bool" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "swap",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "xToY", "type": "bool" },
+      { "name": "amountOutMin", "type": "uint256" },
+      { "name": "to", "type": "address" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+  }
+]
