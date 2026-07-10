@@ -161,6 +161,8 @@ import (
 	pkg_liquiditysource_syncswapv2_classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	pkg_liquiditysource_syncswapv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	pkg_liquiditysource_tessera "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
+	pkg_liquiditysource_umbrae_damm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/damm"
+	pkg_liquiditysource_umbrae_dlmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/dlmm"
 	pkg_liquiditysource_unipool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/unipool"
 	pkg_liquiditysource_uniswap_lo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/lo"
 	pkg_liquiditysource_uniswap_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v1"
@@ -402,6 +404,8 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_classic.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_stable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tessera.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_umbrae_damm.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_umbrae_dlmm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_unipool.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_lo.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v1.PoolSimulator{})

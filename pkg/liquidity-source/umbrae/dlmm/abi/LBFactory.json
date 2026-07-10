@@ -1,0 +1,16 @@
+[
+  { "type": "function", "name": "allPairsLength", "stateMutability": "view", "inputs": [], "outputs": [{ "name": "", "type": "uint256" }] },
+  {
+    "type": "function", "name": "allPairs", "stateMutability": "view",
+    "inputs": [{ "name": "index", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function", "name": "getVariableFeeCap", "stateMutability": "view",
+    "inputs": [
+      { "name": "binStep", "type": "uint16" },
+      { "name": "baseFee", "type": "uint16" }
+    ],
+    "outputs": [{ "name": "variableFeeCap", "type": "uint16" }]
+  }
+]

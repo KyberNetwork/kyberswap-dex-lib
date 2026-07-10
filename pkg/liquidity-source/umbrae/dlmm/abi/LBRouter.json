@@ -1,0 +1,15 @@
+[
+  {
+    "type": "function", "name": "swapExactTokensForTokens", "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "amountOutMin", "type": "uint256" },
+      { "name": "path", "type": "address[]" },
+      { "name": "binSteps", "type": "uint16[]" },
+      { "name": "pools", "type": "address[]" },
+      { "name": "to", "type": "address" },
+      { "name": "deadline", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+  }
+]
