@@ -1,0 +1,41 @@
+[
+  {
+    "type": "function", "name": "quoteSwap", "stateMutability": "view",
+    "inputs": [
+      { "name": "pair", "type": "address" },
+      { "name": "swapForY", "type": "bool" },
+      { "name": "amountIn", "type": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountOut", "type": "uint256" },
+      { "name": "consumedAmountIn", "type": "uint256" },
+      { "name": "finalBinId", "type": "uint24" },
+      { "name": "binsTraversed", "type": "uint256" },
+      { "name": "totalFee", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function", "name": "getActiveBinsWithReserves", "stateMutability": "view",
+    "inputs": [{ "name": "pair", "type": "address" }],
+    "outputs": [
+      { "name": "binIds", "type": "uint24[]" },
+      { "name": "reservesX", "type": "uint128[]" },
+      { "name": "reservesY", "type": "uint128[]" },
+      { "name": "totalShares", "type": "uint256[]" }
+    ]
+  },
+  {
+    "type": "function", "name": "getBinsInRange", "stateMutability": "view",
+    "inputs": [
+      { "name": "pair", "type": "address" },
+      { "name": "startId", "type": "uint24" },
+      { "name": "endId", "type": "uint24" }
+    ],
+    "outputs": [
+      { "name": "binIds", "type": "uint24[]" },
+      { "name": "reservesX", "type": "uint128[]" },
+      { "name": "reservesY", "type": "uint128[]" },
+      { "name": "totalShares", "type": "uint256[]" }
+    ]
+  }
+]
