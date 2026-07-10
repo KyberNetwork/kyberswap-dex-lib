@@ -126,9 +126,11 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
-// traverse reproduces the deployed PairViewer.quoteSwap loop: it starts from the tracked
-// (already-decayed) volatility, ramps it by distance from volRef as bins are crossed, and applies
-// the dynamic fee per bin. Returns the native output, native total fee, and post-swap bin updates.
+// traverse reproduces the deployed pair swap() loop: it starts from the tracked (already-decayed)
+// volatility, ramps it by distance from volRef as bins are crossed, and applies the dynamic fee per
+// bin. Returns the native output, native total fee, and post-swap bin updates. It errors with
+// ErrInsufficientLiquidity when the book runs out of bins before the whole input is consumed,
+// mirroring the on-chain swap()'s LBPair__InsufficientLiquidityForSwap revert
 func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256.Int, *uint256.Int, SwapInfo, error) {
 	scaleIn, scaleOut := s.scaleX, s.scaleY
 	if !swapForY {
@@ -194,7 +196,7 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 
 		nextBin, found := s.findNextActiveBin(currentBinID, swapForY)
 		if !found {
-			break // out of tracked liquidity -> partial quote, as on-chain runs out of bins
+			return nil, nil, SwapInfo{}, ErrInsufficientLiquidity
 		}
 		currentBinID = nextBin
 		binsTraversed++
@@ -202,10 +204,7 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 		// _wouldUpdateVolatility: outside the filter period (snapshot model), the gate reduces to
 		// amountIn >= minSwap && a fee was charged. Ramp volatility by distance from the reference.
 		if amountIn.Cmp(s.minSwap) >= 0 && totalFee.Sign() > 0 {
-			dist := distanceFrom(currentBinID, s.volRef)
-			if dist > uint64(s.fp.MaxVolatilityAccumulator) {
-				dist = uint64(s.fp.MaxVolatilityAccumulator)
-			}
+			dist := min(distanceFrom(currentBinID, s.volRef), uint64(s.fp.MaxVolatilityAccumulator))
 			volatility = uint256.NewInt(dist)
 		}
 	}

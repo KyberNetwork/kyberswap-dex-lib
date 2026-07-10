@@ -152,7 +152,7 @@ func (t *PoolTracker) GetNewPoolState(
 	p.BlockNumber = blockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 
-	logger.WithFields(logger.Fields{"pool_id": p.Address, "bins": len(bins)}).Info("finished getting new pool state")
+	logger.WithFields(logger.Fields{"pool_id": p.Address, "bins": len(bins), "block": p.BlockNumber}).Info("finished getting new pool state")
 	return p, nil
 }
 

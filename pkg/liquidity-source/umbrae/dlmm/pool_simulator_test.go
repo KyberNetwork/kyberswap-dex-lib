@@ -134,6 +134,46 @@ func TestCalcAmountOut_DecimalScaling(t *testing.T) {
 	require.Equal(t, "2991026919242273", resYX.Fee.Amount.String(), "Y->X fee (Y, 18-dec)")
 }
 
+// TestCalcAmountOut_InsufficientLiquidity covers the case that reverts on-chain: the input requires
+// more output than the whole book holds. Because the router-service always sends the full amountIn,
+// a partial fill would revert on-chain (LBPair__InsufficientLiquidityForSwap), so the simulator must
+// return ErrInsufficientLiquidity instead of a partial quote (mirrors liquiditybookv21.getSwapOut).
+func TestCalcAmountOut_InsufficientLiquidity(t *testing.T) {
+	static := StaticExtra{BinStep: 25, DecimalsX: 18, DecimalsY: 18}
+	// Single active bin with only 1000 Y. A huge X input cannot be fully consumed.
+	extra := Extra{
+		ActiveID:       activeBinID,
+		Bins:           []Bin{{ID: activeBinID, ReserveX: u("0"), ReserveY: u("1000000000000000000000")}},
+		FeeParameters:  FeeParameters{BaseFactor: 30, MaxVolatilityAccumulator: 35000},
+		NativeReserveX: "0", NativeReserveY: "1000000000000000000000",
+	}
+	sim := newSim(t, static, extra)
+
+	in := new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil) // 1e30 X, far more than the bin can absorb
+	_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenX, Amount: in}, TokenOut: tokenY,
+	})
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+// TestCalcAmountOut_FullyConsumable ensures a swap the book can fully absorb succeeds (no error).
+func TestCalcAmountOut_FullyConsumable(t *testing.T) {
+	static := StaticExtra{BinStep: 25, DecimalsX: 18, DecimalsY: 18}
+	extra := Extra{
+		ActiveID:       activeBinID,
+		Bins:           []Bin{{ID: activeBinID, ReserveX: u("0"), ReserveY: u("1000000000000000000000")}},
+		FeeParameters:  FeeParameters{BaseFactor: 30, MaxVolatilityAccumulator: 35000},
+		NativeReserveX: "0", NativeReserveY: "1000000000000000000000",
+	}
+	sim := newSim(t, static, extra)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenX, Amount: big.NewInt(1_000_000_000_000_000_000)}, TokenOut: tokenY,
+	})
+	require.NoError(t, err)
+	require.Positive(t, res.TokenAmountOut.Amount.Sign())
+}
+
 func TestCalcAmountOut_InvalidToken(t *testing.T) {
 	sim := newSim(t, StaticExtra{BinStep: 25, DecimalsX: 18, DecimalsY: 18}, Extra{
 		ActiveID:       activeBinID,

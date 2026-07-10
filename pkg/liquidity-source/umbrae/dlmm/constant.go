@@ -37,9 +37,9 @@ const (
 )
 
 var (
-	ErrInvalidToken       = errors.New("invalid token")
-	ErrInvalidReserve     = errors.New("invalid reserve")
-	ErrInvalidAmountIn    = errors.New("invalid amount in")
-	ErrInsufficientOutput = errors.New("insufficient output amount")
-	ErrInvalidPrice       = errors.New("invalid bin price")
+	ErrInvalidToken          = errors.New("invalid token")
+	ErrInvalidAmountIn       = errors.New("invalid amount in")
+	ErrInsufficientOutput    = errors.New("insufficient output amount")
+	ErrInsufficientLiquidity = errors.New("insufficient liquidity for full swap")
+	ErrInvalidPrice          = errors.New("invalid bin price")
 )

@@ -42,34 +42,33 @@ func TestVerifyAgainstChain(t *testing.T) {
 		"approval address must be the DLMM Router, not the pair")
 
 	amounts := []*big.Int{exp10(14), exp10(15), exp10(16), exp10(17), exp10(18), mul(exp10(18), 10), mul(exp10(18), 1000)}
-	var total, matched int
 	for _, swapForY := range []bool{true, false} {
 		tokenIn, tokenOut := tokenX, tokenY
 		if !swapForY {
 			tokenIn, tokenOut = tokenY, tokenX
 		}
+		dir := "X->Y"
+		if !swapForY {
+			dir = "Y->X"
+		}
 		for _, amt := range amounts {
-			chainOut, binsTrav, _ := viewerQuoteSwap(t, ctx, client, pinBlock, swapForY, amt)
-			simOut := big.NewInt(0)
-			if res, cerr := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			chainOut, consumed, binsTrav, _ := viewerQuoteSwap(t, ctx, client, pinBlock, swapForY, amt)
+			res, cerr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amt}, TokenOut: tokenOut,
-			}); cerr == nil {
-				simOut = res.TokenAmountOut.Amount
+			})
+
+			if consumed.Cmp(amt) < 0 {
+				t.Logf("%s in=%-24s | consumed=%-24s (partial) bins=%-3s -> sim err=%v", dir, amt, consumed, binsTrav, cerr)
+				require.ErrorIs(t, cerr, ErrInsufficientLiquidity,
+					"%s in=%s: viewer partial-filled (swap() reverts), sim must reject", dir, amt)
+				continue
 			}
-			total++
-			ok := chainOut.Cmp(simOut) == 0
-			if ok {
-				matched++
-			}
-			dir := "X->Y"
-			if !swapForY {
-				dir = "Y->X"
-			}
-			t.Logf("%s in=%-24s | chain=%-24s sim=%-24s bins=%-3s match=%v", dir, amt, chainOut, simOut, binsTrav, ok)
+			require.NoError(t, cerr, "%s in=%s: fully-consumable swap must succeed", dir, amt)
+			require.Equal(t, chainOut.String(), res.TokenAmountOut.Amount.String(),
+				"%s in=%s: sim output must match on-chain quoteSwap", dir, amt)
+			t.Logf("%s in=%-24s | chain=%-24s sim=%-24s bins=%-3s OK", dir, amt, chainOut, res.TokenAmountOut.Amount, binsTrav)
 		}
 	}
-	t.Logf("MATCHED %d/%d", matched, total)
-	require.Equal(t, total, matched, "simulator diverged from on-chain quoteSwap")
 }
 
 // TestVerifyListerLive exercises the real PoolsListUpdater against the live DLMM factory: enumerate
@@ -115,7 +114,7 @@ func TestVerifyListerLive(t *testing.T) {
 		se.BinStep, se.DecimalsX, se.DecimalsY, se.Router, found.Tokens[0].Address, found.Tokens[1].Address)
 }
 
-func viewerQuoteSwap(t *testing.T, ctx context.Context, client *ethrpc.Client, block *big.Int, swapForY bool, amountIn *big.Int) (amountOut, binsTrav, finalBinID *big.Int) {
+func viewerQuoteSwap(t *testing.T, ctx context.Context, client *ethrpc.Client, block *big.Int, swapForY bool, amountIn *big.Int) (amountOut, consumedAmountIn, binsTrav, finalBinID *big.Int) {
 	t.Helper()
 	var out struct {
 		AmountOut        *big.Int
@@ -129,7 +128,7 @@ func viewerQuoteSwap(t *testing.T, ctx context.Context, client *ethrpc.Client, b
 		Params: []any{common.HexToAddress(verifyPair), swapForY, amountIn},
 	}, []any{&out}).Call()
 	require.NoError(t, err)
-	return out.AmountOut, out.BinsTraversed, out.FinalBinId
+	return out.AmountOut, out.ConsumedAmountIn, out.BinsTraversed, out.FinalBinId
 }
 
 // TestVerifyUpdateBalance proves the post-swap state transition KyberSwap relies on for multi-hop /
@@ -148,7 +147,7 @@ func TestVerifyUpdateBalance(t *testing.T) {
 
 	// Y->X is the liquid direction for this pool; pick amounts that cross several bins.
 	for _, amt := range []*big.Int{exp10(15), exp10(16), exp10(17)} {
-		_, _, chainFinalBin := viewerQuoteSwap(t, ctx, client, pinBlock, false, amt)
+		_, _, _, chainFinalBin := viewerQuoteSwap(t, ctx, client, pinBlock, false, amt)
 
 		hop := sim.CloneState() // never mutate the shared base
 		res, err := hop.CalcAmountOut(pool.CalcAmountOutParams{
