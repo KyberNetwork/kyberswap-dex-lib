@@ -40,6 +40,6 @@ type PairMetadata struct {
 type ReserveData = uniswapv2.ReserveData
 
 type PairFactoryData struct {
-	AllPairsLength *big.Int
+	AllPairsLength int64
 	IsPaused       bool
 }

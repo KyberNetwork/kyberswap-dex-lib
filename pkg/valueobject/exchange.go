@@ -4,6 +4,7 @@ type Exchange string
 
 const (
 	Exchange1010Prop                   = "1010-prop"
+	ExchangeAeonV2                     = "aeon-v2"
 	ExchangeAlienBaseStableSwap        = "alien-base-stableswap"
 	ExchangeAltFun                     = "alt-fun"
 	ExchangeAmbient                    = "ambient"
