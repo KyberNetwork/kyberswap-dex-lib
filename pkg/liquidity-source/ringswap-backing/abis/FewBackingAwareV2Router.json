@@ -1,0 +1,79 @@
+[
+  {
+    "type": "function",
+    "name": "backingSourceState",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "state",
+        "type": "tuple",
+        "components": [
+          {"name": "reserve0", "type": "uint112"},
+          {"name": "reserve1", "type": "uint112"},
+          {"name": "wrapperBuffer0", "type": "uint256"},
+          {"name": "wrapperBuffer1", "type": "uint256"},
+          {"name": "recallCapacity0", "type": "uint256"},
+          {"name": "recallCapacity1", "type": "uint256"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "origin0",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "origin1",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "token0",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "token1",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pair",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "routeQuote",
+    "inputs": [
+      {"name": "originIn", "type": "address"},
+      {"name": "amountIn", "type": "uint256"}
+    ],
+    "outputs": [
+      {
+        "name": "quote",
+        "type": "tuple",
+        "components": [
+          {"name": "amountOut", "type": "uint256"},
+          {"name": "wrapperBuffer", "type": "uint256"},
+          {"name": "recallCapacity", "type": "uint256"},
+          {"name": "recallRequired", "type": "bool"},
+          {"name": "executable", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

@@ -130,6 +130,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
+	ringswapbacking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap-backing"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slipstream"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
@@ -345,6 +346,7 @@ type Types struct {
 	Dexalot                    string
 	GenericSimpleRate          string
 	RingSwap                   string
+	RingSwapBacking            string
 	PrimeETH                   string
 	CaliberProp                string
 	StaderETHx                 string
@@ -574,6 +576,7 @@ var (
 		Usd0PP:                     usd0pp.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
 		RingSwap:                   ringswap.DexType,
+		RingSwapBacking:            ringswapbacking.DexType,
 		PrimeETH:                   primeeth.DexType,
 		CaliberProp:                caliberprop.DexType,
 		StaderETHx:                 staderethx.DexType,

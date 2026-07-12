@@ -233,6 +233,7 @@ const (
 	ExchangeRamses                     = "ramses"
 	ExchangeRenzoEZETH                 = "renzo-ezeth"
 	ExchangeRingSwap                   = "ringswap"
+	ExchangeRingSwapBacking            = "ringswap-backing"
 	ExchangeRocketPoolRETH             = "rocketpool-reth"
 	ExchangeSafeSwap                   = "safeswap"
 	ExchangeSavingsUSDS                = "savings-usds"

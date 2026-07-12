@@ -85,7 +85,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"rocketpool-reth", "ethena-susde", "maker-savingsdai", "bancor-v21", "nomiswap-stable", "renzo-ezeth",
 		"bedrock-unieth", "puffer-pufeth", "swell-rsweth", "swell-sweth", "slipstream", "nuri-v2", "ambient",
 		"ether-vista", "maverick-v2", "lite-psm", "mkr-sky", "dai-usds", "fluid-vault-t1", "fluid-dex-t1", "usd0pp",
-		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
+		"ringswap", "ringswap-backing", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
 		"ekubo-v3", "erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap", "kelp-rseth-l2",
@@ -116,7 +116,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"rocketpool-reth", "ethena-susde", "maker-savingsdai", "bancor-v21", "nomiswap-stable", "renzo-ezeth",
 		"bedrock-unieth", "puffer-pufeth", "swell-rsweth", "swell-sweth", "slipstream", "nuri-v2", "ambient",
 		"ether-vista", "maverick-v2", "lite-psm", "mkr-sky", "dai-usds", "fluid-vault-t1", "fluid-dex-t1", "usd0pp",
-		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
+		"ringswap", "ringswap-backing", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
 		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "unipool", "valantis-stex", "nabla", "lunarbase", "ghost"}
