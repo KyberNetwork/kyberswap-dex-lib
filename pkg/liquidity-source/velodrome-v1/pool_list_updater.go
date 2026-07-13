@@ -2,14 +2,17 @@ package velodromev1
 
 import (
 	"context"
+	"encoding/binary"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -20,6 +23,7 @@ type (
 	PoolsListUpdater struct {
 		config       *Config
 		ethrpcClient *ethrpc.Client
+		abi          abi.ABI
 		feeTracker   IFeeTracker
 	}
 
@@ -37,7 +41,22 @@ func NewPoolsListUpdater(
 	return &PoolsListUpdater{
 		config:       cfg,
 		ethrpcClient: ethrpcClient,
-		feeTracker:   NewGenericFeeTracker(ethrpcClient, cfg.FeeTracker),
+		abi: abi.ABI{
+			Methods: map[string]abi.Method{
+				genericMethodAllPairs: {
+					ID: binary.BigEndian.AppendUint32(make([]byte, 0, 4),
+						lo.CoalesceOrEmpty(cfg.AllPairs, defaultMethodAllPairs)),
+					Inputs:  []abi.Argument{{Type: abi.Type{T: abi.IntTy, Size: 64}}},
+					Outputs: abi.Arguments{{Type: abi.Type{T: abi.AddressTy}}},
+				},
+				genericMethodAllPairsLength: {
+					ID: binary.BigEndian.AppendUint32(make([]byte, 0, 4),
+						lo.CoalesceOrEmpty(cfg.AllPairsLength, defaultMethodAllPairsLength)),
+					Outputs: abi.Arguments{{Type: abi.Type{T: abi.IntTy, Size: 64}}},
+				},
+			},
+		},
+		feeTracker: NewGenericFeeTracker(ethrpcClient, cfg.FeeTracker),
 	}
 }
 
@@ -72,7 +91,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 	}
 
-	batchSize := u.getBatchSize(int(pairFactoryData.AllPairsLength.Int64()), u.config.NewPoolLimit, offset)
+	batchSize := u.getBatchSize(int(pairFactoryData.AllPairsLength), u.config.NewPoolLimit, offset)
 
 	pairAddresses, err := u.listPairAddresses(ctx, offset, batchSize)
 	if err != nil {
@@ -123,9 +142,9 @@ func (u *PoolsListUpdater) getPairFactoryData(ctx context.Context) (PairFactoryD
 		Target: u.config.FactoryAddress,
 		Method: pairFactoryMethodIsPaused,
 	}, []any{&pairFactoryData.IsPaused}).AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
+		ABI:    u.abi,
 		Target: u.config.FactoryAddress,
-		Method: pairFactoryMethodAllPairsLength,
+		Method: genericMethodAllPairsLength,
 	}, []any{&pairFactoryData.AllPairsLength}).TryBlockAndAggregate()
 	return pairFactoryData, err
 }
@@ -151,12 +170,12 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 	listPairAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < batchSize; i++ {
-		index := big.NewInt(int64(offset + i))
+		index := int64(offset + i)
 
 		listPairAddressesRequest.AddCall(&ethrpc.Call{
-			ABI:    pairFactoryABI,
+			ABI:    u.abi,
 			Target: u.config.FactoryAddress,
-			Method: pairFactoryMethodAllPairs,
+			Method: genericMethodAllPairs,
 			Params: []any{index},
 		}, []any{&listPairAddressesResult[i]})
 	}
@@ -190,7 +209,7 @@ func (u *PoolsListUpdater) initPools(
 	}
 
 	if u.feeTracker != nil {
-		req := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+		req := u.ethrpcClient.NewRequest().SetContext(ctx)
 		for i, pairAddress := range pairAddresses {
 			u.feeTracker.AddGetFeeCall(req, u.config.FactoryAddress, pairAddress.Hex(), metadataList[i].St,
 				&metadataList[i].Fee)

@@ -30,6 +30,7 @@ var (
 		valueobject.ChainIDMegaETH:         common.HexToAddress("0x58DD83c317B03e6eBD72C3e912adF60a8e97Aa95"),
 		valueobject.ChainIDOptimism:        common.HexToAddress("0x9a13F98Cb987694C9F086b1F5eB990EeA8264Ec3"),
 		valueobject.ChainIDPolygon:         common.HexToAddress("0x67366782805870060151383F4BbFF9daB53e5cD6"),
+		valueobject.ChainIDRobinhood:       common.HexToAddress("0x8366a39cc670b4001a1121b8f6a443a643e40951"),
 		valueobject.ChainIDUnichain:        common.HexToAddress("0x1F98400000000000000000000000000000000004"),
 	}
 
