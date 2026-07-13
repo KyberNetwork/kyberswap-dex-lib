@@ -299,7 +299,7 @@ func getScalingFactors(poolTypeVer int, tokenDecimals []int, tokenRates []*uint2
 	// calculate the rate using block.timestamp, so the rate can be changed over time and
 	// out of sync between actual onchain execution and previous simulation.
 
-	if poolTypeVer == poolTypeVer1 {
+	if poolTypeVer == PoolTypeVer1 {
 		return []*uint256.Int{
 			computeScalingFactor(tokenDecimals[0]),
 			computeScalingFactor(tokenDecimals[1]),

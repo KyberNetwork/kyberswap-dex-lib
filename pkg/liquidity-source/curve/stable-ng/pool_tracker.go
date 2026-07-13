@@ -25,7 +25,7 @@ type PoolTracker struct {
 	logger       logger.Logger
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -87,39 +87,39 @@ func (t *PoolTracker) getNewPoolState(
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
 		AddCall(&ethrpc.Call{
-			ABI:    curveStableNGABI,
+			ABI:    CurveStableNGABI,
 			Target: p.Address,
 			Method: poolMethodInitialA,
 		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
 	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
 	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
 	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFee,
 	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
 	}, []any{&adminFee}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodStoredRates,
 	}, []any{&storedRates}).AddCall(&ethrpc.Call{
-		ABI:    curveStableNGABI,
+		ABI:    CurveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
 	}, []any{&balances})
@@ -140,7 +140,7 @@ func (t *PoolTracker) getNewPoolState(
 		AdminFee:     number.SetFromBig(adminFee),
 	}
 
-	if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
+	if err := updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
 		// if the rates is invalid then clear the pool and return err=nil
 		p.Timestamp = time.Now().Unix()
 		p.Reserves = make(entity.PoolReserves, len(balances)+1)
@@ -169,7 +169,7 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
+func updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 

@@ -20,7 +20,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -84,7 +84,7 @@ func (t *PoolTracker) getPoolSwapData(
 
 	output := &Swap{}
 	req.AddCall(&ethrpc.Call{
-		ABI:    vaultLiquidationResolverABI,
+		ABI:    VaultLiquidationResolverABI,
 		Target: t.config.VaultLiquidationResolver,
 		Method: VLRMethodGetSwapForProtocol,
 		Params: []any{common.HexToAddress(poolAddress)},

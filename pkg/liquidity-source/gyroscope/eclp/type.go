@@ -91,7 +91,7 @@ type ECLPParamsResp struct {
 	}
 }
 
-type rpcResp struct {
+type RPCResp struct {
 	PoolTokens        PoolTokensResp
 	SwapFeePercentage *big.Int
 	PausedState       PausedStateResp

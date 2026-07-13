@@ -27,7 +27,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -142,7 +142,7 @@ func (t *PoolTracker) queryRPC(
 	poolTypeVer int,
 	poolID string,
 	vault string,
-) (*rpcRes, error) {
+) (*RPCRes, error) {
 	var (
 		poolTokens                PoolTokens
 		swapFeePercentage         *big.Int
@@ -162,33 +162,33 @@ func (t *PoolTracker) queryRPC(
 	}, []any{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
 	}, []any{&swapFeePercentage})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
 	}, []any{&pausedState})
 
 	if poolTypeVer == poolTypeVer1 {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: poolAddress,
 			Method: poolMethodGetLastInvariant,
 		}, []any{&lastInvariant})
 	} else {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: poolAddress,
 			Method: poolMethodGetInvariant,
 		}, []any{&lastInvariant})
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: poolMethodTotalSupply,
 	}, []any{&totalSupply})
@@ -212,7 +212,7 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
-	return &rpcRes{
+	return &RPCRes{
 		PoolTokens:                poolTokens,
 		SwapFeePercentage:         uint256.MustFromBig(swapFeePercentage),
 		ProtocolSwapFeePercentage: uint256.MustFromBig(protocolSwapFeePercentage),

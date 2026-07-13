@@ -22,7 +22,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
@@ -78,13 +78,13 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		getMaxReserves(
+		GetMaxReserves(
 			p.Tokens[0].Decimals,
 			poolReserves.Limits.WithdrawableToken0,
 			poolReserves.Limits.BorrowableToken0,
 			poolReserves.CollateralReserves.Token0RealReserves,
 			poolReserves.DebtReserves.Token0RealReserves).String(),
-		getMaxReserves(
+		GetMaxReserves(
 			p.Tokens[1].Decimals,
 			poolReserves.Limits.WithdrawableToken1,
 			poolReserves.Limits.BorrowableToken1,
@@ -107,14 +107,14 @@ func (t *PoolTracker) getPoolReserves(
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    dexReservesResolverABI,
+		ABI:    DexReservesResolverABI,
 		Target: t.config.DexReservesResolver,
 		Method: DRRMethodGetPoolReservesAdjusted,
 		Params: []any{common.HexToAddress(poolAddress)},
 	}, []any{&poolReserves})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    storageReadABI,
+		ABI:    StorageReadABI,
 		Target: poolAddress,
 		Method: SRMethodReadFromStorage,
 		Params: []any{common.HexToHash("0x1")}, // slot 1
@@ -135,7 +135,7 @@ func (t *PoolTracker) getPoolReserves(
 	return poolReserves, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
 }
 
-func getMaxReserves(
+func GetMaxReserves(
 	decimals uint8,
 	withdrawableLimit TokenLimit,
 	borrowableLimit TokenLimit,

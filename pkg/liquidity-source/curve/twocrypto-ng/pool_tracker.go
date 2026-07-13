@@ -26,7 +26,7 @@ type PoolTracker struct {
 	logger       logger.Logger
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -89,66 +89,66 @@ func (t *PoolTracker) getNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
 		AddCall(&ethrpc.Call{
-			ABI:    curveTwocryptoNGABI,
+			ABI:    CurveTwocryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodD,
 		}, []any{&d}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodFeeGamma,
 	}, []any{&feeGamma}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodMidFee,
 	}, []any{&midFee}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodOutFee,
 	}, []any{&outFee}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGammaTime,
 	}, []any{&futureAGammaTime}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGamma,
 	}, []any{&futureAGamma}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGammaTime,
 	}, []any{&initialAGammaTime}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGamma,
 	}, []any{&initialAGamma}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodXcpProfit,
 	}, []any{&xcpProfit}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodVirtualPrice,
 	}, []any{&virtualPrice}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodAllowedExtraProfit,
 	}, []any{&allowedExtraProfit}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
 	}, []any{&adjustmentStep}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
+		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodMath,
 	}, []any{&math})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curveTwocryptoNGABI,
+			ABI:    CurveTwocryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
 			Params: []any{big.NewInt(int64(i))},
@@ -157,15 +157,15 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i := range numDepCoins {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curveTwocryptoNGABI,
+			ABI:    CurveTwocryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodPriceScale,
 		}, []any{&priceScales[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveTwocryptoNGABI,
+			ABI:    CurveTwocryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodPriceOracle,
 		}, []any{&priceOracles[i]}).AddCall(&ethrpc.Call{
-			ABI:    curveTwocryptoNGABI,
+			ABI:    CurveTwocryptoNGABI,
 			Target: p.Address,
 			Method: poolMethodLastPrices,
 		}, []any{&lastPrices[i]})

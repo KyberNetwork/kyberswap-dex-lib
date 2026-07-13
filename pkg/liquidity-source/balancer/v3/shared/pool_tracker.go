@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-func GetBufferTokens(req *ethrpc.Request, chainID valueobject.ChainID, exchange string, bufferTokens []string) func() []*ExtraBuffer {
+func GetBufferTokens(addFn func(*ethrpc.Call, []any), chainID valueobject.ChainID, exchange string, bufferTokens []string) func() []*ExtraBuffer {
 	var (
 		rates       = make([][]Rate, len(bufferTokens))
 		maxDeposits = make([]*big.Int, len(bufferTokens))
@@ -26,26 +26,26 @@ func GetBufferTokens(req *ethrpc.Request, chainID valueobject.ChainID, exchange 
 
 		rates[i] = make([]Rate, len(erc4626.PrefetchAmounts))
 		for j, amt := range erc4626.PrefetchAmounts {
-			req.AddCall(&ethrpc.Call{
+			addFn(&ethrpc.Call{
 				ABI:    ERC4626ABI,
 				Target: bufferToken,
 				Method: ERC4626MethodConvertToAssets,
 				Params: []any{amt.ToBig()},
 			}, []any{&rates[i][j].RedeemRate})
-			req.AddCall(&ethrpc.Call{
+			addFn(&ethrpc.Call{
 				ABI:    ERC4626ABI,
 				Target: bufferToken,
 				Method: ERC4626MethodConvertToShares,
 				Params: []any{amt.ToBig()},
 			}, []any{&rates[i][j].DepositRate})
 		}
-		req.AddCall(&ethrpc.Call{
+		addFn(&ethrpc.Call{
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
 			Method: ERC4626MethodMaxDeposit,
 			Params: []any{vault},
 		}, []any{&maxDeposits[i]})
-		req.AddCall(&ethrpc.Call{
+		addFn(&ethrpc.Call{
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
 			Method: ERC4626MethodMaxRedeem,

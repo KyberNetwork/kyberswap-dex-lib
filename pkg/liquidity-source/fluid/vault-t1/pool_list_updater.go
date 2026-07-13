@@ -84,7 +84,7 @@ func (u *PoolsListUpdater) getSwapPaths(ctx context.Context) ([]SwapPath, error)
 	req := u.ethrpcClient.R().SetContext(ctx)
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    vaultLiquidationResolverABI,
+		ABI:    VaultLiquidationResolverABI,
 		Target: u.config.VaultLiquidationResolver,
 		Method: VLRMethodGetAllSwapPaths,
 	}, []any{&paths})

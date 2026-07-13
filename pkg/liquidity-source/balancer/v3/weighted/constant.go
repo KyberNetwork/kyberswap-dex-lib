@@ -9,7 +9,7 @@ const (
 
 	SubgraphPoolType = "WEIGHTED"
 
-	poolMethodGetNormalizedWeights = "getNormalizedWeights"
+	PoolMethodGetNormalizedWeights = "getNormalizedWeights"
 
 	baseGas = 213745
 )

@@ -70,7 +70,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		AddCall(&ethrpc.Call{
 			ABI:    erc4626.ABI,
 			Target: p.Tokens[1].Address,
-			Method: erc4626.ERC4626MethodConvertToAssets,
+			Method: erc4626.Erc4626MethodConvertToAssets,
 			Params: []any{ray.ToBig()},
 		}, []any{&rate}). // convertToAssets(amt) = amt * rate() / ray
 		AddCall(&ethrpc.Call{

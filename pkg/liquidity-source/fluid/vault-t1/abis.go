@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	vaultLiquidationResolverABI abi.ABI
+	VaultLiquidationResolverABI abi.ABI
 )
 
 func init() {
@@ -15,7 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&vaultLiquidationResolverABI, vaultLiquidationResolverJSON},
+		{&VaultLiquidationResolverABI, vaultLiquidationResolverJSON},
 	}
 
 	for _, b := range builder {

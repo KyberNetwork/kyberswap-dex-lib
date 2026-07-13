@@ -11,18 +11,18 @@ const (
 
 	poolMethodA            = "A"
 	poolMethodAPrecise     = "A_precise"
-	poolMethodInitialA     = "initial_A"
-	poolMethodInitialATime = "initial_A_time"
-	poolMethodFutureA      = "future_A"
-	poolMethodFutureATime  = "future_A_time"
-	poolMethodFee          = "fee"
-	poolMethodAdminFee     = "admin_fee"
-	poolMethodBalances     = "balances"
-	poolMethodStoredRates  = "stored_rates"
+	PoolMethodInitialA     = "initial_A"
+	PoolMethodInitialATime = "initial_A_time"
+	PoolMethodFutureA      = "future_A"
+	PoolMethodFutureATime  = "future_A_time"
+	PoolMethodFee          = "fee"
+	PoolMethodAdminFee     = "admin_fee"
+	PoolMethodBalances     = "balances"
+	PoolMethodStoredRates  = "stored_rates"
 	poolMethodOracle       = "oracle"
-	poolMethodLatestAnswer = "latestAnswer"
+	PoolMethodLatestAnswer = "latestAnswer"
 
-	mainRegistryMethodGetRates = "get_rates"
+	MainRegistryMethodGetRates = "get_rates"
 
 	MaxLoopLimit = 256
 )

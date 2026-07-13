@@ -5,7 +5,7 @@ const (
 
 	SubgraphPoolType = "GYROE"
 
-	poolMethodGetECLPParams = "getECLPParams"
+	PoolMethodGetECLPParams = "getECLPParams"
 
 	baseGas int64 = 261243
 )

@@ -25,7 +25,7 @@ type PoolTracker struct {
 	logger       logger.Logger
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *shared.Config,
@@ -87,41 +87,41 @@ func (t *PoolTracker) getNewPoolState(
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
 		AddCall(&ethrpc.Call{
-			ABI:    curveStableMetaNGABI,
+			ABI:    CurveStableMetaNGABI,
 			Target: p.Address,
-			Method: poolMethodInitialA,
+			Method: PoolMethodInitialA,
 		}, []any{&initialA}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodFutureA,
+		Method: PoolMethodFutureA,
 	}, []any{&futureA}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodInitialATime,
+		Method: PoolMethodInitialATime,
 	}, []any{&initialATime}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodFutureATime,
+		Method: PoolMethodFutureATime,
 	}, []any{&futureATime}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodFee,
+		Method: PoolMethodFee,
 	}, []any{&swapFee}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodAdminFee,
+		Method: PoolMethodAdminFee,
 	}, []any{&adminFee}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodStoredRates,
+		Method: PoolMethodStoredRates,
 	}, []any{&storedRates}).AddCall(&ethrpc.Call{
-		ABI:    curveStableMetaNGABI,
+		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodGetBalances,
+		Method: PoolMethodGetBalances,
 	}, []any{&balances})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {

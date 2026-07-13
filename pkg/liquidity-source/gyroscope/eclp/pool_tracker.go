@@ -28,7 +28,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterBackupFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -91,7 +91,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	paused := !isNotPaused(rpcResp.PausedState)
+	paused := !IsNotPaused(rpcResp.PausedState)
 	swapFeePercentage, _ := uint256.FromBig(rpcResp.SwapFeePercentage)
 	paramsAlpha, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Alpha)
 	paramsBeta, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Beta)
@@ -109,7 +109,7 @@ func (t *PoolTracker) getNewPoolState(
 	dSq, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.DSq)
 
 	var tokenRates []*uint256.Int
-	if staticExtra.PoolTypeVer > poolTypeVer1 {
+	if staticExtra.PoolTypeVer > PoolTypeVer1 {
 		tokenRates = make([]*uint256.Int, 2)
 		tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
 		tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
@@ -139,7 +139,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserves, err := t.initReserves(ctx, p, rpcResp.PoolTokens)
+	reserves, err := t.initReserves(p, rpcResp.PoolTokens)
 	if err != nil {
 		return p, err
 	}
@@ -152,11 +152,7 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) initReserves(
-	ctx context.Context,
-	p entity.Pool,
-	poolTokens PoolTokensResp,
-) ([]string, error) {
+func (t *PoolTracker) initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]string, error) {
 	reserveByToken := make(map[string]*big.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
@@ -189,16 +185,9 @@ func (t *PoolTracker) queryRPC(
 	tokens []*entity.PoolToken,
 	poolTypeVer int,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*rpcResp, error) {
-	var (
-		poolTokens        PoolTokensResp
-		swapFeePercentage *big.Int
-		pausedState       PausedStateResp
-		tokenRates        TokenRatesResp
-		eclpParams        ECLPParamsResp
-
-		poolIDHash = common.HexToHash(poolID)
-	)
+) (*RPCResp, error) {
+	d := &RPCResp{}
+	poolIDHash := common.HexToHash(poolID)
 
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
@@ -209,33 +198,33 @@ func (t *PoolTracker) queryRPC(
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
 		Params: []any{poolIDHash},
-	}, []any{&poolTokens})
+	}, []any{&d.PoolTokens})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
-		Method: poolMethodGetSwapFeePercentage,
-	}, []any{&swapFeePercentage})
+		Method: PoolMethodGetSwapFeePercentage,
+	}, []any{&d.SwapFeePercentage})
 
-	if poolTypeVer > poolTypeVer1 {
+	if poolTypeVer > PoolTypeVer1 {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+			ABI:    PoolABI,
 			Target: poolAddress,
-			Method: poolMethodGetTokenRates,
-		}, []any{&tokenRates})
+			Method: PoolMethodGetTokenRates,
+		}, []any{&d.TokenRatesResp})
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
-		Method: poolMethodGetECLPParams,
-	}, []any{&eclpParams})
+		Method: PoolMethodGetECLPParams,
+	}, []any{&d.ECLPParamsResp})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    PoolABI,
 		Target: poolAddress,
-		Method: poolMethodGetPausedState,
-	}, []any{&pausedState})
+		Method: PoolMethodGetPausedState,
+	}, []any{&d.PausedState})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -247,16 +236,10 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
-	return &rpcResp{
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		PausedState:       pausedState,
-		TokenRatesResp:    tokenRates,
-		ECLPParamsResp:    eclpParams,
-		BlockNumber:       res.BlockNumber.Uint64(),
-	}, nil
+	d.BlockNumber = res.BlockNumber.Uint64()
+	return d, nil
 }
 
-func isNotPaused(pausedState PausedStateResp) bool {
+func IsNotPaused(pausedState PausedStateResp) bool {
 	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
 }

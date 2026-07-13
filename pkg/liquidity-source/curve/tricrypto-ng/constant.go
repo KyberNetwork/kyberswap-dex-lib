@@ -33,6 +33,23 @@ const (
 	poolMethodPriceOracle        = "price_oracle"
 	poolMethodLastPrices         = "last_prices"
 
+	PoolMethodD                  = poolMethodD
+	PoolMethodFeeGamma           = poolMethodFeeGamma
+	PoolMethodMidFee             = poolMethodMidFee
+	PoolMethodOutFee             = poolMethodOutFee
+	PoolMethodInitialAGamma      = poolMethodInitialAGamma
+	PoolMethodInitialAGammaTime  = poolMethodInitialAGammaTime
+	PoolMethodFutureAGamma       = poolMethodFutureAGamma
+	PoolMethodFutureAGammaTime   = poolMethodFutureAGammaTime
+	PoolMethodXcpProfit          = poolMethodXcpProfit
+	PoolMethodVirtualPrice       = poolMethodVirtualPrice
+	PoolMethodAllowedExtraProfit = poolMethodAllowedExtraProfit
+	PoolMethodAdjustmentStep     = poolMethodAdjustmentStep
+	PoolMethodBalances           = poolMethodBalances
+	PoolMethodPriceScale         = poolMethodPriceScale
+	PoolMethodPriceOracle        = poolMethodPriceOracle
+	PoolMethodLastPrices         = poolMethodLastPrices
+
 	MaxLoopLimit = 256
 	NumTokens    = 3
 )
