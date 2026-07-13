@@ -148,8 +148,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		token1 := &entity.PoolToken{Address: hexutil.Encode(assetTokens[i][:]), Swappable: true}
 
 		staticExtra, err := json.Marshal(&StaticExtra{
-			Bonding: bondings[i].Hex(),
-			Router:  routers[i].Hex(),
+			Bonding: hexutil.Encode(bondings[i][:]),
+			Router:  hexutil.Encode(routers[i][:]),
 		})
 		if err != nil {
 			return nil, err
@@ -181,15 +181,15 @@ func (u *PoolsListUpdater) getPairsInfo(
 	for i, pairAddress := range pairAddresses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddress.Hex(),
+			Target: hexutil.Encode(pairAddress[:]),
 			Method: "tokenA",
 		}, []any{&agentTokens[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddress.Hex(),
+			Target: hexutil.Encode(pairAddress[:]),
 			Method: "tokenB",
 		}, []any{&assetTokens[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddress.Hex(),
+			Target: hexutil.Encode(pairAddress[:]),
 			Method: "router",
 		}, []any{&routers[i]})
 	}
@@ -215,7 +215,7 @@ func (u *PoolsListUpdater) resolveBondings(
 		return bondings, nil
 	}
 
-	type routerBondings struct{ v2, v4 common.Address }
+	type routerBondings struct{ v2, v4, v5 common.Address }
 	rb := make(map[common.Address]*routerBondings)
 	req := u.ethrpcClient.R().SetContext(ctx)
 	for _, r := range routers {
@@ -226,19 +226,23 @@ func (u *PoolsListUpdater) resolveBondings(
 		rb[r] = entry
 		req.AddCall(&ethrpc.Call{
 			ABI:    routerABI,
-			Target: r.Hex(),
+			Target: hexutil.Encode(r[:]),
 			Method: "bondingV2",
 		}, []any{&entry.v2}).AddCall(&ethrpc.Call{
 			ABI:    routerABI,
-			Target: r.Hex(),
+			Target: hexutil.Encode(r[:]),
 			Method: "bondingV4",
-		}, []any{&entry.v4})
+		}, []any{&entry.v4}).AddCall(&ethrpc.Call{
+			ABI:    routerABI,
+			Target: hexutil.Encode(r[:]),
+			Method: "bondingV5",
+		}, []any{&entry.v5})
 	}
 	if _, err := req.TryAggregate(); err != nil {
 		return nil, err
 	}
 
-	infos := make([][2]BondingTokenInfo, len(agentTokens))
+	infos := make([][3]BondingTokenInfo, len(agentTokens))
 	probe := u.ethrpcClient.R().SetContext(ctx)
 	for i, token := range agentTokens {
 		entry := rb[routers[i]]
@@ -248,7 +252,7 @@ func (u *PoolsListUpdater) resolveBondings(
 		if !valueobject.IsZeroAddress(entry.v2) {
 			probe.AddCall(&ethrpc.Call{
 				ABI:    bondingABI,
-				Target: entry.v2.Hex(),
+				Target: hexutil.Encode(entry.v2[:]),
 				Method: "tokenInfo",
 				Params: []any{token},
 			}, []any{&infos[i][0]})
@@ -256,10 +260,18 @@ func (u *PoolsListUpdater) resolveBondings(
 		if !valueobject.IsZeroAddress(entry.v4) {
 			probe.AddCall(&ethrpc.Call{
 				ABI:    bondingABI,
-				Target: entry.v4.Hex(),
+				Target: hexutil.Encode(entry.v4[:]),
 				Method: "tokenInfo",
 				Params: []any{token},
 			}, []any{&infos[i][1]})
+		}
+		if !valueobject.IsZeroAddress(entry.v5) {
+			probe.AddCall(&ethrpc.Call{
+				ABI:    bondingABI,
+				Target: hexutil.Encode(entry.v5[:]),
+				Method: "tokenInfo",
+				Params: []any{token},
+			}, []any{&infos[i][2]})
 		}
 	}
 	if _, err := probe.TryAggregate(); err != nil {
@@ -272,6 +284,8 @@ func (u *PoolsListUpdater) resolveBondings(
 			continue
 		}
 		switch {
+		case !valueobject.IsZeroAddress(infos[i][2].Creator):
+			bondings[i] = entry.v5
 		case !valueobject.IsZeroAddress(infos[i][1].Creator):
 			bondings[i] = entry.v4
 		case !valueobject.IsZeroAddress(infos[i][0].Creator):

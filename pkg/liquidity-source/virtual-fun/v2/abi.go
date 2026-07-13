@@ -20,7 +20,7 @@ func init() {
 	}{
 		{&factoryABI, factoryABIJson},
 		{&routerABI, routerABIJson},
-		{&bondingABI, bodingABIJson},
+		{&bondingABI, bondingABIJson},
 		{&pairABI, pairABIJson},
 	}
 
