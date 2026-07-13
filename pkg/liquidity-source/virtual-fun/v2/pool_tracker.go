@@ -104,11 +104,12 @@ func (d *PoolTracker) getBondingData(
 ) ([]*big.Int, [2]*big.Int, *big.Int, *BondingTokenInfo, bool, *big.Int, error) {
 	agentToken := common.HexToAddress(tokens[0].Address)
 	var (
-		tokenBalances = make([]*big.Int, len(tokens))
-		reserves      [2]*big.Int
-		gradThreshold *big.Int
-		tokenInfo     BondingTokenInfo
-		isXLaunch     bool
+		tokenBalances      = make([]*big.Int, len(tokens))
+		reserves           [2]*big.Int
+		gradThreshold      *big.Int
+		tokenGradThreshold *big.Int
+		tokenInfo          BondingTokenInfo
+		isXLaunch          bool
 	)
 
 	req := d.ethrpcClient.R().SetContext(ctx)
@@ -132,6 +133,11 @@ func (d *PoolTracker) getBondingData(
 	}, []any{&gradThreshold}).AddCall(&ethrpc.Call{
 		ABI:    bondingABI,
 		Target: bondingAddress,
+		Method: "tokenGradThreshold",
+		Params: []any{agentToken},
+	}, []any{&tokenGradThreshold}).AddCall(&ethrpc.Call{
+		ABI:    bondingABI,
+		Target: bondingAddress,
 		Method: "tokenInfo",
 		Params: []any{agentToken},
 	}, []any{&tokenInfo}).AddCall(&ethrpc.Call{
@@ -144,6 +150,11 @@ func (d *PoolTracker) getBondingData(
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return nil, [2]*big.Int{}, nil, nil, false, nil, err
+	}
+
+	// v5 bonding contracts expose the threshold per-token instead of a single gradThreshold()
+	if gradThreshold == nil {
+		gradThreshold = tokenGradThreshold
 	}
 
 	return tokenBalances, reserves, gradThreshold, &tokenInfo, isXLaunch, resp.BlockNumber, nil

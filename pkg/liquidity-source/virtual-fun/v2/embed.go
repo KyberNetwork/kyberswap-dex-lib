@@ -2,8 +2,8 @@ package v2
 
 import _ "embed"
 
-//go:embed abi/BondingV4.json
-var bodingABIJson []byte
+//go:embed abi/Bonding.json
+var bondingABIJson []byte
 
 //go:embed abi/FactoryV2.json
 var factoryABIJson []byte
