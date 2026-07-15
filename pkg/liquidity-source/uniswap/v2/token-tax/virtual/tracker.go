@@ -20,10 +20,16 @@ func FindTaxToken(pool entity.Pool) string {
 	return tokentax.FindPairedToken(pool, baseTokens)
 }
 
-func NewTracker(poolAddress, tokenAddress string, previous tokentax.TaxInfo) tokentax.Tracker {
+func NewTracker(poolAddress, tokenAddress, factory string, previous tokentax.TaxInfo) tokentax.Tracker {
+	buyTaxMethod, sellTaxMethod := methodBuyTax, methodSellTax
+	if _, ok := projectTaxFactories[strings.ToLower(factory)]; ok {
+		buyTaxMethod, sellTaxMethod = methodProjectBuyTax, methodProjectSellTax
+	}
 	return &tracker{
 		poolAddress:         poolAddress,
 		tokenAddress:        tokenAddress,
+		buyTaxMethod:        buyTaxMethod,
+		sellTaxMethod:       sellTaxMethod,
 		previous:            previous,
 		isLiquidityPoolCall: -1,
 		buyTaxCall:          -1,
@@ -32,9 +38,11 @@ func NewTracker(poolAddress, tokenAddress string, previous tokentax.TaxInfo) tok
 }
 
 type tracker struct {
-	poolAddress  string
-	tokenAddress string
-	previous     tokentax.TaxInfo
+	poolAddress   string
+	tokenAddress  string
+	buyTaxMethod  string
+	sellTaxMethod string
+	previous      tokentax.TaxInfo
 
 	isLiquidityPoolCall int
 	buyTaxCall          int
@@ -54,12 +62,12 @@ func (t *tracker) AddCalls(request *ethrpc.Request) {
 
 	t.buyTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
-		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodBuyTax,
+		ABI: tokenTaxABI, Target: t.tokenAddress, Method: t.buyTaxMethod,
 	}, []any{&t.buyTaxBps})
 
 	t.sellTaxCall = len(request.Calls)
 	request.AddCall(&ethrpc.Call{
-		ABI: tokenTaxABI, Target: t.tokenAddress, Method: methodSellTax,
+		ABI: tokenTaxABI, Target: t.tokenAddress, Method: t.sellTaxMethod,
 	}, []any{&t.sellTaxBps})
 }
 
