@@ -90,11 +90,27 @@ func TestTrackerAddCalls(t *testing.T) {
 
 	request := new(ethrpc.Client).NewRequest()
 	NewTracker(
-		"0x0000000000000000000000000000000000000001", "0xagent", tokentax.TaxInfo{},
+		"0x0000000000000000000000000000000000000001", "0xagent", "0xfactory", tokentax.TaxInfo{},
 	).AddCalls(request)
 
 	assert.Len(t, request.Calls, 3)
 	assert.Equal(t, "0xagent", request.Calls[0].Target)
+	assert.Equal(t, methodBuyTax, request.Calls[1].Method)
+	assert.Equal(t, methodSellTax, request.Calls[2].Method)
+}
+
+func TestTrackerAddCallsProjectTaxFactory(t *testing.T) {
+	t.Parallel()
+
+	request := new(ethrpc.Client).NewRequest()
+	NewTracker(
+		"0x0000000000000000000000000000000000000001", "0xagent",
+		"0x8bcEaA40B9AcdfAedF85AdF4FF01F5Ad6517937f", tokentax.TaxInfo{},
+	).AddCalls(request)
+
+	assert.Len(t, request.Calls, 3)
+	assert.Equal(t, methodProjectBuyTax, request.Calls[1].Method)
+	assert.Equal(t, methodProjectSellTax, request.Calls[2].Method)
 }
 
 func resolveTracker(tracker *tracker, results []bool) tokentax.TaxInfo {
