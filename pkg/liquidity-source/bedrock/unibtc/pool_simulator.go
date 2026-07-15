@@ -91,6 +91,9 @@ func (s *PoolSimulator) CanSwapTo(token string) []string {
 
 func (s *PoolSimulator) CanSwapFrom(token string) []string {
 	id := s.Info.GetTokenIndex(token)
+	if id < 0 {
+		return nil
+	}
 	if id == len(s.Tokens)-1 {
 		return s.Info.Tokens[:len(s.Tokens)-1]
 	}
