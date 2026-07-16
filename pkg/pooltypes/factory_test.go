@@ -27,6 +27,7 @@ func TestPoolFactory(t *testing.T) {
 		"hashflow-v3",   // private
 		"dexalot",       // private
 		"fermi",         // private
+		"fermi-prop",    // private
 		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string

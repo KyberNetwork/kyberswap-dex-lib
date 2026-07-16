@@ -4,20 +4,10 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 )
 
 type StaticExtra struct {
 	Address string `json:"a"`
-}
-
-type Extra struct {
-	Ladders [2][]LadderPoint `json:"l"`
-}
-
-type LadderPoint struct {
-	AmountIn  *uint256.Int `json:"in"`
-	AmountOut *uint256.Int `json:"out"`
 }
 
 type PoolMeta struct {
