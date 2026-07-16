@@ -7,7 +7,9 @@
 package ladder
 
 import (
+	"math"
 	"math/big"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -34,10 +36,25 @@ type PoolSimulator struct {
 	consumedOut [2]float64
 }
 
-// NewPoolSimulator builds the shared ladder state from an entity.Pool.
-// Embedders call this for the common fields, then unmarshal their own
-// StaticExtra and set Gas.
+// NewPoolSimulator builds the shared ladder state from an entity.Pool, with
+// no staleness enforcement. Embedders call this (or NewPoolSimulatorWith) for
+// the common fields, then unmarshal their own StaticExtra and set Gas.
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
+	return NewPoolSimulatorWith(ep, math.MaxInt64)
+}
+
+// NewPoolSimulatorWith is NewPoolSimulator with an explicit staleness bound:
+// if the pool's state is older than maxAge, it returns ErrStale rather than
+// risking a quote against a curve that's since drifted (these pools price
+// against a live, continuously-updating feed -- see the "off by 10bps"
+// investigation that motivated this check). Embedders that want this should
+// register via pool.RegisterFactory and pass
+// lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64) as maxAge,
+// mirroring pkg/liquidity-source/order-book.
+func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
+	if time.Since(time.Unix(ep.Timestamp, 0)) > maxAge {
+		return nil, ErrStale
+	}
 	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 {
 		return nil, ErrInvalidToken
 	}

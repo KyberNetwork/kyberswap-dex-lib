@@ -2,6 +2,7 @@ package ladder
 
 import (
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -36,6 +37,24 @@ func newTestPool(t *testing.T, extraJSON string) *PoolSimulator {
 	sim := lo.Must(NewPoolSimulator(ep))
 	sim.Gas = 100_000
 	return sim
+}
+
+func TestNewPoolSimulatorWith_Staleness(t *testing.T) {
+	t.Parallel()
+	ep := entity.Pool{
+		Address:   "0xpool",
+		Tokens:    []*entity.PoolToken{{Address: testToken0}, {Address: testToken1}},
+		Reserves:  entity.PoolReserves{"1", "1"},
+		Extra:     "{}",
+		Timestamp: time.Now().Add(-time.Minute).Unix(),
+	}
+
+	_, err := NewPoolSimulatorWith(ep, time.Second)
+	assert.ErrorIs(t, err, ErrStale)
+
+	sim, err := NewPoolSimulatorWith(ep, time.Hour)
+	assert.NoError(t, err)
+	assert.NotNil(t, sim)
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
