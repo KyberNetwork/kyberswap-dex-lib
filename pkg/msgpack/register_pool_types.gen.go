@@ -99,6 +99,7 @@ import (
 	pkg_liquiditysource_kipseli_pamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/pamm"
 	pkg_liquiditysource_kipseli_prop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
 	pkg_liquiditysource_kuruob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob"
+	pkg_liquiditysource_ladder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	pkg_liquiditysource_lfj_poe "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	pkg_liquiditysource_lglclob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lgl-clob"
 	pkg_liquiditysource_liquidcore "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
@@ -342,6 +343,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kipseli_pamm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kipseli_prop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kuruob.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ladder.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lfj_poe.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lglclob.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidcore.PoolSimulator{})
