@@ -60,12 +60,16 @@ func SafeAdd(a, b *uint256.Int) *uint256.Int {
 
 // SafeSqrt https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/lib/SafeMath.sol#L56
 func SafeSqrt(x *uint256.Int) *uint256.Int {
-	z := new(uint256.Int).Add(new(uint256.Int).Div(x, number.Number_2), number.Number_1)
-	y := x
-	for z.Cmp(y) < 0 {
-		y = z
-		z = new(uint256.Int).Div(new(uint256.Int).Add(new(uint256.Int).Div(x, z), z), number.Number_2)
+	var z, y, tmp uint256.Int
+	z.Div(x, number.Number_2)
+	z.Add(&z, number.Number_1)
+	y.Set(x)
+	for z.Cmp(&y) < 0 {
+		y.Set(&z)
+		tmp.Div(x, &z)
+		tmp.Add(&tmp, &z)
+		z.Div(&tmp, number.Number_2)
 	}
 
-	return y
+	return new(uint256.Int).Set(&y)
 }

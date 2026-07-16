@@ -56,6 +56,14 @@ func (f *fixPoint) DivRawUp(a, b *uint256.Int) (*uint256.Int, error) {
 	return &result, nil
 }
 
+func (f *fixPoint) DivRawUpInto(z, a, b *uint256.Int) error {
+	if b.IsZero() {
+		return ErrZeroDivision
+	}
+	v3Utils.DivRoundingUp(a, b, z)
+	return nil
+}
+
 func (f *fixPoint) PowUp(x, y *uint256.Int) (*uint256.Int, error) {
 	if y.Eq(U1e18) {
 		return x, nil
