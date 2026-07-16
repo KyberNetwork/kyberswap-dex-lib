@@ -62,6 +62,23 @@ func (m *math) Div(a *uint256.Int, b *uint256.Int, roundUp bool) (*uint256.Int, 
 	return m.DivDown(a, b)
 }
 
+func (m *math) DivUpInto(z, a, b *uint256.Int) error {
+	if b.IsZero() {
+		return ErrZeroDivision
+	}
+	if a.IsZero() {
+		z.Clear()
+		return nil
+	}
+
+	var tmp uint256.Int
+	tmp.SubUint64(a, 1)
+	z.Div(&tmp, b)
+	z.AddUint64(z, 1)
+
+	return nil
+}
+
 func (m *math) Min(a *uint256.Int, b *uint256.Int) *uint256.Int {
 	if a.Lt(b) {
 		return a

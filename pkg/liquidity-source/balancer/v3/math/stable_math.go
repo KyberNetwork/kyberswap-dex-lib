@@ -145,40 +145,33 @@ func (s *stableMath) ComputeBalance(
 		return nil, err
 	}
 
-	prevTokenBalance := new(uint256.Int)
-	for i := 0; i < 255; i++ {
-		prevTokenBalance.Set(tokenBalance)
+	var bufA, bufB uint256.Int
+	bufA.Set(tokenBalance)
+	prev, next := &bufA, &bufB
 
+	for range 255 {
 		// y = (y^2 + c)/(2y + b - D)
-		numerator.Mul(tokenBalance, tokenBalance)
+		numerator.Mul(prev, prev)
 		numerator.Add(numerator, c)
 
-		denominator.Mul(tokenBalance, U2)
+		denominator.Mul(prev, U2)
 		denominator.Add(denominator, b)
 		denominator.Sub(denominator, invariant)
 
-		tokenBalance, err = FixPoint.DivRawUp(numerator, denominator)
-		if err != nil {
+		if err := FixPoint.DivRawUpInto(next, numerator, denominator); err != nil {
 			return nil, err
 		}
 
-		if tokenBalance.Gt(prevTokenBalance) {
-			mulResult, err = FixPoint.Sub(tokenBalance, prevTokenBalance)
-			if err != nil {
-				return nil, err
-			}
-			if mulResult.Cmp(U1) <= 0 {
-				return tokenBalance, nil
-			}
+		if next.Gt(prev) {
+			mulResult.SubOverflow(next, prev)
 		} else {
-			mulResult, err = FixPoint.Sub(prevTokenBalance, tokenBalance)
-			if err != nil {
-				return nil, err
-			}
-			if mulResult.Cmp(U1) <= 0 {
-				return tokenBalance, nil
-			}
+			mulResult.SubOverflow(prev, next)
 		}
+		if mulResult.Cmp(U1) <= 0 {
+			return new(uint256.Int).Set(next), nil
+		}
+
+		prev, next = next, prev
 	}
 
 	return nil, ErrStableComputeBalanceDidNotConverge

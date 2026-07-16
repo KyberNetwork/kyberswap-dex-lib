@@ -464,46 +464,42 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 		}
 	}
 
+	var bufA, bufB uint256.Int
+	bufA.Set(tokenBalance)
+	prev, next := &bufA, &bufB
+	var u, v uint256.Int
+
 	for i := 0; i < 255; i++ {
-		prevTokenBalance := tokenBalance
+		if _, overflow := u.MulOverflow(prev, prev); overflow {
+			return nil, ErrMulOverflow
+		}
+		if _, overflow := u.AddOverflow(&u, c); overflow {
+			return nil, ErrAddOverflow
+		}
 
-		// calc tokenBalance
-		{
-			u, err := Math.Mul(tokenBalance, tokenBalance)
-			if err != nil {
-				return nil, err
-			}
-			u, err = FixedPoint.Add(u, c)
-			if err != nil {
-				return nil, err
-			}
+		if _, overflow := v.MulOverflow(prev, number.Number_2); overflow {
+			return nil, ErrMulOverflow
+		}
+		if _, overflow := v.AddOverflow(&v, b); overflow {
+			return nil, ErrAddOverflow
+		}
+		if _, underflow := v.SubOverflow(&v, invariant); underflow {
+			return nil, ErrSubOverflow
+		}
 
-			v, err := Math.Mul(tokenBalance, number.Number_2)
-			if err != nil {
-				return nil, err
-			}
-			v, err = FixedPoint.Add(v, b)
-			if err != nil {
-				return nil, err
-			}
-			v, err = FixedPoint.Sub(v, invariant)
-			if err != nil {
-				return nil, err
-			}
-
-			tokenBalance, err = Math.DivUp(u, v)
-			if err != nil {
-				return nil, err
-			}
+		if err := Math.DivUpInto(next, &u, &v); err != nil {
+			return nil, err
 		}
 
 		var diff uint256.Int
-		diff.Sub(tokenBalance, prevTokenBalance)
+		diff.Sub(next, prev)
 		var delta uint256.Int
 		delta.Abs(&diff)
 		if delta.Cmp(number.Number_1) <= 0 {
-			return tokenBalance, nil
+			return new(uint256.Int).Set(next), nil
 		}
+
+		prev, next = next, prev
 	}
 
 	return nil, ErrStableGetBalanceDidntConverge
