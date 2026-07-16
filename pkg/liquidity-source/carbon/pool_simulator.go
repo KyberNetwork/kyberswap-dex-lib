@@ -34,6 +34,18 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	for i := range extra.Strategies {
+		for oi := range extra.Strategies[i].Orders {
+			order := &extra.Strategies[i].Orders[oi]
+			if order.Y == nil {
+				order.Y = u256.New0()
+			}
+			if order.Z == nil {
+				order.Z = u256.New0()
+			}
+		}
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     ep.Address,

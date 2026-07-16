@@ -50,7 +50,7 @@ func tradeTargetAmount(sourceAmount *uint256.Int, order *Order) *uint256.Int {
 	if sourceAmount == nil || sourceAmount.Sign() <= 0 {
 		return u256.New0()
 	}
-	if order.Y == nil || order.Z == nil {
+	if order.Y.Sign() == 0 {
 		return u256.New0()
 	}
 
@@ -110,7 +110,7 @@ func tradeSourceAmount(targetAmount *uint256.Int, order *Order) *uint256.Int {
 	if targetAmount == nil || targetAmount.Sign() <= 0 {
 		return u256.New0()
 	}
-	if order.Y == nil || order.Z == nil {
+	if order.Y.Sign() == 0 {
 		return u256.UMax.Clone()
 	}
 
