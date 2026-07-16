@@ -112,6 +112,7 @@ const (
 	ExchangeFakePool                   = "fake-pool"
 	ExchangeFeltir                     = "feltir"
 	ExchangeFermi                      = "fermi"
+	ExchangeFermiProp                  = "fermi-prop"
 	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidDexV2                 = "fluid-dex-v2"
