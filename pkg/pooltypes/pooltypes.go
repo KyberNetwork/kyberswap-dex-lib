@@ -457,6 +457,7 @@ type Types struct {
 	BounceTech                 string
 	AltFun                     string
 	Prop1010                   string
+	FermiProp                  string
 }
 
 var (
@@ -690,5 +691,6 @@ var (
 		BounceTech:                 bouncetech.DexType,
 		AltFun:                     altfun.DexType,
 		Prop1010:                   prop1010.DexType,
+		FermiProp:                  valueobject.ExchangeFermiProp,
 	}
 )
