@@ -149,7 +149,9 @@ func (t *PoolTracker) fetchQuotes(
 	}
 
 	if _, err := req.TryAggregate(); err != nil {
-		return nil, err
+		if _, err := req.SetBlockNumber(nil).TryAggregate(); err != nil {
+			return nil, err
+		}
 	}
 
 	return samples, nil
