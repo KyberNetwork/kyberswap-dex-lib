@@ -99,6 +99,7 @@ const (
 	ExchangeElfomofi                   = "elfomofi"
 	ExchangeEllipsis                   = "ellipsis"
 	ExchangeERC4626                    = "erc4626"
+	ExchangeERC7575                    = "erc7575"
 	ExchangeEthenaSusde                = "ethena-susde"
 	ExchangeEtherexV2                  = "etherex-v2"
 	ExchangeEtherFieBTC                = "etherfi-ebtc"

@@ -52,16 +52,20 @@ func (t *PoolTracker) lazyNewPoolState(
 		_ = json.Unmarshal([]byte(p.Extra), &extra)
 		vaultCfg.Gas = erc4626.GasCfg(extra.Gas)
 	}
-	req, applyResult := lazycall(ctx, &p, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
+	// standard ERC4626: vault == share, so tokenAddr is empty and totalSupply targets the vault
+	req, applyResult := Lazycall(ctx, &p, t.ethrpcClient, vaultAddr, "", vaultCfg, false, overrides)
 
 	return req, applyResult, nil
 }
 
-func lazycall(
+// Lazycall builds the batch-RPC request and applyResult closure for a vault. vaultAddr is the entrypoint all
+// logic getters target; tokenAddr is the share ERC20 whose totalSupply is read (empty => vault, i.e. standard
+// ERC4626). Exported so decoupled-share integrations (e.g. erc7575) can reuse it with a share token != vault.
+func Lazycall(
 	ctx context.Context,
 	pool *entity.Pool,
 	ethrpcClient *ethrpc.Client,
-	vaultAddr string,
+	vaultAddr, tokenAddr string,
 	vaultCfg erc4626.VaultCfg,
 	fetchAsset bool,
 	overrides map[common.Address]gethclient.OverrideAccount,
@@ -73,7 +77,7 @@ func lazycall(
 	}
 	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req := poolpkg.LazyRequest{Request: r}
-	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
+	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, tokenAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
 		normalizePoolState(&poolState)

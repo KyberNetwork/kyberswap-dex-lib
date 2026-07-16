@@ -68,6 +68,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626/lazy"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc7575"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
@@ -392,6 +393,7 @@ type Types struct {
 	Ekubo                      string
 	EkuboV3                    string
 	ERC4626                    string
+	ERC7575                    string
 	HiddenOcean                string
 	HyETH                      string
 	HyperAMM                   string
@@ -622,6 +624,7 @@ var (
 		Ekubo:                      ekubo.DexType,
 		EkuboV3:                    ekubov3.DexType,
 		ERC4626:                    erc4626.DexType,
+		ERC7575:                    erc7575.DexType,
 		HiddenOcean:                hiddenocean.DexType,
 		HyETH:                      hyeth.DexType,
 		HyperAMM:                   hyperamm.DexType,
