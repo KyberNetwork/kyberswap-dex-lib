@@ -16,31 +16,6 @@
   },
   {
     "type": "function",
-    "name": "estimateSwap",
-    "inputs": [
-      {
-        "name": "tokenIn",
-        "type": "address"
-      },
-      {
-        "name": "tokenOut",
-        "type": "address"
-      },
-      {
-        "name": "amountIn",
-        "type": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "amountOut",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "getReserves",
     "outputs": [
       {
@@ -56,30 +31,25 @@
   },
   {
     "type": "function",
-    "name": "getSpotPrices",
-    "outputs": [
+    "name": "estimateSwapBatch",
+    "inputs": [
       {
-        "name": "forwardPrice",
-        "type": "uint64"
+        "name": "tokenIn",
+        "type": "address"
       },
       {
-        "name": "inversePrice",
-        "type": "uint64"
+        "name": "tokenOut",
+        "type": "address"
+      },
+      {
+        "name": "amountsIn",
+        "type": "uint256[]"
       }
     ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getPoolFees",
     "outputs": [
       {
-        "name": "feeToken0In",
-        "type": "uint256"
-      },
-      {
-        "name": "feeToken1In",
-        "type": "uint256"
+        "name": "amountsOut",
+        "type": "uint256[]"
       }
     ],
     "stateMutability": "view"
