@@ -83,7 +83,8 @@ func (t *PoolTracker) getNewPoolState(
 		_ = json.Unmarshal([]byte(p.Extra), &extra)
 		vaultCfg.Gas = erc4626.GasCfg(extra.Gas)
 	}
-	_, state, err := FetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
+	// standard ERC4626: vault == share, so tokenAddr is empty and totalSupply targets the vault
+	_, state, err := FetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, "", vaultCfg, false, overrides)
 	if err != nil {
 		lg.WithFields(logger.Fields{
 			"error": err,
@@ -116,7 +117,9 @@ func UpdateEntityState(p *entity.Pool, vaultCfg erc4626.VaultCfg, state *erc4626
 	return nil
 }
 
-func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg erc4626.VaultCfg,
+// FetchAssetAndState fetches the vault state. vaultAddr is the entrypoint all logic getters target; tokenAddr
+// is the share ERC20 whose totalSupply is read (empty => vault, i.e. standard ERC4626).
+func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr, tokenAddr string, vaultCfg erc4626.VaultCfg,
 	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *erc4626.PoolState, error) {
 	var assetToken common.Address
 	poolState := erc4626.PoolState{
@@ -125,7 +128,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	}
 
 	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
+	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, tokenAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -139,9 +142,17 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	return assetToken, &poolState, nil
 }
 
-// addStateCalls registers all RPC reads for the given vault into addFn, writing results into assetToken and state.
-// Works with any caller — ethrpc.Request or LazyRequest — by accepting a generic add function.
-func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr string, vaultCfg erc4626.VaultCfg, fetchAsset bool, assetToken *common.Address, state *erc4626.PoolState) {
+// addStateCalls registers all RPC reads for the given vault into addFn, writing results into assetToken and
+// state. Works with any caller — ethrpc.Request or LazyRequest — by accepting a generic add function.
+// All vault-logic getters are called on vaultAddr (the vault entrypoint). totalSupply belongs to the share
+// ERC20, so it is read from tokenAddr; for a standard ERC4626 the share is the vault, and callers pass an
+// empty tokenAddr to target the vault. Decoupled integrations (e.g. erc7575) pass the share token address.
+func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string, vaultCfg erc4626.VaultCfg, fetchAsset bool, assetToken *common.Address, state *erc4626.PoolState) {
+	totalSupplyTarget := vaultAddr
+	if tokenAddr != "" {
+		totalSupplyTarget = tokenAddr
+	}
+
 	if fetchAsset {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodAsset}, []any{assetToken})
 	}
@@ -154,7 +165,7 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr string, vaultCfg e
 	}
 	if vaultCfg.Gas.Redeem > 0 {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxRedeem, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxRedeem})
-		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodTotalSupply}, []any{&state.TotalSupply})
+		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: totalSupplyTarget, Method: erc4626.Erc4626MethodTotalSupply}, []any{&state.TotalSupply})
 		for i, amt := range erc4626.PrefetchAmounts {
 			addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodPreviewRedeem, Params: []any{amt.ToBig()}}, []any{&state.RedeemRates[i]})
 		}
