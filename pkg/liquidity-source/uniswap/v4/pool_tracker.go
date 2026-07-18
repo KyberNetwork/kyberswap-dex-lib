@@ -52,7 +52,16 @@ func NewPoolTracker(
 	}
 }
 
-func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+// fetchOnchainState fetches liquidity/slot0 via RPC and constructs the hook.
+// It deliberately stops short of hook.GetReserves/Track/GetExchange: those
+// must run only once ticks are known (see resolveHookState), since
+// GetReserves' fallback (EstimateReservesFromTicks) and some hooks'
+// Track (e.g. the auto-detect hook's calibration, which sizes its probe
+// amounts off Pool.Reserves) would otherwise observe the pool's stale
+// pre-refresh reserves.
+func (t *PoolTracker) fetchOnchainState(
+	ctx context.Context, p *entity.Pool, blockNumber uint64,
+) (*FetchRPCResult, Hook, *HookParam, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       t.config.DexID,
@@ -93,17 +102,47 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	res, err := rpcRequests.Aggregate()
 	if err != nil {
-		return result, err
+		return result, hook, hookParam, err
 	}
-
-	if result.Reserves, err = hook.GetReserves(ctx, hookParam); err != nil {
-		return nil, err
-	}
-
 	hookParam.BlockNumber = res.BlockNumber
-	result.HookExtra, err = hook.Track(ctx, hookParam)
-	p.Exchange = hook.GetExchange()
-	return result, err
+	return result, hook, hookParam, nil
+}
+
+// resolveHookState finalizes hookParam.Pool.Reserves and runs hook.Track.
+//
+// Reserves are needed in two directions that can conflict: some hooks' Track
+// reads Pool.Reserves as an input (e.g. the auto-detect hook sizes its
+// calibration probes off it), so Reserves must already be current *before*
+// Track runs. Other hooks' GetReserves reads data Track just produced (e.g.
+// pancake infinity's stable hook pulls balances out of Track's HookExtra
+// output, fetched in the same RPC batch), so GetReserves must run *after*
+// Track to avoid a duplicate RPC round-trip.
+//
+// Both are satisfied with a single GetReserves call: seed Reserves with the
+// tick-based estimate (pure math, no RPC) before Track, then call
+// hook.GetReserves once afterward and let it override the estimate when the
+// hook has a more accurate source.
+func (t *PoolTracker) resolveHookState(
+	ctx context.Context, hook Hook, hookParam *HookParam, result *FetchRPCResult, ticks []Tick,
+) error {
+	reserve0, reserve1 := EstimateReservesFromTicks(result.Slot0.SqrtPriceX96, ticks)
+	hookParam.Pool.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+
+	var err error
+	if result.HookExtra, err = hook.Track(ctx, hookParam); err != nil {
+		return err
+	}
+	hookParam.Pool.Exchange = hook.GetExchange()
+
+	hookReserves, err := hook.GetReserves(ctx, hookParam)
+	if err != nil {
+		return err
+	}
+	if hookReserves != nil {
+		hookParam.Pool.Reserves = hookReserves
+	}
+	result.Reserves = hookParam.Pool.Reserves
+	return nil
 }
 
 func (t *PoolTracker) BootstrapPoolState(
@@ -127,13 +166,15 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	var (
 		rpcData   *FetchRPCResult
+		hook      Hook
+		hookParam *HookParam
 		poolTicks []ticklens.TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = t.FetchRPCData(ctx, &p, 0)
+		rpcData, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -185,12 +226,13 @@ func (t *PoolTracker) BootstrapPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	if rpcData.Reserves != nil {
-		p.Reserves = rpcData.Reserves
-	} else {
-		reserve0, reserve1 := EstimateReservesFromTicks(rpcData.Slot0.SqrtPriceX96, ticks)
-		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+	if err := t.resolveHookState(ctx, hook, hookParam, rpcData, ticks); err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to resolve hook state")
+		return entity.Pool{}, err
 	}
+	p.Reserves = rpcData.Reserves
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
@@ -741,10 +783,10 @@ func (t *PoolTracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, blockNumber)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
+			rpcState, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0)
 			if err != nil {
 				l.WithFields(logger.Fields{
 					"error": err,
@@ -763,12 +805,13 @@ func (t *PoolTracker) updateState(
 		return p, errors.New("sqrtPriceX96 is 0")
 	}
 
-	if rpcState.Reserves != nil {
-		p.Reserves = rpcState.Reserves
-	} else {
-		reserve0, reserve1 := EstimateReservesFromTicks(rpcState.Slot0.SqrtPriceX96, entityPoolTicks)
-		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+	if err := t.resolveHookState(ctx, hook, hookParam, rpcState, entityPoolTicks); err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to resolve hook state")
+		return p, err
 	}
+	p.Reserves = rpcState.Reserves
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
