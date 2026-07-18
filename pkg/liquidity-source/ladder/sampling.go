@@ -44,13 +44,21 @@ func geometricBps(n int) []int {
 // BuildSamplePoints returns a sorted, deduplicated grid of probe amounts: one
 // point per SampleBps entry scaled by reserve.
 func BuildSamplePoints(reserve *big.Int) []*big.Int {
+	return BuildSamplePointsN(reserve, SampleSize)
+}
+
+// BuildSamplePointsN returns a sorted, deduplicated grid of n probe amounts,
+// geometrically spaced between sampleBpsMin and sampleBpsMax and scaled by
+// reserve. Use a smaller n where quoting is expensive.
+func BuildSamplePointsN(reserve *big.Int, n int) []*big.Int {
 	if reserve == nil || reserve.Sign() <= 0 {
 		return nil
 	}
 
-	points := make([]*big.Int, 0, len(SampleBps))
-	for _, bps := range SampleBps {
-		pt := new(big.Int).Mul(reserve, big.NewInt(int64(bps)))
+	bps := geometricBps(n)
+	points := make([]*big.Int, 0, len(bps))
+	for _, b := range bps {
+		pt := new(big.Int).Mul(reserve, big.NewInt(int64(b)))
 		pt.Div(pt, bignumber.BasisPoint)
 		if pt.Sign() > 0 {
 			points = append(points, pt)
