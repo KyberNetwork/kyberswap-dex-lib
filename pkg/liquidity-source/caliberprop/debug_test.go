@@ -51,6 +51,15 @@ var liveChains = []liveChain{
 			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
 		},
 	},
+	{
+		name:       "robinhood",
+		rpcEnv:     "ROBINHOOD_RPC_URL",
+		rpcDefault: "https://robinhood.kyberengineering.io",
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
+		},
+	},
 }
 
 const multicallAddr = "0xcA11bde05977b3631167028862bE2a173976CA11"
