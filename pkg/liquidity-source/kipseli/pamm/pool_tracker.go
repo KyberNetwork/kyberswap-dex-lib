@@ -72,7 +72,8 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	var bal0, bal1 *big.Int
-	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+	var cap0, cap1 *big.Int
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    utilabi.Erc20ABI,
 			Target: token0Addr.Hex(),
@@ -84,8 +85,22 @@ func (t *PoolTracker) GetNewPoolState(
 			Target: token1Addr.Hex(),
 			Method: utilabi.Erc20BalanceOfMethod,
 			Params: []any{vaultAddr},
-		}, []any{&bal1}).
-		TryBlockAndAggregate()
+		}, []any{&bal1})
+	if t.cfg.PositionCapAddress != "" {
+		req.AddCall(&ethrpc.Call{
+			ABI:    positionCapABI,
+			Target: t.cfg.PositionCapAddress,
+			Method: positionCapMethod,
+			Params: []any{token0Addr},
+		}, []any{&cap0}).
+			AddCall(&ethrpc.Call{
+				ABI:    positionCapABI,
+				Target: t.cfg.PositionCapAddress,
+				Method: positionCapMethod,
+				Params: []any{token1Addr},
+			}, []any{&cap1})
+	}
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
@@ -108,6 +123,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra := Extra{
 		Samples:        filterAllSamples(samples, bal0, bal1),
+		MaxIn:          buildMaxIn([2]*big.Int{cap0, cap1}, [2]*big.Int{bal0, bal1}),
 		SO:             titanOverridesToMap(titanState.Overrides),
 		BlockTimestamp: titanState.BlockTimestamp,
 	}
@@ -254,6 +270,38 @@ func buildSamplePoints(tokenDecimals int, reserve *big.Int) []*big.Int {
 
 	sort.Slice(points, func(a, b int) bool { return points[a].Cmp(points[b]) < 0 })
 	return dedupSorted(points)
+}
+
+// buildMaxIn reports how much of each token the venue can still absorb before its
+// position reaches the published cap. The sampled quote curve does not reveal this:
+// the quote target prices any size linearly, and the venue only refuses at swap
+// time once the incoming amount would push it past the cap.
+//
+// The vault balance is used as the current position, which runs slightly behind the
+// venue's own accounting, so the room computed here errs on the low side — the safe
+// direction. A token with no cap published (zero or absent) gets no entry and keeps
+// falling back to the largest quotable sample.
+func buildMaxIn(caps, reserves [2]*big.Int) []*big.Int {
+	maxIn := make([]*big.Int, 2)
+	var capped bool
+	for dir, limit := range caps {
+		if limit == nil || limit.Sign() <= 0 {
+			continue
+		}
+		room := new(big.Int).Set(limit)
+		if r := reserves[dir]; r != nil {
+			room.Sub(room, r)
+		}
+		if room.Sign() < 0 {
+			room.SetInt64(0)
+		}
+		maxIn[dir] = room
+		capped = true
+	}
+	if !capped {
+		return nil
+	}
+	return maxIn
 }
 
 func filterAllSamples(samples [][][2]*big.Int, bal0, bal1 *big.Int) [][][2]*big.Int {

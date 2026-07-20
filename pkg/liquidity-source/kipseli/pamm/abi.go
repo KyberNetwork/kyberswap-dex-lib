@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	lensABI       abi.ABI
-	routerABI     abi.ABI
-	multicall3ABI abi.ABI
+	lensABI        abi.ABI
+	routerABI      abi.ABI
+	positionCapABI abi.ABI
+	multicall3ABI  abi.ABI
 )
 
 const multicall3ABIJSON = `[{
@@ -39,6 +40,7 @@ func init() {
 	}{
 		{&lensABI, lensABIData},
 		{&routerABI, routerABIData},
+		{&positionCapABI, positionCapABIData},
 	} {
 		parsed, err := abi.JSON(bytes.NewReader(b.data))
 		if err != nil {

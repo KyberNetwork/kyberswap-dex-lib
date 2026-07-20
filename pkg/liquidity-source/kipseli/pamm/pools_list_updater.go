@@ -34,6 +34,7 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	log := logger.WithFields(logger.Fields{"dexId": u.cfg.DexID})
+	log.Info("start get new pools")
 
 	metadata, err := u.getMetadata(metadataBytes)
 	if err != nil {
@@ -89,6 +90,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		log.Warnf("newMetadata failed: %v", err)
 		return pools, metadataBytes, nil
 	}
+
+	log.Infof("finish get %d new pools", len(pools))
+
 	return pools, newMetadata, nil
 }
 
