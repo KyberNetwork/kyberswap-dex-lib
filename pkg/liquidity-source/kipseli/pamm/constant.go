@@ -17,6 +17,9 @@ const (
 	priorityUpdateFreshnessTTL = 30 * time.Second
 
 	priorityUpdateLaneIndex = 0
+
+	// positionCapMethod reads the venue's maximum position for a token.
+	positionCapMethod = "caps"
 )
 
 // maxInSampleBps: fractions of vault reserve to probe for tighter interpolation near capacity.
