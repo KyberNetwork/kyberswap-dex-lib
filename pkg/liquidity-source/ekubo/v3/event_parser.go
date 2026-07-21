@@ -69,7 +69,10 @@ func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
 	}
 	values, err := abis.VoteWeightAppliedEvent.Inputs.Unpack(log.Data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"decoding VoteWeightApplied event data of length %d: %w",
+			len(log.Data), err,
+		)
 	}
 	poolID, ok := values[2].([32]byte)
 	if !ok {

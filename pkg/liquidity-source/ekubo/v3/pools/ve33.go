@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
@@ -19,7 +20,8 @@ type (
 
 	Ve33Pool struct {
 		Pool
-		swapFee uint64
+		extension common.Address
+		swapFee   uint64
 	}
 )
 
@@ -66,7 +68,7 @@ func (p *Ve33Pool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		return nil, err
 	}
 
-	quote.SwapInfo.Forward = ptr(p.GetKey().Extension())
+	quote.SwapInfo.Forward = &p.extension
 	quote.Gas += quoting.ExtraBaseGasCostOfOneVe33Swap
 
 	if p.swapFee == 0 || quote.CalculatedAmount.IsZero() {
@@ -102,7 +104,11 @@ func NewVe33PoolState[S any](underlyingPoolState S, swapFee uint64) *Ve33PoolSta
 }
 
 func NewVe33Pool(underlyingPool Pool, swapFee uint64) *Ve33Pool {
-	return &Ve33Pool{Pool: underlyingPool, swapFee: swapFee}
+	return &Ve33Pool{
+		Pool:      underlyingPool,
+		extension: underlyingPool.GetKey().Extension(),
+		swapFee:   swapFee,
+	}
 }
 
 func parseVoteWeightAppliedEventIfMatching(data []byte, poolKey IPoolKey) (uint64, bool, error) {
@@ -119,8 +125,4 @@ func parseVoteWeightAppliedEventIfMatching(data []byte, poolKey IPoolKey) (uint6
 	}
 
 	return binary.BigEndian.Uint64(data[184:192]), true, nil
-}
-
-func ptr[T any](v T) *T {
-	return &v
 }

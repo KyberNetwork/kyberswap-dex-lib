@@ -39,11 +39,16 @@ func TestVe33PoolExactInputTakesFeeFromOutput(t *testing.T) {
 	t.Parallel()
 
 	pool := newVe33FullRangePool(t, onePercentVe33Fee)
-	quote, err := pool.Quote(uint256.NewInt(1_000), false)
+	amount := uint256.NewInt(1_000)
+	quote, err := pool.Quote(amount, false)
 	require.NoError(t, err)
 
 	require.Equal(t, "989", quote.CalculatedAmount.String())
 	require.Equal(t, pool.GetKey().Extension(), *quote.SwapInfo.Forward)
+	firstForward := quote.SwapInfo.Forward
+	quote, err = pool.Quote(amount, false)
+	require.NoError(t, err)
+	require.Same(t, firstForward, quote.SwapInfo.Forward)
 }
 
 func TestVe33PoolExactOutputGrossesUpInput(t *testing.T) {
