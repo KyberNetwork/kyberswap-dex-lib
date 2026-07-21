@@ -23,7 +23,7 @@ const (
 	quoteDataFetcherMethod              = "getQuoteData"
 	twammDataFetcherMethod              = "getPoolState"
 	boostedFeesDataFetcherMethod        = "getPoolState"
-	ve33DataFetcherMethod               = "getPoolSwapFees"
+	ve33DataFetcherMethod               = "getVe33QuoteData"
 )
 
 type (
@@ -66,6 +66,11 @@ type (
 		DonateRateToken0 *big.Int                    `json:"donateRateToken0"`
 		DonateRateToken1 *big.Int                    `json:"donateRateToken1"`
 		DonateRateDeltas []boostedTimeDonateRateInfo `json:"donateRateDeltas"`
+	}
+
+	ve33QuoteData struct {
+		QuoteData quoteData `json:"quoteData"`
+		SwapFee   uint64    `json:"swapFee"`
 	}
 
 	dataFetchers struct {
@@ -203,36 +208,18 @@ func (f *dataFetchers) fetchPools(
 			req.SetOverrides(overrides)
 		}
 
-		batchQuoteData := make([]quoteData, len(poolKeyBatch))
-		batchSwapFees := make([]uint64, len(poolKeyBatch))
-		poolIDs := make([]common.Hash, len(poolKeyBatch))
-		for i, poolKey := range poolKeyBatch {
-			poolID, err := poolKey.NumId()
-			if err != nil {
-				return nil, fmt.Errorf("computing Ve33 pool id: %w", err)
-			}
-			poolIDs[i] = common.BytesToHash(poolID)
-		}
-
-		req.AddCall(&ethrpc.Call{
-			ABI:    abis.QuoteDataFetcherABI,
-			Target: f.config.QuoteDataFetcher,
-			Method: quoteDataFetcherMethod,
+		batchQuoteData := make([]ve33QuoteData, len(poolKeyBatch))
+		resp, err := req.AddCall(&ethrpc.Call{
+			ABI:    abis.Ve33DataFetcherABI,
+			Target: f.config.Ve33DataFetcher,
+			Method: ve33DataFetcherMethod,
 			Params: []any{
 				lo.Map(poolKeyBatch, func(poolKey pools.AnyPoolKey, _ int) pools.AbiPoolKey {
 					return poolKey.ToAbi()
 				}),
 				minTickSpacingsPerPool,
 			},
-		}, []any{&batchQuoteData})
-		req.AddCall(&ethrpc.Call{
-			ABI:    abis.Ve33DataFetcherABI,
-			Target: f.config.Ve33DataFetcher,
-			Method: ve33DataFetcherMethod,
-			Params: []any{poolIDs},
-		}, []any{&batchSwapFees})
-
-		resp, err := req.Aggregate()
+		}, []any{&batchQuoteData}).Aggregate()
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve quote data for Ve33 pools: %w", err)
 		}
@@ -243,14 +230,15 @@ func (f *dataFetchers) fetchPools(
 		}
 
 		for i, poolKey := range poolKeyBatch {
+			data := &batchQuoteData[i]
 			var underlying pools.Pool
 			switch config := poolKey.Config.TypeConfig.(type) {
 			case pools.FullRangePoolTypeConfig:
-				underlying = pools.NewFullRangePool(poolKey.ToFullRange(config), newFullRangePoolState(&batchQuoteData[i]))
+				underlying = pools.NewFullRangePool(poolKey.ToFullRange(config), newFullRangePoolState(&data.QuoteData))
 			case pools.StableswapPoolTypeConfig:
-				underlying = pools.NewStableswapPool(poolKey.ToStableswap(config), newStableswapPoolState(&batchQuoteData[i]))
+				underlying = pools.NewStableswapPool(poolKey.ToStableswap(config), newStableswapPoolState(&data.QuoteData))
 			case pools.ConcentratedPoolTypeConfig:
-				underlying = pools.NewConcentratedPool(poolKey.ToConcentrated(config), newConcentratedPoolState(&batchQuoteData[i]))
+				underlying = pools.NewConcentratedPool(poolKey.ToConcentrated(config), newConcentratedPoolState(&data.QuoteData))
 			default:
 				logger.Errorf("unexpected pool type config %T for Ve33 pool", config)
 				continue
@@ -258,7 +246,7 @@ func (f *dataFetchers) fetchPools(
 
 			fetchedPools = append(fetchedPools, fetchedPool{
 				PoolWithBlockNumber: PoolWithBlockNumber{
-					Pool:        pools.NewVe33Pool(underlying, batchSwapFees[i]),
+					Pool:        pools.NewVe33Pool(underlying, data.SwapFee),
 					blockNumber: blockNumber,
 				},
 				key: poolKey,

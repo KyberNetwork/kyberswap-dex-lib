@@ -67,11 +67,16 @@ func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 || log.Topics[0] != abis.VoteWeightAppliedEvent.ID {
 		return nil, nil
 	}
-	if len(log.Data) < 96 {
-		return nil, fmt.Errorf("invalid data length for VoteWeightApplied event")
+	values, err := abis.VoteWeightAppliedEvent.Inputs.Unpack(log.Data)
+	if err != nil {
+		return nil, err
+	}
+	poolID, ok := values[2].([32]byte)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse poolId from VoteWeightApplied event data")
 	}
 
-	return []string{"0x" + common.Bytes2Hex(log.Data[64:96])}, nil
+	return []string{"0x" + common.Bytes2Hex(poolID[:])}, nil
 }
 
 func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {
