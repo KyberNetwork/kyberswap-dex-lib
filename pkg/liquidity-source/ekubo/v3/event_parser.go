@@ -127,8 +127,8 @@ func (e *EventParser) handleTwammLog(log types.Log, twamm common.Address) ([]str
 // mirroring BoostedFeesPool.ApplyEvent's own parsing in pools/boosted_fees.go.
 func (e *EventParser) handleBoostedFeesLog(log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 {
-		if len(log.Data) < 32 {
-			return nil, fmt.Errorf("invalid data length for FeesDonated event")
+		if len(log.Data) < 60 {
+			return nil, fmt.Errorf("invalid data length for FeesDonated event: %d", len(log.Data))
 		}
 
 		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
