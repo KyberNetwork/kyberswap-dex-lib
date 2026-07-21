@@ -7,6 +7,7 @@ const (
 	ExtensionTypeTwamm
 	ExtensionTypeMevCapture
 	ExtensionTypeBoostedFeesConcentrated
+	ExtensionTypeVe33
 )
 
 type ExtensionType int

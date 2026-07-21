@@ -14,11 +14,14 @@ var (
 	MevCaptureRouterABI       abi.ABI
 	BoostedFeesABI            abi.ABI
 	BoostedFeesDataFetcherABI abi.ABI
+	Ve33ABI                   abi.ABI
+	Ve33DataFetcherABI        abi.ABI
 
-	OrderUpdatedEvent    abi.Event
-	PositionUpdatedEvent abi.Event
-	PoolBoostedEvent     abi.Event
-	PoolInitializedEvent abi.Event
+	OrderUpdatedEvent      abi.Event
+	PositionUpdatedEvent   abi.Event
+	PoolBoostedEvent       abi.Event
+	PoolInitializedEvent   abi.Event
+	VoteWeightAppliedEvent abi.Event
 )
 
 func init() {
@@ -33,6 +36,8 @@ func init() {
 		{&MevCaptureRouterABI, mevCaptureRouterJson},
 		{&BoostedFeesABI, boostedFeesJson},
 		{&BoostedFeesDataFetcherABI, boostedFeesDataFetcherJson},
+		{&Ve33ABI, ve33Json},
+		{&Ve33DataFetcherABI, ve33DataFetcherJson},
 	}
 
 	for _, b := range builder {
@@ -47,4 +52,5 @@ func init() {
 	OrderUpdatedEvent = TwammABI.Events["OrderUpdated"]
 	PoolBoostedEvent = BoostedFeesABI.Events["PoolBoosted"]
 	PoolInitializedEvent = CoreABI.Events["PoolInitialized"]
+	VoteWeightAppliedEvent = Ve33ABI.Events["VoteWeightApplied"]
 }

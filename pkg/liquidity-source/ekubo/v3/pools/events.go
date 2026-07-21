@@ -21,6 +21,7 @@ const (
 	EventOrderUpdated
 	EventFeesDonated
 	EventPoolBoosted
+	EventVoteWeightApplied
 )
 
 type (

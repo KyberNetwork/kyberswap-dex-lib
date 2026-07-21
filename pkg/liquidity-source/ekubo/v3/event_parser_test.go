@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
@@ -119,4 +120,23 @@ func TestEventParserDecodeBoostedFees(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, logByAddress[expectedPoolAddress])
+}
+
+func TestEventParserDecodeVoteWeightApplied(t *testing.T) {
+	t.Parallel()
+
+	ve33 := common.HexToAddress("0xd100000000000000000000000000000000000000")
+	parser := &EventParser{config: &Config{Ve33: ve33}}
+	poolID := common.HexToHash("0x1234")
+	data := make([]byte, 192)
+	copy(data[64:96], poolID[:])
+
+	poolAddresses, err := parser.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{
+		Address: ve33,
+		Topics:  []common.Hash{abis.VoteWeightAppliedEvent.ID},
+		Data:    data,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, []string{poolID.Hex()}, poolAddresses)
 }

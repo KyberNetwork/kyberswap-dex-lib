@@ -34,4 +34,7 @@ const (
 	GasCostOfExecutingVirtualDonations     = 6_814
 	GasCostOfCrossingOneVirtualDonateDelta = 4_271
 	GasCostOfBoostedFeesFeeAccumulation    = 19_279
+
+	// Ve33
+	ExtraBaseGasCostOfOneVe33Swap = 30_000
 )

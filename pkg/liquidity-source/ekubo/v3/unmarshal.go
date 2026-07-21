@@ -53,23 +53,37 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, err
 				poolKey,
 				twammState,
 			)
+		case ExtensionTypeVe33:
+			state, err := unmarshalExtra[pools.Ve33PoolState[*pools.FullRangePoolState]](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing Ve33 full range pool state: %w", err)
+			}
+
+			pool = pools.NewVe33Pool(
+				pools.NewFullRangePool(poolKey, state.UnderlyingPoolState),
+				state.SwapFee,
+			)
 		default:
 			return nil, fmt.Errorf("unknown extension type %v for full range pool", staticExtra.ExtensionType)
 		}
 	case pools.StableswapPoolTypeConfig:
-		if staticExtra.ExtensionType != ExtensionTypeNoSwapCallPoints {
+		poolKey := staticExtra.PoolKey.ToStableswap(config)
+		switch staticExtra.ExtensionType {
+		case ExtensionTypeNoSwapCallPoints:
+			stableswapState, err := unmarshalExtra[pools.StableswapPoolState](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing stableswap pool state: %w", err)
+			}
+			pool = pools.NewStableswapPool(poolKey, stableswapState)
+		case ExtensionTypeVe33:
+			state, err := unmarshalExtra[pools.Ve33PoolState[*pools.StableswapPoolState]](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing Ve33 stableswap pool state: %w", err)
+			}
+			pool = pools.NewVe33Pool(pools.NewStableswapPool(poolKey, state.UnderlyingPoolState), state.SwapFee)
+		default:
 			return nil, fmt.Errorf("unknown extension type %v for stableswap pool", staticExtra.ExtensionType)
 		}
-
-		stableswapState, err := unmarshalExtra[pools.StableswapPoolState](extraBytes)
-		if err != nil {
-			return nil, fmt.Errorf("parsing stableswap pool state: %w", err)
-		}
-
-		pool = pools.NewStableswapPool(
-			staticExtra.PoolKey.ToStableswap(config),
-			stableswapState,
-		)
 	case pools.ConcentratedPoolTypeConfig:
 		poolKey := staticExtra.PoolKey.ToConcentrated(config)
 
@@ -101,6 +115,16 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, err
 			}
 
 			pool = pools.NewBoostedFeesPool(poolKey, state)
+		case ExtensionTypeVe33:
+			state, err := unmarshalExtra[pools.Ve33PoolState[*pools.ConcentratedPoolState]](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing Ve33 concentrated pool state: %w", err)
+			}
+
+			pool = pools.NewVe33Pool(
+				pools.NewConcentratedPool(poolKey, state.UnderlyingPoolState),
+				state.SwapFee,
+			)
 		default:
 			return nil, fmt.Errorf("unknown extension type %v for concentrated pool", staticExtra.ExtensionType)
 		}

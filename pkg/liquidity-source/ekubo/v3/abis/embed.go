@@ -23,4 +23,10 @@ var (
 
 	//go:embed BoostedFeesDataFetcher.json
 	boostedFeesDataFetcherJson []byte
+
+	//go:embed Ve33.json
+	ve33Json []byte
+
+	//go:embed Ve33DataFetcher.json
+	ve33DataFetcherJson []byte
 )

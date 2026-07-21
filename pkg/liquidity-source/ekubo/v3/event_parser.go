@@ -56,9 +56,22 @@ func (e *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log t
 		return e.handleTwammLog(log, log.Address)
 	case e.config.BoostedFeesConcentrated:
 		return e.handleBoostedFeesLog(log)
+	case e.config.Ve33:
+		return e.handleVe33Log(log)
 	default:
 		return nil, nil
 	}
+}
+
+func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
+	if len(log.Topics) == 0 || log.Topics[0] != abis.VoteWeightAppliedEvent.ID {
+		return nil, nil
+	}
+	if len(log.Data) < 96 {
+		return nil, fmt.Errorf("invalid data length for VoteWeightApplied event")
+	}
+
+	return []string{"0x" + common.Bytes2Hex(log.Data[64:96])}, nil
 }
 
 func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {

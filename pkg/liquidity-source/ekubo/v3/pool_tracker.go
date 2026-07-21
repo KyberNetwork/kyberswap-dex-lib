@@ -168,6 +168,12 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
+		case d.config.Ve33:
+			if len(log.Topics) > 0 && log.Topics[0] == abis.VoteWeightAppliedEvent.ID {
+				event = pools.EventVoteWeightApplied
+			} else {
+				continue
+			}
 		default:
 			continue
 		}
