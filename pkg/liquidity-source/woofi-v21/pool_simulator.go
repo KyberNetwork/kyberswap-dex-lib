@@ -193,10 +193,10 @@ func (s *PoolSimulator) _sellQuote(
 		return nil, nil, nil, err
 	}
 
-	safetyBaseAmount, _ := quoteAmount.MulDivOverflow(baseAmount, safetyBufferPercent, u256.U100)
+	bufferedBaseReserve, _ := quoteAmount.MulDivOverflow(s.tokenInfos[baseToken].Reserve, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[baseToken].reserve = uint192(tokenInfos[baseToken].reserve - baseAmount);
-	if s.tokenInfos[baseToken].Reserve.Lt(safetyBaseAmount) {
+	if bufferedBaseReserve.Lt(baseAmount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -231,11 +231,11 @@ func (s *PoolSimulator) _sellBase(
 
 	quoteAmount.Sub(quoteAmount, swapFee)
 
-	safetyQuoteAmount := baseAmount.Add(quoteAmount, swapFee)
-	safetyQuoteAmount.MulDivOverflow(safetyQuoteAmount, safetyBufferPercent, u256.U100)
+	requiredQuoteAmount := baseAmount.Add(quoteAmount, swapFee)
+	bufferedQuoteReserve, _ := new(uint256.Int).MulDivOverflow(s.tokenInfos[s.quoteToken].Reserve, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Lt(safetyQuoteAmount) {
+	if bufferedQuoteReserve.Lt(requiredQuoteAmount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -279,10 +279,10 @@ func (s *PoolSimulator) _swapBaseToBase(
 
 	quoteAmount.Sub(quoteAmount, swapFee)
 
-	safetySwapFee, _ := base1Amount.MulDivOverflow(swapFee, safetyBufferPercent, u256.U100)
+	bufferedQuoteReserve, _ := base1Amount.MulDivOverflow(s.tokenInfos[s.quoteToken].Reserve, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Lt(safetySwapFee) {
+	if bufferedQuoteReserve.Lt(swapFee) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -291,10 +291,10 @@ func (s *PoolSimulator) _swapBaseToBase(
 		return nil, nil, nil, err
 	}
 
-	safetyBase2Amount, _ := base1Amount.MulDivOverflow(base2Amount, safetyBufferPercent, u256.U100)
+	bufferedBase2Reserve, _ := base1Amount.MulDivOverflow(s.tokenInfos[baseToken2].Reserve, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[baseToken2].reserve = uint192(tokenInfos[baseToken2].reserve - base2Amount);
-	if s.tokenInfos[baseToken2].Reserve.Lt(safetyBase2Amount) {
+	if bufferedBase2Reserve.Lt(base2Amount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
