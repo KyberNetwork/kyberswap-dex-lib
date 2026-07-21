@@ -54,6 +54,8 @@ func (e *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log t
 		return e.handleCoreLog(log)
 	case e.config.Twamm.V1.Address, e.config.Twamm.V2.Address:
 		return e.handleTwammLog(log, log.Address)
+	case e.config.BoostedFeesConcentrated:
+		return e.handleBoostedFeesLog(log)
 	default:
 		return nil, nil
 	}
@@ -115,6 +117,29 @@ func (e *EventParser) handleTwammLog(log types.Log, twamm common.Address) ([]str
 		}
 
 		return []string{poolAddress}, nil
+	}
+
+	return nil, nil
+}
+
+// handleBoostedFeesLog decodes FeesDonated (anonymous) and PoolBoosted events from the
+// BoostedFeesConcentrated contract. Both events encode the poolId as their first 32 bytes,
+// mirroring BoostedFeesPool.ApplyEvent's own parsing in pools/boosted_fees.go.
+func (e *EventParser) handleBoostedFeesLog(log types.Log) ([]string, error) {
+	if len(log.Topics) == 0 {
+		if len(log.Data) < 32 {
+			return nil, fmt.Errorf("invalid data length for FeesDonated event")
+		}
+
+		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
+	}
+
+	if log.Topics[0] == abis.PoolBoostedEvent.ID {
+		if len(log.Data) < 32 {
+			return nil, fmt.Errorf("invalid data length for PoolBoosted event")
+		}
+
+		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
 	}
 
 	return nil, nil
