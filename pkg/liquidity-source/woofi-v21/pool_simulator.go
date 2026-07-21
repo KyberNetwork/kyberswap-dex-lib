@@ -232,7 +232,8 @@ func (s *PoolSimulator) _sellBase(
 	quoteAmount.Sub(quoteAmount, swapFee)
 
 	requiredQuoteAmount := baseAmount.Add(quoteAmount, swapFee)
-	bufferedQuoteReserve, _ := new(uint256.Int).MulDivOverflow(s.tokenInfos[s.quoteToken].Reserve, safetyBufferPercent, u256.U100)
+	var bufferedQuoteReserve uint256.Int
+	bufferedQuoteReserve.MulDivOverflow(s.tokenInfos[s.quoteToken].Reserve, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
 	if bufferedQuoteReserve.Lt(requiredQuoteAmount) {
