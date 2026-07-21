@@ -2,6 +2,8 @@ package uniswapv3
 
 import (
 	"math/big"
+	"slices"
+	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
@@ -22,6 +24,8 @@ type PoolSimulator struct {
 	sqrtPriceLimitMin uint256.Int // GetSqrtRatioAtTick(tickMin) + 1 for zeroForOne swaps
 	sqrtPriceLimitMax uint256.Int // GetSqrtRatioAtTick(tickMax) - 1 for oneForZero swaps
 	allowEmptyTicks   bool
+
+	buyRestrictedToken string // pons-fun
 }
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
@@ -113,11 +117,12 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 			Tokens:   tokens,
 			Reserves: reserves,
 		}},
-		V3Pool:          v3Pool,
-		Gas:             defaultGas,
-		tickMin:         tickMin,
-		tickMax:         tickMax,
-		allowEmptyTicks: cfg.AllowEmptyTicks,
+		V3Pool:             v3Pool,
+		Gas:                defaultGas,
+		tickMin:            tickMin,
+		tickMax:            tickMax,
+		allowEmptyTicks:    cfg.AllowEmptyTicks,
+		buyRestrictedToken: extra.BuyRestrictedToken,
 	}
 	if err := GetSqrtRatioAtTick(tickMin, &sim.sqrtPriceLimitMin); err != nil {
 		return nil, err
@@ -153,6 +158,8 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
 		return nil, ErrInvalidToken
+	} else if p.isBuyRestricted(tokenOut) {
+		return nil, ErrBuyRestricted
 	} else if tokenAmountOut.Amount.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	}
@@ -202,6 +209,8 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
 		return nil, ErrInvalidToken
+	} else if p.isBuyRestricted(tokenOut) {
+		return nil, ErrBuyRestricted
 	}
 
 	var amountIn uint256.Int
@@ -272,4 +281,17 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 		SwapFee:    uint32(p.Info.SwapFee.Int64()),
 		PriceLimit: p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0]),
 	}
+}
+
+func (p *PoolSimulator) isBuyRestricted(tokenOut string) bool {
+	return p.buyRestrictedToken != "" && strings.EqualFold(tokenOut, p.buyRestrictedToken)
+}
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	out := p.Pool.CanSwapTo(address)
+	if p.buyRestrictedToken == "" {
+		return out
+	}
+
+	return slices.DeleteFunc(out, p.isBuyRestricted)
 }

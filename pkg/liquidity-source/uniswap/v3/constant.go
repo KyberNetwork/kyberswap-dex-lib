@@ -35,4 +35,5 @@ var (
 	ErrInvalidToken        = errors.New("invalid token")
 	ErrZeroAmount          = errors.New("zero amount")
 	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrBuyRestricted       = errors.New("token buy restricted")
 )
