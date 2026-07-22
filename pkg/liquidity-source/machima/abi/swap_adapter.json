@@ -1,0 +1,9 @@
+[
+  {
+    "inputs": [],
+    "name": "xmaSellSqrtPriceLimit",
+    "outputs": [{"internalType": "uint160", "name": "", "type": "uint160"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

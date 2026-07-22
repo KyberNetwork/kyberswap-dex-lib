@@ -1,0 +1,25 @@
+[
+  {
+    "inputs": [{"internalType": "address", "name": "token", "type": "address"}],
+    "name": "getTokenTax",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "uint16", "name": "buyTaxBps", "type": "uint16"},
+          {"internalType": "uint16", "name": "sellTaxBps", "type": "uint16"},
+          {"internalType": "address", "name": "tradingTaxHandler", "type": "address"},
+          {"internalType": "address", "name": "protocolTaxHandler", "type": "address"},
+          {"internalType": "uint16", "name": "protocolTaxBpsWeth", "type": "uint16"},
+          {"internalType": "uint16", "name": "protocolTaxBpsUsdc", "type": "uint16"},
+          {"internalType": "uint16", "name": "protocolTaxBpsXma", "type": "uint16"},
+          {"internalType": "bool", "name": "hasTax", "type": "bool"}
+        ],
+        "internalType": "struct IClankNow.TaxConfig",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

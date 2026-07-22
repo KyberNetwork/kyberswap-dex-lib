@@ -161,6 +161,7 @@ const (
 	ExchangeLunarBase                  = "lunarbase"
 	ExchangeMakerLido                  = "lido"
 	ExchangeMakerLidoStETH             = "lido-steth"
+	ExchangeMachima                    = "machima"
 	ExchangeMakerPSM                   = "maker-psm"
 	ExchangeMakerSavingsDai            = "maker-savingsdai"
 	ExchangeMantisSwap                 = "mantisswap"
