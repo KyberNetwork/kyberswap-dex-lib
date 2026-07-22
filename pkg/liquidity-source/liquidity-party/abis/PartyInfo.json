@@ -1,0 +1,71 @@
+[
+  {
+    "type": "function",
+    "name": "working",
+    "stateMutability": "view",
+    "inputs": [{ "name": "pool", "type": "address" }],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "function",
+    "name": "fetchPoolState",
+    "stateMutability": "view",
+    "inputs": [{ "name": "pool", "type": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IPartyInfo.PoolStateSnapshot",
+        "components": [
+          { "name": "kappa", "type": "int128" },
+          { "name": "effectiveSigmaQ", "type": "int128" },
+          { "name": "qInternal", "type": "int128[]" },
+          { "name": "bases", "type": "uint256[]" },
+          { "name": "feesPpm", "type": "uint256[]" },
+          { "name": "cachedBalances", "type": "uint256[]" },
+          { "name": "lpSupply", "type": "uint256" },
+          { "name": "sigmaSwap", "type": "int128" },
+          { "name": "sigmaSwapLastUpdateBlock", "type": "uint64" },
+          { "name": "prevBlockEndSigmaQ", "type": "int128" },
+          { "name": "gammaAccum", "type": "int128" },
+          { "name": "gammaAccumLastBlock", "type": "uint64" },
+          { "name": "maxGammaPerWindowPpm", "type": "uint32" },
+          { "name": "mintDeviationPpm", "type": "uint32" },
+          { "name": "emaShiftBlocks", "type": "uint8" },
+          { "name": "currentBlock", "type": "uint256" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "swapAmounts",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "pool", "type": "address" },
+      { "name": "inputTokenIndex", "type": "uint256" },
+      { "name": "outputTokenIndex", "type": "uint256" },
+      { "name": "maxAmountIn", "type": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "amountOut", "type": "uint256" },
+      { "name": "outFee", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "swapAmountsForExactOutput",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "pool", "type": "address" },
+      { "name": "inputTokenIndex", "type": "uint256" },
+      { "name": "outputTokenIndex", "type": "uint256" },
+      { "name": "amountOut", "type": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "outFee", "type": "uint256" }
+    ]
+  }
+]
