@@ -19,7 +19,7 @@ type Gas struct {
 type SwapInfo struct {
 	RemainingAmountIn     *uint256.Int `json:"rAI,omitempty"`
 	NextStateSqrtRatioX96 *uint256.Int `json:"nSqrtRx96"`
-	NextStateLiquidity    *uint256.Int `json:"-"`
+	NextStateLiquidity    uint256.Int  `json:"-"`
 	NextStateTickCurrent  int          `json:"nT"`
 }
 
