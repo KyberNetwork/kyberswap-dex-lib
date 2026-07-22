@@ -70,12 +70,14 @@ func TestQuoteAmountOut_LiquidcoreOverquote(t *testing.T) {
 }
 
 // liquidcoreUSDCkHYPELadder2 is a second, independent atomic capture (same
-// pool, a later block) whose knee happens to expose a real overquote: PCHIP's
-// never-overquote floor and the capacity-space blend are each proven safe
-// under their own specific conditions (see spline.go/capacity.go docs), but
-// neither guarantees safety everywhere, and this ladder's knee falls outside
-// both -- confirmed the same way as liquidcoreUSDCkHYPELadder, with the
-// ladder points and test amounts all probed in one estimateSwapBatch call.
+// pool, a later block) whose knee exposed a real overquote under this
+// package's previous PCHIP-based spline (its never-overquote floor and
+// capacity-space blend were each proven safe only under their own specific
+// conditions, and this ladder's knee fell outside both). The current
+// Spline (a clamped rational quadratic Bezier per segment, see spline.go)
+// quotes safely here -- confirmed the same way as liquidcoreUSDCkHYPELadder,
+// with the ladder points and test amounts all probed in one
+// estimateSwapBatch call.
 var liquidcoreUSDCkHYPELadder2 = []Point{
 	{44635176, 749780179858591812},
 	{71416282, 1199648294492933399},
@@ -95,12 +97,10 @@ var liquidcoreUSDCkHYPELadder2 = []Point{
 	{44188824564, 259905076443769693639},
 }
 
-// TestQuoteAmountOut_LiquidcoreOverquote2 documents a real, currently-open
-// overquote on liquidcoreUSDCkHYPELadder2's knee: at 15e9, PCHIP (this
-// package's current amountOutTangents/capacityTangents combination) quotes
-// ~0.6% above the atomically-verified ground truth. Plain linear
-// interpolation does not overquote here (see the pkg-level investigation
-// notes); this test is expected to fail until that's addressed.
+// TestQuoteAmountOut_LiquidcoreOverquote2 documents a real overquote this
+// package's previous PCHIP-based spline had on liquidcoreUSDCkHYPELadder2's
+// knee (at 15e9, PCHIP quoted ~0.6% above the atomically-verified ground
+// truth). The current Spline (see spline.go) doesn't overquote here.
 func TestQuoteAmountOut_LiquidcoreOverquote2(t *testing.T) {
 	t.Parallel()
 
@@ -130,11 +130,10 @@ func TestQuoteAmountOut_LiquidcoreOverquote2(t *testing.T) {
 	}
 }
 
-// TestQuoteAmountOutLiquidcore_Monotonic guards the capacity-space blend
-// specifically: it only activates near the reserve cap, right where the
-// blend weight is transitioning fastest, so this is the fixture most likely
-// to expose a dip that the generic toy fixture in TestSpline_Monotonic
-// wouldn't catch.
+// TestQuoteAmountOutLiquidcore_Monotonic guards the segments right at the
+// reserve cap specifically, where the flat plateau meets the last curved
+// segment -- this is the fixture most likely to expose a dip that the
+// generic toy fixture in TestSpline_Monotonic wouldn't catch.
 func TestQuoteAmountOutLiquidcore_Monotonic(t *testing.T) {
 	t.Parallel()
 

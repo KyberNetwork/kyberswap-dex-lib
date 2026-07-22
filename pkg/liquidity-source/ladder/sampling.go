@@ -8,7 +8,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// SampleSize is the number of reserve-fraction probe points in SampleBps.
+// SampleSize is the default number of reserve-fraction probe points built by
+// BuildSamplePoints / BuildSamplePointsFrom.
 const SampleSize = 16
 
 // sampleBpsMin/Max bound the reserve-fraction probe grid. 9900bps is as
@@ -18,37 +19,6 @@ const (
 	sampleBpsMin = 10
 	sampleBpsMax = 9900
 )
-
-// SampleBps is a geometric sequence of SampleSize reserve-fraction levels
-// from sampleBpsMin to sampleBpsMax. Geometric (constant-ratio) spacing keeps
-// every gap the same relative size, unlike a hand-picked list where an
-// arbitrary large gap can sit exactly under a real trade size and blow up
-// the interpolation error (see Spline).
-//
-// This is used for a pool's first probe (BuildSamplePoints), where there's
-// no previous ladder yet to say where the pool's real depletion knee sits --
-// plain, symmetric-in-log-space spacing makes no assumption about which end
-// of the range that knee will fall near. Once a previous cycle's ladder is
-// available, EstimateNearCapacityAmount / BuildSamplePointsFrom re-anchor
-// the range at the pool's actual depletion point and switch to DgeoBps,
-// which concentrates far more points right at that reserve cap.
-var SampleBps = geometricBpsRange(sampleBpsMin, sampleBpsMax, SampleSize)
-
-// DgeoBps is a double-geometric ("dgeo") sequence of reserve-fraction levels
-// from sampleBpsMin to sampleBpsMax: a geometric progression from
-// sampleBpsMin up to the midpoint (sampleBpsMin+sampleBpsMax)/2, mirrored
-// around that midpoint for the top half.
-//
-// Used by BuildSamplePointsFrom, once EstimateNearCapacityAmount has
-// re-anchored sampleBpsMax at the pool's actual depletion point rather than
-// its raw reserve: a single geometric progression spends half its points on
-// the bottom half of the range even though, once re-anchored this way, the
-// real knee is almost always right at the top -- mirroring the bottom
-// half's spacing onto the top half concentrates far more points there
-// instead. (On a pool's first probe, before any re-anchoring, the
-// re-anchor point doesn't exist yet, so BuildSamplePoints uses plain
-// SampleBps instead -- see its doc.)
-var DgeoBps = dgeoBps(SampleSize)
 
 func dgeoBps(n int) []int {
 	if n < 4 {
@@ -116,15 +86,27 @@ func geometricBpsRange(lo, hi, n int) []int {
 	return bps
 }
 
-// BuildSamplePoints returns a sorted, deduplicated grid of probe amounts: one
-// point per SampleBps entry scaled by reserve.
+// BuildSamplePoints returns a sorted, deduplicated grid of SampleSize probe
+// amounts, geometrically spaced between sampleBpsMin and sampleBpsMax and
+// scaled by reserve. Geometric (constant-ratio) spacing keeps every gap the
+// same relative size, unlike a hand-picked list where an arbitrary large gap
+// can sit exactly under a real trade size and blow up the interpolation
+// error (see Spline).
+//
+// This is used for a pool's first probe, where there's no previous ladder
+// yet to say where the pool's real depletion knee sits -- plain,
+// symmetric-in-log-space spacing makes no assumption about which end of the
+// range that knee will fall near. Once a previous cycle's ladder is
+// available, EstimateNearCapacityAmount / BuildSamplePointsFrom re-anchor
+// the range at the pool's actual depletion point and switch to the
+// dgeo-spaced grid, which concentrates far more points right at that
+// reserve cap.
 func BuildSamplePoints(reserve *big.Int) []*big.Int {
 	return BuildSamplePointsN(reserve, SampleSize)
 }
 
-// BuildSamplePointsN returns a sorted, deduplicated grid of n probe amounts,
-// geometrically spaced between sampleBpsMin and sampleBpsMax and scaled by
-// reserve. Use a smaller n where quoting is expensive.
+// BuildSamplePointsN is like BuildSamplePoints, but for a grid of n probe
+// amounts instead of SampleSize. Use a smaller n where quoting is expensive.
 func BuildSamplePointsN(reserve *big.Int, n int) []*big.Int {
 	return buildSamplePointsFromReserve(reserve, geometricBpsRange(sampleBpsMin, sampleBpsMax, n))
 }
@@ -227,11 +209,19 @@ func EstimateNearCapacityAmount(prevLadder []Point, prevOutputReserve, currentOu
 	return result
 }
 
-// BuildSamplePointsFrom is like BuildSamplePointsN, but scales a DgeoBps
-// grid from nearCapacityAmount (see EstimateNearCapacityAmount) instead of
-// directly off a reserve: nearCapacityAmount is treated as the sampleBpsMax
-// point, and the equivalent "reserve" is backed out so the existing bps math
-// applies unchanged.
+// BuildSamplePointsFrom is like BuildSamplePointsN, but scales a
+// double-geometric ("dgeo") grid -- geometric from sampleBpsMin up to the
+// midpoint (sampleBpsMin+sampleBpsMax)/2, mirrored around that midpoint for
+// the top half -- from nearCapacityAmount (see EstimateNearCapacityAmount)
+// instead of directly off a reserve: nearCapacityAmount is treated as the
+// sampleBpsMax point, and the equivalent "reserve" is backed out so the
+// existing bps math applies unchanged.
+//
+// A plain geometric progression spends half its points on the bottom half
+// of the range even though, once re-anchored at a real depletion point this
+// way, the real knee is almost always right at the top -- mirroring the
+// bottom half's spacing onto the top half concentrates far more points
+// there instead.
 func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
 	if nearCapacityAmount == nil || nearCapacityAmount.Sign() <= 0 {
 		return nil

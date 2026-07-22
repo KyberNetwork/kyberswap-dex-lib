@@ -23,8 +23,9 @@ func TestEstimateNearCapacityAmount_Found(t *testing.T) {
 	got := EstimateNearCapacityAmount(liquidcoreUSDCkHYPELadder, prevReserve1, currentReserve1)
 	if assert.NotNil(t, got) {
 		// previous near-cap point was liquidcoreUSDCkHYPELadder's amountIn
-		// at 17615352630 (the first point whose amountOut reaches 95% of
-		// prevReserve1); scaled by currentReserve1/prevReserve1 (~0.7054).
+		// at 17615352630 (the first point where DepletionAmountIn sees the
+		// marginal rate drop to rateDropFraction of the best rate seen);
+		// scaled by currentReserve1/prevReserve1 (~0.7054).
 		wantRatio := 183804153372913102996.0 / 260569475582118373524.0
 		wantAmount := 17615352630.0 * wantRatio
 		gotF, _ := got.Float64()
@@ -70,7 +71,7 @@ func TestBuildSamplePointsFrom(t *testing.T) {
 	if assert.NotEmpty(t, got) {
 		last := got[len(got)-1]
 		// last point should be very close to nearCap itself (bps=9900 is
-		// the final, exact-pinned entry in geometricBps).
+		// the final, exact-pinned entry in dgeoBps).
 		assert.InEpsilon(t, 20_000_000_000.0, float64(last.Int64()), 1e-6)
 	}
 

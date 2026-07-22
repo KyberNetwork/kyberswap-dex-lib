@@ -20,8 +20,10 @@ func TestSamplePoints_GuidedByPreviousLadder(t *testing.T) {
 
 	tracker := &PoolTracker{}
 
-	// A previous ladder for direction 0 (token0->token1) that clearly
-	// reached depletion of its cycle's reserve1 (100) by amountIn=500.
+	// A previous ladder for direction 0 (token0->token1) whose marginal
+	// rate of return clearly drops (ladder.DepletionAmountIn flags it at
+	// amountIn=200, where the rate falls from 0.2 to 0.18 -- exactly
+	// rateDropFraction of the best rate seen).
 	prevLadder0 := []ladder.Point{
 		{100, 20}, {200, 38}, {300, 54}, {400, 68}, {500, 96},
 	}
@@ -34,7 +36,7 @@ func TestSamplePoints_GuidedByPreviousLadder(t *testing.T) {
 		points := tracker.samplePoints(p, 0, big.NewInt(1_000_000), big.NewInt(100))
 		assert.NotEmpty(t, points)
 		// with no guidance, top of the grid should track the input reserve
-		// (1_000_000 * 99% via geometricBps), not the tiny prevLadder scale.
+		// (1_000_000 * 99% via BuildSamplePoints), not the tiny prevLadder scale.
 		last := points[len(points)-1]
 		assert.Greater(t, last.Int64(), int64(500_000))
 	})
@@ -51,7 +53,7 @@ func TestSamplePoints_GuidedByPreviousLadder(t *testing.T) {
 		points := tracker.samplePoints(p, 0, big.NewInt(1_000_000_000), big.NewInt(1000))
 		assert.NotEmpty(t, points)
 		last := points[len(points)-1]
-		// previous near-cap input (500) scaled by reserve1 ratio (1000/100=10) = 5000,
+		// previous near-cap input (200) scaled by reserve1 ratio (1000/100=10) = 2000,
 		// not anywhere near the unbalanced 1_000_000_000 input reserve.
 		assert.Less(t, last.Int64(), int64(50_000))
 	})
