@@ -23,7 +23,7 @@ const (
 // from sampleBpsMin to sampleBpsMax. Geometric (constant-ratio) spacing keeps
 // every gap the same relative size, unlike a hand-picked list where an
 // arbitrary large gap (e.g. the old 50->250bps jump) can sit exactly under a
-// real trade size and blow up the linear interpolation error.
+// real trade size and blow up the interpolation error (see Spline).
 var SampleBps = geometricBps(SampleSize)
 
 func geometricBps(n int) []int {
