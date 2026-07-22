@@ -15,11 +15,12 @@ func (p Point) AmountIn() float64  { return p[0] }
 func (p Point) AmountOut() float64 { return p[1] }
 
 // Extra is the serialized pool state shared by ladder-quoted pools: a
-// piecewise-linear curve per swap direction, probed on-chain since the
-// pricing formula itself isn't replicated off-chain. There is no separate
-// paused/active flag: a paused pool (or a direction with no liquidity) is
-// simply represented by an empty ladder for that direction, which
-// QuoteAmountOut naturally rejects with ErrNoQuote.
+// sampled swap curve per swap direction (see Spline for how the samples are
+// turned into a continuous quote), probed on-chain since the pricing formula
+// itself isn't replicated off-chain. There is no separate paused/active
+// flag: a paused pool (or a direction with no liquidity) is simply
+// represented by an empty ladder for that direction, which QuoteAmountOut
+// naturally rejects with ErrNoQuote.
 type Extra struct {
 	Ladders [2][]Point `json:"l"`
 }
