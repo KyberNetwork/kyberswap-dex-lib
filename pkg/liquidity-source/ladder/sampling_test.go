@@ -33,18 +33,18 @@ func TestEstimateNearCapacityAmount_Found(t *testing.T) {
 }
 
 // TestEstimateNearCapacityAmount_NotFound guards the fallback path: a
-// ladder that never gets close to depleting its cycle's reserve (all points
-// well under nearCapacityFraction of reserve1) has nothing useful to guide
-// from, so callers should fall back to their default reserve-based basis.
+// ladder whose marginal rate only ever declines gently (ordinary slippage,
+// never a real depletion cliff) has nothing useful to guide from, so callers
+// should fall back to their default reserve-based basis.
 func TestEstimateNearCapacityAmount_NotFound(t *testing.T) {
 	t.Parallel()
 
 	farFromDepleted := []Point{
 		{1000, 10},
-		{2000, 19},
-		{3000, 27},
+		{2000, 19.9},
+		{3000, 29.7},
 	}
-	prevReserve1 := big.NewInt(1_000_000) // ladder's max output (27) is nowhere near 95% of this
+	prevReserve1 := big.NewInt(1_000_000)
 	currentReserve1 := big.NewInt(900_000)
 
 	got := EstimateNearCapacityAmount(farFromDepleted, prevReserve1, currentReserve1)
