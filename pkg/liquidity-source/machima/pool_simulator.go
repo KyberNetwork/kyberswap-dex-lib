@@ -120,6 +120,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrZeroAmount
 	}
 
+	// The embedded receiver is spelled out on purpose: this must reach the wrapped V3 simulator.
+	// If a Machima override of this method is ever added, the promoted form would recurse instead.
+	//nolint:staticcheck // QF1008: explicit embedded selector is intentional, see above
 	res, err := p.PoolSimulator.CalcAmountOutWithPriceLimit(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: poolAmountIn},
 		TokenOut:      tokenOut,
@@ -187,6 +190,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrZeroAmount
 	}
 
+	//nolint:staticcheck // QF1008: explicit embedded selector is intentional, see CalcAmountOut
 	res, err := p.PoolSimulator.CalcAmountInWithPriceLimit(pool.CalcAmountInParams{
 		TokenIn:        tokenIn,
 		TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: poolAmountOut},
