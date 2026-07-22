@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -229,7 +230,7 @@ func loadPoolStats(t *testing.T, h *testHarness, pairs []indexerPair) []poolStat
 			}
 			dists[i] = d
 		}
-		sort.Slice(dists, func(i, j int) bool { return dists[i] < dists[j] })
+		slices.Sort(dists)
 
 		totalLots := new(big.Int)
 		ticks := make([]tickLot, 0, len(state.Levels))
