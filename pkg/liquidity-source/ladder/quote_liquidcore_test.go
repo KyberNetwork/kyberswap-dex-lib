@@ -8,25 +8,32 @@ import (
 
 // liquidcoreUSDCkHYPELadder is a real ladder captured from the liquidcore
 // USDC/kHYPE pool on hyperevm (0x158f5919a3c65c201a02cb2fee7421f7b78f3b1e),
-// probed via estimateSwapBatch at block 41068712. The two test cases below
-// are ground-truthed against estimateSwap calls at that same block.
+// block 41125109. Unlike earlier captures, the ladder points AND the test
+// cases' ground truth below all came from a single estimateSwapBatch call
+// (grid points and test amounts probed together) rather than a separate
+// follow-up call: estimateSwap on this contract doesn't actually respect
+// historical block pinning the way getReserves does (confirmed by re-issuing
+// an identical pinned-block call seconds apart and getting different
+// results), so any ground truth fetched as a second, later call is not
+// reliably describing the same state as the ladder it's being compared
+// against. Fetching everything in one batch sidesteps that entirely.
 var liquidcoreUSDCkHYPELadder = []Point{
-	{70907263, 1127404916627193008},
-	{113451621, 1803847869783450808},
-	{177268158, 2818484085051797647},
-	{283629053, 4509574539262786397},
-	{446715759, 7102508807231598607},
-	{709072634, 11273710656277336679},
-	{1120334763, 17812106226417052340},
-	{1772681587, 28182865949184242983},
-	{2807927634, 44639425080841007054},
-	{4445885420, 70674136371705474840},
-	{7041091264, 111914326592201581888},
-	{11153712547, 177243155629748030120},
-	{17670090062, 280684939878899203883},
-	{27987096900, 346848717530822469076},
-	{44324130408, 346848717530822469076},
-	{70198190857, 346848717530822469076},
+	{44629725, 747540412135206769},
+	{71407560, 1196064659416330830},
+	{111574313, 1868851038712933103},
+	{178518901, 2990131734341676528},
+	{281167270, 4709410355836777207},
+	{446297254, 7475179706233270832},
+	{705149661, 11810665703239956313},
+	{1115743135, 18687200991856089394},
+	{1767337127, 29599341124944004872},
+	{2798283784, 46862339267459824931},
+	{4431731735, 74209215598361446501},
+	{7020255811, 117530433282122961696},
+	{11121727579, 186130437886950183508},
+	{17615352630, 259983194262058607184},
+	{27898041371, 259983194262058607184},
+	{44183428183, 259983194262058607184},
 }
 
 // TestQuoteAmountOut_LiquidcoreOverquote guards against the spline quoting
@@ -41,17 +48,11 @@ func TestQuoteAmountOut_LiquidcoreOverquote(t *testing.T) {
 	cases := []struct {
 		name     string
 		amountIn float64
-		actual   float64 // ground truth from estimateSwap at block 41068712
+		actual   float64 // ground truth from the same atomic estimateSwapBatch call as the ladder
 	}{
-		// Sits inside a decelerating segment right before the reserve-cap
-		// plateau; plain Fritsch-Carlson tangents bulge the interpolant
-		// above both the linear chord and the real contract quote here.
-		{"decelerating segment before the cap", 15450148532, 245484082375031380493},
-		// Sits in the next segment, where the real curve has a sharp cliff
-		// up to near-max output that the wide geometric sample gap misses
-		// entirely. Both the chord and the spline undershoot heavily here;
-		// that's fine, we only assert no overquote.
-		{"missed cliff right after the same segment", 22828593481, 346869458618987283270},
+		{"inside the knee", 12_000_000_000, 200812888803358591038},
+		{"further into the knee", 14_000_000_000, 234237105343538890740},
+		{"just before the cap", 16_000_000_000, 259983194262058607184},
 	}
 
 	for _, tc := range cases {
@@ -68,38 +69,38 @@ func TestQuoteAmountOut_LiquidcoreOverquote(t *testing.T) {
 	}
 }
 
-// liquidcoreUSDCkHYPELadder2 is a second, independent capture of the same
-// pool (block 41114514), taken after a large live price/liquidity move --
-// reserve0 dropped from ~70.9e9 to ~44.7e9. The knee sits earlier and
-// sharper than in liquidcoreUSDCkHYPELadder, and it's what first exposed
-// PCHIP+floor overquoting past maxOverquotePct on real data.
+// liquidcoreUSDCkHYPELadder2 is a second, independent atomic capture (same
+// pool, a later block) whose knee happens to expose a real overquote: PCHIP's
+// never-overquote floor and the capacity-space blend are each proven safe
+// under their own specific conditions (see spline.go/capacity.go docs), but
+// neither guarantees safety everywhere, and this ladder's knee falls outside
+// both -- confirmed the same way as liquidcoreUSDCkHYPELadder, with the
+// ladder points and test amounts all probed in one estimateSwapBatch call.
 var liquidcoreUSDCkHYPELadder2 = []Point{
-	{44732122, 726568242150696840},
-	{71571396, 1162509200435235673},
-	{111830306, 1816420621619393011},
-	{178928490, 2906243911595745345},
-	{281812372, 4577334164823921003},
-	{447321225, 7265537055258503769},
-	{706767536, 11479318748439919945},
-	{1118303064, 18163115425200176674},
-	{1771392054, 28769222899753118469},
-	{2804704085, 45548077738602994157},
-	{4441899772, 72128007271728878245},
-	{7036362881, 114235420577088666913},
-	{11147244947, 180912201711786622668},
-	{17655768782, 258502120883988381175},
-	{27962049825, 258502120883988381175},
-	{44284801355, 258502120883988381175},
+	{44635176, 749780179858591812},
+	{71416282, 1199648294492933399},
+	{111587940, 1874450449646479532},
+	{178540705, 2999090716806711089},
+	{281201610, 4723567872671395675},
+	{446351763, 7497651751851536687},
+	{705235785, 11846052605392206686},
+	{1115879408, 18743378902385919530},
+	{1767552982, 29688026215240113178},
+	{2798625555, 47003218183278916403},
+	{4432273009, 74432305898067823626},
+	{7021113236, 117883758483911667373},
+	{11123085940, 186688124519608278812},
+	{17617504096, 259905076443769693639},
+	{27901448722, 259905076443769693639},
+	{44188824564, 259905076443769693639},
 }
 
-// TestQuoteAmountOut_LiquidcoreOverquote2 documents overquote violations
-// found on liquidcoreUSDCkHYPELadder2's knee (11.15e9-17.66e9) that
-// TestQuoteAmountOut_LiquidcoreOverquote's fixture doesn't cover -- PCHIP's
-// never-overquote floor is only proven safe for the segment right before a
-// decelerating node, but the actual overquote here comes from the
-// capacity-space fit itself: even a plain (unshaped) chord in log-log-
-// remaining-capacity space overquotes by a comparable amount, since the true
-// curve isn't log-linear across this particular (too-wide) sample gap.
+// TestQuoteAmountOut_LiquidcoreOverquote2 documents a real, currently-open
+// overquote on liquidcoreUSDCkHYPELadder2's knee: at 15e9, PCHIP (this
+// package's current amountOutTangents/capacityTangents combination) quotes
+// ~0.6% above the atomically-verified ground truth. Plain linear
+// interpolation does not overquote here (see the pkg-level investigation
+// notes); this test is expected to fail until that's addressed.
 func TestQuoteAmountOut_LiquidcoreOverquote2(t *testing.T) {
 	t.Parallel()
 
@@ -108,11 +109,11 @@ func TestQuoteAmountOut_LiquidcoreOverquote2(t *testing.T) {
 	cases := []struct {
 		name     string
 		amountIn float64
-		actual   float64 // ground truth from estimateSwap at block 41114514
+		actual   float64 // ground truth from the same atomic estimateSwapBatch call as the ladder
 	}{
-		{"inside the knee", 13_000_000_000, 210761270356908427569},
-		{"right before the cap, at cheb16's real sample point", 15_329_698_408, 248699998915193755779},
-		{"just before the cap", 16_000_000_000, 258522846442632530933},
+		{"inside the knee", 13_000_000_000, 218152796389921912980},
+		{"further into the knee", 15_000_000_000, 251664323751719985741},
+		{"just before the cap", 16_500_000_000, 259905076443769693639},
 	}
 
 	for _, tc := range cases {
@@ -137,19 +138,21 @@ func TestQuoteAmountOut_LiquidcoreOverquote2(t *testing.T) {
 func TestQuoteAmountOutLiquidcore_Monotonic(t *testing.T) {
 	t.Parallel()
 
-	spline := NewSpline(liquidcoreUSDCkHYPELadder)
-	first := liquidcoreUSDCkHYPELadder[0].AmountIn()
-	last := liquidcoreUSDCkHYPELadder[len(liquidcoreUSDCkHYPELadder)-1].AmountIn()
+	for _, ladder := range [][]Point{liquidcoreUSDCkHYPELadder, liquidcoreUSDCkHYPELadder2} {
+		spline := NewSpline(ladder)
+		first := ladder[0].AmountIn()
+		last := ladder[len(ladder)-1].AmountIn()
 
-	const steps = 200_000
-	prevOut := -1.0
-	for i := 1; i <= steps; i++ {
-		amountIn := first + float64(i)/steps*(last-first)
-		out, err := spline.QuoteAmountOut(amountIn)
-		if err != nil {
-			continue
+		const steps = 200_000
+		prevOut := -1.0
+		for i := 1; i <= steps; i++ {
+			amountIn := first + float64(i)/steps*(last-first)
+			out, err := spline.QuoteAmountOut(amountIn)
+			if err != nil {
+				continue
+			}
+			assert.GreaterOrEqualf(t, out, prevOut, "amountOut decreased at amountIn=%v", amountIn)
+			prevOut = out
 		}
-		assert.GreaterOrEqualf(t, out, prevOut, "amountOut decreased at amountIn=%v", amountIn)
-		prevOut = out
 	}
 }

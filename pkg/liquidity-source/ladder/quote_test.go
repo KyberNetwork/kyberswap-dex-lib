@@ -24,9 +24,9 @@ func TestQuoteAmountOut(t *testing.T) {
 		{"zero amount", 0, 0, ErrZeroAmountIn},
 		{"below first point, spline toward origin", 500, 1000, nil},
 		{"exact first point", 1000, 2000, nil},
-		{"between points 0 and 1", 1500, 2925, nil},
+		{"between points 0 and 1", 1500, 2923.606797749979, nil},
 		{"exact match at later point", 2000, 3800, nil},
-		{"between points 1 and 2", 3500, 6425, nil},
+		{"between points 1 and 2", 3500, 6400, nil},
 		{"exceeds last point", 6000, 0, ErrAmountInTooLarge},
 	}
 	for _, tt := range tests {

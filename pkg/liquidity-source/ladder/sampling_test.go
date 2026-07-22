@@ -8,25 +8,25 @@ import (
 )
 
 // TestEstimateNearCapacityAmount_Found uses liquidcoreUSDCkHYPELadder (block
-// 41068712, reserve1=347630887026632391957 at capture time) as the
-// "previous cycle" and checks that a later cycle's much-smaller reserve1
-// (observed at block 41113644) produces a proportionally scaled-down
-// estimate rather than reserve0's unrelated scale.
+// 41125109, reserve1=260569475582118373524 at capture time) as the
+// "previous cycle" and checks that a later cycle's smaller reserve1
+// produces a proportionally scaled-down estimate rather than reserve0's
+// unrelated scale.
 func TestEstimateNearCapacityAmount_Found(t *testing.T) {
 	t.Parallel()
 
 	prevReserve1 := big.NewInt(0)
-	prevReserve1.SetString("347630887026632391957", 10)
+	prevReserve1.SetString("260569475582118373524", 10)
 	currentReserve1 := big.NewInt(0)
-	currentReserve1.SetString("258197876761440418668", 10)
+	currentReserve1.SetString("183804153372913102996", 10)
 
 	got := EstimateNearCapacityAmount(liquidcoreUSDCkHYPELadder, prevReserve1, currentReserve1)
 	if assert.NotNil(t, got) {
 		// previous near-cap point was liquidcoreUSDCkHYPELadder's amountIn
-		// at 27987096900 (the first point whose amountOut reaches 95% of
-		// prevReserve1); scaled by currentReserve1/prevReserve1 (~0.743).
-		wantRatio := 258197876761440418668.0 / 347630887026632391957.0
-		wantAmount := 27987096900.0 * wantRatio
+		// at 17615352630 (the first point whose amountOut reaches 95% of
+		// prevReserve1); scaled by currentReserve1/prevReserve1 (~0.7054).
+		wantRatio := 183804153372913102996.0 / 260569475582118373524.0
+		wantAmount := 17615352630.0 * wantRatio
 		gotF, _ := got.Float64()
 		assert.InEpsilonf(t, wantAmount, gotF, 1e-6, "got %v want ~%v", got, wantAmount)
 	}
