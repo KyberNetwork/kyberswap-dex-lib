@@ -44,11 +44,23 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	var poolAddrs []common.Address
+	var rawPoolAddrs []common.Address
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{ABI: routerABI, Target: u.config.Router, Method: "getPools"}, []any{&poolAddrs}).
+		AddCall(&ethrpc.Call{ABI: routerABI, Target: u.config.Router, Method: "getPools"}, []any{&rawPoolAddrs}).
 		Call(); err != nil {
 		return nil, nil, err
+	}
+	// getPools can contain zero-address entries (e.g. unset/cleared array
+	// slots). A call to the zero address has no code, so the multicall
+	// still reports success (a call to a no-code address never reverts) --
+	// only the ABI-unpack of its empty returndata fails, which the
+	// TryAggregate result flag below can't see -- so filter these out here
+	// rather than relying on that check alone.
+	poolAddrs := make([]common.Address, 0, len(rawPoolAddrs))
+	for _, addr := range rawPoolAddrs {
+		if addr != (common.Address{}) {
+			poolAddrs = append(poolAddrs, addr)
+		}
 	}
 
 	var poolsChecksum common.Address
@@ -84,7 +96,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		for i, poolAddr := range poolAddrs {
-			if !resp.Result[i] {
+			tokenResp := tokenResps[i]
+			if !resp.Result[i] || tokenResp.Token0 == (common.Address{}) || tokenResp.Token1 == (common.Address{}) {
 				l.Warn().Str("pool", hexutil.Encode(poolAddr[:])).Msg("skipping pool: getTokens call failed")
 				continue
 			}
@@ -96,8 +109,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Timestamp: time.Now().Unix(),
 				Reserves:  []string{"0", "0"},
 				Tokens: []*entity.PoolToken{
-					{Address: hexutil.Encode(tokenResps[i].Token0[:]), Swappable: true},
-					{Address: hexutil.Encode(tokenResps[i].Token1[:]), Swappable: true},
+					{Address: hexutil.Encode(tokenResp.Token0[:]), Swappable: true},
+					{Address: hexutil.Encode(tokenResp.Token1[:]), Swappable: true},
 				},
 				Extra: "{}",
 			})
