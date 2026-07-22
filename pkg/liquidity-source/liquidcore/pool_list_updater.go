@@ -63,33 +63,45 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	metadata.LastCount, metadata.LastPoolsChecksum = len(poolAddrs), poolsChecksum
 
 	pools := make([]entity.Pool, 0, len(poolAddrs))
-	for _, poolAddr := range poolAddrs {
-		addr := hexutil.Encode(poolAddr[:])
-
-		var tokenResp struct {
-			Token0, Token1 common.Address
-		}
-		if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
-			AddCall(&ethrpc.Call{
+	if len(poolAddrs) > 0 {
+		tokenResps := make([]struct{ Token0, Token1 common.Address }, len(poolAddrs))
+		req := u.ethrpcClient.NewRequest().SetContext(ctx)
+		for i, poolAddr := range poolAddrs {
+			req.AddCall(&ethrpc.Call{
 				ABI:    poolABI,
-				Target: addr,
-				Method: "getTokens"}, []any{&tokenResp}).
-			Call(); err != nil {
+				Target: hexutil.Encode(poolAddr[:]),
+				Method: "getTokens",
+			}, []any{&tokenResps[i]})
+		}
+		// TryAggregate (not Call/Aggregate) so one dead/reverting pool
+		// address from the router's getPools() list doesn't abort discovery
+		// of every other pool -- and, since GetNewPools only persists
+		// metadataBytes on a fully successful return, doesn't get every
+		// subsequent run stuck retrying the same broken address forever.
+		resp, err := req.TryAggregate()
+		if err != nil {
 			return nil, nil, err
 		}
 
-		pools = append(pools, entity.Pool{
-			Address:   addr,
-			Exchange:  u.config.DexId,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens: []*entity.PoolToken{
-				{Address: hexutil.Encode(tokenResp.Token0[:]), Swappable: true},
-				{Address: hexutil.Encode(tokenResp.Token1[:]), Swappable: true},
-			},
-			Extra: "{}",
-		})
+		for i, poolAddr := range poolAddrs {
+			if !resp.Result[i] {
+				l.Warn().Str("pool", hexutil.Encode(poolAddr[:])).Msg("skipping pool: getTokens call failed")
+				continue
+			}
+
+			pools = append(pools, entity.Pool{
+				Address:   hexutil.Encode(poolAddr[:]),
+				Exchange:  u.config.DexId,
+				Type:      DexType,
+				Timestamp: time.Now().Unix(),
+				Reserves:  []string{"0", "0"},
+				Tokens: []*entity.PoolToken{
+					{Address: hexutil.Encode(tokenResps[i].Token0[:]), Swappable: true},
+					{Address: hexutil.Encode(tokenResps[i].Token1[:]), Swappable: true},
+				},
+				Extra: "{}",
+			})
+		}
 	}
 
 	l.Info().Int("count", len(pools)).Msg("finished getting new pools")
