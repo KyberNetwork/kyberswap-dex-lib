@@ -9,7 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
 
@@ -78,4 +80,43 @@ func TestEventParserDecode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestEventParserDecodeBoostedFees ensures logs emitted by the BoostedFeesConcentrated
+// contract (FeesDonated/PoolBoosted) are routed back to the affected pool, the same way
+// Core and TWAMM logs already are. Without this, a pool's donate-rate state can only be
+// refreshed by the interval poll or a manual state-update call, never by the event itself.
+func TestEventParserDecodeBoostedFees(t *testing.T) {
+	t.Parallel()
+	test.SkipCI(t)
+
+	rpcClient := ethrpc.
+		New("https://sepolia.drpc.org").
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+
+	e := NewPoolFactory(SepoliaConfig, rpcClient)
+
+	poolKey := anyPoolKey(
+		"0x31f017286c6932a1713a31024ab14b9dc7f3ba6c",
+		"0xf45a9c4f3be630703aa89c213bcda334e5a2d803",
+		"0xd4b54d0ca6979da05f25895e6e269e678ba00f9e",
+		0,
+		pools.NewConcentratedPoolTypeConfig(50),
+	)
+	expectedPoolAddress, err := poolKey.ToPoolAddress()
+	require.NoError(t, err)
+
+	txReceipt, err := rpcClient.
+		GetETHClient().
+		TransactionReceipt(context.Background(), common.HexToHash("0x50d4a090a2c8eb375efa4a5980a7f6274d2bc89f316f474aea6d27c202eb87e3"))
+	require.NoError(t, err)
+
+	logs := lo.Map(txReceipt.Logs, func(log *types.Log, _ int) types.Log {
+		return *log
+	})
+
+	logByAddress, err := e.Decode(context.Background(), logs)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, logByAddress[expectedPoolAddress])
 }
