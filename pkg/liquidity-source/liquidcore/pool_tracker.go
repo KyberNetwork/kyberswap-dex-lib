@@ -74,8 +74,8 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	points0 := t.samplePoints(p, 0, reserves.Reserve0, reserves.Reserve1)
-	points1 := t.samplePoints(p, 1, reserves.Reserve1, reserves.Reserve0)
+	points0 := ladder.SamplePoints(p, 0, reserves.Reserve0, reserves.Reserve1)
+	points1 := ladder.SamplePoints(p, 1, reserves.Reserve1, reserves.Reserve0)
 	ladders, err := t.probeQuotes(ctx, p.Address, overrides, token0, token1, points0, points1)
 	if err != nil {
 		logger.Errorf("failed to probe quotes: %v", err)
@@ -93,41 +93,6 @@ func (t *PoolTracker) getNewPoolState(
 	p.Reserves = entity.PoolReserves{reserves.Reserve0.String(), reserves.Reserve1.String()}
 
 	return p, nil
-}
-
-// samplePoints builds this cycle's probe grid for one direction (dir=0 is
-// token0->token1, so currentInputReserve/currentOutputReserve are
-// reserve0/reserve1; dir=1 is the reverse). It prefers
-// ladder.EstimateNearCapacityAmount, guided by the previous cycle's ladder
-// and output-side reserve already sitting in p (no extra calls -- just
-// unmarshalling), and falls back to the input-side reserve directly when
-// there's nothing to guide from (first probe, or the previous ladder never
-// got close to depletion).
-func (t *PoolTracker) samplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
-	if nearCap := t.estimateNearCapacityAmount(p, dir, currentOutputReserve); nearCap != nil {
-		return ladder.BuildSamplePointsFrom(nearCap, ladder.SampleSize)
-	}
-	return ladder.BuildSamplePoints(currentInputReserve)
-}
-
-func (t *PoolTracker) estimateNearCapacityAmount(p entity.Pool, dir int, currentOutputReserve *big.Int) *big.Int {
-	if p.Extra == "" || len(p.Reserves) != 2 {
-		return nil
-	}
-
-	var prevExtra ladder.Extra
-	if err := json.Unmarshal([]byte(p.Extra), &prevExtra); err != nil {
-		return nil
-	}
-
-	// dir=0 (token0->token1) output is token1, reserve index 1; dir=1 the
-	// reverse.
-	prevOutputReserve, ok := new(big.Int).SetString(p.Reserves[1-dir], 10)
-	if !ok {
-		return nil
-	}
-
-	return ladder.EstimateNearCapacityAmount(prevExtra.Ladders[dir], prevOutputReserve, currentOutputReserve)
 }
 
 func (t *PoolTracker) probeQuotes(

@@ -20,14 +20,18 @@ type liveChain struct {
 	name       string
 	rpcEnv     string
 	rpcDefault string
+	multicall  string
 	cfg        Config
 }
+
+const defaultMulticallAddr = "0xcA11bde05977b3631167028862bE2a173976CA11"
 
 var liveChains = []liveChain{
 	{
 		name:       "optimism",
 		rpcEnv:     "OPTIMISM_RPC_URL",
 		rpcDefault: "https://optimism.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0x60a8fA0eB9eDBF97a7487f7163C793768385Adc4",
@@ -37,6 +41,7 @@ var liveChains = []liveChain{
 		name:       "base",
 		rpcEnv:     "BASE_RPC_URL",
 		rpcDefault: "https://base.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
@@ -46,6 +51,7 @@ var liveChains = []liveChain{
 		name:       "linea",
 		rpcEnv:     "LINEA_RPC_URL",
 		rpcDefault: "https://linea.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
@@ -54,15 +60,14 @@ var liveChains = []liveChain{
 	{
 		name:       "robinhood",
 		rpcEnv:     "ROBINHOOD_RPC_URL",
-		rpcDefault: "https://robinhood.kyberengineering.io",
+		rpcDefault: "https://rpc.mainnet.chain.robinhood.com",
+		multicall:  "0x2cAC2D899eCC914d704FeaAE33ac1bF36277DaD1",
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
 		},
 	},
 }
-
-const multicallAddr = "0xcA11bde05977b3631167028862bE2a173976CA11"
 
 func TestCaliberLiveQuoteParity(t *testing.T) {
 	if os.Getenv("CI") != "" {
@@ -76,7 +81,7 @@ func TestCaliberLiveQuoteParity(t *testing.T) {
 				rpcURL = lc.rpcDefault
 			}
 			client := ethrpc.New(rpcURL).
-				SetMulticallContract(common.HexToAddress(multicallAddr))
+				SetMulticallContract(common.HexToAddress(lc.multicall))
 
 			lister := NewPoolsListUpdater(&lc.cfg, client)
 			pools, _, err := lister.GetNewPools(context.Background(), nil)
