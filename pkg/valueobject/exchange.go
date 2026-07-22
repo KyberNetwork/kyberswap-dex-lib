@@ -210,6 +210,8 @@ const (
 	ExchangePandaFun                   = "panda-fun"
 	ExchangePantherSwap                = "pantherswap"
 	ExchangeParallelParallelizer       = "parallel-parallelizer"
+	ExchangeParitySwapV2               = "parityswap-v2"
+	ExchangeParitySwapV3               = "parityswap-v3"
 	ExchangePharaoh2                   = "pharaoh-2"
 	ExchangePlatypus                   = "platypus"
 	ExchangePmm1                       = "pmm-1"

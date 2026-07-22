@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Register `parityswap-v2` and `parityswap-v3` (faithful Uniswap V2/V3 forks, reusing the `uniswapv2`/`uniswapv3` liquidity sources) on Robinhood Chain.
 - Integrate `nadswap` (nadfun-contract-v2 DEX) on Monad. Supports meme-token pairs with asymmetric quote-token fee model and general pairs with LP-only constant-product math.
 - Integrate `ghost` (cross-collateral router) on Ethereum, Arbitrum, and Base. Supports directional stablecoin pairs with a linear-then-capped input fee and a target-side reserve limit.
 
