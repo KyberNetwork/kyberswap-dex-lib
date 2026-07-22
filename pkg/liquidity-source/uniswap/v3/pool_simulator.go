@@ -182,7 +182,7 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		Gas:           p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops),
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: &result.SqrtRatioX96,
-			NextStateLiquidity:    result.Liquidity,
+			NextStateLiquidity:    &result.Liquidity,
 			NextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
@@ -235,7 +235,7 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 		SwapInfo: SwapInfo{
 			RemainingAmountIn:     &result.RemainingAmountIn,
 			NextStateSqrtRatioX96: &result.SqrtRatioX96,
-			NextStateLiquidity:    result.Liquidity,
+			NextStateLiquidity:    &result.Liquidity,
 			NextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
@@ -255,7 +255,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	p.V3Pool.SqrtRatioX96.Set(si.NextStateSqrtRatioX96)
-	p.V3Pool.Liquidity.Set(&si.NextStateLiquidity)
+	p.V3Pool.Liquidity.Set(si.NextStateLiquidity)
 	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 	tokenAmtIn, tokenAmtOut := params.TokenAmountIn, params.TokenAmountOut
 	if p.GetTokenIndex(tokenAmtIn.Token) == 0 {
