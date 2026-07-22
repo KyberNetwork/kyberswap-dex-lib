@@ -60,7 +60,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				// exact first ladder entry
 				"10": "6654830265",
 				// between entries 1 and 2 → spline-interpolated
-				"100": "66548302300",
+				"100": "66548302333",
 				// exact entry 4
 				"1000": "664151994972",
 				// exceeds max ladder entry → error
@@ -76,13 +76,13 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	t.Parallel()
 	// Two sequential USDC→WETH swaps on a fresh clone; second quote reflects consumed amounts.
 	// swap1: 10 USDC → 6654830265 WETH-wei  (exact first ladder entry)
-	// swap2: 10 USDC → 6654830261 WETH-wei  (totalIn=20 spline-interpolated minus swap1's output)
+	// swap2: 10 USDC → 6654830263 WETH-wei  (totalIn=20 spline-interpolated minus swap1's output)
 	testutil.TestCalcAmountOutWithUpdateBalance(t, poolSimWETHUSDC, map[int]map[int][][][2]string{
 		1: {
 			0: {
 				{
 					{"10", "6654830265"},
-					{"10", "6654830261"},
+					{"10", "6654830263"},
 				},
 			},
 		},

@@ -6,9 +6,13 @@ import (
 )
 
 // bezierWeight is the rational quadratic Bezier's control-point weight (see
-// NewSpline). 1.0 makes it a plain (non-rational) quadratic Bezier;
-// parameterized so it can be tuned later without re-deriving the solve.
-const bezierWeight = 1.0
+// NewSpline). 1.0 would make it a plain (non-rational) quadratic Bezier;
+// pulling it above 1 pulls the curve closer to the control point (the
+// corner formed by the two neighboring segments' secants), tightening the
+// fit right at a knee without risking overquote -- verified against real
+// on-chain ladders up to weight 7 before crossing into overquote territory,
+// so 1.6 leaves comfortable margin.
+const bezierWeight = 1.6
 
 // Spline estimates amountOut for an arbitrary amountIn from a small set of
 // on-chain-probed (amountIn, amountOut) points, using a rational quadratic

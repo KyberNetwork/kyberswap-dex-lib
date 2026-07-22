@@ -42,7 +42,7 @@ func TestPoolSimulator_CalcAmountOut_UBTCUETH(t *testing.T) {
 				// exact first ladder entry
 				"1000000": "365186231364257536",
 				// between entries 0 and 1 → spline-interpolated
-				"5000000": "1825931156821288192",
+				"5000000": "1825931156821287680",
 				// zero → error
 				"0": "",
 			},
