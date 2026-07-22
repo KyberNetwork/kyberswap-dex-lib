@@ -135,8 +135,13 @@ func buildSamplePointsFromReserve(reserve *big.Int, bps []int) []*big.Int {
 // rateDropFraction is how far a ladder's marginal rate of return (the
 // amountOut/amountIn secant of one probe-to-probe segment) is allowed to
 // fall below the best marginal rate seen so far before DepletionAmountIn
-// considers the pool to have started depleting.
-const rateDropFraction = 0.90
+// considers the pool to have started depleting. A plain constant-product
+// pool's marginal rate declines continuously even with no real depletion at
+// all, and a coarse geometric grid's last segment can cross a 10% relative
+// drop purely from that ordinary curvature -- 20% comfortably clears that
+// false-positive band while still catching real on-chain depletion knees,
+// which collapse far harder than this (verified against captured ladders).
+const rateDropFraction = 0.80
 
 // DepletionAmountIn scans a ladder (sorted ascending by AmountIn, as probed)
 // for the first point whose segment's marginal rate of return has dropped
@@ -191,19 +196,49 @@ func DepletionAmountIn(ladder []Point) (float64, bool) {
 // observed last time), in which case the caller should fall back to its
 // default reserve-based basis.
 func EstimateNearCapacityAmount(prevLadder []Point, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
-	if prevOutputReserve == nil || prevOutputReserve.Sign() <= 0 ||
-		currentOutputReserve == nil || currentOutputReserve.Sign() <= 0 {
-		return nil
-	}
-
 	nearCapIn, found := DepletionAmountIn(prevLadder)
 	if !found {
+		return nil
+	}
+	return scaleByOutputReserveChange(nearCapIn, prevOutputReserve, currentOutputReserve)
+}
+
+// EstimateFarthestProbedAmount estimates, with no extra on-chain calls, the
+// amountIn as far as the previous cycle's ladder ever actually reached (its
+// own last point), using the same output-reserve-ratio projection as
+// EstimateNearCapacityAmount, applied to the ladder's full extent instead of
+// just its depletion point.
+//
+// EstimateNearCapacityAmount's dense grid concentrates accuracy right at the
+// knee, but a caller with no better liquidity source for a larger trade
+// would rather get a rough, lower-confidence quote than none at all --
+// SamplePoints includes this alongside the dense grid so the pool is never
+// artificially capped at the knee's much tighter range. Since we know this
+// amount was actually quotable (no revert) last cycle, scaling it is safer
+// than guessing off the raw input reserve the way BuildSamplePoints does on
+// a pool's first probe, before there's any history to go on.
+//
+// Returns nil if prevLadder is empty.
+func EstimateFarthestProbedAmount(prevLadder []Point, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
+	if len(prevLadder) == 0 {
+		return nil
+	}
+	return scaleByOutputReserveChange(prevLadder[len(prevLadder)-1].AmountIn(), prevOutputReserve, currentOutputReserve)
+}
+
+// scaleByOutputReserveChange projects amountIn (observed against
+// prevOutputReserve last cycle) to what it would be against
+// currentOutputReserve this cycle, assuming the pool's price curve shape
+// hasn't changed -- only the amount of inventory backing it.
+func scaleByOutputReserveChange(amountIn float64, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
+	if amountIn <= 0 || prevOutputReserve == nil || prevOutputReserve.Sign() <= 0 ||
+		currentOutputReserve == nil || currentOutputReserve.Sign() <= 0 {
 		return nil
 	}
 
 	prevReserveF, _ := prevOutputReserve.Float64()
 	currentReserveF, _ := currentOutputReserve.Float64()
-	estimate := nearCapIn * (currentReserveF / prevReserveF)
+	estimate := amountIn * (currentReserveF / prevReserveF)
 	if estimate <= 0 {
 		return nil
 	}
@@ -247,31 +282,93 @@ func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
 // pool tracker (i.e. dir indexes p.Extra's Ladders the same way it indexes
 // p.Reserves), which every ladder-quoted pool tracker's persisted state
 // satisfies.
+//
+// A guided grid also gets a couple of "canary" points appended past its own
+// ceiling (nearCapacityAmount), scaled off that ceiling rather than the raw
+// reserve -- see canaryGrowthMultiples's doc for why: without them, once a
+// cycle's guided range undershoots the pool's real capacity, it can never
+// grow back on its own. It also always carries forward
+// EstimateFarthestProbedAmount, so the pool stays quotable (if imprecisely)
+// out to the full extent it's ever actually been probed to, not just the
+// knee's tighter, higher-accuracy range.
 func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
-	if nearCap := estimateNearCapacityAmount(p, dir, currentOutputReserve); nearCap != nil {
-		return BuildSamplePointsFrom(nearCap, SampleSize)
+	prevLadder, prevOutputReserve, ok := prevLadderAndReserve(p, dir)
+	if !ok {
+		return BuildSamplePoints(currentInputReserve)
 	}
-	return BuildSamplePoints(currentInputReserve)
+
+	nearCap := EstimateNearCapacityAmount(prevLadder, prevOutputReserve, currentOutputReserve)
+	if nearCap == nil {
+		return BuildSamplePoints(currentInputReserve)
+	}
+
+	points := withGrowthCanaries(BuildSamplePointsFrom(nearCap, SampleSize), nearCap, currentInputReserve)
+	if farthest := EstimateFarthestProbedAmount(prevLadder, prevOutputReserve, currentOutputReserve); farthest != nil {
+		points = appendClamped(points, farthest, currentInputReserve)
+	}
+	return points
 }
 
-func estimateNearCapacityAmount(p entity.Pool, dir int, currentOutputReserve *big.Int) *big.Int {
+// canaryGrowthMultiples scales nearCapacityAmount by each factor to produce
+// extra probe points past a guided grid's own ceiling.
+//
+// DepletionAmountIn's rate-drop signal is a one-way ratchet on its own:
+// once a cycle's guided range undershoots the real capacity, the next
+// cycle's rescaled grid exhibits the same relative curvature near ITS OWN
+// top and re-triggers the same "depletion" call, so the range keeps
+// shrinking and never recovers -- confirmed by simulating repeated cycles
+// against a plain constant-product pool with no real depletion at all, where
+// the guided range converged to a small fraction of the true reserve and
+// got stuck there. These canaries test past the current ceiling every
+// single cycle (scaled off that ceiling, not the raw reserve, so they stay
+// proportionate to what's already been observed rather than jumping
+// straight back to the full unguided range), so growth is caught
+// immediately instead of only on the rare cycle where the whole guided grid
+// happens to come back with no rate-drop detected at all.
+var canaryGrowthMultiples = []int64{2, 4}
+
+func withGrowthCanaries(points []*big.Int, nearCap, currentInputReserve *big.Int) []*big.Int {
+	for _, m := range canaryGrowthMultiples {
+		points = appendClamped(points, new(big.Int).Mul(nearCap, big.NewInt(m)), currentInputReserve)
+	}
+	return points
+}
+
+// appendClamped appends amount to points, capped at currentInputReserve
+// (never sampling more than the pool's input reserve actually holds) and
+// re-sorted/deduplicated.
+func appendClamped(points []*big.Int, amount, currentInputReserve *big.Int) []*big.Int {
+	if currentInputReserve != nil && amount.Cmp(currentInputReserve) > 0 {
+		amount = currentInputReserve
+	}
+	if amount.Sign() > 0 {
+		points = append(points, amount)
+	}
+	sort.Slice(points, func(a, b int) bool { return points[a].Cmp(points[b]) < 0 })
+	return dedupSorted(points)
+}
+
+// prevLadderAndReserve unmarshals p's previous cycle state for direction
+// dir: its ladder, and the output-side reserve that ladder was probed
+// against (dir=0's output is token1, reserve index 1; dir=1 the reverse).
+// ok is false if there's no usable previous state (a pool's first probe, or
+// malformed/missing Extra).
+func prevLadderAndReserve(p entity.Pool, dir int) (prevLadder []Point, prevOutputReserve *big.Int, ok bool) {
 	if p.Extra == "" || len(p.Reserves) != 2 {
-		return nil
+		return nil, nil, false
 	}
 
 	var prevExtra Extra
 	if err := json.Unmarshal([]byte(p.Extra), &prevExtra); err != nil {
-		return nil
+		return nil, nil, false
 	}
 
-	// dir=0 (token0->token1) output is token1, reserve index 1; dir=1 the
-	// reverse.
-	prevOutputReserve, ok := new(big.Int).SetString(p.Reserves[1-dir], 10)
+	prevOutputReserve, ok = new(big.Int).SetString(p.Reserves[1-dir], 10)
 	if !ok {
-		return nil
+		return nil, nil, false
 	}
 
-	return EstimateNearCapacityAmount(prevExtra.Ladders[dir], prevOutputReserve, currentOutputReserve)
+	return prevExtra.Ladders[dir], prevOutputReserve, true
 }
 
 func dedupSorted(sorted []*big.Int) []*big.Int {
