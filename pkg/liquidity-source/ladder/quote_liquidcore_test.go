@@ -68,6 +68,67 @@ func TestQuoteAmountOut_LiquidcoreOverquote(t *testing.T) {
 	}
 }
 
+// liquidcoreUSDCkHYPELadder2 is a second, independent capture of the same
+// pool (block 41114514), taken after a large live price/liquidity move --
+// reserve0 dropped from ~70.9e9 to ~44.7e9. The knee sits earlier and
+// sharper than in liquidcoreUSDCkHYPELadder, and it's what first exposed
+// PCHIP+floor overquoting past maxOverquotePct on real data.
+var liquidcoreUSDCkHYPELadder2 = []Point{
+	{44732122, 726568242150696840},
+	{71571396, 1162509200435235673},
+	{111830306, 1816420621619393011},
+	{178928490, 2906243911595745345},
+	{281812372, 4577334164823921003},
+	{447321225, 7265537055258503769},
+	{706767536, 11479318748439919945},
+	{1118303064, 18163115425200176674},
+	{1771392054, 28769222899753118469},
+	{2804704085, 45548077738602994157},
+	{4441899772, 72128007271728878245},
+	{7036362881, 114235420577088666913},
+	{11147244947, 180912201711786622668},
+	{17655768782, 258502120883988381175},
+	{27962049825, 258502120883988381175},
+	{44284801355, 258502120883988381175},
+}
+
+// TestQuoteAmountOut_LiquidcoreOverquote2 documents overquote violations
+// found on liquidcoreUSDCkHYPELadder2's knee (11.15e9-17.66e9) that
+// TestQuoteAmountOut_LiquidcoreOverquote's fixture doesn't cover -- PCHIP's
+// never-overquote floor is only proven safe for the segment right before a
+// decelerating node, but the actual overquote here comes from the
+// capacity-space fit itself: even a plain (unshaped) chord in log-log-
+// remaining-capacity space overquotes by a comparable amount, since the true
+// curve isn't log-linear across this particular (too-wide) sample gap.
+func TestQuoteAmountOut_LiquidcoreOverquote2(t *testing.T) {
+	t.Parallel()
+
+	const maxOverquotePct = 0.15
+
+	cases := []struct {
+		name     string
+		amountIn float64
+		actual   float64 // ground truth from estimateSwap at block 41114514
+	}{
+		{"inside the knee", 13_000_000_000, 210761270356908427569},
+		{"right before the cap, at cheb16's real sample point", 15_329_698_408, 248699998915193755779},
+		{"just before the cap", 16_000_000_000, 258522846442632530933},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			quoted, err := QuoteAmountOut(liquidcoreUSDCkHYPELadder2, tc.amountIn)
+			assert.NoError(t, err)
+
+			diffPct := (quoted - tc.actual) / tc.actual * 100
+			t.Logf("quoted=%.6e actual=%.6e diff=%.4f%%", quoted, tc.actual, diffPct)
+			assert.LessOrEqualf(t, diffPct, maxOverquotePct,
+				"overquoted by %.4f%%, want at most %.2f%%", diffPct, maxOverquotePct)
+		})
+	}
+}
+
 // TestQuoteAmountOutLiquidcore_Monotonic guards the capacity-space blend
 // specifically: it only activates near the reserve cap, right where the
 // blend weight is transitioning fastest, so this is the fixture most likely

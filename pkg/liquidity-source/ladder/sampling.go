@@ -51,6 +51,10 @@ func BuildSamplePoints(reserve *big.Int) []*big.Int {
 // geometrically spaced between sampleBpsMin and sampleBpsMax and scaled by
 // reserve. Use a smaller n where quoting is expensive.
 func BuildSamplePointsN(reserve *big.Int, n int) []*big.Int {
+	return buildSamplePointsFromReserve(reserve, n)
+}
+
+func buildSamplePointsFromReserve(reserve *big.Int, n int) []*big.Int {
 	if reserve == nil || reserve.Sign() <= 0 {
 		return nil
 	}
@@ -67,6 +71,76 @@ func BuildSamplePointsN(reserve *big.Int, n int) []*big.Int {
 
 	sort.Slice(points, func(a, b int) bool { return points[a].Cmp(points[b]) < 0 })
 	return dedupSorted(points)
+}
+
+// nearCapacityFraction is the target fraction of the output-side reserve
+// that EstimateNearCapacityAmount looks for in the previous cycle's ladder:
+// the smallest previously-sampled amountIn whose amountOut already reached
+// this fraction of that cycle's reserve.
+const nearCapacityFraction = 0.95
+
+// EstimateNearCapacityAmount estimates, with no extra on-chain calls, the
+// amountIn that would deplete ~nearCapacityFraction of the CURRENT
+// output-side reserve, using the previous cycle's ladder and output-side
+// reserve as a guide.
+//
+// reserve0 alone can badly overstate the tradeable range for an imbalanced
+// pool (see BuildSamplePoints's doc): sampling up to 99% of reserve0 assumes
+// the other side has enough inventory to pay it out, which isn't always
+// true, and can be sparse or even revert entirely past the pool's real
+// depletion point. The previous ladder already recorded where that
+// depletion point was last cycle (in terms of that cycle's reserve); scaling
+// it by how much the output-side reserve has since changed re-estimates it
+// for this cycle without probing anything new.
+//
+// Returns nil if the previous ladder never got within
+// nearCapacityFraction of its cycle's reserve (no knee observed last time),
+// in which case the caller should fall back to its default reserve-based
+// basis.
+func EstimateNearCapacityAmount(prevLadder []Point, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
+	if prevOutputReserve == nil || prevOutputReserve.Sign() <= 0 ||
+		currentOutputReserve == nil || currentOutputReserve.Sign() <= 0 {
+		return nil
+	}
+
+	prevReserveF, _ := prevOutputReserve.Float64()
+	target := prevReserveF * nearCapacityFraction
+
+	var nearCapIn float64
+	found := false
+	for _, p := range prevLadder {
+		if p.AmountOut() >= target {
+			nearCapIn = p.AmountIn()
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	currentReserveF, _ := currentOutputReserve.Float64()
+	estimate := nearCapIn * (currentReserveF / prevReserveF)
+	if estimate <= 0 {
+		return nil
+	}
+
+	result, _ := big.NewFloat(estimate).Int(nil)
+	return result
+}
+
+// BuildSamplePointsFrom is like BuildSamplePointsN, but scales the
+// geometric grid from nearCapacityAmount (see EstimateNearCapacityAmount)
+// instead of directly off a reserve: nearCapacityAmount is treated as the
+// sampleBpsMax point, and the equivalent "reserve" is backed out so the
+// existing bps math applies unchanged.
+func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
+	if nearCapacityAmount == nil || nearCapacityAmount.Sign() <= 0 {
+		return nil
+	}
+	reserve := new(big.Int).Mul(nearCapacityAmount, bignumber.BasisPoint)
+	reserve.Div(reserve, big.NewInt(sampleBpsMax))
+	return buildSamplePointsFromReserve(reserve, n)
 }
 
 func dedupSorted(sorted []*big.Int) []*big.Int {
