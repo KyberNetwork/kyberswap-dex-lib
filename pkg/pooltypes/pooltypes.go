@@ -113,6 +113,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/machima"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/cmeth"
@@ -460,6 +461,7 @@ type Types struct {
 	AltFun                     string
 	Prop1010                   string
 	FermiProp                  string
+	Machima                    string
 }
 
 var (
@@ -695,5 +697,6 @@ var (
 		AltFun:                     altfun.DexType,
 		Prop1010:                   prop1010.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
+		Machima:                    machima.DexType,
 	}
 )

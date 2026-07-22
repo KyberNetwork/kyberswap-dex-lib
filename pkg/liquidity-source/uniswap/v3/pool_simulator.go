@@ -140,6 +140,14 @@ func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool) *uint256.Int {
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	return p.CalcAmountInWithPriceLimit(param, uint256.Int{})
+}
+
+// CalcAmountInWithPriceLimit is CalcAmountIn with an explicit sqrtPriceLimitX96. A zero limit means
+// "no limit" and reproduces plain CalcAmountIn. Forks that pin a price floor/ceiling (e.g. machima's
+// XMA sell floor) call this so they do not have to rebuild the result and SwapInfo by hand.
+func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams,
+	sqrtPriceLimitX96 uint256.Int) (*pool.CalcAmountInResult, error) {
 	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
 	tokenOut := tokenAmountOut.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
@@ -156,7 +164,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrOverflow
 	}
 
-	result, err := p.V3Pool.GetInputAmountV2(zeroForOne, amountOut, uint256.Int{})
+	result, err := p.V3Pool.GetInputAmountV2(zeroForOne, amountOut, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	}
@@ -174,13 +182,21 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		Gas:           p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops),
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: &result.SqrtRatioX96,
-			nextStateLiquidity:    result.Liquidity,
+			NextStateLiquidity:    result.Liquidity,
 			NextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	return p.CalcAmountOutWithPriceLimit(param, uint256.Int{})
+}
+
+// CalcAmountOutWithPriceLimit is CalcAmountOut with an explicit sqrtPriceLimitX96. A zero limit means
+// "no limit" and reproduces plain CalcAmountOut. When the limit is hit the swap only partially fills
+// and the unspent input is reported in RemainingTokenAmountIn.
+func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutParams,
+	sqrtPriceLimitX96 uint256.Int) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	tokenIn := tokenAmountIn.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
@@ -193,7 +209,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrOverflow
 	}
 	zeroForOne := tokenInIndex == 0
-	result, err := p.V3Pool.GetOutputAmountV2(zeroForOne, amountIn, uint256.Int{})
+	result, err := p.V3Pool.GetOutputAmountV2(zeroForOne, amountIn, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
@@ -219,7 +235,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		SwapInfo: SwapInfo{
 			RemainingAmountIn:     &result.RemainingAmountIn,
 			NextStateSqrtRatioX96: &result.SqrtRatioX96,
-			nextStateLiquidity:    result.Liquidity,
+			NextStateLiquidity:    result.Liquidity,
 			NextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
@@ -239,7 +255,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	p.V3Pool.SqrtRatioX96.Set(si.NextStateSqrtRatioX96)
-	p.V3Pool.Liquidity.Set(&si.nextStateLiquidity)
+	p.V3Pool.Liquidity.Set(&si.NextStateLiquidity)
 	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 	tokenAmtIn, tokenAmtOut := params.TokenAmountIn, params.TokenAmountOut
 	if p.GetTokenIndex(tokenAmtIn.Token) == 0 {
