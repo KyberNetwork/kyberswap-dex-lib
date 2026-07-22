@@ -78,9 +78,9 @@ func (c *Config) ExtensionType(extension common.Address) ExtensionType {
 			c.MevCapture:              ExtensionTypeMevCapture,
 			c.BoostedFeesConcentrated: ExtensionTypeBoostedFeesConcentrated,
 		}
-		if c.Ve33 != (common.Address{}) {
-			c.supportedExtensions[c.Ve33] = ExtensionTypeVe33
-		}
+	}
+	if c.Ve33 != (common.Address{}) {
+		c.supportedExtensions[c.Ve33] = ExtensionTypeVe33
 	}
 
 	if extensionType, ok := c.supportedExtensions[extension]; ok {

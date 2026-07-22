@@ -41,3 +41,14 @@ func TestConfigSupportsVe33(t *testing.T) {
 	require.Equal(t, ExtensionTypeVe33, cfg.ExtensionType(ve33))
 	require.Equal(t, ExtensionTypeNoSwapCallPoints, cfg.ExtensionType(common.HexToAddress("0x1")))
 }
+
+func TestConfigSupportsVe33SetAfterFirstLookup(t *testing.T) {
+	t.Parallel()
+
+	ve33 := common.HexToAddress("0xd100000000000000000000000000000000000000")
+	cfg := &Config{}
+
+	require.Equal(t, ExtensionTypeNoSwapCallPoints, cfg.ExtensionType(common.HexToAddress("0x1")))
+	cfg.Ve33 = ve33
+	require.Equal(t, ExtensionTypeVe33, cfg.ExtensionType(ve33))
+}

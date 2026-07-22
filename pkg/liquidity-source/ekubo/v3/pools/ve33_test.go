@@ -74,9 +74,12 @@ func TestVe33PoolAppliesVoteWeightEvent(t *testing.T) {
 	poolID, err := pool.GetKey().NumId()
 	require.NoError(t, err)
 
-	data := make([]byte, 192)
-	copy(data[64:96], poolID)
-	binary.BigEndian.PutUint64(data[184:192], onePercentVe33Fee)
+	data := make([]byte, voteWeightAppliedEncodedDataLength)
+	copy(data[voteWeightAppliedPoolIDOffset:voteWeightAppliedPoolIDOffset+abiWordSize], poolID)
+	binary.BigEndian.PutUint64(
+		data[voteWeightAppliedSwapFeeOffset:voteWeightAppliedSwapFeeOffset+8],
+		onePercentVe33Fee,
+	)
 	require.NoError(t, pool.ApplyEvent(EventVoteWeightApplied, data, 0))
 
 	state := pool.GetState().(*Ve33PoolState[any])

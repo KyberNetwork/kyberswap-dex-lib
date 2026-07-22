@@ -25,6 +25,14 @@ type (
 	}
 )
 
+const (
+	abiWordSize                        = 32
+	voteWeightAppliedPoolIDOffset      = 2 * abiWordSize
+	voteWeightAppliedSwapFeeWord       = 5
+	voteWeightAppliedSwapFeeOffset     = (voteWeightAppliedSwapFeeWord+1)*abiWordSize - 8
+	voteWeightAppliedEncodedDataLength = 6 * abiWordSize
+)
+
 func (p *Ve33Pool) GetKey() IPoolKey {
 	return p.Pool.GetKey()
 }
@@ -84,9 +92,10 @@ func (p *Ve33Pool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, er
 		if err != nil {
 			return nil, fmt.Errorf("amount before Ve33 fee: %w", err)
 		}
-		fee := new(uint256.Int).Sub(includingFee, quote.CalculatedAmount)
+		var fee uint256.Int
+		fee.Sub(includingFee, quote.CalculatedAmount)
 		quote.CalculatedAmount = includingFee
-		quote.FeesPaid.Add(quote.FeesPaid, fee)
+		quote.FeesPaid.Add(quote.FeesPaid, &fee)
 	}
 
 	return quote, nil
@@ -112,7 +121,7 @@ func NewVe33Pool(underlyingPool Pool, swapFee uint64) *Ve33Pool {
 }
 
 func parseVoteWeightAppliedEventIfMatching(data []byte, poolKey IPoolKey) (uint64, bool, error) {
-	if len(data) < 192 {
+	if len(data) < voteWeightAppliedEncodedDataLength {
 		return 0, false, fmt.Errorf("invalid VoteWeightApplied event data length: %d", len(data))
 	}
 
@@ -120,9 +129,11 @@ func parseVoteWeightAppliedEventIfMatching(data []byte, poolKey IPoolKey) (uint6
 	if err != nil {
 		return 0, false, fmt.Errorf("computing expected pool id: %w", err)
 	}
-	if !bytes.Equal(data[64:96], expectedPoolID) {
+	poolID := data[voteWeightAppliedPoolIDOffset : voteWeightAppliedPoolIDOffset+abiWordSize]
+	if !bytes.Equal(poolID, expectedPoolID) {
 		return 0, false, nil
 	}
 
-	return binary.BigEndian.Uint64(data[184:192]), true, nil
+	swapFee := data[voteWeightAppliedSwapFeeOffset : voteWeightAppliedSwapFeeOffset+8]
+	return binary.BigEndian.Uint64(swapFee), true, nil
 }
