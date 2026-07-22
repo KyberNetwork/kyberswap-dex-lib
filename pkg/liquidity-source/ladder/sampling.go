@@ -5,6 +5,9 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -229,6 +232,46 @@ func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
 	reserve := new(big.Int).Mul(nearCapacityAmount, bignumber.BasisPoint)
 	reserve.Div(reserve, big.NewInt(sampleBpsMax))
 	return buildSamplePointsFromReserve(reserve, dgeoBps(n))
+}
+
+// SamplePoints builds a pool tracker's probe grid for one swap direction's
+// next tracking cycle: dir's amountIn side is currentInputReserve, its
+// amountOut side is currentOutputReserve. It prefers guiding off the
+// previous cycle's ladder and output-side reserve, already sitting in
+// p.Extra / p.Reserves (no extra RPC calls needed -- just unmarshalling),
+// via EstimateNearCapacityAmount, and falls back to BuildSamplePoints on the
+// raw input-side reserve when there's nothing to guide from (a pool's first
+// probe, or a previous ladder that never showed a depletion knee).
+//
+// p.Extra is expected to already hold a JSON-marshaled Extra from the same
+// pool tracker (i.e. dir indexes p.Extra's Ladders the same way it indexes
+// p.Reserves), which every ladder-quoted pool tracker's persisted state
+// satisfies.
+func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
+	if nearCap := estimateNearCapacityAmount(p, dir, currentOutputReserve); nearCap != nil {
+		return BuildSamplePointsFrom(nearCap, SampleSize)
+	}
+	return BuildSamplePoints(currentInputReserve)
+}
+
+func estimateNearCapacityAmount(p entity.Pool, dir int, currentOutputReserve *big.Int) *big.Int {
+	if p.Extra == "" || len(p.Reserves) != 2 {
+		return nil
+	}
+
+	var prevExtra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &prevExtra); err != nil {
+		return nil
+	}
+
+	// dir=0 (token0->token1) output is token1, reserve index 1; dir=1 the
+	// reverse.
+	prevOutputReserve, ok := new(big.Int).SetString(p.Reserves[1-dir], 10)
+	if !ok {
+		return nil
+	}
+
+	return EstimateNearCapacityAmount(prevExtra.Ladders[dir], prevOutputReserve, currentOutputReserve)
 }
 
 func dedupSorted(sorted []*big.Int) []*big.Int {

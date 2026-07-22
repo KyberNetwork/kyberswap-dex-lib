@@ -56,7 +56,8 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 	blockNumber := resp.BlockNumber
 
-	points0, points1 := ladder.BuildSamplePoints(balances.ReserveX), ladder.BuildSamplePoints(balances.ReserveY)
+	points0 := ladder.SamplePoints(p, 0, balances.ReserveX, balances.ReserveY)
+	points1 := ladder.SamplePoints(p, 1, balances.ReserveY, balances.ReserveX)
 	ladders, err := t.probeQuotes(ctx, address, pairID, token0, token1, points0, points1, blockNumber)
 	if err != nil {
 		return p, err
