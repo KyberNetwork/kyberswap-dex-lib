@@ -17,5 +17,18 @@
         "type": "uint256"
       }
     ]
+  },
+  {
+    "name": "getBlockNumber",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "blockNumber",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ]
   }
 ]

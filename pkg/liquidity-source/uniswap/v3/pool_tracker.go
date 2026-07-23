@@ -18,6 +18,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
+	ponsfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/forks/pons-fun"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -415,6 +416,8 @@ func (t *Tracker) updateState(
 		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
 		Tick:         rpcState.Slot0.Tick,
 		Ticks:        entityPoolTicks,
+
+		BuyRestrictedToken: rpcState.BuyRestrictedToken,
 	}
 	if rpcState.TickSpacing != nil {
 		extra.TickSpacing = rpcState.TickSpacing.Uint64()
@@ -689,11 +692,12 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolp
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  rpcData.TickSpacing.Uint64(),
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
+		Liquidity:          rpcData.Liquidity,
+		TickSpacing:        rpcData.TickSpacing.Uint64(),
+		SqrtPriceX96:       rpcData.Slot0.SqrtPriceX96,
+		Tick:               rpcData.Slot0.Tick,
+		Ticks:              ticks,
+		BuyRestrictedToken: rpcData.BuyRestrictedToken,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -771,6 +775,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		}, []any{&reserve1})
 	}
 
+	var ponsGuard *ponsfun.Guard
+	if fork, ok := t.config.ForksConfig[valueobject.ExchangePonsFun]; ok && len(p.Tokens) == 2 {
+		ponsGuard = ponsfun.NewGuard(t.config.ChainID, fork.Multicall3, p.Tokens[0].Address, p.Tokens[1].Address)
+		ponsGuard.AddCalls(rpcRequest)
+	}
+
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -780,11 +790,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 	}
 
 	return &FetchRPCResult{
-		Liquidity:   liquidity,
-		Slot0:       slot0,
-		TickSpacing: tickSpacing,
-		Reserve0:    reserve0,
-		Reserve1:    reserve1,
+		Liquidity:          liquidity,
+		Slot0:              slot0,
+		TickSpacing:        tickSpacing,
+		Reserve0:           reserve0,
+		Reserve1:           reserve1,
+		BuyRestrictedToken: ponsGuard.BuyRestrictedToken(),
 	}, err
 }
 

@@ -72,6 +72,8 @@ type Extra struct {
 	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+
+	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"` // for pons-fun
 }
 
 type ExtraTickU256 struct {
@@ -80,6 +82,8 @@ type ExtraTickU256 struct {
 	TickSpacing  uint64       `json:"tickSpacing"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
+
+	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
 }
 
 // SimulatorConfig holds construction-time options for NewPoolSimulatorWithExtra.
@@ -104,6 +108,9 @@ type FetchRPCResult struct {
 	TickSpacing *big.Int `json:"tickSpacing"`
 	Reserve0    *big.Int `json:"reserve0"`
 	Reserve1    *big.Int `json:"reserve1"`
+
+	// pons-fun on robinhood check
+	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
 }
 
 type TicksResp struct {
