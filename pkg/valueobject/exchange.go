@@ -411,7 +411,6 @@ var SingleSwapSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:    {},
 	ExchangeEulerSwap:        {},
 	ExchangeEulerSwapV2:      {},
-	ExchangeLiquidityParty:   {},
 	ExchangeUniswapV4Euler:   {},
 	ExchangeUniswapV4EulerV2: {},
 	ExchangeWooFiV3:          {},
