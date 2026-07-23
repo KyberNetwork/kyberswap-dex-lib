@@ -155,6 +155,7 @@ const (
 	ExchangeKyberSwapLimitOrder        = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS      = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                 = "liquidcore"
+	ExchangeLiquidityParty             = "liquidity-party"
 	ExchangeListaStable                = "lista-stable"
 	ExchangeLitePSM                    = "lite-psm"
 	ExchangeLO1inch                    = "lo1inch"
@@ -410,6 +411,7 @@ var SingleSwapSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:    {},
 	ExchangeEulerSwap:        {},
 	ExchangeEulerSwapV2:      {},
+	ExchangeLiquidityParty:   {},
 	ExchangeUniswapV4Euler:   {},
 	ExchangeUniswapV4EulerV2: {},
 	ExchangeWooFiV3:          {},
