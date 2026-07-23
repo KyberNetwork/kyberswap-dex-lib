@@ -134,6 +134,7 @@ import (
 	pkg_liquiditysource_pancake_infinity_cl_hooks_alpha "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/alpha"
 	pkg_liquiditysource_pancake_infinity_cl_hooks_brevis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/brevis"
 	pkg_liquiditysource_pancake_infinity_cl_hooks_dynamicfee "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/dynamicfee"
+	pkg_liquiditysource_pancake_infinity_cl_hooks_feemanager "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/feemanager"
 	pkg_liquiditysource_pancake_infinity_cl_hooks_limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/limitorder"
 	pkg_liquiditysource_pancake_infinity_cl_hooks_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/stable"
 	pkg_liquiditysource_pancake_infinity_cl_hooks_tax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/tax"
@@ -379,6 +380,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_alpha.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_brevis.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_dynamicfee.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_feemanager.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_limitorder.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_stable.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_tax.Hook{})
