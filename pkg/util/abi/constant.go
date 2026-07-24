@@ -6,4 +6,5 @@ const (
 	Erc20TotalSupplyMethod = "totalSupply"
 
 	Multicall3GetEthBalance = "getEthBalance"
+	Multicall3TryAggregate  = "tryAggregate"
 )
