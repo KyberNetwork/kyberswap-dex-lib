@@ -90,7 +90,10 @@ type PoolStateBaseAsset struct {
 	ConvertRateSharesPerAsset *big.Int
 }
 
-// BaseAssetConfig mirrors AbstractARM's public baseAssetConfigs(address) getter.
+// BaseAssetConfig mirrors AbstractARM's public baseAssetConfigs(address) getter. Different AbstractARM
+// deployments return different tuple shapes (see baseAssetConfigsV2ABI); BaseAssetDecimals is only
+// populated when the 9-field layout matches (fetchAssetAndState always fetches decimals separately via
+// a plain ERC20 decimals() call too, so this field isn't relied upon).
 type BaseAssetConfig struct {
 	BuyPrice               *big.Int
 	SellPrice              *big.Int
@@ -99,6 +102,7 @@ type BaseAssetConfig struct {
 	CrossPrice             *big.Int
 	PendingRedeemAssets    *big.Int
 	PeggedToLiquidityAsset bool
+	BaseAssetDecimals      uint8
 	Adapter                common.Address
 }
 

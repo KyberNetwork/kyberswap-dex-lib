@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
@@ -257,8 +258,15 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 
 	// Second round trip: reserves for every ArmType, plus (Pricable4626 only) each base asset's
 	// decimals and baseAssetConfigs() pricing/adapter. All independent of each other, so they can be
-	// aggregated together; any failure here is a real error (target addresses are already confirmed live).
+	// aggregated together. baseAssetConfigs() tries two tuple shapes (see baseAssetConfigsV2ABI), which
+	// requires TryAggregate; a genuine on-chain revert on any other (very standard, already-confirmed-live
+	// target) call here is still treated as a hard failure via requiredCalls.
 	balanceCalls := ethrpcClient.NewRequest().SetContext(ctx)
+	requiredCalls = requiredCalls[:0]
+	balanceIdx := func() int { return len(balanceCalls.Calls) }
+	addBalanceRequired := func(method string) { requiredCalls = append(requiredCalls, requiredCall{balanceIdx(), method}) }
+
+	addBalanceRequired("balanceOf(token0)")
 	balanceCalls.AddCall(&ethrpc.Call{
 		ABI:    lidoArmABI,
 		Target: poolState.Token0.Hex(),
@@ -266,6 +274,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		Params: []any{common.HexToAddress(armAddr)},
 	}, []any{&poolState.Reserve0})
 	if armCfg.ArmType != Pricable4626 {
+		addBalanceRequired("balanceOf(token1)")
 		balanceCalls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: poolState.Token1.Hex(),
@@ -276,6 +285,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 
 	baseAssetConfigs := make([]BaseAssetConfig, len(poolState.BaseAssets))
 	if armCfg.ArmType == Pricable4626 {
+		addBalanceRequired("decimals(liquidityAsset)")
 		balanceCalls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: poolState.Token0.Hex(),
@@ -285,30 +295,44 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		poolState.BaseAssetReserves = make([]*big.Int, len(poolState.BaseAssets))
 		for i := range poolState.BaseAssets {
 			baseAssetAddr := poolState.BaseAssets[i].Address
+			addBalanceRequired("balanceOf(baseAsset)")
 			balanceCalls.AddCall(&ethrpc.Call{
 				ABI:    lidoArmABI,
 				Target: baseAssetAddr.Hex(),
 				Method: "balanceOf",
 				Params: []any{common.HexToAddress(armAddr)},
 			}, []any{&poolState.BaseAssetReserves[i]})
+			addBalanceRequired("decimals(baseAsset)")
 			balanceCalls.AddCall(&ethrpc.Call{
 				ABI:    lidoArmABI,
 				Target: baseAssetAddr.Hex(),
 				Method: "decimals",
 			}, []any{&poolState.BaseAssets[i].Decimals})
+			addBalanceRequired("baseAssetConfigs")
 			balanceCalls.AddCall(&ethrpc.Call{
-				ABI:    lidoArmABI,
-				Target: armAddr,
-				Method: "baseAssetConfigs",
-				Params: []any{baseAssetAddr},
-			}, []any{&baseAssetConfigs[i]})
+				ABI:       lidoArmABI,
+				Target:    armAddr,
+				Method:    "baseAssetConfigs",
+				Params:    []any{baseAssetAddr},
+				UnpackABI: []abi.ABI{baseAssetConfigsV2ABI, lidoArmABI},
+			}, []any{&baseAssetConfigs[i], &baseAssetConfigs[i]})
 		}
 	}
-	if _, err := balanceCalls.Aggregate(); err != nil {
+	balanceRes, err := balanceCalls.TryAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to initPool")
 		return nil, err
+	}
+	for _, rc := range requiredCalls {
+		if !balanceRes.Result[rc.idx] {
+			logger.WithFields(logger.Fields{
+				"armAddr": armAddr,
+				"method":  rc.method,
+			}).Errorf("failed to initPool: required call reverted")
+			return nil, ErrFailedToFetchPoolState
+		}
 	}
 
 	if armCfg.ArmType != Pricable4626 {
@@ -317,6 +341,13 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 
 	for i := range poolState.BaseAssets {
 		cfg := baseAssetConfigs[i]
+		if cfg.BuyPrice == nil {
+			logger.WithFields(logger.Fields{
+				"armAddr":   armAddr,
+				"baseAsset": poolState.BaseAssets[i].Address,
+			}).Errorf("failed to initPool: baseAssetConfigs did not match either known tuple shape")
+			return nil, ErrFailedToFetchPoolState
+		}
 		poolState.BaseAssets[i].PeggedToLiquidityAsset = cfg.PeggedToLiquidityAsset
 		poolState.BaseAssets[i].BuyPrice = cfg.BuyPrice
 		poolState.BaseAssets[i].SellPrice = cfg.SellPrice
