@@ -17,5 +17,53 @@
         "type": "uint256"
       }
     ]
+  },
+  {
+    "name": "tryAggregate",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "name": "requireSuccess",
+        "internalType": "bool",
+        "type": "bool"
+      },
+      {
+        "name": "calls",
+        "internalType": "struct Multicall3.Call[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "target",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "callData",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "returnData",
+        "internalType": "struct Multicall3.Result[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "success",
+            "internalType": "bool",
+            "type": "bool"
+          },
+          {
+            "name": "returnData",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      }
+    ]
   }
 ]
