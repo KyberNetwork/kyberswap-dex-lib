@@ -229,22 +229,22 @@ func buildInner(p *entity.Pool, hookExtraBytes []byte) (*stableng.PoolSimulator,
 	}
 
 	seBytes, err := json.Marshal(stableng.StaticExtra{
-		APrecision:          uint256.NewInt(APrecision),
-		OffpegFeeMultiplier: uint256.MustFromDecimal(hx.OffpegFeeMultiplier),
-		IsNativeCoins:       make([]bool, len(p.Tokens)),
+		APrecision:    uint256.NewInt(APrecision),
+		IsNativeCoins: make([]bool, len(p.Tokens)),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	exBytes, err := json.Marshal(stableng.Extra{
-		InitialA:        uint256.MustFromDecimal(hx.InitialA),
-		FutureA:         uint256.MustFromDecimal(hx.FutureA),
-		InitialATime:    hx.InitialATime,
-		FutureATime:     hx.FutureATime,
-		SwapFee:         uint256.MustFromDecimal(hx.SwapFee),
-		AdminFee:        uint256.MustFromDecimal(hx.AdminFee),
-		RateMultipliers: rates,
+		InitialA:            uint256.MustFromDecimal(hx.InitialA),
+		FutureA:             uint256.MustFromDecimal(hx.FutureA),
+		InitialATime:        hx.InitialATime,
+		FutureATime:         hx.FutureATime,
+		SwapFee:             uint256.MustFromDecimal(hx.SwapFee),
+		AdminFee:            uint256.MustFromDecimal(hx.AdminFee),
+		OffpegFeeMultiplier: uint256.MustFromDecimal(hx.OffpegFeeMultiplier),
+		RateMultipliers:     rates,
 	})
 	if err != nil {
 		return nil, err

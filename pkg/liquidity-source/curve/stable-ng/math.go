@@ -373,8 +373,8 @@ func (t *PoolSimulator) GetDx(
 }
 
 func (t *PoolSimulator) DynamicFee(xpi *uint256.Int, xpj *uint256.Int, swapFee *uint256.Int, feeOutput *uint256.Int) {
-	_offpeg_fee_multiplier := t.StaticExtra.OffpegFeeMultiplier
-	if _offpeg_fee_multiplier.Cmp(FeeDenominator) <= 0 {
+	_offpeg_fee_multiplier := t.Extra.OffpegFeeMultiplier
+	if _offpeg_fee_multiplier == nil || _offpeg_fee_multiplier.Cmp(FeeDenominator) <= 0 {
 		feeOutput.Set(swapFee)
 		return
 	}

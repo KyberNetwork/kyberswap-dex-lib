@@ -70,7 +70,7 @@ func (t *PoolTracker) getNewPoolState(
 	defer func() { lg.Info("Finish updating state.") }()
 
 	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply, offpegFeeMultiplier *big.Int
 
 		numTokens = len(p.Tokens)
 
@@ -122,7 +122,11 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
 		Method: PoolMethodGetBalances,
-	}, []any{&balances})
+	}, []any{&balances}).AddCall(&ethrpc.Call{
+		ABI:    CurveStableMetaNGABI,
+		Target: p.Address,
+		Method: poolMethodOffpegFeeMul,
+	}, []any{&offpegFeeMultiplier})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
@@ -132,12 +136,13 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var extra = Extra{
-		InitialA:     number.SetFromBig(initialA),
-		FutureA:      number.SetFromBig(futureA),
-		InitialATime: initialATime.Int64(),
-		FutureATime:  futureATime.Int64(),
-		SwapFee:      number.SetFromBig(swapFee),
-		AdminFee:     number.SetFromBig(adminFee),
+		InitialA:            number.SetFromBig(initialA),
+		FutureA:             number.SetFromBig(futureA),
+		InitialATime:        initialATime.Int64(),
+		FutureATime:         futureATime.Int64(),
+		SwapFee:             number.SetFromBig(swapFee),
+		AdminFee:            number.SetFromBig(adminFee),
+		OffpegFeeMultiplier: number.SetFromBig(offpegFeeMultiplier),
 	}
 
 	if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
