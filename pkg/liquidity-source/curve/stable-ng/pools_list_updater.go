@@ -67,14 +67,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
 	error) {
 	var (
-		aList          = make([]*big.Int, len(curvePools))
-		aPreciseList   = make([]*big.Int, len(curvePools))
-		feeMultipliers = make([]*big.Int, len(curvePools))
+		aList        = make([]*big.Int, len(curvePools))
+		aPreciseList = make([]*big.Int, len(curvePools))
 	)
 
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
 
-	// for Stable-NG pool we'll need APrecision (similar to Plain) and also OffpegFeeMultiplier
+	// for Stable-NG pool we'll need APrecision (similar to Plain).
+	// OffpegFeeMultiplier is governance-mutable, so it's fetched into Extra by the
+	// tracker's periodic poll instead of being captured once here as StaticExtra.
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    CurveStableNGABI,
@@ -84,11 +85,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			ABI:    CurveStableNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
-		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
-			ABI:    CurveStableNGABI,
-			Target: curvePool.Address,
-			Method: poolMethodOffpegFeeMul,
-		}, []any{&feeMultipliers[i]})
+		}, []any{&aPreciseList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -128,8 +125,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			lg.Warn("ignore pool with unknown APrecision")
 			continue
 		}
-
-		staticExtra.OffpegFeeMultiplier = uint256.MustFromBig(feeMultipliers[i])
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {

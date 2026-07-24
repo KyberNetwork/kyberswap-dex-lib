@@ -68,9 +68,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
 	error) {
 	var (
-		aList          = make([]*big.Int, len(curvePools))
-		aPreciseList   = make([]*big.Int, len(curvePools))
-		feeMultipliers = make([]*big.Int, len(curvePools))
+		aList        = make([]*big.Int, len(curvePools))
+		aPreciseList = make([]*big.Int, len(curvePools))
 	)
 
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
@@ -84,11 +83,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			ABI:    CurveStableMetaNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
-		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
-			ABI:    CurveStableMetaNGABI,
-			Target: curvePool.Address,
-			Method: poolMethodOffpegFeeMul,
-		}, []any{&feeMultipliers[i]})
+		}, []any{&aPreciseList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -131,8 +126,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			lg.Warn("ignore pool with unknown APrecision")
 			continue
 		}
-
-		staticExtra.OffpegFeeMultiplier = uint256.MustFromBig(feeMultipliers[i])
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
