@@ -7,18 +7,84 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // uint256FromBigOrNil converts a *big.Int to *uint256.Int, returning nil when v is nil. Used for
-// fields like BuyPrice/SellPrice that are only populated for some ArmType values.
+// fields that are only populated for some ArmType values.
 func uint256FromBigOrNil(v *big.Int) *uint256.Int {
 	if v == nil {
 		return nil
 	}
 	return uint256.MustFromBig(v)
+}
+
+// buildExtra converts fetched on-chain state into the persisted Extra, shared by the pool lister and
+// tracker so the two never drift on which fields are nil-safe for a given ArmType.
+func buildExtra(poolState *PoolState, armCfg ArmCfg) Extra {
+	return Extra{
+		TradeRate0:             uint256FromBigOrNil(poolState.TradeRate0),
+		TradeRate1:             uint256FromBigOrNil(poolState.TradeRate1),
+		PriceScale:             uint256FromBigOrNil(poolState.PriceScale),
+		WithdrawsQueued:        uint256FromBigOrNil(poolState.WithdrawsQueued),
+		WithdrawsClaimed:       uint256FromBigOrNil(poolState.WithdrawsClaimed),
+		LiquidityAsset:         poolState.LiquidityAsset,
+		LiquidityAssetDecimals: poolState.LiquidityAssetDecimals,
+		SwapTypes:              armCfg.SwapType,
+		ArmType:                armCfg.ArmType,
+		HasWithdrawalQueue:     armCfg.HasWithdrawalQueue,
+		Gas:                    Gas(armCfg.Gas),
+		BaseAssets:             toBaseAssetInfos(poolState.BaseAssets),
+	}
+}
+
+func toBaseAssetInfos(baseAssets []PoolStateBaseAsset) []BaseAssetInfo {
+	if baseAssets == nil {
+		return nil
+	}
+	out := make([]BaseAssetInfo, len(baseAssets))
+	for i, ba := range baseAssets {
+		out[i] = BaseAssetInfo{
+			Decimals:                  ba.Decimals,
+			PeggedToLiquidityAsset:    ba.PeggedToLiquidityAsset,
+			BuyPrice:                  uint256FromBigOrNil(ba.BuyPrice),
+			SellPrice:                 uint256FromBigOrNil(ba.SellPrice),
+			BuyLiquidityRemaining:     uint256FromBigOrNil(ba.BuyLiquidityRemaining),
+			SellLiquidityRemaining:    uint256FromBigOrNil(ba.SellLiquidityRemaining),
+			ConvertRateAssetsPerShare: uint256FromBigOrNil(ba.ConvertRateAssetsPerShare),
+			ConvertRateSharesPerAsset: uint256FromBigOrNil(ba.ConvertRateSharesPerAsset),
+		}
+	}
+	return out
+}
+
+// buildTokensAndReserves builds the entity.Pool token list and matching reserves. For ArmType
+// Pricable4626 the pool has N+1 tokens: [liquidityAsset, baseAssets...] (star topology); for other
+// ArmTypes it stays the original fixed [token0, token1] pair.
+func buildTokensAndReserves(poolState *PoolState, armCfg ArmCfg) ([]*entity.PoolToken, entity.PoolReserves) {
+	if armCfg.ArmType != Pricable4626 {
+		return []*entity.PoolToken{
+				{Address: hexutil.Encode(poolState.Token0[:]), Swappable: true},
+				{Address: hexutil.Encode(poolState.Token1[:]), Swappable: true},
+			}, entity.PoolReserves{
+				poolState.Reserve0.String(),
+				poolState.Reserve1.String(),
+			}
+	}
+
+	tokens := make([]*entity.PoolToken, 0, len(poolState.BaseAssets)+1)
+	reserves := make(entity.PoolReserves, 0, len(poolState.BaseAssets)+1)
+	tokens = append(tokens, &entity.PoolToken{Address: hexutil.Encode(poolState.Token0[:]), Swappable: true})
+	reserves = append(reserves, poolState.Reserve0.String())
+	for i, ba := range poolState.BaseAssets {
+		tokens = append(tokens, &entity.PoolToken{Address: hexutil.Encode(ba.Address[:]), Swappable: true})
+		reserves = append(reserves, poolState.BaseAssetReserves[i].String())
+	}
+	return tokens, reserves
 }
 
 func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAddr string, armCfg ArmCfg) (*PoolState, error) {
@@ -35,13 +101,12 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 	idx := func() int { return len(calls.Calls) }
 	addRequired := func(method string) { requiredCalls = append(requiredCalls, requiredCall{idx(), method}) }
 
-	var baseAssets []common.Address
+	var baseAssetAddrs []common.Address
 	switch armCfg.ArmType {
 	case Pricable4626:
 		// The upgraded ARM contract (AbstractARM) dropped the fixed token0()/token1() pair in favor of
-		// liquidityAsset() (the quote asset) plus getBaseAssets() (tradeable base assets against it).
-		// Pricable4626 only ever traded a single base asset, so Token0/Token1 keep working as before,
-		// just sourced from the new getters.
+		// liquidityAsset() (the quote asset) plus getBaseAssets() (one or more tradeable base assets
+		// against it, e.g. EthenaARM has 1, WETH_ARM has 4: stETH/wstETH/eETH/weETH).
 		addRequired("liquidityAsset")
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
@@ -53,7 +118,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "getBaseAssets",
-		}, []any{&baseAssets})
+		}, []any{&baseAssetAddrs})
 	default:
 		addRequired("token0")
 		calls.AddCall(&ethrpc.Call{
@@ -147,15 +212,17 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 	}
 
 	if armCfg.ArmType == Pricable4626 {
-		if len(baseAssets) == 0 {
+		if len(baseAssetAddrs) == 0 {
 			logger.WithFields(logger.Fields{
 				"armAddr": armAddr,
 			}).Errorf("failed to initPool: getBaseAssets returned no base asset")
 			return nil, ErrFailedToFetchPoolState
 		}
-		poolState.Token1 = baseAssets[0]
-		poolState.Vault.BaseAsset = baseAssets[0]
 		poolState.PriceScale = bignumber.NewBig(priceScale4626)
+		poolState.BaseAssets = make([]PoolStateBaseAsset, len(baseAssetAddrs))
+		for i, addr := range baseAssetAddrs {
+			poolState.BaseAssets[i].Address = addr
+		}
 	}
 
 	if armCfg.HasWithdrawalQueue {
@@ -188,6 +255,9 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		}
 	}
 
+	// Second round trip: reserves for every ArmType, plus (Pricable4626 only) each base asset's
+	// decimals and baseAssetConfigs() pricing/adapter. All independent of each other, so they can be
+	// aggregated together; any failure here is a real error (target addresses are already confirmed live).
 	balanceCalls := ethrpcClient.NewRequest().SetContext(ctx)
 	balanceCalls.AddCall(&ethrpc.Call{
 		ABI:    lidoArmABI,
@@ -195,30 +265,44 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		Method: "balanceOf",
 		Params: []any{common.HexToAddress(armAddr)},
 	}, []any{&poolState.Reserve0})
-	balanceCalls.AddCall(&ethrpc.Call{
-		ABI:    lidoArmABI,
-		Target: poolState.Token1.Hex(),
-		Method: "balanceOf",
-		Params: []any{common.HexToAddress(armAddr)},
-	}, []any{&poolState.Reserve1})
-	var baseAssetConfig BaseAssetConfig
-	if armCfg.ArmType == Pricable4626 {
-		balanceCalls.AddCall(&ethrpc.Call{
-			ABI:    ERC626ABI,
-			Target: poolState.Vault.BaseAsset.Hex(),
-			Method: "totalAssets",
-		}, []any{&poolState.Vault.TotalAssets})
-		balanceCalls.AddCall(&ethrpc.Call{
-			ABI:    ERC626ABI,
-			Target: poolState.Vault.BaseAsset.Hex(),
-			Method: "totalSupply",
-		}, []any{&poolState.Vault.TotalSupply})
+	if armCfg.ArmType != Pricable4626 {
 		balanceCalls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: armAddr,
-			Method: "baseAssetConfigs",
-			Params: []any{poolState.Vault.BaseAsset},
-		}, []any{&baseAssetConfig})
+			Target: poolState.Token1.Hex(),
+			Method: "balanceOf",
+			Params: []any{common.HexToAddress(armAddr)},
+		}, []any{&poolState.Reserve1})
+	}
+
+	baseAssetConfigs := make([]BaseAssetConfig, len(poolState.BaseAssets))
+	if armCfg.ArmType == Pricable4626 {
+		balanceCalls.AddCall(&ethrpc.Call{
+			ABI:    lidoArmABI,
+			Target: poolState.Token0.Hex(),
+			Method: "decimals",
+		}, []any{&poolState.LiquidityAssetDecimals})
+
+		poolState.BaseAssetReserves = make([]*big.Int, len(poolState.BaseAssets))
+		for i := range poolState.BaseAssets {
+			baseAssetAddr := poolState.BaseAssets[i].Address
+			balanceCalls.AddCall(&ethrpc.Call{
+				ABI:    lidoArmABI,
+				Target: baseAssetAddr.Hex(),
+				Method: "balanceOf",
+				Params: []any{common.HexToAddress(armAddr)},
+			}, []any{&poolState.BaseAssetReserves[i]})
+			balanceCalls.AddCall(&ethrpc.Call{
+				ABI:    lidoArmABI,
+				Target: baseAssetAddr.Hex(),
+				Method: "decimals",
+			}, []any{&poolState.BaseAssets[i].Decimals})
+			balanceCalls.AddCall(&ethrpc.Call{
+				ABI:    lidoArmABI,
+				Target: armAddr,
+				Method: "baseAssetConfigs",
+				Params: []any{baseAssetAddr},
+			}, []any{&baseAssetConfigs[i]})
+		}
 	}
 	if _, err := balanceCalls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -226,9 +310,55 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		}).Errorf("failed to initPool")
 		return nil, err
 	}
-	if armCfg.ArmType == Pricable4626 {
-		poolState.Vault.BuyPrice = baseAssetConfig.BuyPrice
-		poolState.Vault.SellPrice = baseAssetConfig.SellPrice
+
+	if armCfg.ArmType != Pricable4626 {
+		return &poolState, nil
+	}
+
+	for i := range poolState.BaseAssets {
+		cfg := baseAssetConfigs[i]
+		poolState.BaseAssets[i].PeggedToLiquidityAsset = cfg.PeggedToLiquidityAsset
+		poolState.BaseAssets[i].BuyPrice = cfg.BuyPrice
+		poolState.BaseAssets[i].SellPrice = cfg.SellPrice
+		poolState.BaseAssets[i].BuyLiquidityRemaining = cfg.BuyLiquidityRemaining
+		poolState.BaseAssets[i].SellLiquidityRemaining = cfg.SellLiquidityRemaining
+	}
+
+	// Third round trip (only for non-pegged base assets): snapshot each base asset's adapter
+	// conversion rate. Every adapter implements the same convertToAssets(shares)/convertToShares(assets)
+	// view functions (IAssetAdapter), regardless of the underlying mechanism (ERC4626 vault ratio for
+	// sUSDe, Lido share math for stETH-family adapters, wstETH's own rate, etc), so this works uniformly
+	// without protocol-specific logic on our side.
+	rateCalls := ethrpcClient.NewRequest().SetContext(ctx)
+	var hasRateCalls bool
+	for i := range poolState.BaseAssets {
+		ba := &poolState.BaseAssets[i]
+		if ba.PeggedToLiquidityAsset {
+			continue
+		}
+		hasRateCalls = true
+		refShares := bignumber.TenPowInt(ba.Decimals)
+		refAssets := bignumber.TenPowInt(poolState.LiquidityAssetDecimals)
+		rateCalls.AddCall(&ethrpc.Call{
+			ABI:    lidoArmABI,
+			Target: baseAssetConfigs[i].Adapter.Hex(),
+			Method: "convertToAssets",
+			Params: []any{refShares},
+		}, []any{&ba.ConvertRateAssetsPerShare})
+		rateCalls.AddCall(&ethrpc.Call{
+			ABI:    lidoArmABI,
+			Target: baseAssetConfigs[i].Adapter.Hex(),
+			Method: "convertToShares",
+			Params: []any{refAssets},
+		}, []any{&ba.ConvertRateSharesPerAsset})
+	}
+	if hasRateCalls {
+		if _, err := rateCalls.Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"error": err,
+			}).Errorf("failed to fetch base asset adapter conversion rates")
+			return nil, err
+		}
 	}
 
 	return &poolState, nil

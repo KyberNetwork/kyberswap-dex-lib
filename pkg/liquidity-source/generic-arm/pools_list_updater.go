@@ -6,9 +6,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -56,26 +54,7 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCf
 		return nil, err
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		Gas:                Gas(armCfg.Gas),
-		TradeRate0:         uint256.MustFromBig(poolState.TradeRate0),
-		TradeRate1:         uint256.MustFromBig(poolState.TradeRate1),
-		PriceScale:         uint256.MustFromBig(poolState.PriceScale),
-		WithdrawsQueued:    uint256.MustFromBig(poolState.WithdrawsQueued),
-		WithdrawsClaimed:   uint256.MustFromBig(poolState.WithdrawsClaimed),
-		LiquidityAsset:     poolState.LiquidityAsset,
-		SwapTypes:          armCfg.SwapType,
-		ArmType:            armCfg.ArmType,
-		HasWithdrawalQueue: armCfg.HasWithdrawalQueue,
-		Vault: ERC4626Extra{
-			BaseAsset:   poolState.Vault.BaseAsset,
-			TotalAssets: uint256FromBigOrNil(poolState.Vault.TotalAssets),
-			TotalSupply: uint256FromBigOrNil(poolState.Vault.TotalSupply),
-			BuyPrice:    uint256FromBigOrNil(poolState.Vault.BuyPrice),
-			SellPrice:   uint256FromBigOrNil(poolState.Vault.SellPrice),
-		},
-	})
-
+	extraBytes, err := json.Marshal(buildExtra(poolState, armCfg))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -83,22 +62,14 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCf
 		return nil, err
 	}
 
+	tokens, reserves := buildTokensAndReserves(poolState, armCfg)
 	return &entity.Pool{
 		Address:   armAddr,
 		Exchange:  d.config.DexID,
 		Type:      DexType,
 		Timestamp: time.Now().Unix(),
-		Reserves:  []string{poolState.Reserve0.String(), poolState.Reserve1.String()},
-		Tokens: []*entity.PoolToken{
-			{
-				Address:   hexutil.Encode(poolState.Token0[:]),
-				Swappable: true,
-			},
-			{
-				Address:   hexutil.Encode(poolState.Token1[:]),
-				Swappable: true,
-			},
-		},
-		Extra: string(extraBytes),
+		Reserves:  reserves,
+		Tokens:    tokens,
+		Extra:     string(extraBytes),
 	}, nil
 }
