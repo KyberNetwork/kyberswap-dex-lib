@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -123,6 +124,11 @@ type HookParam struct {
 	HookExtra   HookExtra
 	HookAddress common.Address
 	BlockNumber *big.Int
+	// Overrides carries eth_call state overrides (e.g. post-victim-tx prestate) so a hook's
+	// Track/GetReserves RPC reads can be re-priced against pending-block state rather than the
+	// latest on-chain state. Threaded through by PoolTracker.GetNewPoolStateWithOverrides; nil
+	// in the normal-flow (GetNewPoolState) path.
+	Overrides map[common.Address]gethclient.OverrideAccount
 }
 
 type HookExtra json.RawMessage

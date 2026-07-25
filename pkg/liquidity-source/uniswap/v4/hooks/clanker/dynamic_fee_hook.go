@@ -123,7 +123,8 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 		info      TokenDeploymentInfo
 	)
 
-	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
+	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
+		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 		ABI:    dynamicFeeHookABI,
 		Target: hook,
 		Method: "protocolFee",

@@ -58,7 +58,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		}
 	)
 
-	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
+	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
+		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 		ABI:    ILivoTokenABI,
 		Target: tokenAddress,
 		Method: "graduated",
