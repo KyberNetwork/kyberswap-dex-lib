@@ -125,7 +125,7 @@ func (t *PoolTracker) getNewPoolState(
 	}, []any{&balances}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableMetaNGABI,
 		Target: p.Address,
-		Method: poolMethodOffpegFeeMul,
+		Method: PoolMethodOffpegFeeMul,
 	}, []any{&offpegFeeMultiplier})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {

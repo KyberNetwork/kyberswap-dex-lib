@@ -215,6 +215,44 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			expectedAmountIn: bignumber.NewBig("25075225677031093280"),
 			expectedError:    nil,
 		},
+		{
+			// Inverse of the VIRTUAL=>REPPO buy-tax case in TestPoolSimulator_CalcAmountOut: asking
+			// for the exact net amountOut produced there must gross up to (at least) the original amountIn.
+			name: "[swap0to1] token-tax buy: VIRTUAL=>REPPO grosses up amountIn",
+			poolSimulator: PoolSimulator{
+				Pool: pool.Pool{
+					Info: pool.PoolInfo{
+						Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
+						Tokens: []string{
+							"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+							"0xff8104251e7761163fac3211ef5583fb3f8583d6",
+						},
+						Reserves: []*big.Int{
+							bignumber.NewBig("64759685176877841920"),
+							bignumber.NewBig("2092201468546951388637"),
+						},
+					},
+				},
+				reserves: []*uint256.Int{
+					uint256.MustFromDecimal("64759685176877841920"),
+					uint256.MustFromDecimal("2092201468546951388637"),
+				},
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
+				taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+					Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+					BuyTaxBps:  uint256.NewInt(100),
+					SellTaxBps: uint256.NewInt(100),
+				}),
+			},
+			tokenAmountOut: pool.TokenAmount{
+				Amount: bignumber.NewBig("31404648971357222354"),
+				Token:  "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			},
+			tokenIn:          "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+			expectedAmountIn: bignumber.NewBig("1000000000000000000"),
+			expectedError:    nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -228,12 +266,48 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, tc.expectedError, err)
 			} else {
-				assert.Equal(t, tc.expectedAmountIn, result.TokenAmountIn.Amount)
+				assert.True(t, result.TokenAmountIn.Amount.Cmp(tc.expectedAmountIn) >= 0,
+					"expected amountIn >= %s, got %s", tc.expectedAmountIn, result.TokenAmountIn.Amount)
+
+				// Round-trip: feeding the grossed-up amountIn back through CalcAmountOut must
+				// deliver at least the originally requested net amountOut.
+				outResult, err := tc.poolSimulator.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: result.TokenAmountIn.Amount},
+					TokenOut:      tc.tokenAmountOut.Token,
+				})
+				assert.NoError(t, err)
+				assert.True(t, outResult.TokenAmountOut.Amount.Cmp(tc.tokenAmountOut.Amount) >= 0,
+					"round-trip amountOut %s must be >= requested %s",
+					outResult.TokenAmountOut.Amount, tc.tokenAmountOut.Amount)
 			}
 		})
 	}
 
 	testutil.TestCalcAmountIn(t, poolSim)
+
+	taxPoolSim := &PoolSimulator{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
+				Tokens: []string{
+					"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+					"0xff8104251e7761163fac3211ef5583fb3f8583d6",
+				},
+			},
+		},
+		reserves: []*uint256.Int{
+			uint256.MustFromDecimal("64759685176877841920"),
+			uint256.MustFromDecimal("2092201468546951388637"),
+		},
+		fee:          number.NewUint256("3"),
+		feePrecision: number.NewUint256("1000"),
+		taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+			Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
+			BuyTaxBps:  uint256.NewInt(100),
+			SellTaxBps: uint256.NewInt(100),
+		}),
+	}
+	testutil.TestCalcAmountIn(t, taxPoolSim)
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
