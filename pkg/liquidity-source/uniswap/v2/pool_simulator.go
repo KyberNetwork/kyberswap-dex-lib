@@ -116,22 +116,37 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow || amountOut.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
-	} else if !amountOut.Lt(reserveOut) {
+	}
+
+	// Pair must send grossAmountOut so the user still nets amountOut after buy tax;
+	// pair must receive effectiveAmountIn, so the user has to send amountIn grossed up for sell tax.
+	grossAmountOut := s.taxHandler.GrossUpBuyTax(s.Info.Tokens[indexOut], amountOut)
+	if !grossAmountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	amountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut)
+	effectiveAmountIn, err := s.getAmountIn(grossAmountOut, reserveIn, reserveOut)
 	if err != nil {
 		return nil, err
-	} else if amountIn.Sign() <= 0 {
+	} else if effectiveAmountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
-	return &pool.CalcAmountInResult{
+	amountIn := s.taxHandler.GrossUpSellTax(s.Info.Tokens[indexIn], effectiveAmountIn)
+
+	result := &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:           defaultGas + extraGasByExchange[s.GetExchange()],
-	}, nil
+	}
+	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
+		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
+		result.SwapInfo = SwapInfo{
+			EffectiveAmountIn: effectiveAmountIn.ToBig(),
+			GrossAmountOut:    grossAmountOut.ToBig(),
+		}
+	}
+	return result, nil
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

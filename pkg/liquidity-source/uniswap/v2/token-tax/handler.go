@@ -36,8 +36,29 @@ func (h Handler) ApplyBuyTax(tokenOut string, grossOut *uint256.Int) *uint256.In
 	return deductTax(grossOut, h.BuyTaxBps)
 }
 
+func (h Handler) GrossUpSellTax(tokenIn string, netIn *uint256.Int) *uint256.Int {
+	if !h.HasSellTax(tokenIn) {
+		return netIn
+	}
+	return grossUpTax(netIn, h.SellTaxBps)
+}
+
+func (h Handler) GrossUpBuyTax(tokenOut string, netOut *uint256.Int) *uint256.Int {
+	if !h.HasBuyTax(tokenOut) {
+		return netOut
+	}
+	return grossUpTax(netOut, h.BuyTaxBps)
+}
+
 func deductTax(amount, taxBps *uint256.Int) *uint256.Int {
 	var tax uint256.Int
 	tax.Div(tax.Mul(amount, taxBps), big256.UBasisPoint)
 	return tax.Sub(amount, &tax)
+}
+
+func grossUpTax(netAmount, taxBps *uint256.Int) *uint256.Int {
+	var denom, gross uint256.Int
+	denom.Sub(big256.UBasisPoint, taxBps)
+	big256.MulDivUp(&gross, netAmount, big256.UBasisPoint, &denom)
+	return &gross
 }

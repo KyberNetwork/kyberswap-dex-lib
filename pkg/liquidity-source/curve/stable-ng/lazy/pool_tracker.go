@@ -90,15 +90,16 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 type rpcData struct {
-	initialA     *big.Int
-	futureA      *big.Int
-	initialATime *big.Int
-	futureATime  *big.Int
-	swapFee      *big.Int
-	adminFee     *big.Int
-	lpSupply     *big.Int
-	storedRates  [shared.MaxTokenCount]*big.Int
-	balances     []*big.Int
+	initialA            *big.Int
+	futureA             *big.Int
+	initialATime        *big.Int
+	futureATime         *big.Int
+	swapFee             *big.Int
+	adminFee            *big.Int
+	offpegFeeMultiplier *big.Int
+	lpSupply            *big.Int
+	storedRates         [shared.MaxTokenCount]*big.Int
+	balances            []*big.Int
 }
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
@@ -111,17 +112,19 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
 	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodStoredRates}, []any{&d.storedRates})
 	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodGetBalances}, []any{&d.balances})
+	addFn(&ethrpc.Call{ABI: stableng.CurveStableNGABI, Target: poolAddress, Method: stableng.PoolMethodOffpegFeeMul}, []any{&d.offpegFeeMultiplier})
 }
 
 func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData, blockNumber *big.Int) (entity.Pool, error) {
 	numTokens := len(d.balances)
 	extra := stableng.Extra{
-		InitialA:     number.SetFromBig(d.initialA),
-		FutureA:      number.SetFromBig(d.futureA),
-		InitialATime: d.initialATime.Int64(),
-		FutureATime:  d.futureATime.Int64(),
-		SwapFee:      number.SetFromBig(d.swapFee),
-		AdminFee:     number.SetFromBig(d.adminFee),
+		InitialA:            number.SetFromBig(d.initialA),
+		FutureA:             number.SetFromBig(d.futureA),
+		InitialATime:        d.initialATime.Int64(),
+		FutureATime:         d.futureATime.Int64(),
+		SwapFee:             number.SetFromBig(d.swapFee),
+		AdminFee:            number.SetFromBig(d.adminFee),
+		OffpegFeeMultiplier: number.SetFromBig(d.offpegFeeMultiplier),
 	}
 
 	if err := updateRateMultipliers(lg, &extra, numTokens, d.storedRates[:numTokens]); err != nil {
