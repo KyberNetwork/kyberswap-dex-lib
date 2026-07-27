@@ -29,6 +29,8 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
+var _ pool.IPoolTrackerWithOverrides = (*PoolTracker)(nil)
+
 type DecodedOracleConfig struct {
 	OracleType      uint8
 	TargetType      uint8
@@ -129,6 +131,13 @@ func (t *PoolTracker) GetNewPoolState(
 	return t.getNewPoolState(ctx, p, params, nil)
 }
 
+// GetNewPoolStateWithOverrides behaves like GetNewPoolState but reads the
+// transmuter's collateral/fee state and oracle feeds (Chainlink/Pyth/Morpho)
+// under the given state overrides. Angle Transmuter is oracle-priced: fees and
+// mint/burn prices depend on oracle reads made fresh at call time, not on
+// values carried in swap logs, so a log-only fold cannot recover them. Reading
+// them under the pending tx's post-victim prestate override yields the correct
+// post-victim price state for backrun sims.
 func (t *PoolTracker) GetNewPoolStateWithOverrides(
 	ctx context.Context,
 	p entity.Pool,
@@ -141,10 +150,10 @@ func (t *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
-	_ map[common.Address]gethclient.OverrideAccount,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	var collateralList []common.Address
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
 			Target: t.config.Transmuter,
@@ -160,7 +169,7 @@ func (t *PoolTracker) getNewPoolState(
 	collateralBalances := make([]*big.Int, len(collateralList))
 	var totalStablecoinIssued *big.Int
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	for i, collateral := range collateralList {
 		collateralInfo[i] = &CollateralInfo{}
 		calls.AddCall(&ethrpc.Call{
@@ -237,7 +246,7 @@ func (t *PoolTracker) getNewPoolState(
 		make([]*uint256.Int, len(collateralList)), // target
 	}
 
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	for i, collat := range oracleConfigs {
 		configs := []struct {
 			typ  OracleReadType
