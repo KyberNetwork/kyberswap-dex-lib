@@ -49,7 +49,8 @@ func (h *L2Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.Ra
 			ProtocolSwapFeeE6 uint32
 		}
 	}
-	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
+	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
+		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 		ABI:    hookABI,
 		Target: hexutil.Encode(param.HookAddress[:]),
 		Method: "getPoolFeeConfiguration",

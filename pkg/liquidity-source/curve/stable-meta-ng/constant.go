@@ -9,9 +9,9 @@ import (
 const (
 	DexType = "curve-stable-meta-ng"
 
-	poolMethodA            = "A"
-	poolMethodAPrecise     = "A_precise"
-	poolMethodOffpegFeeMul = "offpeg_fee_multiplier"
+	poolMethodA        = "A"
+	poolMethodAPrecise = "A_precise"
+
 	PoolMethodInitialA     = "initial_A"
 	PoolMethodInitialATime = "initial_A_time"
 	PoolMethodFutureA      = "future_A"
@@ -20,6 +20,7 @@ const (
 	PoolMethodAdminFee     = "admin_fee"
 	PoolMethodGetBalances  = "get_balances"
 	PoolMethodStoredRates  = "stored_rates"
+	PoolMethodOffpegFeeMul = "offpeg_fee_multiplier"
 
 	MaxLoopLimit = 256
 

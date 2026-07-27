@@ -150,7 +150,7 @@ func (p *BoostedFeesPool) ApplyEvent(event Event, data []byte, blockTimestamp ui
 			return fmt.Errorf("computing expected pool id: %w", err)
 		}
 
-		if slices.Compare(data[0:32], expectedPoolId) != 0 {
+		if slices.Compare(data[:32], expectedPoolId) != 0 {
 			return nil
 		}
 
@@ -167,7 +167,7 @@ func (p *BoostedFeesPool) ApplyEvent(event Event, data []byte, blockTimestamp ui
 			return fmt.Errorf("computing expected pool id: %w", err)
 		}
 
-		if slices.Compare(data[0:32], expectedPoolId) != 0 {
+		if slices.Compare(data[:32], expectedPoolId) != 0 {
 			return nil
 		}
 

@@ -129,7 +129,7 @@ func (k *PoolKey[T]) NumId() ([]byte, error) {
 		enc, err := poolKeyABIArguments.Pack(
 			k.Token0,
 			k.Token1,
-			[32]byte(k.Config.Compressed()),
+			k.Config.Compressed(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("computing numerical id: %w", err)

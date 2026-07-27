@@ -174,6 +174,7 @@ import (
 	pkg_liquiditysource_uniswap_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	pkg_liquiditysource_uniswap_v4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	pkg_liquiditysource_uniswap_v4_hooks_aegis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/aegis"
+	pkg_liquiditysource_uniswap_v4_hooks_aegisprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/aegisprop"
 	pkg_liquiditysource_uniswap_v4_hooks_alpha "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/alpha"
 	pkg_liquiditysource_uniswap_v4_hooks_alphix "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/alphix"
 	pkg_liquiditysource_uniswap_v4_hooks_angstrom "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/angstrom"
@@ -421,6 +422,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_aegis.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_aegisprop.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_alpha.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_alphix.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_angstrom.Hook{})

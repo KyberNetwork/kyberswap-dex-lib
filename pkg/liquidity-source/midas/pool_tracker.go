@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -20,7 +21,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var (
+	_                                = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+	_ pool.IPoolTrackerWithOverrides = (*PoolTracker)(nil)
+)
 
 type PoolTracker struct {
 	config       *Config
@@ -39,6 +43,16 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, 
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	_ pool.GetNewPoolStateParams) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	lg := logger.WithFields(logger.Fields{
 		"pool": p.Address,
 	})
@@ -57,7 +71,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		paymentTokenAddresses []common.Address
 		mTokenAddress         common.Address
 	)
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		AddCall(&ethrpc.Call{
 			ABI:    lo.Ternary(staticExtra.IsDv, DepositVaultABI, RedemptionVaultABI),
 			Target: p.Address,
@@ -78,7 +92,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	tokens = append(tokens, paymentTokenAddresses...)
 
 	decimals := make([]uint8, len(tokens))
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	for i, token := range tokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    abi.Erc20ABI,
@@ -109,14 +123,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	var vaultState *VaultStateRpcResult
 	if staticExtra.IsDv {
-		vaultState, err = t.getDvState(ctx, p.Address, mToken, paymentTokens, currentDayNumber)
+		vaultState, err = t.getDvState(ctx, p.Address, mToken, paymentTokens, currentDayNumber, overrides)
 	} else {
 		rvCfg, ok := t.rvConfigs[p.Address]
 		if !ok {
 			lg.Errorf("failed to find rvConfig")
 			return p, nil
 		}
-		vaultState, err = t.getRvState(ctx, rvCfg, paymentTokens, currentDayNumber)
+		vaultState, err = t.getRvState(ctx, rvCfg, paymentTokens, currentDayNumber, overrides)
 	}
 	if err != nil {
 		lg.Errorf("failed to get vault state: %v", err)
@@ -210,13 +224,13 @@ func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault string, mToken s
 }
 
 func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, tokens []string,
-	currentDayNumber int64) (*VaultStateRpcResult, error) {
+	currentDayNumber int64, overrides map[common.Address]gethclient.OverrideAccount) (*VaultStateRpcResult, error) {
 	lg := logger.WithFields(logger.Fields{"dv": vault})
 
 	var result VaultStateRpcResult
 	result.MToken = mToken
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req = t.initVaultCalls(req, vault, mToken, tokens, &result, true, currentDayNumber)
 	req.AddCall(&ethrpc.Call{
 		ABI:    DepositVaultABI,
@@ -249,6 +263,7 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, toke
 		NewRequest().
 		SetContext(ctx).
 		SetBlockNumber(resp.BlockNumber).
+		SetOverrides(overrides).
 		AddCall(&ethrpc.Call{
 			ABI:    dataFeedABI,
 			Target: result.MTokenDataFeed.String(),
@@ -275,7 +290,7 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, toke
 }
 
 func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []string,
-	currentDayNumber int64) (*VaultStateRpcResult, error) {
+	currentDayNumber int64, overrides map[common.Address]gethclient.OverrideAccount) (*VaultStateRpcResult, error) {
 	lg := logger.WithFields(logger.Fields{
 		"rv": rvCfg.Address,
 	})
@@ -283,7 +298,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 	var result VaultStateRpcResult
 	result.MToken = rvCfg.MToken
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req = t.initVaultCalls(req, rvCfg.Address, rvCfg.MToken, tokens, &result, true, currentDayNumber)
 
 	result.TokenBalances = make([]*big.Int, len(tokens))
@@ -309,6 +324,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			NewRequest().
 			SetContext(ctx).
 			SetBlockNumber(resp.BlockNumber).
+			SetOverrides(overrides).
 			AddCall(&ethrpc.Call{
 				ABI:    dataFeedABI,
 				Target: result.MTokenDataFeed.String(),
@@ -343,6 +359,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			NewRequest().
 			SetContext(ctx).
 			SetBlockNumber(resp.BlockNumber).
+			SetOverrides(overrides).
 			AddCall(&ethrpc.Call{
 				ABI:    RedemptionVaultABI,
 				Target: rvCfg.Address,
@@ -367,6 +384,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 				NewRequest().
 				SetContext(ctx).
 				SetBlockNumber(resp.BlockNumber).
+				SetOverrides(overrides).
 				AddCall(&ethrpc.Call{
 					ABI:    abi.Erc20ABI,
 					Target: t.rvConfigs[mTbillRv].MToken,
@@ -382,7 +400,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			}
 
 			result.SwapperVaultType = mTbillRvCfg.RvType
-			result.MTbillRedemptionVault, err = t.getRvState(ctx, mTbillRvCfg, tokens, currentDayNumber)
+			result.MTbillRedemptionVault, err = t.getRvState(ctx, mTbillRvCfg, tokens, currentDayNumber, overrides)
 			if err != nil {
 				lg.WithFields(logger.Fields{
 					"error": err,
@@ -397,6 +415,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			NewRequest().
 			SetContext(ctx).
 			SetBlockNumber(resp.BlockNumber).
+			SetOverrides(overrides).
 			AddCall(&ethrpc.Call{
 				ABI:    dataFeedABI,
 				Target: result.MTokenDataFeed.String(),
@@ -428,6 +447,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			NewRequest().
 			SetContext(ctx).
 			SetBlockNumber(resp.BlockNumber).
+			SetOverrides(overrides).
 			AddCall(&ethrpc.Call{
 				ABI:    redemptionVaultWithUstbABI,
 				Target: rvCfg.Address,
@@ -444,6 +464,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			NewRequest().
 			SetContext(ctx).
 			SetBlockNumber(resp.BlockNumber).
+			SetOverrides(overrides).
 			AddCall(&ethrpc.Call{
 				ABI:    redemptionABI,
 				Target: ustbRedemption.String(),
@@ -496,6 +517,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			NewRequest().
 			SetContext(ctx).
 			SetBlockNumber(resp.BlockNumber).
+			SetOverrides(overrides).
 			AddCall(&ethrpc.Call{
 				ABI:    dataFeedABI,
 				Target: result.MTokenDataFeed.String(),

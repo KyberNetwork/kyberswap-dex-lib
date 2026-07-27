@@ -7,4 +7,5 @@ const (
 
 	Multicall3GetEthBalance  = "getEthBalance"
 	Multicall3GetBlockNumber = "getBlockNumber"
+	Multicall3TryAggregate   = "tryAggregate"
 )
