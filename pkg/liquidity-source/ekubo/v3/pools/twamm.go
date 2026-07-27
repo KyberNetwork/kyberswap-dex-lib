@@ -45,7 +45,7 @@ type (
 	TwammOrderKeyAbi = struct {
 		Token0 common.Address `json:"token0"`
 		Token1 common.Address `json:"token1"`
-		Config [32]byte       `json:"config"`
+		Config common.Hash    `json:"config"`
 	}
 
 	TwammOrderKey struct {
@@ -215,7 +215,7 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) 
 			return fmt.Errorf("computing expected pool id: %w", err)
 		}
 
-		if slices.Compare(data[0:32], expectedPoolId) != 0 {
+		if slices.Compare(data[:32], expectedPoolId) != 0 {
 			return nil
 		}
 
