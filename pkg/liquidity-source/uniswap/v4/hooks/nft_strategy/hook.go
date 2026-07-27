@@ -39,7 +39,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 
 	var deploymentBlock int64
 	hookAddr := hexutil.Encode(param.HookAddress[:])
-	resp, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	resp, err := param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 		ABI:    hookABI,
 		Target: hookAddr,
 		Method: "deploymentBlock",
