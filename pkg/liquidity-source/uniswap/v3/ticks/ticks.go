@@ -4,16 +4,15 @@ import (
 	"errors"
 	"maps"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 )
 
@@ -135,9 +134,15 @@ func ValidatePoolTicks(pool TicksBasedPool, ticks []Tick) error {
 	return nil
 }
 
+// IsMissingTrieNodeError reports whether err indicates the RPC node can't serve state
+// for the requested historical block (pruned, not an archive node, etc). Delegates the
+// actual classification to eth.IsPrunedStateError, shared with pool-service, so the two
+// can't drift out of sync on which error strings different RPC providers use for the
+// same underlying condition.
 func IsMissingTrieNodeError(err error) bool {
-	return lo.TernaryF(strings.Contains(err.Error(), "missing trie node"), func() bool {
-		metrics.IncrMissingTrieNode()
-		return true
-	}, func() bool { return false })
+	if !eth.IsPrunedStateError(err) {
+		return false
+	}
+	metrics.IncrMissingTrieNode()
+	return true
 }
