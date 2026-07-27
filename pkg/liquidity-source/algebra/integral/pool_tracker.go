@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -71,7 +72,7 @@ func (d *PoolTracker) BootstrapPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.FetchRPCData(ctx, &p, 0)
+		rpcData, err = d.FetchRPCData(ctx, &p, 0, nil)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -164,7 +165,8 @@ func (d *PoolTracker) BootstrapPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64,
+	overrides map[common.Address]gethclient.OverrideAccount) (*FetchRPCResult, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       d.config.DexID,
@@ -172,7 +174,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	res := &FetchRPCResult{}
 
-	req := d.EthrpcClient.NewRequest().SetContext(ctx)
+	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if blockNumber > 0 {
 		req.SetBlockNumber(big.NewInt(int64(blockNumber)))
 	}
@@ -236,7 +238,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Unlocked:     rpcState.Unlocked,
 	}
 
-	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p, plugin, result.BlockNumber)
+	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p, plugin,
+		result.BlockNumber, overrides)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -254,7 +257,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 }
 
 func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginAddr common.Address,
-	blockNumber *big.Int) (map[uint16]Timepoint, *VolatilityOraclePlugin, *DynamicFeeConfig, *SlidingFeeConfig, error) {
+	blockNumber *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint,
+	*VolatilityOraclePlugin, *DynamicFeeConfig, *SlidingFeeConfig, error) {
 	if pluginAddr == valueobject.AddrZero {
 		return nil, nil, nil, nil, nil
 	}
@@ -265,7 +269,7 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginA
 		"dexID":       d.config.DexID,
 	})
 
-	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).SetOverrides(overrides)
 
 	volatilityOracleData, volPost := d.getVolatilityOracleData(req, plugin)
 	dynamicFeeData, dynPost := d.getDynamicFeeData(req, plugin)
@@ -297,7 +301,7 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginA
 		var extra ExtraTimepoint
 		_ = json.Unmarshal([]byte(p.Extra), &extra)
 		if timepoints, err = d.getTimepoints(ctx, plugin, blockNumber, volatilityOracleData.TimepointIndex,
-			extra.Timepoints); err != nil {
+			extra.Timepoints, overrides); err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to fetch timepoints data from plugin")
@@ -410,12 +414,13 @@ func (d *PoolTracker) getSlidingFeeData(req *ethrpc.Request, pluginAddress strin
 }
 
 func (d *PoolTracker) getTimepoints(ctx context.Context, pluginAddress string, blockNumber *big.Int,
-	currentIndex uint16, timepoints map[uint16]Timepoint) (map[uint16]Timepoint, error) {
+	currentIndex uint16, timepoints map[uint16]Timepoint,
+	overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint, error) {
 	return d.GetTimepoints(ctx, &ethrpc.Call{
 		ABI:    basePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginTimepointsMethod,
-	}, blockNumber, blockTimestamp()-WINDOW, currentIndex, timepoints)
+	}, blockNumber, blockTimestamp()-WINDOW, currentIndex, timepoints, overrides)
 }
 
 func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
@@ -478,18 +483,32 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 }
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param sourcePool.GetNewPoolStateParams) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, param.Logs, nil)
+}
+
+// GetNewPoolStateWithOverrides behaves like GetNewPoolState but reads all pool/plugin/tick state
+// (globalState, liquidity, volatility-oracle timepoints, dynamic/sliding fee config, ticks) under the given
+// state overrides, so the dynamic fee recomputed from the resulting Extra reflects the post-override
+// (e.g. post-victim-tx) storage rather than the latest on-chain state.
+func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
+	params sourcePool.GetNewPoolStateWithOverridesParams) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params.Logs, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
+	overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
 	})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs, overrides)
 	if err != nil {
 		l.Error(err.Error())
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool)
+	return t.updateState(ctx, p, ticksBasedPool, overrides)
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
@@ -519,7 +538,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		}
 	}
 
-	refetchedTicks, err := t.queryRPCTicksByIndexes(ctx, p.Address, ticksToRefetch, p.BlockNumber)
+	refetchedTicks, err := t.queryRPCTicksByIndexes(ctx, p.Address, ticksToRefetch, p.BlockNumber, nil)
 	if err != nil {
 		return p, err
 	}
@@ -561,7 +580,8 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	return p, nil
 }
 
-func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs []ethtypes.Log) (tickspkg.TicksBasedPool,
+func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
+	overrides map[common.Address]gethclient.OverrideAccount) (tickspkg.TicksBasedPool,
 	error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
@@ -576,7 +596,7 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 		return ticksBasedPool, err
 	}
 
-	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs)
+	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, overrides)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -601,7 +621,7 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 			"numTicks": len(ticksBasedPool.Ticks),
 		}).Info("fetch all ticks for pool")
 
-		ticks, err = t.fetchAllTicksForPool(ctx, ticksBasedPool, ticks)
+		ticks, err = t.fetchAllTicksForPool(ctx, ticksBasedPool, ticks, overrides)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -625,17 +645,18 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 	return ticksBasedPool, nil
 }
 
-func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool, error) {
+func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool,
+	overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
 
 	blockNumber := ticksBasedPool.BlockNumber
 
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber, overrides)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
+			rpcState, err = t.FetchRPCData(ctx, &p, 0, overrides)
 			if err != nil {
 				l.WithFields(logger.Fields{
 					"error": err,
@@ -700,6 +721,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 func (t *PoolTracker) fetchTicksFromLogs(
 	ctx context.Context, address string, logs []ethtypes.Log,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	if len(logs) == 0 {
 		return nil, nil
@@ -722,13 +744,14 @@ func (t *PoolTracker) fetchTicksFromLogs(
 	}
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber)
+	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber, overrides)
 }
 
 func (t *PoolTracker) fetchAllTicksForPool(
 	ctx context.Context,
 	pool tickspkg.TicksBasedPool,
 	ticksFromLogs []tickspkg.Tick,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	isTickFromLogs := map[int]struct{}{}
 	lo.ForEach(ticksFromLogs, func(item tickspkg.Tick, index int) {
@@ -742,7 +765,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 		}
 	}
 
-	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber)
+	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -837,9 +860,10 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 
 func (t *PoolTracker) queryRPCTicksByIndexes(
 	ctx context.Context, address string, tickIndexes []int, blockNumber uint64,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	if len(tickIndexes) <= tickChunkSize {
-		return t.queryRPCTicksByChunk(ctx, address, tickIndexes, blockNumber)
+		return t.queryRPCTicksByChunk(ctx, address, tickIndexes, blockNumber, overrides)
 	}
 
 	totalTicks := len(tickIndexes)
@@ -847,7 +871,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	for i := 0; i < totalTicks; i += tickChunkSize {
 		toIdx := min(i+tickChunkSize, totalTicks)
 
-		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
+		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber, overrides)
 		if err != nil {
 			return nil, err
 		}
@@ -861,10 +885,12 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 // queryRPCTicksByChunk returns univ3 Ticks data.
 func (t *PoolTracker) queryRPCTicksByChunk(
 	ctx context.Context, addr string, ticks []int, blockNumber uint64,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	tickResponses := make([]TicksResp, len(ticks))
 	ticksRequest := t.EthrpcClient.NewRequest()
 	ticksRequest.SetContext(ctx)
+	ticksRequest.SetOverrides(overrides)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
 		blockNumberBI.SetUint64(blockNumber)
@@ -892,7 +918,7 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	if _, err := ticksRequest.Aggregate(); err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
 			// Re-query ticks data with latest block number
-			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0)
+			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0, overrides)
 		}
 
 		logger.WithFields(logger.Fields{

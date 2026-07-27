@@ -8,6 +8,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 const (
@@ -31,13 +33,14 @@ type PoolTracker[T Timepoint, R TimepointRPC[T]] struct {
 }
 
 func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context, callPrototype *ethrpc.Call,
-	blockNumber *big.Int, yesterday uint32, currentIndex uint16, timepoints map[uint16]Timepoint) (map[uint16]Timepoint,
+	blockNumber *big.Int, yesterday uint32, currentIndex uint16, timepoints map[uint16]Timepoint,
+	overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint,
 	error) {
 	if timepoints == nil {
 		timepoints = make(map[uint16]Timepoint, maxTimepointPageSize)
 	}
 
-	req := d.EthrpcClient.NewRequest().SetContext(ctx)
+	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
 		req.SetBlockNumber(blockNumber)
 	}
