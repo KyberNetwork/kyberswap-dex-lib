@@ -5,6 +5,7 @@ const (
 	Erc20DecimalsMethod    = "decimals"
 	Erc20TotalSupplyMethod = "totalSupply"
 
-	Multicall3GetEthBalance = "getEthBalance"
-	Multicall3TryAggregate  = "tryAggregate"
+	Multicall3GetEthBalance  = "getEthBalance"
+	Multicall3GetBlockNumber = "getBlockNumber"
+	Multicall3TryAggregate   = "tryAggregate"
 )

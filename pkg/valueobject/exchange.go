@@ -328,6 +328,7 @@ const (
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
 	ExchangeBopAMM                      = "bop-amm"
+	ExchangePonsFun                     = "pons-fun"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
