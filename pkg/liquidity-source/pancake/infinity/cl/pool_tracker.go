@@ -437,7 +437,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
 }
 
 func (t *PoolTracker) newTicksBasedPool(
@@ -690,30 +690,20 @@ func (t *PoolTracker) fetchAllTicksForPool(
 	return lo.Values(ticksMap), nil
 }
 
-func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool, error) {
+func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool,
+	logs []ethtypes.Log, blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
 
-	blockNumber := ticksBasedPool.BlockNumber
-
-	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, blockNumber)
+	// Always fetch scalar state at latest, never at this batch's own block: see the
+	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
+	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, 0)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	}
 
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
@@ -767,7 +757,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	p.SwapFee = float64(rpcState.SwapFee)
 	p.Extra = string(extraBytes)
 	p.Reserves = rpcState.Reserves
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 
 	return p, nil
 }

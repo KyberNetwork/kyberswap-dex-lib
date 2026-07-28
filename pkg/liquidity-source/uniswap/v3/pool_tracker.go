@@ -371,25 +371,16 @@ func (t *Tracker) updateState(
 	blockHeaders map[uint64]entity.BlockHeader,
 	l logger.Logger,
 ) (entity.Pool, error) {
-	blockNumber := ticksBasedPool.BlockNumber
-
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	// Always fetch scalar state (sqrtPrice/tick/liquidity) at latest, never at this
+	// batch's own block: a catch-up/backfill batch's block can be older than the
+	// provider's pruning window, and there's no need for state "as of" that exact
+	// block anyway since ticks are already applied incrementally from decoded logs.
+	rpcState, err := t.FetchRPCData(ctx, &p, 0)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	}
 
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
@@ -435,7 +426,7 @@ func (t *Tracker) updateState(
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
-	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 
 	return p, nil
 }
@@ -596,19 +587,6 @@ func (t *Tracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
-}
-
-func (t *Tracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) int64 {
-	if len(logs) > 0 && blockHeaders != nil {
-		latestLog := logs[len(logs)-1]
-		if blockHeader, ok := blockHeaders[latestLog.BlockNumber]; ok {
-			return max(p.Timestamp, int64(blockHeader.Timestamp))
-		}
-	}
-
-	// Do not update the timestamp as the pool triggered state update via a custom empty log.
-	return p.Timestamp
 }
 
 func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {

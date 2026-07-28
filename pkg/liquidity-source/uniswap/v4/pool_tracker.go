@@ -792,8 +792,6 @@ func (t *PoolTracker) updateState(
 		"poolAddress": p.Address,
 	})
 
-	blockNumber := ticksBasedPool.BlockNumber
-
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
 	for _, tick := range ticksBasedPool.Ticks {
 		// skip uninitialized ticks
@@ -813,23 +811,14 @@ func (t *PoolTracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, blockNumber, overrides)
+	// Always fetch scalar state at latest, never at this batch's own block: see the
+	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
+	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, 0, overrides)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0, overrides)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	} else if rpcState.Slot0.SqrtPriceX96.Sign() == 0 {
 		l.Error("sqrtPriceX96 is 0")
 		return p, errors.New("sqrtPriceX96 is 0")
@@ -862,22 +851,9 @@ func (t *PoolTracker) updateState(
 
 	p.SwapFee, _ = rpcState.Slot0.LpFee.Float64()
 	p.Extra = string(extraBytes)
-	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 
 	return p, nil
-}
-
-func (t *PoolTracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) int64 {
-	if len(logs) > 0 && blockHeaders != nil {
-		latestLog := logs[len(logs)-1]
-		if blockHeader, ok := blockHeaders[latestLog.BlockNumber]; ok {
-			return max(p.Timestamp, int64(blockHeader.Timestamp))
-		}
-	}
-
-	// Do not update the timestamp as the pool triggered state update via a custom empty log.
-	return p.Timestamp
 }
 
 func stringToBytes32(str string) [32]byte {
