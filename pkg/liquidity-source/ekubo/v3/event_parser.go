@@ -78,7 +78,7 @@ func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {
 			return nil, err
 		}
 
-		poolId, ok := values[1].(common.Hash)
+		poolId, ok := values[1].([32]byte)
 		if !ok {
 			return nil, fmt.Errorf("failed to parse poolId from PositionUpdated event data")
 		}
@@ -158,7 +158,7 @@ func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
 			len(log.Data), err,
 		)
 	}
-	poolID, ok := values[2].(common.Hash)
+	poolID, ok := values[2].([32]byte)
 	if !ok {
 		return nil, fmt.Errorf("failed to parse poolId from VoteWeightApplied event data")
 	}

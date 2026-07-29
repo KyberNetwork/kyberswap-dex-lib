@@ -1,7 +1,6 @@
 package ekubov3
 
 import (
-	"context"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -64,7 +63,7 @@ func TestEventParserDecode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			txReceipt, err := rpcClient.
 				GetETHClient().
-				TransactionReceipt(context.Background(), common.HexToHash(tt.txHash))
+				TransactionReceipt(t.Context(), common.HexToHash(tt.txHash))
 			if err != nil {
 				t.Fatalf("failed to get tx receipt: %v", err)
 			}
@@ -73,7 +72,7 @@ func TestEventParserDecode(t *testing.T) {
 				return *log
 			})
 
-			logByAddress, err := e.Decode(context.Background(), logs)
+			logByAddress, err := e.Decode(t.Context(), logs)
 
 			assert.NoError(t, err)
 			for expectedPool, expectedEventCnt := range tt.poolEventCounts {
@@ -109,14 +108,14 @@ func TestEventParserDecodeBoostedFees(t *testing.T) {
 
 	txReceipt, err := rpcClient.
 		GetETHClient().
-		TransactionReceipt(context.Background(), common.HexToHash("0x50d4a090a2c8eb375efa4a5980a7f6274d2bc89f316f474aea6d27c202eb87e3"))
+		TransactionReceipt(t.Context(), common.HexToHash("0x50d4a090a2c8eb375efa4a5980a7f6274d2bc89f316f474aea6d27c202eb87e3"))
 	require.NoError(t, err)
 
 	logs := lo.Map(txReceipt.Logs, func(log *types.Log, _ int) types.Log {
 		return *log
 	})
 
-	logByAddress, err := e.Decode(context.Background(), logs)
+	logByAddress, err := e.Decode(t.Context(), logs)
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, logByAddress[expectedPoolAddress])
@@ -131,7 +130,7 @@ func TestEventParserDecodeVoteWeightApplied(t *testing.T) {
 	data := make([]byte, 192)
 	copy(data[64:96], poolID[:])
 
-	poolAddresses, err := parser.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{
+	poolAddresses, err := parser.DecodePoolAddressesFromFactoryLog(t.Context(), types.Log{
 		Address: ve33,
 		Topics:  []common.Hash{abis.VoteWeightAppliedEvent.ID},
 		Data:    data,
