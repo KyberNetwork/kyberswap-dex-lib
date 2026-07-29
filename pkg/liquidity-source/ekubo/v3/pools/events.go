@@ -8,7 +8,6 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
@@ -67,7 +66,7 @@ func parsePositionUpdatedEventIfMatching(data []byte, poolKey IPoolKey) (*positi
 		return nil, fmt.Errorf("unpacking event data: %w", err)
 	}
 
-	poolId, ok := values[1].(common.Hash)
+	poolId, ok := values[1].([32]byte)
 	if !ok {
 		return nil, errors.New("failed to parse poolId")
 	}
@@ -90,7 +89,7 @@ func parsePositionUpdatedEventIfMatching(data []byte, poolKey IPoolKey) (*positi
 		return nil, nil
 	}
 
-	params, ok := values[2].(common.Hash)
+	params, ok := values[2].([32]byte)
 	if !ok {
 		return nil, errors.New("failed to parse positionId")
 	}
