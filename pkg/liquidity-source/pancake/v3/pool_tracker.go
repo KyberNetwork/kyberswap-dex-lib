@@ -673,25 +673,14 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		"poolAddress": p.Address,
 	})
 
-	blockNumber := ticksBasedPool.BlockNumber
-
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	// Always fetch scalar state at latest, never at this batch's own block: see the
+	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
+	rpcState, err := t.FetchRPCData(ctx, &p, 0)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	}
 
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
@@ -732,7 +721,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 	p.Reserves = entity.PoolReserves{
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
@@ -817,17 +806,4 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
-}
-
-func (t *PoolTracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) int64 {
-	if len(logs) > 0 && blockHeaders != nil {
-		latestLog := logs[len(logs)-1]
-		if blockHeader, ok := blockHeaders[latestLog.BlockNumber]; ok {
-			return max(p.Timestamp, int64(blockHeader.Timestamp))
-		}
-	}
-
-	// Do not update the timestamp as the pool triggered state update via a custom empty log.
-	return p.Timestamp
 }
