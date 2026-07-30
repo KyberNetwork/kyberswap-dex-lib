@@ -31,6 +31,12 @@ type Extra struct {
 	TaxInfo *tokentax.TaxInfo `json:"taxInfo,omitempty"`
 }
 
+type StaticExtra struct {
+	Router   string `json:"r,omitempty"`
+	Selector uint32 `json:"s,omitempty"`
+	Gas      int64  `json:"g,omitempty"`
+}
+
 type PoolMeta struct {
 	Extra
 	PoolMetaGeneric
@@ -38,5 +44,6 @@ type PoolMeta struct {
 
 type PoolMetaGeneric struct {
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
+	RouterSelector  uint32 `json:"sel,omitempty"`
 	NoFOT           bool   `json:"noFOT,omitempty"`
 }
