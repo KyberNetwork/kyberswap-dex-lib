@@ -14,7 +14,7 @@ var (
 
 func ConvertToAssets(shares, totalAssets, totalSupply *big.Int) *big.Int {
 	if shares == nil {
-		return big.NewInt(0)
+		return bignumber.ZeroBI
 	}
 	// A nil total means the vault's balances were never fetched (e.g. the
 	// controller-only vault v2's pool_tracker appends past the batch RPC has no
