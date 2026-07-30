@@ -63,7 +63,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		state feeStateRPC
 	)
 
-	req := param.RpcClient.NewRequest().SetContext(ctx)
+	req := param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides)
 	if param.BlockNumber != nil {
 		req.SetBlockNumber(param.BlockNumber)
 	}
