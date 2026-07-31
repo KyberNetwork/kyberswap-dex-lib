@@ -64,7 +64,7 @@ func NewPoolTracker(
 func (t *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	logger.Infof("[%s] Start getting new state of pool: %v", t.config.DexID, p.Address)
 
@@ -133,11 +133,12 @@ func (t *PoolTracker) BootstrapPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	logger.Infof("[%s] Finish updating state of pool: %v", t.config.DexID, p.Address)
 
@@ -450,6 +451,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, err
 }

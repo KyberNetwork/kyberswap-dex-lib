@@ -56,8 +56,8 @@ type ExtraU256 struct {
 type Slot0Data struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
-	ProtocolFee  *big.Int `json:"protocolFee"`
-	LpFee        *big.Int `json:"lpFee"`
+	ProtocolFee  uint32   `json:"protocolFee"`
+	LpFee        uint32   `json:"lpFee"`
 }
 
 type FetchRPCResult struct {
@@ -65,6 +65,7 @@ type FetchRPCResult struct {
 	Slot0       Slot0Data           `json:"s0"`
 	TickSpacing int32               `json:"tS"`
 	Reserves    entity.PoolReserves `json:"rs"`
+	SwapFee     uint32              `json:"swapFee"`
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 }
 

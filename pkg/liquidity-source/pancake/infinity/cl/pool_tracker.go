@@ -148,14 +148,6 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	l.Info("Start getting new state of pancake-infinity-cl pool")
 
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
-
 	var (
 		rpcData   *FetchRPCResult
 		hook      Hook
@@ -244,14 +236,12 @@ func (t *PoolTracker) BootstrapPoolState(
 	}
 
 	p.SwapFee = float64(rpcData.SwapFee)
-
-	p.Extra = string(extraBytes)
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = rpcData.Reserves
-
-	p.BlockNumber = blockNumber
+	p.Extra = string(extraBytes)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
-
 	return p, nil
 }
 
@@ -755,9 +745,10 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	}
 
 	p.SwapFee = float64(rpcState.SwapFee)
-	p.Extra = string(extraBytes)
-	p.Reserves = rpcState.Reserves
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
+	p.Reserves = rpcState.Reserves
+	p.Extra = string(extraBytes)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
 }

@@ -133,8 +133,8 @@ func (t *PoolTracker) BootstrapPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = rpcData.BlockNumber
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
@@ -461,6 +461,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, err
 }

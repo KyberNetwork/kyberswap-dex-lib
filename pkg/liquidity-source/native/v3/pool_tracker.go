@@ -269,8 +269,8 @@ func (t *PoolTracker) BootstrapPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = rpcData.BlockNumber
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
 
@@ -614,7 +614,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	p.StaticExtra = string(staticExtraBytes)
 	p.Extra = string(extraBytes)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
-	p.BlockNumber = rpcState.BlockNumber
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
 }

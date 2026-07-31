@@ -47,7 +47,7 @@ func NewPoolTracker(
 func (d *PoolTracker) BootstrapPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -55,14 +55,6 @@ func (d *PoolTracker) BootstrapPoolState(
 	})
 
 	l.Info("Start getting new state of pool")
-
-	blockNumber, err := d.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
 
 	var (
 		rpcData   *FetchRPCResult
@@ -130,12 +122,12 @@ func (d *PoolTracker) BootstrapPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = blockNumber
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
 
@@ -523,6 +515,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
 }
