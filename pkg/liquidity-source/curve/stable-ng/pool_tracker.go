@@ -70,7 +70,7 @@ func (t *PoolTracker) getNewPoolState(
 	defer func() { lg.Info("Finish updating state.") }()
 
 	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply, offpegFeeMultiplier *big.Int
 
 		numTokens = len(p.Tokens)
 
@@ -85,31 +85,31 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
-		SetFrom(shared.AddrDummy). // poolMethodStoredRates behaves differently for tx.origin == 0
+		SetFrom(shared.AddrDummy). // PoolMethodStoredRates behaves differently for tx.origin == 0
 		AddCall(&ethrpc.Call{
 			ABI:    CurveStableNGABI,
 			Target: p.Address,
-			Method: poolMethodInitialA,
+			Method: PoolMethodInitialA,
 		}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodFutureA,
+		Method: PoolMethodFutureA,
 	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodInitialATime,
+		Method: PoolMethodInitialATime,
 	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodFutureATime,
+		Method: PoolMethodFutureATime,
 	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodFee,
+		Method: PoolMethodFee,
 	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodAdminFee,
+		Method: PoolMethodAdminFee,
 	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
@@ -117,12 +117,16 @@ func (t *PoolTracker) getNewPoolState(
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodStoredRates,
+		Method: PoolMethodStoredRates,
 	}, []any{&storedRates}).AddCall(&ethrpc.Call{
 		ABI:    CurveStableNGABI,
 		Target: p.Address,
-		Method: poolMethodGetBalances,
-	}, []any{&balances})
+		Method: PoolMethodGetBalances,
+	}, []any{&balances}).AddCall(&ethrpc.Call{
+		ABI:    CurveStableNGABI,
+		Target: p.Address,
+		Method: PoolMethodOffpegFeeMul,
+	}, []any{&offpegFeeMultiplier})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
@@ -132,12 +136,13 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var extra = Extra{
-		InitialA:     number.SetFromBig(initialA),
-		FutureA:      number.SetFromBig(futureA),
-		InitialATime: initialATime.Int64(),
-		FutureATime:  futureATime.Int64(),
-		SwapFee:      number.SetFromBig(swapFee),
-		AdminFee:     number.SetFromBig(adminFee),
+		InitialA:            number.SetFromBig(initialA),
+		FutureA:             number.SetFromBig(futureA),
+		InitialATime:        initialATime.Int64(),
+		FutureATime:         futureATime.Int64(),
+		SwapFee:             number.SetFromBig(swapFee),
+		AdminFee:            number.SetFromBig(adminFee),
+		OffpegFeeMultiplier: number.SetFromBig(offpegFeeMultiplier),
 	}
 
 	if err := updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {

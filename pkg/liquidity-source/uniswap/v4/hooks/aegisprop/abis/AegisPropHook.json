@@ -1,0 +1,72 @@
+[
+  {
+    "inputs": [
+      { "internalType": "PoolId", "name": "poolId", "type": "bytes32" }
+    ],
+    "name": "ladder",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              { "internalType": "uint128", "name": "price", "type": "uint128" },
+              { "internalType": "uint128", "name": "amplitude", "type": "uint128" }
+            ],
+            "internalType": "struct Level[10]",
+            "name": "bids",
+            "type": "tuple[10]"
+          },
+          {
+            "components": [
+              { "internalType": "uint128", "name": "price", "type": "uint128" },
+              { "internalType": "uint128", "name": "amplitude", "type": "uint128" }
+            ],
+            "internalType": "struct Level[10]",
+            "name": "asks",
+            "type": "tuple[10]"
+          },
+          { "internalType": "uint64", "name": "sequence", "type": "uint64" },
+          { "internalType": "uint32", "name": "expiration", "type": "uint32" },
+          { "internalType": "uint8", "name": "bidLen", "type": "uint8" },
+          { "internalType": "uint8", "name": "askLen", "type": "uint8" }
+        ],
+        "internalType": "struct Ladder",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "PoolId", "name": "poolId", "type": "bytes32" }
+    ],
+    "name": "poolConfig",
+    "outputs": [
+      { "internalType": "MmId", "name": "mmId", "type": "uint16" },
+      { "internalType": "uint8", "name": "token0Decimals", "type": "uint8" },
+      { "internalType": "uint8", "name": "token1Decimals", "type": "uint8" },
+      { "internalType": "SlackBps", "name": "slackBps", "type": "uint16" },
+      { "internalType": "TakerFeeBps", "name": "takerFeeBps", "type": "uint16" },
+      { "internalType": "HaircutBps", "name": "haircutBpsAtStaleThreshold", "type": "uint16" },
+      { "internalType": "uint32", "name": "freshThresholdSec", "type": "uint32" },
+      { "internalType": "uint32", "name": "staleThresholdSec", "type": "uint32" },
+      {
+        "components": [
+          { "internalType": "address", "name": "feedA", "type": "address" },
+          { "internalType": "uint8", "name": "feedADecimals", "type": "uint8" },
+          { "internalType": "bool", "name": "isCrossRate", "type": "bool" },
+          { "internalType": "bool", "name": "requiresSequencerFeed", "type": "bool" },
+          { "internalType": "address", "name": "feedB", "type": "address" },
+          { "internalType": "uint8", "name": "feedBDecimals", "type": "uint8" }
+        ],
+        "internalType": "struct OracleConfig",
+        "name": "oracle",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

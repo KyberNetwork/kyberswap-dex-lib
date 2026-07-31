@@ -18,6 +18,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
+	ponsfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/forks/pons-fun"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -370,25 +371,16 @@ func (t *Tracker) updateState(
 	blockHeaders map[uint64]entity.BlockHeader,
 	l logger.Logger,
 ) (entity.Pool, error) {
-	blockNumber := ticksBasedPool.BlockNumber
-
-	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
+	// Always fetch scalar state (sqrtPrice/tick/liquidity) at latest, never at this
+	// batch's own block: a catch-up/backfill batch's block can be older than the
+	// provider's pruning window, and there's no need for state "as of" that exact
+	// block anyway since ticks are already applied incrementally from decoded logs.
+	rpcState, err := t.FetchRPCData(ctx, &p, 0)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	}
 
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
@@ -415,6 +407,8 @@ func (t *Tracker) updateState(
 		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
 		Tick:         rpcState.Slot0.Tick,
 		Ticks:        entityPoolTicks,
+
+		BuyRestrictedToken: rpcState.BuyRestrictedToken,
 	}
 	if rpcState.TickSpacing != nil {
 		extra.TickSpacing = rpcState.TickSpacing.Uint64()
@@ -432,7 +426,8 @@ func (t *Tracker) updateState(
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
-	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
 }
@@ -595,34 +590,13 @@ func (t *Tracker) queryRPCTicksByChunk(
 	return result, nil
 }
 
-func (t *Tracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) int64 {
-	if len(logs) > 0 && blockHeaders != nil {
-		latestLog := logs[len(logs)-1]
-		if blockHeader, ok := blockHeaders[latestLog.BlockNumber]; ok {
-			return max(p.Timestamp, int64(blockHeader.Timestamp))
-		}
-	}
-
-	// Do not update the timestamp as the pool triggered state update via a custom empty log.
-	return p.Timestamp
-}
-
-func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
+func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       t.config.DexID,
 	})
 
 	l.Info("Start getting new state of pool")
-
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
 
 	var (
 		rpcData   *FetchRPCResult
@@ -689,11 +663,12 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolp
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  rpcData.TickSpacing.Uint64(),
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
+		Liquidity:          rpcData.Liquidity,
+		TickSpacing:        rpcData.TickSpacing.Uint64(),
+		SqrtPriceX96:       rpcData.Slot0.SqrtPriceX96,
+		Tick:               rpcData.Slot0.Tick,
+		Ticks:              ticks,
+		BuyRestrictedToken: rpcData.BuyRestrictedToken,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -703,12 +678,12 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ poolp
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = blockNumber
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
 
@@ -771,6 +746,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		}, []any{&reserve1})
 	}
 
+	var ponsGuard *ponsfun.Guard
+	if fork, ok := t.config.ForksConfig[valueobject.ExchangePonsFun]; ok && len(p.Tokens) == 2 {
+		ponsGuard = ponsfun.NewGuard(t.config.ChainID, fork.Multicall3, p.Tokens[0].Address, p.Tokens[1].Address)
+		ponsGuard.AddCalls(rpcRequest)
+	}
+
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -780,11 +761,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 	}
 
 	return &FetchRPCResult{
-		Liquidity:   liquidity,
-		Slot0:       slot0,
-		TickSpacing: tickSpacing,
-		Reserve0:    reserve0,
-		Reserve1:    reserve1,
+		Liquidity:          liquidity,
+		Slot0:              slot0,
+		TickSpacing:        tickSpacing,
+		Reserve0:           reserve0,
+		Reserve1:           reserve1,
+		BuyRestrictedToken: ponsGuard.BuyRestrictedToken(),
 	}, err
 }
 

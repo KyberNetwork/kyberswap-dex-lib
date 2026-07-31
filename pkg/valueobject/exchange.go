@@ -279,6 +279,7 @@ const (
 	ExchangeUniSwapV3                   = "uniswapv3"
 	ExchangeUniswapV4                   = "uniswap-v4"
 	ExchangeUniswapV4Aegis              = "uniswap-v4-aegis"
+	ExchangeUniswapV4AegisProp          = "uniswap-v4-aegisprop"
 	ExchangeUniswapV4Alpha              = "uniswap-v4-alpha"
 	ExchangeUniswapV4Alphix             = "uniswap-v4-alphix"
 	ExchangeUniswapV4Angstrom           = "uniswap-v4-angstrom"
@@ -327,6 +328,7 @@ const (
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
 	ExchangeBopAMM                      = "bop-amm"
+	ExchangePonsFun                     = "pons-fun"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{

@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -25,6 +26,8 @@ type PoolTracker struct {
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
+var _ pool.IPoolTrackerWithOverrides = (*PoolTracker)(nil)
+
 func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
@@ -40,6 +43,29 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, nil)
+}
+
+// GetNewPoolStateWithOverrides behaves like GetNewPoolState but reads the pool's
+// fee/slippage and virtual-balance state under the given state overrides. Mooniswap
+// prices from getBalanceForAddition/getBalanceForRemoval — time-decaying virtual
+// balances the contract derives on-chain from stored snapshots + the token
+// balances + block.timestamp; they are NOT carried in swap logs, so a log-only
+// fold cannot recover them. Reading them fresh under the pending tx's post-victim
+// prestate override yields the correct post-victim price state for backrun sims.
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{"pool": p.Address}).Info("started getting new pool state")
 
 	var staticExtra StaticExtra
@@ -47,7 +73,7 @@ func (t *PoolTracker) GetNewPoolState(
 		_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	}
 
-	extra, blockNumber, err := t.getPoolState(ctx, p.Address, p.Tokens, staticExtra, nil)
+	extra, blockNumber, err := t.getPoolState(ctx, p.Address, p.Tokens, staticExtra, nil, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -81,6 +107,7 @@ func (t *PoolTracker) getPoolState(
 	tokens []*entity.PoolToken,
 	staticExtra StaticExtra,
 	blockNumber *big.Int,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*Extra, uint64, error) {
 	var (
 		fee         *big.Int
@@ -100,7 +127,7 @@ func (t *PoolTracker) getPoolState(
 		token1Addr = valueobject.AddrZero
 	}
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if blockNumber != nil {
 		req.SetBlockNumber(blockNumber)
 	}

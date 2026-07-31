@@ -185,8 +185,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		return nil, err
 	}
 
-	pools := make([]entity.Pool, 0, len(pairAddresses))
+	var staticExtra []byte
+	if u.config.RouterAddress != "" || u.config.Gas != 0 {
+		staticExtra, _ = json.Marshal(StaticExtra{Router: u.config.RouterAddress, Selector: u.config.RouterSelector,
+			Gas: u.config.Gas})
+	}
 
+	pools := make([]entity.Pool, 0, len(pairAddresses))
 	for i, pairAddress := range pairAddresses {
 		token0 := &entity.PoolToken{
 			Address:   hexutil.Encode(token0List[i][:]),
@@ -199,13 +204,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		}
 
 		var newPool = entity.Pool{
-			Address:   hexutil.Encode(pairAddress[:]),
-			Exchange:  u.config.DexID,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens:    []*entity.PoolToken{token0, token1},
-			Extra:     string(extra),
+			Address:     hexutil.Encode(pairAddress[:]),
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{token0, token1},
+			Extra:       string(extra),
+			StaticExtra: string(staticExtra),
 		}
 
 		pools = append(pools, newPool)
@@ -215,7 +220,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 }
 
 // listPairTokens receives list of pair addresses and returns their token0 and token1
-func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []common.Address) ([]common.Address, []common.Address, error) {
+func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []common.Address) ([]common.Address,
+	[]common.Address, error) {
 	var (
 		listToken0Result = make([]common.Address, len(pairAddresses))
 		listToken1Result = make([]common.Address, len(pairAddresses))

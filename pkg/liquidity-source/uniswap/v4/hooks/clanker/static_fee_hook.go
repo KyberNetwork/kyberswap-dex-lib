@@ -44,7 +44,8 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
 
 	var info TokenDeploymentInfo
-	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
+	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
+		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 		ABI:    dynamicFeeHookABI,
 		Target: hook,
 		Method: "protocolFee",

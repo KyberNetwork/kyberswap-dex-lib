@@ -4,16 +4,16 @@ import (
 	"errors"
 	"maps"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 )
 
@@ -135,9 +135,34 @@ func ValidatePoolTicks(pool TicksBasedPool, ticks []Tick) error {
 	return nil
 }
 
+// EstimateLastActivityTime derives a pool's last-activity timestamp from the chain
+// timestamp of the latest log being applied, not from wall-clock processing time, so
+// replaying an old (e.g. backfilled) event can never make an abandoned pool look
+// freshly active - and a genuinely fresh event still advances the timestamp normally,
+// since max-wins is the only rule needed for both directions. Shared by every
+// ticks-based tracker's incremental update path.
+func EstimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
+	blockHeaders map[uint64]entity.BlockHeader) int64 {
+	if len(logs) > 0 && blockHeaders != nil {
+		latestLog := logs[len(logs)-1]
+		if blockHeader, ok := blockHeaders[latestLog.BlockNumber]; ok {
+			return max(p.Timestamp, int64(blockHeader.Timestamp))
+		}
+	}
+
+	// Do not update the timestamp as the pool triggered state update via a custom empty log.
+	return p.Timestamp
+}
+
+// IsMissingTrieNodeError reports whether err indicates the RPC node can't serve state
+// for the requested historical block (pruned, not an archive node, etc). Delegates the
+// actual classification to eth.IsPrunedStateError, shared with pool-service, so the two
+// can't drift out of sync on which error strings different RPC providers use for the
+// same underlying condition.
 func IsMissingTrieNodeError(err error) bool {
-	return lo.TernaryF(strings.Contains(err.Error(), "missing trie node"), func() bool {
-		metrics.IncrMissingTrieNode()
-		return true
-	}, func() bool { return false })
+	if !eth.IsPrunedStateError(err) {
+		return false
+	}
+	metrics.IncrMissingTrieNode()
+	return true
 }

@@ -12,6 +12,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
@@ -55,6 +56,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
+	// ADHOC: curve-stable-ng has too many pools and is overloading the RPC. Temporarily
+	// restrict to a single pool being debugged until the RPC load issue is resolved.
+	// TODO: remove this filter.
+	curvePools = lo.Filter(curvePools, func(p shared.CurvePoolWithType, _ int) bool {
+		return strings.EqualFold(p.Address, "0x394a6f32264acee63af9a702e29fa4e58d16ef7f")
+	})
+
 	pools, err := u.initPools(ctx, curvePools)
 	if err != nil {
 		u.logger.Error(err.Error())
@@ -67,14 +75,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
 	error) {
 	var (
-		aList          = make([]*big.Int, len(curvePools))
-		aPreciseList   = make([]*big.Int, len(curvePools))
-		feeMultipliers = make([]*big.Int, len(curvePools))
+		aList        = make([]*big.Int, len(curvePools))
+		aPreciseList = make([]*big.Int, len(curvePools))
 	)
 
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
 
-	// for Stable-NG pool we'll need APrecision (similar to Plain) and also OffpegFeeMultiplier
+	// for Stable-NG pool we'll need APrecision (similar to Plain).
+	// OffpegFeeMultiplier is governance-mutable, so it's fetched into Extra by the
+	// tracker's periodic poll instead of being captured once here as StaticExtra.
 	for i, curvePool := range curvePools {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    CurveStableNGABI,
@@ -84,11 +93,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			ABI:    CurveStableNGABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
-		}, []any{&aPreciseList[i]}).AddCall(&ethrpc.Call{
-			ABI:    CurveStableNGABI,
-			Target: curvePool.Address,
-			Method: poolMethodOffpegFeeMul,
-		}, []any{&feeMultipliers[i]})
+		}, []any{&aPreciseList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -128,8 +133,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			lg.Warn("ignore pool with unknown APrecision")
 			continue
 		}
-
-		staticExtra.OffpegFeeMultiplier = uint256.MustFromBig(feeMultipliers[i])
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {

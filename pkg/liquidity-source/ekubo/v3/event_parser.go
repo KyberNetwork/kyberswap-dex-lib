@@ -63,32 +63,13 @@ func (e *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log t
 	}
 }
 
-func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
-	if len(log.Topics) == 0 || log.Topics[0] != abis.VoteWeightAppliedEvent.ID {
-		return nil, nil
-	}
-	values, err := abis.VoteWeightAppliedEvent.Inputs.Unpack(log.Data)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"decoding VoteWeightApplied event data of length %d: %w",
-			len(log.Data), err,
-		)
-	}
-	poolID, ok := values[2].([32]byte)
-	if !ok {
-		return nil, fmt.Errorf("failed to parse poolId from VoteWeightApplied event data")
-	}
-
-	return []string{"0x" + common.Bytes2Hex(poolID[:])}, nil
-}
-
 func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {
 	if len(log.Topics) == 0 {
 		if len(log.Data) < 52 {
 			return nil, fmt.Errorf("invalid data length for Swapped event")
 		}
 
-		return []string{"0x" + common.Bytes2Hex(log.Data[20:52])}, nil
+		return []string{hexutil.Encode(log.Data[20:52])}, nil
 	}
 
 	if log.Topics[0] == abis.PositionUpdatedEvent.ID {
@@ -102,7 +83,7 @@ func (e *EventParser) handleCoreLog(log types.Log) ([]string, error) {
 			return nil, fmt.Errorf("failed to parse poolId from PositionUpdated event data")
 		}
 
-		return []string{"0x" + common.Bytes2Hex(poolId[:])}, nil
+		return []string{hexutil.Encode(poolId[:])}, nil
 	}
 
 	return nil, nil
@@ -114,7 +95,7 @@ func (e *EventParser) handleTwammLog(log types.Log, twamm common.Address) ([]str
 			return nil, fmt.Errorf("invalid data length for VirtualOrdersExecuted event")
 		}
 
-		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
+		return []string{hexutil.Encode(log.Data[:32])}, nil
 	}
 
 	if log.Topics[0] == abis.OrderUpdatedEvent.ID {
@@ -152,7 +133,7 @@ func (e *EventParser) handleBoostedFeesLog(log types.Log) ([]string, error) {
 			return nil, fmt.Errorf("invalid data length for FeesDonated event: %d", len(log.Data))
 		}
 
-		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
+		return []string{hexutil.Encode(log.Data[:32])}, nil
 	}
 
 	if log.Topics[0] == abis.PoolBoostedEvent.ID {
@@ -160,10 +141,29 @@ func (e *EventParser) handleBoostedFeesLog(log types.Log) ([]string, error) {
 			return nil, fmt.Errorf("invalid data length for PoolBoosted event")
 		}
 
-		return []string{"0x" + common.Bytes2Hex(log.Data[0:32])}, nil
+		return []string{hexutil.Encode(log.Data[:32])}, nil
 	}
 
 	return nil, nil
+}
+
+func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
+	if len(log.Topics) == 0 || log.Topics[0] != abis.VoteWeightAppliedEvent.ID {
+		return nil, nil
+	}
+	values, err := abis.VoteWeightAppliedEvent.Inputs.Unpack(log.Data)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"decoding VoteWeightApplied event data of length %d: %w",
+			len(log.Data), err,
+		)
+	}
+	poolID, ok := values[2].([32]byte)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse poolId from VoteWeightApplied event data")
+	}
+
+	return []string{hexutil.Encode(poolID[:])}, nil
 }
 
 func (e *EventParser) IsEventSupported(event common.Hash) bool {
@@ -188,7 +188,7 @@ func (e *EventParser) DecodePoolCreated(log types.Log) (*entity.Pool, error) {
 	token0 := common.BytesToAddress(log.Data[32:64])
 	token1 := common.BytesToAddress(log.Data[64:96])
 
-	var configBytes [32]byte
+	var configBytes common.Hash
 	copy(configBytes[:], log.Data[96:128])
 
 	extension, fee, typeConfig := decodePoolConfig(configBytes)
@@ -256,7 +256,7 @@ func (e *EventParser) DecodePoolCreated(log types.Log) (*entity.Pool, error) {
 //   - all zeros             → FullRange
 //   - otherwise             → Stableswap; byte[0] = ampFactor, bytes[1:4] = lower 24 bits
 //     of CenterTick/16 (sign-extended)
-func decodePoolConfig(config [32]byte) (extension common.Address, fee uint64, typeConfig pools.PoolTypeConfig) {
+func decodePoolConfig(config common.Hash) (extension common.Address, fee uint64, typeConfig pools.PoolTypeConfig) {
 	extension = common.BytesToAddress(config[:20])
 	fee = binary.BigEndian.Uint64(config[20:28])
 	tb := config[28:32]

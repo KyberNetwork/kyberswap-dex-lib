@@ -91,9 +91,9 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 type rpcData struct {
-	initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
-	storedRates                                                                [shared.MaxTokenCount]*big.Int
-	balances                                                                   []*big.Int
+	initialA, futureA, initialATime, futureATime, swapFee, adminFee, offpegFeeMultiplier, lpSupply *big.Int
+	storedRates                                                                                    [shared.MaxTokenCount]*big.Int
+	balances                                                                                       []*big.Int
 }
 
 func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
@@ -106,17 +106,19 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
 	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodStoredRates}, []any{&d.storedRates})
 	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodGetBalances}, []any{&d.balances})
+	addFn(&ethrpc.Call{ABI: stablemetang.CurveStableMetaNGABI, Target: poolAddress, Method: stablemetang.PoolMethodOffpegFeeMul}, []any{&d.offpegFeeMultiplier})
 }
 
 func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
 	numTokens := len(p.Tokens)
 	var extra = stablemetang.Extra{
-		InitialA:     number.SetFromBig(d.initialA),
-		FutureA:      number.SetFromBig(d.futureA),
-		InitialATime: d.initialATime.Int64(),
-		FutureATime:  d.futureATime.Int64(),
-		SwapFee:      number.SetFromBig(d.swapFee),
-		AdminFee:     number.SetFromBig(d.adminFee),
+		InitialA:            number.SetFromBig(d.initialA),
+		FutureA:             number.SetFromBig(d.futureA),
+		InitialATime:        d.initialATime.Int64(),
+		FutureATime:         d.futureATime.Int64(),
+		SwapFee:             number.SetFromBig(d.swapFee),
+		AdminFee:            number.SetFromBig(d.adminFee),
+		OffpegFeeMultiplier: number.SetFromBig(d.offpegFeeMultiplier),
 	}
 
 	if err := updateRateMultipliers(lg, &extra, numTokens, d.storedRates[:numTokens]); err != nil {

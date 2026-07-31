@@ -47,7 +47,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	hook := hexutil.Encode(param.HookAddress[:])
 	if valueobject.IsZeroAddress(h.DynamicFeeManagerAddress) {
-		if _, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 			ABI:    aegisHookABI,
 			Target: hook,
 			Method: "policyManager",
@@ -69,7 +69,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	var dynamicFeeState DynamicFeeStateRPC
 	var manualFee ManualFeeRPC
 	var poolPOLShare *big.Int
-	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber)
+	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).SetOverrides(param.Overrides)
 	newVersion := valueobject.IsZeroAddress(h.PolicyManagerAddress)
 	if newVersion {
 		req = req.AddCall(&ethrpc.Call{

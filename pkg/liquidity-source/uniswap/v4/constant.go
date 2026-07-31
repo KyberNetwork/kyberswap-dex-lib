@@ -13,10 +13,10 @@ const (
 	DexType = "uniswap-v4"
 
 	graphFirstLimit = 1000
-
 	maxChangedTicks = 10
+	tickChunkSize   = 100
 
-	tickChunkSize = 100
+	_MASK12 = 0xfff
 )
 
 var (

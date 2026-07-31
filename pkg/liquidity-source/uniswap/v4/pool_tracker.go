@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
@@ -59,8 +60,13 @@ func NewPoolTracker(
 // Track (e.g. the auto-detect hook's calibration, which sizes its probe
 // amounts off Pool.Reserves) would otherwise observe the pool's stale
 // pre-refresh reserves.
+// overrides carries eth_call state overrides (e.g. post-victim-tx prestate) and is threaded
+// into the slot0/liquidity request as well as hookParam.Overrides, so the hook's own Track
+// (dynamic-fee config, oracle state, ...) run later by resolveHookState observes the same
+// overridden state. It is nil on the normal-flow (GetNewPoolState) path.
 func (t *PoolTracker) fetchOnchainState(
 	ctx context.Context, p *entity.Pool, blockNumber uint64,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*FetchRPCResult, Hook, *HookParam, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -77,13 +83,13 @@ func (t *PoolTracker) fetchOnchainState(
 		hookAddress = staticExtra.HooksAddress
 	}
 
-	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p}
+	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, Overrides: overrides}
 	hook, _ := GetHook(hookAddress, hookParam)
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
 	}
-	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if blockNumber > 0 {
 		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
 	}
@@ -105,6 +111,11 @@ func (t *PoolTracker) fetchOnchainState(
 		return result, hook, hookParam, err
 	}
 	hookParam.BlockNumber = res.BlockNumber
+
+	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
+	// https://github.com/Uniswap/v4-core/blob/main/src/libraries/ProtocolFeeLibrary.sol#L38
+	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+
 	return result, hook, hookParam, nil
 }
 
@@ -156,14 +167,6 @@ func (t *PoolTracker) BootstrapPoolState(
 	})
 	l.Info("Start getting new state of univ4 pool")
 
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
-
 	var (
 		rpcData   *FetchRPCResult
 		hook      Hook
@@ -174,7 +177,7 @@ func (t *PoolTracker) BootstrapPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0)
+		rpcData, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0, nil)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -232,7 +235,6 @@ func (t *PoolTracker) BootstrapPoolState(
 		}).Error("failed to resolve hook state")
 		return entity.Pool{}, err
 	}
-	p.Reserves = rpcData.Reserves
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
@@ -251,16 +253,35 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
+	p.SwapFee = float64(rpcData.SwapFee)
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
+	p.Reserves = rpcData.Reserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = blockNumber
-	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
 	return p, nil
 }
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
+	return t.getNewPoolState(ctx, p, param.Logs, param.BlockHeaders, nil)
+}
+
+// GetNewPoolStateWithOverrides behaves like GetNewPoolState but reads all base pool state
+// (slot0, liquidity, ticks) AND each hook's own state (dynamic-fee config, oracle/volatility
+// data, ...) under the given eth_call state overrides (e.g. a pending tx's post-victim
+// prestate), so the fee/config recomputed from the resulting Extra reflects that overridden
+// state rather than the latest on-chain state. BlockHeaders is not threaded through since the
+// override path isn't driven by a historical log window.
+func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params.Logs, nil, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
+	blockHeaders map[uint64]entity.BlockHeader, overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address":  p.Address,
@@ -269,7 +290,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
+	return t.updateState(ctx, p, ticksBasedPool, logs, blockHeaders, overrides)
 }
 
 // getPoolTicks
@@ -465,7 +486,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		return p, nil
 	}
 
-	refetchedTicks, err := t.queryRPCTicksByIndexes(ctx, p.Address, ticksToRefetch, p.BlockNumber)
+	refetchedTicks, err := t.queryRPCTicksByIndexes(ctx, p.Address, ticksToRefetch, p.BlockNumber, nil)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -510,6 +531,7 @@ func (t *PoolTracker) newTicksBasedPool(
 	ctx context.Context,
 	p entity.Pool,
 	logs []ethtypes.Log,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (tickspkg.TicksBasedPool, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
@@ -524,7 +546,7 @@ func (t *PoolTracker) newTicksBasedPool(
 		return ticksBasedPool, err
 	}
 
-	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs)
+	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, overrides)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -549,7 +571,7 @@ func (t *PoolTracker) newTicksBasedPool(
 			"numTicks": len(ticksBasedPool.Ticks),
 		}).Info("fetch all ticks for pool")
 
-		ticks, err = t.fetchAllTicksForPool(ctx, ticksBasedPool, ticks)
+		ticks, err = t.fetchAllTicksForPool(ctx, ticksBasedPool, ticks, overrides)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -577,6 +599,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 	ctx context.Context,
 	address string,
 	logs []ethtypes.Log,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	l := logger.WithFields(logger.Fields{
 		"address": address,
@@ -600,7 +623,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber)
+	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber, overrides)
 }
 
 // getTickIndexesFromLogs returns all tick indexes from logs.
@@ -642,9 +665,10 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 // If `blockNumber` == 0, it returns the latest ticks data.
 func (t *PoolTracker) queryRPCTicksByIndexes(
 	ctx context.Context, address string, tickIndexes []int, blockNumber uint64,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	if len(tickIndexes) <= tickChunkSize {
-		return t.queryRPCTicksByChunk(ctx, address, tickIndexes, blockNumber)
+		return t.queryRPCTicksByChunk(ctx, address, tickIndexes, blockNumber, overrides)
 	}
 
 	totalTicks := len(tickIndexes)
@@ -652,7 +676,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	for i := 0; i < totalTicks; i += tickChunkSize {
 		toIdx := min(i+tickChunkSize, totalTicks)
 
-		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
+		newTicks, err := t.queryRPCTicksByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber, overrides)
 		if err != nil {
 			return nil, err
 		}
@@ -666,10 +690,12 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 // queryRPCTicksByChunk returns univ4 Ticks data.
 func (t *PoolTracker) queryRPCTicksByChunk(
 	ctx context.Context, addr string, ticks []int, blockNumber uint64,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	tickResponses := make([]TicksResp, len(ticks))
 	ticksRequest := t.ethrpcClient.NewRequest()
 	ticksRequest.SetContext(ctx)
+	ticksRequest.SetOverrides(overrides)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
 		blockNumberBI.SetUint64(blockNumber)
@@ -697,7 +723,7 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	if _, err := ticksRequest.Aggregate(); err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
 			// Re-query ticks data with latest block number
-			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0)
+			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0, overrides)
 		}
 
 		logger.WithFields(logger.Fields{
@@ -722,6 +748,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 	ctx context.Context,
 	pool tickspkg.TicksBasedPool,
 	ticksFromLogs []tickspkg.Tick,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	isTickFromLogs := map[int]struct{}{}
 	lo.ForEach(ticksFromLogs, func(item tickspkg.Tick, index int) {
@@ -735,7 +762,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 		}
 	}
 
-	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber)
+	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -757,12 +784,11 @@ func (t *PoolTracker) updateState(
 	ticksBasedPool tickspkg.TicksBasedPool,
 	logs []ethtypes.Log,
 	blockHeaders map[uint64]entity.BlockHeader,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
-
-	blockNumber := ticksBasedPool.BlockNumber
 
 	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
 	for _, tick := range ticksBasedPool.Ticks {
@@ -783,23 +809,14 @@ func (t *PoolTracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, blockNumber)
+	// Always fetch scalar state at latest, never at this batch's own block: see the
+	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
+	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, 0, overrides)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, hook, hookParam, err = t.fetchOnchainState(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	} else if rpcState.Slot0.SqrtPriceX96.Sign() == 0 {
 		l.Error("sqrtPriceX96 is 0")
 		return p, errors.New("sqrtPriceX96 is 0")
@@ -811,7 +828,6 @@ func (t *PoolTracker) updateState(
 		}).Error("failed to resolve hook state")
 		return p, err
 	}
-	p.Reserves = rpcState.Reserves
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
@@ -830,24 +846,13 @@ func (t *PoolTracker) updateState(
 		return p, err
 	}
 
-	p.SwapFee, _ = rpcState.Slot0.LpFee.Float64()
+	p.SwapFee = float64(rpcState.SwapFee)
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
+	p.Reserves = rpcState.Reserves
 	p.Extra = string(extraBytes)
-	p.Timestamp = t.estimateLastActivityTime(&p, logs, blockHeaders)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
-}
-
-func (t *PoolTracker) estimateLastActivityTime(p *entity.Pool, logs []ethtypes.Log,
-	blockHeaders map[uint64]entity.BlockHeader) int64 {
-	if len(logs) > 0 && blockHeaders != nil {
-		latestLog := logs[len(logs)-1]
-		if blockHeader, ok := blockHeaders[latestLog.BlockNumber]; ok {
-			return max(p.Timestamp, int64(blockHeader.Timestamp))
-		}
-	}
-
-	// Do not update the timestamp as the pool triggered state update via a custom empty log.
-	return p.Timestamp
 }
 
 func stringToBytes32(str string) [32]byte {

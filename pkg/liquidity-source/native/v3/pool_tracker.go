@@ -269,8 +269,8 @@ func (t *PoolTracker) BootstrapPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = rpcData.BlockNumber
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
 
@@ -334,7 +334,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
@@ -502,12 +502,11 @@ func (t *PoolTracker) fetchAllTicksForPool(
 	return lo.Values(ticksMap), nil
 }
 
-func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool, error) {
+func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool,
+	logs []ethtypes.Log, blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
-
-	blockNumber := ticksBasedPool.BlockNumber
 
 	var (
 		rpcState    *FetchRPCResult
@@ -522,24 +521,15 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return p, err
 	}
 
+	// Always fetch scalar state at latest, never at this batch's own block: see the
+	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
 	newCtx := NewContextWithUnderlyingScanned(ctx, staticExtra.NeedScanUnderlying)
-	rpcState, err = t.FetchRPCData(newCtx, &p, blockNumber)
+	rpcState, err = t.FetchRPCData(newCtx, &p, 0)
 	if err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			rpcState, err = t.FetchRPCData(ctx, &p, 0)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
-				return p, err
-			}
-		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
-			return p, err
-		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch state from RPC")
+		return p, err
 	}
 
 	// Only process underlying tokens if we haven't checked before
@@ -623,8 +613,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	p.StaticExtra = string(staticExtraBytes)
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = rpcState.BlockNumber
+	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
 }

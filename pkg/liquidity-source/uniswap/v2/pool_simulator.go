@@ -18,6 +18,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
+	StaticExtra
 	reserves     []*uint256.Int
 	fee          *uint256.Int
 	feePrecision *uint256.Int
@@ -30,6 +31,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	}
+
+	var staticExtra StaticExtra
+	if entityPool.StaticExtra != "" {
+		if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+			return nil, err
+		}
 	}
 
 	reserves := make([]*uint256.Int, len(entityPool.Reserves))
@@ -52,6 +60,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
+		StaticExtra:  staticExtra,
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
@@ -93,7 +102,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	result := &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
-		Gas:            defaultGas + extraGasByExchange[s.GetExchange()],
+		Gas:            lo.CoalesceOrEmpty(s.Gas, defaultGas+extraGasByExchange[s.GetExchange()]),
 	}
 	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
 		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
@@ -116,22 +125,37 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow || amountOut.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
-	} else if !amountOut.Lt(reserveOut) {
+	}
+
+	// Pair must send grossAmountOut so the user still nets amountOut after buy tax;
+	// pair must receive effectiveAmountIn, so the user has to send amountIn grossed up for sell tax.
+	grossAmountOut := s.taxHandler.GrossUpBuyTax(s.Info.Tokens[indexOut], amountOut)
+	if !grossAmountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	amountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut)
+	effectiveAmountIn, err := s.getAmountIn(grossAmountOut, reserveIn, reserveOut)
 	if err != nil {
 		return nil, err
-	} else if amountIn.Sign() <= 0 {
+	} else if effectiveAmountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
-	return &pool.CalcAmountInResult{
+	amountIn := s.taxHandler.GrossUpSellTax(s.Info.Tokens[indexIn], effectiveAmountIn)
+
+	result := &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
-		Gas:           defaultGas + extraGasByExchange[s.GetExchange()],
-	}, nil
+		Gas:           lo.CoalesceOrEmpty(s.Gas, defaultGas+extraGasByExchange[s.GetExchange()]),
+	}
+	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
+		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
+		result.SwapInfo = SwapInfo{
+			EffectiveAmountIn: effectiveAmountIn.ToBig(),
+			GrossAmountOut:    grossAmountOut.ToBig(),
+		}
+	}
+	return result, nil
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -174,7 +198,8 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 			FeePrecision: s.feePrecision.Uint64(),
 		},
 		PoolMetaGeneric: PoolMetaGeneric{
-			ApprovalAddress: routerAddressByExchange[exchange],
+			ApprovalAddress: lo.CoalesceOrEmpty(s.Router, routerAddressByExchange[exchange]),
+			RouterSelector:  s.Selector,
 			NoFOT:           noFOTByExchange[exchange],
 		},
 	}

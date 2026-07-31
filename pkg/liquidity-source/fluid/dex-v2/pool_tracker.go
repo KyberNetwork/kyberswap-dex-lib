@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -155,7 +154,7 @@ func (t *PoolTracker) fetchRPCData(
 func (t *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ pool.GetNewPoolStateParams,
+	params pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.Infof("[%s] Start getting new state of pool %v", t.config.DexID, p.Address)
@@ -177,7 +176,8 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(params.Logs).BlockNumber)
 
 	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
 	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)

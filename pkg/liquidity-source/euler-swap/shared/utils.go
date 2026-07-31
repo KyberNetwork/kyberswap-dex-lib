@@ -13,7 +13,15 @@ var (
 )
 
 func ConvertToAssets(shares, totalAssets, totalSupply *big.Int) *big.Int {
-	if totalSupply.Sign() == 0 {
+	if shares == nil {
+		return big.NewInt(0)
+	}
+	// A nil total means the vault's balances were never fetched (e.g. the
+	// controller-only vault v2's pool_tracker appends past the batch RPC has no
+	// totalAssets/totalSupply call), and a zero supply means no shares are
+	// outstanding — in both cases assets == shares 1:1. Guarding here avoids the
+	// nil *big.Int deref in totalSupply.Sign()/Add that otherwise panics.
+	if totalSupply == nil || totalAssets == nil || totalSupply.Sign() == 0 {
 		return shares
 	}
 	// (shares * (totalAssets + VirtualAmount)) / (totalSupply + VirtualAmount)

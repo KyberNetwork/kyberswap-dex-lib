@@ -3,6 +3,9 @@ package uniswapv2
 type Config struct {
 	DexID          string         `json:"dexID"`
 	FactoryAddress string         `json:"factoryAddress"`
+	RouterAddress  string         `json:"routerAddress"`
+	RouterSelector uint32         `json:"routerSelector"`
+	Gas            int64          `json:"gas"`
 	Fee            uint64         `json:"fee"`
 	FeePrecision   uint64         `json:"feePrecision"`
 	FeeTracker     *FeeTrackerCfg `json:"feeTracker"`

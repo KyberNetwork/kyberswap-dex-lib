@@ -40,7 +40,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	var feesData FeesDataRPC
-	if _, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
 		ABI:    hookABI,
 		Target: hexutil.Encode(param.HookAddress[:]),
 		Method: "getFeesData",

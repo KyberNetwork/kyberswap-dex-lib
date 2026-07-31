@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -25,6 +26,8 @@ type PoolTracker struct {
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+
+var _ poolpkg.IPoolTrackerWithOverrides = (*PoolTracker)(nil)
 
 func NewPoolTracker(
 	config *Config,
@@ -44,6 +47,30 @@ func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, nil)
+}
+
+// GetNewPoolStateWithOverrides behaves like GetNewPoolState but reads the llamma pool's
+// state - including price_oracle(), which the pool derives from an external oracle
+// contract read live at call time - under the given state overrides. The llamma ABI has
+// no swap/band events to fold from logs, so a log-only path cannot recover this state;
+// reading it fresh under the pending tx's post-victim prestate override is the only way
+// to get the correct post-victim price/band state for backrun sims. curve/lending
+// registers this same PoolTracker directly (llamma.NewPoolTracker), so it inherits this
+// method for free.
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	lg := t.logger.WithFields(logger.Fields{"poolAddress": p.Address})
 	lg.Info("Start updating state...")
@@ -67,7 +94,7 @@ func (t *PoolTracker) GetNewPoolState(
 		balances = make([]*big.Int, 2)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).AddCall(&ethrpc.Call{
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodGetBasePrice,
@@ -119,7 +146,8 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	bands, err := t.getBands(ctx, p.Address, activeBand.Int64(), minBand.Int64(), maxBand.Int64(), t.config.MaxBandLimit)
+	bands, err := t.getBands(ctx, p.Address, activeBand.Int64(), minBand.Int64(), maxBand.Int64(), t.config.MaxBandLimit,
+		overrides)
 	if err != nil {
 		return p, err
 	}
@@ -166,6 +194,7 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) getBands(
 	ctx context.Context,
 	poolAddress string, activeBand, minBand, maxBand, bandLimit int64,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]Band, error) {
 	if minBand > maxBand {
 		return nil, nil
@@ -181,7 +210,7 @@ func (t *PoolTracker) getBands(
 		bandsY = make([]*big.Int, bandCount)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides)
 	for i := range bandCount {
 		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
