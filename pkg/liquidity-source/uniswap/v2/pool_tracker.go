@@ -7,12 +7,15 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type (
@@ -65,10 +68,11 @@ func (d *PoolTracker) GetNewPoolState(
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	reserveData := logsReserve
+	var bals [2]*big.Int
 	if fromLogs {
 		req.SetBlockNumber(blockNumber)
 	} else {
-		d.addReservesCall(req, p, &reserveData)
+		d.addReservesCall(req, p, &reserveData, bals[:])
 	}
 
 	var previousExtra Extra
@@ -92,6 +96,12 @@ func (d *PoolTracker) GetNewPoolState(
 		if err != nil {
 			return p, err
 		}
+
+		if bals[0].Cmp(reserveData.Reserve0) < 0 || bals[1].Cmp(reserveData.Reserve1) < 0 {
+			reserveData.Reserve0 = bignumber.ZeroBI
+			reserveData.Reserve1 = bignumber.ZeroBI
+		}
+
 		blockNumber = resp.BlockNumber
 		if p.BlockNumber > blockNumber.Uint64() {
 			return p, nil
@@ -124,13 +134,24 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(p, reserveData, fee, taxInfo, blockNumber)
 }
 
-// addReservesCall appends a getReserves call to req, filling out after the aggregate.
-func (d *PoolTracker) addReservesCall(req *ethrpc.Request, p entity.Pool, out *ReserveData) {
+// addReservesCall appends a getReserves and 2 balanceOf calls to req, filling out after the aggregate.
+func (d *PoolTracker) addReservesCall(req *ethrpc.Request, p entity.Pool, out *ReserveData, bals []*big.Int) {
+	poolAddr := common.HexToAddress(p.Address)
 	req.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
 		Target: p.Address,
 		Method: pairMethodGetReserves,
-	}, []any{out})
+	}, []any{out}).AddCall(&ethrpc.Call{
+		ABI:    abi.Erc20ABI,
+		Target: p.Tokens[0].Address,
+		Method: abi.Erc20BalanceOfMethod,
+		Params: []any{poolAddr},
+	}, []any{&bals[0]}).AddCall(&ethrpc.Call{
+		ABI:    abi.Erc20ABI,
+		Target: p.Tokens[1].Address,
+		Method: abi.Erc20BalanceOfMethod,
+		Params: []any{poolAddr},
+	}, []any{&bals[1]})
 }
 
 func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uint64,
