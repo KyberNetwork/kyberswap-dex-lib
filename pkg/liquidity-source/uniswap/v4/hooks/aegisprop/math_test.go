@@ -64,3 +64,36 @@ func TestWalkExactOut_Asks_MatchesExactInInverse(t *testing.T) {
 	assert.Equal(t, "150", in.Dec())
 	assert.Equal(t, "25", updated[0].Amplitude.Dec())
 }
+
+func TestStalenessHaircutBps(t *testing.T) {
+	// fresh: no ramp yet
+	bps, ok := stalenessHaircutBps(30, 60, 300, 500)
+	assert.True(t, ok)
+	assert.Equal(t, uint64(0), bps)
+
+	// halfway between fresh(60) and stale(300) thresholds -> half of the 500bps cap, rounded up
+	bps, ok = stalenessHaircutBps(180, 60, 300, 500)
+	assert.True(t, ok)
+	assert.Equal(t, uint64(250), bps)
+
+	// at the stale threshold -> full haircut
+	bps, ok = stalenessHaircutBps(300, 60, 300, 500)
+	assert.True(t, ok)
+	assert.Equal(t, uint64(500), bps)
+
+	// past the stale threshold -> reject, mirrors the on-chain hook's error 62
+	_, ok = stalenessHaircutBps(301, 60, 300, 500)
+	assert.False(t, ok)
+}
+
+func TestApplyFee_OutInRoundTrip(t *testing.T) {
+	raw := uint256.NewInt(1_000_000)
+	totalBps := uint64(10) // 10bps, matching the reported overquote
+
+	out := applyFeeOut(raw, totalBps)
+	assert.Equal(t, "999000", out.Dec())
+
+	// applyFeeIn should recover (>=) the raw amount needed to net `out` after the same haircut.
+	grossBack := applyFeeIn(out, totalBps)
+	assert.True(t, grossBack.Cmp(raw) <= 0)
+}
