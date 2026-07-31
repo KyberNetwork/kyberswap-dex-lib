@@ -207,7 +207,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			Address:     hexutil.Encode(pairAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
-			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{"0", "0"},
 			Tokens:      []*entity.PoolToken{token0, token1},
 			Extra:       string(extra),
