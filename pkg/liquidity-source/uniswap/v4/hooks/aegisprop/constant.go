@@ -6,7 +6,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-const gasBeforeSwap int64 = 39838 // same order as other PropAMM-family hooks (st0x); refine once measured on-chain
+const (
+	gasBeforeSwap int64  = 75160
+	bpsDenom      uint64 = 10_000
+)
 
 var (
 	ErrInvalidAmount           = errors.New("aegisprop: invalid swap amount")

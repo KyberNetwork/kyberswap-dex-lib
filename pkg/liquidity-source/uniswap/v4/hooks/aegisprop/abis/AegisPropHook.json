@@ -37,5 +37,36 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "PoolId", "name": "poolId", "type": "bytes32" }
+    ],
+    "name": "poolConfig",
+    "outputs": [
+      { "internalType": "MmId", "name": "mmId", "type": "uint16" },
+      { "internalType": "uint8", "name": "token0Decimals", "type": "uint8" },
+      { "internalType": "uint8", "name": "token1Decimals", "type": "uint8" },
+      { "internalType": "SlackBps", "name": "slackBps", "type": "uint16" },
+      { "internalType": "TakerFeeBps", "name": "takerFeeBps", "type": "uint16" },
+      { "internalType": "HaircutBps", "name": "haircutBpsAtStaleThreshold", "type": "uint16" },
+      { "internalType": "uint32", "name": "freshThresholdSec", "type": "uint32" },
+      { "internalType": "uint32", "name": "staleThresholdSec", "type": "uint32" },
+      {
+        "components": [
+          { "internalType": "address", "name": "feedA", "type": "address" },
+          { "internalType": "uint8", "name": "feedADecimals", "type": "uint8" },
+          { "internalType": "bool", "name": "isCrossRate", "type": "bool" },
+          { "internalType": "bool", "name": "requiresSequencerFeed", "type": "bool" },
+          { "internalType": "address", "name": "feedB", "type": "address" },
+          { "internalType": "uint8", "name": "feedBDecimals", "type": "uint8" }
+        ],
+        "internalType": "struct OracleConfig",
+        "name": "oracle",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

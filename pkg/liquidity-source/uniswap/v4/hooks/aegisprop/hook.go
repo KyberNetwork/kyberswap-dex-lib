@@ -41,8 +41,33 @@ type LadderRPC struct {
 	AskLen     uint8
 }
 
-// Hook holds the last-tracked ladder (integration guide §4 Path B), used to compute indicative
-// swap amounts off-chain during route simulation.
+// PoolConfigRPC mirrors the hook's poolConfig(poolId) getter. Oracle is decoded because it's part
+// of the same ABI tuple, but only the fee/staleness fields are actually used.
+type PoolConfigRPC struct {
+	MmId                       uint16
+	Token0Decimals             uint8
+	Token1Decimals             uint8
+	SlackBps                   uint16
+	TakerFeeBps                uint16
+	HaircutBpsAtStaleThreshold uint16
+	FreshThresholdSec          uint32
+	StaleThresholdSec          uint32
+	Oracle                     OracleConfigRPC
+}
+
+type OracleConfigRPC struct {
+	FeedA                 common.Address
+	FeedADecimals         uint8
+	IsCrossRate           bool
+	RequiresSequencerFeed bool
+	FeedB                 common.Address
+	FeedBDecimals         uint8
+}
+
+// Hook holds the last-tracked ladder (integration guide §4 Path B) plus the venue's taker fee and
+// staleness-haircut config, used to compute indicative swap amounts off-chain during route
+// simulation. The ladder walk alone (as documented) omits fees/protective adjustments the on-chain
+// hook applies in beforeSwap; TakerFeeBps and the staleness ramp fields replicate that on top.
 type Hook struct {
 	uniswapv4.Hook `json:"-"`
 
@@ -50,6 +75,12 @@ type Hook struct {
 	Asks []Level `json:"k"`
 
 	Expiration uint64 `json:"e"` // unix ts; ladder valid while now < Expiration
+
+	TakerFeeBps                uint64 `json:"f"`
+	HaircutBpsAtStaleThreshold uint64 `json:"h"`
+	FreshThresholdSec          uint64 `json:"fs"`
+	StaleThresholdSec          uint64 `json:"ss"`
+	TrackedAt                  uint64 `json:"t"` // unix ts when Track last ran; used as the staleness-ramp age baseline
 }
 
 type SwapInfo struct {
@@ -96,6 +127,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	hookAddr := param.HookAddress.Hex()
 
 	var ladder LadderRPC
+	var poolConfig PoolConfigRPC
 	req := param.RpcClient.NewRequest().SetContext(ctx)
 	if param.BlockNumber != nil {
 		req.SetBlockNumber(param.BlockNumber)
@@ -105,7 +137,12 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		Target: hookAddr,
 		Method: "ladder",
 		Params: []any{poolId},
-	}, []any{&struct{*LadderRPC}{&ladder}})
+	}, []any{&struct{ *LadderRPC }{&ladder}}).AddCall(&ethrpc.Call{
+		ABI:    aegisPropHookABI,
+		Target: hookAddr,
+		Method: "poolConfig",
+		Params: []any{poolId},
+	}, []any{&poolConfig})
 
 	if _, err := req.Aggregate(); err != nil {
 		return nil, fmt.Errorf("failed to track aegis propamm ladder: %w", err)
@@ -114,6 +151,12 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	h.Bids = toLevels(ladder.Bids[:], ladder.BidLen)
 	h.Asks = toLevels(ladder.Asks[:], ladder.AskLen)
 	h.Expiration = uint64(ladder.Expiration)
+
+	h.TakerFeeBps = uint64(poolConfig.TakerFeeBps)
+	h.HaircutBpsAtStaleThreshold = uint64(poolConfig.HaircutBpsAtStaleThreshold)
+	h.FreshThresholdSec = uint64(poolConfig.FreshThresholdSec)
+	h.StaleThresholdSec = uint64(poolConfig.StaleThresholdSec)
+	h.TrackedAt = uint64(time.Now().Unix())
 
 	return json.Marshal(h)
 }
@@ -141,8 +184,22 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}, nil
 	}
 
-	if h.Expiration != 0 && time.Now().Unix() >= int64(h.Expiration) {
+	now := uint64(time.Now().Unix())
+	if h.Expiration != 0 && now >= h.Expiration {
 		return nil, ErrStaleLadder
+	}
+
+	age := now - h.TrackedAt
+	if now < h.TrackedAt {
+		age = 0
+	}
+	haircutBps, freshEnough := stalenessHaircutBps(age, h.FreshThresholdSec, h.StaleThresholdSec, uint16(h.HaircutBpsAtStaleThreshold))
+	if !freshEnough {
+		return nil, ErrStaleLadder
+	}
+	totalBps := h.TakerFeeBps + haircutBps
+	if totalBps >= bpsDenom {
+		return nil, ErrInvalidAmount
 	}
 
 	amtU, overflow := uint256.FromBig(amt)
@@ -163,15 +220,19 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		updated                          []Level
 	)
 	if params.CalcOut {
-		out, upd, filled := walkExactIn(levels, amtU, params.ZeroForOne)
+		rawOut, upd, filled := walkExactIn(levels, amtU, params.ZeroForOne)
 		if !filled {
 			return nil, ErrInsufficientLadderDepth
 		}
 		updated = upd
+		out := applyFeeOut(rawOut, totalBps)
 		deltaSpecified = new(big.Int).Set(amt)
 		deltaUnspecified = new(big.Int).Neg(out.ToBig())
 	} else {
-		in, upd, filled := walkExactOut(levels, amtU, params.ZeroForOne)
+		// The taker fee/haircut is applied to the amount the taker pays, so the ladder must be
+		// walked for the larger pre-fee input that nets the requested output after the haircut.
+		grossAmt := applyFeeIn(amtU, totalBps)
+		in, upd, filled := walkExactOut(levels, grossAmt, params.ZeroForOne)
 		if !filled {
 			return nil, ErrInsufficientLadderDepth
 		}

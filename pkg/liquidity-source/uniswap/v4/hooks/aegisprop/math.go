@@ -6,7 +6,40 @@ import (
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-var uPriceScale = u256.TenPow(18)
+var (
+	uPriceScale = u256.TenPow(18)
+	uBpsDenom   = uint256.NewInt(bpsDenom)
+)
+
+// stalenessHaircutBps linearly ramps from 0 at age==freshThresholdSec up to haircutBpsAtStale at
+// age==staleThresholdSec, matching the on-chain hook's ceil-rounded interpolation. filled is false
+// once age exceeds staleThresholdSec, mirroring the hook's own reject-on-stale behavior.
+func stalenessHaircutBps(age, freshThresholdSec, staleThresholdSec uint64, haircutBpsAtStale uint16) (bps uint64, ok bool) {
+	if age > staleThresholdSec {
+		return 0, false
+	}
+	if age <= freshThresholdSec || staleThresholdSec <= freshThresholdSec {
+		return 0, true
+	}
+	span := staleThresholdSec - freshThresholdSec
+	num := (age - freshThresholdSec) * uint64(haircutBpsAtStale)
+	return (num + span - 1) / span, true // ceil division
+}
+
+// applyFeeOut applies the combined taker fee + staleness haircut to a raw ladder-walk output
+// amount, rounding down in the venue's favor: out = floor(raw * (10000-totalBps) / 10000).
+func applyFeeOut(raw *uint256.Int, totalBps uint64) *uint256.Int {
+	mult := uint256.NewInt(bpsDenom - totalBps)
+	return u256.MulDivDown(new(uint256.Int), raw, mult, uBpsDenom)
+}
+
+// applyFeeIn is the exact-out counterpart of applyFeeOut: it inflates a raw ladder-walk input
+// requirement so the taker pays for the fee/haircut, rounding up in the venue's favor:
+// in = ceil(raw * 10000 / (10000-totalBps)).
+func applyFeeIn(raw *uint256.Int, totalBps uint64) *uint256.Int {
+	mult := uint256.NewInt(bpsDenom - totalBps)
+	return u256.MulDivUp(new(uint256.Int), raw, uBpsDenom, mult)
+}
 
 // walkExactIn replicates the reference off-chain ladder traversal (integration guide §4 B3):
 // walk levels best-price-first, filling amountIn and accumulating the counter amount.
