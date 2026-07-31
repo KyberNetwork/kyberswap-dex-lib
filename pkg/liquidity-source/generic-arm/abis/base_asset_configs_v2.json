@@ -1,0 +1,61 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "baseAssetConfigs",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "name": "buyPrice",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "sellPrice",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "buyLiquidityRemaining",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "sellLiquidityRemaining",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "crossPrice",
+                "type": "uint128"
+            },
+            {
+                "internalType": "uint128",
+                "name": "pendingRedeemAssets",
+                "type": "uint128"
+            },
+            {
+                "internalType": "bool",
+                "name": "peggedToLiquidityAsset",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint8",
+                "name": "baseAssetDecimals",
+                "type": "uint8"
+            },
+            {
+                "internalType": "address",
+                "name": "adapter",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

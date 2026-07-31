@@ -5,5 +5,5 @@ import _ "embed"
 //go:embed abis/lidoarm.json
 var lidoArmABIData []byte
 
-//go:embed abis/ERC4626.json
-var ERC626ABIData []byte
+//go:embed abis/base_asset_configs_v2.json
+var baseAssetConfigsV2ABIData []byte

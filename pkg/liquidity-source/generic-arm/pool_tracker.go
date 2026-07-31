@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -64,33 +63,13 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	extra := Extra{
-		TradeRate0:       uint256.MustFromBig(poolState.TradeRate0),
-		TradeRate1:       uint256.MustFromBig(poolState.TradeRate1),
-		PriceScale:       uint256.MustFromBig(poolState.PriceScale),
-		WithdrawsQueued:  uint256.MustFromBig(poolState.WithdrawsQueued),
-		WithdrawsClaimed: uint256.MustFromBig(poolState.WithdrawsClaimed),
-		LiquidityAsset:   poolState.LiquidityAsset,
-		Vault: ERC4626Extra{
-			BaseAsset:   poolState.Vault.BaseAsset,
-			TotalAssets: uint256.MustFromBig(poolState.Vault.TotalAssets),
-			TotalSupply: uint256.MustFromBig(poolState.Vault.TotalSupply),
-			BuyPrice:    uint256FromBigOrNil(poolState.Vault.BuyPrice),
-			SellPrice:   uint256FromBigOrNil(poolState.Vault.SellPrice),
-		},
-		SwapTypes:          t.config.Arms[p.Address].SwapType,
-		ArmType:            t.config.Arms[p.Address].ArmType,
-		HasWithdrawalQueue: t.config.Arms[p.Address].HasWithdrawalQueue,
-	}
-	extraBytes, err := json.Marshal(extra)
+	armCfg := t.config.Arms[p.Address]
+	extraBytes, err := json.Marshal(buildExtra(poolState, armCfg))
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{
-		poolState.Reserve0.String(),
-		poolState.Reserve1.String(),
-	}
+	_, p.Reserves = buildTokensAndReserves(poolState, armCfg)
 
 	p.Timestamp = time.Now().Unix()
 	logger.WithFields(logger.Fields{
