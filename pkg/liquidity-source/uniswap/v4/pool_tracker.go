@@ -111,6 +111,11 @@ func (t *PoolTracker) fetchOnchainState(
 		return result, hook, hookParam, err
 	}
 	hookParam.BlockNumber = res.BlockNumber
+
+	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
+	// https://github.com/Uniswap/v4-core/blob/main/src/libraries/ProtocolFeeLibrary.sol#L38
+	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+
 	return result, hook, hookParam, nil
 }
 
@@ -161,14 +166,6 @@ func (t *PoolTracker) BootstrapPoolState(
 		"dexID":       t.config.DexID,
 	})
 	l.Info("Start getting new state of univ4 pool")
-
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
 
 	var (
 		rpcData   *FetchRPCResult
@@ -238,7 +235,6 @@ func (t *PoolTracker) BootstrapPoolState(
 		}).Error("failed to resolve hook state")
 		return entity.Pool{}, err
 	}
-	p.Reserves = rpcData.Reserves
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
@@ -257,9 +253,11 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
+	p.SwapFee = float64(rpcData.SwapFee)
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
+	p.Reserves = rpcData.Reserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = blockNumber
-	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
 	l.Infof("Finish updating state of pool")
 	return p, nil
@@ -830,7 +828,6 @@ func (t *PoolTracker) updateState(
 		}).Error("failed to resolve hook state")
 		return p, err
 	}
-	p.Reserves = rpcState.Reserves
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
@@ -849,9 +846,11 @@ func (t *PoolTracker) updateState(
 		return p, err
 	}
 
-	p.SwapFee, _ = rpcState.Slot0.LpFee.Float64()
-	p.Extra = string(extraBytes)
+	p.SwapFee = float64(rpcState.SwapFee)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
+	p.Reserves = rpcState.Reserves
+	p.Extra = string(extraBytes)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
 }

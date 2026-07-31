@@ -18,8 +18,7 @@ const (
 	tickChunkSize   = 100
 
 	_OFFSET_TICK_SPACING = 16
-
-	_MASK12 = 0xfff
+	_MASK12              = 0xfff
 )
 
 const (
