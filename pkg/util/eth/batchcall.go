@@ -66,7 +66,7 @@ func BatchEthCall(
 		}
 	}
 
-	if err = batchCallWithRetry(ctx, client, batch); err != nil {
+	if err = BatchCallWithRetry(ctx, client, batch, DefaultBatchRetry); err != nil {
 		return nil, nil, err
 	}
 
@@ -79,22 +79,84 @@ func BatchEthCall(
 	return results, callErrs, nil
 }
 
-// batchCallWithRetry retries request-level 429/rate-limit errors with
-// exponential backoff (50ms -> 200ms). Per-element errors surface to the
-// caller via BatchElem.Error instead.
-func batchCallWithRetry(ctx context.Context, client *rpc.Client, batch []rpc.BatchElem) error {
-	const maxAttempts = 3
-	delay := 50 * time.Millisecond
+// StorageRead is one eth_getStorageAt request/result pair.
+type StorageRead struct {
+	Slot   common.Hash
+	Result common.Hash
+}
+
+// BatchGetStorageAt reads reads' slots from address in one JSON-RPC batch,
+// filling each Result in place. For contracts with no view function for the
+// state -- typically unverified ones; prefer an ABI call when one exists.
+//
+// Fails on the first element error, unlike BatchEthCall: a storage read cannot
+// revert, so an element error means transport or node trouble.
+func BatchGetStorageAt(
+	ctx context.Context, client *rpc.Client, address common.Address,
+	reads []StorageRead, retry BatchRetry,
+) error {
+	if len(reads) == 0 {
+		return nil
+	}
+
+	batch := make([]rpc.BatchElem, len(reads))
+	for i := range reads {
+		batch[i] = rpc.BatchElem{
+			Method: "eth_getStorageAt",
+			Args:   []any{address, reads[i].Slot, "latest"},
+			Result: &reads[i].Result,
+		}
+	}
+
+	if err := BatchCallWithRetry(ctx, client, batch, retry); err != nil {
+		return err
+	}
+
+	for _, elem := range batch {
+		if elem.Error != nil {
+			return elem.Error
+		}
+	}
+	return nil
+}
+
+// BatchRetry configures batch retry. Delay doubles after each failed attempt.
+type BatchRetry struct {
+	MaxAttempts  int
+	InitialDelay time.Duration
+}
+
+// DefaultBatchRetry: for pool trackers, giving up inside a 2s poll cycle
+// rather than stacking behind the next one.
+var DefaultBatchRetry = BatchRetry{MaxAttempts: 3, InitialDelay: 50 * time.Millisecond}
+
+// PatientBatchRetry: for one-shot callers like listers, where finishing
+// matters more than finishing fast.
+var PatientBatchRetry = BatchRetry{MaxAttempts: 5, InitialDelay: 500 * time.Millisecond}
+
+// BatchCallWithRetry retries only request-level 429/rate-limit errors. Element
+// errors are left in BatchElem.Error: a revert repeats identically anyway.
+func BatchCallWithRetry(
+	ctx context.Context, client *rpc.Client, batch []rpc.BatchElem, retry BatchRetry,
+) error {
+	attempts := max(retry.MaxAttempts, 1)
+
+	delay := retry.InitialDelay
+	if delay <= 0 {
+		delay = DefaultBatchRetry.InitialDelay
+	}
+
 	var err error
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		err = client.BatchCallContext(ctx, batch)
-		if err == nil {
+	for range attempts {
+		if err = client.BatchCallContext(ctx, batch); err == nil {
 			return nil
 		}
+
 		msg := err.Error()
 		if !strings.Contains(msg, "429") && !strings.Contains(msg, "rate limit") {
 			return err
 		}
+
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
