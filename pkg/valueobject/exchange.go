@@ -57,6 +57,7 @@ const (
 	ExchangeBrownfi                     = "brownfi"
 	ExchangeBrownfiV2                   = "brownfi-v2"
 	ExchangeBrownfiV3                   = "brownfi-v3"
+	ExchangeBurgerSwapV2                = "burgerswap-v2"
 	ExchangeBurrBearComposableStable    = "burrbear-composable-stable"
 	ExchangeBurrBearStable              = "burrbear-stable"
 	ExchangeBurrBearWeighted            = "burrbear-weighted"
