@@ -120,6 +120,24 @@ These ops read all inputs before writing the result, so z==x or z==y is safe:
 
 ### common.Address: always use hexutil.Encode(address[:]) instead of strings.ToLower(address.String/Hex())
 
+## Before committing
+
+Run against every changed `.go` file (diffed from `origin/main`, excluding deletions):
+
+```sh
+(){sed -i '/^import (/,/^)/{/^$/d}' $*; goimports -local `grep -oP 'module \K.+' go.mod` -w $*} `git diff origin/main --name-status | grep -v '^D' | awk '{print $NF}' | grep '.go$'`
+```
+
+This strips blank lines inside `import (...)` blocks, then runs `goimports -local` (using this module's path) to regroup/format imports on exactly the changed files — not the whole tree.
+
+If any changed file adds/removes a registered `IPoolSimulator` (new `DexType`, new pool type), also regenerate serialization bindings:
+
+```sh
+go generate ./pkg/msgpack/...
+```
+
+This repo has `pkg/msgpack`; run the second command here. Other downstream repos don't have it — skip the second command there.
+
 ## Pull Request
 
 Create a PR from your feature branch to **kyberswap-dex-lib** `main`.

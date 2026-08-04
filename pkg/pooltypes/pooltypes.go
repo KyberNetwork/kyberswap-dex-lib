@@ -90,7 +90,7 @@ import (
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
-	ghost "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gohm"
 	gsm4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gsm-4626"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -122,6 +122,7 @@ import (
 	maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
+	metronomeswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metronome/swap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
@@ -464,6 +465,7 @@ type Types struct {
 	Prop1010                   string
 	FermiProp                  string
 	Machima                    string
+	MetronomeSwap              string
 }
 
 var (
@@ -701,5 +703,6 @@ var (
 		Prop1010:                   prop1010.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
+		MetronomeSwap:              metronomeswap.DexType,
 	}
 )
