@@ -1,0 +1,4 @@
+[
+  {"inputs":[{"internalType":"address","name":"tokenIn_","type":"address"},{"internalType":"address","name":"tokenOut_","type":"address"},{"internalType":"uint256","name":"amountIn_","type":"uint256"}],"name":"quote","outputs":[{"internalType":"uint256","name":"_amountOut","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"token_","type":"address"}],"name":"getPriceInUsd","outputs":[{"internalType":"uint256","name":"_priceInUsd","type":"uint256"}],"stateMutability":"view","type":"function"}
+]

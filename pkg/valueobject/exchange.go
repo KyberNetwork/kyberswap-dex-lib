@@ -172,6 +172,7 @@ const (
 	ExchangeMaverickV2                  = "maverick-v2"
 	ExchangeMemeBox                     = "memebox"
 	ExchangeMeshSwap                    = "meshswap"
+	ExchangeMetronomeSwap               = "metronome-swap"
 	ExchangeMetropolis                  = "metropolis"
 	ExchangeMidas                       = "midas"
 	ExchangeMimSwap                     = "mimswap"

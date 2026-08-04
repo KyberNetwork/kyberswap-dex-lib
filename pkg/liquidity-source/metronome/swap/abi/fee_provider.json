@@ -1,0 +1,4 @@
+[
+  {"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"swapFees","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"synthIn","type":"address"},{"indexed":false,"internalType":"address","name":"synthOut","type":"address"},{"indexed":false,"internalType":"uint256","name":"oldSwapFee","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"newSwapFee","type":"uint256"}],"name":"SwapFeeUpdated","type":"event"}
+]
