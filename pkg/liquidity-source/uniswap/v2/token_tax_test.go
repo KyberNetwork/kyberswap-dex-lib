@@ -2,15 +2,12 @@ package uniswapv2
 
 import (
 	"testing"
-
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
-	fourmeme "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax/four-meme"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestExtraWithoutTaxInfo(t *testing.T) {
@@ -25,11 +22,8 @@ func TestNewTokenTaxTracker(t *testing.T) {
 	t.Parallel()
 
 	const (
-		virtualFactory  = "0x8909dc15e40173ff4699343b6eb8132c65e18ec6"
-		virtualToken    = "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"
-		fourMemeFactory = "0xca143ce32fe78f1f7019d7d551a6402fc5350c73"
-		wbnb            = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
-		agent           = "0x0000000000000000000000000000000000000001"
+		weth  = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+		agent = "0x0000000000000000000000000000000000000001"
 	)
 
 	poolWith := func(baseToken string) entity.Pool {
@@ -42,49 +36,53 @@ func TestNewTokenTaxTracker(t *testing.T) {
 		}
 	}
 
-	t.Run("ordinary factory is not tracked", func(t *testing.T) {
-		tracker, info := newTokenTaxTracker("0xother", entity.Pool{}, Extra{})
+	t.Run("unsupported chain is not tracked", func(t *testing.T) {
+		tracker, info := newTokenTaxTracker(valueobject.ChainID(999999), poolWith(weth), Extra{})
 		assert.Nil(t, tracker)
 		assert.Equal(t, tokentax.TaxInfo{}, info)
 	})
 
-	t.Run("virtual reuses cached unsupported token", func(t *testing.T) {
-		previous := tokentax.TaxInfo{Checked: true}
-		p := poolWith(virtualToken)
-		tracker, info := newTokenTaxTracker(virtualFactory, p, Extra{TaxInfo: &previous})
-		assert.Nil(t, tracker)
-		assert.Equal(t, previous, info)
-	})
-
-	t.Run("virtual refreshes known mutable tax", func(t *testing.T) {
-		previous := tokentax.TaxInfo{Token: agent, BuyTaxBps: uint256.NewInt(100), Checked: true}
-		p := poolWith(virtualToken)
-		tracker, info := newTokenTaxTracker(virtualFactory, p, Extra{TaxInfo: &previous})
+	t.Run("pool with unusual pairing is still tracked (no base-token allowlist needed)", func(t *testing.T) {
+		// The self-pair probe needs no recognized base token on either side: it works for any
+		// 2-token pool that lives on the same factory a detector instance is bound to.
+		tracker, info := newTokenTaxTracker(valueobject.ChainIDEthereum, entity.Pool{
+			Tokens: []*entity.PoolToken{{Address: agent}, {Address: "0x0000000000000000000000000000000000000003"}},
+		}, Extra{})
 		assert.NotNil(t, tracker)
 		assert.Equal(t, tokentax.TaxInfo{}, info)
 	})
 
-	t.Run("four meme refreshes tax but reuses canonical pair", func(t *testing.T) {
-		previous := tokentax.TaxInfo{
-			Protocol: fourmeme.Protocol, Token: agent, BuyTaxBps: uint256.NewInt(100), Checked: true,
-		}
-		p := poolWith(wbnb)
-		tracker, info := newTokenTaxTracker(fourMemeFactory, p, Extra{TaxInfo: &previous})
-		assert.NotNil(t, tracker)
+	t.Run("pool without exactly 2 tokens is not tracked", func(t *testing.T) {
+		tracker, info := newTokenTaxTracker(valueobject.ChainIDEthereum, entity.Pool{
+			Tokens: []*entity.PoolToken{{Address: agent}},
+		}, Extra{})
+		assert.Nil(t, tracker)
 		assert.Equal(t, tokentax.TaxInfo{}, info)
 	})
 
-	t.Run("four meme reuses cached unsupported pair", func(t *testing.T) {
-		previous := tokentax.TaxInfo{Checked: true}
-		tracker, info := newTokenTaxTracker(
-			fourMemeFactory, poolWith(wbnb), Extra{TaxInfo: &previous},
-		)
+	t.Run("reuses cached unsupported token once migrated", func(t *testing.T) {
+		previous := tokentax.TaxInfo{Checked: true, TaxCheckVersion: currentTaxCheckVersion}
+		tracker, info := newTokenTaxTracker(valueobject.ChainIDEthereum, poolWith(weth), Extra{TaxInfo: &previous})
 		assert.Nil(t, tracker)
 		assert.Equal(t, previous, info)
 	})
 
-	t.Run("four meme probes unchecked state", func(t *testing.T) {
-		tracker, info := newTokenTaxTracker(fourMemeFactory, poolWith(wbnb), Extra{})
+	t.Run("stale TaxCheckVersion forces one recheck even if marked checked", func(t *testing.T) {
+		previous := tokentax.TaxInfo{Checked: true}
+		tracker, info := newTokenTaxTracker(valueobject.ChainIDEthereum, poolWith(weth), Extra{TaxInfo: &previous})
+		assert.NotNil(t, tracker)
+		assert.Equal(t, tokentax.TaxInfo{}, info)
+	})
+
+	t.Run("refreshes known mutable tax", func(t *testing.T) {
+		previous := tokentax.TaxInfo{Token: agent, Checked: true, TaxCheckVersion: currentTaxCheckVersion}
+		tracker, info := newTokenTaxTracker(valueobject.ChainIDEthereum, poolWith(weth), Extra{TaxInfo: &previous})
+		assert.NotNil(t, tracker)
+		assert.Equal(t, tokentax.TaxInfo{}, info)
+	})
+
+	t.Run("probes unchecked state", func(t *testing.T) {
+		tracker, info := newTokenTaxTracker(valueobject.ChainIDEthereum, poolWith(weth), Extra{})
 		assert.NotNil(t, tracker)
 		assert.Equal(t, tokentax.TaxInfo{}, info)
 	})

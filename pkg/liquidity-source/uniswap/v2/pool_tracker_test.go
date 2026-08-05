@@ -4,15 +4,12 @@ import (
 	"context"
 	"math/big"
 	"testing"
-
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -29,11 +26,15 @@ func TestPoolTracker_RegularPoolWithLegacyExtra(t *testing.T) {
 	t.Parallel()
 
 	const (
-		token0 = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-		token1 = "0xdac17f958d2ee523a2206206994597c13d831ec7"
+		token0 = "0x1111111111111111111111111111111111111111"
+		token1 = "0x2222222222222222222222222222222222222222"
 	)
 
 	tracker := &PoolTracker{
+		// ChainID intentionally left unset (unsupported by the tax detector) so this test stays a
+		// pure unit test: with a supported chain, newTokenTaxTracker now tracks every 2-token pool
+		// (no base-token allowlist gate), which would require real RPC access. See the *_RealChain
+		// tests in pool_tracker_integration_test.go for that path.
 		config: &Config{
 			FactoryAddress: "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
 			Fee:            30,
@@ -71,6 +72,6 @@ func TestPoolTracker_RegularPoolWithLegacyExtra(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
 	assert.Equal(t, uint64(30), extra.Fee)
 	assert.Equal(t, uint64(10000), extra.FeePrecision)
-	require.NotNil(t, extra.TaxInfo)
-	assert.Equal(t, tokentax.TaxInfo{Checked: true}, *extra.TaxInfo)
+	// ChainID is unsupported here (see comment above), so tax detection never runs.
+	assert.Nil(t, extra.TaxInfo)
 }

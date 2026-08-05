@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -116,7 +114,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+				taxHandler: tokentax.NewHandler(&tokentax.TaxInfo{
 					Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
 					BuyTaxBps:  uint256.NewInt(100),
 					SellTaxBps: uint256.NewInt(100),
@@ -239,7 +237,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
-				taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+				taxHandler: tokentax.NewHandler(&tokentax.TaxInfo{
 					Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
 					BuyTaxBps:  uint256.NewInt(100),
 					SellTaxBps: uint256.NewInt(100),
@@ -301,7 +299,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		},
 		fee:          number.NewUint256("3"),
 		feePrecision: number.NewUint256("1000"),
-		taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+		taxHandler: tokentax.NewHandler(&tokentax.TaxInfo{
 			Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
 			BuyTaxBps:  uint256.NewInt(100),
 			SellTaxBps: uint256.NewInt(100),
@@ -400,7 +398,7 @@ func newTaxPoolSim() *PoolSimulator {
 		},
 		fee:          number.NewUint256("3"),
 		feePrecision: number.NewUint256("1000"),
-		taxHandler: tokentax.NewHandler(tokentax.TaxInfo{
+		taxHandler: tokentax.NewHandler(&tokentax.TaxInfo{
 			Token:      "0xff8104251e7761163fac3211ef5583fb3f8583d6",
 			BuyTaxBps:  uint256.NewInt(100),
 			SellTaxBps: uint256.NewInt(100),
