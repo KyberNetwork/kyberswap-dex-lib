@@ -28,6 +28,7 @@ var uniswapContracts = map[valueobject.ChainID]string{
 	valueobject.ChainIDLinea:           "0xf025e0fe9e331a0ef05c2ad3c4e9c64b625cda6f",
 	valueobject.ChainIDMegaETH:         "0x2103a00792b980dff0509952bead5cb2e3149022",
 	valueobject.ChainIDMonad:           "0x5c834b6cac4173bfe288c5722a38e04b9e366e30",
+	valueobject.ChainIDRobinhood:       "0x71acc16374dccf6f7eea13647d52c836fa265282",
 }
 
 // pancakeContracts is PancakeSwap's own FeeOnTransferDetector deployment per chain (2-field
