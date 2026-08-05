@@ -1,0 +1,23 @@
+[
+  {
+    "inputs": [
+      {"internalType": "address", "name": "token", "type": "address"},
+      {"internalType": "address", "name": "baseToken", "type": "address"},
+      {"internalType": "uint256", "name": "amountToBorrow", "type": "uint256"}
+    ],
+    "name": "validate",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "uint256", "name": "buyFeeBps", "type": "uint256"},
+          {"internalType": "uint256", "name": "sellFeeBps", "type": "uint256"}
+        ],
+        "internalType": "struct TokenFees",
+        "name": "fotResult",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

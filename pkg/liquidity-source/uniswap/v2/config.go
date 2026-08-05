@@ -1,15 +1,18 @@
 package uniswapv2
 
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+
 type Config struct {
-	DexID          string         `json:"dexID"`
-	FactoryAddress string         `json:"factoryAddress"`
-	RouterAddress  string         `json:"routerAddress"`
-	RouterSelector uint32         `json:"routerSelector"`
-	Gas            int64          `json:"gas"`
-	Fee            uint64         `json:"fee"`
-	FeePrecision   uint64         `json:"feePrecision"`
-	FeeTracker     *FeeTrackerCfg `json:"feeTracker"`
-	NewPoolLimit   int            `json:"newPoolLimit"`
+	DexID          string              `json:"dexID"`
+	ChainID        valueobject.ChainID `json:"chainId"`
+	FactoryAddress string              `json:"factoryAddress"`
+	RouterAddress  string              `json:"routerAddress"`
+	RouterSelector uint32              `json:"routerSelector"`
+	Gas            int64               `json:"gas"`
+	Fee            uint64              `json:"fee"`
+	FeePrecision   uint64              `json:"feePrecision"`
+	FeeTracker     *FeeTrackerCfg      `json:"feeTracker"`
+	NewPoolLimit   int                 `json:"newPoolLimit"`
 }
 
 type FeeTrackerCfg struct {

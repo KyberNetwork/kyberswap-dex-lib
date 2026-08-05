@@ -3,44 +3,27 @@ package uniswapv2
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
-	fourmeme "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax/four-meme"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax/virtual"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-func newTokenTaxTracker(factory string, pool entity.Pool, extra Extra) (tokentax.Tracker, tokentax.TaxInfo) {
+func newTokenTaxTracker(
+	chainID valueobject.ChainID, pool entity.Pool, extra Extra,
+) (*tokentax.Tracker, tokentax.TaxInfo) {
 	var info tokentax.TaxInfo
 	if extra.TaxInfo != nil {
 		info = *extra.TaxInfo
 	}
 
-	switch {
-	case virtual.SupportsFactory(factory):
-		tokenAddress := virtual.FindTaxToken(pool)
-		if tokenAddress == "" || info.Checked && info.Token == "" {
-			info.Checked = true
-			return nil, info
-		}
-		return virtual.NewTracker(pool.Address, tokenAddress, factory, info), tokentax.TaxInfo{}
-	case fourmeme.SupportsFactory(factory):
-		tokenAddress := fourmeme.FindTaxToken(pool)
-		if tokenAddress == "" || info.Checked && info.Token == "" {
-			info.Checked = true
-			return nil, info
-		}
-		return fourmeme.NewTracker(pool.Address, tokenAddress, info), tokentax.TaxInfo{}
-	default:
+	if !tokentax.SupportsChain(chainID) || len(pool.Tokens) != 2 {
 		return nil, tokentax.TaxInfo{}
 	}
-}
 
-func newTokenTaxHandler(info *tokentax.TaxInfo) tokentax.Handler {
-	if info == nil {
-		return tokentax.Handler{}
+	// A stored Checked=true doesn't guarantee this detector version has actually probed the token,
+	// so force one recheck whenever the stored TaxCheckVersion is stale before trusting the cache.
+	forceRecheck := info.TaxCheckVersion < currentTaxCheckVersion
+	if !forceRecheck && info.Checked && info.Token == "" {
+		return nil, info
 	}
-	switch info.Protocol {
-	case virtual.Protocol, fourmeme.Protocol:
-		return tokentax.NewHandler(*info)
-	default:
-		return tokentax.Handler{}
-	}
+
+	return tokentax.NewTracker(chainID, pool.Tokens[0].Address, pool.Tokens[1].Address, info), tokentax.TaxInfo{}
 }
