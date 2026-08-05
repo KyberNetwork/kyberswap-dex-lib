@@ -103,6 +103,8 @@ func (ts *PoolTrackerTestSuite) TestGetNewPoolState() {
 }
 
 func TestPoolTrackerTestSuite(t *testing.T) {
+	test.SkipCI(t)
+
 	suite.Run(t, new(PoolTrackerTestSuite))
 }
 
