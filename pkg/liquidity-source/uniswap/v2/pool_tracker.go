@@ -4,12 +4,10 @@ import (
 	"context"
 	"math/big"
 	"time"
-
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -84,7 +82,7 @@ func (d *PoolTracker) GetNewPoolState(
 		d.feeTracker.AddFeeCall(req, d.config.FactoryAddress, p.Address, &fee)
 	}
 
-	taxTracker, taxInfo := newTokenTaxTracker(d.config.FactoryAddress, p, previousExtra)
+	taxTracker, taxInfo := newTokenTaxTracker(d.config.ChainID, p, previousExtra)
 	if taxTracker != nil {
 		taxTracker.AddCalls(req)
 	}
@@ -161,6 +159,7 @@ func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uin
 		FeePrecision: d.config.FeePrecision,
 	}
 	if taxInfo.Checked {
+		taxInfo.TaxCheckVersion = currentTaxCheckVersion
 		extra.TaxInfo = &taxInfo
 	}
 

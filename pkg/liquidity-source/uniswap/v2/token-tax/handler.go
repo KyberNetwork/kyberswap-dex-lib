@@ -2,11 +2,15 @@ package tokentax
 
 import (
 	"github.com/holiman/uint256"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-func NewHandler(info TaxInfo) Handler {
+// NewHandler builds a Handler from persisted TaxInfo. info == nil (never tracked, or an ordinary
+// non-taxed pool) yields the zero-value Handler, which every method already treats as a no-op.
+func NewHandler(info *TaxInfo) Handler {
+	if info == nil {
+		return Handler{}
+	}
 	return Handler{
 		TokenAddress: info.Token,
 		BuyTaxBps:    info.BuyTaxBps,
