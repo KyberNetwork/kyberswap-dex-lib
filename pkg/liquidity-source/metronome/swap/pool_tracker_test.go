@@ -14,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -102,6 +103,8 @@ func (ts *PoolTrackerTestSuite) TestGetNewPoolState() {
 }
 
 func TestPoolTrackerTestSuite(t *testing.T) {
+	test.SkipCI(t)
+
 	suite.Run(t, new(PoolTrackerTestSuite))
 }
 
@@ -113,6 +116,8 @@ func TestPoolTrackerTestSuite(t *testing.T) {
 // trader receives. First discovered via a live Tenderly vnet swap() execution during this
 // dex-verify run; this test locks the same finding into a permanent, non-ephemeral fixture.
 func TestUpdateBalance_MatchesRealSequentialSwap(t *testing.T) {
+	test.SkipCI(t)
+
 	rpcClient := ethrpc.New("https://ethereum-rpc.kyberswap.com")
 	rpcClient.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 

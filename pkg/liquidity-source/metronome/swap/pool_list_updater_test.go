@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -78,5 +79,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools_OffsetSkipsKnownPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
+	test.SkipCI(t)
+
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }
