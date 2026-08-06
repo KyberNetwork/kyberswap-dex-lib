@@ -116,7 +116,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (u *PoolsListUpdater) getFromBlock(metadataBytes []byte) (uint64, error) {
 	if len(metadataBytes) == 0 {
-		return 0, nil
+		return u.config.StartBlock, nil
 	}
 	var metadata PoolsListUpdaterMetadata
 	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {

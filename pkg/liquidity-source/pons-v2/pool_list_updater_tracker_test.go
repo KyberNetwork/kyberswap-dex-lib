@@ -129,3 +129,22 @@ func TestNewPoolsListUpdater_MaxBlockRangePerScanDefault(t *testing.T) {
 	NewPoolsListUpdater(cfgTuned, nil)
 	require.EqualValues(t, 1234, cfgTuned.MaxBlockRangePerScan)
 }
+
+// TestGetFromBlock_StartBlock verifies a cold start (empty metadata) resumes
+// from Config.StartBlock -- normally the factory's deployment block -- so
+// discovery never walks pre-deployment blocks that can't contain a
+// TokenLaunched log, while a warm start still resumes from the persisted
+// cursor regardless of StartBlock.
+func TestGetFromBlock_StartBlock(t *testing.T) {
+	u := NewPoolsListUpdater(&Config{DexID: DexType, StartBlock: 23551520}, nil)
+
+	fromBlock, err := u.getFromBlock(nil)
+	require.NoError(t, err)
+	require.EqualValues(t, 23551520, fromBlock)
+
+	metadata, err := json.Marshal(PoolsListUpdaterMetadata{LastScannedBlock: 24000000})
+	require.NoError(t, err)
+	fromBlock, err = u.getFromBlock(metadata)
+	require.NoError(t, err)
+	require.EqualValues(t, 24000000, fromBlock)
+}

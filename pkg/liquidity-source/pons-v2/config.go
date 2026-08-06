@@ -13,6 +13,11 @@ type Config struct {
 	// pass this integration was built from, its factory has emitted zero
 	// TokenLaunched events, so there is nothing to discover there yet.
 	Factory string `json:"factory"`
+	// StartBlock is the first block GetNewPools scans from on a cold start
+	// (empty metadata) -- normally the Factory contract's deployment block,
+	// so discovery never has to walk pre-deployment blocks that can't
+	// contain a TokenLaunched log.
+	StartBlock uint64 `json:"startBlock"`
 	// MaxBlockRangePerScan caps a single eth_getLogs call's block span, and
 	// so bounds how many TokenLaunched logs (and how large a single
 	// buildPools multicall batch) one GetNewPools call can produce. Public
