@@ -9,77 +9,97 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
-var _ = poolfactory.RegisterFactoryC(DexTypeUniswapV3, NewPoolFactory)
+var (
+	_ = poolfactory.RegisterFactoryC(DexTypeUniswapV3, NewUniswapV3PoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypePancakeV3, NewPancakeV3PoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeRamsesV2, NewRamsesV2PoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewSolidlyV3PoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeSlipstream, NewSlipstreamPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeNuriV2, NewNuriV2PoolFactory)
+)
 
-type PoolFactory struct {
-	config              *Config
-	poolCreatedEventIds map[common.Hash]struct{}
+func NewUniswapV3PoolFactory(config *Config) *PoolFactory {
+	return newPoolFactory(config, DexTypeUniswapV3)
 }
 
-func NewPoolFactory(config *Config) *PoolFactory {
-	return &PoolFactory{
-		config: config,
-		poolCreatedEventIds: map[common.Hash]struct{}{
-			abis.UniswapV3FactoryABI.Events["PoolCreated"].ID: {},
-		},
-	}
+func NewPancakeV3PoolFactory(config *Config) *PoolFactory {
+	return newPoolFactory(config, DexTypePancakeV3)
+}
+
+func NewRamsesV2PoolFactory(config *Config) *PoolFactory {
+	return newPoolFactory(config, DexTypeRamsesV2)
+}
+
+func NewSolidlyV3PoolFactory(config *Config) *PoolFactory {
+	return newPoolFactory(config, DexTypeSolidlyV3)
+}
+
+func NewSlipstreamPoolFactory(config *Config) *PoolFactory {
+	return newPoolFactory(config, DexTypeSlipstream)
+}
+
+func NewNuriV2PoolFactory(config *Config) *PoolFactory {
+	return newPoolFactory(config, DexTypeNuriV2)
+}
+
+// PoolFactory decodes PoolCreated events for every uniswap-v3 fork merged into this
+// package. It needs no per-fork ABI: see the topic0 comment on poolCreatedEventIDWithFee
+// in constant.go for why token0/token1/pool can always be read positionally.
+type PoolFactory struct {
+	config  *Config
+	dexType string
+}
+
+func newPoolFactory(config *Config, dexType string) *PoolFactory {
+	return &PoolFactory{config: config, dexType: dexType}
 }
 
 func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error) {
-	p, err := abis.UniswapV3FactoryFilterer.ParsePoolCreated(event)
-	if err != nil {
-		return nil, err
+	if len(event.Topics) < 3 || len(event.Data) < 32 {
+		return nil, ErrMalformedLog
 	}
 
-	return f.newPool(p, event.BlockNumber)
+	token0 := common.BytesToAddress(event.Topics[1].Bytes())
+	token1 := common.BytesToAddress(event.Topics[2].Bytes())
+	poolAddress := common.BytesToAddress(event.Data[len(event.Data)-32:])
+
+	return f.newPool(token0, token1, poolAddress, event.BlockNumber)
 }
 
 func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
-	_, ok := f.poolCreatedEventIds[event]
+	_, ok := poolCreatedEventIDs[event]
 	return ok
 }
 
-func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*entity.Pool, error) {
-	poolAddress := hexutil.Encode(p.Pool[:])
+func (f *PoolFactory) newPool(token0, token1, poolAddress common.Address, blockNumber uint64) (*entity.Pool, error) {
+	poolAddressHex := hexutil.Encode(poolAddress[:])
 
-	token0 := entity.PoolToken{
-		Address:   hexutil.Encode(p.Token0[:]),
-		Swappable: true,
-	}
-	token1 := entity.PoolToken{
-		Address:   hexutil.Encode(p.Token1[:]),
-		Swappable: true,
-	}
-	reserves := entity.PoolReserves{"0", "0"}
+	t0 := entity.PoolToken{Address: hexutil.Encode(token0[:]), Swappable: true}
+	t1 := entity.PoolToken{Address: hexutil.Encode(token1[:]), Swappable: true}
 
-	swapFee, _ := p.Fee.Float64()
-
-	extraBytes, err := json.Marshal(Extra{
-		TickSpacing: p.TickSpacing.Uint64(),
-	})
+	// fee and tickSpacing are intentionally left zero here: the tracker's first refresh
+	// (which must run before this pool has any ticks anyway) fills both in from the live
+	// contract, generically, regardless of which fork this pool belongs to.
+	extraBytes, err := json.Marshal(ExtraTickU256{})
 	if err != nil {
 		return nil, err
 	}
 
-	staticExtraBytes, err := json.Marshal(StaticExtra{
-		PoolId: poolAddress,
-	})
+	staticExtraBytes, err := json.Marshal(StaticExtra{PoolId: poolAddressHex})
 	if err != nil {
 		return nil, err
 	}
 
 	return &entity.Pool{
-		Address:     poolAddress,
+		Address:     poolAddressHex,
 		Exchange:    f.config.DexID,
-		Type:        DexTypeUniswapV3,
-		SwapFee:     swapFee,
+		Type:        f.dexType,
 		Timestamp:   time.Now().Unix(),
-		Reserves:    reserves,
-		Tokens:      []*entity.PoolToken{&token0, &token1},
+		Reserves:    entity.PoolReserves{"0", "0"},
+		Tokens:      []*entity.PoolToken{&t0, &t1},
 		StaticExtra: string(staticExtraBytes),
 		Extra:       string(extraBytes),
 		BlockNumber: blockNumber,

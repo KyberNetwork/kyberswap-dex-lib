@@ -7,6 +7,8 @@ import (
 )
 
 type PoolsListQueryParams struct {
+	SubgraphPoolField      string
+	IncludeFeeTier         bool
 	AllowSubgraphError     bool
 	LastCreatedAtTimestamp *big.Int
 	First                  int
@@ -19,18 +21,23 @@ type PoolTicksQueryParams struct {
 	LastTickIdx        string
 }
 
-func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int, first, skip int) string {
+func getPoolsListQuery(subgraphPoolField string, includeFeeTier, allowSubgraphError bool,
+	lastCreatedAtTimestamp *big.Int, first, skip int) string {
 	var tpl bytes.Buffer
+	if subgraphPoolField == "" {
+		subgraphPoolField = "pools"
+	}
 	td := PoolsListQueryParams{
-		allowSubgraphError,
-		lastCreatedAtTimestamp,
-		first,
-		skip,
+		SubgraphPoolField:      subgraphPoolField,
+		IncludeFeeTier:         includeFeeTier,
+		AllowSubgraphError:     allowSubgraphError,
+		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
+		First:                  first,
+		Skip:                   skip,
 	}
 
-	// Add subgraphError: allow
 	t, err := template.New("poolsListQuery").Parse(`{
-		pools(
+		{{ .SubgraphPoolField }}(
 			{{ if .AllowSubgraphError }}subgraphError: allow,{{ end }}
 			where: {
 				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
@@ -41,11 +48,8 @@ func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
 			orderDirection: asc
 		) {
 			id
-			liquidity
-			sqrtPrice
 			createdAtTimestamp
-			tick
-			feeTier
+			{{ if .IncludeFeeTier }}feeTier{{ end }}
 			token0 {
 				id
 				name
@@ -98,6 +102,7 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx 
 			liquidityNet
 			liquidityGross
 		}
+		_meta { block { timestamp } }
 	}`)
 
 	if err != nil {

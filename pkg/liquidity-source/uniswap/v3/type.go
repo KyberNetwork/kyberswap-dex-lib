@@ -37,18 +37,12 @@ type Token struct {
 type SubgraphPool struct {
 	ID                 string `json:"id"`
 	FeeTier            string `json:"feeTier"`
-	PoolType           string `json:"poolType"`
 	CreatedAtTimestamp string `json:"createdAtTimestamp"`
 	Token0             Token  `json:"token0"`
 	Token1             Token  `json:"token1"`
 }
 
 type TickResp = ticklens.TickResp
-
-type SubgraphPoolTicks struct {
-	ID    string     `json:"id"`
-	Ticks []TickResp `json:"ticks"`
-}
 
 type StaticExtra struct {
 	PoolId string `json:"poolId"`
@@ -89,13 +83,49 @@ type ExtraTickU256 struct {
 // SimulatorConfig holds construction-time options for NewPoolSimulatorWithExtra.
 // It is not stored in the pool simulator struct.
 type SimulatorConfig struct {
-	AllowEmptyTicks     bool
-	TickSpacingFallback map[FeeAmount]int // nil = use base TickSpacings
+	AllowEmptyTicks bool
 }
 
+// Slot0 is the resolved slot0() result, after trying the standard/slipstream/solidly raw
+// shapes (see slot0RawStandard/slot0RawSlipstream/slot0RawSolidly and FetchRPCData).
 type Slot0 struct {
 	SqrtPriceX96 *big.Int
 	Tick         *big.Int
+	Unlocked     bool
+	// Fee is only non-nil when the pool's slot0() embeds its own fee (solidly-v3 shape);
+	// for every other shape the fee comes from fee()/currentFee() instead (see FetchRPCData).
+	Fee *big.Int
+}
+
+// slot0RawStandard/slot0RawSlipstream/slot0RawSolidly are the raw ethrpc.Call.UnpackABI
+// decode targets, tried in that order (longest to shortest) against every pool's slot0()
+// return - see abis.Slot0SlipstreamABI/abis.Slot0SolidlyABI and the comment on
+// poolCreatedEventIDWithFee in constant.go for why the order matters: a shorter shape can
+// silently misdecode a longer pool's trailing fields instead of erroring.
+type slot0RawStandard struct {
+	SqrtPriceX96               *big.Int
+	Tick                       *big.Int
+	ObservationIndex           uint16
+	ObservationCardinality     uint16
+	ObservationCardinalityNext uint16
+	FeeProtocol                uint32
+	Unlocked                   bool
+}
+
+type slot0RawSlipstream struct {
+	SqrtPriceX96               *big.Int
+	Tick                       *big.Int
+	ObservationIndex           uint16
+	ObservationCardinality     uint16
+	ObservationCardinalityNext uint16
+	Unlocked                   bool
+}
+
+type slot0RawSolidly struct {
+	SqrtPriceX96 *big.Int
+	Tick         *big.Int
+	Fee          *big.Int
+	Unlocked     bool
 }
 
 type preGenesisPool struct {
@@ -106,22 +136,22 @@ type FetchRPCResult struct {
 	Liquidity   *big.Int `json:"liquidity"`
 	Slot0       Slot0    `json:"slot0"`
 	TickSpacing *big.Int `json:"tickSpacing"`
-	Reserve0    *big.Int `json:"reserve0"`
-	Reserve1    *big.Int `json:"reserve1"`
+	// Fee is the resolved swap fee: currentFee() if present (dynamic-fee pools such as
+	// ramses-v2's dynamic flavor and nuri-v2 additionally expose a stale fee() that must
+	// not be used), else fee() (static pools, and dynamic pools like slipstream that only
+	// expose a single always-current fee() method), else Slot0.Fee (solidly-v3, which has
+	// neither method and embeds fee in slot0()).
+	Fee      *big.Int `json:"fee"`
+	Reserve0 *big.Int `json:"reserve0"`
+	Reserve1 *big.Int `json:"reserve1"`
 
 	// pons-fun on robinhood check
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
 }
 
 type TicksResp struct {
-	LiquidityGross                 *big.Int
-	LiquidityNet                   *big.Int
-	FeeGrowthOutside0X128          *big.Int
-	FeeGrowthOutside1X128          *big.Int
-	TickCumulativeOutside          *big.Int
-	SecondsPerLiquidityOutsideX128 *big.Int
-	SecondsOutside                 uint32
-	Initialized                    bool
+	LiquidityGross *big.Int
+	LiquidityNet   *big.Int
 }
 
 type PoolMeta struct {
