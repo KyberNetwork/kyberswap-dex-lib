@@ -39,11 +39,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	}
 
 	var (
-		sqrtPriceX96              = new(big.Int)
-		tick                      = new(big.Int)
-		protocolFee, lpFee        = new(big.Int), new(big.Int)
-		poolID                    = common.HexToHash(u.config.PoolID)
-		blockNumber        uint64 = 0
+		slot0       slot0Raw
+		poolID             = common.HexToHash(u.config.PoolID)
+		blockNumber uint64 = 0
 	)
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -51,7 +49,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		Target: u.config.PoolManager,
 		Method: poolManagerMethodGetSlot0,
 		Params: []any{poolID},
-	}, []any{&sqrtPriceX96, &tick, &protocolFee, &lpFee})
+	}, []any{&slot0})
 	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, nil, err
@@ -59,7 +57,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	if resp.BlockNumber != nil {
 		blockNumber = resp.BlockNumber.Uint64()
 	}
-	if sqrtPriceX96.Sign() == 0 {
+	if slot0.SqrtPriceX96 == nil || slot0.SqrtPriceX96.Sign() == 0 {
 		return nil, nil, ErrPoolNotInitialized
 	}
 

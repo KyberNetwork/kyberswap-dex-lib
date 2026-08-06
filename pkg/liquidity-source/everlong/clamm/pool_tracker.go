@@ -51,16 +51,12 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var (
-		sqrtPriceX96       = new(big.Int)
-		tick               = new(big.Int)
-		protocolFee, lpFee = new(big.Int), new(big.Int)
-		liquidity          = new(big.Int)
-		rungLowers         []*big.Int
-		rungUppers         []*big.Int
-		rungLiquidities    []*big.Int
-		poolFee0For1       = new(big.Int)
-		poolFee1For0       = new(big.Int)
-		poolID             = common.HexToHash(p.Address)
+		slot0        slot0Raw
+		rungs        rungsRaw
+		liquidity    = new(big.Int)
+		poolFee0For1 = new(big.Int)
+		poolFee1For0 = new(big.Int)
+		poolID       = common.HexToHash(p.Address)
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -72,7 +68,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		Target: staticExtra.PoolManager,
 		Method: poolManagerMethodGetSlot0,
 		Params: []any{poolID},
-	}, []any{&sqrtPriceX96, &tick, &protocolFee, &lpFee})
+	}, []any{&slot0})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolManagerABI,
 		Target: staticExtra.PoolManager,
@@ -83,7 +79,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		ABI:    almABI,
 		Target: staticExtra.ALM,
 		Method: almMethodGetRungs,
-	}, []any{&rungLowers, &rungUppers, &rungLiquidities})
+	}, []any{&rungs})
 	req.AddCall(&ethrpc.Call{
 		ABI:    almABI,
 		Target: staticExtra.ALM,
@@ -102,16 +98,19 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		return p, err
 	}
 
-	if len(rungLowers) != len(rungUppers) || len(rungLowers) != len(rungLiquidities) {
+	if len(rungs.Lowers) != len(rungs.Uppers) || len(rungs.Lowers) != len(rungs.Liquidities) {
 		return p, ErrInvalidRungs
 	}
 
-	ticks, err := rungsToTicks(rungLowers, rungUppers, rungLiquidities)
+	ticks, err := rungsToTicks(rungs.Lowers, rungs.Uppers, rungs.Liquidities)
 	if err != nil {
 		return p, err
 	}
 
-	sqrtPriceU256, overflow := uint256.FromBig(sqrtPriceX96)
+	if slot0.SqrtPriceX96 == nil || slot0.Tick == nil {
+		return p, ErrPoolNotInitialized
+	}
+	sqrtPriceU256, overflow := uint256.FromBig(slot0.SqrtPriceX96)
 	if overflow {
 		return p, uniswapv3.ErrOverflow
 	}
@@ -128,7 +127,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		return p, uniswapv3.ErrOverflow
 	}
 
-	tickInt := int(tick.Int64())
+	tickInt := int(slot0.Tick.Int64())
 	reserve0, reserve1, err := ladderReserves(sqrtPriceU256, tickInt, ticks)
 	if err != nil {
 		return p, err

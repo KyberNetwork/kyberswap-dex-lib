@@ -49,6 +49,26 @@ type SwapInfo struct {
 	NewDebt       *big.Int `json:"newD"`
 }
 
+// exchangeStateRaw / totalAmountsRaw / reservesAtReferenceRaw are ethrpc decode
+// targets (field order = ABI output order).
+type exchangeStateRaw struct {
+	Collateral *big.Int
+	Debt       *big.Int
+	PriceWad   *big.Int
+	SpreadPpm  *big.Int
+}
+
+type totalAmountsRaw struct {
+	StableReserve   *big.Int
+	VolatileReserve *big.Int
+}
+
+type reservesAtReferenceRaw struct {
+	StableReserve   *big.Int
+	AssetReserve    *big.Int
+	RawReferenceWad *big.Int
+}
+
 // PoolMeta tells the executor where and how to settle.
 type PoolMeta struct {
 	Swapper    string `json:"swapper"`

@@ -1,6 +1,8 @@
 package everlongclamm
 
 import (
+	"math/big"
+
 	"github.com/holiman/uint256"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
@@ -24,6 +26,20 @@ type Extra struct {
 	uniswapv3.ExtraTickU256
 	PoolFee0For1Wad *uint256.Int `json:"pf01"`
 	PoolFee1For0Wad *uint256.Int `json:"pf10"`
+}
+
+// slot0Raw / rungsRaw are ethrpc decode targets (field order = ABI output order).
+type slot0Raw struct {
+	SqrtPriceX96 *big.Int
+	Tick         *big.Int
+	ProtocolFee  *big.Int
+	LpFee        *big.Int
+}
+
+type rungsRaw struct {
+	Lowers      []*big.Int
+	Uppers      []*big.Int
+	Liquidities []*big.Int
 }
 
 // PoolMeta carries everything the executor needs to build the

@@ -50,11 +50,11 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var (
-		collateral, debt, priceWad, spreadPpm   = new(big.Int), new(big.Int), new(big.Int), new(big.Int)
-		almStable, almVolatile                  = new(big.Int), new(big.Int)
+		exchangeState                           exchangeStateRaw
+		totalAmounts                            totalAmountsRaw
+		refReserves                             reservesAtReferenceRaw
 		almSupply, cvTotalAssets, cvTotalSupply = new(big.Int), new(big.Int), new(big.Int)
 		withdrawFeeBp                           = new(big.Int)
-		refStable, refAsset, refRaw             = new(big.Int), new(big.Int), new(big.Int)
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -65,12 +65,12 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		ABI:    rebalancerABI,
 		Target: staticExtra.Rebalancer,
 		Method: rebalancerMethodExchangeState,
-	}, []any{&collateral, &debt, &priceWad, &spreadPpm})
+	}, []any{&exchangeState})
 	req.AddCall(&ethrpc.Call{
 		ABI:    almABI,
 		Target: staticExtra.ALM,
 		Method: almMethodGetTotalAmounts,
-	}, []any{&almStable, &almVolatile})
+	}, []any{&totalAmounts})
 	req.AddCall(&ethrpc.Call{
 		ABI:    almABI,
 		Target: staticExtra.ALM,
@@ -95,25 +95,32 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		ABI:    almABI,
 		Target: staticExtra.ALM,
 		Method: almMethodGetReservesAtReference,
-	}, []any{&refStable, &refAsset, &refRaw})
+	}, []any{&refReserves})
 
 	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err
 	}
-	for _, v := range []*big.Int{collateral, debt, priceWad, spreadPpm, almStable, almVolatile,
-		almSupply, cvTotalAssets, cvTotalSupply, withdrawFeeBp, refStable, refAsset, refRaw} {
+	for _, v := range []*big.Int{exchangeState.Collateral, exchangeState.Debt,
+		exchangeState.PriceWad, exchangeState.SpreadPpm,
+		totalAmounts.StableReserve, totalAmounts.VolatileReserve,
+		almSupply, cvTotalAssets, cvTotalSupply, withdrawFeeBp,
+		refReserves.StableReserve, refReserves.AssetReserve, refReserves.RawReferenceWad} {
 		if v == nil || v.Sign() < 0 {
 			return p, ErrInvalidSnapshotWord
 		}
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Collateral: collateral, Debt: debt, PriceWad: priceWad, SpreadPpm: spreadPpm,
-		AlmStableReserve: almStable, AlmVolatileReserve: almVolatile, AlmSupply: almSupply,
-		CvTotalAssets: cvTotalAssets, CvTotalSupply: cvTotalSupply,
+		Collateral: exchangeState.Collateral, Debt: exchangeState.Debt,
+		PriceWad: exchangeState.PriceWad, SpreadPpm: exchangeState.SpreadPpm,
+		AlmStableReserve:   totalAmounts.StableReserve,
+		AlmVolatileReserve: totalAmounts.VolatileReserve,
+		AlmSupply:          almSupply,
+		CvTotalAssets:      cvTotalAssets, CvTotalSupply: cvTotalSupply,
 		CvDecimalsOffset: staticExtra.CvDecimalsOffset, WithdrawFeeBp: withdrawFeeBp,
-		RefStableReserve: refStable, RefAssetReserve: refAsset, RefRawReferenceWad: refRaw,
+		RefStableReserve: refReserves.StableReserve, RefAssetReserve: refReserves.AssetReserve,
+		RefRawReferenceWad: refReserves.RawReferenceWad,
 	})
 	if err != nil {
 		return p, err
@@ -122,7 +129,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 	p.Extra = string(extraBytes)
 	// The ALM reserves are the physical inventory both swap directions settle against —
 	// the router-visible liquidity proxy.
-	p.Reserves = entity.PoolReserves{almStable.String(), almVolatile.String()}
+	p.Reserves = entity.PoolReserves{totalAmounts.StableReserve.String(), totalAmounts.VolatileReserve.String()}
 	p.Timestamp = time.Now().Unix()
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
