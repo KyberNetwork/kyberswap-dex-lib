@@ -47,6 +47,11 @@ type FilterLogsBackfiller struct {
 	cfg          BackfillConfig
 	logger       logger.Logger
 
+	// topics narrows the FilterLogs call to decoder.SupportedEventTopics()
+	// when decoder implements pool.IPoolFactoryDecoderWithTopics, nil
+	// otherwise (fetch every log from FactoryAddresses, filter client-side
+	// via IsEventSupported -- still correct, just less targeted).
+	topics     [][]common.Hash
 	targetHead *uint64
 }
 
@@ -58,10 +63,17 @@ func NewFilterLogsBackfiller(
 	if cfg.MaxBlockRangePerScan == 0 {
 		return nil, errors.New("poolfactory: BackfillConfig.MaxBlockRangePerScan must be > 0")
 	}
+
+	var topics [][]common.Hash
+	if withTopics, ok := decoder.(pool.IPoolFactoryDecoderWithTopics); ok {
+		topics = [][]common.Hash{withTopics.SupportedEventTopics()}
+	}
+
 	return &FilterLogsBackfiller{
 		decoder:      decoder,
 		ethrpcClient: ethrpcClient,
 		cfg:          cfg,
+		topics:       topics,
 		logger:       logger.WithFields(logger.Fields{"component": "poolfactory.FilterLogsBackfiller"}),
 	}, nil
 }
@@ -93,9 +105,7 @@ func (u *FilterLogsBackfiller) Backfill(ctx context.Context, metadataBytes []byt
 		FromBlock: new(big.Int).SetUint64(fromBlock),
 		ToBlock:   new(big.Int).SetUint64(toBlock),
 		Addresses: u.cfg.FactoryAddresses,
-		// No Topics filter: mirrors how the live path (EventDecoder.GetNewPoolsFromLogs)
-		// also filters purely via IsEventSupported client-side, rather than requiring
-		// decoders to additionally expose a topic list.
+		Topics:    u.topics, // nil unless decoder implements IPoolFactoryDecoderWithTopics
 	})
 	if err != nil {
 		return nil, metadataBytes, false, err // cursor NOT advanced; caller retries the same window

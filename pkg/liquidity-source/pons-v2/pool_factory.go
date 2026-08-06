@@ -45,6 +45,14 @@ func (d *PoolFactoryDecoder) IsEventSupported(hash common.Hash) bool {
 	return hash == tokenLaunchedEventHash
 }
 
+// SupportedEventTopics implements poolfactory's optional
+// IPoolFactoryDecoderWithTopics extension, letting a FilterLogs-based scan
+// (backfill) narrow its query to just TokenLaunched instead of fetching every
+// log the factory emits.
+func (d *PoolFactoryDecoder) SupportedEventTopics() []common.Hash {
+	return []common.Hash{tokenLaunchedEventHash}
+}
+
 func (d *PoolFactoryDecoder) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	if !strings.EqualFold(event.Address.Hex(), d.config.Factory) {
 		return nil, nil

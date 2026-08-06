@@ -3,9 +3,27 @@ package poolfactory
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
+
+// fakeDecoder implements only the base IPoolFactoryDecoder.
+type fakeDecoder struct{}
+
+func (fakeDecoder) IsEventSupported(common.Hash) bool                 { return false }
+func (fakeDecoder) DecodePoolCreated(types.Log) (*entity.Pool, error) { return nil, nil }
+
+// fakeDecoderWithTopics additionally implements IPoolFactoryDecoderWithTopics.
+type fakeDecoderWithTopics struct {
+	fakeDecoder
+	topics []common.Hash
+}
+
+func (f fakeDecoderWithTopics) SupportedEventTopics() []common.Hash { return f.topics }
 
 func TestNewFilterLogsBackfiller_RequiresMaxBlockRangePerScan(t *testing.T) {
 	_, err := NewFilterLogsBackfiller(nil, nil, BackfillConfig{MaxBlockRangePerScan: 0})
@@ -14,6 +32,23 @@ func TestNewFilterLogsBackfiller_RequiresMaxBlockRangePerScan(t *testing.T) {
 	b, err := NewFilterLogsBackfiller(nil, nil, BackfillConfig{MaxBlockRangePerScan: 1})
 	require.NoError(t, err)
 	require.NotNil(t, b)
+}
+
+// TestNewFilterLogsBackfiller_TopicsDerivedFromDecoder verifies the FilterLogs
+// Topics filter is populated from a decoder implementing
+// IPoolFactoryDecoderWithTopics, and left nil (fetch-everything, filter
+// client-side) for a decoder that doesn't.
+func TestNewFilterLogsBackfiller_TopicsDerivedFromDecoder(t *testing.T) {
+	hash := common.HexToHash("0x1234")
+
+	withTopics, err := NewFilterLogsBackfiller(
+		fakeDecoderWithTopics{topics: []common.Hash{hash}}, nil, BackfillConfig{MaxBlockRangePerScan: 1})
+	require.NoError(t, err)
+	require.Equal(t, [][]common.Hash{{hash}}, withTopics.topics)
+
+	without, err := NewFilterLogsBackfiller(fakeDecoder{}, nil, BackfillConfig{MaxBlockRangePerScan: 1})
+	require.NoError(t, err)
+	require.Nil(t, without.topics)
 }
 
 func TestFilterLogsBackfiller_ParseMetadata(t *testing.T) {

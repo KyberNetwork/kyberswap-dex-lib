@@ -147,6 +147,18 @@ type IPoolFactoryDecoder interface {
 	IsEventSupported(hash common.Hash) bool
 }
 
+// IPoolFactoryDecoderWithTopics is an optional extension to IPoolFactoryDecoder.
+// A decoder that implements it lets a FilterLogs-based scanner (see
+// poolfactory.FilterLogsBackfiller) narrow its query to only these event
+// signatures (topic0), instead of fetching every log emitted by the factory
+// address and relying on IsEventSupported to filter client-side. The returned
+// hashes are intrinsic to the decoder's own ABI, so this belongs on the
+// decoder rather than being threaded through as separate config.
+type IPoolFactoryDecoderWithTopics interface {
+	IPoolFactoryDecoder
+	SupportedEventTopics() []common.Hash
+}
+
 // IPoolsBackfiller performs a bounded historical scan for pool-creation events,
 // reusing an IPoolFactoryDecoder's decode logic. Unlike IPoolsListUpdater (built
 // for perpetual polling against a moving chain tip), Backfill reports explicitly
