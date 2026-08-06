@@ -44,10 +44,9 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862be2a173976CA11"))
 
 	config := &Config{
-		DexID:        DexType,
-		ChainID:      valueobject.ChainIDRobinhood,
-		Factory:      "0x7E1EAbd52Ae29598e6483F72dCf1a70b14284dB8",
-		NewPoolLimit: 200,
+		DexID:   DexType,
+		ChainID: valueobject.ChainIDRobinhood,
+		Factory: "0x7E1EAbd52Ae29598e6483F72dCf1a70b14284dB8",
 	}
 
 	ts.updater = NewPoolsListUpdater(config, rpcClient)
@@ -117,35 +116,16 @@ func TestPoolListTrackerTestSuite(t *testing.T) {
 	suite.Run(t, new(PoolListTrackerTestSuite))
 }
 
-// TestCapLaunches covers the NewPoolLimit truncation path GetNewPools relies
-// on: on a busy scan window, launches must be capped (bounding buildPools'
-// multicall batch), and the resume block must never skip a TokenLaunched log
-// that shares a block number with the truncation point.
-func TestCapLaunches(t *testing.T) {
-	mk := func(blockNumber uint64) tokenLaunchedLog {
-		return tokenLaunchedLog{BlockNumber: blockNumber}
-	}
+// TestNewPoolsListUpdater_MaxBlockRangePerScanDefault verifies an unset
+// (zero) Config.MaxBlockRangePerScan is filled in with
+// defaultMaxBlockRangePerScan, while an explicit operator-tuned value is
+// left untouched.
+func TestNewPoolsListUpdater_MaxBlockRangePerScanDefault(t *testing.T) {
+	cfg := &Config{DexID: DexType}
+	NewPoolsListUpdater(cfg, nil)
+	require.EqualValues(t, defaultMaxBlockRangePerScan, cfg.MaxBlockRangePerScan)
 
-	t.Run("under limit resumes past the full scanned window", func(t *testing.T) {
-		launches := []tokenLaunchedLog{mk(100), mk(101)}
-		got, nextFromBlock := capLaunches(launches, 5, 200)
-		require.Equal(t, launches, got)
-		require.Equal(t, uint64(201), nextFromBlock)
-	})
-
-	t.Run("limit<=0 is unbounded", func(t *testing.T) {
-		launches := []tokenLaunchedLog{mk(100), mk(101), mk(102)}
-		got, nextFromBlock := capLaunches(launches, 0, 200)
-		require.Equal(t, launches, got)
-		require.Equal(t, uint64(201), nextFromBlock)
-	})
-
-	t.Run("over limit truncates and resumes at the first excluded launch's block", func(t *testing.T) {
-		launches := []tokenLaunchedLog{mk(100), mk(100), mk(105), mk(105)}
-		got, nextFromBlock := capLaunches(launches, 2, 200)
-		require.Equal(t, launches[:2], got)
-		// Must resume at 105 (the first excluded launch's block), not 201 --
-		// otherwise the second launch at block 105 would be skipped forever.
-		require.Equal(t, uint64(105), nextFromBlock)
-	})
+	cfgTuned := &Config{DexID: DexType, MaxBlockRangePerScan: 1234}
+	NewPoolsListUpdater(cfgTuned, nil)
+	require.EqualValues(t, 1234, cfgTuned.MaxBlockRangePerScan)
 }

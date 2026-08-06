@@ -20,6 +20,10 @@ const (
 	buyGas  = 180_000
 	sellGas = 115_000
 
+	// defaultMaxBlockRangePerScan is used when Config.MaxBlockRangePerScan
+	// is unset (0). See Config.MaxBlockRangePerScan's doc.
+	defaultMaxBlockRangePerScan = 5_000
+
 	curveMethodGetReserves = "getReserves"
 	curveMethodFeeBps      = "feeBps"
 	curveMethodCreatorTax  = "creatorTaxBps"
