@@ -56,6 +56,10 @@ func TestCalcAmountOut_Buy_NoClamp(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "78796200954251240723387962", result.TokenAmountOut.Amount.String())
 	require.Nil(t, result.RemainingTokenAmountIn)
+	// feeBps(100) + creatorTaxBps(1000) = 11% of the 1e18 quote input, always
+	// reported on the quote leg (Tokens[0]) regardless of swap direction.
+	require.Equal(t, quoteToken, result.Fee.Token)
+	require.Equal(t, "110000000000000000", result.Fee.Amount.String())
 
 	swapInfo, ok := result.SwapInfo.(*SwapInfo)
 	require.True(t, ok)
@@ -80,6 +84,10 @@ func TestCalcAmountOut_Sell(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "9260224694928", result.TokenAmountOut.Amount.String())
 	require.Nil(t, result.RemainingTokenAmountIn)
+	// Fee/tax on a sell are deducted from the quote OUTPUT (grossQuoteOut),
+	// but still reported on the quote leg (Tokens[0]), same as a buy.
+	require.Equal(t, quoteToken, result.Fee.Token)
+	require.Equal(t, "1144522153305", result.Fee.Amount.String())
 
 	swapInfo, ok := result.SwapInfo.(*SwapInfo)
 	require.True(t, ok)
@@ -109,6 +117,11 @@ func TestCalcAmountOut_Buy_ClampedAndRefunded(t *testing.T) {
 	require.Equal(t, sellable.String(), result.TokenAmountOut.Amount.String())
 	require.NotNil(t, result.RemainingTokenAmountIn)
 	require.Equal(t, "999999999999999998", result.RemainingTokenAmountIn.Amount.String())
+	// Fee is computed on the re-derived, grossed-up `spent` (not the
+	// originally offered `received`), since only `spent` is actually pulled
+	// by the curve once the buy clamps to sellableTokens().
+	require.Equal(t, quoteToken, result.Fee.Token)
+	require.Equal(t, "3213189191988514257", result.Fee.Amount.String())
 
 	swapInfo, ok := result.SwapInfo.(*SwapInfo)
 	require.True(t, ok)

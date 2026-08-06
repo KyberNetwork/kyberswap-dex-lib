@@ -74,7 +74,9 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
 	// Reserves report the FULL reserve pair from getReserves() (matching what
 	// the curve's own constant-product math is priced against); the sellable
 	// ceiling below that (TokenReserve - StaticExtra.ReservedTokens) is

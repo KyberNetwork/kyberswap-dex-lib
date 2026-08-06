@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -97,19 +98,20 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	var (
 		amountOut       *uint256.Int
 		remainingAmount *uint256.Int
+		totalFee        *uint256.Int
 		swapInfo        *SwapInfo
 		gas             int64
 		err             error
 	)
 	if isBuy {
-		amountOut, remainingAmount, swapInfo, gas, err = s.buy(amountIn)
+		amountOut, remainingAmount, totalFee, swapInfo, gas, err = s.buy(amountIn)
 	} else {
 		// sell() reverts when graduated OR readyToGraduate() (sellableTokens()==0
 		// even before the flag flips); graduated is already handled above.
 		if s.sellableTokens().IsZero() {
 			return nil, ErrPoolGraduated
 		}
-		amountOut, swapInfo, gas, err = s.sell(amountIn)
+		amountOut, totalFee, swapInfo, gas, err = s.sell(amountIn)
 	}
 	if err != nil {
 		return nil, err
@@ -117,9 +119,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	result := &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: bignum.ZeroBI},
-		Gas:            gas,
-		SwapInfo:       swapInfo,
+		// feeBps + creatorTaxBps are always charged on the quote leg
+		// (Tokens[0]) on both buy and sell; totalFee is the exact amount
+		// deducted for the swap actually executed (post partial-fill clamp
+		// on a buy).
+		Fee:      &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: totalFee.ToBig()},
+		Gas:      gas,
+		SwapInfo: swapInfo,
 	}
 	if remainingAmount != nil && !remainingAmount.IsZero() {
 		result.RemainingTokenAmountIn = &pool.TokenAmount{
@@ -134,9 +140,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 // quote input before curve pricing, then clamped to sellableTokens() with
 // the input re-derived via getAmountIn and grossed back up through the fee
 // rate; the unspent remainder is a refund, never a revert).
-func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.Int, info *SwapInfo, gas int64, err error) {
+func (s *PoolSimulator) buy(
+	received *uint256.Int,
+) (tokensOut, refund, totalFee *uint256.Int, info *SwapInfo, gas int64, err error) {
 	if s.feeBps+s.creatorTaxBps > maxTotalTradeFeeBps {
-		return nil, nil, nil, 0, ErrInvalidFeeConfig
+		return nil, nil, nil, nil, 0, ErrInvalidFeeConfig
 	}
 
 	quoteReserveBefore := s.quoteReserve
@@ -145,11 +153,11 @@ func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.I
 	spent := new(uint256.Int).Set(received)
 	fee, err := bpsOf(spent, s.feeBps)
 	if err != nil {
-		return nil, nil, nil, 0, err
+		return nil, nil, nil, nil, 0, err
 	}
 	tax, err := bpsOf(spent, s.creatorTaxBps)
 	if err != nil {
-		return nil, nil, nil, 0, err
+		return nil, nil, nil, nil, 0, err
 	}
 
 	netIn := new(uint256.Int).Sub(spent, fee)
@@ -157,12 +165,12 @@ func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.I
 
 	tokensOut, err = getAmountOut(netIn, quoteReserveBefore, tokenReserveBefore, 0)
 	if err != nil {
-		return nil, nil, nil, 0, err
+		return nil, nil, nil, nil, 0, err
 	}
 
 	sellable := s.sellableTokens()
 	if sellable.IsZero() {
-		return nil, nil, nil, 0, ErrPoolGraduated
+		return nil, nil, nil, nil, 0, ErrPoolGraduated
 	}
 
 	if tokensOut.Cmp(sellable) > 0 {
@@ -170,17 +178,17 @@ func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.I
 
 		net, err := getAmountIn(sellable, quoteReserveBefore, tokenReserveBefore, 0)
 		if err != nil {
-			return nil, nil, nil, 0, err
+			return nil, nil, nil, nil, 0, err
 		}
 
 		// spent = min(ceil(net * BASIS_POINTS / (BASIS_POINTS - feeBps - creatorTaxBps)), received)
 		denom := basisPoints - s.feeBps - s.creatorTaxBps
 		if denom == 0 {
-			return nil, nil, nil, 0, ErrInsufficientLiquidity
+			return nil, nil, nil, nil, 0, ErrInsufficientLiquidity
 		}
 		grossed, err := grossUpCeil(net, denom)
 		if err != nil {
-			return nil, nil, nil, 0, err
+			return nil, nil, nil, nil, 0, err
 		}
 		if grossed.Cmp(received) < 0 {
 			spent = grossed
@@ -190,17 +198,17 @@ func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.I
 
 		fee, err = bpsOf(spent, s.feeBps)
 		if err != nil {
-			return nil, nil, nil, 0, err
+			return nil, nil, nil, nil, 0, err
 		}
 		tax, err = bpsOf(spent, s.creatorTaxBps)
 		if err != nil {
-			return nil, nil, nil, 0, err
+			return nil, nil, nil, nil, 0, err
 		}
 	}
 
 	newQuoteReserve, overflow := new(uint256.Int).AddOverflow(quoteReserveBefore, spent)
 	if overflow {
-		return nil, nil, nil, 0, ErrOverflow
+		return nil, nil, nil, nil, 0, ErrOverflow
 	}
 	newQuoteReserve.Sub(newQuoteReserve, fee)
 	newQuoteReserve.Sub(newQuoteReserve, tax)
@@ -208,8 +216,9 @@ func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.I
 	newTokenReserve := new(uint256.Int).Sub(tokenReserveBefore, tokensOut)
 
 	refund = new(uint256.Int).Sub(received, spent)
+	totalFee = new(uint256.Int).Add(fee, tax)
 
-	return tokensOut, refund, &SwapInfo{
+	return tokensOut, refund, totalFee, &SwapInfo{
 		IsBuy:           true,
 		IsNativeQuote:   s.isNativeQuote,
 		NewQuoteReserve: newQuoteReserve,
@@ -219,41 +228,45 @@ func (s *PoolSimulator) buy(received *uint256.Int) (tokensOut, refund *uint256.I
 
 // sell ports PonsV2BondingCurve.sell() exactly (fee/tax deducted from the
 // quote output after curve pricing on the full input, no partial fill).
-func (s *PoolSimulator) sell(tokensIn *uint256.Int) (quoteOut *uint256.Int, info *SwapInfo, gas int64, err error) {
+func (s *PoolSimulator) sell(
+	tokensIn *uint256.Int,
+) (quoteOut, totalFee *uint256.Int, info *SwapInfo, gas int64, err error) {
 	quoteReserveBefore := s.quoteReserve
 	tokenReserveBefore := s.tokenReserve
 
 	grossQuoteOut, err := getAmountOut(tokensIn, tokenReserveBefore, quoteReserveBefore, 0)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
 	fee, err := bpsOf(grossQuoteOut, s.feeBps)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 	tax, err := bpsOf(grossQuoteOut, s.creatorTaxBps)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
 	quoteOut = new(uint256.Int).Sub(grossQuoteOut, fee)
 	quoteOut.Sub(quoteOut, tax)
 	if quoteOut.IsZero() {
-		return nil, nil, 0, ErrInsufficientOutputAmount
+		return nil, nil, nil, 0, ErrInsufficientOutputAmount
 	}
 
 	if quoteReserveBefore.Cmp(grossQuoteOut) < 0 {
-		return nil, nil, 0, ErrInvalidReserve
+		return nil, nil, nil, 0, ErrInvalidReserve
 	}
 	newQuoteReserve := new(uint256.Int).Sub(quoteReserveBefore, grossQuoteOut)
 
 	newTokenReserve, overflow := new(uint256.Int).AddOverflow(tokenReserveBefore, tokensIn)
 	if overflow {
-		return nil, nil, 0, ErrOverflow
+		return nil, nil, nil, 0, ErrOverflow
 	}
 
-	return quoteOut, &SwapInfo{
+	totalFee = new(uint256.Int).Add(fee, tax)
+
+	return quoteOut, totalFee, &SwapInfo{
 		IsBuy:           false,
 		IsNativeQuote:   s.isNativeQuote,
 		NewQuoteReserve: newQuoteReserve,
@@ -264,7 +277,7 @@ func (s *PoolSimulator) sell(tokensIn *uint256.Int) (quoteOut *uint256.Int, info
 // grossUpCeil computes ceil(amount * BASIS_POINTS / denomBps), matching
 // Solidity's `Math.mulDiv(net, BASIS_POINTS, BASIS_POINTS - feeBps - creatorTaxBps, Math.Rounding.Ceil)`.
 func grossUpCeil(amount *uint256.Int, denomBps uint64) (*uint256.Int, error) {
-	product, overflow := new(uint256.Int).MulOverflow(amount, basisPointsU)
+	product, overflow := new(uint256.Int).MulOverflow(amount, u256.UBasisPoint)
 	if overflow {
 		return nil, ErrOverflow
 	}

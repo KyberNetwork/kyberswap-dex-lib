@@ -14,12 +14,11 @@ const (
 	// defensively here rather than trusted blindly).
 	maxTotalTradeFeeBps = 2_000
 
-	// buyGas/sellGas are rough estimates pending a live gas-metered
-	// transaction trace (no Tenderly/vnet access was available when this
-	// package was written); dex-verify should replace these with measured
-	// values.
-	buyGas  = 150_000
-	sellGas = 120_000
+	// buyGas/sellGas are measured gas_used from live buy()/sell() calls
+	// against the reference curve on a Tenderly fork of Robinhood chain
+	// (173,801 and 111,589 respectively), rounded up slightly for margin.
+	buyGas  = 180_000
+	sellGas = 115_000
 
 	curveMethodGetReserves = "getReserves"
 	curveMethodFeeBps      = "feeBps"

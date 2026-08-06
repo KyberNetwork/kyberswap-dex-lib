@@ -6,10 +6,6 @@ import (
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-// basisPointsU is basisPoints (10_000) as a *uint256.Int, matching
-// PonsV2BondingCurveMath.BASIS_POINTS.
-var basisPointsU = uint256.NewInt(basisPoints)
-
 // getAmountOut ports PonsV2BondingCurveMath.getAmountOut/_amountOut exactly.
 // feeBps is always 0 at PonsV2BondingCurve.buy()/sell()'s call sites (the
 // curve's own feeBps/creatorTaxBps are applied separately, on the quote leg,
@@ -51,7 +47,7 @@ func amountOutRaw(amountIn, reserveIn, reserveOut *uint256.Int, feeBps uint64) (
 		return nil, ErrOverflow
 	}
 
-	reserveInBps, overflow := new(uint256.Int).MulOverflow(reserveIn, basisPointsU)
+	reserveInBps, overflow := new(uint256.Int).MulOverflow(reserveIn, u256.UBasisPoint)
 	if overflow {
 		return nil, ErrOverflow
 	}
@@ -101,7 +97,7 @@ func getAmountIn(amountOut, reserveIn, reserveOut *uint256.Int, feeBps uint64) (
 		return nil, ErrInsufficientLiquidity
 	}
 
-	amountIn := u256.MulDivDown(new(uint256.Int), numeratorPart, basisPointsU, denominator)
+	amountIn := u256.MulDivDown(new(uint256.Int), numeratorPart, u256.UBasisPoint, denominator)
 	return amountIn.AddUint64(amountIn, 1), nil
 }
 
@@ -113,5 +109,5 @@ func bpsOf(amount *uint256.Int, bps uint64) (*uint256.Int, error) {
 	if overflow {
 		return nil, ErrOverflow
 	}
-	return product.Div(product, basisPointsU), nil
+	return product.Div(product, u256.UBasisPoint), nil
 }

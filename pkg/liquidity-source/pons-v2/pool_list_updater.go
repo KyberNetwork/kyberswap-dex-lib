@@ -29,10 +29,13 @@ type PoolsListUpdaterMetadata struct {
 
 // tokenLaunchedLog mirrors Factory.TokenLaunched's decoded fields (only the
 // ones this integration needs; deployer and launchConfigId are dropped).
+// BlockNumber is carried alongside so a NewPoolLimit truncation can resume
+// the next scan exactly at the first excluded launch instead of skipping it.
 type tokenLaunchedLog struct {
-	Token     common.Address
-	Curve     common.Address
-	PairToken common.Address
+	Token       common.Address
+	Curve       common.Address
+	PairToken   common.Address
+	BlockNumber uint64
 }
 
 type PoolsListUpdater struct {
@@ -97,12 +100,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		launches = append(launches, decoded)
 	}
 
+	launches, nextFromBlock := capLaunches(launches, u.config.NewPoolLimit, toBlock)
+
 	pools, err := u.buildPools(ctx, launches)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := json.Marshal(PoolsListUpdaterMetadata{LastScannedBlock: toBlock + 1})
+	newMetadataBytes, err := json.Marshal(PoolsListUpdaterMetadata{LastScannedBlock: nextFromBlock})
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -115,6 +120,25 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}).Info("finished scanning for new pons-v2 curves")
 
 	return pools, newMetadataBytes, nil
+}
+
+// capLaunches caps launches to at most limit entries so a busy scan window
+// can't produce an unbounded multicall batch in buildPools (one curve costs
+// 5 calls). A limit <= 0 means unbounded.
+//
+// When truncated, the returned resume block is the BlockNumber of the first
+// excluded launch (not scannedToBlock+1), so the next scan starts AT that
+// block rather than past it -- any remaining TokenLaunched logs in that same
+// block are never skipped. Re-seeing an already-known curve on the next
+// pass is a no-op (pool-service dedupes by address when
+// AllowOverwriteNewPool is unset).
+func capLaunches(
+	launches []tokenLaunchedLog, limit int, scannedToBlock uint64,
+) ([]tokenLaunchedLog, uint64) {
+	if limit > 0 && len(launches) > limit {
+		return launches[:limit], launches[limit].BlockNumber
+	}
+	return launches, scannedToBlock + 1
 }
 
 func (u *PoolsListUpdater) getFromBlock(metadataBytes []byte) (uint64, error) {
@@ -150,9 +174,10 @@ func decodeTokenLaunched(l types.Log) (tokenLaunchedLog, error) {
 	}
 
 	return tokenLaunchedLog{
-		Token:     common.BytesToAddress(l.Topics[1].Bytes()),
-		Curve:     common.BytesToAddress(l.Topics[2].Bytes()),
-		PairToken: pairToken,
+		Token:       common.BytesToAddress(l.Topics[1].Bytes()),
+		Curve:       common.BytesToAddress(l.Topics[2].Bytes()),
+		PairToken:   pairToken,
+		BlockNumber: l.BlockNumber,
 	}, nil
 }
 

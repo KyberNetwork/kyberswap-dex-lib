@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -114,4 +115,37 @@ func TestPoolListTrackerTestSuite(t *testing.T) {
 	test.SkipCI(t)
 
 	suite.Run(t, new(PoolListTrackerTestSuite))
+}
+
+// TestCapLaunches covers the NewPoolLimit truncation path GetNewPools relies
+// on: on a busy scan window, launches must be capped (bounding buildPools'
+// multicall batch), and the resume block must never skip a TokenLaunched log
+// that shares a block number with the truncation point.
+func TestCapLaunches(t *testing.T) {
+	mk := func(blockNumber uint64) tokenLaunchedLog {
+		return tokenLaunchedLog{BlockNumber: blockNumber}
+	}
+
+	t.Run("under limit resumes past the full scanned window", func(t *testing.T) {
+		launches := []tokenLaunchedLog{mk(100), mk(101)}
+		got, nextFromBlock := capLaunches(launches, 5, 200)
+		require.Equal(t, launches, got)
+		require.Equal(t, uint64(201), nextFromBlock)
+	})
+
+	t.Run("limit<=0 is unbounded", func(t *testing.T) {
+		launches := []tokenLaunchedLog{mk(100), mk(101), mk(102)}
+		got, nextFromBlock := capLaunches(launches, 0, 200)
+		require.Equal(t, launches, got)
+		require.Equal(t, uint64(201), nextFromBlock)
+	})
+
+	t.Run("over limit truncates and resumes at the first excluded launch's block", func(t *testing.T) {
+		launches := []tokenLaunchedLog{mk(100), mk(100), mk(105), mk(105)}
+		got, nextFromBlock := capLaunches(launches, 2, 200)
+		require.Equal(t, launches[:2], got)
+		// Must resume at 105 (the first excluded launch's block), not 201 --
+		// otherwise the second launch at block 105 would be skipped forever.
+		require.Equal(t, uint64(105), nextFromBlock)
+	})
 }
