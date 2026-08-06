@@ -1,0 +1,20 @@
+[
+  {
+    "inputs": [],
+    "name": "getRungs",
+    "outputs": [
+      { "internalType": "int24[]", "name": "lowers", "type": "int24[]" },
+      { "internalType": "int24[]", "name": "uppers", "type": "int24[]" },
+      { "internalType": "uint128[]", "name": "liquidities", "type": "uint128[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bool", "name": "zeroForOne", "type": "bool" }],
+    "name": "poolFee",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
