@@ -9,14 +9,23 @@ import (
 )
 
 var (
-	UniswapV3PoolABI    abi.ABI
+	// UniswapV3PoolABI is used both to pack RPC calls (packing only depends on method
+	// inputs, identical across all forks) and to unpack the "standard" 7-word slot0()
+	// shape shared by uniswap-v3/pancake-v3/ramses-v2/nuri-v2.
+	UniswapV3PoolABI abi.ABI
+	// Slot0SlipstreamABI and Slot0SolidlyABI unpack the two other slot0() shapes seen
+	// across uniswap-v3 forks. Try standard, then slipstream, then solidly (longest to
+	// shortest): a shorter ABI can silently "succeed" against longer returndata by
+	// reading the wrong bytes into its last field(s) instead of erroring, since
+	// go-ethereum's abi decoder only errors on insufficient data, not on unconsumed
+	// trailing bytes. Trying longest first prevents that misdecode.
+	Slot0SlipstreamABI abi.ABI
+	Slot0SolidlyABI    abi.ABI
+
 	UniswapV3FactoryABI abi.ABI
 )
 
-var (
-	UniswapV3PoolFilterer    *PoolFilterer
-	UniswapV3FactoryFilterer *FactoryFilterer
-)
+var UniswapV3FactoryFilterer *FactoryFilterer
 
 func init() {
 	builder := []struct {
@@ -24,6 +33,8 @@ func init() {
 		data []byte
 	}{
 		{&UniswapV3PoolABI, uniswapV3PoolJson},
+		{&Slot0SlipstreamABI, slot0SlipstreamJson},
+		{&Slot0SolidlyABI, slot0SolidlyJson},
 		{&UniswapV3FactoryABI, uniswapV3FactoryJson},
 	}
 
@@ -35,6 +46,5 @@ func init() {
 		}
 	}
 
-	UniswapV3PoolFilterer = lo.Must(NewPoolFilterer(common.Address{}, nil))
 	UniswapV3FactoryFilterer = lo.Must(NewFactoryFilterer(common.Address{}, nil))
 }

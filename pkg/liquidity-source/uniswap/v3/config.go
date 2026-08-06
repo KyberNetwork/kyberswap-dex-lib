@@ -16,6 +16,11 @@ type Config struct {
 	PreGenesisPoolPath string      `json:"preGenesisPoolPath,omitempty"`
 	AlwaysUseTickLens  bool        `json:"alwaysUseTickLens,omitempty"` // instead of fetching from subgraph
 
+	// SubgraphPoolField overrides the subgraph's top-level pools entity name
+	// (e.g. ramses-style deployments querying something other than `pools`).
+	// Empty means the default `pools`.
+	SubgraphPoolField string `json:"subgraphPool,omitempty"`
+
 	ForksConfig map[string]ForkConfig `json:"forksConfig,omitempty"`
 
 	preGenesisPoolIDs []string

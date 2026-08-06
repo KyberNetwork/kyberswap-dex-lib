@@ -28,7 +28,18 @@ type PoolSimulator struct {
 	buyRestrictedToken string // pons-fun
 }
 
-var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
+// NewPoolSimulator reads entityPool.Type/Exchange straight through, so the same constructor
+// is registered for every uniswap-v3 fork merged into this package - it needs no per-fork
+// wrapper, unlike the factory/tracker/lister which must stamp a DexType onto pools that don't
+// carry one yet.
+var (
+	_ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
+	_ = pool.RegisterFactory1(DexTypePancakeV3, NewPoolSimulator)
+	_ = pool.RegisterFactory1(DexTypeRamsesV2, NewPoolSimulator)
+	_ = pool.RegisterFactory1(DexTypeSolidlyV3, NewPoolSimulator)
+	_ = pool.RegisterFactory1(DexTypeSlipstream, NewPoolSimulator)
+	_ = pool.RegisterFactory1(DexTypeNuriV2, NewPoolSimulator)
+)
 
 func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimulator, error) {
 	var extra ExtraTickU256
@@ -76,19 +87,12 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 		return nil, ErrV3TicksEmpty
 	}
 
+	// TickSpacing is always populated by the tracker before this pool has any ticks (the
+	// AllowEmptyTicks check above already gates construction on that), so an untracked
+	// pool fails there first - no feeTier-based fallback mapping is needed.
 	tickSpacing := int(extra.TickSpacing)
-	// For some pools that not yet initialized tickSpacing in their extra,
-	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
-		fallback := cfg.TickSpacingFallback
-		if fallback == nil {
-			fallback = TickSpacings
-		}
-		feeTier := FeeAmount(entityPool.SwapFee)
-		if _, ok := fallback[feeTier]; !ok {
-			return nil, ErrInvalidFeeTier
-		}
-		tickSpacing = fallback[feeTier]
+		return nil, ErrInvalidFeeTier
 	}
 	v3Pool, err := NewPool(
 		FeeAmount(entityPool.SwapFee),

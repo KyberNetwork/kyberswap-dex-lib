@@ -9,10 +9,13 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
+	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
@@ -30,7 +33,46 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewTracker)
+// NewTracker never needs to know which fork it's tracking - unlike the factory/lister, it
+// never stamps entity.Pool.Type (that's only ever set once, when a pool is first created),
+// so the same constructor is registered for every DexType merged into this package.
+var (
+	_ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewTracker)
+	_ = pooltrack.RegisterFactoryCEG(DexTypePancakeV3, NewTracker)
+	_ = pooltrack.RegisterFactoryCEG(DexTypeRamsesV2, NewTracker)
+	_ = pooltrack.RegisterFactoryCEG(DexTypeSolidlyV3, NewTracker)
+	_ = pooltrack.RegisterFactoryCEG(DexTypeSlipstream, NewTracker)
+	_ = pooltrack.RegisterFactoryCEG(DexTypeNuriV2, NewTracker)
+)
+
+// int24TopicArgs/tickIndexTopics decode the indexed tickLower/tickUpper fields shared by
+// every Mint/Burn shape merged into this package - see extractEventData. int24 is a signed
+// type indexed as a full 32-byte two's-complement word, so this goes through go-ethereum's
+// own topic decoder rather than a hand-rolled sign-extension.
+var int24Type = lo.Must(ethabi.NewType("int24", "", nil))
+
+var tickIndexTopicArgs = ethabi.Arguments{
+	{Name: "tickLower", Type: int24Type, Indexed: true},
+	{Name: "tickUpper", Type: int24Type, Indexed: true},
+}
+
+type tickIndexTopics struct {
+	TickLower *big.Int
+	TickUpper *big.Int
+}
+
+func extractTickIndexes(event ethtypes.Log) (lower, upper int, err error) {
+	if len(event.Topics) < 4 {
+		return 0, 0, ErrMalformedLog
+	}
+
+	var topics tickIndexTopics
+	if err := ethabi.ParseTopics(&topics, tickIndexTopicArgs, event.Topics[2:4]); err != nil {
+		return 0, 0, err
+	}
+
+	return int(topics.TickLower.Int64()), int(topics.TickUpper.Int64()), nil
+}
 
 type Tracker struct {
 	config        *Config
@@ -98,27 +140,20 @@ func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, param pool
 		return p, err
 	}
 
-	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders, l)
+	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
 }
 
 func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	// Extract current ticks from entity pool extra
-	var extra Extra
+	var extra ExtraTickU256
 	if len(p.Extra) > 0 {
-		err := json.Unmarshal([]byte(p.Extra), &extra)
-		if err != nil {
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 			return entity.Pool{}, err
 		}
 	}
 
-	ticks := map[int]struct{}{}
+	ticksToRefetch := make([]int, 0, len(extra.Ticks))
 	for _, tick := range extra.Ticks {
-		ticks[tick.Index] = struct{}{}
-	}
-
-	ticksToRefetch := make([]int, 0, len(ticks))
-	for tickIdx := range ticks {
-		ticksToRefetch = append(ticksToRefetch, tickIdx)
+		ticksToRefetch = append(ticksToRefetch, tick.Index)
 	}
 
 	if len(ticksToRefetch) == 0 {
@@ -130,27 +165,7 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 		return entity.Pool{}, err
 	}
 
-	// convert back to uniswap v3 ticks
-	entityPoolTicks := make([]Tick, 0, len(refetchedTicks))
-	for _, tick := range refetchedTicks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
-
-	extra.Ticks = entityPoolTicks
+	extra.Ticks = toTickU256s(refetchedTicks)
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -164,6 +179,24 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func toTickU256s(ticks []tickspkg.Tick) []TickU256 {
+	result := make([]TickU256, 0, len(ticks))
+	for _, tick := range ticks {
+		// skip uninitialized ticks
+		if tick.LiquidityGross.Sign() == 0 {
+			continue
+		}
+
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		result = append(result, TickU256{Index: tick.TickIdx, LiquidityGross: lg, LiquidityNet: ln})
+	}
+
+	sort.Slice(result, func(i, j int) bool { return result[i].Index < result[j].Index })
+
+	return result
 }
 
 func (t *Tracker) newTicksBasedPool(
@@ -369,9 +402,12 @@ func (t *Tracker) updateState(
 	ticksBasedPool tickspkg.TicksBasedPool,
 	logs []ethtypes.Log,
 	blockHeaders map[uint64]entity.BlockHeader,
-	l logger.Logger,
 ) (entity.Pool, error) {
-	// Always fetch scalar state (sqrtPrice/tick/liquidity) at latest, never at this
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+	})
+
+	// Always fetch scalar state (sqrtPrice/tick/liquidity/fee) at latest, never at this
 	// batch's own block: a catch-up/backfill batch's block can be older than the
 	// provider's pruning window, and there's no need for state "as of" that exact
 	// block anyway since ticks are already applied incrementally from decoded logs.
@@ -383,36 +419,7 @@ func (t *Tracker) updateState(
 		return p, err
 	}
 
-	entityPoolTicks := make([]Tick, 0, len(ticksBasedPool.Ticks))
-	for _, tick := range ticksBasedPool.Ticks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
-
-	extra := Extra{
-		Liquidity:    rpcState.Liquidity,
-		SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-		Tick:         rpcState.Slot0.Tick,
-		Ticks:        entityPoolTicks,
-
-		BuyRestrictedToken: rpcState.BuyRestrictedToken,
-	}
-	if rpcState.TickSpacing != nil {
-		extra.TickSpacing = rpcState.TickSpacing.Uint64()
-	}
+	extra := buildExtra(rpcState, toTickU256sFromMap(ticksBasedPool.Ticks))
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -421,6 +428,7 @@ func (t *Tracker) updateState(
 		return p, err
 	}
 
+	p.SwapFee, _ = rpcState.Fee.Float64()
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{
 		rpcState.Reserve0.String(),
@@ -430,6 +438,35 @@ func (t *Tracker) updateState(
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
 	return p, nil
+}
+
+func toTickU256sFromMap(ticks map[int]tickspkg.Tick) []TickU256 {
+	return toTickU256s(lo.Values(ticks))
+}
+
+func buildExtra(rpcData *FetchRPCResult, ticks []TickU256) ExtraTickU256 {
+	liq, _ := uint256.FromBig(rpcData.Liquidity)
+	sqrtP, _ := uint256.FromBig(rpcData.Slot0.SqrtPriceX96)
+
+	var tick *int
+	if rpcData.Slot0.Unlocked {
+		tickInt := int(rpcData.Slot0.Tick.Int64())
+		tick = &tickInt
+	}
+
+	var tickSpacing uint64
+	if rpcData.TickSpacing != nil {
+		tickSpacing = rpcData.TickSpacing.Uint64()
+	}
+
+	return ExtraTickU256{
+		Liquidity:          liq,
+		SqrtPriceX96:       sqrtP,
+		TickSpacing:        tickSpacing,
+		Tick:               tick,
+		Ticks:              ticks,
+		BuyRestrictedToken: rpcData.BuyRestrictedToken,
+	}
 }
 
 func (t *Tracker) getAffectedTickIdsFromLogs(logs []ethtypes.Log) ([]int, error) {
@@ -456,30 +493,62 @@ func (t *Tracker) getAffectedTickIdsFromLogs(logs []ethtypes.Log) ([]int, error)
 	return lo.Keys(affectedTickIds), nil
 }
 
+// extractEventData reads the tickLower/tickUpper/liquidityDelta touched by a Mint or Burn
+// log. Burn has one shape across every merged fork; Mint has two (see mintEventID /
+// mintWithIndexEventID in constant.go) that only differ in where `amount` sits within Data,
+// since ramses-v2's static-fee pool inserts a non-indexed `index` field before it.
 func (t *Tracker) extractEventData(event ethtypes.Log) (int, int, *big.Int, error) {
 	if len(event.Topics) == 0 || valueobject.IsZeroAddress(event.Address) {
-		return 0, 0, big.NewInt(0), nil
+		return 0, 0, zeroBI, nil
 	}
 
 	switch event.Topics[0] {
-	case abis.UniswapV3PoolABI.Events["Mint"].ID:
-		mint, err := abis.UniswapV3PoolFilterer.ParseMint(event)
+	case burnEventID:
+		lower, upper, err := extractTickIndexes(event)
 		if err != nil {
 			return 0, 0, nil, err
 		}
-		return int(mint.TickLower.Int64()), int(mint.TickUpper.Int64()), mint.Amount, nil
+		amount, err := readDataWord(event.Data, 0)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		return lower, upper, amount.Neg(amount), nil
 
-	case abis.UniswapV3PoolABI.Events["Burn"].ID:
-		burn, err := abis.UniswapV3PoolFilterer.ParseBurn(event)
+	case mintEventID:
+		lower, upper, err := extractTickIndexes(event)
 		if err != nil {
 			return 0, 0, nil, err
 		}
-		return int(burn.TickLower.Int64()), int(burn.TickUpper.Int64()), burn.Amount.Neg(burn.Amount), nil
+		amount, err := readDataWord(event.Data, 1)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		return lower, upper, amount, nil
+
+	case mintWithIndexEventID:
+		lower, upper, err := extractTickIndexes(event)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		amount, err := readDataWord(event.Data, 2)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		return lower, upper, amount, nil
 
 	default:
-		metrics.IncrUnprocessedEventTopic(DexTypeUniswapV3, event.Topics[0].Hex())
-		return 0, 0, big.NewInt(0), nil
+		metrics.IncrUnprocessedEventTopic(t.config.DexID, event.Topics[0].Hex())
+		return 0, 0, zeroBI, nil
 	}
+}
+
+// readDataWord reads the (wordIdx)-th unsigned 32-byte word from an event's non-indexed Data.
+func readDataWord(data []byte, wordIdx int) (*big.Int, error) {
+	start := wordIdx * 32
+	if len(data) < start+32 {
+		return nil, ErrMalformedLog
+	}
+	return new(big.Int).SetBytes(data[start : start+32]), nil
 }
 
 func (t *Tracker) applyLiquidityChange(
@@ -518,7 +587,7 @@ func (t *Tracker) applyLiquidityChange(
 	return true
 }
 
-// queryRPCTicksByIndexes returns ticks data of `tickIndexes` in pool `address` at `blockNumber`.
+// queryTicksFromRPC returns ticks data of `tickIndexes` in pool `address` at `blockNumber`.
 // If `blockNumber` == 0, it returns the latest ticks data.
 func (t *Tracker) queryTicksFromRPC(
 	ctx context.Context,
@@ -544,7 +613,10 @@ func (t *Tracker) queryTicksFromRPC(
 	return result, nil
 }
 
-// queryRPCTicksByChunk returns univ3 Ticks data.
+// queryRPCTicksByChunk returns liquidityGross/liquidityNet for a chunk of ticks. Every merged
+// fork's ticks() returns liquidityGross/liquidityNet in the same first two positions
+// regardless of how many (or which) fields follow, so one minimal 2-field ABI decodes all of
+// them - unlike slot0()'s fee field, nothing else we read is position-sensitive here.
 func (t *Tracker) queryRPCTicksByChunk(
 	ctx context.Context,
 	address string,
@@ -662,14 +734,14 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param p
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		Liquidity:          rpcData.Liquidity,
-		TickSpacing:        rpcData.TickSpacing.Uint64(),
-		SqrtPriceX96:       rpcData.Slot0.SqrtPriceX96,
-		Tick:               rpcData.Slot0.Tick,
-		Ticks:              ticks,
-		BuyRestrictedToken: rpcData.BuyRestrictedToken,
-	})
+	ticks256 := make([]TickU256, 0, len(ticks))
+	for _, tick := range ticks {
+		lg, _ := uint256.FromBig(tick.LiquidityGross)
+		ln, _ := int256.FromBig(tick.LiquidityNet)
+		ticks256 = append(ticks256, TickU256{Index: tick.Index, LiquidityGross: lg, LiquidityNet: ln})
+	}
+
+	extraBytes, err := json.Marshal(buildExtra(rpcData, ticks256))
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -677,6 +749,7 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param p
 		return entity.Pool{}, err
 	}
 
+	p.SwapFee, _ = rpcData.Fee.Float64()
 	p.Extra = string(extraBytes)
 	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = entity.PoolReserves{
@@ -690,6 +763,9 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param p
 	return p, nil
 }
 
+// FetchRPCData fetches liquidity/slot0/tickSpacing/fee/reserves generically for every fork
+// merged into this package - see Slot0 and FetchRPCResult in type.go for how slot0's shape
+// and the fee source are resolved without needing to know which fork this pool belongs to.
 func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -698,10 +774,15 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 
 	var (
 		liquidity   *big.Int
-		slot0       Slot0
 		tickSpacing *big.Int
+		fee         *big.Int
+		currentFee  *big.Int
 		reserve0    = zeroBI
 		reserve1    = zeroBI
+
+		slot0Std   slot0RawStandard
+		slot0Slip  slot0RawSlipstream
+		slot0Solid slot0RawSolidly
 	)
 
 	rpcRequest := t.ethrpcClient.NewRequest()
@@ -718,17 +799,35 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Method: methodGetLiquidity,
 	}, []any{&liquidity})
 
+	// Try standard (7-word), then slipstream (6-word), then solidly (4-word) shapes, longest
+	// first - see the comment on Slot0SlipstreamABI/Slot0SolidlyABI in abis.go.
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    abis.UniswapV3PoolABI,
-		Target: p.Address,
-		Method: methodGetSlot0,
-	}, []any{&slot0})
+		ABI:       abis.UniswapV3PoolABI,
+		UnpackABI: []ethabi.ABI{abis.UniswapV3PoolABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
+		Target:    p.Address,
+		Method:    methodGetSlot0,
+	}, []any{&slot0Std, &slot0Slip, &slot0Solid})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    abis.UniswapV3PoolABI,
 		Target: p.Address,
 		Method: methodTickSpacing,
 	}, []any{&tickSpacing})
+
+	// fee()/currentFee() are both attempted; a pool only ever answers the subset it
+	// actually implements (the others simply revert). See FetchRPCResult.Fee in type.go
+	// for the resolution priority and why it must not just be "whichever succeeds first".
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    abis.UniswapV3PoolABI,
+		Target: p.Address,
+		Method: methodFee,
+	}, []any{&fee})
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    abis.UniswapV3PoolABI,
+		Target: p.Address,
+		Method: methodCurrentFee,
+	}, []any{&currentFee})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -752,11 +851,18 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		ponsGuard.AddCalls(rpcRequest)
 	}
 
-	_, err := rpcRequest.TryAggregate()
-	if err != nil {
+	if _, err := rpcRequest.TryAggregate(); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to process tryAggregate")
+		return nil, err
+	}
+
+	slot0, err := resolveSlot0(slot0Std, slot0Slip, slot0Solid)
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to decode slot0 with any known shape")
 		return nil, err
 	}
 
@@ -764,10 +870,41 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Liquidity:          liquidity,
 		Slot0:              slot0,
 		TickSpacing:        tickSpacing,
+		Fee:                resolveFee(fee, currentFee, slot0.Fee),
 		Reserve0:           reserve0,
 		Reserve1:           reserve1,
 		BuyRestrictedToken: ponsGuard.BuyRestrictedToken(),
-	}, err
+	}, nil
+}
+
+func resolveSlot0(std slot0RawStandard, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
+	switch {
+	case std.SqrtPriceX96 != nil:
+		return Slot0{SqrtPriceX96: std.SqrtPriceX96, Tick: std.Tick, Unlocked: std.Unlocked}, nil
+	case slip.SqrtPriceX96 != nil:
+		return Slot0{SqrtPriceX96: slip.SqrtPriceX96, Tick: slip.Tick, Unlocked: slip.Unlocked}, nil
+	case solid.SqrtPriceX96 != nil:
+		return Slot0{SqrtPriceX96: solid.SqrtPriceX96, Tick: solid.Tick, Unlocked: solid.Unlocked, Fee: solid.Fee}, nil
+	default:
+		return Slot0{}, errors.New("slot0 did not decode with any known shape")
+	}
+}
+
+// resolveFee picks the pool's real fee. currentFee() must win over fee() when both succeed:
+// ramses-v2's dynamic pool and nuri-v2 implement both, but their fee() is a stale value fixed
+// at deploy time, not the live dynamic fee - only currentFee() is current. Falls back to
+// slot0's embedded fee (solidly-v3, which has neither method) if both calls reverted.
+func resolveFee(fee, currentFee, slot0Fee *big.Int) *big.Int {
+	switch {
+	case currentFee != nil:
+		return currentFee
+	case fee != nil:
+		return fee
+	case slot0Fee != nil:
+		return slot0Fee
+	default:
+		return zeroBI
+	}
 }
 
 func (t *Tracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
@@ -784,7 +921,8 @@ func (t *Tracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickR
 		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Ticks []TickResp `json:"ticks"`
+			Ticks []TickResp                `json:"ticks"`
+			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
 		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
@@ -807,6 +945,8 @@ func (t *Tracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickR
 				return nil, err
 			}
 		}
+
+		resp.Meta.CheckIsLagging(t.config.DexID, poolAddress)
 
 		if len(resp.Ticks) == 0 {
 			break

@@ -133,28 +133,23 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nuriv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
 	pancakeinfinitybin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin"
 	pancakeinfinitycl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	pancakestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/stable"
-	pancakev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slipstream"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
-	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v3"
 	someswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
 	someswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
@@ -479,7 +474,7 @@ var (
 		CurveTricrypto:             curve.PoolTypeTricrypto,
 		CurveTwo:                   curve.PoolTypeTwo,
 		Uni:                        uniswap.DexTypeUniswap,
-		UniswapV3:                  uniswapv3.DexTypeUniswapV3,
+		UniswapV3:                  uniswapv3.DexType,
 		Biswap:                     biswap.DexTypeBiswap,
 		Polydex:                    polydex.DexTypePolydex,
 		Dmm:                        dmm.DexTypeDMM,
@@ -496,7 +491,7 @@ var (
 		Velodrome:                  velodrome.DexType,
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
-		RamsesV2:                   ramsesv2.DexTypeRamsesV2,
+		RamsesV2:                   uniswapv3.DexTypeRamsesV2,
 		PlatypusBase:               platypus.PoolTypePlatypusBase,
 		PlatypusPure:               platypus.PoolTypePlatypusPure,
 		PlatypusAvax:               platypus.PoolTypePlatypusAvax,
@@ -519,7 +514,7 @@ var (
 		SyncSwapV2Classic:          syncswapv2classic.PoolTypeSyncSwapV2Classic,
 		SyncSwapV2Stable:           syncswapv2stable.PoolTypeSyncSwapV2Stable,
 		SyncSwapV2Aqua:             syncswapv2aqua.PoolTypeSyncSwapV2Aqua,
-		PancakeV3:                  pancakev3.DexTypePancakeV3,
+		PancakeV3:                  uniswapv3.DexTypePancakeV3,
 		PancakeInfinityCL:          pancakeinfinitycl.DexType,
 		PancakeInfinityBin:         pancakeinfinitybin.DexType,
 		PancakeStable:              pancakestable.DexType,
@@ -557,7 +552,7 @@ var (
 		VelocoreV2WombatStable:     velocorev2wombatstable.DexType,
 		Fulcrom:                    fulcrom.DexTypeFulcrom,
 		SolidlyV2:                  solidlyv2.DexType,
-		SolidlyV3:                  solidlyv3.DexTypeSolidlyV3,
+		SolidlyV3:                  uniswapv3.DexTypeSolidlyV3,
 		Gyroscope2CLP:              gyro2clp.DexType,
 		Gyroscope3CLP:              gyro3clp.DexType,
 		GyroscopeECLP:              gyroeclp.DexType,
@@ -586,8 +581,8 @@ var (
 		NomiSwapStable:             nomiswap.DexType,
 		NativeV3:                   nativev3.DexType,
 		RenzoEZETH:                 ezeth.DexType,
-		Slipstream:                 slipstream.DexType,
-		NuriV2:                     nuriv2.DexType,
+		Slipstream:                 uniswapv3.DexTypeSlipstream,
+		NuriV2:                     uniswapv3.DexTypeNuriV2,
 		EtherVista:                 ethervista.DexType,
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
