@@ -1,0 +1,28 @@
+[
+  {
+    "inputs": [],
+    "name": "collVault",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "settlementSwapper",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "exchangeState",
+    "outputs": [
+      { "internalType": "uint256", "name": "collateral", "type": "uint256" },
+      { "internalType": "uint256", "name": "debt", "type": "uint256" },
+      { "internalType": "uint256", "name": "priceWad", "type": "uint256" },
+      { "internalType": "uint256", "name": "spreadPpm", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
