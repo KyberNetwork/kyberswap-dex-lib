@@ -2,6 +2,7 @@ package ponsv2
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -35,8 +36,14 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{"address": p.Address}).Info("start getting new state of pons-v2 curve")
 
-	var reserves curveReservesResult
-	var graduated bool
+	var (
+		reserves       curveReservesResult
+		graduated      bool
+		feeBps         *big.Int
+		creatorTaxBps  *big.Int
+		reservedTokens *big.Int
+		isNativeQuote  bool
+	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -49,13 +56,38 @@ func (t *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: curveMethodGraduated,
 	}, []any{&graduated})
+	// FeeBps/CreatorTaxBps/ReservedTokens/IsNativeQuote are immutable
+	// on-chain, but re-fetched every pass rather than only once at discovery:
+	// discovery (pool_factory.go's DecodePoolCreated) is a pure log decode
+	// with no RPC calls, so this is the first point any of them are known.
+	req.AddCall(&ethrpc.Call{
+		ABI:    curveABI,
+		Target: p.Address,
+		Method: curveMethodFeeBps,
+	}, []any{&feeBps})
+	req.AddCall(&ethrpc.Call{
+		ABI:    curveABI,
+		Target: p.Address,
+		Method: curveMethodCreatorTax,
+	}, []any{&creatorTaxBps})
+	req.AddCall(&ethrpc.Call{
+		ABI:    curveABI,
+		Target: p.Address,
+		Method: curveMethodReserved,
+	}, []any{&reservedTokens})
+	req.AddCall(&ethrpc.Call{
+		ABI:    curveABI,
+		Target: p.Address,
+		Method: curveMethodIsNative,
+	}, []any{&isNativeQuote})
 
 	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err
 	}
 
-	if reserves.QuoteReserve == nil || reserves.TokenReserve == nil {
+	if reserves.QuoteReserve == nil || reserves.TokenReserve == nil ||
+		feeBps == nil || creatorTaxBps == nil || reservedTokens == nil {
 		return p, ErrInvalidReserve
 	}
 
@@ -72,7 +104,19 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	staticExtra := StaticExtra{
+		FeeBps:         uint16(feeBps.Uint64()),
+		CreatorTaxBps:  uint16(creatorTaxBps.Uint64()),
+		ReservedTokens: uint256.MustFromBig(reservedTokens),
+		IsNativeQuote:  isNativeQuote,
+	}
+	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return p, err
+	}
+
 	p.Extra = string(extraBytes)
+	p.StaticExtra = string(staticExtraBytes)
 	p.Timestamp = time.Now().Unix()
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()

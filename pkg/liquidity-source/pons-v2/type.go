@@ -9,8 +9,10 @@ import (
 // StaticExtra carries per-curve values that are immutable once
 // PonsV2BondingCurve.initialize() has run (i.e. by the time the factory's
 // TokenLaunched event fires, since initialize() runs earlier in the same
-// launchToken() transaction). Populated once at discovery time, never
-// re-read by the tracker.
+// launchToken() transaction). Discovery (pool_factory.go) is a pure log
+// decode with no RPC calls, so these are left zero-valued there; PoolTracker
+// fetches and (re-)populates all four every GetNewPoolState pass instead of
+// only once, since that's the first point any of them are actually known.
 type StaticExtra struct {
 	// FeeBps is the immutable protocol/creator/buyback trade fee, in basis
 	// points, always charged on the quote leg (PonsV2BondingCurve.feeBps()).
