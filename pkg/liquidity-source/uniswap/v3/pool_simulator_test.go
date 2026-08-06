@@ -61,7 +61,7 @@ func TestCalcAmountOut(t *testing.T) {
 				"100000000000000000":           "37545796267979064399",      // 0.1 WETH
 				"1000000000000000000":          "375443790259475125204",     // 1 WETH
 				"10000000000000000000":         "3753021248804497424805",    // 10 WETH
-				"5000000000000000000000000000": "3379794010779937772256794", // 5e9 WETH (near full range)
+				"5000000000000000000000000000": "3379794010779937772256805", // 5e9 WETH (near full range)
 			},
 		},
 		0: { // UNI -> WETH
@@ -83,6 +83,39 @@ func TestCalcAmountIn(t *testing.T) {
 	require.NoError(t, err)
 
 	testutil.TestCalcAmountIn(t, poolSim)
+}
+
+// TestCalcAmountInSolidlyV3 pins the exact-output path against a fixed expectation.
+//
+// It carries over the only pinned exact-out case the per-fork packages had, from solidly-v3's
+// suite, which was dropped when those packages were folded into this one; TestCalcAmountIn above
+// only round-trips. Exact-out has its own rounding — it ceils amountIn per step where exact-in
+// floors amountOut — so word-bounded stepping has to be pinned separately in that direction.
+//
+// The expectation comes from an independent transcription of the swap loop, not from this
+// simulator. The old value of 157754838261364 was 6 too high: the previous loop rounded each
+// step's amountIn up to a multiple of the number of bitmap words the step spanned.
+func TestCalcAmountInSolidlyV3(t *testing.T) {
+	t.Parallel()
+
+	const poolEncoded = `{
+		"address":"0xfc9e7373109adacd18152cc24658bf8b34ac3dba","swapFee":10000,"exchange":"solidly-v3","type":"solidly-v3","timestamp":1710154644,"reserves":["6897657865010157199229186","34285160896988154"],"tokens":[{"address":"0x2598c30330d5771ae9f983979209486ae26de875","name":"Any Inu","symbol":"AI","decimals":18,"weight":50,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","name":"Wrapped Ether","symbol":"WETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liquidity\":11420043566174051417,\"sqrtPriceX96\":9374274824798812391640411,\"tickSpacing\":100,\"tick\":-180852,\"ticks\":[{\"index\":-887200,\"liquidityGross\":11420043566174051417,\"liquidityNet\":11420043566174051417},{\"index\":-191100,\"liquidityGross\":84172845905035329535,\"liquidityNet\":84172845905035329535},{\"index\":-185000,\"liquidityGross\":84172845905035329535,\"liquidityNet\":-84172845905035329535},{\"index\":887200,\"liquidityGross\":11420043566174051417,\"liquidityNet\":-11420043566174051417}]}"
+	}`
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded), poolEntity))
+	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	res, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0x2598c30330d5771ae9f983979209486ae26de875",
+			Amount: bignumber.NewBig10("10000000000000000000000"), // 10000 AI
+		},
+		TokenIn: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "157754838261358", res.TokenAmountIn.Amount.String())
 }
 
 // TestTickRoundingToZero is a regression test for the case where each individual tick step
