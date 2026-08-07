@@ -117,7 +117,16 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.StaticExtra = string(staticExtraBytes)
-	p.Timestamp = time.Now().Unix()
+	if graduated {
+		// Graduated curves are permanently done -- no longer tradeable via the
+		// bonding curve, liquidity migrated to a fresh Uniswap V4 pool instead
+		// (see ErrPoolGraduated). Timestamp=1, not 0 (which pool-service's
+		// IsPoolActive special-cases as always-active), makes this pool look
+		// maximally stale so pool-service's inactive-pool tracking archives it.
+		p.Timestamp = 1
+	} else {
+		p.Timestamp = time.Now().Unix()
+	}
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
