@@ -10,6 +10,7 @@ import "github.com/holiman/uint256"
 type StaticExtra struct {
 	// PortalAddress is where swaps execute and where tokenIn must be approved.
 	PortalAddress string `json:"pa"`
+	HasNative     bool   `json:"hn"`
 }
 
 // Extra is refreshed by the tracker on every cycle from Portal.getTokenV8(token), Portal.getFeeRate()
@@ -42,4 +43,11 @@ type Extra struct {
 type SwapInfo struct {
 	NewCirculatingSupply *uint256.Int `json:"-"`
 	NewStatus            TokenStatus  `json:"-"`
+}
+
+// PoolMeta is exposed to encoding so it can build the executor calldata / know where to approve.
+type PoolMeta struct {
+	ApprovalAddress string `json:"approvalAddress"`
+	HasNative       bool   `json:"hasNative"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }

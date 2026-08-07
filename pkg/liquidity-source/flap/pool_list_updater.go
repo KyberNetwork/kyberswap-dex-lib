@@ -2,6 +2,7 @@ package flap
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
@@ -91,11 +92,19 @@ func (u *PoolsListUpdater) toPool(item client.BoardItem) (entity.Pool, bool) {
 		return entity.Pool{}, false
 	}
 
-	quoteToken := valueobject.ZeroToWrappedLower(item.QuoteToken, u.config.ChainID)
-	token := valueobject.WrapNativeLower(item.Coin.Address, u.config.ChainID)
+	var quoteToken string
+	quoteIsNative := valueobject.IsZero(item.QuoteToken)
+	if quoteIsNative {
+		quoteToken = valueobject.LowerWrapped(u.config.ChainID)
+	} else {
+		quoteToken = strings.ToLower(item.QuoteToken)
+	}
+
+	token := strings.ToLower(item.Coin.Address)
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
 		PortalAddress: u.config.PortalAddress,
+		HasNative:     quoteIsNative,
 	})
 	if err != nil {
 		return entity.Pool{}, false

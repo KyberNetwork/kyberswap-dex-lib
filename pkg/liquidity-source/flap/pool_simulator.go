@@ -51,6 +51,7 @@ type PoolSimulator struct {
 	baseDecimals  uint8
 
 	portalAddress string
+	hasNative     bool
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -105,6 +106,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		quoteDecimals:            quoteDecimals,
 		baseDecimals:             baseDecimals,
 		portalAddress:            staticExtra.PortalAddress,
+		hasNative:                staticExtra.HasNative,
 	}, nil
 }
 
@@ -379,7 +381,11 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return PoolMeta{ApprovalAddress: s.portalAddress}
+	return PoolMeta{
+		ApprovalAddress: s.portalAddress,
+		HasNative:       s.hasNative,
+		BlockNumber:     s.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
@@ -388,18 +394,15 @@ func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
 
 // Portal's swapExactInput/swapExactOutput accept native BNB directly (inputToken/outputToken =
 // address(0), value = amountIn) - it wraps/unwraps internally, so the executor must pass native
-// straight through rather than a router-inserted wrap/unwrap edge. Tokens[0] (the quote token) is
-// stored as the wrapped-native address (matching list-updater/tracker convention), so native support
-// is keyed off that the same way other wrapped-native pools do it.
+// straight through rather than a router-inserted wrap/unwrap edge. But this only holds for tokens
+// actually launched against native (board API's QuoteToken == zero address, see
+// pool_list_updater.go) - tokens explicitly launched against wrapped-native as an ERC20 quote don't
+// get the same address(0) fast path on Portal, so gate on the per-pool hasNative flag, not just on
+// tokens[0] being the wrapped-native address.
 func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
-	return valueobject.IsWrappedNative(tokenIn, chainId)
+	return s.hasNative && valueobject.IsWrappedNative(tokenIn, chainId)
 }
 
 func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
-	return valueobject.IsWrappedNative(tokenOut, chainId)
-}
-
-// PoolMeta is exposed to encoding so it can build the executor calldata / know where to approve.
-type PoolMeta struct {
-	ApprovalAddress string `json:"approvalAddress"`
+	return s.hasNative && valueobject.IsWrappedNative(tokenOut, chainId)
 }
