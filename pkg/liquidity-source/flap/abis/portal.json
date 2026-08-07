@@ -1,0 +1,86 @@
+[
+	{
+		"inputs": [],
+		"name": "getFeeRate",
+		"outputs": [
+			{ "internalType": "uint256", "name": "buyFeeRate", "type": "uint256" },
+			{ "internalType": "uint256", "name": "sellFeeRate", "type": "uint256" }
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+		"name": "getTokenV8",
+		"outputs": [
+			{
+				"components": [
+					{ "internalType": "enum IPortalTypes.TokenStatus", "name": "status", "type": "uint8" },
+					{ "internalType": "uint256", "name": "reserve", "type": "uint256" },
+					{ "internalType": "uint256", "name": "circulatingSupply", "type": "uint256" },
+					{ "internalType": "uint256", "name": "price", "type": "uint256" },
+					{ "internalType": "enum IPortalTypes.TokenVersion", "name": "tokenVersion", "type": "uint8" },
+					{ "internalType": "uint256", "name": "r", "type": "uint256" },
+					{ "internalType": "uint256", "name": "h", "type": "uint256" },
+					{ "internalType": "uint256", "name": "k", "type": "uint256" },
+					{ "internalType": "uint256", "name": "dexSupplyThresh", "type": "uint256" },
+					{ "internalType": "address", "name": "quoteTokenAddress", "type": "address" },
+					{ "internalType": "bool", "name": "nativeToQuoteSwapEnabled", "type": "bool" },
+					{ "internalType": "bytes32", "name": "extensionID", "type": "bytes32" },
+					{ "internalType": "uint256", "name": "buyTaxRate", "type": "uint256" },
+					{ "internalType": "uint256", "name": "sellTaxRate", "type": "uint256" },
+					{ "internalType": "address", "name": "pool", "type": "address" },
+					{ "internalType": "uint256", "name": "progress", "type": "uint256" },
+					{ "internalType": "enum IPortalTypes.V3LPFeeProfile", "name": "lpFeeProfile", "type": "uint8" },
+					{ "internalType": "enum IPortalTypes.DEXId", "name": "dexId", "type": "uint8" }
+				],
+				"internalType": "struct IPortalTypes.TokenStateV8",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "enableTaxOnBondingCurve",
+		"outputs": [{ "internalType": "bool", "name": "enabled", "type": "bool" }],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{ "indexed": false, "internalType": "uint256", "name": "ts", "type": "uint256" },
+			{ "indexed": false, "internalType": "address", "name": "creator", "type": "address" },
+			{ "indexed": false, "internalType": "uint256", "name": "nonce", "type": "uint256" },
+			{ "indexed": false, "internalType": "address", "name": "token", "type": "address" },
+			{ "indexed": false, "internalType": "string", "name": "name", "type": "string" },
+			{ "indexed": false, "internalType": "string", "name": "symbol", "type": "string" },
+			{ "indexed": false, "internalType": "string", "name": "meta", "type": "string" }
+		],
+		"name": "TokenCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{ "indexed": false, "internalType": "address", "name": "token", "type": "address" },
+			{ "indexed": false, "internalType": "address", "name": "pool", "type": "address" },
+			{ "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+			{ "indexed": false, "internalType": "uint256", "name": "eth", "type": "uint256" }
+		],
+		"name": "LaunchedToDEX",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{ "indexed": false, "internalType": "address", "name": "token", "type": "address" },
+			{ "indexed": false, "internalType": "uint256", "name": "newSupply", "type": "uint256" }
+		],
+		"name": "FlapTokenCirculatingSupplyChanged",
+		"type": "event"
+	}
+]
