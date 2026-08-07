@@ -88,7 +88,7 @@ func (t *PoolTracker) GetNewPoolState(
 		feeResult   feeRateResult
 		taxEnabled  bool
 	)
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    portalABI,
 			Target: t.config.PortalAddress,
@@ -105,8 +105,12 @@ func (t *PoolTracker) GetNewPoolState(
 			Target: t.config.PortalAddress,
 			Method: "enableTaxOnBondingCurve",
 		}, []any{&taxEnabled}).
-		Aggregate(); err != nil {
+		Aggregate()
+	if err != nil {
 		return entity.Pool{}, err
+	}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	status := TokenStatus(stateResult.Status)
