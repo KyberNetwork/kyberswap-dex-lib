@@ -233,14 +233,48 @@ func (t *PoolTracker) applyMachimaState(ctx context.Context, p entity.Pool,
 
 // unmarshalExtra decodes the Extra written by either layer. Machima's Extra is a superset of the
 // UniV3 one and shares its JSON field names, so the UniV3 output round-trips through it.
+// unmarshalExtra decodes Extra written by either layer. uniswapv3.Tracker now always writes the
+// uint256-based ExtraTickU256 (quoted decimal strings), which math/big refuses to read, so this
+// reads through that tolerant shape (uint256.Int/int256.Int accept quoted or plain numbers) and
+// converts back to the big.Int Extra this package writes - keeping Extra's own JSON output
+// byte-compatible with consumers that unmarshal it as big.Int directly.
 func unmarshalExtra(raw string) (Extra, error) {
 	var extra Extra
 	if raw == "" {
 		return extra, nil
 	}
-	if err := json.Unmarshal([]byte(raw), &extra); err != nil {
+
+	var u256 struct {
+		uniswapv3.ExtraTickU256
+		ProtocolState
+	}
+	if err := json.Unmarshal([]byte(raw), &u256); err != nil {
 		return Extra{}, errors.WithMessage(err, "unmarshal extra")
 	}
+
+	extra.ProtocolState = u256.ProtocolState
+	extra.TickSpacing = u256.TickSpacing
+	extra.BuyRestrictedToken = u256.BuyRestrictedToken
+	if u256.Liquidity != nil {
+		extra.Liquidity = u256.Liquidity.ToBig()
+	}
+	if u256.SqrtPriceX96 != nil {
+		extra.SqrtPriceX96 = u256.SqrtPriceX96.ToBig()
+	}
+	if u256.Tick != nil {
+		extra.Tick = big.NewInt(int64(*u256.Tick))
+	}
+	if len(u256.Ticks) > 0 {
+		extra.Ticks = make([]uniswapv3.Tick, len(u256.Ticks))
+		for i, tick := range u256.Ticks {
+			extra.Ticks[i] = uniswapv3.Tick{
+				Index:          tick.Index,
+				LiquidityGross: tick.LiquidityGross.ToBig(),
+				LiquidityNet:   tick.LiquidityNet.ToBig(),
+			}
+		}
+	}
+
 	return extra, nil
 }
 

@@ -17,40 +17,18 @@ import (
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
+// Every DexType stamps Type: DexTypeUniswapV3 on the pools it lists, same as PoolFactory - see
+// the comment there. slipstream is the one real exception: its subgraph has no feeTier field at
+// all (fee is fully dynamic, unknown until the tracker's first fee()/currentFee() refresh), so
+// it alone gets its own constructor instead of reusing NewPoolsListUpdater.
 var (
-	_ = poollist.RegisterFactoryCEG(DexTypeUniswapV3, NewUniswapV3PoolsListUpdater)
-	_ = poollist.RegisterFactoryCEG(DexTypePancakeV3, NewPancakeV3PoolsListUpdater)
-	_ = poollist.RegisterFactoryCEG(DexTypeRamsesV2, NewRamsesV2PoolsListUpdater)
-	_ = poollist.RegisterFactoryCEG(DexTypeSolidlyV3, NewSolidlyV3PoolsListUpdater)
+	_ = poollist.RegisterFactoryCEG(DexTypeUniswapV3, NewPoolsListUpdater)
+	_ = poollist.RegisterFactoryCEG(DexTypePancakeV3, NewPoolsListUpdater)
+	_ = poollist.RegisterFactoryCEG(DexTypeRamsesV2, NewPoolsListUpdater)
+	_ = poollist.RegisterFactoryCEG(DexTypeSolidlyV3, NewPoolsListUpdater)
 	_ = poollist.RegisterFactoryCEG(DexTypeSlipstream, NewSlipstreamPoolsListUpdater)
-	_ = poollist.RegisterFactoryCEG(DexTypeNuriV2, NewNuriV2PoolsListUpdater)
+	_ = poollist.RegisterFactoryCEG(DexTypeNuriV2, NewPoolsListUpdater)
 )
-
-func NewUniswapV3PoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
-	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, DexTypeUniswapV3, true)
-}
-
-func NewPancakeV3PoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
-	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, DexTypePancakeV3, true)
-}
-
-func NewRamsesV2PoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
-	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, DexTypeRamsesV2, true)
-}
-
-func NewSolidlyV3PoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
-	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, DexTypeSolidlyV3, true)
-}
-
-func NewSlipstreamPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
-	// slipstream's subgraph has no feeTier field at all (fee is fully dynamic, unknown
-	// until the tracker's first fee()/currentFee() refresh).
-	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, DexTypeSlipstream, false)
-}
-
-func NewNuriV2PoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
-	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, DexTypeNuriV2, true)
-}
 
 // PoolsListUpdater discovers pools for every uniswap-v3 fork merged into this package purely
 // from the subgraph. It deliberately does not fetch tickSpacing (or fee) over RPC at listing
@@ -61,22 +39,27 @@ type PoolsListUpdater struct {
 	config         *Config
 	ethrpcClient   *ethrpc.Client
 	graphqlClient  *graphqlpkg.Client
-	dexType        string
 	includeFeeTier bool
+}
+
+func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
+	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, true)
+}
+
+func NewSlipstreamPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
+	return newPoolsListUpdater(cfg, ethrpcClient, graphqlClient, false)
 }
 
 func newPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-	dexType string,
 	includeFeeTier bool,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:         cfg,
 		ethrpcClient:   ethrpcClient,
 		graphqlClient:  graphqlClient,
-		dexType:        dexType,
 		includeFeeTier: includeFeeTier,
 	}
 }
@@ -181,7 +164,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Address:     p.ID,
 			SwapFee:     swapFee,
 			Exchange:    d.config.DexID,
-			Type:        d.dexType,
+			Type:        DexTypeUniswapV3,
 			Timestamp:   createdAtTimestamp,
 			Reserves:    reserves,
 			Tokens:      tokens,

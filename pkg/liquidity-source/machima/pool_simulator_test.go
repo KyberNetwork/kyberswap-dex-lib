@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/msgpack/v5"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -527,6 +528,43 @@ func TestExtraRoundTripsBothDirections(t *testing.T) {
 	assert.Equal(t, sqrtPrice.String(), tickU256.SqrtPriceX96.Dec())
 	require.Len(t, tickU256.Ticks, 2)
 	assert.Equal(t, "-1000", tickU256.Ticks[1].LiquidityNet.Dec())
+}
+
+// TestUnmarshalExtraReadsUint256Shape is the regression test for the production incident: the
+// delegated UniV3 tracker writes ExtraTickU256 (quoted decimal strings) for every fork now,
+// which used to fail with `math/big: cannot unmarshal "\"...\"" into a *big.Int`. Pins that
+// unmarshalExtra produces the same big.Int values a pre-merge, unquoted payload would have.
+func TestUnmarshalExtraReadsUint256Shape(t *testing.T) {
+	sqrtPrice, ok := new(big.Int).SetString("1053589212355731537798233", 10)
+	require.True(t, ok)
+	tick := -183000
+
+	v3Written := uniswapv3.ExtraTickU256{
+		Liquidity:    uint256.NewInt(123456789),
+		SqrtPriceX96: uint256.MustFromBig(sqrtPrice),
+		TickSpacing:  defaultTickSpacing,
+		Tick:         &tick,
+		Ticks: []uniswapv3.TickU256{
+			{Index: -887200, LiquidityGross: uint256.NewInt(1000), LiquidityNet: int256.NewInt(1000)},
+			{Index: 887200, LiquidityGross: uint256.NewInt(1000), LiquidityNet: int256.NewInt(-1000)},
+		},
+	}
+	raw, err := json.Marshal(v3Written)
+	require.NoError(t, err)
+	// Confirms the fixture actually reproduces the incident's wire format: quoted decimal strings,
+	// not the plain numbers big.Int would have written.
+	require.Contains(t, string(raw), `"liquidity":"123456789"`)
+	require.Contains(t, string(raw), `"sqrtPriceX96":"1053589212355731537798233"`)
+
+	extra, err := unmarshalExtra(string(raw))
+	require.NoError(t, err, "unmarshalExtra must read the uint256 shape uniswapv3.Tracker actually writes")
+
+	assert.Equal(t, "123456789", extra.Liquidity.String())
+	assert.Equal(t, sqrtPrice.String(), extra.SqrtPriceX96.String())
+	assert.Equal(t, defaultTickSpacing, extra.TickSpacing)
+	assert.Equal(t, "-183000", extra.Tick.String())
+	require.Len(t, extra.Ticks, 2)
+	assert.Equal(t, "-1000", extra.Ticks[1].LiquidityNet.String())
 }
 
 // TestProtocolStateSurvivesUniswapV3Rewrite is the regression test for pools landing in Redis with
