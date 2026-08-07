@@ -146,3 +146,32 @@ type IPoolFactoryDecoder interface {
 	DecodePoolCreated(event types.Log) (*entity.Pool, error)
 	IsEventSupported(hash common.Hash) bool
 }
+
+// IPoolFactoryDecoderWithTopics is an optional extension to IPoolFactoryDecoder.
+// A decoder that implements it lets a FilterLogs-based scanner (see
+// poolfactory.FilterLogsBackfiller) narrow its query to only these event
+// signatures (topic0), instead of fetching every log emitted by the factory
+// address and relying on IsEventSupported to filter client-side. The returned
+// hashes are intrinsic to the decoder's own ABI, so this belongs on the
+// decoder rather than being threaded through as separate config.
+type IPoolFactoryDecoderWithTopics interface {
+	IPoolFactoryDecoder
+	SupportedEventTopics() []common.Hash
+}
+
+// IPoolsBackfiller performs a bounded historical scan for pool-creation events,
+// reusing an IPoolFactoryDecoder's decode logic. Unlike IPoolsListUpdater (built
+// for perpetual polling against a moving chain tip), Backfill reports explicitly
+// when it has caught up to its target so the caller can stop scheduling further
+// calls instead of polling forever.
+type IPoolsBackfiller interface {
+	// Backfill scans forward from the cursor encoded in metadataBytes (or a
+	// configured start point on a cold/empty call) up to a fixed target
+	// established on the first call, in bounded windows.
+	// @return []entity.Pool newly discovered pools from this window
+	// @return []byte the new metadataBytes for the next call
+	// @return bool true once the scan has caught up to its target -- the
+	//   caller should stop calling Backfill for this instance
+	// @return error if there is any error
+	Backfill(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, bool, error)
+}
