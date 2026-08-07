@@ -8,11 +8,13 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	_                             = pool.RegisterFactory0(DexType, NewPoolSimulator)
 	_ pool.IPoolExactOutSimulator = (*PoolSimulator)(nil)
+	_ pool.IPoolSupportNativeSwap = (*PoolSimulator)(nil)
 )
 
 // PoolSimulator simulates a single flap.sh bonding-curve token against Portal's LibCurve math.
@@ -382,6 +384,19 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 
 func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
 	return s.portalAddress
+}
+
+// Portal's swapExactInput/swapExactOutput accept native BNB directly (inputToken/outputToken =
+// address(0), value = amountIn) - it wraps/unwraps internally, so the executor must pass native
+// straight through rather than a router-inserted wrap/unwrap edge. Tokens[0] (the quote token) is
+// stored as the wrapped-native address (matching list-updater/tracker convention), so native support
+// is keyed off that the same way other wrapped-native pools do it.
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
 // PoolMeta is exposed to encoding so it can build the executor calldata / know where to approve.
