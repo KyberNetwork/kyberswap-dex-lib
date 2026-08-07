@@ -26,6 +26,10 @@ type BackfillConfig struct {
 	// be > 0; there is no silent default, since a reasonable value depends on
 	// the target chain/RPC provider's own getLogs window limits.
 	MaxBlockRangePerScan uint64
+	// Exchange identifies which dex this backfiller is scanning for, purely
+	// for logging -- one process can run a FilterLogsBackfiller per dex, so
+	// without this every one of them logs as the same "component".
+	Exchange string
 }
 
 type backfillMetadata struct {
@@ -74,7 +78,10 @@ func NewFilterLogsBackfiller(
 		ethrpcClient: ethrpcClient,
 		cfg:          cfg,
 		topics:       topics,
-		logger:       logger.WithFields(logger.Fields{"component": "poolfactory.FilterLogsBackfiller"}),
+		logger: logger.WithFields(logger.Fields{
+			"component": "poolfactory.FilterLogsBackfiller",
+			"exchange":  cfg.Exchange,
+		}),
 	}, nil
 }
 
