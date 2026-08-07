@@ -95,7 +95,6 @@ func (u *PoolsListUpdater) toPool(item client.BoardItem) (entity.Pool, bool) {
 	token := valueobject.WrapNativeLower(item.Coin.Address, u.config.ChainID)
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
-		QuoteToken:    item.QuoteToken,
 		PortalAddress: u.config.PortalAddress,
 	})
 	if err != nil {

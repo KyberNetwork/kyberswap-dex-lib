@@ -63,7 +63,6 @@ func buildTestPoolWithExtra(t *testing.T, extra Extra) *PoolSimulator {
 	require.NoError(t, err)
 
 	staticExtra := StaticExtra{
-		QuoteToken:    testQuoteToken,
 		PortalAddress: "0xe2cE6ab80874Fa9Fa2aAE65D277Dd6B8e65C9De0",
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)

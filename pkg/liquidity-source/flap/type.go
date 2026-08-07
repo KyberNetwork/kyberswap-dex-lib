@@ -8,27 +8,24 @@ import "github.com/holiman/uint256"
 // config - this is the same reason CLAUDE.md calls out StaticExtra as the place to persist immutable
 // metadata the simulator needs.
 type StaticExtra struct {
-	// QuoteToken is the raw quote token address reported by the board API before native-wrapping,
-	// e.g. the zero address when the pair quotes in the chain's native token.
-	QuoteToken string `json:"quoteToken"`
-
 	// PortalAddress is where swaps execute and where tokenIn must be approved.
-	PortalAddress string `json:"portalAddress"`
+	PortalAddress string `json:"pa"`
 }
 
 // Extra is refreshed by the tracker on every cycle from Portal.getTokenV8(token), Portal.getFeeRate()
 // and Portal.enableTaxOnBondingCurve(). CirculatingSupply is the only field UpdateBalance mutates.
+// JSON tags are abbreviated - this is stored per-pool in Redis.
 type Extra struct {
-	Status TokenStatus `json:"status"`
-	Curve  Curve       `json:"curve"`
+	Status TokenStatus `json:"st"`
+	Curve  Curve       `json:"cv"`
 
-	CirculatingSupply *uint256.Int `json:"circulatingSupply"`
-	DexSupplyThresh   *uint256.Int `json:"dexSupplyThresh"`
+	CirculatingSupply *uint256.Int `json:"cs"`
+	DexSupplyThresh   *uint256.Int `json:"dst"`
 
 	// BuyFeeBps/SellFeeBps are Portal's own protocol fee from getFeeRate(), observed on-chain as
 	// 100/100 (basis points out of bpsDenominator, i.e. 1%/1%).
-	BuyFeeBps  uint64 `json:"buyFeeBps"`
-	SellFeeBps uint64 `json:"sellFeeBps"`
+	BuyFeeBps  uint64 `json:"bfb"`
+	SellFeeBps uint64 `json:"sfb"`
 
 	// BuyTaxBps/SellTaxBps are the launched token's own transfer tax, from getTokenV8's
 	// buyTaxRate/sellTaxRate (same bps scale, cross-checked live against the board API's
@@ -36,9 +33,9 @@ type Extra struct {
 	// TaxOnBondingCurveEnabled is true (Portal.enableTaxOnBondingCurve(), a global switch) - verified
 	// true on-chain. This is on top of, not instead of, BuyFeeBps/SellFeeBps: it's the token
 	// contract's own transfer-tax mechanism, unrelated to Portal's protocol fee.
-	BuyTaxBps                uint64 `json:"buyTaxBps"`
-	SellTaxBps               uint64 `json:"sellTaxBps"`
-	TaxOnBondingCurveEnabled bool   `json:"taxOnBondingCurveEnabled"`
+	BuyTaxBps                uint64 `json:"btb"`
+	SellTaxBps               uint64 `json:"stb"`
+	TaxOnBondingCurveEnabled bool   `json:"tobc"`
 }
 
 // SwapInfo is produced by CalcAmountOut and consumed by UpdateBalance.

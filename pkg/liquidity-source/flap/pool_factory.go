@@ -88,7 +88,6 @@ func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error
 	token := valueobject.WrapNativeLower(strings.ToLower(tokenAddress.Hex()), f.config.ChainID)
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
-		QuoteToken:    quoteTokenRaw,
 		PortalAddress: f.config.PortalAddress,
 	})
 	if err != nil {
