@@ -79,6 +79,7 @@ import (
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flap"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1/lazy"
@@ -363,6 +364,7 @@ type Types struct {
 	CaliberProp                string
 	StaderETHx                 string
 	Feltir                     string
+	Flap                       string
 	FluidVaultT1               string
 	FluidDexT1                 string
 	FluidDexLite               string
@@ -597,6 +599,7 @@ var (
 		CaliberProp:                caliberprop.DexType,
 		StaderETHx:                 staderethx.DexType,
 		Feltir:                     feltir.DexType,
+		Flap:                       flap.DexType,
 		FluidVaultT1:               fluidVaultT1.DexType,
 		FluidDexT1:                 fluidDexT1.DexType,
 		FluidDexLite:               fluidDexLite.DexType,
