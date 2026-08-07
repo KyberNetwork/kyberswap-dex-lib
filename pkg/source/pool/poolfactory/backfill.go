@@ -127,7 +127,14 @@ func (u *FilterLogsBackfiller) Backfill(ctx context.Context, metadataBytes []byt
 		if err != nil {
 			u.logger.WithFields(logger.Fields{"error": err, "txHash": l.TxHash.Hex()}).
 				Error("failed to decode pool-created log during backfill")
-			continue // a single bad log must not stall the cursor forever
+			// Cursor NOT advanced (metadataBytes returned unchanged): some
+			// IPoolFactoryDecoder implementations perform RPC inside
+			// DecodePoolCreated (e.g. euler-swap/v1), so treating this log's
+			// failure as skippable would let a transient RPC error silently
+			// and permanently omit this pool once the window moves past it.
+			// The retry re-decodes the whole window, safe since decoding is
+			// pure and pools already saved are deduped downstream.
+			return nil, metadataBytes, false, err
 		}
 		if p != nil {
 			pools = append(pools, *p)

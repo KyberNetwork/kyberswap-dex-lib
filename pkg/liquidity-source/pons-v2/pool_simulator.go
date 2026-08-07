@@ -84,9 +84,16 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
-	if amountIn.IsZero() {
+	// Reject non-positive amounts against the original big.Int, not the
+	// converted uint256: uint256.FromBig reads big.Int.Bits(), which is
+	// sign-agnostic, so a negative amount would otherwise silently convert to
+	// its positive magnitude instead of being caught here.
+	if tokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrZeroAmount
+	}
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrOverflow
 	}
 
 	isBuy := indexIn == 0
