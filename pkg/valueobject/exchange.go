@@ -120,6 +120,7 @@ const (
 	ExchangeFluidDexV2                  = "fluid-dex-v2"
 	ExchangeFluidVaultT1                = "fluid-vault-t1"
 	ExchangeFluidATokenSwap             = "fluid-atoken-swap"
+	ExchangeFluxProp                    = "flux-prop"
 	ExchangeFrxETH                      = "frxeth"
 	ExchangeFrxUSD                      = "frxusd"
 	ExchangeGenericArm                  = "generic-arm"
@@ -401,6 +402,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeFermi:         {},
 	ExchangeBopAMM:        {},
 	ExchangeGhost:         {},
+	ExchangeFluxProp:      {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

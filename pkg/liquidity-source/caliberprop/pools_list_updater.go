@@ -5,19 +5,18 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	utileth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolsListUpdater struct {
@@ -88,51 +87,23 @@ func (l *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (l *PoolsListUpdater) fetchPairs(ctx context.Context, address common.Address,
 	pairIds []common.Hash) ([][2]common.Hash, error) {
-	results := make([][2]common.Hash, 2*len(pairIds))
-	batch := make([]rpc.BatchElem, 2*len(pairIds))
+	reads := make([]utileth.StorageRead, 2*len(pairIds))
 	var tmp uint256.Int
 	for i, pairId := range pairIds {
 		slotToken0 := crypto.Keccak256Hash(pairId[:], pairConfigBaseSlot[:])
-		slotToken1 := (common.Hash)(tmp.SetBytes32(slotToken0[:]).AddUint64(&tmp, 1).Bytes32())
-		batch[2*i] = rpc.BatchElem{
-			Method: "eth_getStorageAt",
-			Args:   []any{address, slotToken0, "latest"},
-			Result: &results[i][0],
-		}
-		batch[2*i+1] = rpc.BatchElem{
-			Method: "eth_getStorageAt",
-			Args:   []any{address, slotToken1, "latest"},
-			Result: &results[i][1],
-		}
+		reads[2*i].Slot = slotToken0
+		reads[2*i+1].Slot = tmp.SetBytes32(slotToken0[:]).AddUint64(&tmp, 1).Bytes32()
 	}
 
-	if err := batchCallWithRetry(ctx, l.ethrpcClient.GetETHClient().Client(), batch); err != nil {
-		return nil, fmt.Errorf("batch eth_call: %w", err)
+	if err := utileth.BatchGetStorageAt(ctx, l.ethrpcClient.GetETHClient().Client(), address,
+		reads, utileth.PatientBatchRetry); err != nil {
+		return nil, fmt.Errorf("batch eth_getStorageAt: %w", err)
+	}
+
+	results := make([][2]common.Hash, len(pairIds))
+	for i := range pairIds {
+		results[i][0] = reads[2*i].Result
+		results[i][1] = reads[2*i+1].Result
 	}
 	return results, nil
-}
-
-// batchCallWithRetry retries request-level 429/rate-limit errors with
-// exponential backoff (0.5s → 8s). Per-element errors surface to the caller.
-func batchCallWithRetry(ctx context.Context, client *rpc.Client, batch []rpc.BatchElem) error {
-	const maxAttempts = 5
-	delay := 500 * time.Millisecond
-	var err error
-	for range maxAttempts {
-		err = client.BatchCallContext(ctx, batch)
-		if err == nil {
-			return nil
-		}
-		msg := err.Error()
-		if !strings.Contains(msg, "429") && !strings.Contains(msg, "rate limit") {
-			return err
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(delay):
-		}
-		delay *= 2
-	}
-	return err
 }

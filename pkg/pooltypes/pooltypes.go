@@ -463,6 +463,7 @@ type Types struct {
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
+	FluxProp                   string
 }
 
 var (
@@ -702,5 +703,6 @@ var (
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
+		FluxProp:                   valueobject.ExchangeFluxProp,
 	}
 )

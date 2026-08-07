@@ -28,6 +28,7 @@ func TestPoolFactory(t *testing.T) {
 		"dexalot",       // private
 		"fermi",         // private
 		"fermi-prop",    // private
+		"flux-prop",     // private
 		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string
