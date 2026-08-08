@@ -1,0 +1,43 @@
+[
+  {
+    "id": "0x67aefc812ec0a83a327c05d6e7913c35b48bfb94",
+    "poolType": "multi-lp",
+    "tokens": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "swappable": true
+      },
+      {
+        "address": "0x4154550f4db74dc38d1fe98e1f3f28ed6dad627d",
+        "name": "Jarvis Synthetic Euro",
+        "symbol": "jEUR",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x41b0667ea45a5401d95f9a5d281287630704b798",
+    "poolType": "wrapper",
+    "vault": "0xbeef086b8807dc5e5a1740c5e3a7c4c366ea6ab5",
+    "tokens": [
+      {
+        "address": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+        "name": "Euro Coin",
+        "symbol": "EURC",
+        "decimals": 6,
+        "swappable": true
+      },
+      {
+        "address": "0x4154550f4db74dc38d1fe98e1f3f28ed6dad627d",
+        "name": "Jarvis Synthetic Euro",
+        "symbol": "jEUR",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]

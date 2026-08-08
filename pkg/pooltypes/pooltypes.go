@@ -162,6 +162,7 @@ import (
 	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/synthereum"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
 	umbraedamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/damm"
 	umbraedlmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/dlmm"
@@ -416,6 +417,7 @@ type Types struct {
 	CompoundV2                 string
 	CompoundV3                 string
 	AngleTransmuter            string
+	Synthereum                 string
 	GenericArm                 string
 	GOHM                       string
 	ArenaBC                    string
@@ -658,6 +660,7 @@ var (
 		CompoundV2:                 compoundv2.DexType,
 		CompoundV3:                 compoundv3.DexType,
 		AngleTransmuter:            angletransmuter.DexType,
+		Synthereum:                 synthereum.DexType,
 		GenericArm:                 genericarm.DexType,
 		GOHM:                       gohm.DexType,
 		ArenaBC:                    arenabc.DexType,

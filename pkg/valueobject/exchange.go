@@ -273,6 +273,7 @@ const (
 	ExchangeSyncSwapV2Aqua              = "syncswapv2-aqua"
 	ExchangeSyncSwapV2Classic           = "syncswapv2-classic"
 	ExchangeSyncSwapV2Stable            = "syncswapv2-stable"
+	ExchangeSynthereum                  = "synthereum"
 	ExchangeSynthetix                   = "synthetix"
 	ExchangeTessera                     = "tessera"
 	ExchangeThenaFusionV3               = "thena-fusion-v3"
