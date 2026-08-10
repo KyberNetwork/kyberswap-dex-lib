@@ -141,6 +141,7 @@ import (
 	pancakeinfinitycl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	pancakestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
+	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -390,6 +391,7 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
+	PonsV2                     string
 	Ekubo                      string
 	EkuboV3                    string
 	ERC4626                    string
@@ -626,6 +628,7 @@ var (
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
+		PonsV2:                     ponsv2.DexType,
 		Ekubo:                      ekubo.DexType,
 		EkuboV3:                    ekubov3.DexType,
 		ERC4626:                    erc4626.DexType,
