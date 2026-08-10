@@ -1,0 +1,108 @@
+{
+ "C": "176014704790044643",
+ "D": "27850808450425001079943",
+ "R": "320099038568280494392540",
+ "spread": 17500,
+ "almStableReserve": "27933660038009628920441",
+ "almVolatileReserve": "43964776",
+ "almSupply": "176015810164671780",
+ "cvTotalAssets": "176014704790044643",
+ "cvTotalSupply": "176014704790044643",
+ "cvDecimalsOffset": 0,
+ "withdrawFeeBp": 0,
+ "refStableReserve": "27933660038009628920441",
+ "refAssetReserve": "43964776",
+ "refRawReferenceWad": "644952028343800000000000000000000",
+ "rebalanceState": {
+  "dir": 1,
+  "fullIn": "22310013009956433",
+  "fullOut": "6618262362366485398240"
+ },
+ "quoteLot": {
+  "dir": 1,
+  "stableIn": "3540592849475619282013",
+  "volatileIn": "5572538",
+  "stableOut": "6618262362366485398240",
+  "volatileOut": "0",
+  "collVaultShares": "22310013009956433"
+ },
+ "leverageOracle": [
+  {
+   "shares": "440036761975111",
+   "netStableOut": "69249835979863979474"
+  },
+  {
+   "shares": "880073523950223",
+   "netStableOut": "138326358925965714507"
+  },
+  {
+   "shares": "1760147047900446",
+   "netStableOut": "275962046869132195699"
+  },
+  {
+   "shares": "3520294095800892",
+   "netStableOut": "549181836578062023531"
+  },
+  {
+   "shares": "7040588191601785",
+   "netStableOut": "1086059358667441334195"
+  },
+  {
+   "shares": "14667892065837053",
+   "netStableOut": "2167667185865556136154"
+  }
+ ],
+ "deleverageOracle": [
+  {
+   "stableDebtIn": "50000000000000000000",
+   "sharesOut": "152574277027621",
+   "stableOut": "24213495259587124083",
+   "volatileOut": "38109"
+  },
+  {
+   "stableDebtIn": "200000000000000000000",
+   "sharesOut": "609893096328206",
+   "stableOut": "96789864481052047634",
+   "volatileOut": "152337"
+  },
+  {
+   "stableDebtIn": "1000000000000000000000",
+   "sharesOut": "3038691834113500",
+   "stableOut": "482239547544003091243",
+   "volatileOut": "758996"
+  },
+  {
+   "stableDebtIn": "5000000000000000000000",
+   "sharesOut": "14924117982379145",
+   "stableOut": "2368453366188570119573",
+   "volatileOut": "3727707"
+  },
+  {
+   "stableDebtIn": "15000000000000000000000",
+   "sharesOut": "42752295035724747",
+   "stableOut": "6784777312079866287041",
+   "volatileOut": "10678558"
+  },
+  {
+   "stableDebtIn": "27000000000000000000000",
+   "sharesOut": "72590803815653138",
+   "stableOut": "11520140342934336039323",
+   "volatileOut": "18131544"
+  }
+ ],
+ "mathlibDirect": {
+  "leverage": {
+   "shares": "1760147047900446",
+   "grossOut": "555296893022774543034",
+   "newCollateral": "177774851837945089",
+   "newDebt": "28406105343447775622977"
+  },
+  "deleverage": {
+   "stableIn": "5000000000000000000000",
+   "sharesOut": "14924117982379145",
+   "newCollateral": "161090586807665498",
+   "newDebt": "22850808450425001079943"
+  }
+ },
+ "block": 39284109
+}
