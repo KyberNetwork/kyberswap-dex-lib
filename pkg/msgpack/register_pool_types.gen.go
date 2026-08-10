@@ -72,6 +72,8 @@ import (
 	pkg_liquiditysource_etherfi_weeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	pkg_liquiditysource_eulerswap_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	pkg_liquiditysource_eulerswap_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
+	pkg_liquiditysource_everlong_collvault "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/everlong/collvault"
+	pkg_liquiditysource_everlong_cvamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/everlong/cvamm"
 	pkg_liquiditysource_feltir "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
 	pkg_liquiditysource_flap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flap"
 	pkg_liquiditysource_fluid_atokenswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/atoken-swap"
@@ -318,6 +320,8 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_weeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_eulerswap_v1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_eulerswap_v2.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_everlong_collvault.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_everlong_cvamm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_feltir.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_flap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_atokenswap.PoolSimulator{})

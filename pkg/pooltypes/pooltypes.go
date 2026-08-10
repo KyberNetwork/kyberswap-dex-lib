@@ -78,6 +78,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
+	everlongcollvault "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/everlong/collvault"
+	everlongcvamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/everlong/cvamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flap"
 	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
@@ -411,6 +413,8 @@ type Types struct {
 	UniswapLO                  string
 	EulerSwap                  string
 	EulerSwapV2                string
+	EverlongCvamm              string
+	EverlongCollVault          string
 	AaveV3                     string
 	CompoundV2                 string
 	CompoundV3                 string
@@ -652,6 +656,8 @@ var (
 		UniswapLO:                  uniswaplo.DexType,
 		EulerSwap:                  eulerswapv1.DexType,
 		EulerSwapV2:                eulerswapv2.DexType,
+		EverlongCvamm:              everlongcvamm.DexType,
+		EverlongCollVault:          everlongcollvault.DexType,
 		AaveV3:                     aavev3.DexType,
 		CompoundV2:                 compoundv2.DexType,
 		CompoundV3:                 compoundv3.DexType,

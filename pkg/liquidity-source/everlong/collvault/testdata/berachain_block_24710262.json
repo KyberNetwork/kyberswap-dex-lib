@@ -1,0 +1,17 @@
+{
+  "block": 24710262,
+  "C": "7936959166024",
+  "D": "201073143728031590252",
+  "R": "50542765636070561249468611",
+  "spread": 17500,
+  "almStableReserve": "275607506210422307574",
+  "almVolatileReserve": "422029",
+  "almSupply": "10784989677198",
+  "cvTotalAssets": "7936959166024",
+  "cvTotalSupply": "7936959166024",
+  "cvDecimalsOffset": 0,
+  "withdrawFeeBp": 0,
+  "refStableReserve": "275607506210422307574",
+  "refAssetReserve": "422029",
+  "refRawReferenceWad": "638347858752000000000000000000000"
+}
