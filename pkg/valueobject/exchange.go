@@ -1,5 +1,7 @@
 package valueobject
 
+import "strings"
+
 type Exchange string
 
 const (
@@ -364,9 +366,15 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapLO:  {},
 }
 
+// pmmSourcePrefix matches the "pmm-N" generic maker slot family, so a newly onboarded pmm-N
+// is classified as an RFQ source purely by config (no dex-lib release needed for the next N).
+const pmmSourcePrefix = "pmm-"
+
 func IsRFQSource[T ~string](exchange T) bool {
-	_, ok := RFQSourceSet[Exchange(exchange)]
-	return ok
+	if _, ok := RFQSourceSet[Exchange(exchange)]; ok {
+		return true
+	}
+	return strings.HasPrefix(string(exchange), pmmSourcePrefix)
 }
 
 // needFallbackSourceSet is a set of exchanges that
