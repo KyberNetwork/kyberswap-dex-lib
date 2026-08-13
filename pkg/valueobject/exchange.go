@@ -335,6 +335,7 @@ const (
 	ExchangeBopAMM                      = "bop-amm"
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"
+	ExchangeTitanProp                   = "titan-prop"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
