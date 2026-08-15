@@ -233,8 +233,13 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Unlocked:     rpcState.Unlocked,
 	}
 
+	pluginBlock := result.BlockNumber
+	if d.config.SkipBlockPinning {
+		pluginBlock = nil
+	}
+
 	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p, plugin,
-		result.BlockNumber, overrides)
+		pluginBlock, overrides)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
