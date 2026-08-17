@@ -89,6 +89,14 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return PoolExtra{BlockNumber: s.Info.BlockNumber}
+	}
+	return PoolExtra{
+		TokenInIsNative:  s.IsNative[indexIn],
+		TokenOutIsNative: s.IsNative[indexOut],
+		BlockNumber:      s.Info.BlockNumber,
+	}
 }

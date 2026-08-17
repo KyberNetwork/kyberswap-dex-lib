@@ -82,7 +82,7 @@ func (d *PoolTracker) getNewPoolState(
 		Params: nil,
 	}, []any{&swapFee})
 
-	resp, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -103,9 +103,7 @@ func (d *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	if blockNumber, blockErr := d.ethrpcClient.GetBlockNumber(ctx); blockErr == nil {
-		p.BlockNumber = blockNumber
-	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	swapFeeFL := float64(swapFee) / float64(d.config.FeePrecision)
 	p.SwapFee = swapFeeFL
