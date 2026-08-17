@@ -1,0 +1,30 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "pool", "type": "address" },
+      { "internalType": "contract IERC20", "name": "tokenIn", "type": "address" },
+      { "internalType": "contract IERC20", "name": "tokenOut", "type": "address" },
+      { "internalType": "uint256", "name": "exactAmountIn", "type": "uint256" },
+      { "internalType": "address", "name": "sender", "type": "address" },
+      { "internalType": "bytes", "name": "userData", "type": "bytes" }
+    ],
+    "name": "querySwapSingleTokenExactIn",
+    "outputs": [{ "internalType": "uint256", "name": "amountOut", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "pool", "type": "address" },
+      { "internalType": "contract IERC20", "name": "tokenIn", "type": "address" },
+      { "internalType": "contract IERC20", "name": "tokenOut", "type": "address" },
+      { "internalType": "uint256", "name": "exactAmountOut", "type": "uint256" },
+      { "internalType": "address", "name": "sender", "type": "address" },
+      { "internalType": "bytes", "name": "userData", "type": "bytes" }
+    ],
+    "name": "querySwapSingleTokenExactOut",
+    "outputs": [{ "internalType": "uint256", "name": "amountIn", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
