@@ -174,7 +174,7 @@ func (d *PoolTracker) GetNewPoolState(
 		AddCall(&ethrpc.Call{
 			ABI: brownFiV3OracleABI, Target: staticExtra.PriceOracle,
 			Method: oracleMethodGetUpdateFee,
-			Params: []any{[][]byte{extra.PriceUpdateData}},
+			Params: []any{extra.PriceUpdateData},
 		}, []any{&updateFee}).
 		AddCall(&ethrpc.Call{
 			ABI: abi.Multicall3ABI, Target: d.config.Multicall3,
@@ -247,7 +247,10 @@ func (d *PoolTracker) GetNewPoolState(
 		extra.Price1.Set(pythToQ64(pythUpdateData.Parsed[1].Price.Price, expo))
 		extra.Conf1.Set(pythToQ64(pythUpdateData.Parsed[1].Price.Conf, expo))
 
-		extra.PriceUpdateData, _ = hex.DecodeString(pythUpdateData.Binary.Data[0])
+		extra.PriceUpdateData = lo.Map(pythUpdateData.Binary.Data, func(d string, _ int) []byte {
+			b, _ := hex.DecodeString(d)
+			return b
+		})
 		extra.PythTimestamp = pythUpdateData.Parsed[0].Price.PublishTime
 		p.Timestamp = startTime.Unix()
 	} else if time.Since(time.Unix(extra.PythTimestamp, 0)) >= 5*time.Second {
