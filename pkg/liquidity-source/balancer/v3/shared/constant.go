@@ -27,10 +27,18 @@ var (
 		"coinhane": {
 			valueobject.ChainIDBSC: common.HexToAddress("0xBdf45255f34B9DD3d2F9aDacc7AeB482059f1C54"),
 		},
+		// Range Pools run on a custom, non-canonical Balancer V3 deployment (like coinhane).
+		// Their single-swap Router (also exposing querySwap...) is the approval/target
+		// address; the "range" key matches exchange prefix "range-pool" (split on "-").
+		"range": {
+			valueobject.ChainIDEthereum: common.HexToAddress("0x8726019313CD59D2e33dBE643aaC94A59D5518df"),
+		},
 	}
 	VaultMap = map[string]common.Address{
 		"":         common.HexToAddress("0xbA1333333333a1BA1108E8412f11850A5C319bA9"), // default
 		"coinhane": common.HexToAddress("0xb61cb1E8EF4BB1b74bB858B8B60d82d79488F13D"),
+		// Range Pools' custom, non-canonical Balancer V3 Vault.
+		"range": common.HexToAddress("0x955244EDC797A1C1b04134b600f819aC23C76081"),
 	}
 
 	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
