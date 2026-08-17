@@ -55,7 +55,8 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&balances})
 
-	if _, err := calls.TryAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -108,9 +109,7 @@ func (d *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to aggregate pool total supply")
 		return entity.Pool{}, err
 	}
-	if blockNumber, blockErr := d.ethrpcClient.GetBlockNumber(ctx); blockErr == nil {
-		p.BlockNumber = blockNumber
-	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	var reserves = make([]string, 0, len(balances)+1)
 	for _, balance := range balances {

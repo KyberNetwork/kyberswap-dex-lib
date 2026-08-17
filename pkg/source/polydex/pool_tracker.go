@@ -56,14 +56,12 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&swapFee})
 
-	_, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		log.Errorf("failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
 		return entity.Pool{}, err
 	}
-	if blockNumber, blockErr := d.ethrpcClient.GetBlockNumber(ctx); blockErr == nil {
-		p.BlockNumber = blockNumber
-	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{

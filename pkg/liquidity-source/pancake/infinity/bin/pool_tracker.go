@@ -102,14 +102,6 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	l.Info("Start getting new state of pancake-infinity-bin pool")
 
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
-
 	var (
 		rpcData         *FetchRPCResult
 		newPoolReserves entity.PoolReserves
@@ -166,7 +158,7 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.SwapFee = float64(rpcData.SwapFee)
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = blockNumber
+	p.BlockNumber = rpcData.BlockNumber
 
 	l.Infof("Finish updating state of pool")
 
