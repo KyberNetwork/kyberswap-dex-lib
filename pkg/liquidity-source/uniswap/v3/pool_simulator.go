@@ -114,12 +114,13 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 
 	sim := &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:  entityPool.Address,
-			SwapFee:  swapFee,
-			Exchange: entityPool.Exchange,
-			Type:     entityPool.Type,
-			Tokens:   tokens,
-			Reserves: reserves,
+			Address:     entityPool.Address,
+			SwapFee:     swapFee,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		}},
 		V3Pool:             v3Pool,
 		Gas:                defaultGas,
@@ -282,8 +283,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	return PoolMeta{
-		SwapFee:    uint32(p.Info.SwapFee.Int64()),
-		PriceLimit: p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0]),
+		SwapFee:     uint32(p.Info.SwapFee.Int64()),
+		PriceLimit:  p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0]),
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 

@@ -336,6 +336,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 			TokenInIndex:  fromId,
 			TokenOutIndex: toId,
 			Underlying:    false,
+			BlockNumber:   t.Info.BlockNumber,
 		}
 	}
 	var baseFromId = t.getUnderlyingIndex(tokenIn)
@@ -344,6 +345,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenInIndex:  baseFromId,
 		TokenOutIndex: baseToId,
 		Underlying:    true,
+		BlockNumber:   t.Info.BlockNumber,
 	}
 }
 

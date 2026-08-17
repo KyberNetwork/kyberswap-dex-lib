@@ -178,9 +178,10 @@ type PoolTricryptoExtra struct {
 }
 
 type Meta struct {
-	TokenInIndex  int  `json:"tokenInIndex"`
-	TokenOutIndex int  `json:"tokenOutIndex"`
-	Underlying    bool `json:"underlying"`
+	TokenInIndex  int    `json:"tokenInIndex"`
+	TokenOutIndex int    `json:"tokenOutIndex"`
+	Underlying    bool   `json:"underlying"`
+	BlockNumber   uint64 `json:"blockNumber"`
 
 	TokenInIsNative  *bool
 	TokenOutIsNative *bool

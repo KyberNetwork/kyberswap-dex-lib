@@ -38,7 +38,7 @@ type SwapInfo struct {
 }
 
 type PoolMeta struct {
-	BlockNumber     uint64 `json:"bN"`
+	BlockNumber     uint64 `json:"blockNumber"`
 	ApprovalAddress string `json:"approvalAddress"`
 }
 

@@ -90,7 +90,8 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 			Params: nil,
 		}, []any{&swapStorages[i]})
 	}
-	if _, err := calls.TryAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.Errorf("failed to try aggregate call with error %v", err)
 		return nil, err
 	}
@@ -132,6 +133,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 			Reserves:    reserves,
 			Tokens:      tokens,
 			StaticExtra: string(staticExtraBytes),
+		}
+		if resp.BlockNumber != nil {
+			newPool.BlockNumber = resp.BlockNumber.Uint64()
 		}
 
 		pools = append(pools, newPool)

@@ -12,7 +12,7 @@ type StaticExtra struct {
 
 type PoolMetaInfo struct {
 	RouterAddress  string                           `json:"routerAddress"`
-	BlockNumber    uint64                           `json:"bn"`
+	BlockNumber    uint64                           `json:"blockNumber"`
 	BlockTimestamp uint64                           `json:"bt,omitempty"`
 	SO             map[string]kipseli.StateOverride `json:"so,omitempty"`
 }

@@ -24,7 +24,7 @@ type IExchangeRatesReader interface {
 
 // IChainlinkDataFeedReader reads Chainlink data feed smart contract
 type IChainlinkDataFeedReader interface {
-	Read(ctx context.Context, address string, roundCount int) (*ChainlinkDataFeed, error)
+	Read(ctx context.Context, address string, roundCount int, blockNumber uint64) (*ChainlinkDataFeed, error)
 }
 
 // IDexPriceAggregatorUniswapV3Reader reads DexPriceAggregatorUniswapV3 data feed smart contract

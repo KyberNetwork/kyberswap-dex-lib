@@ -33,7 +33,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) Read(
 	dexPriceAggregatorUniswapV3 := NewDexPriceAggregatorUniswapV3()
 	address := poolState.DexPriceAggregatorAddress.String()
 
-	if err := r.readData(ctx, address, dexPriceAggregatorUniswapV3); err != nil {
+	if err := r.readData(ctx, address, dexPriceAggregatorUniswapV3, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -41,7 +41,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) Read(
 		return nil, err
 	}
 
-	if err := r.readOverriddenPoolForRoute(ctx, address, dexPriceAggregatorUniswapV3, poolState.SystemSettings.AtomicEquivalentForDexPricing); err != nil {
+	if err := r.readOverriddenPoolForRoute(ctx, address, dexPriceAggregatorUniswapV3, poolState.SystemSettings.AtomicEquivalentForDexPricing, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -49,7 +49,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) Read(
 		return nil, err
 	}
 
-	if err := r.readPoolData(ctx, dexPriceAggregatorUniswapV3, poolState.SystemSettings.AtomicEquivalentForDexPricing); err != nil {
+	if err := r.readPoolData(ctx, dexPriceAggregatorUniswapV3, poolState.SystemSettings.AtomicEquivalentForDexPricing, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -57,7 +57,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) Read(
 		return nil, err
 	}
 
-	if err := r.readPoolObservationsData(ctx, dexPriceAggregatorUniswapV3); err != nil {
+	if err := r.readPoolObservationsData(ctx, dexPriceAggregatorUniswapV3, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -65,7 +65,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) Read(
 		return nil, err
 	}
 
-	if err := r.readPoolTickCumulativeData(ctx, dexPriceAggregatorUniswapV3, poolState.SystemSettings.AtomicTwapWindow); err != nil {
+	if err := r.readPoolTickCumulativeData(ctx, dexPriceAggregatorUniswapV3, poolState.SystemSettings.AtomicTwapWindow, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -84,10 +84,9 @@ func (r *DexPriceAggregatorUniswapV3Reader) readData(
 	ctx context.Context,
 	address string,
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
+	blockNumber uint64,
 ) error {
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -124,6 +123,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readOverriddenPoolForRoute(
 	address string,
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
 	atomicEquivalentForDexPricing map[string]Token,
+	blockNumber uint64,
 ) error {
 	tokens := make([]Token, 0, len(atomicEquivalentForDexPricing))
 	for _, token := range atomicEquivalentForDexPricing {
@@ -147,7 +147,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readOverriddenPoolForRoute(
 
 	overriddenPoolForRoutes := make([]common.Address, len(routeFromPoolKeys))
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 
 	for i, routeFromPoolKey := range routeFromPoolKeys {
 		routeFromPoolKeyBytes := eth.StringToBytes32(routeFromPoolKey)
@@ -182,6 +182,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 	ctx context.Context,
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
 	atomicEquivalentForDexPricing map[string]Token,
+	blockNumber uint64,
 ) error {
 	tokensArr := make([]Token, 0, len(atomicEquivalentForDexPricing))
 	for _, token := range atomicEquivalentForDexPricing {
@@ -192,7 +193,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 	poolsLen := len(poolAddresses)
 	poolSlot0s := make([]Slot0, poolsLen)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, pool := range poolAddresses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    uniswapV3Pool,
@@ -227,6 +228,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 	ctx context.Context,
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
+	blockNumber uint64,
 ) error {
 	uniswapV3Slot0 := dexPriceAggregator.UniswapV3Slot0
 	poolsLen := len(uniswapV3Slot0)
@@ -239,7 +241,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 	observations := make([]OracleObservation, poolsLen)
 	prevObservations := make([]OracleObservation, poolsLen)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, poolAddress := range poolAddresses {
 		observationIndex := uniswapV3Slot0[poolAddress].ObservationIndex
 		observationCardinality := uniswapV3Slot0[poolAddress].ObservationCardinality
@@ -290,6 +292,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolTickCumulativeData(
 	ctx context.Context,
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
 	atomicTwapWindow *big.Int,
+	blockNumber uint64,
 ) error {
 	uniswapV3Slot0 := dexPriceAggregator.UniswapV3Slot0
 	poolsLen := len(uniswapV3Slot0)
@@ -306,7 +309,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolTickCumulativeData(
 
 	observeResult := make([]ObserveResult, poolsLen)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, poolAddress := range poolAddresses {
 		secondAgos := make([]uint32, 2)
 		secondAgos[0] = uint32(atomicTwapWindow.Int64())

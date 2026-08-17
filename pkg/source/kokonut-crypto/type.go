@@ -9,6 +9,13 @@ type StaticExtra struct {
 	PrecisionMultipliers []string `json:"precisionMultipliers"`
 }
 
+type Meta struct {
+	TokenInIndex  int    `json:"tokenInIndex"`
+	TokenOutIndex int    `json:"tokenOutIndex"`
+	Underlying    bool   `json:"underlying"`
+	BlockNumber   uint64 `json:"blockNumber"`
+}
+
 type Extra struct {
 	A                              string `json:"A"`
 	D                              string `json:"D"`

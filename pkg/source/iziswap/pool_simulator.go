@@ -38,10 +38,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+				Address:     strings.ToLower(entityPool.Address),
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				BlockNumber: entityPool.BlockNumber,
+				Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
 				Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
 					bignumber.NewBig10(entityPool.Reserves[1])},
 			},
@@ -198,5 +199,5 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	} else {
 		limitPoint += SIMULATOR_PT_RANGE
 	}
-	return Meta{LimitPoint: limitPoint}
+	return Meta{LimitPoint: limitPoint, BlockNumber: p.Info.BlockNumber}
 }

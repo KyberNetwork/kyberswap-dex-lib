@@ -40,11 +40,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   lo.Map(entityPool.Tokens, func(e *entity.PoolToken, _ int) string { return e.Address }),
-		Reserves: reserves,
+		Address:     strings.ToLower(entityPool.Address),
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      lo.Map(entityPool.Tokens, func(e *entity.PoolToken, _ int) string { return e.Address }),
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
@@ -119,6 +120,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
-		Oracle: p.extra.OracleAddress,
+		Oracle:      p.extra.OracleAddress,
+		BlockNumber: p.Info.BlockNumber,
 	}
 }

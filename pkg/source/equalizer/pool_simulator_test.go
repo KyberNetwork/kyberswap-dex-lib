@@ -120,3 +120,9 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 		})
 	}
 }
+
+func TestMetaInfoJSONIncludesBlockNumber(t *testing.T) {
+	data, err := json.Marshal(MetaInfo{Stable: true, BlockNumber: 123})
+	require.NoError(t, err)
+	require.JSONEq(t, `{"stable":true,"blockNumber":123}`, string(data))
+}

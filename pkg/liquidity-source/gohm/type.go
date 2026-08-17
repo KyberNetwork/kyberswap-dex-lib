@@ -34,7 +34,7 @@ type Gas struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"bN"`
+	BlockNumber uint64 `json:"blockNumber"`
 	OHM         string `json:"ohm"`
 	SOHM        string `json:"sohm"`
 	GOHM        string `json:"gohm"`

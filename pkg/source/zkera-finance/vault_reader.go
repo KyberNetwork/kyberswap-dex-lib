@@ -36,6 +36,9 @@ func (r *VaultReader) Read(ctx context.Context, address string) (*Vault, error) 
 		r.log.Errorf("error when read data: %s", err)
 		return nil, err
 	}
+	if validBlockNumber(vault.BlockNumber) {
+		ctx = withBlockNumber(ctx, vault.BlockNumber)
+	}
 
 	if err := r.readWhitelistedTokens(ctx, address, vault); err != nil {
 		r.log.Errorf("error when read white listed token: %s", err)
@@ -52,7 +55,7 @@ func (r *VaultReader) Read(ctx context.Context, address string) (*Vault, error) 
 
 func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault) error {
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(vaultMethodHasDynamicFees, nil), []any{&vault.HasDynamicFees})
 	rpcRequest.AddCall(callParamsFactory(vaultMethodIncludeAmmPrice, nil), []any{&vault.IncludeAmmPrice})
@@ -66,7 +69,10 @@ func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault
 	rpcRequest.AddCall(callParamsFactory(vaultMethodUSDG, nil), []any{&vault.USDGAddress})
 	rpcRequest.AddCall(callParamsFactory(vaultMethodWhitelistedTokenCount, nil), []any{&vault.WhitelistedTokensCount})
 
-	_, err := rpcRequest.TryAggregate()
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err == nil && response != nil && validBlockNumber(response.BlockNumber) {
+		vault.BlockNumber = response.BlockNumber
+	}
 
 	return err
 }
@@ -79,7 +85,7 @@ func (r *VaultReader) readWhitelistedTokens(
 	tokensLen := int(vault.WhitelistedTokensCount.Int64())
 
 	whitelistedTokens := make([]common.Address, tokensLen)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i := 0; i < tokensLen; i++ {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -118,7 +124,7 @@ func (r *VaultReader) readTokensData(
 	maxUSDGAmounts := make([]*big.Int, tokensLen)
 	tokenWeights := make([]*big.Int, tokensLen)
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 	callParamsFactory := CallParamsFactory(r.abi, address)
 
 	for i, token := range vault.WhitelistedTokens {

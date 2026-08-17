@@ -44,11 +44,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
-				Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
+				Address:     entityPool.Address,
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+				Reserves:    []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		decimals: []uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
@@ -176,7 +177,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
 func (state *MaverickPoolState) Clone() *MaverickPoolState {

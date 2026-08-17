@@ -8,5 +8,5 @@ type Extra struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64
+	BlockNumber uint64 `json:"blockNumber"`
 }

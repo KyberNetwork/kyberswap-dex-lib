@@ -107,6 +107,7 @@ type FilledOrderInfo struct {
 type MetaInfo struct {
 	ApprovalAddress        string `json:"approvalAddress"`
 	TakerTargetInteraction string `json:"takerTargetInteraction"`
+	BlockNumber            uint64 `json:"blockNumber"`
 }
 
 func (o *Order) GetMakerAsset() string {

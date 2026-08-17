@@ -71,6 +71,7 @@ func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimul
 				func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			BlockNumber: entityPool.BlockNumber,
 		}},
 		vault:          staticExtra.VaultAddress,
 		binPoolManager: staticExtra.PoolManagerAddress,
@@ -330,6 +331,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Parameters:  p.parameters,
 		HookAddress: p.hookAddress,
 		HookData:    []byte{},
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 

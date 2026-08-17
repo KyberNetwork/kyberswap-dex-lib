@@ -54,7 +54,7 @@ func (r *ExchangeRatesReader) readCurrencyKeyData(ctx context.Context, poolState
 		currentRoundIds     = make([]*big.Int, currencyKeysLen)
 	)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber)
 	for i, key := range currencyKeys {
 		keyByte := eth.StringToBytes32(key)
 

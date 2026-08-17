@@ -71,7 +71,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		paymentTokenAddresses []common.Address
 		mTokenAddress         common.Address
 	)
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		AddCall(&ethrpc.Call{
 			ABI:    lo.Ternary(staticExtra.IsDv, DepositVaultABI, RedemptionVaultABI),
 			Target: p.Address,
@@ -82,10 +82,12 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 			Target: p.Address,
 			Method: vMTokenMethod,
 		}, []any{&mTokenAddress}).
-		Aggregate(); err != nil {
+		Aggregate()
+	if err != nil {
 		lg.Errorf("failed to call tokens: %v", err)
 		return p, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	tokens := make([]common.Address, 0, len(paymentTokenAddresses)+1)
 	tokens = append(tokens, mTokenAddress)
@@ -100,11 +102,12 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 			Method: abi.Erc20DecimalsMethod,
 		}, []any{&decimals[i]})
 	}
-	_, err := req.Aggregate()
+	resp, err = req.Aggregate()
 	if err != nil {
 		lg.Errorf("failed to aggregate token decimals: %v", err)
 		return p, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	p.Tokens = lo.Map(tokens, func(token common.Address, i int) *entity.PoolToken {
 		return &entity.PoolToken{

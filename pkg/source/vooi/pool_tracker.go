@@ -52,7 +52,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}()
 
 	// Get lastIndex
-	lastIndex, err := t.getLastIndex(ctx, p.Address)
+	lastIndex, blockNumber, err := t.getLastIndex(ctx, p.Address)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -65,6 +65,9 @@ func (t *PoolTracker) GetNewPoolState(
 	)
 
 	getPoolState := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		getPoolState.SetBlockNumber(blockNumber)
+	}
 	for i := 0; i < lastIndex; i++ {
 		getPoolState.AddCall(
 			&ethrpc.Call{
@@ -96,7 +99,8 @@ func (t *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&lpFee})
 
-	if _, err = getPoolState.TryAggregate(); err != nil {
+	resp, err := getPoolState.TryAggregate()
+	if err != nil {
 		logger.
 			WithFields(
 				logger.Fields{
@@ -144,11 +148,16 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = reserves
 	p.Extra = string(poolExtraBytes)
 	p.Timestamp = time.Now().Unix()
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	} else if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 
 	return p, nil
 }
 
-func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, error) {
+func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, *big.Int, error) {
 	var lastIndex *big.Int
 
 	getLastIndexRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -159,7 +168,8 @@ func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, er
 		Params: nil,
 	}, []any{&lastIndex})
 
-	if _, err := getLastIndexRequest.Call(); err != nil {
+	resp, err := getLastIndexRequest.Aggregate()
+	if err != nil {
 		logger.
 			WithFields(
 				logger.Fields{
@@ -169,8 +179,8 @@ func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, er
 				}).
 			Error("failed to get lastIndex")
 
-		return 0, ErrFailedToGetLastIndex
+		return 0, nil, ErrFailedToGetLastIndex
 	}
 
-	return int(lastIndex.Int64()), nil
+	return int(lastIndex.Int64()), resp.BlockNumber, nil
 }

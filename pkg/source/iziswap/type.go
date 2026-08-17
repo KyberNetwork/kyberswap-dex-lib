@@ -29,9 +29,10 @@ type Extra = swap.PoolInfo
 type ExtraU256 = swap.PoolInfoU256
 
 type FetchRPCResult struct {
-	state    State
-	reserve0 *big.Int
-	reserve1 *big.Int
+	state       State
+	reserve0    *big.Int
+	reserve1    *big.Int
+	blockNumber *big.Int
 }
 
 type LimitOrder struct {
@@ -56,5 +57,6 @@ type Metadata struct {
 }
 
 type Meta struct {
-	LimitPoint int `json:"limitPoint"`
+	LimitPoint  int    `json:"limitPoint"`
+	BlockNumber uint64 `json:"blockNumber"`
 }

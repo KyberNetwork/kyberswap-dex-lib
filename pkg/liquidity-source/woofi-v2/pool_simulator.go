@@ -58,10 +58,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
+				Address:     entityPool.Address,
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		quoteToken: extra.QuoteToken,
@@ -162,7 +163,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
+}
 
 // _sellBase
 // https://github.com/woonetwork/WooPoolV2/blob/e4fc06d357e5f14421c798bf57a251f865b26578/contracts/WooPPV2.sol#L361

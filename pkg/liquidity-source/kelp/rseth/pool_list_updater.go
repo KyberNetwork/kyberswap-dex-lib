@@ -139,7 +139,7 @@ func getExtra(
 		Params: []any{},
 	}, []any{&rsETHPrice})
 
-	_, err := getPoolStateRequest.TryAggregate()
+	_, err := getPoolStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -192,7 +192,7 @@ func getExtra(
 		}, []any{&tokenDecimals[i]})
 	}
 
-	resp, err := getAssetStateRequest.TryAggregate()
+	resp, err := getAssetStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

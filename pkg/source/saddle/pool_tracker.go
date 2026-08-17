@@ -97,7 +97,8 @@ func (d *PoolTracker) getNewPoolState(
 		Params: nil,
 	}, []any{&lpSupply})
 
-	if _, err := calls.TryAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -132,6 +133,7 @@ func (d *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Reserves = reserves
 	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
 

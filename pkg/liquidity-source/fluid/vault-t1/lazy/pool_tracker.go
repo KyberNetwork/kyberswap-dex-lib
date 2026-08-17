@@ -57,7 +57,8 @@ func (t *PoolTracker) getNewPoolState(
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, t.config.VaultLiquidationResolver, d)
 
-	if _, err := req.Call(); err != nil {
+	resp, err := req.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{"dexType": vaultT1.DexType, "error": err}).Error("Error in GetSwapForProtocol Call")
 		return p, err
 	}
@@ -67,7 +68,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	return buildPoolState(p, d, nil)
+	return buildPoolState(p, d, resp.BlockNumber)
 }
 
 type rpcData struct {

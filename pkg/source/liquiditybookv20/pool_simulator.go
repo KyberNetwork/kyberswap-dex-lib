@@ -46,12 +46,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		SwapFee:  nil,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-		Reserves: reserves,
+		Address:     strings.ToLower(entityPool.Address),
+		SwapFee:     nil,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
@@ -224,7 +225,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: t.Info.BlockNumber}
 }
 
 func (p *PoolSimulator) validateTokens(tokens []string) error {

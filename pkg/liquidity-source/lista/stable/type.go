@@ -22,9 +22,10 @@ type Extra struct {
 }
 
 type Meta struct {
-	TokenInIndex  int  `json:"tokenInIndex"`
-	TokenOutIndex int  `json:"tokenOutIndex"`
-	Underlying    bool `json:"underlying,omitempty"`
+	TokenInIndex  int    `json:"tokenInIndex"`
+	TokenOutIndex int    `json:"tokenOutIndex"`
+	Underlying    bool   `json:"underlying,omitempty"`
+	BlockNumber   uint64 `json:"blockNumber"`
 
 	TokenInIsNative  bool `json:"tokenInIsNative,omitempty"`
 	TokenOutIsNative bool `json:"tokenOutIsNative,omitempty"`

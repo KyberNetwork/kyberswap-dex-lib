@@ -42,8 +42,9 @@ type Slot0Data struct {
 }
 
 type FetchRPCResult struct {
-	Slot0   Slot0Data `json:"slot0"`
-	SwapFee uint64    `json:"swapFee"`
+	Slot0       Slot0Data `json:"slot0"`
+	SwapFee     uint64    `json:"swapFee"`
+	BlockNumber uint64    `json:"-"`
 }
 
 type BinResp struct {
@@ -70,6 +71,7 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	SwapFee     uint64         `json:"swapFee"`
+	BlockNumber uint64         `json:"blockNumber"`
 }
 
 type SwapInfo struct {

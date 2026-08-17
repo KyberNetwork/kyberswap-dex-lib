@@ -26,6 +26,7 @@ type Meta struct {
 	SourceCurrencyKey      string `json:"sourceCurrencyKey"`
 	DestinationCurrencyKey string `json:"destinationCurrencyKey"`
 	UseAtomicExchange      bool   `json:"useAtomicExchange"`
+	BlockNumber            uint64 `json:"blockNumber"`
 }
 
 type PoolSimulator struct {
@@ -51,10 +52,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	info := pool.PoolInfo{
-		Address:  entityPool.Address,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
@@ -185,6 +187,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		SourceCurrencyKey:      sourceCurrencyKey,
 		DestinationCurrencyKey: destinationCurrencyKey,
 		UseAtomicExchange:      useAtomicExchange,
+		BlockNumber:            p.Info.BlockNumber,
 	}
 }
 

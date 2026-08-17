@@ -21,4 +21,5 @@ type MetaInfo struct {
 	Accountant      common.Address `json:"accountant"`
 	CommunityCode   string         `json:"communityCode"`
 	ApprovalAddress common.Address `json:"approvalAddress"`
+	BlockNumber     uint64         `json:"blockNumber"`
 }

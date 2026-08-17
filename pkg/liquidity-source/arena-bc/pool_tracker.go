@@ -141,10 +141,11 @@ func (t *PoolTracker) getNewPoolState(
 			Method: abi.Erc20TotalSupplyMethod,
 		}, []any{&tokenSupply})
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extra := Extra{
 		IsPaused:              isPaused,

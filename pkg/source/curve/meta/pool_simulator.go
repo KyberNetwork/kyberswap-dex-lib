@@ -101,12 +101,13 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				SwapFee:  bignumber.NewBig10(extraStr.SwapFee),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
+				Address:     entityPool.Address,
+				SwapFee:     bignumber.NewBig10(extraStr.SwapFee),
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				Reserves:    reserves,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		basePool:       basePool,
@@ -289,6 +290,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 			TokenInIndex:  fromId,
 			TokenOutIndex: toId,
 			Underlying:    false,
+			BlockNumber:   t.Info.BlockNumber,
 		}
 	}
 	baseFromId, baseToId := t.getUnderlyingIndex(tokenIn), t.getUnderlyingIndex(tokenOut)
@@ -296,6 +298,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenInIndex:  baseFromId,
 		TokenOutIndex: baseToId,
 		Underlying:    true,
+		BlockNumber:   t.Info.BlockNumber,
 	}
 }
 

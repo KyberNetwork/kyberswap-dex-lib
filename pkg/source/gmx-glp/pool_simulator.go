@@ -51,11 +51,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:  entityPool.Address,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-		Reserves: reserves,
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
@@ -191,6 +192,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		YearnVault:      p.yearnTokenVault.Address,
 		DirectionFlag:   directionFlag,
 		ApprovalAddress: p.glpManager.Address,
+		BlockNumber:     p.Info.BlockNumber,
 	}
 }
 

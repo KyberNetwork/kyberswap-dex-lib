@@ -33,7 +33,7 @@ func (r *PancakePairReader) Read(ctx context.Context, address string) (*PancakeP
 		BlockTimestampLast uint32
 	}
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,

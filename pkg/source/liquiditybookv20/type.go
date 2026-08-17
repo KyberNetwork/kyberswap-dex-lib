@@ -15,6 +15,7 @@ type Extra struct {
 
 type QueryRpcPoolStateResult struct {
 	BlockTimestamp uint64        `json:"blockTimestamp"`
+	BlockNumber    uint64        `json:"blockNumber"`
 	FeeParameters  feeParameters `json:"feeParameters"`
 	ReservesAndID  reservesAndID `json:"reserves"`
 }

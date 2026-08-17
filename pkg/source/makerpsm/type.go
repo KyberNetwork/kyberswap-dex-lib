@@ -29,12 +29,16 @@ type PSM struct {
 	ILK        [32]byte       `json:"-"`
 
 	To18ConversionFactor *big.Int
+	BlockNumber          uint64 `json:"-"`
+	HasBlockNumber       bool   `json:"-"`
 }
 
 type Vat struct {
-	ILK  ILK      `json:"ilk"`
-	Debt *big.Int `json:"debt"` // Total Dai Issued    [rad]
-	Line *big.Int `json:"line"` // Total Debt Ceiling  [rad]
+	ILK            ILK      `json:"ilk"`
+	Debt           *big.Int `json:"debt"` // Total Dai Issued    [rad]
+	Line           *big.Int `json:"line"` // Total Debt Ceiling  [rad]
+	BlockNumber    uint64   `json:"-"`
+	HasBlockNumber bool     `json:"-"`
 }
 
 type ILK struct {

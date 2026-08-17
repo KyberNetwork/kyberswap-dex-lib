@@ -103,6 +103,10 @@ func (d *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	if blockNumber, blockErr := d.ethrpcClient.GetBlockNumber(ctx); blockErr == nil {
+		p.BlockNumber = blockNumber
+	}
+
 	swapFeeFL := float64(swapFee) / float64(d.config.FeePrecision)
 	p.SwapFee = swapFeeFL
 	p.Timestamp = time.Now().Unix()

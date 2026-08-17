@@ -48,12 +48,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	swapFee := number.Add(extra.LpFeeRate, extra.MtFeeRate).ToBig()
 
 	info := pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		SwapFee:  swapFee,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   lo.Map(entityPool.Tokens, func(e *entity.PoolToken, index int) string { return e.Address }),
-		Reserves: []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
+		Address:     strings.ToLower(entityPool.Address),
+		SwapFee:     swapFee,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      lo.Map(entityPool.Tokens, func(e *entity.PoolToken, index int) string { return e.Address }),
+		Reserves:    []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	poolState := Storage{
@@ -261,5 +262,7 @@ func (p *PoolSimulator) GetLpToken() string {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return p.Meta
+	meta := p.Meta
+	meta.BlockNumber = p.Info.BlockNumber
+	return meta
 }

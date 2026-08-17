@@ -108,6 +108,9 @@ func (d *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to aggregate pool total supply")
 		return entity.Pool{}, err
 	}
+	if blockNumber, blockErr := d.ethrpcClient.GetBlockNumber(ctx); blockErr == nil {
+		p.BlockNumber = blockNumber
+	}
 
 	var reserves = make([]string, 0, len(balances)+1)
 	for _, balance := range balances {

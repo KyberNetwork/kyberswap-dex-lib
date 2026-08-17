@@ -48,7 +48,8 @@ func (u *PoolTracker) GetNewPoolState(
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&balanceToken1})
 
-	if _, err := req.Aggregate(); err != nil {
+	resp, err := req.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"err":         err,
@@ -57,6 +58,9 @@ func (u *PoolTracker) GetNewPoolState(
 	}
 
 	p.Reserves = entity.PoolReserves{balanceToken0.String(), balanceToken1.String()}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil

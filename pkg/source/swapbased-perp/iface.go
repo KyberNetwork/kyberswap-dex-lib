@@ -7,7 +7,7 @@ import (
 
 // IVaultReader reads vault smart contract
 type IVaultReader interface {
-	Read(ctx context.Context, address string) (*Vault, error)
+	Read(ctx context.Context, address string) (*Vault, *big.Int, error)
 }
 
 // IVaultPriceFeedReader reads vault price feed smart contract

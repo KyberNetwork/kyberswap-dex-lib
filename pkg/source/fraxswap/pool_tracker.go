@@ -61,7 +61,8 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&feeOutput})
 
-	if _, err := calls.TryAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("[Fraxswap] failed to aggregate to get pool data")
@@ -86,6 +87,7 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = entity.PoolReserves{extra.Reserve0.String(), extra.Reserve1.String()}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	log.Infof("[Fraxswap] Finish getting new state of pool")
 

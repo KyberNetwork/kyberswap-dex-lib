@@ -67,6 +67,9 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
+	if validBlockNumber(vault.BlockNumber) {
+		p.BlockNumber = vault.BlockNumber.Uint64()
+	}
 	p.Reserves = reserves
 	p.Tokens = poolTokens
 	p.Timestamp = time.Now().Unix()

@@ -90,6 +90,7 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 		rpcData.ReservesAndID.ReserveX.String(),
 		rpcData.ReservesAndID.ReserveY.String(),
 	}
+	p.BlockNumber = rpcData.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
@@ -117,7 +118,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		req.SetBlockNumber(&blockNumberBI)
 	}
 
-	if _, err := req.AddCall(&ethrpc.Call{
+	resp, err := req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodFeeParameters,
@@ -125,7 +126,8 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetReservesAndID,
-	}, []any{&reservesAndID}).Aggregate(); err != nil {
+	}, []any{&reservesAndID}).Aggregate()
+	if err != nil {
 		return nil, err
 	}
 
@@ -152,6 +154,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	return &QueryRpcPoolStateResult{
 		BlockTimestamp: blockTimestamp,
+		BlockNumber:    resp.BlockNumber.Uint64(),
 		FeeParameters:  feeParameters,
 		ReservesAndID:  reservesAndID,
 	}, nil
@@ -345,6 +348,7 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		rpcState.ReservesAndID.ReserveX.String(),
 		rpcState.ReservesAndID.ReserveY.String(),
 	}
+	p.BlockNumber = rpcState.BlockNumber
 
 	var extra Extra
 	if p.Extra != "" {

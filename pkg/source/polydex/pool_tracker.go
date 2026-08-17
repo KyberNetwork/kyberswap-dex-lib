@@ -61,6 +61,9 @@ func (d *PoolTracker) GetNewPoolState(
 		log.Errorf("failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
 		return entity.Pool{}, err
 	}
+	if blockNumber, blockErr := d.ethrpcClient.GetBlockNumber(ctx); blockErr == nil {
+		p.BlockNumber = blockNumber
+	}
 
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{

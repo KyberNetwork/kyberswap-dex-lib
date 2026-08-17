@@ -102,6 +102,7 @@ type TaxConfig struct {
 type PoolMeta struct {
 	Router          string `json:"router"`
 	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 // Metadata is the pool-list checkpoint. The field name is not free: the ticks-based bootstrap

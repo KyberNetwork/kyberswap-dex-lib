@@ -128,7 +128,7 @@ func (r *VaultReader) readWhitelistedTokens(
 			Params: []any{new(big.Int).SetInt64(int64(i))},
 		}, []any{&tokenList[i]})
 	}
-	res, err := rpcRequest.TryAggregate()
+	res, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		return err
 	}
@@ -207,9 +207,11 @@ func (r *VaultReader) readTokensData(
 			[]any{&tokenWeights[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		return err
 	}
+	vault.BlockNumber = response.BlockNumber
 
 	for i, token := range vault.WhitelistedTokens {
 		vault.PoolAmounts[token] = poolAmounts[i]

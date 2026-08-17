@@ -5,8 +5,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type GetReservesResult struct {
@@ -84,8 +82,9 @@ type SwapInfo struct {
 
 // PoolMeta carries approval and fee metadata.
 type PoolMeta struct {
-	pool.ApprovalInfo
-	Fee uint32 `json:"fee,omitempty"`
+	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	Fee             uint32 `json:"fee,omitempty"`
 }
 
 type PythUpdateData struct {

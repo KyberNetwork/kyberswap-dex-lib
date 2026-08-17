@@ -313,7 +313,7 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

@@ -5,11 +5,12 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/goccy/go-json"
 )
 
 type PoolTracker struct {
@@ -95,9 +96,11 @@ func (d *PoolTracker) fetchOraclePrices(
 		Params: nil,
 	}, []any{&extra.PriceDiffThreshold[1]})
 
-	if _, err := req.Aggregate(); err != nil {
+	resp, err := req.Aggregate()
+	if err != nil {
 		return entity.Pool{}, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

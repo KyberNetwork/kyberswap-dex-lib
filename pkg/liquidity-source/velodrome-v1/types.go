@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolStaticExtra struct {
@@ -20,10 +19,11 @@ type PoolExtra struct {
 }
 
 type PoolMeta struct {
-	Fee          uint64 `json:"f"`
-	FeePrecision uint64 `json:"p"`
-	Stable       bool   `json:"s,omitempty"`
-	pool.ApprovalInfo
+	Fee             uint64 `json:"f"`
+	FeePrecision    uint64 `json:"p"`
+	Stable          bool   `json:"s,omitempty"`
+	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 type PairMetadata struct {

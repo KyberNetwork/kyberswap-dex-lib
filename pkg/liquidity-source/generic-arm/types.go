@@ -60,6 +60,8 @@ type BaseAssetInfo struct {
 }
 
 type PoolState struct {
+	BlockNumber            uint64
+	HasBlockNumber         bool
 	Token0                 common.Address
 	Token1                 common.Address
 	TradeRate0             *big.Int

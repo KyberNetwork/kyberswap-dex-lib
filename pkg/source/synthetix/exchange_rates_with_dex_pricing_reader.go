@@ -54,9 +54,7 @@ func (r *ExchangeRatesWithDexPricingReader) readData(
 ) error {
 	address := poolState.Addresses.ExchangeRates
 
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -94,7 +92,7 @@ func (r *ExchangeRatesWithDexPricingReader) readCurrencyKeyData(
 	currentRoundIds := make([]*big.Int, currencyKeysLen)
 	synthTooVolatileForAtomicExchanges := make([]bool, currencyKeysLen)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber)
 
 	for i, key := range currencyKeys {
 		keyByte := eth.StringToBytes32(key)

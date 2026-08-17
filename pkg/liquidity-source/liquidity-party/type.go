@@ -63,6 +63,7 @@ type SwapInfo struct {
 // Meta is returned by GetMetaInfo so the aggregator can build the adapter calldata —
 // word-aligned abi.encode(pool, indexIn, indexOut), matching the in-repo adapter convention.
 type Meta struct {
-	TokenInIndex  int `json:"i"`
-	TokenOutIndex int `json:"j"`
+	TokenInIndex  int    `json:"i"`
+	TokenOutIndex int    `json:"j"`
+	BlockNumber   uint64 `json:"blockNumber"`
 }

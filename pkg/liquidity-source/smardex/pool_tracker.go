@@ -126,12 +126,16 @@ func (u *PoolTracker) getNewPoolState(
 		Method: pairGetPriceAverageMethod,
 	}, []any{&priceAverage})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	resp, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extraBytes, err := json.Marshal(SmardexPair{

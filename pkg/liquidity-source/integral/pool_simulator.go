@@ -74,11 +74,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
+				Address:     entityPool.Address,
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				Reserves:    reserves,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		isEnabled:                extra.IsEnabled,
@@ -143,7 +144,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	return MetaInfo{ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut)}
+	return MetaInfo{ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut), BlockNumber: p.Info.BlockNumber}
 }
 
 func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {

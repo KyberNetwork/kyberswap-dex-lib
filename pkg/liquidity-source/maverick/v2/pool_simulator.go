@@ -51,6 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
 				Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
 					bignumber.NewBig10(entityPool.Reserves[1])},
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		decimals: []uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
@@ -184,7 +185,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
 // pastMaxTick checks if we've reached the tick limit and zeros out excess if so

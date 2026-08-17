@@ -55,8 +55,9 @@ type StaticExtra struct {
 }
 
 type MetaInfo struct {
-	Decimals  uint8 `json:"d,omitempty"`
-	Precision int   `json:"p,omitempty"`
-	IdxIn     int   `json:"i,omitempty"`
-	HasNative bool  `json:"n,omitempty"`
+	Decimals    uint8  `json:"d,omitempty"`
+	Precision   int    `json:"p,omitempty"`
+	IdxIn       int    `json:"i,omitempty"`
+	HasNative   bool   `json:"n,omitempty"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
