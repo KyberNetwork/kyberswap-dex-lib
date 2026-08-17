@@ -9,6 +9,7 @@ import (
 )
 
 type Vault struct {
+	BlockNumber              *big.Int `json:"-"`
 	HasDynamicFees           bool     `json:"hasDynamicFees,omitempty"`
 	IncludeAmmPrice          bool     `json:"includeAmmPrice,omitempty"`
 	IsSwapEnabled            bool     `json:"isSwapEnabled,omitempty"`

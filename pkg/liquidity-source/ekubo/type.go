@@ -20,8 +20,9 @@ type (
 	}
 
 	Meta struct {
-		Core    common.Address   `json:"core"`
-		PoolKey pools.AbiPoolKey `json:"poolKey"`
+		Core        common.Address   `json:"core"`
+		PoolKey     pools.AbiPoolKey `json:"poolKey"`
+		BlockNumber uint64           `json:"blockNumber"`
 	}
 
 	Pool interface {

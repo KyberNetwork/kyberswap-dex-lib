@@ -203,13 +203,17 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 		}, []any{&balances[i]})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"poolType":    p.Type,
 			"error":       err,
 		}).Errorf("failed to aggregate call pool data")
 		return entity.Pool{}, err
+	}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	var (

@@ -10,6 +10,7 @@ type Meta struct {
 	BaseToken        string `json:"baseToken"`
 	QuoteToken       string `json:"quoteToken"`
 	ApprovalAddress  string `json:"approvalAddress"`
+	BlockNumber      uint64 `json:"blockNumber"`
 }
 
 type Gas struct {

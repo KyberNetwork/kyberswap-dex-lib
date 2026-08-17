@@ -5,7 +5,8 @@ import (
 )
 
 type MetaInfo struct {
-	Exchange string `mapstructure:"exchange"`
+	Exchange    string `mapstructure:"exchange"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type Metadata struct {

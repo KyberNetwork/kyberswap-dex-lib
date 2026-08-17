@@ -31,6 +31,7 @@ type SwapInfo struct {
 
 type MetaInfo struct {
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 type PoolState struct {

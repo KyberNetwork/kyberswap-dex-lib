@@ -5,8 +5,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type GetReservesResult struct {
@@ -41,8 +39,9 @@ type SwapInfo struct {
 }
 
 type PoolMeta struct {
-	pool.ApprovalInfo
-	Fee uint64 `json:"fee"`
+	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	Fee             uint64 `json:"fee"`
 }
 
 type PythUpdateData struct {

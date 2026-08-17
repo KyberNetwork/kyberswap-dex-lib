@@ -91,9 +91,14 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 			}
 		}
 	}
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		for i := range pools {
+			pools[i].BlockNumber = resp.BlockNumber.Uint64()
+		}
 	}
 
 	req = rpcClient.NewRequest().SetContext(ctx)
@@ -117,9 +122,14 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 			}
 		}
 	}
-	_, err = req.TryAggregate()
+	resp, err = req.TryAggregate()
 	if err != nil {
 		return nil, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		for i := range pools {
+			pools[i].BlockNumber = resp.BlockNumber.Uint64()
+		}
 	}
 	buffer := big.NewInt(bps - cfg.PriceTolerance)
 	for i := range samples {

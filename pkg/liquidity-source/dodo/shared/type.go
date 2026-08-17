@@ -98,9 +98,10 @@ type (
 	}
 
 	V2Meta struct {
-		Type       string `json:"type"`
-		BaseToken  string `json:"baseToken"`
-		QuoteToken string `json:"quoteToken"`
+		Type        string `json:"type"`
+		BaseToken   string `json:"baseToken"`
+		QuoteToken  string `json:"quoteToken"`
+		BlockNumber uint64 `json:"blockNumber"`
 	}
 
 	V2Gas struct {

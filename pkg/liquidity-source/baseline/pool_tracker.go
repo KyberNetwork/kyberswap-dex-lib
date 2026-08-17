@@ -117,13 +117,15 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: []any{bTokenAddr},
 	}, []any{&result})
 
-	if _, err := req.TryAggregate(); err != nil {
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("[Baseline] failed to fetch pool state")
 		return entity.Pool{}, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extra := Extra{
 		RelayAddress: d.config.RelayAddress,

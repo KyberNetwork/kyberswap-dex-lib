@@ -145,16 +145,23 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, ge
 
 	ok := getVaultBalances(calls, &vaultBalance0, &vaultBalance1)
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
 			"error":   err,
 		}).Errorf("failed to get state of the pool")
 		return entity.Pool{}, err
 	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
 
 	if !ok {
 		calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+		if resp != nil && resp.BlockNumber != nil {
+			calls.SetBlockNumber(resp.BlockNumber)
+		}
 		d.getVaultBalances(vaultAddress.Hex(), p)(calls, &vaultBalance0, &vaultBalance1)
 		if _, err := calls.Aggregate(); err != nil {
 			logger.WithFields(logger.Fields{
@@ -163,6 +170,8 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, ge
 			}).Errorf("failed to get state of the pool")
 			return entity.Pool{}, err
 		}
+		// Without a block from the first aggregate, the two latest reads cannot
+		// be proven to share a snapshot. Keep the prior block instead.
 	}
 
 	extraBytes, err := json.Marshal(ExtraClassicPool{
@@ -261,15 +270,22 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, get
 
 	ok := getVaultBalances(calls, &vaultBalance0, &vaultBalance1)
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
 			"error":   err,
 		}).Errorf("failed to get state of the pool")
 		return entity.Pool{}, err
 	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
 	if !ok {
 		calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+		if resp != nil && resp.BlockNumber != nil {
+			calls.SetBlockNumber(resp.BlockNumber)
+		}
 		d.getVaultBalances(vaultAddress.Hex(), p)(calls, &vaultBalance0, &vaultBalance1)
 		if _, err := calls.Aggregate(); err != nil {
 			logger.WithFields(logger.Fields{
@@ -278,6 +294,8 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, get
 			}).Errorf("failed to get state of the pool")
 			return entity.Pool{}, err
 		}
+		// Without a block from the first aggregate, the two latest reads cannot
+		// be proven to share a snapshot. Keep the prior block instead.
 	}
 	extraBytes, err := json.Marshal(ExtraStablePool{
 		SwapFee0To1:               swapFee0To1,

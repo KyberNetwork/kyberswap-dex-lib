@@ -33,7 +33,7 @@ func (r *PriceFeedReader) Read(ctx context.Context, address string) (*PriceFeed,
 
 	var v0, v1 *big.Int
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,

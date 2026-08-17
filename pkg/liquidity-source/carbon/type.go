@@ -59,7 +59,7 @@ type Extra struct {
 }
 
 type Meta struct {
-	BlockNumber     uint64 `json:"bN"`
+	BlockNumber     uint64 `json:"blockNumber"`
 	IsNativeIn      bool   `json:"iN,omitempty"`
 	IsNativeOut     bool   `json:"oN,omitempty"`
 	TradingFeePpm   uint32 `json:"tF,omitempty"`

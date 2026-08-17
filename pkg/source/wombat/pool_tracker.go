@@ -123,12 +123,17 @@ func (d *PoolTracker) getNewPoolState(
 			Params: []any{common.HexToAddress(token.Address)},
 		}, []any{&isAssetPaused[i]})
 	}
-	if _, err := calls.TryAggregate(); err != nil {
+	poolStateResponse, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"type":    p.Type,
 			"address": p.Address,
 		}).Errorf("failed to aggregate call")
 		return entity.Pool{}, err
+	}
+	var blockNumber *big.Int
+	if poolStateResponse != nil {
+		blockNumber = poolStateResponse.BlockNumber
 	}
 
 	var (
@@ -140,6 +145,9 @@ func (d *PoolTracker) getNewPoolState(
 	assetCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		assetCalls.SetOverrides(overrides)
+	}
+	if blockNumber != nil {
+		assetCalls.SetBlockNumber(blockNumber)
 	}
 
 	for i, assetAddress := range assetAddresses {
@@ -164,13 +172,17 @@ func (d *PoolTracker) getNewPoolState(
 			}, []any{&relativePrices[i]})
 		}
 	}
-	if _, err := assetCalls.TryAggregate(); err != nil {
+	assetStateResponse, err := assetCalls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"type":    p.Type,
 			"address": p.Address,
 		}).Errorf("failed to try aggregate call")
 
 		return entity.Pool{}, err
+	}
+	if blockNumber == nil && assetStateResponse != nil {
+		blockNumber = assetStateResponse.BlockNumber
 	}
 
 	var assetMap = make(map[string]Asset)
@@ -217,6 +229,9 @@ func (d *PoolTracker) getNewPoolState(
 	p.Reserves = reserves
 	p.Extra = string(extraByte)
 	p.Timestamp = time.Now().Unix()
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,

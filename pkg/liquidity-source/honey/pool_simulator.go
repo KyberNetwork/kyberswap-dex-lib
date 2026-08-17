@@ -168,7 +168,7 @@ func (p *PoolSimulator) convertToAssets(shares *uint256.Int, assetIndex int) (as
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {

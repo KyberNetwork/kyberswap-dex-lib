@@ -43,6 +43,7 @@ type PoolMetaInfo struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	TokenIn         string `json:"tokenIn"`
 	TokenOut        string `json:"tokenOut"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -104,12 +105,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				SwapFee:  integer.Zero(),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
+				Address:     strings.ToLower(entityPool.Address),
+				SwapFee:     integer.Zero(),
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				Reserves:    reserves,
+				BlockNumber: entityPool.BlockNumber,
 				// Checked:    false,
 			},
 		},
@@ -317,6 +319,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 		ReactorAddress: p.reactorAddress,
 		TokenIn:        tokenIn,
 		TokenOut:       tokenOut,
+		BlockNumber:    p.Info.BlockNumber,
 	}
 }
 

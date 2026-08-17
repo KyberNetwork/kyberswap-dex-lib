@@ -39,7 +39,8 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return pool.ApprovalInfo{
+	return pool.MetaInfo{
 		ApprovalAddress: s.factoryAddress,
+		BlockNumber:     s.Info.BlockNumber,
 	}
 }

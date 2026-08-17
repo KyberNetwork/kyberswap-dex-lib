@@ -44,7 +44,11 @@ func (d *PoolTracker) GetNewPoolState(
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 		}).Info("Fetch reserves from node")
-		reserves, err = d.fetchReservesFromNode(ctx, p.Address)
+		var blockNumber *big.Int
+		reserves, blockNumber, err = d.fetchReservesFromNode(ctx, p.Address)
+		if blockNumber != nil {
+			p.BlockNumber = blockNumber.Uint64()
+		}
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
@@ -81,7 +85,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress string) (Reserves, error) {
+func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress string) (Reserves, *big.Int, error) {
 	var reserves Reserves
 
 	rpcRequest := d.ethrpcClient.NewRequest()
@@ -94,13 +98,13 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 		Params: nil,
 	}, []any{&reserves})
 
-	_, err := rpcRequest.Call()
+	resp, err := rpcRequest.Aggregate()
 	if err != nil {
 		logger.Errorf("failed to process tryAggregate for pool: %v, err: %v", poolAddress, err)
-		return Reserves{}, err
+		return Reserves{}, nil, err
 	}
 
-	return reserves, nil
+	return reserves, resp.BlockNumber, nil
 }
 
 func reserveString(reserve *big.Int) string {

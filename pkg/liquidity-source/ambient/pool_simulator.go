@@ -191,10 +191,11 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	tokenInIndex := p.GetTokenIndex(strings.ToLower(tokenIn))
 	return Meta{
-		SwapDex: p.swapDex,
-		Base:    lo.Ternary(tokenInIndex == 0, p.base, p.quote),
-		Quote:   lo.Ternary(tokenInIndex == 0, p.quote, p.base),
-		PoolIdx: new(big.Int).SetUint64(p.poolIdx),
+		SwapDex:     p.swapDex,
+		Base:        lo.Ternary(tokenInIndex == 0, p.base, p.quote),
+		Quote:       lo.Ternary(tokenInIndex == 0, p.quote, p.base),
+		PoolIdx:     new(big.Int).SetUint64(p.poolIdx),
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 

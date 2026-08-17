@@ -27,4 +27,5 @@ type MetaInfo struct {
 	TokenDecimalDiff int8   `json:"tDD,omitempty"`
 	PrecisionDecimal uint8  `json:"pD,omitempty"`
 	ApprovalAddress  string `json:"approvalAddress,omitempty"`
+	BlockNumber      uint64 `json:"blockNumber"`
 }

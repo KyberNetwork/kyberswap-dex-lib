@@ -11,6 +11,7 @@ type Extra struct {
 }
 
 type PoolExtra struct {
-	TokenInIsNative  bool `json:"tokenInIsNative"`
-	TokenOutIsNative bool `json:"tokenOutIsNative"`
+	TokenInIsNative  bool   `json:"tokenInIsNative"`
+	TokenOutIsNative bool   `json:"tokenOutIsNative"`
+	BlockNumber      uint64 `json:"blockNumber"`
 }

@@ -64,6 +64,7 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 					func(item *entity.PoolToken, index int) string { return item.Address }),
 				Reserves: lo.Map(entityPool.Reserves,
 					func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		Gas:         lo.ValueOr(gasByDex, entityPool.Exchange, defaultGas),
@@ -148,7 +149,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
 func (p *PoolSimulator) calcOut(amountIn *big.Int, tokenIn, tokenOut *entity.PoolToken, priceLevel []Level,

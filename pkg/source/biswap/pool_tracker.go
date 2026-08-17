@@ -82,7 +82,7 @@ func (d *PoolTracker) getNewPoolState(
 		Params: nil,
 	}, []any{&swapFee})
 
-	resp, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -102,6 +102,8 @@ func (d *PoolTracker) getNewPoolState(
 		logger.Warnf("failed to fetch pool state, reserves: %v, swapFee: %v", resp.Result[0], resp.Result[1])
 		return entity.Pool{}, err
 	}
+
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	swapFeeFL := float64(swapFee) / float64(d.config.FeePrecision)
 	p.SwapFee = swapFeeFL

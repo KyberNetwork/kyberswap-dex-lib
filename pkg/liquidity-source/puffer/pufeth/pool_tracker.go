@@ -111,7 +111,7 @@ func (t *PoolTracker) getExtra(
 		Params: []any{},
 	}, []any{&totalPooledEther})
 
-	resp, err := getPoolStateRequest.TryAggregate()
+	resp, err := getPoolStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

@@ -93,6 +93,7 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 		rpcData.Reserves.ReserveX.String(),
 		rpcData.Reserves.ReserveY.String(),
 	}
+	p.BlockNumber = rpcData.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
@@ -116,7 +117,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		blockNumberBI = big.NewInt(int64(blockNumber))
 	}
 
-	if _, err := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
+	resp, err := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetStaticFeeParameters,
@@ -136,7 +137,8 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetBinStep,
-	}, []any{&binStep}).Aggregate(); err != nil {
+	}, []any{&binStep}).Aggregate()
+	if err != nil {
 		return nil, err
 	}
 
@@ -168,6 +170,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	return &QueryRpcPoolStateResult{
 		BlockTimestamp:    uint64(time.Now().Unix()),
+		BlockNumber:       resp.BlockNumber.Uint64(),
 		StaticFeeParams:   staticFeeParams,
 		VariableFeeParams: variableFeeParams,
 		Reserves:          reserves,
@@ -329,6 +332,7 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		rpcState.Reserves.ReserveX.String(),
 		rpcState.Reserves.ReserveY.String(),
 	}
+	p.BlockNumber = rpcState.BlockNumber
 
 	var extra Extra
 	if p.Extra != "" {

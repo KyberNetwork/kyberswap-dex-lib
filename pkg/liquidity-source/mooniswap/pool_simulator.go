@@ -122,6 +122,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
 		IsNativeIn:  lo.Ternary(tokenInIndex == 0, s.IsNativeToken0, s.IsNativeToken1),
 		IsNativeOut: lo.Ternary(tokenInIndex == 0, s.IsNativeToken1, s.IsNativeToken0),
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

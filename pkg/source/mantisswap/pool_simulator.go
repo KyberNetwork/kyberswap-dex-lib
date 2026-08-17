@@ -32,10 +32,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Type,
-				Type:     entityPool.Exchange,
-				Tokens:   tokens,
+				Address:     entityPool.Address,
+				Exchange:    entityPool.Type,
+				Type:        entityPool.Exchange,
+				Tokens:      tokens,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		state: &PoolState{
@@ -97,7 +98,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
 func (p *PoolSimulator) deepCopy(state *PoolState) (*PoolState, error) {

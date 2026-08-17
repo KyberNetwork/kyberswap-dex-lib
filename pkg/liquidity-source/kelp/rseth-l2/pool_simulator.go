@@ -90,6 +90,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolExtra{
 		TokenInIsNative:  strings.EqualFold(tokenIn, s.Info.Tokens[len(s.Info.Tokens)-2]),
 		TokenOutIsNative: strings.EqualFold(tokenOut, s.Info.Tokens[len(s.Info.Tokens)-2]),
+		BlockNumber:      s.Info.BlockNumber,
 	}
 }
 

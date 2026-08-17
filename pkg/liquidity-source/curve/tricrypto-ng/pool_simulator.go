@@ -74,12 +74,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	sim.Pool = pool.Pool{
 		Info: pool.PoolInfo{
-			Address:  strings.ToLower(entityPool.Address),
-			SwapFee:  bignumber.ZeroBI,
-			Exchange: entityPool.Exchange,
-			Type:     entityPool.Type,
-			Tokens:   tokens,
-			Reserves: reservesBI,
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     bignumber.ZeroBI,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reservesBI,
+			BlockNumber: entityPool.BlockNumber,
 		},
 	}
 
@@ -227,6 +228,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenInIndex:  fromId,
 		TokenOutIndex: toId,
 		Underlying:    false,
+		BlockNumber:   t.Info.BlockNumber,
 	}
 	if len(t.StaticExtra.IsNativeCoins) == len(t.Info.Tokens) {
 		meta.TokenInIsNative = &t.StaticExtra.IsNativeCoins[fromId]

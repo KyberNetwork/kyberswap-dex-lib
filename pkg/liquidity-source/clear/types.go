@@ -5,7 +5,8 @@ import (
 )
 
 type PoolMeta struct {
-	Oracle string `json:"oracle"`
+	Oracle      string `json:"oracle"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type Metadata struct {

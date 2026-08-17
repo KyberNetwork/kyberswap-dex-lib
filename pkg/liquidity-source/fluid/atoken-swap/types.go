@@ -23,5 +23,5 @@ type SwapInfo struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber,omitempty"`
+	BlockNumber uint64 `json:"blockNumber"`
 }

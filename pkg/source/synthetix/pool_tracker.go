@@ -111,6 +111,7 @@ func (d *PoolTracker) GetNewPoolState(
 		poolState.SUSDCurrencyKey,
 		poolState.AggregatorAddresses,
 		chainlinkNumRounds,
+		poolState.BlockNumber,
 	)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -171,13 +172,14 @@ func (d *PoolTracker) newPool(address string, poolState *PoolState) (*entity.Poo
 	}
 
 	return &entity.Pool{
-		Address:   strings.ToLower(address),
-		Exchange:  d.cfg.DexID,
-		Type:      DexTypeSynthetix,
-		Timestamp: time.Now().Unix(),
-		Tokens:    poolTokens,
-		Reserves:  reserves,
-		Extra:     string(extraBytes),
+		Address:     strings.ToLower(address),
+		Exchange:    d.cfg.DexID,
+		Type:        DexTypeSynthetix,
+		Timestamp:   time.Now().Unix(),
+		Tokens:      poolTokens,
+		Reserves:    reserves,
+		Extra:       string(extraBytes),
+		BlockNumber: poolState.BlockNumber,
 	}, nil
 }
 
@@ -208,6 +210,7 @@ func (d *PoolTracker) getChainlinkDataFeeds(
 	sUSDCurrencyKey string,
 	aggregatorAddresses map[string]common.Address,
 	numRound *big.Int,
+	blockNumber uint64,
 ) (map[string]*ChainlinkDataFeed, error) {
 	var (
 		roundCount  = int(numRound.Int64())
@@ -219,7 +222,7 @@ func (d *PoolTracker) getChainlinkDataFeeds(
 			continue
 		}
 
-		aggregator, err := d.chainlinkDataFeedReader.Read(ctx, aggregatorAddress.String(), roundCount)
+		aggregator, err := d.chainlinkDataFeedReader.Read(ctx, aggregatorAddress.String(), roundCount, blockNumber)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexID": d.cfg.DexID,

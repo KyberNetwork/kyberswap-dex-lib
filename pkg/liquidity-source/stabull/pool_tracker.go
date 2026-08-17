@@ -53,7 +53,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	var reserves [2]*big.Int
 	var rates [2]*big.Int
 	poolAddr := common.HexToAddress(p.Address)
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	request := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
 		Target: p.Address,
 		Method: poolMethodCurve,
@@ -75,9 +75,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		ABI:    assimilatorABI,
 		Target: staticExtra.Assimilators[1],
 		Method: assimilatorMethodGetRate,
-	}, []any{&rates[1]}).TryAggregate(); err != nil {
+	}, []any{&rates[1]})
+	resp, err := request.TryBlockAndAggregate()
+	if err != nil {
 		l.Err(err).Msg("failed to fetch state from rpc")
 		return p, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extra := Extra{

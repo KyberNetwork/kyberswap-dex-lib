@@ -115,7 +115,7 @@ func (d *PoolTracker) getAnchorCount(ctx context.Context) (int, error) {
 		Target: d.config.ConverterRegistry,
 		Method: getAnchorCount,
 		Params: nil,
-	}, []any{&anchorCount}).Call(); err != nil {
+	}, []any{&anchorCount}).Aggregate(); err != nil {
 		return 0, err
 	}
 	return int(anchorCount.Uint64()), nil

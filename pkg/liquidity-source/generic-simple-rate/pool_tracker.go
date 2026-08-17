@@ -97,7 +97,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	resp, err := calls.TryAggregate()
+	resp, err := calls.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{"dex_id": t.config.DexID, "pool_id": p.Address}).Error("Failed to get new pool state")
 		return p, nil
@@ -118,9 +118,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	if resp.BlockNumber == nil {
-		resp.BlockNumber = big.NewInt(0)
-	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	logger.
 		WithFields(

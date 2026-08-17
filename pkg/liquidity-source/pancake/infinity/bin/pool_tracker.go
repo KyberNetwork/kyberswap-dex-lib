@@ -72,10 +72,11 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
-	_, err := rpcRequests.Aggregate()
+	resp, err := rpcRequests.Aggregate()
 	if err != nil {
 		return nil, err
 	}
+	result.BlockNumber = resp.BlockNumber.Uint64()
 
 	lpFee := staticExtra.Fee
 	if shared.IsDynamicFee(staticExtra.Fee) {
@@ -100,14 +101,6 @@ func (t *PoolTracker) BootstrapPoolState(
 	})
 
 	l.Info("Start getting new state of pancake-infinity-bin pool")
-
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
 
 	var (
 		rpcData         *FetchRPCResult
@@ -165,7 +158,7 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.SwapFee = float64(rpcData.SwapFee)
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = blockNumber
+	p.BlockNumber = rpcData.BlockNumber
 
 	l.Infof("Finish updating state of pool")
 
@@ -383,6 +376,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 
 	extra.ActiveBinID = rpcState.Slot0.ActiveId
 	extra.ProtocolFee = rpcState.Slot0.ProtocolFee
+	p.BlockNumber = rpcState.BlockNumber
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

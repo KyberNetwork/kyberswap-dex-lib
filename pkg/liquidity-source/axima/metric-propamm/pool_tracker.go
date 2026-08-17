@@ -80,7 +80,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Target: p.Address,
 			Method: "extsload",
 			Params: []any{[32]byte{}}, // storage slot 0; low byte = pause level (0 = active)
-		}, []any{&slot0}).Call(); err != nil {
+		}, []any{&slot0}).Aggregate(); err != nil {
 			logger.WithFields(logger.Fields{"dexType": DexType, "pool": p.Address}).
 				Warnf("failed to read on-chain pause state: %v", err)
 		} else if slot0[31] != 0 {

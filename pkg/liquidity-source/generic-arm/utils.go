@@ -195,12 +195,16 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		}, []any{&withdrawsClaimedShares})
 	}
 
-	res, err := calls.TryAggregate()
+	res, err := calls.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to initPool")
 		return nil, err
+	}
+	if res != nil && res.BlockNumber != nil {
+		poolState.BlockNumber = res.BlockNumber.Uint64()
+		poolState.HasBlockNumber = true
 	}
 	for _, rc := range requiredCalls {
 		if !res.Result[rc.idx] {
@@ -245,11 +249,16 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 				Method: "convertToAssets",
 				Params: []any{withdrawsClaimedShares},
 			}, []any{&poolState.WithdrawsClaimed})
-			if _, err := convertCalls.Aggregate(); err != nil {
+			convertResp, err := convertCalls.Aggregate()
+			if err != nil {
 				logger.WithFields(logger.Fields{
 					"error": err,
 				}).Errorf("failed to convert withdrawal queue shares to assets")
 				return nil, err
+			}
+			if convertResp != nil && convertResp.BlockNumber != nil {
+				poolState.BlockNumber = convertResp.BlockNumber.Uint64()
+				poolState.HasBlockNumber = true
 			}
 		default:
 			return nil, ErrWithdrawalQueueState
@@ -318,12 +327,16 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 			}, []any{&baseAssetConfigs[i], &baseAssetConfigs[i]})
 		}
 	}
-	balanceRes, err := balanceCalls.TryAggregate()
+	balanceRes, err := balanceCalls.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to initPool")
 		return nil, err
+	}
+	if balanceRes != nil && balanceRes.BlockNumber != nil {
+		poolState.BlockNumber = balanceRes.BlockNumber.Uint64()
+		poolState.HasBlockNumber = true
 	}
 	for _, rc := range requiredCalls {
 		if !balanceRes.Result[rc.idx] {
@@ -384,11 +397,16 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		}, []any{&ba.ConvertRateSharesPerAsset})
 	}
 	if hasRateCalls {
-		if _, err := rateCalls.Aggregate(); err != nil {
+		rateResp, err := rateCalls.Aggregate()
+		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
 			}).Errorf("failed to fetch base asset adapter conversion rates")
 			return nil, err
+		}
+		if rateResp != nil && rateResp.BlockNumber != nil {
+			poolState.BlockNumber = rateResp.BlockNumber.Uint64()
+			poolState.HasBlockNumber = true
 		}
 	}
 

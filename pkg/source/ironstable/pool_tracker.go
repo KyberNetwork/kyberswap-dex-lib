@@ -66,13 +66,16 @@ func (d *PoolTracker) GetNewPoolState(
 			Params: nil,
 		}, []any{&lpTokenTotalSupply})
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("error call contracts")
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extra := Extra{

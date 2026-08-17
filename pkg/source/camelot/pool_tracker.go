@@ -38,7 +38,7 @@ func (d *PoolTracker) GetNewPoolState(
 	finish := timer.Start(fmt.Sprintf("[%s] get new pool state", d.cfg.DexID))
 	defer finish()
 
-	factory, err := d.getFactory(ctx)
+	factory, blockNumber, err := d.getFactory(ctx)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -47,7 +47,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	pair, err := d.getPair(ctx, p.Address)
+	pair, _, err := d.getPair(ctx, p.Address, blockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -76,17 +76,22 @@ func (d *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{pair.Reserve0.String(), pair.Reserve1.String()}
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
 
-func (d *PoolTracker) getPair(ctx context.Context, address string) (*Pair, error) {
+func (d *PoolTracker) getPair(ctx context.Context, address string, blockNumber *big.Int) (*Pair, *big.Int, error) {
 	var pair Pair
 
-	req := d.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		req.SetBlockNumber(blockNumber)
+	}
+	req.
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
@@ -124,19 +129,19 @@ func (d *PoolTracker) getPair(ctx context.Context, address string) (*Pair, error
 			Params: nil,
 		}, []any{&pair})
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not get pair info")
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &pair, nil
+	return &pair, resp.BlockNumber, nil
 }
 
-func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, error) {
+func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, *big.Int, error) {
 	var factory Factory
 	req := d.ethrpcClient.
 		NewRequest().
@@ -154,14 +159,14 @@ func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, error) {
 			Params: nil,
 		}, []any{&factory.OwnerFeeShare})
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not get factory")
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &factory, nil
+	return &factory, resp.BlockNumber, nil
 }

@@ -2,6 +2,7 @@ package uniswapv2
 
 import (
 	"math/big"
+
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 )
 
@@ -50,4 +51,5 @@ type PoolMetaGeneric struct {
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 	RouterSelector  uint32 `json:"sel,omitempty"`
 	NoFOT           bool   `json:"noFOT,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }

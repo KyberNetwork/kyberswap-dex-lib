@@ -155,8 +155,9 @@ type TicksResp struct {
 }
 
 type PoolMeta struct {
-	SwapFee    uint32       `json:"swapFee"`
-	PriceLimit *uint256.Int `json:"priceLimit"`
+	SwapFee     uint32       `json:"swapFee"`
+	PriceLimit  *uint256.Int `json:"priceLimit"`
+	BlockNumber uint64       `json:"blockNumber"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

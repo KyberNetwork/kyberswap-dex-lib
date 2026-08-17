@@ -68,6 +68,10 @@ pkg/liquidity-source/<dex>/
 - Pin all multicalls to the same block when a refresh needs multiple multicalls to keep pool state consistent.
 - Store mutable state in `Extra`, immutable state in `StaticExtra`.
 - Track all pool state required by the simulator for `CalcAmountOut` and `UpdateBalance`, including every flag/check used by the on-chain swap path (e.g. paused, swapEnabled, caps/limits, etc.) so the simulator can reject swaps that would revert on-chain.
+- For a stateful on-chain DEX, propagate a valid refresh snapshot block to `entity.Pool.BlockNumber` and return it directly from `GetMetaInfo` with `json:"blockNumber"`.
+- Use the block from `Aggregate`, `TryBlockAndAggregate`, an existing `GetBlockNumber`, or established event-log state. Pin dependent reads to that block.
+- Do not change `Call`/`TryAggregate` merely to get a block number. Verify revert tolerance, `msg.sender`, overrides, pinning, and protocol behavior first; use pool-service/RPC fixtures and targeted tests when uncertain.
+- Fixed-rate/no-op, RFQ/HTTP-only, orderbook, AEVM/deprecated, and wrapper-only sources without independent on-chain state are N/A; never fabricate a block number.
 
 **Optional: batch RPC** — implement `IBatchRPCPoolTracker` (`pkg/source/pool/batch_rpc.go`) to enable cross-pool RPC batching by pool-service. `LazyNewPoolState` returns an `ILazyRequest` (call descriptors) and an `applyResult` closure (builds `entity.Pool` after results arrive). For sources already using the ethrpc library, use `LazyRequest.AddCall` which converts each `ethrpc.Call` into a raw `ethereum.CallMsg` so pool-service can dispatch via `go-ethereum`'s `BatchCallContext`; sources using other RPC patterns must populate `ILazyRequest` directly. In `applyResult`, validate required fields are non-nil — individual calls can revert independently — and return an error rather than producing corrupt state.
 

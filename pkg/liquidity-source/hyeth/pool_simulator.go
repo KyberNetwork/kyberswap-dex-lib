@@ -145,7 +145,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	return MetaInfo{ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut)}
+	return MetaInfo{
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		BlockNumber:     s.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {

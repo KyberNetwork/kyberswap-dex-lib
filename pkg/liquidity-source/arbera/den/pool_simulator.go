@@ -122,7 +122,9 @@ func (s *PoolSimulator) Bond(indexIn int, indexOut int, amtIn *uint256.Int) (*ui
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	return s.Fee
+	fee := s.Fee
+	fee.BlockNumber = s.Info.BlockNumber
+	return fee
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

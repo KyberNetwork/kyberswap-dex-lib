@@ -121,7 +121,7 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client,
 		ABI:    RocketDepositPoolABI,
 		Target: RocketDepositPool,
 		Method: "getExcessBalance",
-	}, []any{&poolExtra.ExcessBalance}).TryAggregate()
+	}, []any{&poolExtra.ExcessBalance}).TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

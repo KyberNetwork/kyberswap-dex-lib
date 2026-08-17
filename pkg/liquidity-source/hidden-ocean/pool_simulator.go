@@ -318,8 +318,9 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 		big256.MulDivUp(&priceLimit, p.sqrtPbX96, p.sqrtPbX96, p.sqrtPriceX96)
 	}
 	return uniswapv3.PoolMeta{
-		SwapFee:    p.fee,
-		PriceLimit: big256.CapPriceLimit(&priceLimit),
+		SwapFee:     p.fee,
+		PriceLimit:  big256.CapPriceLimit(&priceLimit),
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 

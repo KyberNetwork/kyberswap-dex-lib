@@ -428,12 +428,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 		return shared.PoolMetaInfo{
 			BufferSwap:      p.bufferTokens[indexIn],
 			ApprovalAddress: router.Hex(),
+			BlockNumber:     p.Info.BlockNumber,
 		}
 	}
 	return shared.PoolMetaInfo{
 		BufferTokenIn:   p.bufferTokens[indexIn],
 		BufferTokenOut:  p.bufferTokens[indexOut],
 		ApprovalAddress: router.Hex(),
+		BlockNumber:     p.Info.BlockNumber,
 	}
 }
 

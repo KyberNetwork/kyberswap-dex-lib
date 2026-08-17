@@ -30,11 +30,12 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:  strings.ToLower(ep.Address),
-			Exchange: ep.Exchange,
-			Type:     ep.Type,
-			Tokens:   []string{ep.Tokens[0].Address, ep.Tokens[1].Address},
-			Reserves: []*big.Int{bignumber.NewBig10(ep.Reserves[0]), bignumber.NewBig10(ep.Reserves[1])},
+			Address:     strings.ToLower(ep.Address),
+			Exchange:    ep.Exchange,
+			Type:        ep.Type,
+			Tokens:      []string{ep.Tokens[0].Address, ep.Tokens[1].Address},
+			Reserves:    []*big.Int{bignumber.NewBig10(ep.Reserves[0]), bignumber.NewBig10(ep.Reserves[1])},
+			BlockNumber: ep.BlockNumber,
 		}},
 		reserves: [2]*uint256.Int{big256.New(ep.Reserves[0]), big256.New(ep.Reserves[1])},
 		decs:     [2]*uint256.Int{big256.TenPow(ep.Tokens[0].Decimals), big256.TenPow(ep.Tokens[1].Decimals)},
@@ -137,5 +138,5 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 // GetMetaInfo returns metadata about the pool
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
 }

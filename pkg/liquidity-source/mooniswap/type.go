@@ -21,8 +21,9 @@ type StaticExtra struct {
 }
 
 type PoolMeta struct {
-	IsNativeIn  bool `json:"nI,omitempty"`
-	IsNativeOut bool `json:"nO,omitempty"`
+	IsNativeIn  bool   `json:"nI,omitempty"`
+	IsNativeOut bool   `json:"nO,omitempty"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type PoolsListUpdaterMetadata struct {

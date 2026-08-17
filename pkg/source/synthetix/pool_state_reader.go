@@ -30,6 +30,16 @@ func NewPoolStateReader(cfg *Config, ethrpcClient *ethrpc.Client) *PoolStateRead
 func (r *PoolStateReader) Read(ctx context.Context, address string) (*PoolState, error) {
 	poolState := NewPoolState()
 
+	blockNumber, err := r.ethrpcClient.GetBlockNumber(ctx)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexID": r.cfg.DexID,
+			"error": err,
+		}).Error("can not read block number")
+		return nil, err
+	}
+	poolState.BlockNumber = blockNumber
+
 	if err := r.readBlockTimestamp(ctx, poolState); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
@@ -71,7 +81,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 	)
 
 	// call synthetix
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber)
 	for i, key := range currencyKeys {
 		keyByte := eth.StringToBytes32(key)
 
@@ -92,7 +102,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 	}
 
 	// call multiCollateralSynth
-	req = r.ethrpcClient.NewRequest().SetContext(ctx)
+	req = newRequest(r.ethrpcClient, ctx, poolState.BlockNumber)
 	for i, synthAddress := range synths {
 		req.AddCall(&ethrpc.Call{
 			ABI:    multiCollateralSynth,
@@ -111,7 +121,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 	}
 
 	// call multiCollateralSynth
-	req = r.ethrpcClient.NewRequest().SetContext(ctx)
+	req = newRequest(r.ethrpcClient, ctx, poolState.BlockNumber)
 	for i, proxyAddress := range synthProxyResults {
 		req.AddCall(&ethrpc.Call{
 			ABI:    multiCollateralSynth,
@@ -150,9 +160,7 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 		totalIssuedSUSD    *big.Int
 	)
 
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -189,9 +197,7 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 
 	poolState.SUSDCurrencyKey = common.BytesToHash(sUSDResult[:]).String()
 
-	req = r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req = newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -213,9 +219,7 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 }
 
 func (r *PoolStateReader) readBlockTimestamp(ctx context.Context, poolState *PoolState) error {
-	blockTimestamp, err := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	blockTimestamp, err := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
 		GetCurrentBlockTimestamp()
 	if err != nil {
 		logger.WithFields(logger.Fields{

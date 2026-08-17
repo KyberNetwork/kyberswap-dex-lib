@@ -120,7 +120,7 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) wstETHUnwrap(amountIn *big.Int) *big.Int {

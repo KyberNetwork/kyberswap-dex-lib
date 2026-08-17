@@ -154,8 +154,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
-		Core:    p.Core,
-		PoolKey: p.EkuboPool.GetKey().ToAbi(),
+		Core:        p.Core,
+		PoolKey:     p.EkuboPool.GetKey().ToAbi(),
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 

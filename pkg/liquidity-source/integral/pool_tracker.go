@@ -85,9 +85,14 @@ func (u *PoolTracker) getNewPoolState(
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&isPairEnabled})
 
-	if _, err := rpcRequest.Call(); err != nil {
+	resp, err := rpcRequest.Aggregate()
+	if err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return p, err
+	}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+		rpcRequest.SetBlockNumber(resp.BlockNumber)
 	}
 
 	if !isPairEnabled {

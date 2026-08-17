@@ -13,6 +13,6 @@ type Extra struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"bN"`
+	BlockNumber uint64 `json:"blockNumber"`
 	IsXtoY      bool   `json:"isXtoY,omitempty"`
 }

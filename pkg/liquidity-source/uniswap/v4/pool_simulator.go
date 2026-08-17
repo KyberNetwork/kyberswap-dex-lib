@@ -486,6 +486,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	}
 
 	return PoolMetaInfo{
+		BlockNumber:       p.Info.BlockNumber,
 		Router:            p.staticExtra.UniversalRouterAddress,
 		Permit2Addr:       p.staticExtra.Permit2Address,
 		TokenIn:           tokenInAddress,

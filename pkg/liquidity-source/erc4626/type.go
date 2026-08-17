@@ -35,7 +35,7 @@ type (
 	}
 
 	Meta struct {
-		BlockNumber   uint64 `json:"bN"`
+		BlockNumber   uint64 `json:"blockNumber"`
 		IsNativeAsset bool   `json:"isNativeAsset,omitempty"`
 		IsDeposit     bool   `json:"isDeposit,omitempty"`
 	}

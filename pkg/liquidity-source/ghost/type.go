@@ -48,6 +48,7 @@ type Extra struct {
 type PoolMeta struct {
 	SourceRouter string `json:"sourceRouter"`
 	TargetRouter string `json:"targetRouter"`
+	BlockNumber  uint64 `json:"blockNumber"`
 }
 
 // SwapInfo carries the feeBps executeGhost needs to recover this trade's principal from
