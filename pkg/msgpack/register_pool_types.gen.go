@@ -141,6 +141,7 @@ import (
 	pkg_liquiditysource_pancake_infinity_cl_hooks_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/stable"
 	pkg_liquiditysource_pancake_infinity_cl_hooks_tax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/hooks/tax"
 	pkg_liquiditysource_pandafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
+	pkg_liquiditysource_parityprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/parityprop"
 	pkg_liquiditysource_pendle_spendle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pendle/spendle"
 	pkg_liquiditysource_ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pons-v2"
 	pkg_liquiditysource_poolparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pool-party"
@@ -387,6 +388,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_stable.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_tax.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pandafun.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_parityprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pendle_spendle.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ponsv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_poolparty.PoolSimulator{})

@@ -218,6 +218,7 @@ const (
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
 	ExchangeParallelParallelizer        = "parallel-parallelizer"
+	ExchangeParityProp                  = "parity-prop"
 	ExchangePharaoh2                    = "pharaoh-2"
 	ExchangePlatypus                    = "platypus"
 	ExchangePmm1                        = "pmm-1"
@@ -413,6 +414,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeBopAMM:        {},
 	ExchangeGhost:         {},
 	ExchangeFluxProp:      {},
+	ExchangeParityProp:    {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
