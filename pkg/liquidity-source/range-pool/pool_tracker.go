@@ -140,5 +140,17 @@ func (t *PoolTracker) fetchState(
 		return nil, nil, nil, 0, err
 	}
 
+	// TryBlockAndAggregate tolerates per-call reverts, so err == nil does not mean every
+	// read succeeded. All three reads are required to build valid state — bail if the
+	// block number is missing or any call failed, rather than decoding zero/nil values.
+	if resp.BlockNumber == nil || len(resp.Result) < 3 {
+		return nil, nil, nil, 0, ErrIncompleteState
+	}
+	for _, ok := range resp.Result {
+		if !ok {
+			return nil, nil, nil, 0, ErrIncompleteState
+		}
+	}
+
 	return &dyn.Data, &cfg.PoolConfig, minTrade, resp.BlockNumber.Uint64(), nil
 }
