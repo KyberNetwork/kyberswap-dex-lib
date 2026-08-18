@@ -12,7 +12,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolsListUpdater struct {
@@ -20,14 +19,13 @@ type PoolsListUpdater struct {
 	ethrpcClient *ethrpc.Client
 }
 
-// Metadata persists how many entries of registry.getPools() have already
-// been resolved into entity.Pool, so a refresh only pays for base()/quote()/
-// scale()/decimals() reads on pools added since the last run. getPools()
-// generally only grows (PmmRegistry.addPool appends; removePool swap-and-pops,
-// but a shrink just means this offset temporarily over-reads, which
-// GetNewPools below guards against).
+// Metadata persists the set of pool addresses already resolved into
+// entity.Pool, keyed by address rather than a simple count: PmmRegistry's
+// own removePool() is documented as swap-and-pop ("ordering of getPools()
+// is not guaranteed stable"), so an index-based offset could permanently
+// skip a pool that gets swapped into an already-scanned slot.
 type Metadata struct {
-	Offset int `json:"offset"`
+	Seen map[string]bool `json:"seen"`
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -46,6 +44,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 	}
+	if metadata.Seen == nil {
+		metadata.Seen = make(map[string]bool)
+	}
 
 	var poolAddrs []common.Address
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
@@ -54,22 +55,38 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	if metadata.Offset >= len(poolAddrs) {
+	newAddrs := unseenAddrs(poolAddrs, metadata.Seen)
+	if len(newAddrs) == 0 {
 		return nil, metadataBytes, nil
 	}
-	newAddrs := poolAddrs[metadata.Offset:]
 
 	pools, err := u.resolvePools(ctx, newAddrs)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{Offset: metadata.Offset + len(newAddrs)})
+	for _, addr := range newAddrs {
+		metadata.Seen[hexutil.Encode(addr[:])] = true
+	}
+	newMetadataBytes, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
 
 	return pools, newMetadataBytes, nil
+}
+
+// unseenAddrs filters poolAddrs down to those not already marked in seen,
+// by address rather than position -- see Metadata's doc comment for why an
+// index-based cutoff is unsound against this registry.
+func unseenAddrs(poolAddrs []common.Address, seen map[string]bool) []common.Address {
+	newAddrs := make([]common.Address, 0, len(poolAddrs))
+	for _, addr := range poolAddrs {
+		if !seen[hexutil.Encode(addr[:])] {
+			newAddrs = append(newAddrs, addr)
+		}
+	}
+	return newAddrs
 }
 
 func (u *PoolsListUpdater) resolvePools(ctx context.Context, addrs []common.Address) ([]entity.Pool, error) {
@@ -91,27 +108,15 @@ func (u *PoolsListUpdater) resolvePools(ctx context.Context, addrs []common.Addr
 		return nil, err
 	}
 
-	baseAddr := make([]string, n)
-	quoteAddr := make([]string, n)
-	decReq := u.ethrpcClient.NewRequest().SetContext(ctx)
-	baseDec := make([]uint8, n)
-	quoteDec := make([]uint8, n)
-	for i := range addrs {
-		baseAddr[i] = hexutil.Encode(baseHx[i][:])
-		quoteAddr[i] = hexutil.Encode(quoteHx[i][:])
-		decReq.AddCall(&ethrpc.Call{ABI: utilabi.Erc20ABI, Target: baseAddr[i], Method: utilabi.Erc20DecimalsMethod}, []any{&baseDec[i]})
-		decReq.AddCall(&ethrpc.Call{ABI: utilabi.Erc20ABI, Target: quoteAddr[i], Method: utilabi.Erc20DecimalsMethod}, []any{&quoteDec[i]})
-	}
-	if _, err := decReq.Aggregate(); err != nil {
-		return nil, err
-	}
-
 	pools := make([]entity.Pool, 0, n)
 	now := time.Now().Unix()
 	for i, addr := range addrs {
+		baseAddr := hexutil.Encode(baseHx[i][:])
+		quoteAddr := hexutil.Encode(quoteHx[i][:])
+
 		staticExtra, err := json.Marshal(StaticExtra{
-			Base:       baseAddr[i],
-			Quote:      quoteAddr[i],
+			Base:       baseAddr,
+			Quote:      quoteAddr,
 			BaseScale:  baseScaleRaw[i].String(),
 			QuoteScale: quoteScaleRaw[i].String(),
 		})
@@ -125,7 +130,7 @@ func (u *PoolsListUpdater) resolvePools(ctx context.Context, addrs []common.Addr
 			Type:        DexType,
 			Timestamp:   now,
 			Reserves:    entity.PoolReserves{"0", "0"},
-			Tokens:      []*entity.PoolToken{{Address: baseAddr[i], Decimals: baseDec[i], Swappable: true}, {Address: quoteAddr[i], Decimals: quoteDec[i], Swappable: true}},
+			Tokens:      []*entity.PoolToken{{Address: baseAddr, Swappable: true}, {Address: quoteAddr, Swappable: true}},
 			StaticExtra: string(staticExtra),
 		})
 	}

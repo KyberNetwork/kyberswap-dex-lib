@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,10 +43,8 @@ func TestGetNewPools_Live(t *testing.T) {
 	assert.EqualValues(t, []string{"0", "0"}, found.Reserves)
 	require.Len(t, found.Tokens, 2)
 	assert.Equal(t, weth, found.Tokens[0].Address)
-	assert.Equal(t, uint8(18), found.Tokens[0].Decimals)
 	assert.True(t, found.Tokens[0].Swappable)
 	assert.Equal(t, usdg, found.Tokens[1].Address)
-	assert.Equal(t, uint8(6), found.Tokens[1].Decimals)
 	assert.True(t, found.Tokens[1].Swappable)
 
 	var staticExtra StaticExtra
@@ -52,13 +52,44 @@ func TestGetNewPools_Live(t *testing.T) {
 	assert.Equal(t, "1000000000000000000", staticExtra.BaseScale)
 	assert.Equal(t, "1000000", staticExtra.QuoteScale)
 
-	// Metadata.Offset must advance past every pool already resolved, so a
-	// second call with the returned metadata does not re-resolve (and
-	// therefore does not re-return) the reference pool.
+	// Metadata.Seen must record every pool already resolved, so a second
+	// call with the returned metadata does not re-resolve (and therefore
+	// does not re-return) the reference pool.
+	var metadata Metadata
+	require.NoError(t, json.Unmarshal(metadataBytes, &metadata))
+	assert.True(t, metadata.Seen[referencePoolAddress])
+
 	pools2, _, err := updater.GetNewPools(context.Background(), metadataBytes)
 	require.NoError(t, err)
 	for i := range pools2 {
 		assert.NotEqual(t, referencePoolAddress, pools2[i].Address,
-			"offset-based continuation re-resolved an already-seen pool")
+			"seen-set continuation re-resolved an already-seen pool")
 	}
+}
+
+// TestUnseenAddrs_SwapAndPopDoesNotSkipPools guards the specific bug an
+// index-based offset would hit: PmmRegistry.removePool() is documented as
+// swap-and-pop, so a pool that was never resolved can be moved into a slot
+// index-based tracking would treat as already scanned. Filtering by address
+// must still pick it up regardless of its position in getPools().
+func TestUnseenAddrs_SwapAndPopDoesNotSkipPools(t *testing.T) {
+	addrA := common.HexToAddress("0x00000000000000000000000000000000000aaa")
+	addrB := common.HexToAddress("0x00000000000000000000000000000000000bbb")
+	addrC := common.HexToAddress("0x00000000000000000000000000000000000ccc")
+
+	// A 2-element registry [A, B]; a prior refresh resolved both (an
+	// index-based scheme would have advanced its offset to 2).
+	seen := map[string]bool{
+		hexutil.Encode(addrA[:]): true,
+		hexutil.Encode(addrB[:]): true,
+	}
+
+	// Then B is removed via swap-and-pop: the registry now returns [A, C]
+	// -- C (never resolved) has been swapped into index 1, the exact slot
+	// an offset of 2 would treat as already scanned.
+	poolAddrs := []common.Address{addrA, addrC}
+
+	got := unseenAddrs(poolAddrs, seen)
+	require.Len(t, got, 1)
+	assert.Equal(t, addrC, got[0])
 }

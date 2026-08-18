@@ -81,7 +81,7 @@ func TestNewPoolSimulator_CalcAmountOut_MatchesOnChainSwap(t *testing.T) {
 
 func TestPoolSimulator_CalcAmountOut_Paused(t *testing.T) {
 	ep := livePool(t)
-	ep.Extra = `{"paused":true}`
+	ep.Extra = `{"paused":true,"feeBps":0,"maxSpreadBps":50,"maxStaleness":8,"maxSwapNotional":"500000000","maxBlockNotional":"1500000000","minBaseReserve":"25000000000000000","minQuoteReserve":"50000000","oracle":"0xc484f39b1c25fc7fcb140fbc0824a6ff9143e405","oracleBid":190510625160,"oracleMid":190584000000,"oracleAsk":190657374840,"oracleUpdatedAt":1786599215,"lastSwapBlock":0,"blockNotional":"0"}`
 
 	sim, err := NewPoolSimulator(ep)
 	if err != nil {
@@ -94,6 +94,25 @@ func TestPoolSimulator_CalcAmountOut_Paused(t *testing.T) {
 	})
 	if err != ErrPoolPaused {
 		t.Fatalf("want ErrPoolPaused, got %v", err)
+	}
+}
+
+func TestNewPoolSimulator_RejectsEmptyOrPartialExtra(t *testing.T) {
+	cases := []struct {
+		name  string
+		extra string
+	}{
+		{"empty", ""},
+		{"missing notional/reserve-floor fields", `{"paused":false}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ep := livePool(t)
+			ep.Extra = tc.extra
+			if _, err := NewPoolSimulator(ep); err == nil {
+				t.Fatal("want an error, got nil (a freshly-discovered, not-yet-tracked pool would otherwise panic in CalcAmountOut instead of failing construction)")
+			}
+		})
 	}
 }
 
@@ -136,6 +155,22 @@ func TestPoolSimulator_CalcAmountOut_ZeroAmountIn(t *testing.T) {
 	})
 	if err != ErrZeroAmount {
 		t.Fatalf("want ErrZeroAmount, got %v", err)
+	}
+}
+
+func TestPoolSimulator_CalcAmountOut_AmountInOverflow(t *testing.T) {
+	sim, err := NewPoolSimulator(livePool(t))
+	if err != nil {
+		t.Fatalf("NewPoolSimulator: %v", err)
+	}
+
+	tooLarge := new(big.Int).Lsh(big.NewInt(1), 256) // 2**256, one past uint256.Int's max
+	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: weth, Amount: tooLarge},
+		TokenOut:      usdg,
+	})
+	if err != ErrOverflow {
+		t.Fatalf("want ErrOverflow, got %v", err)
 	}
 }
 

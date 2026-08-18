@@ -44,11 +44,16 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	if len(ep.Extra) == 0 {
+		return nil, errors.New("parity-prop: pool extra is empty")
+	}
 	var extra Extra
-	if len(ep.Extra) > 0 {
-		if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
-			return nil, err
-		}
+	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
+		return nil, err
+	}
+	if extra.MaxSwapNotional == nil || extra.MaxBlockNotional == nil ||
+		extra.MinBaseReserve == nil || extra.MinQuoteReserve == nil {
+		return nil, errors.New("parity-prop: pool extra missing required fields")
 	}
 
 	baseScale, err := big256.NewUint256(staticExtra.BaseScale)
@@ -94,10 +99,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
-	if overflow || amountIn == nil {
-		return nil, ErrZeroAmount
+	if overflow {
+		return nil, ErrOverflow
 	}
-	if amountIn.IsZero() {
+	if amountIn == nil || amountIn.IsZero() {
 		return nil, ErrZeroAmount
 	}
 
