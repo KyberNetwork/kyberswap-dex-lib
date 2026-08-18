@@ -3,9 +3,8 @@ package rangepool
 import "errors"
 
 const (
-	// Factory getters for on-chain pool discovery (Range has no subgraph).
-	factoryMethodGetPools     = "getPools"
-	factoryMethodGetPoolCount = "getPoolCount"
+	// Factory getter for on-chain pool discovery (Range has no subgraph).
+	factoryMethodGetPools = "getPools"
 
 	// RangePool getters: one struct each carrying (almost) all pool state.
 	poolMethodGetDynamicData   = "getRangePoolDynamicData"
@@ -46,4 +45,10 @@ var (
 	// leg (post-fee input or output) below the Vault's minimum trade amount reverts
 	// on-chain (gotcha #13).
 	ErrTradeAmountTooSmall = errors.New("range-pool: trade amount below vault minimum")
+
+	// ErrIncompleteState is returned when the state multicall did not fully succeed.
+	// TryBlockAndAggregate tolerates per-call reverts (its error stays nil), so the
+	// tracker must reject a partial read rather than build a pool from zero/nil values
+	// (which would panic in MustFromBig or yield a garbage quote).
+	ErrIncompleteState = errors.New("range-pool: incomplete on-chain state read")
 )
