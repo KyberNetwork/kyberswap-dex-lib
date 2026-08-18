@@ -75,12 +75,12 @@ func (t *PoolTracker) GetNewPoolState(
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: p.Address, Method: methodGetReserves}, []any{&reserves})
-	req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: p.Address, Method: methodParams}, []any{&params})
-	req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: p.Address, Method: methodOracle}, []any{&oracleHx})
-	req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: p.Address, Method: methodPaused}, []any{&paused})
-	req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: p.Address, Method: methodLastSwapBlock}, []any{&lastSwapBlock})
-	req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: p.Address, Method: methodBlockNotional}, []any{&blockNotional})
+	req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: p.Address, Method: methodGetReserves}, []any{&reserves})
+	req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: p.Address, Method: methodParams}, []any{&params})
+	req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: p.Address, Method: methodOracle}, []any{&oracleHx})
+	req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: p.Address, Method: methodPaused}, []any{&paused})
+	req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: p.Address, Method: methodLastSwapBlock}, []any{&lastSwapBlock})
+	req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: p.Address, Method: methodBlockNotional}, []any{&blockNotional})
 	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err

@@ -8,10 +8,8 @@ import (
 
 var (
 	pmmRegistryABI abi.ABI
-	// PmmPoolABI is exported so aggregator-encoding can decode-verify its
-	// packed calldata against the real contract ABI.
-	PmmPoolABI   abi.ABI
-	pmmOracleABI abi.ABI
+	pmmPoolABI     abi.ABI
+	pmmOracleABI   abi.ABI
 )
 
 func init() {
@@ -20,7 +18,7 @@ func init() {
 		data []byte
 	}{
 		{&pmmRegistryABI, pmmRegistryBytes},
-		{&PmmPoolABI, pmmPoolBytes},
+		{&pmmPoolABI, pmmPoolBytes},
 		{&pmmOracleABI, pmmOracleBytes},
 	}
 

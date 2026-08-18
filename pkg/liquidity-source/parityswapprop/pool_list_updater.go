@@ -82,10 +82,10 @@ func (u *PoolsListUpdater) resolvePools(ctx context.Context, addrs []common.Addr
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, addr := range addrs {
 		target := hexutil.Encode(addr[:])
-		req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: target, Method: methodBase}, []any{&baseHx[i]})
-		req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: target, Method: methodQuote}, []any{&quoteHx[i]})
-		req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: target, Method: methodBaseScale}, []any{&baseScaleRaw[i]})
-		req.AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: target, Method: methodQuoteScale}, []any{&quoteScaleRaw[i]})
+		req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: target, Method: methodBase}, []any{&baseHx[i]})
+		req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: target, Method: methodQuote}, []any{&quoteHx[i]})
+		req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: target, Method: methodBaseScale}, []any{&baseScaleRaw[i]})
+		req.AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: target, Method: methodQuoteScale}, []any{&quoteScaleRaw[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		return nil, err

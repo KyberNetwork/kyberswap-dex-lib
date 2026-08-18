@@ -122,7 +122,7 @@ func TestGetReserves_MatchesRawMulticallRead(t *testing.T) {
 	var raw poolReserves
 	_, err = client.NewRequest().SetContext(context.Background()).
 		SetBlockNumber(blockNumberBig).
-		AddCall(&ethrpc.Call{ABI: PmmPoolABI, Target: referencePoolAddress, Method: methodGetReserves}, []any{&raw}).
+		AddCall(&ethrpc.Call{ABI: pmmPoolABI, Target: referencePoolAddress, Method: methodGetReserves}, []any{&raw}).
 		Call()
 	require.NoError(t, err)
 	require.NotNil(t, raw.BaseReserve)
