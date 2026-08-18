@@ -218,6 +218,7 @@ const (
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
 	ExchangeParallelParallelizer        = "parallel-parallelizer"
+	ExchangeParitySwapProp              = "parityswap-prop"
 	ExchangePharaoh2                    = "pharaoh-2"
 	ExchangePlatypus                    = "platypus"
 	ExchangePmm1                        = "pmm-1"

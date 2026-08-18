@@ -141,6 +141,7 @@ import (
 	pancakeinfinitycl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	pancakestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/parityswapprop"
 	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
@@ -466,6 +467,7 @@ type Types struct {
 	Machima                    string
 	MetronomeSwap              string
 	FluxProp                   string
+	ParitySwapProp             string
 }
 
 var (
@@ -707,5 +709,6 @@ var (
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
 		FluxProp:                   valueobject.ExchangeFluxProp,
+		ParitySwapProp:             parityswapprop.DexType,
 	}
 )

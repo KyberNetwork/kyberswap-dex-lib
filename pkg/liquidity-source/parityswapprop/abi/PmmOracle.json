@@ -1,0 +1,14 @@
+[
+  {
+    "type": "function",
+    "name": "read",
+    "inputs": [],
+    "outputs": [
+      { "name": "bid_", "type": "uint64", "internalType": "uint64" },
+      { "name": "mid_", "type": "uint64", "internalType": "uint64" },
+      { "name": "ask_", "type": "uint64", "internalType": "uint64" },
+      { "name": "updatedAt_", "type": "uint64", "internalType": "uint64" }
+    ],
+    "stateMutability": "view"
+  }
+]
