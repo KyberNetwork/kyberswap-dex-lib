@@ -1,4 +1,4 @@
-package parityswapprop
+package parityprop
 
 import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 

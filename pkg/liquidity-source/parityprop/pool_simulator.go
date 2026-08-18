@@ -1,4 +1,4 @@
-package parityswapprop
+package parityprop
 
 import (
 	"errors"
@@ -36,7 +36,7 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if len(ep.Tokens) != 2 {
-		return nil, errors.New("parityswap-prop: pool must have exactly 2 tokens")
+		return nil, errors.New("parity-prop: pool must have exactly 2 tokens")
 	}
 
 	var staticExtra StaticExtra

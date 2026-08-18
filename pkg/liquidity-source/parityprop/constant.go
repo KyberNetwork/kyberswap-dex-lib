@@ -1,4 +1,4 @@
-package parityswapprop
+package parityprop
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DexType = valueobject.ExchangeParitySwapProp
+	DexType = valueobject.ExchangeParityProp
 
 	methodGetPools      = "getPools"
 	methodBase          = "base"
@@ -30,20 +30,20 @@ const (
 )
 
 var (
-	ErrPoolPaused          = errors.New("parityswap-prop: pool paused")
-	ErrInvalidToken        = errors.New("parityswap-prop: tokenIn is neither base nor quote")
-	ErrZeroAmount          = errors.New("parityswap-prop: zero amount")
-	ErrStalePrice          = errors.New("parityswap-prop: oracle price older than maxStaleness")
-	ErrInvalidOraclePrices = errors.New("parityswap-prop: oracle bid/mid/ask out of order")
-	ErrSpreadTooWide       = errors.New("parityswap-prop: oracle spread exceeds maxSpreadBps")
-	ErrSwapTooLarge        = errors.New("parityswap-prop: swap notional exceeds maxSwapNotional")
-	ErrBlockCapExceeded    = errors.New("parityswap-prop: accumulated block notional exceeds maxBlockNotional")
-	ErrInsufficientReserve = errors.New("parityswap-prop: output balance would drop below its floor")
+	ErrPoolPaused          = errors.New("parity-prop: pool paused")
+	ErrInvalidToken        = errors.New("parity-prop: tokenIn is neither base nor quote")
+	ErrZeroAmount          = errors.New("parity-prop: zero amount")
+	ErrStalePrice          = errors.New("parity-prop: oracle price older than maxStaleness")
+	ErrInvalidOraclePrices = errors.New("parity-prop: oracle bid/mid/ask out of order")
+	ErrSpreadTooWide       = errors.New("parity-prop: oracle spread exceeds maxSpreadBps")
+	ErrSwapTooLarge        = errors.New("parity-prop: swap notional exceeds maxSwapNotional")
+	ErrBlockCapExceeded    = errors.New("parity-prop: accumulated block notional exceeds maxBlockNotional")
+	ErrInsufficientReserve = errors.New("parity-prop: output balance would drop below its floor")
 
 	// ErrOverflow guards every multiplication/addition PmmPool._quote() performs.
 	// On-chain, Solidity 0.8's checked arithmetic reverts (panic 0x11) the instant
 	// any individual product/sum exceeds 2**256-1 -- not just the final result --
 	// so the simulator must fail the same way rather than silently wrapping or
 	// computing a wider-precision answer the real contract would never reach.
-	ErrOverflow = errors.New("parityswap-prop: uint256 overflow")
+	ErrOverflow = errors.New("parity-prop: uint256 overflow")
 )

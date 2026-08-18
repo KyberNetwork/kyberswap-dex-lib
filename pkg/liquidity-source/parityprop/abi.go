@@ -1,4 +1,4 @@
-package parityswapprop
+package parityprop
 
 import (
 	"bytes"
