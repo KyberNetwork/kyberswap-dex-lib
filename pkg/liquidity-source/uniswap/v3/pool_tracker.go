@@ -785,9 +785,10 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		reserve0    = zeroBI
 		reserve1    = zeroBI
 
-		slot0Std   slot0RawStandard
-		slot0Slip  slot0RawSlipstream
-		slot0Solid slot0RawSolidly
+		slot0Std    slot0RawStandard
+		slot0Katana slot0RawKatana
+		slot0Slip   slot0RawSlipstream
+		slot0Solid  slot0RawSolidly
 	)
 
 	rpcRequest := t.ethrpcClient.NewRequest()
@@ -804,14 +805,14 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Method: methodGetLiquidity,
 	}, []any{&liquidity})
 
-	// Try standard (7-word), then slipstream (6-word), then solidly (4-word) shapes, longest
-	// first - see the comment on Slot0SlipstreamABI/Slot0SolidlyABI in abis.go.
+	// Try standard (7-word), then katana (8-word), then slipstream (6-word), then solidly (4-word) shapes, longest
+	// first - see the comment on Slot0SlipstreamABI/Slot0SolidlyABI/Slot0KatanaABI in abis.go.
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:       abis.UniswapV3PoolABI,
-		UnpackABI: []ethabi.ABI{abis.UniswapV3PoolABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
+		UnpackABI: []ethabi.ABI{abis.UniswapV3PoolABI, abis.Slot0KatanaABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
 		Target:    p.Address,
 		Method:    methodGetSlot0,
-	}, []any{&slot0Std, &slot0Slip, &slot0Solid})
+	}, []any{&slot0Std, &slot0Katana, &slot0Slip, &slot0Solid})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    abis.UniswapV3PoolABI,
@@ -863,7 +864,7 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		return nil, err
 	}
 
-	slot0, err := resolveSlot0(slot0Std, slot0Slip, slot0Solid)
+	slot0, err := resolveSlot0(slot0Std, slot0Katana, slot0Slip, slot0Solid)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -882,10 +883,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 	}, nil
 }
 
-func resolveSlot0(std slot0RawStandard, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
+func resolveSlot0(std slot0RawStandard, katana slot0RawKatana, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
 	switch {
 	case std.SqrtPriceX96 != nil:
 		return Slot0{SqrtPriceX96: std.SqrtPriceX96, Tick: std.Tick, Unlocked: std.Unlocked}, nil
+	case katana.SqrtPriceX96 != nil:
+		return Slot0{SqrtPriceX96: katana.SqrtPriceX96, Tick: katana.Tick, Unlocked: katana.Unlocked}, nil
 	case slip.SqrtPriceX96 != nil:
 		return Slot0{SqrtPriceX96: slip.SqrtPriceX96, Tick: slip.Tick, Unlocked: slip.Unlocked}, nil
 	case solid.SqrtPriceX96 != nil:

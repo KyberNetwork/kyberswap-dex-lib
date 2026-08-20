@@ -13,5 +13,8 @@ var slot0SlipstreamJson []byte
 //go:embed Slot0Solidly.json
 var slot0SolidlyJson []byte
 
+//go:embed Slot0Katana.json
+var slot0KatanaJson []byte
+
 //go:embed UniswapV3Factory.json
 var uniswapV3FactoryJson []byte
