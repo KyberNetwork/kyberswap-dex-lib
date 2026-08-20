@@ -128,6 +128,17 @@ type slot0RawSolidly struct {
 	Unlocked     bool
 }
 
+type slot0RawKatana struct {
+	SqrtPriceX96               *big.Int
+	Tick                       *big.Int
+	ObservationIndex           uint16
+	ObservationCardinality     uint16
+	ObservationCardinalityNext uint16
+	FeeProtocol                uint32
+	Extra                      *big.Int
+	Unlocked                   bool
+}
+
 type preGenesisPool struct {
 	ID string `json:"id"`
 }
