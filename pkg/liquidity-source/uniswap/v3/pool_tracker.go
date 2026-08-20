@@ -865,7 +865,7 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		return nil, err
 	}
 
-	slot0, err := resolveSlot0(slot0Std, slot0Katana, slot0Slip, slot0Solid)
+	slot0, err := resolveSlot0(slot0Katana, slot0Std, slot0Slip, slot0Solid)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -884,12 +884,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 	}, nil
 }
 
-func resolveSlot0(std slot0RawStandard, katana slot0RawKatana, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
+func resolveSlot0(katana slot0RawKatana, std slot0RawStandard, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
 	switch {
-	case std.SqrtPriceX96 != nil:
-		return Slot0{SqrtPriceX96: std.SqrtPriceX96, Tick: std.Tick, Unlocked: std.Unlocked}, nil
 	case katana.SqrtPriceX96 != nil:
 		return Slot0{SqrtPriceX96: katana.SqrtPriceX96, Tick: katana.Tick, Unlocked: katana.Unlocked}, nil
+	case std.SqrtPriceX96 != nil:
+		return Slot0{SqrtPriceX96: std.SqrtPriceX96, Tick: std.Tick, Unlocked: std.Unlocked}, nil
 	case slip.SqrtPriceX96 != nil:
 		return Slot0{SqrtPriceX96: slip.SqrtPriceX96, Tick: slip.Tick, Unlocked: slip.Unlocked}, nil
 	case solid.SqrtPriceX96 != nil:

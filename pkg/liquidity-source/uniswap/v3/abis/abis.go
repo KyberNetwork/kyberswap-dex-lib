@@ -17,9 +17,9 @@ var (
 	// shapes seen across uniswap-v3 forks. Try katana (8-word), then standard (7-word),
 	// then slipstream (6-word), then solidly (4-word) - longest to shortest to prevent
 	// silent misdecode of trailing bytes.
+	Slot0KatanaABI     abi.ABI
 	Slot0SlipstreamABI abi.ABI
 	Slot0SolidlyABI    abi.ABI
-	Slot0KatanaABI     abi.ABI
 
 	UniswapV3FactoryABI abi.ABI
 )
@@ -31,8 +31,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&UniswapV3PoolABI, uniswapV3PoolJson},
 		{&Slot0KatanaABI, slot0KatanaJson},
+		{&UniswapV3PoolABI, uniswapV3PoolJson},
 		{&Slot0SlipstreamABI, slot0SlipstreamJson},
 		{&Slot0SolidlyABI, slot0SolidlyJson},
 		{&UniswapV3FactoryABI, uniswapV3FactoryJson},
