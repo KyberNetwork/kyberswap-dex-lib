@@ -805,14 +805,15 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Method: methodGetLiquidity,
 	}, []any{&liquidity})
 
-	// Try standard (7-word), then katana (8-word), then slipstream (6-word), then solidly (4-word) shapes, longest
-	// first - see the comment on Slot0SlipstreamABI/Slot0SolidlyABI/Slot0KatanaABI in abis.go.
+	// Try katana (8-word) first, then standard (7-word), then slipstream (6-word), then solidly (4-word) shapes, longest
+	// first - go-ethereum ABI decoder only errors on insufficient data, not unconsumed trailing bytes.
+	// A shorter ABI silently misdecodes longer returndata by putting wrong bytes into its last fields.
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:       abis.UniswapV3PoolABI,
-		UnpackABI: []ethabi.ABI{abis.UniswapV3PoolABI, abis.Slot0KatanaABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
+		UnpackABI: []ethabi.ABI{abis.Slot0KatanaABI, abis.UniswapV3PoolABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
 		Target:    p.Address,
 		Method:    methodGetSlot0,
-	}, []any{&slot0Std, &slot0Katana, &slot0Slip, &slot0Solid})
+	}, []any{&slot0Katana, &slot0Std, &slot0Slip, &slot0Solid})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    abis.UniswapV3PoolABI,

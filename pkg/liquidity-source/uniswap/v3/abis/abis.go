@@ -13,9 +13,9 @@ var (
 	// inputs, identical across all forks) and to unpack the "standard" 7-word slot0()
 	// shape shared by uniswap-v3/pancake-v3/ramses-v2/nuri-v2.
 	UniswapV3PoolABI abi.ABI
-	// Slot0SlipstreamABI, Slot0SolidlyABI, and Slot0KatanaABI unpack the other slot0()
-	// shapes seen across uniswap-v3 forks. Try standard, then katana (8-word), then
-	// slipstream (6-word), then solidly (4-word) - longest to shortest to prevent
+	// Slot0KatanaABI, Slot0SlipstreamABI, and Slot0SolidlyABI unpack the other slot0()
+	// shapes seen across uniswap-v3 forks. Try katana (8-word), then standard (7-word),
+	// then slipstream (6-word), then solidly (4-word) - longest to shortest to prevent
 	// silent misdecode of trailing bytes.
 	Slot0SlipstreamABI abi.ABI
 	Slot0SolidlyABI    abi.ABI
