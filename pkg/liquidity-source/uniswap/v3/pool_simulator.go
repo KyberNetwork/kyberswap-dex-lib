@@ -191,7 +191,8 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountInBI},
 		Fee:           &pool.TokenAmount{Token: tokenIn},
-		Gas:           p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops),
+		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
+			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: &result.SqrtRatioX96,
 			NextStateLiquidity:    result.Liquidity,
@@ -245,7 +246,8 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: amountOutBI},
 		RemainingTokenAmountIn: remainingTokenAmountIn, Fee: &pool.TokenAmount{Token: tokenIn},
-		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops),
+		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
+			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
 			RemainingAmountIn:     &result.RemainingAmountIn,
 			NextStateSqrtRatioX96: &result.SqrtRatioX96,
