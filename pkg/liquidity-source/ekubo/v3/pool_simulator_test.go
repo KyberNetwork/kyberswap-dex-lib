@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -79,6 +80,53 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 						\"typeConfig\": {
 							\"tickSpacing\": 200
 						}
+					}
+				}
+			}"
+		}`,
+		// Liquidity field (0) contradicts sortedTicks: activeTick 599 sits between tick 550
+		// (delta +3225715779189072) and tick 850, so the true liquidity there is 3225715779189072.
+		// A pool in this state must be rejected, not quoted (see concentrated.go liquidity-underflow guard).
+		"USDC-USDT-corrupted-liquidity": `{
+			"tokens": [
+				{
+					"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					"symbol": "USDC",
+					"decimals": 6,
+					"swappable": true
+				},
+				{
+					"address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+					"symbol": "USDT",
+					"decimals": 6,
+					"swappable": true
+				}
+			],
+			"extra": "{
+				\"sqrtRatio\": 340384466891082766560918035241426223104,
+				\"liquidity\": 0,
+				\"activeTickIndex\": 1,
+				\"sortedTicks\": [
+					{\"number\": -25200, \"liquidityDelta\": 0},
+					{\"number\": 550, \"liquidityDelta\": 3225715779189072},
+					{\"number\": 850, \"liquidityDelta\": -3225715779189072},
+					{\"number\": 26000, \"liquidityDelta\": 0}
+				],
+				\"tickBounds\": [-25200, 26000],
+				\"activeTick\": 599
+			}",
+			"staticExtra": "{
+				\"core\": \"0x00000000000014aa86c5d3c41765bb24e11bd701\",
+				\"extensionType\": 1,
+				\"poolKey\": {
+					\"token0\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",
+					\"token1\": \"0xdac17f958d2ee523a2206206994597c13d831ec7\",
+					\"config\": {
+						\"fee\": 110680464442257,
+						\"typeConfig\": {
+							\"tickSpacing\": 50
+						},
+						\"extension\": \"0x0000000000000000000000000000000000000000\"
 					}
 				}
 			}"
@@ -298,6 +346,15 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 		},
 
 		{
+			// liquidity=0 contradicts the tick deltas around the active tick; crossing the
+			// first tick underflows liquidity, which must error rather than yield a bogus quote.
+			pool:        "USDC-USDT-corrupted-liquidity",
+			tokenIn:     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			tokenOut:    "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			amountIn:    "3",
+			expectedErr: ekubomath.ErrUnderflow,
+		},
+		{
 			pool:        "ETH-USDC-oracle",
 			tokenIn:     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -474,6 +531,12 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountIn() {
 	ts.T().Parallel()
 
 	for p, sim := range ts.sims {
+		if p == "USDC-USDT-corrupted-liquidity" {
+			// Every quote on this pool errors by design (see TestCalcAmountOut); it has no
+			// valid amount to round-trip.
+			continue
+		}
+
 		ts.T().Run(p, func(t *testing.T) {
 			testutil.TestCalcAmountIn(t, sim)
 		})

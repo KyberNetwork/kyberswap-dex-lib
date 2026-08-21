@@ -313,6 +313,9 @@ func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Q
 					liquidity.Add(&liquidity, liquidityDeltaAbs)
 				} else {
 					liquidity.Sub(&liquidity, liquidityDeltaAbs)
+					if liquidity.Sign() < 0 {
+						return nil, fmt.Errorf("crossing tick %d: %w", nextInitTick.Number, ekubomath.ErrUnderflow)
+					}
 				}
 			}
 		}
