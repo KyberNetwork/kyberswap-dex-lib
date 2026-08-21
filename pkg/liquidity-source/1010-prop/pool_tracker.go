@@ -3,7 +3,6 @@ package prop
 import (
 	"context"
 	"math/big"
-	"sort"
 	"strings"
 	"time"
 
@@ -12,8 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -48,28 +49,26 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	samples, err := t.fetchQuotes(ctx, p, staticExtra.RouterAddress, balances, blockNumber)
+	points := [2][]*big.Int{
+		ladder.SamplePoints(p, 0, balances[0], balances[1]),
+		ladder.SamplePoints(p, 1, balances[1], balances[0]),
+	}
+
+	outputs, err := t.fetchQuotes(ctx, p, staticExtra.RouterAddress, points, blockNumber)
 	if err != nil {
 		return p, err
 	}
 
-	t.warnGapInQuotes(p, samples)
-	t.applyBuffer(samples)
-	samples = filterSamples(samples)
+	t.warnGapInQuotes(p, points, outputs)
+	t.applyBuffer(outputs)
 
-	p.Reserves = []string{balances[0].String(), balances[1].String()}
-
-	extra := Extra{Samples: samples}
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return p, err
+	ladders := [2][]ladder.Point{
+		ladder.CollectLadder(points[0], outputs[0]),
+		ladder.CollectLadder(points[1], outputs[1]),
 	}
 
-	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = blockNumber.Uint64()
-
-	return p, nil
+	r0, r1 := uint256.MustFromBig(balances[0]), uint256.MustFromBig(balances[1])
+	return t.persist(p, ladder.Extra{Ladders: ladders}, r0, r1, blockNumber), nil
 }
 
 // fetchBalances calls getAssetReserves on the router and returns the two balances
@@ -108,114 +107,86 @@ func (t *PoolTracker) fetchBalances(ctx context.Context, routerAddr string, toke
 	return balances, res.BlockNumber, nil
 }
 
+// fetchQuotes probes the router's quote(account, tokenIn, tokenOut, amountIn) for every
+// point in each direction's grid, returning the raw (possibly nil, on revert) outputs
+// aligned index-for-index with points.
 func (t *PoolTracker) fetchQuotes(
 	ctx context.Context,
 	p entity.Pool,
 	routerAddr string,
-	balances []*big.Int,
+	points [2][]*big.Int,
 	blockNumber *big.Int,
-) ([][][2]*big.Int, error) {
+) ([2][]*big.Int, error) {
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	samples := make([][][2]*big.Int, 2)
 	account := common.Address{}
+	tokenAddr := [2]common.Address{
+		common.HexToAddress(p.Tokens[0].Address),
+		common.HexToAddress(p.Tokens[1].Address),
+	}
 
-	for i := range p.Tokens {
-		tokenIn := common.HexToAddress(p.Tokens[i].Address)
-		tokenOut := common.HexToAddress(p.Tokens[1-i].Address)
-
-		points := make([]*big.Int, 0, sampleSize+len(maxInSampleBps))
-
-		dec := int(p.Tokens[i].Decimals)
-		start := max(0, dec-sampleSize/2)
-		for idx, k := 0, start; idx < sampleSize; idx, k = idx+1, k+1 {
-			points = append(points, bignumber.TenPowInt(k))
-		}
-
-		if i < len(balances) && balances[i] != nil && balances[i].Sign() > 0 {
-			for _, bps := range maxInSampleBps {
-				pt := new(big.Int).Mul(balances[i], big.NewInt(int64(bps)))
-				pt.Div(pt, bignumber.BasisPoint)
-				if pt.Sign() > 0 {
-					points = append(points, pt)
-				}
-			}
-		}
-
-		sort.Slice(points, func(a, b int) bool {
-			return points[a].Cmp(points[b]) < 0
-		})
-		points = dedupSorted(points)
-
-		samples[i] = make([][2]*big.Int, len(points))
-		for j, pt := range points {
-			samples[i][j] = [2]*big.Int{new(big.Int).Set(pt), new(big.Int)}
+	var outputs [2][]*big.Int
+	callCount := 0
+	for dir := range points {
+		tokenIn, tokenOut := tokenAddr[dir], tokenAddr[1-dir]
+		outputs[dir] = make([]*big.Int, len(points[dir]))
+		for i, pt := range points[dir] {
+			outputs[dir][i] = new(big.Int)
 			req.AddCall(&ethrpc.Call{
 				ABI:    routerABI,
 				Target: routerAddr,
 				Method: "quote",
-				Params: []any{account, tokenIn, tokenOut, samples[i][j][0]},
-			}, []any{&samples[i][j][1]})
+				Params: []any{account, tokenIn, tokenOut, pt},
+			}, []any{&outputs[dir][i]})
+			callCount++
 		}
+	}
+	if callCount == 0 {
+		return outputs, nil
 	}
 
 	if _, err := req.TryAggregate(); err != nil {
-		return nil, err
+		return [2][]*big.Int{}, err
 	}
 
-	return samples, nil
+	return outputs, nil
 }
 
-func (t *PoolTracker) applyBuffer(samples [][][2]*big.Int) {
+func (t *PoolTracker) applyBuffer(outputs [2][]*big.Int) {
 	if t.cfg.Buffer <= 0 {
 		return
 	}
 	buf := big.NewInt(t.cfg.Buffer)
-	for i := range samples {
-		for j := range samples[i] {
-			if s1 := samples[i][j][1]; s1 != nil {
-				s1.Mul(s1, buf)
-				s1.Div(s1, bignumber.BasisPoint)
-			}
-		}
-	}
-}
-
-func filterSamples(samples [][][2]*big.Int) [][][2]*big.Int {
-	for dir := range samples {
-		valid := samples[dir][:0]
-		for _, s := range samples[dir] {
-			if s[0] == nil || s[1] == nil || s[1].Sign() <= 0 {
+	for dir := range outputs {
+		for _, out := range outputs[dir] {
+			if out == nil {
 				continue
 			}
-			valid = append(valid, s)
+			out.Mul(out, buf)
+			out.Div(out, bignumber.BasisPoint)
 		}
-		samples[dir] = valid
 	}
-	return samples
 }
 
-func (t *PoolTracker) warnGapInQuotes(p entity.Pool, samples [][][2]*big.Int) {
-	for dir := range samples {
+func (t *PoolTracker) warnGapInQuotes(p entity.Pool, points, outputs [2][]*big.Int) {
+	for dir := range outputs {
+		pts, outs := points[dir], outputs[dir]
 		seenPositive := false
 		zeroRunStart := -1
 
-		for i := range samples[dir] {
-			pt := samples[dir][i]
-			if pt[0] == nil || pt[1] == nil {
+		for i, out := range outs {
+			if out == nil {
 				continue
 			}
-			if pt[1].Sign() > 0 {
+			if out.Sign() > 0 {
 				if zeroRunStart >= 0 {
-					startAmt := samples[dir][zeroRunStart][0]
-					endAmt := samples[dir][i-1][0]
 					logger.WithFields(logger.Fields{
 						"pool":           p.Address,
 						"dir":            dir,
 						"tokenIn":        p.Tokens[dir].Address,
 						"tokenOut":       p.Tokens[1-dir].Address,
-						"holeFromAmount": startAmt.String(),
-						"holeToAmount":   endAmt.String(),
-						"resumeAmount":   pt[0].String(),
+						"holeFromAmount": pts[zeroRunStart].String(),
+						"holeToAmount":   pts[i-1].String(),
+						"resumeAmount":   pts[i].String(),
 					}).Warn("1010-prop quote gap detected (positive -> zero -> positive)")
 					zeroRunStart = -1
 				}
@@ -229,15 +200,13 @@ func (t *PoolTracker) warnGapInQuotes(p entity.Pool, samples [][][2]*big.Int) {
 	}
 }
 
-func dedupSorted(sorted []*big.Int) []*big.Int {
-	if len(sorted) <= 1 {
-		return sorted
+func (t *PoolTracker) persist(p entity.Pool, extra ladder.Extra, r0, r1 *uint256.Int, blockNumber *big.Int) entity.Pool {
+	extraBytes, _ := json.Marshal(extra)
+	p.Extra = string(extraBytes)
+	p.Reserves = entity.PoolReserves{r0.Dec(), r1.Dec()}
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
 	}
-	result := sorted[:1]
-	for _, v := range sorted[1:] {
-		if v.Cmp(result[len(result)-1]) != 0 {
-			result = append(result, v)
-		}
-	}
-	return result
+	p.Timestamp = time.Now().Unix()
+	return p
 }
