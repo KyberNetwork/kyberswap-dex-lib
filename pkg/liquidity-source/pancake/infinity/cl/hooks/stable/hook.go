@@ -41,7 +41,7 @@ func (h *Hook) AllowEmptyTicks() bool { return true }
 func (h *Hook) GetReserves(_ context.Context, param *cl.HookParam) (entity.PoolReserves, error) {
 	var hx HookExtra
 	if err := json.Unmarshal(param.HookExtra, &hx); err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return hx.Balances, nil
