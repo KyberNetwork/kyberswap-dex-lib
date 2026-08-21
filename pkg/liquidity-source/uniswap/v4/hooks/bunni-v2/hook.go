@@ -2,6 +2,7 @@ package bunniv2
 
 import (
 	"errors"
+	"slices"
 	"sync"
 	"time"
 
@@ -93,6 +94,12 @@ func (h *Hook) CloneState() uniswapv4.Hook {
 
 	cloned.PoolManagerReserves[0] = h.PoolManagerReserves[0].Clone()
 	cloned.PoolManagerReserves[1] = h.PoolManagerReserves[1].Clone()
+
+	// The observation ring buffer is written by index (oracle.set), so copying the slice header
+	// would leave the clone writing into the source's backing array. Resetting writeObservationOnce
+	// below makes that write certain rather than merely possible.
+	cloned.Observations = slices.Clone(h.Observations)
+	cloned.oracle = oracle.NewObservationStorage(cloned.Observations)
 
 	cloned.writeObservationOnce = new(sync.Once)
 
