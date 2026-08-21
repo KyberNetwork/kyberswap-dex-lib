@@ -1,0 +1,9 @@
+[
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "interfaceName", "type": "bytes32" }],
+    "name": "getImplementationAddress",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
