@@ -186,7 +186,7 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 	addHookCall(req, hookAddr, "N_COINS", &out.nCoins)
 
 	if _, err := req.Aggregate(); err != nil {
-		return nil, fmt.Errorf("stable hook %s track: %w", hookAddr, err)
+		return nil, nil
 	}
 
 	return json.Marshal(HookExtra{
