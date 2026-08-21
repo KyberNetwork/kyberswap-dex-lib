@@ -20,9 +20,14 @@ type PoolSimulator struct {
 	pool.Pool
 	poolType string
 	extra    Extra
-	// wrapFactor converts collateral amounts to synthetic amounts for wrapper pools (10^(synthDec-collateralDec))
+	// wrapFactor converts collateral amounts to synthetic amounts for wrapper pools,
+	// and doubles as the multi-lp pool's SCALING_FACTOR equivalent (10^(synthDec-collateralDec)).
 	wrapFactor *uint256.Int
-	gas        Gas
+	// mintScaleBone = 10^(18-collateralDec) * 1e18, the combined multi-lp conversion
+	// constant so mint/redeem reproduce _calculateNumberOfTokens/_calculateCollateralAmount
+	// (both PreciseUnitMath-floor-rounded) in a single MulDivDown call.
+	mintScaleBone *uint256.Int
+	gas           Gas
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -48,12 +53,34 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for i, token := range entityPool.Tokens {
 		tokens[i] = token.Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		if reserves[i] == nil {
+			// NewBig10 yields nil on a malformed reserve string, and UpdateBalance/
+			// CloneState read Info.Reserves by index -- a nil there would panic.
+			reserves[i] = new(big.Int)
+		}
 	}
 
 	collateralDecimals := entityPool.Tokens[0].Decimals
 	synthDecimals := entityPool.Tokens[1].Decimals
-	if synthDecimals < collateralDecimals {
-		return nil, fmt.Errorf("unexpected token decimals: %d < %d", synthDecimals, collateralDecimals)
+
+	// wrapFactor/mintScaleBone are pool-type-specific: only the wrapper's
+	// wrap()/unwrap() consume wrapFactor, and only mint()/redeem() consume
+	// mintScaleBone. Validating both decimal relationships regardless of
+	// poolType would wrongly reject, e.g., a multi-lp pool whose synthetic
+	// token happens to use fewer decimals than its collateral (wrapFactor is
+	// never read on that path).
+	var wrapFactor, mintScaleBone *uint256.Int
+	switch staticExtra.PoolType {
+	case PoolTypeWrapper:
+		if synthDecimals < collateralDecimals {
+			return nil, fmt.Errorf("unexpected token decimals: %d < %d", synthDecimals, collateralDecimals)
+		}
+		wrapFactor = big256.TenPow(synthDecimals - collateralDecimals)
+	case PoolTypeMultiLP:
+		if collateralDecimals > 18 {
+			return nil, fmt.Errorf("unexpected collateral decimals: %d > 18", collateralDecimals)
+		}
+		mintScaleBone = big256.TenPow(36 - collateralDecimals) // 10^(18-collateralDec) * 1e18
 	}
 
 	return &PoolSimulator{
@@ -67,10 +94,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				BlockNumber: entityPool.BlockNumber,
 			},
 		},
-		poolType:   staticExtra.PoolType,
-		extra:      extra,
-		wrapFactor: big256.TenPow(synthDecimals - collateralDecimals),
-		gas:        defaultGas,
+		poolType:      staticExtra.PoolType,
+		extra:         extra,
+		wrapFactor:    wrapFactor,
+		mintScaleBone: mintScaleBone,
+		gas:           defaultGas,
 	}, nil
 }
 
@@ -90,12 +118,12 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	switch p.poolType {
-	case poolTypeMultiLP:
+	case PoolTypeMultiLP:
 		if indexIn == 0 {
 			return p.mint(amountIn, params.TokenAmountIn.Token, params.TokenOut)
 		}
 		return p.redeem(amountIn, params.TokenOut)
-	case poolTypeWrapper:
+	case PoolTypeWrapper:
 		if indexIn == 0 {
 			return p.wrap(amountIn, params.TokenAmountIn.Token, params.TokenOut)
 		}
@@ -105,28 +133,32 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 }
 
-// mint quotes collateral -> synthetic on a multi-lp pool, linear in the tracked
-// probe rate (net of fee), bounded by maxTokensCapacity.
+// mint quotes collateral -> synthetic on a multi-lp pool, replicating
+// SynthereumMultiLpLiquidityPoolLib._calculateMint exactly (PreciseUnitMath floor
+// rounding throughout), bounded by maxTokensCapacity. feeAmount = floor(amountIn *
+// fee / 1e18); numTokens = floor((amountIn - feeAmount) * 10^(18-collateralDec) *
+// 1e18 / price).
 func (p *PoolSimulator) mint(amountIn *uint256.Int, tokenIn, tokenOut string) (*pool.CalcAmountOutResult, error) {
 	e := &p.extra
-	if e.MintProbeIn == nil || e.MintProbeOut == nil || e.MintProbeIn.IsZero() || e.MaxSynthCap == nil {
+	if e.Price == nil || e.Price.IsZero() || e.FeePercentage == nil || e.MaxSynthCap == nil {
 		return nil, ErrTradeUnavailable
 	}
 
-	var amountOut uint256.Int
-	if _, overflow := amountOut.MulDivOverflow(amountIn, e.MintProbeOut, e.MintProbeIn); overflow {
+	var fee uint256.Int
+	big256.MulWadDown(&fee, amountIn, e.FeePercentage)
+	if fee.Gt(amountIn) {
 		return nil, ErrOverflow
 	}
+	var netCollateral uint256.Int
+	netCollateral.Sub(amountIn, &fee)
+
+	var amountOut uint256.Int
+	big256.MulDivDown(&amountOut, &netCollateral, p.mintScaleBone, e.Price)
 	if amountOut.IsZero() {
 		return nil, ErrZeroAmountOut
 	}
 	if amountOut.Gt(e.MaxSynthCap) {
 		return nil, ErrExceedsMaxCapacity
-	}
-
-	var fee uint256.Int
-	if e.MintProbeFee != nil {
-		big256.MulDivDown(&fee, amountIn, e.MintProbeFee, e.MintProbeIn)
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -136,28 +168,31 @@ func (p *PoolSimulator) mint(amountIn *uint256.Int, tokenIn, tokenOut string) (*
 	}, nil
 }
 
-// redeem quotes synthetic -> collateral on a multi-lp pool, linear in the tracked
-// probe rate (net of fee), bounded by totalSyntheticTokens.
+// redeem quotes synthetic -> collateral on a multi-lp pool, replicating
+// SynthereumMultiLpLiquidityPoolLib._calculateRedeem exactly, bounded by
+// totalSyntheticTokens. totCollateral = floor(amountIn * price / (10^(18-collateralDec)
+// * 1e18)); feeAmount = floor(totCollateral * fee / 1e18); out = totCollateral - feeAmount.
 func (p *PoolSimulator) redeem(amountIn *uint256.Int, tokenOut string) (*pool.CalcAmountOutResult, error) {
 	e := &p.extra
-	if e.RedeemProbeIn == nil || e.RedeemProbeOut == nil || e.RedeemProbeIn.IsZero() || e.TotalSynth == nil {
+	if e.Price == nil || e.Price.IsZero() || e.FeePercentage == nil || e.TotalSynth == nil {
 		return nil, ErrTradeUnavailable
 	}
 	if amountIn.Gt(e.TotalSynth) {
 		return nil, ErrExceedsRedeemCapacity
 	}
 
-	var amountOut uint256.Int
-	if _, overflow := amountOut.MulDivOverflow(amountIn, e.RedeemProbeOut, e.RedeemProbeIn); overflow {
-		return nil, ErrOverflow
-	}
-	if amountOut.IsZero() {
-		return nil, ErrZeroAmountOut
-	}
+	var totCollateral uint256.Int
+	big256.MulDivDown(&totCollateral, amountIn, e.Price, p.mintScaleBone)
 
 	var fee uint256.Int
-	if e.RedeemProbeFee != nil {
-		big256.MulDivDown(&fee, amountIn, e.RedeemProbeFee, e.RedeemProbeIn)
+	big256.MulWadDown(&fee, &totCollateral, e.FeePercentage)
+	if fee.Gt(&totCollateral) {
+		return nil, ErrOverflow
+	}
+	var amountOut uint256.Int
+	amountOut.Sub(&totCollateral, &fee)
+	if amountOut.IsZero() {
+		return nil, ErrZeroAmountOut
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -168,8 +203,15 @@ func (p *PoolSimulator) redeem(amountIn *uint256.Int, tokenOut string) (*pool.Ca
 }
 
 // wrap quotes collateral -> synthetic on the fixed-rate wrapper: exactly 1:1 in
-// value (scaled by decimals), zero fee, unbounded capacity.
+// value (scaled by decimals), zero fee. wrap() delegates the deposit leg into the
+// underlying ERC4626 vault, which reverts above vault.maxDeposit(wrapper) — bounded
+// here when that figure is tracked (nil, i.e. not read this refresh, is treated as
+// unbounded rather than failing the quote outright).
 func (p *PoolSimulator) wrap(amountIn *uint256.Int, tokenIn, tokenOut string) (*pool.CalcAmountOutResult, error) {
+	if p.extra.WrapperMaxDeposit != nil && amountIn.Gt(p.extra.WrapperMaxDeposit) {
+		return nil, ErrExceedsWrapCapacity
+	}
+
 	var amountOut uint256.Int
 	if _, overflow := amountOut.MulOverflow(amountIn, p.wrapFactor); overflow {
 		return nil, ErrOverflow
@@ -185,17 +227,51 @@ func (p *PoolSimulator) wrap(amountIn *uint256.Int, tokenIn, tokenOut string) (*
 	}, nil
 }
 
-// unwrap quotes synthetic -> collateral on the fixed-rate wrapper: exactly 1:1 in
-// value (scaled by decimals), zero fee, bounded by the collateral the wrapper can
-// redeem from its vault.
+// unwrap quotes synthetic -> collateral on the fixed-rate wrapper: zero fee, bounded
+// first by the wrapper's own outstanding-synthetic accounting (totalSyntheticTokens,
+// the exact check FixedRateLendingWrapper.unwrap enforces via
+// 'require(_synthTokenAmount <= totSynthToken_, "Synth tokens amount too high")'),
+// and independently by the collateral actually withdrawable from the vault it
+// deposits into (vault.maxWithdraw(wrapper)). Both are exact on-chain limits and
+// either can bind: exceeding the first reverts "Synth tokens amount too high", the
+// second reverts Morpho's NotEnoughLiquidity() — verified to the unit on Base.
+//
+// When conversionRate() == 1e18 (the deployed default), unwrap REVERTS on-chain for
+// any amount that isn't an exact multiple of the scaling factor ('Wrong synth token
+// rounding') rather than flooring the remainder — mirrored here, not silently
+// truncated.
 func (p *PoolSimulator) unwrap(amountIn *uint256.Int, tokenOut string) (*pool.CalcAmountOutResult, error) {
+	e := &p.extra
+	if e.WrapperSynthCap == nil || e.WrapperRate == nil {
+		return nil, ErrTradeUnavailable
+	}
+
+	cap := e.WrapperSynthCap
+	if e.WrapperReserve != nil {
+		var vaultCap uint256.Int
+		if _, overflow := vaultCap.MulOverflow(e.WrapperReserve, p.wrapFactor); !overflow && vaultCap.Lt(cap) {
+			cap = &vaultCap
+		}
+	}
+	if amountIn.Gt(cap) {
+		return nil, ErrInsufficientWrapReserve
+	}
+
 	var amountOut uint256.Int
-	amountOut.Div(amountIn, p.wrapFactor)
+	if e.WrapperRate.Eq(big256.BONE) {
+		var rem uint256.Int
+		rem.Mod(amountIn, p.wrapFactor)
+		if !rem.IsZero() {
+			return nil, ErrWrongSynthTokenRounding
+		}
+		amountOut.Div(amountIn, p.wrapFactor)
+	} else {
+		var scaled uint256.Int
+		big256.MulDivDown(&scaled, amountIn, big256.BONE, e.WrapperRate)
+		amountOut.Div(&scaled, p.wrapFactor)
+	}
 	if amountOut.IsZero() {
 		return nil, ErrZeroAmountOut
-	}
-	if p.extra.WrapperReserve == nil || amountOut.Gt(p.extra.WrapperReserve) {
-		return nil, ErrInsufficientWrapReserve
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -207,15 +283,28 @@ func (p *PoolSimulator) unwrap(amountIn *uint256.Int, tokenOut string) (*pool.Ca
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
+	indexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
 	amountIn := fromBig(params.TokenAmountIn.Amount)
 	amountOut := fromBig(params.TokenAmountOut.Amount)
-	if indexIn < 0 || amountIn == nil || amountOut == nil {
+	if indexIn < 0 || indexOut < 0 || amountIn == nil || amountOut == nil {
 		return
+	}
+
+	// Info.Reserves is display/heuristic-only for this protocol (mint/redeem/wrap/
+	// unwrap are bounded by the extra.* capacity fields below, not by Reserves), but
+	// kept live so it doesn't go stale between tracker refreshes -- same convention
+	// as other integrations' UpdateBalance (increase the input side, decrease the
+	// output side), clamped at zero.
+	p.Info.Reserves[indexIn] = new(big.Int).Add(p.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	if out := new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount); out.Sign() >= 0 {
+		p.Info.Reserves[indexOut] = out
+	} else {
+		p.Info.Reserves[indexOut] = big.NewInt(0)
 	}
 
 	// fields are reassigned wholesale (copy-on-write) so CloneState can stay shallow
 	switch p.poolType {
-	case poolTypeMultiLP:
+	case PoolTypeMultiLP:
 		if indexIn == 0 { // mint: consumes mint capacity, adds outstanding synthetic supply
 			if p.extra.MaxSynthCap != nil {
 				p.extra.MaxSynthCap = subClamped(p.extra.MaxSynthCap, amountOut)
@@ -228,12 +317,23 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 				p.extra.TotalSynth = subClamped(p.extra.TotalSynth, amountIn)
 			}
 		}
-	case poolTypeWrapper:
-		if p.extra.WrapperReserve != nil {
-			if indexIn == 0 { // wrap: collateral is deposited into the vault
+	case PoolTypeWrapper:
+		if indexIn == 0 { // wrap: collateral deposited into the vault, outstanding synthetic supply grows
+			if p.extra.WrapperReserve != nil {
 				p.extra.WrapperReserve = new(uint256.Int).Add(p.extra.WrapperReserve, amountIn)
-			} else { // unwrap: collateral is redeemed from the vault
+			}
+			if p.extra.WrapperSynthCap != nil {
+				p.extra.WrapperSynthCap = new(uint256.Int).Add(p.extra.WrapperSynthCap, amountOut)
+			}
+			if p.extra.WrapperMaxDeposit != nil {
+				p.extra.WrapperMaxDeposit = subClamped(p.extra.WrapperMaxDeposit, amountIn)
+			}
+		} else { // unwrap: collateral redeemed from the vault, outstanding synthetic supply shrinks
+			if p.extra.WrapperReserve != nil {
 				p.extra.WrapperReserve = subClamped(p.extra.WrapperReserve, amountOut)
+			}
+			if p.extra.WrapperSynthCap != nil {
+				p.extra.WrapperSynthCap = subClamped(p.extra.WrapperSynthCap, amountIn)
 			}
 		}
 	}
@@ -241,16 +341,28 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
+	// Info.Reserves is written by index in UpdateBalance (unlike extra.*, which is
+	// always reassigned wholesale), so the shallow copy above is not enough on its
+	// own -- it would leave the clone sharing the original's backing array.
+	cloned.Info.Reserves = make([]*big.Int, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		cloned.Info.Reserves[i] = new(big.Int).Set(r)
+	}
 	return &cloned
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
-		BlockNumber:     p.Info.BlockNumber,
-		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
+		BlockNumber:    p.Info.BlockNumber,
+		PoolType:       p.poolType,
+		IsCollateralIn: p.GetTokenIndex(tokenIn) == 0,
 	}
 }
 
+// GetApprovalAddress reports the pool itself: every entry point pulls its input with
+// transferFrom or burns it from msg.sender, so the pool is the spender. The encoder
+// gets the same answer from its useApproveMaxDexes entry, which is why PoolMeta does
+// not repeat it.
 func (p *PoolSimulator) GetApprovalAddress(_, _ string) string {
 	return p.Info.Address
 }

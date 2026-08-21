@@ -73,9 +73,9 @@ func (t *PoolTracker) getNewPoolState(
 
 	var err error
 	switch staticExtra.PoolType {
-	case poolTypeMultiLP:
+	case PoolTypeMultiLP:
 		p, err = t.getMultiLpPoolState(ctx, p, overrides)
-	case poolTypeWrapper:
+	case PoolTypeWrapper:
 		p, err = t.getWrapperPoolState(ctx, p, &staticExtra, overrides)
 	default:
 		return p, ErrUnsupportedPoolType
@@ -93,40 +93,26 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 // getMultiLpPoolState refreshes the state of a SynthereumMultiLpLiquidityPool.
-// It probes the on-chain quoter with 1 whole unit of each input token; mint/redeem
-// outputs are linear in the input amount for a fixed oracle price and fee, so the
-// simulator can price any amount from these probes.
+// It reads the same inputs SynthereumMultiLpLiquidityPoolLib._calculateMint /
+// _calculateRedeem use on-chain (the oracle Price, via the pool's own Finder ->
+// SynthereumPriceFeed, and FeePercentage) so the simulator can reproduce mint/redeem
+// exactly (PreciseUnitMath floor rounding) for any input size, rather than
+// approximating from a single probed quote.
 func (t *PoolTracker) getMultiLpPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	mintProbeIn := big256.TenPow(p.Tokens[0].Decimals)   // 1 whole collateral unit
-	redeemProbeIn := big256.TenPow(p.Tokens[1].Decimals) // 1 whole synthetic unit
-
 	var (
-		mintOut, mintFee            *big.Int
-		redeemOut, redeemFee        *big.Int
-		maxCapacity, totalSynthetic *big.Int
-		feePercentage               *big.Int
+		maxCapacity, totalSynthetic, feePercentage *big.Int
+		finderAddr                                 common.Address
+		priceIdentifier                            [32]byte
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		req.SetOverrides(overrides)
 	}
-	req.AddCall(&ethrpc.Call{
-		ABI:    multiLpPoolABI,
-		Target: p.Address,
-		Method: poolMethodGetMintTradeInfo,
-		Params: []any{mintProbeIn.ToBig()},
-	}, []any{&mintOut, &mintFee})
-	req.AddCall(&ethrpc.Call{
-		ABI:    multiLpPoolABI,
-		Target: p.Address,
-		Method: poolMethodGetRedeemTradeInfo,
-		Params: []any{redeemProbeIn.ToBig()},
-	}, []any{&redeemOut, &redeemFee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    multiLpPoolABI,
 		Target: p.Address,
@@ -142,11 +128,24 @@ func (t *PoolTracker) getMultiLpPoolState(
 		Target: p.Address,
 		Method: poolMethodFeePercentage,
 	}, []any{&feePercentage})
+	req.AddCall(&ethrpc.Call{
+		ABI:    multiLpPoolABI,
+		Target: p.Address,
+		Method: poolMethodSynthereumFinder,
+	}, []any{&finderAddr})
+	req.AddCall(&ethrpc.Call{
+		ABI:    multiLpPoolABI,
+		Target: p.Address,
+		Method: poolMethodPriceFeedIdentifier,
+	}, []any{&priceIdentifier})
 
-	// TryAggregate: the trade-info probes may revert individually (e.g. the redeem
-	// probe when outstanding synthetic supply is below 1 whole unit); in that case
-	// the corresponding outputs stay nil and that trade side is disabled.
-	resp, err := req.TryAggregate()
+	// TryBlockAndAggregate, not TryAggregate: both tolerate an individual call
+	// reverting (which here only disables what depends on it, e.g. price resolution
+	// below, rather than failing the whole refresh), but Multicall3.tryAggregate
+	// returns only returnData, so Response.BlockNumber is left nil and the refresh
+	// block cannot be propagated to entity.Pool. tryBlockAndAggregate returns the
+	// block alongside the results.
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
@@ -160,15 +159,13 @@ func (t *PoolTracker) getMultiLpPoolState(
 		MaxSynthCap:   fromBig(maxCapacity),
 		TotalSynth:    fromBig(totalSynthetic),
 	}
-	if mintOut != nil && mintFee != nil {
-		extra.MintProbeIn = mintProbeIn
-		extra.MintProbeOut = fromBig(mintOut)
-		extra.MintProbeFee = fromBig(mintFee)
-	}
-	if redeemOut != nil && redeemFee != nil {
-		extra.RedeemProbeIn = redeemProbeIn
-		extra.RedeemProbeOut = fromBig(redeemOut)
-		extra.RedeemProbeFee = fromBig(redeemFee)
+
+	// A zero finder/identifier means those two calls reverted under TryAggregate;
+	// price resolution is skipped rather than dereferencing an unset value.
+	if finderAddr != (common.Address{}) && priceIdentifier != ([32]byte{}) {
+		if price, ok := t.getMultiLpPoolPrice(ctx, finderAddr, priceIdentifier, resp.BlockNumber, overrides); ok {
+			extra.Price = price
+		}
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -176,11 +173,11 @@ func (t *PoolTracker) getMultiLpPoolState(
 		return p, err
 	}
 
-	// reserves: [collateral payable via redeem, synthetic mintable]
+	// reserves: [collateral payable via redeem (gross, informational), synthetic mintable]
 	collateralReserve := reserveZero
-	if extra.RedeemProbeOut != nil && extra.RedeemProbeIn != nil && !extra.RedeemProbeIn.IsZero() {
+	if extra.Price != nil && !extra.Price.IsZero() {
 		var r uint256.Int
-		big256.MulDivDown(&r, extra.TotalSynth, extra.RedeemProbeOut, extra.RedeemProbeIn)
+		big256.MulDivDown(&r, extra.TotalSynth, extra.Price, big256.TenPow(36-p.Tokens[0].Decimals))
 		collateralReserve = r.Dec()
 	}
 	p.Reserves = entity.PoolReserves{collateralReserve, extra.MaxSynthCap.Dec()}
@@ -193,11 +190,82 @@ func (t *PoolTracker) getMultiLpPoolState(
 	return p, nil
 }
 
+// getMultiLpPoolPrice resolves the pool's Finder -> SynthereumPriceFeed module and
+// reads getLatestPrice(priceIdentifier), pinned to blockNumber (the block the rest
+// of the pool's state was read at). Both hops are best-effort: a revert or a
+// disagreeing Finder registration only disables mint/redeem pricing this refresh
+// (MaxSynthCap/TotalSynth/FeePercentage still update), it does not fail the update.
+func (t *PoolTracker) getMultiLpPoolPrice(
+	ctx context.Context,
+	finderAddr common.Address,
+	priceIdentifier [32]byte,
+	blockNumber *big.Int,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*uint256.Int, bool) {
+	var priceFeedAddr common.Address
+	finderReq := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		finderReq.SetBlockNumber(blockNumber)
+	}
+	if overrides != nil {
+		finderReq.SetOverrides(overrides)
+	}
+	finderReq.AddCall(&ethrpc.Call{
+		ABI:    finderABI,
+		Target: finderAddr.Hex(),
+		Method: finderMethodGetImplementationAddress,
+		Params: []any{priceFeedInterfaceName},
+	}, []any{&priceFeedAddr})
+	// Direct eth_call, not multicall: see the getLatestPrice note below — the same
+	// caller-identity constraint applies to the whole resolution chain, so both legs
+	// are issued as plain calls from the zero address.
+	if _, err := finderReq.Call(); err != nil || priceFeedAddr == (common.Address{}) {
+		return nil, false
+	}
+
+	var price *big.Int
+	priceReq := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		priceReq.SetBlockNumber(blockNumber)
+	}
+	if overrides != nil {
+		priceReq.SetOverrides(overrides)
+	}
+	priceReq.AddCall(&ethrpc.Call{
+		ABI:    priceFeedABI,
+		Target: priceFeedAddr.Hex(),
+		Method: priceFeedMethodGetLatestPrice,
+		Params: []any{priceIdentifier},
+	}, []any{&price})
+	// SynthereumPriceFeed.getLatestPrice authenticates its caller: it resolves
+	// PoolRegistry from the Finder and STATICCALLs back into msg.sender to check the
+	// caller is a registered pool. Routed through Multicall3 that callback hits a
+	// contract which does not implement the expected method and reverts, so the whole
+	// read fails (tryAggregate yields success=false with empty returndata) even though
+	// the identical call succeeds directly. Issued from the zero address the callback
+	// lands on a non-contract and returns empty-success, so the price reads fine.
+	// Hence Call() here — batching this into the pool's multicall silently disables
+	// pricing and leaves multi-lp pools unquotable.
+	if _, err := priceReq.Call(); err != nil || price == nil {
+		return nil, false
+	}
+
+	return fromBig(price), true
+}
+
 // getWrapperPoolState refreshes the state of the fixed-rate wrapper. Wrapping is
-// unbounded; unwrapping is bounded by the collateral the wrapper can redeem from
-// the ERC4626 vault it deposits into: previewRedeem(balanceOf(wrapper)).
+// unbounded. Unwrapping is bounded on-chain by
+// 'require(_synthTokenAmount <= totSynthToken_, "Synth tokens amount too high")'
+// (FixedRateLendingWrapper.unwrap) — the wrapper's own totalSyntheticTokens() is
+// therefore the binding, exact cap; the collateral redeemable from the ERC4626
+// vault it deposits into (maxWithdraw(wrapper)) is tracked as a second, independent
+// cap: the two diverge and either one binding causes an on-chain revert. Note it is
+// maxWithdraw, not previewRedeem(balanceOf) -- previewRedeem values the wrapper's
+// shares, but a Morpho vault lends most of its assets out, so the instantly
+// redeemable amount is materially smaller (on Base today 453k vs 631k EURC) and
+// unwrapping into that gap reverts NotEnoughLiquidity().
 // Note: the wrapper keeps no idle collateral, so reading the collateral token
-// balance of the wrapper would always return 0.
+// balance of the wrapper would always return 0 — hence the vault-based read.
 func (t *PoolTracker) getWrapperPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -208,7 +276,11 @@ func (t *PoolTracker) getWrapperPoolState(
 		return p, errors.New("missing wrapper vault address")
 	}
 
-	var shares *big.Int
+	var (
+		maxWithdraw                *big.Int
+		totalSynthetic, conversion *big.Int
+		maxDeposit                 *big.Int
+	)
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		req.SetOverrides(overrides)
@@ -216,54 +288,77 @@ func (t *PoolTracker) getWrapperPoolState(
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultABI,
 		Target: staticExtra.Vault,
-		Method: vaultMethodBalanceOf,
+		Method: vaultMethodMaxWithdraw,
 		Params: []any{common.HexToAddress(p.Address)},
-	}, []any{&shares})
+	}, []any{&maxWithdraw})
+	req.AddCall(&ethrpc.Call{
+		ABI:    vaultABI,
+		Target: staticExtra.Vault,
+		Method: vaultMethodMaxDeposit,
+		Params: []any{common.HexToAddress(p.Address)},
+	}, []any{&maxDeposit})
+	req.AddCall(&ethrpc.Call{
+		ABI:    wrapperABI,
+		Target: p.Address,
+		Method: wrapperMethodTotalSyntheticTokens,
+	}, []any{&totalSynthetic})
+	req.AddCall(&ethrpc.Call{
+		ABI:    wrapperABI,
+		Target: p.Address,
+		Method: wrapperMethodConversionRate,
+	}, []any{&conversion})
 
-	resp, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
-	if shares == nil {
-		return p, errors.New("failed to fetch wrapper vault shares")
+	if maxWithdraw == nil {
+		return p, errors.New("failed to fetch wrapper vault withdrawable liquidity")
 	}
-
-	assets := big.NewInt(0)
-	if shares.Sign() > 0 {
-		var previewedAssets *big.Int
-		previewReq := t.ethrpcClient.NewRequest().SetContext(ctx)
-		if resp.BlockNumber != nil {
-			// pin to the same block as the balanceOf call
-			previewReq.SetBlockNumber(resp.BlockNumber)
-		}
-		if overrides != nil {
-			previewReq.SetOverrides(overrides)
-		}
-		previewReq.AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: staticExtra.Vault,
-			Method: vaultMethodPreviewRedeem,
-			Params: []any{shares},
-		}, []any{&previewedAssets})
-		if _, err = previewReq.Aggregate(); err != nil {
-			return p, err
-		}
-		if previewedAssets == nil {
-			return p, errors.New("failed to preview wrapper vault redeem")
-		}
-		assets = previewedAssets
+	if totalSynthetic == nil || conversion == nil {
+		return p, errors.New("failed to fetch wrapper accounting state")
 	}
 
 	extra := Extra{
-		WrapperReserve: fromBig(assets),
+		WrapperReserve:    fromBig(maxWithdraw),
+		WrapperSynthCap:   fromBig(totalSynthetic),
+		WrapperRate:       fromBig(conversion),
+		WrapperMaxDeposit: fromBig(maxDeposit), // best-effort: nil leaves wrap() capacity-unchecked, matching pre-fix behavior
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
 
-	// reserves: [collateral payable via unwrap, placeholder for the unbounded wrap side]
-	p.Reserves = entity.PoolReserves{extra.WrapperReserve.Dec(), defaultSynthReserve}
+	// reserves: [collateral payable via unwrap, synthetic mintable via wrap].
+	// Reserves[0] mirrors the effective unwrap cap CalcAmountOut enforces (min of
+	// WrapperSynthCap and the vault-derived reserve), not just the raw vault figure.
+	// Reserves[1] uses the vault's real maxDeposit headroom (converted to synthetic
+	// units) when available, falling back to a large placeholder otherwise -- wrap
+	// has no on-chain cap beyond the vault's deposit capacity.
+	unwrapCap := extra.WrapperSynthCap
+	scalingFactor := big256.TenPow(p.Tokens[1].Decimals - p.Tokens[0].Decimals)
+	if extra.WrapperReserve != nil {
+		var vaultCap uint256.Int
+		if _, overflow := vaultCap.MulOverflow(extra.WrapperReserve, scalingFactor); !overflow &&
+			(unwrapCap == nil || vaultCap.Lt(unwrapCap)) {
+			unwrapCap = &vaultCap
+		}
+	}
+	wrapCapacity := defaultSynthReserve
+	if extra.WrapperMaxDeposit != nil {
+		var synthCap uint256.Int
+		if _, overflow := synthCap.MulOverflow(extra.WrapperMaxDeposit, scalingFactor); !overflow {
+			wrapCapacity = synthCap.Dec()
+		}
+	}
+	unwrapCapReserve := reserveZero
+	if unwrapCap != nil {
+		var collateralEquivalent uint256.Int
+		collateralEquivalent.Div(unwrapCap, scalingFactor)
+		unwrapCapReserve = collateralEquivalent.Dec()
+	}
+	p.Reserves = entity.PoolReserves{unwrapCapReserve, wrapCapacity}
 	p.Extra = string(extraBytes)
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()

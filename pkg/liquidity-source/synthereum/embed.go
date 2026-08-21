@@ -8,9 +8,14 @@ var multiLpPoolABIData []byte
 //go:embed abis/ERC4626Vault.json
 var vaultABIData []byte
 
-//go:embed pools/base.json
-var basePoolData []byte
+//go:embed abis/SynthereumFinder.json
+var finderABIData []byte
 
-var bytesByPath = map[string][]byte{
-	"pools/base.json": basePoolData,
-}
+//go:embed abis/SynthereumPriceFeed.json
+var priceFeedABIData []byte
+
+//go:embed abis/SynthereumFixedRateLendingWrapper.json
+var wrapperABIData []byte
+
+//go:embed abis/SynthereumRegistry.json
+var registryABIData []byte

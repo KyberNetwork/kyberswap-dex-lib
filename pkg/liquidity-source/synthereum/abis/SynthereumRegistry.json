@@ -1,0 +1,34 @@
+[
+  {
+    "inputs": [],
+    "name": "getSyntheticTokens",
+    "outputs": [{ "internalType": "string[]", "name": "", "type": "string[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getCollaterals",
+    "outputs": [{ "internalType": "address[]", "name": "", "type": "address[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getVersions",
+    "outputs": [{ "internalType": "uint8[]", "name": "", "type": "uint8[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "syntheticTokenSymbol", "type": "string" },
+      { "internalType": "contract IERC20", "name": "collateral", "type": "address" },
+      { "internalType": "uint8", "name": "version", "type": "uint8" }
+    ],
+    "name": "getElements",
+    "outputs": [{ "internalType": "address[]", "name": "", "type": "address[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

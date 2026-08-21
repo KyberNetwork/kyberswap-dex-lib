@@ -9,6 +9,10 @@ import (
 var (
 	multiLpPoolABI abi.ABI
 	vaultABI       abi.ABI
+	finderABI      abi.ABI
+	priceFeedABI   abi.ABI
+	wrapperABI     abi.ABI
+	registryABI    abi.ABI
 )
 
 func init() {
@@ -18,6 +22,10 @@ func init() {
 	}{
 		{&multiLpPoolABI, multiLpPoolABIData},
 		{&vaultABI, vaultABIData},
+		{&finderABI, finderABIData},
+		{&priceFeedABI, priceFeedABIData},
+		{&wrapperABI, wrapperABIData},
+		{&registryABI, registryABIData},
 	}
 
 	for _, b := range builder {
