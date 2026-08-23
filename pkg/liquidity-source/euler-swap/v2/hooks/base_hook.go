@@ -6,8 +6,10 @@ import (
 )
 
 var (
-	ErrHookNotSupported = errors.New("hook not supported")
-	ErrHookCallFailed   = errors.New("hook call failed")
+	ErrHookNotSupported     = errors.New("hook not supported")
+	ErrHookCallFailed       = errors.New("hook call failed")
+	ErrSwapperNotAuthorized = errors.New("swapper not authorized by swap hook")
+	ErrPoolDisabled         = errors.New("pool disabled by swap hook")
 )
 
 type BaseHook struct{}
