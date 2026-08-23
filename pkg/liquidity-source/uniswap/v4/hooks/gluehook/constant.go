@@ -6,9 +6,9 @@ import (
 
 // GlueHook is deployed via CREATE from a nonce-0 deployer, so it lives at the SAME address on
 // every chain it supports (Ethereum, Base, Unichain, Arbitrum, Optimism, BNB, Polygon,
-// Avalanche, Blast, Celo, Monad, X Layer, World Chain, Zora, Soneium, MegaETH, Robinhood, Tempo).
+// Avalanche, X Layer, World Chain, Soneium, MegaETH, Robinhood).
 var HookAddresses = []common.Address{
-	common.HexToAddress("0xb216070c3509047ea597E2E626A29cea427a60C8"),
+	common.HexToAddress("0x0F41715dc432692b66A5aDF8dCfef6Ac407b20c8"),
 }
 
 // Worst-case extra gas a GlueHook pot action can add to a swap, from the audited gas suite
