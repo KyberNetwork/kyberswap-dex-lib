@@ -370,7 +370,9 @@ func (p *PoolSimulator) getFee(zeroForOne bool) *uint256.Int {
 			Reserve0:      p.reserves[0],
 			Reserve1:      p.reserves[1],
 		})
-		if err == nil {
+		// Mirrors EulerSwap's QuoteLib.getFee: type(uint64).max means the hook
+		// defers to the pool's static fee0/fee1.
+		if err == nil && fee != hooks.FeeUseStaticFee {
 			return uint256.NewInt(fee)
 		}
 	}
