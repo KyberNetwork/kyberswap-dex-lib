@@ -19,7 +19,7 @@ type RFQHandler struct {
 }
 
 func NewRFQHandler(config *Config) *RFQHandler {
-	client := NewHTTPClient(config.LimitOrderHTTPUrl)
+	client := NewHTTPClientWithConfig(config)
 	return &RFQHandler{
 		config: config,
 		client: client,

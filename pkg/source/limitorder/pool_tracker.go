@@ -23,7 +23,7 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryC(DexTypeLimitOrder, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config) *PoolTracker {
-	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
+	limitOrderClient := NewHTTPClientWithConfig(cfg)
 
 	return &PoolTracker{
 		config:           cfg,

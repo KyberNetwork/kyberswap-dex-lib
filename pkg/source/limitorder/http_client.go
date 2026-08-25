@@ -13,16 +13,52 @@ import (
 	"github.com/samber/lo"
 )
 
+// defaultHTTPTimeout exists only to bound a hung backend, so it is deliberately far
+// looser than any caller's SLO. Latency-sensitive callers set Config.HTTPTimeout.
+const defaultHTTPTimeout = 30 * time.Second
+
 type httpClient struct {
 	client *resty.Client
 }
 
+// Deprecated: use NewHTTPClientWithConfig, which also supports a timeout, retries and a
+// caller-supplied Transport.
 func NewHTTPClient(baseURL string) *httpClient {
-	return NewHTTPClientWithRestyClient(baseURL, resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))))
+	return NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: baseURL})
 }
 
+// Deprecated: use NewHTTPClientWithConfig and set Config.HTTPClient instead.
 func NewHTTPClientWithRestyClient(baseURL string, client *resty.Client) *httpClient {
-	client.SetBaseURL(baseURL)
+	client.SetBaseURL(baseURL).SetTimeout(defaultHTTPTimeout)
+
+	return &httpClient{
+		client: client,
+	}
+}
+
+func NewHTTPClientWithConfig(cfg *Config) *httpClient {
+	httpCli := cfg.HTTPClient
+	if httpCli == nil {
+		httpCli = http.DefaultClient
+	}
+
+	timeout := cfg.HTTPTimeout.Duration
+	if timeout <= 0 {
+		timeout = defaultHTTPTimeout
+	}
+
+	// resty skips its single-shot path for any non-zero retry count, then runs
+	// `for attempt := 0; attempt <= retries` — a negative count executes the request
+	// zero times and hands back a nil response for the caller to dereference.
+	retryCount := max(cfg.HTTPRetryCount, 0)
+
+	// shallow-copy so SetTimeout writes a per-dex Timeout instead of mutating the
+	// caller's client; the Transport pointer, and so the connection pool, is shared.
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(httpCli))).
+		SetBaseURL(cfg.LimitOrderHTTPUrl).
+		SetTimeout(timeout).
+		SetRetryCount(retryCount)
+
 	return &httpClient{
 		client: client,
 	}

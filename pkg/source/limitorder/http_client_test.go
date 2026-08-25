@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/go-resty/resty/v2"
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -45,7 +46,7 @@ func TestGetOpSignatures_ErrorWrapping(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		c := NewHTTPClientWithRestyClient(srv.URL, resty.New())
+		c := NewHTTPClient(srv.URL)
 		_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrGetOpSignaturesFailed), "got: %v", err)
@@ -57,16 +58,59 @@ func TestGetOpSignatures_ErrorWrapping(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		c := NewHTTPClientWithRestyClient(srv.URL, resty.New())
+		c := NewHTTPClient(srv.URL)
 		_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrGetOpSignaturesFailed), "got: %v", err)
 	})
 
 	t.Run("transport/network error wraps ErrGetOpSignaturesFailed", func(t *testing.T) {
-		c := NewHTTPClientWithRestyClient("http://127.0.0.1:1", resty.New())
+		c := NewHTTPClient("http://127.0.0.1:1")
 		_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrGetOpSignaturesFailed), "got: %v", err)
+	})
+}
+
+// TestNewHTTPClientWithConfig covers the knobs the Config-taking constructor adds.
+func TestNewHTTPClientWithConfig(t *testing.T) {
+	t.Run("negative retry count does not disable the request", func(t *testing.T) {
+		// resty takes its single-shot path only when RetryCount == 0; any other value goes
+		// through Backoff, whose `attempt <= retries` loop never runs for a negative count
+		// and returns a nil response. Clamping keeps that out of the caller's hands.
+		var hits int
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			hits++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"code":0,"data":{"operatorSignatures":[]}}`))
+		}))
+		defer srv.Close()
+
+		c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: srv.URL, HTTPRetryCount: -1})
+		require.NotPanics(t, func() {
+			_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
+			require.NoError(t, err)
+		})
+		assert.Equal(t, 1, hits)
+	})
+
+	t.Run("unset timeout falls back to the default", func(t *testing.T) {
+		c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: "http://example.invalid"})
+		assert.Equal(t, defaultHTTPTimeout, c.client.GetClient().Timeout)
+	})
+
+	t.Run("injected client shares its Transport but keeps its own Timeout", func(t *testing.T) {
+		transport := &http.Transport{MaxIdleConnsPerHost: 64}
+		shared := &http.Client{Transport: transport, Timeout: time.Hour}
+
+		c := NewHTTPClientWithConfig(&Config{
+			LimitOrderHTTPUrl: "http://example.invalid",
+			HTTPClient:        shared,
+			HTTPTimeout:       durationjson.Duration{Duration: 250 * time.Millisecond},
+		})
+
+		assert.Same(t, transport, c.client.GetClient().Transport, "connection pool must be shared")
+		assert.Equal(t, 250*time.Millisecond, c.client.GetClient().Timeout)
+		assert.Equal(t, time.Hour, shared.Timeout, "caller's client must not be mutated")
 	})
 }
