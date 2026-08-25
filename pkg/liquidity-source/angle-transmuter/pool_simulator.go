@@ -106,7 +106,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, err
 		}
 
-		if err = s.checkAmounts(&collatInfo, amountOut); err != nil {
+		if err = s.checkAmounts(&collatInfo, amountIn, amountOut); err != nil {
 			return nil, err
 		}
 	}
@@ -124,9 +124,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
-func (s *PoolSimulator) checkAmounts(collatInfo *CollateralState, amountOut *uint256.Int) error {
+func (s *PoolSimulator) checkAmounts(collatInfo *CollateralState, amountIn, amountOut *uint256.Int) error {
 	if collatInfo.IsManaged {
 		return ErrUnsupportedBurnCollateral
+	}
+
+	// Burning decrements issuanceForCollateral[collateral] by amountIn on-chain; a rail with
+	// no mint history (issued = 0) underflows there and reverts with an arithmetic panic for
+	// every burn size, so quote-time must reject it the same way.
+	issued := collatInfo.StablecoinsIssued
+	if issued == nil || issued.Lt(amountIn) {
+		return ErrInsufficientStablecoinIssued
 	}
 
 	if amountOut.Gt(collatInfo.Balance) {
