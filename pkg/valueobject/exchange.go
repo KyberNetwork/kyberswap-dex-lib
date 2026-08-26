@@ -117,6 +117,7 @@ const (
 	ExchangeFermi                       = "fermi"
 	ExchangeFermiProp                   = "fermi-prop"
 	ExchangeFlap                        = "flap"
+	ExchangeFlowstateC1                 = "flowstate-c1"
 	ExchangeFluidDexLite                = "fluid-dex-lite"
 	ExchangeFluidDexT1                  = "fluid-dex-t1"
 	ExchangeFluidDexV2                  = "fluid-dex-v2"
