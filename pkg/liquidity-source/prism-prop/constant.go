@@ -10,6 +10,12 @@ const (
 
 	methodGetSupportedPairs = "getSupportedPairs"
 	methodGetOrderBook      = "getOrderBook"
+	methodGetAmountOut      = "getAmountOut"
+
+	// maxCalibratedFee bounds the self-calibrated fee (see pool_tracker.go's
+	// calibrateFee) against a bad/zero reference quote producing a nonsense
+	// fee that would make CalcAmountOut wildly under-quote.
+	maxCalibratedFee = 0.01
 )
 
 // defaultGas is a placeholder pending a real gas measurement (e.g. via

@@ -109,3 +109,35 @@ func TestToLevels_SmallTradeNotRejected(t *testing.T) {
 	})
 	assert.NoErrorf(t, err, "a trade sized to the smallest real order must not be rejected as below minTrade")
 }
+
+// TestCalibrateFee_Math pins the fee math against ratios observed in a real
+// on-chain swap (see pool_tracker.go's calibrateFee doc): the router's
+// actual output was consistently ~7.2-7.3bps below what raw maker prices
+// implied, in both directions.
+func TestCalibrateFee_Math(t *testing.T) {
+	rawOut := big.NewInt(482_894_669)
+	realOut := big.NewInt(482_543_390) // observed total/quote ratio 0.9992725556471198
+
+	fee := feeFrom(realOut, rawOut)
+	assert.InDeltaf(t, 0.0007274, fee, 1e-6, "fee should match the observed ~7.27bps shortfall")
+	assert.Equal(t, fee, clampFee(fee), "a realistic fee must not get clamped")
+
+	assert.Zero(t, clampFee(-0.001), "a negative fee (real quote came back higher than raw) must clamp to 0")
+	assert.Equal(t, maxCalibratedFee, clampFee(1.0),
+		"a nonsense fee from a bad reference quote must clamp to the safety ceiling")
+}
+
+func TestBestOrderAmountIn(t *testing.T) {
+	levels := []orderbook.Level{
+		{0, 0},        // sentinel
+		{2.5, 2463.0}, // best real order: 2.5 WETH @ 2463 USDC/WETH
+	}
+
+	amountIn, rawOut, ok := bestOrderAmountIn(levels, 18, 6)
+	require.True(t, ok)
+	assert.Equal(t, big.NewInt(2_500_000_000_000_000_000), amountIn)
+	assert.Equal(t, big.NewInt(6_157_500_000), rawOut)
+
+	_, _, ok = bestOrderAmountIn(levels[:1], 18, 6)
+	assert.False(t, ok, "no real orders (only the sentinel) must report not-ok, not divide by zero downstream")
+}
