@@ -1,0 +1,34 @@
+[
+  {
+    "inputs": [{"internalType": "address", "name": "token", "type": "address"}],
+    "name": "poolByToken",
+    "outputs": [{"internalType": "address", "name": "pool", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "pool", "type": "address"},
+      {"internalType": "address", "name": "asset", "type": "address"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "quoteBuyFromPool",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "bool", "name": "available", "type": "bool"},
+          {"internalType": "uint256", "name": "fillableAmount", "type": "uint256"},
+          {"internalType": "uint256", "name": "quoteAmount", "type": "uint256"},
+          {"internalType": "uint256", "name": "feeAmount", "type": "uint256"},
+          {"internalType": "uint16", "name": "feeBps", "type": "uint16"},
+          {"internalType": "address", "name": "quoteAsset", "type": "address"}
+        ],
+        "internalType": "struct Quote",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
