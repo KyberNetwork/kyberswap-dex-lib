@@ -56,10 +56,3 @@ type getOrderBookResult struct {
 type StaticExtra struct {
 	RouterAddress string `json:"router"`
 }
-
-// PoolMeta is returned by GetMetaInfo so aggregator-encoding can call the
-// router's own swap directly -- see PackPrismProp.
-type PoolMeta struct {
-	RouterAddress string `json:"router"`
-	BlockNumber   uint64 `json:"blockNumber"`
-}

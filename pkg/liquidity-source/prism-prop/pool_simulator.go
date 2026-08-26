@@ -11,8 +11,12 @@ import (
 )
 
 // PoolSimulator wraps order-book.PoolSimulator purely to carry prism-prop's
-// own StaticExtra (the router address) through to GetMetaInfo -- see
-// PoolMeta's doc. The quoting/state logic itself is entirely
+// own StaticExtra (the router address) through to GetMetaInfo, as
+// pool.MetaInfo.ApprovalAddress -- prism-prop's swap(address,address,int256,
+// uint256,address) (0x00799aff) is byte-for-byte identical to IFeltir.swap
+// in ks-dex-aggregator-sc, so encoding reuses executeFeltir/
+// PackPoolAddressFromApprovalInfo as-is; no prism-prop-specific executor
+// code exists or is needed. The quoting/state logic itself is entirely
 // order-book.PoolSimulator's; this type adds no behavior of its own.
 type PoolSimulator struct {
 	*orderbook.PoolSimulator
@@ -43,5 +47,5 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return PoolMeta{RouterAddress: p.routerAddress, BlockNumber: p.Info.BlockNumber}
+	return pool.MetaInfo{ApprovalAddress: p.routerAddress, BlockNumber: p.Info.BlockNumber}
 }
