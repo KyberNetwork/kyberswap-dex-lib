@@ -33,10 +33,11 @@ var (
 	}
 
 	DHooks = map[common.Address]func(json.RawMessage) IDHook{ // Doppler Hooks i.e. DopplerHookInitializer's internal hooks
-		h("0x97cAD5684FB7Cc2bEd9a9b5eBfba67138F4f2503"): NewRehypeDHook, // monad RehypeDopplerHook
-		h("0x3Ec4798A9B11e8243A8Db99687f7A23597B96623"): NewRehypeDHook, // ethereum/base RehypeDopplerHook
-		h("0xBF4195ab0B03e1eB3345dd1e83BeD7650b1ed123"): NewRehypeDHook, // ethereum/base RehypeDopplerHookInitializer
-		h("0x6f02324d20cc679d0e585290caa6b16bacbc0f77"): NewRehypeDHook, // robinhood RehypeDopplerHookInitializer
+		h("0x97cAD5684FB7Cc2bEd9a9b5eBfba67138F4f2503"): NewRehypeDHook,   // monad RehypeDopplerHook (MAX_SWAP_FEE = 0.8e6)
+		h("0x3Ec4798A9B11e8243A8Db99687f7A23597B96623"): NewRehypeDHook,   // ethereum/base RehypeDopplerHook (MAX_SWAP_FEE = 0.8e6)
+		h("0xBF4195ab0B03e1eB3345dd1e83BeD7650b1ed123"): NewRehypeDHook,   // ethereum/base RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
+		h("0x6f02324d20cc679d0e585290caa6b16bacbc0f77"): NewRehypeDHook,   // robinhood RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
+		h("0x9982538F41f2ae29ddb9d3D9307010052984FDbB"): NewRehypeDHookV2, // ethereum/base RehypeDopplerHook v2 (MAX_SWAP_FEE = 1e6)
 	}
 
 	ErrCannotSwapBeforeStartingTime = errors.New("cannot swap before starting time")
