@@ -110,8 +110,16 @@ type IDHook interface {
 	AfterSwap(params *uniswapv4.AfterSwapParams, dExtra *DHook) (*uniswapv4.AfterSwapResult, error)
 }
 
-// maxSwapFee matches the on-chain MAX_SWAP_FEE = 0.8e6 constant in RehypeTypes.sol.
-var maxSwapFee = big.NewInt(800_000)
+// Fee denominators (MAX_SWAP_FEE) differ across deployed RehypeTypes.sol generations:
+// the first generation used 0.8e6, the 2026-03 refactor changed it to 1e6
+// ("Maximum swap fee denominator (1e6 = 100%)"). Verified on-chain against
+// 0x9982538F41f2ae29ddb9d3D9307010052984FDbB (base): a swap with core output
+// 806621420570090 wei and currentFee 10500 transferred exactly
+// floor(806621420570090*10500/1e6) = 8469524915985 wei of hook fees.
+const (
+	maxSwapFeeV1 int64 = 800_000   // pre-refactor deployments
+	maxSwapFeeV2 int64 = 1_000_000 // post-refactor deployments
+)
 
 // RehypeDHook holds the fee schedule for a RehypeDopplerHook pool.
 // All fields nil means no fee (fee = 0).
@@ -122,11 +130,24 @@ type RehypeDHook struct {
 	EndFee          int64 `json:"e,omitempty"`
 	StartingTime    int64 `json:"t,omitempty"`
 	DurationSeconds int64 `json:"d,omitempty"`
+
+	// feeDenominator is the MAX_SWAP_FEE constant of the deployed hook generation this
+	// instance models. Derived from DHooks at construction; never persisted.
+	feeDenominator int64
 }
 
 func NewRehypeDHook(dExtra json.RawMessage) IDHook {
+	return newRehypeDHook(dExtra, maxSwapFeeV1)
+}
+
+func NewRehypeDHookV2(dExtra json.RawMessage) IDHook {
+	return newRehypeDHook(dExtra, maxSwapFeeV2)
+}
+
+func newRehypeDHook(dExtra json.RawMessage, feeDenominator int64) IDHook {
 	var hook RehypeDHook
 	_ = json.Unmarshal(dExtra, &hook)
+	hook.feeDenominator = feeDenominator
 	return &hook
 }
 
@@ -224,9 +245,12 @@ func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*u
 		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI, Gas: 198835}, nil
 	}
 	feeBase := lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn)
-	hookFee := big.NewInt(currentFee)
+	denominator := h.feeDenominator
+	if denominator == 0 { // zero-value instances keep the legacy shared denominator
+		denominator = maxSwapFeeV1
+	}
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(hookFee, feeBase, hookFee, maxSwapFee),
+		HookFee: bignumber.MulDivDown(new(big.Int), big.NewInt(currentFee), feeBase, big.NewInt(denominator)),
 		Gas:     198835,
 	}, nil
 }
