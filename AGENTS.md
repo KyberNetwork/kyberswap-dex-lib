@@ -52,6 +52,22 @@ pkg/liquidity-source/<dex>/
 - Check native token support.
 - Decide whether to reuse an existing integration or create a new one.
 
+### Naming Convention
+
+Name a new source `<protocol>-<family>`. Use that same string for the directory under
+`pkg/liquidity-source/`, for `DexType`, and for the `pkg/valueobject` exchange constant.
+
+- For protocols with multiple generations, prefer nested packages (brownfi/v2, brownfi/v3).
+- Sources outside these families keep a plain name: `carbon`, `pendle`. Existing names stay.
+
+Suffixes:
+- -v2: Uniswap V2 / Solidly / Velodrome forks — e.g. aeon-v2, velodrome-v2
+- -v3: Uniswap V3 forks — e.g. katana-v3
+- -v4: Uniswap V4 / Algebra Integral / hooks — e.g. uniswap-v4-b20
+- -lb: Liquidity Book
+- -prop: Proprietary AMM — e.g. 1010-prop, wasabi-prop
+- -fun: Launchpad bonding curve — e.g. alt-fun, virtual-fun
+
 ### Pool Discovery - IPoolsListUpdater
 
 - Prefer discovering pools on-chain over off-chain indexes.
