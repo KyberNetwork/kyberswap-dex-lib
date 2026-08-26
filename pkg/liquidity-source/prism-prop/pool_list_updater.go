@@ -47,7 +47,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	pools := make([]entity.Pool, 0, len(pairs))
 	for _, pair := range pairs {
 		pools = append(pools, entity.Pool{
-			Address:  poolAddress(u.config.RouterAddress, pair.Token0.Hex(), pair.Token1.Hex()),
+			Address:  poolAddress(pair.Token0.Hex(), pair.Token1.Hex()),
 			Exchange: u.config.DexID,
 			Type:     DexType,
 			Tokens: []*entity.PoolToken{
@@ -63,9 +63,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	return pools, nil, nil
 }
 
-// poolAddress is synthetic: prism-prop has one router contract quoting every
-// pair, so the "pool address" is derived from (router, pair), same as
-// titan-prop's IPropAMM venues.
-func poolAddress(router, token0, token1 string) string {
-	return strings.ToLower(router + "_" + token0 + "_" + token1)
+// poolAddress is synthetic: prism-prop has one router per chain (from
+// config, carried separately via StaticExtra.RouterAddress) quoting every
+// pair, so the pool ID only needs to disambiguate the pair, not the router.
+func poolAddress(token0, token1 string) string {
+	return strings.ToLower(token0 + "_" + token1)
 }
