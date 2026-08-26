@@ -98,13 +98,20 @@ func (t *PoolTracker) GetNewPoolState(
 // assumption (best price consumed first). On-chain orders arrive in no
 // particular price order (confirmed against a live getOrderBook call), so
 // this sort is required, not cosmetic.
+//
+// order-book.NewPoolSimulatorWith takes minTrade from LevelsFrom[i][0].Size()
+// (see order-book/pool_simulator.go), so the first level here must be a
+// zero-size sentinel -- otherwise the best-priced real order's own size
+// would wrongly become the minimum tradeable amount, rejecting smaller
+// trades that later (worse-priced) orders could still fill. Same pattern as
+// kuru-ob's pool_tracker.go ("first level == min trade == 0").
 func toLevels(side0, side1 Side, decimalsIn, decimalsOut uint8) []orderbook.Level {
 	orders := make([]Order, 0, len(side0.Orders)+len(side1.Orders))
 	orders = append(orders, side0.Orders...)
 	orders = append(orders, side1.Orders...)
 
 	scaleIn, scaleOut := math.Pow10(int(decimalsIn)), math.Pow10(int(decimalsOut))
-	levels := make([]orderbook.Level, 0, len(orders))
+	levels := make([]orderbook.Level, 1, 1+len(orders)) // levels[0] == zero-size sentinel
 	for _, o := range orders {
 		amountIn, _ := new(big.Float).SetInt(o.AmountIn).Float64()
 		amountOut, _ := new(big.Float).SetInt(o.AmountOut).Float64()
@@ -116,6 +123,7 @@ func toLevels(side0, side1 Side, decimalsIn, decimalsOut uint8) []orderbook.Leve
 		levels = append(levels, orderbook.Level{size, price})
 	}
 
-	sort.Slice(levels, func(i, j int) bool { return levels[i].Price() > levels[j].Price() })
+	rest := levels[1:]
+	sort.Slice(rest, func(i, j int) bool { return rest[i].Price() > rest[j].Price() })
 	return levels
 }

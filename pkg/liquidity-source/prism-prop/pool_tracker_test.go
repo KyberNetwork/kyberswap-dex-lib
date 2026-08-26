@@ -2,10 +2,17 @@ package prismprop
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
+	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 // realOrderBookHex is a real getOrderBook(WETH, USDC) response captured from
@@ -25,11 +32,13 @@ func TestToLevels_MatchesGetAmountOut(t *testing.T) {
 	require.Len(t, res.Book.Side1.Orders, 13)
 
 	levels := toLevels(res.Book.Side0, res.Book.Side1, 18, 6) // WETH -> USDC
-	require.Len(t, levels, 25)
+	require.Len(t, levels, 26)                                // 25 real orders + zero-size minTrade sentinel
 
-	for i := 1; i < len(levels); i++ {
+	assert.Zerof(t, levels[0].Size(), "levels[0] must be a zero-size sentinel -- order-book takes minTrade from it")
+
+	for i := 2; i < len(levels); i++ {
 		assert.GreaterOrEqualf(t, levels[i-1].Price(), levels[i].Price(),
-			"levels must be sorted by descending price so order-book's greedy walk consumes best price first")
+			"levels[1:] must be sorted by descending price so order-book's greedy walk consumes best price first")
 	}
 
 	// Walk the ladder for 0.5 WETH the same way order-book.getAmountOut does,
@@ -52,4 +61,51 @@ func TestToLevels_MatchesGetAmountOut(t *testing.T) {
 	const wantAmountOut = 1232.452951
 	assert.InEpsilonf(t, wantAmountOut, amountOut, 0.001, // 10bps tolerance for the router's taker spread
 		"parsed ladder should reproduce getAmountOut's quote to within the router's fee/spread")
+}
+
+// TestToLevels_SmallTradeNotRejected pins the actual bug: without the
+// zero-size sentinel at levels[0], order-book.NewPoolSimulatorWith reads
+// minTrade from the best-priced real order's own size, wrongly rejecting
+// smaller trades that later (worse-priced) orders could still fill.
+func TestToLevels_SmallTradeNotRejected(t *testing.T) {
+	data, err := hex.DecodeString(realOrderBookHex)
+	require.NoError(t, err)
+
+	var res getOrderBookResult
+	require.NoError(t, routerABI.UnpackIntoInterface(&res, methodGetOrderBook, data))
+
+	levels := toLevels(res.Book.Side0, res.Book.Side1, 18, 6)
+
+	smallest := levels[1]
+	for _, lvl := range levels[1:] {
+		if lvl.Size() < smallest.Size() {
+			smallest = lvl
+		}
+	}
+	require.Greater(t, smallest.Size(), 0.0)
+	require.Greaterf(t, levels[1].Size(), smallest.Size(),
+		"fixture must have a smaller order than the best-priced one for this test to mean anything")
+
+	extraBytes, err := json.Marshal(orderbook.Extra{LevelsFrom: [2][]orderbook.Level{levels, nil}})
+	require.NoError(t, err)
+
+	sim, err := orderbook.NewPoolSimulatorWith(entity.Pool{
+		Exchange:  string(DexType),
+		Type:      orderbook.DexType,
+		Timestamp: time.Now().Unix(),
+		Tokens: []*entity.PoolToken{
+			{Address: "0x4200000000000000000000000000000000000006", Decimals: 18},
+			{Address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", Decimals: 6},
+		},
+		Reserves: entity.PoolReserves{"0", "0"},
+		Extra:    string(extraBytes),
+	}, time.Hour)
+	require.NoError(t, err)
+
+	amountIn, _ := big.NewFloat(smallest.Size() * 1e18).Int(nil)
+	_, err = sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: amountIn},
+		TokenOut:      "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+	})
+	assert.NoErrorf(t, err, "a trade sized to the smallest real order must not be rejected as below minTrade")
 }
