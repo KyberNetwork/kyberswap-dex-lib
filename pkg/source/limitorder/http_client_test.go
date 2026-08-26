@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -112,5 +113,24 @@ func TestNewHTTPClientWithConfig(t *testing.T) {
 		assert.Same(t, transport, c.client.GetClient().Transport, "connection pool must be shared")
 		assert.Equal(t, 250*time.Millisecond, c.client.GetClient().Timeout)
 		assert.Equal(t, time.Hour, shared.Timeout, "caller's client must not be mutated")
+	})
+}
+
+// TestNewHTTPClientWithRestyClient covers the deprecated wrapper: it must bound a client
+// that has no timeout without retuning one that already does.
+func TestNewHTTPClientWithRestyClient(t *testing.T) {
+	const baseURL = "http://example.invalid"
+
+	t.Run("injected client without a timeout gets the default", func(t *testing.T) {
+		c := NewHTTPClientWithRestyClient(baseURL, resty.New())
+		assert.Equal(t, defaultHTTPTimeout, c.client.GetClient().Timeout)
+		assert.Equal(t, baseURL, c.client.BaseURL)
+	})
+
+	t.Run("injected client keeps its own timeout", func(t *testing.T) {
+		injected := resty.New().SetTimeout(5 * time.Second)
+		c := NewHTTPClientWithRestyClient(baseURL, injected)
+		assert.Equal(t, 5*time.Second, c.client.GetClient().Timeout)
+		assert.Equal(t, baseURL, c.client.BaseURL)
 	})
 }

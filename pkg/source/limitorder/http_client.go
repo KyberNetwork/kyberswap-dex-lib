@@ -29,7 +29,12 @@ func NewHTTPClient(baseURL string) *httpClient {
 
 // Deprecated: use NewHTTPClientWithConfig and set Config.HTTPClient instead.
 func NewHTTPClientWithRestyClient(baseURL string, client *resty.Client) *httpClient {
-	client.SetBaseURL(baseURL).SetTimeout(defaultHTTPTimeout)
+	client.SetBaseURL(baseURL)
+	// bound only a client that has none of its own; overwriting would silently retune
+	// a caller that already chose a timeout
+	if client.GetClient().Timeout <= 0 {
+		client.SetTimeout(defaultHTTPTimeout)
+	}
 
 	return &httpClient{
 		client: client,
