@@ -241,6 +241,7 @@ const (
 	ExchangePoe                         = "poe"
 	ExchangePoolParty                   = "pool-party"
 	ExchangePrimeETH                    = "primeeth"
+	ExchangePrismProp                   = "prism-prop"
 	ExchangePufferPufETH                = "puffer-pufeth"
 	ExchangeRamses                      = "ramses"
 	ExchangeRenzoEZETH                  = "renzo-ezeth"
@@ -417,6 +418,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeGhost:         {},
 	ExchangeFluxProp:      {},
 	ExchangeParityProp:    {},
+	ExchangePrismProp:     {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
