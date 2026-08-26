@@ -123,7 +123,7 @@ func (t *PoolTracker) calibrateFee(
 		return 0, nil // no real orders on either side -- nothing to calibrate against
 	}
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(executorAddress)
 	var realOut0, realOut1 *big.Int
 	if ok0 {
 		req.AddCall(&ethrpc.Call{
