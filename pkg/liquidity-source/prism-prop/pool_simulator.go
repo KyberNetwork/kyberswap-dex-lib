@@ -2,10 +2,11 @@ package prismprop
 
 import (
 	"math"
+	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -23,17 +24,22 @@ type PoolSimulator struct {
 	routerAddress string
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	poolSim, err := orderbook.NewPoolSimulatorWith(entityPool, math.MaxInt64)
+// NewPoolSimulator honors params.Opts.StaleCheck against orderbook.MaxAge,
+// same as order-book's own NewPoolSimulator -- the book updates almost every
+// block (confirmed live), so a stale/stuck tracker must not keep serving
+// quotes indefinitely.
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	maxAge := lo.Ternary[time.Duration](params.Opts.StaleCheck, orderbook.MaxAge, math.MaxInt64)
+	poolSim, err := orderbook.NewPoolSimulatorWith(params.EntityPool, maxAge)
 	if err != nil {
 		return nil, err
 	}
 	poolSim.Gas = defaultGas
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := json.Unmarshal([]byte(params.EntityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
