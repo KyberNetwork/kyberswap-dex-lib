@@ -25,7 +25,7 @@ var _ = poollist.RegisterFactoryC(DexTypeLimitOrder, NewPoolsListUpdater)
 func NewPoolsListUpdater(
 	cfg *Config,
 ) *PoolsListUpdater {
-	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
+	limitOrderClient := NewHTTPClientWithConfig(cfg)
 	contractAddresses := lo.Map(cfg.ContractAddresses, func(c string, _ int) string { return strings.ToLower(c) })
 	return &PoolsListUpdater{
 		config:           cfg,
