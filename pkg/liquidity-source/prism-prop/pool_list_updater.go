@@ -2,11 +2,11 @@ package prismprop
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -39,20 +39,22 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		return nil, nil, err
 	}
 
-	staticExtraBytes, err := json.Marshal(StaticExtra{RouterAddress: strings.ToLower(u.config.RouterAddress)})
+	router := common.HexToAddress(u.config.RouterAddress)
+	staticExtraBytes, err := json.Marshal(StaticExtra{RouterAddress: hexutil.Encode(router[:])})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	pools := make([]entity.Pool, 0, len(pairs))
 	for _, pair := range pairs {
+		token0, token1 := hexutil.Encode(pair.Token0[:]), hexutil.Encode(pair.Token1[:])
 		pools = append(pools, entity.Pool{
-			Address:  poolAddress(u.config.RouterAddress, pair.Token0.Hex(), pair.Token1.Hex()),
+			Address:  poolAddress(token0, token1),
 			Exchange: u.config.DexID,
 			Type:     DexType,
 			Tokens: []*entity.PoolToken{
-				{Address: strings.ToLower(pair.Token0.Hex()), Swappable: true},
-				{Address: strings.ToLower(pair.Token1.Hex()), Swappable: true},
+				{Address: token0, Swappable: true},
+				{Address: token1, Swappable: true},
 			},
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Extra:       "{}",
@@ -63,9 +65,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	return pools, nil, nil
 }
 
-// poolAddress is synthetic: prism-prop has one router contract quoting every
-// pair, so the "pool address" is derived from (router, pair), same as
-// titan-prop's IPropAMM venues.
-func poolAddress(router, token0, token1 string) string {
-	return strings.ToLower(router + "_" + token0 + "_" + token1)
+// poolAddress is synthetic: prism-prop has one router per chain quoting
+// every pair, so a fixed "prism" namespace plus the pair already
+// disambiguates every pool -- prefixing with the full router address isn't
+// needed for uniqueness within this exchange, only across exchanges, which
+// the "prism" literal already covers.
+func poolAddress(token0, token1 string) string {
+	return "prismprop_" + token0 + "_" + token1
 }
