@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -19,6 +20,8 @@ const defaultHTTPTimeout = 30 * time.Second
 
 type httpClient struct {
 	client *resty.Client
+	// opSigCache is nil when caching is disabled; every method on it tolerates that.
+	opSigCache *opSignatureCache
 }
 
 // Deprecated: use NewHTTPClientWithConfig, which also supports a timeout, retries and a
@@ -65,7 +68,8 @@ func NewHTTPClientWithConfig(cfg *Config) *httpClient {
 		SetRetryCount(retryCount)
 
 	return &httpClient{
-		client: client,
+		client:     client,
+		opSigCache: newOpSignatureCache(cfg.OpSignatureCacheTTL.Duration, cfg.OpSignatureValidityMargin.Duration),
 	}
 }
 
@@ -152,6 +156,28 @@ func (c *httpClient) GetOpSignatures(
 	chainId ChainID,
 	orderIds []int64,
 ) ([]*operatorSignatures, error) {
+	cached, uncached := c.opSigCache.reusable(orderIds)
+	if len(uncached) == 0 {
+		return cached, nil
+	}
+
+	fetched, err := c.fetchOpSignatures(ctx, chainId, uncached)
+	if err != nil {
+		return nil, err
+	}
+	c.opSigCache.store(fetched)
+
+	if len(cached) == 0 {
+		return fetched, nil
+	}
+	return append(cached, fetched...), nil
+}
+
+func (c *httpClient) fetchOpSignatures(
+	ctx context.Context,
+	chainId ChainID,
+	orderIds []int64,
+) ([]*operatorSignatures, error) {
 	req := c.client.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("chainId", strconv.Itoa(int(chainId))).
@@ -177,4 +203,97 @@ func (c *httpClient) GetOpSignatures(
 	}
 
 	return result.Data.OperatorSignatures, nil
+}
+
+// The operator signs (orderHash, opExpireTime) only — never amount, taker or recipient — and
+// the backend mints a new expiry only once the current one has less than its minimum valid
+// time left. Repeated calls for the same order inside that gap hand back a byte-identical
+// signature, so a cache hit is equivalent to a live call rather than an approximation of one.
+type opSignatureCache struct {
+	mu             sync.Mutex
+	entries        map[int64]opSignatureCacheEntry
+	ttl            time.Duration
+	validityMargin time.Duration
+}
+
+type opSignatureCacheEntry struct {
+	sig     operatorSignatures
+	staleAt time.Time
+}
+
+// defaultOpSignatureValidityMargin approximates "still valid when the tx executes": dex-lib
+// cannot see the target block time, so it requires the signature to outlive two Ethereum
+// blocks instead.
+const defaultOpSignatureValidityMargin = 24 * time.Second
+
+// maxCachedOpSignatures is the size past which unusable entries are swept before new ones are
+// stored. No entry survives its TTL, so a sweep always reclaims everything older than that.
+const maxCachedOpSignatures = 16384
+
+func newOpSignatureCache(ttl, validityMargin time.Duration) *opSignatureCache {
+	if ttl <= 0 {
+		return nil
+	}
+	if validityMargin <= 0 {
+		validityMargin = defaultOpSignatureValidityMargin
+	}
+
+	return &opSignatureCache{
+		entries:        make(map[int64]opSignatureCacheEntry),
+		ttl:            ttl,
+		validityMargin: validityMargin,
+	}
+}
+
+// reusable splits orderIds into the signatures that can be served from memory and the ids that
+// still have to be fetched.
+func (c *opSignatureCache) reusable(orderIds []int64) (cached []*operatorSignatures, uncached []int64) {
+	if c == nil {
+		return nil, orderIds
+	}
+
+	now := time.Now()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, id := range orderIds {
+		entry, ok := c.entries[id]
+		if !ok || !entry.usableAt(now, c.validityMargin) {
+			uncached = append(uncached, id)
+			continue
+		}
+		sig := entry.sig
+		cached = append(cached, &sig)
+	}
+
+	return cached, uncached
+}
+
+func (c *opSignatureCache) store(sigs []*operatorSignatures) {
+	if c == nil || len(sigs) == 0 {
+		return
+	}
+
+	now := time.Now()
+	staleAt := now.Add(c.ttl)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.entries) > maxCachedOpSignatures {
+		for id, entry := range c.entries {
+			if !entry.usableAt(now, c.validityMargin) {
+				delete(c.entries, id)
+			}
+		}
+	}
+	for _, sig := range sigs {
+		if sig == nil {
+			continue
+		}
+		c.entries[sig.ID] = opSignatureCacheEntry{sig: *sig, staleAt: staleAt}
+	}
+}
+
+func (e opSignatureCacheEntry) usableAt(now time.Time, validityMargin time.Duration) bool {
+	return now.Before(e.staleAt) && e.sig.OperatorSignatureExpiredAt > now.Add(validityMargin).Unix()
 }

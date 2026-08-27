@@ -22,4 +22,11 @@ type Config struct {
 	// HTTPClient lets callers supply their own Transport. http.DefaultTransport keeps only
 	// 2 idle connections per host, which starves callers that fan RFQ out concurrently.
 	HTTPClient *http.Client `json:"-"`
+
+	// OpSignatureCacheTTL caps how long GetOpSignatures may serve an operator signature
+	// from memory instead of asking the limit-order backend. 0 disables the cache.
+	OpSignatureCacheTTL durationjson.Duration `json:"opSignatureCacheTTL"`
+	// OpSignatureValidityMargin is how far past now a cached signature must still be valid
+	// to be reused; defaults to defaultOpSignatureValidityMargin.
+	OpSignatureValidityMargin durationjson.Duration `json:"opSignatureValidityMargin"`
 }
