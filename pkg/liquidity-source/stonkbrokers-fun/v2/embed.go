@@ -13,7 +13,6 @@ var lensBytes []byte
 // Chainlink AggregatorV3Interface (decimals, latestRoundData) and a minimal
 // Uniswap-v3-style pool (token0, token1, observe). Selectors verified via
 // `cast sig` against the well-known canonical signatures -- see
-// context/stonkbrokers/output/math.md.
 //
 //go:embed abi/AggregatorV3.json
 var aggregatorV3Bytes []byte

@@ -14,7 +14,7 @@ import (
 
 // wethV2Pad is used as a single-pad config for the list-updater test so the
 // live call stays small -- production Config.Pads carries all 8 lanes (see
-// output/explorer.md's findings.contracts.other).
+// the eight quote lanes).
 const wethV2Pad = "0xFCd61B25BbF3AbD6cf0070D6328E351cc30EEC9f"
 
 type PoolsListUpdaterTestSuite struct {

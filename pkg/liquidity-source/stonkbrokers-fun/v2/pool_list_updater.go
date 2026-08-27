@@ -30,7 +30,7 @@ func NewPoolsListUpdater(cfg *Config, client *ethrpc.Client) *PoolsListUpdater {
 // launchRaw mirrors StonkSafeLaunchpadV2.Launch's field names/types exactly
 // -- go-ethereum's abi package unpacks a tuple return into a struct by
 // matching PascalCase field names to the ABI's tuple component names.
-// Verified against a live getLaunch(176) call (see output/math.md).
+// Verified against a live getLaunch(176) call.
 type launchRaw struct {
 	Token              common.Address
 	Creator            common.Address
@@ -97,15 +97,14 @@ type padStatic struct {
 	launchCount    *big.Int
 }
 
-// GetNewPools implements the on-chain, cursor-based discovery
-// (findings.explorer.pool_discovery: view_enum in output/explorer.md): for
-// each of the 8 fixed Smart Launch V2 pads, page forward from the last known
+// GetNewPools implements the on-chain, cursor-based discovery: for each of the
+// 8 fixed Smart Launch V2 pads, page forward from the last known
 // launchId to the pad's current launchCount(), emitting one entity.Pool per
 // newly discovered (pad, launchId).
 //
 // Per AGENTS.md: reserves are NOT set here (left "0","0"; the tracker fills
 // them on the next refresh) and token decimals are NOT fetched here (the
-// pool-service token-metadata pipeline populates them after listing) --
+// token-metadata pipeline populates them after listing) --
 // QuoteDecimals in StaticExtra comes from the PAD's own quoteDecimals()
 // view, not an ERC20 introspection call, so it is available immediately for
 // the math package without violating that rule.

@@ -15,7 +15,7 @@ func uDec(t *testing.T, s string) *uint256.Int {
 }
 
 // TestCalcBuyAmountOut_LiveVerifiedWethLaunch176 ports the reference fixture
-// captured live in output/explorer.md: WETH V2 pad
+// captured live: WETH V2 pad
 // (0xFCd61B25BbF3AbD6cf0070D6328E351cc30EEC9f), on-chain launch id 176,
 // buying 0.01 ETH at block 46325622. Both getLaunch(176) and
 // quoteBuy(pad,176,0.01 ETH) were called directly against the chain's
@@ -152,13 +152,13 @@ func TestDirectFeedUsd8_RescalesNonE8Decimals(t *testing.T) {
 }
 
 // TestTwapQuoteUsd8_LiveVerifiedUsdgLaunch8 ports the second reference
-// fixture captured live in output/math.md: USDG V2 pad
+// fixture captured live: USDG V2 pad
 // (0xd4F20033586977A2511f4A2DB4aF7C79a340D70a), TWAP pool
 // 0x52e65b17fb6e5ba00ed806f37afcd2daa50271ca (token0=WETH, token1=USDG,
 // so quoteIsToken0=false), observe([1800,0]) and the shared ETH/USD feed
 // were both called directly against the chain's canonical RPC. The result
 // is cross-checked against the pad's own mcapUsd8(8) getter in
-// output/math.md (implied quoteUsd8 ~= 99786960, matching this test's exact
+// the live reading (implied quoteUsd8 ~= 99786960, matching this test's exact
 // integer result).
 func TestTwapQuoteUsd8_LiveVerifiedUsdgLaunch8(t *testing.T) {
 	reading := TwapReading{

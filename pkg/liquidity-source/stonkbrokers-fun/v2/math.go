@@ -139,7 +139,7 @@ func DirectFeedUsd8(r OracleReading, now uint64) (uint64, error) {
 
 // TwapQuoteUsd8 ports SafeLaunchTwapLib.quoteUsd8 -- the oracle path used by
 // TWAP-mode lanes (STONK, USDG; StaticExtra.TwapPool != ""). Live-verified
-// against the USDG pad (see output/math.md): reproduces the on-chain
+// against the USDG pad: reproduces the on-chain
 // mcapUsd8() USD mark bit-for-bit from a raw observe()+latestRoundData()
 // snapshot.
 func TwapQuoteUsd8(t TwapReading, window uint32, quoteIsToken0 bool, quoteDecimals uint8, now uint64) (uint64, error) {

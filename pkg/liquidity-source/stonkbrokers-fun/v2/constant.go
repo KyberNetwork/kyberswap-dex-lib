@@ -10,12 +10,12 @@ import (
 // Robinhood Chain (chainId 4663) -- StonkSafeLaunchpadV2 + SafeLaunchLensV2.
 // Out of scope, deliberately: V3 pads (external-token/BYO launches), the
 // post-bond DEX leg, and the separate Stonk Launcher factory (unverified on
-// Blockscout, never called here). See context/stonkbrokers/output/explorer.md.
+// Blockscout, never called here).
 const (
 	DexType = valueobject.ExchangeStonkbrokersFunV2
 
 	// Scope decision -- BUY ONLY (quote -> token). Investigated during
-	// dex-scaffold (see context/stonkbrokers/output/scaffold.md "Scope
+	// the scope decision recorded below ("Scope
 	// decision: buy-only" for full evidence):
 	//
 	//   sell(id, tokensIn, minQuoteOut, ref, account, ethOut) requires
@@ -67,7 +67,7 @@ const (
 	// defaultGas is the measured cost of a real buyEth() on the WETH pad: a
 	// Tenderly fork of Robinhood Chain at block 46382449 executed
 	// buyEth(176, 0, 0x0, recipient) with 0.01 ETH for 265,009 gas
-	// (docs/simulations/tenderly-buyeth-launch176.md). That trade took the
+	// That trade took the
 	// ordinary path -- no graduation close, launch already had a prior buy --
 	// so a first buy into a launch, or one that trips the graduation branch,
 	// costs more than this.
@@ -90,7 +90,7 @@ var (
 	// mcapUsd8 reverts if the pad's oracle (direct Chainlink feed or TWAP
 	// pool, per-pad -- see StaticExtra) is stale. Stock lanes
 	// (GME/NVDA/AAPL/SPCX/USO) go stale over weekends (documented worst
-	// case 79.7h gap). dex-implement-math MUST port SafeLaunchTwapLib's
+	// case 79.7h gap). The simulator ports SafeLaunchTwapLib's
 	// staleness window and return this error rather than a quote whenever
 	// the tracked oracle snapshot is stale -- ported from AGENTS.md's "track
 	// every flag/check on the swap path so the simulator can reject swaps

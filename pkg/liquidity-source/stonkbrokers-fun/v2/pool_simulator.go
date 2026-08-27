@@ -15,7 +15,7 @@ import (
 
 // PoolSimulator prices ONE (pad, launchId) Smart Launch V2 launch. Buy only
 // (quote -> project token) -- see constant.go's scope-decision comment and
-// context/stonkbrokers/output/scaffold.md for why sell is not implemented.
+// ErrSellNotSupported for why sell is not implemented.
 type PoolSimulator struct {
 	pool.Pool
 
@@ -129,7 +129,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	// mcapUsd8(id) UNCONDITIONALLY (no try/catch) on every successful buy to
 	// decide whether to close the curve -- if the pad's oracle is stale, the
 	// on-chain call reverts entirely, so this must reject the quote too, not
-	// just the graduation decision. See output/math.md's StalePrice section.
+	// just the graduation decision.
 	quoteUsd8, err := s.currentQuoteUsd8(now)
 	if err != nil {
 		return nil, err

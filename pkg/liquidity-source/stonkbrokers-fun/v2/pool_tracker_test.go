@@ -38,9 +38,9 @@ func robinhoodRPCURL() string {
 	return defaultRobinhoodRPCURL
 }
 
-// testPoolJSON is the reference launch used throughout output/explorer.md
-// and output/math.md: WETH V2 pad, on-chain launch id 176. Reserves start
-// at "0","0" -- this is exactly what dex-scaffold's discovery leaves behind
+// testPoolJSON is this package's reference launch: WETH V2 pad, on-chain
+// launch id 176. Reserves start
+// at "0","0" -- this is exactly what discovery leaves behind
 // (AGENTS.md: don't set reserves at discovery time); GetNewPoolState fills
 // the real values.
 const testPoolJSON = `{

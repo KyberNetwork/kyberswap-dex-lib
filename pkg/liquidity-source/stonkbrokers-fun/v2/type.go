@@ -10,7 +10,7 @@ import (
 //
 // LaunchID is the ON-CHAIN launch id (StonkSafeLaunchpadV2.getLaunch's `id`
 // param), never the off-chain floor API's synthetic composite id -- see
-// output/explorer.md's "Corrections vs the PDF" #2.
+// the vendor PDF's own top-level id field, which is a frontend composite.
 type StaticExtra struct {
 	Pad           string `json:"pad"`
 	Lens          string `json:"lens"`
@@ -49,7 +49,6 @@ type StaticExtra struct {
 	// already exceeds the cap can never execute, whoever the recipient is.
 	// A trade under that bound may still revert if the recipient already
 	// holds a position on this launch -- see the routed-recipient caveat in
-	// output/verify.md.
 	MaxBuyPpm uint32 `json:"maxBuyPpm"`
 
 	// GradMcapUsd8 is the buy-side graduation gate compared against
@@ -57,7 +56,7 @@ type StaticExtra struct {
 	// comparison faithfully requires the oracle wiring below -- exactly one
 	// of QuoteUsdFeed / TwapPool is set, per the pad's constructor invariant
 	// (confirmed live: WETH/GME use QuoteUsdFeed direct feeds, STONK/USDG
-	// use TwapPool -- see output/math.md).
+	// use TwapPool).
 	GradMcapUsd8 uint64 `json:"gradMcapUsd8"`
 	LoadedSupply string `json:"loadedSupply"` // uint256, decimal string
 
@@ -117,7 +116,7 @@ type SwapInfo struct {
 	Graduates bool `json:"graduates"`
 }
 
-// PoolMeta is what dex-aggregator-encoding decodes from swap.PoolExtra to
+// PoolMeta is what the aggregator's encoder decodes from the pool extra to
 // build buy() calldata -- it needs the PAD contract address (the actual
 // callable target; entity.Pool.Address/StaticExtra.Pad is a synthetic
 // "pad#launchId" composite key, not itself a callable contract) and the
@@ -127,12 +126,10 @@ type PoolMeta struct {
 	LaunchID string `json:"launchId"`
 
 	// ApprovalAddress duplicates Pad under the shared pool.ApprovalInfo JSON
-	// contract -- aggregator-encoding's GetAddressToApproveMax decodes
-	// swap.PoolExtra into pool.ApprovalInfo{ApprovalAddress} for selectors
-	// registered with a custom (non-pool) approval target. See
-	// context/stonkbrokers/output/router-service.md. The executor must
-	// approve the PAD (not swap.Pool, which is the synthetic "pad#launchId"
-	// composite key) to spend its quote-asset balance before calling buy().
+	// contract, which the encoder reads to resolve a custom (non-pool)
+	// approval target. The executor must approve the PAD -- not the pool
+	// address, which is the synthetic "pad#launchId" composite key -- to
+	// spend its quote-asset balance before calling buy().
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
 }

@@ -20,7 +20,7 @@ const (
 	ethUsdFeed = "0x78f3556b67e17df817d51ef5a990cdaf09e8d3a9"
 )
 
-// buildLiveLaunch176Pool reproduces context/stonkbrokers/output/explorer.md's
+// buildLiveLaunch176Pool reproduces this package's
 // reference fixture as an entity.Pool: WETH V2 pad, on-chain launch id 176,
 // getLaunch(176) + the WETH pad's quoteUsdFeed()/ethUsdFeed() wiring, all
 // live-verified against the chain's canonical RPC at block 46325622.

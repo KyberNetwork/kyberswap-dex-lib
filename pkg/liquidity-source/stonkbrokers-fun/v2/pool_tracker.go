@@ -49,7 +49,7 @@ func NewPoolTracker(cfg *Config, client *ethrpc.Client) (*PoolTracker, error) {
 // eth_blockNumber call (ethrpc.Client.GetBlockNumber -- NOT the multicall
 // aggregate's returned block), then pin EVERY call in this refresh
 // (getLaunch + the oracle read) to that same value. This is also the
-// domain pool-service's own chain-head resolution and event logs use
+// domain the chain-head resolution and event logs downstream use
 // (pkg/repository/block/block.go's IEVMClient.BlockNumber -- standard
 // eth_blockNumber), so entity.Pool.BlockNumber stays comparable with the
 // rest of the stack (AGENTS.md: use the block from Aggregate/
