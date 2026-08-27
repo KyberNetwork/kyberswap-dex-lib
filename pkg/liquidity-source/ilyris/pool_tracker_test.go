@@ -13,24 +13,28 @@ import (
 
 // fakeChain lets the parts that carry bugs be tested without a node.
 type fakeChain struct {
-	state      RawPoolState
-	guard      RawGuardState
-	stateErr   error
-	guardErr   error
-	stateCalls int
-	guardCalls int
-	pools      []string
-	total      int
-	poolsErr   error
+	state          RawPoolState
+	guard          RawGuardState
+	stateErr       error
+	guardErr       error
+	stateCalls     int
+	guardCalls     int
+	lastGuardBlock uint64
+	pools          []string
+	total          int
+	poolsErr       error
 }
 
 func (f *fakeChain) PoolState(_ context.Context, _ string, _ uint32) (RawPoolState, error) {
 	f.stateCalls++
 	return f.state, f.stateErr
 }
-func (f *fakeChain) GuardState(_ context.Context, _ string) (RawGuardState, error) {
+func (f *fakeChain) GuardState(_ context.Context, _ string, blockNumber uint64) (RawGuardState, error) {
 	f.guardCalls++
-	return f.guard, f.guardErr
+	f.lastGuardBlock = blockNumber
+	g := f.guard
+	g.BlockNumber = blockNumber
+	return g, f.guardErr
 }
 func (f *fakeChain) FactoryPools(_ context.Context, _ string, offset, limit int) ([]string, int, error) {
 	if f.poolsErr != nil {
@@ -232,5 +236,43 @@ func TestCorruptCursorIsRefusedNotReset(t *testing.T) {
 	u := NewPoolsListUpdater(c, "0xfactory", DexType)
 	if _, _, err := u.GetNewPools(context.Background(), []byte("{not json")); err == nil {
 		t.Fatal("a corrupt cursor must surface, not reset the scan")
+	}
+}
+
+// Bins and the market guard must be pinned to one block. A guard from a later
+// block can disagree with the book (freeze already lifted, or not yet) and the
+// quote either routes into a revert or skips an open pool.
+func TestBinsAndGuardShareOneBlock(t *testing.T) {
+	c := liveLikeChain()
+	tr := NewPoolTracker(c)
+	got, err := tr.BootstrapPoolState(context.Background(),
+		entity.Pool{Address: "0xpool", Tokens: []*entity.PoolToken{{}, {}}},
+		pool.GetNewPoolStateParams{})
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	if c.lastGuardBlock != c.state.BlockNumber {
+		t.Fatalf("guard fetched at block %d, bins at %d", c.lastGuardBlock, c.state.BlockNumber)
+	}
+	if got.BlockNumber != c.state.BlockNumber {
+		t.Fatalf("entity block %d, bins at %d", got.BlockNumber, c.state.BlockNumber)
+	}
+	var ex Extra
+	if err := json.Unmarshal([]byte(got.Extra), &ex); err != nil {
+		t.Fatalf("extra: %v", err)
+	}
+	if ex.BlockNumber != got.BlockNumber {
+		t.Fatalf("extra block %d != entity block %d", ex.BlockNumber, got.BlockNumber)
+	}
+
+	st, g, err := tr.FetchRPCData(context.Background(), entity.Pool{Address: "0xpool"})
+	if err != nil {
+		t.Fatalf("FetchRPCData: %v", err)
+	}
+	if st.BlockNumber != g.BlockNumber {
+		t.Fatalf("FetchRPCData mixed blocks: bins %d guard %d", st.BlockNumber, g.BlockNumber)
+	}
+	if st.BlockNumber == 0 {
+		t.Fatal("expected a pinned block number")
 	}
 }

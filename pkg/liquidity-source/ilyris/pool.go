@@ -152,11 +152,24 @@ func (s *binSimulator) findNextWithOutput(fromID int, xForY bool) (int, bool) {
 	return 0, false
 }
 
+// BinFill is the net reserve movement of one bin during a quote. UpdateBalance
+// applies these so split/multi-hop re-quotes see the remaining book, not the
+// pre-swap one. Amounts are NET of fee: the fee is taken once on input before
+// any bin is touched, matching BinPool.
+type BinFill struct {
+	ID         int
+	AmountXIn  *big.Int
+	AmountXOut *big.Int
+	AmountYIn  *big.Int
+	AmountYOut *big.Int
+}
+
 // ExactInQuote mirrors BinPool.quoteExactIn.
 type ExactInQuote struct {
 	AmountOut *big.Int
 	FeeAmount *big.Int
 	FinalID   int
+	Fills     []BinFill
 }
 
 // ExactOutQuote mirrors BinPool.quoteExactOut.
@@ -195,6 +208,7 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 	amountOut := new(big.Int)
 	cursor := s.params.ActiveID
 	finalID := s.params.ActiveID
+	var fills []BinFill
 
 	for remaining.Sign() != 0 {
 		id, ok := s.findNextWithOutput(cursor, xForY)
@@ -257,6 +271,17 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 		if err := requireUint256(amountOut, "exact-in amountOut"); err != nil {
 			return nil, err
 		}
+
+		fill := BinFill{ID: id}
+		if xForY {
+			fill.AmountXIn = new(big.Int).Set(consumed)
+			fill.AmountYOut = new(big.Int).Set(out)
+		} else {
+			fill.AmountYIn = new(big.Int).Set(consumed)
+			fill.AmountXOut = new(big.Int).Set(out)
+		}
+		fills = append(fills, fill)
+
 		remaining = new(big.Int).Sub(remaining, consumed)
 
 		if remaining.Sign() == 0 {
@@ -269,7 +294,7 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 		finalID = id
 	}
 
-	return &ExactInQuote{AmountOut: amountOut, FeeAmount: feeAmount, FinalID: finalID}, nil
+	return &ExactInQuote{AmountOut: amountOut, FeeAmount: feeAmount, FinalID: finalID, Fills: fills}, nil
 }
 
 // QuoteExactOut prices a buy of amountOut. Mirror of BinPool.quoteExactOut.

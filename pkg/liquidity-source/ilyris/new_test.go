@@ -163,19 +163,25 @@ func TestFactoryDecodesPoolCreated(t *testing.T) {
 		t.Fatal("unrelated topic accepted")
 	}
 
+	poolAddr := "0x90d0950065c567b9324a08a9aae8a28890fbab16"
+	factory := "0x4A943A11a6fFBF8D204Df4d5A080Ca741697ca33"
 	ev := types.Log{
-		Address: common.HexToAddress("0x4A943A11a6fFBF8D204Df4d5A080Ca741697ca33"),
+		Address: common.HexToAddress(factory),
 		Topics: []common.Hash{
 			topic,
 			common.HexToHash("0x0000000000000000000000000bd7d308f8e1639fab988df18a8011f41eacad73"),
 			common.HexToHash("0x0000000000000000000000005fc5360d0400a0fd4f2af552add042d716f1d168"),
 			common.HexToHash("0x000000000000000000000000000000000000000000000000000000000000000a"),
 		},
+		Data:        poolCreatedData(30, "0x1111111111111111111111111111111111111111", "0xDd74981476f81c8e45e962Af6DF886a3c5788816", poolAddr),
 		BlockNumber: 43307616,
 	}
 	p, err := f.DecodePoolCreated(ev)
 	if err != nil {
 		t.Fatalf("decode: %v", err)
+	}
+	if p.Address != poolAddr {
+		t.Fatalf("entity keyed as %s, want the pool %s (not the factory %s)", p.Address, poolAddr, factory)
 	}
 	if p.Tokens[0].Address != "0x0bd7d308f8e1639fab988df18a8011f41eacad73" {
 		t.Fatalf("tokenX wrong: %s", p.Tokens[0].Address)

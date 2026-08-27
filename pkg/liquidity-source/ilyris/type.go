@@ -31,6 +31,8 @@ type Extra struct {
 	GuardSwapsPaused bool   `json:"guardSwapsPaused"`
 	GuardFreezeEnd   uint64 `json:"guardFreezeEnd"`
 	BlockTimestamp   uint64 `json:"blockTimestamp"`
+	// BlockNumber is the same block the bins and the guard were read at.
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 // BinJSON is one bin on the wire. Reserves are decimal strings: they are uint128 on chain and

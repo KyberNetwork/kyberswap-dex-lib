@@ -12,17 +12,19 @@ import (
 // Every field is json:"-": this is in-process handoff, never serialised, and tagging it out
 // keeps it from leaking into a route response.
 type SwapInfo struct {
-	NewActiveID int32 `json:"-"`
-	XForY       bool  `json:"-"`
-	BinsCrossed int   `json:"-"`
+	NewActiveID int32     `json:"-"`
+	XForY       bool      `json:"-"`
+	BinsCrossed int       `json:"-"`
+	Fills       []BinFill `json:"-"`
 }
 
 // CalcAmountOut prices a swap. One of the three methods the embedded base cannot supply.
 //
-// The bin traversal is NOT reimplemented here. It calls the kernel in ../kyberswap, whose 21
-// tests assert wei-exact parity against the deployed contract on generated oracle vectors.
-// Rewriting that math in this file would create a second implementation to keep in agreement
-// with the first, and the failure mode of a drifting price model is mispriced routes rather
+// The bin traversal is NOT reimplemented here. It calls the in-package kernel
+// (pool.go / math.go), whose oracle tests assert wei-exact parity against the
+// deployed contract on generated vectors. Rewriting that math in this file
+// would create a second implementation to keep in agreement with the first,
+// and the failure mode of a drifting price model is mispriced routes rather
 // than a crash -- silent, and paid for by whoever trades against us.
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if err := p.blocked(); err != nil {
@@ -65,7 +67,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		// bin is touched rather than per bin.
 		Fee:      &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: q.FeeAmount},
 		Gas:      gasFor(crossed),
-		SwapInfo: SwapInfo{NewActiveID: int32(q.FinalID), XForY: xForY, BinsCrossed: crossed},
+		SwapInfo: SwapInfo{NewActiveID: int32(q.FinalID), XForY: xForY, BinsCrossed: crossed, Fills: q.Fills},
 	}, nil
 }
 
@@ -95,7 +97,50 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves[inIdx] = new(big.Int).Add(p.Info.Reserves[inIdx], netIn)
 	p.Info.Reserves[outIdx] = new(big.Int).Sub(p.Info.Reserves[outIdx], params.TokenAmountOut.Amount)
 
+	// Per-bin reserves must move with the swap. Leaving them untouched is what
+	// made split/multi-hop re-quotes see the original book and overstate depth.
+	p.applyFills(si.Fills)
 	p.activeID = si.NewActiveID
+}
+
+func (p *PoolSimulator) applyFills(fills []BinFill) {
+	for _, f := range fills {
+		i := p.binIndex(int32(f.ID))
+		if i < 0 {
+			continue
+		}
+		b := p.bins[i]
+		nx := new(big.Int).Set(b.ReserveX)
+		ny := new(big.Int).Set(b.ReserveY)
+		if f.AmountXIn != nil {
+			nx.Add(nx, f.AmountXIn)
+		}
+		if f.AmountXOut != nil {
+			nx.Sub(nx, f.AmountXOut)
+		}
+		if f.AmountYIn != nil {
+			ny.Add(ny, f.AmountYIn)
+		}
+		if f.AmountYOut != nil {
+			ny.Sub(ny, f.AmountYOut)
+		}
+		if nx.Sign() < 0 {
+			nx = new(big.Int)
+		}
+		if ny.Sign() < 0 {
+			ny = new(big.Int)
+		}
+		p.bins[i] = bin{ID: b.ID, ReserveX: nx, ReserveY: ny}
+	}
+}
+
+func (p *PoolSimulator) binIndex(id int32) int {
+	for i, b := range p.bins {
+		if b.ID == id {
+			return i
+		}
+	}
+	return -1
 }
 
 // binsCrossed counts levels traversed, inclusive of the one the swap started in.
@@ -117,7 +162,7 @@ func gasFor(crossed int) int64 {
 	return BaseSwapGas + int64(crossed-1)*PerExtraBinGas
 }
 
-// kernel builds the parity-tested bin book from this adapter's snapshot.
+// kernel builds the in-package parity-tested bin book from this adapter's snapshot.
 func (p *PoolSimulator) kernel() (*binSimulator, error) {
 	bins := make(map[int]BinReserves, len(p.bins))
 	for _, b := range p.bins {

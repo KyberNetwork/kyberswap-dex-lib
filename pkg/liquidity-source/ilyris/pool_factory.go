@@ -39,26 +39,28 @@ func (f *PoolFactory) IsEventSupported(hash common.Hash) bool {
 	return strings.EqualFold(hash.Hex(), poolCreatedTopic)
 }
 
-// DecodePoolCreated reads the event's INDEXED fields from topics.
+// DecodePoolCreated reads a BinFactory.PoolCreated log.
 //
 //	event PoolCreated(
 //	    address indexed tokenX, address indexed tokenY, uint24 indexed binStepBps,
 //	    uint24 swapFeeBps, address policy, address marketGuard, address pool)
 //
-// Only the three indexed fields are decoded here. swapFeeBps and the pool address live in
-// `data`, and reading them needs the ABI -- but the pool ADDRESS is what the lister keys on,
-// so this returns what it can prove and leaves enrichment to the tracker rather than guessing
-// an offset. Getting a data offset wrong produces a valid-looking address that is not the
-// pool, and nothing downstream would catch it.
+// The log emitter is the factory. The pool address is the fourth non-indexed
+// word (data[96:128]), matching abi/BinFactory.json. Keying the entity as the
+// factory would collapse every pool into one row.
 func (f *PoolFactory) DecodePoolCreated(ev types.Log) (*entity.Pool, error) {
 	if len(ev.Topics) < 4 || !f.IsEventSupported(ev.Topics[0]) {
 		return nil, ErrMalformedExtra
+	}
+	poolAddr, err := poolCreatedAddress(ev.Data)
+	if err != nil {
+		return nil, err
 	}
 	tokenX := strings.ToLower(common.BytesToAddress(ev.Topics[1].Bytes()).Hex())
 	tokenY := strings.ToLower(common.BytesToAddress(ev.Topics[2].Bytes()).Hex())
 
 	return &entity.Pool{
-		Address:  strings.ToLower(ev.Address.Hex()),
+		Address:  strings.ToLower(poolAddr.Hex()),
 		Exchange: f.exchange,
 		Type:     string(DexType),
 		Tokens: []*entity.PoolToken{
@@ -67,4 +69,17 @@ func (f *PoolFactory) DecodePoolCreated(ev types.Log) (*entity.Pool, error) {
 		},
 		BlockNumber: ev.BlockNumber,
 	}, nil
+}
+
+// poolCreatedAddress is data word 3 of PoolCreated: swapFeeBps, policy,
+// marketGuard, then pool. Each word is 32 bytes, so the pool starts at byte 96.
+func poolCreatedAddress(data []byte) (common.Address, error) {
+	if len(data) < 128 {
+		return common.Address{}, ErrMalformedExtra
+	}
+	addr := common.BytesToAddress(data[96:128])
+	if addr == (common.Address{}) {
+		return common.Address{}, ErrMalformedExtra
+	}
+	return addr, nil
 }

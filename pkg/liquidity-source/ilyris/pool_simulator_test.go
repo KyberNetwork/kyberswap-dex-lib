@@ -202,3 +202,129 @@ func TestGasScalesWithBinsCrossed(t *testing.T) {
 		t.Fatalf("three bins should add two increments, got %d", gasFor(3))
 	}
 }
+
+// A freezeEnd in the past is not a freeze. BlockTimestamp == 0 would make any
+// nonzero freezeEnd look active forever, which is why the tracker must pin the
+// header timestamp of the same block as the book.
+func TestExpiredFreezeIsNotFrozen(t *testing.T) {
+	s := newTestSim()
+	s.guardFreezeEnd = 1_700_000_000
+	s.blockTimestamp = 1_700_000_000
+	if err := s.blocked(); err != nil {
+		t.Fatalf("freezeEnd == BlockTimestamp must not freeze, got %v", err)
+	}
+	s.blockTimestamp = 1_700_000_001
+	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(1_000_000)},
+		TokenOut:      tokX,
+	}); err != nil {
+		t.Fatalf("expired freeze must not block a quote, got %v", err)
+	}
+	s.blockTimestamp = 1_699_999_999
+	if err := s.blocked(); err != ErrCorporateActionFreeze {
+		t.Fatalf("freezeEnd still in the future must freeze, got %v", err)
+	}
+}
+
+func binY(s *PoolSimulator) *big.Int {
+	sum := new(big.Int)
+	for _, b := range s.bins {
+		sum.Add(sum, b.ReserveY)
+	}
+	return sum
+}
+
+func binX(s *PoolSimulator) *big.Int {
+	sum := new(big.Int)
+	for _, b := range s.bins {
+		sum.Add(sum, b.ReserveX)
+	}
+	return sum
+}
+
+// After a swap, the bins that were crossed must shrink. If UpdateBalance only
+// moved aggregate reserves + activeID, a split/multi-hop re-quote would see the
+// original book and pay out more than is left.
+func TestSequentialSwapsDoNotRequoteSpentBins(t *testing.T) {
+	in := new(big.Int).Mul(big.NewInt(5), new(big.Int).Exp(big.NewInt(10), big.NewInt(17), nil)) // 0.5 X
+
+	s := newTestSim()
+	first, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
+		TokenOut:      tokY,
+	})
+	if err != nil {
+		t.Fatalf("first quote: %v", err)
+	}
+	si, ok := first.SwapInfo.(SwapInfo)
+	if !ok || len(si.Fills) == 0 {
+		t.Fatal("quote must hand back the bins it crossed")
+	}
+
+	yBefore := binY(s)
+	s.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokX, Amount: in},
+		TokenAmountOut: pool.TokenAmount{Token: tokY, Amount: first.TokenAmountOut.Amount},
+		Fee:            pool.TokenAmount{Token: tokX, Amount: first.Fee.Amount},
+		SwapInfo:       first.SwapInfo,
+	})
+	yAfter := binY(s)
+	if yAfter.Cmp(yBefore) >= 0 {
+		t.Fatalf("bin Y did not shrink after paying out Y: before=%s after=%s", yBefore, yAfter)
+	}
+	wantY := new(big.Int).Sub(yBefore, first.TokenAmountOut.Amount)
+	if yAfter.Cmp(wantY) != 0 {
+		t.Fatalf("bin Y should fall by amountOut: got %s want %s", yAfter, wantY)
+	}
+
+	second, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
+		TokenOut:      tokY,
+	})
+	if err != nil {
+		if err != ErrInsufficientLiquidity {
+			t.Fatalf("second quote: %v", err)
+		}
+		// Remaining bins cannot fill the same size — that is the spent-book signal.
+	} else {
+		if second.TokenAmountOut.Amount.Cmp(yAfter) > 0 {
+			t.Fatalf("second quote paid %s Y but bins only hold %s", second.TokenAmountOut.Amount, yAfter)
+		}
+		if second.TokenAmountOut.Amount.Cmp(first.TokenAmountOut.Amount) >= 0 {
+			t.Fatalf("second quote did not shrink after consuming bins: first=%s second=%s",
+				first.TokenAmountOut.Amount, second.TokenAmountOut.Amount)
+		}
+	}
+
+	// Split routing: clone, take the first leg, then quote the second from the clone.
+	base := newTestSim()
+	leg := base.CloneState().(*PoolSimulator)
+	q1, err := leg.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
+		TokenOut:      tokY,
+	})
+	if err != nil {
+		t.Fatalf("split first leg: %v", err)
+	}
+	leg.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokX, Amount: in},
+		TokenAmountOut: pool.TokenAmount{Token: tokY, Amount: q1.TokenAmountOut.Amount},
+		Fee:            pool.TokenAmount{Token: tokX, Amount: q1.Fee.Amount},
+		SwapInfo:       q1.SwapInfo,
+	})
+	remaining := binY(leg)
+	q2, err := leg.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
+		TokenOut:      tokY,
+	})
+	if err != nil {
+		if err != ErrInsufficientLiquidity {
+			t.Fatalf("split second leg: %v", err)
+		}
+	} else if q2.TokenAmountOut.Amount.Cmp(remaining) > 0 {
+		t.Fatalf("cloned second leg paid %s Y but bins only hold %s", q2.TokenAmountOut.Amount, remaining)
+	}
+	if base.bins[2].ReserveY.Cmp(leg.bins[2].ReserveY) == 0 {
+		t.Fatal("clone's bins were not mutated independently of the original")
+	}
+}

@@ -22,10 +22,11 @@ type chainReader interface {
 	// probe during the research pass and it will cost an integrator one too.
 	PoolState(ctx context.Context, pool string, radius uint32) (RawPoolState, error)
 
-	// GuardState reads the market guard. Separate call because the guard is a separate
-	// contract and is owner-mutable, so its ADDRESS must be re-read every refresh rather
-	// than cached from pool creation.
-	GuardState(ctx context.Context, guard string) (RawGuardState, error)
+	// GuardState reads the market guard at blockNumber so the gate and the bin
+	// book are the same block. Separate call because the guard is a separate
+	// contract and is owner-mutable, so its ADDRESS must be re-read every refresh
+	// rather than cached from pool creation.
+	GuardState(ctx context.Context, guard string, blockNumber uint64) (RawGuardState, error)
 
 	// FactoryPools enumerates from BinFactory: allPoolsLength() then allPools(i).
 	FactoryPools(ctx context.Context, factory string, offset, limit int) (pools []string, total int, err error)
@@ -54,4 +55,5 @@ type RawBin struct {
 type RawGuardState struct {
 	SwapsPaused bool
 	FreezeEnd   uint64
+	BlockNumber uint64
 }

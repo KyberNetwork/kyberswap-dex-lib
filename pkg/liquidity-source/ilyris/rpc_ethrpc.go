@@ -3,6 +3,7 @@ package ilyris
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -136,6 +137,11 @@ func (c *EthrpcChain) PoolState(ctx context.Context, poolAddr string, radius uin
 	}
 	if resp.BlockNumber != nil {
 		out.BlockNumber = resp.BlockNumber.Uint64()
+		ts, err := c.headerTimestamp(ctx, resp.BlockNumber)
+		if err != nil {
+			return RawPoolState{}, err
+		}
+		out.BlockTimestamp = ts
 	}
 	for _, b := range bins {
 		out.Bins = append(out.Bins, RawBin{
@@ -147,17 +153,47 @@ func (c *EthrpcChain) PoolState(ctx context.Context, poolAddr string, radius uin
 	return out, nil
 }
 
-func (c *EthrpcChain) GuardState(ctx context.Context, guard string) (RawGuardState, error) {
+func (c *EthrpcChain) GuardState(ctx context.Context, guard string, blockNumber uint64) (RawGuardState, error) {
 	var paused bool
 	var freezeEnd uint64
 
 	req := c.client.R().SetContext(ctx)
+	if blockNumber > 0 {
+		req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
+	}
 	req.AddCall(&ethrpc.Call{ABI: guardABI, Target: guard, Method: "swapsPaused"}, []any{&paused})
 	req.AddCall(&ethrpc.Call{ABI: guardABI, Target: guard, Method: "freezeEnd"}, []any{&freezeEnd})
-	if _, err := req.Aggregate(); err != nil {
+	resp, err := req.Aggregate()
+	if err != nil {
 		return RawGuardState{}, err
 	}
-	return RawGuardState{SwapsPaused: paused, FreezeEnd: freezeEnd}, nil
+	out := RawGuardState{SwapsPaused: paused, FreezeEnd: freezeEnd, BlockNumber: blockNumber}
+	if resp != nil && resp.BlockNumber != nil {
+		out.BlockNumber = resp.BlockNumber.Uint64()
+	}
+	return out, nil
+}
+
+// headerTimestamp reads the pinned block's timestamp via eth_getBlockByNumber
+// (HeaderByNumber, no transactions). GetCurrentBlockTimestamp is the *current*
+// block and would leave a historical pin with Time=0, which makes any nonzero
+// freezeEnd look frozen forever.
+func (c *EthrpcChain) headerTimestamp(ctx context.Context, blockNumber *big.Int) (uint64, error) {
+	if c.client == nil {
+		return 0, fmt.Errorf("ilyris: no ethrpc client for block timestamp")
+	}
+	eth := c.client.GetETHClient()
+	if eth == nil {
+		return 0, fmt.Errorf("ilyris: no eth client for block timestamp")
+	}
+	hdr, err := eth.HeaderByNumber(ctx, blockNumber)
+	if err != nil {
+		return 0, err
+	}
+	if hdr == nil {
+		return 0, fmt.Errorf("ilyris: missing header for block %s", blockNumber)
+	}
+	return hdr.Time, nil
 }
 
 func (c *EthrpcChain) FactoryPools(ctx context.Context, factory string, offset, limit int) ([]string, int, error) {

@@ -55,29 +55,48 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, params
 
 // BootstrapPoolState performs the full refresh: lens read, then guard read at the same block.
 func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
-	st, err := t.chain.PoolState(ctx, p.Address, t.radius)
+	st, guard, err := t.FetchRPCData(ctx, p)
 	if err != nil {
 		// Return the pool UNCHANGED. Returning a zeroed one would replace a good book with an
 		// empty one and quietly delist us on a transient RPC error.
 		return p, err
 	}
+	return applyState(p, st, guard), nil
+}
 
-	guard := RawGuardState{}
+// FetchRPCData reads bins and the market guard at one block. The guard has no
+// on-chain block tag of its own, so the pin is the call's block number.
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (RawPoolState, RawGuardState, error) {
+	st, err := t.chain.PoolState(ctx, p.Address, t.radius)
+	if err != nil {
+		return RawPoolState{}, RawGuardState{}, err
+	}
+
+	guard := RawGuardState{BlockNumber: st.BlockNumber}
 	if st.MarketGuard != "" && !isZeroAddress(st.MarketGuard) {
 		// Read every refresh, never cached: setMarketGuard can repoint it at any time
 		// (BinPool.sol:322), so a guard address captured at pool creation can be stale.
-		g, gerr := t.chain.GuardState(ctx, st.MarketGuard)
+		g, gerr := t.chain.GuardState(ctx, st.MarketGuard, st.BlockNumber)
 		if gerr != nil {
 			// Guard unreadable means we cannot prove swaps are open. Fail CLOSED by leaving
 			// swapsPaused set: refusing to quote costs a route, quoting into a reverting swap
 			// costs the integration's credibility.
 			guard.SwapsPaused = true
+			guard.BlockNumber = st.BlockNumber
 		} else {
 			guard = g
+			if guard.BlockNumber == 0 {
+				guard.BlockNumber = st.BlockNumber
+			}
 		}
 	}
-
-	return applyState(p, st, guard), nil
+	if st.BlockNumber != 0 && guard.BlockNumber != 0 && guard.BlockNumber != st.BlockNumber {
+		// Mixed-block snapshot: refuse to quote rather than pair reserves with a
+		// later/earlier gate.
+		guard.SwapsPaused = true
+		guard.BlockNumber = st.BlockNumber
+	}
+	return st, guard, nil
 }
 
 // FetchPoolTicks re-reads the book. Same call as the bootstrap for us: our "ticks" are bins and
@@ -134,6 +153,7 @@ func applyState(p entity.Pool, st RawPoolState, g RawGuardState) entity.Pool {
 		GuardSwapsPaused: g.SwapsPaused,
 		GuardFreezeEnd:   g.FreezeEnd,
 		BlockTimestamp:   st.BlockTimestamp,
+		BlockNumber:      st.BlockNumber,
 	})
 	p.Extra = string(ex)
 
