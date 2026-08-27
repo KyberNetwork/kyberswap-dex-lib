@@ -160,6 +160,7 @@ import (
 	pkg_liquiditysource_someswap_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	pkg_liquiditysource_stabull "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/stabull"
 	pkg_liquiditysource_staderethx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
+	pkg_liquiditysource_stonkbrokersfun_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/stonkbrokers-fun/v2"
 	pkg_liquiditysource_swell_rsweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	pkg_liquiditysource_swell_sweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	pkg_liquiditysource_syncswapv2_aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
@@ -411,6 +412,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_someswap_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_stabull.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_stonkbrokersfun_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_rsweth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_sweth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_aqua.PoolSimulator{})

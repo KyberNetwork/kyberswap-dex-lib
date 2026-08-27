@@ -264,6 +264,7 @@ const (
 	ExchangeSPendle                     = "spendle"
 	ExchangeSpookySwap                  = "spookyswap"
 	ExchangeStaderETHx                  = "staderethx"
+	ExchangeStonkbrokersFunV2           = "stonkbrokers-fun-v2"
 	ExchangeSuperlendV3                 = "superlend-v3"
 	ExchangeSushiSwap                   = "sushiswap"
 	ExchangeSwaapV2                     = "swaap-v2"
