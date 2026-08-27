@@ -55,8 +55,14 @@ const (
 	methodEthUsdFeed      = "ethUsdFeed"
 	methodBufferTaxBps    = "BUFFER_TAX_BPS"
 
-	methodBuy    = "buy"
-	methodBuyEth = "buyEth"
+	// MethodBuy is exported because the swap is BUILT elsewhere: this package
+	// only ever quotes, while the aggregator's encoder packs the calldata off
+	// PadABI. Sharing the name keeps the two in step.
+	//
+	// buyEth() (payable, WETH lane only) is deliberately not used: the executor
+	// already holds wrapped WETH by the time it reaches this pool, so buy()
+	// avoids an unwrap-then-rewrap round trip inside the pad.
+	MethodBuy = "buy"
 
 	methodViewLaunch   = "viewLaunch"
 	methodViewLaunches = "viewLaunches"
