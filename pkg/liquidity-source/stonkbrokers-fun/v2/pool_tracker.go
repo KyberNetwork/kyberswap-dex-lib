@@ -165,19 +165,25 @@ func (t *PoolTracker) fetchDirectFeed(ctx context.Context, feed string, blockNum
 }
 
 func (t *PoolTracker) fetchTwap(ctx context.Context, twapPool, ethUsdFeed string, window uint32, blockNumber *big.Int) (*TwapReading, error) {
-	var (
-		tickCumulatives     []*big.Int
-		secondsPerLiquidity []*big.Int
-	)
+	// observe returns TWO outputs, so go-ethereum takes the copyTuple path and
+	// needs ONE struct destination whose field names match the ABI's output
+	// names. Passing two separate pointers looks reasonable but unpacks into
+	// nothing: the multicall reports success, the destinations stay empty, and
+	// the len check below then mislabels a perfectly good pool as untradeable.
+	var observed struct {
+		TickCumulatives                    []*big.Int
+		SecondsPerLiquidityCumulativeX128s []*big.Int
+	}
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	req.AddCall(&ethrpc.Call{
 		ABI: twapPoolABI, Target: twapPool, Method: "observe",
 		Params: []any{[]uint32{window, 0}},
-	}, []any{&tickCumulatives, &secondsPerLiquidity})
+	}, []any{&observed})
 	resp, err := req.TryAggregate()
 	if err != nil {
 		return nil, err
 	}
+	tickCumulatives := observed.TickCumulatives
 	if len(resp.Result) < 1 || !resp.Result[0] || len(tickCumulatives) != 2 {
 		ethReading, _ := t.fetchDirectFeed(ctx, ethUsdFeed, blockNumber)
 		if ethReading == nil {
