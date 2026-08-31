@@ -1,95 +1,170 @@
 [
-  { "type": "function", "name": "tokenX", "stateMutability": "view", "inputs": [], "outputs": [{ "name": "", "type": "address" }] },
-  { "type": "function", "name": "tokenY", "stateMutability": "view", "inputs": [], "outputs": [{ "name": "", "type": "address" }] },
-  { "type": "function", "name": "binStep", "stateMutability": "view", "inputs": [], "outputs": [{ "name": "", "type": "uint16" }] },
   {
-    "type": "function", "name": "getDecimals", "stateMutability": "view", "inputs": [],
-    "outputs": [
-      { "name": "decimalsX", "type": "uint8" },
-      { "name": "decimalsY", "type": "uint8" }
-    ]
-  },
-  { "type": "function", "name": "getActiveId", "stateMutability": "view", "inputs": [], "outputs": [{ "name": "", "type": "uint24" }] },
-  {
-    "type": "function", "name": "getQuoteState", "stateMutability": "view", "inputs": [],
+    "type": "function",
+    "name": "binStep",
+    "inputs": [],
     "outputs": [
       {
-        "name": "feeParams", "type": "tuple",
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActiveId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDecimals",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "decimalsX",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "decimalsY",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getQuoteState",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "feeParams",
+        "type": "tuple",
+        "internalType": "struct FeeHelper.FeeParameters",
         "components": [
-          { "name": "baseFactor", "type": "uint16" },
-          { "name": "filterPeriod", "type": "uint16" },
-          { "name": "decayPeriod", "type": "uint16" },
-          { "name": "reductionFactor", "type": "uint16" },
-          { "name": "variableFeeControl", "type": "uint16" },
-          { "name": "maxVolatilityAccumulator", "type": "uint24" },
-          { "name": "minSwapBps", "type": "uint16" }
+          {
+            "name": "baseFactor",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "filterPeriod",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "decayPeriod",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "reductionFactor",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "variableFeeControl",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "maxVolatilityAccumulator",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "minSwapBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
         ]
       },
-      { "name": "volatilityAccumulator", "type": "uint128" },
-      { "name": "volatilityReference", "type": "uint24" },
-      { "name": "lastVolatilityUpdate", "type": "uint40" },
-      { "name": "scaleX", "type": "uint256" },
-      { "name": "scaleY", "type": "uint256" },
-      { "name": "factory", "type": "address" }
-    ]
+      {
+        "name": "volatilityAccumulator",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "volatilityReference",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "lastVolatilityUpdate",
+        "type": "uint40",
+        "internalType": "uint40"
+      },
+      {
+        "name": "scaleX",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "scaleY",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "factory",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    "type": "function", "name": "getPairStatistics", "stateMutability": "view", "inputs": [],
-    "outputs": [
-      { "name": "activeId", "type": "uint24" },
-      { "name": "reserveX", "type": "uint128" },
-      { "name": "reserveY", "type": "uint128" },
-      { "name": "protocolFeesX", "type": "uint128" },
-      { "name": "protocolFeesY", "type": "uint128" },
-      { "name": "volatility", "type": "uint128" },
-      { "name": "lastUpdateTimestamp", "type": "uint40" }
-    ]
-  },
-  {
-    "type": "function", "name": "getReserves", "stateMutability": "view", "inputs": [],
-    "outputs": [
-      { "name": "reserveX", "type": "uint128" },
-      { "name": "reserveY", "type": "uint128" }
-    ]
-  },
-  {
-    "type": "function", "name": "getBin", "stateMutability": "view",
-    "inputs": [{ "name": "id", "type": "uint24" }],
-    "outputs": [
-      { "name": "reserveX", "type": "uint128" },
-      { "name": "reserveY", "type": "uint128" }
-    ]
-  },
-  {
-    "type": "function", "name": "getFeeParameters", "stateMutability": "view", "inputs": [],
+    "type": "function",
+    "name": "getReserves",
+    "inputs": [],
     "outputs": [
       {
-        "name": "", "type": "tuple",
-        "components": [
-          { "name": "baseFactor", "type": "uint16" },
-          { "name": "filterPeriod", "type": "uint16" },
-          { "name": "decayPeriod", "type": "uint16" },
-          { "name": "reductionFactor", "type": "uint16" },
-          { "name": "variableFeeControl", "type": "uint16" },
-          { "name": "protocolShare", "type": "uint16" },
-          { "name": "maxVolatilityAccumulator", "type": "uint24" },
-          { "name": "minSwapBps", "type": "uint16" }
-        ]
+        "name": "reserveX",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "reserveY",
+        "type": "uint128",
+        "internalType": "uint128"
       }
-    ]
+    ],
+    "stateMutability": "view"
   },
   {
-    "type": "function", "name": "quoteSwap", "stateMutability": "view",
-    "inputs": [
-      { "name": "swapForY", "type": "bool" },
-      { "name": "amountIn", "type": "uint256" }
-    ],
+    "type": "function",
+    "name": "tokenX",
+    "inputs": [],
     "outputs": [
-      { "name": "amountOut", "type": "uint256" },
-      { "name": "consumedAmountIn", "type": "uint256" },
-      { "name": "finalBinId", "type": "uint24" },
-      { "name": "binsTraversed", "type": "uint256" },
-      { "name": "totalFee", "type": "uint256" }
-    ]
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tokenY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   }
 ]

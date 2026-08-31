@@ -17,9 +17,10 @@ func pow10(n uint8) *uint256.Int {
 }
 
 // getNormalizedPriceFromId computes (1 + binStep/10000)^(binId-ACTIVE_BIN) in 1e18 fixed point,
-// mirroring the DEPLOYED BinHelper.getPriceFromId exactly: plain 1e18 exponentiation-by-squaring
-// (base = numerator*1e18/denominator; result = result*base/1e18; base = base*base/1e18), including
-// the saturate-on-overflow guard. (Note: this is NOT the 128.128 algorithm in the stale source.)
+// mirroring the deployed BinHelper.getNormalizedPriceFromId exactly: plain 1e18
+// exponentiation-by-squaring (base = numerator*1e18/denominator; result = result*base/1e18;
+// base = base*base/1e18), including the saturate-on-overflow guard. Sentinels: 0 (underflow) and
+// 2^256-1 (overflow); isNormalizedPriceRepresentable rejects both.
 func getNormalizedPriceFromId(binID uint32, binStep uint16) *uint256.Int {
 	exponent := int64(binID) - int64(activeBinID)
 	if exponent == 0 {
@@ -66,31 +67,73 @@ func mulDiv1e18Capped(a, b *uint256.Int) *uint256.Int {
 	return r.Div(r, e18)
 }
 
-// getPriceFromId returns the bin price in Y native decimals (Y per 1 whole X), mirroring the
-// deployed BinHelper.getPriceFromId.
-func getPriceFromId(binID uint32, binStep uint16, decimalsY uint8) (*uint256.Int, error) {
-	normalized := getNormalizedPriceFromId(binID, binStep)
-	if decimalsY <= 18 {
-		return new(uint256.Int).Div(normalized, pow10(18-decimalsY)), nil
-	}
-	return new(uint256.Int).Mul(normalized, pow10(decimalsY-18)), nil
+// isNormalizedPriceRepresentable mirrors BinHelper.isNormalizedPriceRepresentable: both saturation
+// sentinels fail closed (V2 rejects unrepresentable bins in BOTH swap directions, #126/#121).
+func isNormalizedPriceRepresentable(price *uint256.Int) bool {
+	return !price.IsZero() && price.Cmp(uMaxU) != 0
 }
 
-// calculateDynamicFee mirrors the DEPLOYED FeeHelper.calculateDynamicFee: baseFee + quadratic
-// variable fee (capped at variableFeeCap when nonzero), total capped at MAX_FEE. Returns the fee
-// rate in basis points.
-func calculateDynamicFee(baseFactor, variableFeeControl uint16, volatility *uint256.Int, binStep, variableFeeCap uint16) *uint256.Int {
+// mulDivFloor mirrors SwapCalculator._mulDivFloor: a*(b/d) + (a*(b%d))/d. The intermediates are
+// NOT 512-bit — a uint256 overflow reverts on-chain, so it errors here rather than wrapping.
+func mulDivFloor(a, b, d *uint256.Int) (*uint256.Int, error) {
+	q := new(uint256.Int).Div(b, d)
+	r := new(uint256.Int).Mod(b, d)
+	t1, over := new(uint256.Int).MulOverflow(a, q)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	t2, over := new(uint256.Int).MulOverflow(a, r)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	t2.Div(t2, d)
+	res, over := new(uint256.Int).AddOverflow(t1, t2)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	return res, nil
+}
+
+// mulDivCeil mirrors SwapCalculator._mulDivCeil: a*(b/d) + (a*(b%d) + d - 1)/d, erroring where the
+// checked Solidity arithmetic would revert.
+func mulDivCeil(a, b, d *uint256.Int) (*uint256.Int, error) {
+	q := new(uint256.Int).Div(b, d)
+	r := new(uint256.Int).Mod(b, d)
+	t1, over := new(uint256.Int).MulOverflow(a, q)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	t2, over := new(uint256.Int).MulOverflow(a, r)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	t2, over = t2.AddOverflow(t2, d)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	t2.Sub(t2, uint256.NewInt(1))
+	t2.Div(t2, d)
+	res, over := new(uint256.Int).AddOverflow(t1, t2)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	return res, nil
+}
+
+// calculateDynamicFee mirrors the deployed FeeHelper.calculateDynamicFee: baseFee + quadratic
+// variable fee, total capped at MAX_FEE. The variableFeeCap clamp is UNCONDITIONAL in V2 — a zero
+// cap pins the variable part to zero (#147), it does not mean "no cap". Returns the fee rate in
+// basis points.
+func calculateDynamicFee(baseFactor, variableFeeControl uint16, volatility uint64, binStep, variableFeeCap uint16) *uint256.Int {
 	totalFee := uint256.NewInt(uint64(baseFactor))
 	if variableFeeControl != 0 {
-		prod := new(uint256.Int).Mul(volatility, uint256.NewInt(uint64(binStep)))
+		prod := new(uint256.Int).Mul(uint256.NewInt(volatility), uint256.NewInt(uint64(binStep)))
 		prod.Mul(prod, prod)
 		prod.Mul(prod, uint256.NewInt(uint64(variableFeeControl)))
 		prod.Div(prod, e10)
-		if variableFeeCap > 0 {
-			cap := uint256.NewInt(uint64(variableFeeCap))
-			if prod.Cmp(cap) > 0 {
-				prod = cap
-			}
+		feeCap := uint256.NewInt(uint64(variableFeeCap))
+		if prod.Cmp(feeCap) > 0 {
+			prod = feeCap
 		}
 		totalFee.Add(totalFee, prod)
 	}
@@ -101,8 +144,7 @@ func calculateDynamicFee(baseFactor, variableFeeControl uint16, volatility *uint
 }
 
 // applyVolatilityDecay mirrors FeeHelper.applyVolatilityDecay: linear decay over decayPeriod, with
-// a floor of 1 to avoid premature rounding to 0. Used by the tracker to decay the accumulator to
-// the tracked block.
+// a floor of 1 to avoid premature rounding to 0.
 func applyVolatilityDecay(volatility uint64, timeDelta, decayPeriod uint64) uint64 {
 	if decayPeriod == 0 || timeDelta >= decayPeriod {
 		return 0
@@ -114,52 +156,86 @@ func applyVolatilityDecay(volatility uint64, timeDelta, decayPeriod uint64) uint
 	return decayed
 }
 
-// getFeeAmountFrom mirrors FeeHelper.getFeeAmountFrom: amount * totalFee / (10000 + totalFee).
-func getFeeAmountFrom(amount, totalFee *uint256.Int) *uint256.Int {
-	var num, den uint256.Int
-	num.Mul(amount, totalFee)
-	den.Add(uBP, totalFee)
-	return num.Div(&num, &den)
+// getDecayedVolatility mirrors FeeHelper.getDecayedVolatility: the accumulator holds constant
+// inside the filter window and decays linearly only after it lapses.
+func getDecayedVolatility(volatility, lastUpdate, filterPeriod, decayPeriod, now uint64) uint64 {
+	if now <= lastUpdate {
+		return volatility
+	}
+	delta := now - lastUpdate
+	if delta < filterPeriod {
+		return volatility
+	}
+	return applyVolatilityDecay(volatility, delta, decayPeriod)
 }
 
-// simulateBinSwap mirrors UmbraeLBPairUpgradeable._simulateBinSwap. All amounts are in the
-// 18-decimal normalized space. binReserveOut is the output-side reserve of the bin (reserveY when
-// swapForY, else reserveX).
-func simulateBinSwap(
-	binReserveOut, amountInNormalized, price, precisionX, scaleIn, scaleOut *uint256.Int,
+// getFeeAmountFrom mirrors the deployed FeeHelper.getFeeAmountFrom: a CEILING division with
+// denominator (10000 + totalFee), clamped so the fee never consumes the whole amount. (V1 floored;
+// the V2 ceil + clamp are both load-bearing for wei-exactness.)
+func getFeeAmountFrom(amount, totalFee *uint256.Int) (*uint256.Int, error) {
+	if amount.IsZero() || totalFee.IsZero() {
+		return uint256.NewInt(0), nil
+	}
+	den := new(uint256.Int).Add(uBP, totalFee)
+	num, over := new(uint256.Int).MulOverflow(amount, totalFee)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	num, over = num.AddOverflow(num, den)
+	if over {
+		return nil, ErrMathOverflow
+	}
+	num.Sub(num, uint256.NewInt(1))
+	fee := num.Div(num, den)
+	if fee.Cmp(amount) >= 0 {
+		fee = new(uint256.Int).Sub(amount, uint256.NewInt(1))
+	}
+	return fee, nil
+}
+
+// calculateSwapWithinBin mirrors SwapCalculator.calculateSwapWithinBin. All amounts crossing this
+// boundary are 18-decimal normalized; the price math runs in native units with the decimal
+// conversion folded into priceDenominator = scaleY * 10^decimalsX (identical in both directions).
+// Output floors, input-consumed-on-depletion ceils (against the swapper). A zero-output bin is
+// skipped, not charged (H-02/#203): returns (0, 0).
+func calculateSwapWithinBin(
+	binReserveOut, amountInNormalized, normPrice, priceDenominator, scaleIn, scaleOut *uint256.Int,
 	swapForY bool,
-) (amountOutNormalized, amountInLeftNormalized *uint256.Int) {
+) (amountOutNormalized, amountInConsumedNormalized *uint256.Int, err error) {
 	amountInNative := new(uint256.Int).Div(amountInNormalized, scaleIn)
 
-	maxAmountOutNative := new(uint256.Int)
+	var maxOutNative *uint256.Int
 	if swapForY {
-		maxAmountOutNative.Mul(amountInNative, price)
-		maxAmountOutNative.Div(maxAmountOutNative, precisionX)
+		maxOutNative, err = mulDivFloor(amountInNative, normPrice, priceDenominator)
 	} else {
-		maxAmountOutNative.Mul(amountInNative, precisionX)
-		maxAmountOutNative.Div(maxAmountOutNative, price)
+		maxOutNative, err = mulDivFloor(amountInNative, priceDenominator, normPrice)
 	}
-	maxAmountOut := new(uint256.Int).Mul(maxAmountOutNative, scaleOut)
-
-	if maxAmountOut.Cmp(binReserveOut) <= 0 {
-		return maxAmountOut, uint256.NewInt(0)
+	if err != nil {
+		return nil, nil, err
+	}
+	maxOut, over := new(uint256.Int).MulOverflow(maxOutNative, scaleOut)
+	if over {
+		return nil, nil, ErrMathOverflow
 	}
 
-	// Bin depleted: output capped at the bin reserve; back out the consumed input.
-	amountOutNormalized = new(uint256.Int).Set(binReserveOut)
+	if maxOut.IsZero() {
+		return uint256.NewInt(0), uint256.NewInt(0), nil
+	}
+	if maxOut.Cmp(binReserveOut) <= 0 {
+		return maxOut, new(uint256.Int).Set(amountInNormalized), nil
+	}
+
+	// Bin depleted: output capped at the bin reserve; back out the consumed input, ceiling.
 	binReserveOutNative := new(uint256.Int).Div(binReserveOut, scaleOut)
-	consumedNative := new(uint256.Int)
+	var consumedNative *uint256.Int
 	if swapForY {
-		consumedNative.Mul(binReserveOutNative, precisionX)
-		consumedNative.Div(consumedNative, price)
+		consumedNative, err = mulDivCeil(binReserveOutNative, priceDenominator, normPrice)
 	} else {
-		consumedNative.Mul(binReserveOutNative, price)
-		consumedNative.Div(consumedNative, precisionX)
+		consumedNative, err = mulDivCeil(binReserveOutNative, normPrice, priceDenominator)
+	}
+	if err != nil {
+		return nil, nil, err
 	}
 	consumed := new(uint256.Int).Mul(consumedNative, scaleIn)
-	amountInLeftNormalized = new(uint256.Int)
-	if amountInNormalized.Cmp(consumed) > 0 {
-		amountInLeftNormalized.Sub(amountInNormalized, consumed)
-	}
-	return amountOutNormalized, amountInLeftNormalized
+	return new(uint256.Int).Set(binReserveOut), consumed, nil
 }
