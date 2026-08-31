@@ -2,6 +2,7 @@ package stonkbrokersfunv2
 
 import (
 	"context"
+	"math/big"
 	"os"
 	"testing"
 
@@ -152,4 +153,60 @@ func mustStaticExtra(t *testing.T, p entity.Pool) StaticExtra {
 	var se StaticExtra
 	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &se))
 	return se
+}
+
+// TestQuoteMatchesLens is the correctness property that matters most: the
+// simulator's price must equal what the pad's own SafeLaunchLensV2 quotes, to
+// the wei, across the whole amount range. The lens is an independent on-chain
+// implementation of the same curve, so agreeing with it catches any drift in
+// the ported tax/rounding maths.
+func (ts *PoolTrackerTestSuite) TestQuoteMatchesLens() {
+	t := ts.T()
+	ctx := context.Background()
+
+	client := ethrpc.New(robinhoodRPCURL()).
+		SetMulticallContract(common.HexToAddress(multicallAddress))
+
+	var ep entity.Pool
+	ts.Require().NoError(json.Unmarshal([]byte(testPoolJSON), &ep))
+	p, err := ts.tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
+	ts.Require().NoError(err)
+
+	sim, err := NewPoolSimulator(p)
+	ts.Require().NoError(err)
+
+	launchID, ok := new(big.Int).SetString(mustStaticExtra(t, p).LaunchID, 10)
+	ts.Require().True(ok)
+
+	for _, amountIn := range []*big.Int{
+		big.NewInt(1),
+		big.NewInt(1_000_000_000_000),
+		big.NewInt(10_000_000_000_000_000),
+		big.NewInt(1_000_000_000_000_000_000),
+	} {
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: p.Tokens[1].Address, Amount: amountIn},
+			TokenOut:      p.Tokens[0].Address,
+		})
+		ts.Require().NoError(err, "amountIn=%s", amountIn)
+
+		// quoteBuy returns two values, so ethrpc takes the copyTuple path and
+		// needs one struct destination.
+		var lens struct {
+			TokensOut *big.Int
+			TaxBps    *big.Int
+		}
+		req := client.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(p.BlockNumber))
+		req.AddCall(&ethrpc.Call{
+			ABI: lensABI, Target: lensAddress, Method: methodQuoteBuy,
+			Params: []any{common.HexToAddress(wethPad), launchID, amountIn},
+		}, []any{&lens})
+		_, err = req.Aggregate()
+		ts.Require().NoError(err)
+
+		t.Logf("amountIn=%-20s sim=%-30s lens=%-30s taxBps=%s",
+			amountIn, res.TokenAmountOut.Amount, lens.TokensOut, lens.TaxBps)
+		ts.Require().Zero(res.TokenAmountOut.Amount.Cmp(lens.TokensOut),
+			"simulator disagrees with the lens at amountIn=%s", amountIn)
+	}
 }

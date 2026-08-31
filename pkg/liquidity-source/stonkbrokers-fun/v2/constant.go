@@ -64,9 +64,9 @@ const (
 	// avoids an unwrap-then-rewrap round trip inside the pad.
 	MethodBuy = "buy"
 
-	methodViewLaunch   = "viewLaunch"
-	methodViewLaunches = "viewLaunches"
-	methodQuoteBuy     = "quoteBuy"
+	// The lens exposes viewLaunch/viewLaunches too; we read launch state off the
+	// pad directly and only use the lens as an independent quote oracle in tests.
+	methodQuoteBuy = "quoteBuy"
 
 	bps = 10_000
 
