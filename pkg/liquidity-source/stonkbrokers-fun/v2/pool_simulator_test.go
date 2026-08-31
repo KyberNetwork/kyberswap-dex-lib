@@ -67,7 +67,7 @@ func buildLiveLaunch176Pool(t *testing.T) *PoolSimulator {
 	require.NoError(t, err)
 
 	ep := entity.Pool{
-		Address:  wethPad + "#176",
+		Address:  wethPad + "_176",
 		Exchange: string(DexType),
 		Type:     DexType,
 		Tokens: []*entity.PoolToken{

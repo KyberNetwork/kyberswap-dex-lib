@@ -44,7 +44,7 @@ func robinhoodRPCURL() string {
 // (AGENTS.md: don't set reserves at discovery time); GetNewPoolState fills
 // the real values.
 const testPoolJSON = `{
-	"address": "0xfcd61b25bbf3abd6cf0070d6328e351cc30eec9f#176",
+	"address": "0xfcd61b25bbf3abd6cf0070d6328e351cc30eec9f_176",
 	"exchange": "stonkbrokers-fun-v2",
 	"type": "stonkbrokers-fun-v2",
 	"timestamp": 1787720000,

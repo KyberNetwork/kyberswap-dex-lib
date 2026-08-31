@@ -119,7 +119,7 @@ type SwapInfo struct {
 // PoolMeta is what the aggregator's encoder decodes from the pool extra to
 // build buy() calldata -- it needs the PAD contract address (the actual
 // callable target; entity.Pool.Address/StaticExtra.Pad is a synthetic
-// "pad#launchId" composite key, not itself a callable contract) and the
+// "pad_launchId" composite key, not itself a callable contract) and the
 // on-chain LaunchID to pass as buy()'s id param.
 type PoolMeta struct {
 	Pad      string `json:"pad"`
@@ -128,7 +128,7 @@ type PoolMeta struct {
 	// ApprovalAddress duplicates Pad under the shared pool.ApprovalInfo JSON
 	// contract, which the encoder reads to resolve a custom (non-pool)
 	// approval target. The executor must approve the PAD -- not the pool
-	// address, which is the synthetic "pad#launchId" composite key -- to
+	// address, which is the synthetic "pad_launchId" composite key -- to
 	// spend its quote-asset balance before calling buy().
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`

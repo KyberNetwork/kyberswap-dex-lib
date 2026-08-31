@@ -3,10 +3,12 @@ package stonkbrokersfunv2
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
@@ -81,4 +83,19 @@ func TestPoolsListUpdaterTestSuite(t *testing.T) {
 	t.Parallel()
 	test.SkipCI(t)
 	suite.Run(t, new(PoolsListUpdaterTestSuite))
+}
+
+// TestPoolAddress_IsURLSafe pins the synthetic key's shape. entity.Pool.Address
+// is passed through URL query strings (router-service's poolIds parameter), so
+// the separator must survive that trip: "#" would start a fragment and silently
+// truncate the id, leaving a key that matches no pool.
+func TestPoolAddress_IsURLSafe(t *testing.T) {
+	t.Parallel()
+
+	const pad = "0xfcd61b25bbf3abd6cf0070d6328e351cc30eec9f"
+	addr := PoolAddress(pad, 176)
+
+	require.Equal(t, pad+"_176", addr)
+	require.NotContains(t, addr, "#", "'#' starts a URL fragment and truncates the id")
+	require.Equal(t, addr, url.QueryEscape(addr), "the key must survive a query string unescaped")
 }
