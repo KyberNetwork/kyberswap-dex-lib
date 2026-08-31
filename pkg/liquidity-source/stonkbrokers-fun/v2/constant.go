@@ -89,6 +89,7 @@ var (
 	ErrZeroTrade        = errors.New("zero trade amount")
 	ErrSlippageExceeded = errors.New("slippage exceeded")
 	ErrBuyCapExceeded   = errors.New("per-recipient buy cap exceeded (StonkSafeLaunchpadV2 BuyCapExceeded)")
+	ErrNoSnapshotBlock  = errors.New("multicall returned no block number to pin the refresh to")
 	ErrEoaOnly          = errors.New("launch is eoaOnly: buy() reverts NotEoa when msg.sender != tx.origin, so it is unreachable from an aggregator executor")
 
 	// ErrStalePrice mirrors the on-chain revert: buy() calls mcapUsd8(id)

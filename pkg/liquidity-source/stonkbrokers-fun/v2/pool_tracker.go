@@ -26,36 +26,15 @@ func NewPoolTracker(cfg *Config, client *ethrpc.Client) (*PoolTracker, error) {
 	return &PoolTracker{config: cfg, ethrpcClient: client}, nil
 }
 
-// GetNewPoolState re-reads the mutable launch state (vQuote/vToken/flags)
-// and the buy-side oracle snapshot (direct feed or TWAP, per StaticExtra).
+// GetNewPoolState re-reads the launch state and the buy-side oracle snapshot.
 //
-// Robinhood Chain quirk (chain 4663, confirmed live against
-// https://rpc.mainnet.chain.robinhood.com): eth_blockNumber and the
-// block.number OPCODE are two independent, non-comparable counters.
-// Multicall3's own aggregate()/tryBlockAndAggregate() reads block.number
-// INSIDE the contract, so `resp.BlockNumber` from an ethrpc Aggregate/
-// TryAggregate call is in the OPCODE domain -- pinning a later eth_call's
-// block tag to that value always fails with "-32000 metadata is not found",
-// because eth_call's block tag is resolved in the eth_blockNumber domain
-// only. (Confirmed: eth_call pinned to a fresh eth_blockNumber succeeds;
-// pinned to the numerically-current block.number value fails.) This bit a
-// previous version of this tracker silently: the failed pin degraded to a
-// logged warning and a nil oracle reading, which is SAFE (the simulator
-// correctly refuses to quote without a reading, see CalcAmountOut's
-// ErrBadOracleAnswer) but made every buy on every pad permanently
-// unquotable in production, defeating the integration.
-//
-// Fix: fetch the eth_blockNumber domain value ONCE via a plain
-// eth_blockNumber call (ethrpc.Client.GetBlockNumber -- NOT the multicall
-// aggregate's returned block), then pin EVERY call in this refresh
-// (getLaunch + the oracle read) to that same value. This is also the
-// domain the chain-head resolution and event logs downstream use
-// (pkg/repository/block/block.go's IEVMClient.BlockNumber -- standard
-// eth_blockNumber), so entity.Pool.BlockNumber stays comparable with the
-// rest of the stack (AGENTS.md: use the block from Aggregate/
-// TryBlockAndAggregate/an existing GetBlockNumber/established event-log
-// state; pin dependent reads to it -- GetBlockNumber is exactly the
-// documented alternative when Aggregate's own block is unusable).
+// The snapshot block comes from the first Aggregate, and every dependent read is
+// pinned to it. Robinhood Chain runs two block counters -- eth_blockNumber and
+// the block.number opcode, ~2x lower -- and eth_call only accepts a tag in the
+// first. ethrpc reports whatever the configured multicall returns, so this only
+// works on ArbMulticall2 (arbBlockNumber), which is what pool-service sets for
+// robinhood; on Multicall3 every pinned read here would fail.
+// TestSnapshotBlockDomain asserts that.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -72,18 +51,19 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInvalidPoolTokens
 	}
 
-	ethBlockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
+	// Unpinned: this first call defines the snapshot block, which every
+	// dependent read below is then pinned to.
+	var res getLaunchResult
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{ABI: PadABI, Target: staticExtra.Pad, Method: methodGetLaunch, Params: []any{launchID}}, []any{&res})
+	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err
 	}
-	blockNumber := new(big.Int).SetUint64(ethBlockNumber)
-
-	var res getLaunchResult
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	req.AddCall(&ethrpc.Call{ABI: PadABI, Target: staticExtra.Pad, Method: methodGetLaunch, Params: []any{launchID}}, []any{&res})
-	if _, err := req.Aggregate(); err != nil {
-		return p, err
+	if resp.BlockNumber == nil {
+		return p, ErrNoSnapshotBlock
 	}
+	blockNumber := resp.BlockNumber
 	lr := res.Launch
 
 	extra := Extra{
@@ -96,18 +76,10 @@ func (t *PoolTracker) GetNewPoolState(
 		Aborted:      lr.Aborted,
 	}
 
-	// A failed oracle read at this point (after pinning to the verified-
-	// correct eth_blockNumber domain) is NOT the expected case -- it means a
-	// genuine RPC hiccup or an actually-broken feed, not routine staleness
-	// (staleness is a timestamp comparison inside feedUsd8/DirectFeedUsd8/
-	// TwapQuoteUsd8 at quote time, not a call failure here). We still don't
-	// fail the whole refresh: vQuote/vToken/armed/etc. above are valid and
-	// worth persisting even if the oracle leg is temporarily down, and
-	// persisting an explicit Ok:false reading already makes the pool
-	// untradeable end-to-end (CalcAmountOut's currentQuoteUsd8 returns
-	// ErrBadOracleAnswer for Ok:false / nil) -- so this IS "mark the pool
-	// untradeable" (not silent), just logged louder than before since it is
-	// now an unexpected condition rather than an expected one.
+	// An oracle failure here is an RPC hiccup or a broken feed, not routine
+	// staleness (that is a timestamp check at quote time). Persist the launch
+	// state anyway with Ok:false: CalcAmountOut then refuses the pool, which is
+	// the intended "untradeable" outcome.
 	switch {
 	case staticExtra.QuoteUsdFeed != "":
 		reading, err := t.fetchDirectFeed(ctx, staticExtra.QuoteUsdFeed, blockNumber)

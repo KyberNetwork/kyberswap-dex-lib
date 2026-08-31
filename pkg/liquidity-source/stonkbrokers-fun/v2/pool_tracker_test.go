@@ -19,8 +19,12 @@ import (
 
 const (
 	defaultRobinhoodRPCURL = "https://rpc.mainnet.chain.robinhood.com"
-	multicallAddress       = "0xcA11bde05977b3631167028862bE2a173976CA11"
-	lensAddress            = "0x25b5Df581f4b2Ed450203f375ad8A28b17F115B3"
+	// ArbMulticall2, matching pool-service's robinhood config. It must be this
+	// one and not Multicall3: the tracker pins its oracle read to the block
+	// aggregate() returns, and only this contract reports that in the
+	// eth_blockNumber domain. See GetNewPoolState's comment.
+	multicallAddress = "0x2cAC2D899eCC914d704FeaAE33ac1bF36277DaD1"
+	lensAddress      = "0x25b5Df581f4b2Ed450203f375ad8A28b17F115B3"
 
 	// wethV3Pad is the WETH-lane Smart Launch V3 pad. V3 is deliberately out of
 	// the configured pad list -- see TestV3Pad_ScopeDecision.
@@ -209,4 +213,39 @@ func (ts *PoolTrackerTestSuite) TestQuoteMatchesLens() {
 		ts.Require().Zero(res.TokenAmountOut.Amount.Cmp(lens.TokensOut),
 			"simulator disagrees with the lens at amountIn=%s", amountIn)
 	}
+}
+
+// TestSnapshotBlockDomain guards the assumption GetNewPoolState now rests on:
+// that the configured multicall reports its block in the eth_blockNumber
+// domain. Robinhood Chain also exposes a block.number opcode counter that runs
+// roughly half as fast, and a block tag from that domain is rejected by
+// eth_call, so a client wired to Multicall3 would break every pinned read here.
+// One cheap assertion beats rediscovering that from a "pool marked untradeable"
+// log line.
+func (ts *PoolTrackerTestSuite) TestSnapshotBlockDomain() {
+	t := ts.T()
+	ctx := context.Background()
+
+	client := ethrpc.New(robinhoodRPCURL()).
+		SetMulticallContract(common.HexToAddress(multicallAddress))
+
+	var launchCount *big.Int
+	req := client.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{ABI: PadABI, Target: wethPad, Method: methodLaunchCount}, []any{&launchCount})
+	resp, err := req.Aggregate()
+	ts.Require().NoError(err)
+	ts.Require().NotNil(resp.BlockNumber, "aggregate must report a block to pin to")
+
+	head, err := client.GetBlockNumber(ctx)
+	ts.Require().NoError(err)
+
+	agg := resp.BlockNumber.Uint64()
+	t.Logf("aggregate block=%d  eth_blockNumber=%d  delta=%d", agg, head, int64(agg)-int64(head))
+
+	// The two are read a moment apart, so allow drift -- but the wrong domain is
+	// off by millions, not by a handful of blocks.
+	const maxDrift = 5000
+	ts.Require().InDeltaf(float64(head), float64(agg), maxDrift,
+		"multicall %s reports block %d while eth_blockNumber is %d: this client is on the "+
+			"block.number opcode domain and pinned reads will fail", multicallAddress, agg, head)
 }
