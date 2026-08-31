@@ -8,12 +8,6 @@ var padBytes []byte
 //go:embed abi/Lens.json
 var lensBytes []byte
 
-// aggregatorV3Bytes / twapPoolBytes are minimal, hand-written ABIs for the
-// two third-party contracts read for the buy-side oracle gate: a standard
-// Chainlink AggregatorV3Interface (decimals, latestRoundData) and a minimal
-// Uniswap-v3-style pool (token0, token1, observe). Selectors verified via
-// `cast sig` against the well-known canonical signatures -- see
-//
 //go:embed abi/AggregatorV3.json
 var aggregatorV3Bytes []byte
 

@@ -97,29 +97,10 @@ type padStatic struct {
 	launchCount    *big.Int
 }
 
-// PoolAddress is the synthetic key for one launch. Launch ids are per-pad, so
-// neither the pad address nor the id identifies a pool on its own.
-//
-// The separator is "_" and deliberately NOT "#": entity.Pool.Address travels
-// through URL query strings (router-service's poolIds parameter, among others),
-// and "#" starts a fragment there, so a caller passing the key verbatim silently
-// loses the id and matches nothing. "_" is unreserved in RFC 3986. Same shape as
-// fluid/dex-v2's encodeFluidDexV2PoolAddress.
 func PoolAddress(pad string, launchID uint64) string {
 	return pad + "_" + strconv.FormatUint(launchID, 10)
 }
 
-// GetNewPools implements the on-chain, cursor-based discovery: for each of the
-// 8 fixed Smart Launch V2 pads, page forward from the last known
-// launchId to the pad's current launchCount(), emitting one entity.Pool per
-// newly discovered (pad, launchId).
-//
-// Per AGENTS.md: reserves are NOT set here (left "0","0"; the tracker fills
-// them on the next refresh) and token decimals are NOT fetched here (the
-// token-metadata pipeline populates them after listing) --
-// QuoteDecimals in StaticExtra comes from the PAD's own quoteDecimals()
-// view, not an ERC20 introspection call, so it is available immediately for
-// the math package without violating that rule.
 func (l *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	cursor := map[string]uint64{}
 	if len(metadataBytes) > 0 {
@@ -195,7 +176,7 @@ func (l *PoolsListUpdater) fetchLaunches(
 	bufferSecs := make([]uint32, n)
 
 	req := l.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		id := new(big.Int).SetUint64(fromID + uint64(i))
 		req.AddCall(&ethrpc.Call{ABI: PadABI, Target: pad, Method: methodGetLaunch, Params: []any{id}}, []any{&launches[i]})
 		req.AddCall(&ethrpc.Call{ABI: PadABI, Target: pad, Method: methodModesOf, Params: []any{id}}, []any{&modes[i]})
@@ -207,7 +188,7 @@ func (l *PoolsListUpdater) fetchLaunches(
 	}
 
 	pools := make([]entity.Pool, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		base := i * 3
 		if base+2 >= len(resp.Result) || !resp.Result[base] || !resp.Result[base+1] || !resp.Result[base+2] {
 			// getLaunch/modesOf/bufferSecsOf reverted for this id -- skip it,

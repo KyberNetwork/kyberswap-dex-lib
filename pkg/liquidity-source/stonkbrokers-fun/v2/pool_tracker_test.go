@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -248,4 +249,63 @@ func (ts *PoolTrackerTestSuite) TestSnapshotBlockDomain() {
 	ts.Require().InDeltaf(float64(head), float64(agg), maxDrift,
 		"multicall %s reports block %d while eth_blockNumber is %d: this client is on the "+
 			"block.number opcode domain and pinned reads will fail", multicallAddress, agg, head)
+}
+
+// entity.Pool.Timestamp is the clock pool-service ages pools out on, so the
+// tracker must move it only when the launch actually traded -- otherwise every
+// interval refresh looks like activity and nothing ever archives.
+func TestPersist_TimestampTracksTradeCounter(t *testing.T) {
+	t.Parallel()
+
+	const was = int64(1787720000)
+	tracker := &PoolTracker{}
+	tradeable := StaticExtra{OpenEnded: true}
+
+	snapshot := func(buyCount uint64) Extra {
+		return Extra{
+			VQuote:   uint256.NewInt(1e18),
+			VToken:   uint256.NewInt(2e18),
+			Armed:    true,
+			BuyCount: buyCount,
+		}
+	}
+	stored := func(e Extra, timestamp int64) entity.Pool {
+		extraBytes, err := json.Marshal(e)
+		require.NoError(t, err)
+		return entity.Pool{Extra: string(extraBytes), Timestamp: timestamp}
+	}
+
+	t.Run("counter unchanged leaves the timestamp alone", func(t *testing.T) {
+		got := tracker.persist(stored(snapshot(7), was), snapshot(7), tradeable, big.NewInt(100))
+		require.Equal(t, was, got.Timestamp)
+	})
+
+	t.Run("counter moved bumps the timestamp", func(t *testing.T) {
+		got := tracker.persist(stored(snapshot(7), was), snapshot(8), tradeable, big.NewInt(100))
+		require.Greater(t, got.Timestamp, was)
+	})
+
+	t.Run("first sight starts the clock", func(t *testing.T) {
+		// Upstream reads timestamp 0 as "always active", so a launch that has
+		// never traded would otherwise stay resident forever.
+		got := tracker.persist(entity.Pool{Extra: "{}"}, snapshot(0), tradeable, big.NewInt(100))
+		require.Greater(t, got.Timestamp, was)
+	})
+
+	t.Run("terminal parks even on a fresh trade", func(t *testing.T) {
+		bonded := snapshot(9)
+		bonded.Bonded = true
+		got := tracker.persist(stored(snapshot(7), was), bonded, tradeable, big.NewInt(100))
+		require.EqualValues(t, 1, got.Timestamp)
+		require.Equal(t, entity.PoolReserves{"0", "0"}, got.Reserves)
+	})
+
+	t.Run("counter and fetch time are persisted", func(t *testing.T) {
+		got := tracker.persist(stored(snapshot(7), was), snapshot(8), tradeable, big.NewInt(100))
+
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
+		require.EqualValues(t, 8, extra.BuyCount)
+		require.EqualValues(t, 100, got.BlockNumber)
+	})
 }

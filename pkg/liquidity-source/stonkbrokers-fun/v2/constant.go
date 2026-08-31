@@ -92,16 +92,6 @@ var (
 	ErrNoSnapshotBlock  = errors.New("multicall returned no block number to pin the refresh to")
 	ErrEoaOnly          = errors.New("launch is eoaOnly: buy() reverts NotEoa when msg.sender != tx.origin, so it is unreachable from an aggregator executor")
 
-	// ErrStalePrice mirrors the on-chain revert: buy() calls mcapUsd8(id)
-	// unconditionally (no try/catch) to check the graduation gate, and
-	// mcapUsd8 reverts if the pad's oracle (direct Chainlink feed or TWAP
-	// pool, per-pad -- see StaticExtra) is stale. Stock lanes
-	// (GME/NVDA/AAPL/SPCX/USO) go stale over weekends (documented worst
-	// case 79.7h gap). The simulator ports SafeLaunchTwapLib's
-	// staleness window and return this error rather than a quote whenever
-	// the tracked oracle snapshot is stale -- ported from AGENTS.md's "track
-	// every flag/check on the swap path so the simulator can reject swaps
-	// that would revert on-chain."
 	ErrStalePrice        = errors.New("quote-asset oracle stale, buy blocked (graduation mcap unreadable on-chain)")
 	ErrBadOracleAnswer   = errors.New("oracle answer invalid (<= 0, unscalable, or overflow)")
 	ErrInvalidToken      = errors.New("invalid tokenIn/tokenOut for this pool")

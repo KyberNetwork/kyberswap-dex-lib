@@ -50,6 +50,16 @@ func MustABIError(parsed abi.ABI, name string) abi.Error {
 	return abiErr
 }
 
+// MustABIEvent returns the named event, panicking if the ABI has no such name.
+func MustABIEvent(parsed abi.ABI, name string) abi.Event {
+	event, ok := parsed.Events[name]
+	if !ok {
+		panic(missingABIEntry("event", name, eventNames(parsed)))
+	}
+
+	return event
+}
+
 // missingABIEntry lists what the ABI does have, since the usual cause is a
 // rename or reading one contract's name against another contract's ABI.
 func missingABIEntry(kind, name string, have []string) string {
@@ -70,6 +80,15 @@ func methodNames(parsed abi.ABI) []string {
 func errorNames(parsed abi.ABI) []string {
 	names := make([]string, 0, len(parsed.Errors))
 	for name := range parsed.Errors {
+		names = append(names, name)
+	}
+
+	return names
+}
+
+func eventNames(parsed abi.ABI) []string {
+	names := make([]string, 0, len(parsed.Events))
+	for name := range parsed.Events {
 		names = append(names, name)
 	}
 

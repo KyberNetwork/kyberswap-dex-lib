@@ -98,6 +98,15 @@ type Extra struct {
 	Bonded       bool `json:"bonded"`
 	Aborted      bool `json:"aborted"`
 
+	// BuyCount is the launch's on-chain trade counter. The pad increments it
+	// on buys AND sells alike (the name is the contract's), never decrements
+	// it, so a change between two refreshes is proof the curve moved -- which
+	// is what entity.Pool.Timestamp, the clock pool-service archives on, is
+	// bumped from. FetchedAt is when this snapshot was read, kept separately
+	// so refresh freshness stays legible once Timestamp no longer tracks it.
+	BuyCount  uint64 `json:"buyCount"`
+	FetchedAt int64  `json:"fetchedAt"`
+
 	// Exactly one of DirectFeed / Twap is populated, matching
 	// StaticExtra.QuoteUsdFeed / TwapPool. Backs the buy-side ErrStalePrice
 	// enforcement -- ported from SafeLaunchTwapLib (docs/source/.../SafeLaunchTwapLib.sol).

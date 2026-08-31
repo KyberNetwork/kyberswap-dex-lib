@@ -26,15 +26,6 @@ func NewPoolTracker(cfg *Config, client *ethrpc.Client) (*PoolTracker, error) {
 	return &PoolTracker{config: cfg, ethrpcClient: client}, nil
 }
 
-// GetNewPoolState re-reads the launch state and the buy-side oracle snapshot.
-//
-// The snapshot block comes from the first Aggregate, and every dependent read is
-// pinned to it. Robinhood Chain runs two block counters -- eth_blockNumber and
-// the block.number opcode, ~2x lower -- and eth_call only accepts a tag in the
-// first. ethrpc reports whatever the configured multicall returns, so this only
-// works on ArbMulticall2 (arbBlockNumber), which is what pool-service sets for
-// robinhood; on Multicall3 every pinned read here would fail.
-// TestSnapshotBlockDomain asserts that.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -51,8 +42,6 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInvalidPoolTokens
 	}
 
-	// Unpinned: this first call defines the snapshot block, which every
-	// dependent read below is then pinned to.
 	var res getLaunchResult
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{ABI: PadABI, Target: staticExtra.Pad, Method: methodGetLaunch, Params: []any{launchID}}, []any{&res})
@@ -66,6 +55,11 @@ func (t *PoolTracker) GetNewPoolState(
 	blockNumber := resp.BlockNumber
 	lr := res.Launch
 
+	var buyCount uint64
+	if lr.BuyCount != nil {
+		buyCount = lr.BuyCount.Uint64()
+	}
+
 	extra := Extra{
 		VQuote:       uint256.MustFromBig(lr.VQuote),
 		VToken:       uint256.MustFromBig(lr.VToken),
@@ -74,31 +68,29 @@ func (t *PoolTracker) GetNewPoolState(
 		Graduated:    lr.Graduated,
 		Bonded:       lr.Bonded,
 		Aborted:      lr.Aborted,
+		BuyCount:     buyCount,
+		FetchedAt:    time.Now().Unix(),
 	}
 
-	// An oracle failure here is an RPC hiccup or a broken feed, not routine
-	// staleness (that is a timestamp check at quote time). Persist the launch
-	// state anyway with Ok:false: CalcAmountOut then refuses the pool, which is
-	// the intended "untradeable" outcome.
 	switch {
 	case staticExtra.QuoteUsdFeed != "":
 		reading, err := t.fetchDirectFeed(ctx, staticExtra.QuoteUsdFeed, blockNumber)
 		if err != nil {
-			lg.Errorf("stonkbrokers-fun-v2: direct feed read failed at block %s (pool marked untradeable): %v", blockNumber, err)
+			lg.Errorf("direct feed read failed at block %s (pool marked untradeable): %v", blockNumber, err)
 		} else if reading != nil && !reading.Ok {
-			lg.Errorf("stonkbrokers-fun-v2: direct feed call reverted at block %s (pool marked untradeable)", blockNumber)
+			lg.Errorf("direct feed call reverted at block %s (pool marked untradeable)", blockNumber)
 		}
 		extra.DirectFeed = reading
 	case staticExtra.TwapPool != "":
 		reading, err := t.fetchTwap(ctx, staticExtra.TwapPool, staticExtra.EthUsdFeed, staticExtra.TwapWindowSecs, blockNumber)
 		if err != nil {
-			lg.Errorf("stonkbrokers-fun-v2: twap read failed at block %s (pool marked untradeable): %v", blockNumber, err)
+			lg.Errorf("twap read failed at block %s (pool marked untradeable): %v", blockNumber, err)
 		} else if reading != nil && !reading.Ok {
-			lg.Errorf("stonkbrokers-fun-v2: twap call reverted at block %s (pool marked untradeable)", blockNumber)
+			lg.Errorf("twap call reverted at block %s (pool marked untradeable)", blockNumber)
 		}
 		extra.Twap = reading
 	default:
-		lg.Errorf("stonkbrokers-fun-v2: neither QuoteUsdFeed nor TwapPool set in StaticExtra")
+		lg.Errorf("neither QuoteUsdFeed nor TwapPool set in StaticExtra")
 	}
 
 	return t.persist(p, extra, staticExtra, blockNumber), nil
@@ -181,6 +173,9 @@ func (t *PoolTracker) fetchTwap(ctx context.Context, twapPool, ethUsdFeed string
 }
 
 func (t *PoolTracker) persist(p entity.Pool, extra Extra, staticExtra StaticExtra, blockNumber *big.Int) entity.Pool {
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+
 	extraBytes, _ := json.Marshal(extra)
 	p.Extra = string(extraBytes)
 	if extra.VToken != nil && extra.VQuote != nil {
@@ -191,29 +186,18 @@ func (t *PoolTracker) persist(p entity.Pool, extra Extra, staticExtra StaticExtr
 	}
 
 	if isTerminal(extra, staticExtra) {
-		// This launch can never be swapped through again, so stop feeding it to
-		// path-finding permanently. Timestamp is 1 rather than time.Now() -- and
-		// not 0, which pool-service's IsPoolActive special-cases as
-		// always-active -- so the pool looks maximally stale and is archived
-		// immediately instead of waiting out the inactive-duration window. Same
-		// convention as flap and pons-v2.
 		p.Reserves = entity.PoolReserves{"0", "0"}
 		p.Timestamp = 1
 		return p
 	}
 
-	p.Timestamp = time.Now().Unix()
+	if extra.BuyCount != prev.BuyCount || p.Timestamp == 0 {
+		p.Timestamp = time.Now().Unix()
+	}
+
 	return p
 }
 
-// isTerminal reports whether a launch is permanently unswappable. Every flag it
-// reads is one-way in StonkSafeLaunchpadV2: armed/aborted/graduated/bonded are
-// each assigned exactly once and never cleared, deadline is written once in
-// arm(), and eoaOnly lives in _modesOf, written once in createLaunch on a
-// non-upgradeable pad.
-//
-// Deliberately NOT terminal: an unarmed launch (the creator can still arm it)
-// and a stale oracle (the feed recovers).
 func isTerminal(extra Extra, staticExtra StaticExtra) bool {
 	switch {
 	case extra.Aborted, extra.Bonded, extra.Graduated:
