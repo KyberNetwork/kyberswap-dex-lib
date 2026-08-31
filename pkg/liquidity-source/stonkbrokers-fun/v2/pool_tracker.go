@@ -129,7 +129,7 @@ func (t *PoolTracker) GetNewPoolState(
 		lg.Errorf("stonkbrokers-fun-v2: neither QuoteUsdFeed nor TwapPool set in StaticExtra")
 	}
 
-	return t.persist(p, extra, blockNumber), nil
+	return t.persist(p, extra, staticExtra, blockNumber), nil
 }
 
 func (t *PoolTracker) fetchDirectFeed(ctx context.Context, feed string, blockNumber *big.Int) (*OracleReading, error) {
@@ -208,7 +208,7 @@ func (t *PoolTracker) fetchTwap(ctx context.Context, twapPool, ethUsdFeed string
 	}, nil
 }
 
-func (t *PoolTracker) persist(p entity.Pool, extra Extra, blockNumber *big.Int) entity.Pool {
+func (t *PoolTracker) persist(p entity.Pool, extra Extra, staticExtra StaticExtra, blockNumber *big.Int) entity.Pool {
 	extraBytes, _ := json.Marshal(extra)
 	p.Extra = string(extraBytes)
 	if extra.VToken != nil && extra.VQuote != nil {
@@ -217,6 +217,44 @@ func (t *PoolTracker) persist(p entity.Pool, extra Extra, blockNumber *big.Int) 
 	if blockNumber != nil {
 		p.BlockNumber = blockNumber.Uint64()
 	}
+
+	if isTerminal(extra, staticExtra) {
+		// This launch can never be swapped through again, so stop feeding it to
+		// path-finding permanently. Timestamp is 1 rather than time.Now() -- and
+		// not 0, which pool-service's IsPoolActive special-cases as
+		// always-active -- so the pool looks maximally stale and is archived
+		// immediately instead of waiting out the inactive-duration window. Same
+		// convention as flap and pons-v2.
+		p.Reserves = entity.PoolReserves{"0", "0"}
+		p.Timestamp = 1
+		return p
+	}
+
 	p.Timestamp = time.Now().Unix()
 	return p
+}
+
+// isTerminal reports whether a launch is permanently unswappable. Every flag it
+// reads is one-way in StonkSafeLaunchpadV2: armed/aborted/graduated/bonded are
+// each assigned exactly once and never cleared, deadline is written once in
+// arm(), and eoaOnly lives in _modesOf, written once in createLaunch on a
+// non-upgradeable pad.
+//
+// Deliberately NOT terminal: an unarmed launch (the creator can still arm it)
+// and a stale oracle (the feed recovers).
+func isTerminal(extra Extra, staticExtra StaticExtra) bool {
+	switch {
+	case extra.Aborted, extra.Bonded, extra.Graduated:
+		return true
+	case staticExtra.EoaOnly:
+		// Unroutable for an aggregator. Discovery skips these now, but pools
+		// indexed before that change still need parking.
+		return true
+	case !staticExtra.OpenEnded && extra.Armed &&
+		uint64(time.Now().Unix()) >= staticExtra.Deadline:
+		// Timer close: the window is past and time only moves forward. Only
+		// meaningful once armed, since deadline is set by arm().
+		return true
+	}
+	return false
 }

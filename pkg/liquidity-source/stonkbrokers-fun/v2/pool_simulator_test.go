@@ -350,3 +350,42 @@ func TestCalcAmountOut_BuyCapBoundary(t *testing.T) {
 	_, err = quoteBuy176(t, buildPoolWithModes(t, false, atCap-1), big.NewInt(amount))
 	require.ErrorIs(t, err, ErrBuyCapExceeded)
 }
+
+// TestIsTerminal covers which launch states are permanently unswappable, and
+// which only look that way. Every "true" case below is one-way on-chain: the
+// four state flags are each assigned exactly once and never cleared, and
+// deadline/eoaOnly are written once and never rewritten.
+func TestIsTerminal(t *testing.T) {
+	t.Parallel()
+
+	const day = 86400
+	now := uint64(time.Now().Unix())
+	armed := Extra{Armed: true}
+
+	tests := []struct {
+		name string
+		ex   Extra
+		se   StaticExtra
+		want bool
+	}{
+		{"aborted", Extra{Aborted: true}, StaticExtra{OpenEnded: true}, true},
+		{"bonded", Extra{Bonded: true}, StaticExtra{OpenEnded: true}, true},
+		{"graduated", Extra{Graduated: true}, StaticExtra{OpenEnded: true}, true},
+		{"eoaOnly", armed, StaticExtra{OpenEnded: true, EoaOnly: true}, true},
+		{"window closed", armed, StaticExtra{Deadline: now - day}, true},
+
+		{"tradeable open-ended", armed, StaticExtra{OpenEnded: true}, false},
+		{"window still open", armed, StaticExtra{Deadline: now + day}, false},
+		// An unarmed launch is NOT terminal: the creator can still call arm(),
+		// and its deadline is zero only because arm() has not set it yet.
+		{"not armed", Extra{}, StaticExtra{Deadline: 0}, false},
+		// Open-ended launches have no timer close at all, so a past deadline
+		// value must not park them.
+		{"open-ended ignores deadline", armed, StaticExtra{OpenEnded: true, Deadline: now - day}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, isTerminal(tt.ex, tt.se))
+		})
+	}
+}

@@ -218,6 +218,15 @@ func (l *PoolsListUpdater) fetchLaunches(
 		lr := launches[i].Launch
 		mr := modes[i].Modes
 
+		// eoaOnly launches revert NotEoa() for any contract caller, and an
+		// aggregator always reaches buy() from the executor, so they can never
+		// be routed. Drop them here rather than indexing pools that only exist
+		// to be refused: 60 of 362 live launches set the flag. The cursor pages
+		// by launch id, not by pools emitted, so skipping does not lose ground.
+		if mr.EoaOnly {
+			continue
+		}
+
 		staticExtra := StaticExtra{
 			Pad:               pad,
 			Lens:              strings.ToLower(l.config.Lens),

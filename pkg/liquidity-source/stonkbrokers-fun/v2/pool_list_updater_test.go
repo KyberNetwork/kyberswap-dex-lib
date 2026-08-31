@@ -62,15 +62,17 @@ func (ts *PoolsListUpdaterTestSuite) TestGetNewPools_DiscoversFixedPadOnChain() 
 	// and it can only do that if discovery persisted them. eoaOnly in
 	// particular is set on 74 of the 283 launches live at the time of
 	// writing, so a full pad scan must observe at least one.
-	var sawEoaOnly, sawCap bool
+	// eoaOnly launches are dropped at discovery: they revert NotEoa() for any
+	// contract caller, so an aggregator can never route them. maxBuyPpm, by
+	// contrast, must survive into StaticExtra for CalcAmountOut to bound it.
+	var sawCap bool
 	for _, p := range pools {
 		var se StaticExtra
 		ts.Require().NoError(json.Unmarshal([]byte(p.StaticExtra), &se))
-		sawEoaOnly = sawEoaOnly || se.EoaOnly
+		ts.Require().False(se.EoaOnly, "discovery must not emit eoaOnly launches: %s", p.Address)
 		sawCap = sawCap || se.MaxBuyPpm != 0
 	}
-	t.Logf("eoaOnly seen: %v, maxBuyPpm seen: %v", sawEoaOnly, sawCap)
-	ts.Require().True(sawEoaOnly, "WETH pad has eoaOnly launches; StaticExtra must carry the flag")
+	t.Logf("discovered %d routable pools; maxBuyPpm seen: %v", len(pools), sawCap)
 
 	// Re-running with the returned cursor must not re-discover anything
 	// already seen (idempotent forward-only paging).

@@ -2,7 +2,6 @@ package stonkbrokersfunv2
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"testing"
 
@@ -125,12 +124,12 @@ func TestPoolTrackerTestSuite(t *testing.T) {
 //
 // It is not worth making. Exactly one launch exists across all 8 V3 pads (WETH
 // lane, id 1) and it is eoaOnly, so buy() reverts NotEoa() for any contract
-// caller including the executor: V3 adds zero routable liquidity today. This
-// test asserts that refusal, then lifts the flag to confirm the pricing path
-// underneath would work if a routable V3 launch ever appears.
+// caller including the executor. Discovery drops eoaOnly launches, so pointing
+// the lister at the V3 pad yields nothing at all: V3 would add zero routable
+// liquidity today. If a routable V3 launch ever appears, this test starts
+// failing and the decision gets revisited.
 func (ts *PoolTrackerTestSuite) TestV3Pad_ScopeDecision() {
 	t := ts.T()
-	ctx := context.Background()
 
 	client := ethrpc.New(robinhoodRPCURL()).
 		SetMulticallContract(common.HexToAddress(multicallAddress))
@@ -139,57 +138,13 @@ func (ts *PoolTrackerTestSuite) TestV3Pad_ScopeDecision() {
 		DexID: DexType, ChainID: 4663,
 		Pads: []string{wethV3Pad}, Lens: lensAddress,
 	}, client)
-	pools, _, err := lister.GetNewPools(ctx, nil)
-	ts.Require().NoError(err)
-	ts.Require().NotEmpty(pools)
 
-	tracker, err := NewPoolTracker(&Config{DexID: DexType, ChainID: 4663}, client)
-	ts.Require().NoError(err)
-	p, err := tracker.GetNewPoolState(ctx, pools[0], pool.GetNewPoolStateParams{})
-	ts.Require().NoError(err)
-	ts.Require().NotEmpty(p.Extra, "tracker must fill Extra for a V3 pad")
-
-	sim, err := NewPoolSimulator(p)
-	ts.Require().NoError(err)
-
-	amountIn := big.NewInt(0).SetUint64(10_000_000_000_000_000) // 0.01 WETH
-	quote := func(s *PoolSimulator) (*pool.CalcAmountOutResult, error) {
-		return s.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: p.Tokens[1].Address, Amount: amountIn},
-			TokenOut:      p.Tokens[0].Address,
-		})
-	}
-
-	se := mustStaticExtra(t, p)
-	ts.Require().True(se.EoaOnly, "V3 launch 1 is eoaOnly on-chain; discovery must carry the flag")
-	_, err = quote(sim)
-	ts.Require().ErrorIs(err, ErrEoaOnly, "an eoaOnly launch must never be quoted")
-
-	// Lift the gate to exercise the curve underneath it.
-	sim.staticExtra.EoaOnly = false
-	res, err := quote(sim)
-	ts.Require().NoError(err)
-
-	// The pad's own lens is the oracle of truth for the quote.
-	// quoteBuy returns two values, so ethrpc takes the copyTuple path and needs
-	// a single struct destination with matching field order.
-	var lens struct {
-		TokensOut *big.Int
-		TaxBps    *big.Int
-	}
-	launchID, ok := new(big.Int).SetString(se.LaunchID, 10)
-	ts.Require().True(ok)
-	req := client.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI: lensABI, Target: lensAddress, Method: methodQuoteBuy,
-		Params: []any{common.HexToAddress(wethV3Pad), launchID, amountIn},
-	}, []any{&lens})
-	_, err = req.Aggregate()
-	ts.Require().NoError(err)
-
-	t.Logf("V3 %s: sim=%s lens=%s taxBps=%s", p.Address, res.TokenAmountOut.Amount, lens.TokensOut, lens.TaxBps)
-	ts.Require().Zero(res.TokenAmountOut.Amount.Cmp(lens.TokensOut),
-		"V3 pad must price identically to the lens, with no V3-specific code")
+	pools, _, err := lister.GetNewPools(context.Background(), nil)
+	ts.Require().NoError(err, "the V2 lister must decode a V3 pad unchanged")
+	ts.Require().Empty(pools,
+		"V3's only launch is eoaOnly and must be dropped; %d pool(s) came back, so a routable V3 launch now exists",
+		len(pools))
+	t.Logf("V3 WETH pad: %d routable launches (expected 0)", len(pools))
 }
 
 func mustStaticExtra(t *testing.T, p entity.Pool) StaticExtra {
