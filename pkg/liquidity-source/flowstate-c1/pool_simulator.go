@@ -131,9 +131,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{
-		Market:      s.StaticExtra.Market,
+		Market:      s.Market,
 		Pool:        s.StaticExtra.Pool,
-		QuoteAsset:  s.StaticExtra.QuoteAsset,
+		QuoteAsset:  s.QuoteAsset,
 		BlockNumber: s.Info.BlockNumber,
 	}
 }
