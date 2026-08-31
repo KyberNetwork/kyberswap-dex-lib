@@ -157,6 +157,7 @@ import (
 	someswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
 	someswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
+	stonkbrokersfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/stonkbrokers-fun/v2"
 	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -472,6 +473,7 @@ type Types struct {
 	MetronomeSwap              string
 	FluxProp                   string
 	ParityProp                 string
+	StonkbrokersFunV2          string
 }
 
 var (
@@ -716,5 +718,6 @@ var (
 		MetronomeSwap:              metronomeswap.DexType,
 		FluxProp:                   valueobject.ExchangeFluxProp,
 		ParityProp:                 parityprop.DexType,
+		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
 	}
 )
