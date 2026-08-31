@@ -65,7 +65,7 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, 
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ pool.GetNewPoolStateParams,
+	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	lg := logger.WithFields(logger.Fields{"dex_id": t.config.DexID, "pool_id": p.Address})
 
@@ -159,7 +159,11 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{reserve.Dec(), tokenReserve.Dec()}
-	p.Timestamp = time.Now().Unix()
+
+	// Only update the timestamp when an event triggers a pool state update.
+	if len(params.Logs) > 0 {
+		p.Timestamp = time.Now().Unix()
+	}
 
 	return p, nil
 }
