@@ -48,7 +48,7 @@ var (
 		valueobject.ChainIDAvalancheCChain: common.HexToAddress("0x123AE7196548ED7370854F91f153cd4e5918A011"),
 		valueobject.ChainIDBSC:             common.HexToAddress("0x196345d5Bd0415A46331ceb3B9F2EA84061A21fD"),
 		valueobject.ChainIDBase:            common.HexToAddress("0xa4f4867c718cbAac6dff34e05b5C35AF5C4E34BA"),
-		valueobject.ChainIDBerachain:       common.HexToAddress("0x63D8C045ebEc54c4C4bb3e24cA3bf7FD4fFd209a"),
+		valueobject.ChainIDBerachain:       common.HexToAddress("0x884F608C5F56B1630AC32E07Ce2c4B75a2360575"),
 		valueobject.ChainIDEthereum:        common.HexToAddress("0xd3C1a32FE079BB33c3BDCd8ee4cbfE63e990Bb1D"),
 		valueobject.ChainIDHyperEVM:        common.HexToAddress("0x98F6369ecf2A2f7A519773AC40C561701a89828b"),
 		valueobject.ChainIDLinea:           common.HexToAddress("0x0bf5Fa65dAE6Db32250E5DC74489cedadd38D338"),
