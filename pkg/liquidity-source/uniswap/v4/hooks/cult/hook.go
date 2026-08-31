@@ -74,8 +74,8 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 	}, nil
 }
 
-var HookData = common.FromHex("0000000000000000000000004f82e73edb06d29ff62c91ec8f5ff06571bdeb29" +
-	"0000000000000000000000004f82e73edb06d29ff62c91ec8f5ff06571bdeb29")
+var HookData = common.FromHex("0000000000000000000000001111110f0f73c0b2ef09ec012eae758b3e03a902" +
+	"0000000000000000000000001111110f0f73c0b2ef09ec012eae758b3e03a902")
 
 func (h *Hook) GetHookData() []byte {
 	return HookData
