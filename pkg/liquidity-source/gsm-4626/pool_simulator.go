@@ -4,13 +4,14 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 )
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -31,6 +32,13 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return nil, err
+	}
+
+	if extra.GhoLimit == nil {
+		extra.GhoLimit = new(uint256.Int)
+	}
+	if extra.GhoUsed == nil {
+		extra.GhoUsed = new(uint256.Int)
 	}
 
 	return &PoolSimulator{
@@ -57,13 +65,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
 
 	var (
-		amountOut *uint256.Int
-		fee       *uint256.Int
+		amountOut   *uint256.Int
+		fee         *uint256.Int
+		grossAmount *uint256.Int
 	)
 
 	isBuy := strings.EqualFold(tokenIn, s.Info.Tokens[0])
 	if isBuy {
-		amountOut, fee = s.getAssetAmountForBuyAsset(amountIn)
+		amountOut, fee, grossAmount = s.getAssetAmountForBuyAsset(amountIn)
 
 		if amountOut.Sign() <= 0 {
 			return nil, ErrInvalidAmount
@@ -73,9 +82,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 	} else {
 		amountOut, fee = s.getGhoAmountForSellAsset(amountIn)
+		grossAmount = new(uint256.Int).Add(amountOut, fee)
 
 		if new(uint256.Int).Add(s.CurrentExposure, amountIn).Gt(s.ExposureCap) {
 			return nil, ErrExogenousAssetExposureTooHigh
+		}
+		if new(uint256.Int).Add(s.GhoUsed, grossAmount).Gt(s.GhoLimit) {
+			return nil, ErrGhoLimitExceeded
 		}
 	}
 
@@ -89,7 +102,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: fee.ToBig(),
 		},
 		Gas:      lo.Ternary(isBuy, getAssetAmountForBuyAssetGas+buyAssetGas, sellAssetGas),
-		SwapInfo: &SwapInfo{isBuy},
+		SwapInfo: &SwapInfo{IsBuy: isBuy, GrossAmount: grossAmount},
 	}, nil
 }
 
@@ -97,14 +110,22 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(*SwapInfo)
 	if swapInfo.IsBuy {
 		s.CurrentExposure = new(uint256.Int).Sub(s.CurrentExposure, uint256.MustFromBig(params.TokenAmountOut.Amount))
+
+		if s.GhoUsed.Lt(swapInfo.GrossAmount) {
+			s.GhoUsed = new(uint256.Int)
+		} else {
+			s.GhoUsed = new(uint256.Int).Sub(s.GhoUsed, swapInfo.GrossAmount)
+		}
 	} else {
 		s.CurrentExposure = new(uint256.Int).Add(s.CurrentExposure, uint256.MustFromBig(params.TokenAmountIn.Amount))
+		s.GhoUsed = new(uint256.Int).Add(s.GhoUsed, swapInfo.GrossAmount)
 	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.CurrentExposure = new(uint256.Int).Set(s.CurrentExposure)
+	cloned.GhoUsed = new(uint256.Int).Set(s.GhoUsed)
 
 	return &cloned
 }
@@ -145,7 +166,7 @@ func (s *PoolSimulator) getAssetPriceInGho(assetAmount *uint256.Int, roundUp boo
 	return vaultAssets
 }
 
-func (s *PoolSimulator) getAssetAmountForBuyAsset(maxGhoAmount *uint256.Int) (*uint256.Int, *uint256.Int) {
+func (s *PoolSimulator) getAssetAmountForBuyAsset(maxGhoAmount *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int) {
 	grossAmount := s.getGrossAmountFromTotalBought(maxGhoAmount)
 	assetAmount := s.getGhoPriceInAsset(grossAmount, false)
 	finalGrossAmount := s.getAssetPriceInGho(assetAmount, true)
@@ -154,7 +175,7 @@ func (s *PoolSimulator) getAssetAmountForBuyAsset(maxGhoAmount *uint256.Int) (*u
 	finalFee := new(uint256.Int)
 	u256.MulDivUp(finalFee, finalGrossAmount, s.BuyFee, percentageFactor)
 
-	return assetAmount, finalFee
+	return assetAmount, finalFee, finalGrossAmount
 }
 
 func (s *PoolSimulator) getGrossAmountFromTotalBought(totalAmount *uint256.Int) *uint256.Int {

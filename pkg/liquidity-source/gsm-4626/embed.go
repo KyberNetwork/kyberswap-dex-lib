@@ -10,3 +10,6 @@ var priceStrategyBytes []byte
 
 //go:embed abi/FeeStrategy.json
 var feeStrategyBytes []byte
+
+//go:embed abi/GhoReserve.json
+var ghoReserveBytes []byte

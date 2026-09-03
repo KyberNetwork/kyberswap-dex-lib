@@ -1,0 +1,12 @@
+[
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "getUsage",
+    "outputs": [
+      {"internalType": "uint256", "name": "limit", "type": "uint256"},
+      {"internalType": "uint256", "name": "used", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

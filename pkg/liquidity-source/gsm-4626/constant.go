@@ -18,6 +18,8 @@ const (
 	gsmMethodGetFeeStrategy        = "getFeeStrategy"
 	gsmMethodGetGhoReserve         = "getGhoReserve"
 
+	ghoReserveMethodGetUsage = "getUsage"
+
 	priceStrategyMethodPriceRatio = "PRICE_RATIO"
 
 	feeStrategyMethodGetSellFee = "getSellFee"
@@ -38,4 +40,5 @@ var (
 	ErrExogenousAssetExposureTooHigh                = errors.New("EXOGENOUS_ASSET_EXPOSURE_TOO_HIGH")
 	ErrCannotSwap                                   = errors.New("cannot swap")
 	ErrInvalidAmount                                = errors.New("invalid amount")
+	ErrGhoLimitExceeded                             = errors.New("LIMIT_EXCEEDED")
 )
