@@ -245,6 +245,7 @@ const (
 	ExchangePrismProp                   = "prism-prop"
 	ExchangePufferPufETH                = "puffer-pufeth"
 	ExchangeRamses                      = "ramses"
+	ExchangeRangePool                   = "range-pool"
 	ExchangeRenzoEZETH                  = "renzo-ezeth"
 	ExchangeRingSwap                    = "ringswap"
 	ExchangeRocketPoolRETH              = "rocketpool-reth"

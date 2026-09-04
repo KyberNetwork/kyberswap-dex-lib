@@ -147,6 +147,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	rangepool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range-pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
@@ -261,6 +262,7 @@ type Types struct {
 	VelodromeV2                string
 	Velocimeter                string
 	RamsesV2                   string
+	RangePool                  string
 	PlatypusBase               string
 	PlatypusPure               string
 	PlatypusAvax               string
@@ -505,6 +507,7 @@ var (
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
 		RamsesV2:                   uniswapv3.DexTypeRamsesV2,
+		RangePool:                  rangepool.DexType,
 		PlatypusBase:               platypus.PoolTypePlatypusBase,
 		PlatypusPure:               platypus.PoolTypePlatypusPure,
 		PlatypusAvax:               platypus.PoolTypePlatypusAvax,
