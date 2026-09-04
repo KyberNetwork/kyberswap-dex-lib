@@ -26,6 +26,11 @@ type PoolSimulator struct {
 	allowEmptyTicks   bool
 
 	buyRestrictedToken string // pons-fun
+
+	// odys-fun launch guard: the launched token's current per-tx cap, set only while its
+	// restriction window is active (see forks/odys-fun.Guard)
+	maxTxToken  string
+	maxTxAmount *big.Int
 }
 
 // NewPoolSimulator reads entityPool.Type/Exchange straight through, so the same constructor
@@ -128,6 +133,8 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 		tickMax:            tickMax,
 		allowEmptyTicks:    cfg.AllowEmptyTicks,
 		buyRestrictedToken: extra.BuyRestrictedToken,
+		maxTxToken:         extra.MaxTxToken,
+		maxTxAmount:        extra.MaxTxAmount,
 	}
 	if err := GetSqrtRatioAtTick(tickMin, &sim.sqrtPriceLimitMin); err != nil {
 		return nil, err
@@ -167,6 +174,10 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		return nil, ErrBuyRestricted
 	} else if tokenAmountOut.Amount.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
+	} else if p.exceedsMaxTx(tokenOut, tokenAmountOut.Amount) {
+		// tokenAmountOut is the launched token here (a buy): it moves pool -> user, the same
+		// leg OdysToken._move caps by maxTx.
+		return nil, ErrMaxTxExceeded
 	}
 
 	zeroForOne := tokenInIndex == 0
@@ -182,10 +193,12 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 	}
 
 	amountInBI := result.AmountCalculated.ToBig()
-	if !p.allowEmptyTicks {
-		if amountInBI.Sign() <= 0 {
-			return nil, ErrZeroAmount
-		}
+	if !p.allowEmptyTicks && amountInBI.Sign() <= 0 {
+		return nil, ErrZeroAmount
+	} else if p.exceedsMaxTx(tokenIn, amountInBI) {
+		// tokenIn is the launched token here (a sell): it moves user -> pool, the same leg
+		// OdysToken._move caps by maxTx.
+		return nil, ErrMaxTxExceeded
 	}
 
 	return &pool.CalcAmountInResult{
@@ -216,6 +229,10 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 		return nil, ErrInvalidToken
 	} else if p.isBuyRestricted(tokenOut) {
 		return nil, ErrBuyRestricted
+	} else if p.exceedsMaxTx(tokenIn, tokenAmountIn.Amount) {
+		// tokenIn is the launched token here (a sell): it moves user -> pool, the same leg
+		// OdysToken._move caps by maxTx.
+		return nil, ErrMaxTxExceeded
 	}
 
 	var amountIn uint256.Int
@@ -232,6 +249,10 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	amountOutBI := result.AmountCalculated.ToBig()
 	if amountOutBI.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
+	} else if p.exceedsMaxTx(tokenOut, amountOutBI) {
+		// tokenOut is the launched token here (a buy): it moves pool -> user, the same leg
+		// OdysToken._move caps by maxTx.
+		return nil, ErrMaxTxExceeded
 	}
 
 	remainingTokenAmountIn := &pool.TokenAmount{
@@ -291,6 +312,13 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 
 func (p *PoolSimulator) isBuyRestricted(tokenOut string) bool {
 	return p.buyRestrictedToken != "" && strings.EqualFold(tokenOut, p.buyRestrictedToken)
+}
+
+// exceedsMaxTx reports whether amount, moved on the launched token's leg of the swap
+// (whichever side that is - see the two CalcAmountOut/In call sites), would revert against
+// OdysToken's maxTx() launch guard.
+func (p *PoolSimulator) exceedsMaxTx(token string, amount *big.Int) bool {
+	return p.maxTxAmount != nil && strings.EqualFold(token, p.maxTxToken) && amount.Cmp(p.maxTxAmount) > 0
 }
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {

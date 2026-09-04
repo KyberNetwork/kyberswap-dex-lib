@@ -1,0 +1,19 @@
+[
+  {
+    "type": "function",
+    "name": "pools",
+    "inputs": [{ "name": "poolId", "type": "bytes32" }],
+    "outputs": [
+      { "name": "token", "type": "address" },
+      { "name": "currency0", "type": "address" },
+      { "name": "feeRecipient", "type": "address" },
+      { "name": "launchTime", "type": "uint64" },
+      { "name": "graduated", "type": "bool" },
+      { "name": "initialFeeBps", "type": "uint16" },
+      { "name": "platformAccrued", "type": "uint128" },
+      { "name": "settledFeeBps", "type": "uint16" },
+      { "name": "settleTimestamp", "type": "uint64" }
+    ],
+    "stateMutability": "view"
+  }
+]

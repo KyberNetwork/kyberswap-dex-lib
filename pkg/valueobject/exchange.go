@@ -309,6 +309,7 @@ const (
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
+	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
@@ -342,6 +343,7 @@ const (
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"
 	ExchangeTitanProp                   = "titan-prop"
+	ExchangeOdysFun                     = "odys-fun"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{

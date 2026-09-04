@@ -19,6 +19,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
+	odysfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/forks/odys-fun"
 	ponsfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/forks/pons-fun"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -186,7 +187,12 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 // extraTickU256ToExtra carries the scalar fields of a tolerant uint256 read over to the big.Int
 // Extra this package writes. Ticks is left for the caller to fill in.
 func extraTickU256ToExtra(u ExtraTickU256) Extra {
-	out := Extra{TickSpacing: u.TickSpacing, BuyRestrictedToken: u.BuyRestrictedToken}
+	out := Extra{
+		TickSpacing:        u.TickSpacing,
+		BuyRestrictedToken: u.BuyRestrictedToken,
+		MaxTxToken:         u.MaxTxToken,
+		MaxTxAmount:        u.MaxTxAmount,
+	}
 	if u.Liquidity != nil {
 		out.Liquidity = u.Liquidity.ToBig()
 	}
@@ -478,6 +484,8 @@ func buildExtra(rpcData *FetchRPCResult, ticks []Tick) Extra {
 		Tick:               tick,
 		Ticks:              ticks,
 		BuyRestrictedToken: rpcData.BuyRestrictedToken,
+		MaxTxToken:         rpcData.MaxTxToken,
+		MaxTxAmount:        rpcData.MaxTxAmount,
 	}
 }
 
@@ -858,6 +866,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		ponsGuard.AddCalls(rpcRequest)
 	}
 
+	var odysGuard *odysfun.Guard
+	if _, ok := t.config.ForksConfig[valueobject.ExchangeOdysFun]; ok && len(p.Tokens) == 2 {
+		odysGuard = odysfun.NewGuard(p.Tokens[0].Address, p.Tokens[1].Address)
+		odysGuard.AddCalls(rpcRequest)
+	}
+
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -873,6 +887,8 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		return nil, err
 	}
 
+	maxTxToken, maxTxAmount := odysGuard.MaxTxAmount()
+
 	return &FetchRPCResult{
 		Liquidity:          liquidity,
 		Slot0:              slot0,
@@ -881,6 +897,8 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Reserve0:           reserve0,
 		Reserve1:           reserve1,
 		BuyRestrictedToken: ponsGuard.BuyRestrictedToken(),
+		MaxTxToken:         maxTxToken,
+		MaxTxAmount:        maxTxAmount,
 	}, nil
 }
 

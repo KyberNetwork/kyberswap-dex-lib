@@ -68,6 +68,11 @@ type Extra struct {
 	Ticks        []Tick   `json:"ticks"`
 
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"` // for pons-fun
+
+	// for odys-fun: the launched token and its current per-tx cap, only set while that
+	// token's launch guard window is active (see forks/odys-fun.Guard)
+	MaxTxToken  string   `json:"maxTxToken,omitempty"`
+	MaxTxAmount *big.Int `json:"maxTxAmount,omitempty"`
 }
 
 type ExtraTickU256 struct {
@@ -77,7 +82,9 @@ type ExtraTickU256 struct {
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
 
-	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
+	BuyRestrictedToken string   `json:"buyRestrictedToken,omitempty"`
+	MaxTxToken         string   `json:"maxTxToken,omitempty"`
+	MaxTxAmount        *big.Int `json:"maxTxAmount,omitempty"`
 }
 
 // SimulatorConfig holds construction-time options for NewPoolSimulatorWithExtra.
@@ -158,6 +165,10 @@ type FetchRPCResult struct {
 
 	// pons-fun on robinhood check
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
+
+	// odys-fun launch guard (see forks/odys-fun.Guard)
+	MaxTxToken  string   `json:"maxTxToken,omitempty"`
+	MaxTxAmount *big.Int `json:"maxTxAmount,omitempty"`
 }
 
 type TicksResp struct {
