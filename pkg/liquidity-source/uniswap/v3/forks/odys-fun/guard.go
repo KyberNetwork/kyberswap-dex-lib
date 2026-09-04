@@ -23,8 +23,6 @@ import (
 // can be paired against WETH or ARB (see OdysFactoryQ) -- so the guard probes both sides and
 // keeps whichever one actually exposes launchTime().
 type Guard struct {
-	launchToken string
-
 	launchTime0         *big.Int
 	restrictionSeconds0 uint32
 	maxTx0              *big.Int
