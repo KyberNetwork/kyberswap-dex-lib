@@ -32,15 +32,16 @@ type rpcState struct {
 func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.ChainID, ethrpcClient *ethrpc.Client,
 	overrides map[common.Address]gethclient.OverrideAccount) (*rpcState, error) {
 	var (
-		tokenX         common.Address
-		tokenY         common.Address
-		paused         bool
-		blockDelay     uint64
-		concentrationK uint32
-		anchorPrice    *big.Int
-		reserveX       *big.Int
-		reserveY       *big.Int
-		state          struct {
+		tokenX           common.Address
+		tokenY           common.Address
+		paused           bool
+		blockDelay       uint64
+		concentrationK   uint32
+		maxPunishmentX24 uint32
+		anchorPrice      *big.Int
+		reserveX         *big.Int
+		reserveY         *big.Int
+		state            struct {
 			AnchorPrice       *big.Int
 			FeeAskX24         uint32
 			FeeBidX24         uint32
@@ -48,7 +49,7 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 		}
 	)
 
-	resp, err := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
+	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    coreABI,
 		Target: coreAddress,
 		Method: "X",
@@ -61,10 +62,19 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 		Target: coreAddress,
 		Method: "blockDelay",
 	}, []any{&blockDelay}).AddCall(&ethrpc.Call{
+		// concentrationK and maxPunishmentX24 are mutually exclusive across
+		// contract versions: pools on the old concentration-curve model only
+		// have the former; pools upgraded to the punishment model (SDK
+		// v0.4.0) only have the latter. Exactly one is expected to revert, so
+		// these two calls alone are allowed to fail within the batch below.
 		ABI:    coreABI,
 		Target: coreAddress,
 		Method: "concentrationK",
 	}, []any{&concentrationK}).AddCall(&ethrpc.Call{
+		ABI:    coreABI,
+		Target: coreAddress,
+		Method: "maxPunishmentX24",
+	}, []any{&maxPunishmentX24}).AddCall(&ethrpc.Call{
 		ABI:    coreABI,
 		Target: coreAddress,
 		Method: "getXReserve",
@@ -84,9 +94,29 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 		ABI:    coreABI,
 		Target: coreAddress,
 		Method: "anchorPrice",
-	}, []any{&anchorPrice}).Aggregate()
+	}, []any{&anchorPrice})
+
+	const (
+		idxConcentrationK   = 3
+		idxMaxPunishmentX24 = 4
+	)
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return nil, err
+	}
+	for i, ok := range resp.Result {
+		if !ok && i != idxConcentrationK && i != idxMaxPunishmentX24 {
+			return nil, ErrQuoteFailed
+		}
+	}
+	if !resp.Result[idxConcentrationK] && !resp.Result[idxMaxPunishmentX24] {
+		return nil, ErrQuoteFailed
+	}
+	if !resp.Result[idxConcentrationK] {
+		concentrationK = 0
+	}
+	if !resp.Result[idxMaxPunishmentX24] {
+		maxPunishmentX24 = 0
 	}
 	blockNumber := resp.BlockNumber.Uint64()
 
@@ -122,6 +152,7 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 			Paused:            paused,
 			BlockDelay:        blockDelay,
 			ConcentrationK:    concentrationK,
+			MaxPunishmentX24:  maxPunishmentX24,
 		},
 	}, nil
 }

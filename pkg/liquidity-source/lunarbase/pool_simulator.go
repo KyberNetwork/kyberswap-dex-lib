@@ -25,6 +25,12 @@ type PoolSimulator struct {
 
 type SwapInfo struct {
 	nextSqrtPriceX96 *uint256.Int
+	// feeAskX24/feeBidX24 are the post-swap persisted directional fees.
+	// Unchanged from the pre-swap values on the concentration-curve model;
+	// ratcheted up on the swapped direction for a punishment-model pool
+	// (SDK v0.4.0), since punishment accumulates per swap.
+	feeAskX24 uint32
+	feeBidX24 uint32
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -81,12 +87,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	poolParams := &PoolParams{
-		SqrtPriceX96:   s.SqrtPriceX96,
-		FeeAskX24:      s.FeeAskX24,
-		FeeBidX24:      s.FeeBidX24,
-		ReserveX:       s.reserves[0],
-		ReserveY:       s.reserves[1],
-		ConcentrationK: s.ConcentrationK,
+		SqrtPriceX96:     s.SqrtPriceX96,
+		FeeAskX24:        s.FeeAskX24,
+		FeeBidX24:        s.FeeBidX24,
+		ReserveX:         s.reserves[0],
+		ReserveY:         s.reserves[1],
+		ConcentrationK:   s.ConcentrationK,
+		MaxPunishmentX24: s.MaxPunishmentX24,
 	}
 
 	var result *QuoteResult
@@ -104,7 +111,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: result.AmountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: result.Fee.ToBig()},
 		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{nextSqrtPriceX96: result.SqrtPriceNext},
+		SwapInfo: SwapInfo{
+			nextSqrtPriceX96: result.SqrtPriceNext,
+			// quoteXToY/quoteYToX mutate poolParams' fees in place for a
+			// punishment-model pool (no-op for the concentration-curve model).
+			feeAskX24: poolParams.FeeAskX24,
+			feeBidX24: poolParams.FeeBidX24,
+		},
 	}, nil
 }
 
@@ -129,7 +142,15 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// SqrtPriceX96 is operator-set on the fix/incident contract; swaps do not
 	// mutate it. The SwapInfo.nextSqrtPriceX96 field is kept for diagnostic
 	// continuity but intentionally not written back to state.
-	_ = SwapInfo{}
+
+	// A punishment-model pool ratchets up the swapped direction's fee on
+	// every swap; persist it so subsequent hops/splits through the same
+	// pool within one route price against the post-swap fee.
+	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
+		s.Extra = lo.ToPtr(*s.Extra)
+		s.FeeAskX24 = swapInfo.feeAskX24
+		s.FeeBidX24 = swapInfo.feeBidX24
+	}
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {

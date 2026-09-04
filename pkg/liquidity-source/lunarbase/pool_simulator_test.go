@@ -129,3 +129,96 @@ func TestNewPoolSimulatorRejectsStalePool(t *testing.T) {
 	})
 	assert.ErrorIs(t, err, ErrStalePool)
 }
+
+// TestPunishmentModelPersistsFeeThroughUpdateBalance exercises the full
+// CalcAmountOut → UpdateBalance round trip for a punishment-model pool
+// (ConcentrationK == 0, MaxPunishmentX24 > 0). It reuses the on-chain fixture
+// from TestPunishmentQuoteMatchesOnChain to verify the pool simulator, not
+// just the underlying math, persists the ratcheted fee: a route splitting a
+// swap into two hops through the same pool must price the second hop against
+// the post-first-hop fee, and cloned simulators used by other route
+// candidates must not see it.
+func TestPunishmentModelPersistsFeeThroughUpdateBalance(t *testing.T) {
+	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBSC])
+
+	extraBytes, err := json.Marshal(Extra{
+		SqrtPriceX96:     uint256.MustFromDecimal("2124565750896485315338783686656"),
+		FeeAskX24:        7975,
+		FeeBidX24:        2188,
+		MaxPunishmentX24: 83886,
+	})
+	if err != nil {
+		t.Fatalf("marshal extra: %v", err)
+	}
+
+	staticExtraBytes, err := json.Marshal(StaticExtra{})
+	if err != nil {
+		t.Fatalf("marshal static extra: %v", err)
+	}
+
+	newSim := func() *PoolSimulator {
+		sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+			Address:  "0x00007904d186680c709519e71f4dc3e2df8f1b99",
+			Exchange: DexType,
+			Type:     DexType,
+			Reserves: entity.PoolReserves{"39134580821500176234", "42770804199297762732014"},
+			Tokens: []*entity.PoolToken{
+				{Address: wrappedNative, Decimals: 18},
+				{Address: "0x55d398326f99059ff775485246999027b3197955", Decimals: 18},
+			},
+			Extra:       string(extraBytes),
+			StaticExtra: string(staticExtraBytes),
+		}, ChainID: valueobject.ChainIDBSC})
+		if err != nil {
+			t.Fatalf("new simulator: %v", err)
+		}
+		return sim
+	}
+
+	sim := newSim()
+	cloned := sim.CloneState().(*PoolSimulator)
+
+	dx := big.NewInt(0).SetInt64(1_000_000_000_000_000_000) // 1e18, matches TestPunishmentQuoteMatchesOnChain
+	result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: sim.GetTokens()[0], Amount: dx},
+		TokenOut:      sim.GetTokens()[1],
+	})
+	if err != nil {
+		t.Fatalf("first hop CalcAmountOut: %v", err)
+	}
+	if got, want := result.TokenAmountOut.Amount.String(), "718956327424094777629"; got != want {
+		t.Fatalf("first hop amountOut = %s, want %s", got, want)
+	}
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: sim.GetTokens()[0], Amount: dx},
+		TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[1], Amount: result.TokenAmountOut.Amount},
+		Fee:            *result.Fee,
+		SwapInfo:       result.SwapInfo,
+	})
+
+	if got, want := sim.FeeBidX24, uint32(3039); got != want {
+		t.Errorf("post-swap FeeBidX24 = %d, want %d (punishment must persist through UpdateBalance)", got, want)
+	}
+	if got, want := sim.FeeAskX24, uint32(7975); got != want {
+		t.Errorf("post-swap FeeAskX24 = %d, want unchanged %d", got, want)
+	}
+
+	if got, want := cloned.FeeBidX24, uint32(2188); got != want {
+		t.Errorf("cloned simulator FeeBidX24 = %d, want unchanged %d (must not see the other route's mutation)", got, want)
+	}
+
+	// A second hop through the same (now-mutated) pool must price against the
+	// ratcheted fee, not the original — this is what a router split relies on.
+	secondHop, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: sim.GetTokens()[0], Amount: dx},
+		TokenOut:      sim.GetTokens()[1],
+	})
+	if err != nil {
+		t.Fatalf("second hop CalcAmountOut: %v", err)
+	}
+	if secondHop.Fee.Amount.Cmp(result.Fee.Amount) <= 0 {
+		t.Errorf("second hop fee %s must exceed first hop fee %s (punishment ratchets up)",
+			secondHop.Fee.Amount, result.Fee.Amount)
+	}
+}

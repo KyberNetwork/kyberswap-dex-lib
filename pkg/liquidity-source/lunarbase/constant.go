@@ -23,6 +23,7 @@ var (
 	topicSwapExecuted      = crypto.Keccak256Hash([]byte("SwapExecuted(address,bool,uint256,uint256,uint256)"))
 	topicConcentrationKSet = crypto.Keccak256Hash([]byte("ConcentrationKSet(uint32)"))
 	topicBlockDelaySet     = crypto.Keccak256Hash([]byte("BlockDelaySet(uint48)"))
+	topicPunishmentApplied = crypto.Keccak256Hash([]byte("PunishmentApplied(bool,uint24,uint24,uint24)"))
 
 	ErrStalePool             = errors.WithMessage(pool.ErrUnsupported, "stale pool")
 	ErrInvalidToken          = errors.New("invalid token")

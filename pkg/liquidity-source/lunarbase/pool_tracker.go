@@ -121,6 +121,10 @@ func (t *PoolTracker) processLogs(p entity.Pool, logs []types.Log) (entity.Pool,
 			if err := t.processConcentrationKSet(&extra, lg); err == nil {
 				changed = true
 			}
+		case topicPunishmentApplied:
+			if err := t.processPunishmentApplied(&extra, lg); err == nil {
+				changed = true
+			}
 		case topicBlockDelaySet:
 			if err := t.processBlockDelaySet(&extra, lg); err == nil {
 				changed = true
@@ -201,6 +205,31 @@ func (t *PoolTracker) processConcentrationKSet(extra *Extra, log types.Log) erro
 
 	extra.ConcentrationK = k
 
+	return nil
+}
+
+// processPunishmentApplied applies the post-swap directional fees carried by
+// a punishment-model pool's PunishmentApplied(bool indexed xToY, uint24
+// punishmentX24, uint24 feeAskX24, uint24 feeBidX24) event. The indexed xToY
+// param is not part of Inputs.Unpack's return; only the three non-indexed
+// fields are.
+func (t *PoolTracker) processPunishmentApplied(extra *Extra, log types.Log) error {
+	values, err := coreABI.Events["PunishmentApplied"].Inputs.Unpack(log.Data)
+	if err != nil {
+		return err
+	}
+	if len(values) < 3 {
+		return ErrQuoteFailed
+	}
+
+	feeAsk, ok1 := values[1].(uint32)
+	feeBid, ok2 := values[2].(uint32)
+	if !ok1 || !ok2 {
+		return ErrQuoteFailed
+	}
+
+	extra.FeeAskX24 = feeAsk
+	extra.FeeBidX24 = feeBid
 	return nil
 }
 
@@ -295,6 +324,9 @@ func (t *PoolTracker) buildPoolFromCachedState(p entity.Pool, state *poolState) 
 	}
 	if state.ConcentrationK > 0 {
 		extra.ConcentrationK = state.ConcentrationK
+	}
+	if state.MaxPunishmentX24 > 0 {
+		extra.MaxPunishmentX24 = state.MaxPunishmentX24
 	}
 
 	extraBytes, err := json.Marshal(extra)
