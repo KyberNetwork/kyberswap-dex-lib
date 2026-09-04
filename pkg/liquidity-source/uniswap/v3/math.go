@@ -3,9 +3,12 @@ package uniswapv3
 import (
 	"errors"
 
-	"github.com/KyberNetwork/kutils"
 	"github.com/holiman/uint256"
 )
+
+// noSlicePos marks a step whose target tick did not come from Pool.Ticks, so it has no precomputed
+// sqrt price in Pool.TickSqrtPrices.
+const noSlicePos = -1
 
 var (
 	ErrFeeTooHigh               = errors.New("fee too high")
@@ -40,6 +43,12 @@ type SwapResult struct {
 	RemainingAmountIn  uint256.Int
 	CurrentTick        int
 	CrossInitTickLoops int
+
+	// CrossEmptyWordLoops counts the swap-loop iterations that stopped at a tick-bitmap word edge
+	// rather than at an initialized tick. On-chain each of those still pays for a bitmap word load
+	// and a round of price math, so a swap can be expensive while crossing no initialized tick at
+	// all — which is the whole shape of a swap through a thin pool.
+	CrossEmptyWordLoops int
 }
 
 // NewPool constructs a Pool, validating the fee tier and sqrtRatioX96 range.
@@ -137,21 +146,28 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 	liquidity := p.Liquidity
 	exactInput := amountSpecified.Sign() >= 0
 	var amountCalculated uint256.Int
-	var crossInitTickLoops int
+	var crossInitTickLoops, crossEmptyWordLoops int
 
 	for !amountSpecifiedRemaining.IsZero() && !sqrtPriceLimitX96.Eq(&sqrtPriceX96) {
 		sqrtPriceStartX96 := sqrtPriceX96
 		var sqrtPriceNextX96 uint256.Int
 
-		tickNext, slicePos, initialized, err := nextInitializedTickPos(p.Ticks, tick, zeroForOne)
+		tickNext, slicePos, initialized, err := nextInitializedTickWithinOneWord(p.Ticks, tick, p.TickSpacing,
+			zeroForOne)
 		if err != nil {
 			return SwapResult{}, err
-		} else if tickNext < MinTick {
+		}
+
+		if tickNext < MinTick {
 			tickNext = MinTick
 			sqrtPriceNextX96 = *MinSqrtRatioU256
 		} else if tickNext > MaxTick {
 			tickNext = MaxTick
 			sqrtPriceNextX96 = *MaxSqrtRatioU256P1
+		} else if slicePos == noSlicePos {
+			if err = GetSqrtRatioAtTick(tickNext, &sqrtPriceNextX96); err != nil {
+				return SwapResult{}, err
+			}
 		} else {
 			sqrtPriceNextX96 = p.TickSqrtPrices[slicePos]
 		}
@@ -170,23 +186,9 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 			return SwapResult{}, err
 		}
 
-		// per-tick rounding: exactIn floors amountOut, exactOut ceils amountIn.
-		// The on-chain swap loop steps one bitmap word (256 compressed ticks) at a time via
-		// nextInitializedTickWithinOneWord; each step rounds amountOut down by ≤1 unit.
-		// wordCrossings ≈ number of bitmap words traversed = ceil(tick-spacings / 256).
+		// A step now spans at most one bitmap word, so ComputeSwapStep's own rounding is already
+		// the on-chain rounding and needs no correction on top of it.
 		fullyCrossed := sqrtPriceX96.Set(&nxtSqrtPriceX96).Eq(&sqrtPriceNextX96)
-		crossedBonus := 0
-		if fullyCrossed {
-			crossedBonus = 1
-		}
-		tickSpacingsCrossed := (kutils.Abs(tickNext-tick) - crossedBonus) / p.TickSpacing
-		wordCrossings := sqrtPriceNextX96.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
-		if exactInput {
-			amountOut.SDiv(&amountOut, wordCrossings).Mul(&amountOut, wordCrossings)
-		} else {
-			amountIn.Add(&amountIn, wordCrossings).SubUint64(&amountIn, 1).SDiv(&amountIn, wordCrossings).Mul(&amountIn,
-				wordCrossings)
-		}
 
 		amountInPlusFee := feeAmount.Add(&amountIn, &feeAmount)
 		if exactInput {
@@ -211,6 +213,8 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 					return SwapResult{}, errOverflowUint128
 				}
 				crossInitTickLoops++
+			} else {
+				crossEmptyWordLoops++
 			}
 			if zeroForOne {
 				tick = tickNext - 1
@@ -225,12 +229,13 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 	}
 
 	return SwapResult{
-		AmountCalculated:   amountCalculated,
-		SqrtRatioX96:       sqrtPriceX96,
-		Liquidity:          liquidity,
-		RemainingAmountIn:  amountSpecifiedRemaining,
-		CurrentTick:        tick,
-		CrossInitTickLoops: crossInitTickLoops,
+		AmountCalculated:    amountCalculated,
+		SqrtRatioX96:        sqrtPriceX96,
+		Liquidity:           liquidity,
+		RemainingAmountIn:   amountSpecifiedRemaining,
+		CurrentTick:         tick,
+		CrossInitTickLoops:  crossInitTickLoops,
+		CrossEmptyWordLoops: crossEmptyWordLoops,
 	}, nil
 }
 
@@ -278,6 +283,70 @@ func getTick(ticks []TickU256, index int) (TickU256, error) {
 		return TickU256{}, ErrInvalidTickIndex
 	}
 	return ticks[idx], nil
+}
+
+// nextInitializedTickWithinOneWord returns the tick the swap loop stops at next, mirroring
+// TickBitmap.nextInitializedTickWithinOneWord: it searches only the bitmap word holding tick, so a
+// run of empty words is walked one word per iteration rather than jumped in a single step.
+//
+// Reproducing that boundary is not an optimisation detail. Every stop rounds amountIn up to a whole
+// unit and charges a fee on top of it, so in a pool thin enough that one word of price movement
+// costs less than one unit of input, the per-word rounding is what the swap spends almost all of
+// its input on. Collapsing the run into one step lets the input buy price movement it cannot pay
+// for.
+//
+// slicePos indexes ticks when the stop is an initialized tick, and is noSlicePos when it is a word
+// boundary — a boundary has no precomputed entry in Pool.TickSqrtPrices.
+//
+// This deliberately stops short of the contract in one place. Where the bitmap simply holds no bits
+// past the ends of the tick list, and the SDK answers with the word edge, ErrBelowSmallest and
+// ErrAtOrAboveLargest are propagated instead: reaching them means the tick list does not cover the
+// current tick, which in this library usually means the tracker's tick set is incomplete rather
+// than that the pool really has no liquidity there. Walking on at an assumed constant liquidity
+// would turn missing data into a confident wrong quote.
+func nextInitializedTickWithinOneWord(ticks []TickU256, tick, tickSpacing int, lte bool) (
+	tickNext, slicePos int, initialized bool, err error) {
+	tickVal, pos, init, err := nextInitializedTickPos(ticks, tick, lte)
+	if err != nil {
+		return 0, 0, false, err
+	}
+
+	// The tick exists but may sit in a further word, which the bitmap search cannot see.
+	if boundary := wordBoundaryTick(tick, tickSpacing, lte); (lte && boundary > tickVal) ||
+		(!lte && boundary < tickVal) {
+		return boundary, noSlicePos, false, nil
+	}
+	return tickVal, pos, init, nil
+}
+
+// wordBoundaryTick returns the tick that TickBitmap.nextInitializedTickWithinOneWord stops at when
+// the bitmap word holding tick carries no initialized tick: the lowest tick of that word when
+// searching down, the highest when searching up.
+//
+// The result may fall outside [MinTick, MaxTick] — a word straddles the bounds at both ends of the
+// range — and the caller clamps it, exactly as the on-chain swap loop does.
+func wordBoundaryTick(tick, tickSpacing int, zeroForOne bool) int {
+	compressed := floorDiv(tick, tickSpacing)
+	if !zeroForOne {
+		// searching up starts at the tick after the current one
+		compressed++
+	}
+	// >> is arithmetic in Go, so this rounds toward -inf just like Solidity's int24 >> 8.
+	wordFirst := compressed >> 8 << 8
+	if zeroForOne {
+		return wordFirst * tickSpacing
+	}
+	return (wordFirst + 255) * tickSpacing
+}
+
+// floorDiv divides rounding toward negative infinity, which is what tick compression does on-chain
+// and what Go's / does not.
+func floorDiv(a, b int) int {
+	q := a / b
+	if a%b != 0 && (a < 0) != (b < 0) {
+		q--
+	}
+	return q
 }
 
 // nextInitializedTickPos returns the tick value, its slice index, initialized
