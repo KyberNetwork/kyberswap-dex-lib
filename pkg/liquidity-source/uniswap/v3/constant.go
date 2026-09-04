@@ -49,6 +49,7 @@ var (
 	ErrZeroAmount          = errors.New("zero amount")
 	ErrInsufficientBalance = errors.New("insufficient balance")
 	ErrBuyRestricted       = errors.New("token buy restricted")
+	ErrMaxTxExceeded       = errors.New("amount exceeds launch guard maxTx")
 
 	ErrMalformedLog = errors.New("malformed event log")
 )
