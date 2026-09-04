@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -43,27 +44,97 @@ func TestTrack(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	assert.EqualValues(t, 1787655531, h.LaunchTime)
 	assert.EqualValues(t, 300, h.InitialFeeBps)
 	assert.EqualValues(t, 100, h.SettledFeeBps)
 	assert.EqualValues(t, 1787828331, h.SettleTimestamp)
-	assert.EqualValues(t, 100, h.currentFeeBps()) // settleTimestamp is long past
+	assert.EqualValues(t, 100, h.currentFeeBps()) // launch and settleTimestamp are long past
+}
+
+// TestTrackLegacyHook hits the older OdysHook (first Elite line, static rate, one word fewer
+// in pools() than OdysHook2 -- no settledFeeBps/settleTimestamp at all). Confirms Track uses
+// the legacy 7-field ABI for this address instead of the OdysHook2 9-field one, which fails to
+// decode against it.
+func TestTrackLegacyHook(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
+
+	rpcClient := ethrpc.New("https://arb1.arbitrum.io/rpc").
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+
+	legacyHook := common.HexToAddress("0xBC40c7492F5823785c4dcC1EC2F9D1b7406b28Cc")
+	h := NewHook(&uniswapv4.HookParam{
+		RpcClient:   rpcClient,
+		HookAddress: legacyHook,
+	}).(*OdysFunHook)
+
+	_, err := h.Track(context.Background(), &uniswapv4.HookParam{
+		Cfg:         &uniswapv4.Config{ChainID: valueobject.ChainIDArbitrumOne},
+		RpcClient:   rpcClient,
+		HookAddress: legacyHook,
+		Pool: &entity.Pool{
+			// pool for allTokens(0) on OdysFactoryV4 (0x1C72a544F65F7b838f3b40ce144235135B6Bd154)
+			Address: "0x089aeb60de799dac81d1090bee363dfc4af5c0dd9880509c786cfe97bca0bf4c",
+		},
+	})
+	require.NoError(t, err)
+
+	assert.EqualValues(t, 1787483996, h.LaunchTime)
+	assert.EqualValues(t, 300, h.InitialFeeBps)
+	assert.Zero(t, h.SettledFeeBps)
+	assert.Zero(t, h.SettleTimestamp)
+	assert.EqualValues(t, 300, h.currentFeeBps()) // no settle window -> initialFeeBps forever
 }
 
 func TestCurrentFeeBps(t *testing.T) {
 	t.Parallel()
 
+	// launchTime far enough in the past that every case below is outside the anti-snipe window
+	// (elapsed >> 15s) unless a case overrides it to test that window specifically.
+	longAgo := uint64(time.Now().Unix()) - 3600
+
 	t.Run("no settle window -> initial forever", func(t *testing.T) {
-		h := &OdysFunHook{InitialFeeBps: 300, SettledFeeBps: 300, SettleTimestamp: 0}
+		h := &OdysFunHook{LaunchTime: longAgo, InitialFeeBps: 300, SettledFeeBps: 300, SettleTimestamp: 0}
 		assert.EqualValues(t, 300, h.currentFeeBps())
 	})
 
 	t.Run("before settle -> initial", func(t *testing.T) {
-		h := &OdysFunHook{InitialFeeBps: 500, SettledFeeBps: 100, SettleTimestamp: ^uint64(0)}
+		h := &OdysFunHook{LaunchTime: longAgo, InitialFeeBps: 500, SettledFeeBps: 100, SettleTimestamp: ^uint64(0)}
 		assert.EqualValues(t, 500, h.currentFeeBps())
 	})
 
 	t.Run("after settle -> settled", func(t *testing.T) {
-		h := &OdysFunHook{InitialFeeBps: 500, SettledFeeBps: 100, SettleTimestamp: 1}
+		h := &OdysFunHook{LaunchTime: longAgo, InitialFeeBps: 500, SettledFeeBps: 100, SettleTimestamp: 1}
+		assert.EqualValues(t, 100, h.currentFeeBps())
+	})
+
+	t.Run("elapsed < 5s -> flat 15% regardless of schedule", func(t *testing.T) {
+		h := &OdysFunHook{
+			LaunchTime: uint64(time.Now().Unix()) - 2, InitialFeeBps: 100, SettledFeeBps: 100,
+		}
+		assert.EqualValues(t, antiSnipeHardFeeBps, h.currentFeeBps())
+	})
+
+	t.Run("5s <= elapsed < 15s, schedule below floor -> 5% floor", func(t *testing.T) {
+		h := &OdysFunHook{
+			LaunchTime: uint64(time.Now().Unix()) - 10, InitialFeeBps: 100, SettledFeeBps: 100,
+		}
+		assert.EqualValues(t, antiSnipeFloorFeeBps, h.currentFeeBps())
+	})
+
+	t.Run("5s <= elapsed < 15s, schedule above floor -> schedule wins", func(t *testing.T) {
+		h := &OdysFunHook{
+			LaunchTime: uint64(time.Now().Unix()) - 10, InitialFeeBps: 900, SettledFeeBps: 900,
+		}
+		assert.EqualValues(t, 900, h.currentFeeBps())
+	})
+
+	t.Run("elapsed >= 15s -> schedule, no floor even if below 5%", func(t *testing.T) {
+		h := &OdysFunHook{
+			LaunchTime: uint64(time.Now().Unix()) - 20, InitialFeeBps: 100, SettledFeeBps: 100,
+		}
 		assert.EqualValues(t, 100, h.currentFeeBps())
 	})
 }

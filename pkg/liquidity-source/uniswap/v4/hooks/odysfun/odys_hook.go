@@ -21,13 +21,19 @@ import (
 // creator-chosen initialFeeBps and, for a windowed launch, settles permanently to
 // settledFeeBps once block.timestamp reaches settleTimestamp.
 //
-// The contract also runs a short (<=15s) anti-snipe fee ladder right after launch
-// (15% for 5s, a 5% floor until 15s). That window could not be verified against on-chain
-// swaps (see PR notes) so it is intentionally not ported; CalcAmountOut can be off during
-// those first few seconds of a brand-new pool's life.
+// The contract also runs a short (<=15s) anti-snipe fee ladder right after launch: 15% for the
+// first 5s, then a 5% floor until 15s. No verified source exists for either OdysHook or
+// OdysHook2, but the same `if elapsed<5 {1500} else if elapsed<15 {max(scheduleFee,500)} else
+// {scheduleFee}` shape appears, byte-identical, in independent decompiles of both contracts,
+// repeated inline at every one of their several call sites (registerPool, beforeSwap, afterSwap,
+// the currentFeeBps getter) -- internally consistent enough, across two separate deployments, to
+// treat as settled without an on-chain sub-15s sample (none has been found yet; every real swap
+// observed so far landed at elapsed>=18s and matched the schedule with no floor, consistent with
+// this shape but not a direct test of it).
 type OdysFunHook struct {
 	uniswapv4.Hook `json:"-"`
 
+	LaunchTime      uint64 `json:"l,omitempty"`
 	InitialFeeBps   uint16 `json:"i,omitempty"`
 	SettledFeeBps   uint16 `json:"s,omitempty"`
 	SettleTimestamp uint64 `json:"t,omitempty"`
@@ -48,49 +54,115 @@ func (h *OdysFunHook) CloneState() uniswapv4.Hook {
 	return &cloned
 }
 
+// hasTaxSchedule reports whether the hook at this address is OdysHook2 (tax schedule, settles
+// to a lower rate after a window) as opposed to the older OdysHook (a single static rate
+// forever, no settle window, one field short and a different pools() ABI entirely -- calling
+// the OdysHook2 ABI against it does not just return zero values, it fails to decode).
+func hasTaxSchedule(hookAddress common.Address) bool {
+	return hookAddress == HookAddresses[0] // OdysHook2
+}
+
 func (h *OdysFunHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	hookAddr := hexutil.Encode(param.HookAddress[:])
 	poolID := common.HexToHash(param.Pool.Address)
 
-	var poolInfo struct {
-		Token           common.Address
-		Currency0       common.Address
-		FeeRecipient    common.Address
-		LaunchTime      uint64
-		Graduated       bool
-		InitialFeeBps   uint16
-		PlatformAccrued *big.Int
-		SettledFeeBps   uint16
-		SettleTimestamp uint64
-	}
-
 	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
-		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
-		ABI:    odysHookABI,
-		Target: hookAddr,
-		Method: "pools",
-		Params: []any{poolID},
-	}, []any{&poolInfo})
+		SetOverrides(param.Overrides)
 
-	if _, err := req.Aggregate(); err != nil {
-		return nil, err
+	if hasTaxSchedule(param.HookAddress) {
+		var poolInfo struct {
+			Token           common.Address
+			Currency0       common.Address
+			FeeRecipient    common.Address
+			LaunchTime      uint64
+			Graduated       bool
+			InitialFeeBps   uint16
+			PlatformAccrued *big.Int
+			SettledFeeBps   uint16
+			SettleTimestamp uint64
+		}
+		req.AddCall(&ethrpc.Call{
+			ABI:    odysHookABI,
+			Target: hookAddr,
+			Method: "pools",
+			Params: []any{poolID},
+		}, []any{&poolInfo})
+
+		if _, err := req.Aggregate(); err != nil {
+			return nil, err
+		}
+
+		h.LaunchTime = poolInfo.LaunchTime
+		h.InitialFeeBps = poolInfo.InitialFeeBps
+		h.SettledFeeBps = poolInfo.SettledFeeBps
+		h.SettleTimestamp = poolInfo.SettleTimestamp
+	} else {
+		// OdysHook (first Elite line): pools() returns one word fewer -- no settledFeeBps/
+		// settleTimestamp, the rate never changes after launch. Reuse InitialFeeBps as the
+		// permanent rate and leave SettleTimestamp at zero so currentFeeBps treats it as "no
+		// settle window" (initialFeeBps forever), matching this line's documented behavior.
+		var poolInfo struct {
+			Token           common.Address
+			Currency0       common.Address
+			FeeRecipient    common.Address
+			LaunchTime      uint64
+			Graduated       bool
+			InitialFeeBps   uint16
+			PlatformAccrued *big.Int
+		}
+		req.AddCall(&ethrpc.Call{
+			ABI:    odysHookLegacyABI,
+			Target: hookAddr,
+			Method: "pools",
+			Params: []any{poolID},
+		}, []any{&poolInfo})
+
+		if _, err := req.Aggregate(); err != nil {
+			return nil, err
+		}
+
+		h.LaunchTime = poolInfo.LaunchTime
+		h.InitialFeeBps = poolInfo.InitialFeeBps
+		h.SettledFeeBps = 0
+		h.SettleTimestamp = 0
 	}
-
-	h.InitialFeeBps = poolInfo.InitialFeeBps
-	h.SettledFeeBps = poolInfo.SettledFeeBps
-	h.SettleTimestamp = poolInfo.SettleTimestamp
 
 	return json.Marshal(h)
 }
 
-// currentFeeBps mirrors OdysHook2.taxSchedule()'s current-rate rule: the initial rate holds
-// forever if no settle window was chosen (settleTimestamp == 0), otherwise it drops
-// permanently to settledFeeBps once now reaches settleTimestamp.
+const (
+	// antiSnipeHardWindowSecs/antiSnipeFloorWindowSecs mirror OdysHook2's decompiled
+	// beforeSwap/afterSwap anti-snipe ladder (see the doc comment on OdysFunHook for the
+	// verification caveat).
+	antiSnipeHardWindowSecs  = 5
+	antiSnipeFloorWindowSecs = 15
+	antiSnipeHardFeeBps      = 1500
+	antiSnipeFloorFeeBps     = 500
+)
+
+// currentFeeBps mirrors OdysHook2's decompiled current-rate rule:
+//   - elapsed < 5s since launch: a flat 15% anti-snipe rate, regardless of the chosen schedule.
+//   - 5s <= elapsed < 15s: the schedule's rate (see below), floored at 5% if it would be lower.
+//   - elapsed >= 15s: the schedule's rate with no floor -- initialFeeBps forever if no settle
+//     window was chosen (settleTimestamp == 0), else settledFeeBps once now reaches
+//     settleTimestamp, else still initialFeeBps.
 func (h *OdysFunHook) currentFeeBps() uint16 {
-	if h.SettleTimestamp != 0 && uint64(time.Now().Unix()) >= h.SettleTimestamp {
-		return h.SettledFeeBps
+	now := uint64(time.Now().Unix())
+	elapsed := now - h.LaunchTime // LaunchTime is always in the past by the time Track runs
+
+	if elapsed < antiSnipeHardWindowSecs {
+		return antiSnipeHardFeeBps
 	}
-	return h.InitialFeeBps
+
+	fee := h.InitialFeeBps
+	if h.SettleTimestamp != 0 && now >= h.SettleTimestamp {
+		fee = h.SettledFeeBps
+	}
+
+	if elapsed < antiSnipeFloorWindowSecs && fee <= antiSnipeFloorFeeBps {
+		return antiSnipeFloorFeeBps
+	}
+	return fee
 }
 
 // feeOnTop returns the tax withheld from a fixed (exactIn-side) ETH amount: fee = amount * bps / 10000.

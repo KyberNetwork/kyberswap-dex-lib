@@ -6,12 +6,17 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var odysHookABI abi.ABI
+var (
+	odysHookABI       abi.ABI
+	odysHookLegacyABI abi.ABI
+)
 
 func init() {
 	var err error
-	odysHookABI, err = abi.JSON(bytes.NewReader(odysHookABIJson))
-	if err != nil {
+	if odysHookABI, err = abi.JSON(bytes.NewReader(odysHookABIJson)); err != nil {
+		panic(err)
+	}
+	if odysHookLegacyABI, err = abi.JSON(bytes.NewReader(odysHookLegacyABIJson)); err != nil {
 		panic(err)
 	}
 }
