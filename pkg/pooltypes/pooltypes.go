@@ -166,6 +166,7 @@ import (
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/synthereum"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
+	tidefiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tidefi-prop"
 	umbraedamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/damm"
 	umbraedlmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/dlmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/unipool"
@@ -441,6 +442,7 @@ type Types struct {
 	Infinifi                   string
 	Nabla                      string
 	Tessera                    string
+	TideFiProp                 string
 	UmbraeDamm                 string
 	UmbraeDlmm                 string
 	LiquidCore                 string
@@ -686,6 +688,7 @@ var (
 		Infinifi:                   infinifi.DexType,
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
+		TideFiProp:                 tidefiprop.DexType,
 		UmbraeDamm:                 umbraedamm.DexType,
 		UmbraeDlmm:                 umbraedlmm.DexType,
 		LiquidCore:                 liquidcore.DexType,
