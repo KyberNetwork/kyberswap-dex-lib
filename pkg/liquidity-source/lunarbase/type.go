@@ -15,8 +15,13 @@ type Extra struct {
 	LatestUpdateBlock uint64       `json:"b,omitempty"`
 	Paused            bool         `json:"0,omitempty"`
 	BlockDelay        uint64       `json:"d,omitempty"`
-	// ConcentrationK is Q20.12 (effective K = ConcentrationK / 2^12).
+	// ConcentrationK is Q20.12 (effective K = ConcentrationK / 2^12). Zero on
+	// pools upgraded to the punishment model (see MaxPunishmentX24).
 	ConcentrationK uint32 `json:"k,omitempty"`
+	// MaxPunishmentX24 (Q24) is set on pools upgraded to the linear-anchor,
+	// directional-punishment model in place of ConcentrationK. The two are
+	// mutually exclusive: whichever RPC call succeeds selects the math path.
+	MaxPunishmentX24 uint32 `json:"mp,omitempty"`
 }
 
 func (e *Extra) IsStale(blockNumber uint64) bool {
@@ -45,8 +50,12 @@ type PoolParams struct {
 	FeeBidX24    uint32
 	ReserveX     *uint256.Int
 	ReserveY     *uint256.Int
-	// ConcentrationK is Q20.12 (effective K = ConcentrationK / 2^12).
+	// ConcentrationK is Q20.12 (effective K = ConcentrationK / 2^12). Zero
+	// selects the punishment model below.
 	ConcentrationK uint32
+	// MaxPunishmentX24 (Q24) is the punishment-model maximum directional fee
+	// increment per swap; only meaningful when ConcentrationK == 0.
+	MaxPunishmentX24 uint32
 }
 
 type QuoteResult struct {

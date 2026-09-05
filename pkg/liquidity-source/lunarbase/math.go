@@ -198,7 +198,170 @@ func quoteYToX(params *PoolParams, dy *uint256.Int) *QuoteResult {
 	return out
 }
 
+// maxU24 mirrors Solidity uint24::MAX, the punishment sentinel meaning "100%".
+const maxU24 = 1<<24 - 1
+
+// xValueInY writes dst = mulDivDown(mulDivDown(amountX, sqrtPriceX96, Q96), sqrtPriceX96, Q96),
+// matching the on-chain SwapLib._xValueInY nested-floor rounding exactly.
+func xValueInY(dst, amountX, sqrtPriceX96 *uint256.Int) *uint256.Int {
+	var scratch uint256.Int
+	big256.MulDivDown(&scratch, amountX, sqrtPriceX96, q96)
+	return big256.MulDivDown(dst, &scratch, sqrtPriceX96, q96)
+}
+
+// punishmentX24 computes the desired directional fee increment for a
+// punishment-model pool (SwapLib.punishmentX24 / mechanism.rs try_punishment_x24).
+func punishmentX24(params *PoolParams, amountIn *uint256.Int, xToY bool) uint32 {
+	if amountIn.IsZero() || params.MaxPunishmentX24 == 0 || params.SqrtPriceX96.IsZero() {
+		return 0
+	}
+
+	var xWealth, inventoryWealth uint256.Int
+	xValueInY(&xWealth, params.ReserveX, params.SqrtPriceX96)
+	inventoryWealth.Add(&xWealth, params.ReserveY)
+	if inventoryWealth.IsZero() {
+		return 0
+	}
+
+	var swapWealth uint256.Int
+	if xToY {
+		xValueInY(&swapWealth, amountIn, params.SqrtPriceX96)
+	} else {
+		swapWealth.Set(amountIn)
+	}
+	if swapWealth.IsZero() {
+		return 0
+	}
+
+	maximum := uint64(params.MaxPunishmentX24)
+	if params.MaxPunishmentX24 == maxU24 {
+		maximum = 1 << 24
+	}
+
+	var calculated uint256.Int
+	if !swapWealth.Lt(&inventoryWealth) {
+		calculated.SetUint64(maximum)
+	} else {
+		var maxU uint256.Int
+		maxU.SetUint64(maximum)
+		big256.MulDivUp(&calculated, &maxU, &swapWealth, &inventoryWealth)
+	}
+	if !calculated.IsUint64() || calculated.Uint64() >= 1<<24 {
+		return maxU24
+	}
+	return uint32(calculated.Uint64())
+}
+
+// applyPunishment saturating-adds a desired punishment to the matching
+// directional fee (SwapLib.saturatingFeeX24 / mechanism.rs try_apply_punishment).
+// It returns the effective fee to use for pricing this swap and mutates
+// *feeAskX24 / *feeBidX24 in place to the post-swap persisted fees.
+func applyPunishment(feeAskX24, feeBidX24 *uint32, desiredX24 uint32, xToY bool) uint32 {
+	if xToY {
+		available := maxU24 - *feeBidX24
+		applied := desiredX24
+		if applied > available {
+			applied = available
+		}
+		*feeBidX24 += applied
+		return *feeBidX24
+	}
+	available := maxU24 - *feeAskX24
+	applied := desiredX24
+	if applied > available {
+		applied = available
+	}
+	*feeAskX24 += applied
+	return *feeAskX24
+}
+
+// applyFee mirrors SwapLib.applyFee / mechanism.rs try_apply_fee: charge
+// feeQ24 on grossOutput, then scale by the caller's fee multiplier (1 for a
+// whitelisted/base-fee caller).
+func applyFee(out *QuoteResult, grossOutput *uint256.Int, feeQ24X24 uint32, feeMultiplier *uint256.Int) {
+	if feeQ24X24 == maxU24 {
+		out.AmountOut.Clear()
+		out.Fee.Set(grossOutput)
+		return
+	}
+
+	var baseFee, feeQ24 uint256.Int
+	feeQ24.SetUint64(uint64(feeQ24X24))
+	big256.MulDivDown(&baseFee, grossOutput, &feeQ24, q24)
+
+	if feeMultiplier.Cmp(big256.U1) <= 0 || baseFee.IsZero() {
+		out.Fee.Set(&baseFee)
+		out.AmountOut.Sub(grossOutput, &baseFee)
+		return
+	}
+
+	var maxOverBase uint256.Int
+	maxOverBase.Div(big256.UMax, &baseFee)
+	if feeMultiplier.Gt(&maxOverBase) {
+		out.AmountOut.Clear()
+		out.Fee.Set(grossOutput)
+		return
+	}
+
+	var fee uint256.Int
+	fee.Mul(&baseFee, feeMultiplier)
+	if !fee.Lt(grossOutput) {
+		out.AmountOut.Clear()
+		out.Fee.Set(grossOutput)
+		return
+	}
+	out.Fee.Set(&fee)
+	out.AmountOut.Sub(grossOutput, &fee)
+}
+
+// punishmentQuoteXToY prices a swap on the linear-anchor, directional-punishment
+// model (no concentration curve). It mirrors mechanism.rs quote_x_to_y and
+// mutates params.FeeAskX24/FeeBidX24 in place to the post-swap persisted fees.
+func punishmentQuoteXToY(out *QuoteResult, params *PoolParams, dx *uint256.Int) *QuoteResult {
+	desired := punishmentX24(params, dx, true)
+	effectiveFee := applyPunishment(&params.FeeAskX24, &params.FeeBidX24, desired, true)
+
+	var grossOutput uint256.Int
+	xValueInY(&grossOutput, dx, params.SqrtPriceX96)
+	out.SqrtPriceNext.Set(params.SqrtPriceX96)
+	if grossOutput.IsZero() || grossOutput.Gt(params.ReserveY) {
+		out.AmountOut.Clear()
+		out.Fee.Clear()
+		return out
+	}
+	applyFee(out, &grossOutput, effectiveFee, big256.U1)
+	return out
+}
+
+// punishmentQuoteYToX mirrors mechanism.rs quote_y_to_x.
+func punishmentQuoteYToX(out *QuoteResult, params *PoolParams, dy *uint256.Int) *QuoteResult {
+	desired := punishmentX24(params, dy, false)
+	effectiveFee := applyPunishment(&params.FeeAskX24, &params.FeeBidX24, desired, false)
+
+	out.SqrtPriceNext.Set(params.SqrtPriceX96)
+	if params.SqrtPriceX96.IsZero() {
+		out.AmountOut.Clear()
+		out.Fee.Clear()
+		return out
+	}
+
+	var scratch, grossOutput uint256.Int
+	big256.MulDivDown(&scratch, dy, q96, params.SqrtPriceX96)
+	big256.MulDivDown(&grossOutput, &scratch, q96, params.SqrtPriceX96)
+	if grossOutput.IsZero() || grossOutput.Gt(params.ReserveX) {
+		out.AmountOut.Clear()
+		out.Fee.Clear()
+		return out
+	}
+	applyFee(out, &grossOutput, effectiveFee, big256.U1)
+	return out
+}
+
 func quoteXToYInto(out *QuoteResult, params *PoolParams, dx *uint256.Int) *QuoteResult {
+	if params.ConcentrationK == 0 {
+		return punishmentQuoteXToY(out, params, dx)
+	}
+
 	var (
 		cQ48      uint256.Int
 		pBid      uint256.Int
@@ -245,6 +408,10 @@ func quoteXToYInto(out *QuoteResult, params *PoolParams, dx *uint256.Int) *Quote
 }
 
 func quoteYToXInto(out *QuoteResult, params *PoolParams, dy *uint256.Int) *QuoteResult {
+	if params.ConcentrationK == 0 {
+		return punishmentQuoteYToX(out, params, dy)
+	}
+
 	var (
 		cQ48      uint256.Int
 		pAsk      uint256.Int

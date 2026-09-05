@@ -227,3 +227,54 @@ func TestStateUpdatedLogDoesNotDisableStaleCheck(t *testing.T) {
 			got2.BlockNumber, extra2.LatestUpdateBlock, extra2.BlockDelay)
 	}
 }
+
+// TestProcessPunishmentAppliedUpdatesFees replays the real PunishmentApplied
+// log from BSC pool 0x00007904d186680C709519e71f4Dc3e2DF8f1b99, block
+// 119900061, logIndex 577 (xToY=true, punishment=9, feeAsk=2597, feeBid=796).
+// Field order (feeAsk before feeBid) was confirmed against a separate,
+// StateUpdated-free pair of PunishmentApplied logs on the same pool: for
+// xToY=false only the ask-slot word moved, matching mechanism.rs's
+// `YToX => fee_ask_x24 += applied`.
+func TestProcessPunishmentAppliedUpdatesFees(t *testing.T) {
+	tracker := NewPoolTracker(&Config{DexID: DexType, ChainID: valueobject.ChainIDBSC}, nil)
+
+	extraBytes, err := json.Marshal(Extra{
+		SqrtPriceX96:     uint256.NewInt(1),
+		FeeAskX24:        1,
+		FeeBidX24:        2,
+		MaxPunishmentX24: 83886,
+	})
+	if err != nil {
+		t.Fatalf("marshal extra: %v", err)
+	}
+
+	data := common.FromHex(
+		"0x00000000000000000000000000000000000000000000000000000000000000090000000000000000000000000000000000000000000000000000000000000a25000000000000000000000000000000000000000000000000000000000000031c",
+	)
+
+	got, err := tracker.processLogs(entity.Pool{
+		Address: "0x00007904d186680c709519e71f4dc3e2df8f1b99",
+		Extra:   string(extraBytes),
+	}, []types.Log{{
+		Topics: []common.Hash{
+			topicPunishmentApplied,
+			common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001"),
+		},
+		Data:        data,
+		BlockNumber: 119900061,
+	}})
+	if err != nil {
+		t.Fatalf("process logs: %v", err)
+	}
+
+	var extra Extra
+	if err := json.Unmarshal([]byte(got.Extra), &extra); err != nil {
+		t.Fatalf("unmarshal extra: %v", err)
+	}
+	if got, want := extra.FeeAskX24, uint32(2597); got != want {
+		t.Errorf("FeeAskX24 = %d, want %d", got, want)
+	}
+	if got, want := extra.FeeBidX24, uint32(796); got != want {
+		t.Errorf("FeeBidX24 = %d, want %d", got, want)
+	}
+}
