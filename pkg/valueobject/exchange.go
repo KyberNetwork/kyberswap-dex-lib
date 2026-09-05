@@ -281,6 +281,7 @@ const (
 	ExchangeSynthetix                   = "synthetix"
 	ExchangeTessera                     = "tessera"
 	ExchangeThenaFusionV3               = "thena-fusion-v3"
+	ExchangeTideFiProp                  = "tidefi-prop"
 	ExchangeUmbraeDamm                  = "umbrae-damm"
 	ExchangeUmbraeDlmm                  = "umbrae-dlmm"
 	ExchangeUniPool                     = "unipool"
@@ -431,6 +432,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeParityProp:         {},
 	ExchangePrismProp:          {},
 	ExchangeMantaProp:          {},
+	ExchangeTideFiProp:         {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
