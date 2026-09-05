@@ -2,12 +2,17 @@ package eth
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -79,6 +84,35 @@ func BatchEthCall(
 	return results, callErrs, nil
 }
 
+// bulkStorageCode is overridden onto the target so one eth_call reads many
+// slots, after Dedaub's https://dedaub.com/blog/bulk-storage-extraction. It
+// SLOADs every word of calldata into memory and returns them, echoing
+// calldatasize bytes. Only code is overridden; the account's own storage is
+// what gets read.
+//
+//	PUSH1 0x00                          // [c] loop counter, doubling as the memory cursor
+//	loop: JUMPDEST
+//	DUP1 CALLDATASIZE EQ PUSH1 end JUMPI
+//	DUP1 CALLDATALOAD SLOAD DUP2 MSTORE // mem[c] = SLOAD(calldata[c])
+//	PUSH1 0x20 ADD PUSH1 loop JUMP
+//	end: JUMPDEST
+//	CALLDATASIZE PUSH1 0x00 RETURN      // return mem[0:calldatasize]
+//
+// Dedaub's original opens and closes with PUSH0, which pre-Shanghai chains
+// reject as an invalid opcode. PUSH1 0x00 costs 2 more bytes and 2 more gas,
+// nothing against 2100 per cold SLOAD, and runs on every EVM version.
+var bulkStorageCode = hexutil.MustDecode("0x60005b80361460145780355481526020016002565b366000f3")
+
+const (
+	maxSlotsPerBulkCall = 1000
+	minSlotsForBulk     = 2
+)
+
+var (
+	storageProbe     = crypto.Keccak256Hash([]byte("kyberswap-dex-lib/bulk-storage"))
+	storageProbeDiff = map[common.Hash]common.Hash{storageProbe: storageProbe}
+)
+
 // StorageRead is one eth_getStorageAt request/result pair.
 type StorageRead struct {
 	Slot   common.Hash
@@ -87,10 +121,13 @@ type StorageRead struct {
 
 // BatchGetStorageAt reads reads' slots from address in one JSON-RPC batch,
 // filling each Result in place. For contracts with no view function for the
-// state -- typically unverified ones; prefer an ABI call when one exists.
+// state, typically unverified ones; prefer an ABI call when one exists.
 //
-// Fails on the first element error, unlike BatchEthCall: a storage read cannot
-// revert, so an element error means transport or node trouble.
+// Where the node applies eth_call state overrides, slots are read in bulk (see
+// bulkStorageCode), collapsing thousands of them into a handful of
+// sub-requests; otherwise one eth_getStorageAt per slot. Either way the read is
+// all or nothing, failing on the first element error: unlike BatchEthCall, a
+// storage read cannot revert, so an element error means node trouble.
 func BatchGetStorageAt(
 	ctx context.Context, client *rpc.Client, address common.Address,
 	reads []StorageRead, retry BatchRetry,
@@ -99,6 +136,93 @@ func BatchGetStorageAt(
 		return nil
 	}
 
+	if len(reads) >= minSlotsForBulk {
+		if err := bulkGetStorageAt(ctx, client, address, reads); err == nil {
+			return nil
+		}
+	}
+
+	return perSlotGetStorageAt(ctx, client, address, reads, retry)
+}
+
+// bulkGetStorageAt reads every slot via eth_call with a code override, one
+// call per maxSlotsPerBulkCall slots, all in one JSON-RPC batch.
+func bulkGetStorageAt(ctx context.Context, client *rpc.Client, address common.Address, reads []StorageRead) error {
+	if len(reads) == 0 {
+		return nil
+	}
+
+	override := map[common.Address]ethereum.OverrideAccount{
+		address: {
+			Code:      bulkStorageCode,
+			StateDiff: storageProbeDiff,
+		},
+	}
+
+	// slots to read, probe last
+	data := make([]byte, (len(reads)+1)*common.HashLength)
+	for i := range reads {
+		copy(data[i*common.HashLength:], reads[i].Slot[:])
+	}
+	copy(data[len(reads)*common.HashLength:], storageProbe[:])
+
+	chunks := slices.Collect(slices.Chunk(data, maxSlotsPerBulkCall*common.HashLength))
+	raw := make([]hexutil.Bytes, len(chunks))
+	batch := make([]rpc.BatchElem, len(chunks))
+	for i, chunk := range chunks {
+		batch[i] = rpc.BatchElem{
+			Method: "eth_call",
+			Args: []any{
+				map[string]any{"to": address, "data": hexutil.Bytes(chunk)},
+				"latest",
+				override,
+			},
+			Result: &raw[i],
+		}
+	}
+
+	if err := client.BatchCallContext(ctx, batch); err != nil {
+		return err
+	}
+	for i := range batch {
+		if batch[i].Error != nil {
+			return batch[i].Error
+		}
+	}
+
+	last := raw[len(raw)-1]
+	if len(last) < common.HashLength ||
+		common.BytesToHash(last[len(last)-common.HashLength:]) != storageProbe {
+		return errors.New("state override ignored")
+	}
+
+	for i := range raw {
+		if len(raw[i]) != len(chunks[i]) {
+			return fmt.Errorf("bulk storage read returned %d bytes, want %d",
+				len(raw[i]), len(chunks[i]))
+		}
+	}
+
+	i := 0
+	for _, answer := range raw {
+		for off := 0; i < len(reads) && off+common.HashLength <= len(answer); off += common.HashLength {
+			copy(reads[i].Result[:], answer[off:])
+			i++
+		}
+	}
+	if i < len(reads) {
+		return fmt.Errorf("bulk storage read filled %d of %d slots", i, len(reads))
+	}
+
+	return nil
+}
+
+// perSlotGetStorageAt reads each slot with its own eth_getStorageAt, batched
+// into a single request.
+func perSlotGetStorageAt(
+	ctx context.Context, client *rpc.Client, address common.Address,
+	reads []StorageRead, retry BatchRetry,
+) error {
 	batch := make([]rpc.BatchElem, len(reads))
 	for i := range reads {
 		batch[i] = rpc.BatchElem{
