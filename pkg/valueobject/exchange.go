@@ -170,6 +170,7 @@ const (
 	ExchangeMachima                     = "machima"
 	ExchangeMakerPSM                    = "maker-psm"
 	ExchangeMakerSavingsDai             = "maker-savingsdai"
+	ExchangeMantaProp                   = "manta-prop"
 	ExchangeMantisSwap                  = "mantisswap"
 	ExchangeCmETH                       = "cmeth"
 	ExchangeMantleETH                   = "meth"
@@ -405,24 +406,31 @@ func NeedsFallbackSource[T ~string](exchange T) bool {
 	return IsRFQSource(exchange)
 }
 
+// PropAMMSourceSet is ordered by integration time (oldest first).
 var PropAMMSourceSet = map[Exchange]struct{}{
-	Exchange1010Prop:      {},
-	ExchangeWildcard:      {},
-	ExchangeTessera:       {},
-	ExchangeElfomofi:      {},
-	ExchangeAximaV2:       {},
-	ExchangeMetricPropAMM: {},
-	ExchangeKipseliProp:   {},
-	ExchangeKipseliPamm:   {},
-	ExchangeWasabiProp:    {},
-	ExchangeObric:         {},
-	ExchangePoe:           {},
-	ExchangeFermi:         {},
-	ExchangeBopAMM:        {},
-	ExchangeGhost:         {},
-	ExchangeFluxProp:      {},
-	ExchangeParityProp:    {},
-	ExchangePrismProp:     {},
+	ExchangeTessera:            {},
+	ExchangeElfomofi:           {},
+	ExchangeWildcard:           {},
+	ExchangeKipseliProp:        {},
+	ExchangeWasabiProp:         {},
+	ExchangeAximaV2:            {},
+	ExchangeObric:              {},
+	ExchangePoe:                {},
+	ExchangeFermi:              {},
+	ExchangeCapricornPamm:      {},
+	ExchangeKipseliPamm:        {},
+	ExchangeBopAMM:             {},
+	ExchangeCaliberProp:        {},
+	Exchange1010Prop:           {},
+	ExchangeGhost:              {},
+	ExchangeMetricPropAMM:      {},
+	ExchangeFermiProp:          {},
+	ExchangeUniswapV4AegisProp: {},
+	ExchangeFluxProp:           {},
+	ExchangeTitanProp:          {},
+	ExchangeParityProp:         {},
+	ExchangePrismProp:          {},
+	ExchangeMantaProp:          {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
