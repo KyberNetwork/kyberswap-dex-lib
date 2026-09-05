@@ -84,11 +84,11 @@ func TestDirectProtocolMatch_ReferenceLaunch(t *testing.T) {
 
 	// The pool's launchTime (1786986263) is long past for all these fixtures (recorded
 	// 2026-08-25), so totalFeeBps resolves to the flat baseFeeBps=100 regardless of
-	// nowFn -- pinned explicitly anyway so this test's outcome never depends on another
-	// test file's leftover package-level nowFn override.
-	orig := nowFn
-	nowFn = func() int64 { return time.Now().Unix() }
-	defer func() { nowFn = orig }()
+	// NowFn -- pinned explicitly anyway so this test's outcome never depends on another
+	// test file's leftover package-level NowFn override.
+	orig := NowFn
+	NowFn = func() int64 { return time.Now().Unix() }
+	defer func() { NowFn = orig }()
 
 	sim, err := uniswapv4.NewPoolSimulator(pool, valueobject.ChainIDBase)
 	require.NoError(t, err)
