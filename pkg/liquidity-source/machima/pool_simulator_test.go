@@ -361,14 +361,14 @@ func TestRejectsImpossibleTax(t *testing.T) {
 	assert.ErrorIs(t, err, ErrTaxTooHigh)
 }
 
-// TestGetMetaInfo pins the shape aggregator-encoding's PackMachima decodes. The executor calldata
-// is just the router address; the deadline comes from block.timestamp on-chain.
+// TestGetMetaInfo pins the shape aggregator-encoding's PackPoolAddressFromApprovalInfo decodes.
+// The executor calldata is just the router address; the deadline comes from block.timestamp
+// on-chain.
 func TestGetMetaInfo(t *testing.T) {
 	sim := newSim(t, nil)
 
 	meta, ok := sim.GetMetaInfo("", "").(PoolMeta)
 	require.True(t, ok)
-	assert.Equal(t, routerAddr, meta.Router)
 	// The router pulls tokenIn with transferFrom, so the executor must approve it; router-service
 	// reads that address from here, not from GetApprovalAddress.
 	assert.Equal(t, routerAddr, meta.ApprovalAddress)

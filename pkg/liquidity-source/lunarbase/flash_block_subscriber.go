@@ -40,6 +40,7 @@ type poolState struct {
 	LatestUpdateBlock uint64
 	BlockDelay        uint64
 	ConcentrationK    uint32
+	MaxPunishmentX24  uint32
 	BlockNumber       uint64
 
 	StateUpdatedAt    time.Time
@@ -208,6 +209,7 @@ func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
 		{topicSync, "Sync"},
 		{topicSwapExecuted, "SwapExecuted"},
 		{topicConcentrationKSet, "ConcentrationKSet"},
+		{topicPunishmentApplied, "PunishmentApplied"},
 		{topicBlockDelaySet, "BlockDelaySet"},
 	}
 
@@ -274,6 +276,11 @@ func (s *FlashBlockSubscriber) connectAndListen(ctx context.Context) error {
 		case log := <-subs[4].ch:
 			s.processLog(log)
 		case err := <-subs[4].sub.Err():
+			return fmt.Errorf("punishmentApplied subscription error: %w", err)
+
+		case log := <-subs[5].ch:
+			s.processLog(log)
+		case err := <-subs[5].sub.Err():
 			return fmt.Errorf("blockDelaySet subscription error: %w", err)
 		}
 	}
@@ -369,6 +376,8 @@ func (s *FlashBlockSubscriber) processLog(log types.Log) {
 		s.handleSwapExecuted(log)
 	case topicConcentrationKSet:
 		s.handleConcentrationKSet(log)
+	case topicPunishmentApplied:
+		s.handlePunishmentApplied(log)
 	case topicBlockDelaySet:
 		s.handleBlockDelaySet(log)
 	}
@@ -488,6 +497,27 @@ func (s *FlashBlockSubscriber) handleBlockDelaySet(log types.Log) {
 	}
 
 	s.latestState.BlockDelay = bd
+}
+
+// handlePunishmentApplied applies the post-swap directional fees carried by
+// a punishment-model pool's PunishmentApplied(bool indexed xToY, uint24
+// punishmentX24, uint24 feeAskX24, uint24 feeBidX24) event. The indexed
+// xToY param is not part of Inputs.Unpack's return; only the three
+// non-indexed fields are.
+func (s *FlashBlockSubscriber) handlePunishmentApplied(log types.Log) {
+	values, err := coreABI.Events["PunishmentApplied"].Inputs.Unpack(log.Data)
+	if err != nil || len(values) < 3 {
+		return
+	}
+
+	feeAsk, ok1 := values[1].(uint32)
+	feeBid, ok2 := values[2].(uint32)
+	if !ok1 || !ok2 {
+		return
+	}
+
+	s.latestState.FeeAskX24 = feeAsk
+	s.latestState.FeeBidX24 = feeBid
 }
 
 func subscribeNewHeads(ctx context.Context, client *rpc.Client, ch chan<- *types.Header) (*rpc.ClientSubscription, error) {

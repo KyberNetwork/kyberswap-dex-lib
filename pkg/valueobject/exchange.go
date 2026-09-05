@@ -170,6 +170,7 @@ const (
 	ExchangeMachima                     = "machima"
 	ExchangeMakerPSM                    = "maker-psm"
 	ExchangeMakerSavingsDai             = "maker-savingsdai"
+	ExchangeMantaProp                   = "manta-prop"
 	ExchangeMantisSwap                  = "mantisswap"
 	ExchangeCmETH                       = "cmeth"
 	ExchangeMantleETH                   = "meth"
@@ -310,6 +311,7 @@ const (
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
+	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
@@ -343,6 +345,7 @@ const (
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"
 	ExchangeTitanProp                   = "titan-prop"
+	ExchangeOdysFun                     = "odys-fun"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -404,25 +407,32 @@ func NeedsFallbackSource[T ~string](exchange T) bool {
 	return IsRFQSource(exchange)
 }
 
+// PropAMMSourceSet is ordered by integration time (oldest first).
 var PropAMMSourceSet = map[Exchange]struct{}{
-	Exchange1010Prop:      {},
-	ExchangeWildcard:      {},
-	ExchangeTessera:       {},
-	ExchangeElfomofi:      {},
-	ExchangeAximaV2:       {},
-	ExchangeMetricPropAMM: {},
-	ExchangeKipseliProp:   {},
-	ExchangeKipseliPamm:   {},
-	ExchangeWasabiProp:    {},
-	ExchangeObric:         {},
-	ExchangePoe:           {},
-	ExchangeFermi:         {},
-	ExchangeBopAMM:        {},
-	ExchangeGhost:         {},
-	ExchangeFluxProp:      {},
-	ExchangeParityProp:    {},
-	ExchangePrismProp:     {},
-	ExchangeTideFiProp:    {},
+	ExchangeTessera:            {},
+	ExchangeElfomofi:           {},
+	ExchangeWildcard:           {},
+	ExchangeKipseliProp:        {},
+	ExchangeWasabiProp:         {},
+	ExchangeAximaV2:            {},
+	ExchangeObric:              {},
+	ExchangePoe:                {},
+	ExchangeFermi:              {},
+	ExchangeCapricornPamm:      {},
+	ExchangeKipseliPamm:        {},
+	ExchangeBopAMM:             {},
+	ExchangeCaliberProp:        {},
+	Exchange1010Prop:           {},
+	ExchangeGhost:              {},
+	ExchangeMetricPropAMM:      {},
+	ExchangeFermiProp:          {},
+	ExchangeUniswapV4AegisProp: {},
+	ExchangeFluxProp:           {},
+	ExchangeTitanProp:          {},
+	ExchangeParityProp:         {},
+	ExchangePrismProp:          {},
+	ExchangeMantaProp:          {},
+	ExchangeTideFiProp:         {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

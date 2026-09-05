@@ -40,6 +40,13 @@ const coreABIJSON = `[
   },
   {
     "inputs": [],
+    "name": "maxPunishmentX24",
+    "outputs": [{"internalType": "uint32", "name": "", "type": "uint32"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getXReserve",
     "outputs": [{"internalType": "uint112", "name": "", "type": "uint112"}],
     "stateMutability": "view",
@@ -137,6 +144,17 @@ const coreABIJSON = `[
       {"indexed": false, "internalType": "uint32", "name": "concentrationK", "type": "uint32"}
     ],
     "name": "ConcentrationKSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true,  "internalType": "bool",   "name": "xToY",         "type": "bool"},
+      {"indexed": false, "internalType": "uint32",  "name": "punishmentX24", "type": "uint32"},
+      {"indexed": false, "internalType": "uint32",  "name": "feeAskX24",    "type": "uint32"},
+      {"indexed": false, "internalType": "uint32",  "name": "feeBidX24",    "type": "uint32"}
+    ],
+    "name": "PunishmentApplied",
     "type": "event"
   },
   {

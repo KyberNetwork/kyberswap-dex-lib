@@ -1,9 +1,11 @@
 package uniswapv3
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -141,4 +143,75 @@ func TestCloneState(t *testing.T) {
 		},
 		TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 	}, nil)
+}
+
+// TestMaxTxGuard exercises the odys-fun launch guard (see forks/odys-fun.Guard): a launched
+// token capped at maxTxAmount must reject any swap that moves more than that on its own leg,
+// in both directions, while the paired token and swaps below the cap are unaffected.
+func TestMaxTxGuard(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded), poolEntity))
+	var extra ExtraTickU256
+	require.NoError(t, json.Unmarshal([]byte(poolEntity.Extra), &extra))
+
+	launchedToken := poolEntity.Tokens[0].Address // UNI, arbitrarily standing in for the ODYS token
+	pairedToken := poolEntity.Tokens[1].Address   // WETH
+
+	extra.MaxTxToken = launchedToken
+	extra.MaxTxAmount = bignumber.NewBig10("50000000000000000000") // 50 tokens
+
+	poolSim, err := NewPoolSimulatorWithExtra(*poolEntity, &extra, SimulatorConfig{})
+	require.NoError(t, err)
+
+	t.Run("sell above cap (CalcAmountOut) rejected", func(t *testing.T) {
+		_, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: launchedToken, Amount: bignumber.NewBig10("100000000000000000000")}, // 100 > 50
+			TokenOut:      pairedToken,
+		})
+		assert.ErrorIs(t, err, ErrMaxTxExceeded)
+	})
+
+	t.Run("sell at or below cap (CalcAmountOut) allowed", func(t *testing.T) {
+		res, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: launchedToken, Amount: bignumber.NewBig10("10000000000000000000")}, // 10 < 50
+			TokenOut:      pairedToken,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 1, res.TokenAmountOut.Amount.Sign())
+	})
+
+	t.Run("buy above cap (CalcAmountOut) rejected once output exceeds maxTx", func(t *testing.T) {
+		_, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: pairedToken, Amount: big.NewInt(1_000000000000000000)}, // 1 WETH -> way more than 50 UNI
+			TokenOut:      launchedToken,
+		})
+		assert.ErrorIs(t, err, ErrMaxTxExceeded)
+	})
+
+	t.Run("buy below cap (CalcAmountOut) allowed", func(t *testing.T) {
+		res, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: pairedToken, Amount: big.NewInt(1_00000000000000)}, // tiny WETH in -> small UNI out
+			TokenOut:      launchedToken,
+		})
+		require.NoError(t, err)
+		assert.LessOrEqual(t, res.TokenAmountOut.Amount.Cmp(extra.MaxTxAmount), 0)
+	})
+
+	t.Run("sell above cap (CalcAmountIn) rejected", func(t *testing.T) {
+		_, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+			TokenIn:        launchedToken,
+			TokenAmountOut: pool.TokenAmount{Token: pairedToken, Amount: big.NewInt(1_000000000000000000)}, // wants 1 WETH out -> needs way more than 50 UNI in
+		})
+		assert.ErrorIs(t, err, ErrMaxTxExceeded)
+	})
+
+	t.Run("buy above cap (CalcAmountIn) rejected on the specified output", func(t *testing.T) {
+		_, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+			TokenIn:        pairedToken,
+			TokenAmountOut: pool.TokenAmount{Token: launchedToken, Amount: bignumber.NewBig10("100000000000000000000")}, // 100 > 50
+		})
+		assert.ErrorIs(t, err, ErrMaxTxExceeded)
+	})
 }
