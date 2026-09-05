@@ -106,6 +106,25 @@ func TestCanSwapPermissions(t *testing.T) {
 	}
 }
 
+func TestHookAddresses_RegistrySnapshot(t *testing.T) {
+	t.Parallel()
+
+	// wantHooks is the registry's poolCount() at the last regeneration of HookAddresses, one
+	// hook per pool, so the list must carry exactly that many distinct addresses.
+	const wantHooks = 13
+	assert.Len(t, HookAddresses, wantHooks)
+
+	seen := make(map[common.Address]struct{}, len(HookAddresses))
+	for _, addr := range HookAddresses {
+		_, dup := seen[addr]
+		assert.False(t, dup, "duplicate hook address %s", addr.Hex())
+		seen[addr] = struct{}{}
+
+		_, ok := uniswapv4.GetHook(addr, &uniswapv4.HookParam{})
+		require.True(t, ok, "hook should be registered for %s", addr.Hex())
+	}
+}
+
 func TestCloneState_DeepCopy(t *testing.T) {
 	t.Parallel()
 
@@ -122,10 +141,11 @@ func TestCloneState_DeepCopy(t *testing.T) {
 	assert.Equal(t, uniswapv4.FeeAmount(800), original.Fee1For0)
 }
 
-// --- Live RPC test (skipped in CI) ---
+// --- Live RPC tests (skipped in CI) ---
 //
-// Reads the resolved fee for a live Fables pool on Robinhood Chain (chainId 4663). The public
-// RPC serves eth_call without limits; the pool id below is registry index 0 (NVDA/USD).
+// Reads the resolved fee for live Fables pools on Robinhood Chain (chainId 4663) through the
+// public RPC (rate limited; each test issues a single multicall). The pool id below is registry
+// index 0 (USDG/NVDA).
 func TestTrack_RobinhoodChain(t *testing.T) {
 	t.Parallel()
 	if os.Getenv("CI") != "" {
@@ -148,6 +168,37 @@ func TestTrack_RobinhoodChain(t *testing.T) {
 	var extra Extra
 	require.NoError(t, json.Unmarshal(extraStr, &extra))
 	t.Logf("Fables NVDA fee: 0For1=%d 1For0=%d", extra.Fee0For1, extra.Fee1For0)
+	assert.True(t, extra.Fee0For1 > 0, "resolved fee should be > 0")
+	assert.True(t, extra.Fee1For0 > 0, "resolved fee should be > 0")
+}
+
+// Same read against a wave-4 pool: registry index 12, ETH/PONS on FablesRampETH (tick spacing
+// 60, native ETH as currency0). This wave-4 build exposes the per-pool directional premium
+// (poolAsymmetry), so the two sides are read independently and only asserted positive, never
+// equal.
+func TestTrack_RobinhoodChain_EthPons(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping RPC test in CI")
+	}
+
+	rpcClient := ethrpc.New("https://rpc.mainnet.chain.robinhood.com").SetMulticallContract(multicall3)
+	param := &uniswapv4.HookParam{
+		Cfg:         &uniswapv4.Config{ChainID: 4663},
+		RpcClient:   rpcClient,
+		HookAddress: common.HexToAddress("0x594e8e6281eDf2d363a0293a50004Cf868E7a080"), // ETH/PONS hook
+		Pool: &entity.Pool{
+			Address: "0xb59001413cb070e28433826f927b7265a0813213ba21f454d86896cee3cce674",
+		},
+	}
+	hook, ok := uniswapv4.GetHook(param.HookAddress, param)
+	require.True(t, ok, "ETH/PONS hook should be registered")
+	extraStr, err := hook.Track(t.Context(), param)
+	require.NoError(t, err)
+
+	var extra Extra
+	require.NoError(t, json.Unmarshal(extraStr, &extra))
+	t.Logf("Fables ETH/PONS fee: 0For1=%d 1For0=%d", extra.Fee0For1, extra.Fee1For0)
 	assert.True(t, extra.Fee0For1 > 0, "resolved fee should be > 0")
 	assert.True(t, extra.Fee1For0 > 0, "resolved fee should be > 0")
 }

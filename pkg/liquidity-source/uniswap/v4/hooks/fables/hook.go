@@ -22,8 +22,9 @@ import (
 // cap and floor, and exposes the fully resolved result through the view
 // `currentFee(poolId, zeroForOne)`. We read that value per direction in Track and replay it in
 // BeforeSwap, so the simulator never re-derives the fee logic. slot0.lpFee is not authoritative
-// for these pools. The currently deployed hooks return the same fee for both directions; the
-// per-direction read is used so the handler stays correct if that changes.
+// for these pools. Newer hooks carry an optional per-pool directional premium, so the two
+// directions can legitimately differ; the per-direction read keeps the handler correct on every
+// hook, symmetric or not.
 //
 // Fables deploys one immutable hook per pool; the fee is still tracked per poolId so the
 // handler remains correct if a hook ever serves more than one pool.
