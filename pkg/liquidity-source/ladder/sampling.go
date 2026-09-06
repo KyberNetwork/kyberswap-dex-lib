@@ -389,6 +389,9 @@ func dedupSorted(sorted []*big.Int) []*big.Int {
 func CollectLadder(points []*big.Int, results []*big.Int) []Point {
 	pts := make([]Point, 0, len(points))
 	for i, amt := range points {
+		if i >= len(results) {
+			break
+		}
 		out := results[i]
 		if out == nil || out.Sign() <= 0 {
 			continue
