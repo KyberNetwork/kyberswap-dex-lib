@@ -76,7 +76,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	points0 := ladder.SamplePoints(p, 0, reserves.Reserve0, reserves.Reserve1)
 	points1 := ladder.SamplePoints(p, 1, reserves.Reserve1, reserves.Reserve0)
-	ladders, err := t.probeQuotes(ctx, p.Address, overrides, token0, token1, points0, points1)
+	ladders, err := t.probeQuotes(ctx, p.Address, overrides, resp.BlockNumber, token0, token1, points0, points1)
 	if err != nil {
 		logger.Errorf("failed to probe quotes: %v", err)
 		return p, err
@@ -99,12 +99,13 @@ func (t *PoolTracker) probeQuotes(
 	ctx context.Context,
 	poolAddr string,
 	overrides map[common.Address]gethclient.OverrideAccount,
+	blockNumber *big.Int,
 	token0, token1 common.Address,
 	points0, points1 []*big.Int,
 ) ([2][]ladder.Point, error) {
 	var amountsOut0, amountsOut1 []*big.Int
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(blockNumber)
 	if len(points0) > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
