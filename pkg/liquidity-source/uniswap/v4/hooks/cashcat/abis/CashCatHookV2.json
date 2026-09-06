@@ -1,0 +1,23 @@
+[
+    {
+        "type": "function",
+        "name": "currentFeeRate",
+        "stateMutability": "view",
+        "inputs": [
+            {
+                "name": "poolId",
+                "type": "bytes32"
+            },
+            {
+                "name": "swapper",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ]
+    }
+]
