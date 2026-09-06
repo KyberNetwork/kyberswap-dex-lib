@@ -234,14 +234,6 @@ func binY(s *PoolSimulator) *big.Int {
 	return sum
 }
 
-func binX(s *PoolSimulator) *big.Int {
-	sum := new(big.Int)
-	for _, b := range s.bins {
-		sum.Add(sum, b.ReserveX)
-	}
-	return sum
-}
-
 // After a swap, the bins that were crossed must shrink. If UpdateBalance only
 // moved aggregate reserves + activeID, a split/multi-hop re-quote would see the
 // original book and pay out more than is left.
