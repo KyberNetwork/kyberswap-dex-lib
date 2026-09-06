@@ -1,4 +1,4 @@
-package b20
+package o1
 
 import (
 	"math/big"
@@ -8,29 +8,26 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/b20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// reference values pulled from LaunchHook.sol's live poolConfig for a real B20 launch
-// on Base (poolId 0x68d39022eee9e18f82fe929f70dd8d2009e442e6d80c6c1ffc170c32b7d3b671),
-// so the decay math is checked against the actual on-chain fee schedule, not just its
-// own logic restated.
-func refExtra() Extra {
-	return Extra{
+// reference values from a real o1 launch on Base (poolId
+// 0xd980e584...92da0e, via `cast call poolConfig(bytes32)` on 2026-09-06).
+// Exercises b20.Extra's shared logic through o1's embedding; decay/fee math
+// itself is already covered by hooks/b20/hook_test.go.
+func refExtra() b20.Extra {
+	return b20.Extra{
 		TokenIsCurrency0:       false,
 		BaseFeeBps:             100,
 		AntiSnipeStartTotalBps: 9900,
-		AntiSnipeWindowSeconds: 16,
-		LaunchTime:             1786986263,
+		AntiSnipeWindowSeconds: 20,
+		LaunchTime:             1788228447,
 	}
 }
 
-// totalFeeBps must reproduce LaunchHook.sol's _totalFeeBps exactly: a wrong bps here
-// silently mis-prices every swap during the anti-snipe window (first 16s after
-// launch for this reference pool) without erroring, so a route built on this quote
-// would settle for less than it should on-chain.
 func TestTotalFeeBps_Decay(t *testing.T) {
-	h := &Hook{Extra: refExtra()}
+	e := refExtra()
 
 	cases := []struct {
 		name    string
@@ -38,29 +35,16 @@ func TestTotalFeeBps_Decay(t *testing.T) {
 		want    int64
 	}{
 		{"at launch instant, surcharge is maximal", 0, 9900},
-		{"halfway through the window, surcharge is halved", 8, 5000},
-		{"window boundary, decays to just base fee", 16, 100},
+		{"halfway through the window, surcharge is halved", 10, 5000},
+		{"window boundary, decays to just base fee", 20, 100},
 		{"long after the window, stays at base fee", 1_000_000, 100},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			NowFn = func() int64 { return h.LaunchTime + c.elapsed }
-			assert.Equal(t, c.want, h.TotalFeeBps())
+			b20.NowFn = func() int64 { return e.LaunchTime + c.elapsed }
+			assert.Equal(t, c.want, e.TotalFeeBps())
 		})
 	}
-}
-
-// A misconfigured pool (antiSnipeStartTotalBps above the hard ceiling somehow making
-// it through Track) must never let the simulator quote a fee above what the contract
-// can ever charge -- MaxTotalFeeBps is the contract's own hard ceiling.
-func TestTotalFeeBps_CappedAtMax(t *testing.T) {
-	// On-chain _validateFeeConfig rejects antiSnipeStartTotalBps > MAX_TOTAL_FEE_BPS at
-	// registration time, but the Go clamp must hold defensively too -- use an
-	// out-of-policy value (10_000) so the surcharge math alone would exceed the cap and
-	// the assertion can actually fail if the `if total > MaxTotalFeeBps` clamp is removed.
-	h := &Hook{Extra: Extra{BaseFeeBps: 0, AntiSnipeStartTotalBps: 10_000, AntiSnipeWindowSeconds: 10, LaunchTime: 1}}
-	NowFn = func() int64 { return 1 } // elapsed=0 -> surcharge=10_000, would exceed the cap uncapped
-	assert.Equal(t, int64(MaxTotalFeeBps), h.TotalFeeBps())
 }
 
 func TestQuoteIsSpecified(t *testing.T) {
@@ -77,8 +61,8 @@ func TestQuoteIsSpecified(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			h := &Hook{Extra: Extra{TokenIsCurrency0: c.tokenIsCurrency0}}
-			assert.Equal(t, c.want, h.QuoteIsSpecified(c.zeroForOne))
+			e := b20.Extra{TokenIsCurrency0: c.tokenIsCurrency0}
+			assert.Equal(t, c.want, e.QuoteIsSpecified(c.zeroForOne))
 		})
 	}
 }
@@ -87,7 +71,7 @@ func TestQuoteIsSpecified(t *testing.T) {
 // (beforeSwap), floor-rounded, reducing what the AMM sees as input.
 func TestBeforeSwap_QuoteSpecified_ChargesFeeOnInput(t *testing.T) {
 	e := refExtra()
-	NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds } // post-window: flat 100bps
+	b20.NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds } // post-window: flat 100bps
 	h := &Hook{Extra: e}
 
 	// tokenIsCurrency0=false -> quote is currency0 -> zeroForOne=true sells quote in.
@@ -95,7 +79,7 @@ func TestBeforeSwap_QuoteSpecified_ChargesFeeOnInput(t *testing.T) {
 	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amountIn})
 	require.NoError(t, err)
 
-	// floor(1_000_000 * 100 / 10_000) = 10_000, matching _feeAmount's floor mulDiv.
+	// floor(1_000_000 * 100 / 10_000) = 10_000, matching FeeAmount's floor mulDiv.
 	assert.Equal(t, big.NewInt(10_000), result.DeltaSpecified)
 	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
 }
@@ -105,7 +89,7 @@ func TestBeforeSwap_QuoteSpecified_ChargesFeeOnInput(t *testing.T) {
 // double-count against AfterSwap's own fee application.
 func TestBeforeSwap_TokenSpecified_NoFeeHere(t *testing.T) {
 	e := refExtra()
-	NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds }
+	b20.NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds }
 	h := &Hook{Extra: e}
 
 	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false, AmountSpecified: big.NewInt(1_000_000)})
@@ -117,7 +101,7 @@ func TestBeforeSwap_TokenSpecified_NoFeeHere(t *testing.T) {
 // Selling the token for quote: fee lands post-swap on the realized quote output.
 func TestAfterSwap_TokenSpecified_ChargesFeeOnOutput(t *testing.T) {
 	e := refExtra()
-	NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds }
+	b20.NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds }
 	h := &Hook{Extra: e}
 
 	amountOut := big.NewInt(1_000_000)
@@ -132,7 +116,7 @@ func TestAfterSwap_TokenSpecified_ChargesFeeOnOutput(t *testing.T) {
 func TestBeforeSwap_ExactOutUnsupported(t *testing.T) {
 	h := &Hook{Extra: refExtra()}
 	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(1)})
-	assert.ErrorIs(t, err, ErrCalcInUnsupported)
+	assert.ErrorIs(t, err, b20.ErrCalcInUnsupported)
 }
 
 // A pool whose Track() never succeeded (RPC failure, or a factory that constructs the
@@ -142,11 +126,11 @@ func TestBeforeAfterSwap_UntrackedPool_Errors(t *testing.T) {
 	h := &Hook{} // zero-value Extra: LaunchTime == 0
 
 	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1_000_000)})
-	assert.ErrorIs(t, err, ErrNotTracked)
+	assert.ErrorIs(t, err, b20.ErrNotTracked)
 
 	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false},
 		AmountOut:        big.NewInt(1_000_000),
 	})
-	assert.ErrorIs(t, err, ErrNotTracked)
+	assert.ErrorIs(t, err, b20.ErrNotTracked)
 }

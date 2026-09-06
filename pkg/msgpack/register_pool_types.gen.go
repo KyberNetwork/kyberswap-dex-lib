@@ -168,6 +168,7 @@ import (
 	pkg_liquiditysource_syncswapv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	pkg_liquiditysource_synthereum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/synthereum"
 	pkg_liquiditysource_tessera "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
+	pkg_liquiditysource_tidefiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tidefi-prop"
 	pkg_liquiditysource_umbrae_damm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/damm"
 	pkg_liquiditysource_umbrae_dlmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/dlmm"
 	pkg_liquiditysource_unipool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/unipool"
@@ -194,7 +195,9 @@ import (
 	pkg_liquiditysource_uniswap_v4_hooks_idle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/idle"
 	pkg_liquiditysource_uniswap_v4_hooks_livo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/livo"
 	pkg_liquiditysource_uniswap_v4_hooks_nft_strategy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/nft_strategy"
+	pkg_liquiditysource_uniswap_v4_hooks_o1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/o1"
 	pkg_liquiditysource_uniswap_v4_hooks_odysfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/odysfun"
+	pkg_liquiditysource_uniswap_v4_hooks_ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	pkg_liquiditysource_uniswap_v4_hooks_renzo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/renzo"
 	pkg_liquiditysource_uniswap_v4_hooks_st0x "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/st0x"
 	pkg_liquiditysource_uniswap_v4_hooks_stablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/stable-stable"
@@ -422,6 +425,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_stable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_synthereum.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tessera.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tidefiprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_umbrae_damm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_umbrae_dlmm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_unipool.PoolSimulator{})
@@ -448,7 +452,9 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_idle.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_livo.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_nft_strategy.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_o1.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_odysfun.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_ponsv2.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_renzo.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_st0x.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_stablestable.Hook{})

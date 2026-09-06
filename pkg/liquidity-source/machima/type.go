@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 // Extra is the mutable pool state refreshed by PoolTracker on every cycle.
@@ -91,19 +92,11 @@ type TaxConfig struct {
 	HasTax             bool
 }
 
-// PoolMeta is consumed by aggregator-encoding's PackMachima. The executor calldata is a single word
-// — the router address — since the contract derives the deadline from block.timestamp itself.
-//
-// ApprovalAddress is the same router and is not redundant: the Machima router *pulls* tokenIn from
-// the executor with transferFrom, so the executor must have approved it or the swap reverts.
-// executeMachima only approves when the SHOULD_APPROVE_MAX flag is set, and router-service decides
-// that by reading pool.ApprovalInfo out of this struct — not from the simulator's
-// GetApprovalAddress. Dropping this field silently breaks every Machima swap.
-type PoolMeta struct {
-	Router          string `json:"router"`
-	ApprovalAddress string `json:"approvalAddress"`
-	BlockNumber     uint64 `json:"blockNumber"`
-}
+// PoolMeta is consumed by aggregator-encoding's generic
+// PackPoolAddressFromApprovalInfo: the router address doubles as both the
+// executor calldata (single word, decoded via data.decodeAddress()) and the
+// approval target, since the Machima router pulls tokenIn itself.
+type PoolMeta = pool.MetaInfo
 
 // Metadata is the pool-list checkpoint. The field name is not free: the ticks-based bootstrap
 // persists its own poolMetadata over whatever the lister returns, and feeds that same shape back

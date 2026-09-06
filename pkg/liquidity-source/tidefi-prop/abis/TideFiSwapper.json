@@ -1,0 +1,17 @@
+[
+  {
+    "type": "function",
+    "name": "quote",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "tokenIn", "type": "address" },
+      { "name": "tokenOut", "type": "address" },
+      { "name": "maxAmountIn", "type": "uint256" },
+      { "name": "limitPrice", "type": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "amountOut", "type": "uint256" }
+    ]
+  }
+]
