@@ -97,6 +97,9 @@ func (s *PoolSimulator) sell(amount *uint256.Int) (out, cursor uint256.Int, err 
 	side := &s.Extra.Bid
 	cursor, err = add(&side.Filled, amount)
 	if err != nil {
+		// BaibaiCurveBook._sellBase uses Math.tryAdd and maps a failed add
+		// to Fail.BeyondDepth. Preserve that result; the multiplication below
+		// instead uses Solidity checked arithmetic and remains ErrOverflow.
 		return out, cursor, ErrDepth
 	}
 	maxQ, err := s.effectiveMax(side)

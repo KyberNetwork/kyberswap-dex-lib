@@ -259,3 +259,17 @@ func TestAdditionalBaseScaleAndSharedQuoteInventory(t *testing.T) {
 	require.Zero(t, other.Extra.FillSeq)
 	require.Equal(t, other.Info.Tokens[0], other.GetMetaInfo("", "").(PoolMeta).Base)
 }
+
+func TestSellCursorOverflowMatchesContractDepthFailure(t *testing.T) {
+	s := flat(t)
+	s.Extra.Bid.Filled.SetUint64(1)
+	max := new(uint256.Int).SetAllOne()
+	_, arithmeticErr := add(&s.Extra.Bid.Filled, max)
+	require.ErrorIs(t, arithmeticErr, ErrOverflow)
+	// The contract uses tryAdd and returns Fail.BeyondDepth on this specific
+	// overflow, causing quote() to return zero and consume() to reject depth.
+	_, err := s.CalcAmountOut(quoteParams(0, max.Dec()))
+	require.ErrorIs(t, err, ErrDepth)
+	require.Equal(t, uint64(1), s.Extra.Bid.Filled.Uint64())
+	require.Zero(t, s.Extra.FillSeq)
+}
