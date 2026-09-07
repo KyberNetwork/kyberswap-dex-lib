@@ -1,6 +1,6 @@
 # Spire proprietary AMM (`spire-prop`)
 
-Spire combines maker books into a compressed on-chain curve. This integration supports exact-input WETH–USDC ERC20 swaps on Base (chain ID 8453). It has no RFQ HTTP dependency, native ETH support, partial fills, or separate taker fee.
+Spire combines maker books into a compressed on-chain curve. This integration supports exact-input swaps between configured base ERC20s and a Spire entrypoint's quote token. WETH–USDC on Base (chain ID 8453) is the deployment verified below. It has no RFQ HTTP dependency, native ETH support, partial fills, or separate taker fee.
 
 Protocol documentation: [overview](https://docs.baibai.cx/takers/overview), [quoting and swapping](https://docs.baibai.cx/takers/quoting-and-swapping), [deployments](https://docs.baibai.cx/takers/deployments).
 
@@ -19,6 +19,8 @@ Example discovery configuration:
   "bases": ["0x4200000000000000000000000000000000000006"]
 }
 ```
+
+Add another listed base to `bases` to discover another pair; the existing simulator and adapter do not require pair-specific code. One entrypoint has one quote token; a different quote token requires a separate deployment/source configuration. On-chain `qUnit`, `cUnit` and midpoint values carry token scaling, so the simulator does not assume 18-decimal WETH or 6-decimal USDC. A regression test exercises an eight-decimal base and prevents two bases from spending the same shared quote inventory. Fee-on-transfer and rebasing tokens are unsupported.
 
 There is no enumerable factory. Discovery uses configured base tokens and reads the entrypoint's immutable curve, custodian and quote token. The pool identifier is the low 20 bytes of `keccak256(entrypoint || base)` with both addresses packed as 20 bytes. This identifier is not a deployed contract. Execution uses `meta.entrypoint` and `meta.base`; balances are held in the custodian. Discovery emits zero reserve placeholders; tracking supplies `availableLiquidity`, excluding pending claims.
 

@@ -47,7 +47,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadata []byte) ([]
 	if curve == (common.Address{}) || custody == (common.Address{}) || quote == (common.Address{}) {
 		return nil, metadata, ErrInvalidState
 	}
-	extra, _ := json.Marshal(StaticExtra{Entrypoint: strings.ToLower(u.cfg.Entrypoint), CurveBook: hexutil.Encode(curve[:]), Custodian: hexutil.Encode(custody[:])})
+	extra, err := json.Marshal(StaticExtra{Entrypoint: strings.ToLower(u.cfg.Entrypoint), CurveBook: hexutil.Encode(curve[:]), Custodian: hexutil.Encode(custody[:])})
+	if err != nil {
+		return nil, metadata, err
+	}
 	pools := make([]entity.Pool, 0, len(u.cfg.Bases))
 	for _, token := range u.cfg.Bases {
 		if !validAddress(token) || common.HexToAddress(token) == quote {

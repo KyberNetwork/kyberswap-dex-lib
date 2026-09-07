@@ -220,3 +220,42 @@ func TestMultiKnotRoundingAndConsumedOrigin(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "3", result.TokenAmountOut.Amount.String())
 }
+
+func TestAdditionalBaseScaleAndSharedQuoteInventory(t *testing.T) {
+	weth := flat(t)
+	other := flat(t)
+	other.Info.Tokens[0] = "0x0000000000000000000000000000000000000002"
+	// An eight-decimal base at the same 2,500 quote-token price. qUnit and
+	// midpoint come from the contract, so no WETH/18-decimal assumption applies.
+	other.Extra.QUnit.SetUint64(1)
+	other.Extra.Mid = *uint256.MustFromDecimal("25000000000000000000")
+	other.Info.Reserves[0] = big.NewInt(100_000_000)
+	weth.Info.Reserves[1] = big.NewInt(25_000_000)
+	other.Info.Reserves[1] = big.NewInt(25_000_000)
+	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: quoteToken, Amount: big.NewInt(25_000_000)}, TokenOut: other.Info.Tokens[0]}
+	buy, err := other.CalcAmountOut(params)
+	require.NoError(t, err)
+	require.Equal(t, "1000000", buy.TokenAmountOut.Amount.String())
+	params = pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: other.Info.Tokens[0], Amount: big.NewInt(1_000_000)}, TokenOut: quoteToken}
+	sell, err := other.CalcAmountOut(params)
+	require.NoError(t, err)
+	require.Equal(t, "25000000", sell.TokenAmountOut.Amount.String())
+
+	inventory := weth.CalculateLimit()
+	for key, value := range other.CalculateLimit() {
+		inventory[key] = value
+	}
+	limit := swaplimit.NewInventory(DexType, inventory)
+	firstParams := quoteParams(0, "10000000000000000")
+	firstParams.Limit = limit
+	first, err := weth.CalcAmountOut(firstParams)
+	require.NoError(t, err)
+	weth.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo, SwapLimit: limit})
+	require.Zero(t, limit.GetLimit(other.limitKey(quoteToken)).Sign())
+	// The second base has its own cursor but must not spend the same USDC twice.
+	params.Limit = limit
+	_, err = other.CalcAmountOut(params)
+	require.ErrorIs(t, err, pool.ErrNotEnoughInventory)
+	require.Zero(t, other.Extra.FillSeq)
+	require.Equal(t, other.Info.Tokens[0], other.GetMetaInfo("", "").(PoolMeta).Base)
+}

@@ -107,7 +107,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	if raw.Ask.KnotCount > 36 || raw.Bid.KnotCount > 36 {
 		return p, ErrInvalidState
 	}
-	knots := [2][]rawKnot{make([]rawKnot, raw.Ask.KnotCount), make([]rawKnot, raw.Bid.KnotCount)}
+	knots := [2][]rawKnot{make([]rawKnot, int(raw.Ask.KnotCount)), make([]rawKnot, int(raw.Bid.KnotCount))}
 	req = t.client.NewRequest().SetContext(ctx).SetBlockHash(header.Hash())
 	for side := range knots {
 		for i := range knots[side] {
