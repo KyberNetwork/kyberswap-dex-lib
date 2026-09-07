@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import (
 	"math/big"
@@ -81,7 +81,7 @@ type rangePoolImmutableDataABI struct {
 	NormalizedWeights     []*big.Int
 }
 
-type rangePoolDynamicDataABI struct {
+type RangePoolDynamicDataABI struct {
 	BalancesRaw             []*big.Int
 	BalancesLiveScaled18    []*big.Int
 	VirtualBalances         []*big.Int
@@ -97,7 +97,7 @@ type rangePoolDynamicDataABI struct {
 	IsHookStopped           bool
 }
 
-type poolConfigABI struct {
+type PoolConfigABI struct {
 	LiquidityManagement struct {
 		DisableUnbalancedLiquidity  bool
 		EnableAddLiquidityCustom    bool
@@ -119,6 +119,6 @@ type poolConfigABI struct {
 // return (cf. unipool's getVirtualReserves wrapper).
 type (
 	rangePoolImmutableDataResult struct{ Data rangePoolImmutableDataABI }
-	rangePoolDynamicDataResult   struct{ Data rangePoolDynamicDataABI }
-	poolConfigResult             struct{ PoolConfig poolConfigABI }
+	RangePoolDynamicDataResult   struct{ Data RangePoolDynamicDataABI }
+	PoolConfigResult             struct{ PoolConfig PoolConfigABI }
 )

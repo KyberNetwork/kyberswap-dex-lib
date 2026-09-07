@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import "errors"
 
@@ -31,24 +31,21 @@ const (
 )
 
 var (
-	// ErrInvalidToken is returned when a token index is out of range for the pool.
-	ErrInvalidToken = errors.New("invalid token")
-
 	// ErrExactOutNotAllowed mirrors RangePool.onSwap's EXACT_OUT revert guards:
 	// the requested output would drain the pool below ABSOLUTE_MIN_TOKEN_BALANCE
 	// (AmountOutExceedsFactBalance) or is >= the virtual out balance
 	// (VirtualBalanceOutTooLow). Either makes the on-chain swap revert, so we
 	// return no price.
-	ErrExactOutNotAllowed = errors.New("range-pool: exact-out amount not allowed (fact cap or virtual balance)")
+	ErrExactOutNotAllowed = errors.New("range-v3-weighted: exact-out amount not allowed (fact cap or virtual balance)")
 
 	// ErrTradeAmountTooSmall mirrors the Vault's TradeAmountTooSmall() revert: a swap
 	// leg (post-fee input or output) below the Vault's minimum trade amount reverts
 	// on-chain (gotcha #13).
-	ErrTradeAmountTooSmall = errors.New("range-pool: trade amount below vault minimum")
+	ErrTradeAmountTooSmall = errors.New("range-v3-weighted: trade amount below vault minimum")
 
 	// ErrIncompleteState is returned when the state multicall did not fully succeed.
 	// TryBlockAndAggregate tolerates per-call reverts (its error stays nil), so the
 	// tracker must reject a partial read rather than build a pool from zero/nil values
 	// (which would panic in MustFromBig or yield a garbage quote).
-	ErrIncompleteState = errors.New("range-pool: incomplete on-chain state read")
+	ErrIncompleteState = errors.New("range-v3-weighted: incomplete on-chain state read")
 )

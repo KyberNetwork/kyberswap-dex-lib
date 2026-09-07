@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import (
 	"context"
@@ -169,8 +169,8 @@ func (ts *IntegrationSuite) assertTrackedMatchesChain(poolAddr string, wantToken
 		extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
 }
 
-func (ts *IntegrationSuite) readDynamicDataAt(poolAddr string, blockNumber uint64) *rangePoolDynamicDataABI {
-	var dyn rangePoolDynamicDataResult
+func (ts *IntegrationSuite) readDynamicDataAt(poolAddr string, blockNumber uint64) *RangePoolDynamicDataABI {
+	var dyn RangePoolDynamicDataResult
 	req := ts.client.NewRequest().SetContext(context.Background()).
 		SetBlockNumber(new(big.Int).SetUint64(blockNumber))
 	req.AddCall(&ethrpc.Call{

@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 // quote must equal the on-chain Router.querySwapSingleTokenExactIn / …ExactOut to the wei,
 // for both live pools, both directions, and both sides, across an amount sweep.
 //
-// RPC-gated (test.SkipCI + ETH_RPC_URL); see range-pool_integration_test.go for RPC setup.
+// RPC-gated (test.SkipCI + ETH_RPC_URL); see weighted_integration_test.go for RPC setup.
 // Every querySwap is issued as its OWN eth_call pinned to the tracked block — NEVER batched
 // into a multicall: query mode mutates _virtualBalances in-call, which would silently
 // corrupt all but the first result (reference §5.4, gotcha #5).

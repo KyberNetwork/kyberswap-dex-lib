@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import (
 	"github.com/goccy/go-json"
@@ -80,7 +80,7 @@ func (p *PoolSimulator) BaseGas() int64 {
 // virtual balances every tracker cycle.
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
 	if param.IndexIn >= len(p.virtualBalances) || param.IndexOut >= len(p.virtualBalances) {
-		return nil, ErrInvalidToken
+		return nil, shared.ErrInvalidToken
 	}
 
 	virtualBalanceIn := p.virtualBalances[param.IndexIn]

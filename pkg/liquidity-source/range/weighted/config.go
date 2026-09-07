@@ -1,11 +1,16 @@
-package rangepool
+package weighted
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
 
 const (
 	// DexType is the pool-type identifier for Range Pools, a concentrated-liquidity,
-	// Balancer-V3-shaped DEX running on a custom, non-canonical Vault.
-	DexType = "range-pool"
+	// Balancer-V3-shaped weighted DEX running on a custom, non-canonical Vault.
+	DexType = "range-v3-weighted"
 )
 
 // Mainnet (chainId 1) addresses for the Range Pool deployment.
@@ -14,13 +19,11 @@ const (
 // by any subgraph; these addresses are hardcoded and pools are discovered on-chain
 // via RangePoolFactory.getPools().
 var (
-	// VaultAddress is the custom, non-canonical Balancer V3 Vault.
-	VaultAddress = common.HexToAddress("0x955244EDC797A1C1b04134b600f819aC23C76081")
-
-	// RouterAddress is the standard Router: it is the ONLY contract exposing
-	// swapSingleTokenExactIn/Out and querySwapSingleTokenExactIn/Out. It is the
-	// target/approval address for swaps and the querySwap parity oracle.
-	RouterAddress = common.HexToAddress("0x8726019313CD59D2e33dBE643aaC94A59D5518df")
+	// VaultAddress and RouterAddress are sourced from shared.VaultMap/BatchRouterMap
+	// (keyed "range", like the existing "coinhane" non-canonical deployment) so the
+	// tracker and base.PoolSimulator.GetMetaInfo can never disagree on the address.
+	VaultAddress  = shared.VaultMap["range"]
+	RouterAddress = shared.BatchRouterMap["range"][valueobject.ChainIDEthereum]
 
 	// FactoryAddress is the RangePoolFactory (pool discovery via getPools()).
 	FactoryAddress = common.HexToAddress("0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0")

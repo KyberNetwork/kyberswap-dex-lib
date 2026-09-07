@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import (
 	"math/big"
@@ -22,7 +22,7 @@ import (
 // run at mainnet block 25459279. The expected CalcAmountOut / CalcAmountIn amounts and
 // fees below are querySwap-VERIFIED: each was cross-checked to the wei against
 // Router.querySwapSingleTokenExactIn / …ExactOut at the same block when the snapshot was
-// captured (the RPC parity gate lives in range-pool-parity_integration_test.go; this file
+// captured (the RPC parity gate lives in weighted-parity_integration_test.go; this file
 // freezes a slice of it as a fast offline regression).
 //
 // ROME/USDT is a 2-token 50/50 pool; both tokens are 6-decimal (scaling factor 1e12).
@@ -33,7 +33,7 @@ const (
 	romeToken = "0x2bd1f344a2398340c2b1119da98816ea723f5f0f"
 	usdtToken = "0xdac17f958d2ee523a2206206994597c13d831ec7"
 
-	romeUSDTSnapshot = `{"address":"0xaf037e69f0fa8d1633443cc0c67d0b73e3694b36","exchange":"range-pool","type":"range-pool","timestamp":1783169539,"reserves":["11722718035","165904197"],"tokens":[{"address":"0x2bd1f344a2398340c2b1119da98816ea723f5f0f","swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","swappable":true}],"extra":"{\"hook\":{},\"fee\":\"3500000000000000\",\"aggrFee\":\"400000000000000000\",\"balsE18\":[\"11722718035000000000000\",\"165904197000000000000\"],\"decs\":[\"1000000000000\",\"1000000000000\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000\"],\"virtualBalances\":[\"586875103390492706063249\",\"569563619470154789309965\"],\"minimumTradeAmount\":\"1000000000000\",\"isPoolRegistered\":true,\"isPoolInitialized\":true,\"isPoolPaused\":false,\"isPoolInRecoveryMode\":false,\"isVaultPaused\":false,\"isHookStopped\":false}","staticExtra":"{\"hook\":\"0xf31e1f37e1f9c2c531e6bc3ad89ffc9206ce85d9\",\"buffs\":[\"\",\"\"],\"normalizedWeights\":[\"500000000000000000\",\"500000000000000000\"],\"decimalScalingFactors\":[\"1000000000000\",\"1000000000000\"],\"factoryAddress\":\"0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0\"}","totalSupply":"5085800492409183741797","blockNumber":25459279}`
+	romeUSDTSnapshot = `{"address":"0xaf037e69f0fa8d1633443cc0c67d0b73e3694b36","exchange":"range-v3-weighted","type":"range-v3-weighted","timestamp":1783169539,"reserves":["11722718035","165904197"],"tokens":[{"address":"0x2bd1f344a2398340c2b1119da98816ea723f5f0f","swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","swappable":true}],"extra":"{\"hook\":{},\"fee\":\"3500000000000000\",\"aggrFee\":\"400000000000000000\",\"balsE18\":[\"11722718035000000000000\",\"165904197000000000000\"],\"decs\":[\"1000000000000\",\"1000000000000\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000\"],\"virtualBalances\":[\"586875103390492706063249\",\"569563619470154789309965\"],\"minimumTradeAmount\":\"1000000000000\",\"isPoolRegistered\":true,\"isPoolInitialized\":true,\"isPoolPaused\":false,\"isPoolInRecoveryMode\":false,\"isVaultPaused\":false,\"isHookStopped\":false}","staticExtra":"{\"hook\":\"0xf31e1f37e1f9c2c531e6bc3ad89ffc9206ce85d9\",\"buffs\":[\"\",\"\"],\"normalizedWeights\":[\"500000000000000000\",\"500000000000000000\"],\"decimalScalingFactors\":[\"1000000000000\",\"1000000000000\"],\"factoryAddress\":\"0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0\"}","totalSupply":"5085800492409183741797","blockNumber":25459279}`
 )
 
 func newROMEUSDTSim(t *testing.T) *base.PoolSimulator {
@@ -55,7 +55,7 @@ func TestCentralFactoryRegistration(t *testing.T) {
 	t.Parallel()
 
 	factory := pool.Factory(DexType)
-	require.NotNil(t, factory, "range-pool must be registered in the central pool factory")
+	require.NotNil(t, factory, "range-v3-weighted must be registered in the central pool factory")
 
 	var entityPool entity.Pool
 	require.NoError(t, json.Unmarshal([]byte(romeUSDTSnapshot), &entityPool))
@@ -65,7 +65,7 @@ func TestCentralFactoryRegistration(t *testing.T) {
 
 	// EXACT_OUT support is registered too (base.PoolSimulator implements IPoolExactOutSimulator).
 	_, canCalcAmountIn := pool.CanCalcAmountIn[DexType]
-	assert.True(t, canCalcAmountIn, "range-pool must advertise exact-out support")
+	assert.True(t, canCalcAmountIn, "range-v3-weighted must advertise exact-out support")
 }
 
 func TestCalcAmountOut(t *testing.T) {
@@ -229,7 +229,7 @@ func TestPausedPoolRejectsSwap(t *testing.T) {
 // TestZeroAmountRejected: a zero-amount swap must never produce a (positive) quote — the
 // simulator returns an error on both sides rather than a zero/near-zero price. (The full
 // sub-MINIMUM_TRADE_AMOUNT dust-revert parity against the chain is covered by the RPC gate
-// in range-pool-parity_integration_test.go, which needs an 18-decimal token to reach the
+// in weighted-parity_integration_test.go, which needs an 18-decimal token to reach the
 // regime; both tokens here are 6-decimal.)
 func TestZeroAmountRejected(t *testing.T) {
 	t.Parallel()

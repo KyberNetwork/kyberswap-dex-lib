@@ -29,7 +29,7 @@ var (
 		},
 		// Range Pools run on a custom, non-canonical Balancer V3 deployment (like coinhane).
 		// Their single-swap Router (also exposing querySwap...) is the approval/target
-		// address; the "range" key matches exchange prefix "range-pool" (split on "-").
+		// address; the "range" key matches exchange prefix "range-v3-weighted" (split on "-").
 		"range": {
 			valueobject.ChainIDEthereum: common.HexToAddress("0x8726019313CD59D2e33dBE643aaC94A59D5518df"),
 		},

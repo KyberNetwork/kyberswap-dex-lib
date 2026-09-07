@@ -1,14 +1,14 @@
-package rangepool
+package weighted
 
 import (
 	"context"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
@@ -40,19 +40,18 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 // and advances the metadata offset so subsequent calls are incremental.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	startTime := time.Now()
-	dexID := u.config.DexID
-
-	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
+	l := log.Ctx(ctx).With().Str("dex", DexType).Str("dexID", u.config.DexID).Logger()
+	l.Info().Msg("Started getting new pools")
 
 	allPools, err := u.listPoolAddresses(ctx)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Error("getPools failed")
+		l.Error().Err(err).Msg("getPools failed")
 		return nil, metadataBytes, err
 	}
 
 	offset, err := u.getOffset(metadataBytes)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Warn("getOffset failed")
+		l.Warn().Err(err).Msg("getOffset failed")
 	}
 	if offset > len(allPools) {
 		offset = len(allPools)
@@ -65,7 +64,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	pools, err := u.initPools(ctx, batch)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dex_id": dexID, "err": err}).Error("initPools failed")
+		l.Error().Err(err).Msg("initPools failed")
 		return nil, metadataBytes, err
 	}
 
@@ -74,13 +73,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	logger.WithFields(logger.Fields{
-		"dex_id":      dexID,
-		"pools_len":   len(pools),
-		"offset":      offset,
-		"total":       len(allPools),
-		"duration_ms": time.Since(startTime).Milliseconds(),
-	}).Info("Finished getting new pools")
+	l.Info().
+		Int("poolsLen", len(pools)).
+		Int("offset", offset).
+		Int("total", len(allPools)).
+		Int64("durationMs", time.Since(startTime).Milliseconds()).
+		Msg("Finished getting new pools")
 
 	return pools, newMetadataBytes, nil
 }

@@ -1,4 +1,4 @@
-package rangepool
+package weighted
 
 import (
 	"github.com/holiman/uint256"
