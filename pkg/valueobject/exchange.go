@@ -330,6 +330,7 @@ const (
 	ExchangeVirtualFunV2                = "virtual-fun-v2"
 	ExchangeVooi                        = "vooi"
 	ExchangeWagyuSwap                   = "wagyuswap"
+	ExchangeSpireProp                   = "spire-prop"
 	ExchangeWasabiProp                  = "wasabi-prop"
 	ExchangeWault                       = "wault"
 	ExchangeWBETH                       = "wbeth"
@@ -417,6 +418,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeWildcard:           {},
 	ExchangeKipseliProp:        {},
 	ExchangeWasabiProp:         {},
+	ExchangeSpireProp:          {},
 	ExchangeAximaV2:            {},
 	ExchangeObric:              {},
 	ExchangePoe:                {},

@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"golang.org/x/mod/modfile"
 )
 
 var (
@@ -32,7 +34,14 @@ func main() {
 		return
 	}
 
-	moduleName := "github.com/KyberNetwork/" + filepath.Base(dir)
+	modBytes, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	moduleName := modfile.ModulePath(modBytes)
+	if moduleName == "" {
+		log.Fatal("go.mod has no module path")
+	}
 	nameByFile, fileByPath := getPackageNamesAndImportPaths(structByFile, dir, moduleName)
 	paths := slices.Sorted(maps.Keys(fileByPath))
 
