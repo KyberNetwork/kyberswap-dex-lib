@@ -150,7 +150,6 @@ import (
 	pkg_liquiditysource_printr "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	pkg_liquiditysource_prismprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/prism-prop"
 	pkg_liquiditysource_prmfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/prm-fun"
-	pkg_liquiditysource_prmfunstock "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/prm-fun-stock"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	pkg_liquiditysource_range_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
@@ -412,7 +411,6 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_printr.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_prismprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_prmfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_prmfunstock.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_range_weighted.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})

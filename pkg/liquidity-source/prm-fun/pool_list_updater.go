@@ -39,7 +39,6 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	startTime := time.Now()
 	u.logger.Info("started getting new pools")
 
 	var metadata PoolsListUpdaterMetadata
