@@ -46,7 +46,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		_ = json.Unmarshal(metadataBytes, &metadata)
 	}
 
-	var total uint64
+	var total *big.Int
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    memeFactoryABI,
@@ -63,7 +63,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		limit = 100
 	}
 	start := metadata.Offset
-	end := min(start+limit, int(total))
+	end := min(start+limit, int(total.Int64()))
 	if start >= end {
 		newMetadataBytes, _ := json.Marshal(PoolsListUpdaterMetadata{Offset: start})
 		return nil, newMetadataBytes, nil
