@@ -12,7 +12,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few"
+	few_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v1"
+	few_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -60,7 +61,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		staticExtra:   staticExtra,
 		hook:          hook,
 		chainID:       chainID,
-		tokenWrappers: []ITokenWrapper{few.NewTokenWrapper()},
+		// few_v2 is listed before few_v1 so, for a token pair with pools in both
+		// generations (e.g. WBTC/fwWBTC), the current/active generation wins.
+		tokenWrappers: []ITokenWrapper{few_v2.NewTokenWrapper(), few_v1.NewTokenWrapper()},
 	}, nil
 }
 
