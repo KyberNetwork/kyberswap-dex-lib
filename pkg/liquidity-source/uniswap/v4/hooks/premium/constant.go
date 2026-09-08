@@ -18,10 +18,18 @@ const (
 	feeBps = 100
 )
 
-// HookAddresses lists Premium's graduated-pool hook. Unlike Fables (one immutable hook per
-// pool), PremiumLaunchHook is a single immutable contract shared across every graduated
-// Premium pool - pool-specific state (memeIsCurrency0, paused, creator, platformTreasury)
-// lives in its poolConfig(poolId) mapping, not in per-pool bytecode.
+// HookAddresses lists Premium's graduated-pool hooks. A hook is shared across every pool
+// that graduated under the GraduationManager which deployed it - pool-specific state
+// (memeIsCurrency0, paused, creator, platformTreasury) lives in poolConfig(poolId), not in
+// per-pool bytecode. Both entries are needed: MemeFactory has rotated its graduation
+// manager, and pools graduated under the retired one keep pointing at the older hook.
+//
+// Both charge the same 1% desk-token fee split 70/30 (FEE_BPS/CREATOR_SHARE_BPS read equal
+// on-chain), so the fee math below covers both; they differ only in feeEscrow, which is a
+// payout destination and not part of pricing.
 var HookAddresses = []common.Address{
+	// GraduationManager 0xee33bff08de96709dd6c877ee192688489e16596 (active)
+	common.HexToAddress("0xfa225FE7b2404f8A361A15fa88AD515032726aCC"),
+	// GraduationManager 0xe768b13282361a3571e0cd7bdb5c548183c40f46 (retired; $PRM's pool)
 	common.HexToAddress("0x1af6269A7E53422406FF2410b8ED5590F610Aacc"),
 }
