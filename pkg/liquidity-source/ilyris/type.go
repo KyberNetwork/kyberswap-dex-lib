@@ -1,6 +1,6 @@
 package ilyris
 
-import "math/big"
+import "github.com/holiman/uint256"
 
 // StaticExtra is the part of a pool that never changes after creation. Serialised once by the
 // lister and never rewritten by the tracker, so anything that CAN move must not live here.
@@ -50,10 +50,16 @@ type Metadata struct {
 	Offset int `json:"offset"`
 }
 
-func (b BinJSON) reserves() (*big.Int, *big.Int, bool) {
-	x, okx := new(big.Int).SetString(b.ReserveX, 10)
-	y, oky := new(big.Int).SetString(b.ReserveY, 10)
-	if !okx || !oky || x.Sign() < 0 || y.Sign() < 0 {
+func (b BinJSON) reserves() (*uint256.Int, *uint256.Int, bool) {
+	// FromDecimal rejects a leading minus and anything above 2^256-1, so the separate sign
+	// and range tests the big.Int version carried are now part of the parse rather than
+	// something a later reader has to remember to keep.
+	x, err := uint256.FromDecimal(b.ReserveX)
+	if err != nil {
+		return nil, nil, false
+	}
+	y, err := uint256.FromDecimal(b.ReserveY)
+	if err != nil {
 		return nil, nil, false
 	}
 	return x, y, true

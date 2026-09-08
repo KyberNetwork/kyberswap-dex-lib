@@ -4,7 +4,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -14,20 +17,20 @@ const (
 
 // A small book straddling the active bin: Y at and below, X at and above.
 func newTestSim() *PoolSimulator {
-	e18 := func(n int64) *big.Int {
-		return new(big.Int).Mul(big.NewInt(n), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	e18 := func(n uint64) *uint256.Int {
+		return new(uint256.Int).Mul(uint256.NewInt(n), big256.TenPow(18))
 	}
-	e6 := func(n int64) *big.Int {
-		return new(big.Int).Mul(big.NewInt(n), big.NewInt(1_000_000))
+	e6 := func(n uint64) *uint256.Int {
+		return new(uint256.Int).Mul(uint256.NewInt(n), big256.TenPow(6))
 	}
 	bins := []bin{
-		{ID: 7794, ReserveX: big.NewInt(0), ReserveY: e6(500)},
-		{ID: 7795, ReserveX: big.NewInt(0), ReserveY: e6(500)},
+		{ID: 7794, ReserveX: new(uint256.Int), ReserveY: e6(500)},
+		{ID: 7795, ReserveX: new(uint256.Int), ReserveY: e6(500)},
 		{ID: 7796, ReserveX: e18(1), ReserveY: e6(500)},
-		{ID: 7797, ReserveX: e18(1), ReserveY: big.NewInt(0)},
-		{ID: 7798, ReserveX: e18(1), ReserveY: big.NewInt(0)},
+		{ID: 7797, ReserveX: e18(1), ReserveY: new(uint256.Int)},
+		{ID: 7798, ReserveX: e18(1), ReserveY: new(uint256.Int)},
 	}
-	sumX, sumY := big.NewInt(0), big.NewInt(0)
+	sumX, sumY := new(uint256.Int), new(uint256.Int)
 	for _, b := range bins {
 		sumX.Add(sumX, b.ReserveX)
 		sumY.Add(sumY, b.ReserveY)
@@ -38,7 +41,7 @@ func newTestSim() *PoolSimulator {
 			Exchange: DexType,
 			Type:     DexType,
 			Tokens:   []string{tokX, tokY},
-			Reserves: []*big.Int{sumX, sumY},
+			Reserves: []*big.Int{sumX.ToBig(), sumY.ToBig()},
 		}},
 		binStepBps:   10,
 		activeID:     7796,
@@ -135,11 +138,11 @@ func TestCloneStateIsDeepAndNotNil(t *testing.T) {
 		t.Fatal("CloneState returned nil - split routing would break")
 	}
 	clone := c.(*PoolSimulator)
-	clone.bins[0].ReserveY.SetInt64(1)
+	clone.bins[0].ReserveY.SetUint64(1)
 	clone.Info.Reserves[1].SetInt64(1)
 	clone.activeID = 1
 
-	if s.bins[0].ReserveY.Int64() == 1 {
+	if s.bins[0].ReserveY.Uint64() == 1 {
 		t.Fatal("bin reserves are shared with the clone")
 	}
 	if s.Info.Reserves[1].Int64() == 1 {
@@ -226,8 +229,8 @@ func TestExpiredFreezeIsNotFrozen(t *testing.T) {
 	}
 }
 
-func binY(s *PoolSimulator) *big.Int {
-	sum := new(big.Int)
+func binY(s *PoolSimulator) *uint256.Int {
+	sum := new(uint256.Int)
 	for _, b := range s.bins {
 		sum.Add(sum, b.ReserveY)
 	}
@@ -264,8 +267,8 @@ func TestSequentialSwapsDoNotRequoteSpentBins(t *testing.T) {
 	if yAfter.Cmp(yBefore) >= 0 {
 		t.Fatalf("bin Y did not shrink after paying out Y: before=%s after=%s", yBefore, yAfter)
 	}
-	wantY := new(big.Int).Sub(yBefore, first.TokenAmountOut.Amount)
-	if yAfter.Cmp(wantY) != 0 {
+	wantY := new(big.Int).Sub(yBefore.ToBig(), first.TokenAmountOut.Amount)
+	if yAfter.ToBig().Cmp(wantY) != 0 {
 		t.Fatalf("bin Y should fall by amountOut: got %s want %s", yAfter, wantY)
 	}
 
@@ -279,7 +282,7 @@ func TestSequentialSwapsDoNotRequoteSpentBins(t *testing.T) {
 		}
 		// Remaining bins cannot fill the same size — that is the spent-book signal.
 	} else {
-		if second.TokenAmountOut.Amount.Cmp(yAfter) > 0 {
+		if second.TokenAmountOut.Amount.Cmp(yAfter.ToBig()) > 0 {
 			t.Fatalf("second quote paid %s Y but bins only hold %s", second.TokenAmountOut.Amount, yAfter)
 		}
 		if second.TokenAmountOut.Amount.Cmp(first.TokenAmountOut.Amount) >= 0 {
@@ -313,7 +316,7 @@ func TestSequentialSwapsDoNotRequoteSpentBins(t *testing.T) {
 		if err != ErrInsufficientLiquidity {
 			t.Fatalf("split second leg: %v", err)
 		}
-	} else if q2.TokenAmountOut.Amount.Cmp(remaining) > 0 {
+	} else if q2.TokenAmountOut.Amount.Cmp(remaining.ToBig()) > 0 {
 		t.Fatalf("cloned second leg paid %s Y but bins only hold %s", q2.TokenAmountOut.Amount, remaining)
 	}
 	if base.bins[2].ReserveY.Cmp(leg.bins[2].ReserveY) == 0 {

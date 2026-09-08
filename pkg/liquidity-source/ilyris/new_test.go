@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -88,7 +90,10 @@ func TestLargeReservesSurviveTheWire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("construct: %v", err)
 	}
-	want, _ := new(big.Int).SetString(huge, 10)
+	want, err := uint256.FromDecimal(huge)
+	if err != nil {
+		t.Fatalf("fixture is not a uint256: %v", err)
+	}
 	found := false
 	for _, b := range s.bins {
 		if b.ReserveX.Cmp(want) == 0 {

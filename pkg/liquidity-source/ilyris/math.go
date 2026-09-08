@@ -19,36 +19,45 @@
 // than a bin holds. Every helper below names its rounding direction, and callers must pick
 // deliberately.
 //
-// All values are non-negative, so big.Int's Div (Euclidean) and Quo (truncated) agree; Div is
-// used throughout for clarity.
+// # Why uint256.Int and not big.Int
+//
+// Per AGENTS.md, math and state use uint256.Int. Beyond the allocation win, it makes this file
+// a closer mirror of the contract than big.Int was. Solidity's uint256 cannot be negative and
+// cannot exceed 2^256-1; big.Int can do both, so the previous version carried an explicit
+// requireUint256 guard on every operand and every result to re-impose a bound the EVM gets for
+// free. Those guards are gone: the type is the bound. What remains is the one thing the type
+// does NOT give us, which is that a mulDiv whose true quotient overflows must revert rather
+// than wrap, and that is read from MulDivOverflow's carry flag below.
 package ilyris
 
 import (
 	"errors"
 	"fmt"
-	"math/big"
+
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // Scaling constants. These MUST match BinMath.sol and the TypeScript port.
+//
+// Read-only. Nothing in this package uses one as a receiver, which matters more for pointers
+// to shared uint256.Int values than it did for big.Int: a single stray Add would corrupt the
+// constant for every goroutine quoting concurrently.
 var (
 	// Scale is 1e18, the fixed-point base for prices.
-	Scale = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	Scale = big256.TenPow(18)
 	// BPS is 10_000, basis points.
-	BPS = big.NewInt(10_000)
+	BPS = big256.NewI(10_000)
 	// FeePrecision is 1e9, the precision fee rates are expressed at.
-	FeePrecision = big.NewInt(1_000_000_000)
+	FeePrecision = big256.TenPow(9)
 	// MaxFeeRate caps the total fee at 10% (1e8 at 1e9 precision).
-	MaxFeeRate = big.NewInt(100_000_000)
+	MaxFeeRate = big256.TenPow(8)
 	// variableFeeScale is 1e11, the divisor in the dynamic-fee surcharge.
-	variableFeeScale = big.NewInt(100_000_000_000)
+	variableFeeScale = big256.TenPow(11)
 	// binStepScale is 1e14; binStepBps * 1e14 is the per-bin ratio increment.
-	binStepScale = big.NewInt(100_000_000_000_000)
-
-	// uint256Max is (1<<256)-1. Solidity reverts past it; so do we, rather than letting
-	// big.Int silently grow and produce a number the chain could never return.
-	uint256Max = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
-
-	one = big.NewInt(1)
+	binStepScale = big256.TenPow(14)
 )
 
 // Gas hints, measured in test/GasProfile.t.sol. Must stay identical to BinPoolLens.sol
@@ -73,59 +82,41 @@ var ErrInsufficientLiquidity = errors.New("ilyris: insufficient liquidity")
 // ErrOverflow mirrors a Solidity revert on a value that cannot fit in uint256.
 var ErrOverflow = errors.New("ilyris: uint256 overflow")
 
-func requireUint256(v *big.Int, name string) error {
-	if v.Sign() < 0 {
-		return fmt.Errorf("%w: %s is negative", ErrOverflow, name)
-	}
-	if v.Cmp(uint256Max) > 0 {
-		return fmt.Errorf("%w: %s exceeds uint256", ErrOverflow, name)
-	}
-	return nil
-}
+// ErrDivByZero mirrors a Solidity division by zero.
+var ErrDivByZero = errors.New("ilyris: division by zero")
 
-// MulDiv computes floor(x*y/denominator) with full intermediate precision.
+// MulDiv computes floor(x*y/denominator) with full 512-bit intermediate precision.
 //
-// Solidity's 512-bit mulDiv reverts when the true quotient will not fit in uint256. big.Int
-// would happily return it, so the bound is checked explicitly — otherwise this would quote
-// sizes the contract refuses.
-func MulDiv(x, y, denominator *big.Int) (*big.Int, error) {
-	if err := requireUint256(x, "mulDiv x"); err != nil {
-		return nil, err
+// Solidity's mulDiv reverts when the true quotient will not fit in uint256. MulDivOverflow
+// computes the same 512-bit product and reports exactly that condition in its second return,
+// so the check is the contract's check rather than a bound re-imposed afterwards.
+//
+// NOTE: deliberately not big256.MulDiv, which calls the same primitive but discards the
+// overflow flag. Silently truncating here would quote a size the pool would refuse.
+func MulDiv(x, y, denominator *uint256.Int) (*uint256.Int, error) {
+	if denominator.IsZero() {
+		return nil, fmt.Errorf("%w: mulDiv", ErrDivByZero)
 	}
-	if err := requireUint256(y, "mulDiv y"); err != nil {
-		return nil, err
+	var res uint256.Int
+	if _, overflow := res.MulDivOverflow(x, y, denominator); overflow {
+		return nil, fmt.Errorf("%w: mulDiv result", ErrOverflow)
 	}
-	if denominator.Sign() <= 0 {
-		return nil, errors.New("ilyris: mulDiv division by zero")
-	}
-	result := new(big.Int).Mul(x, y)
-	result.Div(result, denominator)
-	if err := requireUint256(result, "mulDiv result"); err != nil {
-		return nil, err
-	}
-	return result, nil
+	return &res, nil
 }
 
 // MulDivUp computes ceil(x*y/denominator).
-func MulDivUp(x, y, denominator *big.Int) (*big.Int, error) {
-	if err := requireUint256(x, "mulDivUp x"); err != nil {
-		return nil, err
+//
+// Same reasoning as MulDiv: big256.MulDivUp wraps this call and drops the error, and the
+// error is the whole point.
+func MulDivUp(x, y, denominator *uint256.Int) (*uint256.Int, error) {
+	if denominator.IsZero() {
+		return nil, fmt.Errorf("%w: mulDivUp", ErrDivByZero)
 	}
-	if err := requireUint256(y, "mulDivUp y"); err != nil {
-		return nil, err
+	var res uint256.Int
+	if err := v3Utils.MulDivRoundingUpV2(x, y, denominator, &res); err != nil {
+		return nil, fmt.Errorf("%w: mulDivUp result", ErrOverflow)
 	}
-	if denominator.Sign() <= 0 {
-		return nil, errors.New("ilyris: mulDivUp division by zero")
-	}
-	product := new(big.Int).Mul(x, y)
-	q, rem := new(big.Int).QuoRem(product, denominator, new(big.Int))
-	if rem.Sign() != 0 {
-		q.Add(q, one)
-	}
-	if err := requireUint256(q, "mulDivUp result"); err != nil {
-		return nil, err
-	}
-	return q, nil
+	return &res, nil
 }
 
 // powX18 is fixed-point exponentiation by squaring, flooring at EVERY step.
@@ -133,24 +124,20 @@ func MulDivUp(x, y, denominator *big.Int) (*big.Int, error) {
 // The per-step floor is part of the on-chain price. Computing base^n at high precision and
 // rounding once gives a different answer, and the difference compounds with |id| — so a pool
 // far from bin 0 would be priced wrongly while bins near 0 looked fine.
-func powX18(base, n *big.Int) (*big.Int, error) {
-	z := new(big.Int).Set(Scale)
-	x := new(big.Int).Set(base)
-	e := new(big.Int).Set(n)
+func powX18(base *uint256.Int, n uint64) (*uint256.Int, error) {
+	z := new(uint256.Int).Set(Scale)
+	x := new(uint256.Int).Set(base)
 
-	for e.Sign() != 0 {
-		if e.Bit(0) == 1 {
+	for e := n; e != 0; e >>= 1 {
+		if e&1 == 1 {
 			var err error
-			z, err = MulDiv(z, x, Scale)
-			if err != nil {
+			if z, err = MulDiv(z, x, Scale); err != nil {
 				return nil, err
 			}
 		}
-		e.Rsh(e, 1)
-		if e.Sign() != 0 {
+		if e>>1 != 0 {
 			var err error
-			x, err = MulDiv(x, x, Scale)
-			if err != nil {
+			if x, err = MulDiv(x, x, Scale); err != nil {
 				return nil, err
 			}
 		}
@@ -159,7 +146,7 @@ func powX18(base, n *big.Int) (*big.Int, error) {
 }
 
 // PriceFromID returns the human quote-per-base price for a bin, scaled by 1e18.
-func PriceFromID(binStepBps int, id int) (*big.Int, error) {
+func PriceFromID(binStepBps int, id int) (*uint256.Int, error) {
 	if binStepBps <= 0 || binStepBps > 1000 {
 		return nil, fmt.Errorf("ilyris: invalid bin step %d", binStepBps)
 	}
@@ -167,45 +154,44 @@ func PriceFromID(binStepBps int, id int) (*big.Int, error) {
 		return nil, fmt.Errorf("ilyris: bin id %d out of range", id)
 	}
 
-	baseX18 := new(big.Int).Add(Scale, new(big.Int).Mul(big.NewInt(int64(binStepBps)), binStepScale))
+	var step, baseX18 uint256.Int
+	step.SetUint64(uint64(binStepBps))
+	baseX18.Add(Scale, step.Mul(&step, binStepScale))
 
 	absID := id
 	if absID < 0 {
 		absID = -absID
 	}
-	ratioX18, err := powX18(baseX18, big.NewInt(int64(absID)))
+	ratioX18, err := powX18(&baseX18, uint64(absID))
 	if err != nil {
 		return nil, err
 	}
 
-	var priceX18 *big.Int
-	if id >= 0 {
-		priceX18 = ratioX18
-	} else {
+	priceX18 := ratioX18
+	if id < 0 {
 		// Negative ids invert, and the inversion is a separate floor. Computing
 		// base^(-n) directly would round differently.
-		priceX18, err = MulDiv(Scale, Scale, ratioX18)
-		if err != nil {
+		if priceX18, err = MulDiv(Scale, Scale, ratioX18); err != nil {
 			return nil, err
 		}
 	}
-	if priceX18.Sign() <= 0 {
+	if priceX18.IsZero() {
 		return nil, errors.New("ilyris: bin price underflow")
 	}
 	return priceX18, nil
 }
 
-func pow10(exp int) (*big.Int, error) {
+func pow10(exp int) (*uint256.Int, error) {
 	if exp < 0 || exp > 18 {
 		return nil, fmt.Errorf("ilyris: invalid decimal scale %d", exp)
 	}
-	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(exp)), nil), nil
+	return big256.TenPow(exp), nil
 }
 
 // decimalDivisor builds the denominator used converting X->Y, and the numerator used
 // converting Y->X. Split out because getting the branch backwards is silent: it produces a
 // price wrong by a power of ten, which looks like a units bug rather than a maths bug.
-func decimalDivisor(decimalsX, decimalsY int) (*big.Int, error) {
+func decimalDivisor(decimalsX, decimalsY int) (*uint256.Int, error) {
 	if decimalsX < 0 || decimalsX > 18 || decimalsY < 0 || decimalsY > 18 {
 		return nil, fmt.Errorf("ilyris: invalid decimals %d/%d", decimalsX, decimalsY)
 	}
@@ -214,17 +200,18 @@ func decimalDivisor(decimalsX, decimalsY int) (*big.Int, error) {
 		if err != nil {
 			return nil, err
 		}
-		return new(big.Int).Mul(Scale, p), nil
+		// Bounded by 1e18 * 1e18, so this cannot overflow uint256; Mul is safe unchecked.
+		return new(uint256.Int).Mul(Scale, p), nil
 	}
 	p, err := pow10(decimalsY - decimalsX)
 	if err != nil {
 		return nil, err
 	}
-	return new(big.Int).Div(Scale, p), nil
+	return new(uint256.Int).Div(Scale, p), nil
 }
 
 // QuoteFromX converts raw X to raw Y at priceX18, rounding DOWN.
-func QuoteFromX(amountX, priceX18 *big.Int, decimalsX, decimalsY int) (*big.Int, error) {
+func QuoteFromX(amountX, priceX18 *uint256.Int, decimalsX, decimalsY int) (*uint256.Int, error) {
 	d, err := decimalDivisor(decimalsX, decimalsY)
 	if err != nil {
 		return nil, err
@@ -233,7 +220,7 @@ func QuoteFromX(amountX, priceX18 *big.Int, decimalsX, decimalsY int) (*big.Int,
 }
 
 // QuoteFromXUp converts raw X to raw Y at priceX18, rounding UP.
-func QuoteFromXUp(amountX, priceX18 *big.Int, decimalsX, decimalsY int) (*big.Int, error) {
+func QuoteFromXUp(amountX, priceX18 *uint256.Int, decimalsX, decimalsY int) (*uint256.Int, error) {
 	d, err := decimalDivisor(decimalsX, decimalsY)
 	if err != nil {
 		return nil, err
@@ -242,7 +229,7 @@ func QuoteFromXUp(amountX, priceX18 *big.Int, decimalsX, decimalsY int) (*big.In
 }
 
 // XFromQuote converts raw Y to raw X at priceX18, rounding DOWN.
-func XFromQuote(amountY, priceX18 *big.Int, decimalsX, decimalsY int) (*big.Int, error) {
+func XFromQuote(amountY, priceX18 *uint256.Int, decimalsX, decimalsY int) (*uint256.Int, error) {
 	d, err := decimalDivisor(decimalsX, decimalsY)
 	if err != nil {
 		return nil, err
@@ -251,7 +238,7 @@ func XFromQuote(amountY, priceX18 *big.Int, decimalsX, decimalsY int) (*big.Int,
 }
 
 // XFromQuoteUp converts raw Y to raw X at priceX18, rounding UP.
-func XFromQuoteUp(amountY, priceX18 *big.Int, decimalsX, decimalsY int) (*big.Int, error) {
+func XFromQuoteUp(amountY, priceX18 *uint256.Int, decimalsX, decimalsY int) (*uint256.Int, error) {
 	d, err := decimalDivisor(decimalsX, decimalsY)
 	if err != nil {
 		return nil, err
@@ -259,11 +246,11 @@ func XFromQuoteUp(amountY, priceX18 *big.Int, decimalsX, decimalsY int) (*big.In
 	return MulDivUp(amountY, d, priceX18)
 }
 
-// ceilDiv computes ceil(a/b) for non-negative a and positive b.
-func ceilDiv(a, b *big.Int) *big.Int {
-	q, rem := new(big.Int).QuoRem(a, b, new(big.Int))
-	if rem.Sign() != 0 {
-		q.Add(q, one)
+// ceilDiv computes ceil(a/b) for positive b. Zero b is the caller's bug, and returning zero
+// would silently under-quote, so it is reported.
+func ceilDiv(a, b *uint256.Int) (*uint256.Int, error) {
+	if b.IsZero() {
+		return nil, fmt.Errorf("%w: ceilDiv", ErrDivByZero)
 	}
-	return q
+	return big256.DivUp(a, b), nil
 }

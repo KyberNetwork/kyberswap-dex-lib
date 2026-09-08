@@ -2,14 +2,15 @@ package ilyris
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
+
+	"github.com/holiman/uint256"
 )
 
 // BinReserves is one bin's settled reserves.
 type BinReserves struct {
-	ReserveX *big.Int
-	ReserveY *big.Int
+	ReserveX *uint256.Int
+	ReserveY *uint256.Int
 }
 
 // PoolParams is the static configuration plus the two values a swap moves.
@@ -63,20 +64,23 @@ func newBinSimulator(params PoolParams, bins map[int]BinReserves) (*binSimulator
 		if id < MinBinID || id > MaxBinID {
 			return nil, fmt.Errorf("ilyris: bin id %d out of range", id)
 		}
+		// A nil side is an absent side, not an error. Negative is impossible now that the
+		// type is unsigned, which is one whole class of malformed input the caller can no
+		// longer construct.
 		x, y := r.ReserveX, r.ReserveY
 		if x == nil {
-			x = new(big.Int)
+			x = new(uint256.Int)
 		}
 		if y == nil {
-			y = new(big.Int)
+			y = new(uint256.Int)
 		}
-		if x.Sign() < 0 || y.Sign() < 0 {
-			return nil, fmt.Errorf("ilyris: bin %d has negative reserves", id)
-		}
-		if x.Sign() == 0 && y.Sign() == 0 {
+		if x.IsZero() && y.IsZero() {
 			continue
 		}
-		s.bins[id] = BinReserves{ReserveX: new(big.Int).Set(x), ReserveY: new(big.Int).Set(y)}
+		s.bins[id] = BinReserves{
+			ReserveX: new(uint256.Int).Set(x),
+			ReserveY: new(uint256.Int).Set(y),
+		}
 		s.initializedIDs = append(s.initializedIDs, id)
 	}
 	sort.Ints(s.initializedIDs)
@@ -87,35 +91,45 @@ func newBinSimulator(params PoolParams, bins map[int]BinReserves) (*binSimulator
 func (s *binSimulator) Params() PoolParams { return s.params }
 
 // BaseFeeRate is the flat component, at 1e9 precision.
-func (s *binSimulator) BaseFeeRate() *big.Int {
-	r := new(big.Int).Mul(big.NewInt(int64(s.params.SwapFeeBps)), FeePrecision)
-	return r.Div(r, BPS)
+func (s *binSimulator) BaseFeeRate() *uint256.Int {
+	var r uint256.Int
+	r.SetUint64(uint64(s.params.SwapFeeBps))
+	r.Mul(&r, FeePrecision)
+	return r.Div(&r, BPS)
 }
 
 // VariableFeeRate is the volatility surcharge, at 1e9 precision.
 //
 // Ceiling division, matching the contract: the surcharge must never round away to zero,
 // because a fee that vanishes under small volatility is a fee an arbitrageur can plan around.
-func (s *binSimulator) VariableFeeRate(volatilityAccumulator *big.Int) *big.Int {
+//
+// No overflow check, and the bound is why: on chain both variableFeeControl and
+// volatilityAccumulator are uint24 and binStep is capped at 1000, so the widest possible
+// numerator is 2^24 * (2^24 * 1000)^2, under 2^93. Unsigned wraparound is unreachable here.
+func (s *binSimulator) VariableFeeRate(volatilityAccumulator *uint256.Int) *uint256.Int {
 	if s.params.VariableFeeControl == 0 {
-		return new(big.Int)
+		return new(uint256.Int)
 	}
-	term := new(big.Int).Mul(volatilityAccumulator, big.NewInt(int64(s.params.BinStepBps)))
-	num := new(big.Int).Mul(big.NewInt(int64(s.params.VariableFeeControl)), term)
-	num.Mul(num, term)
-	num.Add(num, variableFeeScale)
-	num.Sub(num, one)
-	return num.Div(num, variableFeeScale)
+	var term, num uint256.Int
+	term.SetUint64(uint64(s.params.BinStepBps))
+	term.Mul(volatilityAccumulator, &term)
+
+	num.SetUint64(uint64(s.params.VariableFeeControl))
+	num.Mul(&num, &term)
+	num.Mul(&num, &term)
+	num.Add(&num, variableFeeScale)
+	num.SubUint64(&num, 1)
+	return num.Div(&num, variableFeeScale)
 }
 
 // TotalFeeRate is base + variable, capped, at 1e9 precision.
-func (s *binSimulator) TotalFeeRate() *big.Int {
-	rate := new(big.Int).Add(
-		s.BaseFeeRate(),
-		s.VariableFeeRate(big.NewInt(int64(s.params.VolatilityAccumulator))),
-	)
-	if rate.Cmp(MaxFeeRate) > 0 {
-		return new(big.Int).Set(MaxFeeRate)
+func (s *binSimulator) TotalFeeRate() *uint256.Int {
+	var volAcc uint256.Int
+	volAcc.SetUint64(uint64(s.params.VolatilityAccumulator))
+
+	rate := new(uint256.Int).Add(s.BaseFeeRate(), s.VariableFeeRate(&volAcc))
+	if rate.Gt(MaxFeeRate) {
+		return new(uint256.Int).Set(MaxFeeRate)
 	}
 	return rate
 }
@@ -135,7 +149,7 @@ func (s *binSimulator) findNextWithOutput(fromID int, xForY bool) (int, bool) {
 		i := sort.SearchInts(s.initializedIDs, fromID+1) - 1
 		for ; i >= 0; i-- {
 			id := s.initializedIDs[i]
-			if s.bins[id].ReserveY.Sign() > 0 {
+			if !s.bins[id].ReserveY.IsZero() {
 				return id, true
 			}
 		}
@@ -145,7 +159,7 @@ func (s *binSimulator) findNextWithOutput(fromID int, xForY bool) (int, bool) {
 	i := sort.SearchInts(s.initializedIDs, fromID)
 	for ; i < len(s.initializedIDs); i++ {
 		id := s.initializedIDs[i]
-		if s.bins[id].ReserveX.Sign() > 0 {
+		if !s.bins[id].ReserveX.IsZero() {
 			return id, true
 		}
 	}
@@ -158,59 +172,71 @@ func (s *binSimulator) findNextWithOutput(fromID int, xForY bool) (int, bool) {
 // any bin is touched, matching BinPool.
 type BinFill struct {
 	ID         int
-	AmountXIn  *big.Int
-	AmountXOut *big.Int
-	AmountYIn  *big.Int
-	AmountYOut *big.Int
+	AmountXIn  *uint256.Int
+	AmountXOut *uint256.Int
+	AmountYIn  *uint256.Int
+	AmountYOut *uint256.Int
 }
 
 // ExactInQuote mirrors BinPool.quoteExactIn.
 type ExactInQuote struct {
-	AmountOut *big.Int
-	FeeAmount *big.Int
+	AmountOut *uint256.Int
+	FeeAmount *uint256.Int
 	FinalID   int
 	Fills     []BinFill
 }
 
 // ExactOutQuote mirrors BinPool.quoteExactOut.
 type ExactOutQuote struct {
-	AmountIn    *big.Int
-	FeeAmount   *big.Int
-	NetAmountIn *big.Int
+	AmountIn    *uint256.Int
+	FeeAmount   *uint256.Int
+	NetAmountIn *uint256.Int
 	FinalID     int
 }
 
-// QuoteExactIn prices a sell of amountIn. Mirror of BinPool.quoteExactIn / _quoteOnly.
-func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuote, error) {
-	if err := requireUint256(amountIn, "amountIn"); err != nil {
-		return nil, err
+// netOfFee applies the contract's `amount * (FEE_PRECISION - rate) / FEE_PRECISION`.
+//
+// The multiplication is checked rather than folded into a mulDiv, and the distinction is
+// deliberate: BinPool multiplies and then divides in uint256, so an intermediate product that
+// does not fit is a revert on chain. A 512-bit mulDiv would succeed where the contract fails
+// and hand the router a quote it cannot execute.
+func netOfFee(amount, feeDenominator *uint256.Int) (*uint256.Int, error) {
+	var product uint256.Int
+	if _, overflow := product.MulOverflow(amount, feeDenominator); overflow {
+		return nil, fmt.Errorf("%w: fee multiplication", ErrOverflow)
 	}
-	if amountIn.Sign() == 0 {
-		return &ExactInQuote{AmountOut: new(big.Int), FeeAmount: new(big.Int), FinalID: s.params.ActiveID}, nil
+	return product.Div(&product, FeePrecision), nil
+}
+
+// QuoteExactIn prices a sell of amountIn. Mirror of BinPool.quoteExactIn / _quoteOnly.
+func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *uint256.Int) (*ExactInQuote, error) {
+	if amountIn.IsZero() {
+		return &ExactInQuote{
+			AmountOut: new(uint256.Int), FeeAmount: new(uint256.Int), FinalID: s.params.ActiveID,
+		}, nil
 	}
 
-	feeDenominator := new(big.Int).Sub(FeePrecision, s.TotalFeeRate())
-	netIn := new(big.Int).Mul(amountIn, feeDenominator)
-	if err := requireUint256(netIn, "exact-in fee multiplication"); err != nil {
+	feeDenominator := new(uint256.Int).Sub(FeePrecision, s.TotalFeeRate())
+	netIn, err := netOfFee(amountIn, feeDenominator)
+	if err != nil {
 		return nil, err
 	}
-	netIn.Div(netIn, FeePrecision)
-	feeAmount := new(big.Int).Sub(amountIn, netIn)
+	feeAmount := new(uint256.Int).Sub(amountIn, netIn)
 
 	// A gross input whose fee rounds the net to zero settles nowhere, so the trade stays in
 	// the active bin. Both the contract and the TypeScript port return activeId here; a port
 	// that returned 0 would report a nonsensical final bin for dust.
-	if netIn.Sign() == 0 {
-		return &ExactInQuote{AmountOut: new(big.Int), FeeAmount: feeAmount, FinalID: s.params.ActiveID}, nil
+	if netIn.IsZero() {
+		return &ExactInQuote{AmountOut: new(uint256.Int), FeeAmount: feeAmount, FinalID: s.params.ActiveID}, nil
 	}
 
-	remaining := new(big.Int).Set(netIn)
-	amountOut := new(big.Int)
+	remaining := new(uint256.Int).Set(netIn)
+	amountOut := new(uint256.Int)
 	cursor := s.params.ActiveID
 	finalID := s.params.ActiveID
 	var fills []BinFill
 
-	for remaining.Sign() != 0 {
+	for !remaining.IsZero() {
 		id, ok := s.findNextWithOutput(cursor, xForY)
 		if !ok {
 			return nil, ErrInsufficientLiquidity
@@ -226,7 +252,7 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 			availableOut = bin.ReserveX
 		}
 
-		var maxIn *big.Int
+		var maxIn *uint256.Int
 		if xForY {
 			maxIn, err = XFromQuoteUp(availableOut, price, s.params.DecimalsX, s.params.DecimalsY)
 		} else {
@@ -239,7 +265,7 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 		// A bin whose output is worth less than one raw input unit cannot be entered at
 		// all. Skipping it rather than dividing by it is what stops a zero-consumption
 		// infinite loop.
-		if maxIn.Sign() == 0 {
+		if maxIn.IsZero() {
 			if xForY {
 				cursor = id - 1
 			} else {
@@ -249,15 +275,15 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 		}
 
 		consumed := remaining
-		if remaining.Cmp(maxIn) >= 0 {
+		if !remaining.Lt(maxIn) {
 			consumed = maxIn
 		}
 
-		var out *big.Int
-		if consumed.Cmp(maxIn) == 0 {
+		var out *uint256.Int
+		if consumed.Eq(maxIn) {
 			// Exact-fill uses the bin's whole reserve rather than recomputing, so the
 			// rounding that produced maxIn cannot pay out a unit more than the bin holds.
-			out = new(big.Int).Set(availableOut)
+			out = new(uint256.Int).Set(availableOut)
 		} else if xForY {
 			out, err = QuoteFromX(consumed, price, s.params.DecimalsX, s.params.DecimalsY)
 		} else {
@@ -267,24 +293,27 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 			return nil, err
 		}
 
-		amountOut = new(big.Int).Add(amountOut, out)
-		if err := requireUint256(amountOut, "exact-in amountOut"); err != nil {
-			return nil, err
+		// Checked: the running total is the one place a long traversal could accumulate past
+		// uint256, and unsigned addition wraps silently where big.Int simply grew.
+		var summed uint256.Int
+		if _, overflow := summed.AddOverflow(amountOut, out); overflow {
+			return nil, fmt.Errorf("%w: exact-in amountOut", ErrOverflow)
 		}
+		amountOut = &summed
 
 		fill := BinFill{ID: id}
 		if xForY {
-			fill.AmountXIn = new(big.Int).Set(consumed)
-			fill.AmountYOut = new(big.Int).Set(out)
+			fill.AmountXIn = new(uint256.Int).Set(consumed)
+			fill.AmountYOut = new(uint256.Int).Set(out)
 		} else {
-			fill.AmountYIn = new(big.Int).Set(consumed)
-			fill.AmountXOut = new(big.Int).Set(out)
+			fill.AmountYIn = new(uint256.Int).Set(consumed)
+			fill.AmountXOut = new(uint256.Int).Set(out)
 		}
 		fills = append(fills, fill)
 
-		remaining = new(big.Int).Sub(remaining, consumed)
+		remaining = new(uint256.Int).Sub(remaining, consumed)
 
-		if remaining.Sign() == 0 {
+		if remaining.IsZero() {
 			cursor = id
 		} else if xForY {
 			cursor = id - 1
@@ -298,23 +327,20 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *big.Int) (*ExactInQuot
 }
 
 // QuoteExactOut prices a buy of amountOut. Mirror of BinPool.quoteExactOut.
-func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *big.Int) (*ExactOutQuote, error) {
-	if err := requireUint256(amountOut, "amountOut"); err != nil {
-		return nil, err
-	}
-	if amountOut.Sign() == 0 {
+func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *uint256.Int) (*ExactOutQuote, error) {
+	if amountOut.IsZero() {
 		return &ExactOutQuote{
-			AmountIn: new(big.Int), FeeAmount: new(big.Int),
-			NetAmountIn: new(big.Int), FinalID: s.params.ActiveID,
+			AmountIn: new(uint256.Int), FeeAmount: new(uint256.Int),
+			NetAmountIn: new(uint256.Int), FinalID: s.params.ActiveID,
 		}, nil
 	}
 
-	remainingOut := new(big.Int).Set(amountOut)
-	netAmountIn := new(big.Int)
+	remainingOut := new(uint256.Int).Set(amountOut)
+	netAmountIn := new(uint256.Int)
 	cursor := s.params.ActiveID
 	finalID := s.params.ActiveID
 
-	for remainingOut.Sign() != 0 {
+	for !remainingOut.IsZero() {
 		id, ok := s.findNextWithOutput(cursor, xForY)
 		if !ok {
 			return nil, ErrInsufficientLiquidity
@@ -326,7 +352,7 @@ func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *big.Int) (*ExactOutQ
 			availableOut = bin.ReserveX
 		}
 		takenOut := remainingOut
-		if remainingOut.Cmp(availableOut) >= 0 {
+		if !remainingOut.Lt(availableOut) {
 			takenOut = availableOut
 		}
 
@@ -337,7 +363,7 @@ func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *big.Int) (*ExactOutQ
 
 		// Rounding UP on the required input: the pool must never be short-changed on a
 		// buy, and a floor here would let a caller extract a unit for free per bin.
-		var requiredIn *big.Int
+		var requiredIn *uint256.Int
 		if xForY {
 			requiredIn, err = XFromQuoteUp(takenOut, price, s.params.DecimalsX, s.params.DecimalsY)
 		} else {
@@ -347,13 +373,14 @@ func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *big.Int) (*ExactOutQ
 			return nil, err
 		}
 
-		netAmountIn = new(big.Int).Add(netAmountIn, requiredIn)
-		if err := requireUint256(netAmountIn, "exact-out netAmountIn"); err != nil {
-			return nil, err
+		var summed uint256.Int
+		if _, overflow := summed.AddOverflow(netAmountIn, requiredIn); overflow {
+			return nil, fmt.Errorf("%w: exact-out netAmountIn", ErrOverflow)
 		}
-		remainingOut = new(big.Int).Sub(remainingOut, takenOut)
+		netAmountIn = &summed
+		remainingOut = new(uint256.Int).Sub(remainingOut, takenOut)
 
-		if remainingOut.Sign() == 0 {
+		if remainingOut.IsZero() {
 			cursor = id
 		} else if xForY {
 			cursor = id - 1
@@ -363,22 +390,25 @@ func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *big.Int) (*ExactOutQ
 		finalID = id
 	}
 
-	feeDenominator := new(big.Int).Sub(FeePrecision, s.TotalFeeRate())
-	grossed := new(big.Int).Mul(netAmountIn, FeePrecision)
-	if err := requireUint256(grossed, "exact-out fee inversion"); err != nil {
+	feeDenominator := new(uint256.Int).Sub(FeePrecision, s.TotalFeeRate())
+
+	var grossed uint256.Int
+	if _, overflow := grossed.MulOverflow(netAmountIn, FeePrecision); overflow {
+		return nil, fmt.Errorf("%w: exact-out fee inversion", ErrOverflow)
+	}
+	amountIn, err := ceilDiv(&grossed, feeDenominator)
+	if err != nil {
 		return nil, err
 	}
-	amountIn := ceilDiv(grossed, feeDenominator)
 
 	// Fee is derived by re-applying the forward formula rather than as (amountIn -
 	// netAmountIn). The ceil above means those two differ by a unit at some sizes, and the
 	// contract reports this one.
-	back := new(big.Int).Mul(amountIn, feeDenominator)
-	if err := requireUint256(back, "exact-out fee multiplication"); err != nil {
+	back, err := netOfFee(amountIn, feeDenominator)
+	if err != nil {
 		return nil, err
 	}
-	back.Div(back, FeePrecision)
-	feeAmount := new(big.Int).Sub(amountIn, back)
+	feeAmount := new(uint256.Int).Sub(amountIn, back)
 
 	return &ExactOutQuote{
 		AmountIn: amountIn, FeeAmount: feeAmount,

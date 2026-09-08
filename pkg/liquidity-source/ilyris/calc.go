@@ -3,6 +3,8 @@ package ilyris
 import (
 	"math/big"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -44,28 +46,36 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	// Index 0 is tokenX by construction of Info.Tokens, so selling index 0 is xForY.
 	xForY := inIdx == 0
 
+	// The framework's amount is a *big.Int, and this is the only place it becomes a uint256.
+	// Checked rather than converted: a value above 2^256-1 cannot be what the chain will see,
+	// and MustFromBig would panic on a router's malformed input rather than declining the quote.
+	amountInU, overflow := uint256.FromBig(amountIn)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
 	sim, err := p.kernel()
 	if err != nil {
 		return nil, err
 	}
-	q, err := sim.QuoteExactIn(xForY, amountIn)
+	q, err := sim.QuoteExactIn(xForY, amountInU)
 	if err != nil {
 		// The kernel already distinguishes "cannot fill" from "bad input". Surfacing its
 		// error rather than a zero keeps that distinction: a zero amountOut would be routed
 		// as a real quote of nothing.
 		return nil, err
 	}
-	if q.AmountOut == nil || q.AmountOut.Sign() <= 0 {
+	if q.AmountOut == nil || q.AmountOut.IsZero() {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	crossed := binsCrossed(p.activeID, int32(q.FinalID))
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: q.AmountOut},
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: q.AmountOut.ToBig()},
 		// Denominated in the INPUT token, because that is where BinPool takes it:
 		// netIn = amountIn * (FEE_PRECISION - rate) / FEE_PRECISION, charged once before any
 		// bin is touched rather than per bin.
-		Fee:      &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: q.FeeAmount},
+		Fee:      &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: q.FeeAmount.ToBig()},
 		Gas:      gasFor(crossed),
 		SwapInfo: SwapInfo{NewActiveID: int32(q.FinalID), XForY: xForY, BinsCrossed: crossed, Fills: q.Fills},
 	}, nil
@@ -110,28 +120,36 @@ func (p *PoolSimulator) applyFills(fills []BinFill) {
 			continue
 		}
 		b := p.bins[i]
-		nx := new(big.Int).Set(b.ReserveX)
-		ny := new(big.Int).Set(b.ReserveY)
+		nx := new(uint256.Int).Set(b.ReserveX)
+		ny := new(uint256.Int).Set(b.ReserveY)
 		if f.AmountXIn != nil {
 			nx.Add(nx, f.AmountXIn)
-		}
-		if f.AmountXOut != nil {
-			nx.Sub(nx, f.AmountXOut)
 		}
 		if f.AmountYIn != nil {
 			ny.Add(ny, f.AmountYIn)
 		}
-		if f.AmountYOut != nil {
-			ny.Sub(ny, f.AmountYOut)
-		}
-		if nx.Sign() < 0 {
-			nx = new(big.Int)
-		}
-		if ny.Sign() < 0 {
-			ny = new(big.Int)
-		}
+		// Clamped BEFORE the subtraction, not after. Under big.Int an over-subtraction went
+		// negative and was caught by a sign test; unsigned it would wrap to a reserve near
+		// 2^256 and the next quote would price against liquidity that does not exist.
+		nx = subFloor(nx, f.AmountXOut)
+		ny = subFloor(ny, f.AmountYOut)
 		p.bins[i] = bin{ID: b.ID, ReserveX: nx, ReserveY: ny}
 	}
+}
+
+// subFloor returns max(0, v-d), treating a nil d as zero.
+//
+// Unsigned subtraction wraps, so this is the one operation in the state update that must not
+// be written as a bare Sub. A wrapped reserve is not a small error: it is a bin that appears
+// to hold about 1.16e77 tokens, which every subsequent route would happily quote against.
+func subFloor(v, d *uint256.Int) *uint256.Int {
+	if d == nil || d.IsZero() {
+		return v
+	}
+	if v.Lt(d) {
+		return new(uint256.Int)
+	}
+	return v.Sub(v, d)
 }
 
 func (p *PoolSimulator) binIndex(id int32) int {
@@ -167,8 +185,8 @@ func (p *PoolSimulator) kernel() (*binSimulator, error) {
 	bins := make(map[int]BinReserves, len(p.bins))
 	for _, b := range p.bins {
 		bins[int(b.ID)] = BinReserves{
-			ReserveX: new(big.Int).Set(b.ReserveX),
-			ReserveY: new(big.Int).Set(b.ReserveY),
+			ReserveX: new(uint256.Int).Set(b.ReserveX),
+			ReserveY: new(uint256.Int).Set(b.ReserveY),
 		}
 	}
 	return newBinSimulator(PoolParams{

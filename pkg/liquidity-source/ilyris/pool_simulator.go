@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -32,10 +34,14 @@ var (
 )
 
 // bin is one discrete price level. X sits at and above the active bin, Y at and below.
+//
+// uint256.Int, not big.Int: this is pool STATE, and AGENTS.md asks for both math and state on
+// uint256. It also removes a representable-but-impossible value, since a bin reserve can no
+// more be negative here than it can on chain.
 type bin struct {
 	ID       int32
-	ReserveX *big.Int
-	ReserveY *big.Int
+	ReserveX *uint256.Int
+	ReserveY *uint256.Int
 }
 
 // PoolSimulator prices swaps against a local copy of the bin book.
@@ -89,8 +95,8 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	for i, b := range p.bins {
 		cloned.bins[i] = bin{
 			ID:       b.ID,
-			ReserveX: new(big.Int).Set(b.ReserveX),
-			ReserveY: new(big.Int).Set(b.ReserveY),
+			ReserveX: new(uint256.Int).Set(b.ReserveX),
+			ReserveY: new(uint256.Int).Set(b.ReserveY),
 		}
 	}
 	return &cloned

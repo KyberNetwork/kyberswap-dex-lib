@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -40,18 +42,24 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}
 
 	bins := make([]bin, 0, len(ex.Bins))
-	sumX, sumY := new(big.Int), new(big.Int)
+	// Summed in uint256 and converted once at the end. Info.Reserves is their type and stays
+	// *big.Int; everything upstream of it is now the same representation as the chain's.
+	sumX, sumY := new(uint256.Int), new(uint256.Int)
 	for _, bj := range ex.Bins {
 		x, y, ok := bj.reserves()
 		if !ok {
 			return nil, ErrMalformedExtra
 		}
-		if x.Sign() == 0 && y.Sign() == 0 {
+		if x.IsZero() && y.IsZero() {
 			continue // empty bins carry no liquidity and only slow the traversal
 		}
 		bins = append(bins, bin{ID: bj.ID, ReserveX: x, ReserveY: y})
-		sumX.Add(sumX, x)
-		sumY.Add(sumY, y)
+		if _, overflow := sumX.AddOverflow(sumX, x); overflow {
+			return nil, ErrMalformedExtra
+		}
+		if _, overflow := sumY.AddOverflow(sumY, y); overflow {
+			return nil, ErrMalformedExtra
+		}
 	}
 	if len(bins) == 0 {
 		return nil, ErrEmptyBook
@@ -75,7 +83,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      tokens,
-			Reserves:    []*big.Int{sumX, sumY},
+			Reserves:    []*big.Int{sumX.ToBig(), sumY.ToBig()},
 			BlockNumber: ep.BlockNumber,
 		}},
 		binStepBps:       se.BinStepBps,
