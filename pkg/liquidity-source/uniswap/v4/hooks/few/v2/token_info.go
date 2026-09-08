@@ -121,3 +121,15 @@ var fewTokens = []few.TokenInfo{
 func NewTokenWrapper() few.TokenWrapper {
 	return few.NewTokenWrapper(fewTokens)
 }
+
+// HookAddresses returns every hook address these pools use, for registration
+// by the few/hook package (which can't live here: uniswapv4 already imports
+// this package for NewTokenWrapper above, so this package can't import
+// uniswapv4 back without an import cycle).
+func HookAddresses() []string {
+	addresses := make([]string, len(fewTokens))
+	for i, t := range fewTokens {
+		addresses[i] = t.HookAddress
+	}
+	return addresses
+}
