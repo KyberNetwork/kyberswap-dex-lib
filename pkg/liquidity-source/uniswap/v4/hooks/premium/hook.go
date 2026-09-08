@@ -56,32 +56,38 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
+// poolConfigResult mirrors PremiumLaunchHook.poolConfig(bytes32)'s five return values.
+// Field order must match the ABI's output order.
+type poolConfigResult struct {
+	Initialized      bool
+	MemeIsCurrency0  bool
+	Paused           bool
+	Creator          common.Address
+	PlatformTreasury common.Address
+}
+
 // Track reads poolConfig(poolId) - (initialized, memeIsCurrency0, paused, creator,
 // platformTreasury) - and keeps the two fields the simulator needs.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	hookTarget := hexutil.Encode(param.HookAddress[:])
 	poolId := common.HexToHash(param.Pool.Address)
 
-	var (
-		initialized      bool
-		memeIsCurrency0  bool
-		paused           bool
-		creator          common.Address
-		platformTreasury common.Address
-	)
+	// poolConfig returns five values; ethrpc decodes a multi-output method into a single
+	// struct destination, not one pointer per output.
+	var cfg poolConfigResult
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    premiumHookABI,
 			Target: hookTarget,
 			Method: "poolConfig",
 			Params: []any{poolId},
-		}, []any{&initialized, &memeIsCurrency0, &paused, &creator, &platformTreasury}).
+		}, []any{&cfg}).
 		Aggregate(); err != nil {
 		return nil, err
 	}
 	return json.Marshal(Hook{
-		MemeIsCurrency0: memeIsCurrency0,
-		Paused:          paused,
+		MemeIsCurrency0: cfg.MemeIsCurrency0,
+		Paused:          cfg.Paused,
 	})
 }
 
