@@ -146,6 +146,7 @@ import (
 	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
+	prmfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/prm-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	rangev3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted/lazy"
@@ -466,6 +467,7 @@ type Types struct {
 	Whlp                       string
 	Obric                      string
 	Printr                     string
+	PrmFun                     string
 	Poe                        string
 	Canonic                    string
 	Fermi                      string
@@ -713,6 +715,7 @@ var (
 		Whlp:                       whlp.DexType,
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
+		PrmFun:                     prmfun.DexType,
 		Poe:                        poe.DexType,
 		Canonic:                    canonic.DexType,
 		Fermi:                      valueobject.ExchangeFermi,

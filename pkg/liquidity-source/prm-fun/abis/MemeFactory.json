@@ -1,0 +1,597 @@
+[
+  {
+    "name": "tokenDeployer",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "owner",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "memeCurveBeacon",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "pumpCurveBeacon",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "launchPhase",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint8"
+      }
+    ]
+  },
+  {
+    "name": "launchesPaused",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "canCreate",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "creator"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "advanceLaunchPhase",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "setLaunchesPaused",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "paused"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "LaunchPhaseAdvanced",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint8",
+        "name": "previousPhase",
+        "indexed": true
+      },
+      {
+        "type": "uint8",
+        "name": "nextPhase",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "LaunchPauseUpdated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "paused"
+      }
+    ]
+  },
+  {
+    "name": "feeEscrow",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "graduationManager",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "graduationManagerFor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "token"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "previousGraduationManager",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "activeGraduationManager",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "configureGraduationManager",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "manager"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "GraduationManagerConfigured",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "previousManager",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "manager",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "MemeGraduationConfigured",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "token",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "curve",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "manager",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "ETH_SUBJECT_ID",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "name": "ETH_GRADUATION_TARGET",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "LAUNCH_VERSION",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quoteLaunchBuy",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "uint256",
+        "name": "ethIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "ethUsed"
+      },
+      {
+        "type": "uint256",
+        "name": "stockRefund"
+      }
+    ]
+  },
+  {
+    "name": "launchMeme",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "tuple",
+        "name": "input",
+        "components": [
+          {
+            "type": "bytes32",
+            "name": "subjectId"
+          },
+          {
+            "type": "string",
+            "name": "name"
+          },
+          {
+            "type": "string",
+            "name": "symbol"
+          },
+          {
+            "type": "string",
+            "name": "metadataURI"
+          },
+          {
+            "type": "string",
+            "name": "logo"
+          },
+          {
+            "type": "string",
+            "name": "description"
+          },
+          {
+            "type": "tuple",
+            "name": "socials",
+            "components": [
+              {
+                "type": "string",
+                "name": "twitter"
+              },
+              {
+                "type": "string",
+                "name": "telegram"
+              },
+              {
+                "type": "string",
+                "name": "discord"
+              },
+              {
+                "type": "string",
+                "name": "website"
+              },
+              {
+                "type": "string",
+                "name": "farcaster"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "uint256",
+        "name": "minimumOut"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "token"
+      },
+      {
+        "type": "address",
+        "name": "curve"
+      },
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "ethUsed"
+      },
+      {
+        "type": "uint256",
+        "name": "stockRefund"
+      }
+    ]
+  },
+  {
+    "name": "DeveloperBuy",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "token",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "creator",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "ethUsed"
+      },
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "stockRefund"
+      }
+    ]
+  },
+  {
+    "name": "CreatorWhitelistUpdated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "creator",
+        "indexed": true
+      },
+      {
+        "type": "bool",
+        "name": "allowed"
+      }
+    ]
+  },
+  {
+    "name": "MemeCreated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "token",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "curve",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "creator"
+      },
+      {
+        "type": "uint256",
+        "name": "graduationDesk"
+      }
+    ]
+  },
+  {
+    "name": "memeCount",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "memeTokens",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "getMeme",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "token"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          {
+            "type": "bytes32",
+            "name": "subjectId"
+          },
+          {
+            "type": "address",
+            "name": "token"
+          },
+          {
+            "type": "address",
+            "name": "curve"
+          },
+          {
+            "type": "address",
+            "name": "creator"
+          },
+          {
+            "type": "uint256",
+            "name": "graduationDesk"
+          },
+          {
+            "type": "uint64",
+            "name": "createdAt"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "whitelistedCreator",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "setCreatorWhitelisted",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "creator"
+      },
+      {
+        "type": "bool",
+        "name": "allowed"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "createMeme",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "string",
+        "name": "name"
+      },
+      {
+        "type": "string",
+        "name": "symbol"
+      },
+      {
+        "type": "string",
+        "name": "metadataURI"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address",
+        "name": "token"
+      },
+      {
+        "type": "address",
+        "name": "curve"
+      }
+    ]
+  }
+]
