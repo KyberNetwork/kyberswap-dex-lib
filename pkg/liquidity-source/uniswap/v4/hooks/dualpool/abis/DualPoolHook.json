@@ -1,0 +1,5 @@
+[
+ {"type":"function","name":"getEffectiveLiquidity","stateMutability":"view","inputs":[{"name":"key","type":"tuple","components":[{"name":"currency0","type":"address"},{"name":"currency1","type":"address"},{"name":"fee","type":"uint24"},{"name":"tickSpacing","type":"int24"},{"name":"hooks","type":"address"}]}],"outputs":[{"name":"token0","type":"uint256"},{"name":"token1","type":"uint256"}]},
+ {"type":"function","name":"getDistribution","stateMutability":"view","inputs":[{"name":"poolId","type":"bytes32"}],"outputs":[{"name":"","type":"tuple[]","components":[{"name":"tickLower","type":"int24"},{"name":"tickUpper","type":"int24"},{"name":"weightBps","type":"uint16"}]}]},
+ {"type":"function","name":"livePools","stateMutability":"view","inputs":[{"name":"poolId","type":"bytes32"}],"outputs":[{"name":"live","type":"bool"}]}
+]
