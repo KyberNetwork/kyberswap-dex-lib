@@ -1,0 +1,520 @@
+[
+  {
+    "name": "graduationManagerFor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "token"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "quoteStockExactIn",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "bool",
+        "name": "buy"
+      },
+      {
+        "type": "uint256",
+        "name": "amountIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "output"
+      },
+      {
+        "type": "uint256",
+        "name": "inputUsed"
+      }
+    ]
+  },
+  {
+    "name": "quoteMemeExactIn",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "bool",
+        "name": "buy"
+      },
+      {
+        "type": "bool",
+        "name": "useEth"
+      },
+      {
+        "type": "uint256",
+        "name": "amountIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "output"
+      },
+      {
+        "type": "uint256",
+        "name": "inputUsed"
+      },
+      {
+        "type": "uint256",
+        "name": "stockRefund"
+      }
+    ]
+  },
+  {
+    "name": "Routed",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "sender",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "input",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "output",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amountIn"
+      },
+      {
+        "type": "uint256",
+        "name": "amountOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      }
+    ]
+  },
+  {
+    "name": "buyExactIn",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "child"
+      },
+      {
+        "type": "uint256",
+        "name": "stockIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumChildOut"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "childOut"
+      }
+    ]
+  },
+  {
+    "name": "sellExactIn",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "child"
+      },
+      {
+        "type": "uint256",
+        "name": "childIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumStockOut"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "stockOut"
+      }
+    ]
+  },
+  {
+    "name": "poolManager",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "buyStockWithWeth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "uint256",
+        "name": "wethMaximum"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumStockOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "stockOut"
+      },
+      {
+        "type": "uint256",
+        "name": "wethUsed"
+      }
+    ]
+  },
+  {
+    "name": "buyStockWithEth",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumStockOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "stockOut"
+      },
+      {
+        "type": "uint256",
+        "name": "ethUsed"
+      }
+    ]
+  },
+  {
+    "name": "sellStockForWeth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "uint256",
+        "name": "stockIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumWethOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "wethOut"
+      }
+    ]
+  },
+  {
+    "name": "sellStockForEth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "subjectId"
+      },
+      {
+        "type": "uint256",
+        "name": "stockIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumEthOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "ethOut"
+      }
+    ]
+  },
+  {
+    "name": "buyMemeWithStock",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "uint256",
+        "name": "stockIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumMemeOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "stockUsed"
+      }
+    ]
+  },
+  {
+    "name": "sellMemeForStock",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumStockOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "stockOut"
+      }
+    ]
+  },
+  {
+    "name": "buyMemeWithWeth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "uint256",
+        "name": "wethMaximum"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumMemeOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "wethUsed"
+      }
+    ]
+  },
+  {
+    "name": "buyMemeWithEth",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumMemeOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "ethUsed"
+      }
+    ]
+  },
+  {
+    "name": "sellMemeForWeth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumWethOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "wethOut"
+      }
+    ]
+  },
+  {
+    "name": "sellMemeForEth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "meme"
+      },
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumEthOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      },
+      {
+        "type": "uint256",
+        "name": "deadline"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "ethOut"
+      }
+    ]
+  }
+]
