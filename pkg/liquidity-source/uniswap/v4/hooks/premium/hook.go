@@ -46,7 +46,7 @@ type Hook struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Premium},
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Prm},
 	}
 	var extra Hook
 	if err := param.HookExtra.Unmarshal(&extra); err == nil {

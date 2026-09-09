@@ -13,7 +13,7 @@ import (
 )
 
 // Token index convention: 0 = desk (wrapped native), 1 = meme. Only ETH-paired,
-// Trading-phase MemeCurve pools live here; graduated ones move to the uniswap-v4-premium
+// Trading-phase MemeCurve pools live here; graduated ones move to the uniswap-v4-prm
 // hook, and memes paired against an ERC20 desk are out of scope.
 const (
 	indexDesk = 0

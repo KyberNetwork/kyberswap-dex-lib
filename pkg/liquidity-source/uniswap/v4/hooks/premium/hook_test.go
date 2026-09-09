@@ -18,7 +18,7 @@ func TestHookRegistration(t *testing.T) {
 	for _, addr := range HookAddresses {
 		hook, ok := uniswapv4.GetHook(addr, &uniswapv4.HookParam{})
 		assert.True(t, ok, "hook should be registered for %s", addr.Hex())
-		assert.Equal(t, valueobject.ExchangeUniswapV4Premium, hook.GetExchange())
+		assert.Equal(t, valueobject.ExchangeUniswapV4Prm, hook.GetExchange())
 	}
 }
 
@@ -155,7 +155,7 @@ func TestCloneState_DeepCopy(t *testing.T) {
 	t.Parallel()
 
 	original := &Hook{
-		Hook:            &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Premium},
+		Hook:            &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Prm},
 		MemeIsCurrency0: true,
 		Paused:          false,
 	}

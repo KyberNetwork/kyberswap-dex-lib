@@ -18,7 +18,7 @@ const (
 )
 
 // MemeCurve.Phase. Anything other than Trading is unswappable here: graduated pools move
-// to the uniswap-v4-premium pool type, paused ones stop quoting.
+// to the uniswap-v4-prm pool type, paused ones stop quoting.
 const (
 	PhaseTrading   uint8 = 0
 	PhaseGraduated uint8 = 1
