@@ -1,0 +1,137 @@
+[
+  {
+    "name": "poolManager",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "liquidityLocker",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "deployer",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "poolConfig",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "id"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool",
+        "name": "initialized"
+      },
+      {
+        "type": "bool",
+        "name": "memeIsCurrency0"
+      },
+      {
+        "type": "bool",
+        "name": "paused"
+      },
+      {
+        "type": "address",
+        "name": "creator"
+      },
+      {
+        "type": "address",
+        "name": "platformTreasury"
+      }
+    ]
+  },
+  {
+    "name": "PoolPauseUpdated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "id",
+        "indexed": true
+      },
+      {
+        "type": "bool",
+        "name": "paused"
+      }
+    ]
+  },
+  {
+    "name": "feeEscrow",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "Trade",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "id",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "executor",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "feeCurrency"
+      },
+      {
+        "type": "uint256",
+        "name": "totalFee"
+      }
+    ]
+  },
+  {
+    "name": "Seeded",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "id",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "currency0"
+      },
+      {
+        "type": "uint256",
+        "name": "currency1"
+      }
+    ]
+  }
+]
