@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // Token index convention: 0 = desk (wrapped native), 1 = meme. Only ETH-paired,
@@ -34,7 +35,10 @@ type PoolSimulator struct {
 	deskRaised  *uint256.Int
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var (
+	_                             = pool.RegisterFactory0(DexType, NewPoolSimulator)
+	_ pool.IPoolSupportNativeSwap = (*PoolSimulator)(nil)
+)
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -191,6 +195,14 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.memeSold = new(uint256.Int).Set(s.memeSold)
 	cloned.deskRaised = new(uint256.Int).Set(s.deskRaised)
 	return &cloned
+}
+
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainID valueobject.ChainID) bool {
+	return s.GetTokenIndex(tokenIn) == indexDesk && valueobject.IsWrappedNative(tokenIn, chainID)
+}
+
+func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainID valueobject.ChainID) bool {
+	return s.GetTokenIndex(tokenOut) == indexDesk && valueobject.IsWrappedNative(tokenOut, chainID)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {

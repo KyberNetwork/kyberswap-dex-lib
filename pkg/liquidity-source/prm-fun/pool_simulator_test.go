@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
@@ -126,4 +127,29 @@ func TestPoolSimulator_CloneState_IsIndependent(t *testing.T) {
 
 	cloned.virtualMeme.AddUint64(cloned.virtualMeme, 1)
 	require.NotEqual(t, s.virtualMeme.String(), cloned.virtualMeme.String())
+}
+
+func TestPoolSimulator_NativeSwapSupport(t *testing.T) {
+	s := newTestSimulator(t)
+
+	t.Run("buy unwraps: desk in is native", func(t *testing.T) {
+		require.True(t, s.SwapReceiveNativeIn(testDeskToken, memeToken, valueobject.ChainIDRobinhood))
+		require.False(t, s.SwapReturnNativeOut(testDeskToken, memeToken, valueobject.ChainIDRobinhood))
+	})
+
+	t.Run("sell wraps: desk out is native", func(t *testing.T) {
+		require.False(t, s.SwapReceiveNativeIn(memeToken, testDeskToken, valueobject.ChainIDRobinhood))
+		require.True(t, s.SwapReturnNativeOut(memeToken, testDeskToken, valueobject.ChainIDRobinhood))
+	})
+
+	t.Run("wrong chain: desk token is not that chain's wrapped native", func(t *testing.T) {
+		require.False(t, s.SwapReceiveNativeIn(testDeskToken, memeToken, valueobject.ChainIDEthereum))
+		require.False(t, s.SwapReturnNativeOut(memeToken, testDeskToken, valueobject.ChainIDEthereum))
+	})
+
+	t.Run("unknown token is neither side", func(t *testing.T) {
+		const unknown = "0x1111111111111111111111111111111111111111"
+		require.False(t, s.SwapReceiveNativeIn(unknown, memeToken, valueobject.ChainIDRobinhood))
+		require.False(t, s.SwapReturnNativeOut(memeToken, unknown, valueobject.ChainIDRobinhood))
+	})
 }
