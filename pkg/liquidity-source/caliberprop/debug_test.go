@@ -54,7 +54,7 @@ var liveChains = []liveChain{
 		multicall:  defaultMulticallAddr,
 		cfg: Config{
 			DexID:   DexType,
-			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
+			Address: "0x74dec7df10f026884c757445671b9e5137ce36e5",
 		},
 	},
 	{
