@@ -48,6 +48,16 @@ var liveChains = []liveChain{
 		},
 	},
 	{
+		name:       "bsc",
+		rpcEnv:     "BSC_RPC_URL",
+		rpcDefault: "https://bsc.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x74dec7df10f026884c757445671b9e5137ce36e5",
+		},
+	},
+	{
 		name:       "linea",
 		rpcEnv:     "LINEA_RPC_URL",
 		rpcDefault: "https://linea.kyberengineering.io",
