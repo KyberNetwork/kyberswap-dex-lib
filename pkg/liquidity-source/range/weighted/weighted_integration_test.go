@@ -9,10 +9,12 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -38,6 +40,17 @@ const (
 	topCryptoPool = "0x67c02fc8f5a4140077999014efa7fe9d0ee2f29b" // 8-token (WETH at index 6)
 )
 
+var (
+	// factoryAddress is the mainnet RangePoolFactory (pool discovery via getPools()).
+	// Live per-chain factory addresses come from Config.FactoryAddress (config-driven).
+	factoryAddress = common.HexToAddress("0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0")
+
+	// routerAddress is sourced from shared.BatchRouterMap (keyed "range", like the
+	// existing "coinhane" non-canonical deployment) so the tracker and
+	// base.PoolSimulator.GetMetaInfo can never disagree on the address. Mainnet only.
+	routerAddress = shared.BatchRouterMap["range"][valueobject.ChainIDEthereum]
+)
+
 type IntegrationSuite struct {
 	suite.Suite
 
@@ -56,7 +69,7 @@ func (ts *IntegrationSuite) SetupSuite() {
 	cfg := &Config{
 		DexID:          DexType,
 		ChainID:        valueobject.ChainIDEthereum,
-		FactoryAddress: FactoryAddress.Hex(),
+		FactoryAddress: hexutil.Encode(factoryAddress[:]),
 		NewPoolLimit:   100,
 	}
 	ts.lister = NewPoolsListUpdater(cfg, ts.client)

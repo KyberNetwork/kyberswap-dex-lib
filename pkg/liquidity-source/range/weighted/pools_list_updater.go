@@ -122,7 +122,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addrs []common.Address
 	for i, addr := range addrs {
 		req.AddCall(&ethrpc.Call{
 			ABI:    rangePoolABI,
-			Target: addr.Hex(),
+			Target: hexutil.Encode(addr[:]),
 			Method: poolMethodGetImmutableData,
 		}, []any{&immutables[i]})
 	}

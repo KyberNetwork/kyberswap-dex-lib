@@ -29,17 +29,6 @@ var (
 		valueobject.ChainIDRobinhood: common.HexToAddress("0xA2577544B1172d397209B8378516c6caFc023252"),
 	}
 
-	// RouterAddress is sourced from shared.BatchRouterMap (keyed "range", like the
-	// existing "coinhane" non-canonical deployment) so the tracker and
-	// base.PoolSimulator.GetMetaInfo can never disagree on the address. Mainnet only;
-	// used by tests.
-	RouterAddress = shared.BatchRouterMap["range"][valueobject.ChainIDEthereum]
-
-	// FactoryAddress is the mainnet RangePoolFactory (pool discovery via getPools()).
-	// Mainnet only; used by tests. Live per-chain factory addresses come from
-	// Config.FactoryAddress (config-driven).
-	FactoryAddress = common.HexToAddress("0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0")
-
 	// SingleTokenRouterAddress adds/removes liquidity only: it exposes neither
 	// swapSingleToken... nor querySwap... and MUST NOT be used for swaps.
 	SingleTokenRouterAddress = common.HexToAddress("0x79C112F05Ce3C297De4105B5507c90169B3686F8")

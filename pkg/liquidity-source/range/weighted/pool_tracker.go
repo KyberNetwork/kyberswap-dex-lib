@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/rs/zerolog/log"
@@ -132,13 +133,13 @@ func AddRPCCalls(
 	}, []any{dyn})
 	addFn(&ethrpc.Call{
 		ABI:    rangeVaultABI,
-		Target: vaultAddress.Hex(),
+		Target: hexutil.Encode(vaultAddress[:]),
 		Method: vaultMethodGetPoolConfig,
 		Params: []any{common.HexToAddress(poolAddress)},
 	}, []any{cfg})
 	addFn(&ethrpc.Call{
 		ABI:    rangeVaultABI,
-		Target: vaultAddress.Hex(),
+		Target: hexutil.Encode(vaultAddress[:]),
 		Method: vaultMethodGetMinimumTradeAmount,
 	}, []any{minTrade})
 }
