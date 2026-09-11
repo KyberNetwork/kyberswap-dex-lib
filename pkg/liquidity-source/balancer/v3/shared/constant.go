@@ -31,14 +31,21 @@ var (
 		// Their single-swap Router (also exposing querySwap...) is the approval/target
 		// address; the "range" key matches exchange prefix "range-v3-weighted" (split on "-").
 		"range": {
-			valueobject.ChainIDEthereum: common.HexToAddress("0x8726019313CD59D2e33dBE643aaC94A59D5518df"),
+			valueobject.ChainIDEthereum:  common.HexToAddress("0x8726019313CD59D2e33dBE643aaC94A59D5518df"),
+			valueobject.ChainIDRobinhood: common.HexToAddress("0x99E9554c0A5BA4Ac2242fff49F861cfdD60120B4"),
 		},
 	}
 	VaultMap = map[string]common.Address{
 		"":         common.HexToAddress("0xbA1333333333a1BA1108E8412f11850A5C319bA9"), // default
 		"coinhane": common.HexToAddress("0xb61cb1E8EF4BB1b74bB858B8B60d82d79488F13D"),
-		// Range Pools' custom, non-canonical Balancer V3 Vault.
-		"range": common.HexToAddress("0x955244EDC797A1C1b04134b600f819aC23C76081"),
+		"range":    common.HexToAddress("0x955244EDC797A1C1b04134b600f819aC23C76081"), // Ethereum
+	}
+	// VaultOverrideMap overrides VaultMap's per-prefix default on chains where the
+	// Vault was redeployed at a different address (e.g. Range Pools' Robinhood Vault).
+	VaultOverrideMap = map[string]map[valueobject.ChainID]common.Address{
+		"range": {
+			valueobject.ChainIDRobinhood: common.HexToAddress("0x50A20332547453558E58afa9Ef4cF73033Ce3BE3"),
+		},
 	}
 
 	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
