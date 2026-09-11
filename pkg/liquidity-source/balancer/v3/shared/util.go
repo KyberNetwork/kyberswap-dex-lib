@@ -30,8 +30,11 @@ func BatchRouter(chainID valueobject.ChainID, exchange string) (common.Address, 
 	return v, ok
 }
 
-func Vault(_ valueobject.ChainID, exchange string) common.Address {
+func Vault(chainID valueobject.ChainID, exchange string) common.Address {
 	prefix := strings.SplitN(exchange, "-", 2)[0]
+	if override, ok := VaultOverrideMap[prefix][chainID]; ok {
+		return override
+	}
 	vault, ok := VaultMap[prefix]
 	if !ok {
 		vault = VaultMap[""]

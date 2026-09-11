@@ -54,6 +54,7 @@ func (ts *ParitySuite) SetupSuite() {
 
 	cfg := &Config{
 		DexID:          DexType,
+		ChainID:        valueobject.ChainIDEthereum,
 		FactoryAddress: FactoryAddress.Hex(),
 		NewPoolLimit:   100,
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // Live RPC integration tests against the Range Pool deployment on Ethereum mainnet.
@@ -54,6 +55,7 @@ func (ts *IntegrationSuite) SetupSuite() {
 
 	cfg := &Config{
 		DexID:          DexType,
+		ChainID:        valueobject.ChainIDEthereum,
 		FactoryAddress: FactoryAddress.Hex(),
 		NewPoolLimit:   100,
 	}

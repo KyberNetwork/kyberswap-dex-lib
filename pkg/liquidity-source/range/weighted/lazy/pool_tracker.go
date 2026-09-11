@@ -54,7 +54,8 @@ func (t *PoolTracker) GetNewPoolState(
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	rangeweighted.AddRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, &dyn, &cfg, &minTrade)
+	rangeweighted.AddRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) },
+		rangeweighted.VaultAddress(t.config.ChainID), p.Address, &dyn, &cfg, &minTrade)
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -124,7 +125,8 @@ func (t *PoolTracker) lazyNewPoolState(
 
 	r := t.ethrpcClient.R().SetContext(ctx)
 	req := poolpkg.LazyRequest{Request: r}
-	rangeweighted.AddRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, &dyn, &cfg, &minTrade)
+	rangeweighted.AddRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) },
+		rangeweighted.VaultAddress(t.config.ChainID), p.Address, &dyn, &cfg, &minTrade)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
 		bn := p.BlockNumber

@@ -149,7 +149,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addrs []common.Address
 
 		staticExtra := StaticExtra{
 			StaticExtra: shared.StaticExtra{
-				Hook: hexutil.Encode(HookAddress[:]),
+				Hook: hexutil.Encode(HookAddress(u.config.ChainID).Bytes()),
 				// Range has no ERC4626 buffers, but base.PoolSimulator.GetMetaInfo indexes
 				// bufferTokens[tokenIndex], so it must be a len(tokens) slice of empty
 				// strings (not nil) or GetMetaInfo panics.
