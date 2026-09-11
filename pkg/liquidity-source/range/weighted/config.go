@@ -28,16 +28,6 @@ var (
 		valueobject.ChainIDEthereum:  common.HexToAddress("0xf31e1f37E1f9C2C531e6bC3ad89fFc9206cE85d9"),
 		valueobject.ChainIDRobinhood: common.HexToAddress("0xA2577544B1172d397209B8378516c6caFc023252"),
 	}
-
-	// SingleTokenRouterAddress adds/removes liquidity only: it exposes neither
-	// swapSingleToken... nor querySwap... and MUST NOT be used for swaps.
-	SingleTokenRouterAddress = common.HexToAddress("0x79C112F05Ce3C297De4105B5507c90169B3686F8")
-
-	// Permit2Address is the canonical Permit2 contract (swap approval path).
-	Permit2Address = common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3")
-
-	// WETHAddress is mainnet WETH.
-	WETHAddress = common.HexToAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
 )
 
 // VaultAddress returns the Vault deployed on the given chain for Range Pools.
