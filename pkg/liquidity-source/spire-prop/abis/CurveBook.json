@@ -1,0 +1,236 @@
+[
+  {
+    "type": "function",
+    "name": "cUnit",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "entrypoint",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "knot",
+    "inputs": [
+      {
+        "name": "base",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "side",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "q",
+        "type": "uint48",
+        "internalType": "uint48"
+      },
+      {
+        "name": "extra",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pair",
+    "inputs": [
+      {
+        "name": "base",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "v",
+        "type": "tuple",
+        "internalType": "struct IBaibaiCurveBook.PairView",
+        "components": [
+          {
+            "name": "seq",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "fillSeq",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lastUpdateAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "mid",
+            "type": "uint80",
+            "internalType": "uint80"
+          },
+          {
+            "name": "qUnit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ask",
+            "type": "tuple",
+            "internalType": "struct IBaibaiCurveBook.Side",
+            "components": [
+              {
+                "name": "spreadBps",
+                "type": "int16",
+                "internalType": "int16"
+              },
+              {
+                "name": "depthBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "filled",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "knotCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              }
+            ]
+          },
+          {
+            "name": "bid",
+            "type": "tuple",
+            "internalType": "struct IBaibaiCurveBook.Side",
+            "components": [
+              {
+                "name": "spreadBps",
+                "type": "int16",
+                "internalType": "int16"
+              },
+              {
+                "name": "depthBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "filled",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "knotCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quote",
+    "inputs": [
+      {
+        "name": "base",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenIn",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ttl",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "validUntil",
+    "inputs": [
+      {
+        "name": "base",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
