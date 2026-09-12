@@ -171,6 +171,28 @@ func TestCalculateDecayingFee_PrevBelowTarget(t *testing.T) {
 	}
 }
 
+// TestDeriveLogK checks deriveLogK against a high-precision reference computed
+// independently in Python (mpmath, 60 digits): logK = ceil(-ln(k/2^24)*1e18/2^24).
+// k = 0.99 in Q24 -> logK = 599049713. LnQ96 isn't bit-identical to solady's
+// lnWad, so allow a small tolerance rather than requiring an exact match.
+func TestDeriveLogK(t *testing.T) {
+	const k uint64 = 16_609_443
+	want := uint256.NewInt(599_049_713)
+
+	got, err := deriveLogK(k)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diff := new(uint256.Int).Sub(got, want)
+	if got.Lt(want) {
+		diff.Sub(want, got)
+	}
+	if diff.Uint64() > 10 {
+		t.Fatalf("deriveLogK(%d): got %s want ~%s (diff %s)", k, got, want, diff)
+	}
+}
+
 func TestAdjustPreviousFeeForPriceMovement_Identity(t *testing.T) {
 	// movementRatio = Q96 (i.e. price unchanged) → adjustedFee == prev.
 	prev := uint256.NewInt(123_456_789)
