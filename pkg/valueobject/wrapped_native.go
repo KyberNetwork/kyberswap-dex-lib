@@ -50,6 +50,7 @@ var WrappedNativeMap = map[ChainID]string{
 	ChainIDMegaETH:         "0x4200000000000000000000000000000000000006",
 	ChainIDRise:            "0x4200000000000000000000000000000000000006",
 	ChainIDRobinhood:       "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+	ChainIDXLayer:          "0xe538905cf8410324e03A5A23C1c177a474D59b2b",
 }
 
 // LowerWrapped returns lowercase wrapped token string
