@@ -130,7 +130,7 @@ func batchCallWithRetry(ctx context.Context, client *rpc.Client, batch []rpc.Bat
 	const maxAttempts = 5
 	delay := 500 * time.Millisecond
 	var err error
-	for attempt := 0; attempt < maxAttempts; attempt++ {
+	for range maxAttempts {
 		err = client.BatchCallContext(ctx, batch)
 		if err == nil {
 			return nil
