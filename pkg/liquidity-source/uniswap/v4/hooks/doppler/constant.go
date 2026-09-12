@@ -29,15 +29,21 @@ var (
 	InitializerAddresses = []common.Address{
 		h("0xAA096F558f3d4c9226De77E7Cc05f18E180B2544"), // DopplerHookInitializer
 		h("0xBDF938149ac6a781F94FAa0ed45E6A0e984c6544"), // ethereum/base DopplerHookInitializer
-		// h("0x4e3468951d49f2eea976ed0d6e75ffcb44a9a544"), // robinhood DopplerHookInitializer
+		h("0x4e3468951D49f2EEa976eD0D6e75fFCb44a9a544"), // robinhood DopplerHookInitializer
+		h("0xF0d631d54c7e1040CCFa1c2ed737973D6A652544"), // bsc/arbitrum DopplerHookInitializer
+		h("0x56ea13Da5f39863D3B3D54826187306af7ADA544"), // monad DopplerHookInitializer
+		h("0xAA7F809bB3752F715fa2E418230667C382a56544"), // arbitrum DopplerHookInitializer
 	}
 
 	DHooks = map[common.Address]func(json.RawMessage) IDHook{ // Doppler Hooks i.e. DopplerHookInitializer's internal hooks
 		h("0x97cAD5684FB7Cc2bEd9a9b5eBfba67138F4f2503"): NewRehypeDHook,   // monad RehypeDopplerHook (MAX_SWAP_FEE = 0.8e6)
 		h("0x3Ec4798A9B11e8243A8Db99687f7A23597B96623"): NewRehypeDHook,   // ethereum/base RehypeDopplerHook (MAX_SWAP_FEE = 0.8e6)
 		h("0xBF4195ab0B03e1eB3345dd1e83BeD7650b1ed123"): NewRehypeDHook,   // ethereum/base RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
-		h("0x6f02324d20cc679d0e585290caa6b16bacbc0f77"): NewRehypeDHook,   // robinhood RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
+		h("0x6f02324d20CC679d0E585290CAa6b16baCbC0F77"): NewRehypeDHook,   // robinhood RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
 		h("0x9982538F41f2ae29ddb9d3D9307010052984FDbB"): NewRehypeDHookV2, // ethereum/base RehypeDopplerHook v2 (MAX_SWAP_FEE = 1e6)
+		h("0xBD54a9E1d2249185A27Af097ABAA930631ec45c5"): NewRehypeDHookV2, // ethereum RehypeDopplerHook v2 (MAX_SWAP_FEE = 1e6)
+		h("0x5F9eB5f6726Fe88D5e39867967F5b833d2fA3215"): NewRehypeDHookV2, // ethereum RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
+		h("0xA7465b9d101cf3B2381D6CD42f2C5E72f9453984"): NewRehypeDHookV2, // bsc RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
 	}
 
 	ErrCannotSwapBeforeStartingTime = errors.New("cannot swap before starting time")
