@@ -18,17 +18,25 @@ func (s *PoolSimulator) EncodeMsgpack(enc *msgpack.Encoder) error {
 	if s.Extra == nil || s.StaticExtra == nil {
 		return fmt.Errorf("lunarbase wire: missing simulator metadata")
 	}
-	fields := []struct {
+	version := uint8(2)
+	if s.SnapshotComplete {
+		version = 3
+	}
+	type wireField struct {
 		name  string
 		value any
-	}{
-		{"_lunarbaseWire", uint8(2)},
+	}
+	fields := []wireField{
+		{"_lunarbaseWire", version},
 		{"Info", s.Info}, {"reserves", s.reserves}, {"chainID", s.chainID},
 		{"SqrtPriceX96", s.SqrtPriceX96}, {"FeeAskX24", s.FeeAskX24}, {"FeeBidX24", s.FeeBidX24},
 		{"LatestUpdateBlock", s.LatestUpdateBlock}, {"Paused", s.Paused}, {"BlockDelay", s.BlockDelay},
 		{"ConcentrationK", s.ConcentrationK}, {"MaxPunishmentX24", s.MaxPunishmentX24}, {"HasNative", s.HasNative},
 		{"BlockHash", s.BlockHash}, {"ConcentrationModel", s.ConcentrationModel},
 		{"requiresRPCRefresh", s.requiresRPCRefresh},
+	}
+	if s.SnapshotComplete {
+		fields = append(fields, wireField{"SnapshotComplete", true})
 	}
 	if err := enc.EncodeMapLen(len(fields)); err != nil {
 		return err
@@ -44,7 +52,7 @@ func (s *PoolSimulator) EncodeMsgpack(enc *msgpack.Encoder) error {
 	return nil
 }
 
-// DecodeMsgpack accepts the upstream 12-field array and named v2 maps. Old
+// DecodeMsgpack accepts the upstream 12-field array and named v2/v3 maps. Old
 // frames cannot supply a canonical hash; preserve that absence rather than
 // inventing one. A legacy K=0/max=0 frame cannot identify its pricing model.
 func (s *PoolSimulator) DecodeMsgpack(dec *msgpack.Decoder) error {
@@ -122,6 +130,8 @@ func (s *PoolSimulator) DecodeMsgpack(dec *msgpack.Decoder) error {
 				field = &next.BlockHash
 			case "ConcentrationModel":
 				field = &next.ConcentrationModel
+			case "SnapshotComplete":
+				field = &next.SnapshotComplete
 			case "requiresRPCRefresh":
 				field = &next.requiresRPCRefresh
 			default:
@@ -134,7 +144,7 @@ func (s *PoolSimulator) DecodeMsgpack(dec *msgpack.Decoder) error {
 				return err
 			}
 		}
-		if version != 0 && version != 2 {
+		if version != 0 && version != 2 && version != 3 {
 			return fmt.Errorf("lunarbase wire: unsupported version %d", version)
 		}
 		for _, name := range []string{"Info", "reserves", "chainID", "SqrtPriceX96", "FeeAskX24", "FeeBidX24", "LatestUpdateBlock", "Paused", "BlockDelay", "ConcentrationK", "MaxPunishmentX24", "HasNative"} {
@@ -142,8 +152,11 @@ func (s *PoolSimulator) DecodeMsgpack(dec *msgpack.Decoder) error {
 				return fmt.Errorf("lunarbase wire: missing field %s", name)
 			}
 		}
-		if version == 2 && (!seen["BlockHash"] || !seen["ConcentrationModel"] || !seen["requiresRPCRefresh"]) {
+		if version >= 2 && (!seen["BlockHash"] || !seen["ConcentrationModel"] || !seen["requiresRPCRefresh"]) {
 			return fmt.Errorf("lunarbase wire: missing version 2 metadata")
+		}
+		if version == 3 && !seen["SnapshotComplete"] {
+			return fmt.Errorf("lunarbase wire: missing version 3 metadata")
 		}
 		legacy = !seen["ConcentrationModel"]
 	}

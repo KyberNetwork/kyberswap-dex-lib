@@ -24,6 +24,10 @@ type Extra struct {
 	MaxPunishmentX24 uint32 `json:"mp,omitempty"`
 	// BlockHash identifies the canonical block used for every RPC getter.
 	BlockHash string `json:"bh,omitempty"`
+	// SnapshotComplete records validated getter metadata when no hash is known.
+	// It does not prove canonicality. Existing hash-identified snapshots retain
+	// their completeness semantics without requiring this new field.
+	SnapshotComplete bool `json:"sc,omitempty"`
 	// ConcentrationModel distinguishes the legacy curve with K=0 from the
 	// punishment model. Positive legacy K remains compatible without this tag.
 	ConcentrationModel bool `json:"cm,omitempty"`
@@ -33,7 +37,7 @@ func (e *Extra) IsStale(blockNumber uint64) bool {
 	// Unidentified legacy snapshots may omit freshness metadata. A verified
 	// snapshot's zero update block is a known value, not missing metadata.
 	// This helper evaluates the supplied block; it does not advance the head.
-	if (e.BlockHash == "" && (e.BlockDelay == 0 || e.LatestUpdateBlock == 0)) || blockNumber < e.LatestUpdateBlock {
+	if (!e.SnapshotComplete && e.BlockHash == "" && (e.BlockDelay == 0 || e.LatestUpdateBlock == 0)) || blockNumber < e.LatestUpdateBlock {
 		return false
 	}
 	return blockNumber-e.LatestUpdateBlock >= e.BlockDelay

@@ -80,7 +80,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			},
 		},
 		chainID:            chainID,
-		requiresRPCRefresh: !extra.ConcentrationModel && extra.ConcentrationK == 0 && extra.MaxPunishmentX24 == 0 && extra.BlockHash == "",
+		requiresRPCRefresh: !extra.SnapshotComplete && !extra.ConcentrationModel && extra.ConcentrationK == 0 && extra.MaxPunishmentX24 == 0 && extra.BlockHash == "",
 		reserves:           reserves,
 		Extra:              &extra,
 		StaticExtra:        &staticExtra,

@@ -32,7 +32,8 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{config: config, ethrpcClient: ethrpcClient}
 }
 
-// GetNewPoolState publishes only complete, canonical RPC snapshots. Event
+// GetNewPoolState publishes complete RPC snapshots. By default, their canonical
+// membership is verified; SingleCallSnapshot opts out of that extra check. Event
 // batches do not prove that no fee, pause, reserve, or admin update is missing.
 // Their block numbers are freshness requirements, never state to replay on top
 // of a snapshot. Duplicates, ordering, and removed logs cannot corrupt it.
@@ -49,6 +50,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		if number > minimum {
 			minimum = number
 		}
+	}
+	if t.config.SingleCallSnapshot {
+		state, err := fetchLatestRPCState(ctx, p.Address, t.config.ChainID, t.ethrpcClient)
+		return applySnapshot(p, state, err, minimum)
 	}
 	state, err := fetchRPCStateWithCache(ctx, p.Address, t.config.ChainID, t.ethrpcClient, &t.cache)
 	return applySnapshot(p, state, err, minimum)

@@ -82,7 +82,30 @@ func verifySnapshotHeader(ctx context.Context, client *ethrpc.Client, ref snapsh
 // membership after the aggregate has finished.
 func fetchRPCStateAt(ctx context.Context, coreAddress string, chainID valueobject.ChainID, ethrpcClient *ethrpc.Client,
 	overrides map[common.Address]gethclient.OverrideAccount, ref snapshotReference) (*rpcState, error) {
-	blockNumber, blockHash := ref.number, ref.hash
+	return fetchSelectedRPCState(ctx, coreAddress, chainID, ethrpcClient, overrides, &ref)
+}
+
+// All getters execute within one EVM call. The returned number identifies its
+// height, but no block hash or post-call canonicality guarantee is available.
+func fetchLatestRPCState(ctx context.Context, coreAddress string, chainID valueobject.ChainID,
+	client *ethrpc.Client) (*rpcState, error) {
+	if client == nil || !common.IsHexAddress(coreAddress) || common.HexToAddress(coreAddress) == (common.Address{}) {
+		return nil, fmt.Errorf("lunarbase snapshot: invalid client or pool address")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return fetchSelectedRPCState(ctx, coreAddress, chainID, client, nil, nil)
+}
+
+func fetchSelectedRPCState(ctx context.Context, coreAddress string, chainID valueobject.ChainID,
+	ethrpcClient *ethrpc.Client, overrides map[common.Address]gethclient.OverrideAccount,
+	ref *snapshotReference) (*rpcState, error) {
+	var blockNumber uint64
+	var blockHash common.Hash
+	if ref != nil {
+		blockNumber, blockHash = ref.number, ref.hash
+	}
 	var (
 		tokenX           common.Address
 		tokenY           common.Address
@@ -155,10 +178,12 @@ func fetchRPCStateAt(ctx context.Context, coreAddress string, chainID valueobjec
 	// The aggregate executes all getter calls against one selected state.
 	// ethrpc does not support blockHash with non-empty state overrides, so
 	// that path pins the number and verifies its canonical hash afterwards.
-	if len(overrides) > 0 {
-		req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
-	} else {
-		req.SetBlockHash(blockHash)
+	if ref != nil {
+		if len(overrides) > 0 {
+			req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
+		} else {
+			req.SetBlockHash(blockHash)
+		}
 	}
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -174,9 +199,11 @@ func fetchRPCStateAt(ctx context.Context, coreAddress string, chainID valueobjec
 	if err := snapshotAggregateABI.UnpackIntoInterface(&aggregate, "tryBlockAndAggregate", resp.RawResponse); err != nil {
 		return nil, fmt.Errorf("lunarbase snapshot aggregate decode: %w", err)
 	}
-	if aggregate.BlockNumber == nil || !aggregate.BlockNumber.IsUint64() || aggregate.BlockNumber.Uint64() != blockNumber || len(aggregate.ReturnData) != len(req.Calls) {
+	if aggregate.BlockNumber == nil || !aggregate.BlockNumber.IsUint64() || aggregate.BlockNumber.Sign() <= 0 ||
+		(ref != nil && aggregate.BlockNumber.Uint64() != blockNumber) || len(aggregate.ReturnData) != len(req.Calls) {
 		return nil, fmt.Errorf("lunarbase snapshot: aggregate block or result count mismatch")
 	}
+	blockNumber = aggregate.BlockNumber.Uint64()
 	canonicalAggregate, err := snapshotAggregateABI.Methods["tryBlockAndAggregate"].Outputs.Pack(aggregate.BlockNumber, aggregate.BlockHash, aggregate.ReturnData)
 	if err != nil || !bytes.Equal(canonicalAggregate, resp.RawResponse) {
 		return nil, fmt.Errorf("lunarbase snapshot: noncanonical aggregate encoding")
@@ -220,7 +247,14 @@ func fetchRPCStateAt(ctx context.Context, coreAddress string, chainID valueobjec
 		reserveY == nil || reserveY.Sign() < 0 || reserveY.BitLen() > 112 {
 		return nil, fmt.Errorf("lunarbase snapshot: invalid or inconsistent getter values")
 	}
-	if err := verifySnapshotHeader(ctx, ethrpcClient, ref); err != nil {
+	var hashText string
+	if ref != nil {
+		if err := verifySnapshotHeader(ctx, ethrpcClient, *ref); err != nil {
+			return nil, err
+		}
+		hashText = blockHash.Hex()
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
@@ -242,7 +276,8 @@ func fetchRPCStateAt(ctx context.Context, coreAddress string, chainID valueobjec
 		reserveY:    reserveY,
 		extra: Extra{
 			ConcentrationModel: aggregate.ReturnData[idxConcentrationK].Success,
-			BlockHash:          blockHash.Hex(),
+			BlockHash:          hashText,
+			SnapshotComplete:   ref == nil,
 			SqrtPriceX96:       sqrtPriceX96,
 			FeeAskX24:          state.FeeAskX24,
 			FeeBidX24:          state.FeeBidX24,
