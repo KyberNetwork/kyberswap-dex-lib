@@ -22,13 +22,25 @@ type Extra struct {
 	// directional-punishment model in place of ConcentrationK. The two are
 	// mutually exclusive: whichever RPC call succeeds selects the math path.
 	MaxPunishmentX24 uint32 `json:"mp,omitempty"`
+	// BlockHash identifies the canonical block used for every RPC getter.
+	BlockHash string `json:"bh,omitempty"`
+	// SnapshotComplete records validated getter metadata when no hash is known.
+	// It does not prove canonicality. Existing hash-identified snapshots retain
+	// their completeness semantics without requiring this new field.
+	SnapshotComplete bool `json:"sc,omitempty"`
+	// ConcentrationModel distinguishes the legacy curve with K=0 from the
+	// punishment model. Positive legacy K remains compatible without this tag.
+	ConcentrationModel bool `json:"cm,omitempty"`
 }
 
 func (e *Extra) IsStale(blockNumber uint64) bool {
-	if e.BlockDelay == 0 || e.LatestUpdateBlock == 0 || blockNumber <= e.LatestUpdateBlock {
+	// Unidentified legacy snapshots may omit freshness metadata. A verified
+	// snapshot's zero update block is a known value, not missing metadata.
+	// This helper evaluates the supplied block; it does not advance the head.
+	if (!e.SnapshotComplete && e.BlockHash == "" && (e.BlockDelay == 0 || e.LatestUpdateBlock == 0)) || blockNumber < e.LatestUpdateBlock {
 		return false
 	}
-	return blockNumber-e.LatestUpdateBlock > e.BlockDelay
+	return blockNumber-e.LatestUpdateBlock >= e.BlockDelay
 }
 
 type StaticExtra struct {
@@ -36,6 +48,7 @@ type StaticExtra struct {
 }
 
 type PoolMeta struct {
+	BlockHash       string `json:"blockHash,omitempty"`
 	BlockNumber     uint64 `json:"blockNumber"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 	HasNative       bool   `json:"n,omitempty"`
@@ -45,16 +58,17 @@ type PoolMeta struct {
 // shape of `math/go/lunarbasepmm.PoolParams` (Q64.96 price, asymmetric
 // directional fees in Q24).
 type PoolParams struct {
-	SqrtPriceX96 *uint256.Int
-	FeeAskX24    uint32
-	FeeBidX24    uint32
-	ReserveX     *uint256.Int
-	ReserveY     *uint256.Int
-	// ConcentrationK is Q20.12 (effective K = ConcentrationK / 2^12). Zero
-	// selects the punishment model below.
+	ConcentrationModel bool
+	SqrtPriceX96       *uint256.Int
+	FeeAskX24          uint32
+	FeeBidX24          uint32
+	ReserveX           *uint256.Int
+	ReserveY           *uint256.Int
+	// ConcentrationK is Q20.12 (effective K = ConcentrationK / 2^12).
+	// K=0 retains the legacy linear model when ConcentrationModel is true.
 	ConcentrationK uint32
 	// MaxPunishmentX24 (Q24) is the punishment-model maximum directional fee
-	// increment per swap; only meaningful when ConcentrationK == 0.
+	// increment per swap; used when K=0 and ConcentrationModel is false.
 	MaxPunishmentX24 uint32
 }
 
