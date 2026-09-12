@@ -376,3 +376,188 @@ func TestSwapEmptyTicks(t *testing.T) {
 		require.True(t, res.AmountCalculated.IsZero(), "no input computed for empty-tick pool")
 	})
 }
+
+// ---------- wordBoundaryTick / floorDiv ----------
+
+// TestFloorDiv covers the rounding Go's / gets wrong for negative ticks. Tick compression rounds
+// toward negative infinity on-chain, and getting this backwards puts the boundary in the
+// neighbouring bitmap word for every pool priced below tick 0.
+func TestFloorDiv(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct{ a, b, want int }{
+		{0, 60, 0},
+		{59, 60, 0},
+		{60, 60, 1},
+		{-1, 60, -1},
+		{-59, 60, -1},
+		{-60, 60, -1},
+		{-61, 60, -2},
+		{-887272, 1, -887272},
+	} {
+		require.Equal(t, tc.want, floorDiv(tc.a, tc.b), "floorDiv(%d, %d)", tc.a, tc.b)
+	}
+}
+
+// TestWordBoundaryTick mirrors TickBitmap.nextInitializedTickWithinOneWord for the case where the
+// word holds no initialized tick: searching down stops at the word's lowest tick, searching up at
+// its highest. A word spans 256 compressed ticks, so its span in real ticks is 256*tickSpacing.
+func TestWordBoundaryTick(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name        string
+		tick        int
+		tickSpacing int
+		zeroForOne  bool
+		want        int
+	}{
+		// Spacing 1: word n covers ticks [256n, 256n+255]. This is the Avalanche dust pool's
+		// geometry — its swap starts at tick 291969, inside word 1140 = [291840, 292095].
+		{"down from mid-word", 291969, 1, true, 291840},
+		{"up from mid-word", 291969, 1, false, 292095},
+		{"down from word floor stays put", 291840, 1, true, 291840},
+		{"up from word ceiling moves to next word", 292095, 1, false, 292351},
+
+		// Spacing 60: word n covers ticks [15360n, 15360n+15300].
+		{"spaced down", 1000, 60, true, 0},
+		{"spaced up", 1000, 60, false, 15300},
+		{"spaced down from exact multiple", 15360, 60, true, 15360},
+
+		// Negative ticks: the compressed index floors, so tick -1 at spacing 60 lives in word -1
+		// alongside tick -15360, not in word 0.
+		{"negative down", -1, 60, true, -15360},
+		{"negative down from mid-word", -8000, 60, true, -15360},
+		// Searching up from -8000 compresses to -134, steps to -133, still in word -1, whose top
+		// compressed tick is -1.
+		{"negative up", -8000, 60, false, -60},
+		// Searching up from -1 steps to compressed 0, which is in word 0, not word -1.
+		{"negative up crossing zero", -1, 60, false, 15300},
+
+		// Both ends of the range straddle the bounds; the caller clamps.
+		{"below MinTick", -887272, 1, true, -887296},
+		{"above MaxTick", 887272, 1, false, 887295},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tc.want, wordBoundaryTick(tc.tick, tc.tickSpacing, tc.zeroForOne))
+		})
+	}
+}
+
+// TestWordBoundaryTickSpansOneWord asserts the invariant the swap loop depends on: a step never
+// covers more than one bitmap word, which is what lets ComputeSwapStep's own rounding stand in for
+// the on-chain rounding without a correction on top.
+func TestWordBoundaryTickSpansOneWord(t *testing.T) {
+	t.Parallel()
+
+	for _, tickSpacing := range []int{1, 10, 60, 200} {
+		for tick := -2000; tick <= 2000; tick++ {
+			down := wordBoundaryTick(tick, tickSpacing, true)
+			up := wordBoundaryTick(tick, tickSpacing, false)
+
+			require.LessOrEqual(t, down, tick, "downward boundary must not overshoot")
+			require.Greater(t, up, tick, "upward boundary must make progress")
+
+			compressed := floorDiv(tick, tickSpacing)
+			require.Equal(t, compressed>>8, floorDiv(down, tickSpacing)>>8,
+				"downward boundary left the word: tick=%d spacing=%d", tick, tickSpacing)
+			require.Equal(t, (compressed+1)>>8, floorDiv(up, tickSpacing)>>8,
+				"upward boundary left the word: tick=%d spacing=%d", tick, tickSpacing)
+		}
+	}
+}
+
+// ---------- nextInitializedTickWithinOneWord ----------
+
+// TestNextInitializedTickWithinOneWord covers the wrapper the swap loop actually calls. It is the
+// Go counterpart of TickBitmap.nextInitializedTickWithinOneWord: an initialized tick is only
+// visible if it shares the bitmap word with the current tick, and running out of ticks in the
+// direction of travel yields the word edge rather than an error, because on-chain that condition is
+// just an empty bitmap word.
+func TestNextInitializedTickWithinOneWord(t *testing.T) {
+	t.Parallel()
+
+	liq := uint256.NewInt(500)
+	// Spacing 60, so a word spans 15360 ticks. 1200 and 2400 share word 0 ([0, 15300]);
+	// 20040 sits in word 1.
+	ticks := []TickU256{
+		{1200, liq, int256.MustFromDec("500")},
+		{2400, liq, int256.MustFromDec("-500")},
+		{20040, liq, int256.MustFromDec("500")},
+		{21000, liq, int256.MustFromDec("-500")},
+	}
+
+	for _, tc := range []struct {
+		name       string
+		tick       int
+		lte        bool
+		wantTick   int
+		wantInit   bool
+		wantHasPos bool
+	}{
+		// Same word: the initialized tick wins over the edge.
+		{"down to initialized tick in word", 2500, true, 2400, true, true},
+		{"up to initialized tick in word", 1300, false, 2400, true, true},
+
+		// Same word, further down it: 20040 shares word 1 with 20100, so it stays visible.
+		{"down sees far tick in same word", 20100, true, 20040, true, true},
+
+		// Different word: the edge wins, and the stop is not an initialized tick. From 16000
+		// (word 1) the nearest tick below is 2400, back in word 0 and therefore invisible.
+		{"down stops at word edge", 16000, true, 15360, false, false},
+		{"up stops at word edge", 2500, false, 15300, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotTick, gotPos, gotInit, err := nextInitializedTickWithinOneWord(ticks, tc.tick, 60, tc.lte)
+			require.NoError(t, err)
+			require.Equal(t, tc.wantTick, gotTick)
+			require.Equal(t, tc.wantInit, gotInit)
+			if tc.wantHasPos {
+				require.NotEqual(t, noSlicePos, gotPos)
+				require.Equal(t, tc.wantTick, ticks[gotPos].Index, "slicePos must address the returned tick")
+			} else {
+				require.Equal(t, noSlicePos, gotPos)
+			}
+		})
+	}
+}
+
+// TestNextInitializedTickWithinOneWordPastListEnds pins the one place this wrapper deliberately
+// departs from the contract. Where the SDK answers an exhausted tick list with the word edge, the
+// range errors are propagated: reaching them means the tick list does not cover the current tick,
+// which here signals incomplete tracker data far more often than a genuinely empty bitmap, and
+// walking on at an assumed liquidity would turn that into a confident wrong quote.
+//
+// Word-bounded stepping must not quietly swallow them, which is what a fallback would do.
+func TestNextInitializedTickWithinOneWordPastListEnds(t *testing.T) {
+	t.Parallel()
+
+	liq := uint256.MustFromDecimal("1000000000000000000")
+	ticks := []TickU256{
+		{1200, liq, int256.MustFromDec("1000000000000000000")},
+		{2400, liq, int256.MustFromDec("-1000000000000000000")},
+	}
+
+	_, _, _, err := nextInitializedTickWithinOneWord(ticks, 600, 60, true)
+	require.ErrorIs(t, err, ErrBelowSmallest)
+
+	_, _, _, err = nextInitializedTickWithinOneWord(ticks, 2400, 60, false)
+	require.ErrorIs(t, err, ErrAtOrAboveLargest)
+
+	// And the swap surfaces them rather than returning a quote built on absent ticks.
+	var sqrtP uint256.Int
+	require.NoError(t, GetSqrtRatioAtTick(600, &sqrtP))
+	pool, err := NewPool(FeeMedium, sqrtP, *liq, 600, ticks, 60)
+	require.NoError(t, err)
+
+	_, err = pool.GetOutputAmountV2(true, *uint256.NewInt(1e15), uint256.Int{})
+	require.ErrorIs(t, err, ErrBelowSmallest)
+
+	// The other direction stays inside the tick list and swaps normally.
+	up, err := pool.GetOutputAmountV2(false, *uint256.NewInt(1e15), uint256.Int{})
+	require.NoError(t, err)
+	require.False(t, up.AmountCalculated.IsZero(), "upward the swap reaches real liquidity")
+}

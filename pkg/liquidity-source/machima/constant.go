@@ -38,7 +38,7 @@ const (
 
 var (
 	// defaultGas covers the aggregator router hop on top of the underlying V3 pool swap.
-	defaultGas = uniswapv3.Gas{BaseGas: 350000, CrossInitTickGas: 100000}
+	defaultGas = uniswapv3.Gas{BaseGas: 350000, CrossInitTickGas: 100000, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
 
 	ErrAntiSniperActive   = errors.New("pool is in anti-sniper window")
 	ErrInvalidPair        = errors.New("invalid pair: exactly one side must be a counter asset")
