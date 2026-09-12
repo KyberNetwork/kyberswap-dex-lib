@@ -1,0 +1,35 @@
+[
+  {
+    "offset": -1,
+    "snapshotBlock": 121470648,
+    "overrideBlock": 121470668,
+    "success": true,
+    "words": [
+      "1358779425146216",
+      "2149094242513694643307805671424",
+      "310665994854"
+    ]
+  },
+  {
+    "offset": 0,
+    "snapshotBlock": 121470648,
+    "overrideBlock": 121470669,
+    "success": true,
+    "words": [
+      "0",
+      "2149094242513694643307805671424",
+      "0"
+    ]
+  },
+  {
+    "offset": 1,
+    "snapshotBlock": 121470648,
+    "overrideBlock": 121470670,
+    "success": true,
+    "words": [
+      "0",
+      "2149094242513694643307805671424",
+      "0"
+    ]
+  }
+]
