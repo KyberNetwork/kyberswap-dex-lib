@@ -30,6 +30,7 @@ var (
 		h("0xAA096F558f3d4c9226De77E7Cc05f18E180B2544"), // DopplerHookInitializer
 		h("0xBDF938149ac6a781F94FAa0ed45E6A0e984c6544"), // ethereum/base DopplerHookInitializer
 		// h("0x4e3468951d49f2eea976ed0d6e75ffcb44a9a544"), // robinhood DopplerHookInitializer
+		// h("0xf0d631d54c7e1040ccfa1c2ed737973d6a652544"), // bsc/arbitrum DopplerHookInitializer
 	}
 
 	DHooks = map[common.Address]func(json.RawMessage) IDHook{ // Doppler Hooks i.e. DopplerHookInitializer's internal hooks
@@ -38,6 +39,8 @@ var (
 		h("0xBF4195ab0B03e1eB3345dd1e83BeD7650b1ed123"): NewRehypeDHook,   // ethereum/base RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
 		h("0x6f02324d20cc679d0e585290caa6b16bacbc0f77"): NewRehypeDHook,   // robinhood RehypeDopplerHookInitializer (MAX_SWAP_FEE = 0.8e6)
 		h("0x9982538F41f2ae29ddb9d3D9307010052984FDbB"): NewRehypeDHookV2, // ethereum/base RehypeDopplerHook v2 (MAX_SWAP_FEE = 1e6)
+		h("0xbd54a9e1d2249185a27af097abaa930631ec45c5"): NewRehypeDHookV2, // ethereum RehypeDopplerHook v2 (MAX_SWAP_FEE = 1e6)
+		h("0x5f9eb5f6726fe88d5e39867967f5b833d2fa3215"): NewRehypeDHookV2, // ethereum RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
 	}
 
 	ErrCannotSwapBeforeStartingTime = errors.New("cannot swap before starting time")
