@@ -73,10 +73,10 @@ func TestCounterfactualReserveFaultCanLeaveQuotesUnchanged(t *testing.T) {
 		input.Add(input, big.NewInt(1))
 		g, ge := cfCalc(cfSimulator(t, p), side, input)
 		b, be := cfCalc(cfSimulator(t, bad), side, input)
-		if side == 0 && !(ge != nil && be == nil) {
+		if side == 0 && (ge == nil || be != nil) {
 			t.Fatalf("sell boundary expected corrected reject and corrupt accept: %v/%v", ge, be)
 		}
-		if side == 1 && !(ge == nil && be != nil) {
+		if side == 1 && (ge != nil || be == nil) {
 			t.Fatalf("buy boundary expected corrected accept and corrupt reject: %v/%v", ge, be)
 		}
 		boundaries = append(boundaries, map[string]any{"side": []string{"sell", "buy"}[side], "input": input.String(), "correct": cfQuote(g, ge), "corrupt": cfQuote(b, be)})

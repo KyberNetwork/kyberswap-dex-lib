@@ -17,6 +17,7 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	cache        snapshotCache
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -49,7 +50,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			minimum = number
 		}
 	}
-	return t.refresh(ctx, p, nil, minimum)
+	state, err := fetchRPCStateWithCache(ctx, p.Address, t.config.ChainID, t.ethrpcClient, &t.cache)
+	return applySnapshot(p, state, err, minimum)
 }
 
 func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
@@ -64,14 +66,13 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity
 	return t.refresh(ctx, p, params.Overrides, minimum)
 }
 
-func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
-	overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
-	return t.refresh(ctx, p, overrides, p.BlockNumber)
-}
-
 func (t *PoolTracker) refresh(ctx context.Context, p entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount, minimum uint64) (entity.Pool, error) {
 	state, err := fetchRPCState(ctx, p.Address, t.config.ChainID, t.ethrpcClient, overrides)
+	return applySnapshot(p, state, err, minimum)
+}
+
+func applySnapshot(p entity.Pool, state *rpcState, err error, minimum uint64) (entity.Pool, error) {
 	if err != nil {
 		return p, err
 	}

@@ -94,7 +94,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
-	} else if s.Extra.IsStale(s.Info.BlockNumber) {
+	} else if s.IsStale(s.Info.BlockNumber) {
 		return nil, ErrStalePool
 	} else if s.Paused {
 		return nil, ErrPoolPaused
@@ -194,7 +194,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
 		BlockNumber:     s.Info.BlockNumber,
-		BlockHash:       s.Extra.BlockHash,
+		BlockHash:       s.BlockHash,
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 		HasNative:       s.HasNative,
 	}

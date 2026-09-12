@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -44,14 +45,44 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 	if ethrpcClient == nil || !common.IsHexAddress(coreAddress) || common.HexToAddress(coreAddress) == (common.Address{}) {
 		return nil, fmt.Errorf("lunarbase snapshot: invalid client or pool address")
 	}
-	header, err := ethrpcClient.GetETHClient().HeaderByNumber(ctx, nil)
+	header, err := latestSnapshotHeader(ctx, ethrpcClient)
+	if err != nil {
+		return nil, err
+	}
+	ref := snapshotReference{header.Number.Uint64(), header.Hash()}
+	return fetchRPCStateAt(ctx, coreAddress, chainID, ethrpcClient, overrides, ref)
+}
+
+func latestSnapshotHeader(ctx context.Context, client *ethrpc.Client) (*types.Header, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	header, err := client.GetETHClient().HeaderByNumber(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	if header == nil || header.Number == nil || !header.Number.IsUint64() || header.Number.Sign() <= 0 {
 		return nil, fmt.Errorf("lunarbase snapshot: invalid header")
 	}
-	blockNumber, blockHash := header.Number.Uint64(), header.Hash()
+	return header, nil
+}
+
+func verifySnapshotHeader(ctx context.Context, client *ethrpc.Client, ref snapshotReference) error {
+	header, err := client.GetETHClient().HeaderByNumber(ctx, new(big.Int).SetUint64(ref.number))
+	if err != nil {
+		return err
+	}
+	if header == nil || header.Number == nil || !header.Number.IsUint64() || header.Number.Uint64() != ref.number || header.Hash() != ref.hash {
+		return fmt.Errorf("lunarbase snapshot: selected block is no longer canonical")
+	}
+	return ctx.Err()
+}
+
+// fetchRPCStateAt reads every getter at one hash and verifies its canonical
+// membership after the aggregate has finished.
+func fetchRPCStateAt(ctx context.Context, coreAddress string, chainID valueobject.ChainID, ethrpcClient *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount, ref snapshotReference) (*rpcState, error) {
+	blockNumber, blockHash := ref.number, ref.hash
 	var (
 		tokenX           common.Address
 		tokenY           common.Address
@@ -125,7 +156,7 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 	// ethrpc does not support blockHash with non-empty state overrides, so
 	// that path pins the number and verifies its canonical hash afterwards.
 	if len(overrides) > 0 {
-		req.SetBlockNumber(header.Number)
+		req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
 	} else {
 		req.SetBlockHash(blockHash)
 	}
@@ -189,12 +220,8 @@ func fetchRPCState(ctx context.Context, coreAddress string, chainID valueobject.
 		reserveY == nil || reserveY.Sign() < 0 || reserveY.BitLen() > 112 {
 		return nil, fmt.Errorf("lunarbase snapshot: invalid or inconsistent getter values")
 	}
-	canonicalHeader, err := ethrpcClient.GetETHClient().HeaderByNumber(ctx, header.Number)
-	if err != nil {
+	if err := verifySnapshotHeader(ctx, ethrpcClient, ref); err != nil {
 		return nil, err
-	}
-	if canonicalHeader == nil || canonicalHeader.Number == nil || canonicalHeader.Number.Cmp(header.Number) != 0 || canonicalHeader.Hash() != blockHash {
-		return nil, fmt.Errorf("lunarbase snapshot: selected block is no longer canonical")
 	}
 
 	tokenXAddress := valueobject.WrapNativeZeroLower(hexutil.Encode(tokenX[:]), chainID)

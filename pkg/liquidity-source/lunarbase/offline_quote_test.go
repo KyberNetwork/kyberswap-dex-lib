@@ -217,7 +217,6 @@ func TestOfflineQuoteStatefulDifferential(t *testing.T) {
 	if e = json.Unmarshal(b, &cases); e != nil {
 		t.Fatal(e)
 	}
-	rows := []map[string]any{}
 	counts := map[string]int{}
 	for _, c := range cases {
 		if c.Decoded == nil {
@@ -247,7 +246,6 @@ func TestOfflineQuoteStatefulDifferential(t *testing.T) {
 			}
 			afterMatch := nextOut == step.QuoteAfter[0] && (err != nil || nextFee == step.QuoteAfter[2])
 			row := map[string]any{"scenario": c.Scenario, "step": i, "input": step.Input, "side": step.Side, "beforeOutMatch": beforeOutMatch, "beforeFeeMatch": beforeFeeMatch, "reservesMatch": reservesMatch, "feesMatch": feesMatch, "afterQuoteMatch": afterMatch, "simReserves": []string{s.reserves[0].Dec(), s.reserves[1].Dec()}, "chainReserves": step.ReservesAfter, "simBeforeOut": r.TokenAmountOut.Amount.String(), "simBeforeFee": r.Fee.Amount.String(), "chainBeforeQuote": step.QuoteBefore, "simAfterOut": nextOut, "simAfterFee": nextFee, "chainAfterQuote": step.QuoteAfter}
-			rows = append(rows, row)
 			counts["steps"]++
 			for _, key := range []string{"beforeOutMatch", "beforeFeeMatch", "reservesMatch", "feesMatch", "afterQuoteMatch"} {
 				if row[key].(bool) {
@@ -397,9 +395,9 @@ func TestOfflineQuoteStaleRuntime(t *testing.T) {
 
 func TestOfflineQuoteMetadata(t *testing.T) {
 	s := offlineQuoteSimulator(t)
-	s.Extra.BlockHash = "0x1111111111111111111111111111111111111111111111111111111111111111"
+	s.BlockHash = "0x1111111111111111111111111111111111111111111111111111111111111111"
 	m := s.GetMetaInfo(s.Info.Tokens[0], s.Info.Tokens[1]).(PoolMeta)
-	if m.BlockHash != s.Extra.BlockHash || m.BlockNumber != s.Info.BlockNumber {
+	if m.BlockHash != s.BlockHash || m.BlockNumber != s.Info.BlockNumber {
 		t.Fatal("snapshot metadata lost")
 	}
 	if !s.HasNative || !s.SwapReceiveNativeIn(s.Info.Tokens[0], s.Info.Tokens[1], valueobject.ChainIDBSC) || !s.SwapReturnNativeOut(s.Info.Tokens[1], s.Info.Tokens[0], valueobject.ChainIDBSC) {

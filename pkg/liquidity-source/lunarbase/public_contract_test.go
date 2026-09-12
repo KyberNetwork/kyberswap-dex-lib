@@ -222,8 +222,9 @@ func TestPublicSnapshotConcurrentClientsAndPools(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, f := range fixtures {
-		if len(f.requests) != 30 {
-			t.Fatalf("client%d want30calls, got%d", i, len(f.requests))
+		// One full read, then nine fresh latest-header checks of that state.
+		if len(f.requests) != 12 {
+			t.Fatalf("client%d want12calls, got%d", i, len(f.requests))
 		}
 	}
 }
