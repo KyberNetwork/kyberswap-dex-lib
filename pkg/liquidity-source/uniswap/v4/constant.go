@@ -22,6 +22,7 @@ const (
 var (
 	PoolManager = map[valueobject.ChainID]common.Address{
 		valueobject.ChainIDArbitrumOne:     common.HexToAddress("0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32"),
+		valueobject.ChainIDArc:             common.HexToAddress("0x8366a39CC670B4001A1121B8F6A443A643e40951"),
 		valueobject.ChainIDAvalancheCChain: common.HexToAddress("0x06380C0e0912312B5150364B9DC4542BA0DbBc85"),
 		valueobject.ChainIDBase:            common.HexToAddress("0x498581fF718922c3f8e6A244956aF099B2652b2b"),
 		valueobject.ChainIDBSC:             common.HexToAddress("0x28e2Ea090877bF75740558f6BFB36A5ffeE9e9dF"),
@@ -39,6 +40,7 @@ var (
 	// Addresses: https://docs.uniswap.org/contracts/v4/deployments
 	Quoter = map[valueobject.ChainID]string{
 		valueobject.ChainIDArbitrumOne:     "0x3972C00F7ED34D3ba0aF431F0D790be4E8B1e6E8",
+		valueobject.ChainIDArc:             "0x8dc178eFb8111bB0973dD9D722EBEfF267c98F94",
 		valueobject.ChainIDAvalancheCChain: "0x9F75dD27D6664c475B90e105573E550ff69437B0",
 		valueobject.ChainIDBase:            "0x0d5e0F971ED27FBfF6c2837bf31316121532048D",
 		valueobject.ChainIDBSC:             "0x9F75dD27D6664c475B90e105573E550ff69437B0",
