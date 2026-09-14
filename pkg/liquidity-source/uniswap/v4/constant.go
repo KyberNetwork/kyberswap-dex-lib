@@ -63,5 +63,5 @@ var (
 	ErrNilDeltaSpecified   = errors.New("delta specified is nil")
 	ErrNilDeltaUnspecified = errors.New("delta unspecified is nil")
 
-	defaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460}
+	defaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
 )
