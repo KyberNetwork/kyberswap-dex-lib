@@ -156,8 +156,27 @@ func (t *PoolTracker) resolveHookState(
 	if hookReserves != nil {
 		hookParam.Pool.Reserves = hookReserves
 	}
-	result.Reserves = hookParam.Pool.Reserves
+	result.Reserves = rescaleNativeReserves(hookParam.Cfg.ChainID, hookParam.Pool)
 	return nil
+}
+
+// rescaleNativeReserves converts a native-flagged reserve from its real on-chain decimals to
+// the wrapped-native address's decimals used elsewhere for that token; a no-op except on Arc.
+func rescaleNativeReserves(chainID valueobject.ChainID, p *entity.Pool) entity.PoolReserves {
+	reserves := p.Reserves
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return reserves
+	}
+	for i, isNative := range staticExtra.IsNative {
+		if isNative && i < len(reserves) {
+			amount, ok := new(big.Int).SetString(reserves[i], 10)
+			if ok {
+				reserves[i] = valueobject.WrapNativeAmount(chainID, amount).String()
+			}
+		}
+	}
+	return reserves
 }
 
 func (t *PoolTracker) BootstrapPoolState(
