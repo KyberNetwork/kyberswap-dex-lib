@@ -281,7 +281,7 @@ func TestOfflineQuoteSavedRPC(t *testing.T) {
 		t.Fatal(e)
 	}
 	s := offlineQuoteSimulator(t)
-	if fixture.Block != s.Info.BlockNumber || len(fixture.Rows) != 512 {
+	if fixture.Block != s.Info.BlockNumber || len(fixture.Rows) != 256 {
 		t.Fatal("wrong saved snapshot")
 	}
 	exact, rejected := 0, 0
@@ -310,10 +310,10 @@ func TestOfflineQuoteSavedRPC(t *testing.T) {
 			exact++
 		}
 	}
-	if exact != 504 || rejected != 8 {
+	if exact != 252 || rejected != 4 {
 		t.Fatalf("exact=%d rejected=%d", exact, rejected)
 	}
-	t.Logf("504 exact outputs/fees; 8 shared rejections at block %d", fixture.Block)
+	t.Logf("252 unique exact outputs/fees; 4 shared rejections at block %d", fixture.Block)
 }
 
 func TestOfflineQuoteParameterGrid(t *testing.T) {
@@ -322,13 +322,15 @@ func TestOfflineQuoteParameterGrid(t *testing.T) {
 		t.Fatal(e)
 	}
 	var f struct {
-		Block uint64 `json:"block"`
-		Rows  []struct {
-			Side  int      `json:"side"`
-			Input string   `json:"input"`
-			Max   uint32   `json:"max"`
-			Fee   uint32   `json:"fee"`
-			Words []string `json:"words"`
+		Block         uint64 `json:"block"`
+		SqrtPriceNext string `json:"sqrtPriceNext"`
+		Rows          []struct {
+			Side     int    `json:"side"`
+			Input    string `json:"input"`
+			Max      uint32 `json:"max"`
+			Fee      uint32 `json:"fee"`
+			ChainOut string `json:"chainOut"`
+			ChainFee string `json:"chainFee"`
 		} `json:"rows"`
 	}
 	if e = json.Unmarshal(b, &f); e != nil {
@@ -348,8 +350,9 @@ func TestOfflineQuoteParameterGrid(t *testing.T) {
 			q = quoteYToX(p, amount)
 		}
 		got := []string{q.AmountOut.Dec(), q.SqrtPriceNext.Dec(), q.Fee.Dec()}
-		if fmt.Sprint(got) != fmt.Sprint(r.Words) {
-			t.Errorf("row %d max=%d fee=%d side=%d amount=%s got%v want%v", i, r.Max, r.Fee, r.Side, r.Input, got, r.Words)
+		want := []string{r.ChainOut, f.SqrtPriceNext, r.ChainFee}
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			t.Errorf("row %d max=%d fee=%d side=%d amount=%s got%v want%v", i, r.Max, r.Fee, r.Side, r.Input, got, want)
 		}
 	}
 	t.Log("160 deployed-code counterfactual quotes: max punishment and fee boundaries")

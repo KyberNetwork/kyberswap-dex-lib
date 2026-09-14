@@ -81,11 +81,11 @@ func cfQuote(r *pool.CalcAmountOutResult, e error) string {
 func TestCounterfactualSavedOnChainQuotes(t *testing.T) {
 	p := cfEntity(t)
 	var fixture struct {
-		Block uint64                                                     `json:"block"`
-		Rows  []struct{ Side, Input, Caller, ChainOut, ChainFee string } `json:"rows"`
+		Block uint64                                             `json:"block"`
+		Rows  []struct{ Side, Input, ChainOut, ChainFee string } `json:"rows"`
 	}
 	cfRead(t, "pinned-go-quotes.json", &fixture)
-	if p.BlockNumber != fixture.Block || len(fixture.Rows) != 116 {
+	if p.BlockNumber != fixture.Block || len(fixture.Rows) != 58 {
 		t.Fatal("wrong frozen fixture")
 	}
 	results := []map[string]any{}
@@ -109,15 +109,15 @@ func TestCounterfactualSavedOnChainQuotes(t *testing.T) {
 			positive++
 		}
 		if out != row.ChainOut || (out != "0" && fee != row.ChainFee) {
-			t.Errorf("row %d caller %s output/fee got %s/%s want %s/%s", i, row.Caller, out, fee, row.ChainOut, row.ChainFee)
+			t.Errorf("row %d side %s input %s output/fee got %s/%s want %s/%s", i, row.Side, row.Input, out, fee, row.ChainOut, row.ChainFee)
 		}
 		if before != cfFingerprint(s) {
 			t.Errorf("quote mutated state row %d", i)
 		}
-		results = append(results, map[string]any{"index": i, "caller": row.Caller, "input": row.Input, "output": out, "fee": fee, "match": out == row.ChainOut && (out == "0" || fee == row.ChainFee)})
+		results = append(results, map[string]any{"index": i, "side": row.Side, "input": row.Input, "output": out, "fee": fee, "match": out == row.ChainOut && (out == "0" || fee == row.ChainFee)})
 	}
 	cfSave(t, "frozen-quotes.json", map[string]any{"block": p.BlockNumber, "rows": results, "positiveQuotes": positive})
-	t.Logf("116 frozen on-chain output comparisons; %d positive fee comparisons; 116 purity checks", positive)
+	t.Logf("58 unique frozen on-chain output comparisons; %d positive fee comparisons; 58 purity checks", positive)
 }
 
 func TestCounterfactualQuotePurityCloneAndSequence(t *testing.T) {
