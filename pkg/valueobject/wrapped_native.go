@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"math/big"
 	"strings"
 )
 
@@ -50,6 +51,7 @@ var WrappedNativeMap = map[ChainID]string{
 	ChainIDMegaETH:         "0x4200000000000000000000000000000000000006",
 	ChainIDRise:            "0x4200000000000000000000000000000000000006",
 	ChainIDRobinhood:       "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+	ChainIDArc:             "0x3600000000000000000000000000000000000000",
 }
 
 // LowerWrapped returns lowercase wrapped token string
@@ -101,4 +103,29 @@ func IsZero(address string) bool {
 
 func IsNativeOrZero(address string) bool {
 	return IsNative(address) || IsZero(address)
+}
+
+// arcNativeDecimalsScale is the decimals gap between Arc's native token (18 decimals) and its
+// wrapped-native entry (the ERC-20 USDC interface, 6 decimals) - they share one balance rather
+// than being separate 1:1 contracts like every other chain's wrapped-native token.
+var arcNativeDecimalsScale = big.NewInt(1e12)
+
+// WrapNativeAmount converts a native-scale amount to the wrapped-native address's decimals.
+// A no-op on every chain except Arc, where native and its wrapped-native entry share a balance
+// at different decimals; on every other chain wrapped-native matches native's decimals 1:1.
+// nil amount is returned as-is.
+func WrapNativeAmount(chainID ChainID, amount *big.Int) *big.Int {
+	if chainID != ChainIDArc || amount == nil {
+		return amount
+	}
+	return new(big.Int).Quo(amount, arcNativeDecimalsScale)
+}
+
+// UnwrapNativeAmount converts a wrapped-native-scale amount back to native's decimals.
+// The inverse of WrapNativeAmount.
+func UnwrapNativeAmount(chainID ChainID, amount *big.Int) *big.Int {
+	if chainID != ChainIDArc || amount == nil {
+		return amount
+	}
+	return new(big.Int).Mul(amount, arcNativeDecimalsScale)
 }
