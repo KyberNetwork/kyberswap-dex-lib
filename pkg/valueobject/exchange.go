@@ -318,6 +318,7 @@ const (
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4O1                 = "uniswap-v4-o1"
 	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
+	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
