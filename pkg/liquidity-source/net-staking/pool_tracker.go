@@ -70,10 +70,17 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 
-	p.Reserves = entity.PoolReserves{
-		extra.NETReserve.ToBig().String(),
-		extra.SNETStakingReserve.ToBig().String(),
-		defaultReserve,
+	if t.config.WrapAddress == "" {
+		p.Reserves = entity.PoolReserves{
+			extra.NETReserve.ToBig().String(),
+			extra.SNETStakingReserve.ToBig().String(),
+		}
+	} else {
+		p.Reserves = entity.PoolReserves{
+			extra.NETReserve.ToBig().String(),
+			extra.SNETStakingReserve.ToBig().String(),
+			defaultReserve,
+		}
 	}
 
 	return p, nil
@@ -88,24 +95,34 @@ func fetchDynamic(
 	sNetAddr string,
 	overrides map[gethcommon.Address]gethclient.OverrideAccount,
 ) (PoolExtra, uint64, error) {
-	var indexBig *big.Int
+	hasWrap := wrapAddress != ""
 
-	req1 := ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req1.SetOverrides(overrides)
-	}
-	req1.AddCall(&ethrpc.Call{
-		ABI:    stakedNETABI,
-		Target: sNetAddr,
-		Method: "index",
-	}, []any{&indexBig})
+	var (
+		indexBig    *big.Int
+		blockNumber = big.NewInt(0)
+	)
 
-	resp1, err := req1.Aggregate()
-	if err != nil {
-		return PoolExtra{}, 0, err
-	}
-	if resp1.BlockNumber == nil {
-		resp1.BlockNumber = big.NewInt(0)
+	// index() is only ever consumed by the wrap-side math (sNetToWs/wsToSNet), which
+	// never runs when there's no wrap contract. Some staking forks' staked token (e.g.
+	// NUKE's sNUKE) don't even expose an index() view, so skip the call entirely.
+	if hasWrap {
+		req1 := ethrpcClient.NewRequest().SetContext(ctx)
+		if overrides != nil {
+			req1.SetOverrides(overrides)
+		}
+		req1.AddCall(&ethrpc.Call{
+			ABI:    stakedNETABI,
+			Target: sNetAddr,
+			Method: "index",
+		}, []any{&indexBig})
+
+		resp1, err := req1.Aggregate()
+		if err != nil {
+			return PoolExtra{}, 0, err
+		}
+		if resp1.BlockNumber != nil {
+			blockNumber = resp1.BlockNumber
+		}
 	}
 
 	var (
@@ -127,20 +144,31 @@ func fetchDynamic(
 		Target: sNetAddr,
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
-	}, []any{&sNetStakingReserveBig}).AddCall(&ethrpc.Call{
-		ABI:    utilabi.Erc20ABI,
-		Target: sNetAddr,
-		Method: utilabi.Erc20BalanceOfMethod,
-		Params: []any{gethcommon.HexToAddress(wrapAddress)},
-	}, []any{&sNetWrapReserveBig})
-	if _, err = req2.Aggregate(); err != nil {
+	}, []any{&sNetStakingReserveBig})
+	if hasWrap {
+		req2.AddCall(&ethrpc.Call{
+			ABI:    utilabi.Erc20ABI,
+			Target: sNetAddr,
+			Method: utilabi.Erc20BalanceOfMethod,
+			Params: []any{gethcommon.HexToAddress(wrapAddress)},
+		}, []any{&sNetWrapReserveBig})
+	}
+	resp2, err := req2.Aggregate()
+	if err != nil {
 		return PoolExtra{}, 0, err
 	}
+	if !hasWrap && resp2.BlockNumber != nil {
+		blockNumber = resp2.BlockNumber
+	}
 
-	return PoolExtra{
-		Index:              uint256.MustFromBig(indexBig),
+	extra := PoolExtra{
 		NETReserve:         uint256.MustFromBig(netReserveBig),
 		SNETStakingReserve: uint256.MustFromBig(sNetStakingReserveBig),
-		SNETWrapReserve:    uint256.MustFromBig(sNetWrapReserveBig),
-	}, resp1.BlockNumber.Uint64(), nil
+	}
+	if hasWrap {
+		extra.Index = uint256.MustFromBig(indexBig)
+		extra.SNETWrapReserve = uint256.MustFromBig(sNetWrapReserveBig)
+	}
+
+	return extra, blockNumber.Uint64(), nil
 }

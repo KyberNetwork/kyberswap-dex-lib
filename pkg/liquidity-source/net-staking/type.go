@@ -32,7 +32,7 @@ type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
 	NET         string `json:"net"`
 	SNET        string `json:"sNet"`
-	WSNET       string `json:"wsNet"`
+	WSNET       string `json:"wsNet,omitempty"`
 
 	// ApprovalAddress is the first-hop contract for the swap direction: the wsNET/wrap
 	// contract for ActionWrap (sNET->wsNET) only, or the pool address (Staking) for

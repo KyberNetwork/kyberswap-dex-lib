@@ -6,17 +6,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var (
-	stakingABI   abi.ABI
-	stakedNETABI abi.ABI
-)
+var stakedNETABI abi.ABI
 
 func init() {
 	builder := []struct {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&stakingABI, stakingABIJson},
 		{&stakedNETABI, stakedNETABIJson},
 	}
 

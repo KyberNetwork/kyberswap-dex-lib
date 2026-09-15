@@ -4,10 +4,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -54,6 +56,7 @@ func newSimulatorWithReserves(
 				big.NewInt(0),
 			},
 		}},
+		hasWrap:            true,
 		index:              index,
 		netReserve:         new(uint256.Int).Set(netReserve),
 		sNetStakingReserve: new(uint256.Int).Set(sNetStakingReserve),
@@ -263,4 +266,144 @@ func TestCloneState_DeepCopy(t *testing.T) {
 	origNETReserve := new(uint256.Int).Set(s.netReserve)
 	clone.netReserve.SetUint64(1)
 	assert.Equal(t, origNETReserve, s.netReserve, "original netReserve must be unmodified after clone mutation")
+}
+
+// ---- no-wrap pool (NUKE-shaped: 2 tokens, base<->staked only) ----
+
+const (
+	testNukeStakingAddress = "0x9c648d57e929f59b483b2903390725449f990cb8"
+	testNukeAddress        = "0xca9c78dd337a67f6e0077f65f5e9218719d30ed1"
+	testSNukeAddress       = "0xb773ec2c326b7f98a5a83fc098825492f020a4c1"
+)
+
+var (
+	testNukeReserve  = uint256.NewInt(500_000_000_000) // 500 NUKE (9 dec)
+	testSNukeReserve = uint256.NewInt(300_000_000_000) // 300 sNUKE (9 dec)
+)
+
+// newNoWrapSimulator builds a 2-token pool (no wrap contract), matching the shape
+// NewPoolSimulator produces when entity.Pool has exactly 2 tokens.
+func newNoWrapSimulator(t *testing.T) *PoolSimulator {
+	t.Helper()
+	return &PoolSimulator{
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  testNukeStakingAddress,
+			Exchange: DexType,
+			Type:     DexType,
+			Tokens:   []string{testNukeAddress, testSNukeAddress},
+			Reserves: []*big.Int{testNukeReserve.ToBig(), testSNukeReserve.ToBig()},
+		}},
+		hasWrap:            false,
+		netReserve:         new(uint256.Int).Set(testNukeReserve),
+		sNetStakingReserve: new(uint256.Int).Set(testSNukeReserve),
+		sNetWrapReserve:    new(uint256.Int),
+	}
+}
+
+func TestNoWrap_CalcAmountOut_BaseToStaked(t *testing.T) {
+	s := newNoWrapSimulator(t)
+	amtIn := big.NewInt(1_000_000_000) // 1 NUKE
+	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testNukeAddress, Amount: amtIn},
+		TokenOut:      testSNukeAddress,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, amtIn, res.TokenAmountOut.Amount, "base->staked must be 1:1")
+	assert.Equal(t, ActionStake, res.SwapInfo.(SwapInfo).Action)
+}
+
+func TestNoWrap_CalcAmountOut_StakedToBase(t *testing.T) {
+	s := newNoWrapSimulator(t)
+	amtIn := big.NewInt(500_000_000) // 0.5 sNUKE
+	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testSNukeAddress, Amount: amtIn},
+		TokenOut:      testNukeAddress,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, amtIn, res.TokenAmountOut.Amount, "staked->base must be 1:1")
+	assert.Equal(t, ActionUnstake, res.SwapInfo.(SwapInfo).Action)
+}
+
+// TestNoWrap_CalcAmountOut_WrapDirection_NoPanic guards the most important regression:
+// a naive port of the old 3-token code would index s.Info.Tokens[idxWSNET] out of bounds
+// on a 2-token pool. Any wrap-related direction must error cleanly, never panic.
+func TestNoWrap_CalcAmountOut_WrapDirection_NoPanic(t *testing.T) {
+	s := newNoWrapSimulator(t)
+	fakeWsToken := "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
+	assert.NotPanics(t, func() {
+		_, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: testSNukeAddress, Amount: big.NewInt(1)},
+			TokenOut:      fakeWsToken,
+		})
+		assert.ErrorIs(t, err, ErrInvalidTokenOut)
+	})
+
+	assert.NotPanics(t, func() {
+		_, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: fakeWsToken, Amount: big.NewInt(1)},
+			TokenOut:      testSNukeAddress,
+		})
+		assert.ErrorIs(t, err, ErrInvalidTokenIn)
+	})
+}
+
+func TestNoWrap_CanSwap_NeverLeaksWrapOrEmptyToken(t *testing.T) {
+	s := newNoWrapSimulator(t)
+
+	for _, tok := range []string{testNukeAddress, testSNukeAddress} {
+		to := s.CanSwapTo(tok)
+		from := s.CanSwapFrom(tok)
+		assert.NotContains(t, to, "", "CanSwapTo must never contain an empty-string token")
+		assert.NotContains(t, from, "", "CanSwapFrom must never contain an empty-string token")
+		assert.Len(t, to, 1, "no-wrap pool has exactly one counterpart token")
+		assert.Len(t, from, 1, "no-wrap pool has exactly one counterpart token")
+	}
+}
+
+func TestNoWrap_GetApprovalAddress_AlwaysStaking(t *testing.T) {
+	s := newNoWrapSimulator(t)
+	assert.Equal(t, testNukeStakingAddress, s.GetApprovalAddress(testNukeAddress, testSNukeAddress))
+	assert.Equal(t, testNukeStakingAddress, s.GetApprovalAddress(testSNukeAddress, testNukeAddress))
+}
+
+func TestNoWrap_GetMetaInfo_WSNETEmpty(t *testing.T) {
+	s := newNoWrapSimulator(t)
+	meta := s.GetMetaInfo(testNukeAddress, testSNukeAddress).(PoolMeta)
+	assert.Empty(t, meta.WSNET)
+}
+
+// TestNewPoolSimulator_NoWrap confirms the constructor sets hasWrap from the token count
+// (2 tokens => no wrap) and never dereferences a nil wrap-side extra field.
+func TestNewPoolSimulator_NoWrap(t *testing.T) {
+	extra := PoolExtra{
+		NETReserve:         testNukeReserve,
+		SNETStakingReserve: testSNukeReserve,
+	}
+	extraBytes, err := json.Marshal(extra)
+	require.NoError(t, err)
+
+	ep := entity.Pool{
+		Address:  testNukeStakingAddress,
+		Exchange: DexType,
+		Type:     DexType,
+		Tokens: []*entity.PoolToken{
+			{Address: testNukeAddress, Swappable: true},
+			{Address: testSNukeAddress, Swappable: true},
+		},
+		Reserves: entity.PoolReserves{testNukeReserve.ToBig().String(), testSNukeReserve.ToBig().String()},
+		Extra:    string(extraBytes),
+	}
+
+	s, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+	assert.False(t, s.hasWrap)
+	assert.Nil(t, s.index)
+
+	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testNukeAddress, Amount: big.NewInt(1_000_000_000)},
+		TokenOut:      testSNukeAddress,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, big.NewInt(1_000_000_000), res.TokenAmountOut.Amount)
 }

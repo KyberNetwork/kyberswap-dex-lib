@@ -13,12 +13,19 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// PoolSimulator implements pool.IPoolSimulator for the NET staking/wrapping
-// protocol. It supports five swap directions between NET, sNET, and wsNET, spanning two
-// on-chain contracts (Staking and WrappedStakedNET). There is no wsNET->NET direction:
-// the executor helper (INetStaking.NetAction) has no reverse composite action, and
-// pathfinder-lib forbids reusing the same pool twice in a route, so no 2-hop workaround
-// exists either. wsNET->NET is unsupported by design.
+// PoolSimulator implements pool.IPoolSimulator for staking/wrapping protocols shaped like
+// NET/sNET/wsNET. It has two modes, selected by whether the pool config has a wrap
+// contract:
+//
+//   - With wrap (hasWrap==true, 3 tokens): supports five swap directions between base
+//     (NET), staked (sNET), and wrapped (wsNET), spanning two on-chain contracts (Staking
+//     and WrappedStakedNET). There is no wsNET->NET direction: the executor helper
+//     (INetStaking.NetAction) has no reverse composite action, and pathfinder-lib forbids
+//     reusing the same pool twice in a route, so no 2-hop workaround exists either.
+//     wsNET->NET is unsupported by design.
+//   - Without wrap (hasWrap==false, 2 tokens): only the base<->staked 1:1 leg
+//     (Stake/Unstake) is offered. Wrap/Unwrap/StakeAndWrap never appear, and the wsNET
+//     token slot does not exist at all.
 //
 // Pricing:
 //   - NET <-> sNET: 1:1 (Staking.stake/unstake, warmupEpochs()==0 so atomic)
@@ -42,6 +49,10 @@ const (
 
 type PoolSimulator struct {
 	pool.Pool
+
+	// hasWrap is true when the pool has a wrap contract (3 tokens: base/staked/wrapped),
+	// false when it only offers the base<->staked 1:1 leg (2 tokens).
+	hasWrap bool
 
 	index *uint256.Int
 
@@ -80,9 +91,21 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if sNetStakingReserve == nil {
 		sNetStakingReserve = new(uint256.Int)
 	}
-	sNetWrapReserve := extra.SNETWrapReserve
-	if sNetWrapReserve == nil {
+
+	hasWrap := len(ep.Tokens) == 3
+
+	// Only trust the wrap-side fields when the pool actually has a wrap contract; they're
+	// never read when !hasWrap (ActionWrap/ActionUnwrap/ActionStakeAndWrap can never be
+	// selected), so a nil-safe zero default is fine.
+	var (
+		index           *uint256.Int
 		sNetWrapReserve = new(uint256.Int)
+	)
+	if hasWrap {
+		index = extra.Index
+		if extra.SNETWrapReserve != nil {
+			sNetWrapReserve = extra.SNETWrapReserve
+		}
 	}
 
 	return &PoolSimulator{
@@ -94,7 +117,8 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(ep.Reserves, func(item string, _ int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: ep.BlockNumber,
 		}},
-		index:              extra.Index,
+		hasWrap:            hasWrap,
+		index:              index,
 		netReserve:         netReserve,
 		sNetStakingReserve: sNetStakingReserve,
 		sNetWrapReserve:    sNetWrapReserve,
@@ -116,7 +140,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	action, err := ActionFor(tokenIn, tokenOut, s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET], s.Info.Tokens[idxWSNET])
+	action, err := ActionFor(tokenIn, tokenOut, s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET], s.wsNetAddr())
 	if err != nil {
 		return nil, err
 	}
@@ -236,9 +260,17 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 		BlockNumber:     s.Info.BlockNumber,
 		NET:             s.Info.Tokens[idxNET],
 		SNET:            s.Info.Tokens[idxSNET],
-		WSNET:           s.Info.Tokens[idxWSNET],
+		WSNET:           s.wsNetAddr(),
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+// wsNetAddr returns the wrapped-token address, or "" when the pool has no wrap contract.
+func (s *PoolSimulator) wsNetAddr() string {
+	if s.hasWrap {
+		return s.Info.Tokens[idxWSNET]
+	}
+	return ""
 }
 
 // GetApprovalAddress returns the first-hop contract the caller must approve tokenIn to:
@@ -248,7 +280,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 // ExecutorV3Helper9.executeNetStaking's spender selection.
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
 	action, err := ActionFor(strings.ToLower(tokenIn), strings.ToLower(tokenOut),
-		s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET], s.Info.Tokens[idxWSNET])
+		s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET], s.wsNetAddr())
 	if err != nil {
 		return s.Info.Address
 	}
@@ -261,33 +293,47 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
 }
 
 // CanSwapTo returns the tokens that can swap to address. wsNET has no path to NET:
-// the executor helper has no reverse composite action.
+// the executor helper has no reverse composite action. When the pool has no wrap
+// contract (s.hasWrap==false), wsNET entries are omitted entirely rather than appending
+// an empty-string placeholder — pathfinder must never see a "" token.
 func (s *PoolSimulator) CanSwapTo(address string) []string {
+	net, sNet := s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET]
 	switch address {
-	case s.Info.Tokens[idxNET]:
-		return []string{s.Info.Tokens[idxSNET]}
-	case s.Info.Tokens[idxSNET]:
-		return []string{s.Info.Tokens[idxNET], s.Info.Tokens[idxWSNET]}
-	case s.Info.Tokens[idxWSNET]:
-		return []string{s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET]}
-	default:
-		return nil
+	case net:
+		return []string{sNet}
+	case sNet:
+		if s.hasWrap {
+			return []string{net, s.Info.Tokens[idxWSNET]}
+		}
+		return []string{net}
 	}
+	if s.hasWrap && address == s.Info.Tokens[idxWSNET] {
+		return []string{net, sNet}
+	}
+	return nil
 }
 
 // CanSwapFrom returns the tokens reachable by swapping from address. NET->wsNET
-// (composite stake+wrap) is fine, but wsNET->NET is not: see CanSwapTo.
+// (composite stake+wrap) is fine, but wsNET->NET is not: see CanSwapTo. When the pool has
+// no wrap contract, wsNET entries are omitted entirely (see CanSwapTo).
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	net, sNet := s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET]
 	switch address {
-	case s.Info.Tokens[idxNET]:
-		return []string{s.Info.Tokens[idxSNET], s.Info.Tokens[idxWSNET]}
-	case s.Info.Tokens[idxSNET]:
-		return []string{s.Info.Tokens[idxNET], s.Info.Tokens[idxWSNET]}
-	case s.Info.Tokens[idxWSNET]:
-		return []string{s.Info.Tokens[idxSNET]}
-	default:
-		return nil
+	case net:
+		if s.hasWrap {
+			return []string{sNet, s.Info.Tokens[idxWSNET]}
+		}
+		return []string{sNet}
+	case sNet:
+		if s.hasWrap {
+			return []string{net, s.Info.Tokens[idxWSNET]}
+		}
+		return []string{net}
 	}
+	if s.hasWrap && address == s.Info.Tokens[idxWSNET] {
+		return []string{sNet}
+	}
+	return nil
 }
 
 func ActionFor(tokenIn, tokenOut, net, sNet, wsNet string) (Action, error) {

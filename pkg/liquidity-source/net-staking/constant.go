@@ -10,16 +10,21 @@ const (
 	DexType = valueobject.ExchangeNetStaking
 
 	defaultReserve = "1000000000000000000"
+
+	// Default getter names - used when Config leaves BaseTokenMethod/StakedTokenMethod
+	// unset, keeping existing net-staking configs unchanged.
+	defaultBaseTokenMethod   = "net"
+	defaultStakedTokenMethod = "sNet"
 )
 
 type Action uint8
 
 const (
-	ActionStake         Action = iota // NET -> sNET (Staking.stake, 1:1)
-	ActionUnstake                     // sNET -> NET (Staking.unstake, 1:1)
-	ActionWrap                        // sNET -> wsNET (WrappedStakedNET.wrap, ratio via index())
-	ActionUnwrap                      // wsNET -> sNET (WrappedStakedNET.unwrap, ratio via index())
-	ActionStakeAndWrap                // NET -> wsNET (composite: stake then wrap)
+	ActionStake        Action = iota // NET -> sNET (Staking.stake, 1:1)
+	ActionUnstake                    // sNET -> NET (Staking.unstake, 1:1)
+	ActionWrap                       // sNET -> wsNET (WrappedStakedNET.wrap, ratio via index())
+	ActionUnwrap                     // wsNET -> sNET (WrappedStakedNET.unwrap, ratio via index())
+	ActionStakeAndWrap               // NET -> wsNET (composite: stake then wrap)
 )
 
 var dfGas = Gas{
