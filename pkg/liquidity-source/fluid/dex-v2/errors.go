@@ -8,6 +8,7 @@ var (
 	ErrAdjustedAmountOutOfLimits  = errors.New("adjusted amount out of limits")
 	ErrAmountOutOfLimits          = errors.New("amount out of limits")
 	ErrFluidLiquidityCalcsError   = errors.New("fluid liquidity calcs error")
+	ErrGreaterThanMaxAmountOut    = errors.New("amount out greater than max amount out allowed")
 	ErrNextTickOutOfBounds        = errors.New("next tick out of bounds")
 	ErrOverflow                   = errors.New("bigInt overflow int/uint256")
 	ErrSqrtPriceChangeOutOfBounds = errors.New("sqrt price change out of bounds")
