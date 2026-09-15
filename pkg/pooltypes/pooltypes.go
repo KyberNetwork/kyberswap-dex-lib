@@ -11,6 +11,7 @@ import (
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
+	arcadecurve "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arcade/curve"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima/metric-propamm"
@@ -427,6 +428,7 @@ type Types struct {
 	Synthereum                 string
 	GenericArm                 string
 	GOHM                       string
+	ArcadeCurve                string
 	ArenaBC                    string
 	XsolvBTC                   string
 	Midas                      string
@@ -674,6 +676,7 @@ var (
 		Synthereum:                 synthereum.DexType,
 		GenericArm:                 genericarm.DexType,
 		GOHM:                       gohm.DexType,
+		ArcadeCurve:                arcadecurve.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
 		Midas:                      midas.DexType,
