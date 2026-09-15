@@ -22,11 +22,12 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 	wrappedNative := strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDBase])
 
 	extraBytes, err := json.Marshal(Extra{
-		SqrtPriceX96:      uint256.NewInt(1),
-		FeeAskX24:         0,
-		FeeBidX24:         1,
-		LatestUpdateBlock: 1,
-		ConcentrationK:    5000,
+		SqrtPriceX96:       new(uint256.Int).Lsh(uint256.NewInt(1), 96),
+		FeeAskX24:          0,
+		FeeBidX24:          0,
+		LatestUpdateBlock:  1,
+		ConcentrationK:     0,
+		ConcentrationModel: true,
 	})
 	if err != nil {
 		t.Fatalf("marshal extra: %v", err)
@@ -56,24 +57,28 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 	}
 
 	cloned := sim.CloneState()
+	quote, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(10)},
+		TokenOut:      sim.GetTokens()[1],
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	cloned.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(10)},
-		TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(20)},
-		Fee:            pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(0)},
-		SwapInfo: SwapInfo{
-			nextSqrtPriceX96: uint256.NewInt(2),
-		},
+		TokenAmountOut: *quote.TokenAmountOut,
+		Fee:            *quote.Fee,
+		SwapInfo:       quote.SwapInfo,
 	})
 
 	if sim.GetReserves()[0].Cmp(big.NewInt(100)) != 0 || sim.GetReserves()[1].Cmp(big.NewInt(200)) != 0 {
 		t.Fatalf("original reserves mutated: got %s/%s", sim.GetReserves()[0], sim.GetReserves()[1])
 	}
-	if sim.SqrtPriceX96.Uint64() != 1 {
-		t.Fatalf("original price mutated: got %d", sim.SqrtPriceX96.Uint64())
+	if cloned.GetReserves()[0].Cmp(big.NewInt(110)) != 0 || cloned.GetReserves()[1].Cmp(big.NewInt(190)) != 0 {
+		t.Fatal("clone did not apply the executable quote")
 	}
-	if cloned.(*PoolSimulator).SqrtPriceX96.Uint64() != 1 {
-		t.Fatalf("cloned price unexpectedly mutated (swaps must not move SqrtPriceX96): got %d",
-			cloned.(*PoolSimulator).SqrtPriceX96.Uint64())
+	if !sim.SqrtPriceX96.Eq(q96) || !cloned.(*PoolSimulator).SqrtPriceX96.Eq(q96) {
+		t.Fatal("swap changed operator-set anchor price")
 	}
 
 	meta := sim.GetMetaInfo(sim.GetTokens()[1], sim.GetTokens()[0]).(PoolMeta)
