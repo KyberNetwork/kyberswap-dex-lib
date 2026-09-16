@@ -109,6 +109,30 @@
     ]
   },
   {
+    "type": "function",
+    "name": "buy",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "minTokensOut", "type": "uint256" },
+      { "name": "deadline", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [{ "name": "tokensOut", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "sell",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "tokensIn", "type": "uint256" },
+      { "name": "minAmountOut", "type": "uint256" },
+      { "name": "deadline", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+  },
+  {
     "type": "event",
     "name": "Trade",
     "anonymous": false,

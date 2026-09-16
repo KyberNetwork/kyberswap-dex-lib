@@ -41,9 +41,11 @@ type SwapInfo struct {
 }
 
 // PoolMeta names the launch as the contract to approve: a buy pulls the quote token and a sell pulls
-// the launched token, both with transferFrom.
+// the launched token, both with transferFrom. IsBuy tells the encoder which of the launch's two calls
+// to build, since token0/token1 order is not itself buy/sell direction.
 type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
+	IsBuy           bool   `json:"isBuy"`
 	BlockNumber     uint64 `json:"blockNumber"`
 }
 

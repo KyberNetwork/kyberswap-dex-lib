@@ -171,8 +171,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{p.curve.reserve.ToBig(), tokensLeft.ToBig()}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return PoolMeta{ApprovalAddress: p.Info.Address, BlockNumber: p.Info.BlockNumber}
+func (p *PoolSimulator) GetMetaInfo(_, tokenOut string) any {
+	return PoolMeta{
+		ApprovalAddress: p.Info.Address,
+		IsBuy:           p.GetTokenIndex(tokenOut) == 1,
+		BlockNumber:     p.Info.BlockNumber,
+	}
 }
 
 // GetApprovalAddress returns the launch itself: it pulls both legs with transferFrom.

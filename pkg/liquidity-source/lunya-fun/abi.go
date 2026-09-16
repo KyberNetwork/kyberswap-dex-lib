@@ -14,6 +14,11 @@ var (
 	tradeEvent         abi.Event
 )
 
+// LaunchABI is exported for aggregator-encoding's swapdata packer, which calls
+// LaunchABI.Pack("buy", ...) / LaunchABI.Pack("sell", ...) to build the on-chain calldata directly
+// against the same ABI the tracker parses -- no separate copy to drift.
+var LaunchABI abi.ABI
+
 func init() {
 	builder := []struct {
 		ABI  *abi.ABI
@@ -32,4 +37,6 @@ func init() {
 
 	launchCreatedEvent = factoryABI.Events["LaunchCreated"]
 	tradeEvent = launchABI.Events["Trade"]
+
+	LaunchABI = launchABI
 }
