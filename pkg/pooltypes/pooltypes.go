@@ -158,6 +158,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	slyngfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slyng-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
@@ -488,6 +489,7 @@ type Types struct {
 	StonkbrokersFunV2          string
 	Lunya                      string
 	LunyaFun                   string
+	SlyngFun                   string
 	NetStaking                 string
 }
 
@@ -739,6 +741,7 @@ var (
 		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
 		Lunya:                      lunya.DexType,
 		LunyaFun:                   lunyafun.DexType,
+		SlyngFun:                   slyngfun.DexType,
 		DeepstateOb:                deepstateob.DexType,
 		NetStaking:                 netstaking.DexType,
 	}
