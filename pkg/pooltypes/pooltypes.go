@@ -79,6 +79,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
+	everlongflamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/everlong/flamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flap"
 	flowstatec1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flowstate-c1"
@@ -489,6 +490,7 @@ type Types struct {
 	Lunya                      string
 	LunyaFun                   string
 	NetStaking                 string
+	EverlongFlamm              string
 }
 
 var (
@@ -741,5 +743,6 @@ var (
 		LunyaFun:                   lunyafun.DexType,
 		DeepstateOb:                deepstateob.DexType,
 		NetStaking:                 netstaking.DexType,
+		EverlongFlamm:              everlongflamm.DexType,
 	}
 )
