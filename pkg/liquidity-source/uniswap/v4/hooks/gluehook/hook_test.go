@@ -13,7 +13,7 @@ import (
 
 func TestHookRegistered(t *testing.T) {
 	t.Parallel()
-	// every generation (V3 canonical, V2 legacy) resolves to the same passthrough hook
+	// the V3 address (the only one registered) resolves to the passthrough hook
 	for _, addr := range HookAddresses {
 		hook, ok := uniswapv4.GetHook(addr, nil)
 		require.True(t, ok, addr.Hex())
@@ -21,9 +21,9 @@ func TestHookRegistered(t *testing.T) {
 	}
 }
 
-// GlueHook never changes the swapper's amounts (V3: no beforeSwap, the pump is the hook's own
-// swap in afterSwap from the pot's balance; V2: the shield pays the seller the pool's exact
-// output) — the simulation must be a pure passthrough with only a gas budget on top.
+// GlueHook never changes the swapper's amounts (no beforeSwap; the pump is the hook's own swap
+// in afterSwap from the pot's balance) — the simulation must be a pure passthrough with only a
+// gas budget on top.
 func TestPassthroughQuoting(t *testing.T) {
 	t.Parallel()
 	hook, _ := uniswapv4.GetHook(HookAddresses[0], nil)
