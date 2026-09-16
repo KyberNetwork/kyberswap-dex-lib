@@ -1,0 +1,377 @@
+[
+  {
+    "type": "function",
+    "name": "LOAN_SCALE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "POOL",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "anchorSqrtX96",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint160",
+        "internalType": "uint160"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "boundPool",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "genesisStrategyHash",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "idleStable",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "idleVolatile",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "kappa",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "params",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct EverlongHook.Params",
+        "components": [
+          {
+            "name": "aWad",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "spanUpWad",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "spanDnWad",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "anchorPriceWad",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "loanDecimals",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "tuning",
+            "type": "tuple",
+            "internalType": "struct EverlongHook.Tuning",
+            "components": [
+              {
+                "name": "fee",
+                "type": "tuple",
+                "internalType": "struct EverlongStrategy.FeeParams",
+                "components": [
+                  {
+                    "name": "midFeeWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "outFeeWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "gammaWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "sigmaRefWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "volBetaWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "volMinWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "volMaxWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  },
+                  {
+                    "name": "dirSkewWad",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                  }
+                ]
+              },
+              {
+                "name": "invSkewKappaWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "invSkewBandWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "emaHalfLife",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "rvHalfLife",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "stepDivisorWad",
+                "type": "uint128",
+                "internalType": "uint128"
+              },
+              {
+                "name": "inertiaWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "inertiaMaxWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          },
+          {
+            "name": "bounds",
+            "type": "tuple",
+            "internalType": "struct EverlongHook.Bounds",
+            "components": [
+              {
+                "name": "minFeeWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "maxFeeWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "minEmaHalfLife",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "maxEmaHalfLife",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "maxRvHalfLife",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "maxStepWad",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "minStepDivisorWad",
+                "type": "uint128",
+                "internalType": "uint128"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "reservationPriceWad",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "reserveStable",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "reserveVolatile",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "rvWad",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "support",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct AlmCurve.Support",
+        "components": [
+          {
+            "name": "aWad",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "xLo",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "xHi",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "yHi",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "xWad",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

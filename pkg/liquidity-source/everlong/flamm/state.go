@@ -7,9 +7,9 @@ import (
 
 // The composed pool state the swap and leverage entries evaluate (c104 @ 80abd43): FLAMMStore's ledger, dials,
 // limits and switches (src/core/flamm/FLAMMStore.sol), the Router record with every venue's Morpho market
-// (src/core/mm), the swap hook's storage (src/hooks/everlong/EverlongHook.sol), the spread hook's post
-// (src/hooks/everlong/lev/LeverageSpreadHook.sol) and the PriceFeed's inputs (src/core/PriceFeed.sol). The
-// leverage hook is stateless and reads the swap hook's book, so it carries nothing here.
+// (src/core/mm), the pool's hooks as their kinds' states (hook_kinds.go poolHooks: the swap hook's storage,
+// src/hooks/everlong/EverlongHook.sol, and the spread hook's post, src/hooks/everlong/lev/LeverageSpreadHook.sol;
+// the leverage hook is stateless and reads the swap hook's book) and the PriceFeed's inputs (src/core/PriceFeed.sol).
 //
 // Every entry takes the block timestamp it runs at. Almost nothing in the state is a price or an accrual already
 // evaluated at the snapshot: the feed checks, the Morpho accrual and the spread's age are all recomputed at
@@ -88,6 +88,32 @@ func (h *spreadHookState) spreadPpm(now uint64) (bool, uint256.Int) {
 	return true, h.Spread
 }
 
+// liveThrough reports whether the post answers through now + margin (a live post is
+// `block.timestamp <= lastSetTs + maxSpreadAge`, or maxSpreadAge == 0) with a ppm below PPM.
+func (h *spreadHookState) liveThrough(now, margin uint64) bool {
+	if !h.Spread.Lt(uPpm) {
+		return false
+	}
+	if !h.MaxSpreadAge.IsZero() {
+		var deadline, at uint256.Int
+		deadline.Add(&h.LastSetTs, &h.MaxSpreadAge)
+		at.SetUint64(now)
+		if _, overflow := at.AddOverflow(&at, uint256.NewInt(margin)); overflow || at.Gt(&deadline) {
+			return false
+		}
+	}
+	return true
+}
+
+// expiry is the deadline a post that answers at now stops answering after: (lastSetTs, maxSpreadAge), none when
+// the post does not answer or has no staleness window.
+func (h *spreadHookState) expiry(now uint64) (lastSet, maxAge uint256.Int, ok bool) {
+	if live, _ := h.spreadPpm(now); !live || h.MaxSpreadAge.IsZero() {
+		return lastSet, maxAge, false
+	}
+	return h.LastSetTs, h.MaxSpreadAge, true
+}
+
 // flammState is one pool's complete swap-path state. Pool.PriceWad / Pool.CrossWad are not state: priced fills
 // them from Feed at the timestamp of the call.
 type flammState struct {
@@ -105,22 +131,20 @@ type flammState struct {
 	ShareSupply uint256.Int `json:"shareSupply"`
 	// LastLeverSpreadPpm is FLAMMStore.lastLeverSpreadPpm, the lever-down degrade value (no view: storage).
 	LastLeverSpreadPpm uint256.Int `json:"lastLeverSpreadPpm"`
-	// HasLeverageHook / HasSpreadHook are hooks().leverageHook / spreadHook != 0. A zero spread hook answers a
-	// staticcall with empty data: no answer.
-	HasLeverageHook bool            `json:"hasLeverageHook"`
-	HasSpreadHook   bool            `json:"hasSpreadHook"`
-	Router          mmRouter        `json:"router"`
-	Hook            hookState       `json:"hook"`
-	Spread          spreadHookState `json:"spread"`
-	Feed            priceFeedState  `json:"feed"`
+	// Hooks is hooks() with each role's kind and state; an empty leverage role is LeverageDisabled
+	// (FLAMMLeverLib.sol:81), an empty spread role answers no spread.
+	Hooks  poolHooks      `json:"hooks"`
+	Router mmRouter       `json:"router"`
+	Feed   priceFeedState `json:"feed"`
 }
 
-// clone deep-copies everything an execution writes: the ledger's loans, the Router's loans and venues, the hook
-// book (values) and the lever-down degrade value (a value).
+// clone deep-copies everything an execution writes: the ledger's loans, the Router's loans and venues, the hooks'
+// states (the swap hook's book is committed in place) and the lever-down degrade value (a value).
 func (s *flammState) clone() *flammState {
 	c := *s
 	c.Pool = *s.Pool.clone()
 	c.Router = *s.Router.clone()
+	c.Hooks = s.Hooks.clone()
 	c.Feed = s.Feed.clone()
 	return &c
 }
