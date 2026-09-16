@@ -73,6 +73,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
 
+	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
+	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
+	if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] {
+		param.TokenAmountIn.Amount = valueobject.UnwrapNativeAmount(p.chainID, param.TokenAmountIn.Amount)
+	}
+
 	defer func() { // modify result before return
 		if swapResult == nil {
 			return
@@ -93,6 +99,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			if afterSwapResult != nil {
 				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, afterSwapResult.HookFee)
 				swapResult.Gas += afterSwapResult.Gas
+			}
+
+			if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+				swapResult.TokenAmountOut.Amount = valueobject.WrapNativeAmount(p.chainID, swapResult.TokenAmountOut.Amount)
 			}
 		}
 		swapResult.SwapInfo = v4SwapInfo
@@ -204,6 +214,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
 
+	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
+	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
+	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+		param.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, param.TokenAmountOut.Amount)
+	}
+
 	defer func() { // modify result before return
 		if swapResult == nil {
 			return
@@ -224,6 +240,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			if afterSwapResult != nil {
 				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, afterSwapResult.HookFee)
 				swapResult.Gas += afterSwapResult.Gas
+			}
+
+			if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] {
+				swapResult.TokenAmountIn.Amount = valueobject.WrapNativeAmount(p.chainID, swapResult.TokenAmountIn.Amount)
 			}
 		}
 		swapResult.SwapInfo = v4SwapInfo

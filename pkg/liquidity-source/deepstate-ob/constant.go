@@ -47,7 +47,7 @@ const (
 	tickPriceExpDenominator = 1 << 31
 )
 
-var defaultGas = orderbook.Gas{Base: 200_000, Level: 70_000}
+var defaultGas = orderbook.Gas{Base: 175625, Level: 17108}
 
 var (
 	ErrInvalidToken      = errors.New("invalid tokenIn/tokenOut for this pool")

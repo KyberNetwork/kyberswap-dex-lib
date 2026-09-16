@@ -114,6 +114,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
+	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
@@ -135,6 +136,7 @@ import (
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
+	netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -370,6 +372,7 @@ type Types struct {
 	Bebop                      string
 	Dexalot                    string
 	GenericSimpleRate          string
+	ListaStake                 string
 	RingSwap                   string
 	PrimeETH                   string
 	CaliberProp                string
@@ -481,6 +484,7 @@ type Types struct {
 	FluxProp                   string
 	ParityProp                 string
 	StonkbrokersFunV2          string
+	NetStaking                 string
 }
 
 var (
@@ -613,6 +617,7 @@ var (
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
+		ListaStake:                 listastake.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
 		CaliberProp:                caliberprop.DexType,
@@ -729,5 +734,6 @@ var (
 		ParityProp:                 parityprop.DexType,
 		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
 		DeepstateOb:                deepstateob.DexType,
+		NetStaking:                 netstaking.DexType,
 	}
 )

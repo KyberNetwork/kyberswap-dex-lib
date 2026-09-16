@@ -28,6 +28,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -159,6 +160,7 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = rpcData.BlockNumber
+	p.Reserves = rescaleNativeReserves(valueobject.ChainID(t.config.ChainID), &p)
 
 	l.Infof("Finish updating state of pool")
 
@@ -387,6 +389,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 	p.Extra = string(extraBytes)
 	p.SwapFee = float64(rpcState.SwapFee)
 	p.Reserves = calculateReservesFromBins(extra.Bins)
+	p.Reserves = rescaleNativeReserves(valueobject.ChainID(t.config.ChainID), &p)
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
@@ -606,6 +609,25 @@ func filterEmptyAndSortBins(bins []Bin) []Bin {
 		return b[i].ID < b[j].ID
 	})
 	return b
+}
+
+// rescaleNativeReserves converts a native-flagged reserve from its real on-chain decimals to
+// the wrapped-native address's decimals used elsewhere for that token; a no-op except on Arc.
+func rescaleNativeReserves(chainID valueobject.ChainID, p *entity.Pool) entity.PoolReserves {
+	reserves := p.Reserves
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return reserves
+	}
+	for i, isNative := range staticExtra.IsNative {
+		if isNative && i < len(reserves) {
+			amount, ok := new(big.Int).SetString(reserves[i], 10)
+			if ok {
+				reserves[i] = valueobject.WrapNativeAmount(chainID, amount).String()
+			}
+		}
+	}
+	return reserves
 }
 
 func calculateReservesFromBins(bins []Bin) entity.PoolReserves {

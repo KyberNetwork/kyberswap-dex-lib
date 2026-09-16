@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/goccy/go-json"
@@ -721,4 +722,141 @@ func TestPoolSimulatorFeeTakerExtension(t *testing.T) {
 
 	feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
 	t.Log(feeTakerExtension, err)
+}
+
+// mainnetNoPartialFillsTraits is the MakerTraits of a real mainnet order that sets NO_PARTIAL_FILLS
+// (maker 0x9a0ef3c32785daf9161ed6e9701308e622d36e4d, OrderFilled scan around block 25936800).
+const mainnetNoPartialFillsTraits = "0x8a00000000000000000000001254000014006a9f8ac700000000000000000000"
+
+func TestPoolSimulator_CalcAmountOut_NoPartialFillsWithoutExtension(t *testing.T) {
+	t.Parallel()
+
+	const (
+		takerAsset = "0xc0fe7f77ed2f522978b719372282ca89de8cf3e4"
+		makerAsset = "0xdac17f958d2ee523a2206206994597c13d831ec7"
+	)
+
+	makingAmount := uint256.MustFromDecimal("100730000")
+	takingAmount := uint256.MustFromDecimal("1647844178754187351427369")
+
+	// the original order has already expired, drop its expiration so the case does not depend on wall clock
+	makerTraits := "0x" + helper1inch.NewMakerTraits(mainnetNoPartialFillsTraits).WithExpiration(nil).Build().Text(16)
+	require.False(t, helper1inch.NewMakerTraits(makerTraits).IsPartialFillAllowed())
+	require.False(t, helper1inch.NewMakerTraits(makerTraits).IsExpired(time.Now().Unix()))
+
+	poolEntity := entity.Pool{
+		Address:  "lo1inch_" + takerAsset + "_" + makerAsset,
+		Exchange: "lo1inch",
+		Type:     "lo1inch",
+		Reserves: entity.PoolReserves{"0", "0"},
+		Tokens:   []*entity.PoolToken{{Address: takerAsset}, {Address: makerAsset}},
+		Extra: marshalPoolExtra(&Extra{
+			TakeToken0Orders: []*Order{
+				{
+					OrderHash:            "0x9f0f27a9b1a41cf24a5b95c3b1f4f00e0e4e2f1a2d7e5b4c3a2918070605f4e3d",
+					Maker:                "0x9a0ef3c32785daf9161ed6e9701308e622d36e4d",
+					MakerAsset:           makerAsset,
+					TakerAsset:           takerAsset,
+					MakingAmount:         makingAmount,
+					TakingAmount:         takingAmount,
+					RemainingMakerAmount: makingAmount,
+					MakerBalance:         makingAmount,
+					MakerAllowance:       makingAmount,
+					MakerTraits:          makerTraits,
+					// the order has no extension, which used to leave MakerTraitsInstance nil
+					Extension: "",
+				},
+			},
+		}),
+		StaticExtra: fmt.Sprintf(`{"token0":%q,"token1":%q}`, takerAsset, makerAsset),
+	}
+
+	sim, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	halfTakingAmount := new(uint256.Int).Div(takingAmount, uint256.NewInt(2))
+	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: halfTakingAmount.ToBig()},
+		TokenOut:      makerAsset,
+	})
+	require.ErrorIs(t, err, ErrCannotFulfillAmountIn)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: takingAmount.ToBig()},
+		TokenOut:      makerAsset,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, makingAmount.ToBig(), res.TokenAmountOut.Amount)
+}
+
+func TestPoolSimulator_CloneState(t *testing.T) {
+	t.Parallel()
+
+	const (
+		takerAsset = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+		makerAsset = "0xdac17f958d2ee523a2206206994597c13d831ec7"
+	)
+
+	poolEntity := entity.Pool{
+		Address:  "lo1inch_" + takerAsset + "_" + makerAsset,
+		Exchange: "lo1inch",
+		Type:     "lo1inch",
+		Reserves: entity.PoolReserves{"0", "0"},
+		Tokens:   []*entity.PoolToken{{Address: takerAsset}, {Address: makerAsset}},
+		Extra: marshalPoolExtra(&Extra{
+			TakeToken0Orders: []*Order{
+				{
+					OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
+					Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
+					MakerAsset:           makerAsset,
+					TakerAsset:           takerAsset,
+					MakingAmount:         uint256.NewInt(10000),
+					TakingAmount:         uint256.NewInt(101),
+					RemainingMakerAmount: uint256.NewInt(10000),
+					MakerBalance:         uint256.NewInt(10437135),
+					MakerAllowance:       uint256.NewInt(900000),
+				},
+			},
+		}),
+		StaticExtra: fmt.Sprintf(`{"token0":%q,"token1":%q}`, takerAsset, makerAsset),
+	}
+
+	sim, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	amountIn := big.NewInt(50)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: amountIn},
+		TokenOut:      makerAsset,
+	})
+	require.NoError(t, err)
+
+	cloned := sim.CloneState()
+	require.NotNil(t, cloned)
+
+	clonedSim, ok := cloned.(*PoolSimulator)
+	require.True(t, ok)
+	require.NotSame(t, sim.takeToken0Orders[0], clonedSim.takeToken0Orders[0])
+
+	clonedSim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: takerAsset, Amount: amountIn},
+		TokenAmountOut: *res.TokenAmountOut,
+		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
+	})
+
+	assert.Equal(t, "10000", sim.takeToken0Orders[0].RemainingMakerAmount.String())
+	assert.Equal(t, "10437135", sim.takeToken0Orders[0].MakerBalance.String())
+	assert.Equal(t, "900000", sim.takeToken0Orders[0].MakerAllowance.String())
+
+	assert.Equal(t, "5050", clonedSim.takeToken0Orders[0].RemainingMakerAmount.String())
+	assert.Equal(t, "10432185", clonedSim.takeToken0Orders[0].MakerBalance.String())
+	assert.Equal(t, "895050", clonedSim.takeToken0Orders[0].MakerAllowance.String())
+
+	after, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: amountIn},
+		TokenOut:      makerAsset,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, res.TokenAmountOut.Amount, after.TokenAmountOut.Amount)
 }

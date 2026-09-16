@@ -14,9 +14,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// opSigServer answers /orders/operator-signature with a signature for every requested id
-// present in signed, mimicking the service dropping ids that are no longer active.
-func opSigServer(t *testing.T, signed map[int64]bool) *httptest.Server {
+// signedOrderServer answers /orders/operator-signature with a signature for every requested
+// id present in signed, mimicking the service dropping ids that are no longer active.
+func signedOrderServer(t *testing.T, signed map[int64]bool) *httptest.Server {
 	t.Helper()
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +53,7 @@ func filledOrder(id int64, isFallback bool) *FilledOrderInfo {
 func rfqWith(t *testing.T, signed map[int64]bool, orders []*FilledOrderInfo) (*pool.RFQResult, error) {
 	t.Helper()
 
-	srv := opSigServer(t, signed)
+	srv := signedOrderServer(t, signed)
 	t.Cleanup(srv.Close)
 
 	cfg := &Config{LimitOrderHTTPUrl: srv.URL, ChainID: 1}
