@@ -86,6 +86,7 @@ const (
 	ExchangeCurveTwoCryptoNg            = "curve-twocrypto-ng"
 	ExchangeCUSD                        = "cusd"
 	ExchangeDaiUsds                     = "dai-usds"
+	ExchangeDeepstateOb                 = "deepstate-ob"
 	ExchangeDeltaSwapV1                 = "deltaswap-v1"
 	ExchangeDexalot                     = "dexalot"
 	ExchangeDinoSwap                    = "dinoswap"

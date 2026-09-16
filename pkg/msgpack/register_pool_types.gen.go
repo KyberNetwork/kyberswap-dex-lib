@@ -54,6 +54,7 @@ import (
 	pkg_liquiditysource_curve_tricryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
 	pkg_liquiditysource_curve_twocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	pkg_liquiditysource_daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	pkg_liquiditysource_deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	pkg_liquiditysource_deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	pkg_liquiditysource_dodo_classical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	pkg_liquiditysource_dodo_dpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -316,6 +317,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_tricryptong.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_twocryptong.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_daiusds.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_deepstateob.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_deltaswapv1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_classical.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dpp.PoolSimulator{})
