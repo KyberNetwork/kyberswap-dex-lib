@@ -28,13 +28,43 @@ const defaultMulticallAddr = "0xcA11bde05977b3631167028862bE2a173976CA11"
 
 var liveChains = []liveChain{
 	{
-		name:       "optimism",
-		rpcEnv:     "OPTIMISM_RPC_URL",
-		rpcDefault: "https://optimism.kyberengineering.io",
+		name:       "arbitrum",
+		rpcEnv:     "ARBITRUM_RPC_URL",
+		rpcDefault: "https://arbitrum.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
+		},
+	},
+	{
+		name:       "arbitrum-securities",
+		rpcEnv:     "ARBITRUM_RPC_URL",
+		rpcDefault: "https://arbitrum.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x154586B2479b9a11e3d4db90024Dc0e26F097312",
+		},
+	},
+	{
+		name:       "avalanche",
+		rpcEnv:     "AVALANCHE_RPC_URL",
+		rpcDefault: "https://avalanche.kyberengineering.io",
 		multicall:  defaultMulticallAddr,
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0x60a8fA0eB9eDBF97a7487f7163C793768385Adc4",
+		},
+	},
+	{
+		name:       "avalanche-securities",
+		rpcEnv:     "AVALANCHE_RPC_URL",
+		rpcDefault: "https://avalanche.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
 		},
 	},
 	{
@@ -48,6 +78,16 @@ var liveChains = []liveChain{
 		},
 	},
 	{
+		name:       "base-securities",
+		rpcEnv:     "BASE_RPC_URL",
+		rpcDefault: "https://base.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x5eBcee186821704aEAC480D51B539bA4eDE1fDF9",
+		},
+	},
+	{
 		name:       "bsc",
 		rpcEnv:     "BSC_RPC_URL",
 		rpcDefault: "https://bsc.kyberengineering.io",
@@ -55,6 +95,26 @@ var liveChains = []liveChain{
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0x74dec7df10f026884c757445671b9e5137ce36e5",
+		},
+	},
+	{
+		name:       "bsc-securities",
+		rpcEnv:     "BSC_RPC_URL",
+		rpcDefault: "https://bsc.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x97df7683443d215fe000e22258381d35ac2c55d1",
+		},
+	},
+	{
+		name:       "ink",
+		rpcEnv:     "INK_RPC_URL",
+		rpcDefault: "https://ink.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
 		},
 	},
 	{
@@ -68,6 +128,46 @@ var liveChains = []liveChain{
 		},
 	},
 	{
+		name:       "mainnet",
+		rpcEnv:     "ETHEREUM_RPC_URL",
+		rpcDefault: "https://ethereum.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
+		},
+	},
+	{
+		name:       "mainnet-securities",
+		rpcEnv:     "ETHEREUM_RPC_URL",
+		rpcDefault: "https://ethereum.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x15b033daf461ad3e138601775e1d5cdad0e8c653",
+		},
+	},
+	{
+		name:       "optimism",
+		rpcEnv:     "OPTIMISM_RPC_URL",
+		rpcDefault: "https://optimism.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x60a8fA0eB9eDBF97a7487f7163C793768385Adc4",
+		},
+	},
+	{
+		name:       "optimism-securities",
+		rpcEnv:     "OPTIMISM_RPC_URL",
+		rpcDefault: "https://optimism.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x6431e61d4E745B031CF87b2C1DeCeb4A87557F20",
+		},
+	},
+	{
 		name:       "robinhood",
 		rpcEnv:     "ROBINHOOD_RPC_URL",
 		rpcDefault: "https://rpc.mainnet.chain.robinhood.com",
@@ -75,6 +175,36 @@ var liveChains = []liveChain{
 		cfg: Config{
 			DexID:   DexType,
 			Address: "0xf639CF213b63F7E77D699FF686d591C0Ba55Fc63",
+		},
+	},
+	{
+		name:       "robinhood-securities",
+		rpcEnv:     "ROBINHOOD_RPC_URL",
+		rpcDefault: "https://rpc.mainnet.chain.robinhood.com",
+		multicall:  "0x2cAC2D899eCC914d704FeaAE33ac1bF36277DaD1",
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x49ccB1b4DCDE25Ff127d53C615168E4Ff471aFbe",
+		},
+	},
+	{
+		name:       "xlayer",
+		rpcEnv:     "X_LAYER_RPC_URL",
+		rpcDefault: "https://xlayer.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x154586B2479b9a11e3d4db90024Dc0e26F097312",
+		},
+	},
+	{
+		name:       "xlayer-securities",
+		rpcEnv:     "X_LAYER_RPC_URL",
+		rpcDefault: "https://xlayer.kyberengineering.io",
+		multicall:  defaultMulticallAddr,
+		cfg: Config{
+			DexID:   DexType,
+			Address: "0x3Cd6F2F61E8B03a8bCBfcf0D69b23CBA37183259",
 		},
 	},
 }
