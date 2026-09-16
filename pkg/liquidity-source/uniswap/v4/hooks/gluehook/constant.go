@@ -13,7 +13,7 @@ import (
 //
 // Both are pure passthroughs for quoting: neither changes the swapper's amounts.
 var HookAddresses = []common.Address{
-	common.HexToAddress("0xbB021554C5294328b04fa313669715bD201BA040"), // V3
+	common.HexToAddress("0x03D482cB3Ff339C2d29736818D0F72c66dD6A040"), // V3
 	common.HexToAddress("0x0F41715dc432692b66A5aDF8dCfef6Ac407b20c8"), // V2
 }
 
