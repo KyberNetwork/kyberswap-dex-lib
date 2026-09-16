@@ -135,6 +135,7 @@ import (
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
+	netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -481,6 +482,7 @@ type Types struct {
 	FluxProp                   string
 	ParityProp                 string
 	StonkbrokersFunV2          string
+	NetStaking                 string
 }
 
 var (
@@ -729,5 +731,6 @@ var (
 		FluxProp:                   valueobject.ExchangeFluxProp,
 		ParityProp:                 parityprop.DexType,
 		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
+		NetStaking:                 netstaking.DexType,
 	}
 )

@@ -195,6 +195,7 @@ const (
 	ExchangeNativeV1                    = "native-v1"
 	ExchangeNativeV2                    = "native-v2"
 	ExchangeNativeV3                    = "native-v3"
+	ExchangeNetStaking                  = "net-staking"
 	ExchangeNomiswap                    = "nomiswap"
 	ExchangeObric                       = "obric"
 	ExchangeOETH                        = "oeth"
