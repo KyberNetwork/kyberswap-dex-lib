@@ -113,6 +113,7 @@ const (
 	ExchangeEtherVista                  = "ether-vista"
 	ExchangeEulerSwap                   = "euler-swap"
 	ExchangeEulerSwapV2                 = "euler-swap-v2"
+	ExchangeEverlongFlamm               = "everlong-flamm"
 	ExchangeFakePool                    = "fake-pool"
 	ExchangeFeltir                      = "feltir"
 	ExchangeFermi                       = "fermi"
