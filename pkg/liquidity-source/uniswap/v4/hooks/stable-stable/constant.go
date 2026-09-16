@@ -11,6 +11,7 @@ const (
 var HookAddresses = []common.Address{
 	common.HexToAddress("0x4509b7Eb3F9641226804Fea4976963435d1c6080"),
 	common.HexToAddress("0x0000113dCf4ADd69999Fad8F20F2b63F979bfcC0"),
+	common.HexToAddress("0x3b64660a35a09AfDe554cE545bca9166D6A23CC0"), // Robinhood Chain (4663)
 }
 
 // legacyHookAddress is the only deployment whose feeConfig() still returns an
