@@ -3,6 +3,7 @@ package dexv2
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -32,10 +33,18 @@ const (
 	BITS_EXCHANGE_PRICES_SUPPLY_RATIO          = 219
 	BITS_EXCHANGE_PRICES_BORROW_RATIO          = 234
 
-	BITS_DEX_V2_VARIABLES2_PROTOCOL_FEE_0_TO_1  = 0
-	BITS_DEX_V2_VARIABLES2_PROTOCOL_FEE_1_TO_0  = 12
-	BITS_DEX_V2_VARIABLES2_POOL_ACCOUNTING_FLAG = 140
-	BITS_DEX_V2_VARIABLES2_LP_FEE               = 156
+	BITS_DEX_V2_VARIABLES2_PROTOCOL_FEE_0_TO_1                 = 0
+	BITS_DEX_V2_VARIABLES2_PROTOCOL_FEE_1_TO_0                 = 12
+	BITS_DEX_V2_VARIABLES2_POOL_ACCOUNTING_FLAG                = 140
+	BITS_DEX_V2_VARIABLES2_FEE_VERSION                         = 152
+	BITS_DEX_V2_VARIABLES2_LP_FEE                              = 156
+	BITS_DEX_V2_VARIABLES2_PRICE_IMPACT_TO_FEE_DIVISION_FACTOR = 168
+	BITS_DEX_V2_VARIABLES2_MIN_FEE                             = 176
+	BITS_DEX_V2_VARIABLES2_MAX_FEE                             = 192
+	BITS_DEX_V2_VARIABLES2_NET_PRICE_IMPACT_SIGN               = 208
+	BITS_DEX_V2_VARIABLES2_ABSOLUTE_NET_PRICE_IMPACT           = 209
+	BITS_DEX_V2_VARIABLES2_LAST_UPDATE_TIMESTAMP               = 229
+	BITS_DEX_V2_VARIABLES2_DECAY_TIME_REMAINING                = 244
 
 	BITS_DEX_V2_VARIABLES2_TOKEN_0_DECIMALS = 30
 	BITS_DEX_V2_VARIABLES2_TOKEN_1_DECIMALS = 34
@@ -50,26 +59,37 @@ var (
 	SECONDS_PER_YEAR = big.NewInt(365 * 24 * 60 * 60)
 
 	FOUR_DECIMALS             = bignumber.TenPowInt(4)
+	SIX_DECIMALS              = bignumber.TenPowInt(6)
 	TEN_DECIMALS              = bignumber.TenPowInt(10)
 	EXCHANGE_PRICES_PRECISION = bignumber.TenPowInt(12)
 	TenPow27                  = bignumber.TenPowInt(27)
 	TenPow54                  = bignumber.TenPowInt(54)
 
+	MIN_PRICE_X96 = bignumber.NewBig("1350587")
+	MAX_PRICE_X96 = bignumber.NewBig("4647680745692069522618647333321942173198062861119228")
+
 	two255 = new(big.Int).Lsh(bignumber.One, 255)
 	two256 = new(big.Int).Lsh(bignumber.One, 256)
 
 	X4   = bignumber.NewBig("0xf")
+	X8   = bignumber.NewBig("0xff")
 	X12  = bignumber.NewBig("0xfff")
 	X14  = bignumber.NewBig("0x3fff")
 	X15  = bignumber.NewBig("0x7fff")
 	X16  = bignumber.NewBig("0xffff")
+	X20  = bignumber.NewBig("0xfffff")
 	X33  = bignumber.NewBig("0x1ffffffff")
 	X64  = bignumber.NewBig("0xffffffffffffffff")
 	X86  = bignumber.NewBig("0x3fffffffffffffffffffff")
 	X128 = bignumber.NewBig("0xffffffffffffffffffffffffffffffff")
+	X160 = bignumber.NewBig("0x00ffffffffffffffffffffffffffffffffffffffff")
+
+	X16UI = big256.FromBig(X16)
+	X86UI = big256.FromBig(X86)
 
 	MAX_SQRT_PRICE_CHANGE_PERCENTAGE = big.NewInt(2_000_000_000)
 	MIN_SQRT_PRICE_CHANGE_PERCENTAGE = big.NewInt(5)
 
-	Q96 = new(big.Int).Lsh(bignumber.One, 96)
+	Q96  = new(big.Int).Lsh(bignumber.One, 96)
+	Q96I = big256.FromBig(Q96)
 )
