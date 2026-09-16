@@ -162,6 +162,7 @@ const (
 	ExchangeLiquidCore                  = "liquidcore"
 	ExchangeLiquidityParty              = "liquidity-party"
 	ExchangeListaStable                 = "lista-stable"
+	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
 	ExchangeLO1inch                     = "lo1inch"
 	ExchangeLunarBase                   = "lunarbase"

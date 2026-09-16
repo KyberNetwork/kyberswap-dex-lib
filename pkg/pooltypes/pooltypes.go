@@ -113,6 +113,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
+	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
@@ -368,6 +369,7 @@ type Types struct {
 	Bebop                      string
 	Dexalot                    string
 	GenericSimpleRate          string
+	ListaStake                 string
 	RingSwap                   string
 	PrimeETH                   string
 	CaliberProp                string
@@ -611,6 +613,7 @@ var (
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
+		ListaStake:                 listastake.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
 		CaliberProp:                caliberprop.DexType,
