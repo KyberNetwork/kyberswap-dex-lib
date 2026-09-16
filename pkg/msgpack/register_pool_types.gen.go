@@ -110,6 +110,8 @@ import (
 	pkg_liquiditysource_litepsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	pkg_liquiditysource_lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	pkg_liquiditysource_lunarbase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
+	pkg_liquiditysource_lunya "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
+	pkg_liquiditysource_lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"
 	pkg_liquiditysource_machima "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/machima"
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	pkg_liquiditysource_maker_skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
@@ -372,6 +374,8 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lo1inch.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunarbase.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunya.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunyafun.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_machima.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_skypsm.PoolSimulator{})

@@ -1,0 +1,174 @@
+{
+  "pool": {
+    "address": "0x0b74ff3c703804a69a9727041ff54012eb649725",
+    "swapFee": 500,
+    "exchange": "lunya-v3",
+    "type": "lunya-v3",
+    "timestamp": 1789469440,
+    "reserves": [
+      "82457570",
+      "85181730"
+    ],
+    "tokens": [
+      {
+        "address": "0x3600000000000000000000000000000000000000",
+        "swappable": true
+      },
+      {
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "swappable": true
+      }
+    ],
+    "extra": "{\"sqrtPriceX96\":\"73266458054339989960089134222\",\"liquidity\":\"856630105\",\"tick\":-1565,\"fee\":500,\"feeToken\":0,\"ticks\":[{\"index\":-3840,\"liquidityGross\":\"856630105\",\"liquidityNet\":\"856630105\"},{\"index\":300,\"liquidityGross\":\"856630105\",\"liquidityNet\":\"-856630105\"}]}",
+    "staticExtra": "{\"poolType\":0}",
+    "blockNumber": 62219893
+  },
+  "exactIn": [
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "82",
+      "amountOut": "69"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "8245",
+      "amountOut": "7046"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "824575",
+      "amountOut": "704170"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "8245757",
+      "amountOut": "6985824"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "41228785",
+      "amountOut": "33739004"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "82457570",
+      "amountOut": "64721485"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "247372710",
+      "amountOut": "85181515"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "85",
+      "amountOut": "98"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "8518",
+      "amountOut": "9954"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "851817",
+      "amountOut": "994514"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "8518173",
+      "amountOut": "9849978"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "42590865",
+      "amountOut": "47240604"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "85181730",
+      "amountOut": "82457068"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "255545190",
+      "amountOut": "82457068"
+    }
+  ],
+  "exactOut": [
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "101",
+      "amountOut": "85"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "9966",
+      "amountOut": "8518"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "997654",
+      "amountOut": "851817"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "10074134",
+      "amountOut": "8518173"
+    },
+    {
+      "tokenIn": "0x3600000000000000000000000000000000000000",
+      "tokenOut": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "amountIn": "52660299",
+      "amountOut": "42590865"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "72",
+      "amountOut": "82"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "7055",
+      "amountOut": "8245"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "706133",
+      "amountOut": "824575"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "7118397",
+      "amountOut": "8245757"
+    },
+    {
+      "tokenIn": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+      "tokenOut": "0x3600000000000000000000000000000000000000",
+      "amountIn": "36918299",
+      "amountOut": "41228785"
+    }
+  ]
+}
