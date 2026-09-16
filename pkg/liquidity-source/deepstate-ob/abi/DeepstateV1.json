@@ -1,0 +1,111 @@
+[
+  {
+    "type": "function",
+    "name": "feeConfig",
+    "inputs": [],
+    "outputs": [
+      {"name": "recipient", "type": "address"},
+      {"name": "bps", "type": "uint16"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolId",
+    "inputs": [
+      {"name": "token0", "type": "address"},
+      {"name": "token1", "type": "address"}
+    ],
+    "outputs": [{"name": "id", "type": "bytes32"}],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "bookId",
+    "inputs": [
+      {"name": "token0", "type": "address"},
+      {"name": "token1", "type": "address"},
+      {"name": "epoch", "type": "uint256"}
+    ],
+    "outputs": [{"name": "id", "type": "bytes32"}],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "activeBookId",
+    "inputs": [
+      {"name": "token0", "type": "address"},
+      {"name": "token1", "type": "address"}
+    ],
+    "outputs": [{"name": "", "type": "bytes32"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolEpoch",
+    "inputs": [{"name": "pid", "type": "bytes32"}],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextNonce",
+    "inputs": [
+      {"name": "token0", "type": "address"},
+      {"name": "token1", "type": "address"},
+      {"name": "epoch", "type": "uint256"}
+    ],
+    "outputs": [{"name": "", "type": "uint32"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "roots",
+    "inputs": [
+      {"name": "token0", "type": "address"},
+      {"name": "token1", "type": "address"},
+      {"name": "epoch", "type": "uint256"}
+    ],
+    "outputs": [
+      {"name": "askRoot", "type": "bytes32"},
+      {"name": "bidRoot", "type": "bytes32"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tree",
+    "inputs": [
+      {"name": "id", "type": "bytes32"},
+      {"name": "node", "type": "bytes32"}
+    ],
+    "outputs": [
+      {"name": "leftNode", "type": "bytes32"},
+      {"name": "rightNode", "type": "bytes32"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "topOrder",
+    "inputs": [
+      {"name": "id", "type": "bytes32"},
+      {"name": "isBid", "type": "bool"}
+    ],
+    "outputs": [
+      {"name": "nonce", "type": "uint32"},
+      {"name": "soldAmount", "type": "uint160"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "orderId",
+    "inputs": [
+      {"name": "id", "type": "bytes32"},
+      {"name": "order", "type": "bytes32"}
+    ],
+    "outputs": [{"name": "", "type": "bytes32"}],
+    "stateMutability": "pure"
+  }
+]

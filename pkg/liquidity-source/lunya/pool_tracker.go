@@ -306,7 +306,10 @@ func (t *PoolTracker) fetchAllTicks(ctx context.Context, poolAddress string, roo
 		}
 
 		for i, bitmap := range bitmaps {
-			for bit := range bitmap.BitLen() {
+			if bitmap == nil {
+				continue
+			}
+			for bit := 0; bit < bitmap.BitLen(); bit++ {
 				if bitmap.Bit(bit) == 1 {
 					tickIndexes = append(tickIndexes, int(chunk[i])<<8+bit)
 				}
