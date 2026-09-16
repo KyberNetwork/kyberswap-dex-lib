@@ -57,6 +57,7 @@ import (
 	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng/lazy"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -362,6 +363,7 @@ type Types struct {
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
+	DeepstateOb                string
 	UsdAi                      string
 	Ambient                    string
 	MaverickV2                 string
@@ -731,6 +733,7 @@ var (
 		FluxProp:                   valueobject.ExchangeFluxProp,
 		ParityProp:                 parityprop.DexType,
 		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
+		DeepstateOb:                deepstateob.DexType,
 		NetStaking:                 netstaking.DexType,
 	}
 )
