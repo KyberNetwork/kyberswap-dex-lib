@@ -23,8 +23,10 @@ var (
 
 	undefinedDecayingFeeE12 = new(uint256.Int).AddUint64(oneE12, 1)
 
-	q48 = new(uint256.Int).Lsh(u256.U1, 48)
-	q96 = new(uint256.Int).Lsh(u256.U1, 96)
+	q24  = new(uint256.Int).Lsh(u256.U1, 24)
+	q48  = new(uint256.Int).Lsh(u256.U1, 48)
+	q96  = new(uint256.Int).Lsh(u256.U1, 96)
+	q120 = new(uint256.Int).Lsh(u256.U1, 120)
 
 	maxTargetMultiplierU = uint256.NewInt(MaxTargetMultiplier)
 )
@@ -36,8 +38,7 @@ func CalculatePriceRatioX96(sqrtPrice1X96, sqrtPrice2X96 *uint256.Int) *uint256.
 	if num.Cmp(den) > 0 {
 		num, den = den, num
 	}
-	r := new(uint256.Int).Mul(num, q48)
-	r.Div(r, den)
+	r := u256.MulDiv(num, q48, den)
 	return r.Mul(r, r)
 }
 
@@ -91,6 +92,18 @@ func AdjustPreviousFeeForPriceMovement(priceRatioX96, previousDecayingFeeE12 *ui
 	return new(uint256.Int).Sub(oneE12, num)
 }
 
+// applyDecay computes target + factor*(previous-target) >> 24, the tail shared
+// by both hooks' calculateDecayingFee once factorX24 has been derived.
+func applyDecay(targetFeeE12, previousDecayingFeeE12, factorX24 *uint256.Int) *uint256.Int {
+	delta := new(uint256.Int).Sub(previousDecayingFeeE12, targetFeeE12)
+	delta.Mul(delta, factorX24)
+	delta.Rsh(delta, 24)
+	return delta.Add(delta, targetFeeE12)
+}
+
+// CalculateDecayingFee is the legacy hook's formula: it uses the on-chain logK
+// directly (see decayFactorX24). Newer hooks dropped logK; use
+// CalculateDecayingFeeV2 for those (see deriveLogK).
 func CalculateDecayingFee(
 	targetFeeE12, previousDecayingFeeE12 *uint256.Int,
 	k, logK, blocksPassed uint64,
@@ -104,11 +117,7 @@ func CalculateDecayingFee(
 		return nil, err
 	}
 
-	delta := new(uint256.Int).Sub(previousDecayingFeeE12, targetFeeE12)
-	delta.Mul(delta, factorX24)
-	delta.Rsh(delta, 24)
-
-	return new(uint256.Int).Add(targetFeeE12, delta), nil
+	return applyDecay(targetFeeE12, previousDecayingFeeE12, factorX24), nil
 }
 
 func decayFactorX24(k, logK, blocksPassed uint64) (*uint256.Int, error) {
@@ -120,7 +129,49 @@ func decayFactorX24(k, logK, blocksPassed uint64) (*uint256.Int, error) {
 	mag.Mul(mag, uint256.NewInt(blocksPassed))
 	mag.Lsh(mag, 40)
 
-	expI := i256.SafeToInt256(mag)
+	return expDecayFactorX24(mag)
+}
+
+// CalculateDecayingFeeV2 mirrors StableFeeCalculation.calculateDecayingFee on
+// hooks that dropped the on-chain logK column: logK is derived from k on the
+// fly (deriveLogK) instead of being read from chain.
+func CalculateDecayingFeeV2(
+	targetFeeE12, previousDecayingFeeE12 *uint256.Int,
+	k, blocksPassed uint64,
+) (*uint256.Int, error) {
+	if previousDecayingFeeE12.Lt(targetFeeE12) {
+		return nil, ErrInvalidFeeConfig
+	}
+
+	factorX24, err := decayFactorX24V2(k, blocksPassed)
+	if err != nil {
+		return nil, err
+	}
+
+	return applyDecay(targetFeeE12, previousDecayingFeeE12, factorX24), nil
+}
+
+func decayFactorX24V2(k, blocksPassed uint64) (*uint256.Int, error) {
+	if blocksPassed <= 4 {
+		return fastPowQ24(k, blocksPassed)
+	}
+
+	logK, err := deriveLogK(k)
+	if err != nil {
+		return nil, err
+	}
+
+	mag := logK.Mul(logK, uint256.NewInt(blocksPassed))
+	mag.Lsh(mag, 24)
+
+	return expDecayFactorX24(mag)
+}
+
+// expDecayFactorX24 computes floor(exp(-magWad) * 2^24 / 1e18), the tail
+// shared by decayFactorX24 and decayFactorX24V2 once each has assembled its
+// (differently-scaled) wad exponent magnitude.
+func expDecayFactorX24(magWad *uint256.Int) (*uint256.Int, error) {
+	expI := i256.SafeToInt256(magWad)
 	if expI == nil {
 		return nil, ErrInvalidFeeConfig
 	}
@@ -131,10 +182,29 @@ func decayFactorX24(k, logK, blocksPassed uint64) (*uint256.Int, error) {
 		return nil, err
 	}
 
-	out := new(uint256.Int).Lsh(expWad, 24)
-	out.Div(out, oneE18)
+	return u256.MulDiv(expWad, q24, oneE18), nil
+}
 
-	return out, nil
+// deriveLogK mirrors StableFeeCalculation.deriveLogK: logK = ceil(-ln(k) / 2^24),
+// where k is Q24 fixed point and the result is the wad-scale (1e18) decay rate
+// decayFactorX24V2's slow path exponentiates with. This is specific to hooks
+// that no longer store logK on-chain — it is NOT interchangeable with the
+// legacy hook's on-chain logK, which uses a different (<<40, not <<24) scale.
+func deriveLogK(k uint64) (*uint256.Int, error) {
+	kQ96 := new(uint256.Int).Lsh(uint256.NewInt(k), 72)
+	kQ96Int := i256.SafeToInt256(kQ96)
+	if kQ96Int == nil {
+		return nil, ErrInvalidFeeConfig
+	}
+
+	lnKQ96, err := bunnimath.LnQ96(kQ96Int)
+	if err != nil {
+		return nil, err
+	}
+
+	absLnKQ96 := i256.UnsafeToUInt256(i256.Abs(lnKQ96))
+
+	return bunnimath.MulDivUp(absLnKQ96, oneE18, q120), nil
 }
 
 func fastPowQ24(k, n uint64) (*uint256.Int, error) {

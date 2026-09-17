@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -29,7 +31,7 @@ func newTestSimulator(t *testing.T) *PoolSimulator {
 		Reserves: []string{"0", "0"},
 		StaticExtra: `{"rA":"0x08A59435c8359A45F4F5dC8D91DF893Cc33DaF29",` +
 			`"cA":"0xaea1eaf948e97581fbe9d8dea2951c327669af57","mT":"` + memeToken + `",` +
-			`"gD":"4200000000000000000"}`,
+			`"gD":"4200000000000000000","nQ":true}`,
 		Extra: `{"ph":0,"vM":"1062330437710576052235807612","vD":"1405714531301211559",` +
 			`"mS":"4336228956090614430859054","dR":"5714531301211559"}`,
 	}
@@ -152,4 +154,99 @@ func TestPoolSimulator_NativeSwapSupport(t *testing.T) {
 		require.False(t, s.SwapReceiveNativeIn(unknown, memeToken, valueobject.ChainIDRobinhood))
 		require.False(t, s.SwapReturnNativeOut(memeToken, unknown, valueobject.ChainIDRobinhood))
 	})
+}
+
+// Route optimizers may pass the originally offered input to UpdateBalance. It
+// must apply accepted principal from SwapInfo after a graduation partial fill.
+func TestAllPairsFinalBuyUsesAcceptedInput(t *testing.T) {
+	for _, pair := range []string{testDeskToken, prmToken, stockToken} {
+		t.Run(pair, func(t *testing.T) {
+			s := newTestSimulator(t)
+			s.Info.Tokens[0] = pair
+			s.isNativeQuote = pair == testDeskToken
+			offered := new(big.Int).Mul(s.graduationDesk.ToBig(), big.NewInt(2))
+			before := s.stateCopy()
+			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: pair, Amount: offered}, TokenOut: memeToken}
+			first, err := s.CalcAmountOut(params)
+			require.NoError(t, err)
+			second, err := s.CalcAmountOut(params)
+			require.NoError(t, err)
+			require.Equal(t, first, second)
+			require.Equal(t, before, s.stateCopy())
+			require.NotNil(t, first.RemainingTokenAmountIn)
+			require.Positive(t, first.RemainingTokenAmountIn.Amount.Sign())
+			require.Equal(t, pair, first.Fee.Token)
+			require.Equal(t, pair == testDeskToken, first.SwapInfo.(*SwapInfo).IsNativeQuote)
+			require.Greater(t, first.Gas, int64(buyGas))
+			snapshot := first.SwapInfo.(*SwapInfo).NewState.DeskRaised.Dec()
+			clone := s.CloneState().(*PoolSimulator)
+			clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *first.TokenAmountOut, Fee: *first.Fee, SwapInfo: first.SwapInfo})
+			require.Equal(t, s.graduationDesk.Dec(), clone.deskRaised.Dec())
+			require.Equal(t, uSaleSupply.Dec(), clone.memeSold.Dec())
+			require.Equal(t, PhaseGraduated, clone.phase)
+			require.Equal(t, before, s.stateCopy())
+			require.Equal(t, snapshot, first.SwapInfo.(*SwapInfo).NewState.DeskRaised.Dec())
+			// Reusing the immutable quote does not add the input twice.
+			clone.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo})
+			require.Equal(t, s.graduationDesk.Dec(), clone.deskRaised.Dec())
+			_, err = clone.CalcAmountOut(params)
+			require.ErrorIs(t, err, ErrPoolNotTrading)
+		})
+	}
+}
+
+func TestAllPairsBuySellAndNativeCurrency(t *testing.T) {
+	for _, pair := range []string{testDeskToken, prmToken, stockToken} {
+		t.Run(pair, func(t *testing.T) {
+			s := newTestSimulator(t)
+			s.Info.Tokens[0] = pair
+			s.isNativeQuote = pair == testDeskToken
+			start := s.deskRaised.Clone()
+			buy, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: pair, Amount: big.NewInt(1000000000000000)}, TokenOut: memeToken})
+			require.NoError(t, err)
+			s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: buy.SwapInfo})
+			sell, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *buy.TokenAmountOut, TokenOut: pair})
+			require.NoError(t, err)
+			require.Equal(t, pair, sell.Fee.Token)
+			s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: sell.SwapInfo})
+			// Conservative rounding leaves at most one unit more tracked principal.
+			require.LessOrEqual(t, new(uint256.Int).Sub(s.deskRaised, start).Uint64(), uint64(1))
+			require.True(t, sell.TokenAmountOut.Amount.Cmp(big.NewInt(1000000000000000)) < 0)
+			require.Equal(t, pair == testDeskToken, s.SwapReceiveNativeIn(pair, memeToken, valueobject.ChainIDRobinhood))
+			require.Equal(t, pair == testDeskToken, s.SwapReturnNativeOut(memeToken, pair, valueobject.ChainIDRobinhood))
+			require.False(t, s.SwapReceiveNativeIn(pair, pair, valueobject.ChainIDRobinhood))
+		})
+	}
+}
+
+func TestInvalidAmountsAndOverflowDoNotMutate(t *testing.T) {
+	for _, amount := range []*big.Int{nil, big.NewInt(-1), big.NewInt(0), new(big.Int).Lsh(big.NewInt(1), 256)} {
+		s := newTestSimulator(t)
+		before := s.stateCopy()
+		_, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: testDeskToken, Amount: amount}, TokenOut: memeToken})
+		require.Error(t, err)
+		require.Equal(t, before, s.stateCopy())
+	}
+	s := newTestSimulator(t)
+	_, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: testDeskToken, Amount: big.NewInt(100)}, TokenOut: testDeskToken})
+	require.ErrorIs(t, err, ErrInvalidToken)
+	s.virtualDesk.SetAllOne()
+	_, err = s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: testDeskToken, Amount: big.NewInt(100)}, TokenOut: memeToken})
+	require.ErrorIs(t, err, ErrOverflow)
+}
+
+func TestRejectIncompletePersistedState(t *testing.T) {
+	p := testPool(t)
+	for _, extra := range []string{`{}`, `{"ph":0,"vM":"0","vD":"1","mS":"0","dR":"0"}`, `{"ph":0,"vM":"1","vD":"1","mS":"0","dR":"0"}`} {
+		p.Extra = extra
+		_, err := NewPoolSimulator(p)
+		require.Error(t, err)
+	}
+	s := newTestSimulator(t)
+	encoded, err := json.Marshal(s.stateCopy())
+	require.NoError(t, err)
+	p.Extra = string(encoded)
+	p.Reserves = []string{"invalid", "0"}
+	_, err = NewPoolSimulator(p)
+	require.ErrorIs(t, err, ErrInvalidState)
 }

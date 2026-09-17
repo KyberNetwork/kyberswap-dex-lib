@@ -1,0 +1,18 @@
+[
+  {
+    "type": "event",
+    "name": "LaunchCreated",
+    "anonymous": false,
+    "inputs": [
+      { "name": "launch", "type": "address", "indexed": true },
+      { "name": "token", "type": "address", "indexed": true },
+      { "name": "creator", "type": "address", "indexed": true },
+      { "name": "launchType", "type": "uint8", "indexed": false },
+      { "name": "quoteToken", "type": "address", "indexed": false },
+      { "name": "name", "type": "string", "indexed": false },
+      { "name": "symbol", "type": "string", "indexed": false },
+      { "name": "contractURI", "type": "string", "indexed": false },
+      { "name": "launchParams", "type": "bytes", "indexed": false }
+    ]
+  }
+]

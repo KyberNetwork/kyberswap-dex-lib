@@ -1,0 +1,16 @@
+[
+  {
+    "type": "function",
+    "name": "currentFee",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint24" }]
+  },
+  {
+    "type": "function",
+    "name": "status",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint8" }]
+  }
+]

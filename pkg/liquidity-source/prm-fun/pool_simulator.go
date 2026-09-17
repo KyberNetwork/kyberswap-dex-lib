@@ -2,20 +2,21 @@ package prmfun
 
 import (
 	"math/big"
+	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// Token index convention: 0 = desk (wrapped native), 1 = meme. Only ETH-paired,
-// Trading-phase MemeCurve pools live here; graduated ones move to the uniswap-v4-prm
-// hook, and memes paired against an ERC20 desk are out of scope.
+// Token index convention: 0 = pair token (wrapped native for ETH), 1 = meme.
+// All three pair types share curve math. Graduated pools belong to the v4 source.
 const (
 	indexDesk = 0
 	indexMeme = 1
@@ -27,6 +28,7 @@ type PoolSimulator struct {
 	routerAddress  string
 	curveAddress   string
 	graduationDesk *uint256.Int
+	isNativeQuote  bool
 
 	phase       uint8
 	virtualMeme *uint256.Int
@@ -56,18 +58,37 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 || ep.Tokens[0] == nil || ep.Tokens[1] == nil ||
+		!common.IsHexAddress(ep.Tokens[0].Address) || !common.IsHexAddress(ep.Tokens[1].Address) ||
+		common.HexToAddress(ep.Tokens[0].Address) == (common.Address{}) || common.HexToAddress(ep.Tokens[1].Address) == (common.Address{}) ||
+		strings.EqualFold(ep.Tokens[0].Address, ep.Tokens[1].Address) ||
+		!strings.EqualFold(ep.Tokens[1].Address, staticExtra.MemeToken) ||
+		!common.IsHexAddress(staticExtra.RouterAddress) || common.HexToAddress(staticExtra.RouterAddress) == (common.Address{}) ||
+		!common.IsHexAddress(staticExtra.CurveAddress) || common.HexToAddress(staticExtra.CurveAddress) == (common.Address{}) ||
+		!strings.EqualFold(ep.Address, staticExtra.CurveAddress) || !validState(extra, graduationDesk) {
+		return nil, ErrInvalidState
+	}
+	reserves := make([]*big.Int, 2)
+	for i, value := range ep.Reserves {
+		amount, ok := new(big.Int).SetString(value, 10)
+		if !ok || amount.Sign() < 0 || amount.BitLen() > 256 {
+			return nil, ErrInvalidState
+		}
+		reserves[i] = amount
+	}
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(item *entity.PoolToken, _ int) string { return item.Address }),
-			Reserves:    lo.Map(ep.Reserves, func(item string, _ int) *big.Int { return bignum.NewBig(item) }),
+			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
 		}},
 		routerAddress:  staticExtra.RouterAddress,
 		curveAddress:   staticExtra.CurveAddress,
 		graduationDesk: graduationDesk,
+		isNativeQuote:  staticExtra.IsNativeQuote,
 		phase:          extra.Phase,
 		virtualMeme:    extra.VirtualMeme,
 		virtualDesk:    extra.VirtualDesk,
@@ -80,7 +101,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
+	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
 	}
 
@@ -88,7 +109,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrPoolNotTrading
 	}
 
-	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
+	if tokenAmountIn.Amount == nil || tokenAmountIn.Amount.Sign() <= 0 {
+		return nil, ErrZeroAmount
+	}
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
 	if amountIn.IsZero() {
 		return nil, ErrZeroAmount
 	}
@@ -108,6 +135,18 @@ func (s *PoolSimulator) calcBuy(tokenOut string, deskIn *uint256.Int) (*pool.Cal
 		return nil, ErrPoolNotTrading
 	}
 
+	// Solidity checks virtualDesk + accepted net input for overflow. This also
+	// bounds the quote denominator before the pure math helpers run.
+	feeOnAll := big256.MulDivUp(new(uint256.Int), deskIn, uFeeBps, uBps)
+	net := new(uint256.Int).Sub(deskIn, feeOnAll)
+	room := new(uint256.Int).Sub(s.graduationDesk, s.deskRaised)
+	if net.Gt(room) {
+		net.Set(room)
+	}
+	var nextDesk uint256.Int
+	if _, overflow := nextDesk.AddOverflow(s.virtualDesk, net); overflow {
+		return nil, ErrOverflow
+	}
 	result := QuoteBuy(deskIn, s.virtualMeme, s.virtualDesk, s.memeSold, s.deskRaised, s.graduationDesk, uSaleSupply)
 	if result.MemeOut.IsZero() || result.DeskUsed.IsZero() {
 		return nil, ErrInvalidAmount
@@ -121,14 +160,24 @@ func (s *PoolSimulator) calcBuy(tokenOut string, deskIn *uint256.Int) (*pool.Cal
 		}
 	}
 
+	next := s.stateCopy()
+	net.Sub(result.DeskUsed, result.Fee)
+	next.DeskRaised.Add(next.DeskRaised, net)
+	next.VirtualDesk.Set(&nextDesk)
+	next.VirtualMeme.Sub(next.VirtualMeme, result.MemeOut)
+	next.MemeSold.Add(next.MemeSold, result.MemeOut)
+	gas := int64(buyGas)
+	if next.DeskRaised.Eq(s.graduationDesk) {
+		next.Phase = PhaseGraduated
+		gas += graduationGas
+	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: result.MemeOut.ToBig()},
 		RemainingTokenAmountIn: remainingIn,
 		Fee:                    &pool.TokenAmount{Token: s.Info.Tokens[indexDesk], Amount: result.Fee.ToBig()},
-		Gas:                    buyGas,
+		Gas:                    gas,
 		SwapInfo: &SwapInfo{
-			IsBuy:        true,
-			CurveAddress: s.curveAddress,
+			IsBuy: true, CurveAddress: s.curveAddress, IsNativeQuote: s.isNativeQuote, NewState: next,
 		},
 	}, nil
 }
@@ -138,6 +187,10 @@ func (s *PoolSimulator) calcSell(tokenOut string, memeIn *uint256.Int) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
+	var nextMeme uint256.Int
+	if _, overflow := nextMeme.AddOverflow(s.virtualMeme, memeIn); overflow {
+		return nil, ErrOverflow
+	}
 	gross, result := QuoteSell(memeIn, s.virtualMeme, s.virtualDesk)
 	if gross.Gt(s.deskRaised) {
 		// Mirrors MemeCurve.sol's quoteSell returning (0, 0) here - the curve does not
@@ -148,66 +201,76 @@ func (s *PoolSimulator) calcSell(tokenOut string, memeIn *uint256.Int) (*pool.Ca
 		return nil, ErrInvalidAmount
 	}
 
+	next := s.stateCopy()
+	next.MemeSold.Sub(next.MemeSold, memeIn)
+	next.VirtualMeme.Set(&nextMeme)
+	next.VirtualDesk.Sub(next.VirtualDesk, gross)
+	next.DeskRaised.Sub(next.DeskRaised, gross)
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: result.DeskOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexDesk], Amount: result.Fee.ToBig()},
 		Gas:            sellGas,
 		SwapInfo: &SwapInfo{
-			IsBuy:        false,
-			CurveAddress: s.curveAddress,
+			IsBuy: false, CurveAddress: s.curveAddress, IsNativeQuote: s.isNativeQuote, NewState: next,
 		},
 	}, nil
 }
 
+func validState(e Extra, target *uint256.Int) bool {
+	return target != nil && !target.IsZero() && e.Phase <= PhasePaused &&
+		e.VirtualMeme != nil && !e.VirtualMeme.IsZero() && e.VirtualDesk != nil && !e.VirtualDesk.IsZero() &&
+		e.MemeSold != nil && e.MemeSold.Cmp(uSaleSupply) <= 0 && e.DeskRaised != nil && e.DeskRaised.Cmp(target) <= 0 &&
+		e.VirtualDesk.Cmp(e.DeskRaised) >= 0 &&
+		e.VirtualMeme.Cmp(new(uint256.Int).Sub(uSaleSupply, e.MemeSold)) >= 0
+}
+
+func (s *PoolSimulator) stateCopy() Extra {
+	return Extra{Phase: s.phase, VirtualMeme: s.virtualMeme.Clone(), VirtualDesk: s.virtualDesk.Clone(),
+		MemeSold: s.memeSold.Clone(), DeskRaised: s.deskRaised.Clone()}
+}
+
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	swapInfo, ok := params.SwapInfo.(*SwapInfo)
-	if !ok {
+	info, ok := params.SwapInfo.(*SwapInfo)
+	if !ok || info == nil || info.CurveAddress != s.curveAddress || !validState(info.NewState, s.graduationDesk) {
 		return
 	}
-
-	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
-	amountOut := uint256.MustFromBig(params.TokenAmountOut.Amount)
-	fee := uint256.MustFromBig(params.Fee.Amount)
-
-	if swapInfo.IsBuy {
-		net := new(uint256.Int).Sub(amountIn, fee)
-		s.deskRaised.Add(s.deskRaised, net)
-		s.virtualDesk.Add(s.virtualDesk, net)
-		s.virtualMeme.Sub(s.virtualMeme, amountOut)
-		s.memeSold.Add(s.memeSold, amountOut)
-	} else {
-		gross := new(uint256.Int).Add(amountOut, fee)
-		s.memeSold.Sub(s.memeSold, amountIn)
-		s.virtualMeme.Add(s.virtualMeme, amountIn)
-		s.virtualDesk.Sub(s.virtualDesk, gross)
-		s.deskRaised.Sub(s.deskRaised, gross)
-	}
-
-	if s.deskRaised.Cmp(s.graduationDesk) >= 0 {
-		s.phase = PhaseGraduated
+	// Never use the caller's offered input: the final buy may have a refund.
+	// Copy the quote's result so neither clones nor later updates mutate SwapInfo.
+	e := info.NewState
+	s.phase = e.Phase
+	s.virtualMeme, s.virtualDesk = e.VirtualMeme.Clone(), e.VirtualDesk.Clone()
+	s.memeSold, s.deskRaised = e.MemeSold.Clone(), e.DeskRaised.Clone()
+	s.Info.Reserves = []*big.Int{s.virtualDesk.ToBig(), s.virtualMeme.ToBig()}
+	if s.phase != PhaseTrading {
+		s.Info.Reserves = []*big.Int{new(big.Int), new(big.Int)}
 	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.virtualMeme = new(uint256.Int).Set(s.virtualMeme)
-	cloned.virtualDesk = new(uint256.Int).Set(s.virtualDesk)
-	cloned.memeSold = new(uint256.Int).Set(s.memeSold)
-	cloned.deskRaised = new(uint256.Int).Set(s.deskRaised)
+	cloned.Info.Tokens = append([]string(nil), s.Info.Tokens...)
+	cloned.Info.Reserves = make([]*big.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		cloned.Info.Reserves[i] = new(big.Int).Set(r)
+	}
+	cloned.virtualMeme, cloned.virtualDesk = s.virtualMeme.Clone(), s.virtualDesk.Clone()
+	cloned.memeSold, cloned.deskRaised = s.memeSold.Clone(), s.deskRaised.Clone()
+	cloned.graduationDesk = s.graduationDesk.Clone()
 	return &cloned
 }
 
-func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainID valueobject.ChainID) bool {
-	return s.GetTokenIndex(tokenIn) == indexDesk && valueobject.IsWrappedNative(tokenIn, chainID)
+func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, chainID valueobject.ChainID) bool {
+	return s.isNativeQuote && s.GetTokenIndex(tokenIn) == indexDesk && s.GetTokenIndex(tokenOut) == indexMeme && valueobject.IsWrappedNative(tokenIn, chainID)
 }
 
-func (s *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainID valueobject.ChainID) bool {
-	return s.GetTokenIndex(tokenOut) == indexDesk && valueobject.IsWrappedNative(tokenOut, chainID)
+func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainID valueobject.ChainID) bool {
+	return s.isNativeQuote && s.GetTokenIndex(tokenOut) == indexDesk && s.GetTokenIndex(tokenIn) == indexMeme && valueobject.IsWrappedNative(tokenOut, chainID)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		ApprovalAddress: s.routerAddress,
 		BlockNumber:     s.Info.BlockNumber,
+		IsNativeQuote:   s.isNativeQuote,
 	}
 }

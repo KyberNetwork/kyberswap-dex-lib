@@ -22,7 +22,6 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -119,7 +118,8 @@ func (t *PoolTracker) fetchOnchainState(
 	return result, hook, hookParam, nil
 }
 
-// resolveHookState finalizes hookParam.Pool.Reserves and runs hook.Track.
+// resolveHookState refreshes hookParam.Pool's Reserves and Extra to this round's
+// state and runs hook.Track.
 //
 // Reserves are needed in two directions that can conflict: some hooks' Track
 // reads Pool.Reserves as an input (e.g. the auto-detect hook sizes its
@@ -139,6 +139,10 @@ func (t *PoolTracker) resolveHookState(
 	reserve0, reserve1 := EstimateReservesFromTicks(result.Slot0.SqrtPriceX96, ticks)
 	hookParam.Pool.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
+	if extraBytes, err := json.Marshal(result.ToExtra(ticks)); err == nil {
+		hookParam.Pool.Extra = string(extraBytes)
+	}
+
 	var err error
 	if result.HookExtra, err = hook.Track(ctx, hookParam); err != nil {
 		return err
@@ -152,8 +156,27 @@ func (t *PoolTracker) resolveHookState(
 	if hookReserves != nil {
 		hookParam.Pool.Reserves = hookReserves
 	}
-	result.Reserves = hookParam.Pool.Reserves
+	result.Reserves = rescaleNativeReserves(hookParam.Cfg.ChainID, hookParam.Pool)
 	return nil
+}
+
+// rescaleNativeReserves converts a native-flagged reserve from its real on-chain decimals to
+// the wrapped-native address's decimals used elsewhere for that token; a no-op except on Arc.
+func rescaleNativeReserves(chainID valueobject.ChainID, p *entity.Pool) entity.PoolReserves {
+	reserves := p.Reserves
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return reserves
+	}
+	for i, isNative := range staticExtra.IsNative {
+		if isNative && i < len(reserves) {
+			amount, ok := new(big.Int).SetString(reserves[i], 10)
+			if ok {
+				reserves[i] = valueobject.WrapNativeAmount(chainID, amount).String()
+			}
+		}
+	}
+	return reserves
 }
 
 func (t *PoolTracker) BootstrapPoolState(
@@ -236,16 +259,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		Extra: &uniswapv3.Extra{
-			Liquidity:    rpcData.Liquidity,
-			TickSpacing:  uint64(rpcData.TickSpacing),
-			SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-			Tick:         rpcData.Slot0.Tick,
-			Ticks:        ticks,
-		},
-		HookExtra: rpcData.HookExtra,
-	})
+	extraBytes, err := json.Marshal(rpcData.ToExtra(ticks))
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -829,16 +843,7 @@ func (t *PoolTracker) updateState(
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		Extra: &uniswapv3.Extra{
-			Liquidity:    rpcState.Liquidity,
-			SqrtPriceX96: rpcState.Slot0.SqrtPriceX96,
-			TickSpacing:  uint64(rpcState.TickSpacing),
-			Tick:         rpcState.Slot0.Tick,
-			Ticks:        entityPoolTicks,
-		},
-		HookExtra: rpcState.HookExtra,
-	})
+	extraBytes, err := json.Marshal(rpcState.ToExtra(entityPoolTicks))
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,

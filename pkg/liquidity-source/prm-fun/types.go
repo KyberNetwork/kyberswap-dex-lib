@@ -19,13 +19,13 @@ type GetMemeResult struct {
 	}
 }
 
-// StaticExtra is immutable per-pool data, set at discovery. Pools exist only for
-// ETH-paired memes; stock-paired ones are out of scope for this pool type.
+// StaticExtra is immutable per-pool data for ETH, PRM and stock-paired memes.
 type StaticExtra struct {
 	RouterAddress  string `json:"rA"`
 	CurveAddress   string `json:"cA"`
 	MemeToken      string `json:"mT"`
 	GraduationDesk string `json:"gD"`
+	IsNativeQuote  bool   `json:"nQ"`
 }
 
 type Extra struct {
@@ -36,22 +36,27 @@ type Extra struct {
 	DeskRaised  *uint256.Int `json:"dR"`
 }
 
-// SwapInfo carries swap direction to the encoder, which cannot infer it from the token
-// addresses: the desk side is listed as wrapped native.
+// SwapInfo identifies settlement and stores the exact post-swap state. The input
+// offered to CalcAmountOut can exceed the amount actually accepted by the curve.
 type SwapInfo struct {
-	IsBuy        bool   `json:"iB"`
-	CurveAddress string `json:"cA"`
+	IsBuy         bool   `json:"iB"`
+	CurveAddress  string `json:"cA"`
+	IsNativeQuote bool   `json:"nQ"`
+	NewState      Extra  `json:"-"`
 }
 
 type PoolsListUpdaterMetadata struct {
-	Offset int `json:"offset"`
+	Offset  int `json:"offset"`
+	Version int `json:"version"`
 }
 
 // PoolMeta is returned by GetMetaInfo. ApprovalAddress is the PremiumRouter proxy, which a
-// sell must approve meme-token spending to; buys are payable and need no approval.
+// sell must approve meme-token spending to. ERC-20 pair buys also require approval;
+// only ETH-pair buys send native value.
 type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 	BlockNumber     uint64 `json:"blockNumber"`
+	IsNativeQuote   bool   `json:"isNativeQuote"`
 }
 
 type GetReservesResult struct {
