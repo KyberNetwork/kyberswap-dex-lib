@@ -1,0 +1,29 @@
+{
+  "release": "routed-candidate-final-review-2026-09-17",
+  "status": "undeployed",
+  "compiler": "0.8.26+commit.8a97fa7a",
+  "sourcesSha256": {
+    "src/routed/RoutedInverseHook.sol": "f39ea0826b50bdb82e84361f13eb5dbda4b81c8753fc24a1fa52660029f155eb",
+    "src/routed/RoutedInverseToken.sol": "2da8cf0a9dd755e43912f2628e82c531cff7f22d8d69b8eacd4385d779ec766a",
+    "src/libraries/InverseMath.sol": "361d7e26098a354f061baabaa430bfacd3ff906b3e0b759409c2bc8607fad3cc",
+    "foundry.toml": "7fd5337358c30614897f7878bb25d3bc8420b3fe1e87c74f460245c49b317fbb",
+    "remappings.txt": "03cd3dad8c21dd728f3377436f1c3707309ea348e2a78a035e5f06002f974545",
+    "dependencies.lock.json": "25612c33fb2381dda00a693e3620a404fe5235f8dcea53f0c86ce0d05dd18ccc"
+  },
+  "contracts": {
+    "RoutedInverseHook": {
+      "constructorArgsBytes": 160,
+      "creationBytes": 36579,
+      "creationSha256": "0261334b905291af3423471c116fc44c8f179da455145b3cb170dd6e2f2e1e25",
+      "runtimeBytes": 24079,
+      "runtimeSha256": "a1daf59566f109eba92ab89ba8357ce45b92a4fcb451aabf2370f7e51f91816e"
+    },
+    "RoutedInverseToken": {
+      "constructorArgsBytes": 64,
+      "creationBytes": 9967,
+      "creationSha256": "ca2c3c49b1acd3b5213598efacca66b2eb49d6457c52c7873ece2cce3a66fb08",
+      "runtimeBytes": 9256,
+      "runtimeSha256": "5ab9bbb1a6166f594fa2dd6156edf0127bbf8dbf61d7c7fec3471d25def5f553"
+    }
+  }
+}
