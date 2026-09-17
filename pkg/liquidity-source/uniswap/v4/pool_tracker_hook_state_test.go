@@ -61,8 +61,9 @@ func TestResolveHookState_TrackSeesFreshPoolState(t *testing.T) {
 	}
 
 	hook := &extraSpyHook{BaseHook: &BaseHook{}}
-	tracker := &PoolTracker{}
-	require.NoError(t, tracker.resolveHookState(context.Background(), hook, &HookParam{Pool: p}, result, freshTicks))
+	tracker := &PoolTracker{config: &Config{}}
+	hookParam := &HookParam{Cfg: tracker.config, Pool: p}
+	require.NoError(t, tracker.resolveHookState(context.Background(), hook, hookParam, result, freshTicks))
 
 	got := hook.trackedExtra
 	require.NotNil(t, got.Extra)

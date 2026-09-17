@@ -8,18 +8,20 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // BatchCall is one eth_call to include in a BatchEthCall request. From/Gas/
-// GasPrice are optional per-call overrides; their zero values are omitted
-// from the request, letting the node apply its own defaults.
+// GasPrice/Overrides are optional per-call overrides; their zero values are
+// omitted from the request, letting the node apply its own defaults.
 type BatchCall struct {
-	To       string
-	Data     []byte
-	From     common.Address
-	Gas      uint64
-	GasPrice *big.Int
+	To        string
+	Data      []byte
+	From      common.Address
+	Gas       uint64
+	GasPrice  *big.Int
+	Overrides map[common.Address]gethclient.OverrideAccount
 }
 
 // BatchEthCall sends one eth_call per entry in calls as a single JSON-RPC
@@ -59,9 +61,13 @@ func BatchEthCall(
 		if c.GasPrice != nil {
 			arg["gasPrice"] = (*hexutil.Big)(c.GasPrice)
 		}
+		args := []any{arg, blockArg}
+		if len(c.Overrides) > 0 {
+			args = append(args, c.Overrides)
+		}
 		batch[i] = rpc.BatchElem{
 			Method: "eth_call",
-			Args:   []any{arg, blockArg},
+			Args:   args,
 			Result: &raw[i],
 		}
 	}
