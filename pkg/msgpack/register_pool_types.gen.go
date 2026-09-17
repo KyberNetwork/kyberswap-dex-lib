@@ -55,6 +55,7 @@ import (
 	pkg_liquiditysource_curve_tricryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
 	pkg_liquiditysource_curve_twocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	pkg_liquiditysource_daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	pkg_liquiditysource_deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	pkg_liquiditysource_deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	pkg_liquiditysource_dodo_classical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	pkg_liquiditysource_dodo_dpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -108,9 +109,12 @@ import (
 	pkg_liquiditysource_liquidcore "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	pkg_liquiditysource_liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
 	pkg_liquiditysource_lista_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stable"
+	pkg_liquiditysource_lista_stake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	pkg_liquiditysource_litepsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	pkg_liquiditysource_lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	pkg_liquiditysource_lunarbase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
+	pkg_liquiditysource_lunya "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
+	pkg_liquiditysource_lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"
 	pkg_liquiditysource_machima "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/machima"
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	pkg_liquiditysource_maker_skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
@@ -128,6 +132,7 @@ import (
 	pkg_liquiditysource_nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	pkg_liquiditysource_nadswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
+	pkg_liquiditysource_netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_obric "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -318,6 +323,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_tricryptong.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_twocryptong.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_daiusds.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_deepstateob.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_deltaswapv1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_classical.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dpp.PoolSimulator{})
@@ -371,9 +377,12 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidcore.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidityparty.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stable.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stake.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lo1inch.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunarbase.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunya.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunyafun.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_machima.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_skypsm.PoolSimulator{})
@@ -391,6 +400,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadfun.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_netstaking.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_obric.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})
