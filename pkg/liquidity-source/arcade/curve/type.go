@@ -46,8 +46,13 @@ type SwapInfo struct {
 	Graduates          bool         `json:"-"`
 }
 
+// MetaInfo names the hook as the contract to approve: a buy pulls USDC and a sell pulls the
+// launch token, both with transferFrom. IsBuy tells the encoder which of the hook's two calls
+// to build, since token0/token1 order is not itself buy/sell direction.
 type MetaInfo struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress"`
+	IsBuy           bool   `json:"isBuy"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 // Decode targets, field order matching the ABI outputs.

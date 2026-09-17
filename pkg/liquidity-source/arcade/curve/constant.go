@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	DexType = "arcade-curve"
+	DexType = "arcade-fun"
 
 	// Pool addresses are synthetic: every launch trades on the one ArcadeHook
 	// contract, keyed by its V4 PoolId. The prefix keeps them distinct from the
 	// uniswap-v4 pool the same PoolId names once the launch graduates.
-	poolAddressPrefix = "arcade-curve-"
+	poolAddressPrefix = "arcade-fun-"
 
 	// LaunchMode / Status values of ArcadeHook.CurveState.
 	modePump        = 0
@@ -45,14 +45,14 @@ var (
 )
 
 var (
-	ErrInvalidToken    = errors.New("arcade-curve: invalid token")
-	ErrZeroAmount      = errors.New("arcade-curve: zero amount")
-	ErrNotCurving      = errors.New("arcade-curve: launch is not on its bonding curve")
-	ErrPaused          = errors.New("arcade-curve: hook is paused")
-	ErrZeroOutput      = errors.New("arcade-curve: amount too small, the curve returns nothing")
-	ErrSellExceedsSold = errors.New("arcade-curve: selling more tokens than the curve has issued")
-	ErrOverflow        = errors.New("arcade-curve: overflow")
-	ErrNotTracked      = errors.New("arcade-curve: pool state not tracked yet")
+	ErrInvalidToken    = errors.New("arcade-fun: invalid token")
+	ErrZeroAmount      = errors.New("arcade-fun: zero amount")
+	ErrNotCurving      = errors.New("arcade-fun: launch is not on its bonding curve")
+	ErrPaused          = errors.New("arcade-fun: hook is paused")
+	ErrZeroOutput      = errors.New("arcade-fun: amount too small, the curve returns nothing")
+	ErrSellExceedsSold = errors.New("arcade-fun: selling more tokens than the curve has issued")
+	ErrOverflow        = errors.New("arcade-fun: overflow")
+	ErrNotTracked      = errors.New("arcade-fun: pool state not tracked yet")
 )
 
 // PoolAddress is the synthetic pool address of a launch, from its PoolId.

@@ -2,6 +2,8 @@ package curve
 
 import (
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // BuyResult mirrors ArcadeV4Curve.BuyResult.
@@ -30,8 +32,7 @@ func SimulateBuy(tokensSold, realUsdcReserve, grossUsdcIn *uint256.Int) BuyResul
 		return r
 	}
 
-	fee := new(uint256.Int).Mul(grossUsdcIn, uTradeFeeBps)
-	fee.Div(fee, uFeeDenominator)
+	fee := big256.MulDivDown(new(uint256.Int), grossUsdcIn, uTradeFeeBps, uFeeDenominator)
 	netIn := new(uint256.Int).Sub(grossUsdcIn, fee)
 
 	currentUsdc := new(uint256.Int).Add(virtualUsdcReserve, realUsdcReserve)
@@ -54,20 +55,14 @@ func SimulateBuy(tokensSold, realUsdcReserve, grossUsdcIn *uint256.Int) BuyResul
 	}
 
 	capTokenReserve := new(uint256.Int).Sub(currentTokens, maxOut)
-	capUsdcReserve, rem := new(uint256.Int).DivMod(kConstant, capTokenReserve, new(uint256.Int))
-	if !rem.IsZero() {
-		capUsdcReserve.AddUint64(capUsdcReserve, 1)
-	}
+	capUsdcReserve := big256.DivUp(kConstant, capTokenReserve)
 	actualNet := new(uint256.Int).Sub(capUsdcReserve, currentUsdc)
-	numerator := new(uint256.Int).Mul(actualNet, uFeeDenominator)
 	denominator := uint256.NewInt(feeDenominator - tradeFeeBps)
-	actualGross := numerator.Add(numerator, new(uint256.Int).SubUint64(denominator, 1))
-	actualGross.Div(actualGross, denominator)
+	actualGross := big256.MulDivUp(new(uint256.Int), actualNet, uFeeDenominator, denominator)
 	if actualGross.Cmp(grossUsdcIn) > 0 {
 		actualGross = new(uint256.Int).Set(grossUsdcIn)
 	}
-	actualFee := new(uint256.Int).Mul(actualGross, uTradeFeeBps)
-	actualFee.Div(actualFee, uFeeDenominator)
+	actualFee := big256.MulDivDown(new(uint256.Int), actualGross, uTradeFeeBps, uFeeDenominator)
 
 	r.TokensOut = maxOut
 	r.ActualGross = actualGross
@@ -101,8 +96,7 @@ func SimulateSell(tokensSold, realUsdcReserve, tokensIn *uint256.Int) SellResult
 		grossOut = new(uint256.Int).Set(realUsdcReserve)
 	}
 
-	fee := new(uint256.Int).Mul(grossOut, uTradeFeeBps)
-	fee.Div(fee, uFeeDenominator)
+	fee := big256.MulDivDown(new(uint256.Int), grossOut, uTradeFeeBps, uFeeDenominator)
 	r.GrossOut = grossOut
 	r.UsdcOut = new(uint256.Int).Sub(grossOut, fee)
 	r.Fee = fee

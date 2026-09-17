@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -104,8 +105,7 @@ func (s *PoolSimulator) buy(amountIn *uint256.Int, tokenOut string) (*pool.CalcA
 
 	netTokensOut := r.TokensOut
 	if bps := s.extra.CurrentSnipeBps(NowFn()); bps > 0 {
-		tax := new(uint256.Int).Mul(r.TokensOut, uint256.NewInt(bps))
-		tax.Div(tax, uint256.NewInt(basisPoints))
+		tax := big256.MulDivDown(new(uint256.Int), r.TokensOut, uint256.NewInt(bps), uint256.NewInt(basisPoints))
 		netTokensOut = new(uint256.Int).Sub(r.TokensOut, tax)
 	}
 
@@ -191,6 +191,10 @@ func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
 	return s.hook
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return MetaInfo{BlockNumber: s.Info.BlockNumber}
+func (s *PoolSimulator) GetMetaInfo(_, tokenOut string) any {
+	return MetaInfo{
+		ApprovalAddress: s.hook,
+		IsBuy:           s.GetTokenIndex(tokenOut) == 1,
+		BlockNumber:     s.Info.BlockNumber,
+	}
 }

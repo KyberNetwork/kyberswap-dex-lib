@@ -428,7 +428,7 @@ type Types struct {
 	Synthereum                 string
 	GenericArm                 string
 	GOHM                       string
-	ArcadeCurve                string
+	ArcadeFun                  string
 	ArenaBC                    string
 	XsolvBTC                   string
 	Midas                      string
@@ -676,7 +676,7 @@ var (
 		Synthereum:                 synthereum.DexType,
 		GenericArm:                 genericarm.DexType,
 		GOHM:                       gohm.DexType,
-		ArcadeCurve:                arcadecurve.DexType,
+		ArcadeFun:                  arcadecurve.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
 		Midas:                      midas.DexType,
