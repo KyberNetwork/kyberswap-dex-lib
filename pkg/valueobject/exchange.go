@@ -16,6 +16,7 @@ const (
 	ExchangeArberaStake                 = "arbera-stake"
 	ExchangeArberaZap                   = "arbera-zap"
 	ExchangeArbiDex                     = "arbi-dex"
+	ExchangeArcadeFun                   = "arcade-fun"
 	ExchangeArenaBC                     = "arena-bc"
 	ExchangeAstroSwap                   = "astroswap"
 	ExchangeAxial                       = "axial"
