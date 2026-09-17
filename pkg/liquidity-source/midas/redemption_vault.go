@@ -105,6 +105,10 @@ func (v *RedemptionVault) calcAndValidateRedeem(amountMTokenIn *uint256.Int, tok
 		return nil, nil, ErrInvalidAmount
 	}
 
+	if v.minAmount != nil && amountMTokenIn.Lt(v.minAmount) {
+		return nil, nil, ErrRVAmountLtMin
+	}
+
 	feeAmount := v.getFeeAmount(amountMTokenIn, 0)
 	amountMTokenWithoutFee := new(uint256.Int).Sub(amountMTokenIn, feeAmount)
 

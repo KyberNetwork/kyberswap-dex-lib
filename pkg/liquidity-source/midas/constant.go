@@ -82,6 +82,7 @@ var (
 	ErrDvMaxSupplyCapExceeded       = errors.New("DV: max supply cap exceeded")
 	ErrRVPaused                     = errors.New("RV: redemption vault paused")
 	ErrRedeemInstantFnPaused        = errors.New("RV: redeemInstant fn paused")
+	ErrRVAmountLtMin                = errors.New("RV: amount < min")
 	ErrRVInsufficientMToken2Balance = errors.New("RV: insufficient mToken2 balance")
 	ErrRVUUstbFeeNotZero            = errors.New("RVU: USTB fee not zero")
 	ErrRVUInsufficientUstbBalance   = errors.New("RVU: insufficient USTB balance")

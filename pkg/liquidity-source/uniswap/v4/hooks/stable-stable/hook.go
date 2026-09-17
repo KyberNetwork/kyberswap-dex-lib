@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -19,8 +20,14 @@ type Hook struct {
 	uniswapv4.Hook          `json:"-"`
 	uniswapv3.ExtraTickU256 `json:"-"`
 
+	// HookAddress is set once from HookParam at construction time (GetHook
+	// re-runs the factory on every pool simulator rebuild, so this is always
+	// fresh — it never needs to round-trip through JSON). isLegacy() derives
+	// which feeConfig()/decay formula this pool's hook deployment uses from it.
+	HookAddress common.Address `json:"-"`
+
 	K                     uint64 `json:"k"`
-	LogK                  uint64 `json:"lk"`
+	LogK                  uint64 `json:"lk"` // legacy hook only; V2 hooks derive it from K (see deriveLogK)
 	OptimalFeeE6          uint64 `json:"o"`
 	TargetMultiplier      uint64 `json:"tm"`
 	ReferenceSqrtPriceX96 string `json:"rsp"`
@@ -32,9 +39,12 @@ type Hook struct {
 	TrackedBlock uint64 `json:"tb"`
 }
 
+func (h *Hook) isLegacy() bool { return h.HookAddress == legacyHookAddress }
+
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4StableStable},
+		Hook:        &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4StableStable},
+		HookAddress: param.HookAddress,
 	}
 	_ = param.HookExtra.Unmarshal(hook)
 	if param.Pool != nil && param.Pool.Extra != "" {
@@ -43,12 +53,29 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
+// feeConfigV2RPC mirrors newer hooks' feeConfig() output order; logK was
+// dropped on-chain and is now derived off-chain from k (see deriveLogK).
+type feeConfigV2RPC struct {
+	K                     *big.Int
+	OptimalFeeE6          *big.Int
+	TargetMultiplier      uint8
+	ReferenceSqrtPriceX96 *big.Int
+}
+
+// feeConfigRPC mirrors the legacy hook's feeConfig() output order, which
+// interleaves LogK between K and OptimalFeeE6.
 type feeConfigRPC struct {
 	K                     *big.Int
 	LogK                  *big.Int
 	OptimalFeeE6          *big.Int
 	TargetMultiplier      uint8
 	ReferenceSqrtPriceX96 *big.Int
+}
+
+// common strips LogK so both feeConfig shapes can be applied to Hook through
+// one code path.
+func (c feeConfigRPC) common() feeConfigV2RPC {
+	return feeConfigV2RPC{c.K, c.OptimalFeeE6, c.TargetMultiplier, c.ReferenceSqrtPriceX96}
 }
 
 type feeStateRPC struct {
@@ -58,8 +85,11 @@ type feeStateRPC struct {
 }
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
+	isLegacy := h.isLegacy()
+
 	var (
 		cfg   feeConfigRPC
+		cfgV2 feeConfigV2RPC
 		state feeStateRPC
 	)
 
@@ -69,12 +99,16 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	}
 
 	poolId := eth.StringToBytes32(param.Pool.Address)
+	feeConfigABI, feeConfigDst := stableStableHookV2ABI, any(&cfgV2)
+	if isLegacy {
+		feeConfigABI, feeConfigDst = stableStableHookABI, any(&cfg)
+	}
 	req.AddCall(&ethrpc.Call{
-		ABI:    stableStableHookABI,
+		ABI:    feeConfigABI,
 		Target: param.HookAddress.Hex(),
 		Method: "feeConfig",
 		Params: []any{poolId},
-	}, []any{&cfg})
+	}, []any{feeConfigDst})
 	req.AddCall(&ethrpc.Call{
 		ABI:    stableStableHookABI,
 		Target: param.HookAddress.Hex(),
@@ -86,11 +120,15 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		return nil, err
 	}
 
-	h.K = cfg.K.Uint64()
-	h.LogK = cfg.LogK.Uint64()
-	h.OptimalFeeE6 = cfg.OptimalFeeE6.Uint64()
-	h.TargetMultiplier = uint64(cfg.TargetMultiplier)
-	h.ReferenceSqrtPriceX96 = cfg.ReferenceSqrtPriceX96.String()
+	h.LogK = 0
+	if isLegacy {
+		h.LogK = cfg.LogK.Uint64()
+		cfgV2 = cfg.common()
+	}
+	h.K = cfgV2.K.Uint64()
+	h.OptimalFeeE6 = cfgV2.OptimalFeeE6.Uint64()
+	h.TargetMultiplier = uint64(cfgV2.TargetMultiplier)
+	h.ReferenceSqrtPriceX96 = cfgV2.ReferenceSqrtPriceX96.String()
 	h.DecayingFeeE12 = state.DecayingFeeE12.Uint64()
 	h.SqrtAmmPriceX96 = state.SqrtAmmPriceX96.String()
 	h.BlockNumber = state.BlockNumber.Uint64()
@@ -257,7 +295,10 @@ func (h *Hook) calculateDecayingFee(
 		blocksPassed = h.TrackedBlock - previousBlockNumber
 	}
 
-	return CalculateDecayingFee(targetFee, decayStartFeeE12, h.K, h.LogK, blocksPassed)
+	if h.isLegacy() {
+		return CalculateDecayingFee(targetFee, decayStartFeeE12, h.K, h.LogK, blocksPassed)
+	}
+	return CalculateDecayingFeeV2(targetFee, decayStartFeeE12, h.K, blocksPassed)
 }
 
 func (h *Hook) CloneState() uniswapv4.Hook {

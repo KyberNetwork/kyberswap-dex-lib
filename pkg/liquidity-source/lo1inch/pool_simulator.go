@@ -68,52 +68,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	for _, order := range extra.TakeToken0Orders {
-		if order.Extension == "" || order.Extension == helper1inch.ZX {
-			continue
-		}
-
-		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
-
-		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
-		if err != nil {
-			return nil, fmt.Errorf("decode extension: %w", err)
-		}
-		order.ExtensionInstance = &extensionInstance
-
-		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
-		if err != nil {
-			// logger.Errorf("failed to decode fee taker extension: %v", err)
-			// not always that extension data can be used to create new fee taker extension
-			// so we need to continue
-			continue
-		}
-
-		order.FeeTakerExtension = &feeTakerExtension
+	if err := decodeOrders(extra.TakeToken0Orders); err != nil {
+		return nil, err
 	}
 
-	for _, order := range extra.TakeToken1Orders {
-		if order.Extension == "" || order.Extension == helper1inch.ZX {
-			continue
-		}
-
-		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
-
-		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
-		if err != nil {
-			return nil, fmt.Errorf("decode extension: %w", err)
-		}
-		order.ExtensionInstance = &extensionInstance
-
-		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
-		if err != nil {
-			logger.Debugf("failed to decode fee taker extension: %v", err)
-			// not always that extension data can be used to create new fee taker extension
-			// so we need to continue
-			continue
-		}
-
-		order.FeeTakerExtension = &feeTakerExtension
+	if err := decodeOrders(extra.TakeToken1Orders); err != nil {
+		return nil, err
 	}
 
 	takeToken0OrdersMapping := make(map[string]int, len(extra.TakeToken0Orders))
@@ -159,6 +119,33 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		takerAddress:                       common.HexToAddress(staticExtra.TakerAddress),
 		takerTargetInteraction:             staticExtra.TakerTargetInteraction,
 	}, nil
+}
+
+func decodeOrders(orders []*Order) error {
+	for _, order := range orders {
+		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
+
+		if order.Extension == "" || order.Extension == helper1inch.ZX {
+			continue
+		}
+
+		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
+		if err != nil {
+			return fmt.Errorf("decode extension: %w", err)
+		}
+		order.ExtensionInstance = &extensionInstance
+
+		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
+		if err != nil {
+			// an extension does not necessarily carry fee taker data
+			logger.Debugf("failed to decode fee taker extension: %v", err)
+			continue
+		}
+
+		order.FeeTakerExtension = &feeTakerExtension
+	}
+
+	return nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -423,6 +410,26 @@ func getMakerRemainingBalance(
 	} else {
 		return makerBalanceAllowanceUint256
 	}
+}
+
+// CloneState deep-copies what UpdateBalance writes: the order slices and the Order values behind them, which
+// are shared with the order hash indexes. Everything else is immutable after construction and stays shared.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.takeToken0Orders = cloneOrders(p.takeToken0Orders)
+	cloned.takeToken1Orders = cloneOrders(p.takeToken1Orders)
+
+	return &cloned
+}
+
+func cloneOrders(orders []*Order) []*Order {
+	cloned := make([]*Order, len(orders))
+	for i, order := range orders {
+		clonedOrder := *order
+		cloned[i] = &clonedOrder
+	}
+
+	return cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

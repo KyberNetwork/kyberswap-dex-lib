@@ -29,7 +29,7 @@ func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log e
 	}
 
 	switch log.Topics[0] {
-	case stableStableHookABI.Events["FeeConfigUpdated"].ID:
+	case stableStableHookABI.Events["FeeConfigUpdated"].ID, stableStableHookV2ABI.Events["FeeConfigUpdated"].ID:
 		return []string{hexutil.Encode(log.Topics[1][:])}, nil
 	}
 

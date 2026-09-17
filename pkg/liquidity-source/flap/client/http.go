@@ -17,7 +17,8 @@ const (
 	// them by that metric — verified empirically, not documented.
 	graduatingHotBoardPath = "/v3/board/graduatinghot"
 
-	apiKeyHeader = "trust-wallet-by-pass"
+	apiKeyHeader  = "trust-wallet-by-pass"
+	refererHeader = "referer"
 
 	defaultTimeout = 10 * time.Second
 )
@@ -35,6 +36,7 @@ func NewClient(baseURL, apiKey string) *Client {
 	c := resty.New().
 		SetBaseURL(baseURL).
 		SetTimeout(defaultTimeout).
+		SetHeader(refererHeader, "https://flap.sh/").
 		SetHeader(apiKeyHeader, apiKey)
 
 	return &Client{client: c}

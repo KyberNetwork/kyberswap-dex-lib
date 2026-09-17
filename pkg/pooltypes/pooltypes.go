@@ -11,6 +11,7 @@ import (
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
+	arcadecurve "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arcade/curve"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima/metric-propamm"
@@ -57,6 +58,7 @@ import (
 	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng/lazy"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -113,9 +115,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
+	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
+	lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/machima"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
@@ -134,6 +139,7 @@ import (
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
+	netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -147,6 +153,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	rangev3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
@@ -263,6 +271,7 @@ type Types struct {
 	VelodromeV2                string
 	Velocimeter                string
 	RamsesV2                   string
+	RangeV3Weighted            string
 	PlatypusBase               string
 	PlatypusPure               string
 	PlatypusAvax               string
@@ -358,6 +367,7 @@ type Types struct {
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
+	DeepstateOb                string
 	UsdAi                      string
 	Ambient                    string
 	MaverickV2                 string
@@ -366,6 +376,7 @@ type Types struct {
 	Bebop                      string
 	Dexalot                    string
 	GenericSimpleRate          string
+	ListaStake                 string
 	RingSwap                   string
 	PrimeETH                   string
 	CaliberProp                string
@@ -425,6 +436,7 @@ type Types struct {
 	Synthereum                 string
 	GenericArm                 string
 	GOHM                       string
+	ArcadeFun                  string
 	ArenaBC                    string
 	XsolvBTC                   string
 	Midas                      string
@@ -478,6 +490,9 @@ type Types struct {
 	FluxProp                   string
 	ParityProp                 string
 	StonkbrokersFunV2          string
+	Lunya                      string
+	LunyaFun                   string
+	NetStaking                 string
 }
 
 var (
@@ -509,6 +524,7 @@ var (
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
 		RamsesV2:                   uniswapv3.DexTypeRamsesV2,
+		RangeV3Weighted:            rangev3weighted.DexType,
 		PlatypusBase:               platypus.PoolTypePlatypusBase,
 		PlatypusPure:               platypus.PoolTypePlatypusPure,
 		PlatypusAvax:               platypus.PoolTypePlatypusAvax,
@@ -609,6 +625,7 @@ var (
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
+		ListaStake:                 listastake.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
 		CaliberProp:                caliberprop.DexType,
@@ -672,6 +689,7 @@ var (
 		Synthereum:                 synthereum.DexType,
 		GenericArm:                 genericarm.DexType,
 		GOHM:                       gohm.DexType,
+		ArcadeFun:                  arcadecurve.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
 		Midas:                      midas.DexType,
@@ -725,5 +743,9 @@ var (
 		FluxProp:                   valueobject.ExchangeFluxProp,
 		ParityProp:                 parityprop.DexType,
 		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
+		Lunya:                      lunya.DexType,
+		LunyaFun:                   lunyafun.DexType,
+		DeepstateOb:                deepstateob.DexType,
+		NetStaking:                 netstaking.DexType,
 	}
 )

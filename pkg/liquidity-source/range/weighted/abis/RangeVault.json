@@ -1,0 +1,102 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "getPoolConfig",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "disableUnbalancedLiquidity",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "enableAddLiquidityCustom",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "enableRemoveLiquidityCustom",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "enableDonation",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct LiquidityManagement",
+            "name": "liquidityManagement",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "staticSwapFeePercentage",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "aggregateSwapFeePercentage",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "aggregateYieldFeePercentage",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint40",
+            "name": "tokenDecimalDiffs",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint32",
+            "name": "pauseWindowEndTime",
+            "type": "uint32"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolRegistered",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolInitialized",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isPoolInRecoveryMode",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct PoolConfig",
+        "name": "poolConfig",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getMinimumTradeAmount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

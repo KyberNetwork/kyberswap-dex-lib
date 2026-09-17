@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,11 +63,12 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			sim := lo.Must(NewPoolSimulator(entityPool))
 			if tc.rate != nil {
-				poolSim.Rate.SetFromBig(tc.rate)
+				sim.Rate = uint256.MustFromBig(tc.rate)
 			}
 
-			cloned := poolSim.CloneState()
+			cloned := sim.CloneState()
 			tokenAmountIn := pool.TokenAmount{
 				Token:  tokens[tc.tokenInIdx].Address,
 				Amount: tc.amountIn,
@@ -98,7 +100,7 @@ func TestGhoUsedRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	cloned := poolSim.CloneState().(*PoolSimulator)
-	cloned.Rate.SetFromBig(bignumber.NewBig("1146696576337460102970261542"))
+	cloned.Rate = uint256.MustFromBig(bignumber.NewBig("1146696576337460102970261542"))
 
 	buyResult, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokens[0].Address, Amount: big.NewInt(1000000000000000000)},

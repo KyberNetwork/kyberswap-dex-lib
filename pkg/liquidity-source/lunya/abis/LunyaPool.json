@@ -1,0 +1,158 @@
+[
+  {
+    "type": "function",
+    "name": "slot0",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "sqrtPriceX96", "type": "uint160" },
+      { "name": "tick", "type": "int24" },
+      { "name": "fee", "type": "uint24" },
+      { "name": "feeProtocol0", "type": "uint16" },
+      { "name": "feeProtocol1", "type": "uint16" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "liquidity",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint128" }]
+  },
+  {
+    "type": "function",
+    "name": "feeToken",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint8" }]
+  },
+  {
+    "type": "function",
+    "name": "plugin",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "pluginConfig",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint16" }]
+  },
+  {
+    "type": "function",
+    "name": "tickTreeRoot",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint32" }]
+  },
+  {
+    "type": "function",
+    "name": "tickBitmap",
+    "stateMutability": "view",
+    "inputs": [{ "name": "wordPosition", "type": "int16" }],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "ticks",
+    "stateMutability": "view",
+    "inputs": [{ "name": "tick", "type": "int24" }],
+    "outputs": [
+      { "name": "liquidityGross", "type": "uint128" },
+      { "name": "liquidityNet", "type": "int128" },
+      { "name": "feeGrowthOutside0X128", "type": "uint256" },
+      { "name": "feeGrowthOutside1X128", "type": "uint256" },
+      { "name": "initialized", "type": "bool" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "curveReserve0",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint128" }]
+  },
+  {
+    "type": "function",
+    "name": "curveReserve1",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint128" }]
+  },
+  {
+    "type": "function",
+    "name": "rate0",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "rate1",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "priceScaleSqrtQ96",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint160" }]
+  },
+  {
+    "type": "function",
+    "name": "amplificationX100",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint32" }]
+  },
+  {
+    "type": "function",
+    "name": "amplificationRamping",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "function",
+    "name": "amplificationRamp",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "startAmplification", "type": "uint32" },
+      { "name": "targetAmplification", "type": "uint32" },
+      { "name": "startTime", "type": "uint32" },
+      { "name": "endTime", "type": "uint32" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "Mint",
+    "anonymous": false,
+    "inputs": [
+      { "name": "sender", "type": "address", "indexed": false },
+      { "name": "owner", "type": "address", "indexed": true },
+      { "name": "tickLower", "type": "int24", "indexed": true },
+      { "name": "tickUpper", "type": "int24", "indexed": true },
+      { "name": "amount", "type": "uint128", "indexed": false },
+      { "name": "amount0", "type": "uint256", "indexed": false },
+      { "name": "amount1", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "Burn",
+    "anonymous": false,
+    "inputs": [
+      { "name": "owner", "type": "address", "indexed": true },
+      { "name": "tickLower", "type": "int24", "indexed": true },
+      { "name": "tickUpper", "type": "int24", "indexed": true },
+      { "name": "amount", "type": "uint128", "indexed": false },
+      { "name": "amount0", "type": "uint256", "indexed": false },
+      { "name": "amount1", "type": "uint256", "indexed": false }
+    ]
+  }
+]
