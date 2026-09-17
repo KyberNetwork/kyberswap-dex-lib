@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/suite"
 
@@ -54,7 +55,8 @@ func (ts *ParitySuite) SetupSuite() {
 
 	cfg := &Config{
 		DexID:          DexType,
-		FactoryAddress: FactoryAddress.Hex(),
+		ChainID:        valueobject.ChainIDEthereum,
+		FactoryAddress: hexutil.Encode(factoryAddress[:]),
 		NewPoolLimit:   100,
 	}
 	ts.lister = NewPoolsListUpdater(cfg, ts.client)
@@ -241,7 +243,7 @@ func (ts *ParitySuite) querySwapExactIn(block uint64, poolAddr, tokenIn, tokenOu
 		SetBlockNumber(new(big.Int).SetUint64(block))
 	req.AddCall(&ethrpc.Call{
 		ABI:    rangeRouterABI,
-		Target: RouterAddress.Hex(),
+		Target: hexutil.Encode(routerAddress[:]),
 		Method: routerMethodQuerySwapExactIn,
 		Params: []any{
 			common.HexToAddress(poolAddr),
@@ -266,7 +268,7 @@ func (ts *ParitySuite) querySwapExactOut(block uint64, poolAddr, tokenIn, tokenO
 		SetBlockNumber(new(big.Int).SetUint64(block))
 	req.AddCall(&ethrpc.Call{
 		ABI:    rangeRouterABI,
-		Target: RouterAddress.Hex(),
+		Target: hexutil.Encode(routerAddress[:]),
 		Method: routerMethodQuerySwapExactOut,
 		Params: []any{
 			common.HexToAddress(poolAddr),
@@ -311,7 +313,7 @@ func (ts *ParitySuite) TestGetMetaInfo_RouterApproval() {
 		ApprovalAddress string `json:"approvalAddress"`
 	}
 	ts.Require().NoError(json.Unmarshal(raw, &meta))
-	ts.Require().Equal(strings.ToLower(RouterAddress.Hex()), strings.ToLower(meta.ApprovalAddress),
+	ts.Require().Equal(hexutil.Encode(routerAddress[:]), strings.ToLower(meta.ApprovalAddress),
 		"GetMetaInfo must approve/target the standard Router")
 }
 

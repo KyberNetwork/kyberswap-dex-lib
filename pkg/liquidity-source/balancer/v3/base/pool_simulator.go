@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -427,14 +428,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
 		return shared.PoolMetaInfo{
 			BufferSwap:      p.bufferTokens[indexIn],
-			ApprovalAddress: router.Hex(),
+			ApprovalAddress: hexutil.Encode(router[:]),
 			BlockNumber:     p.Info.BlockNumber,
 		}
 	}
 	return shared.PoolMetaInfo{
 		BufferTokenIn:   p.bufferTokens[indexIn],
 		BufferTokenOut:  p.bufferTokens[indexOut],
-		ApprovalAddress: router.Hex(),
+		ApprovalAddress: hexutil.Encode(router[:]),
 		BlockNumber:     p.Info.BlockNumber,
 	}
 }

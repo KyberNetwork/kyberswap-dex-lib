@@ -1,7 +1,10 @@
 package prop
 
 import (
-	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"errors"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
 )
@@ -9,37 +12,20 @@ import (
 const (
 	DexType    = "kipseli-prop"
 	defaultGas = 125_000
-	sampleSize = 15 // power-of-10 levels
+
+	// maxAge bounds how long a probed ladder may be quoted against before a
+	// fresher one is required — mirrors titan-prop's freshnessTTL.
+	maxAge = 30 * time.Second
 )
 
-var maxInSampleBps = []int{
-	1000, 1500, 2200, 3200, 4000, // 10–40%
-	4500, 5000, 5600, 6200, 6800, // 40–68%
-	7300, 7900, 8500, 9100, 9900, // 73–99%
-}
+// defaultDest is the KyberSwap executor, the `dest` kipseli keys its
+// per-taker quoters by (QuoteRouter.signerToDest on the prop venues).
+var defaultDest = common.HexToAddress("0x8f10b468b06c6fd214b65f87778827f7d113f996")
 
 var (
-	DomainType = apitypes.TypedData{
-		Types: apitypes.Types{
-			"EIP712Domain": []apitypes.Type{
-				{Name: "name", Type: "string"},
-				{Name: "version", Type: "string"},
-				{Name: "chainId", Type: "uint256"},
-				{Name: "verifyingContract", Type: "address"},
-			},
-			"PropAmmVerification": []apitypes.Type{
-				{Name: "tokenIn", Type: "address"},
-				{Name: "tokenOut", Type: "address"},
-				{Name: "timestampInMilisec", Type: "uint256"},
-			},
-		},
-		PrimaryType: "PropAmmVerification",
-		Domain: apitypes.TypedDataDomain{
-			Name:    "VerificationImpl",
-			Version: "1",
-		},
-	}
-
 	ErrInvalidToken          = kipseli.ErrInvalidToken
 	ErrInsufficientLiquidity = kipseli.ErrInsufficientLiquidity
+
+	ErrUnexpectedLensRevert = errors.New("kipseli-prop: lens reverted without a snapshot")
+	ErrNoQuoter             = errors.New("kipseli-prop: no quoter resolved for dest")
 )

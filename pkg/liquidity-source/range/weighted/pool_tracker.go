@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/rs/zerolog/log"
@@ -89,7 +90,7 @@ func (t *PoolTracker) fetchState(
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	AddRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, poolAddress, &dyn, &cfg, &minTrade)
+	AddRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, VaultAddress(t.config.ChainID), poolAddress, &dyn, &cfg, &minTrade)
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -119,6 +120,7 @@ func (t *PoolTracker) fetchState(
 // callers so range/weighted/lazy can reuse this unchanged.
 func AddRPCCalls(
 	addFn func(*ethrpc.Call, []any),
+	vaultAddress common.Address,
 	poolAddress string,
 	dyn *RangePoolDynamicDataResult,
 	cfg *PoolConfigResult,
@@ -131,13 +133,13 @@ func AddRPCCalls(
 	}, []any{dyn})
 	addFn(&ethrpc.Call{
 		ABI:    rangeVaultABI,
-		Target: VaultAddress.Hex(),
+		Target: hexutil.Encode(vaultAddress[:]),
 		Method: vaultMethodGetPoolConfig,
 		Params: []any{common.HexToAddress(poolAddress)},
 	}, []any{cfg})
 	addFn(&ethrpc.Call{
 		ABI:    rangeVaultABI,
-		Target: VaultAddress.Hex(),
+		Target: hexutil.Encode(vaultAddress[:]),
 		Method: vaultMethodGetMinimumTradeAmount,
 	}, []any{minTrade})
 }

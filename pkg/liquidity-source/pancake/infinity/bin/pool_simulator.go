@@ -32,6 +32,7 @@ type PoolSimulator struct {
 	parameters                                  string
 
 	isNative         [2]bool
+	chainID          valueobject.ChainID
 	fee, protocolFee uint32
 	swapFee          *uint256.Int
 
@@ -42,7 +43,7 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal static extra: %w", err)
@@ -87,6 +88,7 @@ func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimul
 		activeId:       extra.ActiveBinID,
 		binStep:        staticExtra.BinStep,
 		isNative:       staticExtra.IsNative,
+		chainID:        chainID,
 	}, nil
 }
 
@@ -203,15 +205,26 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, shared.ErrUninitializedPool
 	}
 
-	res, err := p.swap(true, indexIn == 0, tokenIn.Amount)
+	amountIn := tokenIn.Amount
+	// A native-flagged side trades at native's own decimals on-chain; only Arc's differ (18 vs 6).
+	if p.isNative[indexIn] {
+		amountIn = valueobject.UnwrapNativeAmount(p.chainID, amountIn)
+	}
+
+	res, err := p.swap(true, indexIn == 0, amountIn)
 	if err != nil {
 		return nil, err
+	}
+
+	amountOut := res.Amount.ToBig()
+	if p.isNative[indexOut] {
+		amountOut = valueobject.WrapNativeAmount(p.chainID, amountOut)
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: res.Amount.ToBig(),
+			Amount: amountOut,
 		},
 		RemainingTokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn.Token,
@@ -240,15 +253,26 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, shared.ErrUninitializedPool
 	}
 
-	res, err := p.swap(false, indexIn == 0, tokenOut.Amount)
+	amountOut := tokenOut.Amount
+	// A native-flagged side trades at native's own decimals on-chain; only Arc's differ (18 vs 6).
+	if p.isNative[indexOut] {
+		amountOut = valueobject.UnwrapNativeAmount(p.chainID, amountOut)
+	}
+
+	res, err := p.swap(false, indexIn == 0, amountOut)
 	if err != nil {
 		return nil, err
+	}
+
+	amountIn := res.Amount.ToBig()
+	if p.isNative[indexIn] {
+		amountIn = valueobject.WrapNativeAmount(p.chainID, amountIn)
 	}
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
-			Amount: res.Amount.ToBig(),
+			Amount: amountIn,
 		},
 		RemainingTokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut.Token,

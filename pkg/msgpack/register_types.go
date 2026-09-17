@@ -6,6 +6,7 @@ import (
 	uniswapv3uint256_entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	uniswapv3_entities "github.com/daoleno/uniswapv3-sdk/entities"
 
+	few "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few"
 	pkg_source_gmx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	pkg_source_gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
 	pkg_source_madmex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
@@ -22,6 +23,10 @@ func mustNotError(err error) {
 }
 
 func init() {
+	// V4 stores these concrete values behind ITokenWrapper, including for native
+	// ETH pools that do not themselves use a Few wrapper.
+	mustNotError(msgpack.RegisterConcreteType(few.TokenWrapper{}))
+	mustNotError(msgpack.RegisterConcreteType(&few.TokenWrapper{}))
 	mustNotError(msgpack.RegisterConcreteType(&pkg_source_gmx.FastPriceFeedV1{}))
 	mustNotError(msgpack.RegisterConcreteType(&pkg_source_gmx.FastPriceFeedV2{}))
 

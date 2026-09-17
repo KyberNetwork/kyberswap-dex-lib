@@ -2,29 +2,25 @@ package prop
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+const lensSnapshotError = "KipseliPropSnapshot"
+
 var (
-	lensABI abi.ABI
-	swapABI abi.ABI
+	lensABI      abi.ABI
+	lensBytecode []byte
 )
 
 func init() {
-	builder := []struct {
-		ABI  *abi.ABI
-		data []byte
-	}{
-		{&lensABI, lensABIData},
-		{&swapABI, swapABIData},
+	var err error
+	if lensABI, err = abi.JSON(bytes.NewReader(lensABIData)); err != nil {
+		panic(err)
 	}
-
-	for _, b := range builder {
-		parsed, err := abi.JSON(bytes.NewReader(b.data))
-		if err != nil {
-			panic(err)
-		}
-		*b.ABI = parsed
+	if lensBytecode, err = hexutil.Decode(strings.TrimSpace(lensBytecodeHex)); err != nil {
+		panic(err)
 	}
 }

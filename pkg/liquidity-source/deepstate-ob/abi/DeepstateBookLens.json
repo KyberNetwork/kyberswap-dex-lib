@@ -1,0 +1,47 @@
+[
+  {
+    "type": "function",
+    "name": "getBook",
+    "inputs": [
+      {"name": "token0", "type": "address"},
+      {"name": "token1", "type": "address"},
+      {"name": "maxNodes", "type": "uint256"}
+    ],
+    "outputs": [
+      {
+        "name": "book",
+        "type": "tuple",
+        "components": [
+          {"name": "epoch", "type": "uint256"},
+          {"name": "feeBps", "type": "uint16"},
+          {
+            "name": "bid",
+            "type": "tuple",
+            "components": [
+              {"name": "ticks", "type": "int32[]"},
+              {"name": "quantities", "type": "uint160[]"},
+              {"name": "truncated", "type": "bool"}
+            ]
+          },
+          {
+            "name": "ask",
+            "type": "tuple",
+            "components": [
+              {"name": "ticks", "type": "int32[]"},
+              {"name": "quantities", "type": "uint160[]"},
+              {"name": "truncated", "type": "bool"}
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "router",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view"
+  }
+]

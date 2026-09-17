@@ -1,7 +1,6 @@
 package lunarbase
 
 import (
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -18,12 +17,7 @@ const (
 )
 
 var (
-	topicStateUpdated      = crypto.Keccak256Hash([]byte("StateUpdated(uint160,uint24,uint24)"))
-	topicSync              = crypto.Keccak256Hash([]byte("Sync(uint128,uint128)"))
-	topicSwapExecuted      = crypto.Keccak256Hash([]byte("SwapExecuted(address,bool,uint256,uint256,uint256)"))
-	topicConcentrationKSet = crypto.Keccak256Hash([]byte("ConcentrationKSet(uint32)"))
-	topicBlockDelaySet     = crypto.Keccak256Hash([]byte("BlockDelaySet(uint48)"))
-	topicPunishmentApplied = crypto.Keccak256Hash([]byte("PunishmentApplied(bool,uint24,uint24,uint24)"))
+	ErrSnapshotBehind = errors.New("RPC snapshot is older than the observed block")
 
 	ErrStalePool             = errors.WithMessage(pool.ErrUnsupported, "stale pool")
 	ErrInvalidToken          = errors.New("invalid token")

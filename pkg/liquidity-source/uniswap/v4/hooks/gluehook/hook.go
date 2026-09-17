@@ -10,9 +10,9 @@ import (
 // self-compounding LP position owned by the hook itself.
 //
 // Quoting is a pure passthrough: the hook NEVER changes the swapper's amounts.
-//   - Pump executes after the swap, spending the pot's own balance;
-//   - Shield absorbs a sell while paying the seller the pool's EXACT output
-//     (fee and tick impact included), so the quoted output is identical either way;
+//   - V3 has no beforeSwap and returns no delta — the swapper's trade is the pool's plain
+//     execution; the pump is the hook's own swap in afterSwap, spending the pot's own balance
+//     (at most 0.8·fee·depth per swap, paced by a spend bucket and a time-weighted reference);
 //   - auto-harvest/compound only moves the hook's own LP fees.
 //
 // Every hook action is wrapped in try/catch — a swap can never revert on hook state or

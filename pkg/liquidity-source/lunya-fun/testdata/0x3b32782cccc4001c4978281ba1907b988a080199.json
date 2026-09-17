@@ -1,0 +1,94 @@
+{
+  "pool": {
+    "address": "0x3b32782cccc4001c4978281ba1907b988a080199",
+    "swapFee": 100,
+    "exchange": "lunya-fun",
+    "type": "lunya-fun",
+    "timestamp": 1789526563,
+    "reserves": [
+      "21958200",
+      "730249676443981477930935370"
+    ],
+    "tokens": [
+      {
+        "address": "0x3600000000000000000000000000000000000000",
+        "swappable": true
+      },
+      {
+        "address": "0x0bd8eed45989bb41c4d82e3a54b33346c70656fa",
+        "swappable": true
+      }
+    ],
+    "extra": "{\"phase\":1,\"reserve\":\"21958200\",\"sold\":\"62850323556018522069064630\",\"virtualQuote\":\"352918925\",\"virtualToken\":\"1073000000000000000000000000\",\"curveSupply\":\"793100000000000000000000000\",\"curveFeeBps\":100,\"snipeTaxBps\":9900,\"snipeWindow\":15,\"snipeDecay\":7,\"openedAt\":1789258471}",
+    "staticExtra": "{\"launchType\":1}",
+    "blockNumber": 62332706
+  },
+  "timestamp": 1789526562,
+  "buys": [
+    {
+      "amountIn": "21",
+      "amountOut": "56586920359566573942",
+      "refund": "0"
+    },
+    {
+      "amountIn": "2195",
+      "amountOut": "5858059920745892487976",
+      "refund": "0"
+    },
+    {
+      "amountIn": "219582",
+      "amountOut": "585434872246618744299229",
+      "refund": "0"
+    },
+    {
+      "amountIn": "2195820",
+      "amountOut": "5823949735301625038785269",
+      "refund": "0"
+    },
+    {
+      "amountIn": "10979100",
+      "amountOut": "28463332390830749387842732",
+      "refund": "0"
+    },
+    {
+      "amountIn": "21958200",
+      "amountOut": "55366581701824457703929403",
+      "refund": "0"
+    },
+    {
+      "amountIn": "65874600",
+      "amountOut": "149690581219469841266084145",
+      "refund": "0"
+    }
+  ],
+  "sells": [
+    {
+      "amountIn": "62850323556018522069",
+      "amountOut": "23"
+    },
+    {
+      "amountIn": "6285032355601852206906",
+      "amountOut": "2309"
+    },
+    {
+      "amountIn": "628503235560185220690646",
+      "amountOut": "230769"
+    },
+    {
+      "amountIn": "6285032355601852206906463",
+      "amountOut": "2294838"
+    },
+    {
+      "amountIn": "31425161778009261034532315",
+      "amountOut": "11197245"
+    },
+    {
+      "amountIn": "62850323556018522069064630",
+      "amountOut": "21738618"
+    },
+    {
+      "amountIn": "188550970668055566207193890",
+      "amountOut": "0"
+    }
+  ]
+}

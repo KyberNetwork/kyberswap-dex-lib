@@ -53,7 +53,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	balances, blockNumber, err := t.fetchBalances(ctx, p.Tokens)
+	balances, blockNumber, err := t.fetchBalances(ctx, staticExtra.Vault, p.Tokens)
 	if err != nil {
 		return p, err
 	}
@@ -80,12 +80,13 @@ func (t *PoolTracker) GetNewPoolState(
 	return t.persist(p, ladder.Extra{Ladders: ladders}, r0, r1, blockNumber), nil
 }
 
-// fetchBalances reads each pool token's balanceOf(swapper) directly: TideFi
-// is a single global contract backing every pair, not a per-pool
-// router/lens, so on-chain reserves are just the swapper's own token
-// balances.
+// fetchBalances reads each pool token's balanceOf(vault): Address (the
+// swap()/quote() entrypoint) never holds funds itself -- it's a stateless
+// fee wrapper forwarding to Vault, the actual liquidity-holding engine
+// (see StaticExtra's doc comment) -- so on-chain reserves are Vault's own
+// token balances, not Address's.
 func (t *PoolTracker) fetchBalances(
-	ctx context.Context, tokens []*entity.PoolToken,
+	ctx context.Context, vault string, tokens []*entity.PoolToken,
 ) ([]*big.Int, *big.Int, error) {
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	balances := make([]*big.Int, len(tokens))
@@ -95,7 +96,7 @@ func (t *PoolTracker) fetchBalances(
 			ABI:    erc20ABI,
 			Target: tok.Address,
 			Method: "balanceOf",
-			Params: []any{common.HexToAddress(t.cfg.Address)},
+			Params: []any{common.HexToAddress(vault)},
 		}, []any{&balances[i]})
 	}
 
@@ -137,7 +138,7 @@ func (t *PoolTracker) fetchQuotes(
 				ABI:    swapperABI,
 				Target: swapperAddr,
 				Method: "quote",
-				Params: []any{tokenIn, tokenOut, pt, noLimitPrice},
+				Params: []any{tokenIn, tokenOut, pt, noLimitPrice, big.NewInt(swapFeePpm)},
 			}, []any{&results[dir][i]})
 			callCount++
 		}
