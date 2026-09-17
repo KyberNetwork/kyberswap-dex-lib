@@ -1,6 +1,11 @@
 package stake
 
-import "github.com/holiman/uint256"
+import (
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
 
 // StaticExtra is immutable per pool instance -- set once at listing time, never refreshed by the
 // tracker (unlike Extra).
@@ -43,4 +48,14 @@ type Meta struct {
 	// decision (aggregator-encoding's swapReceiveNativeIn/swapReturnNativeOut) reads this instead
 	// of inferring native support from whether the token address happens to be wrapped-native.
 	IsNativeUnderlying bool `json:"isNativeUnderlying"`
+}
+
+var _ = pool.RegisterNativeSwapExtra[Meta](DexType, pool.NativeSwapExtraFromPoolExtra)
+
+func (m Meta) SwapReceiveNativeIn(_, _ string, _ valueobject.ChainID) bool {
+	return !m.IsWithdraw && m.IsNativeUnderlying
+}
+
+func (m Meta) SwapReturnNativeOut(_, _ string, _ valueobject.ChainID) bool {
+	return m.IsWithdraw && m.IsNativeUnderlying
 }
