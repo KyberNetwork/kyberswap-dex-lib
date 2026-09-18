@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
@@ -248,4 +249,16 @@ var EmptyBytes = make([]byte, 0)
 
 func (h *BaseHook) GetHookData() []byte {
 	return EmptyBytes
+}
+
+// HookPoolStateProvider supplies the complete post-swap state for hooks whose
+// rebases or liquidity replacement cannot be represented by ordinary deltas.
+// Called only after Hook.UpdateBalance; returned values must not alias the hook.
+// This does not replace tick ranges; the provider must keep those unchanged.
+type HookPoolStateProvider interface{ PoolState() HookPoolState }
+type HookPoolState struct {
+	Reserves     [2]*big.Int
+	SqrtPriceX96 uint256.Int
+	Liquidity    uint256.Int
+	Tick         int
 }
