@@ -54,7 +54,7 @@ var (
 		valueobject.ChainIDLinea:           common.HexToAddress("0x0bf5Fa65dAE6Db32250E5DC74489cedadd38D338"),
 		valueobject.ChainIDMonad:           common.HexToAddress("0x67c71042784a30D828aB684e46Cc79D2040eaF1A"),
 		valueobject.ChainIDPolygon:         common.HexToAddress("0xDcE93Ef865D43A6ffFD0309c92070B3859C7f9e5"),
-		valueobject.ChainIDRobinhood:       common.HexToAddress("0x2A08Da7B6590ce5D217161F234069CfC54DBe554"),
+		valueobject.ChainIDRobinhood:       common.HexToAddress("0x32B2A647821613e730e7ED967462A629Ba887527"),
 	}
 
 	q64        = big256.U2Pow64
