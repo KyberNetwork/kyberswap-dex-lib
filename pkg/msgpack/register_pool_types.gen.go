@@ -160,6 +160,7 @@ import (
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	pkg_liquiditysource_slyngfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slyng-fun"
 	pkg_liquiditysource_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	pkg_liquiditysource_smoothy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	pkg_liquiditysource_solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
@@ -430,6 +431,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_slyngfun.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smardex.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smoothy.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv2.PoolSimulator{})
