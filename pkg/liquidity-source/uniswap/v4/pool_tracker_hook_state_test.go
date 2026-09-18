@@ -3,8 +3,11 @@ package uniswapv4
 import (
 	"context"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,4 +104,35 @@ func TestFetchRPCResult_ToExtra_CarriesHookExtra(t *testing.T) {
 	require.Len(t, got.Ticks, 1)
 	assert.Equal(t, -60, got.Ticks[0].Index)
 	assert.JSONEq(t, `{"model":1}`, string(got.HookExtra), "Track's output must be persisted")
+}
+
+// GetHook builds the hook from HookParam.HookExtra, not Pool.Extra, so
+// fetchOnchainState must seed it from the pool's persisted hX.
+func TestFetchOnchainState_SeedsHookExtraFromPersistedExtra(t *testing.T) {
+	priorExtra, err := json.Marshal(Extra{
+		Extra:     &uniswapv3.Extra{Liquidity: big.NewInt(1)},
+		HookExtra: json.RawMessage(`{"b":384,"lg":[0,0]}`),
+	})
+	require.NoError(t, err)
+
+	p := &entity.Pool{
+		Address:     "0xpool",
+		StaticExtra: `{"hooks":"0x0000000000000000000000000000000000000001"}`,
+		Extra:       string(priorExtra),
+	}
+
+	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer stub.Close()
+
+	tracker := &PoolTracker{
+		config:       &Config{},
+		ethrpcClient: ethrpc.New(stub.URL),
+	}
+
+	_, _, hookParam, _ := tracker.fetchOnchainState(context.Background(), p, 0, nil)
+	require.NotNil(t, hookParam)
+	assert.JSONEq(t, `{"b":384,"lg":[0,0]}`, string(hookParam.HookExtra),
+		"fetchOnchainState must seed HookExtra from the pool's persisted hX")
 }
