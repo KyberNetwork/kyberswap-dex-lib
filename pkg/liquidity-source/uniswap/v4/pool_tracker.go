@@ -82,7 +82,14 @@ func (t *PoolTracker) fetchOnchainState(
 		hookAddress = staticExtra.HooksAddress
 	}
 
-	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, Overrides: overrides}
+	// GetHook reads the carried model from HookParam.HookExtra, not Pool.Extra.
+	var extra Extra
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+
+	hookParam := &HookParam{
+		Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, Overrides: overrides,
+		HookExtra: HookExtra(extra.HookExtra),
+	}
 	hook, _ := GetHook(hookAddress, hookParam)
 
 	result := &FetchRPCResult{
