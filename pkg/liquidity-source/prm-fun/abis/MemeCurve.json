@@ -1,0 +1,185 @@
+[
+  {
+    "name": "buy",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "deskIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "deskUsed"
+      }
+    ]
+  },
+  {
+    "name": "sell",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "deskOut"
+      }
+    ]
+  },
+  {
+    "name": "isNativeQuote",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "getReserves",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "quoteReserve"
+      },
+      {
+        "type": "uint256",
+        "name": "tokenReserve"
+      }
+    ]
+  },
+  {
+    "name": "phase",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint8"
+      }
+    ]
+  },
+  {
+    "name": "deskRaised",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "graduationDesk",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "memeSold",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quoteBuy",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "deskIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "deskUsed"
+      },
+      {
+        "type": "uint256",
+        "name": "fee"
+      }
+    ]
+  },
+  {
+    "name": "quoteSell",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "deskOut"
+      },
+      {
+        "type": "uint256",
+        "name": "fee"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "deskToken",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  }
+]

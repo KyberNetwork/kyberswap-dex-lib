@@ -1,0 +1,70 @@
+[
+  {
+    "name": "memeCount",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "memeTokens",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "getMeme",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "token"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          {
+            "type": "bytes32",
+            "name": "subjectId"
+          },
+          {
+            "type": "address",
+            "name": "token"
+          },
+          {
+            "type": "address",
+            "name": "curve"
+          },
+          {
+            "type": "address",
+            "name": "creator"
+          },
+          {
+            "type": "uint256",
+            "name": "graduationDesk"
+          },
+          {
+            "type": "uint64",
+            "name": "createdAt"
+          }
+        ]
+      }
+    ]
+  }
+]

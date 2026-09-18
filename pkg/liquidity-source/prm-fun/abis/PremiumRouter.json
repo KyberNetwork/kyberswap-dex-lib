@@ -1,0 +1,52 @@
+[
+  {
+    "name": "buyExactIn",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "child"
+      },
+      {
+        "type": "uint256",
+        "name": "stockIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumChildOut"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "childOut"
+      }
+    ]
+  },
+  {
+    "name": "sellExactIn",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "child"
+      },
+      {
+        "type": "uint256",
+        "name": "childIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumStockOut"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "stockOut"
+      }
+    ]
+  }
+]
