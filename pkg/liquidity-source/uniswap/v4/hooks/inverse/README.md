@@ -1,4 +1,4 @@
-# INVERSE routed hook (draft, no active registration)
+# INVERSE routed hook (activation pending)
 
 This package implements exact-input quotes for the fee-aware `RoutedInverseHook`
 candidate from [inversecoin](https://github.com/calmdentist/inversecoin/tree/ec44bc670be90057188fcd6d02f14848e6010163).
@@ -78,7 +78,7 @@ Rebasing changes nominal holdings across legs. The simulator updates this pool's
 own state correctly, but the public DexLib cannot enforce a backend's split-route
 or cycle policy or re-denominate balances in unrelated pools. Do not activate
 unrestricted split/cyclic routes using this token without provider-side handling
-and execution tests. This is a release gate, not a claim that a draft PR enables
+and execution tests. This is a release gate, not a claim that this PR enables
 Kyber's production API or Fomo.
 
 The 900,000 hook-gas allowance is provisional and additive to the v4 dispatcher's
@@ -98,9 +98,11 @@ The checked-in cases come from actual local v4-core + candidate execution, not a
 copy of the Go formula. They compare output and **every modeled post-swap field**,
 including LP fees, custody, native price/liquidity, index and rounding buffer.
 Tests also cover tracking failures, overrides, clone isolation, no mutation on
-quote failure, sequential v4 dispatch and msgpack round trips.
+quote failure, sequential v4 dispatch in both currency orderings and msgpack
+round trips.
 
-Before enabling registration: publish/pin candidate source; deploy and verify its
+The pinned candidate source is public and its source/configuration hashes match
+the checked-in manifest. Before enabling registration: deploy and verify its
 bytecode and immutable arguments; register the exact hook address; capture a
 pinned Robinhood snapshot and successful buy/sell execution through the deployed
 Kyber adapter; verify routing policy and gas; then deploy the quote-service update.

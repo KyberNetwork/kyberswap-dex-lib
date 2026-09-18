@@ -27,7 +27,22 @@ func TestV4DispatchAndSequentialUpdate(t *testing.T) {
 		}
 	})
 	vs := vectors(t)
-	s := vs[0].Before
+	for _, name := range []string{"inverse0-0", "normal-0"} {
+		t.Run(name, func(t *testing.T) {
+			for _, v := range vs {
+				if v.Name == name {
+					testSequentialDispatch(t, addr, vs, v.Before)
+					return
+				}
+			}
+			t.Fatalf("missing initial fixture %s", name)
+		})
+	}
+}
+
+func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, initial Extra) {
+	t.Helper()
+	s := initial
 	raw, err := json.Marshal(&s)
 	require.NoError(t, err)
 	extra := uniswapv4.Extra{Extra: &uniswapv3.Extra{Liquidity: s.Liquidity.ToBig(), SqrtPriceX96: s.SqrtPriceX96.ToBig(), TickSpacing: 60, Tick: n(int64(s.Tick)), Ticks: []uniswapv3.Tick{{Index: minTick, LiquidityGross: s.Liquidity.ToBig(), LiquidityNet: s.Liquidity.ToBig()}, {Index: maxTick, LiquidityGross: s.Liquidity.ToBig(), LiquidityNet: new(big.Int).Neg(s.Liquidity.ToBig())}}}, HookExtra: raw}
@@ -57,8 +72,18 @@ func TestV4DispatchAndSequentialUpdate(t *testing.T) {
 			in, out = out, in
 		}
 		amount := pool.TokenAmount{Token: in, Amount: v.Input.ToBig()}
+		before := newHook(s).PoolState()
+		_, e := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: new(big.Int).Lsh(n(1), 128)}, TokenOut: out})
+		require.Error(t, e)
 		result, e := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: amount, TokenOut: out})
 		require.NoError(t, e)
+		// Neither a failed nor a successful quote may consume mutable pool state.
+		require.Equal(t, before.SqrtPriceX96, sim.V3Pool.SqrtRatioX96)
+		require.Equal(t, before.Liquidity, sim.V3Pool.Liquidity)
+		require.Equal(t, before.Tick, sim.V3Pool.TickCurrent)
+		for j := range before.Reserves {
+			require.Zero(t, before.Reserves[j].Cmp(sim.Info.Reserves[j]))
+		}
 		require.Equal(t, v.Output.Dec(), result.TokenAmountOut.Amount.String())
 		require.Empty(t, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).HookData)
 		require.Equal(t, s.BlockNumber, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).BlockNumber)
@@ -67,11 +92,12 @@ func TestV4DispatchAndSequentialUpdate(t *testing.T) {
 		expected := newHook(s).PoolState()
 		require.Equal(t, expected.SqrtPriceX96, sim.V3Pool.SqrtRatioX96)
 		require.Equal(t, expected.Liquidity, sim.V3Pool.Liquidity)
+		require.Equal(t, expected.Tick, sim.V3Pool.TickCurrent)
 		for j := range expected.Reserves {
 			require.Zero(t, expected.Reserves[j].Cmp(sim.Info.Reserves[j]))
 		}
 	}
-	require.Equal(t, vs[0].Before.SqrtPriceX96, original.V3Pool.SqrtRatioX96)
+	require.Equal(t, initial.SqrtPriceX96, original.V3Pool.SqrtRatioX96)
 	_, err = sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: p.Tokens[0].Address, TokenAmountOut: pool.TokenAmount{Token: p.Tokens[1].Address, Amount: n(1)}})
 	require.ErrorIs(t, err, ErrExactOutput)
 }
