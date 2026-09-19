@@ -1,6 +1,7 @@
 package curve
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -231,7 +232,7 @@ func TestPoolFactoryDecoder(t *testing.T) {
 	assert.Nil(t, p)
 
 	for _, ev := range []common.Hash{curveBuyEventHash, curveSellEventHash, graduatedEventHash} {
-		addrs, err := d.DecodePoolAddressesFromFactoryLog(nil, types.Log{Address: common.HexToAddress(testHook), Topics: []common.Hash{ev, poolID}})
+		addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(testHook), Topics: []common.Hash{ev, poolID}})
 		require.NoError(t, err)
 		assert.Equal(t, []string{PoolAddress(poolID.Hex())}, addrs)
 	}
@@ -274,7 +275,7 @@ func TestPoolFactoryDecoder_BothHooks(t *testing.T) {
 				assert.JSONEq(t, `{"hook":"`+hook+`"}`, p.StaticExtra)
 
 				for _, ev := range []common.Hash{curveBuyEventHash, curveSellEventHash, graduatedEventHash} {
-					addrs, err := d.DecodePoolAddressesFromFactoryLog(nil, types.Log{Address: common.HexToAddress(hook), Topics: []common.Hash{ev, poolID}})
+					addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(hook), Topics: []common.Hash{ev, poolID}})
 					require.NoError(t, err)
 					assert.Equal(t, []string{PoolAddress(poolID.Hex())}, addrs)
 				}
@@ -284,7 +285,7 @@ func TestPoolFactoryDecoder_BothHooks(t *testing.T) {
 				p, err := d.DecodePoolCreated(launch(foreign, poolV2))
 				require.NoError(t, err)
 				assert.Nil(t, p)
-				addrs, err := d.DecodePoolAddressesFromFactoryLog(nil, types.Log{Address: common.HexToAddress(foreign), Topics: []common.Hash{curveBuyEventHash, poolV2}})
+				addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(foreign), Topics: []common.Hash{curveBuyEventHash, poolV2}})
 				require.NoError(t, err)
 				assert.Nil(t, addrs)
 			}
