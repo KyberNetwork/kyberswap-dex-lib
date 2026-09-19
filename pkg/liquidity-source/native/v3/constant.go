@@ -3,6 +3,7 @@ package v3
 import (
 	"github.com/pkg/errors"
 
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -31,7 +32,7 @@ const (
 )
 
 var (
-	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
+	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
 
 	ErrPoolLocked           = errors.New("pool is locked")
 	ErrOverflow             = errors.New("bigInt overflow int/uint256")
