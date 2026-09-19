@@ -216,7 +216,7 @@ func TestDirectProtocolMatch_GraduatedPump(t *testing.T) {
 // The shared swap math steps straight to the next initialized tick (NextInitializedTickIndex),
 // which on a full-range-only pool is never reached: one step, no intermediate rounding.
 // Replaying the fixtures with an exact port of SwapMath and the word stepping reproduces
-// every contract output to the unit, and puts the gap at 0.6 to 1.3 input base units per
+// every contract output to the unit, and puts the gap at 0.5 to 1.3 input base units per
 // boundary (about 1e-6 USDC). It applies to any v3 / v4 pool of the lib whose liquidity
 // is one wide range, v1 pools included (the v1 fixtures happen not to cross a word), and
 // it is not this hook's fee math: the hook takes nothing here.
