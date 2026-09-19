@@ -6,11 +6,34 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// HookAddresses is the single ArcadeHook instance shared by every Arcade launchpad
-// pool on Arc mainnet (per-pool state lives in the hook's mappings, keyed by PoolId
-// or launch token). Permission bitmap 0x3ECE.
-var HookAddresses = []common.Address{
-	common.HexToAddress("0x695cfF9C7F11fa87ca05c7b0A0fa64C3554B3eCe"), // arc, deployed at block 20030281
+// The ArcadeHook deployments on Arc mainnet. Each one is a single instance shared by
+// every launch made on it (per-pool state lives in the hook's mappings, keyed by PoolId
+// or launch token). Launches never move between them: a pool belongs to the hook in its
+// PoolKey for life.
+var (
+	// HookV1: permission bitmap 0x3ECE, deployed at block 20030281.
+	HookV1 = common.HexToAddress("0x695cfF9C7F11fa87ca05c7b0A0fa64C3554B3eCe")
+	// HookV2: permission bitmap 0x3EC2, i.e. v1 without BEFORE_SWAP_RETURNS_DELTA and
+	// AFTER_SWAP_RETURNS_DELTA. Deployed at block 21568825.
+	HookV2 = common.HexToAddress("0x7706d261f0C370e8f0E273164A603E885C89beC2")
+
+	HookAddresses = []common.Address{HookV1, HookV2}
+)
+
+// Generation is what differs between ArcadeHook deployments as far as a swap goes. It is
+// decided from the hook address alone, never from RPC. The zero value is v1, so a pool
+// whose flag went missing is quoted with the v1 hook fee: too low, never too high.
+type Generation struct {
+	// NoSwapDelta: the hook never returns a swap delta (its address carries neither
+	// RETURNS_DELTA bit). Every graduated pool, PUMP included, charges its trading fee as
+	// the pool's own static LP fee, already in the PoolKey: 10_000 pips for PUMP. There
+	// is no feeObs oracle to read on such a hook (the getter does not exist).
+	NoSwapDelta bool
+}
+
+var Generations = map[common.Address]Generation{
+	HookV1: {},
+	HookV2: {NoSwapDelta: true},
 }
 
 // Mirrors of ArcadeHook.sol constants.
@@ -27,13 +50,13 @@ const (
 	StatusGraduationStarted = 1
 	StatusGraduated         = 2
 
-	// PUMP post-graduation dynamic fee, linear in log-mcap from Max at the
+	// v1 only. PUMP post-graduation dynamic fee, linear in log-mcap from Max at the
 	// graduation mcap tick to Min PumpFeeFloorTicks higher.
 	PumpFeeMaxBps     = 100
 	PumpFeeMinBps     = 30
 	PumpFeeFloorTicks = 23_026
 
-	// MAX_TOTAL_TAKE_BPS: hard cap on fee + anti-snipe skim per swap.
+	// v1 only. MAX_TOTAL_TAKE_BPS: hard cap on fee + anti-snipe skim per swap.
 	MaxTotalTakeBps = 6_000
 
 	// Per-transaction buy cap on CLANKER / RWA pools: 1% of supply in the first

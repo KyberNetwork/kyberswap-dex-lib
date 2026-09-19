@@ -1,6 +1,7 @@
 package curve
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -231,9 +232,113 @@ func TestPoolFactoryDecoder(t *testing.T) {
 	assert.Nil(t, p)
 
 	for _, ev := range []common.Hash{curveBuyEventHash, curveSellEventHash, graduatedEventHash} {
-		addrs, err := d.DecodePoolAddressesFromFactoryLog(nil, types.Log{Address: common.HexToAddress(testHook), Topics: []common.Hash{ev, poolID}})
+		addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(testHook), Topics: []common.Hash{ev, poolID}})
 		require.NoError(t, err)
 		assert.Equal(t, []string{PoolAddress(poolID.Hex())}, addrs)
 	}
 	assert.Equal(t, poolID.Hex(), PoolIDFromAddress(PoolAddress(poolID.Hex())))
+}
+
+// testHookV2 is ArcadeHook v2 on Arc mainnet. Its curve is the same code as v1's
+// (ArcadeV4Curve is unchanged, buy / sell too): every vector of TestParity_Buy and
+// TestParity_Sell was re-executed against the v2 bytecode in Foundry, bit-exact.
+const testHookV2 = "0x7706d261f0c370e8f0e273164a603e885c89bec2"
+
+// One source serves both hook generations: a launch is discovered from either hook, and
+// is stamped with the hook that emitted it, which is where it trades.
+func TestPoolFactoryDecoder_BothHooks(t *testing.T) {
+	launch := func(hook string, poolID common.Hash) types.Log {
+		data, err := arcadeHookABI.Events["LaunchCreated"].Inputs.NonIndexed().Pack(common.HexToAddress("0xC0FFEE"), uint8(modePump))
+		require.NoError(t, err)
+		return types.Log{
+			Address: common.HexToAddress(hook),
+			Topics:  []common.Hash{launchCreatedEventHash, poolID, common.BytesToHash(common.HexToAddress(testToken).Bytes())},
+			Data:    data,
+		}
+	}
+	poolV1 := common.HexToHash("0xe9ab261f1c77caeefd37aec54859484c93c8856b95739e779e4827616cab54fe")
+	poolV2 := common.HexToHash("0x0299bf2d50bf71d6708c6e98f17f1c2b073cbe0db090629198602efb51cea1f2")
+
+	configs := map[string]*Config{
+		"hook + hooks":         {DexID: DexType, ChainID: valueobject.ChainIDArc, Hook: testHook, Hooks: []string{testHookV2}},
+		"hooks only":           {DexID: DexType, ChainID: valueobject.ChainIDArc, Hooks: []string{testHook, testHookV2}},
+		"checksummed, overlap": {DexID: DexType, ChainID: valueobject.ChainIDArc, Hook: "0x695cfF9C7F11fa87ca05c7b0A0fa64C3554B3eCe", Hooks: []string{"0x695cfF9C7F11fa87ca05c7b0A0fa64C3554B3eCe", "0x7706d261f0C370e8f0E273164A603E885C89beC2", ""}},
+	}
+	for name, cfg := range configs {
+		t.Run(name, func(t *testing.T) {
+			d := NewPoolFactoryDecoder(cfg)
+			for hook, poolID := range map[string]common.Hash{testHook: poolV1, testHookV2: poolV2} {
+				p, err := d.DecodePoolCreated(launch(hook, poolID))
+				require.NoError(t, err)
+				require.NotNil(t, p, hook)
+				assert.Equal(t, PoolAddress(poolID.Hex()), p.Address)
+				assert.JSONEq(t, `{"hook":"`+hook+`"}`, p.StaticExtra)
+
+				for _, ev := range []common.Hash{curveBuyEventHash, curveSellEventHash, graduatedEventHash} {
+					addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(hook), Topics: []common.Hash{ev, poolID}})
+					require.NoError(t, err)
+					assert.Equal(t, []string{PoolAddress(poolID.Hex())}, addrs)
+				}
+			}
+
+			for _, foreign := range []string{"0xdead", "0x0000000000000000000000000000000000000000"} {
+				p, err := d.DecodePoolCreated(launch(foreign, poolV2))
+				require.NoError(t, err)
+				assert.Nil(t, p)
+				addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(foreign), Topics: []common.Hash{curveBuyEventHash, poolV2}})
+				require.NoError(t, err)
+				assert.Nil(t, addrs)
+			}
+		})
+	}
+
+	// A single-hook config, as deployed before v2, still ignores the other hook.
+	d := NewPoolFactoryDecoder(&Config{DexID: DexType, ChainID: valueobject.ChainIDArc, Hook: testHook})
+	p, err := d.DecodePoolCreated(launch(testHookV2, poolV2))
+	require.NoError(t, err)
+	assert.Nil(t, p)
+
+	assert.Equal(t, testHook, (&Config{Hook: testHook, Hooks: []string{testHookV2}}).defaultHook())
+	assert.Equal(t, testHookV2, (&Config{Hooks: []string{testHookV2, testHook}}).defaultHook())
+	assert.Equal(t, "", (&Config{}).defaultHook())
+}
+
+// A v2 launch is priced like a v1 one and is executed against its own hook: the approval
+// target and the buy / sell target are the v2 address, never the first configured hook.
+func TestV2Launch_SameCurveOwnHook(t *testing.T) {
+	NowFn = func() int64 { return 1 }
+	extraBytes, err := json.Marshal(curving("638283333333333333333333334", "7700000000"))
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(entity.Pool{
+		Address:     PoolAddress("0x0299bf2d50bf71d6708c6e98f17f1c2b073cbe0db090629198602efb51cea1f2"),
+		Exchange:    DexType,
+		Type:        DexType,
+		Tokens:      []*entity.PoolToken{{Address: testUsdc, Swappable: true}, {Address: testToken, Swappable: true}},
+		Reserves:    entity.PoolReserves{"0", "0"},
+		StaticExtra: `{"hook":"` + testHookV2 + `"}`,
+		Extra:       string(extraBytes),
+	})
+	require.NoError(t, err)
+
+	// Same state and vectors as TestParity_Buy / TestParity_Sell, executed on v2.
+	buy, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testUsdc, Amount: big.NewInt(20_000_000_000)}, TokenOut: testToken,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "138716666666666666666666666", buy.TokenAmountOut.Amount.String())
+	info := buy.SwapInfo.(*SwapInfo)
+	assert.Equal(t, "5830881324", info.AmountIn.String())
+	assert.True(t, info.Graduates)
+	assert.Equal(t, testHookV2, info.Hook)
+
+	sell, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testToken, Amount: u("12500000000000000000000000").ToBig()}, TokenOut: testUsdc,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "348727986", sell.TokenAmountOut.Amount.String())
+	assert.Equal(t, testHookV2, sell.SwapInfo.(*SwapInfo).Hook)
+
+	assert.Equal(t, testHookV2, sim.GetApprovalAddress(testUsdc, testToken))
+	assert.Equal(t, MetaInfo{ApprovalAddress: testHookV2, IsBuy: true}, sim.GetMetaInfo(testUsdc, testToken))
+	assert.Equal(t, MetaInfo{ApprovalAddress: testHookV2, IsBuy: false}, sim.GetMetaInfo(testToken, testUsdc))
 }
