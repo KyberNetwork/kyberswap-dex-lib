@@ -24,8 +24,11 @@ type vector struct {
 }
 
 func vectors(t *testing.T) []vector {
+	return loadVectors(t, "testdata/solidity.json")
+}
+func loadVectors(t *testing.T, path string) []vector {
 	t.Helper()
-	raw, err := os.ReadFile("testdata/solidity.json")
+	raw, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var v []vector
 	require.NoError(t, json.Unmarshal(raw, &v))
@@ -35,7 +38,14 @@ func newHook(s Extra) *Hook {
 	return &Hook{BaseHook: uniswapv4.BaseHook{Exchange: "uniswap-v4-inverse"}, State: s}
 }
 func TestSolidityDifferential(t *testing.T) {
-	for _, v := range vectors(t) {
+	testDifferential(t, vectors(t))
+}
+func TestMinedRobinhoodDifferential(t *testing.T) {
+	testDifferential(t, loadVectors(t, "testdata/robinhood.json"))
+}
+func testDifferential(t *testing.T, vs []vector) {
+	t.Helper()
+	for _, v := range vs {
 		t.Run(v.Name, func(t *testing.T) {
 			h := newHook(v.Before)
 			input := v.Input.ToBig()

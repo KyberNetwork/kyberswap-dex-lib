@@ -1,8 +1,18 @@
-# INVERSE routed hook (activation pending)
+# INVERSE routed hook (production quote-service rollout pending)
 
 This package implements exact-input quotes for the fee-aware `RoutedInverseHook`
 candidate from [inversecoin](https://github.com/calmdentist/inversecoin/tree/ec44bc670be90057188fcd6d02f14848e6010163).
-**This candidate is not deployed.** `HookAddresses` is intentionally empty.
+The reviewed source is deployed and registered in this adapter on Robinhood:
+
+- Hook: [`0x9bb08b8473d09eb235039fb8e3cc136d9787aaec`](https://robin.etherscan.io/address/0x9bb08b8473d09eb235039fb8e3cc136d9787aaec).
+- Token: [`0x07c8f63efac882d882427ef3e6471eda9cde6a3b`](https://robin.etherscan.io/address/0x07c8f63efac882d882427ef3e6471eda9cde6a3b).
+- Pool: `0x31f8b2e866eafd147cb1a272759c73d7b04116f7120404083739310161597b84`.
+
+[Deployment, receipt and source-verification evidence](testdata/deployment.json)
+pins the exact configuration and deployed runtime hashes. Both creation and
+runtime bytecode match on Sourcify. This is a small test pool: 0.00015 WETH seed
+and two 0.00001 WETH buys. The earlier pool remains open.
+
 Do not register the older live hook `0x2f293d502485Ef363A959140C3CebEE415902aec`:
 its protocol-fee and settlement rules differ from this candidate.
 
@@ -81,8 +91,11 @@ unrestricted split/cyclic routes using this token without provider-side handling
 and execution tests. This is a release gate, not a claim that this PR enables
 Kyber's production API or Fomo.
 
-The 900,000 hook-gas allowance is provisional and additive to the v4 dispatcher's
-base gas. Calibrate it against deployed adapter receipts before activation.
+The 900,000 hook-gas allowance remains conservative and additive to the v4
+dispatcher's base gas. The two complete mined Universal Router buy transactions
+used 522,150 and 467,415 gas. Kyber adapter execution passed on the deployed-pool
+fork, but fee-enabled sells and production route construction still need gas
+calibration for the backend's actual executor.
 
 ## Tests and activation
 
@@ -94,16 +107,22 @@ go test ./pkg/liquidity-source/uniswap/v4/hooks/inverse -run '^$' \
   -fuzz FuzzQuoteDoesNotMutate -fuzztime=30s
 ```
 
-The checked-in cases come from actual local v4-core + candidate execution, not a
-copy of the Go formula. They compare output and **every modeled post-swap field**,
+The 232 original cases come from actual local v4-core + candidate execution,
+not a copy of the Go formula. Two additional cases come from mined Robinhood
+Universal Router buys and block-pinned RPC snapshots. They compare output and **every modeled post-swap field**,
 including LP fees, custody, native price/liquidity, index and rounding buffer.
 Tests also cover tracking failures, overrides, clone isolation, no mutation on
 quote failure, sequential v4 dispatch in both currency orderings and msgpack
 round trips.
 
-The pinned candidate source is public and its source/configuration hashes match
-the checked-in manifest. Before enabling registration: deploy and verify its
-bytecode and immutable arguments; register the exact hook address; capture a
-pinned Robinhood snapshot and successful buy/sell execution through the deployed
-Kyber adapter; verify routing policy and gas; then deploy the quote-service update.
-No deployment, liquidity withdrawal or funded swap is part of this PR.
+The pinned source and artifact hashes match the reviewed release, and the actual
+runtime bytes (including all immutable arguments) were independently checked.
+Six tests on a fork of the deployed pool at block 68193956 exercise Universal
+Router, a generic router and the deployed Kyber adapter, including partial/full
+sales and mixed-router holdings. Public transactions contain two buys and no sales.
+These are execution checks; they do not establish provider quote discovery.
+
+Before production rollout: confirm the routing policy above, calibrate the
+backend executor's gas for all enabled modes, deploy the quote-service update,
+and verify public quotes and downstream UI eligibility. The immutable seeder
+can withdraw all liquidity and permanently close this test market.

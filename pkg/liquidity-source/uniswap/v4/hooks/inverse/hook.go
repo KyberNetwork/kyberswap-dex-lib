@@ -18,10 +18,9 @@ type Hook struct {
 	State Extra
 }
 
-// No production address is registered until the reviewed fee-aware candidate
-// is deployed and its immutable arguments and bytecode have been verified.
+// Hash-verified fee-aware deployment on Robinhood (4663); see testdata/deployment.json.
 // The historical live hook has different semantics and MUST NOT be added here.
-var HookAddresses = []common.Address{}
+var HookAddresses = []common.Address{common.HexToAddress("0x9bb08b8473d09eb235039fb8e3cc136d9787aaec")}
 var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
