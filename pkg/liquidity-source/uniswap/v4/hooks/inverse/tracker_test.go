@@ -31,18 +31,41 @@ func TestTrackPinnedSnapshot(t *testing.T) {
 	multi, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"aggregate","inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]}]`))
 	require.NoError(t, err)
 	tests := []struct {
-		name        string
-		override    bool
-		fail        bool
-		closed      bool
-		unsupported bool
-		feeWrap     bool
-	}{{name: "ordinary"}, {name: "overrides", override: true}, {name: "rpc failure", fail: true}, {name: "closed", closed: true}, {name: "controller changed", unsupported: true}, {name: "fee growth wrap", feeWrap: true}}
+		name          string
+		override      bool
+		fail          bool
+		closed        bool
+		unsupported   bool
+		feeWrap       bool
+		zeroLiquidity bool
+		uninitialized bool
+	}{
+		{name: "ordinary"}, {name: "overrides", override: true}, {name: "rpc failure", fail: true},
+		{name: "closed", closed: true}, {name: "controller changed", unsupported: true}, {name: "fee growth wrap", feeWrap: true},
+		{name: "closed with zero liquidity", closed: true, zeroLiquidity: true},
+		{name: "uninitialized with zero liquidity", uninitialized: true, zeroLiquidity: true},
+		{name: "live with zero liquidity", zeroLiquidity: true},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := s
 			if tt.feeWrap {
 				s = vectors(t)[0].After
+			}
+			if tt.zeroLiquidity {
+				s.Liquidity.Clear()
+				s.NativeInverse.Clear()
+				s.NativeQuote.Clear()
+				s.ReserveShares.Clear()
+				s.ReserveQuote.Clear()
+				s.RoundingQuote.Clear()
+				s.CustodiedShares.Clear()
+				s.HookQuote.Clear()
+				if tt.uninitialized {
+					s.CustodiedShares.Set(&s.InitialShares)
+					s.SqrtPriceX96.Clear()
+					s.Tick = 0
+				}
 			}
 			requests := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +133,7 @@ func TestTrackPinnedSnapshot(t *testing.T) {
 					case "poolId":
 						result = []any{poolID}
 					case "initialized":
-						result = []any{true}
+						result = []any{!tt.uninitialized}
 					case "closed":
 						result = []any{tt.closed}
 					case "prepaymentGuard":
@@ -132,6 +155,10 @@ func TestTrackPinnedSnapshot(t *testing.T) {
 						}
 					case "getFeeGrowthInside":
 						result = []any{n(0), n(0)}
+						if tt.zeroLiquidity {
+							// Nonzero historical growth still produces zero fees when L == 0.
+							result = []any{new(big.Int).Set(q128), new(big.Int).Set(q128)}
+						}
 						if tt.feeWrap {
 							result[1] = sub(up(s.Fees1.ToBig(), q128, s.Liquidity.ToBig()), n(5))
 						}
@@ -170,20 +197,30 @@ func TestTrackPinnedSnapshot(t *testing.T) {
 				require.Equal(t, Extra{}, h.State)
 				return
 			}
+			if tt.zeroLiquidity && !tt.closed && !tt.uninitialized {
+				require.ErrorIs(t, e, ErrState)
+				require.Equal(t, Extra{}, h.State)
+				require.Zero(t, p.Pool.BlockNumber)
+				return
+			}
 			require.NoError(t, e)
 			require.Equal(t, 2, requests)
 			require.Equal(t, uint64(1), p.Pool.BlockNumber)
 			want := s
-			want.Live = !tt.closed
+			want.Live = !tt.closed && !tt.uninitialized
 			want.FeeControllerSupported = !tt.unsupported
 			require.Equal(t, want, h.State)
 			var roundTrip Extra
 			require.NoError(t, json.Unmarshal(data, &roundTrip))
 			require.Equal(t, want, roundTrip)
-			if tt.closed {
+			if !want.Live {
 				r, e := h.GetReserves(context.Background(), p)
 				require.NoError(t, e)
 				require.Equal(t, entity.PoolReserves{"0", "0"}, r)
+				require.True(t, h.State.Fees0.IsZero())
+				require.True(t, h.State.Fees1.IsZero())
+				_, e = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: n(1e14)})
+				require.ErrorIs(t, e, ErrState)
 			}
 		})
 	}

@@ -129,6 +129,8 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 	growth0.Sub(growth0, u(position.FeeGrowthInside0LastX128))
 	growth1 := u(growth.FeeGrowthInside1X128)
 	growth1.Sub(growth1, u(position.FeeGrowthInside1LastX128))
+	// Fees = growth * liquidity / 2^128. Zero liquidity is a zero numerator;
+	// closed/uninitialized positions therefore have zero fees without a special case.
 	s := Extra{Version: 1, Live: initialized && !closed, Inverse0: inverse0, FeeControllerSupported: controller == controllerAddress, ProtocolFee: uint32(slot.ProtocolFee.Uint64()), BlockNumber: p.BlockNumber.Uint64(),
 		InitialShares: *u(values[0]), InitialQuote: *u(values[1]), ReserveShares: *u(values[2]), ReserveQuote: *u(values[3]), NativeQuote: *u(values[4]), RoundingQuote: *u(values[5]), Sequence: *u(values[6]), Liquidity: *u(values[7]),
 		Index: *u(tv[0]), CustodiedShares: *u(tv[2]), NativeInverse: *u(tv[3]), HookQuote: *u(hookQuote), SqrtPriceX96: *u(slot.SqrtPriceX96), Tick: int(slot.Tick.Int64()),
