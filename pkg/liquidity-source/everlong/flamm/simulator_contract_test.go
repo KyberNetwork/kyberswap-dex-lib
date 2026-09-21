@@ -170,6 +170,7 @@ func TestSimulatorUpdateBalanceVerbatim(t *testing.T) {
 	b.state.Router.Venues[0].Morpho.Market.TotalBorrowAssets.AddUint64(&b.state.Router.Venues[0].Morpho.Market.TotalBorrowAssets, 7)
 	b.state.Feed.Loans[0].Round.Answer.AddUint64(&b.state.Feed.Loans[0].Round.Answer, 7)
 	b.state.Hooks.Swap.EverlongSwap.XWad.AddUint64(&b.state.Hooks.Swap.EverlongSwap.XWad, 7)
+	b.state.Hooks.Spread.EverlongSpread.Spread.AddUint64(&b.state.Hooks.Spread.EverlongSpread.Spread, 7)
 	after, err := json.Marshal(si.next)
 	require.NoError(t, err)
 	require.Equal(t, string(nextJSON), string(after), "UpdateBalance aliased SwapInfo.next")
@@ -187,6 +188,34 @@ func TestSimulatorUpdateBalanceVerbatim(t *testing.T) {
 	}
 	require.Equal(t, PoolMeta{ApprovalAddress: sim.Info.Address, BlockNumber: sim.Info.BlockNumber}, c.GetMetaInfo("", ""))
 	require.Equal(t, uint64(51313000), c.GetMetaInfo("", "").(PoolMeta).BlockNumber)
+
+	// The reserves UpdateBalance publishes are a function of the adopted state alone: the capacity is recomputed at
+	// the clock the fill settled at, so two clones that adopt one SwapInfo publish the same capacity however long
+	// apart they adopt it.
+	d, e := sim.CloneState().(*PoolSimulator), sim.CloneState().(*PoolSimulator)
+	d.nowFn = func() uint64 { return si.next.Timestamp }
+	e.nowFn = func() uint64 { return si.next.Timestamp + 7*86_400 }
+	d.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: si})
+	e.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: si})
+	require.Equal(t, reserveStrings(d), reserveStrings(e), "the published reserves follow the wall clock")
+	require.NotEqual(t, reserveStrings(sim), reserveStrings(d), "the fill moved neither published reserve")
+
+	// And they are what the refresh publishes for that state at that clock (pool_tracker.go reservesOf).
+	var gross uint256.Int
+	pos, err := d.state.Router.positions(si.next.Timestamp)
+	require.NoError(t, err)
+	_, overflow := gross.AddOverflow(&d.state.Pool.Physical, &pos.TotalColl)
+	require.False(t, overflow)
+	require.Equal(t, []string(reservesOf(&gross, d.state, si.next.Timestamp)), reserveStrings(d))
+}
+
+// reserveStrings is a simulator's published reserves as decimal strings.
+func reserveStrings(p *PoolSimulator) []string {
+	out := make([]string, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		out[i] = r.String()
+	}
+	return out
 }
 
 // TestSimulatorCloneDeep: every word an execution or UpdateBalance can write, written in place on a clone, leaves the
@@ -218,6 +247,12 @@ func TestSimulatorCloneDeep(t *testing.T) {
 	bump(&s.Feed.Loans[0].Round.UpdatedAt)
 	bump(&s.Feed.Asset.Round.Answer)
 	bump(&s.Hooks.Swap.EverlongSwap.ReserveStable)
+	// The spread half of poolHooks.clone (hook_kinds.go): the armed scenario lists a spread hook, and every word of
+	// its post moves a lever quote (FLAMMLeverLib._spread).
+	require.NotNil(t, s.Hooks.Spread.EverlongSpread, "the armed scenario lists a spread hook")
+	bump(&s.Hooks.Spread.EverlongSpread.Spread)
+	bump(&s.Hooks.Spread.EverlongSpread.LastSetTs)
+	bump(&s.Hooks.Spread.EverlongSpread.MaxSpreadAge)
 	bump(&s.LastLeverSpreadPpm)
 	if s.Pool.PriceWad != nil {
 		bump(&s.Pool.PriceWad[0])

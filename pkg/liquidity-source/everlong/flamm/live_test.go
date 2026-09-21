@@ -78,6 +78,16 @@ func baseConfig() *Config {
 	return &Config{DexID: DexType, ChainID: valueobject.ChainIDBase, Factory: c104.Factory.Hex()}
 }
 
+// tapeConfig is baseConfig restricted to the pool the recorded tapes answer for. The tapes are a recording of one
+// pool's listing round, so a second registered pool of the same deployment would send that pool's reads into a tape
+// that has no answer for them: the offline replays name the pool they are about, as the fork suites that list
+// against a chain do (fork_multipool_test.go list). README, "Adding a pool whose hooks are of a registered kind".
+func tapeConfig() *Config {
+	cfg := baseConfig()
+	cfg.Pools = []string{c104.Pool.Hex()}
+	return cfg
+}
+
 // parityConfig is baseConfig with the policy's margins stamped as set, zero included (off): the parity tests compare
 // every quote with the chain, band edges and clock deadlines included, where a default margin would refuse.
 func parityConfig(policy Policy) *Config {

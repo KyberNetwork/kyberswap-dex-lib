@@ -211,9 +211,15 @@ func TestRegistryWellFormed(t *testing.T) {
 		require.Same(t, d, deploymentFor(d.ChainID, d.Factory.Address), where)
 	}
 	for k := hookKind(1); k < hookKindCount; k++ {
-		require.NotNil(t, hookKindSpecOf(k), k.String())
+		spec := hookKindSpecOf(k)
+		require.NotNil(t, spec, k.String())
 		require.NotEmpty(t, hookKindNames[k], "kind %d has no name", k)
 		require.NotContains(t, k.String(), "hookKind(", k.String())
+		if spec.role() == roleLeverage {
+			// resolveHooksIn refuses a leverage kind that names no swap kind it can read (quotesOnSwapKind), so a
+			// kind added without one would stop listing its own pools rather than quote on any swap kind.
+			require.Implements(t, (*swapBoundKind)(nil), spec, "%s: a leverage kind is a swapBoundKind", k)
+		}
 	}
 	pools := map[key]bool{} // (chain, pool) a registered swap hook is bound to
 	for i := range hookRegistry {
@@ -261,7 +267,18 @@ func TestRegistryWellFormed(t *testing.T) {
 		require.True(t, pools[key{a.ChainID, a.Pool}], "%s: pool %s has no registered swap hook", where, a.Pool.Hex())
 		require.Same(t, a, financingAccount(a.ChainID, a.Address), where)
 	}
-	require.Len(t, pools, 1, "one production pool")
+	// Every registered deployment lists at least one pool, and the pool the offline tapes answer for is one of
+	// them. The count is not pinned: registering a second pool is the table's own growth path, and the tests that
+	// replay a recorded tape name the pool they are about instead (tapeConfig; README, "Adding a pool whose hooks
+	// are of a registered kind").
+	for i := range flammDeployments {
+		d := &flammDeployments[i]
+		require.NotEmpty(t, listingCandidates(d.ChainID, d, nil),
+			"the deployment at %s lists no pool", d.Factory.Address.Hex())
+	}
+	require.Contains(t, listingCandidates(valueobject.ChainIDBase,
+		deploymentFor(valueobject.ChainIDBase, c104.Factory), nil), c104.Pool)
+	require.NotEmpty(t, pools)
 }
 
 // TestResolveHooks: a hook set is admitted only when every hook it names is registered, of its slot's kind and bound
@@ -367,7 +384,26 @@ func TestResolveHooks(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), "hookKind("), err.Error())
 	require.False(t, everlongLeverageV1{}.quotesOn(hookKindEverlongSpreadV1))
 	require.True(t, everlongLeverageV1{}.quotesOn(hookKindEverlongSwapV1))
+
+	// The rule resolveHooksIn ends with, at the only place a spec that is no swapBoundKind can be handed to it:
+	// a leverage kind that names no swap kind quotes on none, so the hook set is refused rather than admitted on
+	// whatever swap kind the pool happens to list. Every shipped leverage spec implements it
+	// (TestRegistryWellFormed), so the branch is reachable only from a kind added later.
+	require.True(t, quotesOnSwapKind(everlongLeverageV1{}, hookKindEverlongSwapV1))
+	require.False(t, quotesOnSwapKind(everlongLeverageV1{}, hookKindEverlongSpreadV1))
+	unbound := hookKindSpec(unboundLeverageKind{})
+	require.Equal(t, roleLeverage, unbound.role())
+	require.NotImplements(t, (*swapBoundKind)(nil), unbound)
+	require.False(t, quotesOnSwapKind(unbound, hookKindEverlongSwapV1), "a spec with no quotesOn")
+	require.False(t, quotesOnSwapKind(nil, hookKindEverlongSwapV1), "an unported kind")
 }
+
+// unboundLeverageKind is a leverage-role spec that is no swapBoundKind: what a kind added without step 5 of the
+// README's "Adding a hook kind" looks like to resolveHooksIn. It borrows the spread kind's spec methods, which are
+// the ones it does not exercise.
+type unboundLeverageKind struct{ everlongSpreadV1 }
+
+func (unboundLeverageKind) role() hookRole { return roleLeverage }
 
 // TestValidStaticRegistry: a listing is admitted only on its own pool, with the pair its swap hook is deployed for,
 // and every venue on a registered financing account of that pool.
@@ -413,8 +449,13 @@ func TestValidStaticOtherDeployment(t *testing.T) {
 	d := *deploymentFor(valueobject.ChainIDBase, c104.Factory)
 	d.Factory = sharedContract{otherFactory, d.Factory.CodeHash}
 	d.Router = sharedContract{otherRouter, d.Router.CodeHash}
+	// And the same factory address on another chain: a deployment is a (chain, factory) pair, and the hooks that
+	// name a factory name it on their own chain alone.
+	elsewhereChain := d
+	elsewhereChain.ChainID = valueobject.ChainIDEthereum
+	elsewhereChain.Factory = sharedContract{c104.Factory, d.Factory.CodeHash}
 	saved := flammDeployments
-	flammDeployments = append(append([]flammDeployment(nil), saved...), d)
+	flammDeployments = append(append([]flammDeployment(nil), saved...), d, elsewhereChain)
 	t.Cleanup(func() { flammDeployments = saved })
 
 	se := c104.staticExtra()
@@ -425,6 +466,15 @@ func TestValidStaticOtherDeployment(t *testing.T) {
 	require.Contains(t, err.Error(), "is of factory "+c104.Factory.Hex())
 	require.Empty(t, listingCandidates(valueobject.ChainIDBase, deploymentFor(valueobject.ChainIDBase, otherFactory),
 		nil), "the pool is no candidate of the other deployment's listing")
+	require.Empty(t, listingCandidates(valueobject.ChainIDEthereum,
+		deploymentFor(valueobject.ChainIDEthereum, c104.Factory), nil),
+		"the Base pool is no candidate of a deployment at the same factory address on another chain")
+	require.Contains(t, listingCandidates(valueobject.ChainIDBase,
+		deploymentFor(valueobject.ChainIDBase, c104.Factory), nil), c104.Pool, "and still a candidate of its own")
+	onEthereum := se
+	onEthereum.ChainID = valueobject.ChainIDEthereum
+	_, err = validStatic(&onEthereum, lowerHex(c104.Pool), DexType, c104.tokens())
+	require.ErrorIs(t, err, ErrInvalidProfile, "the Base hooks are not registered on another chain")
 	_, err = validStatic(&se, lowerHex(c104.Pool), DexType, c104.tokens())
 	require.NoError(t, err, "and still admitted under its own")
 }
@@ -434,7 +484,7 @@ func TestValidStaticOtherDeployment(t *testing.T) {
 func TestListerRegistry(t *testing.T) {
 	t.Parallel()
 	tp := openTape(t, trackerTape)
-	u := NewPoolsListUpdater(baseConfig(), tp.client())
+	u := NewPoolsListUpdater(tapeConfig(), tp.client())
 	control, listedMd, err := u.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, control, 1)
@@ -486,14 +536,21 @@ func TestListerRegistry(t *testing.T) {
 	} {
 		var asked map[string]int
 		tp.mutate = tapeRecorder(&asked)
-		pools, _, err := NewPoolsListUpdater(cfg, tp.client()).GetNewPools(context.Background(), nil)
+		pools, md, err := NewPoolsListUpdater(cfg, tp.client()).GetNewPools(context.Background(), nil)
 		require.NoError(t, err, name)
 		require.Empty(t, pools, name)
 		require.Empty(t, asked, "%s: nothing to read", name)
+		require.Nil(t, md, name)
+		// A run with nothing to look at returns the cursor it was handed: the prune is what a run that read the
+		// factory's answers does to a pool the factory no longer owns, and this run read nothing.
+		pools, md, err = NewPoolsListUpdater(cfg, tp.client()).GetNewPools(context.Background(), listedMd)
+		require.NoError(t, err, name)
+		require.Empty(t, pools, name)
+		require.Equal(t, listedMd, md, "%s: the cursor is left as it was", name)
 	}
 	tp.mutate = nil
-	require.Equal(t, []common.Address{c104.Pool},
-		listingCandidates(valueobject.ChainIDBase, deploymentFor(valueobject.ChainIDBase, c104.Factory), nil))
+	require.Contains(t, listingCandidates(valueobject.ChainIDBase,
+		deploymentFor(valueobject.ChainIDBase, c104.Factory), nil), c104.Pool)
 }
 
 // tapeAnswersAt is every (block, target, calldata) -> answer the tape recorded inside a tryBlockAndAggregate sent at
@@ -590,7 +647,7 @@ func TestSwapOnlyPool(t *testing.T) {
 		},
 		tapeRecorder(&asked))
 
-	pools, _, err := NewPoolsListUpdater(baseConfig(), tp.client()).GetNewPools(context.Background(), nil)
+	pools, _, err := NewPoolsListUpdater(tapeConfig(), tp.client()).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)
 	listed := pools[0]
@@ -723,6 +780,19 @@ func TestSimulatorHookRegistry(t *testing.T) {
 		"no spread hook reads": {func(_ *StaticExtra, x *Extra, _ *entity.Pool) {
 			r := *x.Reads
 			r.Spread = nil
+			x.Reads = &r
+		}, errReadsInconsistent},
+		// The hook's LOAN_SCALE is compiled in at construction (EverlongHook.sol:156, 10 ** (18 - loanDecimals))
+		// while the scale the state is built with comes from the decimals the pool reports at refresh time
+		// (state_reads.go), and hook_kinds.go build is the one comparison between the two. Decimals moved with the
+		// Router's own loan scale in lockstep, so the read side agrees with itself and only the hook disagrees: the
+		// state is refused rather than quoted off a ten-times-wrong scale.
+		"loan decimals the hook was not compiled for": {func(_ *StaticExtra, x *Extra, _ *entity.Pool) {
+			r := *x.Reads
+			r.Pool.Loans = append([]loanConfigReads(nil), r.Pool.Loans...)
+			r.Pool.Loans[0].Decimals = 7
+			r.Router.Loans = append([]routerLoanReads(nil), r.Router.Loans...)
+			r.Router.Loans[0].LoanScale.SetUint64(100_000_000_000) // 10 ** (18 - 7)
 			x.Reads = &r
 		}, errReadsInconsistent},
 	} {

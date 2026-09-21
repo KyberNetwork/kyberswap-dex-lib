@@ -116,9 +116,10 @@ type Extra struct {
 	Probes             int              `json:"probes,omitempty"`
 	AttestFailure      string           `json:"attestFailure,omitempty"`
 	ProfileDrift       string           `json:"profileDrift,omitempty"`
-	// ScheduledChangeAt is the earliest timestamp at which a scheduled change to the code or hooks the port
-	// mirrors can execute (0: none scheduled): the factory's pending implementation, which anyone may execute for
-	// every pool at once (FLAMMFactory.sol:149), or the pool's pending hook set (FLAMMOpsLib.sol:258).
+	// ScheduledChangeAt is the earliest timestamp at which a scheduled change to what the port mirrors can execute
+	// (0: none scheduled): the factory's pending implementation, which anyone may execute for every pool at once
+	// (FLAMMFactory.sol:149), the pool's pending hook set (FLAMMOpsLib.sol:258), a pending venue admission or a
+	// pending loan asset (tracker_reads.go scheduledChangeAt).
 	ScheduledChangeAt uint64 `json:"scheduledChangeAt,omitempty"`
 	Policy            Policy `json:"policy"`
 }
