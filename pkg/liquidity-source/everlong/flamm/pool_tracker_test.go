@@ -57,7 +57,7 @@ func TestIntegrationFixtureDigests(t *testing.T) {
 
 func replayListing(t *testing.T, tp *rpcTape) entity.Pool {
 	t.Helper()
-	pools, _, err := NewPoolsListUpdater(baseConfig(), tp.client()).GetNewPools(context.Background(), nil)
+	pools, _, err := NewPoolsListUpdater(tapeConfig(), tp.client()).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)
 	return pools[0]
@@ -826,7 +826,7 @@ const (
 func TestTrackerReplayArmed(t *testing.T) {
 	t.Parallel()
 	tp := openTape(t, armedTape)
-	pools, _, err := NewPoolsListUpdater(baseConfig(), tp.client()).GetNewPools(context.Background(), nil)
+	pools, _, err := NewPoolsListUpdater(tapeConfig(), tp.client()).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)
 	listed := pools[0]
@@ -1666,8 +1666,19 @@ func TestTrackerProbeEmptyRevert(t *testing.T) {
 		{"answered", func(e *tapeEntry) {
 			e.Result, e.Error = json.RawMessage(`"0x`+strings.Repeat("00", 96)+`"`), nil
 		}, "previewSwap(true,1000): empty revert unconfirmed"},
+		// Base answers an out-of-gas eth_call with -32003 (multicall.go execErrorCodes); geth's generic -32000 is
+		// the same class and is read the same way.
 		{"out of gas", func(e *tapeEntry) {
+			e.Result, e.Error = nil, &tapeError{Code: -32003, Message: "out of gas: gas required exceeds: 30000"}
+		}, "previewSwap(true,1000): empty revert unconfirmed"},
+		{"out of gas, generic code", func(e *tapeEntry) {
 			e.Result, e.Error = nil, &tapeError{Code: -32000, Message: "out of gas"}
+		}, "previewSwap(true,1000): empty revert unconfirmed"},
+		// The aggregate answered empty returndata; a standalone revert that carries data is a different answer, so
+		// it is the chain saying the port's refusal is wrong rather than a confirmation of it.
+		{"reverted with data", func(e *tapeEntry) {
+			e.Result, e.Error = nil, &tapeError{Code: 3, Message: "execution reverted",
+				Data: json.RawMessage(`"0x7939f4246c6a7ba2"`)}
 		}, "previewSwap(true,1000): empty revert unconfirmed"},
 		// A confirmation the node never ran is transport, exactly as the probe aggregate's own failure is: the
 		// refresh returns it and pool-service keeps the last entity, rather than publishing a pool with no reserves
@@ -1717,8 +1728,22 @@ func TestRevertedClassifies(t *testing.T) {
 	require.True(t, reverted(fmt.Errorf("wrapped: %w", &jsonRPCError{code: 3, message: "execution reverted"})))
 
 	// executed separates a call the node ran and could not finish from a request it never ran (multicall.go).
-	require.True(t, executed(&jsonRPCError{code: execErrorCode, message: "out of gas"}))
-	require.True(t, executed(fmt.Errorf("wrapped: %w", &jsonRPCError{code: execErrorCode, message: "out of gas"})))
+	for _, code := range execErrorCodes {
+		require.True(t, executed(&jsonRPCError{code: code, message: "out of gas"}), code)
+		require.True(t, executed(fmt.Errorf("wrapped: %w", &jsonRPCError{code: code, message: "out of gas"})), code)
+	}
+	require.Contains(t, execErrorCodes, -32003, "the code Base answers an out-of-gas eth_call with")
+
+	// emptyRevert is the half of reverted that confirms an aggregate's empty returndata: a revert carrying data is
+	// a different answer than the one being confirmed (multicall.go confirmRevert).
+	require.True(t, emptyRevert(&jsonRPCError{code: 3, message: "execution reverted"}))
+	require.True(t, emptyRevert(&jsonRPCError{code: 3, message: "execution reverted", data: "0x"}))
+	require.True(t, emptyRevert(fmt.Errorf("wrapped: %w", &jsonRPCError{code: 3, message: "execution reverted"})))
+	require.False(t, emptyRevert(&jsonRPCError{code: 3, message: "execution reverted", data: "0x1234"}))
+	require.False(t, emptyRevert(&jsonRPCError{code: -32000, message: "execution reverted", data: "0x1234"}))
+	require.False(t, emptyRevert(&jsonRPCError{code: -32003, message: "out of gas"}))
+	require.False(t, emptyRevert(errReadFailed))
+	require.False(t, emptyRevert(nil))
 	require.False(t, executed(&jsonRPCError{code: -32016, message: "over rate limit"}))
 	require.False(t, executed(&jsonRPCError{code: -32603, message: "internal error"}))
 	require.False(t, executed(context.DeadlineExceeded))
@@ -2034,6 +2059,23 @@ func TestDeadlineClocks(t *testing.T) {
 		require.Equal(t, c.want, deadlineClocks(st, now, c.window), c.name)
 	}
 	require.Nil(t, deadlineClocks(nil, now, window))
+
+	// readWindow reads at the same end and takes the same branch on a window that overflows the clock: it reads at
+	// no clock rather than at a wrapped one, which would be a clock before the snapshot's own. A nil client proves
+	// it answers before it sends anything.
+	for _, c := range []struct {
+		name               string
+		snapshotTs, window uint64
+	}{
+		{"no window declared", now, 0},
+		{"a window that overflows the clock", now, ^uint64(0)},
+		{"a window that overflows it by one", ^uint64(0) - 9, 10},
+	} {
+		ahead, err := readWindow(context.Background(), nil, []StaticVenue{{Account: c104.Account}}, nil,
+			c.snapshotTs, c.window)
+		require.NoError(t, err, c.name)
+		require.Nil(t, ahead, c.name)
+	}
 }
 
 // TestTrackerDecodesSpreadWord: FLAMMStore's lastLeverSpreadPpm has no view, so the only thing that fixes where it
