@@ -1,0 +1,37 @@
+[
+  {
+    "type": "function",
+    "name": "feePipsFor",
+    "stateMutability": "view",
+    "inputs": [{ "name": "id", "type": "bytes32", "internalType": "PoolId" }],
+    "outputs": [{ "name": "", "type": "uint24", "internalType": "uint24" }]
+  },
+  {
+    "type": "function",
+    "name": "feePipsOf",
+    "stateMutability": "view",
+    "inputs": [{ "name": "", "type": "bytes32", "internalType": "PoolId" }],
+    "outputs": [{ "name": "", "type": "uint24", "internalType": "uint24" }]
+  },
+  {
+    "type": "function",
+    "name": "feeRecipientOf",
+    "stateMutability": "view",
+    "inputs": [{ "name": "", "type": "bytes32", "internalType": "PoolId" }],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "PIPS_DENOMINATOR",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint24", "internalType": "uint24" }]
+  },
+  {
+    "type": "function",
+    "name": "MAX_FEE_PIPS",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint24", "internalType": "uint24" }]
+  }
+]
