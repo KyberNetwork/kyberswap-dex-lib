@@ -274,7 +274,7 @@ func TestSimulatorPickVenue(t *testing.T) {
 
 // TestSimulatorFreshness: a snapshot older than MaxSnapshotAgeSec is refused (measured from the refresh's block
 // timestamp, which an adopted fill does not move), and so is every quote from scheduledChangeLeadSec before a
-// scheduled implementation or hook-set change becomes executable.
+// scheduled implementation, hook-set, venue or loan-asset change becomes executable.
 func TestSimulatorFreshness(t *testing.T) {
 	t.Parallel()
 	reads := gridReads(t, "51302915", "live")
@@ -1139,7 +1139,13 @@ func TestSimulatorOracleWindow(t *testing.T) {
 		"oracle stops answering": {[]OracleAnswer{{}}, ErrOracleDrift},
 	} {
 		s := sim(t, c.ahead)
+		// The guard is a second settlement on a copy of the state, so quoting through it writes nothing and leaves
+		// it armed for the next quote: one that consumed itself would find nothing moved from then on, which is
+		// F02 re-opened on the second quote rather than on the first.
+		armed, before := s.oracleShifted() != nil, stateJSON(t, s)
 		res, err := s.CalcAmountOut(amountIn(s, true, 15_000))
+		require.Equal(t, before, stateJSON(t, s), "%s: the end-of-window guard wrote the quoted state", name)
+		require.Equal(t, armed, s.oracleShifted() != nil, "%s: the end-of-window guard consumed itself", name)
 		if c.want != nil {
 			require.ErrorIs(t, err, c.want, name)
 			continue
@@ -1148,11 +1154,23 @@ func TestSimulatorOracleWindow(t *testing.T) {
 		require.Equal(t, "11301759", res.TokenAmountOut.Amount.String(), name)
 	}
 
-	// A set that does not match the venues is not an ahead answer for any of them.
-	s := sim(t, []OracleAnswer{{Ok: true, Price: snapshot}, {Ok: true, Price: snapshot}})
-	require.Nil(t, s.oracleShifted())
-	_, err := s.CalcAmountOut(amountIn(s, true, 15_000))
+	// A set that does not match the venues is an Extra no refresh wrote (readOracleAhead reads one answer per
+	// venue): the pool is refused rather than quoted with the guard skipped, at construction and on every quote of
+	// a simulator msgpack restored without one. Having no set at all is the no-window case above, and it quotes.
+	mismatched := extra
+	mismatched.OracleAhead = []OracleAnswer{{Ok: true, Price: snapshot}, {Ok: true, Price: snapshot}}
+	raw, err := json.Marshal(&mismatched)
 	require.NoError(t, err)
+	refused := stored
+	refused.Extra = string(raw)
+	_, err = NewPoolSimulator(refused)
+	require.ErrorIs(t, err, ErrPoolRefused)
+
+	restored := sim(t, extra.OracleAhead)
+	restored.OracleAhead = mismatched.OracleAhead
+	require.Nil(t, restored.oracleShifted())
+	_, err = restored.CalcAmountOut(amountIn(restored, true, 15_000))
+	require.ErrorIs(t, err, ErrPoolRefused)
 }
 
 // feedShiftedReads is reads with the pool asset's Chainlink answer moved by bps (signed): the adverse half of one
@@ -1393,7 +1411,7 @@ func swapInfoUsed(r *pool.CalcAmountOutResult) string {
 
 // TestSimulatorLeverDownInput: a lever-down's RemainingTokenAmountIn is headroom the fill needs, not input the
 // pool could not use. FLAMMLeverLib._planDown sizes the hook fill on the whole loanIn (FLAMMLeverLib.sol:124-141)
-// and then charges only payNative = ceilDiv(amountInUsed - virtualLeg, scale) (:139), so re-quoting at the used
+// and then charges only payNative = ceilDiv(amountInUsed - virtualLeg, scale) (:140), so re-quoting at the used
 // amount is a smaller trade that pays proportionally less and leaves a remainder of its own. The swap venue, and
 // every other source in the library, returns the same output when re-quoted at what it used. A lever-down hop can
 // therefore not be trimmed to its used amount: its residual has to be re-routed or accepted, which is one of the

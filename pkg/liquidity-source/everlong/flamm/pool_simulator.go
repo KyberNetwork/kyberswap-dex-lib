@@ -150,6 +150,13 @@ func (p *PoolSimulator) usable() error {
 	if err := validVenues(w, p.Venues); err != nil {
 		return err
 	}
+	// The end-of-window oracle answers are read from the venue set itself (tracker_reads.go readOracleAhead), so a
+	// refresh publishes either none of them -- a policy that declares no window -- or exactly one per venue. Any
+	// other length is an Extra no refresh wrote, and it is refused here rather than left to oracleShifted, where a
+	// mismatch skips the guard silently and quotes the snapshot answer alone.
+	if n := len(p.OracleAhead); n != 0 && n != len(p.Venues) {
+		return ErrPoolRefused
+	}
 	if err := p.state.Hooks.matches(&w.hooks); err != nil {
 		return err
 	}
@@ -201,6 +208,12 @@ func (s *flammState) envelope(se *StaticExtra, venues int, donated bool) error {
 // answer the reveal can produce inside the window. An entity whose refresh published
 // no ahead answers -- a policy with maxSnapshotAgeSec 0, which declares no window at all, or an entity recorded
 // before the forward round -- is quoted at the snapshot answer alone.
+//
+// A set of another length than the venue set never reaches here: usable refuses the pool over it, since it is an
+// Extra no refresh wrote -- readOracleAhead allocates its answers from the very slice the state's venues are built
+// from (pool_tracker.go readWindow, tracker_reads.go readOracleAhead) -- and a set that does not line up with the
+// venues names no venue's answer to compare. The length test below is therefore the no-window case alone, and it
+// stays because oracleShifted is also read outside a quote (TestSimulatorOracleWindow).
 func (p *PoolSimulator) oracleShifted() *flammState {
 	venues := p.state.Router.Venues
 	if len(p.OracleAhead) != len(venues) {
@@ -612,7 +625,7 @@ func (p *PoolSimulator) spreadLive(now, margin uint64) error {
 }
 
 // fresh refuses a snapshot older than MaxSnapshotAgeSec at now, and every quote from scheduledChangeLeadSec before
-// a scheduled implementation or hook-set change becomes executable.
+// a scheduled implementation, hook-set, venue or loan-asset change becomes executable (scheduledChangeAt).
 func (p *PoolSimulator) fresh(now uint64) error {
 	if m := p.Policy.MaxSnapshotAgeSec; m != 0 && now > p.snapshotTs && now-p.snapshotTs > m {
 		return ErrSnapshotStale
@@ -706,8 +719,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.seq++
 	// Both published reserves follow the adopted state: the gross poolAsset, and the sell capacity recomputed from
 	// it exactly as the refresh computes it (pool_tracker.go sellCapacity), since a fill moves the room, the liquid
-	// and the funding the capacity is built from.
-	now := p.now()
+	// and the funding the capacity is built from. The clock is the adopted state's own -- the one the fill settled
+	// at (fill.next.Timestamp) -- and not the wall clock, so what a simulator publishes is a function of the state
+	// it adopted alone: two clones handed the same SwapInfo publish the same reserves.
+	now := p.state.Timestamp
 	if pos, err := p.state.Router.positions(now); err == nil && len(p.Info.Reserves) == 2 {
 		var gross uint256.Int
 		if _, overflow := gross.AddOverflow(&p.state.Pool.Physical, &pos.TotalColl); !overflow {
