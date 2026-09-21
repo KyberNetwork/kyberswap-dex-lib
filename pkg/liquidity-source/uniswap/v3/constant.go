@@ -22,6 +22,7 @@ const (
 	DexTypeSolidlyV3  = "solidly-v3"
 	DexTypeSlipstream = "slipstream"
 	DexTypeNuriV2     = "nuri-v2"
+	DexTypeUnitFlowV3 = "unitflow-v3"
 
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18

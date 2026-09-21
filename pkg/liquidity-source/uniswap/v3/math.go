@@ -179,7 +179,20 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		if fullyCrossed {
 			crossedBonus = 1
 		}
-		tickSpacingsCrossed := (kutils.Abs(tickNext-tick) - crossedBonus) / p.TickSpacing
+		// A partial step that stays within one bitmap word never reaches a distant
+		// initialized tick. Use its actual ending tick in that case; otherwise the
+		// rounding approximation severely underquotes sparse, small-spacing pools.
+		roundingTargetTick := tickNext
+		if !fullyCrossed {
+			resultingTick, err := GetTickAtSqrtRatio(&nxtSqrtPriceX96)
+			if err != nil {
+				return SwapResult{}, err
+			}
+			if kutils.Abs(resultingTick-tick) < 256*p.TickSpacing {
+				roundingTargetTick = resultingTick
+			}
+		}
+		tickSpacingsCrossed := (kutils.Abs(roundingTargetTick-tick) - crossedBonus) / p.TickSpacing
 		wordCrossings := sqrtPriceNextX96.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
 		if exactInput {
 			amountOut.SDiv(&amountOut, wordCrossings).Mul(&amountOut, wordCrossings)

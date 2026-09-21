@@ -298,6 +298,7 @@ const (
 	ExchangeUniswapLO                   = "uniswap-lo"
 	ExchangeUniSwapV1                   = "uniswap-v1"
 	ExchangeUniSwapV3                   = "uniswapv3"
+	ExchangeUnitFlowV3                  = "unitflow-v3"
 	ExchangeUniswapV4                   = "uniswap-v4"
 	ExchangeUniswapV4Aegis              = "uniswap-v4-aegis"
 	ExchangeUniswapV4AegisProp          = "uniswap-v4-aegisprop"

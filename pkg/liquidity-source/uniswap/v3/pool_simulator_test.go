@@ -76,6 +76,56 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 }
 
+// TestUnitFlowV3ArcTransactions reproduces UnitFlow V3 pool state immediately
+// before two Arc mainnet swaps and compares the simulated results with their
+// on-chain Swap events.
+func TestUnitFlowV3ArcTransactions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		poolState string
+		amountOut string
+	}{
+		{
+			name:      "0xdee2fb6919a7f4e23f3efe499b478f7a1ba2bb0c68cedffe9af6083b6e645485",
+			poolState: `{"address":"0x99a0505d58cc5d7bf3513cc75f2a605a23f0f79f","exchange":"unitflow-v3","type":"uniswapv3","swapFee":100,"reserves":["950498287","829088577"],"tokens":[{"address":"0x3600000000000000000000000000000000000000","decimals":6,"swappable":true},{"address":"0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1","decimals":6,"swappable":true}],"extra":"{\"liquidity\":887063808,\"sqrtPriceX96\":73995921394301982831048661245,\"tickSpacing\":1,\"tick\":-1367,\"ticks\":[{\"index\":-887272,\"liquidityGross\":887063808,\"liquidityNet\":887063808},{\"index\":887272,\"liquidityGross\":887063808,\"liquidityNet\":-887063808}]}","staticExtra":"{\"poolId\":\"0x99a0505d58cc5d7bf3513cc75f2a605a23f0f79f\"}","blockNumber":22084917}`,
+			amountOut: "1144923",
+		},
+		{
+			name:      "0xfe8e5c74dbc89fc3f0a77aec1278880c5ba5b9787124dbd085702447032125a2",
+			poolState: `{"address":"0x99a0505d58cc5d7bf3513cc75f2a605a23f0f79f","exchange":"unitflow-v3","type":"uniswapv3","swapFee":100,"reserves":["949353364","830088577"],"tokens":[{"address":"0x3600000000000000000000000000000000000000","decimals":6,"swappable":true},{"address":"0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1","decimals":6,"swappable":true}],"extra":"{\"liquidity\":887063808,\"sqrtPriceX96\":74085227528746386757355374680,\"tickSpacing\":1,\"tick\":-1343,\"ticks\":[{\"index\":-887272,\"liquidityGross\":887063808,\"liquidityNet\":887063808},{\"index\":887272,\"liquidityGross\":887063808,\"liquidityNet\":-887063808}]}","staticExtra":"{\"poolId\":\"0x99a0505d58cc5d7bf3513cc75f2a605a23f0f79f\"}","blockNumber":22084941}`,
+			amountOut: "1142166",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var poolEntity entity.Pool
+			require.NoError(t, json.Unmarshal([]byte(tc.poolState), &poolEntity))
+
+			poolSim, err := NewPoolSimulator(poolEntity, valueobject.ChainIDArc)
+			require.NoError(t, err)
+
+			result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  poolEntity.Tokens[1].Address,
+					Amount: big.NewInt(1_000_000),
+				},
+				TokenOut: poolEntity.Tokens[0].Address,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tc.amountOut, result.TokenAmountOut.Amount.String())
+			assert.Zero(t, result.RemainingTokenAmountIn.Amount.Sign())
+
+			meta := poolSim.GetMetaInfo(
+				poolEntity.Tokens[1].Address, poolEntity.Tokens[0].Address,
+			).(PoolMeta)
+			assert.Equal(t, poolEntity.BlockNumber, meta.BlockNumber)
+		})
+	}
+}
+
 func TestCalcAmountIn(t *testing.T) {
 	t.Parallel()
 

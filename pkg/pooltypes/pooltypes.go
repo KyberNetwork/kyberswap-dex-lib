@@ -253,6 +253,7 @@ type Types struct {
 	CurveTwo                   string
 	Uni                        string
 	UniswapV3                  string
+	UnitFlowV3                 string
 	Biswap                     string
 	Polydex                    string
 	Dmm                        string
@@ -505,6 +506,7 @@ var (
 		CurveTwo:                   curve.PoolTypeTwo,
 		Uni:                        uniswap.DexTypeUniswap,
 		UniswapV3:                  uniswapv3.DexType,
+		UnitFlowV3:                 uniswapv3.DexTypeUnitFlowV3,
 		Biswap:                     biswap.DexTypeBiswap,
 		Polydex:                    polydex.DexTypePolydex,
 		Dmm:                        dmm.DexTypeDMM,
