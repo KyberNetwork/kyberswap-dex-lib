@@ -76,61 +76,71 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	var out []entity.Pool
 	live := map[string]bool{}
 	d := deploymentFor(u.config.ChainID, common.HexToAddress(u.config.Factory))
-	if candidates := listingCandidates(u.config.ChainID, d, allowed); len(candidates) != 0 {
-		rpcc := &mcRPC{client: u.ethrpcClient}
-		heads := make([]poolHead, len(candidates))
-		plan := &readPlan{}
-		for i := range candidates {
-			heads[i].reads(plan, d, candidates[i])
+	if d == nil {
+		// The same misconfiguration the tracker fails loudly on: a factory, or a chain, the registries do not know.
+		log.Ctx(ctx).Warn().Str("dex", DexType).Str("dexID", u.config.DexID).Str("chain", u.config.ChainID.String()).
+			Str("factory", u.config.Factory).Msg("factory is not a registered deployment; nothing to list")
+	}
+	candidates := listingCandidates(u.config.ChainID, d, allowed)
+	if len(candidates) == 0 {
+		// Nothing to look at. The cursor is what a run that looked prunes -- a listed pool the factory no longer
+		// owns (isPool false) -- so a run that read nothing returns it as it was rather than forgetting every pool
+		// it holds and relisting them all on the next run.
+		return nil, metadataBytes, nil
+	}
+	rpcc := &mcRPC{client: u.ethrpcClient}
+	heads := make([]poolHead, len(candidates))
+	plan := &readPlan{}
+	for i := range candidates {
+		heads[i].reads(plan, d, candidates[i])
+	}
+	blockNumber, err := plan.run(ctx, rpcc, nil)
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+	block := new(big.Int).SetUint64(blockNumber)
+	for i, pool := range candidates {
+		h := &heads[i]
+		if h.ownedRead && !h.owned {
+			continue // the factory does not own this pool at this block
 		}
-		blockNumber, err := plan.run(ctx, rpcc, nil)
+		key := lowerHex(pool)
+		live[key] = true
+		se, venues, digest, err := u.listPool(ctx, rpcc, d, pool, h, block, md.Listed[key])
+		if err != nil && !errors.Is(err, ErrInvalidProfile) && !chainAnswered(err) {
+			return nil, metadataBytes, err // transport: retry the whole run
+		} else if err != nil {
+			log.Ctx(ctx).Warn().Str("dex", DexType).Str("dexID", u.config.DexID).Str("pool", key).Err(err).
+				Msg("pool does not match the registry; not listed")
+			continue
+		}
+		if se == nil {
+			continue // already listed with this wiring
+		}
+		raw, err := json.Marshal(se)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
-		block := new(big.Int).SetUint64(blockNumber)
-		for i, pool := range candidates {
-			h := &heads[i]
-			if h.ownedRead && !h.owned {
-				continue // the factory does not own this pool at this block
-			}
-			key := lowerHex(pool)
-			live[key] = true
-			se, venues, digest, err := u.listPool(ctx, rpcc, d, pool, h, block, md.Listed[key])
-			if err != nil && !errors.Is(err, ErrInvalidProfile) && !chainAnswered(err) {
-				return nil, metadataBytes, err // transport: retry the whole run
-			} else if err != nil {
-				log.Ctx(ctx).Warn().Str("dex", DexType).Str("dexID", u.config.DexID).Str("pool", key).Err(err).
-					Msg("pool does not match the registry; not listed")
-				continue
-			}
-			if se == nil {
-				continue // already listed with this wiring
-			}
-			raw, err := json.Marshal(se)
-			if err != nil {
-				return nil, metadataBytes, err
-			}
-			// The venue set is published in Extra, which every refresh re-reads and replaces.
-			extra, err := json.Marshal(&Extra{Venues: venues})
-			if err != nil {
-				return nil, metadataBytes, err
-			}
-			out = append(out, entity.Pool{
-				Address:   key,
-				Exchange:  u.config.DexID,
-				Type:      DexType,
-				Timestamp: time.Now().Unix(),
-				Tokens: []*entity.PoolToken{
-					{Address: lowerHex(se.PoolAsset), Swappable: true},
-					{Address: lowerHex(se.LoanAsset), Swappable: true},
-				},
-				Reserves:    entity.PoolReserves{"0", "0"},
-				StaticExtra: string(raw),
-				Extra:       string(extra),
-				BlockNumber: blockNumber,
-			})
-			md.Listed[key] = digest
+		// The venue set is published in Extra, which every refresh re-reads and replaces.
+		extra, err := json.Marshal(&Extra{Venues: venues})
+		if err != nil {
+			return nil, metadataBytes, err
 		}
+		out = append(out, entity.Pool{
+			Address:   key,
+			Exchange:  u.config.DexID,
+			Type:      DexType,
+			Timestamp: time.Now().Unix(),
+			Tokens: []*entity.PoolToken{
+				{Address: lowerHex(se.PoolAsset), Swappable: true},
+				{Address: lowerHex(se.LoanAsset), Swappable: true},
+			},
+			Reserves:    entity.PoolReserves{"0", "0"},
+			StaticExtra: string(raw),
+			Extra:       string(extra),
+			BlockNumber: blockNumber,
+		})
+		md.Listed[key] = digest
 	}
 	for key := range md.Listed {
 		if !live[key] {

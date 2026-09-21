@@ -174,7 +174,7 @@ func TestForkRecordArmedTape(t *testing.T) {
 	head := e.f.head().Number.Uint64()
 	require.Equal(t, uint64(armedTapeBlock), head)
 	tp := recordTape(t, armedTape, e.f.url)
-	pools, _, err := NewPoolsListUpdater(baseConfig(), tp.client()).GetNewPools(context.Background(), nil)
+	pools, _, err := NewPoolsListUpdater(tapeConfig(), tp.client()).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)
 	tracked, err := NewPoolTracker(parityConfig(Policy{LeverRouting: true}), tp.client()).GetNewPoolStateAtBlock(
@@ -222,12 +222,23 @@ func (e *forkEnv) seqFill(t *testing.T, sim *PoolSimulator, venue int, sell bool
 	return true
 }
 
-// sameState requires the simulator's state to equal a fresh refresh's, field for field.
+// sameState requires the simulator's state to equal a fresh refresh's, field for field, and the reserves
+// UpdateBalance published to be the ones the refresh itself publishes for the same chain state: the fresh
+// simulator's own Info.Reserves, which are the entity's (pool_tracker.go publish / reservesOf), not a
+// recomputation of them here. The refresh reads the block the last fill was mined in, so the two are the same
+// clock, and sameState asserts that rather than assuming it -- a later refresh would re-price the capacity at its
+// own clock and the comparison would be against a different number.
 func sameState(t *testing.T, sim, fresh *PoolSimulator) {
 	t.Helper()
 	got := sim.state.clone()
 	got.Block, got.Timestamp = fresh.state.Block, fresh.state.Timestamp
 	require.Empty(t, e2eDiff(got, fresh.state), "simulator state after UpdateBalance vs a refresh of the fork")
+	require.Len(t, sim.Info.Reserves, 2, "the simulator publishes both reserves")
+	require.Len(t, fresh.Info.Reserves, 2, "the refresh publishes both reserves")
+	require.Equal(t, fresh.state.Timestamp, sim.state.Timestamp,
+		"the refresh read the block the last fill settled in")
+	require.Equal(t, reserveStrings(fresh), reserveStrings(sim),
+		"reserves published after UpdateBalance vs the refresh's own of the fork's post-fill state")
 }
 
 func TestForkParity(t *testing.T) {

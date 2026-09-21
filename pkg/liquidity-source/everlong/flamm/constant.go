@@ -109,14 +109,19 @@ const (
 	defaultLeverMinEdgeBps    uint64 = 10
 )
 
-// maxVenues caps the Router venue set a pool may be listed and quoted with. MMRouter admits venues one by one with
-// no cap of its own, and every venue costs a fixed number of reads per refresh and a leg per settlement pass; a
-// pool past this is outside what the port was measured on and is refused.
+// maxVenues caps the Router venue set a pool may be listed and quoted with: every venue costs a fixed number of
+// reads per refresh and a leg per settlement pass, and a pool past this is outside what the port was measured on
+// and is refused. It is a port-side ceiling above the Router's own, which is eight and binding for every pool
+// forever (MMRouterLib.sol:227 `if (n >= MAX_VENUES) revert TooManyVenues();` over IMMRouter.sol:13
+// `MAX_VENUES = 8`, on the one site that grows the array; retirement flags a venue and never pops it, so the
+// length is monotonic). On a Router of the registered code, therefore, this refusal cannot fire: it bounds a
+// Router that raises its own cap, and such a Router is new code, to be registered only after the port is measured
+// on it.
 const maxVenues = 64
 
-// scheduledChangeLeadSec is how long before a scheduled implementation or hook-set change becomes executable the
-// simulator stops quoting (Extra.ScheduledChangeAt): a fill quoted now can land that much later, after anyone
-// executed the upgrade in an earlier block.
+// scheduledChangeLeadSec is how long before a scheduled implementation, hook-set, venue or loan-asset change
+// becomes executable the simulator stops quoting (Extra.ScheduledChangeAt, tracker_reads.go scheduledChangeAt): a
+// fill quoted now can land that much later, after anyone executed the upgrade in an earlier block.
 const scheduledChangeLeadSec uint64 = 1800
 
 // Refusals of the integration layer. The pool's own reverts are the sentinels in errors.go.
@@ -135,5 +140,6 @@ var (
 	ErrOracleDrift      = errors.New("everlong-flamm: fill does not survive the market oracle's end-of-window answer")
 	ErrSwapInfoMismatch = errors.New("everlong-flamm: swap info was quoted on a different state")
 	ErrSnapshotStale    = errors.New("everlong-flamm: snapshot is older than the configured maximum age")
-	ErrScheduledChange  = errors.New("everlong-flamm: a scheduled implementation or hook-set change is executable")
+	ErrScheduledChange  = errors.New(
+		"everlong-flamm: a scheduled implementation, hook-set, venue or loan-asset change is executable")
 )

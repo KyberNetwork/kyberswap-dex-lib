@@ -22,7 +22,7 @@ import (
 func TestListerReplay(t *testing.T) {
 	t.Parallel()
 	tp := openTape(t, trackerTape)
-	u := NewPoolsListUpdater(baseConfig(), tp.client())
+	u := NewPoolsListUpdater(tapeConfig(), tp.client())
 	pools, md, err := u.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)
@@ -157,7 +157,7 @@ func tapeRecorder(asked *map[string]int) func(string, json.RawMessage, *tapeEntr
 func TestListerProfileChecks(t *testing.T) {
 	t.Parallel()
 	tp := openTape(t, trackerTape)
-	u := NewPoolsListUpdater(baseConfig(), tp.client())
+	u := NewPoolsListUpdater(tapeConfig(), tp.client())
 	prof := &c104
 	pools, _, err := u.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
@@ -266,6 +266,19 @@ func TestValidStatic(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidProfile)
 	_, err = validStatic(&se, stored.Address, DexType, []string{tokens[1], tokens[0]})
 	require.ErrorIs(t, err, ErrInvalidProfile, "token order is (pool asset, loan asset)")
+	// The arity guard is what keeps a malformed entity a refusal rather than a panic: every read below it indexes
+	// tokens[0] and tokens[1]. Each identity clause is bound on its own by a list whose other entry is right, since
+	// a swapped pair is refused by either of them.
+	for name, tokens := range map[string][]string{
+		"no tokens":                        {},
+		"one token":                        {tokens[0]},
+		"three tokens":                     {tokens[0], tokens[1], lowerHex(other)},
+		"another token for the pool asset": {lowerHex(other), tokens[1]},
+		"another token for the loan asset": {tokens[0], lowerHex(other)},
+	} {
+		_, err = validStatic(&se, stored.Address, DexType, tokens)
+		require.ErrorIs(t, err, ErrInvalidProfile, name)
+	}
 	require.Equal(t, c104.HookSetHash, hookSetHash(se.Hooks))
 }
 
