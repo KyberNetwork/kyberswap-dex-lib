@@ -3,6 +3,7 @@ package cl
 import (
 	"fmt"
 	"math/big"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -49,6 +50,20 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	allowEmptyTicks := false
 	if hook != nil {
 		allowEmptyTicks = hook.AllowEmptyTicks()
+	}
+
+	// V3Pool's tick/liquidity math -- and the reserve-based insufficient-balance check inside
+	// it -- always operates in each currency's real on-chain decimals. entityPool.Reserves
+	// stores a native-flagged index at the wrapped-native address's decimals instead (only
+	// differs from native's own decimals on Arc); convert it back before building the v3
+	// simulator, matching the Unwrap/WrapNativeAmount pair CalcAmountOut applies below.
+	entityPool.Reserves = slices.Clone(entityPool.Reserves)
+	for i, isNative := range staticExtra.IsNative {
+		if isNative && i < len(entityPool.Reserves) {
+			if amount, ok := new(big.Int).SetString(entityPool.Reserves[i], 10); ok {
+				entityPool.Reserves[i] = valueobject.UnwrapNativeAmount(chainID, amount).String()
+			}
+		}
 	}
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, extra.ExtraTickU256,
@@ -355,6 +370,18 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
+
+	// p.PoolSimulator tracks reserves at each currency's real on-chain decimals (see
+	// NewPoolSimulator); TokenAmountIn/Out here are in the wrapped-native address's decimals
+	// for a native-flagged leg, so rescale before applying, mirroring the Unwrap/WrapNativeAmount
+	// pair CalcAmountOut applies around the same v3 math.
+	if idx := p.GetTokenIndex(params.TokenAmountIn.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
+		params.TokenAmountIn.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountIn.Amount)
+	}
+	if idx := p.GetTokenIndex(params.TokenAmountOut.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
+		params.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountOut.Amount)
+	}
+
 	p.PoolSimulator.UpdateBalance(params)
 }
 
