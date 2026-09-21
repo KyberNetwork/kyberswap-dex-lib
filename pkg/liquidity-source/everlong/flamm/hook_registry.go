@@ -279,8 +279,10 @@ func resolveHooks(chainID valueobject.ChainID, factory, pool common.Address,
 // slot's and bound to pool, and the swap hook's entry must name factory as the pool's. Beyond what the pool itself
 // enforces (FLAMMOpsLib.sol:203-225: a swap role, and the leverage and spread hooks set as a pair), the swap role's
 // four slots must name one hook, since the swap kinds port the invariant and fee roles as one contract's storage;
-// the loanSwapHook slot must be empty, since no kind ports it; and a leverage kind must be able to quote on the swap
-// kind (swapBoundKind).
+// the loanSwapHook slot must be empty, since no kind ports it -- defence in depth over the one-loan envelope, which
+// already makes swapLoan unreachable (a pool whose only loan asset is the listed one has no pair to swap:
+// FLAMMLoanSwapLib.sol:67, :127) and is re-pinned on every quote (pool_simulator.go envelope); and a leverage kind
+// must be able to quote on the swap kind (quotesOnSwapKind).
 func resolveHooksIn(registry []hookEntry, chainID valueobject.ChainID, factory, pool common.Address,
 	hooks [7]common.Address) (poolHookSet, error) {
 	out := poolHookSet{Addrs: hooks}
@@ -319,11 +321,10 @@ func resolveHooksIn(registry []hookEntry, chainID valueobject.ChainID, factory, 
 		return out, fmt.Errorf("%w: swap hook %s is of factory %s", ErrInvalidProfile, swap.Address.Hex(),
 			swap.Factory.Hex())
 	}
-	if lev := out.Entries[roleLeverage]; lev != nil {
-		if sb, ok := hookKindSpecOf(lev.Kind).(swapBoundKind); ok && !sb.quotesOn(out.kind(roleSwap)) {
-			return out, fmt.Errorf("%w: kind %s does not quote on kind %s", ErrInvalidProfile, lev.Kind,
-				out.kind(roleSwap))
-		}
+	if lev := out.Entries[roleLeverage]; lev != nil &&
+		!quotesOnSwapKind(hookKindSpecOf(lev.Kind), out.kind(roleSwap)) {
+		return out, fmt.Errorf("%w: kind %s does not quote on kind %s", ErrInvalidProfile, lev.Kind,
+			out.kind(roleSwap))
 	}
 	return out, nil
 }

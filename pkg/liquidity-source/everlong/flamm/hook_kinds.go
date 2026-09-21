@@ -10,8 +10,12 @@ import (
 // A pool's hooks as the tracker reads them and the settlement calls them, one implementation per registered kind
 // (hook_registry.go). A kind supplies its tracker reads and state build (hookKindSpec) and its quote steps and
 // post-fill commit (the role ports below). The pool state holds, per role, the kind as a tag beside that kind's
-// concrete state (poolHooks), and every step resolves the tag to its port: no interface is stored, because Kyber's
-// msgpack encoder (IncludeUnexported, ForceAsArray) drops interface-typed fields.
+// concrete state (poolHooks), and every step resolves the tag to its port: no interface is stored, because an
+// interface-typed field survives Kyber's msgpack encoder only when its concrete type is registered with the
+// encoder, by hand, in the shared pkg/msgpack/register_types.go (the generated register_pool_types.gen.go registers
+// simulators alone). Unregistered, the encoder still writes the value -- as a bare array, with no type tag -- and
+// the decoder panics on it ("reflect.Set: value of type []interface {} is not assignable to ..."), so every kind
+// added here would owe an entry in another package, whose absence fails at runtime and not at build time.
 
 // errHookUnported refuses a role whose kind the state carries no port for.
 var errHookUnported = fmt.Errorf("%w: hook kind has no port", ErrInvalidProfile)
@@ -27,7 +31,7 @@ type swapHookPort interface {
 }
 
 // levBookSource is what EverlongLeverageHook reads from the swap hook it is bound to: EverlongHook.bookFor and
-// reservationPriceWad (EverlongLeverageHook.sol:37, :48-52).
+// reservationPriceWad (EverlongLeverageHook.sol:74, :77, the two reads of frame()).
 type levBookSource interface {
 	bookFor(ctx *poolContext) (hookBook, error)
 	reservationPrice() uint256.Int
@@ -51,6 +55,14 @@ type spreadHookPort interface {
 // swapBoundKind is a kind that quotes on the pool's swap hook, and names the swap kinds it can read.
 type swapBoundKind interface {
 	quotesOn(swap hookKind) bool
+}
+
+// quotesOnSwapKind reports whether a leverage kind's spec can quote on the swap kind swap. A spec that is no
+// swapBoundKind names no swap kind at all, so it quotes on none: the rule fails closed, as the settlement path's own
+// assertion does (previewLever, errHookUnported). Every leverage-role spec implements it (TestRegistryWellFormed).
+func quotesOnSwapKind(lev hookKindSpec, swap hookKind) bool {
+	sb, ok := lev.(swapBoundKind)
+	return ok && sb.quotesOn(swap)
 }
 
 var (
