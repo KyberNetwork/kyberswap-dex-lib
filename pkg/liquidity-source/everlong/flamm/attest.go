@@ -18,7 +18,17 @@ import (
 // (4) the pool's own previewSwap / previewLever and the Router's fundingCeiling, called at the same block on amounts
 // the port picks -- a grid in each direction and the band edge the port locates by bisection -- answer exactly what
 // the port answers at that block's timestamp, reverts included. Any difference, or anything the port cannot map,
-// fails the refresh closed.
+// fails the refresh closed. The bisection binds one local edge per direction, not every one: the acceptance set is
+// not an interval (edge), so a state can hold several, and each probe added to the aggregate is gas against the
+// node's own eth_call cap (probeAggregateGas). Measured over every integer amount at 51470150, the deployed pool's
+// buy direction holds 22 class transitions and the grid straddles one of them; the refusal class below the grid's
+// first buy rung of 1,000 -- FillInvalid, which every buy up to 779 answers with -- is not probed at all, and
+// neither is either leverage direction's NothingToFill, since each leverage grid carries one amount (on an armed
+// pool at 51470153, lever-down reaches it at 1 and lever-up at 24,691,965, and that direction holds 41
+// transitions). What a refresh binds per state is therefore the priced interior and one edge per direction; the
+// refusal classes themselves are bound against the chain offline, by the core grids, which carry the chain's own
+// answer from amount 0 upwards in both swap and both leverage directions at three blocks
+// (testdata/core_e2e_grid_*.jsonl.gz, TestCoreE2EPreviewGrids).
 //
 // The probes bind the state's priced consequences at this snapshot, not every word: a word that moves no probe (a
 // one-wei change of a book or Morpho total below every probed answer's resolution, a flag only another state reads)
@@ -31,9 +41,12 @@ import (
 // book 7.9M, a notional-capped state 9.8M, and a state the curator can reach with ordinary calls (setDials walking
 // ltv down its on-chain envelope with the Router pin, a reserve target and an ordinary buy) 11.3M; a Router-only
 // pin measured 13.0M. Sending the limit explicitly makes the refresh independent of whatever a node applies to a
-// call that names none. A node whose own eth_call cap is lower caps it there instead, and the aggregate then dies
-// as a transport error, which leaves pool-service on its last snapshot -- so the cap is an operator requirement
-// (README, "Known limitations").
+// call that names none. A node whose own eth_call cap is lower caps it there instead, and what follows depends on
+// where that cap falls: below the aggregate's own frame it fails the eth_call outright, a transport error that
+// leaves pool-service on its last snapshot; between that and the aggregate's full cost it lets the aggregate run
+// and starves the tail subcalls, which Multicall3 reports as unsuccessful with empty returndata and confirmRevert
+// then re-calls on their own, so the pool publishes as refusing rather than attesting a fill the chain never
+// refused. Either way the cap is an operator requirement (README, "Known limitations").
 const probeAggregateGas uint64 = 30_000_000
 
 // revertError maps revert data onto the port's error vocabulary: custom errors by selector, Solidity panics, and

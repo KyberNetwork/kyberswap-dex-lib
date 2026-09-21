@@ -65,8 +65,9 @@ import (
 // with a required view reverting or not decoding (an upgraded implementation whose views changed, a Router whose
 // venue set no longer answers): it is published as drift, without reads. Only a transport failure returns the
 // error, leaving pool-service with the last entity until the node answers; the simulator stops quoting that entity
-// once it is Config.MaxSnapshotAgeSec old. A refresh also stamps the earliest time a scheduled implementation or
-// hook-set change can execute (Extra.ScheduledChangeAt), which the simulator refuses to quote across.
+// once it is Config.MaxSnapshotAgeSec old. A refresh also stamps the earliest time a scheduled implementation,
+// hook-set, venue or loan-asset change can execute (Extra.ScheduledChangeAt), which the simulator refuses to quote
+// across.
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
@@ -178,7 +179,11 @@ func readWindow(ctx context.Context, rpc *mcRPC, venues []StaticVenue, block *bi
 	if window == 0 {
 		return nil, nil
 	}
-	return readOracleAhead(ctx, rpc, venues, block, snapshotTs+window)
+	end := snapshotTs + window
+	if end < snapshotTs { // a window that overflows the clock binds nothing, as it binds no deadline (deadlineClocks)
+		return nil, nil
+	}
+	return readOracleAhead(ctx, rpc, venues, block, end)
 }
 
 // resolveDependencies is the refresh's dependency set and whether pool-service still holds it: the aggregators the

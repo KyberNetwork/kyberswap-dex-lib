@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
@@ -114,9 +115,12 @@ func reverted(err error) bool {
 	return errors.As(err, &coded) && coded.ErrorCode() == 3
 }
 
-// execErrorCode is the JSON-RPC code a node answers an eth_call it ran and could not finish with: geth's generic
-// server error, which is what an out-of-gas comes back as (a revert is code 3 or carries revert data, reverted).
-const execErrorCode = -32000
+// execErrorCodes are the JSON-RPC codes a node answers an eth_call it ran and could not finish with: geth's generic
+// server error and the code Base answers an out-of-gas with (a revert is code 3 or carries revert data, reverted).
+// Base does not use -32000 for it: mainnet.base.org answers USDC.balanceOf sent with 30,000 gas -- above that
+// call's intrinsic cost, so the EVM ran it -- {"code":-32003,"message":"out of gas: gas required exceeds: 30000"}.
+// The class is matched rather than one code of it.
+var execErrorCodes = [...]int{-32000, -32003}
 
 // executed reports whether err is the node's report of having run a call and not finished it, rather than a failure
 // of the request itself. A provider's limit, an internal error, a context that expired and a connection that
@@ -124,21 +128,59 @@ const execErrorCode = -32000
 // HTTP 429 and code -32016).
 func executed(err error) bool {
 	var coded rpc.Error
-	return errors.As(err, &coded) && coded.ErrorCode() == execErrorCode
+	if !errors.As(err, &coded) {
+		return false
+	}
+	for _, code := range execErrorCodes {
+		if coded.ErrorCode() == code {
+			return true
+		}
+	}
+	return false
+}
+
+// emptyRevert reports whether err is a revert that carries no data: the answer the port reads as OpenZeppelin
+// mulDiv's own empty revert. A revert that carries data is a different answer than the aggregate's empty one, and
+// an EVM that ran out of gas inside the call frame is reported as an empty revert too -- on Base,
+// previewSwap(true,100000) sent with 200,000 gas answers {"code":3,"message":"execution reverted"} with no data and
+// with 500,000 gas answers the quote -- which is why the confirmation is sent more gas than the subcall had
+// (confirmRevert).
+func emptyRevert(err error) bool {
+	if !reverted(err) {
+		return false
+	}
+	var carrier rpc.DataError
+	if !errors.As(err, &carrier) {
+		return true
+	}
+	switch data := carrier.ErrorData().(type) {
+	case nil:
+		return true
+	case string:
+		return len(strings.TrimPrefix(data, "0x")) == 0
+	default:
+		return false // an answer the port cannot read is not a confirmation
+	}
 }
 
 // confirmRevert re-runs one call of an aggregate on its own, with an explicit gas limit, and reports whether the
-// node answers it with a revert. Multicall3 reports a subcall that ran out of gas exactly as it reports a revert
-// with no data -- empty returndata on an unsuccessful call -- which revertError maps to OpenZeppelin mulDiv's own
-// empty revert, so an aggregate that outgrew the node's gas cap could otherwise be read as a probe the port
-// reproduced. A call of its own is not aliased: the node answers a revert with JSON-RPC code 3.
+// node answers it with the same empty revert. Multicall3 reports a subcall that ran out of gas exactly as it
+// reports a revert with no data -- empty returndata on an unsuccessful call -- which revertError maps to
+// OpenZeppelin mulDiv's own empty revert, so an aggregate that outgrew the node's gas cap could otherwise be read
+// as a probe the port reproduced. The call of its own is sent the whole aggregate's limit for one call, which is
+// strictly more than Multicall3 could have forwarded it inside the aggregate (63/64 of what was left there), so a
+// subcall starved by the aggregate is not starved here.
 //
-// Its outcomes are the two kinds a read has (errRPC). A revert confirms the aggregate's empty answer. An answer, or
-// the node reporting that it ran the call and could not finish it at that gas, is the chain's own answer that the
-// port's refusal is wrong (errReadFailed), which the refresh publishes. A request the node did not run -- a
-// provider limit, an internal error, an expired context, a dropped connection -- is transport (errRPC) and is
-// returned, exactly as the probe aggregate's own failure is, so pool-service keeps the last entity instead of
-// dropping the pool for the cycle.
+// Its outcomes are the two kinds a read has (errRPC). An empty revert confirms the aggregate's empty answer. An
+// answer, a revert carrying data -- which the aggregate's empty returndata is not -- or the node reporting that it
+// ran the call and could not finish it at that gas, is the chain's own answer that the port's refusal is wrong
+// (errReadFailed), which the refresh publishes. A request the node did not run -- a provider limit, an internal
+// error, an expired context, a dropped connection -- is transport (errRPC) and is returned, exactly as the probe
+// aggregate's own failure is, so pool-service keeps the last entity instead of dropping the pool for the cycle.
+//
+// The one answer it cannot tell apart is a node whose own eth_call ceiling is below what a single probe costs: the
+// confirmation is then starved as well and answers the same empty revert. That is the gas cap the refresh states
+// as an operator requirement (attest.go probeAggregateGas, README "Known limitations").
 func (r *mcRPC) confirmRevert(ctx context.Context, block *big.Int, c *mcCall, gas uint64) error {
 	data, err := c.ABI.Pack(c.Method, c.Args...)
 	if err != nil {
@@ -147,10 +189,12 @@ func (r *mcRPC) confirmRevert(ctx context.Context, block *big.Int, c *mcCall, ga
 	target := c.Target
 	_, err = r.call(ctx, ethereum.CallMsg{To: &target, Data: data}, block, callOpts{gas: gas})
 	switch {
-	case reverted(err):
+	case emptyRevert(err):
 		return nil
 	case err == nil:
 		return fmt.Errorf("%w: %s answered on its own", errReadFailed, c.Name)
+	case reverted(err):
+		return fmt.Errorf("%w: %s reverted with data on its own: %v", errReadFailed, c.Name, err)
 	case executed(err):
 		return fmt.Errorf("%w: %s did not revert on its own: %v", errReadFailed, c.Name, err)
 	}
