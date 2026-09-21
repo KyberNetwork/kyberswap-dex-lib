@@ -40,9 +40,11 @@ difference matters to a router:
 - **Leverage venue, a lever-down.** Required headroom, *not* spare input. `FLAMMLeverLib._planDown` sizes the hook
   fill on the whole `loanIn` (`FLAMMLeverLib.sol:124-141`) and then charges only
   `payNative = ceilDiv(amountInUsed - virtualLeg, scale)` (`:140`), so re-quoting at the used amount is a smaller
-  trade: at 51313000 a 125,814,386 uUSDC lever-down pays 77,857 sats and reports 52,237,196 unused, while the same
-  quote at 73,577,190 pays 47,474 (-39%) and reports 31,852,243 unused of its own. A lever-down hop cannot be
-  trimmed to what it used; its residual has to be re-routed or accepted (`TestSimulatorLeverDownInput`).
+  trade: at the 51313000 snapshot under the `btc_up10` scenario, with leverage armed -- the chain's own state at
+  that block is `LevPaused`, which refuses both directions -- a 125,814,386 uUSDC lever-down pays 77,857 sats and
+  reports 52,237,196 unused, while the same quote at 73,577,190 pays 47,474 (-39%) and reports 31,852,243 unused of
+  its own. A lever-down hop cannot be trimmed to what it used; its residual has to be re-routed or accepted
+  (`TestSimulatorLeverDownInput`).
 
 What router-service does with a non-zero `RemainingTokenAmountIn` is not visible from this repository, and it is the
 one thing that decides whether the leverage venue's remainder is an accounting detail or a real cost (see "Open
@@ -157,7 +159,11 @@ to pool `0xc0fdCB1799cCc2CEBaA1fe247157b0dF33D57572`:
 - there is a swap hook, and slots 0-3 all name it. The pool itself accepts a zero controller slot
   (`FLAMMOpsLib.sol:208`), but the port does not: the swap kind models the invariant and fee roles as one contract's
   storage.
-- the loanSwap slot is empty, since no kind ports it.
+- the loanSwap slot is empty, since no kind ports it. This is defence in depth over the one-loan envelope rather
+  than the only thing standing between the port and a loan swap: with one loan asset `swapLoan` has no pair to swap
+  and reverts `InvalidPair` before it reaches the hook (`FLAMMLoanSwapLib.sol:67`, `:127`), and the envelope is
+  re-pinned on every quote. It is also slot 6's only check -- the role loop covers slots 0, 4 and 5 -- so admitting
+  a hook there would admit the one hook address with no registration, no codehash pin and no `POOL()` binding.
 - the leverage and spread hooks are both set or both empty, as the pool itself requires (`FLAMMOpsLib.sol:209`).
 - the leverage kind can quote on the swap kind: `everlong-leverage-v1` reads `everlong-swap-v1`'s book.
 
@@ -214,8 +220,12 @@ Only a transport failure fails the run.
 - **State.** `flammState.Hooks` (`poolHooks`) holds the listed addresses and, for each role, a kind tag plus that
   kind's concrete state: `Swap.EverlongSwap *hookState` and `Spread.EverlongSpread *spreadHookState`. The leverage
   kind has no state.
-  - It is a tagged union rather than an interface because Kyber's msgpack encoder (`IncludeUnexported`,
-    `ForceAsArray`) drops interface-typed fields.
+  - It is a tagged union rather than an interface because an interface-typed field survives Kyber's msgpack encoder
+    only when its concrete type is registered with the encoder, by hand, in the shared
+    `pkg/msgpack/register_types.go` (the generated `register_pool_types.gen.go` registers simulators alone).
+    Unregistered, the encoder writes the value as a bare array with no type tag and the decoder panics on it
+    (`reflect.Set: value of type []interface {} is not assignable to ...`), so every new kind would owe an entry in
+    another package, whose absence fails at runtime and not at build time.
   - `CloneState` deep-copies both pointers.
   - In `Extra.Reads`, `hook` and `spread` appear only when the pool lists a hook of that kind.
 - **Simulator.** Each settlement step resolves its role's tag to the kind's port:
@@ -259,7 +269,11 @@ A wiring the registries do not accept is refused with `ErrInvalidProfile`; a ref
    its Router, implementations, PriceFeeds, pool proxy codehash and Morpho.
 5. **Nothing else changes.** The lister reaches the pool through its swap hook, the tracker builds the read plan from
    the kinds, and the simulator dispatches on them.
-6. **Verify.** `TestRegistryWellFormed` walks the tables and fails on an entry that is registered twice, has no
+6. **The offline tests name their pool.** The recorded tapes answer for one pool's listing round, so the replays
+   list through `tapeConfig` (`Config.Pools` set to that pool) rather than through the whole registry. A second
+   registered pool of the same deployment therefore leaves them untouched; it needs its own recorded tape, and a
+   test of its own if it is to be replayed. Nothing in the suite pins the number of registered pools.
+7. **Verify.** `TestRegistryWellFormed` walks the tables and fails on an entry that is registered twice, has no
    codehash or misses a field of its kind, names an unregistered factory, or is bound to a pool no registered swap
    hook of the chain is. Add the entries to a `TestHookRegistry`-style test, then run a live listing and refresh
    against the pool as `TestLiveHead` does; the refresh must attest. `TestForkMultiPool` shows the whole procedure
@@ -282,7 +296,9 @@ A wiring the registries do not accept is refused with `ErrInvalidProfile`; a ref
 4. **Add the state to its role's slot.** Add the state as a new pointer field on the slot struct, resolve it in that
    slot's `port()`, and deep-copy it in `poolHooks.clone()`. Never add an interface-typed field.
 5. **Implement the role's port.** That is `swapHookPort` (and `levBookSource` if a leverage kind is to read it),
-   `leverageHookPort` (and `swapBoundKind.quotesOn`), or `spreadHookPort`.
+   `leverageHookPort` (and `swapBoundKind.quotesOn`, which `resolveHooks` requires of a leverage kind: one whose
+   spec does not implement it quotes on no swap kind and its hook sets are refused, `TestRegistryWellFormed`), or
+   `spreadHookPort`.
 6. **A slot no kind fills yet** (the loanSwap hook) also needs a new role, a relaxed slot rule, the settlement path
    that calls it, and its attestation probes.
 7. **Register the new hooks** as above, and test:
@@ -461,7 +477,8 @@ recomputed at the quote clock anyway.
   reserves.
 - The pool is refused outright (`ErrPoolRefused`) outside the quoted envelope: more than one loan asset, an unreadable
   IRM or oracle on any venue, or Morpho collateral or supply shares beyond what the Router manages (unless
-  `QuoteDonatedVenues`).
+  `QuoteDonatedVenues`); and over an `Extra.OracleAhead` that is neither empty nor one answer per venue, a shape no
+  refresh writes, where quoting on would skip the end-of-window oracle guard instead of running it.
 
 ## Configuration
 
@@ -560,11 +577,28 @@ operator's: every default is overridable per venue and direction through `Config
   oracle's feed withholds at most one round at a time (its reveal delay is ~12 s against rounds every ~290 s), and
   the gates are an interval and a monotone bound in the price, so every answer between the two is covered. Two
   withheld rounds inside one window whose prices reverse would leave a candidate outside that interval.
+- The probe grid binds one local edge per direction, not every one. The acceptance set is not an interval, and over
+  every integer amount at 51470150 the deployed pool's buy direction holds 22 class transitions, of which the grid
+  straddles one; the `FillInvalid` class below the grid's first buy rung of 1,000 (every buy up to 779) is not
+  probed, and neither is either leverage direction's `NothingToFill`, each leverage grid carrying a single amount
+  (on an armed pool at 51470153, lever-down reaches it at 1 and lever-up at 24,691,965, and lever-down holds 41
+  transitions). A refresh therefore binds the priced interior and one edge per direction; the refusal classes
+  themselves are bound against the chain by the core grids at three blocks (section 4 of `testdata/README.md`),
+  which carry the chain's own answer from amount 0 upwards in all four directions. Extending the grid costs a
+  re-recording of both tracker tapes and their digests, since the aggregate is one `eth_call` keyed by its calldata.
 - The probe aggregate names 30M gas. Its cost is state-dependent -- 2.87M on the pool as deployed, 11.3M in a state
   an ordinary curator call reaches, 13.0M in one only a Router-internal call reaches -- so the node's own `eth_call`
   gas cap has to clear the largest of them, and its `eth_call` must accept *and apply* `blockOverrides` for the two
-  forward rounds, which prove it (above). A node that does neither fails the refresh in transport, leaving
-  pool-service on the last snapshot until `MaxSnapshotAgeSec`.
+  forward rounds, which prove it (above). A node that does not apply `blockOverrides` fails the refresh in
+  transport, leaving pool-service on the last snapshot until `MaxSnapshotAgeSec`. A gas cap below what the
+  aggregate needs has two outcomes rather than one, and only the first is a transport death:
+  - a cap below what the *aggregate's own frame* needs fails the `eth_call` outright: transport, last entity kept;
+  - a cap between that and the aggregate's full cost lets the aggregate run and starves its tail subcalls, which
+    Multicall3 reports as unsuccessful with empty returndata -- the shape of `Math.mulDiv`'s own revert. Each such
+    probe is then re-called on its own with the whole 30M for that one call, which is strictly more than the
+    subcall had, so the refresh publishes the pool as refusing (`attestFailure`, "empty revert unconfirmed") rather
+    than attesting a fill the chain never refused. The one shape it cannot separate is a cap below what a *single*
+    probe costs, where the confirmation is starved as well (`multicall.go` `confirmRevert`).
 - **Venues added after listing.** Such a venue is admitted only on a registered financing account of the pool; every
   c104 venue shares one. The registry pins each account's codehash, and the listing checks it for every venue it
   reads.
