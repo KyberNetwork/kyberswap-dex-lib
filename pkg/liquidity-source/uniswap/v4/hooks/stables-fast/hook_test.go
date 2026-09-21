@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -236,4 +238,59 @@ func TestUnregistered_IsAPureNoOp(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.ZeroBI, after.HookFee)
 	assert.Zero(t, after.Gas)
+}
+
+// A market created with Uniswap's DYNAMIC_FEE_FLAG earns whatever slot0.lpFee the keeper last
+// wrote, and this plugin has no say in it: BeforeSwap leaves SwapFee at zero, so the simulator
+// keeps the rate the tracker read from slot0. Proved from the outside — the whole v4 simulator,
+// a dynamic pool and a static pool at the same tracked rate must quote to the wei — because
+// that is the property a later "helpful" SwapFee override would break.
+func TestDynamicFeePool_QuotesAtTheTrackedStoredRate(t *testing.T) {
+	t.Parallel()
+
+	const (
+		dynamicFeeFlag uint32 = 0x800000 // LPFeeLibrary.DYNAMIC_FEE_FLAG
+		storedLpFee    uint32 = 12_000   // what the keeper last wrote, as slot0 reports it
+		nvda                  = "0x0000000000000000000000000000000000000a01"
+		aiusd                 = "0x0000000000000000000000000000000000000a02"
+	)
+	extra := `{"liquidity":1000000000000000000000000,"sqrtPriceX96":79228162514264337593543950336,"tickSpacing":50,"tick":0,"ticks":[{"index":-887250,"liquidityGross":1000000000000000000000000,"liquidityNet":1000000000000000000000000},{"index":887250,"liquidityGross":1000000000000000000000000,"liquidityNet":-1000000000000000000000000}],"hX":{"f":5000,"r":true,"t":true}}`
+	staticExtra := func(fee uint32) string {
+		return `{"0x0":[false,false],"fee":` + big.NewInt(int64(fee)).String() + `,"tS":50,"hooks":"0xc9932584c5154e4f58313a2e5423522e74e540cc","uR":"0x0000000000000000000000000000000000000001","pm2":"0x0000000000000000000000000000000000000002","mc3":"0x0000000000000000000000000000000000000003"}`
+	}
+	quote := func(keyFee uint32) *big.Int {
+		sim, err := uniswapv4.NewPoolSimulator(entity.Pool{
+			Address:  "0x00000000000000000000000000000000000000000000000000000000000000d1",
+			Exchange: string(valueobject.ExchangeUniswapV4StablesFast),
+			Type:     "uniswap-v4",
+			SwapFee:  float64(storedLpFee), // the tracker: protocolFee 0, so slot0.lpFee verbatim
+			Reserves: entity.PoolReserves{"1000000000000000000000000", "1000000000000000000000000"},
+			Tokens: []*entity.PoolToken{
+				{Address: nvda, Symbol: "NVDA", Decimals: 18, Swappable: true},
+				{Address: aiusd, Symbol: "AIUSD", Decimals: 18, Swappable: true},
+			},
+			Extra:       extra,
+			StaticExtra: staticExtra(keyFee),
+		}, valueobject.ChainIDRobinhood)
+		require.NoError(t, err)
+		require.Equal(t, string(valueobject.ExchangeUniswapV4StablesFast), sim.GetExchange())
+
+		out, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: nvda, Amount: big.NewInt(1_000_000_000_000_000_000)},
+			TokenOut:      aiusd,
+		})
+		require.NoError(t, err)
+		return out.TokenAmountOut.Amount
+	}
+
+	dynamic, static := quote(dynamicFeeFlag), quote(storedLpFee)
+	assert.Equal(t, static.String(), dynamic.String(),
+		"a dynamic pool prices at slot0.lpFee, exactly as a static pool at that tier would")
+
+	// And that rate is really 1.2% + the 0.50% skim, not the 0x800000 flag read as a fee:
+	// 1e18 in on a deep price-1 pool comes back just under 1e18 * 0.988 * 0.995.
+	expected, _ := new(big.Int).SetString("983060000000000000", 10)
+	tolerance, _ := new(big.Int).SetString("1000000000000000", 10) // 0.1%, the curve's own slip
+	assert.Less(t, new(big.Int).Abs(new(big.Int).Sub(dynamic, expected)).Cmp(tolerance), 0,
+		"got %s, expected within 0.1%% of %s", dynamic, expected)
 }

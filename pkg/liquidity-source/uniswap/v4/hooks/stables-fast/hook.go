@@ -39,6 +39,18 @@
 // pools offline for every trader rather than just stopping the protocol's cut. A rate INCREASE
 // is announced FEE_INCREASE_DELAY (one hour) ahead and applied by a separate permissionless
 // commit, so a rate read here is good for at least an hour; a DECREASE applies immediately.
+//
+// The LP fee is a separate matter and this plugin never touches it. Markets created from
+// 2026-09-21 on may carry Uniswap's DYNAMIC_FEE_FLAG (PoolKey.fee = 0x800000); for those the
+// rate LPs earn is the stored slot0.lpFee, seeded at 5_000 by registration and moved by
+// ProtocolFeeHook.setPoolLpFee — the owner, or one keeper address it authorises — inside
+// 100..50_000 pips, in both directions, with no expiry. The keeper follows an off-chain
+// calendar and reference-price model; nothing runs per swap, and beforeSwap returns no fee
+// override, which is why BeforeSwapResult.SwapFee is left at zero here. The tracker's slot0
+// read is therefore the source of truth for the LP fee on every cycle — PoolManager emits no
+// event for updateDynamicLPFee, though the hook emits PoolLpFeeUpdated(poolId, feePips).
+// Older static-tier pools are unaffected: the flag is part of pool identity and cannot be
+// added to an existing pool.
 package stablesfast
 
 import (
