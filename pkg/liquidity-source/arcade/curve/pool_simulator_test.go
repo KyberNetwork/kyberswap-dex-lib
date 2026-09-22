@@ -1,6 +1,7 @@
 package curve
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -231,7 +232,7 @@ func TestPoolFactoryDecoder(t *testing.T) {
 	assert.Nil(t, p)
 
 	for _, ev := range []common.Hash{curveBuyEventHash, curveSellEventHash, graduatedEventHash} {
-		addrs, err := d.DecodePoolAddressesFromFactoryLog(nil, types.Log{Address: common.HexToAddress(testHook), Topics: []common.Hash{ev, poolID}})
+		addrs, err := d.DecodePoolAddressesFromFactoryLog(context.Background(), types.Log{Address: common.HexToAddress(testHook), Topics: []common.Hash{ev, poolID}})
 		require.NoError(t, err)
 		assert.Equal(t, []string{PoolAddress(poolID.Hex())}, addrs)
 	}
