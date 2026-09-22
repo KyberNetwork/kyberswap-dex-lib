@@ -3,7 +3,6 @@ package uniswapv3
 import (
 	"errors"
 
-	"github.com/KyberNetwork/kutils"
 	"github.com/holiman/uint256"
 )
 
@@ -146,14 +145,29 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		tickNext, slicePos, initialized, err := nextInitializedTickPos(p.Ticks, tick, zeroForOne)
 		if err != nil {
 			return SwapResult{}, err
-		} else if tickNext < MinTick {
+		}
+
+		// The on-chain bitmap lookup stops at the edge of the current 256-tick
+		// word even when no initialized tick exists there. Preserve those empty
+		// word steps so ComputeSwapStep applies the same per-step rounding.
+		wordBoundary := nextBitmapWordBoundary(tick, p.TickSpacing, zeroForOne)
+		usesInitializedTick := true
+		if (zeroForOne && wordBoundary > tickNext) || (!zeroForOne && wordBoundary < tickNext) {
+			tickNext = wordBoundary
+			initialized = false
+			usesInitializedTick = false
+		}
+
+		if tickNext < MinTick {
 			tickNext = MinTick
 			sqrtPriceNextX96 = *MinSqrtRatioU256
 		} else if tickNext > MaxTick {
 			tickNext = MaxTick
 			sqrtPriceNextX96 = *MaxSqrtRatioU256P1
-		} else {
+		} else if usesInitializedTick {
 			sqrtPriceNextX96 = p.TickSqrtPrices[slicePos]
+		} else if err := GetSqrtRatioAtTick(tickNext, &sqrtPriceNextX96); err != nil {
+			return SwapResult{}, err
 		}
 
 		var targetValue uint256.Int
@@ -170,36 +184,7 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 			return SwapResult{}, err
 		}
 
-		// per-tick rounding: exactIn floors amountOut, exactOut ceils amountIn.
-		// The on-chain swap loop steps one bitmap word (256 compressed ticks) at a time via
-		// nextInitializedTickWithinOneWord; each step rounds amountOut down by ≤1 unit.
-		// wordCrossings ≈ number of bitmap words traversed = ceil(tick-spacings / 256).
 		fullyCrossed := sqrtPriceX96.Set(&nxtSqrtPriceX96).Eq(&sqrtPriceNextX96)
-		crossedBonus := 0
-		if fullyCrossed {
-			crossedBonus = 1
-		}
-		// A partial step that stays within one bitmap word never reaches a distant
-		// initialized tick. Use its actual ending tick in that case; otherwise the
-		// rounding approximation severely underquotes sparse, small-spacing pools.
-		roundingTargetTick := tickNext
-		if !fullyCrossed {
-			resultingTick, err := GetTickAtSqrtRatio(&nxtSqrtPriceX96)
-			if err != nil {
-				return SwapResult{}, err
-			}
-			if kutils.Abs(resultingTick-tick) < 256*p.TickSpacing {
-				roundingTargetTick = resultingTick
-			}
-		}
-		tickSpacingsCrossed := (kutils.Abs(roundingTargetTick-tick) - crossedBonus) / p.TickSpacing
-		wordCrossings := sqrtPriceNextX96.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
-		if exactInput {
-			amountOut.SDiv(&amountOut, wordCrossings).Mul(&amountOut, wordCrossings)
-		} else {
-			amountIn.Add(&amountIn, wordCrossings).SubUint64(&amountIn, 1).SDiv(&amountIn, wordCrossings).Mul(&amountIn,
-				wordCrossings)
-		}
 
 		amountInPlusFee := feeAmount.Add(&amountIn, &feeAmount)
 		if exactInput {
@@ -266,6 +251,23 @@ func validateList(ticks []TickU256, tickSpacing int) error {
 		return ErrZeroNet
 	}
 	return nil
+}
+
+func nextBitmapWordBoundary(tick, tickSpacing int, zeroForOne bool) int {
+	compressed := floorDiv(tick, tickSpacing)
+	if zeroForOne {
+		return floorDiv(compressed, 256) * 256 * tickSpacing
+	}
+	compressed++
+	return (floorDiv(compressed, 256)*256 + 255) * tickSpacing
+}
+
+func floorDiv(dividend, divisor int) int {
+	quotient := dividend / divisor
+	if dividend%divisor < 0 {
+		quotient--
+	}
+	return quotient
 }
 
 func isBelowSmallest(ticks []TickU256, tick int) (bool, error) {
