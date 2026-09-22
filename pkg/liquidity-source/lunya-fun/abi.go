@@ -11,7 +11,6 @@ var (
 	factoryABI abi.ABI
 
 	launchCreatedEvent abi.Event
-	tradeEvent         abi.Event
 )
 
 // LaunchABI is exported for aggregator-encoding's swapdata packer, which calls
@@ -36,7 +35,6 @@ func init() {
 	}
 
 	launchCreatedEvent = factoryABI.Events["LaunchCreated"]
-	tradeEvent = launchABI.Events["Trade"]
 
 	LaunchABI = launchABI
 }

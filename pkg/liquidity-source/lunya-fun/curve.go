@@ -78,7 +78,6 @@ func (c *curveState) quoteBuy(amountIn *uint256.Int, now uint64) (tokensOut, fee
 	feeBps := c.curveFeeBps + snipeBps
 	if feeBps >= bps {
 		feeBps = bps - 1
-		snipeBps = feeBps - c.curveFeeBps
 	}
 
 	var feeBpsU, net uint256.Int
