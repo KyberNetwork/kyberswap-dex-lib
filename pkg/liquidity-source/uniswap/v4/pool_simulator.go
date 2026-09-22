@@ -68,7 +68,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if err != nil {
 		return nil, err
 	}
-	v3PoolSimulator.Gas = defaultGas
+	v3PoolSimulator.Gas = DefaultGas
 
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
