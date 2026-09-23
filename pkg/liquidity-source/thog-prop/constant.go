@@ -55,4 +55,11 @@ var (
 	ErrInsufficientBal    = errors.New("thog-prop: amount out exceeds pool balance")
 	ErrSameToken          = errors.New("thog-prop: tokenIn equals tokenOut")
 	ErrInvalidToken       = errors.New("thog-prop: unknown token")
+
+	// ErrOverflow guards every multiplication/addition exactQuote() performs. On-chain,
+	// Solidity 0.8's checked arithmetic reverts (panic 0x11) the instant any individual
+	// product/sum exceeds 2**256-1, so the simulator must fail the same way rather than
+	// silently wrapping or computing a wider-precision answer the real contract would
+	// never reach.
+	ErrOverflow = errors.New("thog-prop: uint256 overflow")
 )

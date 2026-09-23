@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -43,13 +44,22 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		tokens[i] = t.Address
 	}
 
+	reserves := make([]*big.Int, len(ep.Reserves))
+	for i, r := range ep.Reserves {
+		v, ok := new(big.Int).SetString(r, 10)
+		if !ok {
+			return nil, errors.New("thog-prop: malformed reserve")
+		}
+		reserves[i] = v
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      tokens,
-			Reserves:    lo.Map(ep.Reserves, func(s string, _ int) *big.Int { return bigFromString(s) }),
+			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
 		}},
 		staticExtra: staticExtra,
@@ -57,21 +67,15 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func bigFromString(s string) *big.Int {
-	v, ok := new(big.Int).SetString(s, 10)
-	if !ok {
-		return new(big.Int)
-	}
-	return v
-}
-
+// stateFromExtra decodes the tracker's last-polled Extra (packed state words, as decimal
+// strings) plus the pool's *big.Int reserves into math.go's uint256-native State.
 func (s *PoolSimulator) stateFromExtra() (*State, error) {
-	parse := func(str string) (*big.Int, error) {
-		v, ok := new(big.Int).SetString(str, 10)
-		if !ok {
-			return nil, errors.New("thog-prop: malformed packed state word")
+	parse := func(str string) (uint256.Int, error) {
+		v, err := uint256.FromDecimal(str)
+		if err != nil {
+			return uint256.Int{}, errors.New("thog-prop: malformed packed state word")
 		}
-		return v, nil
+		return *v, nil
 	}
 	v1, err := parse(s.extra.V1)
 	if err != nil {
@@ -117,12 +121,16 @@ func (s *PoolSimulator) stateFromExtra() (*State, error) {
 	if len(s.Info.Reserves) != len(tokenTable) {
 		return nil, errors.New("thog-prop: reserves length mismatch")
 	}
-	balances := make([]*big.Int, len(tokenTable))
+	balances := make([]uint256.Int, len(tokenTable))
 	for i, r := range s.Info.Reserves {
 		if r == nil {
 			return nil, errors.New("thog-prop: nil reserve")
 		}
-		balances[i] = new(big.Int).Set(r)
+		u, overflow := uint256.FromBig(r)
+		if overflow {
+			return nil, ErrOverflow
+		}
+		balances[i] = *u
 	}
 
 	return &State{
@@ -160,9 +168,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
+	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
 	amountOut, _, err := ExactQuote(
 		state, tokenIn, tokenOut,
-		params.TokenAmountIn.Amount,
+		amountIn,
 		s.extra.SnapshotBlock+executionAgeLookahead,
 		true,
 	)
@@ -171,7 +184,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut},
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: new(big.Int)},
 		Gas:            defaultGas,
 		SwapInfo:       nil,
