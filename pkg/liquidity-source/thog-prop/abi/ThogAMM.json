@@ -1,0 +1,74 @@
+[
+  {
+    "type": "function",
+    "name": "makerSnapshot",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "blockNumber", "type": "uint256" },
+          { "name": "v1", "type": "uint256" },
+          { "name": "v2", "type": "uint256" },
+          { "name": "r1", "type": "uint256" },
+          { "name": "r2", "type": "uint256" },
+          { "name": "i1", "type": "uint256" },
+          { "name": "globallyPaused", "type": "bool" },
+          { "name": "tokens", "type": "address[]" },
+          { "name": "balances", "type": "uint256[]" },
+          { "name": "v3", "type": "uint256" },
+          { "name": "r3", "type": "uint256" },
+          { "name": "i2", "type": "uint256" },
+          { "name": "riskV3Ready", "type": "bool" },
+          { "name": "p1", "type": "uint256" },
+          { "name": "p2", "type": "uint256" },
+          { "name": "pairRiskReady", "type": "bool" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "makerQuoteExactInput",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "tokenIn", "type": "address" },
+      { "name": "tokenOut", "type": "address" },
+      { "name": "amountIn", "type": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountOut", "type": "uint256" },
+      { "name": "lastPostedBlock", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "makerSwapExactInput",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "tokenIn", "type": "address" },
+      { "name": "tokenOut", "type": "address" },
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "minAmountOut", "type": "uint256" },
+      { "name": "recipient", "type": "address" },
+      { "name": "deadlineBlock", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "getPoolIds",
+    "stateMutability": "pure",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32[]" }]
+  },
+  {
+    "type": "function",
+    "name": "getTokens",
+    "stateMutability": "pure",
+    "inputs": [{ "name": "poolId", "type": "bytes32" }],
+    "outputs": [{ "name": "", "type": "address[]" }]
+  }
+]
