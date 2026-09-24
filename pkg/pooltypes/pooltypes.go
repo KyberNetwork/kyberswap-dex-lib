@@ -110,7 +110,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
-	kipselipamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/pamm"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
@@ -470,7 +469,6 @@ type Types struct {
 	Axima                      string
 	MetricPropAMM              string
 	KipseliProp                string
-	KipseliPamm                string
 	SomeswapV1                 string
 	SomeswapV2                 string
 	WasabiProp                 string
@@ -723,7 +721,6 @@ var (
 		Axima:                      axima.DexType,
 		MetricPropAMM:              metricpropamm.DexType,
 		KipseliProp:                kipseliprop.DexType,
-		KipseliPamm:                kipselipamm.DexType,
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
 		WasabiProp:                 wasabiprop.DexType,
