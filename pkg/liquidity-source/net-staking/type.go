@@ -21,11 +21,12 @@ type PoolExtra struct {
 }
 
 type Gas struct {
-	Stake        int64
-	Unstake      int64
-	Wrap         int64
-	Unwrap       int64
-	StakeAndWrap int64
+	Stake            int64
+	Unstake          int64
+	Wrap             int64
+	Unwrap           int64
+	StakeAndWrap     int64
+	UnwrapAndUnstake int64
 }
 
 type PoolMeta struct {

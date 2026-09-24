@@ -20,19 +20,21 @@ const (
 type Action uint8
 
 const (
-	ActionStake        Action = iota // NET -> sNET (Staking.stake, 1:1)
-	ActionUnstake                    // sNET -> NET (Staking.unstake, 1:1)
-	ActionWrap                       // sNET -> wsNET (WrappedStakedNET.wrap, ratio via index())
-	ActionUnwrap                     // wsNET -> sNET (WrappedStakedNET.unwrap, ratio via index())
-	ActionStakeAndWrap               // NET -> wsNET (composite: stake then wrap)
+	ActionStake            Action = iota // NET -> sNET (Staking.stake, 1:1)
+	ActionUnstake                        // sNET -> NET (Staking.unstake, 1:1)
+	ActionWrap                           // sNET -> wsNET (WrappedStakedNET.wrap, ratio via index())
+	ActionUnwrap                         // wsNET -> sNET (WrappedStakedNET.unwrap, ratio via index())
+	ActionStakeAndWrap                   // NET -> wsNET (composite: stake then wrap)
+	ActionUnwrapAndUnstake               // wsNET -> NET (composite: unwrap then unstake)
 )
 
 var dfGas = Gas{
-	Stake:        42258,
-	Unstake:      40162,
-	Wrap:         37900,
-	Unwrap:       37739,
-	StakeAndWrap: 42258 + 37900,
+	Stake:            42258,
+	Unstake:          40162,
+	Wrap:             37900,
+	Unwrap:           37739,
+	StakeAndWrap:     42258 + 37900,
+	UnwrapAndUnstake: 37739 + 40162,
 }
 
 var (
