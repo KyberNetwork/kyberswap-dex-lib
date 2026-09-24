@@ -294,18 +294,79 @@ func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
 func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
 	prevLadder, prevOutputReserve, ok := prevLadderAndReserve(p, dir)
 	if !ok {
-		return BuildSamplePoints(currentInputReserve)
+		return firstProbePoints(p, dir, currentInputReserve)
 	}
 
 	nearCap := EstimateNearCapacityAmount(prevLadder, prevOutputReserve, currentOutputReserve)
 	if nearCap == nil {
-		return BuildSamplePoints(currentInputReserve)
+		return firstProbePoints(p, dir, currentInputReserve)
 	}
 
 	points := withGrowthCanaries(BuildSamplePointsFrom(nearCap, SampleSize), nearCap, currentInputReserve)
 	if farthest := EstimateFarthestProbedAmount(prevLadder, prevOutputReserve, currentOutputReserve); farthest != nil {
 		points = appendClamped(points, farthest, currentInputReserve)
 	}
+	return points
+}
+
+// firstProbePoints sizes a direction's probe grid when there's no prior
+// ladder (or the prior one never showed a depletion knee) to guide from.
+// currentInputReserve is the natural basis for an AMM-style pool, but a
+// desk-style pool (see caliber-prop) can legitimately hold zero inventory of
+// the token being sold in while still being able to quote it, since the
+// desk pays out of the *other* side's reserve. In that case fall back to a
+// decimals-anchored sweep of the input token instead of refusing to probe.
+func firstProbePoints(p entity.Pool, dir int, currentInputReserve *big.Int) []*big.Int {
+	if currentInputReserve != nil && currentInputReserve.Sign() > 0 {
+		return BuildSamplePoints(currentInputReserve)
+	}
+	if dir < 0 || dir >= len(p.Tokens) {
+		return nil
+	}
+	return BuildDecimalsSweep(p.Tokens[dir].Decimals)
+}
+
+// decimalsSweepSpanOrders bounds how many orders of magnitude on each side
+// of 10^decimals BuildDecimalsSweep spans.
+const decimalsSweepSpanOrders = 3
+
+// BuildDecimalsSweep returns a geometric probe grid of n points spanning
+// 10^(decimals-decimalsSweepSpanOrders) to 10^(decimals+decimalsSweepSpanOrders),
+// used when currentInputReserve gives no usable basis for BuildSamplePoints.
+func BuildDecimalsSweep(decimals uint8) []*big.Int {
+	return BuildDecimalsSweepN(decimals, SampleSize)
+}
+
+// BuildDecimalsSweepN is BuildDecimalsSweep for a grid of n points.
+func BuildDecimalsSweepN(decimals uint8, n int) []*big.Int {
+	loExp := int64(decimals) - decimalsSweepSpanOrders
+	if loExp < 0 {
+		loExp = 0
+	}
+	lo := new(big.Int).Exp(big.NewInt(10), big.NewInt(loExp), nil)
+	hi := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)+decimalsSweepSpanOrders), nil)
+	return dedupSorted(geometricBigRange(lo, hi, n))
+}
+
+// geometricBigRange returns n geometrically-spaced *big.Int points from lo
+// to hi inclusive, sorted ascending (both endpoints pinned against float
+// drift, same approach as geometricBpsRange).
+func geometricBigRange(lo, hi *big.Int, n int) []*big.Int {
+	if n <= 1 {
+		return []*big.Int{new(big.Int).Set(hi)}
+	}
+	loF, _ := lo.Float64()
+	hiF, _ := hi.Float64()
+	ratio := math.Pow(hiF/loF, 1/float64(n-1))
+	points := make([]*big.Int, n)
+	v := loF
+	for i := range n - 1 {
+		pt, _ := big.NewFloat(v).Int(nil)
+		points[i] = pt
+		v *= ratio
+	}
+	points[0] = new(big.Int).Set(lo)
+	points[n-1] = new(big.Int).Set(hi)
 	return points
 }
 
@@ -336,9 +397,12 @@ func withGrowthCanaries(points []*big.Int, nearCap, currentInputReserve *big.Int
 
 // appendClamped appends amount to points, capped at currentInputReserve
 // (never sampling more than the pool's input reserve actually holds) and
-// re-sorted/deduplicated.
+// re-sorted/deduplicated. A currentInputReserve <= 0 means the input side's
+// own balance isn't a meaningful cap (see firstProbePoints -- a desk-style
+// pool can hold zero inventory of the token being sold in), so it's treated
+// as no cap rather than clamping every amount down to zero.
 func appendClamped(points []*big.Int, amount, currentInputReserve *big.Int) []*big.Int {
-	if currentInputReserve != nil && amount.Cmp(currentInputReserve) > 0 {
+	if currentInputReserve != nil && currentInputReserve.Sign() > 0 && amount.Cmp(currentInputReserve) > 0 {
 		amount = currentInputReserve
 	}
 	if amount.Sign() > 0 {
