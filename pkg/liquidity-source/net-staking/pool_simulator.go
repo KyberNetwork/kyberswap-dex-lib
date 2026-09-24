@@ -17,12 +17,9 @@ import (
 // NET/sNET/wsNET. It has two modes, selected by whether the pool config has a wrap
 // contract:
 //
-//   - With wrap (hasWrap==true, 3 tokens): supports five swap directions between base
+//   - With wrap (hasWrap==true, 3 tokens): supports six swap directions between base
 //     (NET), staked (sNET), and wrapped (wsNET), spanning two on-chain contracts (Staking
-//     and WrappedStakedNET). There is no wsNET->NET direction: the executor helper
-//     (INetStaking.NetAction) has no reverse composite action, and pathfinder-lib forbids
-//     reusing the same pool twice in a route, so no 2-hop workaround exists either.
-//     wsNET->NET is unsupported by design.
+//     and WrappedStakedNET), including the wsNET->NET composite (unwrap then unstake).
 //   - Without wrap (hasWrap==false, 2 tokens): only the base<->staked 1:1 leg
 //     (Stake/Unstake) is offered. Wrap/Unwrap/StakeAndWrap never appear, and the wsNET
 //     token slot does not exist at all.
@@ -39,6 +36,7 @@ import (
 //   - sNET->wsNET: no cap (wrap has no on-chain supply ceiling)
 //   - wsNET->sNET: wsToSNet(amountIn) <= SNETWrapReserve (wrap must hold enough sNET to pay out)
 //   - NET->wsNET:  amountIn <= SNETStakingReserve (stake leg only; wrap leg uncapped)
+//   - wsNET->NET:  wsToSNet(amountIn) <= SNETWrapReserve (unwrap leg) and <= NETReserve (unstake leg)
 //
 // Token positions in pool.Info.Tokens — set by the lister, never reordered.
 const (
@@ -187,6 +185,20 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, err
 		}
 		gasEstimate = dfGas.StakeAndWrap
+	case ActionUnwrapAndUnstake:
+		// wsNET->NET composite: unwrap leg (ratio, capped by SNETWrapReserve), then unstake
+		// leg (1:1, capped by NETReserve). Unstake is 1:1 so the unwrap result is also the
+		// final NET amount out — one cap check against each leg's binding reserve.
+		if _, err := wsToSNet(&s.scratch, amountIn, s.index); err != nil {
+			return nil, err
+		}
+		if s.scratch.Gt(s.sNetWrapReserve) {
+			return nil, ErrInsufficientLiquidity
+		}
+		if s.scratch.Gt(s.netReserve) {
+			return nil, ErrInsufficientLiquidity
+		}
+		gasEstimate = dfGas.UnwrapAndUnstake
 	default:
 		return nil, ErrInvalidTokenIn
 	}
@@ -229,6 +241,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		s.netReserve.Add(s.netReserve, amountIn)
 		s.sNetStakingReserve.Sub(s.sNetStakingReserve, amountIn)
 		s.sNetWrapReserve.Add(s.sNetWrapReserve, amountIn)
+	case ActionUnwrapAndUnstake: // wsNET in (burned externally); intermediate sNET (==
+		// amountOut since the unstake leg is 1:1) moves from wrap's inventory into
+		// staking's inventory; NET out (from staking).
+		s.sNetWrapReserve.Sub(s.sNetWrapReserve, amountOut)
+		s.sNetStakingReserve.Add(s.sNetStakingReserve, amountOut)
+		s.netReserve.Sub(s.netReserve, amountOut)
 	}
 }
 
@@ -275,9 +293,9 @@ func (s *PoolSimulator) wsNetAddr() string {
 
 // GetApprovalAddress returns the first-hop contract the caller must approve tokenIn to:
 // the wsNET/wrap contract for ActionWrap (sNET->wsNET) only. Every other action —
-// including Unwrap, which burns the caller's own wsNET with no transferFrom and needs
-// no allowance at all — approves the pool address (Staking), matching
-// ExecutorV3Helper9.executeNetStaking's spender selection.
+// including Unwrap and UnwrapAndUnstake, which burn the caller's own wsNET with no
+// transferFrom and need no allowance at all — approves the pool address (Staking),
+// matching ExecutorV3Helper9.executeNetStaking's spender selection.
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
 	action, err := ActionFor(strings.ToLower(tokenIn), strings.ToLower(tokenOut),
 		s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET], s.wsNetAddr())
@@ -287,19 +305,21 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
 	switch action {
 	case ActionWrap:
 		return s.Info.Tokens[idxWSNET]
-	default: // ActionStake, ActionUnstake, ActionUnwrap, ActionStakeAndWrap
+	default: // ActionStake, ActionUnstake, ActionUnwrap, ActionStakeAndWrap, ActionUnwrapAndUnstake
 		return s.Info.Address
 	}
 }
 
-// CanSwapTo returns the tokens that can swap to address. wsNET has no path to NET:
-// the executor helper has no reverse composite action. When the pool has no wrap
+// CanSwapTo returns the tokens that can swap to address. When the pool has no wrap
 // contract (s.hasWrap==false), wsNET entries are omitted entirely rather than appending
 // an empty-string placeholder — pathfinder must never see a "" token.
 func (s *PoolSimulator) CanSwapTo(address string) []string {
 	net, sNet := s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET]
 	switch address {
 	case net:
+		if s.hasWrap {
+			return []string{sNet, s.Info.Tokens[idxWSNET]}
+		}
 		return []string{sNet}
 	case sNet:
 		if s.hasWrap {
@@ -313,8 +333,7 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	return nil
 }
 
-// CanSwapFrom returns the tokens reachable by swapping from address. NET->wsNET
-// (composite stake+wrap) is fine, but wsNET->NET is not: see CanSwapTo. When the pool has
+// CanSwapFrom returns the tokens reachable by swapping from address. When the pool has
 // no wrap contract, wsNET entries are omitted entirely (see CanSwapTo).
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	net, sNet := s.Info.Tokens[idxNET], s.Info.Tokens[idxSNET]
@@ -331,7 +350,7 @@ func (s *PoolSimulator) CanSwapFrom(address string) []string {
 		return []string{net}
 	}
 	if s.hasWrap && address == s.Info.Tokens[idxWSNET] {
-		return []string{sNet}
+		return []string{net, sNet}
 	}
 	return nil
 }
@@ -358,6 +377,8 @@ func ActionFor(tokenIn, tokenOut, net, sNet, wsNet string) (Action, error) {
 		switch tokenOut {
 		case sNet:
 			return ActionUnwrap, nil
+		case net:
+			return ActionUnwrapAndUnstake, nil
 		}
 		return 0, ErrInvalidTokenOut
 	}

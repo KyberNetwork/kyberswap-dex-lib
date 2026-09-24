@@ -133,18 +133,17 @@ func TestCalcAmountOut_NETtoWSNET_Composite(t *testing.T) {
 	assert.Equal(t, ActionStakeAndWrap, res.SwapInfo.(SwapInfo).Action)
 }
 
-// wsNET->NET has no reverse composite action in INetStaking.NetAction (the executor
-// helper only implements StakeToSNet/UnstakeSNet/Wrap/Unwrap/StakeThenWrap), and
-// pathfinder-lib forbids reusing the same pool twice, so no 2-hop workaround exists.
-// This direction must stay rejected.
-func TestCalcAmountOut_WSNETtoNET_Unsupported(t *testing.T) {
+func TestCalcAmountOut_WSNETtoNET_Composite(t *testing.T) {
 	s := newSimulator(t, indexLive)
 	amtIn := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // 1 wsNET
-	_, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: testWSNETAddress, Amount: amtIn},
 		TokenOut:      testNETAddress,
 	})
-	assert.ErrorIs(t, err, ErrInvalidTokenOut)
+	require.NoError(t, err)
+	// Same math as unwrapping 1 wsNET -> sNET (ratio) then unstaking that sNET -> NET (1:1).
+	assert.Equal(t, big.NewInt(2718290645), res.TokenAmountOut.Amount)
+	assert.Equal(t, ActionUnwrapAndUnstake, res.SwapInfo.(SwapInfo).Action)
 }
 
 // ---- cap tests ----
@@ -225,12 +224,38 @@ func TestUpdateBalance_StakeAndWrap(t *testing.T) {
 	assert.Equal(t, wantSNetWrap, s.sNetWrapReserve.ToBig())
 }
 
+// TestUpdateBalance_UnwrapAndUnstake verifies the three-reserve shift for the wsNET->NET
+// composite: wrap's sNET balance shrinks by amountOut (paid out to the intermediate leg),
+// staking's sNET balance grows by that same amountOut (deposited for the unstake leg),
+// and staking's NET balance shrinks by amountOut (paid out to the caller). The
+// intermediate == amountOut because the unstake leg is 1:1.
+func TestUpdateBalance_UnwrapAndUnstake(t *testing.T) {
+	s := newSimulator(t, indexLive)
+	amountIn := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil) // 1 wsNET
+	amountOut := big.NewInt(2718290645)                               // NET out
+
+	wantNET := new(big.Int).Sub(testNETReserve.ToBig(), amountOut)
+	wantSNetStaking := new(big.Int).Add(testSNetStakingReserve.ToBig(), amountOut)
+	wantSNetWrap := new(big.Int).Sub(testSNetWrapReserve.ToBig(), amountOut)
+
+	s.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: testWSNETAddress, Amount: amountIn},
+		TokenAmountOut: pool.TokenAmount{Token: testNETAddress, Amount: amountOut},
+		SwapInfo:       SwapInfo{Action: ActionUnwrapAndUnstake},
+	})
+
+	assert.Equal(t, wantNET, s.netReserve.ToBig())
+	assert.Equal(t, wantSNetStaking, s.sNetStakingReserve.ToBig())
+	assert.Equal(t, wantSNetWrap, s.sNetWrapReserve.ToBig())
+}
+
 // ---- GetApprovalAddress ----
 
 // TestGetApprovalAddress asserts the approval target matches
 // ExecutorV3Helper9.executeNetStaking's spender selection: the wrap contract only for
 // the Wrap action (sNET->wsNET); staking for every other direction, including Unwrap
-// (wsNET->sNET), which needs no allowance at all but still names staking as the target.
+// and UnwrapAndUnstake (wsNET->sNET / wsNET->NET), which need no allowance at all but
+// still name staking as the target.
 func TestGetApprovalAddress(t *testing.T) {
 	s := newSimulator(t, indexLive)
 
@@ -239,21 +264,16 @@ func TestGetApprovalAddress(t *testing.T) {
 	assert.Equal(t, testWrapAddress, s.GetApprovalAddress(testSNETAddress, testWSNETAddress), "wrap: approve wrap contract")
 	assert.Equal(t, testStakingAddress, s.GetApprovalAddress(testWSNETAddress, testSNETAddress), "unwrap: approve staking, not wrap")
 	assert.Equal(t, testStakingAddress, s.GetApprovalAddress(testNETAddress, testWSNETAddress), "composite stake+wrap: approve staking (first hop)")
-	assert.Equal(t, testStakingAddress, s.GetApprovalAddress(testWSNETAddress, testNETAddress), "unsupported direction falls back to staking")
+	assert.Equal(t, testStakingAddress, s.GetApprovalAddress(testWSNETAddress, testNETAddress), "composite unwrap+unstake: approve staking")
 }
 
-// TestCanSwap_WSNETtoNETExcluded asserts the pool never advertises wsNET->NET as a
-// candidate hop: CanSwapFrom(wsNET) must not contain NET, and CanSwapTo(NET) must not
-// contain wsNET. Without this, pathfinder-lib would still try the direction (via the
-// default all-tokens CanSwapTo/CanSwapFrom) and fail on every CalcAmountOut call.
-func TestCanSwap_WSNETtoNETExcluded(t *testing.T) {
+// TestCanSwap_WSNETtoNET asserts the pool advertises wsNET->NET as a candidate hop:
+// CanSwapFrom(wsNET) must contain NET, and CanSwapTo(NET) must contain wsNET.
+func TestCanSwap_WSNETtoNET(t *testing.T) {
 	s := newSimulator(t, indexLive)
 
-	assert.NotContains(t, s.CanSwapFrom(testWSNETAddress), testNETAddress)
-	assert.ElementsMatch(t, []string{testSNETAddress}, s.CanSwapFrom(testWSNETAddress))
-
-	assert.NotContains(t, s.CanSwapTo(testNETAddress), testWSNETAddress)
-	assert.ElementsMatch(t, []string{testSNETAddress}, s.CanSwapTo(testNETAddress))
+	assert.ElementsMatch(t, []string{testNETAddress, testSNETAddress}, s.CanSwapFrom(testWSNETAddress))
+	assert.ElementsMatch(t, []string{testSNETAddress, testWSNETAddress}, s.CanSwapTo(testNETAddress))
 }
 
 func TestCloneState_DeepCopy(t *testing.T) {
