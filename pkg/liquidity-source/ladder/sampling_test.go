@@ -105,9 +105,10 @@ func TestBuildSamplePointsFrom(t *testing.T) {
 // TestSamplePoints_GuidedByPreviousLadder checks that SamplePoints prefers
 // the previous cycle's ladder (via EstimateNearCapacityAmount) over the raw
 // input-side reserve once a previous state is available, and falls back to
-// the input-side reserve on the very first probe (no previous state yet).
-// Any ladder-quoted pool tracker (liquidcore, caliberprop, ...) can rely on
-// this shared behavior instead of reimplementing it.
+// a decimals-anchored sweep on the very first probe (no previous state
+// yet) regardless of the input-side reserve. Any ladder-quoted pool tracker
+// (liquidcore, caliberprop, ...) can rely on this shared behavior instead of
+// reimplementing it.
 func TestSamplePoints_GuidedByPreviousLadder(t *testing.T) {
 	t.Parallel()
 
@@ -123,15 +124,27 @@ func TestSamplePoints_GuidedByPreviousLadder(t *testing.T) {
 	extra, err := json.Marshal(Extra{Ladders: [2][]Point{prevLadder0, nil}})
 	assert.NoError(t, err)
 
-	t.Run("first probe: no previous state, falls back to input reserve", func(t *testing.T) {
+	t.Run("first probe: no previous state, sweeps by decimals regardless of input reserve", func(t *testing.T) {
 		t.Parallel()
-		p := entity.Pool{} // Extra empty, Reserves empty
+		p := entity.Pool{
+			Tokens: []*entity.PoolToken{{Decimals: 6}, {Decimals: 18}},
+		} // Extra empty, Reserves empty
 		points := SamplePoints(p, 0, big.NewInt(1_000_000), big.NewInt(100))
 		assert.NotEmpty(t, points)
-		// with no guidance, top of the grid should track the input reserve
-		// (1_000_000 * 99% via BuildSamplePoints), not the tiny prevLadder scale.
-		last := points[len(points)-1]
-		assert.Greater(t, last.Int64(), int64(500_000))
+		// grid is anchored on token0's decimals (6), not the input reserve
+		// (1_000_000) or the tiny prevLadder scale.
+		want := BuildDecimalsSweep(6)
+		assert.Equal(t, want, points)
+	})
+
+	t.Run("first probe: zero input reserve still sweeps by decimals", func(t *testing.T) {
+		t.Parallel()
+		p := entity.Pool{
+			Tokens: []*entity.PoolToken{{Decimals: 18}, {Decimals: 6}},
+		}
+		points := SamplePoints(p, 0, big.NewInt(0), big.NewInt(1000))
+		assert.NotEmpty(t, points)
+		assert.Equal(t, BuildDecimalsSweep(18), points)
 	})
 
 	t.Run("subsequent probe: guided by previous ladder, scaled by reserve1 change", func(t *testing.T) {

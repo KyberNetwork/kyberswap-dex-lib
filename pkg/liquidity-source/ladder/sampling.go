@@ -12,7 +12,7 @@ import (
 )
 
 // SampleSize is the default number of reserve-fraction probe points built by
-// BuildSamplePoints / BuildSamplePointsFrom.
+// BuildSamplePointsN / BuildSamplePointsFrom / BuildDecimalsSweep.
 const SampleSize = 16
 
 // sampleBpsMin/Max bound the reserve-fraction probe grid. 9900bps is as
@@ -89,27 +89,15 @@ func geometricBpsRange(lo, hi, n int) []int {
 	return bps
 }
 
-// BuildSamplePoints returns a sorted, deduplicated grid of SampleSize probe
-// amounts, geometrically spaced between sampleBpsMin and sampleBpsMax and
-// scaled by reserve. Geometric (constant-ratio) spacing keeps every gap the
-// same relative size, unlike a hand-picked list where an arbitrary large gap
-// can sit exactly under a real trade size and blow up the interpolation
-// error (see Spline).
-//
-// This is used for a pool's first probe, where there's no previous ladder
-// yet to say where the pool's real depletion knee sits -- plain,
-// symmetric-in-log-space spacing makes no assumption about which end of the
-// range that knee will fall near. Once a previous cycle's ladder is
-// available, EstimateNearCapacityAmount / BuildSamplePointsFrom re-anchor
-// the range at the pool's actual depletion point and switch to the
-// dgeo-spaced grid, which concentrates far more points right at that
-// reserve cap.
-func BuildSamplePoints(reserve *big.Int) []*big.Int {
-	return BuildSamplePointsN(reserve, SampleSize)
-}
-
-// BuildSamplePointsN is like BuildSamplePoints, but for a grid of n probe
-// amounts instead of SampleSize. Use a smaller n where quoting is expensive.
+// BuildSamplePointsN returns a sorted, deduplicated grid of n probe amounts,
+// geometrically spaced between sampleBpsMin and sampleBpsMax and scaled by
+// reserve. Geometric (constant-ratio) spacing keeps every gap the same
+// relative size, unlike a hand-picked list where an arbitrary large gap can
+// sit exactly under a real trade size and blow up the interpolation error
+// (see Spline). SamplePoints itself no longer uses this for a ladder's own
+// first probe (see firstProbePoints) -- kept as a reserve-based grid builder
+// for other callers still anchored on a real AMM reserve (e.g. the
+// uniswap-v4 auto-hook calibrator).
 func BuildSamplePointsN(reserve *big.Int, n int) []*big.Int {
 	return buildSamplePointsFromReserve(reserve, geometricBpsRange(sampleBpsMin, sampleBpsMax, n))
 }
@@ -184,7 +172,7 @@ func DepletionAmountIn(ladder []Point) (float64, bool) {
 // previous cycle's ladder and output-side reserve as a guide.
 //
 // reserve0 alone can badly overstate the tradeable range for an imbalanced
-// pool (see BuildSamplePoints's doc): sampling up to 99% of reserve0 assumes
+// pool (see BuildSamplePointsN's doc): sampling up to 99% of reserve0 assumes
 // the other side has enough inventory to pay it out, which isn't always
 // true, and the real depletion point can sit at a small fraction of the
 // reserve for a badly imbalanced pool. The previous ladder already recorded
@@ -215,8 +203,8 @@ func EstimateNearCapacityAmount(prevLadder []Point, prevOutputReserve, currentOu
 // SamplePoints includes this alongside the dense grid so the pool is never
 // artificially capped at the knee's much tighter range. Since we know this
 // amount was actually quotable (no revert) last cycle, scaling it is safer
-// than guessing off the raw input reserve the way BuildSamplePoints does on
-// a pool's first probe, before there's any history to go on.
+// than the decimals-anchored sweep firstProbePoints falls back to before
+// there's any history to go on.
 //
 // Returns nil if prevLadder is empty.
 func EstimateFarthestProbedAmount(prevLadder []Point, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
@@ -274,9 +262,9 @@ func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
 // amountOut side is currentOutputReserve. It prefers guiding off the
 // previous cycle's ladder and output-side reserve, already sitting in
 // p.Extra / p.Reserves (no extra RPC calls needed -- just unmarshalling),
-// via EstimateNearCapacityAmount, and falls back to BuildSamplePoints on the
-// raw input-side reserve when there's nothing to guide from (a pool's first
-// probe, or a previous ladder that never showed a depletion knee).
+// via EstimateNearCapacityAmount, and falls back to a decimals-anchored
+// sweep (firstProbePoints) when there's nothing to guide from (a pool's
+// first probe, or a previous ladder that never showed a depletion knee).
 //
 // p.Extra is expected to already hold a JSON-marshaled Extra from the same
 // pool tracker (i.e. dir indexes p.Extra's Ladders the same way it indexes
@@ -294,12 +282,12 @@ func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
 func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
 	prevLadder, prevOutputReserve, ok := prevLadderAndReserve(p, dir)
 	if !ok {
-		return firstProbePoints(p, dir, currentInputReserve)
+		return firstProbePoints(p, dir)
 	}
 
 	nearCap := EstimateNearCapacityAmount(prevLadder, prevOutputReserve, currentOutputReserve)
 	if nearCap == nil {
-		return firstProbePoints(p, dir, currentInputReserve)
+		return firstProbePoints(p, dir)
 	}
 
 	points := withGrowthCanaries(BuildSamplePointsFrom(nearCap, SampleSize), nearCap, currentInputReserve)
@@ -310,41 +298,46 @@ func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputRese
 }
 
 // firstProbePoints sizes a direction's probe grid when there's no prior
-// ladder (or the prior one never showed a depletion knee) to guide from.
-// currentInputReserve is the natural basis for an AMM-style pool, but a
-// desk-style pool (see caliber-prop) can legitimately hold zero inventory of
-// the token being sold in while still being able to quote it, since the
-// desk pays out of the *other* side's reserve. In that case fall back to a
-// decimals-anchored sweep of the input token instead of refusing to probe.
-func firstProbePoints(p entity.Pool, dir int, currentInputReserve *big.Int) []*big.Int {
-	if currentInputReserve != nil && currentInputReserve.Sign() > 0 {
-		return BuildSamplePoints(currentInputReserve)
-	}
+// ladder to guide from. Every ladder embedder quotes via an opaque on-chain
+// call, not a reserve-ratio formula, so the input-side reserve is never a
+// reliable basis -- sweep by decimals instead and let on-chain revert/success
+// define the real curve.
+func firstProbePoints(p entity.Pool, dir int) []*big.Int {
 	if dir < 0 || dir >= len(p.Tokens) {
 		return nil
 	}
 	return BuildDecimalsSweep(p.Tokens[dir].Decimals)
 }
 
-// decimalsSweepSpanOrders bounds how many orders of magnitude on each side
-// of 10^decimals BuildDecimalsSweep spans.
-const decimalsSweepSpanOrders = 3
+// decimalsSweepSteps is how many multiplier steps on each side of
+// 10^decimals BuildDecimalsSweep spans (7 magnitude anchors total: center
+// plus decimalsSweepSteps steps down and up).
+const decimalsSweepSteps = 3
+
+// decimalsSweepStepMultiplier is the per-step multiplier between adjacent
+// magnitude anchors -- wider than a plain order-of-magnitude (10x) step so
+// the sweep still brackets tokens whose real tradeable range sits well away
+// from 10^decimals.
+const decimalsSweepStepMultiplier = 32
 
 // BuildDecimalsSweep returns a geometric probe grid of n points spanning
-// 10^(decimals-decimalsSweepSpanOrders) to 10^(decimals+decimalsSweepSpanOrders),
-// used when currentInputReserve gives no usable basis for BuildSamplePoints.
+// 10^decimals / decimalsSweepStepMultiplier^decimalsSweepSteps to
+// 10^decimals * decimalsSweepStepMultiplier^decimalsSweepSteps.
 func BuildDecimalsSweep(decimals uint8) []*big.Int {
 	return BuildDecimalsSweepN(decimals, SampleSize)
 }
 
 // BuildDecimalsSweepN is BuildDecimalsSweep for a grid of n points.
 func BuildDecimalsSweepN(decimals uint8, n int) []*big.Int {
-	loExp := int64(decimals) - decimalsSweepSpanOrders
-	if loExp < 0 {
-		loExp = 0
+	var base, exp big.Int
+	center := new(big.Int).Exp(base.SetInt64(10), exp.SetInt64(int64(decimals)), nil)
+	factor := new(big.Int).Exp(base.SetInt64(decimalsSweepStepMultiplier), exp.SetInt64(decimalsSweepSteps), nil)
+
+	lo := new(big.Int).Div(center, factor)
+	if lo.Sign() <= 0 {
+		lo.SetInt64(1)
 	}
-	lo := new(big.Int).Exp(big.NewInt(10), big.NewInt(loExp), nil)
-	hi := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)+decimalsSweepSpanOrders), nil)
+	hi := center.Mul(center, factor) // center's last use; reuse its storage for hi
 	return dedupSorted(geometricBigRange(lo, hi, n))
 }
 
