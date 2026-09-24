@@ -160,6 +160,8 @@ const (
 	ExchangeKyberPMM                    = "kyber-pmm"
 	ExchangeKipseliProp                 = "kipseli-prop"
 	ExchangeKipseliPamm                 = "kipseli-pamm"
+	ExchangeKaliberProp                 = "kaliber-prop"
+	ExchangeKaliberRwaProp              = "kaliber-rwa-prop"
 	ExchangeKyberSwapLimitOrder         = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS       = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                  = "liquidcore"
@@ -290,6 +292,7 @@ const (
 	ExchangeSynthetix                   = "synthetix"
 	ExchangeTessera                     = "tessera"
 	ExchangeThenaFusionV3               = "thena-fusion-v3"
+	ExchangeThogProp                    = "thog-prop"
 	ExchangeTideFiProp                  = "tidefi-prop"
 	ExchangeUmbraeDamm                  = "umbrae-damm"
 	ExchangeUmbraeDlmm                  = "umbrae-dlmm"
@@ -439,6 +442,8 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeKipseliPamm:        {},
 	ExchangeBopAMM:             {},
 	ExchangeCaliberProp:        {},
+	ExchangeKaliberProp:        {},
+	ExchangeKaliberRwaProp:     {},
 	Exchange1010Prop:           {},
 	ExchangeGhost:              {},
 	ExchangeMetricPropAMM:      {},
@@ -450,6 +455,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangePrismProp:          {},
 	ExchangeMantaProp:          {},
 	ExchangeTideFiProp:         {},
+	ExchangeThogProp:           {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
