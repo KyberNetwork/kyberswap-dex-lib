@@ -19,6 +19,17 @@ const (
 	// manta-prop/fermi-prop's freshness gate. Kept well under the observed
 	// 60s on-chain expiry.
 	MaxAge = 15 * time.Second
+
+	// swapFeePpm is TideFi's per-caller fee tier (parts per million of
+	// FEE_DENOMINATOR=1e6 on-chain), checked server-side against
+	// msg.sender -- any other value reverts. Confirmed on-chain via quote()
+	// from KyberSwap's executor address: only 0 validates until TideFi
+	// assigns a nonzero tier.
+	swapFeePpm = 0
+
+	// takerAPITimeout bounds the whole discovery connect+read: the Taker
+	// API pushes tidefi_markets immediately on connect, no request needed.
+	takerAPITimeout = 10 * time.Second
 )
 
 var ErrInsufficientLiquidity = errors.New("insufficient liquidity")
