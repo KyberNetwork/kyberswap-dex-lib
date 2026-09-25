@@ -1,0 +1,6 @@
+[
+  {"type":"function","name":"totalSupply","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"totalEthValue","stateMutability":"view","inputs":[{"name":"excludeWeth","type":"uint256"}],"outputs":[{"name":"total","type":"uint256"}]},
+  {"type":"function","name":"isNavReliable","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"bool"}]},
+  {"type":"function","name":"buyGBLINWithWeth","stateMutability":"nonpayable","inputs":[{"name":"amount","type":"uint256"},{"name":"minOut","type":"uint256"},{"name":"receiver","type":"address"}],"outputs":[]}
+]
