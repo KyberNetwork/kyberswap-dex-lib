@@ -84,6 +84,7 @@ import (
 	pkg_liquiditysource_fluid_vaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	pkg_liquiditysource_frax_sfrxeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	pkg_liquiditysource_frax_sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
+	pkg_liquiditysource_gblin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gblin"
 	pkg_liquiditysource_genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	pkg_liquiditysource_genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	pkg_liquiditysource_ghost "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
@@ -355,6 +356,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_vaultt1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxethconvertor.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gblin.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_genericarm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_genericsimplerate.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ghost.PoolSimulator{})
