@@ -2,17 +2,14 @@ package prop
 
 import _ "embed"
 
-//go:embed abis/Lens.json
+// KipseliPropLens is a deployless helper: its creation code runs as a
+// `to`-less eth_call and reverts with a snapshot, never deployed. Source:
+// KyberNetwork/ks-helper-sc src/helpers/deployless/KipseliPropLens.sol, built
+// with `FOUNDRY_EVM_VERSION=paris forge build` (solc 0.8.25, 999999 runs);
+// paris keeps PUSH0/MCOPY out so it runs on every chain.
+
+//go:embed abis/KipseliPropLens.json
 var lensABIData []byte
 
-//go:embed abis/Swap.json
-var swapABIData []byte
-
-//go:embed abis/LensPamm.json
-var lensPammABIData []byte
-
-//go:embed abis/RouterPamm.json
-var routerPammABIData []byte
-
-//go:embed abis/PositionCap.json
-var positionCapABIData []byte
+//go:embed abis/KipseliPropLens.bin
+var lensBytecodeHex string

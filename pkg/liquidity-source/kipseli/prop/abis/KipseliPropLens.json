@@ -1,0 +1,91 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "router",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "dest",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokens",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "amountsIn",
+        "type": "uint256[][]",
+        "internalType": "uint256[][]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "error",
+    "name": "KipseliPropSnapshot",
+    "inputs": [
+      {
+        "name": "snapshot",
+        "type": "tuple",
+        "internalType": "struct KipseliPropLens.Snapshot",
+        "components": [
+          {
+            "name": "blockNumber",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "blockTimestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "swapImpl",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "wallet",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "quoteToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "quoter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "listedTokens",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "balances",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          {
+            "name": "caps",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          {
+            "name": "amountsOut",
+            "type": "uint256[][]",
+            "internalType": "uint256[][]"
+          }
+        ]
+      }
+    ]
+  }
+]

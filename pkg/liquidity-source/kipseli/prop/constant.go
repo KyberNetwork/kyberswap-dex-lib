@@ -1,9 +1,10 @@
 package prop
 
 import (
+	"errors"
 	"time"
 
-	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli"
 )
@@ -17,28 +18,14 @@ const (
 	maxAge = 30 * time.Second
 )
 
-var (
-	DomainType = apitypes.TypedData{
-		Types: apitypes.Types{
-			"EIP712Domain": []apitypes.Type{
-				{Name: "name", Type: "string"},
-				{Name: "version", Type: "string"},
-				{Name: "chainId", Type: "uint256"},
-				{Name: "verifyingContract", Type: "address"},
-			},
-			"PropAmmVerification": []apitypes.Type{
-				{Name: "tokenIn", Type: "address"},
-				{Name: "tokenOut", Type: "address"},
-				{Name: "timestampInMilisec", Type: "uint256"},
-			},
-		},
-		PrimaryType: "PropAmmVerification",
-		Domain: apitypes.TypedDataDomain{
-			Name:    "VerificationImpl",
-			Version: "1",
-		},
-	}
+// defaultDest is the KyberSwap executor, the `dest` kipseli keys its
+// per-taker quoters by (QuoteRouter.signerToDest on the prop venues).
+var defaultDest = common.HexToAddress("0x8f10b468b06c6fd214b65f87778827f7d113f996")
 
+var (
 	ErrInvalidToken          = kipseli.ErrInvalidToken
 	ErrInsufficientLiquidity = kipseli.ErrInsufficientLiquidity
+
+	ErrUnexpectedLensRevert = errors.New("kipseli-prop: lens reverted without a snapshot")
+	ErrNoQuoter             = errors.New("kipseli-prop: no quoter resolved for dest")
 )
