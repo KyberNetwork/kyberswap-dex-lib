@@ -13,11 +13,10 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -25,11 +24,12 @@ import (
 
 const (
 	testRouterAddr = "0x71C2Ed90CC288229Be59F26b8B3EEF3C07d7ab99"
-	testLensAddr   = "0x62aff80b3d2AfE0e497f1Ef735a6fDC9c3ef1acf"
 	testWeth       = "0x4200000000000000000000000000000000000006"
-	testUsdc       = "0x833589fCD6eDb6E08f4C7C32D4f71b54bdA02913"
+	testUsdc       = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 )
 
+// setupKipseliTest tracks a live base pool (prop variant, no Titan needed)
+// for two cycles, so the second one exercises the ladder-guided grid.
 func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, *ethrpc.Client) {
 	t.Helper()
 	if os.Getenv("CI") != "" {
@@ -38,26 +38,13 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 
 	rpcURL := os.Getenv("BASE_RPC_URL")
 	if rpcURL == "" {
-		rpcURL = "https://base-rpc.kyberswap.com"
+		rpcURL = "https://base-rpc.publicnode.com"
 	}
 
-	verifier := common.HexToAddress(os.Getenv("VERIFIER_ADDRESS"))
-	quoter := common.HexToHash(os.Getenv("QUOTER_HASH"))
+	cfg := Config{DexID: DexType, ChainID: 8453, RouterAddress: testRouterAddr}
+	rpcClient := ethrpc.New(rpcURL)
 
-	cfg := Config{
-		DexID:         DexType,
-		ChainID:       8453,
-		LensAddress:   testLensAddr,
-		RouterAddress: testRouterAddr,
-		Verifier:      verifier,
-		Quoter:        quoter,
-		Buffer:        10000,
-	}
-
-	rpcClient := ethrpc.New(rpcURL).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-
-	inputPool := entity.Pool{
+	p := entity.Pool{
 		Address: DexType + "_" + testWeth + "_" + testUsdc,
 		Tokens: []*entity.PoolToken{
 			{Address: testWeth, Decimals: 18, Swappable: true},
@@ -68,8 +55,11 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 	}
 
 	tracker := NewPoolTracker(&cfg, rpcClient)
-	p, err := tracker.GetNewPoolState(context.Background(), inputPool, pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
+	var err error
+	for range 2 {
+		p, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+	}
 
 	sim, err := NewPoolSimulator(p)
 	require.NoError(t, err)
@@ -77,21 +67,10 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 	return p, sim, tracker, rpcClient
 }
 
-func signQuoteForTest(tracker *PoolTracker, tokenIn, tokenOut common.Address, tsMs *big.Int) []byte {
-	typedMsg := DomainType
-	typedMsg.Domain.ChainId = math.NewHexOrDecimal256(int64(tracker.cfg.ChainID))
-	typedMsg.Domain.VerifyingContract = hexutil.Encode(tracker.cfg.Verifier[:])
-	typedMsg.Message = apitypes.TypedDataMessage{
-		"tokenIn":            [20]byte(tokenIn),
-		"tokenOut":           [20]byte(tokenOut),
-		"timestampInMilisec": tsMs,
-	}
-	sig, _ := tracker.signer.Sign(typedMsg)
-	return sig
-}
-
+// TestKipseliDebug_QuoteVsSim checks the simulator against the swap-path
+// quote itself (lens snapshot, same hot pricing as a router swap).
 func TestKipseliDebug_QuoteVsSim(t *testing.T) {
-	p, sim, tracker, rpcClient := setupKipseliTest(t)
+	_, sim, tracker, rpcClient := setupKipseliTest(t)
 
 	type direction struct {
 		label    string
@@ -115,23 +94,13 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
 
 	for _, dir := range directions {
-		for _, amt := range amounts {
-			t.Run(fmt.Sprintf("%s_%s", dir.label, amt.String()), func(t *testing.T) {
-				tsMs := big.NewInt(time.Now().UnixMilli())
-				sig := signQuoteForTest(tracker, dir.tokenIn, dir.tokenOut, tsMs)
+		snap, err := fetchSnapshot(context.Background(), rpcClient, common.HexToAddress(testRouterAddr),
+			tracker.cfg.dest(), []common.Address{dir.tokenIn, dir.tokenOut}, [][]*big.Int{amounts}, titan.State{})
+		require.NoError(t, err)
 
-				var quoterOut *big.Int
-				req := rpcClient.NewRequest().SetContext(context.Background())
-				if p.BlockNumber > 0 {
-					req.SetBlockNumber(new(big.Int).SetUint64(p.BlockNumber))
-				}
-				req.AddCall(&ethrpc.Call{
-					ABI:    swapABI,
-					Target: testRouterAddr,
-					Method: "quote",
-					Params: []any{dir.tokenIn, amt, dir.tokenOut, tsMs, sig},
-				}, []any{&quoterOut})
-				_, qErr := req.Call()
+		for i, amt := range amounts {
+			t.Run(fmt.Sprintf("%s_%s", dir.label, amt.String()), func(t *testing.T) {
+				quoterOut := snap.AmountsOut[0][i]
 
 				simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{Token: dir.tokenIn.Hex(), Amount: amt},
@@ -139,9 +108,9 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 					Limit:         limit,
 				})
 
-				if qErr != nil || quoterOut == nil || quoterOut.Sign() == 0 {
+				if quoterOut == nil || quoterOut.Sign() == 0 {
 					if simErr == nil && simRes != nil && simRes.TokenAmountOut.Amount.Sign() > 0 {
-						t.Errorf("quoter reverted but simulator accepted (out=%s) — simulator overestimates", simRes.TokenAmountOut.Amount)
+						t.Errorf("quoter returned 0 but simulator accepted (out=%s) — simulator overestimates", simRes.TokenAmountOut.Amount)
 					}
 					return
 				}

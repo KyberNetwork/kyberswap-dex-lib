@@ -12,9 +12,13 @@ import (
 // variant discriminator downstream (see PoolMetaInfo) — no separate flag
 // needed. ladder.NewPoolSimulatorWith only reads the "l" field, so SO parses
 // along for free without any stripping.
+//
+// Caps holds the venue's per-token position caps from the same probe: the
+// next cycle sizes its sample grid from them before any fresh read.
 type Extra struct {
 	Ladders [2][]ladder.Point    `json:"l"`
 	SO      titan.StateOverrides `json:"so,omitempty"`
+	Caps    [2]string            `json:"c,omitempty"`
 }
 
 type StaticExtra struct {
