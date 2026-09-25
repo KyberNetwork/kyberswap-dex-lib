@@ -472,6 +472,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 
 	p.PoolSimulator.UpdateBalance(params)
+	if provider, ok := p.hook.(HookPoolStateProvider); ok {
+		state := provider.PoolState()
+		p.Info.Reserves = []*big.Int{new(big.Int).Set(state.Reserves[0]), new(big.Int).Set(state.Reserves[1])}
+		p.V3Pool.SqrtRatioX96.Set(&state.SqrtPriceX96)
+		p.V3Pool.Liquidity.Set(&state.Liquidity)
+		p.V3Pool.TickCurrent = state.Tick
+	}
 }
 
 // GetMetaInfo
