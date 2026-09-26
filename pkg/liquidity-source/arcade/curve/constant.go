@@ -10,8 +10,9 @@ import (
 const (
 	DexType = "arcade-fun"
 
-	// Pool addresses are synthetic: every launch trades on the one ArcadeHook
-	// contract, keyed by its V4 PoolId. The prefix keeps them distinct from the
+	// Pool addresses are synthetic: every launch trades on the ArcadeHook contract
+	// that created it, keyed by its V4 PoolId (which hashes the hook address, so it is
+	// unique across hook generations). The prefix keeps them distinct from the
 	// uniswap-v4 pool the same PoolId names once the launch graduates.
 	poolAddressPrefix = "arcade-fun-"
 

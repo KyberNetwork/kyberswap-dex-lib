@@ -1,17 +1,23 @@
-// Package arcade implements the Uniswap v4 hook of the Arcade launchpad on Arc
-// (ArcadeHook.sol, 0x695cfF9C7F11fa87ca05c7b0A0fa64C3554B3eCe). One hook serves every
-// launch; what a swap pays depends on the pool's launch mode and lifecycle:
+// Package arcade implements the Uniswap v4 hooks of the Arcade launchpad on Arc
+// (ArcadeHook.sol): v1 at 0x695cfF9C7F11fa87ca05c7b0A0fa64C3554B3eCe and v2 at
+// 0x7706d261f0C370e8f0E273164A603E885C89beC2. One hook serves every launch made on it;
+// what a swap pays depends on the pool's launch mode and lifecycle, and for PUMP on the
+// hook's generation (see Generations, keyed by hook address):
 //
 //   - PUMP (bonding-curve launch): while Curving the pool holds no liquidity and every
 //     V4 swap reverts (trades go through the hook's own buy/sell), as do swaps during the
-//     single graduation transaction. Once Graduated the pool's LP fee is 0 and the hook
-//     takes the whole trading fee in USDC: on the input when USDC is sold (beforeSwap,
-//     specified delta) and on the output when USDC is bought (afterSwap, unspecified
-//     delta). The fee decays linearly in log-mcap from 1% at graduation to 0.30%, read
-//     from a stored EMA oracle that a swap never moves before paying.
-//   - CLANKER / RWA (direct launch, graduated from birth): the fee is the pool's native
-//     static LP fee (already in the PoolKey), the hook takes nothing, and a buy whose
-//     token output tops a per-transaction cap reverts during the first five minutes.
+//     single graduation transaction. Once Graduated:
+//     v1: the pool's LP fee is 0 and the hook takes the whole trading fee in USDC: on
+//     the input when USDC is sold (beforeSwap, specified delta) and on the output when
+//     USDC is bought (afterSwap, unspecified delta). The fee decays linearly in log-mcap
+//     from 1% at graduation to 0.30%, read from a stored EMA oracle that a swap never
+//     moves before paying.
+//     v2: the pool carries a static 1% LP fee (10_000 pips, in the PoolKey from
+//     creation) and the hook takes nothing, so the V4 pool math is the whole quote.
+//   - CLANKER / RWA (direct launch, graduated from birth), both generations: the fee is
+//     the pool's native static LP fee (already in the PoolKey), the hook takes nothing,
+//     and a buy whose token output tops a per-transaction cap reverts during the first
+//     five minutes.
 //
 // The curve-phase anti-snipe skim is inert once a pool is graduated
 // (ArcadeHook._currentSnipeBps returns 0), so no graduated swap ever pays it.
@@ -39,7 +45,7 @@ var (
 	ErrNotGraduated      = errors.New("arcade: pool is on its bonding curve or graduating, V4 swaps revert")
 	ErrUnknownMode       = errors.New("arcade: unsupported launch mode")
 	ErrBuyExceedsCap     = errors.New("arcade: buy exceeds the per-transaction cap of the launch window")
-	ErrCalcInUnsupported = errors.New("arcade: exact-out not supported")
+	ErrCalcInUnsupported = errors.New("arcade: exact-out not supported on a v1 pool")
 )
 
 // NowFn is a var so tests can pin the clock used by the launch-window buy cap.
@@ -48,6 +54,8 @@ var NowFn = func() int64 { return time.Now().Unix() }
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Arcade}}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
+	// The address decides the generation, whatever the persisted extra says.
+	h.NoSwapDelta = Generations[param.HookAddress].NoSwapDelta
 	return h
 }, HookAddresses...)
 
@@ -57,7 +65,11 @@ type Extra struct {
 	Mode    uint8 `json:"m,omitempty"`
 	Status  uint8 `json:"s,omitempty"`
 
-	// PUMP fee oracle (ArcadeHook.feeObs) and USDC's side of the pool.
+	// NoSwapDelta is Generations[hook].NoSwapDelta, carried here so the swap callbacks
+	// (which never see the hook address) know which fee model the pool lives under.
+	NoSwapDelta bool `json:"nd,omitempty"`
+
+	// v1 only: PUMP fee oracle (ArcadeHook.feeObs) and USDC's side of the pool.
 	UsdcIsCurrency0 bool  `json:"u0,omitempty"`
 	ObsInit         bool  `json:"oi,omitempty"`
 	EmaTickE3       int64 `json:"ema,omitempty"`
@@ -80,6 +92,7 @@ type Hook struct {
 // cached across tracker passes.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	hook := hexutil.Encode(param.HookAddress[:])
+	gen := Generations[param.HookAddress]
 	poolID := common.HexToHash(param.Pool.Address)
 	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
 	token1 := common.HexToAddress(param.Pool.Tokens[1].Address)
@@ -91,14 +104,18 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		reg0      bool
 		maxBuyBps uint16
 	)
-	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
+	req := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		SetOverrides(param.Overrides).
 		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "curveStates", Params: []any{poolID}}, []any{&state}).
-		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "feeObs", Params: []any{poolID}}, []any{&obs}).
 		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "USDC"}, []any{&usdc}).
 		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "registeredLaunches", Params: []any{token0}}, []any{&reg0}).
-		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "clankerMaxBuyBps"}, []any{&maxBuyBps}).
-		Aggregate(); err != nil {
+		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "clankerMaxBuyBps"}, []any{&maxBuyBps})
+	if !gen.NoSwapDelta {
+		// The oracle only exists where the hook charges the PUMP fee itself. Its getter
+		// is gone from v2, where the call would revert and fail the whole batch.
+		req.AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hook, Method: "feeObs", Params: []any{poolID}}, []any{&obs})
+	}
+	if _, err := req.Aggregate(); err != nil {
 		return nil, err
 	}
 
@@ -127,6 +144,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		Tracked:          true,
 		Mode:             state.Mode,
 		Status:           state.Status,
+		NoSwapDelta:      gen.NoSwapDelta,
 		UsdcIsCurrency0:  sameAddress(token0, usdc),
 		ObsInit:          obs.Init,
 		EmaTickE3:        obs.EmaTickE3,
@@ -144,7 +162,8 @@ func sameAddress(a, b common.Address) bool {
 	return strings.EqualFold(a.Hex(), b.Hex())
 }
 
-// PumpFeeBps mirrors ArcadeHook._feeBps for a PUMP pool.
+// PumpFeeBps mirrors ArcadeHook._feeBps for a PUMP pool of the v1 hook. v2 has no such
+// function: its PUMP fee is the pool's static LP fee.
 func (e *Extra) PumpFeeBps() int64 {
 	if !e.ObsInit {
 		return PumpFeeMaxBps
@@ -174,8 +193,16 @@ func (e *Extra) PerTxMaxBuyTokens(now int64) *big.Int {
 	return bignumber.MulDivDown(new(big.Int), TotalSupply, big.NewInt(capBps), big.NewInt(bps))
 }
 
+// hookTakesPumpFee: the pool is a PUMP pool of a generation that charges the trading fee
+// as a swap delta (v1). Elsewhere the fee is the pool's own LP fee and the hook is inert.
+func (e *Extra) hookTakesPumpFee() bool {
+	return e.Mode == ModePump && !e.NoSwapDelta
+}
+
 func (e *Extra) check(calcOut bool) error {
-	if !calcOut {
+	// v1 is quoted exact-in only, as before. A hook that never returns a swap delta has
+	// no fee side to get wrong, so exact-out is plain V4 math there.
+	if !calcOut && !e.NoSwapDelta {
 		return ErrCalcInUnsupported
 	}
 	if !e.Tracked {
@@ -203,28 +230,30 @@ func fee(amount *big.Int, feeBps int64) *big.Int {
 	return bignumber.MulDivDown(new(big.Int), amount, big.NewInt(feeBps), big.NewInt(bps))
 }
 
-// BeforeSwap (exact-in): a graduated PUMP pool takes its fee from the specified input
-// when that input is USDC. Everything else passes through untouched.
+// BeforeSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the specified input
+// when that input is USDC. Everything else passes through untouched, v2 PUMP included:
+// ArcadeHook v2's beforeSwap is the curve guard and returns ZERO_DELTA.
 func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if err := e.check(params.CalcOut); err != nil {
 		return nil, err
 	}
 	result := &uniswapv4.BeforeSwapResult{DeltaSpecified: bignumber.ZeroBI, DeltaUnspecified: bignumber.ZeroBI}
 	// exact-in: the specified currency is currency0 iff zeroForOne.
-	if e.Mode == ModePump && params.ZeroForOne == e.UsdcIsCurrency0 {
+	if e.hookTakesPumpFee() && params.ZeroForOne == e.UsdcIsCurrency0 {
 		result.DeltaSpecified = fee(params.AmountSpecified, e.PumpFeeBps())
 	}
 	return result, nil
 }
 
-// AfterSwap (exact-in): a graduated PUMP pool takes its fee from the unspecified USDC
-// output; a CLANKER / RWA buy reverts above the launch-window per-transaction cap.
+// AfterSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the unspecified USDC
+// output, a v2 one takes nothing; a CLANKER / RWA buy reverts above the launch-window
+// per-transaction cap on both generations.
 func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	if err := e.check(params.CalcOut); err != nil {
 		return nil, err
 	}
 	if e.Mode == ModePump {
-		if params.ZeroForOne != e.UsdcIsCurrency0 { // selling the token for USDC
+		if e.hookTakesPumpFee() && params.ZeroForOne != e.UsdcIsCurrency0 { // selling the token for USDC
 			return &uniswapv4.AfterSwapResult{HookFee: fee(params.AmountOut, e.PumpFeeBps())}, nil
 		}
 		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
