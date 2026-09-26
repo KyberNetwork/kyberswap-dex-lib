@@ -31,6 +31,10 @@ type Pool struct {
 	Liquidity      uint256.Int
 	Ticks          []TickU256
 	TickSqrtPrices []uint256.Int // precomputed GetSqrtRatioAtTick(Ticks[i].Index); read-only after construction
+
+	// ExactTickTraversal follows each bitmap word boundary instead of the fast
+	// rounding approximation. Opt-in for integrations requiring byte-exact quotes.
+	ExactTickTraversal bool `msgpack:"-"`
 }
 
 type SwapResult struct {
@@ -144,6 +148,20 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		var sqrtPriceNextX96 uint256.Int
 
 		tickNext, slicePos, initialized, err := nextInitializedTickPos(p.Ticks, tick, zeroForOne)
+		wordBoundary := false
+		if err == nil && p.ExactTickTraversal {
+			compressed := tick / p.TickSpacing
+			if tick < 0 && tick%p.TickSpacing != 0 {
+				compressed-- // Solidity floors negative compressed ticks
+			}
+			boundary := ((compressed >> 8) << 8) * p.TickSpacing
+			if !zeroForOne {
+				boundary = ((((compressed+1)>>8)+1)*256 - 1) * p.TickSpacing
+			}
+			if zeroForOne && tickNext < boundary || !zeroForOne && tickNext > boundary {
+				tickNext, initialized, wordBoundary = boundary, false, true
+			}
+		}
 		if err != nil {
 			return SwapResult{}, err
 		} else if tickNext < MinTick {
@@ -152,6 +170,10 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		} else if tickNext > MaxTick {
 			tickNext = MaxTick
 			sqrtPriceNextX96 = *MaxSqrtRatioU256P1
+		} else if wordBoundary {
+			if err := GetSqrtRatioAtTick(tickNext, &sqrtPriceNextX96); err != nil {
+				return SwapResult{}, err
+			}
 		} else {
 			sqrtPriceNextX96 = p.TickSqrtPrices[slicePos]
 		}
@@ -181,7 +203,10 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		}
 		tickSpacingsCrossed := (kutils.Abs(tickNext-tick) - crossedBonus) / p.TickSpacing
 		wordCrossings := sqrtPriceNextX96.SetUint64(uint64(max(1, (tickSpacingsCrossed+255)/256)))
-		if exactInput {
+		if p.ExactTickTraversal {
+			// Each real step already rounded; applying the approximation again
+			// would charge an extra unit at some word boundaries.
+		} else if exactInput {
 			amountOut.SDiv(&amountOut, wordCrossings).Mul(&amountOut, wordCrossings)
 		} else {
 			amountIn.Add(&amountIn, wordCrossings).SubUint64(&amountIn, 1).SDiv(&amountIn, wordCrossings).Mul(&amountIn,

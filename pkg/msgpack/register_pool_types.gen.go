@@ -201,6 +201,7 @@ import (
 	pkg_liquiditysource_uniswap_v4_hooks_deli "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/deli"
 	pkg_liquiditysource_uniswap_v4_hooks_doppler "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/doppler"
 	pkg_liquiditysource_uniswap_v4_hooks_dualpool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/dualpool"
+	pkg_liquiditysource_uniswap_v4_hooks_evplusai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/evplusai"
 	pkg_liquiditysource_uniswap_v4_hooks_fables "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/fables"
 	pkg_liquiditysource_uniswap_v4_hooks_few_hook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/hook"
 	pkg_liquiditysource_uniswap_v4_hooks_flaunch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/flaunch"
@@ -472,6 +473,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_deli.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_doppler.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_dualpool.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_evplusai.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_fables.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_few_hook.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_flaunch.Hook{})

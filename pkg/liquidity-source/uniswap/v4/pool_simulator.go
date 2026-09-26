@@ -183,11 +183,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
 		} else if beforeSwapResult.SwapFee >= FeeMax {
 			return nil, ErrInvalidFee
-		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
+		} else if beforeSwapResult.SwapFee > 0 && (beforeSwapResult.SwapFee != p.V3Pool.Fee || useExactTickTraversal(p.hook)) {
 			cloned := *poolSim
 			clonedV3Pool := *poolSim.V3Pool
 			cloned.V3Pool = &clonedV3Pool
 			cloned.V3Pool.Fee = beforeSwapResult.SwapFee
+			cloned.V3Pool.ExactTickTraversal = useExactTickTraversal(p.hook)
 			poolSim = &cloned
 		}
 	}
@@ -324,11 +325,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
 		} else if beforeSwapResult.SwapFee >= FeeMax {
 			return nil, ErrInvalidFee
-		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
+		} else if beforeSwapResult.SwapFee > 0 && (beforeSwapResult.SwapFee != p.V3Pool.Fee || useExactTickTraversal(p.hook)) {
 			cloned := *poolSim
 			clonedV3Pool := *poolSim.V3Pool
 			cloned.V3Pool = &clonedV3Pool
 			cloned.V3Pool.Fee = beforeSwapResult.SwapFee
+			cloned.V3Pool.ExactTickTraversal = useExactTickTraversal(p.hook)
 			poolSim = &cloned
 		}
 	}
@@ -557,4 +559,11 @@ func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobj
 func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
 	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
 	return meta.TokenOut == NativeTokenAddress
+}
+
+// Hook-specific exact traversal is set on the quote-local core copy, so it need
+// not alter the persisted core simulator format or other integrations.
+func useExactTickTraversal(hook Hook) bool {
+	exact, ok := hook.(interface{ UseExactTickTraversal() bool })
+	return ok && exact.UseExactTickTraversal()
 }
