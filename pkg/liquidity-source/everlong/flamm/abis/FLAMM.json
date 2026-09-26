@@ -1,0 +1,535 @@
+[
+  {
+    "type": "function",
+    "name": "asset",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "dials",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IFLAMM.Dials",
+        "components": [
+          {
+            "name": "phiWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "ltvWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "phiMinWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "phiMaxWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "ltvMinWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "ltvMaxWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "ltvMaxStepWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "ltvCooldownSec",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minStructDistWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "factory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hooks",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IFLAMM.HookSet",
+        "components": [
+          {
+            "name": "invariantHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recenterHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "controllerHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "leverageHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "spreadHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "loanSwapHook",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "limits",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IFLAMM.Limits",
+        "components": [
+          {
+            "name": "depositCapPoolAsset",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "roomEpsilonWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "maxPriceAgeSec",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "feeFloorWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "feeCapWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "performanceFeeBp",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "peakSharePriceWad",
+            "type": "uint96",
+            "internalType": "uint96"
+          },
+          {
+            "name": "maxPerformanceFeeBp",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "loanAsset",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "loanConfig",
+    "inputs": [
+      {
+        "name": "idx",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "decimals",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "swapPriceBandWad",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "feeFloorWad",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "maxSwapNotional",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reserveTarget",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "liquid",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "loanCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "loanPosition",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "liquid",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "debt",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingHookSet",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "hookSet",
+        "type": "tuple",
+        "internalType": "struct IFLAMM.HookSet",
+        "components": [
+          {
+            "name": "invariantHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recenterHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "controllerHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "leverageHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "spreadHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "loanSwapHook",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "executableAt",
+        "type": "uint48",
+        "internalType": "uint48"
+      },
+      {
+        "name": "venueHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "venueAt",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolAssetPosition",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "physical",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "gross",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewLever",
+    "inputs": [
+      {
+        "name": "up",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountInUsed",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "spreadPpm",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "crAfterWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewSwap",
+    "inputs": [
+      {
+        "name": "poolAssetIn",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountInUsed",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "priceFeed",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "router",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "switches",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "featureBits",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "delaySec",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "leveragePaused",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalAssets",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
