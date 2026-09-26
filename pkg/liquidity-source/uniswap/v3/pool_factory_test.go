@@ -83,3 +83,34 @@ func TestPoolFactory_IsEventSupported(t *testing.T) {
 	assert.True(t, factory.IsEventSupported(poolCreatedEventIDNoFee))
 	assert.False(t, factory.IsEventSupported(mintEventID))
 }
+
+// TestDecodePoolCreated_UnitFlowV3 decodes a real UnitFlow V3 PoolCreated log
+// emitted by the Arc mainnet factory at 0x5bfB...1Be6d. UnitFlow uses the
+// canonical Uniswap V3 event layout.
+func TestDecodePoolCreated_UnitFlowV3(t *testing.T) {
+	t.Parallel()
+
+	event := types.Log{
+		Address: common.HexToAddress("0x5bfBCeb73d39F722B1cB83fD2F11736b28c1Be6d"),
+		Topics: []common.Hash{
+			common.HexToHash("0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"),
+			common.HexToHash("0x0000000000000000000000003600000000000000000000000000000000000000"),
+			common.HexToHash("0x000000000000000000000000bef5f6d51cb62b58e6a8f77868681825c6fe21c1"),
+			common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000064"),
+		},
+		Data: common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001" +
+			"00000000000000000000000099a0505d58cc5d7bf3513cc75f2a605a23f0f79f"),
+	}
+
+	factory := NewPoolFactory(&Config{DexID: "unitflow-v3"})
+	require.True(t, factory.IsEventSupported(event.Topics[0]))
+
+	p, err := factory.DecodePoolCreated(event)
+	require.NoError(t, err)
+
+	assert.Equal(t, "0x3600000000000000000000000000000000000000", p.Tokens[0].Address)
+	assert.Equal(t, "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1", p.Tokens[1].Address)
+	assert.Equal(t, "0x99a0505d58cc5d7bf3513cc75f2a605a23f0f79f", p.Address)
+	assert.Equal(t, DexTypeUniswapV3, p.Type)
+	assert.Equal(t, "unitflow-v3", p.Exchange)
+}

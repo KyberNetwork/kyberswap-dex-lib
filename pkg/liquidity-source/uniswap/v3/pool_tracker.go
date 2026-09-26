@@ -42,6 +42,7 @@ var (
 	_ = pooltrack.RegisterFactoryCEG(DexTypeSolidlyV3, NewTracker)
 	_ = pooltrack.RegisterFactoryCEG(DexTypeSlipstream, NewTracker)
 	_ = pooltrack.RegisterFactoryCEG(DexTypeNuriV2, NewTracker)
+	_ = pooltrack.RegisterFactoryCEG(DexTypeUnitFlowV3, NewTracker)
 )
 
 // int24TopicArgs/tickIndexTopics decode the indexed tickLower/tickUpper fields shared by

@@ -14,7 +14,7 @@ import (
 
 // Every DexType merged into this package registers the same NewPoolFactory, and every pool it
 // creates is stamped Type: DexTypeUniswapV3 regardless of which one - the underlying logic is
-// identical across all six, so any of the six registered types resolves the same simulator/
+// identical across all registered forks, so every registered type resolves the same simulator/
 // tracker/factory. Exchange (Config.DexID) still carries the real per-deployment identity.
 var (
 	_ = poolfactory.RegisterFactoryC(DexTypeUniswapV3, NewPoolFactory)
@@ -23,6 +23,7 @@ var (
 	_ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewPoolFactory)
 	_ = poolfactory.RegisterFactoryC(DexTypeSlipstream, NewPoolFactory)
 	_ = poolfactory.RegisterFactoryC(DexTypeNuriV2, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeUnitFlowV3, NewPoolFactory)
 )
 
 // PoolFactory decodes PoolCreated events for every uniswap-v3 fork merged into this

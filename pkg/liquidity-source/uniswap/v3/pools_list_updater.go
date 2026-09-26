@@ -28,6 +28,7 @@ var (
 	_ = poollist.RegisterFactoryCEG(DexTypeSolidlyV3, NewPoolsListUpdater)
 	_ = poollist.RegisterFactoryCEG(DexTypeSlipstream, NewSlipstreamPoolsListUpdater)
 	_ = poollist.RegisterFactoryCEG(DexTypeNuriV2, NewPoolsListUpdater)
+	_ = poollist.RegisterFactoryCEG(DexTypeUnitFlowV3, NewPoolsListUpdater)
 )
 
 // PoolsListUpdater discovers pools for every uniswap-v3 fork merged into this package purely

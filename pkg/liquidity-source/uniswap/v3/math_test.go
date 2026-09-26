@@ -77,6 +77,31 @@ func TestValidateList(t *testing.T) {
 	})
 }
 
+func TestNextBitmapWordBoundary(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		tick        int
+		tickSpacing int
+		zeroForOne  bool
+		expected    int
+	}{
+		{"negative zero-for-one", -1343, 1, true, -1536},
+		{"negative one-for-zero", -1343, 1, false, -1281},
+		{"spaced zero-for-one", -59315, 60, true, -61440},
+		{"spaced one-for-zero", -59315, 60, false, -46140},
+		{"positive zero-for-one", 300, 1, true, 256},
+		{"positive one-for-zero", 300, 1, false, 511},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, nextBitmapWordBoundary(tc.tick, tc.tickSpacing, tc.zeroForOne))
+		})
+	}
+}
+
 // ---------- binarySearch / nextInitializedTickIndex ----------
 
 func TestNextInitializedTickIndex(t *testing.T) {
