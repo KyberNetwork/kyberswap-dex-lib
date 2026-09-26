@@ -1,0 +1,52 @@
+package prmfun
+
+import "errors"
+
+const (
+	DexType = "prm-fun"
+
+	// getReserves returns (quoteReserve_, tokenReserve_); virtualMeme()/virtualDesk() are
+	// not in the vendor's published ABI.
+	memeCurveMethodGetReserves = "getReserves"
+	memeCurveMethodPhase       = "phase"
+	memeCurveMethodMemeSold    = "memeSold"
+	memeCurveMethodDeskRaised  = "deskRaised"
+
+	memeFactoryMethodMemeCount  = "memeCount"
+	memeFactoryMethodMemeTokens = "memeTokens"
+	memeFactoryMethodGetMeme    = "getMeme"
+)
+
+// MemeCurve.Phase. Anything other than Trading is unswappable here: graduated pools move
+// to the uniswap-v4-prm pool type, paused ones stop quoting.
+const (
+	PhaseTrading    uint8 = 0
+	PhaseGraduated  uint8 = 1
+	PhasePaused     uint8 = 2
+	metadataVersion       = 2
+)
+
+const (
+	// MemeCurve's BPS/FEE_BPS, fixed protocol-wide rather than read per pool.
+	bps         = 10_000
+	feeBpsConst = 100
+
+	// MemeCurve.SALE_SUPPLY: meme tokens sellable through the curve before graduation.
+	saleSupply = "800000000000000000000000000"
+
+	// Router settlement receipts on the pinned fork are recorded in testdata.
+	// Include headroom for cold accesses and the outer aggregator execution.
+	buyGas  = 330000
+	sellGas = 250000
+	// Graduation seeds and locks v4 liquidity in the final buy transaction.
+	graduationGas = 1500000
+)
+
+var (
+	ErrPoolNotTrading        = errors.New("prm-fun: meme curve is not in Trading phase")
+	ErrZeroAmount            = errors.New("prm-fun: zero amount")
+	ErrInsufficientLiquidity = errors.New("prm-fun: insufficient curve liquidity")
+	ErrInvalidToken          = errors.New("prm-fun: invalid token for this pool")
+	ErrInvalidState          = errors.New("prm-fun: invalid or incomplete curve state")
+	ErrOverflow              = errors.New("prm-fun: uint256 arithmetic overflow")
+)
