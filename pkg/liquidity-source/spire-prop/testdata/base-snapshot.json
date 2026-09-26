@@ -1,0 +1,231 @@
+{
+  "Pool": {
+    "address": "0xe37072bbde68f74333c8b99c572dc5f9b66927cf",
+    "exchange": "spire-prop",
+    "type": "spire-prop",
+    "timestamp": 1788748935,
+    "reserves": [
+      "2462934124905832810",
+      "19635842347"
+    ],
+    "tokens": [
+      {
+        "address": "0x4200000000000000000000000000000000000006",
+        "swappable": true
+      },
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "swappable": true
+      }
+    ],
+    "extra": "{\"seq\":57559,\"fillSeq\":18,\"lastUpdateAt\":1788748933,\"validUntil\":1788748939,\"ttl\":8,\"blockTimestamp\":1788748933,\"mid\":\"2529275000\",\"qUnit\":\"10000000000\",\"cUnit\":\"1\",\"ask\":{\"spreadBps\":0,\"depthBps\":10000,\"filled\":\"0\",\"knots\":[{\"q\":\"12220000\",\"extra\":\"611\"},{\"q\":\"207320000\",\"extra\":\"12535786\"},{\"q\":\"231620000\",\"extra\":\"16247611\"},{\"q\":\"243690000\",\"extra\":\"19923530\"}]},\"bid\":{\"spreadBps\":0,\"depthBps\":10000,\"filled\":\"0\",\"knots\":[{\"q\":\"38530000\",\"extra\":\"1927\"},{\"q\":\"656650000\",\"extra\":\"39654325\"},{\"q\":\"734180000\",\"extra\":\"51489279\"},{\"q\":\"773180000\",\"extra\":\"63362829\"}]}}",
+    "staticExtra": "{\"entrypoint\":\"0x98c1d9e102eb2806d902b13186bdc7892ac4ffba\",\"curveBook\":\"0x604d9b9eb1e1571c78661a6c1088427ec9c8c6e5\",\"custodian\":\"0xaac48feb93c5c97e0fb3c7c57e1633922a4acda3\"}",
+    "blockNumber": 50979793
+  },
+  "Quotes": [
+    {
+      "IndexIn": 0,
+      "AmountIn": "1",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "2",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "100",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "10000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "1000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "25000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "100000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "500000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "1000000000",
+      "AmountOut": "1",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "10000000000",
+      "AmountOut": "24",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "1000000000000",
+      "AmountOut": "2528",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "100000000000000",
+      "AmountOut": "252926",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "1000000000000000",
+      "AmountOut": "2529269",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "10000000000000000",
+      "AmountOut": "25292699",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "100000000000000000",
+      "AmountOut": "252926999",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "1000000000000000000",
+      "AmountOut": "2525329772",
+      "Executable": true
+    },
+    {
+      "IndexIn": 0,
+      "AmountIn": "1000000000000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1",
+      "AmountOut": "395369433",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "2",
+      "AmountOut": "790738866",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "100",
+      "AmountOut": "39536943319",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "10000",
+      "AmountOut": "3953694331983",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1000000",
+      "AmountOut": "395369433198380",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "25000000",
+      "AmountOut": "9884235829959514",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "100000000",
+      "AmountOut": "39536943319838056",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "500000000",
+      "AmountOut": "197493600978033679",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1000000000",
+      "AmountOut": "394677810466537839",
+      "Executable": true
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "10000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "100000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1000000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "10000000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "100000000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1000000000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    },
+    {
+      "IndexIn": 1,
+      "AmountIn": "1000000000000000000000",
+      "AmountOut": "0",
+      "Executable": false
+    }
+  ]
+}
