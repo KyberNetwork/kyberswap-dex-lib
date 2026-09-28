@@ -110,6 +110,22 @@ Suffixes:
 - `IPoolExactOutSimulator`: Implement `CalcAmountIn` only when the protocol supports exact-out swaps.
 - `IPoolSupportNativeSwap`: Implement `SupportsNativeSwap()` when the protocol supports native token.
 
+### Test data size
+
+This repo is a dependency of several other backend services — every `go get`/checkout of one of
+those pulls whatever ships here, so bloated `testdata/` is a cost paid repeatedly downstream, not
+just once in this repo. Keep it lean:
+
+- Prefer a handful of targeted fixtures (one per real behavior/edge case) over exhaustive
+  block-by-block or grid-style dumps of captured chain state.
+- Don't ship fixtures for a code path that isn't live (e.g. a feature gated off by default). Add
+  them when that path actually ships.
+- If a large capture is genuinely needed, downsample before committing it, not after review flags
+  it — keep boundary/edge rows, drop redundant interior rows of an exhaustive sweep.
+- A single DEX package's `testdata/` should be a small fraction of a normal package's total size;
+  treat a `testdata/` directory that outweighs the package's own production code as a sign to
+  trim before opening the PR, not something a reviewer should have to ask for.
+
 ### Registration & wiring
 
 Register the simulator, lister, and tracker factories (keyed by `DexType`; double registration panics). Also required:

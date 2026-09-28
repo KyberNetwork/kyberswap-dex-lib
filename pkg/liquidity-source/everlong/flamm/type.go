@@ -161,7 +161,7 @@ type SwapInfo struct {
 
 // swapInfoJSON mirrors SwapInfo's exported shape with uint256.Int's own hex/decimal
 // json.Marshaler/Unmarshaler swapped for a plain string. json.Marshal is handed SwapInfo by value
-// wherever it crosses a process boundary (aggregator-encoding decodes it from the route response),
+// wherever it crosses a process boundary (a downstream service decodes it from the route response),
 // and a non-addressable value can't reach uint256.Int's pointer-receiver MarshalJSON: the default
 // reflection path would instead dump each field's internal [4]uint64 limb array. Routing through
 // this alias sidesteps that -- s is a local, addressable copy inside the method, so &s.AmountInUsed
