@@ -6,7 +6,6 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,9 +18,20 @@ import (
 var (
 	entityPool entity.Pool
 	_          = json.Unmarshal([]byte(`{"address":"0x535b2f7c20b9c83d70e519cf9991578ef9816b7b","exchange":"gsm-4626","type":"gsm-4626","tokens":[{"address":"0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f","symbol":"GHO","decimals":18,"swappable":true},{"address":"0x7bc3485026ac48b6cf9baf0a377477fff5703af8","symbol":"waEthUSDT","decimals":6,"swappable":true}],"extra":"{\"canSwap\":true,\"buyFee\":\"15\",\"sellFee\":\"0\",\"currentExposure\":\"318074276664\",\"exposureCap\":\"25000000000000\",\"rate\":\"1146698616999179571600457092\",\"ghoLimit\":\"200000000000000000000000\",\"ghoUsed\":\"0\"}","staticExtra":"{\"priceRatio\":\"1000000000000000000\"}","blockNumber":23791585}`), &entityPool)
-	poolSim    = lo.Must(NewPoolSimulator(entityPool))
 	tokens     = entityPool.Tokens
 )
+
+func newPoolSim(t *testing.T, rate *big.Int) *PoolSimulator {
+	t.Helper()
+
+	sim, err := NewPoolSimulator(entityPool)
+	require.NoError(t, err)
+	if rate != nil {
+		sim.Rate = uint256.MustFromBig(rate)
+	}
+
+	return sim
+}
 
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
@@ -63,12 +73,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			sim := lo.Must(NewPoolSimulator(entityPool))
-			if tc.rate != nil {
-				sim.Rate = uint256.MustFromBig(tc.rate)
-			}
-
-			cloned := sim.CloneState()
+			cloned := newPoolSim(t, tc.rate).CloneState()
 			tokenAmountIn := pool.TokenAmount{
 				Token:  tokens[tc.tokenInIdx].Address,
 				Amount: tc.amountIn,
@@ -99,8 +104,8 @@ func TestCalcAmountOut(t *testing.T) {
 func TestGhoUsedRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	cloned := poolSim.CloneState().(*PoolSimulator)
-	cloned.Rate = uint256.MustFromBig(bignumber.NewBig("1146696576337460102970261542"))
+	cloned := newPoolSim(t, bignumber.NewBig("1146696576337460102970261542")).
+		CloneState().(*PoolSimulator)
 
 	buyResult, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokens[0].Address, Amount: big.NewInt(1000000000000000000)},
