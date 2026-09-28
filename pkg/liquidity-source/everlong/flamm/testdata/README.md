@@ -933,9 +933,9 @@ What the tests assert on them:
 | file | sha256 (stored) | sha256 (uncompressed) |
 | --- | --- | --- |
 | `tracker_rpc_51302915.json.gz` | `1622fd4df79c7e027fe93bea579ce47bee641ad0aa54159ed4d51a36d159f8ad` | `6194b03075b0b6648997f48d7b5b930025c7005adb55b4b82faf0d6bc27cd6de` |
-| `tracked_51302915.json` | `4281d97c4c7af0c159265b4ab4c0d35644e06f711eda5b3e89d065938d5e4cb8` | |
+| `tracked_51302915.json` | `419bad26b4df6e77b9b556edd1a01ab822a7037907c3fd48a7c44d35a304eb31` | |
 | `tracker_rpc_armed_51313004.json.gz` | `42413a226967a887e070b8fe42cc5ee5acad8db84f0c3231495fdfb690e1c1cf` | `dd9be3feb87b4bd9d650083f209da6c6fb71828520540a737aa53296391e5eb1` |
-| `fork_sequence_51330064.json` | `9b1ef76bc47701646c7f2721cf573ede806ff48a9260c883e03699d0614621f5` | |
+| `fork_sequence_51330064.json` | `1a481dd0c8aa4661e45e716af978165d87f7d82f9f44f421824a91962956a5ca` | |
 
 Network tests (not run in CI, skipped without their environment; see "Environment variables"). Every fork test needs
 `EVERLONG_FLAMM_FORK_RPC` and `EVERLONG_ADAPTER_OUT` and takes `EVERLONG_FLAMM_FORK_BLOCK` over its default block; the

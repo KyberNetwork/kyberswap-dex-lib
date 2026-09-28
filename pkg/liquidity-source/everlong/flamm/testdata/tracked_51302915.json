@@ -1,7 +1,7 @@
 {
  "address": "0xc0fdcb1799ccc2cebaa1fe247157b0df33d57572",
- "exchange": "everlong-flamm",
- "type": "everlong-flamm",
+ "exchange": "everlong-flamm-prop",
+ "type": "everlong-flamm-prop",
  "reserves": [
   "219423",
   "94577910"
