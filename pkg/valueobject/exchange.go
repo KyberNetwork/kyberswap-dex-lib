@@ -76,7 +76,6 @@ const (
 	ExchangeCoinhaneV3Weighted          = "coinhane-v3-weighted"
 	ExchangeCometh                      = "cometh"
 	ExchangeCompoundV2                  = "compound-v2"
-	ExchangeCooCooFun                   = "coocoo-fun"
 	ExchangeCronaSwap                   = "cronaswap"
 	ExchangeCurve                       = "curve"
 	ExchangeCurveLending                = "curve-lending"
