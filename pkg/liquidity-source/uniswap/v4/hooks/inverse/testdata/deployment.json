@@ -1,0 +1,93 @@
+{
+  "stage": "deployed_and_two_buys_verified",
+  "plan": {
+    "buyAmount": 10000000000000,
+    "buyCount": 2,
+    "deadline": 1789934693,
+    "hook": "0x9Bb08B8473D09eb235039fb8e3CC136D9787aaEc",
+    "indexRay": "1648596903002934059336406704",
+    "minimumRecovery": 0,
+    "poolId": "0x31f8b2e866eafd147cb1a272759c73d7b04116f7120404083739310161597b84",
+    "priceRay": 1168245237455244836,
+    "recoverOld": false,
+    "reserveQuote": 170000000000000,
+    "reserveShares": "88267417941063984797497",
+    "salt": "0x0000000000000000000000000000000000000000000000000000000000000e14",
+    "seed": 150000000000000,
+    "sellsPlanned": false,
+    "token": "0x07C8f63EFAC882D882427EF3e6471EDa9cde6A3B",
+    "wallet": "0xaa5a4E60aCaa88a27bC8c3214B8aACc467c106A1",
+    "walletShares": "11732582058936015202503",
+    "wrap": 170000001000000
+  },
+  "state": {
+    "reserveQuote": 170000000000000,
+    "reserveShares": 88267417941063984797497,
+    "sequence": 2,
+    "hookPhase": 0,
+    "tokenPhase": 0,
+    "prepaidNominal": 0,
+    "prepaidShares": 0,
+    "walletShares": 11732582058936015202503,
+    "indexRay": 1648596903002934059336406704,
+    "priceRay": 1168245237455244836,
+    "liquidity": 4958805452631549651,
+    "block": 68193675,
+    "nativeRemaining": 373238579224952,
+    "hookRuntimeSha256": "a6ea6ee7185be9e9169845f01e3119dd1eb6665727b89849b62a0b44c497e5e4",
+    "tokenRuntimeSha256": "2a90a8cad4b625294e92a5c3d0a9c5dfda589abc044df95491c164c800500ab2"
+  },
+  "transactions": [
+    "0xf112a05e3a5f5b855a6bf02f2d27eb46168c1a0436fb54c9aa403bc304593693",
+    "0x80302431dd11cf7120c2b7b6a66ecbb41c791e6a9bcb511c274f7ac2e1dfc936",
+    "0x4bde8cc246174edddbe24580928350a25ce73fbd10b6e2616c59b15297b12e4e",
+    "0x671ea6a9ece328fe7326f1a790fc7a4527c0c4455b2ba1e8d78366cca4ef293e",
+    "0xb5ce1f066d550c06644f6cec32df53f59d8b0957aee8e42349f091747b0c8352",
+    "0x1a86201fc37bc33691792f456ddbae41ba12027cb7b514363dd72d40818e8126",
+    "0x1535070b53401b25c69b2ab83281755ac2e3fa3499fbd0116f9c719e282c40d5",
+    "0xae44b6ed93ff059d381fb4ce18d90fe822643508b83fc806642c3b239a1e57ad"
+  ],
+  "actualGasCostWei": 502235746420000,
+  "chainId": 4663,
+  "sourceCommit": "ec44bc670be90057188fcd6d02f14848e6010163",
+  "sourceRepository": "https://github.com/calmdentist/inversecoin",
+  "initialShares": "100000000000000000000000",
+  "decimals": 18,
+  "lpFeePips": 3000,
+  "tickSpacing": 60,
+  "manager": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  "quote": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+  "stateView": "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
+  "liveForkBlock": 68193956,
+  "oldPoolClosed": false,
+  "publicSellsSubmitted": false,
+  "buys": [
+    {
+      "transactionHash": "0x1535070b53401b25c69b2ab83281755ac2e3fa3499fbd0116f9c719e282c40d5",
+      "blockNumber": 68193654,
+      "gasUsed": 522150,
+      "inputWethWei": "10000000000000"
+    },
+    {
+      "transactionHash": "0xae44b6ed93ff059d381fb4ce18d90fe822643508b83fc806642c3b239a1e57ad",
+      "blockNumber": 68193675,
+      "gasUsed": 467415,
+      "inputWethWei": "10000000000000"
+    }
+  ],
+  "verification": {
+    "RoutedInverseHook": {
+      "jobURL": "https://sourcify.dev/server/v2/verify/7074a237-7781-4a6c-835a-fba42d8d92a6",
+      "sourceURL": "https://repo.sourcify.dev/4663/0x9Bb08B8473D09eb235039fb8e3CC136D9787aaEc",
+      "creationMatch": "match",
+      "runtimeMatch": "match"
+    },
+    "RoutedInverseToken": {
+      "jobURL": "https://sourcify.dev/server/v2/verify/31e56585-3506-40d3-b937-0e987468e7cb",
+      "sourceURL": "https://repo.sourcify.dev/4663/0x07C8f63EFAC882D882427EF3e6471EDa9cde6A3B",
+      "creationMatch": "match",
+      "runtimeMatch": "match"
+    }
+  },
+  "explorerVerificationNote": "Sourcify creation/runtime match; Etherscan propagation hit the service daily submission limit and Blockscout propagation was blocked (403)."
+}
