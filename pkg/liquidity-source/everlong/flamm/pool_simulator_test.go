@@ -561,7 +561,9 @@ func TestSimulatorPreviewGrid(t *testing.T) {
 			}
 			t.Logf("block %s: %v (%d of %d rows kept); pools refused %v", blk, counts, kept(keep), len(rows), refusals)
 			if !fixturesSampled() {
-				require.Greater(t, counts["identical"], 1000)
+				// Threshold lowered from 1000: the "lv" rows were cut from testdata/core_e2e_grid_*.jsonl.gz
+				// (LeverRouting defaults false, the venue is not live), leaving fewer rows to sample from.
+				require.Greater(t, counts["identical"], 900)
 			}
 		})
 	}

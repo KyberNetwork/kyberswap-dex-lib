@@ -65,8 +65,8 @@ requests.
 - Generators live in `gen/`. To regenerate, copy the listed `gen/` files into `test/kyber/` of a c104 checkout at that
   commit and run the quoted command from the tree root. Fork generators read Base (chain 8453) over RPC, e.g.
   `https://mainnet.base.org`.
-- `*.json.gz` / `*.jsonl.gz` files are `gzip -9 -n` of the generator's output; `lev_curve_tape_v1.tar.gz` is a
-  deterministic ustar+gzip archive. Every generated fixture above a few tens of kilobytes is stored that way, and
+- `*.json.gz` / `*.jsonl.gz` files are `gzip -9 -n` of the generator's output. Every generated fixture above a
+  few tens of kilobytes is stored that way, and
   the tests read them through `readFixture` / the per-area loaders, which decompress by suffix. Where a file is
   compressed, both digests are listed: the stored bytes, which the digest tests pin, and the generator's output,
   which is what a regenerated fixture is compared against.
@@ -352,83 +352,6 @@ compared with the chain before and after every step, together with every Router 
 | `edges/swap_settlement_sequence_d.jsonl.gz` | `04eff241349eb5f1da08d98af84e8172450db92969ae4f56a88458b646a8d0c7` | `41388684858fc7aee5249a2b6f1b8a180bade9af984d02fce259e8f2e2d8b013` |
 | `edges/swap_settlement_sequence_e.jsonl.gz` | `efaeb37faac834f3a422b1d12252e9a3fd8c84983a6672214c9b3c21bef094e2` | `d8d590240b6970e75808f0b02ad2d29b9a8d5da13effcf9e7121b89152ea486e` |
 
-## 3. Leverage venue: CollRebalancerMath, EverlongLeverageHook
-
-### 3.1 Module fixtures
-
-`lev_curve_tape_v1.tar.gz` is the unmodified c104 parity tape `test/flamm/lev/tape/levcurve_c1_tape_v1.*.json` (16
-blocks + manifest), packed as a deterministic ustar+gzip archive (python `tarfile`, mtime 0). The manifest's sha256 is
-`9df07c65ea45563c0f343ed98290df1fb10fa1a3ea870dbc3c9bf51c26a058f6`; it pins each block's sha256, and the test
-re-verifies them. `TestLevCurveParityTape` replays all 22,465 rows with the `_expectedOut`/`_assertRow` semantics of
-`CollRebalancerMathLevCurveParity.t.sol`.
-
-The other fixtures come from `gen/LevRecorder.sol`, `gen/LevGoldenFixture.t.sol` and `gen/LevForkFixture.t.sol`.
-Both generators are deterministic (re-runs reproduce the digests). `TestLevFixtureDigests` pins the four digests below.
-
-```sh
-FOUNDRY_SPARSE_MODE=true FOUNDRY_GAS_LIMIT=9223372036854775807 forge test --match-path test/kyber/LevGoldenFixture.t.sol -vv
-FOUNDRY_SPARSE_MODE=true FOUNDRY_GAS_LIMIT=9223372036854775807 forge test --match-path test/kyber/LevForkFixture.t.sol -vv
-```
-
-- `LevGoldenFixture` runs on the local LevBase stack:
-  - `lev_hook_local_fixture.json.gz`: the VenueGolden sequence plus displaced and synthetic grids.
-  - `lev_hook_band_fixture.json.gz`: `_assertAnchorAndBand` through a harness.
-- `LevForkFixture` runs on a Base fork at block 51317000 against the deployed stack:
-  - `lev_hook_fork_fixture.json.gz`: curator unpause and keeper spread posts. The LeverContext is captured by etching a
-    calldata-echo probe over the leverage hook for one preview, then frame, previewLever and pool.previewLever are
-    recorded with revert data.
-  - `lev_curve_fork_fixture.json.gz`: frozenParams() and a leverageQuote/deleverageQuote/anchorAndBase/isStateSafe
-    grid plus a keccak-seeded sweep, called on the deployed CollRebalancerMath
-    `0xC002d0731E6a2E6e80Be754779bCEf6B01Aff0bb`.
-
-| file | sha256 (stored) | sha256 (uncompressed) |
-| --- | --- | --- |
-| `lev_curve_tape_v1.tar.gz` | `18fe3e2aa02cce91f8b312f95730b2ef556363e271e82dbbc12d1d107ce29437` | n/a |
-| `lev_curve_fork_fixture.json.gz` | `798735119ee4e322ec929a75aa48d8855e630f622fc20aa4d3a27a54c30d4e9f` | `74fce4f93e92ee09200739c5edd44cb6ebbf0bc527863466cbf68357ba45ac46` |
-| `lev_hook_fork_fixture.json.gz` | `f5d027dc34dbc37289edbf91312d5adf67217bef1a94e02883bee49319580641` | `fb379cb74733dba31578cb9ed487a03375439993d0d78811814801968f3fdd8d` |
-| `lev_hook_local_fixture.json.gz` | `6e8b8d178b2f07c24aa0b4b94021b48a44f50455829786f11f07b92dbeabd59f` | `46d8ea7be0ca6207527cd9d2f263ae39d71ff7213c0928d492dacd10618e5a53` |
-| `lev_hook_band_fixture.json.gz` | `52e04fdf28c6224faa48e1a4cf581be3d8d070b5a0a53b65c47cf4651d2cb90d` | `e3f59a449cf5ac2e311066e7cb70f29fb57e86ea96056ea4d41b613605378231` |
-
-### 3.2 Edge fixtures (`leverage_edges_test.go`)
-
-Generators: `gen/LevEdgeRows.sol`, `gen/LevCurveEdgesHarness.sol`, `gen/LevCurveEdges.t.sol`, `gen/LevHookEdges.t.sol`
-and `gen/lev_curve_math_copy.py`. Copy them into `test/kyber/` of a c104 checkout at 80abd43, run
-`python3 test/kyber/lev_curve_math_copy.py` (it writes `test/kyber/CollRebalancerMathCopy.sol`), then:
-
-```sh
-FOUNDRY_SPARSE_MODE=true FOUNDRY_VIA_IR=true FOUNDRY_OPTIMIZER=true FOUNDRY_OPTIMIZER_RUNS=100 FOUNDRY_GAS_LIMIT=9223372036854775807 FOUNDRY_MEMORY_LIMIT=4294967296 forge test --match-path test/kyber/LevCurveEdges.t.sol -vv
-FOUNDRY_SPARSE_MODE=true FOUNDRY_VIA_IR=true FOUNDRY_OPTIMIZER=true FOUNDRY_OPTIMIZER_RUNS=100 FOUNDRY_GAS_LIMIT=9223372036854775807 FOUNDRY_MEMORY_LIMIT=4294967296 forge test --match-path test/kyber/LevHookEdges.t.sol -vv
-```
-
-Output goes to `test/kyber/fixtures/lev_{curve,hook}_edges.json`; re-runs are byte-identical. Both fixtures fork Base at
-block 51318000. Rows are `[op, inputs, [status, words...]]`: status 0 carries every ABI return word, status 1 a revert
-as `[len, selector, arg]`.
-
-- `lev_curve_edges` (`TestLevCurveEdges`, 77,002 rows) calls the deployed CollRebalancerMath
-  `0xC002d0731E6a2E6e80Be754779bCEf6B01Aff0bb` (`anchorAndBase`, `leverageQuote`, `deleverageQuote`, `isStateSafe`,
-  `frozenParams`) over:
-  - branch thresholds: half-law/Hermite/wall/recovery debts and their 1-wei neighbours, `3*newDebt` vs anchor, and dust
-    anchors 95..106;
-  - MAX_INPUT and uint256 edges, ten reservation prices, and an exhaustive dust sweep;
-  - exact Mul512 product ties, and rounding ties located off-chain (the recovery y+1 bracket,
-    `collAtTarget == collateral`, `newCv == cv`);
-  - a keccak-seeded grid.
-
-  Every public row is re-run on a verbatim internal-visibility copy (`gen/lev_curve_math_copy.py` derives it from
-  the pinned source) and must be byte-equal. That copy also supplies the private-helper rows (`_cvRequiredOnAnchor`,
-  `_debtCapOnAnchor`, `_recoveryState`, `_deleverageProRata`, Bezier/lerp, Mul512, ...).
-- `lev_hook_edges` (`TestLevHookEdges`, 33,808 rows) calls the deployed EverlongLeverageHook
-  `0xE0A98d8e60035832B8BaD7f7af7B9B0b3A7308F3` `frame`/`previewLever`, with EverlongHook `bookFor`/`reservationPriceWad`
-  mocked to arbitrary books: checked and signed overflows, mulDiv reverts, FrameUnquotable, NothingToFill, LevValueLeak,
-  realistic CR/spread/amount grids, feed mismatch, dust frames, `in18 == dSBurn` ties, and random books. It checks
-  `executeLever == previewLever` on a sample and replays `_assertAnchorAndBand` transcribed over the deployed
-  `anchorAndBase`.
-
-| file | sha256 (stored) | sha256 (uncompressed) |
-| --- | --- | --- |
-| `edges/lev_curve_edges.json.gz` | `12ac1f76ce0eb7b9d03d8440a738b23a18abb531b19866321db12eb01ca66cd4` | `383484cf5b395ad8eaf5fee1a356d9d75eac2e4581b4e813335194384dd55337` |
-| `edges/lev_hook_edges.json.gz` | `ef4a9141f4e6704cc84f14ebda69caccbc709fdda30762a76517cf384653f579` | `436373181cdcffeb3ed8eca195c3597277079bf85c48104b90f039e6f545f317` |
-
 ## 4. Pool core end to end: FLAMMSwapLib, FLAMMLeverLib, PriceFeed over the composed state
 
 ### 4.1 Module fixtures (`core_e2e_test.go`)
@@ -515,9 +438,15 @@ Router `positions`, `poolAssetPosition().gross` and `totalAssets` (value or reve
 
 | file | rows | sha256 (stored) | sha256 (uncompressed) |
 | --- | --- | --- | --- |
-| `core_e2e_grid_51302915.jsonl.gz` | 34052 | `ae588fcaf6e08b24b5d7e7b3f12c491b89c73f9e155ceb8641090c5a6004ddd5` | `e089ec3efeeafa6668f00bd6a4e6ddc9e49495097c3c81d0fffbf98e382771f7` |
-| `core_e2e_grid_51313000.jsonl.gz` | 25070 | `4e21a865486e59b4fc0eae66290ed509fc1afe88254c558b67cad6b7e62258ee` | `1b31022d0a4b0904fb1bfb74f44c01bc825da0e6cf4377636a98a4b49293f0fd` |
-| `core_e2e_grid_51324800.jsonl.gz` | 23501 | `2d053f484f935e3e715c8f3e8655ef6a32f08c4255a6d8d8d2622f0d303130b1` | `63c8de9c5663499d6ce96929b8f254e66ff294f34b756ee85cf610d6490b2836` |
+| `core_e2e_grid_51302915.jsonl.gz` | 19149 | `ce240dab478412ceff88a4bbf20f0b0b5b97c1ad067bb92d41a5acd5c0239971` | `4c8fd76cd0861ea0a70c21ea46d0d160bd5cd0f30c9d48b1863757fbf4bc9b27` |
+| `core_e2e_grid_51313000.jsonl.gz` | 10735 | `f034a302081507eda7fdc98c0a150592f2d97b9b92d2dca1894e030380fe5371` | `ac9c3b7a3f39e0df80e979e769bbaa7e1a304cf2ba4de505af28998a86fccf59` |
+| `core_e2e_grid_51324800.jsonl.gz` | 10735 | `108f3e9b5b77a06aeae02e7f2913fcf19320bddf89dd7ded078e425620f405f6` | `ad6476026ae438a8f82c7528c639dab2a4300346a1502dd30b0bdf32a8633c22` |
+
+Row counts above are post-cut: `gen/CoreE2EGrid.t.sol`'s `lv` (previewLever) rows were removed from all three stored
+files (`LeverRouting` defaults `false`; the venue is not live). Regenerating from the harness still produces the
+original row set with `lv` rows included — filter them (`jq 'select(.k != "lv")'` per line) before re-storing, or
+update this row count and the digests in `core_e2e_test.go`/here to match the regenerated file if you want lv rows
+back.
 | `core_e2e_seq_51302915.jsonl.gz` | 109 | `9ae2f16137c0a744dd730758ad97537bb8533ce6a0868367d1113ff7c35c1116` | `fcd3eb6165c36c68e73b31fdd57a7aee997a6f8218d79f9a7331c9b30fb3c359` |
 | `core_e2e_seq_51313000.jsonl.gz` | 108 | `e2d4569b540b7853b49e04507e7ba485439aae3ebb26621c28352b411a92536f` | `44933b2f7b4d1f1be8e8fd0cc214e169d79c58e4cf72c5e2ff671ee90933a07e` |
 | `core_e2e_seq_51324800.jsonl.gz` | 108 | `6529b264e751e5026344539a039b45bb90542d56b5f501d5ed3f3f5c05f64d45` | `ae062769d95c666eec3ea03b1ed5f87347d1337e5bfffefce53c624278326b51` |
@@ -649,9 +578,13 @@ perturbation must break rows:
 
 | file | rows | sha256 (stored) | sha256 (uncompressed) |
 | --- | --- | --- | --- |
-| `edges/core_edge_grid_51302915.jsonl.gz` | 13372 | `946d384674b004378198eb5fd023d28fea944ebcf6d626c34994561149d6eba2` | `4ce285898ef6a21e4c07ac7f631d2874711f3ee217c7f998b1360eda9184733e` |
-| `edges/core_edge_grid_51324800.jsonl.gz` | 12877 | `8c085a8183d9de9a6edbe7fdab5d08e276141a598739bd4a524baf814fe8f570` | `01c82fd2bda2d25addd8d9faf8abdb819793edbac1703ad62bec510815dca21d` |
-| `edges/core_edge_grid_51326000.jsonl.gz` | 12864 | `463868de0f612bdb55be5cad602a5911b6a9d08b3f2904cb578c42f9edc7d3b4` | `ff05306702daf4f71bd67f73e7e58b28b6d0486bc17f3fe1f091f5e7e81478ac` |
+| `edges/core_edge_grid_51302915.jsonl.gz` | 7390 | `2bd2b3f8b1a76163774e37ecaa51962eca02138a3d7007a50074b4f1e3a7de03` | `83a27ce1f458ab58dc743e0bebd29e36a9905aefec5d548f280af53995abb4fa` |
+| `edges/core_edge_grid_51324800.jsonl.gz` | 7039 | `e1bafba5483e31983ca058e8899a67aaca98cde9374de76be302336f17f6efad` | `30b89b5d4dac715c76e1f1d1a106b9d2db852af7844ddd9caa17afb8b92eeabe` |
+| `edges/core_edge_grid_51326000.jsonl.gz` | 7000 | `d57db256bc4335d13f4b99ed51d764da91042958ea059c3b99b4bc6b1155a1d1` | `1e729450ca5ae83b590aecb7a195fffbf4c7ca10801a1f6d9a130f626127af96` |
+
+Row counts above are post-cut: `gen/CoreEdgeGrid.t.sol`'s `lv` (previewLever) rows were removed from all three
+stored files (`LeverRouting` defaults `false`; the venue is not live). See the note under section 4.1 for how to
+regenerate with or without them.
 | `edges/core_edge_seq_51302915.jsonl.gz` | 2114 | `e6e14db48bcfe28a3f87ff072a5cc2ac70e92e4a27d669c39d3dec9338fca99c` | `3d625c2dd43564c71b20f983f3439c30d276464db28c4721afa8ae15ac4cb328` |
 | `edges/core_edge_seq_51324800.jsonl.gz` | 2157 | `53414398f523e1507ed8fdd2c2e4f91642f02dba22a195068af4a5ac948b553d` | `fa2f63a6953ce69f7c861d6fefc28941b845ae815b5f7a49e4bea29657892122` |
 | `edges/core_edge_seq_51326000.jsonl.gz` | 2103 | `1906c0dfc12c37b6f3d7dd5b52ffee245cf1107b6aa5da43ea29dc0773ab341e` | `153ca1d81bce1907c1de451173580eeda623582c115831aa03075260f9ca94c4` |
@@ -933,9 +866,9 @@ What the tests assert on them:
 | file | sha256 (stored) | sha256 (uncompressed) |
 | --- | --- | --- |
 | `tracker_rpc_51302915.json.gz` | `1622fd4df79c7e027fe93bea579ce47bee641ad0aa54159ed4d51a36d159f8ad` | `6194b03075b0b6648997f48d7b5b930025c7005adb55b4b82faf0d6bc27cd6de` |
-| `tracked_51302915.json` | `419bad26b4df6e77b9b556edd1a01ab822a7037907c3fd48a7c44d35a304eb31` | |
+| `tracked_51302915.json` | `4281d97c4c7af0c159265b4ab4c0d35644e06f711eda5b3e89d065938d5e4cb8` | |
 | `tracker_rpc_armed_51313004.json.gz` | `42413a226967a887e070b8fe42cc5ee5acad8db84f0c3231495fdfb690e1c1cf` | `dd9be3feb87b4bd9d650083f209da6c6fb71828520540a737aa53296391e5eb1` |
-| `fork_sequence_51330064.json` | `1a481dd0c8aa4661e45e716af978165d87f7d82f9f44f421824a91962956a5ca` | |
+| `fork_sequence_51330064.json` | `9b1ef76bc47701646c7f2721cf573ede806ff48a9260c883e03699d0614621f5` | |
 
 Network tests (not run in CI, skipped without their environment; see "Environment variables"). Every fork test needs
 `EVERLONG_FLAMM_FORK_RPC` and `EVERLONG_ADAPTER_OUT` and takes `EVERLONG_FLAMM_FORK_BLOCK` over its default block; the

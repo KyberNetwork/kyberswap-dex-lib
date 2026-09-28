@@ -2,8 +2,8 @@
  "block": 51330064,
  "start": {
   "address": "0xc0fdcb1799ccc2cebaa1fe247157b0df33d57572",
-  "exchange": "everlong-flamm-prop",
-  "type": "everlong-flamm-prop",
+  "exchange": "everlong-flamm",
+  "type": "everlong-flamm",
   "reserves": [
    "234423",
    "88408544"
@@ -704,8 +704,8 @@
  ],
  "refresh": {
   "address": "0xc0fdcb1799ccc2cebaa1fe247157b0df33d57572",
-  "exchange": "everlong-flamm-prop",
-  "type": "everlong-flamm-prop",
+  "exchange": "everlong-flamm",
+  "type": "everlong-flamm",
   "reserves": [
    "557309",
    "33777594"

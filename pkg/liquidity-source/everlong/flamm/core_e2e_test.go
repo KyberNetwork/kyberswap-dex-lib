@@ -45,9 +45,9 @@ func e2eLines(t *testing.T, path string) [][]byte {
 
 // e2eDigests pins every end-to-end fixture (sha256 of the stored file; testdata/README.md section 4).
 var e2eDigests = map[string]string{
-	"core_e2e_grid_51302915.jsonl.gz": "ae588fcaf6e08b24b5d7e7b3f12c491b89c73f9e155ceb8641090c5a6004ddd5",
-	"core_e2e_grid_51313000.jsonl.gz": "4e21a865486e59b4fc0eae66290ed509fc1afe88254c558b67cad6b7e62258ee",
-	"core_e2e_grid_51324800.jsonl.gz": "2d053f484f935e3e715c8f3e8655ef6a32f08c4255a6d8d8d2622f0d303130b1",
+	"core_e2e_grid_51302915.jsonl.gz": "ce240dab478412ceff88a4bbf20f0b0b5b97c1ad067bb92d41a5acd5c0239971",
+	"core_e2e_grid_51313000.jsonl.gz": "f034a302081507eda7fdc98c0a150592f2d97b9b92d2dca1894e030380fe5371",
+	"core_e2e_grid_51324800.jsonl.gz": "108f3e9b5b77a06aeae02e7f2913fcf19320bddf89dd7ded078e425620f405f6",
 	"core_e2e_seq_51302915.jsonl.gz":  "9ae2f16137c0a744dd730758ad97537bb8533ce6a0868367d1113ff7c35c1116",
 	"core_e2e_seq_51313000.jsonl.gz":  "e2d4569b540b7853b49e04507e7ba485439aae3ebb26621c28352b411a92536f",
 	"core_e2e_seq_51324800.jsonl.gz":  "6529b264e751e5026344539a039b45bb90542d56b5f501d5ed3f3f5c05f64d45",
@@ -254,11 +254,14 @@ func TestCoreE2EPreviewGrids(t *testing.T) {
 	t.Parallel()
 	seen := map[string]bool{}
 	defer func() {
-		// Every revert class the pool's swap and leverage previews can reach on this deployment must have fired
-		// somewhere in the grids (FeeMismatch / FillMismatch / PriceUnchecked for loan 0 cannot).
+		// Every revert class the pool's swap preview can reach on this deployment must have fired somewhere in
+		// the grids (FeeMismatch / FillMismatch / PriceUnchecked for loan 0 cannot). Six classes reached only by
+		// previewLever (0x78d612f2, 0xc81f1209, 0x28851730, 0x7c3fa3af, 0xd6f8f89c, 0x2ea2dce8) are dropped: the
+		// "lv" rows were cut from testdata/core_e2e_grid_*.jsonl.gz (LeverRouting defaults false, the venue is
+		// not live), so no row exercises previewLever's own revert paths any more.
 		for _, sel := range []string{"0xfe85bb51", "0x77417454", "0xf9b4678a", "0x26363b73", "0x84f5270a", "0xc6520de3",
-			"0x78d612f2", "0xc81f1209", "0x28851730", "0x7c3fa3af", "0x9e87fac8", "0x6d2d9f49", "0x81927929",
-			"0x032b3d00", "0xc3734dc2", "0x85c2be22", "0xcd215006", "0x2c5211c6", "0xd6f8f89c", "0x2ea2dce8",
+			"0x9e87fac8", "0x6d2d9f49", "0x81927929",
+			"0x032b3d00", "0xc3734dc2", "0x85c2be22", "0xcd215006", "0x2c5211c6",
 			"0x4e487b71", "0x00000000", "ok"} {
 			require.True(t, seen[sel], "no grid row reached %s", sel)
 		}
@@ -305,7 +308,9 @@ func TestCoreE2EPreviewGrids(t *testing.T) {
 				}
 			}
 			if !fixturesSampled() {
-				require.Greater(t, rep.rows, 20_000)
+				// Threshold halved from 20_000: the "lv" (previewLever) rows were dropped from these grids
+				// (LeverRouting defaults false, the venue is not live), leaving only "sw" + "state" rows.
+				require.Greater(t, rep.rows, 9_000)
 			}
 			t.Logf("block %s: %d rows compared (%d of %d kept), %d mismatches; classes %v", blk, rep.rows, kept(keep),
 				len(rows), rep.n, counts)

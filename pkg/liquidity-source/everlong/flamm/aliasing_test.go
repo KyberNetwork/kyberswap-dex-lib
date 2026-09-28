@@ -139,22 +139,10 @@ func TestAliasingReturnedWords(t *testing.T) {
 		require.Equal(t, pair[0], pair[1])
 	}
 
-	_, rows := levLoadHookFixture(t, "testdata/lev_hook_local_fixture.json.gz")
-	// Rows 0 and 1 are the VenueGolden leverUp and leverDown fills; row 596 frames with D <= 0 (xAnchor zero).
-	for _, k := range []int{0, 1, 596} {
-		ctx, book := rows[k].context()
-		ctxIn := ctx.AmountIn
-		f, err := levFrameFor(&ctx.Pool, book)
-		require.NoError(t, err)
-		aliasingClobber(f.Cv, f.V, f.S, f.XAnchor, (*uint256.Int)(f.D))
-		if k == 596 {
-			continue
-		}
-		fill, err := levQuote(ctx, book)
-		require.NoError(t, err)
-		aliasingClobber(fill.AmountInUsed, fill.GrossOut, fill.VirtualLegL18, fill.CrAfterWad)
-		require.Equal(t, ctxIn, ctx.AmountIn, "row %d: levFill.AmountInUsed aliases ctx.AmountIn", k)
-	}
+	// levFrameFor/levQuote pointer-aliasing coverage against recorded hook rows moved with the leverage-venue
+	// fixtures (testdata/lev_hook_local_fixture.json.gz, deleted with levhook_test.go): that venue is off in
+	// production (Config.LeverRouting defaults false). The library-level refusal/zero-branch checks below still
+	// exercise the same lev math functions directly.
 
 	// Library refusals and zero branches.
 	u := uint256.NewInt
