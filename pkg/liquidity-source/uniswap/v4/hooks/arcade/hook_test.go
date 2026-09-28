@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -164,4 +165,117 @@ func TestRefusesUntradablePools(t *testing.T) {
 
 	_, err = (&Hook{Extra: graduatedPump(true)}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(1)})
 	assert.ErrorIs(t, err, ErrCalcInUnsupported)
+}
+
+func graduatedPumpV2(usdcIsCurrency0 bool) Extra {
+	e := graduatedPump(usdcIsCurrency0)
+	e.NoSwapDelta = true
+	return e
+}
+
+// The generation comes from the hook address: v1 carries both RETURNS_DELTA permission
+// bits (0x3ECE), v2 neither (0x3EC2), and every registered address has an entry.
+func TestGenerations(t *testing.T) {
+	permissions := func(a common.Address) uint16 { return (uint16(a[18])<<8 | uint16(a[19])) & 0x3FFF }
+	assert.Equal(t, uint16(0x3ECE), permissions(HookV1))
+	assert.Equal(t, uint16(0x3EC2), permissions(HookV2))
+
+	assert.Equal(t, []common.Address{HookV1, HookV2}, HookAddresses)
+	assert.Len(t, Generations, len(HookAddresses))
+	assert.False(t, Generations[HookV1].NoSwapDelta)
+	assert.True(t, Generations[HookV2].NoSwapDelta)
+
+	// The factory trusts the address over whatever extra was persisted.
+	for _, c := range []struct {
+		hook  common.Address
+		extra string
+		want  bool
+	}{
+		{HookV1, `{"tr":true,"m":0,"s":2}`, false},
+		{HookV1, `{"tr":true,"m":0,"s":2,"nd":true}`, false},
+		{HookV2, `{"tr":true,"m":0,"s":2}`, true},
+		{HookV2, `{"tr":true,"m":0,"s":2,"nd":true}`, true},
+		{HookV2, ``, true}, // not tracked yet
+	} {
+		h, ok := uniswapv4.GetHook(c.hook, &uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(c.extra)})
+		require.True(t, ok)
+		assert.Equal(t, c.want, h.(*Hook).NoSwapDelta, "%s %s", c.hook, c.extra)
+		assert.Equal(t, "uniswap-v4-arcade", h.GetExchange())
+	}
+}
+
+// v2: a graduated PUMP pool pays its fee as the pool's static LP fee. The hook takes
+// nothing on either side, for both currency orderings, whatever an oracle would say.
+func TestPumpV2_NoHookFee(t *testing.T) {
+	for _, usdc0 := range []bool{true, false} {
+		e := graduatedPumpV2(usdc0)
+		e.ObsInit, e.EmaTickE3, e.GradMcapTick = true, 60_000_000, 50_000 // never read on v2
+		h := &Hook{Extra: e}
+		for _, zeroForOne := range []bool{true, false} { // a buy and a sell
+			for _, calcOut := range []bool{true, false} { // exact-in and exact-out
+				swap := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: zeroForOne, AmountSpecified: big.NewInt(1_234_567_891)}
+				before, err := h.BeforeSwap(swap)
+				require.NoError(t, err)
+				assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
+				assert.Equal(t, bignumber.ZeroBI, before.DeltaUnspecified)
+				assert.Zero(t, before.SwapFee, "no fee override: the PoolKey fee stands")
+
+				after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
+					BeforeSwapParams: swap, AmountIn: big.NewInt(1_234_567_891), AmountOut: big.NewInt(987_654_321),
+				})
+				require.NoError(t, err)
+				assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+			}
+		}
+	}
+}
+
+// v2 CLANKER / RWA behave as on v1: no hook fee, and the launch-window buy cap, which
+// exact-out meets too (the token output is then the specified amount).
+func TestDirectLaunchV2_BuyCap(t *testing.T) {
+	orig := NowFn
+	defer func() { NowFn = orig }()
+	NowFn = func() int64 { return 1_000 + 30 } // first minute: cap = 1% = 10M tokens
+
+	for _, mode := range []uint8{ModeClanker, ModeRwa} {
+		h := &Hook{Extra: Extra{Tracked: true, NoSwapDelta: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}}
+		for _, calcOut := range []bool{true, false} {
+			buy := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: true}
+			after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: tokens(10_000_000)})
+			require.NoError(t, err)
+			assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+
+			_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: new(big.Int).Add(tokens(10_000_000), big.NewInt(1))})
+			assert.ErrorIs(t, err, ErrBuyExceedsCap)
+
+			sell := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: false}
+			_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: sell, AmountOut: tokens(900_000_000)})
+			require.NoError(t, err, "sells are never capped")
+		}
+	}
+}
+
+// v2 keeps the curve guard (beforeSwap reverts while Curving or GraduationStarted), and
+// exact-out stays refused on v1 only.
+func TestV2_RefusalsAndExactOut(t *testing.T) {
+	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1_000)}
+
+	_, err := (&Hook{Extra: Extra{NoSwapDelta: true}}).BeforeSwap(params)
+	assert.ErrorIs(t, err, ErrNotTracked)
+
+	for _, status := range []uint8{StatusCurving, StatusGraduationStarted} {
+		_, err = (&Hook{Extra: Extra{Tracked: true, NoSwapDelta: true, Mode: ModePump, Status: status}}).BeforeSwap(params)
+		assert.ErrorIs(t, err, ErrNotGraduated)
+	}
+
+	_, err = (&Hook{Extra: Extra{Tracked: true, NoSwapDelta: true, Mode: 2, Status: StatusGraduated}}).BeforeSwap(params)
+	assert.ErrorIs(t, err, ErrUnknownMode)
+
+	exactOut := &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: big.NewInt(1)}
+	_, err = (&Hook{Extra: graduatedPumpV2(true)}).BeforeSwap(exactOut)
+	require.NoError(t, err)
+	for _, v1 := range []Extra{graduatedPump(true), {Tracked: true, Mode: ModeClanker, Status: StatusGraduated}} {
+		_, err = (&Hook{Extra: v1}).BeforeSwap(exactOut)
+		assert.ErrorIs(t, err, ErrCalcInUnsupported)
+	}
 }

@@ -10,7 +10,8 @@ import (
 
 // arcadeHookABIJson covers the public getters ArcadeHook.sol exposes that decide the
 // swap-visible amounts: lifecycle and mode (curveStates), the PUMP fee oracle
-// (feeObs), and the CLANKER / RWA per-transaction buy cap inputs.
+// (feeObs, v1 only: the getter is gone from v2 and must not be called there), and the
+// CLANKER / RWA per-transaction buy cap inputs. The other getters are identical on v2.
 const arcadeHookABIJson = `[
 	{"type":"function","name":"curveStates","stateMutability":"view",
 	 "inputs":[{"name":"","type":"bytes32"}],

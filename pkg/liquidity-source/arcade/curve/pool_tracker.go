@@ -30,9 +30,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
+	// Every read goes to the pool's own hook: v1 and v2 launches live side by side.
 	hook := staticExtra.Hook
 	if hook == "" {
-		hook = t.config.Hook
+		hook = t.config.defaultHook()
 	}
 	poolID := common.HexToHash(PoolIDFromAddress(p.Address))
 	token := common.HexToAddress(p.Tokens[1].Address)

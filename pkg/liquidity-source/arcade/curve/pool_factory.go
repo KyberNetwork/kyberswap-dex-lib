@@ -38,7 +38,7 @@ func (d *PoolFactoryDecoder) SupportedEventTopics() []common.Hash {
 }
 
 func (d *PoolFactoryDecoder) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
-	if !strings.EqualFold(event.Address.Hex(), d.config.Hook) {
+	if !d.config.isHook(event.Address) {
 		return nil, nil
 	}
 	if len(event.Topics) != 3 || event.Topics[0] != launchCreatedEventHash {
@@ -63,7 +63,10 @@ func (d *PoolFactoryDecoder) DecodePoolCreated(event types.Log) (*entity.Pool, e
 	token := common.BytesToAddress(event.Topics[2].Bytes())
 	usdc := valueobject.WrappedNativeMap[d.config.ChainID]
 
-	staticExtra, err := json.Marshal(StaticExtra{Hook: strings.ToLower(d.config.Hook)})
+	// The launch trades on the hook that created it: buy / sell, the approval and every
+	// state read go to the emitter, whichever generation it is. PoolIds hash the hook
+	// address, so launches of two hooks never share a pool address.
+	staticExtra, err := json.Marshal(StaticExtra{Hook: hexutil.Encode(event.Address[:])})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +89,7 @@ func (d *PoolFactoryDecoder) DecodePoolCreated(event types.Log) (*entity.Pool, e
 // DecodePoolAddressesFromFactoryLog routes the hook's per-launch curve events
 // (all indexed by PoolId) to the launch's pool, so live trades refresh its state.
 func (d *PoolFactoryDecoder) DecodePoolAddressesFromFactoryLog(_ context.Context, log types.Log) ([]string, error) {
-	if !strings.EqualFold(log.Address.Hex(), d.config.Hook) || len(log.Topics) < 2 {
+	if !d.config.isHook(log.Address) || len(log.Topics) < 2 {
 		return nil, nil
 	}
 	switch log.Topics[0] {

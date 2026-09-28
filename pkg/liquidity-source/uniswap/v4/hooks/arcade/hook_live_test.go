@@ -49,3 +49,40 @@ func TestTrack_Live(t *testing.T) {
 	assert.Equal(t, int64(1789446515), h.LaunchedAt)
 	assert.True(t, h.BuyCapEnabled)
 }
+
+// TestTrack_LiveV2 runs Track against the deployed v2 hook on Arc mainnet. No launch
+// exists on it yet, so the pool id is arbitrary and every mapping reads as its zero
+// value (PUMP, Curving): what matters is that the batch decodes at all. With feeObs in
+// it, as on v1, the call reverts, since v2 has no such getter.
+// Values cross-checked against direct eth_calls on 2026-09-19.
+func TestTrack_LiveV2(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
+
+	rpcClient := ethrpc.New("https://rpc.arc-scan.org").
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+
+	h := &Hook{Hook: &uniswapv4.BaseHook{}}
+	_, err := h.Track(context.Background(), &uniswapv4.HookParam{
+		RpcClient:   rpcClient,
+		HookAddress: HookV2,
+		Pool: &entity.Pool{
+			Address: "0x0299bf2d50bf71d6708c6e98f17f1c2b073cbe0db090629198602efb51cea1f2",
+			Tokens: []*entity.PoolToken{
+				{Address: "0x3600000000000000000000000000000000000000"}, // USDC
+				{Address: "0x43caace3d7bc72b25e32d2b81b1ee28f447e4ffd"}, // not a v2 launch
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	assert.True(t, h.Tracked)
+	assert.True(t, h.NoSwapDelta)
+	assert.Equal(t, uint8(StatusCurving), h.Status)
+	assert.True(t, h.UsdcIsCurrency0)
+	assert.True(t, h.QuoteIsCurrency0)
+	assert.False(t, h.ObsInit)
+	assert.True(t, h.BuyCapEnabled)
+}
