@@ -285,9 +285,9 @@ type coreEdgeGridRow struct {
 // coreEdgeGridFixtures: pool previewSwap / previewLever and router.fundingCeiling at scenario states
 // (testdata/gen/CoreEdgeGrid.t.sol).
 var coreEdgeGridFixtures = map[string]string{
-	"51302915": "946d384674b004378198eb5fd023d28fea944ebcf6d626c34994561149d6eba2",
-	"51324800": "8c085a8183d9de9a6edbe7fdab5d08e276141a598739bd4a524baf814fe8f570",
-	"51326000": "463868de0f612bdb55be5cad602a5911b6a9d08b3f2904cb578c42f9edc7d3b4",
+	"51302915": "2bd2b3f8b1a76163774e37ecaa51962eca02138a3d7007a50074b4f1e3a7de03",
+	"51324800": "e1bafba5483e31983ca058e8899a67aaca98cde9374de76be302336f17f6efad",
+	"51326000": "d57db256bc4335d13f4b99ed51d764da91042958ea059c3b99b4bc6b1155a1d1",
 }
 
 func coreEdgeFixturePath(kind, blk string) string {
@@ -411,15 +411,10 @@ func TestCoreEdgeGridSensitivity(t *testing.T) {
 		{"cb_age_eq", func(s *flammState) { s.Feed.Asset.Heartbeat.SubUint64(&s.Feed.Asset.Heartbeat, 1) }},
 		{"usdc_age_eq", func(s *flammState) { s.Feed.Loans[0].Heartbeat.SubUint64(&s.Feed.Loans[0].Heartbeat, 1) }},
 		{"peg_lo_eq", func(s *flammState) { s.Feed.Loans[0].PegBandWad.SubUint64(&s.Feed.Loans[0].PegBandWad, 1) }},
-		{"armed_min", func(s *flammState) {
-			sp := s.Hooks.Spread.EverlongSpread
-			sp.Spread.AddUint64(&sp.Spread, 1)
-		}},
-		{"spread_age_eq", func(s *flammState) {
-			sp := s.Hooks.Spread.EverlongSpread
-			sp.MaxSpreadAge.SubUint64(&sp.MaxSpreadAge, 1)
-		}},
-		{"degrade_zero", func(s *flammState) { s.LastLeverSpreadPpm.SetUint64(17_500) }},
+		// armed_min, spread_age_eq and degrade_zero perturbed EverlongSpread/LastLeverSpreadPpm fields that only
+		// previewLever reads; the "lv" rows that observed them were cut from testdata/edges/core_edge_grid_*
+		// (LeverRouting defaults false, the venue is not live), so with only "sw" rows left these perturbations
+		// no longer change any surviving row and the cases were removed.
 		{"live", func(s *flammState) {
 			h := s.Hooks.Swap.EverlongSwap
 			h.ReserveVolatile.AddUint64(&h.ReserveVolatile, 1)
