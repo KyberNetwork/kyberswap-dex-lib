@@ -92,6 +92,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gblin"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
@@ -494,6 +495,7 @@ type Types struct {
 	LunyaFun                   string
 	SlyngFun                   string
 	NetStaking                 string
+	Gblin                      string
 }
 
 var (
@@ -748,5 +750,6 @@ var (
 		SlyngFun:                   slyngfun.DexType,
 		DeepstateOb:                deepstateob.DexType,
 		NetStaking:                 netstaking.DexType,
+		Gblin:                      gblin.DexType,
 	}
 )

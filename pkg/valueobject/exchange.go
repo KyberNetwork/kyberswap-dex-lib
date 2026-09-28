@@ -128,6 +128,7 @@ const (
 	ExchangeFluxProp                    = "flux-prop"
 	ExchangeFrxETH                      = "frxeth"
 	ExchangeFrxUSD                      = "frxusd"
+	ExchangeGblin                       = "gblin"
 	ExchangeGenericArm                  = "generic-arm"
 	ExchangeGeniusFun                   = "genius-fun"
 	ExchangeGigaV2                      = "giga-v2"
