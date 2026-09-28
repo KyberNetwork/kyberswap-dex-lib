@@ -7,6 +7,10 @@
 // `take`, so the fee always lands on the realized output (exact-in) or is added on
 // top of the realized input (exact-out). Both bps are frozen per pool at
 // registerPool time, read here via the `launches` public mapping getter.
+//
+// Track and AfterSwap live on Extra so another deployment of the same PonsV2MemeHook
+// bytecode (hooks/coocoo) can embed it under its own exchange and address list, the
+// way hooks/o1 reuses hooks/b20.
 package ponsv2
 
 import (
@@ -41,12 +45,20 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, HookAddresses...)
 
 // Track reads the pool's frozen hookFeeBps + creatorTaxBps from the hook's `launches`
-// getter. Both are snapshotted immutably at registerPool time (later owner-level fee
-// updates only affect pools registered afterward), so an already-registered pool is
-// never re-fetched.
+// getter (see Extra.Track).
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	if h.Registered {
-		return json.Marshal(h)
+	if err := h.Extra.Track(ctx, param); err != nil {
+		return nil, err
+	}
+	return json.Marshal(h)
+}
+
+// Track fills e from the hook's `launches` getter for param.Pool. Both bps are snapshotted
+// immutably at registerPool time (later owner-level fee updates only affect pools registered
+// afterward), so an already-registered pool is never re-fetched.
+func (e *Extra) Track(ctx context.Context, param *uniswapv4.HookParam) error {
+	if e.Registered {
+		return nil
 	}
 
 	var raw launchRaw
@@ -57,25 +69,32 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		Method: "launches",
 		Params: []any{common.HexToHash(param.Pool.Address)},
 	}, []any{&raw}).Call(); err != nil {
-		return nil, err
+		return err
 	}
 
-	h.Extra = Extra{
+	*e = Extra{
 		Registered: raw.Registered,
 		FeeBps:     int64(raw.HookFeeBps) + int64(raw.CreatorTaxBps),
 	}
-	return json.Marshal(h)
+	return nil
+}
+
+// Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook interface
+// and Extra at the same depth, both with AfterSwap, so an unqualified call would otherwise
+// be an ambiguous selector.
+func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+	return h.Extra.AfterSwap(params)
 }
 
 // AfterSwap mirrors PonsV2MemeHook._afterSwap: the fee is a flat feeBps of the
 // unspecified currency's magnitude -- the realized output on exact-in, the realized
 // input on exact-out -- taken directly from the pool manager, never recomputed here.
-func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	if !h.Registered || h.FeeBps == 0 {
+func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+	if !e.Registered || e.FeeBps == 0 {
 		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
 	}
 	unspecified := lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn)
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int), unspecified, big.NewInt(h.FeeBps), big.NewInt(basisPoints)),
+		HookFee: bignumber.MulDivDown(new(big.Int), unspecified, big.NewInt(e.FeeBps), big.NewInt(basisPoints)),
 	}, nil
 }
