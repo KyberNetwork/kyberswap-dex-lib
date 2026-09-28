@@ -1,6 +1,6 @@
 # Everlong FLAMM
 
-`everlong-flamm-prop` quotes Everlong FLAMM pools. Each is an exact-input AMM between one pool asset and one loan asset,
+`everlong-flamm` quotes Everlong FLAMM pools. Each is an exact-input AMM between one pool asset and one loan asset,
 and its inventory is financed through a money-market router.
 
 Which pools it quotes is set by a hand-maintained hook registry (`hook_registry.go`, see "Hook registry"). A pool is
