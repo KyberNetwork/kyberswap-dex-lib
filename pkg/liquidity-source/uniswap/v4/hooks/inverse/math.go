@@ -71,7 +71,7 @@ func (s Extra) validate() error {
 		return ErrState
 	}
 	tick, err := v3utils.GetTickAtSqrtRatioV2(&s.SqrtPriceX96)
-	if err != nil || (s.Tick != tick && !(s.Tick == tick-1 && s.SqrtPriceX96.ToBig().Cmp(sqrtTick(tick)) == 0)) {
+	if err != nil || (s.Tick != tick && (s.Tick != tick-1 || s.SqrtPriceX96.ToBig().Cmp(sqrtTick(tick)) != 0)) {
 		return ErrState
 	}
 	return nil
@@ -91,7 +91,7 @@ func quote(s Extra, zeroForOne bool, input *big.Int) (*big.Int, Extra, error) {
 	}
 	fee := int64(pf) + 3000 - int64(pf)*3000/1_000_000
 	x, y, idx := s.ReserveShares.ToBig(), s.ReserveQuote.ToBig(), s.Index.ToBig()
-	shares, qt := new(big.Int), new(big.Int)
+	var shares, qt *big.Int
 	refInput := input
 	rin, rout := y, x
 	if !buy {
