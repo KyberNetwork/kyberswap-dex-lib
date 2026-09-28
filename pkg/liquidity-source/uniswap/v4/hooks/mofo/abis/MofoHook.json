@@ -1,0 +1,14 @@
+[
+  {
+    "inputs": [{"internalType": "PoolId", "name": "", "type": "bytes32"}],
+    "name": "pools",
+    "outputs": [
+      {"internalType": "uint24", "name": "feePips", "type": "uint24"},
+      {"internalType": "uint40", "name": "launchedAt", "type": "uint40"},
+      {"internalType": "bool", "name": "coinIsCurrency1", "type": "bool"},
+      {"internalType": "uint160", "name": "birthSqrtPriceX96", "type": "uint160"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
