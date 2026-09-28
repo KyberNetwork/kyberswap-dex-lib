@@ -1,6 +1,8 @@
 package everlongflamm
 
 import (
+	"encoding/json"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -155,4 +157,52 @@ type SwapInfo struct {
 	amountIn uint256.Int
 	seq      uint64
 	next     *flammState
+}
+
+// swapInfoJSON mirrors SwapInfo's exported shape with uint256.Int's own hex/decimal
+// json.Marshaler/Unmarshaler swapped for a plain string. json.Marshal is handed SwapInfo by value
+// wherever it crosses a process boundary (aggregator-encoding decodes it from the route response),
+// and a non-addressable value can't reach uint256.Int's pointer-receiver MarshalJSON: the default
+// reflection path would instead dump each field's internal [4]uint64 limb array. Routing through
+// this alias sidesteps that -- s is a local, addressable copy inside the method, so &s.AmountInUsed
+// etc. are always valid regardless of how the caller held the outer SwapInfo.
+type swapInfoJSON struct {
+	Venue        uint8   `json:"venue"`
+	PoolAssetIn  bool    `json:"poolAssetIn"`
+	AmountInUsed string  `json:"amountInUsed"`
+	AmountOut    string  `json:"amountOut"`
+	SpreadPpm    *string `json:"spreadPpm,omitempty"`
+}
+
+func (s SwapInfo) MarshalJSON() ([]byte, error) {
+	alias := swapInfoJSON{
+		Venue:        s.Venue,
+		PoolAssetIn:  s.PoolAssetIn,
+		AmountInUsed: s.AmountInUsed.Dec(),
+		AmountOut:    s.AmountOut.Dec(),
+	}
+	if !s.SpreadPpm.IsZero() {
+		dec := s.SpreadPpm.Dec()
+		alias.SpreadPpm = &dec
+	}
+	return json.Marshal(alias)
+}
+
+func (s *SwapInfo) UnmarshalJSON(data []byte) error {
+	var alias swapInfoJSON
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+	s.Venue = alias.Venue
+	s.PoolAssetIn = alias.PoolAssetIn
+	if err := s.AmountInUsed.SetFromDecimal(alias.AmountInUsed); err != nil {
+		return err
+	}
+	if err := s.AmountOut.SetFromDecimal(alias.AmountOut); err != nil {
+		return err
+	}
+	if alias.SpreadPpm != nil {
+		return s.SpreadPpm.SetFromDecimal(*alias.SpreadPpm)
+	}
+	return nil
 }
