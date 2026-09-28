@@ -1,8 +1,8 @@
 package evplusai
 
 import (
-	_ "embed"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,13 +14,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-//go:embed testdata/quotes.json
-var quotesFixture []byte
+// loadQuotesFixture reads testdata/quotes.json directly instead of go:embed, so testdata/ can be
+// a nested Go module (see AGENTS.md "Test data size") and stay out of downstream go get/go mod
+// download fetches.
+func loadQuotesFixture(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile("testdata/quotes.json")
+	require.NoError(t, err)
+	return data
+}
 
 func TestDeployedQuoteFixtures(t *testing.T) {
 	t.Parallel()
 	var f fixture
-	require.NoError(t, json.Unmarshal(quotesFixture, &f))
+	require.NoError(t, json.Unmarshal(loadQuotesFixture(t), &f))
 	require.Len(t, f.Quotes, 40)
 	for _, q := range f.Quotes {
 		t.Run(q.Name, func(t *testing.T) { t.Parallel(); compareQuote(t, f, q) })
@@ -30,7 +37,7 @@ func TestDeployedQuoteFixtures(t *testing.T) {
 func TestNativeRouteMetadata(t *testing.T) {
 	t.Parallel()
 	var f fixture
-	require.NoError(t, json.Unmarshal(quotesFixture, &f))
+	require.NoError(t, json.Unmarshal(loadQuotesFixture(t), &f))
 	var extra uniswapv4.Extra
 	require.NoError(t, json.Unmarshal([]byte(f.Pool.Extra), &extra))
 	extra.HookExtra = f.Quotes[0].Extra

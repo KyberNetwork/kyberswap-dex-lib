@@ -110,6 +110,19 @@ Suffixes:
 - `IPoolExactOutSimulator`: Implement `CalcAmountIn` only when the protocol supports exact-out swaps.
 - `IPoolSupportNativeSwap`: Implement `SupportsNativeSwap()` when the protocol supports native token.
 
+### Test data size
+
+This repo is a dependency of several other backend services, so bloated `testdata/` is a cost
+paid on every downstream `go get`. Keep fixtures targeted, not exhaustive grid/block dumps, and
+don't ship coverage for a code path that isn't live yet.
+
+Every package's `testdata/` must have its own `go.mod` (module path = parent + `/testdata`, no
+deps) — Go's module-zip packer excludes any subdirectory with its own `go.mod`, so downstream
+`go get` skips it entirely; read fixtures with `os.ReadFile`, which still works from a checkout.
+Don't use `go:embed` on a `testdata/` path: it requires the file be in the same module, which
+breaks this nested-module boundary — use `os.ReadFile` instead, always.
+Exception: skip this for a package using `//go:embed testdata/...`, which requires same-module.
+
 ### Registration & wiring
 
 Register the simulator, lister, and tracker factories (keyed by `DexType`; double registration panics). Also required:
