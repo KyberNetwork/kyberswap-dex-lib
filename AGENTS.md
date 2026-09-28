@@ -118,7 +118,9 @@ don't ship coverage for a code path that isn't live yet.
 
 Every package's `testdata/` must have its own `go.mod` (module path = parent + `/testdata`, no
 deps) — Go's module-zip packer excludes any subdirectory with its own `go.mod`, so downstream
-`go get` skips it entirely; a plain `os.ReadFile`-based test still works from a checkout.
+`go get` skips it entirely; read fixtures with `os.ReadFile`, which still works from a checkout.
+Don't use `go:embed` on a `testdata/` path: it requires the file be in the same module, which
+breaks this nested-module boundary — use `os.ReadFile` instead, always.
 Exception: skip this for a package using `//go:embed testdata/...`, which requires same-module.
 
 ### Registration & wiring
