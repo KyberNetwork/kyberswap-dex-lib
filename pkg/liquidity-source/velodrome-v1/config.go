@@ -7,6 +7,7 @@ type Config struct {
 	AllPairs       uint32         `json:"allPairs"`
 	AllPairsLength uint32         `json:"allPairsLength"`
 	ManualMetadata bool           `json:"manualMetadata"`
+	Stable         *bool          `json:"stable"` // with manualMetadata: fixed pool type for pools without stable()
 	Fee            uint64         `json:"fee"`
 	FeePrecision   uint64         `json:"feePrecision"`
 	FeeTracker     *FeeTrackerCfg `json:"feeTracker"`

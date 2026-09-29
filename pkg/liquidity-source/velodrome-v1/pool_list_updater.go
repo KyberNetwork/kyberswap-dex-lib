@@ -280,11 +280,16 @@ func (u *PoolsListUpdater) listMetadata(ctx context.Context, pairAddresses []com
 		if u.config.ManualMetadata {
 			metadataList[i].R0 = bignumber.ZeroBI
 			metadataList[i].R1 = bignumber.ZeroBI
+			if u.config.Stable != nil {
+				metadataList[i].St = *u.config.Stable
+			} else {
+				listMetadataRequest.AddCall(&ethrpc.Call{
+					ABI:    pairABI,
+					Target: pairHex,
+					Method: pairMethodStable,
+				}, []any{&metadataList[i].St})
+			}
 			listMetadataRequest.AddCall(&ethrpc.Call{
-				ABI:    pairABI,
-				Target: pairHex,
-				Method: pairMethodStable,
-			}, []any{&metadataList[i].St}).AddCall(&ethrpc.Call{
 				ABI:    pairABI,
 				Target: pairHex,
 				Method: pairMethodToken0,
