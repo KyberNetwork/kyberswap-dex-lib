@@ -52,7 +52,7 @@ func (t *PoolTracker) getNewPoolState(
 ) (entity.Pool, error) {
 	var extra Extra
 	var reserves [2]*big.Int
-	if _, err := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
+	request := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    StakedPendleABI,
 		Target: p.Address,
 		Method: "instantUnstakeFeeRate",
@@ -65,8 +65,13 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    abi.Erc20ABI,
 		Target: p.Tokens[0].Address, // PENDLE
 		Method: abi.Erc20TotalSupplyMethod,
-	}, []any{&reserves[1]}).Aggregate(); err != nil {
+	}, []any{&reserves[1]})
+	resp, err := request.Aggregate()
+	if err != nil {
 		return p, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extraBytes, _ := json.Marshal(extra)

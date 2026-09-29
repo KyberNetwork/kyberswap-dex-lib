@@ -148,13 +148,17 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		buyingAllowed = true
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("[DodoV1] failed to aggregate for pool data")
 
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extra := V1Extra{
@@ -247,6 +251,9 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 			return p, nil
 		}
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	if state.B == nil && state.Q == nil &&

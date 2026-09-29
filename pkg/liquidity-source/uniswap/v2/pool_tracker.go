@@ -4,16 +4,17 @@ import (
 	"context"
 	"math/big"
 	"time"
+
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 )
 
 type (
@@ -67,9 +68,7 @@ func (d *PoolTracker) GetNewPoolState(
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	reserveData := logsReserve
 	var bals [2]*big.Int
-	if fromLogs {
-		req.SetBlockNumber(blockNumber)
-	} else {
+	if !fromLogs {
 		d.addReservesCall(req, p, &reserveData, bals[:])
 	}
 

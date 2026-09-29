@@ -50,12 +50,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		SwapFee:  swapFeeBig,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-		Reserves: bigReserves,
+		Address:     strings.ToLower(entityPool.Address),
+		SwapFee:     swapFeeBig,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    bigReserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	staticExtra, err := extractStaticExtra(entityPool.StaticExtra)
@@ -145,5 +146,5 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return StaticExtra{Stable: p.stable}
+	return MetaInfo{Stable: p.stable, BlockNumber: p.Info.BlockNumber}
 }

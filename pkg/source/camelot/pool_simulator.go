@@ -55,11 +55,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
+				Address:     strings.ToLower(entityPool.Address),
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				Reserves:    reserves,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		StableSwap:           extra.StableSwap,
@@ -116,6 +117,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	return Meta{
 		SwapFee:      swapFee,
 		FeePrecision: uint32(p.FeeDenominator.Int64()),
+		BlockNumber:  p.Info.BlockNumber,
 	}
 }
 

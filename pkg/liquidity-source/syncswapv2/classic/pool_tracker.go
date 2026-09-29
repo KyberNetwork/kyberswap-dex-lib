@@ -89,13 +89,15 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&vaultAddress})
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
 			"error":   err,
 		}).Errorf("failed to get state of the pool")
 		return entity.Pool{}, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(ExtraClassicPool{
 		SwapFee0To1:  uint256.MustFromBig(swapFee0To1),

@@ -176,7 +176,7 @@ func (s *PoolSimulator) CanSwapFrom(address string) []string {
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	// swap() pulls syntheticTokenIn_ directly on the Pool contract itself — no router,
 	// no separate approval target.
-	return nil
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

@@ -58,12 +58,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:  entityPool.Address,
-		SwapFee:  nil,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-		Reserves: reserves,
+		Address:     entityPool.Address,
+		SwapFee:     nil,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{

@@ -69,6 +69,22 @@ type FetchRPCResult struct {
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 }
 
+// ToExtra builds the pool's Extra from this fetch and the given ticks. Every
+// writer of the tracked Extra goes through it, so a field added here reaches
+// all of them.
+func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
+	return Extra{
+		Extra: &uniswapv3.Extra{
+			Liquidity:    r.Liquidity,
+			TickSpacing:  uint64(r.TickSpacing),
+			SqrtPriceX96: r.Slot0.SqrtPriceX96,
+			Tick:         r.Slot0.Tick,
+			Ticks:        ticks,
+		},
+		HookExtra: r.HookExtra,
+	}
+}
+
 type TicksResp struct {
 	LiquidityGross *big.Int
 	LiquidityNet   *big.Int
@@ -77,6 +93,7 @@ type TicksResp struct {
 type Tick = uniswapv3.Tick
 
 type PoolMetaInfo struct {
+	BlockNumber uint64         `json:"blockNumber"`
 	Router      common.Address `json:"router"`
 	Permit2Addr common.Address `json:"permit2Addr"`
 	TokenIn     common.Address `json:"tokenIn"`

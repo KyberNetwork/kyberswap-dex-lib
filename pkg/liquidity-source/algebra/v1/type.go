@@ -123,6 +123,7 @@ type FetchRPCResult struct {
 	TickSpacing *big.Int    `json:"tickSpacing"`
 	Reserve0    *big.Int    `json:"reserve0"`
 	Reserve1    *big.Int    `json:"reserve1"`
+	BlockNumber uint64      `json:"-"`
 }
 
 type TicksResp struct {

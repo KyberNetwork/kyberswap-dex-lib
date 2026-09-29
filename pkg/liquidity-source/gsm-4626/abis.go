@@ -10,6 +10,7 @@ var (
 	gsm4626ABI       abi.ABI
 	priceStrategyABI abi.ABI
 	feeStrategyABI   abi.ABI
+	ghoReserveABI    abi.ABI
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		{&gsm4626ABI, gsm4626Bytes},
 		{&priceStrategyABI, priceStrategyBytes},
 		{&feeStrategyABI, feeStrategyBytes},
+		{&ghoReserveABI, ghoReserveBytes},
 	}
 
 	for _, b := range builder {

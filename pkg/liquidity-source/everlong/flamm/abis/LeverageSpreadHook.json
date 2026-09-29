@@ -1,0 +1,165 @@
+[
+  {
+    "type": "function",
+    "name": "POOL",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "boundPool",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lastSetTs",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxSpreadAge",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "spread",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "spreadPpm",
+    "inputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LeverContext",
+        "components": [
+          {
+            "name": "pool",
+            "type": "tuple",
+            "internalType": "struct PoolContext",
+            "components": [
+              {
+                "name": "physicalPoolAsset",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "postedPoolAsset",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "liquidLoanAsset",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "suppliedLoanAsset",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "debtLoanAsset",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "shareSupply",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "priceWad",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "priceTs",
+                "type": "uint48",
+                "internalType": "uint48"
+              },
+              {
+                "name": "loanCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              }
+            ]
+          },
+          {
+            "name": "up",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "spreadPpm",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "amountIn",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxOut",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "ok",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "ppm",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

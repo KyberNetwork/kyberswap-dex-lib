@@ -15,7 +15,7 @@ func getPointDelta(fee int) int {
 	return pointDeltas[fee]
 }
 
-func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo) ([]swap.LiquidityPoint, error) {
+func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo, blockNumber *big.Int) ([]swap.LiquidityPoint, error) {
 	ptRange := d.config.PointRange
 	if ptRange <= 0 {
 		ptRange = DEFAULT_PT_RANGE
@@ -45,6 +45,9 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
 		rpcRequest.SetContext(ctx)
+		if blockNumber != nil {
+			rpcRequest.SetBlockNumber(blockNumber)
+		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,
@@ -83,7 +86,7 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 	return liquidityPointData, nil
 }
 
-func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo) ([]swap.LimitOrderPoint, error) {
+func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo, blockNumber *big.Int) ([]swap.LimitOrderPoint, error) {
 	ptRange := d.config.PointRange
 	if ptRange <= 0 {
 		ptRange = DEFAULT_PT_RANGE
@@ -113,6 +116,9 @@ func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Poo
 		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
 		rpcRequest.SetContext(ctx)
+		if blockNumber != nil {
+			rpcRequest.SetBlockNumber(blockNumber)
+		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,

@@ -50,6 +50,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		rate            *big.Int
 		feeStrategy     common.Address
 		tokenBalance    *big.Int
+		ghoUsage        struct {
+			Limit *big.Int `abi:"limit"`
+			Used  *big.Int `abi:"used"`
+		}
 	)
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
@@ -84,6 +88,12 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			Method: abi.Erc20BalanceOfMethod,
 			Params: []any{staticExtra.GhoReserve},
 		}, []any{&tokenBalance}).
+		AddCall(&ethrpc.Call{
+			ABI:    ghoReserveABI,
+			Target: staticExtra.GhoReserve.String(),
+			Method: ghoReserveMethodGetUsage,
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&ghoUsage}).
 		Aggregate()
 	if err != nil {
 		return p, err
@@ -122,13 +132,26 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		Rate:            uint256.MustFromBig(rate),
 		BuyFee:          uint256.MustFromBig(buyFee),
 		SellFee:         uint256.MustFromBig(sellFee),
+		GhoLimit:        uint256.MustFromBig(ghoUsage.Limit),
+		GhoUsed:         uint256.MustFromBig(ghoUsage.Used),
 	})
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = []string{tokenBalance.String(), currentExposure.String()}
+
+	// tokenBalance is GhoReserve's total balance shared across all its facilitators;
+	// this pool can only ever draw up to its own remaining bucket (ghoLimit - ghoUsed).
+	availableGho := new(big.Int).Sub(ghoUsage.Limit, ghoUsage.Used)
+	if availableGho.Sign() < 0 {
+		availableGho.SetInt64(0)
+	}
+	ghoReserve := availableGho
+	if tokenBalance.Cmp(availableGho) < 0 {
+		ghoReserve = tokenBalance
+	}
+	p.Reserves = []string{ghoReserve.String(), currentExposure.String()}
 
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()

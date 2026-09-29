@@ -37,11 +37,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   lo.Map(entityPool.Tokens, func(e *entity.PoolToken, _ int) string { return e.Address }),
-		Reserves: reserves,
+		Address:     strings.ToLower(entityPool.Address),
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      lo.Map(entityPool.Tokens, func(e *entity.PoolToken, _ int) string { return e.Address }),
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{

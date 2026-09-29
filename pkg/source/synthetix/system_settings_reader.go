@@ -29,7 +29,7 @@ func NewSystemSettingsReader(cfg *Config, ethrpcClient *ethrpc.Client) *SystemSe
 func (r *SystemSettingsReader) Read(ctx context.Context, poolState *PoolState) (*SystemSettings, error) {
 	systemSettings := NewSystemSettings()
 
-	if err := r.readData(ctx, poolState.Addresses.SystemSettings, systemSettings); err != nil {
+	if err := r.readData(ctx, poolState.Addresses.SystemSettings, systemSettings, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -37,7 +37,7 @@ func (r *SystemSettingsReader) Read(ctx context.Context, poolState *PoolState) (
 		return nil, err
 	}
 
-	if err := r.readDynamicFeeConfig(ctx, poolState.Addresses.SystemSettings, systemSettings); err != nil {
+	if err := r.readDynamicFeeConfig(ctx, poolState.Addresses.SystemSettings, systemSettings, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -45,7 +45,7 @@ func (r *SystemSettingsReader) Read(ctx context.Context, poolState *PoolState) (
 		return nil, err
 	}
 
-	if err := r.readCurrencyKeyData(ctx, poolState.Addresses.SystemSettings, systemSettings, poolState.CurrencyKeys); err != nil {
+	if err := r.readCurrencyKeyData(ctx, poolState.Addresses.SystemSettings, systemSettings, poolState.CurrencyKeys, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -53,7 +53,7 @@ func (r *SystemSettingsReader) Read(ctx context.Context, poolState *PoolState) (
 		return nil, err
 	}
 
-	if err := r.readTokenData(ctx, systemSettings, poolState.CurrencyKeys); err != nil {
+	if err := r.readTokenData(ctx, systemSettings, poolState.CurrencyKeys, poolState.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -67,7 +67,7 @@ func (r *SystemSettingsReader) Read(ctx context.Context, poolState *PoolState) (
 // readTokenData reads token data, included:
 // - Decimals
 // - Symbol
-func (r *SystemSettingsReader) readTokenData(ctx context.Context, systemSettings *SystemSettings, currencyKeys []string) error {
+func (r *SystemSettingsReader) readTokenData(ctx context.Context, systemSettings *SystemSettings, currencyKeys []string, blockNumber uint64) error {
 	var (
 		atomicEquivalentForDexPricingAddresses = systemSettings.AtomicEquivalentForDexPricingAddresses
 		tokensLen                              = len(atomicEquivalentForDexPricingAddresses)
@@ -76,7 +76,7 @@ func (r *SystemSettingsReader) readTokenData(ctx context.Context, systemSettings
 		symbols  = make([]string, tokensLen)
 	)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, currencyKey := range currencyKeys {
 		address := atomicEquivalentForDexPricingAddresses[currencyKey]
 		if eth.IsZeroAddress(address) {
@@ -131,7 +131,7 @@ func (r *SystemSettingsReader) readTokenData(ctx context.Context, systemSettings
 // - AtomicVolatilityUpdateThreshold
 // - AtomicExchangeFeeRate
 // - ExchangeFeeRate
-func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address string, systemSettings *SystemSettings, currencyKeys []string) error {
+func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address string, systemSettings *SystemSettings, currencyKeys []string, blockNumber uint64) error {
 	var (
 		currencyKeysLen = len(currencyKeys)
 
@@ -143,7 +143,7 @@ func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address 
 		exchangeFeeRates                        = make([]*big.Int, currencyKeysLen)
 	)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, key := range currencyKeys {
 		keyByte := eth.StringToBytes32(key)
 
@@ -207,12 +207,10 @@ func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address 
 	return nil
 }
 
-func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address string, systemSettings *SystemSettings) error {
+func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address string, systemSettings *SystemSettings, blockNumber uint64) error {
 	dynamicFeeConfig := NewDynamicFeeConfig()
 
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -255,10 +253,8 @@ func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address
 // readData reads data which required no parameters, included:
 // - AtomicTwapWindow
 // - RateStalePeriod
-func (r *SystemSettingsReader) readData(ctx context.Context, address string, systemSettings *SystemSettings) error {
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+func (r *SystemSettingsReader) readData(ctx context.Context, address string, systemSettings *SystemSettings, blockNumber uint64) error {
+	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,

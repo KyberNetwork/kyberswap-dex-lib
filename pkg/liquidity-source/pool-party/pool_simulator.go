@@ -110,7 +110,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return MetaInfo{Exchange: s.Exchange}
+	return MetaInfo{Exchange: s.Exchange, BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) SwapReceiveNativeIn(_, _ string, _ valueobject.ChainID) bool {

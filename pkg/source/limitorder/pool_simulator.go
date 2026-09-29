@@ -88,12 +88,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				SwapFee:  big.NewInt(0),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
+				Address:     strings.ToLower(entityPool.Address),
+				SwapFee:     big.NewInt(0),
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				Reserves:    reserves,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		sellOrderIDs:  sellOrderIDs,
@@ -443,7 +444,7 @@ func (p *PoolSimulator) filterOrdersByAllowedSenders(orderIDs []int64, allowedSe
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return pool.ApprovalInfo{ApprovalAddress: p.contractAddress}
+	return pool.MetaInfo{ApprovalAddress: p.contractAddress, BlockNumber: p.Info.BlockNumber}
 }
 
 func newFallbackOrderInfo(order *order) *FilledOrderInfo {

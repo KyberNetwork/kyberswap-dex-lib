@@ -1,0 +1,727 @@
+{
+ "block": 51330064,
+ "start": {
+  "address": "0xc0fdcb1799ccc2cebaa1fe247157b0df33d57572",
+  "exchange": "everlong-flamm",
+  "type": "everlong-flamm",
+  "reserves": [
+   "234423",
+   "88408544"
+  ],
+  "tokens": [
+   {
+    "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+    "swappable": true
+   },
+   {
+    "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"reads\":{\"block\":51330064,\"timestamp\":1789449475,\"pool\":{\"asset\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"router\":\"0x19a9b39e6710aad109c829294b0841f0851c6bb4\",\"priceFeed\":\"0xbed275459578c87a63f2f50a0b077c720e838816\",\"paused\":false,\"features\":\"63\",\"levPaused\":false,\"hooks\":[\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0xe0a98d8e60035832b8bad7f7af7b9b0b3a7308f3\",\"0x04988af54ec88d2de77b191025eaef2fe488f93b\",\"0x0000000000000000000000000000000000000000\"],\"physical\":\"208202\",\"gross\":\"234423\",\"totalSupply\":\"2194230000000000\",\"phiWad\":\"1000000000000000000\",\"ltvWad\":\"550000000000000000\",\"roomEpsilonWad\":\"100000000000000\",\"feeFloorWad\":\"0\",\"feeCapWad\":\"100000000000000000\",\"loans\":[{\"token\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"decimals\":6,\"swapPriceBandWad\":\"80000000000000000\",\"feeFloorWad\":\"0\",\"maxSwapNotional\":\"1000000000000\",\"reserveTarget\":\"0\",\"liquid\":\"0\"}],\"lastLeverSpreadPpm\":\"0\"},\"hook\":{\"aWad\":\"34000000000000000000\",\"fee\":[\"30000000000000000\",\"5000000000000000\",\"50000000000000000\",\"400000000000000\",\"4000000000000000000\",\"500000000000000000\",\"2000000000000000000\",\"150000000000000000\"],\"invSkewKappaWad\":\"4000000000000000000\",\"invSkewBandWad\":\"60000000000000000\",\"support\":[\"34000000000000000000\",\"24096289941794299\",\"1099912607172170593\",\"24096289941794300\"],\"anchorSqrtX96\":\"2196067230099687190109974130321092041\",\"reservationPriceWad\":\"768302232848967000000000000000000\",\"kappa\":\"12779948558379\",\"xWad\":\"532533306204662064\",\"reserveStable\":\"157080117684030704791\",\"idleStable\":\"201304154388180895\",\"reserveVolatile\":\"234423\",\"idleVolatile\":\"0\",\"rvWad\":\"0\",\"loanScale\":\"1000000000000\"},\"spread\":{\"spread\":\"13000\",\"maxSpreadAge\":\"0\",\"lastSetTs\":\"1789449475\"},\"feed\":{\"sequencerFeed\":\"0xbcf85224fc0756b9fa45aa7892530b47e10b6433\",\"sequencerGrace\":\"3600\",\"sequencer\":{\"ok\":true,\"roundId\":\"18446744073709551636\",\"answer\":\"0\",\"startedAt\":\"1782491507\",\"updatedAt\":\"1789405581\"},\"tokens\":[{\"token\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"known\":true,\"heartbeat\":\"3600\",\"scale\":\"10000000000\",\"unit\":\"100000000\",\"pegBandWad\":\"0\",\"round\":{\"ok\":true,\"roundId\":\"36893488147419118067\",\"answer\":\"7732306209135\",\"startedAt\":\"1789449274\",\"updatedAt\":\"1789449289\"}},{\"token\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"known\":true,\"heartbeat\":\"90000\",\"scale\":\"10000000000\",\"unit\":\"1000000\",\"pegBandWad\":\"10000000000000000\",\"round\":{\"ok\":true,\"roundId\":\"55340232221128654874\",\"answer\":\"99983415\",\"startedAt\":\"1789389705\",\"updatedAt\":\"1789389719\"}}]},\"router\":{\"globalPaused\":false,\"pinLtvWad\":\"550000000000000000\",\"safetyGapWad\":\"20000000000000000\",\"oracleBandWad\":\"20000000000000000\",\"maxDrawnAssets\":1,\"loans\":[{\"decimals\":6,\"loanScale\":\"1000000000000\",\"debtCap\":\"0\",\"supplyCap\":\"0\",\"borrowEnabled\":true,\"retired\":false}],\"borrowOrder\":[0],\"supplyOrder\":[0],\"withdrawOrder\":[0],\"repayOrder\":[0],\"venues\":[{\"kind\":0,\"loanIndex\":0,\"lltvWad\":\"860000000000000000\",\"borrowEnabled\":true,\"supplyEnabled\":true,\"retired\":false,\"debtCap\":\"1500000000000\",\"supplyCap\":\"2000000000000\",\"maxBorrowRateWad\":\"7386586395\",\"managedCollateral\":\"26221\",\"managedSupplyShares\":\"0\",\"market\":{\"tsa\":\"1570128999281014\",\"tss\":\"1420354885130101384777\",\"tba\":\"1413044672971683\",\"tbs\":\"1262217562401440141784\",\"lastUpdate\":\"1789449451\",\"fee\":\"0\"},\"position\":{\"supplyShares\":\"0\",\"borrowShares\":\"10096228333889\",\"collateral\":\"26221\"},\"irm\":\"0x46415998764c29ab2a25cbea6254146d50d22687\",\"marketLltv\":\"860000000000000000\",\"rateAtTarget\":\"1476170903\",\"hasIrm\":true,\"irmReadable\":true,\"oracleOk\":true,\"oraclePrice\":\"773851103090100000000000000000000000000\",\"oracleZero\":false}]}},\"venues\":[{\"account\":\"0x6760e3b032ee2d670cb684d9076b8f48cb066c48\",\"marketId\":\"0x9103c3b4e834476c9a62ea009ba2c884ee42e94e6e314a26f04d312434191836\",\"oracle\":\"0x663becd10dae6c4a3dcd89f1d76c1174199639b9\",\"irm\":\"0x46415998764c29ab2a25cbea6254146d50d22687\",\"lltv\":\"860000000000000000\"}],\"attested\":true,\"probes\":21,\"policy\":{\"leverRouting\":true}}",
+  "staticExtra": "{\"profileVersion\":1,\"chainId\":8453,\"factory\":\"0x1bfce014774d0dd7e04bc595d46fa09f7dccf45f\",\"implementation\":\"0xaad580beaa2cbd8ab5f3956a5c56eda1d5ee7184\",\"router\":\"0x19a9b39e6710aad109c829294b0841f0851c6bb4\",\"priceFeed\":\"0xbed275459578c87a63f2f50a0b077c720e838816\",\"morpho\":\"0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb\",\"poolAsset\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"loanAsset\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"hooks\":[\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0xe0a98d8e60035832b8bad7f7af7b9b0b3a7308f3\",\"0x04988af54ec88d2de77b191025eaef2fe488f93b\",\"0x0000000000000000000000000000000000000000\"],\"sequencerFeed\":\"0xbcf85224fc0756b9fa45aa7892530b47e10b6433\",\"aggregators\":[\"0x07da0e54543a844a80abe69c8a12f22b3aa59f9d\",\"0x7e860098f58bbfc8648a4311b374b1d669a2bc6b\"],\"heartbeats\":[3600,90000],\"listedBlock\":51330060}",
+  "blockNumber": 51330064
+ },
+ "steps": [
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 899,
+   "ts": 1789449495,
+   "out": 673078,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 18,
+   "ts": 1789449502,
+   "out": 13532,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 428768,
+   "ts": 1789449523,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 222426,
+   "ts": 1789449533,
+   "out": 286,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 384288751,
+   "ts": 1789449546,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 138596,
+   "ts": 1789449971,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 3,
+   "ts": 1789449974,
+   "out": 2255,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 5686,
+   "ts": 1789450256,
+   "out": 4201293,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 942,
+   "ts": 1789450258,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 2928374,
+   "ts": 1789450278,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 2,
+   "ts": 1789450296,
+   "out": 1461,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 1441,
+   "ts": 1789450308,
+   "out": 1,
+   "unused": 672
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 2175,
+   "ts": 1789450315,
+   "out": 1634777,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 318,
+   "ts": 1789450325,
+   "out": 238970,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 5553,
+   "ts": 1789450334,
+   "out": 4169985,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 165254,
+   "ts": 1789450346,
+   "out": 214,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 377790,
+   "ts": 1789450358,
+   "out": 488,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 6294004,
+   "ts": 1789450371,
+   "out": 4478,
+   "unused": 2823555
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 32223612,
+   "ts": 1789450776,
+   "out": 22277,
+   "unused": 14045734
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 5730,
+   "ts": 1789450785,
+   "out": 4298781,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 1209,
+   "ts": 1789450797,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 5,
+   "ts": 1789450811,
+   "out": 3752,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 4,
+   "ts": 1789450830,
+   "out": 3002,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 335106816,
+   "ts": 1789451208,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 236411,
+   "ts": 1789451229,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 1542,
+   "ts": 1789451243,
+   "out": 1156294,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 237528,
+   "ts": 1789451248,
+   "out": 308,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 1034992,
+   "ts": 1789451261,
+   "out": 1341,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 112955,
+   "ts": 1789451265,
+   "out": 82295314,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 2,
+   "ts": 1789451280,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 8861,
+   "ts": 1789451300,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 50637,
+   "ts": 1789451318,
+   "out": 51,
+   "unused": 8021
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 2340,
+   "ts": 1789451324,
+   "out": 3,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 118497,
+   "ts": 1789451592,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 62779,
+   "ts": 1789451599,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 8280757,
+   "ts": 1789451603,
+   "out": 8348,
+   "unused": 1303531
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 227966,
+   "ts": 1789451617,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 720272,
+   "ts": 1789451631,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 6378543,
+   "ts": 1789451645,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 737,
+   "ts": 1789451665,
+   "out": 1,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 693144,
+   "ts": 1789451672,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 5110,
+   "ts": 1789451947,
+   "out": 3864613,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 1350521,
+   "ts": 1789451949,
+   "out": 1360,
+   "unused": 212444
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 16480,
+   "ts": 1789451956,
+   "out": 12463566,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 637087,
+   "ts": 1789451965,
+   "out": 654,
+   "unused": 102240
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 1423,
+   "ts": 1789451971,
+   "out": 1076192,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 164067,
+   "ts": 1789451978,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 107751,
+   "ts": 1789451992,
+   "out": 110,
+   "unused": 17314
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 289334571,
+   "ts": 1789452003,
+   "out": 344668,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 1293547,
+   "ts": 1789452021,
+   "out": 341049207,
+   "unused": 827858
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 6,
+   "ts": 1789452036,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 6,
+   "ts": 1789452039,
+   "out": 4549,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 121,
+   "ts": 1789452060,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 27490837,
+   "ts": 1789452070,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 7594,
+   "ts": 1789452076,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 572960120,
+   "ts": 1789452078,
+   "out": 469710,
+   "unused": 210539645
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 25817,
+   "ts": 1789452098,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 66,
+   "ts": 1789452114,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 122,
+   "ts": 1789452134,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 21628,
+   "ts": 1789452154,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 7828927,
+   "ts": 1789452156,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 8578370,
+   "ts": 1789452176,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 58495,
+   "ts": 1789452289,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 3765,
+   "ts": 1789452306,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 8776840,
+   "ts": 1789452547,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 1223150768,
+   "ts": 1789452555,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 1335051,
+   "ts": 1789452564,
+   "out": 360608372,
+   "unused": 863334
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 50259,
+   "ts": 1789452572,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 1,
+   "ts": 1789452584,
+   "out": 758,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 3,
+   "ts": 1789452599,
+   "out": 2274,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 1,
+   "ts": 1789452617,
+   "out": 758,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 2358,
+   "ts": 1789452634,
+   "out": 1787774,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 3616,
+   "ts": 1789452648,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 14,
+   "ts": 1789452668,
+   "out": 10614,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 3426,
+   "ts": 1789452670,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 39293,
+   "ts": 1789452680,
+   "out": 29790937,
+   "unused": 0
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 81,
+   "ts": 1789452694,
+   "out": 61412,
+   "unused": 0
+  },
+  {
+   "venue": 1,
+   "sell": true,
+   "amountIn": 77920,
+   "ts": 1789452699,
+   "revert": "0xd6f8f89c"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 57461,
+   "ts": 1789452719,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 839054,
+   "ts": 1789452721,
+   "out": 1016,
+   "unused": 10958
+  },
+  {
+   "venue": 0,
+   "sell": true,
+   "amountIn": 23,
+   "ts": 1789452731,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 38834,
+   "ts": 1789452736,
+   "out": 29442935,
+   "unused": 0
+  },
+  {
+   "venue": 0,
+   "sell": false,
+   "amountIn": 2105,
+   "ts": 1789452751,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 32812,
+   "ts": 1789452770,
+   "out": 41,
+   "unused": 442
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 1537980141,
+   "ts": 1789452787,
+   "out": 548281,
+   "unused": 1114936716
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 27565,
+   "ts": 1789452805,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 13552259,
+   "ts": 1789452822,
+   "revert": "0xfe85bb51"
+  },
+  {
+   "venue": -1,
+   "sell": false,
+   "amountIn": 39114439,
+   "ts": 1789452840,
+   "revert": "0x77417454"
+  },
+  {
+   "venue": 1,
+   "sell": false,
+   "amountIn": 40792,
+   "ts": 1789452855,
+   "revert": "0x7c3fa3af"
+  },
+  {
+   "venue": -1,
+   "sell": true,
+   "amountIn": 1497503,
+   "ts": 1789452863,
+   "out": 421245488,
+   "unused": 946881
+  }
+ ],
+ "refresh": {
+  "address": "0xc0fdcb1799ccc2cebaa1fe247157b0df33d57572",
+  "exchange": "everlong-flamm",
+  "type": "everlong-flamm",
+  "reserves": [
+   "557309",
+   "33777594"
+  ],
+  "tokens": [
+   {
+    "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+    "swappable": true
+   },
+   {
+    "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"reads\":{\"block\":51330154,\"timestamp\":1789452863,\"pool\":{\"asset\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"router\":\"0x19a9b39e6710aad109c829294b0841f0851c6bb4\",\"priceFeed\":\"0xbed275459578c87a63f2f50a0b077c720e838816\",\"paused\":false,\"features\":\"63\",\"levPaused\":false,\"hooks\":[\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0xe0a98d8e60035832b8bad7f7af7b9b0b3a7308f3\",\"0x04988af54ec88d2de77b191025eaef2fe488f93b\",\"0x0000000000000000000000000000000000000000\"],\"physical\":\"79411\",\"gross\":\"557309\",\"totalSupply\":\"2194230000000000\",\"phiWad\":\"1000000000000000000\",\"ltvWad\":\"550000000000000000\",\"roomEpsilonWad\":\"100000000000000\",\"feeFloorWad\":\"0\",\"feeCapWad\":\"100000000000000000\",\"loans\":[{\"token\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"decimals\":6,\"swapPriceBandWad\":\"80000000000000000\",\"feeFloorWad\":\"0\",\"maxSwapNotional\":\"1000000000000\",\"reserveTarget\":\"0\",\"liquid\":\"0\"}],\"lastLeverSpreadPpm\":\"13000\"},\"hook\":{\"aWad\":\"34000000000000000000\",\"fee\":[\"30000000000000000\",\"5000000000000000\",\"50000000000000000\",\"400000000000000\",\"4000000000000000000\",\"500000000000000000\",\"2000000000000000000\",\"150000000000000000\"],\"invSkewKappaWad\":\"4000000000000000000\",\"invSkewBandWad\":\"60000000000000000\",\"support\":[\"34000000000000000000\",\"24096289941794299\",\"1099912607172170593\",\"24096289941794300\"],\"anchorSqrtX96\":\"2196067230099687190109974130321092041\",\"reservationPriceWad\":\"768302232848967000000000000000000\",\"kappa\":\"14186680060284\",\"xWad\":\"1099912607172170593\",\"reserveStable\":\"255204956\",\"idleStable\":\"7780473245992125910\",\"reserveVolatile\":\"550623\",\"idleVolatile\":\"6686\",\"rvWad\":\"0\",\"loanScale\":\"1000000000000\"},\"spread\":{\"spread\":\"13000\",\"maxSpreadAge\":\"0\",\"lastSetTs\":\"1789449475\"},\"feed\":{\"sequencerFeed\":\"0xbcf85224fc0756b9fa45aa7892530b47e10b6433\",\"sequencerGrace\":\"3600\",\"sequencer\":{\"ok\":true,\"roundId\":\"18446744073709551636\",\"answer\":\"0\",\"startedAt\":\"1782491507\",\"updatedAt\":\"1789405581\"},\"tokens\":[{\"token\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"known\":true,\"heartbeat\":\"3600\",\"scale\":\"10000000000\",\"unit\":\"100000000\",\"pegBandWad\":\"0\",\"round\":{\"ok\":true,\"roundId\":\"36893488147419118067\",\"answer\":\"7732306209135\",\"startedAt\":\"1789449274\",\"updatedAt\":\"1789449289\"}},{\"token\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"known\":true,\"heartbeat\":\"90000\",\"scale\":\"10000000000\",\"unit\":\"1000000\",\"pegBandWad\":\"10000000000000000\",\"round\":{\"ok\":true,\"roundId\":\"55340232221128654874\",\"answer\":\"99983415\",\"startedAt\":\"1789389705\",\"updatedAt\":\"1789389719\"}}]},\"router\":{\"globalPaused\":false,\"pinLtvWad\":\"550000000000000000\",\"safetyGapWad\":\"20000000000000000\",\"oracleBandWad\":\"20000000000000000\",\"maxDrawnAssets\":1,\"loans\":[{\"decimals\":6,\"loanScale\":\"1000000000000\",\"debtCap\":\"0\",\"supplyCap\":\"0\",\"borrowEnabled\":true,\"retired\":false}],\"borrowOrder\":[0],\"supplyOrder\":[0],\"withdrawOrder\":[0],\"repayOrder\":[0],\"venues\":[{\"kind\":0,\"loanIndex\":0,\"lltvWad\":\"860000000000000000\",\"borrowEnabled\":true,\"supplyEnabled\":true,\"retired\":false,\"debtCap\":\"1500000000000\",\"supplyCap\":\"2000000000000\",\"maxBorrowRateWad\":\"7386586395\",\"managedCollateral\":\"477898\",\"managedSupplyShares\":\"874153\",\"market\":{\"tsa\":\"1570136116104456\",\"tss\":\"1420354885130102258930\",\"tba\":\"1413051981764765\",\"tbs\":\"1262217733879522621695\",\"lastUpdate\":\"1789452863\",\"fee\":\"0\"},\"position\":{\"supplyShares\":\"874153\",\"borrowShares\":\"181574310813800\",\"collateral\":\"477898\"},\"irm\":\"0x46415998764c29ab2a25cbea6254146d50d22687\",\"marketLltv\":\"860000000000000000\",\"rateAtTarget\":\"1476170476\",\"hasIrm\":true,\"irmReadable\":true,\"oracleOk\":true,\"oraclePrice\":\"773851103090100000000000000000000000000\",\"oracleZero\":false}]}},\"venues\":[{\"account\":\"0x6760e3b032ee2d670cb684d9076b8f48cb066c48\",\"marketId\":\"0x9103c3b4e834476c9a62ea009ba2c884ee42e94e6e314a26f04d312434191836\",\"oracle\":\"0x663becd10dae6c4a3dcd89f1d76c1174199639b9\",\"irm\":\"0x46415998764c29ab2a25cbea6254146d50d22687\",\"lltv\":\"860000000000000000\"}],\"attested\":true,\"probes\":17,\"policy\":{\"leverRouting\":true}}",
+  "staticExtra": "{\"profileVersion\":1,\"chainId\":8453,\"factory\":\"0x1bfce014774d0dd7e04bc595d46fa09f7dccf45f\",\"implementation\":\"0xaad580beaa2cbd8ab5f3956a5c56eda1d5ee7184\",\"router\":\"0x19a9b39e6710aad109c829294b0841f0851c6bb4\",\"priceFeed\":\"0xbed275459578c87a63f2f50a0b077c720e838816\",\"morpho\":\"0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb\",\"poolAsset\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"loanAsset\":\"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\",\"hooks\":[\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0x65cbd227cbc61248ae77a5fc813a29c54c092134\",\"0xe0a98d8e60035832b8bad7f7af7b9b0b3a7308f3\",\"0x04988af54ec88d2de77b191025eaef2fe488f93b\",\"0x0000000000000000000000000000000000000000\"],\"sequencerFeed\":\"0xbcf85224fc0756b9fa45aa7892530b47e10b6433\",\"aggregators\":[\"0x07da0e54543a844a80abe69c8a12f22b3aa59f9d\",\"0x7e860098f58bbfc8648a4311b374b1d669a2bc6b\"],\"heartbeats\":[3600,90000],\"listedBlock\":51330060}",
+  "blockNumber": 51330154
+ }
+}

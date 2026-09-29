@@ -45,17 +45,17 @@ func NewVaultScanner(
 	}
 }
 
-func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, error) {
-	vault, err := vs.vaultReader.Read(ctx, address)
+func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, *big.Int, error) {
+	vault, blockNumber, err := vs.vaultReader.Read(ctx, address)
 	if err != nil {
 		vs.log.Errorf("error when vaultReader read: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	usdb, err := vs.usdbReader.Read(ctx, vault.USDBAddress.String())
 	if err != nil {
 		vs.log.Errorf("error when usdbReader read: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	vault.USDB = usdb
@@ -63,12 +63,12 @@ func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, e
 	vaultPriceFeed, err := vs.getVaultPriceFeed(ctx, vault.PriceFeedAddress.String(), vault.WhitelistedTokens)
 	if err != nil {
 		vs.log.Errorf("error when get vaultPriceFeed: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	vault.PriceFeed = vaultPriceFeed
 
-	return vault, nil
+	return vault, blockNumber, nil
 }
 
 // ================================================================================

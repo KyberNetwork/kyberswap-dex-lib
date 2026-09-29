@@ -88,6 +88,8 @@ type FetchRPCResult struct {
 	poolState      PoolState
 	reserve0       *big.Int
 	reserve1       *big.Int
+	blockNumber    uint64
+	hasBlockNumber bool
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

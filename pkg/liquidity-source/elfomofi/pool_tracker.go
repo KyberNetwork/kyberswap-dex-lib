@@ -81,10 +81,11 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	_, err := req.TryAggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return entity.Pool{}, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	// Scale samples with buffer
 	buffer := big.NewInt(t.config.Buffer)

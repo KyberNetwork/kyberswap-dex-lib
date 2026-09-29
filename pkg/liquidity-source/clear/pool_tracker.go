@@ -92,13 +92,15 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 	}
 
-	if _, err := req.TryAggregate(); err != nil {
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("[Clear] failed to call previewSwap")
 		return entity.Pool{}, nil
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	hasSwap := make([]bool, len(p.Tokens))
 	for i, o := range output {

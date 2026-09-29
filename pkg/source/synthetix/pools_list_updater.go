@@ -60,11 +60,12 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pool := entity.Pool{
-		Address:  poolAddress,
-		Exchange: d.cfg.DexID,
-		Type:     DexTypeSynthetix,
-		Tokens:   poolTokens,
-		Reserves: reserves,
+		Address:     poolAddress,
+		Exchange:    d.cfg.DexID,
+		Type:        DexTypeSynthetix,
+		Tokens:      poolTokens,
+		Reserves:    reserves,
+		BlockNumber: poolState.BlockNumber,
 	}
 
 	d.hasInitialized = true

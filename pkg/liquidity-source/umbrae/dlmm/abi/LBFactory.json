@@ -1,16 +1,58 @@
 [
-  { "type": "function", "name": "allPairsLength", "stateMutability": "view", "inputs": [], "outputs": [{ "name": "", "type": "uint256" }] },
   {
-    "type": "function", "name": "allPairs", "stateMutability": "view",
-    "inputs": [{ "name": "index", "type": "uint256" }],
-    "outputs": [{ "name": "", "type": "address" }]
+    "type": "function",
+    "name": "allPairs",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    "type": "function", "name": "getVariableFeeCap", "stateMutability": "view",
-    "inputs": [
-      { "name": "binStep", "type": "uint16" },
-      { "name": "baseFee", "type": "uint16" }
+    "type": "function",
+    "name": "allPairsLength",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    "outputs": [{ "name": "variableFeeCap", "type": "uint16" }]
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getVariableFeeCap",
+    "inputs": [
+      {
+        "name": "binStep",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "baseFee",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "variableFeeCap",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
   }
 ]

@@ -56,7 +56,7 @@ func (r *VaultPriceFeedReader) readData(
 	var bnb, btc, eth common.Address
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNB, nil), []any{&bnb})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNBBUSD, nil), []any{&vaultPriceFeed.BNBBUSDAddress})
@@ -100,7 +100,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 	isAdjustmentAdditive := make([]bool, tokensLen)
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)

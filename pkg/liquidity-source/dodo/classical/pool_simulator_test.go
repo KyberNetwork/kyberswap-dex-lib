@@ -264,6 +264,24 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	}
 }
 
+func TestPoolSimulator_MetaInfoIncludesBlockNumber(t *testing.T) {
+	poolEntity := entity.Pool{
+		Address:     "0x0000000000000000000000000000000000000001",
+		Exchange:    PoolType,
+		Type:        PoolType,
+		BlockNumber: 12345,
+		Tokens:      []*entity.PoolToken{{Address: "0x0000000000000000000000000000000000000002"}, {Address: "0x0000000000000000000000000000000000000003"}},
+		StaticExtra: `{"type":"CLASSICAL"}`,
+		Extra:       `{"B":"1000","Q":"1000","B0":"1000","Q0":"1000","rStatus":1,"oraclePrice":"1","k":"1","mtFeeRate":"1","lpFeeRate":"1","tradeAllowed":true,"sellingAllowed":true,"buyingAllowed":true,"swappable":true}`,
+	}
+
+	simulator, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+	meta, ok := simulator.GetMetaInfo("", "").(Meta)
+	require.True(t, ok)
+	assert.Equal(t, poolEntity.BlockNumber, meta.BlockNumber)
+}
+
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	pools := []string{

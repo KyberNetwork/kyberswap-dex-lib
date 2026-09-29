@@ -3,7 +3,7 @@ package reth
 import "math/big"
 
 type PoolMeta struct {
-	BlockNumber     uint64 `json:"blockNumber,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 	DAOSettings     string `json:"daoSettings,omitempty"`
 }

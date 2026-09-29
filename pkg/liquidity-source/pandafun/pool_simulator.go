@@ -51,6 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 					func(item *entity.PoolToken, index int) string { return item.Address }),
 				Reserves: lo.Map(entityPool.Reserves,
 					func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 
@@ -196,5 +197,5 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }

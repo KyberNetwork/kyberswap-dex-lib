@@ -138,7 +138,7 @@ func getPoolExtra(
 	}, []any{&poolExtra.EETH.TotalShares})
 
 	// Call RPC
-	resp, err := r.TryAggregate()
+	resp, err := r.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

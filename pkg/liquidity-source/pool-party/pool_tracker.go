@@ -70,7 +70,7 @@ func (d *PoolTracker) GetNewPoolState(
 		},
 	}, []any{&balanceOf})
 
-	res, err := req.TryAggregate()
+	res, err := req.TryBlockAndAggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,

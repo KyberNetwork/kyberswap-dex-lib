@@ -55,4 +55,5 @@ type Meta struct {
 	TokenOutIndex int    `json:"tokenOutIndex"`
 	PoolLength    int    `json:"poolLength"`
 	LpToken       string `json:"lpToken"`
+	BlockNumber   uint64 `json:"blockNumber"`
 }

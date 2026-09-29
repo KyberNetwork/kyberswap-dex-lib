@@ -42,7 +42,7 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	log.Info("Start getting new state of pool")
 
-	vault, err := NewVaultScanner(d.config, d.ethrpcClient).getVault(ctx, p.Address)
+	vault, blockNumber, err := NewVaultScanner(d.config, d.ethrpcClient).getVault(ctx, p.Address)
 	if err != nil {
 		log.Errorf("get vault failed: %v", err)
 		return entity.Pool{}, fmt.Errorf("get vault failed, pool: %s, err: %v", p.Address, err)
@@ -73,6 +73,9 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 	p.Reserves = reserves
 	p.Tokens = poolTokens
 	p.Timestamp = time.Now().Unix()

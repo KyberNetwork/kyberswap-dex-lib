@@ -22,6 +22,7 @@ type SwapInfo struct {
 }
 
 type PoolMeta struct {
+	BlockNumber uint64 `json:"blockNumber"`
 	Dex         string `json:"dex"`
 	ZeroForOne  bool   `json:"zeroForOne,omitempty"`
 	DexType     uint32 `json:"dexType"`

@@ -126,7 +126,7 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 			Params: nil,
 		}, []any{&poolStates[i].Assets})
 	}
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 				}
 			})...,
 		)
-		return entity.Pool{
+		pool := entity.Pool{
 			Address:   addresses[i],
 			Exchange:  cfg.DexID,
 			Type:      DexType,
@@ -176,6 +176,10 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 			Reserves:  lo.Map(tokens, func(token *entity.PoolToken, _ int) string { return defaultReserve }),
 			Extra:     extras[i],
 		}
+		if resp.BlockNumber != nil {
+			pool.BlockNumber = resp.BlockNumber.Uint64()
+		}
+		return pool
 	})
 
 	return TrackPools(ctx, pools, rpcClient)
@@ -208,7 +212,7 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 		}, []any{&poolStates[i].Fee})
 	}
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -234,6 +238,9 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 			return nil, err
 		}
 		pools[i].Extra = string(bytes)
+		if resp.BlockNumber != nil {
+			pools[i].BlockNumber = resp.BlockNumber.Uint64()
+		}
 	}
 	return pools, nil
 }

@@ -1,5 +1,7 @@
 package valueobject
 
+import "strings"
+
 type Exchange string
 
 const (
@@ -14,6 +16,7 @@ const (
 	ExchangeArberaStake                 = "arbera-stake"
 	ExchangeArberaZap                   = "arbera-zap"
 	ExchangeArbiDex                     = "arbi-dex"
+	ExchangeArcadeFun                   = "arcade-fun"
 	ExchangeArenaBC                     = "arena-bc"
 	ExchangeAstroSwap                   = "astroswap"
 	ExchangeAxial                       = "axial"
@@ -84,6 +87,7 @@ const (
 	ExchangeCurveTwoCryptoNg            = "curve-twocrypto-ng"
 	ExchangeCUSD                        = "cusd"
 	ExchangeDaiUsds                     = "dai-usds"
+	ExchangeDeepstateOb                 = "deepstate-ob"
 	ExchangeDeltaSwapV1                 = "deltaswap-v1"
 	ExchangeDexalot                     = "dexalot"
 	ExchangeDinoSwap                    = "dinoswap"
@@ -110,18 +114,24 @@ const (
 	ExchangeEtherVista                  = "ether-vista"
 	ExchangeEulerSwap                   = "euler-swap"
 	ExchangeEulerSwapV2                 = "euler-swap-v2"
+	ExchangeEverlongFlamm               = "everlong-flamm"
 	ExchangeFakePool                    = "fake-pool"
 	ExchangeFeltir                      = "feltir"
 	ExchangeFermi                       = "fermi"
 	ExchangeFermiProp                   = "fermi-prop"
+	ExchangeFlap                        = "flap"
+	ExchangeFlowstateC1                 = "flowstate-c1"
 	ExchangeFluidDexLite                = "fluid-dex-lite"
 	ExchangeFluidDexT1                  = "fluid-dex-t1"
 	ExchangeFluidDexV2                  = "fluid-dex-v2"
 	ExchangeFluidVaultT1                = "fluid-vault-t1"
 	ExchangeFluidATokenSwap             = "fluid-atoken-swap"
+	ExchangeFluxProp                    = "flux-prop"
 	ExchangeFrxETH                      = "frxeth"
 	ExchangeFrxUSD                      = "frxusd"
+	ExchangeGblin                       = "gblin"
 	ExchangeGenericArm                  = "generic-arm"
+	ExchangeGeniusFun                   = "genius-fun"
 	ExchangeGigaV2                      = "giga-v2"
 	ExchangeGOHM                        = "gohm"
 	ExchangeGravity                     = "gravity"
@@ -152,19 +162,25 @@ const (
 	ExchangeKyberPMM                    = "kyber-pmm"
 	ExchangeKipseliProp                 = "kipseli-prop"
 	ExchangeKipseliPamm                 = "kipseli-pamm"
+	ExchangeKaliberProp                 = "kaliber-prop"
+	ExchangeKaliberRwaProp              = "kaliber-rwa-prop"
 	ExchangeKyberSwapLimitOrder         = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS       = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                  = "liquidcore"
 	ExchangeLiquidityParty              = "liquidity-party"
 	ExchangeListaStable                 = "lista-stable"
+	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
 	ExchangeLO1inch                     = "lo1inch"
 	ExchangeLunarBase                   = "lunarbase"
+	ExchangeLunya                       = "lunya"
+	ExchangeLunyaFun                    = "lunya-fun"
 	ExchangeMakerLido                   = "lido"
 	ExchangeMakerLidoStETH              = "lido-steth"
 	ExchangeMachima                     = "machima"
 	ExchangeMakerPSM                    = "maker-psm"
 	ExchangeMakerSavingsDai             = "maker-savingsdai"
+	ExchangeMantaProp                   = "manta-prop"
 	ExchangeMantisSwap                  = "mantisswap"
 	ExchangeCmETH                       = "cmeth"
 	ExchangeMantleETH                   = "meth"
@@ -188,6 +204,7 @@ const (
 	ExchangeNativeV1                    = "native-v1"
 	ExchangeNativeV2                    = "native-v2"
 	ExchangeNativeV3                    = "native-v3"
+	ExchangeNetStaking                  = "net-staking"
 	ExchangeNomiswap                    = "nomiswap"
 	ExchangeObric                       = "obric"
 	ExchangeOETH                        = "oeth"
@@ -206,6 +223,7 @@ const (
 	ExchangePancakeInfinityCLDynamic    = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow   = "pancake-infinity-cl-fairflow"
 	ExchangePancakeInfinityCLFeeManager = "pancake-infinity-cl-feemanager"
+	ExchangePancakeInfinityCLGeniusMeme = "pancake-infinity-cl-geniusmeme"
 	ExchangePancakeInfinityCLLO         = "pancake-infinity-cl-lo"
 	ExchangePancakeInfinityCLStable     = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax        = "pancake-infinity-cl-tax"
@@ -214,6 +232,7 @@ const (
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
 	ExchangeParallelParallelizer        = "parallel-parallelizer"
+	ExchangeParityProp                  = "parity-prop"
 	ExchangePharaoh2                    = "pharaoh-2"
 	ExchangePlatypus                    = "platypus"
 	ExchangePmm1                        = "pmm-1"
@@ -236,8 +255,10 @@ const (
 	ExchangePoe                         = "poe"
 	ExchangePoolParty                   = "pool-party"
 	ExchangePrimeETH                    = "primeeth"
+	ExchangePrismProp                   = "prism-prop"
 	ExchangePufferPufETH                = "puffer-pufeth"
 	ExchangeRamses                      = "ramses"
+	ExchangeRangeV3Weighted             = "range-v3-weighted"
 	ExchangeRenzoEZETH                  = "renzo-ezeth"
 	ExchangeRingSwap                    = "ringswap"
 	ExchangeRocketPoolRETH              = "rocketpool-reth"
@@ -255,8 +276,10 @@ const (
 	ExchangeSomeSwapV2                  = "someswap-v2"
 	ExchangeSonicMarket                 = "sonic-market"
 	ExchangeSPendle                     = "spendle"
+	ExchangeSlyngFun                    = "slyng-fun"
 	ExchangeSpookySwap                  = "spookyswap"
 	ExchangeStaderETHx                  = "staderethx"
+	ExchangeStonkbrokersFunV2           = "stonkbrokers-fun-v2"
 	ExchangeSuperlendV3                 = "superlend-v3"
 	ExchangeSushiSwap                   = "sushiswap"
 	ExchangeSwaapV2                     = "swaap-v2"
@@ -268,9 +291,12 @@ const (
 	ExchangeSyncSwapV2Aqua              = "syncswapv2-aqua"
 	ExchangeSyncSwapV2Classic           = "syncswapv2-classic"
 	ExchangeSyncSwapV2Stable            = "syncswapv2-stable"
+	ExchangeSynthereum                  = "synthereum"
 	ExchangeSynthetix                   = "synthetix"
 	ExchangeTessera                     = "tessera"
 	ExchangeThenaFusionV3               = "thena-fusion-v3"
+	ExchangeThogProp                    = "thog-prop"
+	ExchangeTideFiProp                  = "tidefi-prop"
 	ExchangeUmbraeDamm                  = "umbrae-damm"
 	ExchangeUmbraeDlmm                  = "umbrae-dlmm"
 	ExchangeUniPool                     = "unipool"
@@ -285,23 +311,39 @@ const (
 	ExchangeUniswapV4Alphix             = "uniswap-v4-alphix"
 	ExchangeUniswapV4Angstrom           = "uniswap-v4-angstrom"
 	ExchangeUniswapV4AngstromL2         = "uniswap-v4-angstrom-l2"
+	ExchangeUniswapV4Arcade             = "uniswap-v4-arcade"
 	ExchangeUniswapV4Arena              = "uniswap-v4-arena"
 	ExchangeUniswapV4Arrakis            = "uniswap-v4-arrakis"
+	ExchangeUniswapV4B20                = "uniswap-v4-b20"
 	ExchangeUniswapV4BunniV2            = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Cashcat            = "uniswap-v4-cashcat"
 	ExchangeUniswapV4Clanker            = "uniswap-v4-clanker"
+	ExchangeUniswapV4CooCoo             = "uniswap-v4-coocoo"
 	ExchangeUniswapV4Cult               = "uniswap-v4-cult"
 	ExchangeUniswapV4Deli               = "uniswap-v4-deli"
 	ExchangeUniswapV4Doppler            = "uniswap-v4-doppler"
+	ExchangeUniswapV4DualPool           = "uniswap-v4-dualpool"
 	ExchangeUniswapV4Euler              = "uniswap-v4-euler"
 	ExchangeUniswapV4EulerV2            = "uniswap-v4-euler-v2"
+	ExchangeUniswapV4EVPLUSAI           = "uniswap-v4-evplusai"
+	ExchangeUniswapV4Fables             = "uniswap-v4-fables"
 	ExchangeUniswapV4FairFlow           = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch            = "uniswap-v4-flaunch"
+	ExchangeUniswapV4GlueHook           = "uniswap-v4-gluehook"
+	ExchangeUniswapV4Inverse            = "uniswap-v4-inverse"
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
+	ExchangeUniswapV4Mofo               = "uniswap-v4-mofo"
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
+	ExchangeUniswapV4O1                 = "uniswap-v4-o1"
+	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
+	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
+	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
+	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
+	ExchangeUniswapV4StablesFast        = "uniswap-v4-stables-fast"
 	ExchangeUniswapV4Zora               = "uniswap-v4-zora"
 	ExchangeUsd0PP                      = "usd0pp"
 	ExchangeUsdAi                       = "usd-ai"
@@ -330,6 +372,10 @@ const (
 	ExchangeBaseline                    = "baseline"
 	ExchangeBopAMM                      = "bop-amm"
 	ExchangePonsFun                     = "pons-fun"
+	ExchangePonsV2                      = "pons-v2"
+	ExchangePrmFun                      = "prm-fun"
+	ExchangeTitanProp                   = "titan-prop"
+	ExchangeOdysFun                     = "odys-fun"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -361,9 +407,15 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapLO:  {},
 }
 
+// pmmSourcePrefix matches the "pmm-N" generic maker slot family, so a newly onboarded pmm-N
+// is classified as an RFQ source purely by config (no dex-lib release needed for the next N).
+const pmmSourcePrefix = "pmm-"
+
 func IsRFQSource[T ~string](exchange T) bool {
-	_, ok := RFQSourceSet[Exchange(exchange)]
-	return ok
+	if _, ok := RFQSourceSet[Exchange(exchange)]; ok {
+		return true
+	}
+	return strings.HasPrefix(string(exchange), pmmSourcePrefix)
 }
 
 // needFallbackSourceSet is a set of exchanges that
@@ -385,21 +437,35 @@ func NeedsFallbackSource[T ~string](exchange T) bool {
 	return IsRFQSource(exchange)
 }
 
+// PropAMMSourceSet is ordered by integration time (oldest first).
 var PropAMMSourceSet = map[Exchange]struct{}{
-	Exchange1010Prop:      {},
-	ExchangeWildcard:      {},
-	ExchangeTessera:       {},
-	ExchangeElfomofi:      {},
-	ExchangeAximaV2:       {},
-	ExchangeMetricPropAMM: {},
-	ExchangeKipseliProp:   {},
-	ExchangeKipseliPamm:   {},
-	ExchangeWasabiProp:    {},
-	ExchangeObric:         {},
-	ExchangePoe:           {},
-	ExchangeFermi:         {},
-	ExchangeBopAMM:        {},
-	ExchangeGhost:         {},
+	ExchangeTessera:            {},
+	ExchangeElfomofi:           {},
+	ExchangeWildcard:           {},
+	ExchangeKipseliProp:        {},
+	ExchangeWasabiProp:         {},
+	ExchangeAximaV2:            {},
+	ExchangeObric:              {},
+	ExchangePoe:                {},
+	ExchangeFermi:              {},
+	ExchangeCapricornPamm:      {},
+	ExchangeKipseliPamm:        {},
+	ExchangeBopAMM:             {},
+	ExchangeCaliberProp:        {},
+	ExchangeKaliberProp:        {},
+	ExchangeKaliberRwaProp:     {},
+	Exchange1010Prop:           {},
+	ExchangeGhost:              {},
+	ExchangeMetricPropAMM:      {},
+	ExchangeFermiProp:          {},
+	ExchangeUniswapV4AegisProp: {},
+	ExchangeFluxProp:           {},
+	ExchangeTitanProp:          {},
+	ExchangeParityProp:         {},
+	ExchangePrismProp:          {},
+	ExchangeMantaProp:          {},
+	ExchangeTideFiProp:         {},
+	ExchangeThogProp:           {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

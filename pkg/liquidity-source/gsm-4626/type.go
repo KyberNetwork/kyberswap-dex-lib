@@ -17,6 +17,8 @@ type Extra struct {
 	CurrentExposure *uint256.Int `json:"currentExposure"`
 	ExposureCap     *uint256.Int `json:"exposureCap"`
 	Rate            *uint256.Int `json:"rate"`
+	GhoLimit        *uint256.Int `json:"ghoLimit"`
+	GhoUsed         *uint256.Int `json:"ghoUsed"`
 }
 
 type Meta struct {
@@ -24,5 +26,6 @@ type Meta struct {
 }
 
 type SwapInfo struct {
-	IsBuy bool `json:"isBuy"`
+	IsBuy       bool         `json:"isBuy"`
+	GrossAmount *uint256.Int `json:"grossAmount"`
 }

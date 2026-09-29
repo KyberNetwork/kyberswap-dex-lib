@@ -65,7 +65,7 @@ func (t *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
-	_ map[common.Address]gethclient.OverrideAccount,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
@@ -80,7 +80,16 @@ func (t *PoolTracker) getNewPoolState(
 	var issuanceSettings issuanceSettings
 	var components, externalPositionModules []common.Address
 	var totalSupply, totalAsset, componentHyethBalance, maxDeposit, maxRedeem, defaultPositionRealUnit, hyethTotalSupply *big.Int
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	var blockNumber *big.Int
+	newRequest := func() *ethrpc.Request {
+		request := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+		if blockNumber != nil {
+			request.SetBlockNumber(blockNumber)
+		}
+		return request
+	}
+
+	calls := newRequest()
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
@@ -99,10 +108,11 @@ func (t *PoolTracker) getNewPoolState(
 			Method: "totalSupply",
 			Params: []any{},
 		}, []any{&hyethTotalSupply})
-	_, err := calls.Aggregate()
+	response, err := calls.Aggregate()
 	if err != nil {
 		return p, err
 	}
+	blockNumber = response.BlockNumber
 
 	if len(components) != 1 {
 		// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/src/contracts/executor-helpers/ExecutorHelper9.sol#L473
@@ -114,6 +124,9 @@ func (t *PoolTracker) getNewPoolState(
 			return p, err
 		}
 		p.Extra = string(extraBytes)
+		if blockNumber != nil {
+			p.BlockNumber = blockNumber.Uint64()
+		}
 		p.Timestamp = time.Now().Unix()
 		logger.WithFields(logger.Fields{
 			"exchange": p.Exchange,
@@ -123,7 +136,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls = newRequest()
 	calls.
 		AddCall(&ethrpc.Call{
 			ABI:    issuanceModuleABI,
@@ -178,7 +191,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	externalPositionRealUnits := make([]*big.Int, len(externalPositionModules))
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls = newRequest()
 	for i, module := range externalPositionModules {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    hyethABI,
@@ -215,6 +228,9 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{totalSupply.String(), totalAsset.String()}
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 	p.Timestamp = time.Now().Unix()
 	logger.WithFields(logger.Fields{
 		"exchange": p.Exchange,

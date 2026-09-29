@@ -174,7 +174,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return PoolMetaInfo{}
+	return PoolMetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobject.ChainID) bool {

@@ -93,7 +93,7 @@ func (t *PoolTracker) getExtra(ctx context.Context, overrides map[gethcommon.Add
 		Params: []any{},
 	}, []any{&totalShares})
 
-	resp, err := getPoolStateRequest.TryAggregate()
+	resp, err := getPoolStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

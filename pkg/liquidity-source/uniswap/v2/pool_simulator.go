@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -199,6 +201,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 			ApprovalAddress: lo.CoalesceOrEmpty(s.Router, routerAddressByExchange[exchange]),
 			RouterSelector:  s.Selector,
 			NoFOT:           noFOTByExchange[exchange],
+			BlockNumber:     s.Info.BlockNumber,
 		},
 	}
 }

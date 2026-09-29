@@ -84,7 +84,8 @@ func (d *PoolTracker) GetNewPoolState(
 		Method: "getA",
 		Params: nil,
 	}, []any{&A})
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
 			"error":   err,
@@ -109,6 +110,7 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,

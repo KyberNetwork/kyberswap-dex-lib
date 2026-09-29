@@ -51,8 +51,9 @@ type (
 	}
 
 	PoolSimulatorMetadata struct {
-		FromID int `json:"fromId"`
-		ToID   int `json:"toId"`
+		FromID      int    `json:"fromId"`
+		ToID        int    `json:"toId"`
+		BlockNumber uint64 `json:"blockNumber"`
 	}
 
 	Gas struct {
@@ -76,11 +77,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-				Reserves: lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+				Address:     entityPool.Address,
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
+				Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 
@@ -169,8 +171,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return PoolSimulatorMetadata{
-		FromID: s.indexByToken[tokenIn],
-		ToID:   s.indexByToken[tokenOut],
+		FromID:      s.indexByToken[tokenIn],
+		ToID:        s.indexByToken[tokenOut],
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

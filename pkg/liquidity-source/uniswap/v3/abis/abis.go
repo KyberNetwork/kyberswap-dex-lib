@@ -13,12 +13,11 @@ var (
 	// inputs, identical across all forks) and to unpack the "standard" 7-word slot0()
 	// shape shared by uniswap-v3/pancake-v3/ramses-v2/nuri-v2.
 	UniswapV3PoolABI abi.ABI
-	// Slot0SlipstreamABI and Slot0SolidlyABI unpack the two other slot0() shapes seen
-	// across uniswap-v3 forks. Try standard, then slipstream, then solidly (longest to
-	// shortest): a shorter ABI can silently "succeed" against longer returndata by
-	// reading the wrong bytes into its last field(s) instead of erroring, since
-	// go-ethereum's abi decoder only errors on insufficient data, not on unconsumed
-	// trailing bytes. Trying longest first prevents that misdecode.
+	// Slot0KatanaABI, Slot0SlipstreamABI, and Slot0SolidlyABI unpack the other slot0()
+	// shapes seen across uniswap-v3 forks. Try katana (8-word), then standard (7-word),
+	// then slipstream (6-word), then solidly (4-word) - longest to shortest to prevent
+	// silent misdecode of trailing bytes.
+	Slot0KatanaABI     abi.ABI
 	Slot0SlipstreamABI abi.ABI
 	Slot0SolidlyABI    abi.ABI
 
@@ -32,6 +31,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
+		{&Slot0KatanaABI, slot0KatanaJson},
 		{&UniswapV3PoolABI, uniswapV3PoolJson},
 		{&Slot0SlipstreamABI, slot0SlipstreamJson},
 		{&Slot0SolidlyABI, slot0SolidlyJson},

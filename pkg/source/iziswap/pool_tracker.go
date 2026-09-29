@@ -78,7 +78,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	g.Go(func(context.Context) error {
 		var err error
-		liquidityPointData, err = d.getLiquiditySnapshot(ctx, p, poolInfo)
+		liquidityPointData, err = d.getLiquiditySnapshot(ctx, p, poolInfo, rpcData.blockNumber)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -88,7 +88,7 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	g.Go(func(context.Context) error {
 		var err error
-		limitOrderPointData, err = d.getLimitOrderSnapshot(ctx, p, poolInfo)
+		limitOrderPointData, err = d.getLimitOrderSnapshot(ctx, p, poolInfo, rpcData.blockNumber)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -118,6 +118,9 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 
 	p.Timestamp = time.Now().Unix()
+	if rpcData.blockNumber != nil {
+		p.BlockNumber = rpcData.blockNumber.Uint64()
+	}
 	p.Reserves = entity.PoolReserves{
 		rpcData.reserve0.String(),
 		rpcData.reserve1.String(),
@@ -157,7 +160,7 @@ func (d *PoolTracker) fetchPoolState(ctx context.Context, p entity.Pool) (FetchR
 			Params: []any{common.HexToAddress(p.Address)},
 		}, []any{&reserve1})
 	}
-	_, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -167,9 +170,10 @@ func (d *PoolTracker) fetchPoolState(ctx context.Context, p entity.Pool) (FetchR
 	}
 
 	return FetchRPCResult{
-		state:    state,
-		reserve0: reserve0,
-		reserve1: reserve1,
+		state:       state,
+		reserve0:    reserve0,
+		reserve1:    reserve1,
+		blockNumber: resp.BlockNumber,
 	}, err
 
 }

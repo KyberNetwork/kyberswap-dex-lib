@@ -5,8 +5,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type GetReservesResult struct {
@@ -64,8 +62,8 @@ type Extra struct {
 	Conf1    *uint256.Int `json:"c1,omitempty"` // Pyth confidence of token1
 	AmmPrice *uint256.Int `json:"am,omitempty"` // on-chain AMM relative price Q64 (quote/base), 0 if no valid pool
 
-	PriceUpdateData []byte `json:"u,omitempty"`
-	PythTimestamp   int64  `json:"pt,omitempty"`
+	PriceUpdateData [][]byte `json:"u,omitempty"`
+	PythTimestamp   int64    `json:"pt,omitempty"`
 }
 
 // StaticExtra holds infrequently-changing pool configuration (updated hourly).
@@ -79,13 +77,14 @@ type StaticExtra struct {
 
 // SwapInfo is returned to the on-chain executor.
 type SwapInfo struct {
-	PriceUpdateData []byte `json:"u,omitempty"`
+	PriceUpdateData [][]byte `json:"u,omitempty"`
 }
 
 // PoolMeta carries approval and fee metadata.
 type PoolMeta struct {
-	pool.ApprovalInfo
-	Fee uint32 `json:"fee,omitempty"`
+	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	Fee             uint32 `json:"fee,omitempty"`
 }
 
 type PythUpdateData struct {

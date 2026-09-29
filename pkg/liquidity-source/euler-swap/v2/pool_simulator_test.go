@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -41,4 +42,69 @@ func TestPoolSimulator_InsolvencyReproduction(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected insolvency error, but got result: %v", result.TokenAmountOut.Amount.String())
 	}
+}
+
+// whitelistedHookPoolData is mainnet pool 0x8d67f3ae412d2dfa702a5c6ce96d1f98f447a8a8
+// (cbBTC/USDT), whose dynamic params point at the access-control swap hook
+// 0x4b18f757c90856718de70be35af6683b44bf72ca with ops BeforeSwap|GetFee.
+const whitelistedHookPoolData = `{"address":"0x8d67f3ae412d2dfa702a5c6ce96d1f98f447a8a8","exchange":"uniswap-v4-euler-v2","type":"euler-swap-v2","timestamp":1787507311,"reserves":["79597070109","61425577806424"],"tokens":[{"address":"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf","symbol":"cbBTC","decimals":8,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"er0\":\"79597070109\",\"er1\":\"61425577806424\",\"mr0\":\"2316051\",\"mr1\":\"1500000000\",\"px\":\"60783830856435\",\"py\":\"78808980306\",\"cx\":\"500000000000000000\",\"cy\":\"500000000000000000\",\"f0\":\"3000000000000000\",\"f1\":\"3000000000000000\",\"sho\":3,\"sh\":\"0x4b18f757c90856718de70be35af6683b44bf72ca\",\"p\":1,\"sv\":[{\"c\":\"122521492\",\"d\":\"0\",\"mD\":\"49855466052\",\"tB\":\"22012455\",\"eAA\":\"8357\",\"bC\":\"42500000000\",\"dP\":\"772757048144300\",\"vP\":[\"772757048144300\",\"999950590000\"],\"vVP\":[\"772757048144300\",\"999950590000\"],\"ltv\":[0,8000],\"vLtv\":[0,8000]},{\"c\":\"11403020538\",\"d\":\"0\",\"mD\":\"49674157145008\",\"tB\":\"314439834453\",\"eAA\":\"1766592\",\"bC\":\"45000000000000\",\"dP\":\"999950590000\",\"vP\":[\"772757048144300\",\"999950590000\"],\"vVP\":[\"772757048144300\",\"999950590000\"],\"ltv\":[8400,0],\"vLtv\":[8400,0]}],\"bv\":[{\"c\":\"122521492\",\"d\":\"0\",\"mD\":\"49855466052\",\"tB\":\"22012455\",\"eAA\":\"8357\",\"bC\":\"42500000000\",\"dP\":\"772757048144300\",\"vP\":[\"772757048144300\",\"999950590000\"],\"vVP\":[\"772757048144300\",\"999950590000\"],\"ltv\":[0,8000],\"vLtv\":[0,8000]},{\"c\":\"11403020538\",\"d\":\"0\",\"mD\":\"49674157145008\",\"tB\":\"314439834453\",\"eAA\":\"1766592\",\"bC\":\"45000000000000\",\"dP\":\"999950590000\",\"vP\":[\"772757048144300\",\"999950590000\"],\"vVP\":[\"772757048144300\",\"999950590000\"],\"ltv\":[8400,0],\"vLtv\":[8400,0]},null],\"c\":[\"8357\",\"1766592\"]}","staticExtra":"{\"sv0\":\"0x056f3a2E41d2778D3a0c0714439c53af2987718E\",\"sv1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"bv0\":\"0x056f3a2E41d2778D3a0c0714439c53af2987718E\",\"bv1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0xc6038dF81B26d2B79b639D16379925Ed54367183\",\"fr\":\"0xc6038DF81b26D2B79B639D16379925ED54367186\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":25819453}`
+
+func newWhitelistedHookSimulator(t *testing.T) (*PoolSimulator, entity.Pool) {
+	t.Helper()
+
+	var entityPool entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(whitelistedHookPoolData), &entityPool))
+
+	simulator, err := NewPoolSimulator(entityPool)
+	require.NoError(t, err)
+	return simulator, entityPool
+}
+
+// The hook gates every swap behind a private swapper whitelist (reverting in
+// beforeSwap on-chain), so quotes through dex-lib must fail as well.
+func TestPoolSimulator_WhitelistHookRejectsQuotes(t *testing.T) {
+	simulator, entityPool := newWhitelistedHookSimulator(t)
+
+	_, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[1].Address, Amount: big.NewInt(1_000_000)},
+		TokenOut:      entityPool.Tokens[0].Address,
+	})
+	assert.ErrorIs(t, err, hooks.ErrSwapperNotAuthorized)
+
+	_, err = simulator.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(10_000)},
+		TokenIn:        entityPool.Tokens[1].Address,
+	})
+	assert.ErrorIs(t, err, hooks.ErrSwapperNotAuthorized)
+}
+
+// The hook always answers getFee with type(uint64).max, which EulerSwap's
+// QuoteLib treats as "keep the static fee" — quoting must use fee0/fee1.
+func TestPoolSimulator_HookFeeSentinelFallsBackToStaticFee(t *testing.T) {
+	simulator, _ := newWhitelistedHookSimulator(t)
+
+	require.NotNil(t, simulator.hook)
+	assert.Equal(t, simulator.Fee0.String(), simulator.getFee(true).String())
+	assert.Equal(t, simulator.Fee1.String(), simulator.getFee(false).String())
+}
+
+func TestPoolSimulator_WhitelistHookDisabledByTracker(t *testing.T) {
+	var entityPool entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(whitelistedHookPoolData), &entityPool))
+
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(entityPool.Extra), &extra))
+	extra.HookExtra = `{"e":false}`
+	extraBytes, err := json.Marshal(&extra)
+	require.NoError(t, err)
+	entityPool.Extra = string(extraBytes)
+
+	simulator, err := NewPoolSimulator(entityPool)
+	require.NoError(t, err)
+
+	_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[1].Address, Amount: big.NewInt(1_000_000)},
+		TokenOut:      entityPool.Tokens[0].Address,
+	})
+	assert.ErrorIs(t, err, hooks.ErrPoolDisabled)
 }

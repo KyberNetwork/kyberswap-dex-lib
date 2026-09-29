@@ -28,6 +28,7 @@ type ExtraStablePool struct {
 
 type Meta struct {
 	VaultAddress string `json:"vaultAddress"`
+	BlockNumber  uint64 `json:"blockNumber"`
 }
 
 type Gas struct {

@@ -158,5 +158,5 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return pool.ApprovalInfo{ApprovalAddress: s.FeltirAddress}
+	return pool.MetaInfo{ApprovalAddress: s.FeltirAddress, BlockNumber: s.Info.BlockNumber}
 }

@@ -37,6 +37,7 @@ type SwapInfo struct {
 
 type QueryRpcPoolStateResult struct {
 	BlockTimestamp    uint64            `json:"blockTimestamp"`
+	BlockNumber       uint64            `json:"blockNumber"`
 	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
 	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
 	Reserves          reserves          `json:"reserves"`

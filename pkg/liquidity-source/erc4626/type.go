@@ -31,11 +31,11 @@ type (
 	}
 
 	StaticExtra struct {
-		IsNativeAsset bool `json:"isNativeAsset"`
+		IsNativeAsset bool `json:"isNativeAsset,omitempty"`
 	}
 
 	Meta struct {
-		BlockNumber   uint64 `json:"bN"`
+		BlockNumber   uint64 `json:"blockNumber"`
 		IsNativeAsset bool   `json:"isNativeAsset,omitempty"`
 		IsDeposit     bool   `json:"isDeposit,omitempty"`
 	}

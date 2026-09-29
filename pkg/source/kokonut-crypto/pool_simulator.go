@@ -8,7 +8,6 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -80,12 +79,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				SwapFee:  bignumber.ZeroBI,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
+				Address:     strings.ToLower(entityPool.Address),
+				SwapFee:     bignumber.ZeroBI,
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				Reserves:    reserves,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		Precisions: precisions,
@@ -184,9 +184,10 @@ func (t *PoolSimulator) Swap(
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
-	return curve.Meta{
+	return Meta{
 		TokenInIndex:  fromId,
 		TokenOutIndex: toId,
 		Underlying:    false,
+		BlockNumber:   t.Info.BlockNumber,
 	}
 }

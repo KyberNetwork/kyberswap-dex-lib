@@ -28,4 +28,5 @@ type Gas struct {
 type Meta struct {
 	SwapFee      uint32 `json:"swapFee"`
 	FeePrecision uint32 `json:"feePrecision"`
+	BlockNumber  uint64 `json:"blockNumber"`
 }

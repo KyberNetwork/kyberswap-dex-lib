@@ -28,7 +28,7 @@ func NewUSDGReader(ethrpcClient *ethrpc.Client) *USDGReader {
 
 func (r *USDGReader) Read(ctx context.Context, address string) (*USDG, error) {
 	var totalSupply *big.Int
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,

@@ -38,7 +38,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}).Infof("[Platypus] Start getting new pool's state")
 
 	// Get pool's state.
-	poolState, err := t.getPoolState(ctx, p.Address)
+	poolState, blockNumber, err := t.getPoolState(ctx, p.Address)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
@@ -48,7 +48,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// Get assets' address.
-	assetAddresses, err := t.getAssetAddresses(ctx, p.Address, poolState.TokenAddresses)
+	assetAddresses, err := t.getAssetAddresses(ctx, p.Address, poolState.TokenAddresses, blockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
@@ -59,7 +59,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// Get assets' state.
-	assetStates, err := t.getAssetStates(ctx, assetAddresses)
+	assetStates, err := t.getAssetStates(ctx, assetAddresses, blockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"assetAddresses": assetAddresses,
@@ -72,7 +72,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	sAvaxRate := big.NewInt(0)
 	if p.Type == PoolTypePlatypusAvax {
-		sAvaxRate, err = t.getSAvaxRate(ctx, addressStakedAvax)
+		sAvaxRate, err = t.getSAvaxRate(ctx, addressStakedAvax, blockNumber)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -102,11 +102,14 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Tokens = newPoolTokens(poolState.TokenAddresses)
 	p.Timestamp = time.Now().Unix()
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 
 	return p, nil
 }
 
-func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolState, error) {
+func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolState, *big.Int, error) {
 	var state PoolState
 	request := t.ethClient.NewRequest().
 		AddCall(&ethrpc.Call{
@@ -164,20 +167,25 @@ func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolSta
 			Params: nil,
 		}, []any{&state.Paused})
 
-	if _, err := request.Aggregate(); err != nil {
-		return PoolState{}, err
+	response, err := request.Aggregate()
+	if err != nil {
+		return PoolState{}, nil, err
 	}
 
-	return state, nil
+	return state, response.BlockNumber, nil
 }
 
 func (t *PoolTracker) getAssetAddresses(
 	ctx context.Context,
 	poolAddress string,
 	tokenAddresses []common.Address,
+	blockNumber *big.Int,
 ) ([]common.Address, error) {
 	assetAddresses := make([]common.Address, len(tokenAddresses))
-	request := t.ethClient.NewRequest()
+	request := t.ethClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		request.SetBlockNumber(blockNumber)
+	}
 	for i, tokenAddress := range tokenAddresses {
 		request.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
@@ -196,9 +204,13 @@ func (t *PoolTracker) getAssetAddresses(
 
 func (t *PoolTracker) getAssetStates(
 	ctx context.Context, addresses []common.Address,
+	blockNumber *big.Int,
 ) ([]AssetState, error) {
 	states := make([]AssetState, len(addresses))
-	request := t.ethClient.NewRequest()
+	request := t.ethClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		request.SetBlockNumber(blockNumber)
+	}
 	for i, addr := range addresses {
 		address := addr.Hex()
 		request.
@@ -240,16 +252,19 @@ func (t *PoolTracker) getAssetStates(
 	return states, nil
 }
 
-func (t *PoolTracker) getSAvaxRate(ctx context.Context, address string) (*big.Int, error) {
+func (t *PoolTracker) getSAvaxRate(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
 	var rate *big.Int
-	request := t.ethClient.NewRequest().
+	request := t.ethClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    stakedAvaxABI,
 			Target: address,
 			Method: stakedAvaxMethodGetPooledAvaxByShares,
 			Params: []any{bOne},
 		}, []any{&rate})
-	if _, err := request.Call(); err != nil {
+	if blockNumber != nil {
+		request.SetBlockNumber(blockNumber)
+	}
+	if _, err := request.Aggregate(); err != nil {
 		return nil, err
 	}
 

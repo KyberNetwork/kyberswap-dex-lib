@@ -187,8 +187,12 @@ func (t *PoolTracker) getNewPoolState(
 			Params: []any{poolAddress},
 		}, []any{&vaultsMaxRedeems[i]})
 	}
-	if _, err = calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		return p, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extra = Extra{

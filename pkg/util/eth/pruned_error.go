@@ -13,10 +13,10 @@ var prunedStateErrSubstrings = []string{
 	"historical state",
 	"archive mode",
 	"archive node",
-	"state not available",
-	"state unavailable",
-	"database is pruned",
+	"not available",
+	"unavailable",
 	"storage trie",
+	"is pruned",
 }
 
 // IsPrunedStateError reports whether err indicates the RPC node can't serve state for

@@ -12,49 +12,28 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
+// Every DexType merged into this package registers the same NewPoolFactory, and every pool it
+// creates is stamped Type: DexTypeUniswapV3 regardless of which one - the underlying logic is
+// identical across all six, so any of the six registered types resolves the same simulator/
+// tracker/factory. Exchange (Config.DexID) still carries the real per-deployment identity.
 var (
-	_ = poolfactory.RegisterFactoryC(DexTypeUniswapV3, NewUniswapV3PoolFactory)
-	_ = poolfactory.RegisterFactoryC(DexTypePancakeV3, NewPancakeV3PoolFactory)
-	_ = poolfactory.RegisterFactoryC(DexTypeRamsesV2, NewRamsesV2PoolFactory)
-	_ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewSolidlyV3PoolFactory)
-	_ = poolfactory.RegisterFactoryC(DexTypeSlipstream, NewSlipstreamPoolFactory)
-	_ = poolfactory.RegisterFactoryC(DexTypeNuriV2, NewNuriV2PoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeUniswapV3, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypePancakeV3, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeRamsesV2, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeSlipstream, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeNuriV2, NewPoolFactory)
 )
-
-func NewUniswapV3PoolFactory(config *Config) *PoolFactory {
-	return newPoolFactory(config, DexTypeUniswapV3)
-}
-
-func NewPancakeV3PoolFactory(config *Config) *PoolFactory {
-	return newPoolFactory(config, DexTypePancakeV3)
-}
-
-func NewRamsesV2PoolFactory(config *Config) *PoolFactory {
-	return newPoolFactory(config, DexTypeRamsesV2)
-}
-
-func NewSolidlyV3PoolFactory(config *Config) *PoolFactory {
-	return newPoolFactory(config, DexTypeSolidlyV3)
-}
-
-func NewSlipstreamPoolFactory(config *Config) *PoolFactory {
-	return newPoolFactory(config, DexTypeSlipstream)
-}
-
-func NewNuriV2PoolFactory(config *Config) *PoolFactory {
-	return newPoolFactory(config, DexTypeNuriV2)
-}
 
 // PoolFactory decodes PoolCreated events for every uniswap-v3 fork merged into this
 // package. It needs no per-fork ABI: see the topic0 comment on poolCreatedEventIDWithFee
 // in constant.go for why token0/token1/pool can always be read positionally.
 type PoolFactory struct {
-	config  *Config
-	dexType string
+	config *Config
 }
 
-func newPoolFactory(config *Config, dexType string) *PoolFactory {
-	return &PoolFactory{config: config, dexType: dexType}
+func NewPoolFactory(config *Config) *PoolFactory {
+	return &PoolFactory{config: config}
 }
 
 func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error) {
@@ -96,7 +75,7 @@ func (f *PoolFactory) newPool(token0, token1, poolAddress common.Address, blockN
 	return &entity.Pool{
 		Address:     poolAddressHex,
 		Exchange:    f.config.DexID,
-		Type:        f.dexType,
+		Type:        DexTypeUniswapV3,
 		Timestamp:   time.Now().Unix(),
 		Reserves:    entity.PoolReserves{"0", "0"},
 		Tokens:      []*entity.PoolToken{&t0, &t1},

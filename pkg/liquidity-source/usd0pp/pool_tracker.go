@@ -76,9 +76,12 @@ func (t *PoolTracker) getNewPoolState(
 		Method: usd0ppMethodPaused,
 		Params: []any{},
 	}, []any{&paused})
-	_, err := calls.Call()
+	resp, err := calls.Aggregate()
 	if err != nil {
 		return p, ErrFailedToGetExtra
+	}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	var poolExtra PoolExtra

@@ -43,10 +43,11 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	idxIn := p.GetTokenIndex(tokenIn)
 	return MetaInfo{
-		Decimals:  p.decimals[idxIn],
-		Precision: p.precisions[idxIn],
-		IdxIn:     idxIn,
-		HasNative: p.hasNative,
+		Decimals:    p.decimals[idxIn],
+		Precision:   p.precisions[idxIn],
+		IdxIn:       idxIn,
+		HasNative:   p.hasNative,
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 

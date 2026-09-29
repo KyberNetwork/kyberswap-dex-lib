@@ -19,5 +19,7 @@ var (
 )
 
 var HookAddresses = []common.Address{
-	common.HexToAddress("0x7e00422559c4c6a9b1592a25074a420a96412088"), // base
+	common.HexToAddress("0x7e00422559c4c6a9b1592a25074A420a96412088"), // old base
+	common.HexToAddress("0xecC495C00288018e4F4c61315163F598f96D2088"), // base
+	common.HexToAddress("0x6fbbda42a6c7e4b1e413af98cf249e4276586088"), // arbitrum
 }

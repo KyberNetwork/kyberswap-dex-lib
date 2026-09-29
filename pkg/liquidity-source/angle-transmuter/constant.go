@@ -51,16 +51,17 @@ func shouldCheckHardCaps(exchange string) bool {
 }
 
 var (
-	ErrInvalidToken              = errors.New("invalid token")
-	ErrInvalidAmountIn           = errors.New("invalid amount in")
-	ErrInsufficientBalance       = errors.New("insufficient balance")
-	ErrInvalidOracle             = errors.New("invalid oracle compared to oracle type")
-	ErrUnimplemented             = errors.New("unimplemented")
-	ErrInvalidSwap               = errors.New("invalid swap")
-	ErrMulOverflow               = errors.New("MUL_OVERFLOW")
-	ErrMintPaused                = errors.New("mint paused")
-	ErrBurnPaused                = errors.New("burn paused")
-	ErrUnsupportedBurnCollateral = errors.New("unsupported burn collateral")
+	ErrInvalidToken                 = errors.New("invalid token")
+	ErrInvalidAmountIn              = errors.New("invalid amount in")
+	ErrInsufficientBalance          = errors.New("insufficient balance")
+	ErrInvalidOracle                = errors.New("invalid oracle compared to oracle type")
+	ErrUnimplemented                = errors.New("unimplemented")
+	ErrInvalidSwap                  = errors.New("invalid swap")
+	ErrMulOverflow                  = errors.New("MUL_OVERFLOW")
+	ErrMintPaused                   = errors.New("mint paused")
+	ErrBurnPaused                   = errors.New("burn paused")
+	ErrUnsupportedBurnCollateral    = errors.New("unsupported burn collateral")
+	ErrInsufficientStablecoinIssued = errors.New("insufficient stablecoin issued")
 )
 
 var PythArgument = abi.Arguments{

@@ -46,13 +46,17 @@ func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, over
 			Method: vatMethodIlks,
 			Params: []any{ilk},
 		}, []any{&vat.ILK}).SetOverrides(overrides)
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": DexTypeMakerPSM,
 			"error": err,
 		}).Error("eth rpc call error")
 		return nil, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		vat.BlockNumber = resp.BlockNumber.Uint64()
+		vat.HasBlockNumber = true
 	}
 
 	return &vat, nil

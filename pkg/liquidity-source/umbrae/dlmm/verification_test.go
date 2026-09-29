@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
@@ -16,18 +17,28 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// Canonical Base mainnet U1/WETH DLMM pair (binStep 25), its factory and the PairViewer.
+// V2 stack, Base mainnet (deployed 2026-08-24). verifyPair is the WETH/USDC binStep-10 pair — the
+// one holding the live liquidity; it is also the sharpest decimals test (18/6).
 const (
-	verifyPair     = "0x697b72320656e6dc60db7a4bfb95084c9d9c55a0"
-	verifyFactory  = "0x17Da44dcbdffD8c715be7A368E19F252C2940Fee"
-	verifyViewer   = "0xbA3A5400A95b055b1412e18ad1978EdF32Fc3F05"
-	verifyRouter   = "0x4965DD6877ca9DE77caca2f57996651e7AF23c93"
+	verifyPair     = "0x4a27eeff8abe2a467425fdac65e5b579e26a90b5"
+	verifyFactory  = "0x9DBB9289d0D75508b5D8EE01FfE4eb7c412F733b"
+	verifyViewer   = "0xEaBC5b163bF79CdCE31027E722361802FAbBe8fD"
+	verifyRouter   = "0x5A7673d413f510f4b5c191d96837694C5942bF38"
 	multicall3Base = "0xcA11bde05977b3631167028862bE2a173976CA11"
 )
 
+// Per-direction amount spreads: tokenX is WETH (18 dec), tokenY is USDC (6 dec).
+func verifyAmounts(swapForY bool) []*big.Int {
+	if swapForY { // WETH in
+		return []*big.Int{exp10(14), exp10(15), exp10(16), exp10(17), exp10(18), mul(exp10(18), 10)}
+	} // USDC in
+	return []*big.Int{exp10(4), exp10(5), exp10(6), exp10(7), exp10(8), exp10(9)}
+}
+
 // TestVerifyAgainstChain is the end-to-end gate: real PoolTracker -> PoolSimulator -> compared to
-// the pair's on-chain quoteSwap (via PairViewer) across a spread of amounts in both directions, all
-// pinned to the tracked block. Set UMBRAE_BASE_RPC_URL to run.
+// the on-chain quoteSwap (via PairViewer) across a spread of amounts in both directions, all pinned
+// to the tracked block. The simulator's volatility clock is pinned to the tracked block's timestamp
+// so the dynamic fee matches the view call exactly. Set UMBRAE_BASE_RPC_URL to run.
 func TestVerifyAgainstChain(t *testing.T) {
 	rpcURL := os.Getenv("UMBRAE_BASE_RPC_URL")
 	if rpcURL == "" {
@@ -37,11 +48,10 @@ func TestVerifyAgainstChain(t *testing.T) {
 	ctx := context.Background()
 
 	// Full ingestion pipeline: static config (as the lister persists it) -> tracker -> simulator.
-	sim, tokenX, tokenY, pinBlock := buildLiveSimulator(t, ctx, client)
+	sim, tokenX, tokenY, pinBlock := buildLiveSimulator(t, ctx, client, rpcURL)
 	require.Equal(t, verifyRouter, sim.GetApprovalAddress(tokenX, tokenY),
 		"approval address must be the DLMM Router, not the pair")
 
-	amounts := []*big.Int{exp10(14), exp10(15), exp10(16), exp10(17), exp10(18), mul(exp10(18), 10), mul(exp10(18), 1000)}
 	for _, swapForY := range []bool{true, false} {
 		tokenIn, tokenOut := tokenX, tokenY
 		if !swapForY {
@@ -51,16 +61,19 @@ func TestVerifyAgainstChain(t *testing.T) {
 		if !swapForY {
 			dir = "Y->X"
 		}
-		for _, amt := range amounts {
+		for _, amt := range verifyAmounts(swapForY) {
 			chainOut, consumed, binsTrav, _ := viewerQuoteSwap(t, ctx, client, pinBlock, swapForY, amt)
 			res, cerr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amt}, TokenOut: tokenOut,
 			})
 
 			if consumed.Cmp(amt) < 0 {
+				// The viewer partial-fills where execution would revert (dry book or movement
+				// bound); the simulator must reject rather than over-promise.
 				t.Logf("%s in=%-24s | consumed=%-24s (partial) bins=%-3s -> sim err=%v", dir, amt, consumed, binsTrav, cerr)
-				require.ErrorIs(t, cerr, ErrInsufficientLiquidity,
-					"%s in=%s: viewer partial-filled (swap() reverts), sim must reject", dir, amt)
+				require.Error(t, cerr, "%s in=%s: viewer partial-filled (swap() reverts), sim must reject", dir, amt)
+				require.True(t, cerr == ErrInsufficientLiquidity || cerr == ErrSwapMovementExceeded,
+					"%s in=%s: expected liquidity/movement rejection, got %v", dir, amt, cerr)
 				continue
 			}
 			require.NoError(t, cerr, "%s in=%s: fully-consumable swap must succeed", dir, amt)
@@ -71,10 +84,9 @@ func TestVerifyAgainstChain(t *testing.T) {
 	}
 }
 
-// TestVerifyListerLive exercises the real PoolsListUpdater against the live DLMM factory: enumerate
-// pairs, then assert the canonical U1/WETH pair is discovered with correctly-persisted StaticExtra
-// (binStep, decimals, router). This is the on-chain discovery path the verification test skips (it
-// builds the entity.Pool inline). Set UMBRAE_BASE_RPC_URL to run.
+// TestVerifyListerLive exercises the real PoolsListUpdater against the live V2 factory: enumerate
+// pairs, then assert the liquid WETH/USDC binStep-10 pair is discovered with correctly-persisted
+// StaticExtra (binStep, decimals, router). Set UMBRAE_BASE_RPC_URL to run.
 func TestVerifyListerLive(t *testing.T) {
 	rpcURL := os.Getenv("UMBRAE_BASE_RPC_URL")
 	if rpcURL == "" {
@@ -100,17 +112,17 @@ func TestVerifyListerLive(t *testing.T) {
 			break
 		}
 	}
-	require.NotNil(t, found, "canonical U1/WETH pair not enumerated by the factory lister")
+	require.NotNil(t, found, "WETH/USDC binStep-10 pair not enumerated by the factory lister")
 
 	var se StaticExtra
 	require.NoError(t, json.Unmarshal([]byte(found.StaticExtra), &se))
-	require.Equal(t, uint16(25), se.BinStep, "binStep")
+	require.Equal(t, uint16(10), se.BinStep, "binStep")
 	require.Equal(t, verifyRouter, se.Router, "router persisted into StaticExtra")
 	require.Len(t, found.Tokens, 2)
 	require.NotEmpty(t, found.Tokens[0].Address)
 	require.NotEmpty(t, found.Tokens[1].Address)
 	require.Equal(t, entity.PoolReserves{"0", "0"}, found.Reserves, "lister leaves reserves at 0 for the tracker")
-	t.Logf("canonical pair OK: binStep=%d decX=%d decY=%d router=%s tokens=[%s,%s]",
+	t.Logf("liquid pair OK: binStep=%d decX=%d decY=%d router=%s tokens=[%s,%s]",
 		se.BinStep, se.DecimalsX, se.DecimalsY, se.Router, found.Tokens[0].Address, found.Tokens[1].Address)
 }
 
@@ -143,16 +155,21 @@ func TestVerifyUpdateBalance(t *testing.T) {
 	}
 	client := ethrpc.New(rpcURL).SetMulticallContract(common.HexToAddress(multicall3Base))
 	ctx := context.Background()
-	sim, tokenX, tokenY, pinBlock := buildLiveSimulator(t, ctx, client)
+	sim, tokenX, tokenY, pinBlock := buildLiveSimulator(t, ctx, client, rpcURL)
+	_ = tokenX
 
-	// Y->X is the liquid direction for this pool; pick amounts that cross several bins.
-	for _, amt := range []*big.Int{exp10(15), exp10(16), exp10(17)} {
-		_, _, _, chainFinalBin := viewerQuoteSwap(t, ctx, client, pinBlock, false, amt)
+	// USDC (Y) in: amounts that cross several bins on a ~$3k book.
+	for _, amt := range []*big.Int{exp10(6), exp10(7), exp10(8)} {
+		_, consumed, _, chainFinalBin := viewerQuoteSwap(t, ctx, client, pinBlock, false, amt)
 
 		hop := sim.CloneState() // never mutate the shared base
 		res, err := hop.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: tokenY, Amount: amt}, TokenOut: tokenX,
 		})
+		if consumed.Cmp(amt) < 0 {
+			require.Error(t, err, "viewer partial-filled, sim must reject (amt=%s)", amt)
+			continue
+		}
 		require.NoError(t, err)
 		si := res.SwapInfo.(SwapInfo)
 		require.Equal(t, chainFinalBin.Uint64(), uint64(si.newActiveID),
@@ -185,8 +202,10 @@ func TestVerifyUpdateBalance(t *testing.T) {
 }
 
 // buildLiveSimulator runs the real lister-equivalent static config + tracker -> simulator pipeline
-// against the canonical pair, returning the simulator, its token addresses and the pinned block.
-func buildLiveSimulator(t *testing.T, ctx context.Context, client *ethrpc.Client) (*PoolSimulator, string, string, *big.Int) {
+// against the liquid pair, returning the simulator, its token addresses and the pinned block. The
+// Extra's volatility clock is re-pinned to the tracked block's timestamp so quote comparisons at
+// that block are exact (production uses wall-clock time, which tracks head within seconds).
+func buildLiveSimulator(t *testing.T, ctx context.Context, client *ethrpc.Client, rpcURL string) (*PoolSimulator, string, string, *big.Int) {
 	t.Helper()
 	var (
 		tokenXAddr, tokenYAddr common.Address
@@ -211,6 +230,20 @@ func buildLiveSimulator(t *testing.T, ctx context.Context, client *ethrpc.Client
 	tracker := NewPoolTracker(&Config{DexID: DexType, FactoryAddress: verifyFactory, ViewerAddress: verifyViewer, RouterAddress: verifyRouter}, client)
 	ep, err = tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
+
+	// Re-pin the volatility clock to the tracked block's timestamp.
+	ec, err := ethclient.DialContext(ctx, rpcURL)
+	require.NoError(t, err)
+	defer ec.Close()
+	header, err := ec.HeaderByNumber(ctx, new(big.Int).SetUint64(ep.BlockNumber))
+	require.NoError(t, err)
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(ep.Extra), &extra))
+	extra.Timestamp = header.Time
+	eb, err := json.Marshal(extra)
+	require.NoError(t, err)
+	ep.Extra = string(eb)
+
 	sim, err := NewPoolSimulator(ep)
 	require.NoError(t, err)
 	return sim, tokenXAddr.Hex(), tokenYAddr.Hex(), new(big.Int).SetUint64(ep.BlockNumber)

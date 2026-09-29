@@ -1,0 +1,628 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      }
+    ],
+    "name": "ethUsdView",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "usd8",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "fresh",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "priceWei",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quoteIn",
+        "type": "uint256"
+      }
+    ],
+    "name": "quoteBuy",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokensOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "taxBps",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokensIn",
+        "type": "uint256"
+      }
+    ],
+    "name": "quoteSell",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "quoteOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "taxBps",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      }
+    ],
+    "name": "quoteUsdView",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "usd8",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "fresh",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "viewLaunch",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "id",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "creator",
+                "type": "address"
+              },
+              {
+                "internalType": "uint64",
+                "name": "startMcapUsd8",
+                "type": "uint64"
+              },
+              {
+                "internalType": "uint64",
+                "name": "gradMcapUsd8",
+                "type": "uint64"
+              },
+              {
+                "internalType": "uint16",
+                "name": "startTaxBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "decayPerMinuteBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "creatorFeeBpsSnap",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "protocolFeeBpsSnap",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint32",
+                "name": "windowSecs",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint64",
+                "name": "startTime",
+                "type": "uint64"
+              },
+              {
+                "internalType": "uint64",
+                "name": "deadline",
+                "type": "uint64"
+              },
+              {
+                "internalType": "bool",
+                "name": "externalToken",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "sellsEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "armed",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "graduated",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "bonded",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "aborted",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "loadedSupply",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "vQuote",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "vToken",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "realQuote",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "buyCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct StonkSafeLaunchpadV2.Launch",
+            "name": "core",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "taxBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mcapUsd8Now",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokensSold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "oracleFresh",
+            "type": "bool"
+          },
+          {
+            "internalType": "address[]",
+            "name": "legs",
+            "type": "address[]"
+          },
+          {
+            "internalType": "address[]",
+            "name": "pools",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "lockIds",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lpQuote",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "lpFeeBpsSnap",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint64",
+            "name": "closedAtTs",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "bufferSecs",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint8",
+            "name": "unsoldMode",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bool",
+            "name": "eoaOnly",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "openEnded",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint16",
+            "name": "postTaxBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bondVenue",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "maxBuyPpm",
+            "type": "uint32"
+          },
+          {
+            "internalType": "bool",
+            "name": "icoBoost",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct SafeLaunchLensV2.LaunchView",
+        "name": "v",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract StonkSafeLaunchpadV2",
+        "name": "pad",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "count",
+        "type": "uint256"
+      }
+    ],
+    "name": "viewLaunches",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "id",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "creator",
+                "type": "address"
+              },
+              {
+                "internalType": "uint64",
+                "name": "startMcapUsd8",
+                "type": "uint64"
+              },
+              {
+                "internalType": "uint64",
+                "name": "gradMcapUsd8",
+                "type": "uint64"
+              },
+              {
+                "internalType": "uint16",
+                "name": "startTaxBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "decayPerMinuteBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "creatorFeeBpsSnap",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "protocolFeeBpsSnap",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint32",
+                "name": "windowSecs",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint64",
+                "name": "startTime",
+                "type": "uint64"
+              },
+              {
+                "internalType": "uint64",
+                "name": "deadline",
+                "type": "uint64"
+              },
+              {
+                "internalType": "bool",
+                "name": "externalToken",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "sellsEnabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "armed",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "graduated",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "bonded",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "aborted",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "loadedSupply",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "vQuote",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "vToken",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "realQuote",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "buyCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct StonkSafeLaunchpadV2.Launch",
+            "name": "core",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "taxBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mcapUsd8Now",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokensSold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "oracleFresh",
+            "type": "bool"
+          },
+          {
+            "internalType": "address[]",
+            "name": "legs",
+            "type": "address[]"
+          },
+          {
+            "internalType": "address[]",
+            "name": "pools",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "lockIds",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lpQuote",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint16",
+            "name": "lpFeeBpsSnap",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint64",
+            "name": "closedAtTs",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "bufferSecs",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint8",
+            "name": "unsoldMode",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bool",
+            "name": "eoaOnly",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "openEnded",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint16",
+            "name": "postTaxBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint8",
+            "name": "bondVenue",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "maxBuyPpm",
+            "type": "uint32"
+          },
+          {
+            "internalType": "bool",
+            "name": "icoBoost",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct SafeLaunchLensV2.LaunchView[]",
+        "name": "out",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -19,7 +19,9 @@ type SwapInfo struct {
 	TradeInfo      []*poolCollectionTradeInfo `json:"-"`
 }
 
-type PoolMetaInfo struct{}
+type PoolMetaInfo struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
 
 type StaticExtra struct {
 	BNT     string              `json:"bnt"`

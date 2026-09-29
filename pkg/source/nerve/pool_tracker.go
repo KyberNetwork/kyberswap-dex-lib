@@ -54,7 +54,8 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&swapStorage})
 
-	if _, err := getSwapStorageRequest.Call(); err != nil {
+	resp, err := getSwapStorageRequest.Aggregate()
+	if err != nil {
 		log.Errorf("failed to get swap storage, err: %v", err)
 		return entity.Pool{}, err
 	}
@@ -90,6 +91,9 @@ func (d *PoolTracker) GetNewPoolState(
 	var totalSupply *big.Int
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if resp.BlockNumber != nil {
+		rpcRequest.SetBlockNumber(resp.BlockNumber)
+	}
 
 	for i := range p.Tokens {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -107,7 +111,8 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&totalSupply})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	reserveResp, err := rpcRequest.TryAggregate()
+	if err != nil {
 		log.Errorf("failed to get reserve, err: %v", err)
 		return entity.Pool{}, err
 	}
@@ -122,6 +127,11 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = reserves
 	p.TotalSupply = totalSupply.String()
 	p.Timestamp = time.Now().Unix()
+	if reserveResp.BlockNumber != nil {
+		p.BlockNumber = reserveResp.BlockNumber.Uint64()
+	} else if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
 
 	log.Infof("Finish getting new state")
 

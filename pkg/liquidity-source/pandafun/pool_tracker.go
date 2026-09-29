@@ -105,12 +105,16 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&pandaReserve})
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
 			"error":   err,
 		}).Errorf("failed to get state of the pool")
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extraBytes, err := json.Marshal(Extra{

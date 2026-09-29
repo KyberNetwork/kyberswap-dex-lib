@@ -85,10 +85,11 @@ func (t *PoolTracker) getNewPoolState(
 			Params: []any{staticExtra.Pocket},
 		}, []any{&balances[i]})
 	}
-	_, err = calls.Aggregate()
+	resp, err := calls.Aggregate()
 	if err != nil {
 		return p, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(Extra{
 		Rate:           uint256.MustFromBig(rate),

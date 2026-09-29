@@ -27,5 +27,5 @@ type SwapInfo struct {
 }
 
 type Meta struct {
-	BlockNumber uint64 `json:"bN"`
+	BlockNumber uint64 `json:"blockNumber"`
 }

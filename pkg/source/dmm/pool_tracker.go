@@ -36,8 +36,7 @@ func (d *PoolTracker) GetNewPoolState(
 		"poolAddress": p.Address,
 	}).Infof("[DMM] Start getting new state of pool")
 
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	var (
 		tradeInfo TradeInfo
@@ -50,7 +49,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&tradeInfo})
 
-	_, err := rpcRequest.Call()
+	resp, err := rpcRequest.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -86,6 +85,9 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = entity.PoolReserves{
 		reserve0Str,
 		reserve1Str,
+	}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	logger.Infof("[DMM] Finish getting new state of pool: %v", p.Address)

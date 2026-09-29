@@ -26,6 +26,7 @@ type Meta struct {
 	YearnVault      string `json:"yearnVault"`
 	DirectionFlag   uint8  `json:"directionFlag"`
 	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 type ChainID uint

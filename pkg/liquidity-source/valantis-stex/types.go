@@ -28,6 +28,6 @@ type StaticExtra struct {
 }
 
 type MetaInfo struct {
-	BlockNumber uint64 `json:"bN"`
+	BlockNumber uint64 `json:"blockNumber"`
 	IsZeroToOne bool   `json:"isZeroToOne"`
 }

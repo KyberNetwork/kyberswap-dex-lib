@@ -242,6 +242,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 		},
 		PoolMetaGeneric: uniswapv2.PoolMetaGeneric{
 			ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+			BlockNumber:     s.Info.BlockNumber,
 		},
 	}
 }

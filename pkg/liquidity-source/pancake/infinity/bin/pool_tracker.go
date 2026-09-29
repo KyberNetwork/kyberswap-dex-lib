@@ -28,6 +28,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -72,10 +73,11 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
-	_, err := rpcRequests.Aggregate()
+	resp, err := rpcRequests.Aggregate()
 	if err != nil {
 		return nil, err
 	}
+	result.BlockNumber = resp.BlockNumber.Uint64()
 
 	lpFee := staticExtra.Fee
 	if shared.IsDynamicFee(staticExtra.Fee) {
@@ -100,14 +102,6 @@ func (t *PoolTracker) BootstrapPoolState(
 	})
 
 	l.Info("Start getting new state of pancake-infinity-bin pool")
-
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
 
 	var (
 		rpcData         *FetchRPCResult
@@ -165,7 +159,8 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.SwapFee = float64(rpcData.SwapFee)
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = blockNumber
+	p.BlockNumber = rpcData.BlockNumber
+	p.Reserves = rescaleNativeReserves(valueobject.ChainID(t.config.ChainID), &p)
 
 	l.Infof("Finish updating state of pool")
 
@@ -383,6 +378,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 
 	extra.ActiveBinID = rpcState.Slot0.ActiveId
 	extra.ProtocolFee = rpcState.Slot0.ProtocolFee
+	p.BlockNumber = rpcState.BlockNumber
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -393,6 +389,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 	p.Extra = string(extraBytes)
 	p.SwapFee = float64(rpcState.SwapFee)
 	p.Reserves = calculateReservesFromBins(extra.Bins)
+	p.Reserves = rescaleNativeReserves(valueobject.ChainID(t.config.ChainID), &p)
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
@@ -612,6 +609,25 @@ func filterEmptyAndSortBins(bins []Bin) []Bin {
 		return b[i].ID < b[j].ID
 	})
 	return b
+}
+
+// rescaleNativeReserves converts a native-flagged reserve from its real on-chain decimals to
+// the wrapped-native address's decimals used elsewhere for that token; a no-op except on Arc.
+func rescaleNativeReserves(chainID valueobject.ChainID, p *entity.Pool) entity.PoolReserves {
+	reserves := p.Reserves
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return reserves
+	}
+	for i, isNative := range staticExtra.IsNative {
+		if isNative && i < len(reserves) {
+			amount, ok := new(big.Int).SetString(reserves[i], 10)
+			if ok {
+				reserves[i] = valueobject.WrapNativeAmount(chainID, amount).String()
+			}
+		}
+	}
+	return reserves
 }
 
 func calculateReservesFromBins(bins []Bin) entity.PoolReserves {

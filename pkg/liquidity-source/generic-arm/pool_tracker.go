@@ -70,6 +70,9 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	p.Extra = string(extraBytes)
 	_, p.Reserves = buildTokensAndReserves(poolState, armCfg)
+	if poolState.HasBlockNumber {
+		p.BlockNumber = poolState.BlockNumber
+	}
 
 	p.Timestamp = time.Now().Unix()
 	logger.WithFields(logger.Fields{

@@ -105,6 +105,9 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.reserve0.String(),
 		rpcData.reserve1.String(),
 	}
+	if rpcData.hasBlockNumber {
+		p.BlockNumber = rpcData.blockNumber
+	}
 
 	logger.Infof("[Elastic] Finish getting new state of pool: %v", p.Address)
 
@@ -152,7 +155,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool) (*FetchR
 		}, []any{&reserve1})
 	}
 
-	_, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		logger.Errorf("failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
 		return nil, err
@@ -163,6 +166,13 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool) (*FetchR
 		poolState:      poolState,
 		reserve0:       reserve0,
 		reserve1:       reserve1,
+		blockNumber: func() uint64 {
+			if resp != nil && resp.BlockNumber != nil {
+				return resp.BlockNumber.Uint64()
+			}
+			return 0
+		}(),
+		hasBlockNumber: resp != nil && resp.BlockNumber != nil,
 	}, err
 }
 

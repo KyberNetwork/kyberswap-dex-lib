@@ -1,0 +1,23 @@
+[
+  {
+    "inputs": [{"internalType": "PoolId", "name": "", "type": "bytes32"}],
+    "name": "launches",
+    "outputs": [
+      {"internalType": "bool", "name": "registered", "type": "bool"},
+      {"internalType": "bool", "name": "memecoinIsCurrency0", "type": "bool"},
+      {"internalType": "address", "name": "memecoin", "type": "address"},
+      {"internalType": "address", "name": "quoteToken", "type": "address"},
+      {"internalType": "address", "name": "creator", "type": "address"},
+      {"internalType": "address", "name": "buybackCreatorRecipient", "type": "address"},
+      {"internalType": "address", "name": "protocolFeeRecipient", "type": "address"},
+      {"internalType": "uint16", "name": "creatorTaxBps", "type": "uint16"},
+      {"internalType": "uint16", "name": "protocolFeeShareBps", "type": "uint16"},
+      {"internalType": "uint16", "name": "buybackBurnBps", "type": "uint16"},
+      {"internalType": "uint16", "name": "hookFeeBps", "type": "uint16"},
+      {"internalType": "uint16", "name": "maxInternalPriceImpactBps", "type": "uint16"},
+      {"internalType": "bool", "name": "buybackEnabled", "type": "bool"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

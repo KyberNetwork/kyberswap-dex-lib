@@ -9,18 +9,17 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
 	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
+	odysfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/forks/odys-fun"
 	ponsfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/forks/pons-fun"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -144,6 +143,9 @@ func (t *Tracker) GetNewPoolState(ctx context.Context, p entity.Pool, param pool
 }
 
 func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	// Reads through the uint256 shape - tolerant of both quoted and plain numbers - since some
+	// already-persisted pools still carry the uint256-shaped Extra written before buildExtra
+	// switched back to the big.Int Extra. Only Ticks[i].Index is used, unaffected either way.
 	var extra ExtraTickU256
 	if len(p.Extra) > 0 {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
@@ -165,9 +167,10 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 		return entity.Pool{}, err
 	}
 
-	extra.Ticks = toTickU256s(refetchedTicks)
+	out := extraTickU256ToExtra(extra)
+	out.Ticks = toTicks(refetchedTicks)
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(out)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -181,17 +184,36 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 	return p, nil
 }
 
-func toTickU256s(ticks []tickspkg.Tick) []TickU256 {
-	result := make([]TickU256, 0, len(ticks))
+// extraTickU256ToExtra carries the scalar fields of a tolerant uint256 read over to the big.Int
+// Extra this package writes. Ticks is left for the caller to fill in.
+func extraTickU256ToExtra(u ExtraTickU256) Extra {
+	out := Extra{
+		TickSpacing:        u.TickSpacing,
+		BuyRestrictedToken: u.BuyRestrictedToken,
+		MaxTxToken:         u.MaxTxToken,
+		MaxTxAmount:        u.MaxTxAmount,
+	}
+	if u.Liquidity != nil {
+		out.Liquidity = u.Liquidity.ToBig()
+	}
+	if u.SqrtPriceX96 != nil {
+		out.SqrtPriceX96 = u.SqrtPriceX96.ToBig()
+	}
+	if u.Tick != nil {
+		out.Tick = big.NewInt(int64(*u.Tick))
+	}
+	return out
+}
+
+func toTicks(ticks []tickspkg.Tick) []Tick {
+	result := make([]Tick, 0, len(ticks))
 	for _, tick := range ticks {
 		// skip uninitialized ticks
 		if tick.LiquidityGross.Sign() == 0 {
 			continue
 		}
 
-		lg, _ := uint256.FromBig(tick.LiquidityGross)
-		ln, _ := int256.FromBig(tick.LiquidityNet)
-		result = append(result, TickU256{Index: tick.TickIdx, LiquidityGross: lg, LiquidityNet: ln})
+		result = append(result, Tick{Index: tick.TickIdx, LiquidityGross: tick.LiquidityGross, LiquidityNet: tick.LiquidityNet})
 	}
 
 	sort.Slice(result, func(i, j int) bool { return result[i].Index < result[j].Index })
@@ -419,7 +441,7 @@ func (t *Tracker) updateState(
 		return p, err
 	}
 
-	extra := buildExtra(rpcState, toTickU256sFromMap(ticksBasedPool.Ticks))
+	extra := buildExtra(rpcState, toTicksFromMap(ticksBasedPool.Ticks))
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -440,18 +462,14 @@ func (t *Tracker) updateState(
 	return p, nil
 }
 
-func toTickU256sFromMap(ticks map[int]tickspkg.Tick) []TickU256 {
-	return toTickU256s(lo.Values(ticks))
+func toTicksFromMap(ticks map[int]tickspkg.Tick) []Tick {
+	return toTicks(lo.Values(ticks))
 }
 
-func buildExtra(rpcData *FetchRPCResult, ticks []TickU256) ExtraTickU256 {
-	liq, _ := uint256.FromBig(rpcData.Liquidity)
-	sqrtP, _ := uint256.FromBig(rpcData.Slot0.SqrtPriceX96)
-
-	var tick *int
+func buildExtra(rpcData *FetchRPCResult, ticks []Tick) Extra {
+	var tick *big.Int
 	if rpcData.Slot0.Unlocked {
-		tickInt := int(rpcData.Slot0.Tick.Int64())
-		tick = &tickInt
+		tick = rpcData.Slot0.Tick
 	}
 
 	var tickSpacing uint64
@@ -459,13 +477,15 @@ func buildExtra(rpcData *FetchRPCResult, ticks []TickU256) ExtraTickU256 {
 		tickSpacing = rpcData.TickSpacing.Uint64()
 	}
 
-	return ExtraTickU256{
-		Liquidity:          liq,
-		SqrtPriceX96:       sqrtP,
+	return Extra{
+		Liquidity:          rpcData.Liquidity,
+		SqrtPriceX96:       rpcData.Slot0.SqrtPriceX96,
 		TickSpacing:        tickSpacing,
 		Tick:               tick,
 		Ticks:              ticks,
 		BuyRestrictedToken: rpcData.BuyRestrictedToken,
+		MaxTxToken:         rpcData.MaxTxToken,
+		MaxTxAmount:        rpcData.MaxTxAmount,
 	}
 }
 
@@ -734,14 +754,7 @@ func (t *Tracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param p
 		ticks = append(ticks, tick)
 	}
 
-	ticks256 := make([]TickU256, 0, len(ticks))
-	for _, tick := range ticks {
-		lg, _ := uint256.FromBig(tick.LiquidityGross)
-		ln, _ := int256.FromBig(tick.LiquidityNet)
-		ticks256 = append(ticks256, TickU256{Index: tick.Index, LiquidityGross: lg, LiquidityNet: ln})
-	}
-
-	extraBytes, err := json.Marshal(buildExtra(rpcData, ticks256))
+	extraBytes, err := json.Marshal(buildExtra(rpcData, ticks))
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -780,9 +793,10 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		reserve0    = zeroBI
 		reserve1    = zeroBI
 
-		slot0Std   slot0RawStandard
-		slot0Slip  slot0RawSlipstream
-		slot0Solid slot0RawSolidly
+		slot0Std    slot0RawStandard
+		slot0Katana slot0RawKatana
+		slot0Slip   slot0RawSlipstream
+		slot0Solid  slot0RawSolidly
 	)
 
 	rpcRequest := t.ethrpcClient.NewRequest()
@@ -799,14 +813,15 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Method: methodGetLiquidity,
 	}, []any{&liquidity})
 
-	// Try standard (7-word), then slipstream (6-word), then solidly (4-word) shapes, longest
-	// first - see the comment on Slot0SlipstreamABI/Slot0SolidlyABI in abis.go.
+	// Try katana (8-word) first, then standard (7-word), then slipstream (6-word), then solidly (4-word) shapes, longest
+	// first - go-ethereum ABI decoder only errors on insufficient data, not unconsumed trailing bytes.
+	// A shorter ABI silently misdecodes longer returndata by putting wrong bytes into its last fields.
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:       abis.UniswapV3PoolABI,
-		UnpackABI: []ethabi.ABI{abis.UniswapV3PoolABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
+		UnpackABI: []ethabi.ABI{abis.Slot0KatanaABI, abis.UniswapV3PoolABI, abis.Slot0SlipstreamABI, abis.Slot0SolidlyABI},
 		Target:    p.Address,
 		Method:    methodGetSlot0,
-	}, []any{&slot0Std, &slot0Slip, &slot0Solid})
+	}, []any{&slot0Katana, &slot0Std, &slot0Slip, &slot0Solid})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    abis.UniswapV3PoolABI,
@@ -851,6 +866,12 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		ponsGuard.AddCalls(rpcRequest)
 	}
 
+	var odysGuard *odysfun.Guard
+	if _, ok := t.config.ForksConfig[valueobject.ExchangeOdysFun]; ok && len(p.Tokens) == 2 {
+		odysGuard = odysfun.NewGuard(p.Tokens[0].Address, p.Tokens[1].Address)
+		odysGuard.AddCalls(rpcRequest)
+	}
+
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -858,13 +879,15 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		return nil, err
 	}
 
-	slot0, err := resolveSlot0(slot0Std, slot0Slip, slot0Solid)
+	slot0, err := resolveSlot0(slot0Katana, slot0Std, slot0Slip, slot0Solid)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to decode slot0 with any known shape")
 		return nil, err
 	}
+
+	maxTxToken, maxTxAmount := odysGuard.MaxTxAmount()
 
 	return &FetchRPCResult{
 		Liquidity:          liquidity,
@@ -874,11 +897,15 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		Reserve0:           reserve0,
 		Reserve1:           reserve1,
 		BuyRestrictedToken: ponsGuard.BuyRestrictedToken(),
+		MaxTxToken:         maxTxToken,
+		MaxTxAmount:        maxTxAmount,
 	}, nil
 }
 
-func resolveSlot0(std slot0RawStandard, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
+func resolveSlot0(katana slot0RawKatana, std slot0RawStandard, slip slot0RawSlipstream, solid slot0RawSolidly) (Slot0, error) {
 	switch {
+	case katana.SqrtPriceX96 != nil:
+		return Slot0{SqrtPriceX96: katana.SqrtPriceX96, Tick: katana.Tick, Unlocked: katana.Unlocked}, nil
 	case std.SqrtPriceX96 != nil:
 		return Slot0{SqrtPriceX96: std.SqrtPriceX96, Tick: std.Tick, Unlocked: std.Unlocked}, nil
 	case slip.SqrtPriceX96 != nil:

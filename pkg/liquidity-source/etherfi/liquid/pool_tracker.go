@@ -89,7 +89,8 @@ func (t *PoolTracker) getNewPoolState(
 		}, []any{&assetData[i]})
 	}
 
-	if _, err := req.TryAggregate(); err != nil {
+	firstResp, err := req.TryBlockAndAggregate()
+	if err != nil {
 		return p, err
 	}
 
@@ -110,7 +111,11 @@ func (t *PoolTracker) getNewPoolState(
 		}, []any{&rateInQuote[i]})
 	}
 
-	if _, err := req.TryAggregate(); err != nil {
+	// Keep both batches at the same block so the accountant data matches the
+	// teller data returned by the first batch.
+	req.SetBlockNumber(firstResp.BlockNumber)
+	secondResp, err := req.TryBlockAndAggregate()
+	if err != nil {
 		return p, err
 	}
 
@@ -126,7 +131,18 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
+	p.BlockNumber = finalBlockNumber(firstResp.BlockNumber, secondResp.BlockNumber)
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func finalBlockNumber(first, second *big.Int) uint64 {
+	if second != nil {
+		return second.Uint64()
+	}
+	if first != nil {
+		return first.Uint64()
+	}
+	return 0
 }

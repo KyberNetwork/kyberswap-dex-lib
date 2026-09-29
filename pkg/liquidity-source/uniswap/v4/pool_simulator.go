@@ -12,7 +12,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few"
+	few_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v1"
+	few_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -48,19 +49,35 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	allowEmptyTicks := hook.AllowEmptyTicks()
 
+	// V3Pool's tick/liquidity math -- and the reserve-based insufficient-balance check inside
+	// it -- always operates in each currency's real on-chain decimals. entityPool.Reserves
+	// stores a native-flagged index at the wrapped-native address's decimals instead (only
+	// differs from native's own decimals on Arc); convert it back before building the v3
+	// simulator, matching the Unwrap/WrapNativeAmount pair CalcAmountOut applies below.
+	entityPool.Reserves = slices.Clone(entityPool.Reserves)
+	for i, isNative := range staticExtra.IsNative {
+		if isNative && i < len(entityPool.Reserves) {
+			if amount, ok := new(big.Int).SetString(entityPool.Reserves[i], 10); ok {
+				entityPool.Reserves[i] = valueobject.UnwrapNativeAmount(chainID, amount).String()
+			}
+		}
+	}
+
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, extra.ExtraTickU256,
 		uniswapv3.SimulatorConfig{AllowEmptyTicks: allowEmptyTicks})
 	if err != nil {
 		return nil, err
 	}
-	v3PoolSimulator.Gas = defaultGas
+	v3PoolSimulator.Gas = DefaultGas
 
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
 		chainID:       chainID,
-		tokenWrappers: []ITokenWrapper{few.NewTokenWrapper()},
+		// few_v2 is listed before few_v1 so, for a token pair with pools in both
+		// generations (e.g. WBTC/fwWBTC), the current/active generation wins.
+		tokenWrappers: []ITokenWrapper{few_v2.NewTokenWrapper(), few_v1.NewTokenWrapper()},
 	}, nil
 }
 
@@ -69,6 +86,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	var wrapAdditionalGas int64
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
+
+	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
+	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
+	if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] {
+		param.TokenAmountIn.Amount = valueobject.UnwrapNativeAmount(p.chainID, param.TokenAmountIn.Amount)
+	}
 
 	defer func() { // modify result before return
 		if swapResult == nil {
@@ -90,6 +113,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			if afterSwapResult != nil {
 				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, afterSwapResult.HookFee)
 				swapResult.Gas += afterSwapResult.Gas
+			}
+
+			if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+				swapResult.TokenAmountOut.Amount = valueobject.WrapNativeAmount(p.chainID, swapResult.TokenAmountOut.Amount)
 			}
 		}
 		swapResult.SwapInfo = v4SwapInfo
@@ -201,6 +228,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
 
+	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
+	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
+	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+		param.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, param.TokenAmountOut.Amount)
+	}
+
 	defer func() { // modify result before return
 		if swapResult == nil {
 			return
@@ -221,6 +254,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			if afterSwapResult != nil {
 				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, afterSwapResult.HookFee)
 				swapResult.Gas += afterSwapResult.Gas
+			}
+
+			if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] {
+				swapResult.TokenAmountIn.Amount = valueobject.WrapNativeAmount(p.chainID, swapResult.TokenAmountIn.Amount)
 			}
 		}
 		swapResult.SwapInfo = v4SwapInfo
@@ -422,7 +459,26 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
 	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
+
+	// p.PoolSimulator tracks reserves at each currency's real on-chain decimals (see
+	// NewPoolSimulator); TokenAmountIn/Out here are in the wrapped-native address's decimals
+	// for a native-flagged leg, so rescale before applying, mirroring the Unwrap/WrapNativeAmount
+	// pair CalcAmountOut/CalcAmountIn apply around the same v3 math.
+	if idx := p.GetTokenIndex(params.TokenAmountIn.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
+		params.TokenAmountIn.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountIn.Amount)
+	}
+	if idx := p.GetTokenIndex(params.TokenAmountOut.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
+		params.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountOut.Amount)
+	}
+
 	p.PoolSimulator.UpdateBalance(params)
+	if provider, ok := p.hook.(HookPoolStateProvider); ok {
+		state := provider.PoolState()
+		p.Info.Reserves = []*big.Int{new(big.Int).Set(state.Reserves[0]), new(big.Int).Set(state.Reserves[1])}
+		p.V3Pool.SqrtRatioX96.Set(&state.SqrtPriceX96)
+		p.V3Pool.Liquidity.Set(&state.Liquidity)
+		p.V3Pool.TickCurrent = state.Tick
+	}
 }
 
 // GetMetaInfo
@@ -486,6 +542,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	}
 
 	return PoolMetaInfo{
+		BlockNumber:       p.Info.BlockNumber,
 		Router:            p.staticExtra.UniversalRouterAddress,
 		Permit2Addr:       p.staticExtra.Permit2Address,
 		TokenIn:           tokenInAddress,

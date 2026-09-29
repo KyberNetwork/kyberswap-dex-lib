@@ -98,7 +98,8 @@ func (t *PoolTracker) getNewPoolState(
 			Method: erc20MethodBalanceOf,
 			Params: []any{poolAddress},
 		}, []any{&polygonReserves})
-	if _, err := getReserves.TryAggregate(); err != nil {
+	response, err := getReserves.TryBlockAndAggregate()
+	if err != nil {
 		logger.
 			WithFields(
 				logger.Fields{
@@ -113,6 +114,9 @@ func (t *PoolTracker) getNewPoolState(
 
 	p.Reserves = []string{maticReserves.String(), polygonReserves.String()}
 	p.Timestamp = time.Now().Unix()
+	if response.BlockNumber != nil {
+		p.BlockNumber = response.BlockNumber.Uint64()
+	}
 
 	return p, nil
 }

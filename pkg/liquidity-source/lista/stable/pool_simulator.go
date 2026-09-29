@@ -99,6 +99,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenInIndex:  fromId,
 		TokenOutIndex: toId,
 		Underlying:    false,
+		BlockNumber:   t.Info.BlockNumber,
 	}
 	if len(t.isNativeCoins) == len(t.Info.Tokens) {
 		meta.TokenInIsNative = t.isNativeCoins[fromId]
@@ -172,16 +173,16 @@ func (t *PoolSimulator) checkPriceDiff(updatedBalances []*big.Int) error {
 	mul1 := uint256.MustFromBig(t.baseSim.Multipliers[1])
 
 	// price0 = (dx1 * mul1 * oracle1) / (dy0 * mul0)  — implied price of token0 in oracle units
-	dx1.Mul(dx1, mul1)                                                  // dx1 = dx1_xp
+	dx1.Mul(dx1, mul1) // dx1 = dx1_xp
 	dy0u := uint256.MustFromBig(dy0)
-	dy0u.Mul(dy0u, mul0)                                                // dy0u = dy0_xp
-	price0 := big256.MulDivDown(dx1, dx1, t.oraclePrices[1], dy0u)    // reuse dx1 as price0
+	dy0u.Mul(dy0u, mul0)                                           // dy0u = dy0_xp
+	price0 := big256.MulDivDown(dx1, dx1, t.oraclePrices[1], dy0u) // reuse dx1 as price0
 
 	// price1 = (dx0 * mul0 * oracle0) / (dy1 * mul1)  — implied price of token1 in oracle units
-	dx0.Mul(dx0, mul0)                                                  // dx0 = dx0_xp
+	dx0.Mul(dx0, mul0) // dx0 = dx0_xp
 	dy1u := uint256.MustFromBig(dy1)
-	dy1u.Mul(dy1u, mul1)                                                // dy1u = dy1_xp
-	price1 := big256.MulDivDown(dx0, dx0, t.oraclePrices[0], dy1u)    // reuse dx0 as price1
+	dy1u.Mul(dy1u, mul1)                                           // dy1u = dy1_xp
+	price1 := big256.MulDivDown(dx0, dx0, t.oraclePrices[0], dy1u) // reuse dx0 as price1
 
 	// check: |price - oracle| * 1e18 <= oracle * threshold
 	var diff, rhs uint256.Int

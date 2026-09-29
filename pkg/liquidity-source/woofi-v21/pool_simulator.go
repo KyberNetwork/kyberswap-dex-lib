@@ -61,10 +61,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
+				Address:     entityPool.Address,
+				Exchange:    entityPool.Exchange,
+				Type:        entityPool.Type,
+				Tokens:      tokens,
+				BlockNumber: entityPool.BlockNumber,
 			},
 		},
 		quoteToken: extra.QuoteToken,
@@ -159,7 +160,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return struct {
-		BlockNumber uint64
+		BlockNumber uint64 `json:"blockNumber"`
 	}{
 		BlockNumber: s.Info.BlockNumber,
 	}

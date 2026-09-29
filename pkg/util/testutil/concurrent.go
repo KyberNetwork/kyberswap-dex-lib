@@ -29,12 +29,10 @@ func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, err
 		outputs = make([]lo.Tuple2[R, error], concurrentFactor)
 	)
 	for i := 0; i < concurrentFactor; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+		wg.Go(func() {
 			value, err := f()
 			outputs[i] = lo.T2(value, err)
-		}(i)
+		})
 	}
 	wg.Wait()
 

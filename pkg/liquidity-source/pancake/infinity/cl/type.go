@@ -76,6 +76,7 @@ type TicksResp struct {
 type Tick = uniswapv3.Tick
 
 type PoolMetaInfo struct {
+	BlockNumber uint64         `json:"blockNumber"`
 	Vault       common.Address `json:"vault"`
 	PoolManager common.Address `json:"poolManager"`
 	Permit2Addr common.Address `json:"permit2Addr"`

@@ -72,7 +72,7 @@ func TestDustPoolWordBoundedSteps(t *testing.T) {
 	// old model — which priced only initialized crossings — it came out as bare base gas, making
 	// the pool look as cheap as it looked deep. The nine bitmap words it really walks are what
 	// PoolManager charged 92773 gas for.
-	require.Equal(t, defaultGas.BaseGas+9*uniswapv3.CrossEmptyWordGas, res.Gas,
+	require.Equal(t, DefaultGas.BaseGas+9*uniswapv3.CrossEmptyWordGas, res.Gas,
 		"nine empty-word crossings, no initialized ticks")
 }
 

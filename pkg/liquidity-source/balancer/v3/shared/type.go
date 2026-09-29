@@ -92,6 +92,7 @@ type PoolMetaInfo struct {
 	BufferTokenOut  string `json:"buffOut,omitempty"`
 	BufferSwap      string `json:"buffSwap,omitempty"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 type AggregateFeePercentageRPC struct {

@@ -19,9 +19,10 @@ type Asset struct {
 
 // all fees: 1 == 0.01%, 10 == 0.1%, 100 == 1%
 type Fee struct {
-	Bond   *uint256.Int `json:"bond"`
-	Debond *uint256.Int `json:"debond"`
-	Burn   *uint256.Int `json:"burn"`
-	Buy    *uint256.Int `json:"buy"`
-	Sell   *uint256.Int `json:"sell"`
+	Bond        *uint256.Int `json:"bond"`
+	Debond      *uint256.Int `json:"debond"`
+	Burn        *uint256.Int `json:"burn"`
+	Buy         *uint256.Int `json:"buy"`
+	Sell        *uint256.Int `json:"sell"`
+	BlockNumber uint64       `json:"blockNumber"`
 }

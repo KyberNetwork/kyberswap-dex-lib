@@ -1,0 +1,9 @@
+[
+  {
+    "type": "function",
+    "name": "rateAtTarget",
+    "inputs": [{ "name": "id", "type": "bytes32", "internalType": "Id" }],
+    "outputs": [{ "name": "", "type": "int256", "internalType": "int256" }],
+    "stateMutability": "view"
+  }
+]

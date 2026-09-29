@@ -72,6 +72,12 @@ func (d *PoolTracker) getNewPoolState(
 		}).Error("get psm error")
 		return entity.Pool{}, err
 	}
+	if psm.HasBlockNumber {
+		pool.BlockNumber = psm.BlockNumber
+	}
+	if psm.Vat != nil && psm.Vat.HasBlockNumber && psm.Vat.BlockNumber > pool.BlockNumber {
+		pool.BlockNumber = psm.Vat.BlockNumber
+	}
 
 	extra := struct {
 		PSM *PSM `json:"psm"`

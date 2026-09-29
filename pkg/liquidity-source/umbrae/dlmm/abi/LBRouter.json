@@ -1,15 +1,51 @@
 [
   {
-    "type": "function", "name": "swapExactTokensForTokens", "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "swapExactTokensForTokens",
     "inputs": [
-      { "name": "amountIn", "type": "uint256" },
-      { "name": "amountOutMin", "type": "uint256" },
-      { "name": "path", "type": "address[]" },
-      { "name": "binSteps", "type": "uint16[]" },
-      { "name": "pools", "type": "address[]" },
-      { "name": "to", "type": "address" },
-      { "name": "deadline", "type": "uint256" }
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOutMin",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "path",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "binSteps",
+        "type": "uint16[]",
+        "internalType": "uint16[]"
+      },
+      {
+        "name": "pools",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+    "outputs": [
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
   }
 ]

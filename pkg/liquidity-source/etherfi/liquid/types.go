@@ -27,4 +27,5 @@ type MetaInfo struct {
 	LiquidRefer     common.Address `json:"liquidRefer"`
 	Teller          common.Address `json:"teller"`
 	ApprovalAddress common.Address `json:"approvalAddress"`
+	BlockNumber     uint64         `json:"blockNumber"`
 }

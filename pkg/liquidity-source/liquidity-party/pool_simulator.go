@@ -381,5 +381,6 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return Meta{
 		TokenInIndex:  p.GetTokenIndex(tokenIn),
 		TokenOutIndex: p.GetTokenIndex(tokenOut),
+		BlockNumber:   p.Info.BlockNumber,
 	}
 }

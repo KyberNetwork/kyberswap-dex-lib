@@ -69,7 +69,7 @@ func (t *PoolTracker) GetNewPoolState(
 		active       bool
 		liquidityCap *big.Int
 	)
-	_, err = t.ethrpcClient.NewRequest().
+	resp, err := t.ethrpcClient.NewRequest().
 		SetContext(ctx).
 		SetBlockNumber(big.NewInt(int64(p.BlockNumber))).
 		AddCall(&ethrpc.Call{
@@ -84,6 +84,9 @@ func (t *PoolTracker) GetNewPoolState(
 		}, []any{&liquidityCap}).TryBlockAndAggregate()
 	if err != nil {
 		return p, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	var extra Extra

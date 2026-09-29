@@ -74,6 +74,11 @@ type Extra struct {
 	Ticks        []Tick   `json:"ticks"`
 
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"` // for pons-fun
+
+	// for odys-fun: the launched token and its current per-tx cap, only set while that
+	// token's launch guard window is active (see forks/odys-fun.Guard)
+	MaxTxToken  string   `json:"maxTxToken,omitempty"`
+	MaxTxAmount *big.Int `json:"maxTxAmount,omitempty"`
 }
 
 type ExtraTickU256 struct {
@@ -83,7 +88,9 @@ type ExtraTickU256 struct {
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
 
-	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
+	BuyRestrictedToken string   `json:"buyRestrictedToken,omitempty"`
+	MaxTxToken         string   `json:"maxTxToken,omitempty"`
+	MaxTxAmount        *big.Int `json:"maxTxAmount,omitempty"`
 }
 
 // SimulatorConfig holds construction-time options for NewPoolSimulatorWithExtra.
@@ -134,6 +141,17 @@ type slot0RawSolidly struct {
 	Unlocked     bool
 }
 
+type slot0RawKatana struct {
+	SqrtPriceX96               *big.Int
+	Tick                       *big.Int
+	ObservationIndex           uint16
+	ObservationCardinality     uint16
+	ObservationCardinalityNext uint16
+	FeeProtocol                uint32
+	Extra                      *big.Int
+	Unlocked                   bool
+}
+
 type preGenesisPool struct {
 	ID string `json:"id"`
 }
@@ -153,6 +171,10 @@ type FetchRPCResult struct {
 
 	// pons-fun on robinhood check
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"`
+
+	// odys-fun launch guard (see forks/odys-fun.Guard)
+	MaxTxToken  string   `json:"maxTxToken,omitempty"`
+	MaxTxAmount *big.Int `json:"maxTxAmount,omitempty"`
 }
 
 type TicksResp struct {
@@ -161,8 +183,9 @@ type TicksResp struct {
 }
 
 type PoolMeta struct {
-	SwapFee    uint32       `json:"swapFee"`
-	PriceLimit *uint256.Int `json:"priceLimit"`
+	SwapFee     uint32       `json:"swapFee"`
+	PriceLimit  *uint256.Int `json:"priceLimit"`
+	BlockNumber uint64       `json:"blockNumber"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

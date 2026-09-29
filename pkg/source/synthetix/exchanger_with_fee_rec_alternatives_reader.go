@@ -44,9 +44,7 @@ func (r *ExchangerWithFeeRecAlternativesReader) readData(ctx context.Context, po
 		lastAtomicVolume ExchangeVolumeAtPeriod
 	)
 
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,

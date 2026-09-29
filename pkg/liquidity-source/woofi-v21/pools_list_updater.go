@@ -59,13 +59,11 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 		ABI:    IntegrationHelperABI,
 		Target: d.config.IntegrationHelperAddress,
 		Method: integrationHelperMethodAllBaseTokens,
-		Params: nil,
 	}, []any{&baseTokens})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: d.config.WooPPV2Address,
 		Method: wooPPV2MethodQuoteToken,
-		Params: nil,
 	}, []any{&quoteToken})
 
 	if _, err := calls.Aggregate(); err != nil {
@@ -82,7 +80,6 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			ABI:    Erc20ABI,
 			Target: token.Hex(),
 			Method: erc20MethodDecimals,
-			Params: nil,
 		}, []any{&tokenDecimals[i]})
 	}
 	if _, err := decimalCalls.Aggregate(); err != nil {

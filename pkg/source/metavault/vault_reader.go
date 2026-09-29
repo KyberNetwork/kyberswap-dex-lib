@@ -151,9 +151,11 @@ func (r *VaultReader) readTokensData(
 		rpcRequest.AddCall(callParamsFactory(VaultMethodTokenWeights, []any{tokenAddress}), []any{&tokenWeights[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		return err
 	}
+	vault.BlockNumber = response.BlockNumber
 
 	for i, token := range vault.WhitelistedTokens {
 		vault.PoolAmounts[token] = poolAmounts[i]

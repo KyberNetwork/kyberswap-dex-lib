@@ -436,7 +436,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Info.Reserves[1] = s.reserve1.ToBig()
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any { return nil }
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
+}
 
 // projectVirtualReserves replays UniPoolPairGetters.previewVirtualReservesElapsed:
 //

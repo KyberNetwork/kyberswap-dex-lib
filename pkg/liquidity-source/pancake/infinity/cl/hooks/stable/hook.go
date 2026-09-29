@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -40,7 +41,7 @@ func (h *Hook) AllowEmptyTicks() bool { return true }
 func (h *Hook) GetReserves(_ context.Context, param *cl.HookParam) (entity.PoolReserves, error) {
 	var hx HookExtra
 	if err := json.Unmarshal(param.HookExtra, &hx); err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return hx.Balances, nil
@@ -186,7 +187,8 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 	addHookCall(req, hookAddr, "N_COINS", &out.nCoins)
 
 	if _, err := req.Aggregate(); err != nil {
-		return nil, fmt.Errorf("stable hook %s track: %w", hookAddr, err)
+		log.Ctx(ctx).Err(err).Str("pool", param.Pool.Address).Msg("Aggregate failed")
+		return nil, nil
 	}
 
 	return json.Marshal(HookExtra{

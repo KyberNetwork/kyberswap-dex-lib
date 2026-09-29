@@ -49,6 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			BlockNumber: entityPool.BlockNumber,
 		}},
 		Extra:                &extra,
 		StaticExtra:          &staticExtra,
@@ -129,6 +130,7 @@ func (p *PoolSimulator) GetMetaInfo(_, tokenOut string) any {
 		TokenDecimalDiff: p.TokenDecimalDiff,
 		PrecisionDecimal: Precision,
 		ApprovalAddress:  approvalAddress,
+		BlockNumber:      p.Info.BlockNumber,
 	}
 }
 

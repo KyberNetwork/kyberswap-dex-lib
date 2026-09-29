@@ -28,25 +28,26 @@ func NewVaultReader(ethrpcClient *ethrpc.Client) *VaultReader {
 	}
 }
 
-func (r *VaultReader) Read(ctx context.Context, address string) (*Vault, error) {
+func (r *VaultReader) Read(ctx context.Context, address string) (*Vault, *big.Int, error) {
 	vault := NewVault()
 
 	if err := r.readData(ctx, address, vault); err != nil {
 		r.log.Errorf("error when read data: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := r.readWhitelistedTokens(ctx, address, vault); err != nil {
 		r.log.Errorf("error when read white listed token: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err := r.readTokensData(ctx, address, vault); err != nil {
+	blockNumber, err := r.readTokensData(ctx, address, vault)
+	if err != nil {
 		r.log.Errorf("error when read tokens data: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return vault, nil
+	return vault, blockNumber, nil
 }
 
 func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault) error {
@@ -97,7 +98,7 @@ func (r *VaultReader) readWhitelistedTokens(
 	return nil
 }
 
-func (r *VaultReader) readTokensData(ctx context.Context, address string, vault *Vault) error {
+func (r *VaultReader) readTokensData(ctx context.Context, address string, vault *Vault) (*big.Int, error) {
 	tokensLen := len(vault.WhitelistedTokens)
 	poolAmounts := make([]*big.Int, tokensLen)
 	bufferAmounts := make([]*big.Int, tokensLen)
@@ -124,8 +125,9 @@ func (r *VaultReader) readTokensData(ctx context.Context, address string, vault 
 		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenWeights, []any{tokenAddress}), []any{&tokenWeights[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
-		return err
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
+		return nil, err
 	}
 
 	for i, token := range vault.WhitelistedTokens {
@@ -139,5 +141,5 @@ func (r *VaultReader) readTokensData(ctx context.Context, address string, vault 
 		vault.TokenWeights[token] = tokenWeights[i]
 	}
 
-	return nil
+	return response.BlockNumber, nil
 }

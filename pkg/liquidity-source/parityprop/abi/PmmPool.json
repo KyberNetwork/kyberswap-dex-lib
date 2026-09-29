@@ -1,0 +1,156 @@
+[
+  {
+    "type": "function",
+    "name": "base",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quote",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "baseScale",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteScale",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "oracle",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lastSwapBlock",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "blockNotional",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint192", "internalType": "uint192" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "params",
+    "inputs": [],
+    "outputs": [
+      { "name": "feeBps", "type": "uint16", "internalType": "uint16" },
+      { "name": "maxSpreadBps", "type": "uint16", "internalType": "uint16" },
+      { "name": "maxStaleness", "type": "uint32", "internalType": "uint32" },
+      { "name": "maxSwapNotional", "type": "uint128", "internalType": "uint128" },
+      { "name": "maxBlockNotional", "type": "uint128", "internalType": "uint128" },
+      { "name": "minBaseReserve", "type": "uint128", "internalType": "uint128" },
+      { "name": "minQuoteReserve", "type": "uint128", "internalType": "uint128" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getReserves",
+    "inputs": [],
+    "outputs": [
+      { "name": "baseReserve", "type": "uint256", "internalType": "uint256" },
+      { "name": "quoteReserve", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAmountOut",
+    "inputs": [
+      { "name": "tokenIn", "type": "address", "internalType": "address" },
+      { "name": "amountIn", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewSwap",
+    "inputs": [
+      { "name": "tokenIn", "type": "address", "internalType": "address" },
+      { "name": "amountIn", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [
+      { "name": "amountOut", "type": "uint256", "internalType": "uint256" },
+      { "name": "fee", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "swap",
+    "inputs": [
+      { "name": "tokenIn", "type": "address", "internalType": "address" },
+      { "name": "amountIn", "type": "uint256", "internalType": "uint256" },
+      { "name": "minAmountOut", "type": "uint256", "internalType": "uint256" },
+      { "name": "to", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "Swap",
+    "inputs": [
+      { "name": "user", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "tokenIn", "type": "address", "indexed": false, "internalType": "address" },
+      { "name": "tokenOut", "type": "address", "indexed": false, "internalType": "address" },
+      { "name": "amountIn", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "amountOut", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "fee", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "reserve0", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "reserve1", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  { "type": "error", "name": "NotOwner", "inputs": [] },
+  { "type": "error", "name": "NotGuardian", "inputs": [] },
+  { "type": "error", "name": "Reentrancy", "inputs": [] },
+  { "type": "error", "name": "IsPaused", "inputs": [] },
+  { "type": "error", "name": "InvalidToken", "inputs": [] },
+  { "type": "error", "name": "InvalidParams", "inputs": [] },
+  { "type": "error", "name": "ZeroAmount", "inputs": [] },
+  { "type": "error", "name": "ZeroAddress", "inputs": [] },
+  { "type": "error", "name": "StalePrice", "inputs": [] },
+  { "type": "error", "name": "InvalidOraclePrices", "inputs": [] },
+  { "type": "error", "name": "SpreadTooWide", "inputs": [] },
+  { "type": "error", "name": "SwapTooLarge", "inputs": [] },
+  { "type": "error", "name": "BlockCapExceeded", "inputs": [] },
+  { "type": "error", "name": "InsufficientReserve", "inputs": [] },
+  { "type": "error", "name": "SlippageExceeded", "inputs": [] },
+  { "type": "error", "name": "TransferFailed", "inputs": [] }
+]

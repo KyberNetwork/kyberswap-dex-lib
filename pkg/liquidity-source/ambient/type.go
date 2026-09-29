@@ -28,10 +28,11 @@ type Extra struct {
 }
 
 type Meta struct {
-	SwapDex string   `json:"sD"`
-	Base    string   `json:"b"`
-	Quote   string   `json:"q"`
-	PoolIdx *big.Int `json:"pI"`
+	SwapDex     string   `json:"sD"`
+	Base        string   `json:"b"`
+	Quote       string   `json:"q"`
+	PoolIdx     *big.Int `json:"pI"`
+	BlockNumber uint64   `json:"blockNumber"`
 }
 
 type Gas struct {

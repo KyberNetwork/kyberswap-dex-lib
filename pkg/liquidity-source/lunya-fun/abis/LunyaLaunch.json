@@ -1,0 +1,149 @@
+[
+  {
+    "type": "function",
+    "name": "phase",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint8" }]
+  },
+  {
+    "type": "function",
+    "name": "token",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "reserve",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "sold",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "openedAt",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint40" }]
+  },
+  {
+    "type": "function",
+    "name": "isExempt",
+    "stateMutability": "view",
+    "inputs": [{ "name": "recipient", "type": "address" }],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "_comment": "config() returns ILunyaLaunch.Config, whose members are all static types - so the tuple encodes exactly as this flat list, which decodes straight into a Go struct",
+    "type": "function",
+    "name": "config",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "factory", "type": "address" },
+      { "name": "quoteToken", "type": "address" },
+      { "name": "creator", "type": "address" },
+      { "name": "creatorFeeRecipient", "type": "address" },
+      { "name": "positionManager", "type": "address" },
+      { "name": "liquidityHelper", "type": "address" },
+      { "name": "locker", "type": "address" },
+      { "name": "nativeDivisor", "type": "uint256" },
+      { "name": "wrapsNative", "type": "bool" },
+      { "name": "totalSupply", "type": "uint256" },
+      { "name": "virtualQuote", "type": "uint128" },
+      { "name": "virtualToken", "type": "uint128" },
+      { "name": "curveSupply", "type": "uint128" },
+      { "name": "lpSupply", "type": "uint128" },
+      { "name": "snipeTaxBps", "type": "uint16" },
+      { "name": "snipeWindow", "type": "uint32" },
+      { "name": "snipeDecay", "type": "uint8" },
+      { "name": "graduationReward", "type": "uint128" },
+      { "name": "curveFeeBps", "type": "uint16" },
+      { "name": "curveFeeProtocolBps", "type": "uint16" },
+      { "name": "graduationFeeBps", "type": "uint16" },
+      { "name": "poolFeeProtocolBps", "type": "uint16" },
+      { "name": "graduationPoolType", "type": "uint8" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "quoteBuy",
+    "stateMutability": "view",
+    "inputs": [{ "name": "amountIn", "type": "uint256" }],
+    "outputs": [
+      { "name": "tokensOut", "type": "uint256" },
+      { "name": "fee", "type": "uint256" },
+      { "name": "refund", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "quoteBuyFor",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [
+      { "name": "tokensOut", "type": "uint256" },
+      { "name": "fee", "type": "uint256" },
+      { "name": "refund", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "quoteSell",
+    "stateMutability": "view",
+    "inputs": [{ "name": "tokensIn", "type": "uint256" }],
+    "outputs": [
+      { "name": "amountOut", "type": "uint256" },
+      { "name": "fee", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "buy",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "minTokensOut", "type": "uint256" },
+      { "name": "deadline", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [{ "name": "tokensOut", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "sell",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "tokensIn", "type": "uint256" },
+      { "name": "minAmountOut", "type": "uint256" },
+      { "name": "deadline", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+  },
+  {
+    "type": "event",
+    "name": "Trade",
+    "anonymous": false,
+    "inputs": [
+      { "name": "trader", "type": "address", "indexed": true },
+      { "name": "isBuy", "type": "bool", "indexed": false },
+      { "name": "quoteAmount", "type": "uint256", "indexed": false },
+      { "name": "tokenAmount", "type": "uint256", "indexed": false },
+      { "name": "fee", "type": "uint256", "indexed": false },
+      { "name": "reserve", "type": "uint256", "indexed": false },
+      { "name": "sold", "type": "uint256", "indexed": false }
+    ]
+  }
+]

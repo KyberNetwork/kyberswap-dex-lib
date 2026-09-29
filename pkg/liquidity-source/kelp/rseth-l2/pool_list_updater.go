@@ -115,10 +115,12 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		ReqRates(req, lo.Map(extra.SupportedTokenOracles, func(oracle string, _ int) common.Address { return common.HexToAddress(oracle) }), rates)
 	}
 
-	_, err = req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, err
 	}
+	stateBlock := responseBlock(resp)
+	snapshotBlock := stateBlock
 
 	newSupportedTokens := len(pool.Tokens) < 2 || len(supportedTokens) != len(pool.Tokens)-2 || !lo.Every(
 		supportedTokens,
@@ -132,27 +134,40 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 	if newSupportedTokens {
 		// supportedTokens changed
 		req := rpcClient.NewRequest().SetContext(ctx)
+		setBlockNumber(req, snapshotBlock)
 		supportedTokenOracles = make([]common.Address, len(supportedTokens))
 		ReqOracles(req, supportedTokens, supportedTokenOracles, cfg)
-		_, err = req.Aggregate()
+		resp, err = req.Aggregate()
 		if err != nil {
 			return nil, err
 		}
+		if block := responseBlock(resp); block != nil {
+			stateBlock = block
+			if snapshotBlock == nil {
+				snapshotBlock = block
+			}
+		}
 		rates = make([]*big.Int, len(supportedTokenOracles))
+		req = rpcClient.NewRequest().SetContext(ctx)
+		setBlockNumber(req, snapshotBlock)
 		ReqRates(req, supportedTokenOracles, rates)
-		_, err = req.Aggregate()
+		resp, err = req.Aggregate()
 		if err != nil {
 			return nil, err
 		}
 	} else if newOracles {
 		// oracles changed
 		req := rpcClient.NewRequest().SetContext(ctx)
+		setBlockNumber(req, snapshotBlock)
 		rates = make([]*big.Int, len(supportedTokenOracles))
 		ReqRates(req, supportedTokenOracles, rates)
-		_, err = req.Aggregate()
+		resp, err = req.Aggregate()
 		if err != nil {
 			return nil, err
 		}
+	}
+	if block := responseBlock(resp); block != nil {
+		stateBlock = block
 	}
 
 	extra.SupportedTokenOracles = lo.Map(supportedTokenOracles, func(oracle common.Address, _ int) string { return hexutil.Encode(oracle[:]) })
@@ -175,7 +190,23 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		})
 	pool.Reserves = lo.Map(pool.Tokens, func(token *entity.PoolToken, _ int) string { return defaultReserve })
 	pool.Timestamp = time.Now().Unix()
+	if stateBlock != nil {
+		pool.BlockNumber = stateBlock.Uint64()
+	}
 	return pool, nil
+}
+
+func responseBlock(resp *ethrpc.Response) *big.Int {
+	if resp == nil || resp.BlockNumber == nil {
+		return nil
+	}
+	return new(big.Int).Set(resp.BlockNumber)
+}
+
+func setBlockNumber(req *ethrpc.Request, blockNumber *big.Int) {
+	if blockNumber != nil {
+		req.SetBlockNumber(blockNumber)
+	}
 }
 
 func ReqOracles(req *ethrpc.Request, supportedTokens []common.Address, supportedTokenOracles []common.Address, cfg *Config) {

@@ -130,7 +130,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

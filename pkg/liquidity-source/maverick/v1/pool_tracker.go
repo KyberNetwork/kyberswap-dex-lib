@@ -113,13 +113,17 @@ func (d *PoolTracker) getNewPoolState(
 		Params: nil,
 	}, []any{&tokenBScale})
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("failed to aggregate to get pool data")
 
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	binCounter := getStateResult.State.BinCounter

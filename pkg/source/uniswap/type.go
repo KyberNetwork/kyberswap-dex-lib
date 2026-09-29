@@ -20,5 +20,6 @@ type Gas struct {
 }
 
 type Meta struct {
-	SwapFee string `json:"swapFee"`
+	SwapFee     string `json:"swapFee"`
+	BlockNumber uint64 `json:"blockNumber"`
 }

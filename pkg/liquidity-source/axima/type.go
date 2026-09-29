@@ -62,4 +62,5 @@ type Bin struct {
 type PoolMeta struct {
 	SwapDirection        bool   `json:"swapDir"`
 	PriceProviderAddress string `json:"priceProvider"`
+	BlockNumber          uint64 `json:"blockNumber"`
 }

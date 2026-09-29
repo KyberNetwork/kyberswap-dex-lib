@@ -4,11 +4,12 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 )
 
 type PoolSimulator struct {
@@ -305,8 +306,9 @@ func compactLevels(levels []OrderBookLevel) []OrderBookLevel {
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
-	return pool.ApprovalInfo{
+	return pool.MetaInfo{
 		ApprovalAddress: s.StaticExtra.Router,
+		BlockNumber:     s.Info.BlockNumber,
 	}
 }
 

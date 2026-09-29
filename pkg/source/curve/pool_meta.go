@@ -206,13 +206,17 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 		}, []any{&balances[i]})
 	}
 
-	if _, err := calls.TryAggregate(); err != nil {
+	resp, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"poolType":    p.Type,
 			"error":       err,
 		}).Errorf("failed to aggregate call pool data")
 		return entity.Pool{}, err
+	}
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	var snappedRedemptionPrice *big.Int
@@ -228,7 +232,10 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 				Method: poolMethodRedemptionPriceSnap,
 			}, []any{&redemptionPriceSnapContract})
 
-		if _, err := req.TryAggregate(); err != nil {
+		if resp.BlockNumber != nil {
+			req.SetBlockNumber(resp.BlockNumber)
+		}
+		if _, err := req.TryBlockAndAggregate(); err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
 				"poolType":    p.Type,
@@ -241,8 +248,11 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 					Target: redemptionPriceSnapContract.String(),
 					Method: oracleMethodSnappedRedemptionPrice,
 				}, []any{&snappedRedemptionPrice})
+			if resp.BlockNumber != nil {
+				req.SetBlockNumber(resp.BlockNumber)
+			}
 
-			if _, err := req.TryAggregate(); err != nil {
+			if _, err := req.TryBlockAndAggregate(); err != nil {
 				logger.WithFields(logger.Fields{
 					"poolAddress": p.Address,
 					"poolType":    p.Type,

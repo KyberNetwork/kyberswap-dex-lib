@@ -101,5 +101,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 		Accountant:      s.staticExtra.Accountant,
 		CommunityCode:   s.staticExtra.CommunityCode,
 		ApprovalAddress: s.staticExtra.Depositor,
+		BlockNumber:     s.Info.BlockNumber,
 	}
 }

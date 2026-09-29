@@ -556,10 +556,10 @@ func TestPool_CanSwapTo(t *testing.T) {
 
 func TestPool_GetMetaInfo(t *testing.T) {
 	t.Parallel()
-	t.Run("it should return nil", func(t *testing.T) {
+	t.Run("it should return block metadata", func(t *testing.T) {
 		poolSim := PoolSimulator{}
 
-		assert.Nil(t, poolSim.GetMetaInfo("0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+		assert.Equal(t, pool.MetaInfo{}, poolSim.GetMetaInfo("0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
 			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"))
 	})
 }

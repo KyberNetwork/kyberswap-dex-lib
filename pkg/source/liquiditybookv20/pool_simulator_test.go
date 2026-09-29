@@ -76,3 +76,15 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 		})
 	}
 }
+
+func TestGetMetaInfoBlockNumber(t *testing.T) {
+	simulator, err := NewPoolSimulator(entity.Pool{
+		BlockNumber: 123,
+		Extra:       `{}`,
+	})
+	require.NoError(t, err)
+
+	meta, ok := simulator.GetMetaInfo("", "").(pool.MetaInfo)
+	require.True(t, ok)
+	require.Equal(t, uint64(123), meta.BlockNumber)
+}

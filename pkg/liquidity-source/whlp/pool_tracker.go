@@ -66,7 +66,8 @@ func (t *PoolTracker) getNewPoolState(
 		Params: []any{usdt0Address},
 	}, []any{&rateInQuote})
 
-	if _, err := req.TryAggregate(); err != nil {
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
 		return p, err
 	}
 
@@ -77,6 +78,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	return p, nil
 }

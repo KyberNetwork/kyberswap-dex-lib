@@ -102,14 +102,34 @@ func NewDynamicFeeHook(fork *Fork) func(param *uniswapv4.HookParam) uniswapv4.Ho
 
 func (h *DynamicFeeHook) CloneState() uniswapv4.Hook {
 	cloned := *h
-	cloned.poolSim = h.poolSim.CloneState().(*uniswapv3.PoolSimulator)
-	cloned.ProtocolFee = new(big.Int).Set(h.ProtocolFee)
 
-	cloned.PoolFVars.ResetTickTimestamp = new(uint256.Int).Set(h.PoolFVars.ResetTickTimestamp)
-	cloned.PoolFVars.LastSwapTimestamp = new(uint256.Int).Set(h.PoolFVars.LastSwapTimestamp)
-	// cloned.PoolFVars.PrevVA = new(uint256.Int).Set(h.PoolFVars.PrevVA)
+	// BeforeSwap guards against a nil poolSim / ProtocolFee, so both are reachable states here.
+	if h.poolSim != nil {
+		cloned.poolSim, _ = h.poolSim.CloneState().(*uniswapv3.PoolSimulator)
+	}
+	if h.ProtocolFee != nil {
+		cloned.ProtocolFee = new(big.Int).Set(h.ProtocolFee)
+	}
+
+	// PoolFVars is a pointer, so the struct copy above shares it with the source while
+	// getVolatilityAccumulator writes ReferenceTick/ResetTick/AppliedVR/LastSwapTimestamp through
+	// it on every BeforeSwap. It has to be copied before any of its fields are replaced.
+	if h.PoolFVars != nil {
+		fVars := *h.PoolFVars
+		fVars.ResetTickTimestamp = cloneU256(h.PoolFVars.ResetTickTimestamp)
+		fVars.LastSwapTimestamp = cloneU256(h.PoolFVars.LastSwapTimestamp)
+		fVars.PrevVA = cloneU256(h.PoolFVars.PrevVA)
+		cloned.PoolFVars = &fVars
+	}
 
 	return &cloned
+}
+
+func cloneU256(v *uint256.Int) *uint256.Int {
+	if v == nil {
+		return nil
+	}
+	return v.Clone()
 }
 
 func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {

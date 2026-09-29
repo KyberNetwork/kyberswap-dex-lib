@@ -128,14 +128,15 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	tokenInIndex := s.GetTokenIndex(tokenIn)
 	return PoolMeta{
-		BaseFee:    uint32(s.baseFee.Uint64()),
-		WToken0:    uint32(s.wToken0.Uint64()),
-		WToken1:    uint32(s.wToken1.Uint64()),
-		Router:     s.router,
-		TokenIn:    lo.Ternary(tokenInIndex == 0, s.token0, s.token1),
-		TokenOut:   lo.Ternary(tokenInIndex == 0, s.token1, s.token0),
-		ModuleMask: s.moduleMask,
-		UserModule: s.userModule,
+		BaseFee:     uint32(s.baseFee.Uint64()),
+		WToken0:     uint32(s.wToken0.Uint64()),
+		WToken1:     uint32(s.wToken1.Uint64()),
+		Router:      s.router,
+		TokenIn:     lo.Ternary(tokenInIndex == 0, s.token0, s.token1),
+		TokenOut:    lo.Ternary(tokenInIndex == 0, s.token1, s.token0),
+		ModuleMask:  s.moduleMask,
+		BlockNumber: s.Info.BlockNumber,
+		UserModule:  s.userModule,
 	}
 }
 

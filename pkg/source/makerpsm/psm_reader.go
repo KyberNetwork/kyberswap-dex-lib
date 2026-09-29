@@ -52,13 +52,17 @@ func (r *PSMReader) Read(ctx context.Context, address string, overrides map[comm
 			Method: psmMethodIlk,
 			Params: nil,
 		}, []any{&psm.ILK}).SetOverrides(overrides)
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": DexTypeMakerPSM,
 			"error": err,
 		}).Error("eth rpc call error")
 		return nil, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		psm.BlockNumber = resp.BlockNumber.Uint64()
+		psm.HasBlockNumber = true
 	}
 
 	return &psm, nil

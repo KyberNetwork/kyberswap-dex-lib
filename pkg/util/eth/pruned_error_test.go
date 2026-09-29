@@ -26,6 +26,7 @@ func TestIsPrunedStateError(t *testing.T) {
 		{"state unavailable", errors.New("state unavailable, try a different block"), true},
 		{"database is pruned", errors.New("the requested data is not available because the database is pruned"), true},
 		{"storage trie", errors.New("could not open storage trie"), true},
+		{"state at block is pruned", errors.New("state at block #49613289 is pruned"), true},
 		{"case insensitive", errors.New("MISSING TRIE NODE"), true},
 	}
 

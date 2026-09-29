@@ -24,6 +24,11 @@ type StaticExtra struct {
 	Stable bool `json:"stable"`
 }
 
+type MetaInfo struct {
+	Stable      bool   `json:"stable"`
+	BlockNumber uint64 `json:"blockNumber"`
+}
+
 type Reserves struct {
 	Reserve0           *big.Int
 	Reserve1           *big.Int

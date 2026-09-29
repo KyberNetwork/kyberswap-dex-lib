@@ -36,7 +36,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	log.Infof("[Lido-stETH] Start getting new pool's state")
 
-	reserves, err := d.getPoolReserves(ctx, p)
+	reserves, blockNumber, err := d.getPoolReserves(ctx, p)
 	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err,
@@ -46,13 +46,16 @@ func (d *PoolTracker) GetNewPoolState(
 
 	p.Reserves = reserves
 	p.Timestamp = time.Now().Unix()
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 
 	log.Infof("[Lido-stETH] Finish getting new state of pool")
 
 	return p, nil
 }
 
-func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entity.PoolReserves, error) {
+func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entity.PoolReserves, *big.Int, error) {
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
@@ -73,13 +76,14 @@ func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entit
 		Params: nil,
 	}, []any{&totalShares})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Error("failed to process tryAggregate")
-		return nil, err
+		return nil, nil, err
 	}
 
-	return entity.PoolReserves{totalPooledEther.String(), totalShares.String()}, nil
+	return entity.PoolReserves{totalPooledEther.String(), totalShares.String()}, response.BlockNumber, nil
 }

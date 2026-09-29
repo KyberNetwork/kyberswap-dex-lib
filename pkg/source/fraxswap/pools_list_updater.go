@@ -143,7 +143,8 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		}, []any{&token1Addresses[i]})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to aggregate to get tokens from pool")
@@ -173,6 +174,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Timestamp: time.Now().Unix(),
 			Reserves:  entity.PoolReserves{reserveZero, reserveZero},
 			Tokens:    []*entity.PoolToken{&token0, &token1},
+		}
+		if resp.BlockNumber != nil {
+			newPool.BlockNumber = resp.BlockNumber.Uint64()
 		}
 
 		pools = append(pools, newPool)

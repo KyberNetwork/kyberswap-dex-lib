@@ -57,7 +57,7 @@ func (r *FastPriceFeedV1Reader) Read(
 // - VolBasisPoints
 func (r *FastPriceFeedV1Reader) readData(ctx context.Context, address string, fastPriceFeed *FastPriceFeedV1) error {
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV1DisableFastPriceVoteCount, nil), []any{&fastPriceFeed.DisableFastPriceVoteCount})
 	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV1IsSpreadEnabled, nil), []any{&fastPriceFeed.IsSpreadEnabled})
@@ -84,7 +84,7 @@ func (r *FastPriceFeedV1Reader) readTokenData(
 
 	prices := make([]*big.Int, tokensLen)
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i, token := range tokens {
 		rpcRequest.AddCall(&ethrpc.Call{

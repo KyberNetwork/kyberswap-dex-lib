@@ -38,7 +38,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	log.Infof("[Lido] Start getting new pool's state")
 
-	extra, err := d.getPoolExtra(ctx, p)
+	extra, blockNumber, err := d.getPoolExtra(ctx, p)
 	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err,
@@ -54,7 +54,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	reserves, err := d.getPoolReserves(ctx, p)
+	reserves, reserveBlockNumber, err := d.getPoolReserves(ctx, p, blockNumber)
 	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err,
@@ -65,13 +65,18 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = reserves
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+	if reserveBlockNumber != nil {
+		p.BlockNumber = reserveBlockNumber.Uint64()
+	} else if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
+	}
 
 	log.Infof("[Lido] Finish getting new state of pool")
 
 	return p, nil
 }
 
-func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, error) {
+func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, *big.Int, error) {
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
@@ -90,12 +95,13 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, e
 		Params: nil,
 	}, []any{&tokensPerStEth})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Error("failed to process tryAggregate")
-		return Extra{}, err
+		return Extra{}, nil, err
 	}
 
 	extra := Extra{
@@ -103,14 +109,19 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, e
 		TokensPerStEth: tokensPerStEth,
 	}
 
-	return extra, nil
+	return extra, response.BlockNumber, nil
 }
 
-func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entity.PoolReserves, error) {
+func (d *PoolTracker) getPoolReserves(
+	ctx context.Context, p entity.Pool, blockNumber *big.Int,
+) (entity.PoolReserves, *big.Int, error) {
 	var reserves = make([]*big.Int, len(p.Tokens))
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
+	if blockNumber != nil {
+		rpcRequest.SetBlockNumber(blockNumber)
+	}
 
 	for i, token := range p.Tokens {
 		if token.Address == p.GetLpToken() {
@@ -130,12 +141,13 @@ func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entit
 		}
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	response, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Error("failed to process tryAggregate")
-		return entity.PoolReserves{}, err
+		return entity.PoolReserves{}, nil, err
 	}
 
 	poolReserves := make(entity.PoolReserves, len(reserves))
@@ -143,5 +155,5 @@ func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entit
 		poolReserves[i] = reserves[i].String()
 	}
 
-	return poolReserves, nil
+	return poolReserves, response.BlockNumber, nil
 }

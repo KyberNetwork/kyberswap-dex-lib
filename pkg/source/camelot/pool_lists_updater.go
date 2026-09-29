@@ -46,7 +46,7 @@ func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		"offset": metadata.Offset,
 	}).Info("get new pools")
 
-	pairCount, err := d.getPairCount(ctx)
+	pairCount, blockNumber, err := d.getPairCount(ctx)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -55,7 +55,7 @@ func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	pairAddresses, err := d.getPairAddresses(ctx, metadata.Offset, pairCount)
+	pairAddresses, _, err := d.getPairAddresses(ctx, metadata.Offset, pairCount, blockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -68,7 +68,7 @@ func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	pools, err := d.getNewPools(ctx, pairAddresses)
+	pools, _, err := d.getNewPools(ctx, pairAddresses, blockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -78,6 +78,11 @@ func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	metadata.Offset = metadata.Offset + uint64(len(pairAddresses))
+	if blockNumber != nil {
+		for i := range pools {
+			pools[i].BlockNumber = blockNumber.Uint64()
+		}
+	}
 	newMetadataBytes, err := json.Marshal(metadata)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -90,7 +95,7 @@ func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []common.Address) ([]entity.Pool, error) {
+func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []common.Address, blockNumber *big.Int) ([]entity.Pool, *big.Int, error) {
 	var (
 		token0Addresses = make([]common.Address, len(pairAddresses))
 		token1Addresses = make([]common.Address, len(pairAddresses))
@@ -98,6 +103,9 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 	)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		req.SetBlockNumber(blockNumber)
+	}
 	for i, pairAddr := range pairAddresses {
 		req.
 			AddCall(&ethrpc.Call{
@@ -120,13 +128,13 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 			}, []any{&feeDenominators[i]})
 	}
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not get new pools")
-		return nil, err
+		return nil, nil, err
 	}
 
 	pools := make([]entity.Pool, 0, len(pairAddresses))
@@ -149,7 +157,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 				"dexID": d.cfg.DexID,
 				"error": err,
 			}).Error("can not marshal static extra")
-			return nil, err
+			return nil, nil, err
 		}
 
 		pool := entity.Pool{
@@ -164,19 +172,22 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 		pools = append(pools, pool)
 	}
 
-	return pools, nil
+	return pools, resp.BlockNumber, nil
 }
 
-func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, pairCount uint64) ([]common.Address, error) {
+func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, pairCount uint64, blockNumber *big.Int) ([]common.Address, *big.Int, error) {
 	start := offset
 	end := min(offset+uint64(d.cfg.NewPoolLimit), pairCount)
 
 	if start >= end {
-		return []common.Address{}, nil
+		return []common.Address{}, blockNumber, nil
 	}
 
 	pairAddresses := make([]common.Address, end-start)
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		req.SetBlockNumber(blockNumber)
+	}
 	for i := start; i < end; i++ {
 		req.AddCall(&ethrpc.Call{
 			ABI:    camelotFactoryABI,
@@ -186,19 +197,19 @@ func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, 
 		}, []any{&pairAddresses[i-start]})
 	}
 
-	_, err := req.Aggregate()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not get pair addresses")
-		return nil, err
+		return nil, nil, err
 	}
 
-	return pairAddresses, nil
+	return pairAddresses, resp.BlockNumber, nil
 }
 
-func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, error) {
+func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, *big.Int, error) {
 	var pairCount *big.Int
 
 	req := d.ethrpcClient.
@@ -211,14 +222,14 @@ func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, error) {
 			Params: nil,
 		}, []any{&pairCount})
 
-	_, err := req.Call()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not get pair count")
-		return 0, err
+		return 0, nil, err
 	}
 
-	return pairCount.Uint64(), nil
+	return pairCount.Uint64(), resp.BlockNumber, nil
 }

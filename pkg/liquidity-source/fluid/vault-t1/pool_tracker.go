@@ -51,7 +51,7 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	swapData, err := t.getPoolSwapData(ctx, p.Address, overrides)
+	swapData, blockNumber, err := t.getPoolSwapData(ctx, p.Address, overrides)
 	if swapData == nil || err != nil {
 		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error getPoolSwapData")
 		return p, err
@@ -71,6 +71,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{swapData.InAmt.String(), swapData.OutAmt.String()}
+	p.BlockNumber = blockNumber
 
 	return p, nil
 }
@@ -79,7 +80,7 @@ func (t *PoolTracker) getPoolSwapData(
 	ctx context.Context,
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*SwapData, error) {
+) (*SwapData, uint64, error) {
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	output := &Swap{}
@@ -90,14 +91,14 @@ func (t *PoolTracker) getPoolSwapData(
 		Params: []any{common.HexToAddress(poolAddress)},
 	}, []any{&output})
 
-	_, err := req.Call()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Error in GetSwapForProtocol Call")
-		return nil, err
+		return nil, 0, err
 	}
 
-	return &output.Data, nil
+	return &output.Data, resp.BlockNumber.Uint64(), nil
 }

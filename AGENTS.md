@@ -52,6 +52,22 @@ pkg/liquidity-source/<dex>/
 - Check native token support.
 - Decide whether to reuse an existing integration or create a new one.
 
+### Naming Convention
+
+Name a new source `<protocol>-<family>`. Use that same string for the directory under
+`pkg/liquidity-source/`, for `DexType`, and for the `pkg/valueobject` exchange constant.
+
+- For protocols with multiple generations, prefer nested packages (brownfi/v2, brownfi/v3).
+- Sources outside these families keep a plain name: `carbon`, `pendle`. Existing names stay.
+
+Suffixes:
+- -v2: Uniswap V2 / Solidly / Velodrome forks — e.g. aeon-v2, velodrome-v2
+- -v3: Uniswap V3 forks — e.g. katana-v3
+- -v4: Uniswap V4 / Algebra Integral / hooks — e.g. uniswap-v4-b20
+- -lb: Liquidity Book
+- -prop: Proprietary AMM — e.g. 1010-prop, wasabi-prop
+- -fun: Launchpad bonding curve — e.g. alt-fun, virtual-fun
+
 ### Pool Discovery - IPoolsListUpdater
 
 - Prefer discovering pools on-chain over off-chain indexes.
@@ -68,6 +84,10 @@ pkg/liquidity-source/<dex>/
 - Pin all multicalls to the same block when a refresh needs multiple multicalls to keep pool state consistent.
 - Store mutable state in `Extra`, immutable state in `StaticExtra`.
 - Track all pool state required by the simulator for `CalcAmountOut` and `UpdateBalance`, including every flag/check used by the on-chain swap path (e.g. paused, swapEnabled, caps/limits, etc.) so the simulator can reject swaps that would revert on-chain.
+- For a stateful on-chain DEX, propagate a valid refresh snapshot block to `entity.Pool.BlockNumber` and return it directly from `GetMetaInfo` with `json:"blockNumber"`.
+- Use the block from `Aggregate`, `TryBlockAndAggregate`, an existing `GetBlockNumber`, or established event-log state. Pin dependent reads to that block.
+- Do not change `Call`/`TryAggregate` merely to get a block number. Verify revert tolerance, `msg.sender`, overrides, pinning, and protocol behavior first; use pool-service/RPC fixtures and targeted tests when uncertain.
+- Fixed-rate/no-op, RFQ/HTTP-only, orderbook, AEVM/deprecated, and wrapper-only sources without independent on-chain state are N/A; never fabricate a block number.
 
 **Optional: batch RPC** — implement `IBatchRPCPoolTracker` (`pkg/source/pool/batch_rpc.go`) to enable cross-pool RPC batching by pool-service. `LazyNewPoolState` returns an `ILazyRequest` (call descriptors) and an `applyResult` closure (builds `entity.Pool` after results arrive). For sources already using the ethrpc library, use `LazyRequest.AddCall` which converts each `ethrpc.Call` into a raw `ethereum.CallMsg` so pool-service can dispatch via `go-ethereum`'s `BatchCallContext`; sources using other RPC patterns must populate `ILazyRequest` directly. In `applyResult`, validate required fields are non-nil — individual calls can revert independently — and return an error rather than producing corrupt state.
 
@@ -89,6 +109,19 @@ pkg/liquidity-source/<dex>/
 - Implement `CalculateLimit()` and support `pool.SwapLimit` when the protocol has shared inventory/vault behavior.
 - `IPoolExactOutSimulator`: Implement `CalcAmountIn` only when the protocol supports exact-out swaps.
 - `IPoolSupportNativeSwap`: Implement `SupportsNativeSwap()` when the protocol supports native token.
+
+### Test data size
+
+This repo is a dependency of several other backend services, so bloated `testdata/` is a cost
+paid on every downstream `go get`. Keep fixtures targeted, not exhaustive grid/block dumps, and
+don't ship coverage for a code path that isn't live yet.
+
+Every package's `testdata/` must have its own `go.mod` (module path = parent + `/testdata`, no
+deps) — Go's module-zip packer excludes any subdirectory with its own `go.mod`, so downstream
+`go get` skips it entirely; read fixtures with `os.ReadFile`, which still works from a checkout.
+Don't use `go:embed` on a `testdata/` path: it requires the file be in the same module, which
+breaks this nested-module boundary — use `os.ReadFile` instead, always.
+Exception: skip this for a package using `//go:embed testdata/...`, which requires same-module.
 
 ### Registration & wiring
 

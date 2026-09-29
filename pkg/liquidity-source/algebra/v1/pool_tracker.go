@@ -146,7 +146,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber, rpcData.BlockNumber)
 
 	l.WithFields(logger.Fields{
 		"feeZto": rpcData.State.FeeZto,
@@ -225,13 +225,14 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		}, []any{&res.Reserve1})
 	}
 
-	_, err := rpcRequest.Aggregate()
+	resp, err := rpcRequest.Aggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to process tryAggregate")
 		return res, err
 	}
+	res.BlockNumber = resp.BlockNumber.Uint64()
 
 	if t.config.UseDirectionalFee {
 		rpcStateRes := rpcState.(*rpcGlobalStateDirFee)

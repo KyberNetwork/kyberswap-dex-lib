@@ -40,7 +40,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
-	vault, err := NewVaultScanner(p.config, p.ethrpcClient).getVault(ctx, p.config.VaultAddress)
+	vault, _, err := NewVaultScanner(p.config, p.ethrpcClient).getVault(ctx, p.config.VaultAddress)
 	if err != nil {
 		log.Errorf("get vault failed: %v", err)
 		return nil, nil, err

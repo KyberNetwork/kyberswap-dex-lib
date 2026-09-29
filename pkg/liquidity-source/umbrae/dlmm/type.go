@@ -17,6 +17,8 @@ type StaticExtra struct {
 
 // FeeParameters mirrors the DEPLOYED FeeHelper.FeeParameters (7 fields; no protocolShare —
 // protocol share is global on the factory). maxVolatilityAccumulator is uint24 on-chain.
+// reductionFactor and minSwapBps are carried for ABI fidelity but are DEAD in the V2 swap path:
+// nothing reads reductionFactor, and the V1 min-swap volatility gate was removed.
 type FeeParameters struct {
 	BaseFactor               uint16 `json:"baseFactor"`
 	FilterPeriod             uint16 `json:"filterPeriod"`
@@ -27,8 +29,8 @@ type FeeParameters struct {
 	MinSwapBps               uint16 `json:"minSwapBps"`
 }
 
-// Bin is one discrete liquidity bin. Reserves are in the 18-decimal normalized space (native
-// getBin() reserves multiplied by the token scale factor).
+// Bin is one discrete liquidity bin. Reserves are in the 18-decimal normalized space (the pair
+// stores them normalized; the viewer reports native, so the tracker scales back up).
 type Bin struct {
 	ID       uint32       `json:"id"`
 	ReserveX *uint256.Int `json:"reserveX"`
@@ -36,22 +38,24 @@ type Bin struct {
 }
 
 // Extra is the mutable per-pool state refreshed each block. The dynamic fee depends on the
-// volatility accumulator + reference, which the deployed pair exposes via getQuoteState(); the
-// tracker decays the accumulator to the tracked block and the simulator ramps it from the reference
-// as bins are crossed, matching the deployed quoteSwap().
+// anchored-displacement volatility model (V2 R12/M-3): the accumulator is the displacement from a
+// per-window anchor bin (volatilityReference), decayed only once the filter window has lapsed. The
+// tracker stores the raw on-chain state plus the tracked timestamp; the simulator derives the
+// working volatility exactly as the deployed quote path does.
 type Extra struct {
 	ActiveID       uint32        `json:"activeId"`
 	Bins           []Bin         `json:"bins"` // sorted ascending by ID; normalized reserves
 	FeeParameters  FeeParameters `json:"feeParameters"`
 	VariableFeeCap uint16        `json:"variableFeeCap"` // from Factory.getVariableFeeCap(binStep, baseFactor)
-	// Volatility state for the dynamic-fee ramp. VolatilityAccumulator is already decayed to the
-	// tracked block, and VolatilityReference is the reference bin (== activeId when idle).
+	// Raw volatility state from getQuoteState(), NOT pre-decayed: the filter-window decision
+	// (decay vs anchor reuse) must be made at quote time against the same clock.
 	VolatilityAccumulator uint64 `json:"volatilityAccumulator"`
-	VolatilityReference   uint32 `json:"volatilityReference"`
-	// Native (un-normalized) total reserves; feed the min-swap-for-volatility threshold exactly as
-	// the deployed _getMinSwapForVolatility does (native sum * minSwapBps / 10000).
-	NativeReserveX string `json:"nativeReserveX"`
-	NativeReserveY string `json:"nativeReserveY"`
+	VolatilityReference   uint32 `json:"volatilityReference"` // anchor bin id; < 2^22 means unset
+	LastVolatilityUpdate  uint64 `json:"lastVolatilityUpdate"`
+	// Timestamp the state was tracked at; the simulator's clock for decay/window decisions. The
+	// quote is a snapshot — fees drift as the accumulator decays between tracking and execution
+	// (same caveat as the DAMM package's currentFeeBps snapshot).
+	Timestamp uint64 `json:"timestamp"`
 }
 
 // binUpdate records a post-swap bin reserve (normalized) for UpdateBalance to apply by index,
@@ -65,6 +69,11 @@ type binUpdate struct {
 type SwapInfo struct {
 	newActiveID uint32
 	binUpdates  []binUpdate
+	// Volatility persistence mirrors the pair: the accumulator/anchor/clock are only written when
+	// at least one bin was crossed.
+	binsCrossed bool
+	newVolAcc   uint64
+	newVolRef   uint32
 }
 
 type PoolMeta struct {

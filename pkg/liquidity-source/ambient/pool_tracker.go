@@ -64,15 +64,11 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 
-	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
+	blockNumBI, err := t.fetchReserves(ctx, &p, &staticExtra)
 	if err != nil {
 		return p, err
 	}
-	blockNumBI := new(big.Int).SetUint64(blockNumber)
-
-	if err := t.fetchReserves(ctx, &p, &staticExtra, blockNumBI); err != nil {
-		return p, err
-	}
+	blockNumber := blockNumBI.Uint64()
 
 	var state *TrackerExtra
 	if extra.State == nil {
@@ -107,11 +103,14 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) fetchReserves(ctx context.Context, p *entity.Pool, sE *StaticExtra, blockNum *big.Int) error {
+// fetchReserves reads reserves at latest via Multicall's aggregate(), which returns the
+// block it executed at for free — avoids a separate eth_blockNumber round trip just to pin
+// the subsequent tick/curve reads to the same snapshot.
+func (t *PoolTracker) fetchReserves(ctx context.Context, p *entity.Pool, sE *StaticExtra) (*big.Int, error) {
 	reserves := make([]*big.Int, 2)
 	swapDex := common.HexToAddress(t.cfg.SwapDex)
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNum)
+	req := t.ethrpcClient.R().SetContext(ctx)
 	for i, addr := range [2]string{sE.Base, sE.Quote} {
 		if valueobject.IsZero(addr) {
 			req.AddCall(&ethrpc.Call{
@@ -129,12 +128,16 @@ func (t *PoolTracker) fetchReserves(ctx context.Context, p *entity.Pool, sE *Sta
 			}, []any{&reserves[i]})
 		}
 	}
-	if _, err := req.Aggregate(); err != nil {
-		return err
+	resp, err := req.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+	if resp.BlockNumber == nil {
+		return nil, fmt.Errorf("aggregate returned no block number")
 	}
 
 	p.Reserves = bignum.ToStrings(reserves)
-	return nil
+	return resp.BlockNumber, nil
 }
 
 func (t *PoolTracker) tickWindow(prevCurve *CurveState) TickWindow {

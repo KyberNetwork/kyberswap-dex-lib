@@ -240,7 +240,8 @@ func (d *PoolTracker) GetNewPoolState(
 		},
 	}, []any{&swapFee1To0Aqua})
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"poolType":    p.Type,
@@ -248,6 +249,7 @@ func (d *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to aggregate call pool data")
 		return entity.Pool{}, err
 	}
+	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(
 		ExtraAquaPool{

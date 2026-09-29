@@ -28,7 +28,7 @@ func TestDecodePoolCreated_SolidlyShape(t *testing.T) {
 		Data: common.Hex2Bytes("00000000000000000000000000000000000000000000000000000000000027100000000000000000000000006339962d8b80749ce86d65affc0b2a4290aef42f"),
 	}
 
-	factory := NewSolidlyV3PoolFactory(&Config{DexID: "solidlyv3"})
+	factory := NewPoolFactory(&Config{DexID: "solidlyv3"})
 	require.True(t, factory.IsEventSupported(event.Topics[0]))
 
 	p, err := factory.DecodePoolCreated(event)
@@ -37,7 +37,7 @@ func TestDecodePoolCreated_SolidlyShape(t *testing.T) {
 	assert.Equal(t, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", p.Tokens[0].Address)
 	assert.Equal(t, "0xd555498a524612c67f286df0e0a9a64a73a7cdc7", p.Tokens[1].Address)
 	assert.Equal(t, "0x6339962d8b80749ce86d65affc0b2a4290aef42f", p.Address)
-	assert.Equal(t, DexTypeSolidlyV3, p.Type)
+	assert.Equal(t, DexTypeUniswapV3, p.Type)
 	assert.Equal(t, "solidlyv3", p.Exchange)
 	// fee/tickSpacing are deliberately left at zero here; the tracker's first refresh
 	// resolves them generically regardless of which fork this pool belongs to.
@@ -61,7 +61,7 @@ func TestDecodePoolCreated_SlipstreamShape(t *testing.T) {
 		Data: common.Hex2Bytes("00000000000000000000000020efb6b14640fa4e20cd04456ccf8bba9937307b"),
 	}
 
-	factory := NewSlipstreamPoolFactory(&Config{DexID: "slipstream-x"})
+	factory := NewPoolFactory(&Config{DexID: "slipstream-x"})
 	require.True(t, factory.IsEventSupported(event.Topics[0]))
 
 	p, err := factory.DecodePoolCreated(event)
@@ -70,7 +70,7 @@ func TestDecodePoolCreated_SlipstreamShape(t *testing.T) {
 	assert.Equal(t, "0x0b2c639c533813f4aa9d7837caf62653d097ff85", p.Tokens[0].Address)
 	assert.Equal(t, "0xdfa46478f9e5ea86d57387849598dbfb2e964b02", p.Tokens[1].Address)
 	assert.Equal(t, "0x20efb6b14640fa4e20cd04456ccf8bba9937307b", p.Address)
-	assert.Equal(t, DexTypeSlipstream, p.Type)
+	assert.Equal(t, DexTypeUniswapV3, p.Type)
 	assert.Equal(t, "slipstream-x", p.Exchange)
 	assert.Equal(t, float64(0), p.SwapFee)
 }
@@ -78,7 +78,7 @@ func TestDecodePoolCreated_SlipstreamShape(t *testing.T) {
 func TestPoolFactory_IsEventSupported(t *testing.T) {
 	t.Parallel()
 
-	factory := NewUniswapV3PoolFactory(&Config{DexID: "uniswapv3"})
+	factory := NewPoolFactory(&Config{DexID: "uniswapv3"})
 	assert.True(t, factory.IsEventSupported(poolCreatedEventIDWithFee))
 	assert.True(t, factory.IsEventSupported(poolCreatedEventIDNoFee))
 	assert.False(t, factory.IsEventSupported(mintEventID))

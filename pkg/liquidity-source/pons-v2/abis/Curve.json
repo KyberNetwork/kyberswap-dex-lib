@@ -1,0 +1,156 @@
+[
+  {
+    "type": "function",
+    "name": "buy",
+    "stateMutability": "payable",
+    "inputs": [
+      { "name": "quoteIn", "type": "uint256" },
+      { "name": "minTokensOut", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [{ "name": "tokensOut", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "sell",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "tokensIn", "type": "uint256" },
+      { "name": "minQuoteOut", "type": "uint256" },
+      { "name": "recipient", "type": "address" }
+    ],
+    "outputs": [{ "name": "quoteOut", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "getReserves",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "quoteReserve_", "type": "uint256" },
+      { "name": "tokenReserve_", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "sellableTokens",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "reservedTokens",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "feeBps",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "creatorTaxBps",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "pairToken",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "isNativeQuote",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "function",
+    "name": "token",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "type": "function",
+    "name": "graduated",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "function",
+    "name": "readyToGraduate",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "function",
+    "name": "phantomQuote",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "graduationThreshold",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "event",
+    "name": "CurveBuy",
+    "anonymous": false,
+    "inputs": [
+      { "name": "buyer", "type": "address", "indexed": true },
+      { "name": "recipient", "type": "address", "indexed": true },
+      { "name": "quoteIn", "type": "uint256", "indexed": false },
+      { "name": "tokensOut", "type": "uint256", "indexed": false },
+      { "name": "fee", "type": "uint256", "indexed": false },
+      { "name": "tax", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "CurveSell",
+    "anonymous": false,
+    "inputs": [
+      { "name": "seller", "type": "address", "indexed": true },
+      { "name": "recipient", "type": "address", "indexed": true },
+      { "name": "tokensIn", "type": "uint256", "indexed": false },
+      { "name": "quoteOut", "type": "uint256", "indexed": false },
+      { "name": "fee", "type": "uint256", "indexed": false },
+      { "name": "tax", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "CurveBuyRefunded",
+    "anonymous": false,
+    "inputs": [
+      { "name": "buyer", "type": "address", "indexed": true },
+      { "name": "refund", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "CurveCompleted",
+    "anonymous": false,
+    "inputs": [
+      { "name": "recipient", "type": "address", "indexed": false },
+      { "name": "quoteOut", "type": "uint256", "indexed": false },
+      { "name": "tokenOut", "type": "uint256", "indexed": false }
+    ]
+  }
+]

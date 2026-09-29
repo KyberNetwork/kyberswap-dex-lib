@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -49,6 +51,28 @@ func TestIntegration_V2_ComputeQuote(t *testing.T) {
 
 			simulator, err := NewPoolSimulator(updatedPool)
 			require.NoError(t, err)
+
+			// Whitelist swap hooks revert inside beforeSwap for any
+			// non-whitelisted taker during execution, while on-chain
+			// computeQuote is a read-only view that never reaches beforeSwap.
+			// Such pools must fail quoting here and cannot be validated
+			// against computeQuote.
+			if _, gated := simulator.hook.(*hooks.WhitelistHook); gated {
+				_, simErr := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  updatedPool.Tokens[0].Address,
+						Amount: bignumber.TenPowInt(6),
+					},
+					TokenOut: updatedPool.Tokens[1].Address,
+				})
+				require.Error(t, simErr)
+				assert.True(t,
+					errors.Is(simErr, hooks.ErrSwapperNotAuthorized) || errors.Is(simErr, hooks.ErrPoolDisabled),
+					"Pool %s is whitelist-gated, quotes must be rejected", updatedPool.Address)
+				fmt.Printf("Pool: %s - gated by whitelist swap hook (%v), skipping computeQuote comparison\n",
+					updatedPool.Address, simErr)
+				return
+			}
 
 			amounts := []*big.Int{
 				bignumber.TenPowInt(18),

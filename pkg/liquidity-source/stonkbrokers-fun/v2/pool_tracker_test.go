@@ -1,0 +1,311 @@
+package stonkbrokersfunv2
+
+import (
+	"context"
+	"math/big"
+	"os"
+	"testing"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+)
+
+const (
+	defaultRobinhoodRPCURL = "https://rpc.mainnet.chain.robinhood.com"
+	// ArbMulticall2, matching pool-service's robinhood config. It must be this
+	// one and not Multicall3: the tracker pins its oracle read to the block
+	// aggregate() returns, and only this contract reports that in the
+	// eth_blockNumber domain. See GetNewPoolState's comment.
+	multicallAddress = "0x2cAC2D899eCC914d704FeaAE33ac1bF36277DaD1"
+	lensAddress      = "0x25b5Df581f4b2Ed450203f375ad8A28b17F115B3"
+
+	// wethV3Pad is the WETH-lane Smart Launch V3 pad. V3 is deliberately out of
+	// the configured pad list -- see TestV3Pad_ScopeDecision.
+	wethV3Pad = "0x5BCEefBa6fDf437A7388aDC5c9056c827baca3B3"
+)
+
+// robinhoodRPCURL is the endpoint the live tests dial. The public RPC rate
+// limits aggressively (and answers Cloudflare challenges once it does), so
+// STONKBROKERS_RPC_URL can point these at a private/archive endpoint. Keep the
+// key in the environment, never in the repo.
+func robinhoodRPCURL() string {
+	if u := os.Getenv("STONKBROKERS_RPC_URL"); u != "" {
+		return u
+	}
+	return defaultRobinhoodRPCURL
+}
+
+// testPoolJSON is this package's reference launch: WETH V2 pad, on-chain
+// launch id 176. Reserves start
+// at "0","0" -- this is exactly what discovery leaves behind
+// (AGENTS.md: don't set reserves at discovery time); GetNewPoolState fills
+// the real values.
+const testPoolJSON = `{
+	"address": "0xfcd61b25bbf3abd6cf0070d6328e351cc30eec9f_176",
+	"exchange": "stonkbrokers-fun-v2",
+	"type": "stonkbrokers-fun-v2",
+	"timestamp": 1787720000,
+	"reserves": ["0", "0"],
+	"tokens": [
+		{"address": "0x391d8735013cc60f7cca0f2ee611a14dc2e66666", "swappable": true},
+		{"address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73", "swappable": true}
+	],
+	"extra": "{}",
+	"staticExtra": "{\"pad\":\"0xfcd61b25bbf3abd6cf0070d6328e351cc30eec9f\",\"lens\":\"0x25b5df581f4b2ed450203f375ad8a28b17f115b3\",\"launchId\":\"176\",\"isWethLane\":true,\"quoteDecimals\":18,\"bufferTaxBps\":9999,\"startTaxBps\":0,\"decayPerMinuteBps\":0,\"bufferSecs\":0,\"windowSecs\":0,\"startTime\":1787691927,\"deadline\":1787691927,\"openEnded\":true,\"postTaxBps\":100,\"maxBuyPpm\":0,\"gradMcapUsd8\":5000000000000,\"loadedSupply\":\"1000000000000000000000000000\",\"quoteUsdFeed\":\"0x78f3556b67e17df817d51ef5a990cdaf09e8d3a9\",\"ethUsdFeed\":\"0x78f3556b67e17df817d51ef5a990cdaf09e8d3a9\"}"
+}`
+
+type PoolTrackerTestSuite struct {
+	suite.Suite
+	tracker *PoolTracker
+}
+
+func (ts *PoolTrackerTestSuite) SetupSuite() {
+	cfg := &Config{
+		DexID:   DexType,
+		ChainID: 4663,
+	}
+	client := ethrpc.New(robinhoodRPCURL()).
+		SetMulticallContract(common.HexToAddress(multicallAddress))
+
+	tracker, err := NewPoolTracker(cfg, client)
+	ts.Require().NoError(err)
+	ts.tracker = tracker
+}
+
+// TestGetNewPoolState_LiveWethLaunch176 is the tracker-side half of the
+// live-verified WETH launch 176 fixture (paired with
+// TestCalcAmountOut_LiveVerifiedWethLaunch176 in pool_simulator_test.go).
+// It hits the real chain -- SkipCI so it doesn't flake CI on a network hop,
+// but genuinely proves GetNewPoolState decodes real on-chain bytes.
+func (ts *PoolTrackerTestSuite) TestGetNewPoolState_LiveWethLaunch176() {
+	t := ts.T()
+
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(testPoolJSON), &p))
+
+	updated, err := ts.tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+
+	t.Logf("blockNumber: %d", updated.BlockNumber)
+	t.Logf("reserves:    %v", updated.Reserves)
+	t.Logf("extra:       %s", updated.Extra)
+
+	require.Greater(t, updated.BlockNumber, uint64(46_325_622), "block must be pinned forward, never fabricated")
+	require.Len(t, updated.Reserves, 2)
+	require.NotEqual(t, "0", updated.Reserves[0])
+	require.NotEqual(t, "0", updated.Reserves[1])
+
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+	require.True(t, extra.Armed)
+	require.False(t, extra.Aborted)
+	require.NotNil(t, extra.DirectFeed)
+	require.True(t, extra.DirectFeed.Ok, "WETH lane's quoteUsdFeed must resolve (direct-feed mode)")
+	require.Nil(t, extra.Twap, "WETH lane is direct-feed mode, Twap must stay unset")
+}
+
+func TestPoolTrackerTestSuite(t *testing.T) {
+	t.Parallel()
+	test.SkipCI(t)
+	suite.Run(t, new(PoolTrackerTestSuite))
+}
+
+// TestV3Pad_ScopeDecision records WHY the 8 Smart Launch V3 (external-token /
+// BYO) pads are deliberately NOT in the pad list, and keeps that decision
+// honest by re-checking it against the chain.
+//
+// V3 needs no code of its own: the pads share the StonkSafeLaunchpadV2 ABI and
+// the SafeLaunchLensV2 lens, and `externalToken` -- the only distinguishing
+// field -- is written in createLaunch, emitted in LaunchCreated, and read
+// nowhere else in the pad or its four linked libraries, so it never branches
+// the buy path. Adding them would be a config-only change.
+//
+// It is not worth making. Exactly one launch exists across all 8 V3 pads (WETH
+// lane, id 1) and it is eoaOnly, so buy() reverts NotEoa() for any contract
+// caller including the executor. Discovery drops eoaOnly launches, so pointing
+// the lister at the V3 pad yields nothing at all: V3 would add zero routable
+// liquidity today. If a routable V3 launch ever appears, this test starts
+// failing and the decision gets revisited.
+func (ts *PoolTrackerTestSuite) TestV3Pad_ScopeDecision() {
+	t := ts.T()
+
+	client := ethrpc.New(robinhoodRPCURL()).
+		SetMulticallContract(common.HexToAddress(multicallAddress))
+
+	lister := NewPoolsListUpdater(&Config{
+		DexID: DexType, ChainID: 4663,
+		Pads: []string{wethV3Pad}, Lens: lensAddress,
+	}, client)
+
+	pools, _, err := lister.GetNewPools(context.Background(), nil)
+	ts.Require().NoError(err, "the V2 lister must decode a V3 pad unchanged")
+	ts.Require().Empty(pools,
+		"V3's only launch is eoaOnly and must be dropped; %d pool(s) came back, so a routable V3 launch now exists",
+		len(pools))
+	t.Logf("V3 WETH pad: %d routable launches (expected 0)", len(pools))
+}
+
+func mustStaticExtra(t *testing.T, p entity.Pool) StaticExtra {
+	t.Helper()
+	var se StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &se))
+	return se
+}
+
+// TestQuoteMatchesLens is the correctness property that matters most: the
+// simulator's price must equal what the pad's own SafeLaunchLensV2 quotes, to
+// the wei, across the whole amount range. The lens is an independent on-chain
+// implementation of the same curve, so agreeing with it catches any drift in
+// the ported tax/rounding maths.
+func (ts *PoolTrackerTestSuite) TestQuoteMatchesLens() {
+	t := ts.T()
+	ctx := context.Background()
+
+	client := ethrpc.New(robinhoodRPCURL()).
+		SetMulticallContract(common.HexToAddress(multicallAddress))
+
+	var ep entity.Pool
+	ts.Require().NoError(json.Unmarshal([]byte(testPoolJSON), &ep))
+	p, err := ts.tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
+	ts.Require().NoError(err)
+
+	sim, err := NewPoolSimulator(p)
+	ts.Require().NoError(err)
+
+	launchID, ok := new(big.Int).SetString(mustStaticExtra(t, p).LaunchID, 10)
+	ts.Require().True(ok)
+
+	for _, amountIn := range []*big.Int{
+		big.NewInt(1),
+		big.NewInt(1_000_000_000_000),
+		big.NewInt(10_000_000_000_000_000),
+		big.NewInt(1_000_000_000_000_000_000),
+	} {
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: p.Tokens[1].Address, Amount: amountIn},
+			TokenOut:      p.Tokens[0].Address,
+		})
+		ts.Require().NoError(err, "amountIn=%s", amountIn)
+
+		// quoteBuy returns two values, so ethrpc takes the copyTuple path and
+		// needs one struct destination.
+		var lens struct {
+			TokensOut *big.Int
+			TaxBps    *big.Int
+		}
+		req := client.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(p.BlockNumber))
+		req.AddCall(&ethrpc.Call{
+			ABI: lensABI, Target: lensAddress, Method: methodQuoteBuy,
+			Params: []any{common.HexToAddress(wethPad), launchID, amountIn},
+		}, []any{&lens})
+		_, err = req.Aggregate()
+		ts.Require().NoError(err)
+
+		t.Logf("amountIn=%-20s sim=%-30s lens=%-30s taxBps=%s",
+			amountIn, res.TokenAmountOut.Amount, lens.TokensOut, lens.TaxBps)
+		ts.Require().Zero(res.TokenAmountOut.Amount.Cmp(lens.TokensOut),
+			"simulator disagrees with the lens at amountIn=%s", amountIn)
+	}
+}
+
+// TestSnapshotBlockDomain guards the assumption GetNewPoolState now rests on:
+// that the configured multicall reports its block in the eth_blockNumber
+// domain. Robinhood Chain also exposes a block.number opcode counter that runs
+// roughly half as fast, and a block tag from that domain is rejected by
+// eth_call, so a client wired to Multicall3 would break every pinned read here.
+// One cheap assertion beats rediscovering that from a "pool marked untradeable"
+// log line.
+func (ts *PoolTrackerTestSuite) TestSnapshotBlockDomain() {
+	t := ts.T()
+	ctx := context.Background()
+
+	client := ethrpc.New(robinhoodRPCURL()).
+		SetMulticallContract(common.HexToAddress(multicallAddress))
+
+	var launchCount *big.Int
+	req := client.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{ABI: PadABI, Target: wethPad, Method: methodLaunchCount}, []any{&launchCount})
+	resp, err := req.Aggregate()
+	ts.Require().NoError(err)
+	ts.Require().NotNil(resp.BlockNumber, "aggregate must report a block to pin to")
+
+	head, err := client.GetBlockNumber(ctx)
+	ts.Require().NoError(err)
+
+	agg := resp.BlockNumber.Uint64()
+	t.Logf("aggregate block=%d  eth_blockNumber=%d  delta=%d", agg, head, int64(agg)-int64(head))
+
+	// The two are read a moment apart, so allow drift -- but the wrong domain is
+	// off by millions, not by a handful of blocks.
+	const maxDrift = 5000
+	ts.Require().InDeltaf(float64(head), float64(agg), maxDrift,
+		"multicall %s reports block %d while eth_blockNumber is %d: this client is on the "+
+			"block.number opcode domain and pinned reads will fail", multicallAddress, agg, head)
+}
+
+// entity.Pool.Timestamp is the clock pool-service ages pools out on, so the
+// tracker must move it only when the launch actually traded -- otherwise every
+// interval refresh looks like activity and nothing ever archives.
+func TestPersist_TimestampTracksTradeCounter(t *testing.T) {
+	t.Parallel()
+
+	const was = int64(1787720000)
+	tracker := &PoolTracker{}
+	tradeable := StaticExtra{OpenEnded: true}
+
+	snapshot := func(buyCount uint64) Extra {
+		return Extra{
+			VQuote:   uint256.NewInt(1e18),
+			VToken:   uint256.NewInt(2e18),
+			Armed:    true,
+			BuyCount: buyCount,
+		}
+	}
+	stored := func(e Extra, timestamp int64) entity.Pool {
+		extraBytes, err := json.Marshal(e)
+		require.NoError(t, err)
+		return entity.Pool{Extra: string(extraBytes), Timestamp: timestamp}
+	}
+
+	t.Run("counter unchanged leaves the timestamp alone", func(t *testing.T) {
+		got := tracker.persist(stored(snapshot(7), was), snapshot(7), tradeable, big.NewInt(100))
+		require.Equal(t, was, got.Timestamp)
+	})
+
+	t.Run("counter moved bumps the timestamp", func(t *testing.T) {
+		got := tracker.persist(stored(snapshot(7), was), snapshot(8), tradeable, big.NewInt(100))
+		require.Greater(t, got.Timestamp, was)
+	})
+
+	t.Run("first sight starts the clock", func(t *testing.T) {
+		// Upstream reads timestamp 0 as "always active", so a launch that has
+		// never traded would otherwise stay resident forever.
+		got := tracker.persist(entity.Pool{Extra: "{}"}, snapshot(0), tradeable, big.NewInt(100))
+		require.Greater(t, got.Timestamp, was)
+	})
+
+	t.Run("terminal parks even on a fresh trade", func(t *testing.T) {
+		bonded := snapshot(9)
+		bonded.Bonded = true
+		got := tracker.persist(stored(snapshot(7), was), bonded, tradeable, big.NewInt(100))
+		require.EqualValues(t, 1, got.Timestamp)
+		require.Equal(t, entity.PoolReserves{"0", "0"}, got.Reserves)
+	})
+
+	t.Run("counter and fetch time are persisted", func(t *testing.T) {
+		got := tracker.persist(stored(snapshot(7), was), snapshot(8), tradeable, big.NewInt(100))
+
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
+		require.EqualValues(t, 8, extra.BuyCount)
+		require.EqualValues(t, 100, got.BlockNumber)
+	})
+}

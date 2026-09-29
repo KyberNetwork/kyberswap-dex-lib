@@ -168,3 +168,68 @@ func TestCalcAmountOut_ygami_scUSD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("3387791420").ToBig(), res.TokenAmountOut.Amount)
 }
+
+// Regression test for the Plasma/Arbitrum-style rail with zero mint history.
+// Arbitrum USDA transmuter 0xd253b62108d1831aed298fc2434a5a8e4e418053 holds USDC as its
+// only collateral with getIssuedByCollateral(USDC) = 0; every burn size reverts on-chain
+// in Swapper._swap with an arithmetic underflow on normalizedStables
+// (see AngleProtocol/angle-transmuter Swapper.sol, burn branch comment).
+func TestCalcAmountOut_burn_zero_issuance_rejected(t *testing.T) {
+	const (
+		usdc = "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+		usda = "0x0000206329b97db379d5e1bf586bbdb969c63274"
+	)
+	p := PoolSimulator{
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Tokens: []string{usdc, usda},
+		}},
+		Decimals: []uint8{6, 18},
+		Transmuter: TransmuterState{
+			// Values mirror the router-api snapshot of pool 0xd253b62108d1831aed298fc2434a5a8e4e418053
+			// (router-api.kyberengineering.io/arbitrum/api/v1/pools?ids=<pool>): totalStablecoinIssued=0,
+			// USDC collateral stablecoinsIssued=0, normalizedStables=0, balance=2215112.
+			TotalStablecoinIssued: uint256.NewInt(0),
+			Collaterals: map[string]CollateralState{
+				usdc: {
+					IsBurnLive:        true,
+					IsMintLive:        true,
+					StablecoinsIssued: uint256.NewInt(0),
+					NormalizedStables: uint256.NewInt(0),
+					Balance:           setUInt("2215112"),
+					Fees: Fees{
+						XFeeBurn: []*uint256.Int{uint256.NewInt(0)},
+						YFeeBurn: []*uint256.Int{uint256.NewInt(0)},
+					},
+					Config: Oracle{
+						OracleType: STABLE,
+						TargetType: STABLE,
+						Hyperparameters: Hyperparameters{
+							UserDeviation:      uint256.NewInt(0),
+							BurnRatioDeviation: uint256.NewInt(0),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	amountIn := setUInt("1372531263530234068")
+
+	collatInfo := p.Transmuter.Collaterals[usdc]
+	amountOut, err := _quoteBurnExactInput(
+		newBASE18(), newBASE18(), amountIn,
+		&collatInfo,
+		uint256.NewInt(0),
+		p.Decimals[0],
+		uint256.NewInt(0),
+	)
+	assert.Nil(t, err)
+	assert.Equal(t, setUInt("1372531"), amountOut)
+
+	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usda, Amount: amountIn.ToBig()},
+		TokenOut:      usdc,
+	})
+	assert.Nil(t, res)
+	assert.ErrorIs(t, err, ErrInsufficientStablecoinIssued)
+}

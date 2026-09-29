@@ -53,11 +53,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokenPrecisionMultipliers[1] = extra.Token1PrecisionMultiplier
 
 	var info = pool.PoolInfo{
-		Address:  strings.ToLower(entityPool.Address),
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-		Reserves: reserves,
+		Address:     strings.ToLower(entityPool.Address),
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
@@ -176,5 +177,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return syncswap.Meta{
 		VaultAddress: addressZero,
+		BlockNumber:  p.Info.BlockNumber,
 	}
 }

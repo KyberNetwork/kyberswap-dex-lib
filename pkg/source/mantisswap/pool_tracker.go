@@ -112,9 +112,13 @@ func (d *PoolTracker) GetNewPoolState(
 			Params: nil,
 		}, []any{&lp.LiabilityLimit})
 	}
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.Aggregate()
+	if err != nil {
 		logger.Errorf("failed to aggregate calls with err %v", err)
 		return entity.Pool{}, err
+	}
+	if resp != nil && resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	reserves := make([]string, len(p.Tokens))

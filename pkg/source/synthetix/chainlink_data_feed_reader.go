@@ -23,10 +23,10 @@ func NewChainlinkDataFeedReader(cfg *Config, ethrpcClient *ethrpc.Client) *Chain
 	}
 }
 
-func (r *ChainlinkDataFeedReader) Read(ctx context.Context, address string, roundCount int) (*ChainlinkDataFeed, error) {
+func (r *ChainlinkDataFeedReader) Read(ctx context.Context, address string, roundCount int, blockNumber uint64) (*ChainlinkDataFeed, error) {
 	chainlinkDataFeed := NewChainlinkDataFeed()
 
-	if err := r.getLatestRoundData(ctx, address, chainlinkDataFeed); err != nil {
+	if err := r.getLatestRoundData(ctx, address, chainlinkDataFeed, blockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -34,7 +34,7 @@ func (r *ChainlinkDataFeedReader) Read(ctx context.Context, address string, roun
 		return nil, err
 	}
 
-	if err := r.getHistoryRoundData(ctx, address, chainlinkDataFeed, roundCount); err != nil {
+	if err := r.getHistoryRoundData(ctx, address, chainlinkDataFeed, roundCount, blockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
@@ -45,12 +45,10 @@ func (r *ChainlinkDataFeedReader) Read(ctx context.Context, address string, roun
 	return chainlinkDataFeed, nil
 }
 
-func (r *ChainlinkDataFeedReader) getLatestRoundData(ctx context.Context, address string, chainlinkDataFeed *ChainlinkDataFeed) error {
+func (r *ChainlinkDataFeedReader) getLatestRoundData(ctx context.Context, address string, chainlinkDataFeed *ChainlinkDataFeed, blockNumber uint64) error {
 	var latestRoundData RoundData
 
-	req := r.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
+	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -77,7 +75,7 @@ func (r *ChainlinkDataFeedReader) getLatestRoundData(ctx context.Context, addres
 	return nil
 }
 
-func (r *ChainlinkDataFeedReader) getHistoryRoundData(ctx context.Context, address string, chainlinkDataFeed *ChainlinkDataFeed, roundCount int) error {
+func (r *ChainlinkDataFeedReader) getHistoryRoundData(ctx context.Context, address string, chainlinkDataFeed *ChainlinkDataFeed, roundCount int, blockNumber uint64) error {
 	// start to get historical rounds data when current round count is greater than 1
 	if roundCount <= 1 {
 		return nil
@@ -85,7 +83,7 @@ func (r *ChainlinkDataFeedReader) getHistoryRoundData(ctx context.Context, addre
 
 	roundDataList := make([]RoundData, roundCount-1)
 
-	req := r.ethrpcClient.NewRequest().SetContext(ctx)
+	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i := 1; i < roundCount; i++ {
 		roundID := new(big.Int).Sub(chainlinkDataFeed.RoundID, big.NewInt(int64(i)))
 

@@ -27,6 +27,6 @@ type Extra struct {
 // MetaInfo is returned by GetMetaInfo and consumed by the transaction builder.
 type MetaInfo struct {
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
-	BlockNumber     uint64 `json:"bN,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber,omitempty"`
 	IsZeroToOne     bool   `json:"0,omitempty"`
 }

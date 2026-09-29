@@ -155,16 +155,25 @@ func TestResolveSlot0(t *testing.T) {
 	t.Run("standard shape wins when it decodes", func(t *testing.T) {
 		t.Parallel()
 		std := slot0RawStandard{SqrtPriceX96: sqrtP, Tick: tick, Unlocked: true}
-		got, err := resolveSlot0(std, slot0RawSlipstream{}, slot0RawSolidly{})
+		got, err := resolveSlot0(slot0RawKatana{}, std, slot0RawSlipstream{}, slot0RawSolidly{})
 		require.NoError(t, err)
 		assert.Equal(t, sqrtP, got.SqrtPriceX96)
 		assert.Nil(t, got.Fee)
 	})
 
-	t.Run("slipstream shape used when standard did not decode", func(t *testing.T) {
+	t.Run("katana shape used when standard did not decode", func(t *testing.T) {
+		t.Parallel()
+		kat := slot0RawKatana{SqrtPriceX96: sqrtP, Tick: tick, Unlocked: true}
+		got, err := resolveSlot0(kat, slot0RawStandard{}, slot0RawSlipstream{}, slot0RawSolidly{})
+		require.NoError(t, err)
+		assert.Equal(t, sqrtP, got.SqrtPriceX96)
+		assert.Nil(t, got.Fee)
+	})
+
+	t.Run("slipstream shape used when standard and katana did not decode", func(t *testing.T) {
 		t.Parallel()
 		slip := slot0RawSlipstream{SqrtPriceX96: sqrtP, Tick: tick, Unlocked: true}
-		got, err := resolveSlot0(slot0RawStandard{}, slip, slot0RawSolidly{})
+		got, err := resolveSlot0(slot0RawKatana{}, slot0RawStandard{}, slip, slot0RawSolidly{})
 		require.NoError(t, err)
 		assert.Equal(t, sqrtP, got.SqrtPriceX96)
 		assert.Nil(t, got.Fee)
@@ -174,7 +183,7 @@ func TestResolveSlot0(t *testing.T) {
 		t.Parallel()
 		fee := big.NewInt(10000)
 		solid := slot0RawSolidly{SqrtPriceX96: sqrtP, Tick: tick, Unlocked: true, Fee: fee}
-		got, err := resolveSlot0(slot0RawStandard{}, slot0RawSlipstream{}, solid)
+		got, err := resolveSlot0(slot0RawKatana{}, slot0RawStandard{}, slot0RawSlipstream{}, solid)
 		require.NoError(t, err)
 		assert.Equal(t, sqrtP, got.SqrtPriceX96)
 		assert.Equal(t, fee, got.Fee)
@@ -182,7 +191,7 @@ func TestResolveSlot0(t *testing.T) {
 
 	t.Run("errors when nothing decoded", func(t *testing.T) {
 		t.Parallel()
-		_, err := resolveSlot0(slot0RawStandard{}, slot0RawSlipstream{}, slot0RawSolidly{})
+		_, err := resolveSlot0(slot0RawKatana{}, slot0RawStandard{}, slot0RawSlipstream{}, slot0RawSolidly{})
 		assert.Error(t, err)
 	})
 }
