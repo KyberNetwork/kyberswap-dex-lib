@@ -3,11 +3,13 @@ package prmfun
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -65,9 +67,20 @@ func (t *PoolTracker) getNewPoolState(
 		reservesResult GetReservesResult
 		memeSold       *big.Int
 		deskRaised     *big.Int
+		pair           common.Address
+		native         bool
 	)
 
-	resp, err := t.ethrpcClient.NewRequest().SetOverrides(overrides).SetContext(ctx).
+	// Multicall's block.number is an L1 parent on Robinhood. The RPC block
+	// identifies the actual L2 state and must also be returned to the encoder.
+	head, err := t.ethrpcClient.GetBlockNumber(ctx)
+	if err != nil {
+		return p, err
+	}
+	if head == 0 {
+		return p, ErrInvalidState
+	}
+	_, err = t.ethrpcClient.NewRequest().SetOverrides(overrides).SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(head)).
 		AddCall(&ethrpc.Call{
 			ABI: memeCurveABI, Target: staticExtra.CurveAddress, Method: memeCurveMethodPhase,
 		}, []any{&phase}).
@@ -80,7 +93,27 @@ func (t *PoolTracker) getNewPoolState(
 		AddCall(&ethrpc.Call{
 			ABI: memeCurveABI, Target: staticExtra.CurveAddress, Method: memeCurveMethodDeskRaised,
 		}, []any{&deskRaised}).
-		TryBlockAndAggregate()
+		AddCall(&ethrpc.Call{ABI: memeCurveABI, Target: staticExtra.CurveAddress, Method: "deskToken"}, []any{&pair}).
+		AddCall(&ethrpc.Call{ABI: memeCurveABI, Target: staticExtra.CurveAddress, Method: "isNativeQuote"}, []any{&native}).
+		Aggregate()
+	if err != nil {
+		return p, err
+	}
+	if phase > PhasePaused {
+		return p, ErrInvalidState
+	}
+	for _, amount := range []*big.Int{reservesResult.QuoteReserve, reservesResult.TokenReserve, memeSold, deskRaised} {
+		if amount == nil || amount.Sign() < 0 || amount.BitLen() > 256 {
+			return p, ErrInvalidState
+		}
+	}
+	if len(p.Tokens) != 2 || p.Tokens[0] == nil || !strings.EqualFold(p.Tokens[0].Address, hexutil.Encode(pair[:])) {
+		return p, ErrInvalidToken
+	}
+	// Refresh the native flag also for persisted ETH-only rows from the previous
+	// implementation, which did not include it in StaticExtra.
+	staticExtra.IsNativeQuote = native
+	staticBytes, err := json.Marshal(staticExtra)
 	if err != nil {
 		return p, err
 	}
@@ -96,19 +129,26 @@ func (t *PoolTracker) getNewPoolState(
 		MemeSold:    uMemeSold,
 		DeskRaised:  uDeskRaised,
 	}
+	target, err := uint256.FromDecimal(staticExtra.GraduationDesk)
+	if err != nil || !validState(extra, target) {
+		return p, ErrInvalidState
+	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
+	p.StaticExtra = string(staticBytes)
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	p.BlockNumber = head
 
 	if phase != PhaseTrading {
 		p.Reserves = entity.PoolReserves{"0", "0"}
-		p.Timestamp = 1
+		if phase == PhaseGraduated {
+			p.Timestamp = 1
+		}
 		logger.WithFields(logger.Fields{"address": p.Address, "phase": phase}).
-			Info("prm-fun pool left Trading phase, parking for archival")
+			Info("prm-fun pool is not trading")
 		return p, nil
 	}
 

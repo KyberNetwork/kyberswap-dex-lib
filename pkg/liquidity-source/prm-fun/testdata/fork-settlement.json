@@ -1,0 +1,128 @@
+{
+  "environment": "local Anvil fork; transactions are not on mainnet",
+  "chainId": 4663,
+  "forkBlock": 75791163,
+  "forkHash": "0x7f0d8a591467e65ab20b7860cff6ca99e25943606ce53807e1ff5911ababcf4b",
+  "settlements": [
+    {
+      "pair": "pHODO",
+      "action": "buy",
+      "input": "37186954916235758014",
+      "used": "37186954916235758014",
+      "output": "2838400488853056258139008",
+      "refund": "0",
+      "gasUsed": "216292",
+      "localTx": "0xc992ee2f9bed97e22296c9b2a5c16f69efda219aa9459cddd2f68d294122df07"
+    },
+    {
+      "pair": "pHODO",
+      "action": "sell",
+      "input": "1419200244426528129069504",
+      "used": "1419200244426528129069504",
+      "output": "18249082665158549813",
+      "refund": "0",
+      "gasUsed": "201083",
+      "localTx": "0xa8866c768b7cc5dc2786ecfb6e20fb2875a900b091cd1af5a33725e3b75db08a"
+    },
+    {
+      "pair": "pHODO",
+      "action": "final-buy",
+      "input": "37227453587731943334863",
+      "used": "36855584038569585754719",
+      "output": "742989268674199703089508605",
+      "refund": "371869549162357580144",
+      "gasUsed": "913569",
+      "localTx": "0x528282fb89a931e29d792d5d2ba6a686c1b04279c2e8f26558382c88fa8d8d46"
+    },
+    {
+      "pair": "ETH",
+      "action": "buy",
+      "input": "4200000000000000",
+      "used": "4200000000000000",
+      "output": "3133027888644545136164076",
+      "refund": "0",
+      "gasUsed": "223172",
+      "localTx": "0x08b51805bea3a4cfa442646b65f022cc372647a18ba404b710b56b62b9f72a83"
+    },
+    {
+      "pair": "ETH",
+      "action": "sell",
+      "input": "1566513944322272568082038",
+      "used": "1566513944322272568082038",
+      "output": "2061249521417636",
+      "refund": "0",
+      "gasUsed": "199546",
+      "localTx": "0xbf04d0f72149de2cb6ee3bfd0e004c573a17ce186c5481416f9c6820b9afe86a"
+    },
+    {
+      "pair": "ETH",
+      "action": "final-buy",
+      "input": "4276555089820649111",
+      "used": "4234555089820649111",
+      "output": "794097257099587113001058908",
+      "refund": "42000000000000000",
+      "gasUsed": "944250",
+      "localTx": "0xa9bb4c1fb5b3e314c68fdfc82de06d210156d6c9eca29dbf712663318d9a31fc"
+    },
+    {
+      "pair": "PRM",
+      "action": "buy",
+      "input": "13322795174181910168116",
+      "used": "13322795174181910168116",
+      "output": "3158618901861471429853110",
+      "refund": "0",
+      "gasUsed": "282462",
+      "localTx": "0x052a2c9fe1ab6fdc8848c5fbb1a501bc533581c6ee838a27121f810dc25a27ba"
+    },
+    {
+      "pair": "PRM",
+      "action": "sell",
+      "input": "1579309450930735714926555",
+      "used": "1579309450930735714926555",
+      "output": "6538516720030669833063",
+      "refund": "0",
+      "gasUsed": "199121",
+      "localTx": "0x71ff61b038c01efa4a6c06c94cd317175027a7ba15f14ede18ab6d6f53f65ffe"
+    },
+    {
+      "pair": "PRM",
+      "action": "final-buy",
+      "input": "13583945294472056879573454",
+      "used": "13450717342730237777892293",
+      "output": "798420690549069264285073445",
+      "refund": "133227951741819101681161",
+      "gasUsed": "911116",
+      "localTx": "0x1e05d304db6a0dfd9b9cf48f23859d592071727f6d36470892db8aaead20db34"
+    },
+    {
+      "pair": "pHYPD-Reserve",
+      "action": "buy",
+      "input": "2532000000000000000",
+      "used": "2532000000000000000",
+      "output": "3158618901861471429853335",
+      "refund": "0",
+      "gasUsed": "283064",
+      "localTx": "0x393e7183b862df717f0bc5fc0480f6bd24aaabb801f69a8ed8abafc8da77a0dd"
+    },
+    {
+      "pair": "pHYPD-Reserve",
+      "action": "sell",
+      "input": "1579309450930735714926667",
+      "used": "1579309450930735714926667",
+      "output": "1242646465600583133",
+      "refund": "0",
+      "gasUsed": "199553",
+      "localTx": "0x184d03c76ea1a58b69a8eba0c6a9489abfb4b61f979b3e31547a999b7cf3bb3c"
+    },
+    {
+      "pair": "pHYPD-Reserve",
+      "action": "final-buy",
+      "input": "2581631634798082423359",
+      "used": "2556311634798082423359",
+      "output": "798420690549069264285073332",
+      "refund": "25320000000000000000",
+      "gasUsed": "1239537",
+      "localTx": "0x45d48a44ccca7c29d217c07f59dfc734b42e69836c039f0a013f75fbcb309b39"
+    }
+  ]
+}

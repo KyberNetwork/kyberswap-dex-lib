@@ -584,5 +584,17 @@
         "name": "fee"
       }
     ]
+  },
+  {
+    "type": "function",
+    "name": "deskToken",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
   }
 ]
