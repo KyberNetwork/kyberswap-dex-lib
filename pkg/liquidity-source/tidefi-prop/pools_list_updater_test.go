@@ -27,7 +27,7 @@ func newTakerAPIServer(t *testing.T, token string, assetAddrs []string) *httptes
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		require.NoError(t, err)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		assets := make([]map[string]string, 0, len(assetAddrs))
 		for _, a := range assetAddrs {
