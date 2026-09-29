@@ -1,6 +1,6 @@
 # Spire proprietary AMM (`spire-prop`)
 
-Spire combines maker books into a compressed on-chain curve. This integration supports exact-input swaps between configured base ERC20s and a Spire entrypoint's quote token. WETH–USDC on Base (chain ID 8453) is the deployment verified below. It has no RFQ HTTP dependency, native ETH support, partial fills, or separate taker fee.
+Spire combines maker books into a compressed on-chain curve. This integration supports exact-input swaps between configured base ERC20s and a Spire entrypoint's quote token. WETH–USDC on Base (chain ID 8453) is the deployment verified below. It has no RFQ HTTP dependency, native ETH support, or partial fills. All three contracts are upgradeable ERC1967 proxies.
 
 Protocol documentation: [overview](https://docs.baibai.cx/takers/overview), [quoting and swapping](https://docs.baibai.cx/takers/quoting-and-swapping), [deployments](https://docs.baibai.cx/takers/deployments).
 
@@ -26,11 +26,11 @@ There is no enumerable factory. Discovery uses configured base tokens and reads 
 
 Tracking reads a block header, pins both multicalls to its hash, and checks the canonical hash again before returning. It verifies contract wiring and stores the actual block number in pool state and metadata. Routing should enable `FactoryOpts.StaleCheck`: expiry is checked again on every quote. Historical fixture replay leaves that option disabled but still validates expiry at the snapshot timestamp. Expiry is strict `timestamp > min(validUntil, lastUpdateAt + ttl)`; `ttl = 0` disables only the second bound. Refresh immediately before routing because fills, curve replacement and expiry can invalidate a snapshot.
 
-Pricing ports the curve's checked uint256 operations, including operation order. Signed spread adjusts the midpoint. Cumulative quote impact is linearly interpolated with ceiling rounding. Buys walk ask segments from the consumed cursor, round segment costs upward, and use full-width floor multiplication/division for the last partial segment. Sells subtract the change in cumulative bid impact from the floor midpoint value. Depth limits and available custody are checked before returning a quote. Spread and curve impact are already in the output; the additional fee is zero.
+Pricing ports the curve's checked uint256 operations, including operation order. Signed spread adjusts the midpoint. Cumulative quote impact is linearly interpolated with ceiling rounding. Buys walk ask segments from the consumed cursor, round segment costs upward, and use full-width floor multiplication/division for the last partial segment. Sells subtract the change in cumulative bid impact from the floor midpoint value. Depth limits and available custody are checked before returning a quote. Spread and curve impact are already in the output. The entrypoint can also charge a per-caller taker fee (`quoteFor(base, tokenIn, amountIn, taker)`); the simulator assumes zero, which holds for the KyberSwap executor today. A nonzero fee would make quotes exceed execution.
 
 `UpdateBalance` consumes returned swap information, advances the appropriate cursor/fill sequence, and adjusts reserves. Clones own their mutable values. Shared route inventory is keyed by custodian and token so two configured bases cannot independently spend the same quote balance. Gas uses a conservative 200,000 baseline plus 5,000 per knot on the larger side; fork measurements for this deployment were below 174,000 for the adapter call, excluding enclosing router overhead.
 
-The execution adapter receives `abi.encode(meta.entrypoint, meta.base)`. The enclosing router must enforce final minimum output and deadline; the entrypoint has no caller deadline argument.
+KyberSwap's `executeSpireProp` executor helper receives `abi.encode(meta.entrypoint, meta.base)`, approves the entrypoint and calls `swapExactAmountIn`. The enclosing router must enforce final minimum output and deadline; the entrypoint has no caller deadline argument.
 
 Validation:
 
