@@ -20,6 +20,10 @@ import (
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+// MaxAge is the default staleness bound for embedders without a
+// protocol-specific one, mirroring order-book's MaxAge.
+const MaxAge = time.Minute
+
 type PoolSimulator struct {
 	pool.Pool
 
@@ -49,8 +53,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 // against a live, continuously-updating feed -- see the "off by 10bps"
 // investigation that motivated this check). Embedders that want this should
 // register via pool.RegisterFactory and pass
-// lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64) as maxAge,
-// mirroring pkg/liquidity-source/order-book.
+// lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64) as maxAge (their
+// own MaxAge, or this package's default), mirroring
+// pkg/liquidity-source/order-book.
 func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
 	if time.Since(time.Unix(ep.Timestamp, 0)) > maxAge {
 		return nil, ErrStale

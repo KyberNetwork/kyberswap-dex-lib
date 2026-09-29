@@ -61,7 +61,7 @@ func setupKipseliTest(t *testing.T) (entity.Pool, *PoolSimulator, *PoolTracker, 
 		require.NoError(t, err)
 	}
 
-	sim, err := NewPoolSimulator(p)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
 	require.NoError(t, err)
 
 	return p, sim, tracker, rpcClient

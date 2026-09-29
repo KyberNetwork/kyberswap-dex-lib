@@ -1,9 +1,12 @@
 package prop
 
 import (
-	"github.com/goccy/go-json"
+	"math"
+	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -17,12 +20,14 @@ type PoolSimulator struct {
 }
 
 var (
-	_ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+	_ = pool.RegisterFactory(DexType, NewPoolSimulator)
 	_ = pool.RegisterUseSwapLimit(DexType)
 )
 
-func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
-	base, err := ladder.NewPoolSimulatorWith(ep, maxAge)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	ep := params.EntityPool
+	base, err := ladder.NewPoolSimulatorWith(ep,
+		lo.Ternary[time.Duration](params.Opts.StaleCheck, maxAge, math.MaxInt64))
 	if err != nil {
 		return nil, err
 	}

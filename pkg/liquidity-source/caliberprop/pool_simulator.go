@@ -1,9 +1,12 @@
 package caliberprop
 
 import (
-	"github.com/goccy/go-json"
+	"math"
+	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -14,10 +17,12 @@ type PoolSimulator struct {
 	staticExtra StaticExtra
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
-	base, err := ladder.NewPoolSimulator(ep)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	ep := params.EntityPool
+	base, err := ladder.NewPoolSimulatorWith(ep,
+		lo.Ternary[time.Duration](params.Opts.StaleCheck, ladder.MaxAge, math.MaxInt64))
 	if err != nil {
 		return nil, err
 	}

@@ -2,10 +2,11 @@ package kuruob
 
 import (
 	"math"
+	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -18,10 +19,12 @@ type PoolSimulator struct {
 	hasNative  bool
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	poolSim, err := orderbook.NewPoolSimulatorWith(entityPool, math.MaxInt64)
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	entityPool := params.EntityPool
+	poolSim, err := orderbook.NewPoolSimulatorWith(entityPool,
+		lo.Ternary[time.Duration](params.Opts.StaleCheck, orderbook.MaxAge, math.MaxInt64))
 	if err != nil {
 		return nil, err
 	}
