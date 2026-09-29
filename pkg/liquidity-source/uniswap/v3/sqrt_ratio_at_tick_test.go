@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"math/big"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -99,4 +100,53 @@ func TestGetSqrtRatioAtTickAllTicks(t *testing.T) {
 		h.Write(b[:])
 	}
 	require.Equal(t, "f7906809285d73c1d012b8893c26ccce929372c16bd9b885109ee3f0ff1656db", hex.EncodeToString(h.Sum(nil)))
+}
+
+// TestDivMaxUint256 checks the specialized division against big.Int over any divisor in
+// [2^64, 2^128), not just those valid ticks produce, including the edges where Knuth's quotient
+// estimate is off by two.
+func TestDivMaxUint256(t *testing.T) {
+	t.Parallel()
+
+	maxU256 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+	divisors := [][2]uint64{{1, 0}, {1, 1}, {1<<63 - 1, ^uint64(0)}, {1 << 63, 0}, {1 << 63, 1},
+		{^uint64(0), ^uint64(0)}, {^uint64(0), 0}, {1<<63 + 1, ^uint64(0)}}
+	rng := rand.New(rand.NewPCG(1, 2))
+	for range 200000 {
+		hi := rng.Uint64() >> rng.UintN(64)
+		divisors = append(divisors, [2]uint64{max(hi, 1), rng.Uint64()})
+	}
+	var got uint256.Int
+	for _, d := range divisors {
+		got[0], got[1], got[2], got[3] = divMaxUint256(d[0], d[1])
+		div := new(big.Int).Or(new(big.Int).Lsh(new(big.Int).SetUint64(d[0]), 64), new(big.Int).SetUint64(d[1]))
+		require.Equal(t, new(big.Int).Div(maxU256, div).String(), got.Dec(), "d = %x:%x", d[0], d[1])
+	}
+}
+
+// TestDiv3by2 checks one division step against big.Int on arbitrary numerators. Divisors with a
+// small top limb and a large low limb make the quotient estimate overshoot by two, which exercises
+// the double add-back.
+func TestDiv3by2(t *testing.T) {
+	t.Parallel()
+
+	rng := rand.New(rand.NewPCG(3, 4))
+	limbs := func(ws ...uint64) *big.Int {
+		x := new(big.Int)
+		for _, w := range ws {
+			x.Lsh(x, 64).Or(x, new(big.Int).SetUint64(w))
+		}
+		return x
+	}
+	for range 200000 {
+		d1 := 1<<63 | rng.Uint64()>>rng.UintN(64)&(1<<63-1)
+		d0 := ^uint64(0) - rng.Uint64()>>rng.UintN(64)
+		u2 := d1 - 1 - rng.Uint64()>>rng.UintN(64)%d1
+		u1, u0 := rng.Uint64(), rng.Uint64()
+
+		q, r1, r0 := div3by2(u2, u1, u0, d1, d0)
+		wantQ, wantR := new(big.Int).QuoRem(limbs(u2, u1, u0), limbs(d1, d0), new(big.Int))
+		require.Equal(t, wantQ.String(), new(big.Int).SetUint64(q).String(), "u=%x:%x:%x d=%x:%x", u2, u1, u0, d1, d0)
+		require.Equal(t, wantR.String(), limbs(r1, r0).String(), "u=%x:%x:%x d=%x:%x", u2, u1, u0, d1, d0)
+	}
 }

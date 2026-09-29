@@ -330,81 +330,97 @@ var (
 	sqrtConst21 = uint256.MustFromHex("0x48a170391f7dc42444e8fa2")
 )
 
+// sqrtRatioMuls holds sqrtConst3..sqrtConst21, the multipliers for bits 1..19 of |tick|, as
+// [lo, hi] limbs; each fits in 128 bits.
+var sqrtRatioMuls = func() (muls [19][2]uint64) {
+	for i, c := range [...]*uint256.Int{sqrtConst3, sqrtConst4, sqrtConst5, sqrtConst6, sqrtConst7, sqrtConst8,
+		sqrtConst9, sqrtConst10, sqrtConst11, sqrtConst12, sqrtConst13, sqrtConst14, sqrtConst15, sqrtConst16,
+		sqrtConst17, sqrtConst18, sqrtConst19, sqrtConst20, sqrtConst21} {
+		muls[i] = [2]uint64{c[0], c[1]}
+	}
+	return
+}()
+
+// GetSqrtRatioAtTick ports TickMath.getSqrtRatioAtTick. Every intermediate ratio stays below
+// 2^128 once a multiplier is applied, so each step is a 128x128 multiply keeping the high half.
 func GetSqrtRatioAtTick(tick int, result *uint256.Int) error {
 	if tick < MinTick || tick > MaxTick {
 		return errInvalidTick
 	}
-	absTick := kutils.Abs(tick)
-	var tmp uint256.Int
-	if absTick&0x1 != 0 {
-		result.Set(sqrtConst1)
+	absTick := uint(kutils.Abs(tick))
+	isOne := absTick&1 == 0 // ratio is exactly 2^128, which needs a third limb
+	hi, lo := sqrtConst1[1], sqrtConst1[0]
+	for rest := absTick >> 1; rest != 0; rest &= rest - 1 {
+		m := &sqrtRatioMuls[bits.TrailingZeros(rest)]
+		if isOne { // 2^128 * m >> 128 == m
+			hi, lo, isOne = m[1], m[0], false
+		} else {
+			hi, lo = mulHi128(hi, lo, m[1], m[0])
+		}
+	}
+	if tick > 0 { // isOne only at tick 0
+		result[0], result[1], result[2], result[3] = divMaxUint256(hi, lo)
+	} else if isOne {
+		result.SetOne().Lsh(result, 128)
 	} else {
-		result.Set(sqrtConst2)
+		result[0], result[1], result[2], result[3] = lo, hi, 0, 0
 	}
-	if (absTick & 0x2) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst3), 128)
-	}
-	if (absTick & 0x4) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst4), 128)
-	}
-	if (absTick & 0x8) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst5), 128)
-	}
-	if (absTick & 0x10) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst6), 128)
-	}
-	if (absTick & 0x20) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst7), 128)
-	}
-	if (absTick & 0x40) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst8), 128)
-	}
-	if (absTick & 0x80) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst9), 128)
-	}
-	if (absTick & 0x100) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst10), 128)
-	}
-	if (absTick & 0x200) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst11), 128)
-	}
-	if (absTick & 0x400) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst12), 128)
-	}
-	if (absTick & 0x800) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst13), 128)
-	}
-	if (absTick & 0x1000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst14), 128)
-	}
-	if (absTick & 0x2000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst15), 128)
-	}
-	if (absTick & 0x4000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst16), 128)
-	}
-	if (absTick & 0x8000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst17), 128)
-	}
-	if (absTick & 0x10000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst18), 128)
-	}
-	if (absTick & 0x20000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst19), 128)
-	}
-	if (absTick & 0x40000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst20), 128)
-	}
-	if (absTick & 0x80000) != 0 {
-		result.Rsh(tmp.Mul(result, sqrtConst21), 128)
-	}
-	if tick > 0 {
-		result.Div(maxUint256, result)
-	}
-	if result.DivMod(result, q32U256, &tmp); !tmp.IsZero() {
+	roundUp := result[0]&(1<<32-1) != 0
+	if result.Rsh(result, 32); roundUp {
 		result.AddUint64(result, 1)
 	}
 	return nil
+}
+
+// divMaxUint256 returns floor((2^256-1) / d) as limbs for d = (dHi, dLo). For every positive tick
+// d > 2^64, so dHi != 0 and the quotient fits 192 bits; the all-ticks digest test covers this.
+func divMaxUint256(dHi, dLo uint64) (q0, q1, q2, q3 uint64) {
+	// Normalize so the divisor's top bit is set, shifting the all-ones numerator to match.
+	s := uint(bits.LeadingZeros64(dHi))
+	d1, d0 := dHi<<s|dLo>>(64-s), dLo<<s
+	r1, r0 := uint64(1)<<s-1, ^uint64(0)
+	q2, r1, r0 = div3by2(r1, r0, ^uint64(0), d1, d0)
+	q1, r1, r0 = div3by2(r1, r0, ^uint64(0), d1, d0)
+	q0, _, _ = div3by2(r1, r0, ^uint64(0)<<s, d1, d0)
+	return q0, q1, q2, 0
+}
+
+// div3by2 divides (u2, u1, u0) by the normalized (d1, d0), given (u2, u1) < (d1, d0), returning the
+// quotient digit and the 128-bit remainder (Knuth, TAOCP 4.3.1 Algorithm D, one step).
+func div3by2(u2, u1, u0, d1, d0 uint64) (q, r1, r0 uint64) {
+	q = ^uint64(0)
+	if u2 < d1 {
+		q, _ = bits.Div64(u2, u1, d1)
+	}
+	// r = u - q*d; the estimate exceeds the true digit by at most 2, so add d back while negative.
+	ph, p0 := bits.Mul64(q, d0)
+	p2, p1 := bits.Mul64(q, d1)
+	p1, c := bits.Add64(p1, ph, 0)
+	p2 += c
+	r0, b := bits.Sub64(u0, p0, 0)
+	r1, b = bits.Sub64(u1, p1, b)
+	r2, b := bits.Sub64(u2, p2, b)
+	for b != 0 { // borrow out of the top limb is the sign; the carry that cancels it ends the loop
+		q--
+		r0, c = bits.Add64(r0, d0, 0)
+		r1, c = bits.Add64(r1, d1, c)
+		r2, c = bits.Add64(r2, 0, c)
+		b -= c
+	}
+	return q, r1, r0
+}
+
+// mulHi128 returns the high 128 bits of the 256-bit product (aHi, aLo) * (bHi, bLo).
+func mulHi128(aHi, aLo, bHi, bLo uint64) (hi, lo uint64) {
+	h00, _ := bits.Mul64(aLo, bLo)
+	h01, l01 := bits.Mul64(aLo, bHi)
+	h10, l10 := bits.Mul64(aHi, bLo)
+	h11, l11 := bits.Mul64(aHi, bHi)
+	w1, c1 := bits.Add64(h00, l01, 0)
+	_, c2 := bits.Add64(w1, l10, 0)
+	lo, c3 := bits.Add64(l11, h01, c1)
+	lo, c4 := bits.Add64(lo, h10, c2)
+	return h11 + c3 + c4, lo
 }
 
 // invLog2Sqrt1_0001 converts log2 of a Q96 sqrt-price to tick space.
