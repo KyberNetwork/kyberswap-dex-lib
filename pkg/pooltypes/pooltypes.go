@@ -167,6 +167,7 @@ import (
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	someswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v1"
 	someswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/someswap/v2"
+	spireprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/spire-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	stonkbrokersfunv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/stonkbrokers-fun/v2"
 	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
@@ -477,6 +478,7 @@ type Types struct {
 	KipseliProp                string
 	SomeswapV1                 string
 	SomeswapV2                 string
+	SpireProp                  string
 	WasabiProp                 string
 	Whlp                       string
 	Obric                      string
@@ -733,6 +735,7 @@ var (
 		KipseliProp:                kipseliprop.DexType,
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
+		SpireProp:                  spireprop.DexType,
 		WasabiProp:                 wasabiprop.DexType,
 		Whlp:                       whlp.DexType,
 		Obric:                      obric.DexType,

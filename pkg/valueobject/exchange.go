@@ -277,6 +277,7 @@ const (
 	ExchangeSonicMarket                 = "sonic-market"
 	ExchangeSPendle                     = "spendle"
 	ExchangeSlyngFun                    = "slyng-fun"
+	ExchangeSpireProp                   = "spire-prop"
 	ExchangeSpookySwap                  = "spookyswap"
 	ExchangeStaderETHx                  = "staderethx"
 	ExchangeStonkbrokersFunV2           = "stonkbrokers-fun-v2"
@@ -466,6 +467,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeMantaProp:          {},
 	ExchangeTideFiProp:         {},
 	ExchangeThogProp:           {},
+	ExchangeSpireProp:          {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
