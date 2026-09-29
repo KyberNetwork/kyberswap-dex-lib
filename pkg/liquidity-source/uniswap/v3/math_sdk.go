@@ -54,7 +54,6 @@ var (
 	MaxSqrtRatioU256P1 = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970342")
 	MaxSqrtRatioU256   = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970341")
 	MaxSqrtRatioU256M1 = uint256.MustFromDecimal("1461446703485210103287273052203988822378723970340")
-	q32U256            = uint256.NewInt(1 << 32)
 	q96U256            = new(uint256.Int).Exp(uint256.NewInt(2), uint256.NewInt(96))
 	maxUint256         = uint256.MustFromHex("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 	uint160Max         = uint256.MustFromHex("0xffffffffffffffffffffffffffffffffffffffff")
@@ -308,7 +307,6 @@ func MostSignificantBit(x *uint256.Int) (uint, error) {
 
 var (
 	sqrtConst1  = uint256.MustFromHex("0xfffcb933bd6fad37aa2d162d1a594001")
-	sqrtConst2  = uint256.MustFromHex("0x100000000000000000000000000000000")
 	sqrtConst3  = uint256.MustFromHex("0xfff97272373d413259a46990580e213a")
 	sqrtConst4  = uint256.MustFromHex("0xfff2e50f5f656932ef12357cf3c7fdcc")
 	sqrtConst5  = uint256.MustFromHex("0xffe5caca7e10e4e61c3624eaa0941cd0")
