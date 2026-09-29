@@ -1,9 +1,0 @@
-[
-  {
-    "name": "caps",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [{"name": "token", "type": "address"}],
-    "outputs": [{"name": "", "type": "uint256"}]
-  }
-]

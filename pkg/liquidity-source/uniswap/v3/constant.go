@@ -37,9 +37,20 @@ const (
 	methodCurrentFee   = "currentFee"
 )
 
+// CrossEmptyWordGas prices one swap-loop iteration that walks a tick-bitmap word without crossing
+// an initialized tick: a cold SLOAD of the word (2100 under EIP-2929) plus the getSqrtRatioAtTick
+// and computeSwapStep the step runs either way.
+//
+// It is an estimate, not a calibrated measurement, but it replaces an estimate of zero: the old
+// model charged nothing for walking words, so a swap through a pool thin enough to spend its whole
+// input on per-word rounding was priced as though it crossed no ticks and did no work. Ekubo's
+// independently derived GasTickSpacingCrossed is 2507 for the same operation, which is the closest
+// cross-check available in this repository.
+const CrossEmptyWordGas = 2500
+
 var (
 	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
+	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492, CrossEmptyWordGas: CrossEmptyWordGas}
 
 	ErrOverflow            = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier      = errors.New("invalid feeTier")

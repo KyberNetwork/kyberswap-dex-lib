@@ -127,8 +127,9 @@ func (d *PoolTracker) GetNewPoolState(
 					}
 					return
 				}
-				for _, price := range pythUpdateData.Parsed {
-					if startTime.Sub(time.Unix(price.Price.PublishTime, 0)) > maxAge {
+				for j, price := range pythUpdateData.Parsed {
+					if startTime.Sub(time.Unix(price.Price.PublishTime, 0)) > maxAge &&
+						pythUpdateData.Binary.Data[j] != "" { // not redstone
 						return
 					}
 				}
@@ -247,9 +248,12 @@ func (d *PoolTracker) GetNewPoolState(
 		extra.Price1.Set(pythToQ64(pythUpdateData.Parsed[1].Price.Price, expo))
 		extra.Conf1.Set(pythToQ64(pythUpdateData.Parsed[1].Price.Conf, expo))
 
-		extra.PriceUpdateData = lo.Map(pythUpdateData.Binary.Data, func(d string, _ int) []byte {
+		extra.PriceUpdateData = lo.FilterMap(pythUpdateData.Binary.Data, func(d string, _ int) ([]byte, bool) {
+			if d == "" {
+				return nil, false
+			}
 			b, _ := hex.DecodeString(d)
-			return b
+			return b, true
 		})
 		extra.PythTimestamp = pythUpdateData.Parsed[0].Price.PublishTime
 		p.Timestamp = startTime.Unix()

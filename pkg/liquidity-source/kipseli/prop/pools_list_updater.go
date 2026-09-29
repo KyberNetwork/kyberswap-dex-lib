@@ -12,129 +12,66 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-type (
-	PoolsListUpdater struct {
-		cfg          *Config
-		ethrpcClient *ethrpc.Client
-	}
-
-	PoolsListUpdaterMetadata struct {
-		Offset int `json:"offset"`
-	}
-)
+type PoolsListUpdater struct {
+	cfg          *Config
+	ethrpcClient *ethrpc.Client
+}
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
-	return &PoolsListUpdater{
-		cfg:          cfg,
-		ethrpcClient: ethrpcClient,
-	}
+	return &PoolsListUpdater{cfg: cfg, ethrpcClient: ethrpcClient}
 }
 
+// GetNewPools lists one pool per listed token against the venue's quote
+// token, from the quoter the swap path actually uses for Config.Dest. It
+// returns the full list every poll: the list is a handful of tokens, the
+// caller skips pools it already has, and a pool record lost downstream gets
+// re-created instead of staying behind a pagination cursor.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	log := logger.WithFields(logger.Fields{"dexId": u.cfg.DexID})
-	log.Info("kipseli-prop: start get pools")
-
-	metadata, err := u.getMetadata(metadataBytes)
+	router := common.HexToAddress(u.cfg.RouterAddress)
+	snap, err := fetchSnapshot(ctx, u.ethrpcClient, router, u.cfg.dest(), nil, nil, titan.State{})
 	if err != nil {
-		log.Warnf("kipseli-prop: getMetadata failed: %v", err)
-	}
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-
-	var quoteToken common.Address
-	var listed []common.Address
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    lensABI,
-		Target: u.cfg.LensAddress,
-		Method: "getQuoteToken",
-		Params: nil,
-	}, []any{&quoteToken})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    lensABI,
-		Target: u.cfg.LensAddress,
-		Method: "getListedTokens",
-		Params: nil,
-	}, []any{&listed})
-
-	if _, err := req.TryAggregate(); err != nil {
-		log.Errorf("kipseli-prop: lens calls failed: %v", err)
+		logger.WithFields(logger.Fields{"dexId": u.cfg.DexID, "error": err}).Error("kipseli-prop: lens call failed")
 		return nil, metadataBytes, err
 	}
-
-	tokens := make([]common.Address, 0, len(listed))
-	for _, t := range listed {
-		if strings.EqualFold(t.Hex(), quoteToken.Hex()) {
-			continue
-		}
-		tokens = append(tokens, t)
+	if snap.QuoteToken == (common.Address{}) || snap.Quoter == (common.Address{}) {
+		return nil, metadataBytes, ErrNoQuoter
 	}
 
-	if metadata.Offset > len(tokens) {
-		metadata.Offset = 0
-	}
-	if metadata.Offset == len(tokens) {
-		return nil, metadataBytes, nil
-	}
-
-	tokens = tokens[metadata.Offset:]
-
-	staticExtraBytes, _ := json.Marshal(StaticExtra{
-		RouterAddress: strings.ToLower(u.cfg.RouterAddress),
-	})
-
-	pools := make([]entity.Pool, 0, len(tokens))
+	staticExtraBytes, _ := json.Marshal(StaticExtra{RouterAddress: strings.ToLower(u.cfg.RouterAddress)})
+	quoteToken := hexutil.Encode(snap.QuoteToken[:])
 	now := time.Now().Unix()
 
-	for _, token := range tokens {
-		p := entity.Pool{
-			Address:   syntheticPoolAddress(u.cfg.DexID, token, quoteToken),
+	pools := make([]entity.Pool, 0, len(snap.ListedTokens))
+	for _, token := range snap.ListedTokens {
+		if token == snap.QuoteToken {
+			continue
+		}
+		pools = append(pools, entity.Pool{
+			Address:   syntheticPoolAddress(u.cfg.DexID, token, snap.QuoteToken),
 			Exchange:  u.cfg.DexID,
 			Type:      DexType,
 			Timestamp: now,
 			Reserves:  entity.PoolReserves{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{Address: hexutil.Encode(token[:]), Swappable: true},
-				{Address: hexutil.Encode(quoteToken[:]), Swappable: true},
+				{Address: quoteToken, Swappable: true},
 			},
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
-		}
-		pools = append(pools, p)
+		})
 	}
 
-	// Lưu offset tích lũy cho lần chạy sau (đã xử lý metadata.Offset + len(tokens))
-	newMetadata, err := u.newMetadata(metadata.Offset + len(tokens))
-	if err != nil {
-		log.Warnf("kipseli-prop: newMetadata failed: %v", err)
-		return pools, metadataBytes, nil
-	}
-
-	return pools, newMetadata, nil
+	logger.WithFields(logger.Fields{"dexId": u.cfg.DexID, "quoter": snap.Quoter, "swapImpl": snap.SwapImpl}).
+		Infof("kipseli-prop: listed %d pools", len(pools))
+	return pools, metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getMetadata(metadataBytes []byte) (PoolsListUpdaterMetadata, error) {
-	if len(metadataBytes) == 0 {
-		return PoolsListUpdaterMetadata{}, nil
-	}
-	var metadata PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-		return PoolsListUpdaterMetadata{}, err
-	}
-	return metadata, nil
-}
-
-func (u *PoolsListUpdater) newMetadata(offset int) ([]byte, error) {
-	metadata := PoolsListUpdaterMetadata{Offset: offset}
-	return json.Marshal(metadata)
-}
-
-func syntheticPoolAddress(dexID string, token common.Address, quote common.Address) string {
-	return strings.ToLower(dexID + "_" + token.Hex() + "_" + quote.Hex())
+func syntheticPoolAddress(dexID string, token, quote common.Address) string {
+	return strings.ToLower(dexID) + "_" + hexutil.Encode(token[:]) + "_" + hexutil.Encode(quote[:])
 }

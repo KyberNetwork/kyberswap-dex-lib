@@ -48,13 +48,13 @@ var (
 		valueobject.ChainIDAvalancheCChain: common.HexToAddress("0x123AE7196548ED7370854F91f153cd4e5918A011"),
 		valueobject.ChainIDBSC:             common.HexToAddress("0x196345d5Bd0415A46331ceb3B9F2EA84061A21fD"),
 		valueobject.ChainIDBase:            common.HexToAddress("0xa4f4867c718cbAac6dff34e05b5C35AF5C4E34BA"),
-		valueobject.ChainIDBerachain:       common.HexToAddress("0x884F608C5F56B1630AC32E07Ce2c4B75a2360575"),
+		valueobject.ChainIDBerachain:       common.HexToAddress("0x7092d946ac8782F5479101BBfd24c6027A9C501A"),
 		valueobject.ChainIDEthereum:        common.HexToAddress("0xd3C1a32FE079BB33c3BDCd8ee4cbfE63e990Bb1D"),
 		valueobject.ChainIDHyperEVM:        common.HexToAddress("0x98F6369ecf2A2f7A519773AC40C561701a89828b"),
 		valueobject.ChainIDLinea:           common.HexToAddress("0x0bf5Fa65dAE6Db32250E5DC74489cedadd38D338"),
 		valueobject.ChainIDMonad:           common.HexToAddress("0x67c71042784a30D828aB684e46Cc79D2040eaF1A"),
 		valueobject.ChainIDPolygon:         common.HexToAddress("0xDcE93Ef865D43A6ffFD0309c92070B3859C7f9e5"),
-		valueobject.ChainIDRobinhood:       common.HexToAddress("0x2A08Da7B6590ce5D217161F234069CfC54DBe554"),
+		valueobject.ChainIDRobinhood:       common.HexToAddress("0x32B2A647821613e730e7ED967462A629Ba887527"),
 	}
 
 	q64        = big256.U2Pow64

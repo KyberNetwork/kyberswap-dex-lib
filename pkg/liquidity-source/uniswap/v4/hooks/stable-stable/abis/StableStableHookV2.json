@@ -1,0 +1,72 @@
+[
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "name": "feeConfig",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "k",
+        "type": "uint24"
+      },
+      {
+        "name": "optimalFeeE6",
+        "type": "uint24"
+      },
+      {
+        "name": "targetMultiplier",
+        "type": "uint8"
+      },
+      {
+        "name": "referenceSqrtPriceX96",
+        "type": "uint160"
+      }
+    ]
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "PoolId",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint24",
+            "name": "k",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint24",
+            "name": "optimalFeeE6",
+            "type": "uint24"
+          },
+          {
+            "internalType": "uint8",
+            "name": "targetMultiplier",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint160",
+            "name": "referenceSqrtPriceX96",
+            "type": "uint160"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct StableFeeConfig",
+        "name": "feeConfig",
+        "type": "tuple"
+      }
+    ],
+    "name": "FeeConfigUpdated",
+    "type": "event"
+  }
+]

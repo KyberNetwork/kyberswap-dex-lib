@@ -1,0 +1,630 @@
+{
+  "pool": {
+    "address": "0xc7b615a3721594f73664eb3f62d8290d0fcc8d9d1156aed1ddecbd7f32efd9f5",
+    "swapFee": 500,
+    "exchange": "uniswap-v4-evplusai",
+    "type": "uniswap-v4",
+    "timestamp": 1789972423,
+    "reserves": [
+      "528306127875942720",
+      "611190582"
+    ],
+    "tokens": [
+      {
+        "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+        "decimals": 6,
+        "swappable": true
+      }
+    ],
+    "extra": "{\"liquidity\":284105789017326,\"sqrtPriceX96\":4090407085853498336254234,\"tickSpacing\":10,\"tick\":-197439,\"ticks\":[{\"index\":-198290,\"liquidityGross\":284105789017326,\"liquidityNet\":284105789017326},{\"index\":-195420,\"liquidityGross\":284105789017326,\"liquidityNet\":-284105789017326}]}",
+    "staticExtra": "{\"0x0\":[true,false],\"fee\":8388608,\"tS\":10,\"hooks\":\"0xcb787a5cdea8b3715d984d82f1203fd7bfebe0c4\",\"uR\":\"0x0000000000000000000000000000000000000000\",\"pm2\":\"0x0000000000000000000000000000000000000000\",\"mc3\":\"0x0000000000000000000000000000000000000000\"}",
+    "blockNumber": 68585551
+  },
+  "quotes": [
+    {
+      "name": "live/sell=true/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "1000000000000000",
+      "expected": "2663654",
+      "quoterGas": 64061
+    },
+    {
+      "name": "live/sell=true/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "100000000000000000",
+      "expected": "261660978",
+      "quoterGas": 64093
+    },
+    {
+      "name": "live/sell=true/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "1000000",
+      "expected": "375381533991572",
+      "quoterGas": 63116
+    },
+    {
+      "name": "live/sell=true/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "100000000",
+      "expected": "37793254341535242",
+      "quoterGas": 63945
+    },
+    {
+      "name": "live/sell=false/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "1000000",
+      "expected": "374574990377359",
+      "quoterGas": 63788
+    },
+    {
+      "name": "live/sell=false/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "100000000",
+      "expected": "37206733284742359",
+      "quoterGas": 63788
+    },
+    {
+      "name": "live/sell=false/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "1000000000000000",
+      "expected": "2669996",
+      "quoterGas": 64181
+    },
+    {
+      "name": "live/sell=false/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 500,
+        "f10": 1514,
+        "expiry": 1789972465,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "100000000000000000",
+      "expected": "271891875",
+      "quoterGas": 68914
+    },
+    {
+      "name": "min-max/sell=true/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "1000000000000000",
+      "expected": "2664320",
+      "quoterGas": 64061
+    },
+    {
+      "name": "min-max/sell=true/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "100000000000000000",
+      "expected": "261725375",
+      "quoterGas": 64089
+    },
+    {
+      "name": "min-max/sell=true/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "1000000",
+      "expected": "375287671477537",
+      "quoterGas": 63116
+    },
+    {
+      "name": "min-max/sell=true/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "100000000",
+      "expected": "37783804303254612",
+      "quoterGas": 63945
+    },
+    {
+      "name": "min-max/sell=false/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "1000000",
+      "expected": "371766617571890",
+      "quoterGas": 63788
+    },
+    {
+      "name": "min-max/sell=false/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "100000000",
+      "expected": "36929444117232669",
+      "quoterGas": 63752
+    },
+    {
+      "name": "min-max/sell=false/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "1000000000000000",
+      "expected": "2690167",
+      "quoterGas": 64181
+    },
+    {
+      "name": "min-max/sell=false/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 250,
+        "f10": 9000,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "100000000000000000",
+      "expected": "273945883",
+      "quoterGas": 68914
+    },
+    {
+      "name": "max-min/sell=true/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "1000000000000000",
+      "expected": "2641005",
+      "quoterGas": 64061
+    },
+    {
+      "name": "max-min/sell=true/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "100000000000000000",
+      "expected": "259471174",
+      "quoterGas": 64061
+    },
+    {
+      "name": "max-min/sell=true/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "1000000",
+      "expected": "378601149839697",
+      "quoterGas": 63116
+    },
+    {
+      "name": "max-min/sell=true/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "100000000",
+      "expected": "38117403905677013",
+      "quoterGas": 63945
+    },
+    {
+      "name": "max-min/sell=false/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "1000000",
+      "expected": "375048916633741",
+      "quoterGas": 63788
+    },
+    {
+      "name": "max-min/sell=false/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "100000000",
+      "expected": "37253524696758443",
+      "quoterGas": 62923
+    },
+    {
+      "name": "max-min/sell=false/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "1000000000000000",
+      "expected": "2666622",
+      "quoterGas": 64181
+    },
+    {
+      "name": "max-min/sell=false/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "100000000000000000",
+      "expected": "271548336",
+      "quoterGas": 68914
+    },
+    {
+      "name": "odd/sell=true/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "1000000000000000",
+      "expected": "2643886",
+      "quoterGas": 64061
+    },
+    {
+      "name": "odd/sell=true/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "100000000000000000",
+      "expected": "259749725",
+      "quoterGas": 64057
+    },
+    {
+      "name": "odd/sell=true/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "1000000",
+      "expected": "378188443130848",
+      "quoterGas": 63116
+    },
+    {
+      "name": "odd/sell=true/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "100000000",
+      "expected": "38075852768490940",
+      "quoterGas": 63945
+    },
+    {
+      "name": "odd/sell=false/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "1000000",
+      "expected": "374828833902108",
+      "quoterGas": 63788
+    },
+    {
+      "name": "odd/sell=false/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "100000000",
+      "expected": "37231795704435209",
+      "quoterGas": 62923
+    },
+    {
+      "name": "odd/sell=false/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "1000000000000000",
+      "expected": "2668188",
+      "quoterGas": 64181
+    },
+    {
+      "name": "odd/sell=false/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 7919,
+        "f10": 837,
+        "expiry": 1789972723,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "100000000000000000",
+      "expected": "271707771",
+      "quoterGas": 68914
+    },
+    {
+      "name": "expiry-boundary/sell=true/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "1000000000000000",
+      "expected": "2663654",
+      "quoterGas": 64045
+    },
+    {
+      "name": "expiry-boundary/sell=true/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": true,
+      "amount": "100000000000000000",
+      "expected": "261660978",
+      "quoterGas": 64077
+    },
+    {
+      "name": "expiry-boundary/sell=true/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "1000000",
+      "expected": "375381533991572",
+      "quoterGas": 63100
+    },
+    {
+      "name": "expiry-boundary/sell=true/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": true,
+      "exactInput": false,
+      "amount": "100000000",
+      "expected": "37793254341535242",
+      "quoterGas": 63929
+    },
+    {
+      "name": "expiry-boundary/sell=false/exactIn=true/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "1000000",
+      "expected": "374955136709453",
+      "quoterGas": 63764
+    },
+    {
+      "name": "expiry-boundary/sell=false/exactIn=true/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": true,
+      "amount": "100000000",
+      "expected": "37244265731285135",
+      "quoterGas": 62899
+    },
+    {
+      "name": "expiry-boundary/sell=false/exactIn=false/large=false",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "1000000000000000",
+      "expected": "2667290",
+      "quoterGas": 64157
+    },
+    {
+      "name": "expiry-boundary/sell=false/exactIn=false/large=true",
+      "hookExtra": {
+        "f01": 9000,
+        "f10": 250,
+        "expiry": 1789972423,
+        "ts": 1789972423,
+        "pf": 0
+      },
+      "sell": false,
+      "exactInput": false,
+      "amount": "100000000000000000",
+      "expected": "271616252",
+      "quoterGas": 68890
+    }
+  ]
+}

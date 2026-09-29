@@ -11,6 +11,7 @@ import (
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
+	arcadecurve "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arcade/curve"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima/metric-propamm"
@@ -57,6 +58,7 @@ import (
 	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng/lazy"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -78,6 +80,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	eulerswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v1"
 	eulerswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2"
+	everlongflamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/everlong/flamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/feltir"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flap"
 	flowstatec1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flowstate-c1"
@@ -90,6 +93,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gblin"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ghost"
@@ -108,14 +112,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
-	kipselipamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/pamm"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
+	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
+	lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/machima"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
@@ -134,6 +140,7 @@ import (
 	nadfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nad-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nadswap"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
+	netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -146,11 +153,15 @@ import (
 	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/printr"
+	prmfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/prm-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	rangev3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	slyngfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slyng-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
@@ -167,6 +178,7 @@ import (
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/synthereum"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
+	thogprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/thog-prop"
 	tidefiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tidefi-prop"
 	umbraedamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/damm"
 	umbraedlmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/umbrae/dlmm"
@@ -176,6 +188,8 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/evplusai"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/inverse"
 	usd_ai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
@@ -263,6 +277,7 @@ type Types struct {
 	VelodromeV2                string
 	Velocimeter                string
 	RamsesV2                   string
+	RangeV3Weighted            string
 	PlatypusBase               string
 	PlatypusPure               string
 	PlatypusAvax               string
@@ -358,6 +373,7 @@ type Types struct {
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
+	DeepstateOb                string
 	UsdAi                      string
 	Ambient                    string
 	MaverickV2                 string
@@ -366,6 +382,7 @@ type Types struct {
 	Bebop                      string
 	Dexalot                    string
 	GenericSimpleRate          string
+	ListaStake                 string
 	RingSwap                   string
 	PrimeETH                   string
 	CaliberProp                string
@@ -425,6 +442,7 @@ type Types struct {
 	Synthereum                 string
 	GenericArm                 string
 	GOHM                       string
+	ArcadeFun                  string
 	ArenaBC                    string
 	XsolvBTC                   string
 	Midas                      string
@@ -443,6 +461,7 @@ type Types struct {
 	Infinifi                   string
 	Nabla                      string
 	Tessera                    string
+	ThogProp                   string
 	TideFiProp                 string
 	UmbraeDamm                 string
 	UmbraeDlmm                 string
@@ -457,7 +476,6 @@ type Types struct {
 	Axima                      string
 	MetricPropAMM              string
 	KipseliProp                string
-	KipseliPamm                string
 	SomeswapV1                 string
 	SomeswapV2                 string
 	SpireProp                  string
@@ -465,6 +483,7 @@ type Types struct {
 	Whlp                       string
 	Obric                      string
 	Printr                     string
+	PrmFun                     string
 	Poe                        string
 	Canonic                    string
 	Fermi                      string
@@ -478,6 +497,12 @@ type Types struct {
 	FluxProp                   string
 	ParityProp                 string
 	StonkbrokersFunV2          string
+	Lunya                      string
+	LunyaFun                   string
+	SlyngFun                   string
+	NetStaking                 string
+	Gblin                      string
+	EverlongFlamm              string
 }
 
 var (
@@ -509,6 +534,7 @@ var (
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
 		RamsesV2:                   uniswapv3.DexTypeRamsesV2,
+		RangeV3Weighted:            rangev3weighted.DexType,
 		PlatypusBase:               platypus.PoolTypePlatypusBase,
 		PlatypusPure:               platypus.PoolTypePlatypusPure,
 		PlatypusAvax:               platypus.PoolTypePlatypusAvax,
@@ -609,6 +635,7 @@ var (
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
+		ListaStake:                 listastake.DexType,
 		RingSwap:                   ringswap.DexType,
 		PrimeETH:                   primeeth.DexType,
 		CaliberProp:                caliberprop.DexType,
@@ -672,6 +699,7 @@ var (
 		Synthereum:                 synthereum.DexType,
 		GenericArm:                 genericarm.DexType,
 		GOHM:                       gohm.DexType,
+		ArcadeFun:                  arcadecurve.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
 		Midas:                      midas.DexType,
@@ -690,6 +718,7 @@ var (
 		Infinifi:                   infinifi.DexType,
 		Nabla:                      nabla.DexType,
 		Tessera:                    tessera.DexType,
+		ThogProp:                   thogprop.DexType,
 		TideFiProp:                 tidefiprop.DexType,
 		UmbraeDamm:                 umbraedamm.DexType,
 		UmbraeDlmm:                 umbraedlmm.DexType,
@@ -704,7 +733,6 @@ var (
 		Axima:                      axima.DexType,
 		MetricPropAMM:              metricpropamm.DexType,
 		KipseliProp:                kipseliprop.DexType,
-		KipseliPamm:                kipselipamm.DexType,
 		SomeswapV1:                 someswapv1.DexType,
 		SomeswapV2:                 someswapv2.DexType,
 		SpireProp:                  spireprop.DexType,
@@ -712,6 +740,7 @@ var (
 		Whlp:                       whlp.DexType,
 		Obric:                      obric.DexType,
 		Printr:                     printr.DexType,
+		PrmFun:                     prmfun.DexType,
 		Poe:                        poe.DexType,
 		Canonic:                    canonic.DexType,
 		Fermi:                      valueobject.ExchangeFermi,
@@ -725,5 +754,12 @@ var (
 		FluxProp:                   valueobject.ExchangeFluxProp,
 		ParityProp:                 parityprop.DexType,
 		StonkbrokersFunV2:          stonkbrokersfunv2.DexType,
+		Lunya:                      lunya.DexType,
+		LunyaFun:                   lunyafun.DexType,
+		SlyngFun:                   slyngfun.DexType,
+		DeepstateOb:                deepstateob.DexType,
+		NetStaking:                 netstaking.DexType,
+		Gblin:                      gblin.DexType,
+		EverlongFlamm:              everlongflamm.DexType,
 	}
 )

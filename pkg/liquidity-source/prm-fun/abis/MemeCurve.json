@@ -1,0 +1,588 @@
+[
+  {
+    "name": "graduationManager",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "quoteInitialBuy",
+    "type": "function",
+    "stateMutability": "pure",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "target"
+      },
+      {
+        "type": "uint256",
+        "name": "pairIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "output"
+      },
+      {
+        "type": "uint256",
+        "name": "used"
+      }
+    ]
+  },
+  {
+    "name": "ETH_GRADUATION_TARGET",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "initializeEth",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "owner"
+      },
+      {
+        "type": "address",
+        "name": "memeToken"
+      },
+      {
+        "type": "address",
+        "name": "feeEscrow"
+      },
+      {
+        "type": "address",
+        "name": "graduationManager"
+      },
+      {
+        "type": "address",
+        "name": "creator"
+      },
+      {
+        "type": "address",
+        "name": "platformTreasury"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "initialize",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "owner"
+      },
+      {
+        "type": "address",
+        "name": "memeToken"
+      },
+      {
+        "type": "address",
+        "name": "deskToken"
+      },
+      {
+        "type": "address",
+        "name": "feeEscrow"
+      },
+      {
+        "type": "address",
+        "name": "graduationManager"
+      },
+      {
+        "type": "address",
+        "name": "creator"
+      },
+      {
+        "type": "address",
+        "name": "platformTreasury"
+      },
+      {
+        "type": "uint256",
+        "name": "graduationDesk"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "buy",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "deskIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "deskUsed"
+      }
+    ]
+  },
+  {
+    "name": "sell",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      },
+      {
+        "type": "uint256",
+        "name": "minimumOut"
+      },
+      {
+        "type": "address",
+        "name": "recipient"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "deskOut"
+      }
+    ]
+  },
+  {
+    "name": "isNativeQuote",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "pairToken",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "token",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "factory",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "getReserves",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "quoteReserve"
+      },
+      {
+        "type": "uint256",
+        "name": "tokenReserve"
+      }
+    ]
+  },
+  {
+    "name": "quoteReserve",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "tokenReserve",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "realQuoteReserve",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "graduationThreshold",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "phantomQuote",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "reservedTokens",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "sellableTokens",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "readyToGraduate",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "graduated",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "feeBps",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "creatorTaxBps",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "currentSnipeTaxBps",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "recipient"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "migrateNativeReserves",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "owner",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "setPaused",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "paused"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "PauseUpdated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bool",
+        "name": "paused"
+      }
+    ]
+  },
+  {
+    "name": "Bought",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "buyer",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "recipient",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "deskIn"
+      },
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "fee"
+      }
+    ]
+  },
+  {
+    "name": "Sold",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "seller",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "recipient",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      },
+      {
+        "type": "uint256",
+        "name": "deskOut"
+      },
+      {
+        "type": "uint256",
+        "name": "fee"
+      }
+    ]
+  },
+  {
+    "name": "Graduated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "bytes32",
+        "name": "poolId",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "memeLiquidity"
+      },
+      {
+        "type": "uint256",
+        "name": "deskLiquidity"
+      }
+    ]
+  },
+  {
+    "name": "phase",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint8"
+      }
+    ]
+  },
+  {
+    "name": "graduatedPoolId",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "name": "deskRaised",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "graduationDesk",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "memeSold",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quoteBuy",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "deskIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "memeOut"
+      },
+      {
+        "type": "uint256",
+        "name": "deskUsed"
+      },
+      {
+        "type": "uint256",
+        "name": "fee"
+      }
+    ]
+  },
+  {
+    "name": "quoteSell",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "memeIn"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "deskOut"
+      },
+      {
+        "type": "uint256",
+        "name": "fee"
+      }
+    ]
+  }
+]

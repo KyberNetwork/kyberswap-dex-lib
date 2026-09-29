@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -41,7 +40,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	poolEntities := make([]entity.Pool, 0, len(u.config.Pools))
-	poolAddrs := make([]common.Address, 0, len(u.config.Pools))
 	for _, poolAddr := range u.config.Pools {
 		poolAddr = strings.ToLower(poolAddr)
 		state, err := fetchRPCState(ctx, poolAddr, u.config.ChainID, u.ethrpcClient, nil)
@@ -68,15 +66,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		poolEntities = append(poolEntities, *poolEntity)
-		poolAddrs = append(poolAddrs, common.HexToAddress(poolAddr))
-	}
-
-	if u.config.WsURL != "" || u.config.FlashWsURL != "" {
-		InitFlashBlockSubscriber(
-			u.config.WsURL,
-			u.config.FlashWsURL,
-			poolAddrs,
-		)
 	}
 
 	u.hasInitialized = true

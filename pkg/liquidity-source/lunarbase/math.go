@@ -358,7 +358,7 @@ func punishmentQuoteYToX(out *QuoteResult, params *PoolParams, dy *uint256.Int) 
 }
 
 func quoteXToYInto(out *QuoteResult, params *PoolParams, dx *uint256.Int) *QuoteResult {
-	if params.ConcentrationK == 0 {
+	if params.ConcentrationK == 0 && !params.ConcentrationModel {
 		return punishmentQuoteXToY(out, params, dx)
 	}
 
@@ -408,7 +408,7 @@ func quoteXToYInto(out *QuoteResult, params *PoolParams, dx *uint256.Int) *Quote
 }
 
 func quoteYToXInto(out *QuoteResult, params *PoolParams, dy *uint256.Int) *QuoteResult {
-	if params.ConcentrationK == 0 {
+	if params.ConcentrationK == 0 && !params.ConcentrationModel {
 		return punishmentQuoteYToX(out, params, dy)
 	}
 

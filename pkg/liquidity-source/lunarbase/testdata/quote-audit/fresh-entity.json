@@ -1,0 +1,26 @@
+{
+  "address": "0x00007904d186680c709519e71f4dc3e2df8f1b99",
+  "swapFee": 0.00022846460342407227,
+  "exchange": "lunarbase",
+  "type": "lunarbase",
+  "timestamp": 1789223655,
+  "reserves": [
+    "44927490045084207737",
+    "34655536609914641389834"
+  ],
+  "tokens": [
+    {
+      "address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+      "decimals": 18,
+      "swappable": true
+    },
+    {
+      "address": "0x55d398326f99059ff775485246999027b3197955",
+      "decimals": 18,
+      "swappable": true
+    }
+  ],
+  "extra": "{\"p\":\"2149094242513694643307805671424\",\"fa\":3833,\"fb\":1545,\"b\":121470644,\"d\":25,\"mp\":125000}",
+  "staticExtra": "{\"n\":true}",
+  "blockNumber": 121470648
+}

@@ -31,7 +31,7 @@ type (
 	}
 
 	StaticExtra struct {
-		IsNativeAsset bool `json:"isNativeAsset"`
+		IsNativeAsset bool `json:"isNativeAsset,omitempty"`
 	}
 
 	Meta struct {

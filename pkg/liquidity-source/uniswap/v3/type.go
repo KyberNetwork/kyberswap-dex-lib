@@ -14,6 +14,12 @@ import (
 type Gas struct {
 	BaseGas          int64
 	CrossInitTickGas int64
+
+	// CrossEmptyWordGas prices a swap-loop iteration that walks one tick-bitmap word without
+	// crossing an initialized tick: a cold SLOAD of the word (2100) plus the tick-price math the
+	// step runs regardless. Leaving it at zero keeps the old model, which charged such iterations
+	// nothing at all and so priced a swap through a thin pool as if it were free.
+	CrossEmptyWordGas int64
 }
 
 type SwapInfo struct {
