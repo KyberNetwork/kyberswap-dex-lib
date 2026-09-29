@@ -147,6 +147,7 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 	exactInput := amountSpecified.Sign() >= 0
 	var amountCalculated uint256.Int
 	var crossInitTickLoops, crossEmptyWordLoops int
+	var upEdges *upEdgeTable
 
 	for !amountSpecifiedRemaining.IsZero() && !sqrtPriceLimitX96.Eq(&sqrtPriceX96) {
 		sqrtPriceStartX96 := sqrtPriceX96
@@ -164,8 +165,15 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		} else if tickNext > MaxTick {
 			tickNext = MaxTick
 			sqrtPriceNextX96 = *MaxSqrtRatioU256P1
+		} else if slicePos == noSlicePos && zeroForOne {
+			sqrtPriceNextX96 = downEdgeSqrtPrice(tickNext)
 		} else if slicePos == noSlicePos {
-			if err = GetSqrtRatioAtTick(tickNext, &sqrtPriceNextX96); err != nil {
+			if upEdges == nil {
+				upEdges = upEdgeTableFor(p.TickSpacing)
+			}
+			if upEdges != nil {
+				sqrtPriceNextX96 = upEdges.sqrtPrice(tickNext, p.TickSpacing)
+			} else if err = GetSqrtRatioAtTick(tickNext, &sqrtPriceNextX96); err != nil {
 				return SwapResult{}, err
 			}
 		} else {

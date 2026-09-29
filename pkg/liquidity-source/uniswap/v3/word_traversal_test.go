@@ -274,6 +274,20 @@ func TestWordTraversalMatchesContract(t *testing.T) {
 			return p
 		}, false, "20", "-21897296"}, // was -21995942
 
+		// Up-edge table built on first use (spacing 7), and computed directly above maxTickSpacing.
+		{"spacing 7 one-for-zero", func(t *testing.T) *Pool {
+			p, err := NewPool(3000, sqrtAt(t, -200030), *uint256.NewInt(1000), -200030,
+				fullRangeTicks(7, "1000"), 7)
+			require.NoError(t, err)
+			return p
+		}, false, "20", "-12736182"},
+		{"spacing 40000 one-for-zero", func(t *testing.T) *Pool {
+			p, err := NewPool(3000, sqrtAt(t, -200030), *uint256.NewInt(1000), -200030,
+				fullRangeTicks(40000, "1000"), 40000)
+			require.NoError(t, err)
+			return p
+		}, false, "20", "-21995996"},
+
 		// Ordinary pool, one-for-zero exact-out: solidly-v3 AI/WETH, 10000 AI out. #1591 pins the
 		// input independently; the approximation rounded amountIn up to a multiple of the words the
 		// step spanned.
@@ -305,5 +319,30 @@ func TestWordTraversalMatchesContract(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, want, got, "simulator must match the contract loop exactly")
 		})
+	}
+}
+
+// BenchmarkSwapDustWalk measures the per-word cost: 1000 units through the dust pool walks 394
+// empty bitmap words.
+func BenchmarkSwapDustWalk(b *testing.B) {
+	p := avaxDustPool(&testing.T{})
+	amount := signed("1000")
+	for b.Loop() {
+		_, _ = p.Swap(true, amount, uint256.Int{})
+	}
+}
+
+// BenchmarkSwapDustWalkUp is the one-for-zero mirror: token1 is the dust side, so the swap walks
+// up-edge words.
+func BenchmarkSwapDustWalkUp(b *testing.B) {
+	t := &testing.T{}
+	p, err := NewPool(100, sqrtAt(t, -291970), *uint256.NewInt(4787383), -291970,
+		fullRangeTicks(1, "4787383"), 1)
+	if err != nil {
+		b.Fatal(err)
+	}
+	amount := signed("1000")
+	for b.Loop() {
+		_, _ = p.Swap(false, amount, uint256.Int{})
 	}
 }
