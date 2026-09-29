@@ -530,25 +530,6 @@ func levAnchorBestEffortCv(cv, debt, rWad *uint256.Int) *uint256.Int {
 	return new(uint256.Int)
 }
 
-// levIsStateSafe is isStateSafe: a normal or recovery state whose anchor meets requiredXAnchor.
-func levIsStateSafe(collateral, debt, price, requiredXAnchor, rWad *uint256.Int) bool {
-	if !rWad.Eq(levLeverageRatioWad) {
-		return false
-	}
-	cv, marked := levMarkedValue(collateral, price)
-	if !marked {
-		return false
-	}
-	if cv.IsZero() {
-		return collateral.IsZero() && debt.IsZero() && requiredXAnchor.IsZero()
-	}
-	if ok, anchor, _, _ := levStrictAnchor(cv, debt, rWad); ok {
-		return !anchor.IsZero() && !anchor.Lt(requiredXAnchor)
-	}
-	recovery := levRecoveryStateFor(cv, debt, rWad)
-	return recovery.ok && !recovery.anchor.Lt(requiredXAnchor)
-}
-
 // levAnchorAndBase is anchorAndBase -> (xAnchor, baseX): the value anchor and the stable-value marginal
 // numerator, (anchor+debt)/2 on the half law and floor(cv*phi(h)/WAD) on the Hermite piece; a missed-wall
 // state reports its recovery pair and anything else (0, 0).

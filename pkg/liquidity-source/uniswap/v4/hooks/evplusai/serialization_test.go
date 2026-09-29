@@ -48,7 +48,6 @@ func TestSimulatorSerialization(t *testing.T) {
 	decoded, err = msgpack.DecodePoolSimulatorsMap(encoded)
 	require.NoError(t, err)
 	restored := decoded[f.Pool.Address].(*uniswapv4.PoolSimulator)
-	require.False(t, restored.V3Pool.ExactTickTraversal)
 	result, err := restored.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: f.Pool.Tokens[0].Address, Amount: big.NewInt(100000000000000000)}, TokenIn: f.Pool.Tokens[1].Address})
 	require.NoError(t, err)
 	require.Equal(t, q.Expected, result.TokenAmountIn.Amount.String())

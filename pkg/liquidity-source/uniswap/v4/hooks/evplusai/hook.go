@@ -188,6 +188,3 @@ func (h *Hook) CloneState() uniswapv4.Hook {
 	cloned := *h
 	return &cloned
 }
-
-// Exact core deltas are also the base for the rounded platform charge.
-func (h *Hook) UseExactTickTraversal() bool { return true }

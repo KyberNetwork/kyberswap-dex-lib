@@ -46,7 +46,6 @@ func TestNativeRouteMetadata(t *testing.T) {
 	f.Pool.Extra = string(raw)
 	sim, err := uniswapv4.NewPoolSimulator(f.Pool, valueobject.ChainIDRobinhood)
 	require.NoError(t, err)
-	require.False(t, sim.V3Pool.ExactTickTraversal)
 	meta := sim.GetMetaInfo(weth, usdg).(uniswapv4.PoolMetaInfo)
 	require.Equal(t, common.Address{}, meta.TokenIn)
 	require.Equal(t, common.HexToAddress(usdg), meta.TokenOut)
