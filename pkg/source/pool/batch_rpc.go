@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -32,7 +33,7 @@ type LazyRequest struct {
 func (r *LazyRequest) AddCall(c *ethrpc.Call, output []interface{}) *LazyRequest {
 	r.Request.AddCall(c, output)
 	target := common.HexToAddress(c.Target)
-	data, _ := c.ABI.Pack(c.Method, c.Params...)
+	data, _ := ethabi.Pack(&c.ABI, c.Method, c.Params...)
 
 	r.CallMsgs = append(r.CallMsgs, ethereum.CallMsg{
 		To:   &target,
@@ -40,11 +41,7 @@ func (r *LazyRequest) AddCall(c *ethrpc.Call, output []interface{}) *LazyRequest
 	})
 
 	r.Unpacks = append(r.Unpacks, func(res []byte) error {
-		unpacked, err := c.ABI.Methods[c.Method].Outputs.Unpack(res)
-		if err != nil {
-			return err
-		}
-		err = c.ABI.Methods[c.Method].Outputs.Copy(output[0], unpacked)
+		err := ethabi.UnpackArgs(c.ABI.Methods[c.Method].Outputs, output[0], res)
 		if err != nil {
 			return err
 		}

@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
@@ -422,10 +423,12 @@ func (t *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, pool
 		{Name: "liquidity_volumePerLiquidityInBlock", Type: abiUint256},
 	}
 
-	resp, err := t.EthrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
+	var volLiq uint256.Int
+	err := t.EthrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
 		poolAddress,
 		slot3,
 		abi,
+		&volLiq,
 	)
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -434,15 +437,8 @@ func (t *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, pool
 		return nil, err
 	}
 
-	if len(resp) == 1 {
-		if bi, ok := resp[0].(*big.Int); ok {
-			return new(big.Int).Rsh(bi, 128), nil
-		}
-	}
-	l.WithFields(logger.Fields{
-		"resp": resp,
-	}).Error("failed to unmarshal volumePerLiquidityInBlock")
-	return nil, ErrUnmarshalVolLiq
+	var shifted uint256.Int
+	return shifted.Rsh(&volLiq, 128).ToBig(), nil
 }
 
 func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
