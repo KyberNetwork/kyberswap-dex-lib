@@ -49,7 +49,14 @@ func TestPoolSimulator_EndToEnd(t *testing.T) {
 		StaticExtra: string(staticExtraBytes),
 	}
 
-	sim, err := NewPoolSimulator(entityPool)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool, Opts: pool.FactoryOpts{StaleCheck: true}})
+	require.NoError(t, err)
+
+	stale := entityPool
+	stale.Timestamp = time.Now().Add(-2 * orderbook.MaxAge).Unix()
+	_, err = NewPoolSimulator(pool.FactoryParams{EntityPool: stale, Opts: pool.FactoryOpts{StaleCheck: true}})
+	require.ErrorIs(t, err, orderbook.ErrLevelsTooOld)
+	_, err = NewPoolSimulator(pool.FactoryParams{EntityPool: stale})
 	require.NoError(t, err)
 
 	meta := sim.GetMetaInfo(token1, token0).(MetaInfo)

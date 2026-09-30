@@ -42,7 +42,7 @@ func mustSim(t *testing.T, ladders [2][]ladder.Point, bal0, bal1 *big.Int) *Pool
 		Timestamp:   time.Now().Unix(),
 	}
 
-	sim, err := NewPoolSimulator(p)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
 	require.NoError(t, err)
 	return sim
 }

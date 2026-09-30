@@ -37,8 +37,8 @@ var (
 )
 
 func init() {
-	entityAB.Timestamp = time.Now().Unix() // keep MaxAge's staleness check happy
-	poolSimAB = lo.Must(NewPoolSimulator(entityAB))
+	entityAB.Timestamp = time.Now().Unix() // fresh, so StaleCheck-enabled tests pass
+	poolSimAB = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityAB}))
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -85,4 +85,16 @@ func TestPoolSimulator_GetMetaInfo(t *testing.T) {
 		ApprovalAddress: "0x71def100007a540305dd65d1034d10e809679fd5",
 		BlockNumber:     100,
 	}, meta)
+}
+
+func TestNewPoolSimulator_StaleCheck(t *testing.T) {
+	t.Parallel()
+	stale := entityAB
+	stale.Timestamp = time.Now().Add(-2 * MaxAge).Unix()
+
+	_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: stale, Opts: pool.FactoryOpts{StaleCheck: true}})
+	assert.ErrorIs(t, err, ladder.ErrStale)
+
+	_, err = NewPoolSimulator(pool.FactoryParams{EntityPool: stale})
+	assert.NoError(t, err)
 }

@@ -30,7 +30,7 @@ var (
 		"staticExtra":"{\"a\":\"0x60a8fA0eB9eDBF97a7487f7163C793768385Adc4\"}",
 		"blockNumber":153403874
 	}`), &entityWETHUSDC)
-	poolSimWETHUSDC = lo.Must(NewPoolSimulator(entityWETHUSDC))
+	poolSimWETHUSDC = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityWETHUSDC}))
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {

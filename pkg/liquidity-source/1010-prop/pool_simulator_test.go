@@ -32,7 +32,7 @@ var (
 		"staticExtra":"{\"routerAddress\":\"0x1010000000000000000000000000000000001\"}",
 		"blockNumber":100
 	}`), &entityAB)
-	poolSimAB = lo.Must(NewPoolSimulator(entityAB))
+	poolSimAB = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityAB}))
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {

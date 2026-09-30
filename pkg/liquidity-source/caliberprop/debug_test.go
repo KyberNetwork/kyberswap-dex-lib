@@ -237,7 +237,7 @@ func TestCaliberLiveQuoteParity(t *testing.T) {
 				t.Logf("[%s] pair %s reserves=%v block=%d extra=%s",
 					lc.name, p.Address, p.Reserves, p.BlockNumber, p.Extra)
 
-				sim, err := NewPoolSimulator(p)
+				sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
 				require.NoError(t, err)
 
 				token0 := common.HexToAddress(p.Tokens[0].Address)
