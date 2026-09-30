@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
@@ -101,7 +102,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
-	var length *big.Int
+	var length *uint256.Int
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    registryABI,
@@ -113,7 +114,7 @@ func (u *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(length.Int64()), nil
+	return int(length.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, count int) ([]common.Address, error) {

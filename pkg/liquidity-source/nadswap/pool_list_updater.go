@@ -70,7 +70,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
-	var length *big.Int
+	var length *uint256.Int
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
@@ -80,7 +80,7 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 	if _, err := req.Call(); err != nil {
 		return 0, err
 	}
-	return int(length.Int64()), nil
+	return int(length.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) getOffset(b []byte) (int, error) {

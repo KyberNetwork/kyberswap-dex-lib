@@ -3,7 +3,6 @@ package dexLite
 import (
 	"context"
 	"encoding/hex"
-	"math/big"
 	"strings"
 	"time"
 
@@ -110,7 +109,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (u *PoolsListUpdater) getNextDexKeys(ctx context.Context, from uint64) ([]*DexKey, error) {
 	// Get the number of dex keys in the dex list
-	var dexListLength *big.Int
+	var dexListLength *uint256.Int
 
 	_, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    fluidDexLiteABI,
@@ -154,7 +153,7 @@ func (u *PoolsListUpdater) readDexKeys(ctx context.Context, from, till uint64) (
 	baseSlot := u.calculateArraySlot(1, 0)
 	var token0Slot, token1Slot, saltSlot uint256.Int
 	for i := from; i < till; i++ {
-		var token0, token1, salt *big.Int
+		var token0, token1, salt *uint256.Int
 		// Read 3 consecutive slots for each DexKey struct
 		token0Slot.AddUint64(baseSlot, i*3)
 		token1Slot.AddUint64(baseSlot, i*3+1)
@@ -179,14 +178,14 @@ func (u *PoolsListUpdater) readDexKeys(ctx context.Context, from, till uint64) (
 		}, []any{&salt})
 
 		dexKeyFns[i-from] = func() *DexKey {
-			if token0.Sign() == 0 || token1.Sign() == 0 {
+			if token0.IsZero() || token1.IsZero() {
 				return nil // Skip invalid dexKeys (token0 == 0 || token1 == 0)
 			}
 			// Reconstruct DexKey
 			dexKey := &DexKey{
-				Token0: common.BigToAddress(token0),
-				Token1: common.BigToAddress(token1),
-				Salt:   common.BigToHash(salt),
+				Token0: common.BytesToAddress(token0.Bytes()),
+				Token1: common.BytesToAddress(token1.Bytes()),
+				Salt:   common.BytesToHash(salt.Bytes()),
 			}
 			logger.WithFields(logger.Fields{
 				"dexType": DexType,

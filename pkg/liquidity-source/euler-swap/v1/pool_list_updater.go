@@ -277,7 +277,7 @@ func getPoolStaticData(
 }
 
 func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
-	var allPoolsLength *big.Int
+	var allPoolsLength *uint256.Int
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -291,7 +291,7 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(allPoolsLength.Int64()), nil
+	return int(allPoolsLength.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) newMetadata(metadata PoolsListUpdaterMetadata) ([]byte, error) {

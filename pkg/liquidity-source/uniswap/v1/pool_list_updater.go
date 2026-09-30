@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -110,7 +111,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getTotalExchanges(ctx context.Context) (int, error) {
-	var totalExchanges *big.Int
+	var totalExchanges *uint256.Int
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -125,7 +126,7 @@ func (u *PoolsListUpdater) getTotalExchanges(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(totalExchanges.Int64()), nil
+	return int(totalExchanges.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {

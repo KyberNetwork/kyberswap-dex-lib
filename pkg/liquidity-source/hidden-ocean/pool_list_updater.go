@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -47,7 +48,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	// Get total pool count from registry
-	var poolCount *big.Int
+	var poolCount *uint256.Int
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    registryABI,
 		Target: u.config.RegistryAddress,
@@ -60,7 +61,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	totalPools := int(poolCount.Int64())
+	totalPools := int(poolCount.Uint64())
 	offset := metadata.Offset
 	batchSize := u.getBatchSize(totalPools, offset)
 

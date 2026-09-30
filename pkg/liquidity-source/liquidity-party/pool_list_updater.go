@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -92,7 +93,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getPoolCount(ctx context.Context) (int, error) {
-	var poolCount *big.Int
+	var poolCount *uint256.Int
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    partyPlannerABI,
@@ -103,7 +104,7 @@ func (u *PoolsListUpdater) getPoolCount(ctx context.Context) (int, error) {
 	if _, err := req.Call(); err != nil {
 		return 0, err
 	}
-	return int(poolCount.Int64()), nil
+	return int(poolCount.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, limit int) ([]common.Address, error) {

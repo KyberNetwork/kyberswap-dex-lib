@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -72,7 +73,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) allPairsLength(ctx context.Context) (int, error) {
-	var length *big.Int
+	var length *uint256.Int
 	if _, err := u.ethrpcClient.R().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
@@ -80,7 +81,7 @@ func (u *PoolsListUpdater) allPairsLength(ctx context.Context) (int, error) {
 	}, []any{&length}).Call(); err != nil {
 		return 0, err
 	}
-	return int(length.Int64()), nil
+	return int(length.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) int {

@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -94,7 +95,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
-	var allPoolsLength *big.Int
+	var allPoolsLength *uint256.Int
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -109,7 +110,7 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(allPoolsLength.Int64()), nil
+	return int(allPoolsLength.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
@@ -204,7 +205,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []common.Address) ([][]common.Address, error) {
 	var (
 		req        = u.ethrpcClient.NewRequest().SetContext(ctx)
-		totalCoins = make([]*big.Int, len(poolAddresses))
+		totalCoins = make([]*uint256.Int, len(poolAddresses))
 	)
 
 	for i, poolAddress := range poolAddresses {
@@ -226,15 +227,16 @@ func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []c
 
 	for i, poolAddress := range poolAddresses {
 		totalCoins := totalCoins[i]
-		if totalCoins != nil && totalCoins.Sign() > 0 {
-			var tokens = make([]common.Address, totalCoins.Int64())
+		if totalCoins != nil && !totalCoins.IsZero() {
+			numCoins := int(totalCoins.Uint64())
+			var tokens = make([]common.Address, numCoins)
 
-			for j := range totalCoins.Int64() {
+			for j := range numCoins {
 				req2.AddCall(&ethrpc.Call{
 					ABI:    poolABI,
 					Target: poolAddress.Hex(),
 					Method: poolMethodCoins,
-					Params: []any{big.NewInt(j)},
+					Params: []any{big.NewInt(int64(j))},
 				}, []any{&tokens[j]})
 			}
 

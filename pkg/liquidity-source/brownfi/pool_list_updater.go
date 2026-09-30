@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -107,7 +108,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 // getAllPairsLength gets number of pairs from the factory contracts
 func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
-	var allPairsLength *big.Int
+	var allPairsLength *uint256.Int
 
 	getAllPairsLengthRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -122,7 +123,7 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(allPairsLength.Int64()), nil
+	return int(allPairsLength.Uint64()), nil
 }
 
 // getOffset gets index of the last pair that is fetched

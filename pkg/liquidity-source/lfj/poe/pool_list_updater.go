@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -81,7 +82,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 // getPoolsLength gets the number of pools registered in the factory.
 func (u *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
-	var poolsLength *big.Int
+	var poolsLength *uint256.Int
 
 	req := u.ethrpcClient.R().SetContext(ctx).
 		AddCall(&ethrpc.Call{
@@ -94,7 +95,7 @@ func (u *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(poolsLength.Int64()), nil
+	return int(poolsLength.Uint64()), nil
 }
 
 // getOffset gets the index of the last pool that was fetched.

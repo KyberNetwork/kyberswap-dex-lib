@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -57,7 +58,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 	}
 
-	var pairsLength *big.Int
+	var pairsLength *uint256.Int
 	if _, err := u.ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
@@ -69,7 +70,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 		return nil, metadataBytes, err
 	}
-	totalNumberOfPools := int(pairsLength.Int64())
+	totalNumberOfPools := int(pairsLength.Uint64())
 
 	pagingSize := u.config.PoolPagingSize
 	currentOffset := metadata.Offset
