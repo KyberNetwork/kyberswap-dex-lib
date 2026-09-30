@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -78,4 +79,38 @@ func TestPoolSimulator_UpdateBalanceThenQuoteAgain(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "421126678297991910", orig.TokenAmountOut.Amount.String())
+}
+
+// CalcAmountIn reverses exact-in: the min amountIn whose exact-in quote reaches amountOut. The quoter's
+// exact-in answers in the header therefore need at most their own amountIn.
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
+	for _, c := range []struct {
+		idxIn               int
+		maxAmountIn, amtOut string
+	}{
+		{0, "100000000", "421126678297991910"},
+		{1, "100000000000000000", "22929103"},
+		{1, "500000000000000000", "111778632"},
+	} {
+		tokenIn, tokenOut := entityPool.Tokens[c.idxIn].Address, entityPool.Tokens[1-c.idxIn].Address
+		res, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+			TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: bignumber.NewBig10(c.amtOut)},
+			TokenIn:        tokenIn,
+		})
+		require.NoError(t, err)
+		amountIn := res.TokenAmountIn.Amount
+		require.LessOrEqual(t, amountIn.Cmp(bignumber.NewBig10(c.maxAmountIn)), 0, "amountIn %s", amountIn)
+
+		for delta, reaches := range map[int64]bool{0: true, -1: false} {
+			out, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: new(big.Int).Add(amountIn, big.NewInt(delta))},
+				TokenOut:      tokenOut,
+			})
+			require.NoError(t, err)
+			require.Equal(t, reaches, out.TokenAmountOut.Amount.Cmp(bignumber.NewBig10(c.amtOut)) >= 0,
+				"amountIn %s%+d", amountIn, delta)
+		}
+	}
+	testutil.TestCalcAmountIn(t, poolSim)
 }

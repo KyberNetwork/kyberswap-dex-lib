@@ -18,6 +18,8 @@ import (
 )
 
 type BeforeSwapParams struct {
+	// CalcOut=false is CalcAmountIn, which reverses exact-in (swaps are always executed exact-in).
+	// Hooks must invert their exact-in fees then, NOT apply the contract's exact-out (amountSpecified > 0) branch.
 	CalcOut         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut

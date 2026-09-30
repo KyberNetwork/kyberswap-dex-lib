@@ -2,6 +2,7 @@ package limitorder
 
 import (
 	"math/big"
+	"math/rand/v2"
 	"strconv"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -53,7 +55,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     tokenUSDC,
+					Token:     tokenUSDT,
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -102,7 +104,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     tokenUSDT,
+					Token:     tokenUSDC,
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -151,20 +153,20 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     tokenUSDC,
-					Amount:    big.NewInt(2),
+					Token:     tokenUSDT,
+					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
 				Gas: 314416,
 				SwapInfo: SwapInfo{
-					AmountIn: "300",
+					AmountIn: "302",
 					SwapSide: Buy,
 					FilledOrders: []*FilledOrderInfo{
 						newExampleFilledOrderInfo(t,
 							1383,
 							tokenUSDT, big.NewInt(200), big.NewInt(200),
 							tokenUSDC, big.NewInt(400), big.NewInt(400),
-							big.NewInt(2), 100,
+							big.NewInt(0), 100,
 						),
 						newExampleFilledOrderInfo(t,
 							1382,
@@ -200,7 +202,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     tokenUSDT,
+					Token:     tokenUSDC,
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -508,4 +510,151 @@ func newExampleFilledOrderInfo(
 		Signature:            "signature" + strconv.Itoa(int(orderID)),
 		FeeAmount:            feeAmount.String(),
 	}
+}
+
+// Callers (e.g. onchain-price-service) check CalcAmountOut(CalcAmountIn(out)) against out, so amountIn must reach
+// amountOut via exact-in, and 1 wei less must not along the same fill path. Exact-in skips orders that would fill
+// 0 making wei, so a smaller amountIn can reach amountOut only by skipping to a later order.
+func TestPool_CalcAmountIn_MinimalInverseOfCalcAmountOut(t *testing.T) {
+	t.Parallel()
+	makers := []string{"0x1111111111111111111111111111111111111111", "0x2222222222222222222222222222222222222222"}
+	rng := rand.New(rand.NewPCG(1, 2))
+	const maxAmount = 300 // small amounts make rounding edges frequent
+	calcOut := func(p *PoolSimulator, amountIn *big.Int) (*big.Int, []int64, error) {
+		res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tokenUSDC, Amount: amountIn},
+			TokenOut:      tokenUSDT,
+			Limit:         swaplimit.NewInventory("", p.CalculateLimit()),
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		var filledIDs []int64
+		for _, o := range res.SwapInfo.(SwapInfo).FilledOrders {
+			if !o.IsFallBack {
+				filledIDs = append(filledIDs, o.OrderID)
+			}
+		}
+		return res.TokenAmountOut.Amount, filledIDs, nil
+	}
+
+	var succeeded, failed, skipped int
+	for range 5000 {
+		orders := make([]*order, 1+rng.IntN(5))
+		balances := map[string]*big.Int{}
+		totalMaking := int64(0)
+		for i := range orders {
+			taking, making := big.NewInt(1+rng.Int64N(maxAmount)), big.NewInt(1+rng.Int64N(maxAmount))
+			orders[i] = newExampleOrder(t, int64(i+1), tokenUSDC, taking, big.NewInt(0), tokenUSDT, making,
+				big.NewInt(0), uint32(rng.IntN(3)*50), rng.IntN(2) == 0)
+			totalMaking += making.Int64()
+			if rng.IntN(2) == 0 { // maker balance shared across orders caps remaining amounts
+				o := orders[i]
+				o.Maker = makers[rng.IntN(len(makers))]
+				o.AvailableMakingAmount = new(big.Int).Set(making)
+				if balances[o.Maker] == nil {
+					balances[o.Maker] = big.NewInt(1 + rng.Int64N(maxAmount))
+				}
+				o.MakerBalanceAllowance = balances[o.Maker]
+			}
+		}
+		p, err := NewPoolSimulator(newExamplePool(t, nil, orders))
+		require.NoError(t, err)
+
+		amountOut := big.NewInt(1 + rng.Int64N(totalMaking))
+		res, err := p.CalcAmountIn(pool.CalcAmountInParams{
+			TokenAmountOut: pool.TokenAmount{Token: tokenUSDT, Amount: amountOut},
+			TokenIn:        tokenUSDC,
+			Limit:          swaplimit.NewInventory("", p.CalculateLimit()),
+		})
+		if err != nil {
+			require.ErrorIs(t, err, ErrCannotFulfillAmountOut)
+			failed++
+			continue
+		}
+		succeeded++
+		amountIn := res.TokenAmountIn.Amount
+
+		out, filledIDs, err := calcOut(p, amountIn)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, out.Cmp(amountOut), 0, "amountIn %v gives %v < %v", amountIn, out, amountOut)
+		require.Equal(t, amountIn.String(), res.SwapInfo.(SwapInfo).AmountIn)
+
+		outLess, filledIDsLess, err := calcOut(p, new(big.Int).Sub(amountIn, bignumber.One))
+		if err != nil || outLess.Cmp(amountOut) < 0 {
+			continue
+		}
+		require.NotEqual(t, filledIDs, filledIDsLess, "amountIn %v is not minimal", amountIn)
+		require.Greater(t, filledIDsLess[len(filledIDsLess)-1], filledIDs[len(filledIDs)-1],
+			"smaller amountIn must skip to a later order")
+		skipped++
+	}
+	t.Logf("succeeded %d, failed %d, smaller amountIn via skipped order %d", succeeded, failed, skipped)
+}
+
+func TestPool_CalcAmountIn_FeesReachAmountOut(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name         string
+		orders       []*order
+		amountOut    int64
+		wantAmountIn int64
+	}{
+		{
+			// fully filled order 1 delivers 400 - 1% maker fee = 396, so order 2 must fill 104, not 100
+			name: "maker asset fee is deducted from fully filled order",
+			orders: []*order{
+				newExampleOrder(t, 1, tokenUSDC, big.NewInt(400), big.NewInt(0), tokenUSDT, big.NewInt(400), big.NewInt(0), 100, false),
+				newExampleOrder(t, 2, tokenUSDC, big.NewInt(300), big.NewInt(0), tokenUSDT, big.NewInt(300), big.NewInt(0), 0, false),
+			},
+			amountOut:    500,
+			wantAmountIn: 504,
+		},
+		{
+			// 10100 + 1 has takingAmountAfterFee = floor(10101 * 1e4 / 10100) = 10000, which exact-in fills
+			// partially on order 1; order 1 is fully filled only from 10102
+			name: "taker asset fee needs takingAmountAfterFee above remaining taking amount to fully fill",
+			orders: []*order{
+				newExampleOrder(t, 1, tokenUSDC, big.NewInt(10000), big.NewInt(0), tokenUSDT, big.NewInt(10000), big.NewInt(0), 100, true),
+				newExampleOrder(t, 2, tokenUSDC, big.NewInt(1000), big.NewInt(0), tokenUSDT, big.NewInt(1000), big.NewInt(0), 0, false),
+			},
+			amountOut:    10001,
+			wantAmountIn: 10102,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := NewPoolSimulator(newExamplePool(t, nil, tt.orders))
+			require.NoError(t, err)
+			res, err := p.CalcAmountIn(pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{Token: tokenUSDT, Amount: big.NewInt(tt.amountOut)},
+				TokenIn:        tokenUSDC,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, big.NewInt(tt.wantAmountIn), res.TokenAmountIn.Amount)
+
+			for amountIn, reached := range map[int64]bool{tt.wantAmountIn: true, tt.wantAmountIn - 1: false} {
+				out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tokenUSDC, Amount: big.NewInt(amountIn)},
+					TokenOut:      tokenUSDT,
+				})
+				require.NoError(t, err)
+				assert.Equal(t, reached, out.TokenAmountOut.Amount.Int64() >= tt.amountOut, "amountIn %d", amountIn)
+			}
+		})
+	}
+}
+
+func TestPool_CalcAmountIn_Generic(t *testing.T) {
+	t.Parallel()
+	p, err := NewPoolSimulator(newExamplePool(t, []*order{
+		newExampleOrder(t, 1, tokenUSDC, big.NewInt(992_000_000), big.NewInt(0), tokenUSDT, big.NewInt(1_000_000_000), big.NewInt(0), 0, false),
+		newExampleOrder(t, 2, tokenUSDC, big.NewInt(1_010_000_000), big.NewInt(0), tokenUSDT, big.NewInt(1_000_000_000), big.NewInt(0), 30, true),
+		newExampleOrder(t, 3, tokenUSDC, big.NewInt(5_050_000_000), big.NewInt(0), tokenUSDT, big.NewInt(5_000_000_000), big.NewInt(0), 50, false),
+	}, []*order{
+		newExampleOrder(t, 4, tokenUSDT, big.NewInt(2_000_000_000), big.NewInt(0), tokenUSDC, big.NewInt(1_990_000_000), big.NewInt(0), 100, false),
+		newExampleOrder(t, 5, tokenUSDT, big.NewInt(3_000_000_000), big.NewInt(0), tokenUSDC, big.NewInt(2_950_000_000), big.NewInt(0), 20, true),
+	}))
+	require.NoError(t, err)
+	testutil.TestCalcAmountIn(t, p)
 }

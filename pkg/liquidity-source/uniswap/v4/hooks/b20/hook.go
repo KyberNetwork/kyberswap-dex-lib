@@ -23,9 +23,8 @@ import (
 )
 
 var (
-	ErrNotRegistered     = errors.New("pool not registered with the launch factory yet")
-	ErrNotTracked        = errors.New("launchhook: pool config not yet tracked, refusing to quote at an unknown fee")
-	ErrCalcInUnsupported = errors.New("launchhook: exact-out not supported (matches pool_simulator.go's CalcAmountOut-only scope)")
+	ErrNotRegistered = errors.New("pool not registered with the launch factory yet")
+	ErrNotTracked    = errors.New("launchhook: pool config not yet tracked, refusing to quote at an unknown fee")
 )
 
 // Extra is the pricing-relevant subset of LaunchHook.sol's poolConfig -- frozen at
@@ -116,47 +115,43 @@ func (e *Extra) QuoteIsSpecified(zeroForOne bool) bool {
 	return specifiedIsCurrency0 == quoteIsCurrency0
 }
 
-// BeforeSwap only handles the exact-in (CalcOut) direction -- the only one
-// pool_simulator.go's CalcAmountOut ever drives. When the quote currency is the
-// swap's input, LaunchHook.sol charges the fee pre-swap (floor-rounded) so the
-// AMM sees a reduced input; see AfterSwap for the output-side case.
+// BeforeSwap: when the quote currency is the swap's input, LaunchHook.sol charges the
+// exact-in fee pre-swap (floor-rounded) so the AMM sees a reduced input; see AfterSwap for
+// the output-side case. CalcIn reverses exact-in, so with quote output it grosses the pool's
+// output up to leave AmountSpecified after the AfterSwap fee.
 func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if !params.CalcOut {
-		return nil, ErrCalcInUnsupported
-	}
 	if e.LaunchTime == 0 {
 		// Never successfully Track()ed (RPC failure, or genuinely not yet registered
 		// with the factory): a zero-value Extra has BaseFeeBps=0, which would
 		// otherwise price this pool as fee-free instead of refusing to quote it.
 		return nil, ErrNotTracked
 	}
-	if !e.QuoteIsSpecified(params.ZeroForOne) {
-		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
-		}, nil
+	deltaSpecified := bignumber.ZeroBI
+	if quoteIsInput := e.QuoteIsSpecified(params.ZeroForOne); params.CalcOut && quoteIsInput {
+		deltaSpecified = FeeAmount(params.AmountSpecified, e.TotalFeeBps())
+	} else if !params.CalcOut && !quoteIsInput {
+		deltaSpecified = feeGrossUp(params.AmountSpecified, e.TotalFeeBps())
 	}
-	fee := FeeAmount(params.AmountSpecified, e.TotalFeeBps())
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   fee,
+		DeltaSpecified:   deltaSpecified,
 		DeltaUnspecified: bignumber.ZeroBI,
 	}, nil
 }
 
 // AfterSwap applies the fee post-swap (floor-rounded, on the realized output) when
-// the quote currency is the swap's output side.
+// the quote currency is the swap's output side. CalcIn with quote input grosses the
+// input up instead, so the BeforeSwap fee leaves the pool's AmountIn.
 func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	if !params.CalcOut {
-		return nil, ErrCalcInUnsupported
-	}
 	if e.LaunchTime == 0 {
 		return nil, ErrNotTracked
 	}
-	if e.QuoteIsSpecified(params.ZeroForOne) {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+	hookFee := bignumber.ZeroBI
+	if quoteIsInput := e.QuoteIsSpecified(params.ZeroForOne); params.CalcOut && !quoteIsInput {
+		hookFee = FeeAmount(params.AmountOut, e.TotalFeeBps())
+	} else if !params.CalcOut && quoteIsInput {
+		hookFee = feeGrossUp(params.AmountIn, e.TotalFeeBps())
 	}
-	fee := FeeAmount(params.AmountOut, e.TotalFeeBps())
-	return &uniswapv4.AfterSwapResult{HookFee: fee}, nil
+	return &uniswapv4.AfterSwapResult{HookFee: hookFee}, nil
 }
 
 // FeeAmount mirrors LaunchHook.sol's _feeAmount for the exact-in (non-exactOutput)
@@ -166,6 +161,15 @@ func FeeAmount(magnitude *big.Int, feeBps int64) *big.Int {
 		return bignumber.ZeroBI
 	}
 	return bignumber.MulDivDown(new(big.Int), magnitude, big.NewInt(feeBps), big.NewInt(bps))
+}
+
+// feeGrossUp returns the fee to add to net so that deducting FeeAmount from the sum leaves net.
+func feeGrossUp(net *big.Int, feeBps int64) *big.Int {
+	if feeBps == 0 || net == nil || net.Sign() == 0 {
+		return bignumber.ZeroBI
+	}
+	gross := uniswapv4.GrossBeforeFee(net, big.NewInt(feeBps), big.NewInt(bps))
+	return gross.Sub(gross, net)
 }
 
 // Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook

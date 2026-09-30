@@ -1,70 +1,59 @@
 package erc4626
 
 import (
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
+// GetClosestRate converts amount using rates sampled at PrefetchAmounts (rates[i] = preview(PrefetchAmounts[i])).
+// It interpolates linearly between samples, through (0, 0) below the first one and at the last sample's rate
+// beyond the last one. isExactOut: amount is an amountOut, and it returns the min amountIn converting to at least
+// amount; CalcAmountIn reverses exact-in, so both directions must share this one curve.
 func GetClosestRate(rates []*uint256.Int, amount *uint256.Int, isExactOut bool) (*uint256.Int, error) {
-	if len(rates) == 0 {
-		return nil, ErrInvalidRate
-	}
-
-	bestId := -1
-	bestDiff := new(uint256.Int)
-	diff := new(uint256.Int)
-
-	for i, rate := range rates {
-		if rate == nil {
+	xLo, yLo := u256.U0, u256.U0
+	var sampled bool
+	for i, y := range rates {
+		if y == nil || i >= len(PrefetchAmounts) {
 			continue
 		}
-
-		prefetchAmount := PrefetchAmounts[i]
-
-		inAmt := amount.Clone()
+		x := PrefetchAmounts[i]
 		if isExactOut {
-			// in case of exact out, calculate in amount so that we can calculate diff base on in amount.
-			inAmt.MulDivOverflow(amount, prefetchAmount, rate)
+			if yLo.Lt(amount) && !y.Lt(amount) {
+				return interpolateAmountIn(xLo, yLo, x, y, amount), nil
+			}
+		} else if !x.Lt(amount) {
+			return interpolateAmountOut(xLo, yLo, x, y, amount), nil
 		}
-
-		// Calculate multiplicative distance
-		if inAmt.Gt(prefetchAmount) {
-			diff.Div(inAmt, prefetchAmount)
-		} else {
-			diff.Div(prefetchAmount, inAmt)
-		}
-
-		if diff.Eq(u256.U1) {
-			bestId = i
-			break
-		}
-
-		diff.Sub(diff, u256.U1)
-
-		if bestId == -1 || diff.Lt(bestDiff) {
-			bestId = i
-			bestDiff.Set(diff)
-		}
+		xLo, yLo, sampled = x, y, true
 	}
-
-	if bestId == -1 {
+	if !sampled || yLo.IsZero() {
 		return nil, ErrInvalidRate
 	}
 
-	rate := rates[bestId]
-	if rate.IsZero() {
-		return nil, ErrInvalidRate
-	}
-
-	// new result here to avoid modifying amount param
-	result := uint256.NewInt(0)
+	// beyond the last sample, at its rate
+	var result uint256.Int
 	if isExactOut {
-		// in = out * prefetchAmount / rate
-		result.MulDivOverflow(amount, PrefetchAmounts[bestId], rate)
-	} else {
-		// out = in * rate / prefetchAmount
-		result.MulDivOverflow(amount, rate, PrefetchAmounts[bestId])
+		return u256.MulDivUp(&result, amount, xLo, yLo), nil
 	}
+	return u256.MulDivDown(&result, amount, yLo, xLo), nil
+}
 
-	return result, nil
+// interpolateAmountOut returns floor(y) on the line through (xLo, yLo) and (xHi, yHi) at x in (xLo, xHi].
+func interpolateAmountOut(xLo, yLo, xHi, yHi, x *uint256.Int) *uint256.Int {
+	var result, dx, dy uint256.Int
+	dx.Sub(xHi, xLo)
+	if !yHi.Lt(yLo) {
+		u256.MulDivDown(&result, result.Sub(x, xLo), dy.Sub(yHi, yLo), &dx)
+		return result.Add(yLo, &result)
+	}
+	u256.MulDivUp(&result, result.Sub(x, xLo), dy.Sub(yLo, yHi), &dx)
+	return result.Sub(yLo, &result)
+}
+
+// interpolateAmountIn returns the min x with interpolateAmountOut(x) >= y, for y in (yLo, yHi].
+func interpolateAmountIn(xLo, yLo, xHi, yHi, y *uint256.Int) *uint256.Int {
+	var result, dx, dy uint256.Int
+	u256.MulDivUp(&result, result.Sub(y, yLo), dx.Sub(xHi, xLo), dy.Sub(yHi, yLo))
+	return result.Add(xLo, &result)
 }

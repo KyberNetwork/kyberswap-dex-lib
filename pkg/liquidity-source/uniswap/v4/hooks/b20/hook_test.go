@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // reference values pulled from LaunchHook.sol's live poolConfig for a real B20 launch
@@ -129,10 +131,19 @@ func TestAfterSwap_TokenSpecified_ChargesFeeOnOutput(t *testing.T) {
 	assert.Equal(t, big.NewInt(10_000), result.HookFee)
 }
 
-func TestBeforeSwap_ExactOutUnsupported(t *testing.T) {
-	h := &Hook{Extra: refExtra()}
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(1)})
-	assert.ErrorIs(t, err, ErrCalcInUnsupported)
+// CalcAmountIn reverses exact-in, so it must invert the quote-side fee on both sides, including the steep
+// anti-snipe surcharge.
+func TestCalcAmountIn(t *testing.T) {
+	e := refExtra()
+	for _, elapsed := range []int64{2, e.AntiSnipeWindowSeconds} {
+		NowFn = func() int64 { return e.LaunchTime + elapsed }
+		for _, tokenIsCurrency0 := range []bool{false, true} {
+			e.TokenIsCurrency0 = tokenIsCurrency0
+			pSim := hooktest.NewPoolSimulator(t, HookAddresses[0], e)
+			hooktest.RequireRoundTrip(t, pSim)
+			testutil.TestCalcAmountIn(t, pSim)
+		}
+	}
 }
 
 // A pool whose Track() never succeeded (RPC failure, or a factory that constructs the

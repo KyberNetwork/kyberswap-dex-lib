@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func tokens(n int64) *big.Int { return new(big.Int).Mul(big.NewInt(n), big.NewInt(1e18)) }
@@ -162,9 +164,20 @@ func TestRefusesUntradablePools(t *testing.T) {
 
 	_, err = (&Hook{Extra: Extra{Tracked: true, Mode: 2, Status: StatusGraduated}}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrUnknownMode)
+}
 
-	_, err = (&Hook{Extra: graduatedPump(true)}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(1)})
-	assert.ErrorIs(t, err, ErrCalcInUnsupported)
+// CalcAmountIn reverses exact-in, so a v1 PUMP pool must invert its USDC fee on whichever side USDC is.
+func TestPumpV1_CalcAmountIn(t *testing.T) {
+	t.Parallel()
+	for _, usdcIsCurrency0 := range []bool{false, true} {
+		for _, emaTickE3 := range []int64{0, 900_000_000} { // max fee, floor fee
+			e := graduatedPump(usdcIsCurrency0)
+			e.ObsInit, e.EmaTickE3, e.GradMcapTick = emaTickE3 != 0, emaTickE3, 50_000
+			pSim := hooktest.NewPoolSimulator(t, HookV1, e)
+			hooktest.RequireRoundTrip(t, pSim)
+			testutil.TestCalcAmountIn(t, pSim)
+		}
+	}
 }
 
 func graduatedPumpV2(usdcIsCurrency0 bool) Extra {
@@ -256,7 +269,7 @@ func TestDirectLaunchV2_BuyCap(t *testing.T) {
 }
 
 // v2 keeps the curve guard (beforeSwap reverts while Curving or GraduationStarted), and
-// exact-out stays refused on v1 only.
+// both generations quote CalcIn.
 func TestV2_RefusalsAndExactOut(t *testing.T) {
 	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1_000)}
 
@@ -276,6 +289,6 @@ func TestV2_RefusalsAndExactOut(t *testing.T) {
 	require.NoError(t, err)
 	for _, v1 := range []Extra{graduatedPump(true), {Tracked: true, Mode: ModeClanker, Status: StatusGraduated}} {
 		_, err = (&Hook{Extra: v1}).BeforeSwap(exactOut)
-		assert.ErrorIs(t, err, ErrCalcInUnsupported)
+		require.NoError(t, err)
 	}
 }

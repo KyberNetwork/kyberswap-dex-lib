@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -79,16 +81,15 @@ func TestBeforeSwap_MemeSpecified(t *testing.T) {
 	assert.Equal(t, int64(0), res.DeltaUnspecified.Int64())
 }
 
-func TestBeforeSwap_ExactOutputDisabled(t *testing.T) {
+// CalcAmountIn reverses exact-in (exact-output being disabled on-chain doesn't matter), so it must invert the
+// desk fee whether desk is the input or the output.
+func TestCalcAmountIn(t *testing.T) {
 	t.Parallel()
-
-	hook, _ := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{})
-	_, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
-		CalcOut:         false, // exact-output
-		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000),
-	})
-	require.ErrorIs(t, err, ErrExactOutputDisabled)
+	for _, memeIsCurrency0 := range []bool{false, true} {
+		pSim := hooktest.NewPoolSimulator(t, HookAddresses[0], Hook{MemeIsCurrency0: memeIsCurrency0})
+		hooktest.RequireRoundTrip(t, pSim)
+		testutil.TestCalcAmountIn(t, pSim)
+	}
 }
 
 func TestBeforeSwap_Paused(t *testing.T) {

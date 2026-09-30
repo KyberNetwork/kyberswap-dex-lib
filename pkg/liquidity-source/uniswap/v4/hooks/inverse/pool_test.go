@@ -85,6 +85,10 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 			require.Zero(t, before.Reserves[j].Cmp(sim.Info.Reserves[j]))
 		}
 		require.Equal(t, v.Output.Dec(), result.TokenAmountOut.Amount.String())
+		// CalcAmountIn reverses exact-in, so the vector's output needs at most its input
+		resIn, e := sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: in, TokenAmountOut: pool.TokenAmount{Token: out, Amount: v.Output.ToBig()}})
+		require.NoError(t, e)
+		require.LessOrEqual(t, resIn.TokenAmountIn.Amount.Cmp(v.Input.ToBig()), 0)
 		require.Empty(t, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).HookData)
 		require.Equal(t, s.BlockNumber, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).BlockNumber)
 		sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: amount, TokenAmountOut: *result.TokenAmountOut, Fee: *result.Fee, SwapInfo: result.SwapInfo})
@@ -98,6 +102,4 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 		}
 	}
 	require.Equal(t, initial.SqrtPriceX96, original.V3Pool.SqrtRatioX96)
-	_, err = sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: p.Tokens[0].Address, TokenAmountOut: pool.TokenAmount{Token: p.Tokens[1].Address, Amount: n(1)}})
-	require.ErrorIs(t, err, ErrExactOutput)
 }

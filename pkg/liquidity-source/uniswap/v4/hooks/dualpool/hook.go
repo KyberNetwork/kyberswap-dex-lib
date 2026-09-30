@@ -8,9 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -118,9 +120,6 @@ func (h *Hook) GetReserves(context.Context, *uniswapv4.HookParam) (entity.PoolRe
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if !params.CalcOut {
-		return nil, ErrExactOutUnsupported
-	}
 	s := &h.state
 	if s.SqrtPriceX96 == nil || s.Balance0 == nil || s.Balance1 == nil {
 		return nil, ErrStateNotSet
@@ -134,9 +133,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if s.Balance0.IsZero() && s.Balance1.IsZero() {
 		return nil, ErrNoReserves
 	}
-	amountIn, overflow := uint256.FromBig(params.AmountSpecified)
-	if overflow || amountIn.IsZero() {
-		return nil, uniswapv4.ErrInvalidAmountIn
+	amountSpecified, overflow := uint256.FromBig(params.AmountSpecified)
+	if overflow || amountSpecified.IsZero() {
+		return nil, lo.Ternary(params.CalcOut, uniswapv4.ErrInvalidAmountIn, uniswapv4.ErrInvalidAmountOut)
 	}
 
 	positions, err := allocate(s.Buckets, s.SqrtPriceX96, s.Balance0, s.Balance1)
@@ -147,24 +146,75 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrInsufficientLiquidity
 	}
 	fee := effectiveSwapFee(s.LpFee, s.ProtocolFee, params.ZeroForOne)
-	res, err := swapExactIn(positions, s.SqrtPriceX96, int(s.Tick), params.ZeroForOne, amountIn, fee)
+	swap := func(amountIn *uint256.Int) (*swapResult, error) {
+		return swapExactIn(positions, s.SqrtPriceX96, int(s.Tick), params.ZeroForOne, amountIn, fee)
+	}
+	if !params.CalcOut {
+		return h.calcIn(params, swap)
+	}
+	res, err := swap(amountSpecified)
 	if err != nil {
 		return nil, err
 	}
+	return h.beforeSwapResult(params.ZeroForOne, res,
+		res.amountIn.ToBig(),                    // the whole input is consumed here
+		new(big.Int).Neg(res.amountOut.ToBig()), // out -= (-amountOut)
+	), nil
+}
 
+// calcIn reverses exact-in: the hook only prices exact-in, so it searches the min amountIn whose exact-in swap
+// gives AmountSpecified out, and takes the whole swap off the pool.
+func (h *Hook) calcIn(params *uniswapv4.BeforeSwapParams,
+	swap func(amountIn *uint256.Int) (*swapResult, error)) (*uniswapv4.BeforeSwapResult, error) {
+	var amountIn uint256.Int
+	calcAmountOut := func(amountInBI *big.Int) (*big.Int, error) {
+		if amountIn.SetFromBig(amountInBI) {
+			return nil, uniswapv4.ErrInvalidAmountIn
+		}
+		res, err := swap(&amountIn)
+		if err != nil {
+			return nil, err
+		}
+		return res.amountOut.ToBig(), nil
+	}
+	// spot price guess: token1 per token0 = (sqrtPriceX96 / 2^96)^2
+	var guess, price big.Int
+	price.Mul(h.state.SqrtPriceX96.ToBig(), h.state.SqrtPriceX96.ToBig())
+	if params.ZeroForOne {
+		bignumber.MulDivUp(&guess, params.AmountSpecified, q192, &price)
+	} else {
+		bignumber.MulDivUp(&guess, params.AmountSpecified, &price, q192)
+	}
+	amountInBI, err := uniswapv4.MinAmountIn(params.AmountSpecified, &guess, calcAmountOut)
+	if err != nil {
+		return nil, err
+	}
+	amountIn.SetFromBig(amountInBI)
+	res, err := swap(&amountIn)
+	if err != nil {
+		return nil, err
+	}
+	return h.beforeSwapResult(params.ZeroForOne, res,
+		new(big.Int).Neg(params.AmountSpecified), // out += (-amountOut): nothing left for the pool
+		res.amountIn.ToBig(),                     // in += amountIn
+	), nil
+}
+
+func (h *Hook) beforeSwapResult(zeroForOne bool, res *swapResult, deltaSpecified,
+	deltaUnspecified *big.Int) *uniswapv4.BeforeSwapResult {
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   res.amountIn.ToBig(),                    // the whole input is consumed here
-		DeltaUnspecified: new(big.Int).Neg(res.amountOut.ToBig()), // out -= (-amountOut)
-		SwapFee:          uniswapv4.FeeAmount(s.LpFee),
+		DeltaSpecified:   deltaSpecified,
+		DeltaUnspecified: deltaUnspecified,
+		SwapFee:          uniswapv4.FeeAmount(h.state.LpFee),
 		Gas:              swapGas,
 		SwapInfo: SwapInfo{
-			ZeroForOne:   params.ZeroForOne,
+			ZeroForOne:   zeroForOne,
 			AmountIn:     res.amountIn,
 			AmountOut:    res.amountOut,
 			SqrtPriceX96: res.sqrtPriceX96,
 			Tick:         int32(res.tick),
 		},
-	}, nil
+	}
 }
 
 func (h *Hook) CloneState() uniswapv4.Hook {

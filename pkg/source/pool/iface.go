@@ -71,7 +71,9 @@ type IPoolSimulator interface {
 }
 
 type IPoolExactOutSimulator interface {
-	// CalcAmountIn returns amountIn, fee, gas
+	// CalcAmountIn returns amountIn, fee, gas.
+	// It reverses exact-in: the min amountIn for which CalcAmountOut gives TokenAmountOut. It is NOT on-chain
+	// exact-out; swaps are always executed exact-in, so exact-in fees/rounding apply, not exact-out branches.
 	// the required params is TokenAmountOut and TokenIn.
 	// SwapLimit is optional, individual dex logic will choose to ignore it if it is nil
 	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
