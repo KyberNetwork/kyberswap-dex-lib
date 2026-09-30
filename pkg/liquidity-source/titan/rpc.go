@@ -6,6 +6,7 @@ package titan
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"strings"
 	"time"
@@ -19,6 +20,10 @@ import (
 )
 
 const DefaultTimeout = 10 * time.Second
+
+// DefaultMergeWindow is how long FetchState keeps collecting other regions'
+// responses after the first usable one arrives.
+const DefaultMergeWindow = 300 * time.Millisecond
 
 // beaconGenesisTS/secsPerSlot compute the canonical block.timestamp for a given
 // beacon slot: genesis + slot*12. lambdaclass's SDK documents this as the value
@@ -68,13 +73,17 @@ func NewClients(cfg Config) []*rpc.Client {
 	return clients
 }
 
-// FetchState tries every client in turn and returns the first with a usable
-// override set, merging every venue's stateOverride entry into one combined
-// map rather than filtering to a single quoter address: the top-level stream
-// key isn't reliably the venue's own call-target address, and every known
-// pAMM's override ultimately lands on state the venue's own quote() call
-// already reads, so applying the merged map works regardless of which
-// entries belong to which venue.
+// FetchState queries every client in parallel and merges their responses.
+// Regions often disagree on which pAMM entries they carry, even for the same
+// block, so after the first response with a pAMM entry arrives it waits up to
+// DefaultMergeWindow for the others, then merges (see mergeResponses).
+//
+// Every venue's stateOverride entry is merged into one combined map rather
+// than filtered to a single quoter address: the top-level stream key isn't
+// reliably the venue's own call-target address, and every known pAMM's
+// override ultimately lands on state the venue's own quote() call already
+// reads, so applying the merged map works regardless of which entries belong
+// to which venue.
 //
 // The override's freshness window is a few seconds at most — callers must
 // use the result immediately, not cache it.
@@ -85,32 +94,91 @@ func FetchState(ctx context.Context, clients []*rpc.Client, timeout time.Duratio
 	if timeout == 0 {
 		timeout = DefaultTimeout
 	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	results := make(chan map[string]json.RawMessage, len(clients))
 	for _, client := range clients {
-		callCtx, cancel := context.WithTimeout(ctx, timeout)
-		state, err := fetchOne(callCtx, client)
-		cancel()
-		if err != nil {
-			logger.WithFields(logger.Fields{"error": err.Error()}).Warn("titan RPC failed, trying next")
-			continue
-		}
-		if len(state.Overrides) > 0 {
-			return state
+		go func() {
+			var result map[string]json.RawMessage
+			if err := client.CallContext(ctx, &result, "titan_getPammStateOverrides"); err != nil {
+				// Canceled means the merge window already closed; not a failure.
+				if !errors.Is(err, context.Canceled) {
+					logger.WithFields(logger.Fields{"error": err.Error()}).Warn("titan RPC failed")
+				}
+				result = nil
+			}
+			results <- result
+		}()
+	}
+
+	var responses []map[string]json.RawMessage
+	var window <-chan time.Time
+collect:
+	for range clients {
+		select {
+		case result := <-results:
+			if result == nil {
+				continue
+			}
+			responses = append(responses, result)
+			if window == nil && hasPammEntry(result) {
+				window = time.After(DefaultMergeWindow)
+			}
+		case <-window:
+			break collect
 		}
 	}
-	return State{}
+
+	state := buildState(mergeResponses(responses))
+	if len(state.Overrides) == 0 {
+		return State{}
+	}
+	return state
 }
 
-func fetchOne(ctx context.Context, client *rpc.Client) (State, error) {
-	var result map[string]json.RawMessage
-	if err := client.CallContext(ctx, &result, "titan_getPammStateOverrides"); err != nil {
-		return State{}, err
+// mergeResponses keeps only the responses for the highest block number, then
+// takes each pAMM entry whole from the first response that carries it. An
+// entry's slots are never mixed across regions.
+func mergeResponses(responses []map[string]json.RawMessage) map[string]json.RawMessage {
+	var best *big.Int
+	for _, r := range responses {
+		if bn := parseBlockNumber(r); bn != nil && (best == nil || bn.Cmp(best) > 0) {
+			best = bn
+		}
 	}
+	var merged map[string]json.RawMessage
+	for _, r := range responses {
+		if bn := parseBlockNumber(r); best != nil && (bn == nil || bn.Cmp(best) != 0) {
+			continue
+		}
+		if merged == nil {
+			merged = make(map[string]json.RawMessage, len(r))
+		}
+		for k, v := range r {
+			if _, ok := merged[k]; !ok {
+				merged[k] = v
+			}
+		}
+	}
+	return merged
+}
 
+func hasPammEntry(result map[string]json.RawMessage) bool {
+	for k := range result {
+		if k != "slot" && k != "blockNumber" {
+			return true
+		}
+	}
+	return false
+}
+
+func buildState(result map[string]json.RawMessage) State {
 	blockNumber := parseBlockNumber(result)
 
 	overrides := mergeOverrides(result)
 	if len(overrides) == 0 {
-		return State{BlockNumber: blockNumber}, nil
+		return State{BlockNumber: blockNumber}
 	}
 
 	var canonicalTS uint64
@@ -126,7 +194,7 @@ func fetchOne(ctx context.Context, client *rpc.Client) (State, error) {
 		canonicalTS = ExtractMaxOracleTimestamp(overrides)
 	}
 
-	return State{Overrides: overrides, BlockNumber: blockNumber, BlockTimestamp: canonicalTS}, nil
+	return State{Overrides: overrides, BlockNumber: blockNumber, BlockTimestamp: canonicalTS}
 }
 
 func parseBlockNumber(result map[string]json.RawMessage) *big.Int {
