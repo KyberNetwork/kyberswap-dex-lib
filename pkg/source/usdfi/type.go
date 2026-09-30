@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type Metadata struct {
@@ -34,9 +35,9 @@ type Extra struct {
 }
 
 type Reserves struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
-	BlockTimestampLast *big.Int
+	Reserve0           *uint256.Int
+	Reserve1           *uint256.Int
+	BlockTimestampLast *uint256.Int
 }
 
 type Gas struct {

@@ -2,11 +2,11 @@ package muteswitch
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -41,7 +41,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		reserve Reserves
-		pairFee *big.Int
+		pairFee *uint256.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -74,7 +74,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
-	p.SwapFee = float64(pairFee.Int64()) / bps
+	p.SwapFee = float64(pairFee.Uint64()) / bps
 	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{

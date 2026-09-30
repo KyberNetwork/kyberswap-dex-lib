@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -158,7 +159,7 @@ func (t *PoolTracker) GetNewPoolState(
 }
 
 func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, *big.Int, error) {
-	var lastIndex *big.Int
+	var lastIndex *uint256.Int
 
 	getLastIndexRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
 	getLastIndexRequest.AddCall(&ethrpc.Call{
@@ -182,5 +183,5 @@ func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, *b
 		return 0, nil, ErrFailedToGetLastIndex
 	}
 
-	return int(lastIndex.Int64()), resp.BlockNumber, nil
+	return int(lastIndex.Uint64()), resp.BlockNumber, nil
 }

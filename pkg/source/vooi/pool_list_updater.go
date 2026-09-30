@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -201,7 +202,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 }
 
 func (u *PoolsListUpdater) getLastIndex(_ context.Context, address string) (int, error) {
-	var lastIndex *big.Int
+	var lastIndex *uint256.Int
 
 	getLastIndexRequest := u.ethrpcClient.NewRequest()
 	getLastIndexRequest.AddCall(&ethrpc.Call{
@@ -224,5 +225,5 @@ func (u *PoolsListUpdater) getLastIndex(_ context.Context, address string) (int,
 		return 0, ErrFailedToGetLastIndex
 	}
 
-	return int(lastIndex.Int64()), nil
+	return int(lastIndex.Uint64()), nil
 }

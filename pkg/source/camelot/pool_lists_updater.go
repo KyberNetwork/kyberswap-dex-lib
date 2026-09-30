@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -210,7 +211,7 @@ func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, 
 }
 
 func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, *big.Int, error) {
-	var pairCount *big.Int
+	var pairCount *uint256.Int
 
 	req := d.ethrpcClient.
 		NewRequest().

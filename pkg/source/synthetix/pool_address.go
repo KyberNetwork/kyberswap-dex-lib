@@ -3,7 +3,8 @@ package synthetix
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
+	gethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -48,12 +49,12 @@ func computeAddress(factoryAddress common.Address, key PoolKey) (common.Address,
 		return common.Address{}, ErrNotSortedKeys
 	}
 
-	addressTy, _ := abi.NewType("address", "address", nil)
-	uint256Ty, _ := abi.NewType("uint256", "uint256", nil)
+	addressTy, _ := gethabi.NewType("address", "address", nil)
+	uint256Ty, _ := gethabi.NewType("uint256", "uint256", nil)
 
-	arguments := abi.Arguments{{Type: addressTy}, {Type: addressTy}, {Type: uint256Ty}}
+	arguments := gethabi.Arguments{{Type: addressTy}, {Type: addressTy}, {Type: uint256Ty}}
 
-	bytes, _ := arguments.Pack(
+	bytes, _ := ethrpcabi.PackArgs(arguments,
 		key.token0,
 		key.token1,
 		key.fee,

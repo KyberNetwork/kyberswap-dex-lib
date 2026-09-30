@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -15,6 +16,12 @@ import (
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
+}
+
+type rpcReserves struct {
+	Reserve0           *uint256.Int
+	Reserve1           *uint256.Int
+	BlockTimestampLast uint32
 }
 
 var _ = pooltrack.RegisterFactoryE(DexTypeUniswap, NewPoolTracker)
@@ -86,7 +93,7 @@ func (d *PoolTracker) GetNewPoolState(
 }
 
 func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress string) (Reserves, *big.Int, error) {
-	var reserves Reserves
+	var reserves rpcReserves
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
@@ -104,7 +111,19 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 		return Reserves{}, nil, err
 	}
 
-	return reserves, resp.BlockNumber, nil
+	return Reserves{
+		Reserve0:           reserveToBig(reserves.Reserve0),
+		Reserve1:           reserveToBig(reserves.Reserve1),
+		BlockTimestampLast: reserves.BlockTimestampLast,
+	}, resp.BlockNumber, nil
+}
+
+func reserveToBig(reserve *uint256.Int) *big.Int {
+	if reserve == nil {
+		return nil
+	}
+
+	return reserve.ToBig()
 }
 
 func reserveString(reserve *big.Int) string {

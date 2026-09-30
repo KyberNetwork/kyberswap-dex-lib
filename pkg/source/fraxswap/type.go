@@ -1,6 +1,10 @@
 package fraxswap
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 type Metadata struct {
 	Offset int `json:"offset"`
@@ -13,12 +17,12 @@ type Extra struct {
 }
 
 type ReserveAfterTwammOutput struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
+	Reserve0 *uint256.Int
+	Reserve1 *uint256.Int
 }
 
 type FeeOutput struct {
-	Fee *big.Int
+	Fee *uint256.Int
 }
 
 type Gas struct {

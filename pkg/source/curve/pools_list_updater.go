@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -367,7 +368,7 @@ func (d *PoolsListUpdater) getPoolAddresses(
 	currentOffset int,
 	newPoolLimit int,
 ) ([]common.Address, int, error) {
-	var lengthBI *big.Int
+	var lengthBI *uint256.Int
 	if _, err := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    registryOrFactoryABI,
 		Target: registryOrFactoryAddress,
@@ -379,7 +380,7 @@ func (d *PoolsListUpdater) getPoolAddresses(
 		return nil, currentOffset, err
 	}
 
-	totalLength := int(lengthBI.Int64())
+	totalLength := int(lengthBI.Uint64())
 	batchSize := newPoolLimit
 	if currentOffset+batchSize > totalLength {
 		batchSize = totalLength - currentOffset

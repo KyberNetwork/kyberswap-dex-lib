@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -36,14 +37,8 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	log.Infof("[Fraxswap] Start updating state ...")
 
-	var reserveAfterTwammOutput = ReserveAfterTwammOutput{
-		Reserve0: big.NewInt(0),
-		Reserve1: big.NewInt(0),
-	}
-
-	var feeOutput = FeeOutput{
-		Fee: big.NewInt(0),
-	}
+	var reserveAfterTwammOutput ReserveAfterTwammOutput
+	var feeOutput FeeOutput
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -71,9 +66,9 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extra := Extra{
-		Reserve0: reserveAfterTwammOutput.Reserve0,
-		Reserve1: reserveAfterTwammOutput.Reserve1,
-		Fee:      feeOutput.Fee,
+		Reserve0: u256ToBig(reserveAfterTwammOutput.Reserve0),
+		Reserve1: u256ToBig(reserveAfterTwammOutput.Reserve1),
+		Fee:      u256ToBig(feeOutput.Fee),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -92,4 +87,12 @@ func (d *PoolTracker) GetNewPoolState(
 	log.Infof("[Fraxswap] Finish getting new state of pool")
 
 	return p, nil
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }

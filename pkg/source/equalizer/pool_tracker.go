@@ -2,12 +2,12 @@ package equalizer
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -42,7 +42,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		reserve     Reserves
-		realFee     *big.Int
+		realFee     *uint256.Int
 		poolAddress = common.HexToAddress(p.Address)
 	)
 

@@ -2,12 +2,12 @@ package velocimeter
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -42,7 +42,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		reserve Reserves
-		poolFee *big.Int
+		poolFee *uint256.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -74,7 +74,7 @@ func (d *PoolTracker) GetNewPoolState(
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
-	swapFee := poolFee.Int64()
+	swapFee := poolFee.Uint64()
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
 	p.SwapFee = float64(swapFee) / bps

@@ -1,8 +1,6 @@
 package dmm
 
-import (
-	"math/big"
-)
+import "github.com/holiman/uint256"
 
 type PoolModelReserves []string
 
@@ -21,11 +19,11 @@ type Metadata struct {
 }
 
 type TradeInfo struct {
-	Reserve0       *big.Int
-	Reserve1       *big.Int
-	VReserve0      *big.Int
-	VReserve1      *big.Int
-	FeeInPrecision *big.Int
+	Reserve0       *uint256.Int
+	Reserve1       *uint256.Int
+	VReserve0      *uint256.Int
+	VReserve1      *uint256.Int
+	FeeInPrecision *uint256.Int
 }
 
 type ExtraField struct {
