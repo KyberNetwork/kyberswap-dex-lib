@@ -3,7 +3,6 @@ package altfun
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -171,13 +170,13 @@ func (u *PoolsListUpdater) fetchPage(ctx context.Context, limit, offset int) ([]
 
 // fetchZapParams fetches Zap fees, USDC address and graduation threshold in one multicall.
 func (u *PoolsListUpdater) fetchZapParams(ctx context.Context) (
-	usdc string, buyFeeBps, sellFeeBps uint64, graduationThresholdUsd *big.Int, err error,
+	usdc string, buyFeeBps, sellFeeBps uint64, graduationThresholdUsd *uint256.Int, err error,
 ) {
 	var (
-		buyFee     = new(big.Int)
-		sellFee    = new(big.Int)
+		buyFee     *uint256.Int
+		sellFee    *uint256.Int
 		baseAsset  common.Address
-		gradThresh = new(big.Int)
+		gradThresh *uint256.Int
 	)
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -213,12 +212,8 @@ func (u *PoolsListUpdater) fetchZapParams(ctx context.Context) (
 }
 
 func (u *PoolsListUpdater) newPool(
-	t apiToken, usdcAddr string, buyFeeBps, sellFeeBps uint64, graduationThresholdUsd *big.Int,
+	t apiToken, usdcAddr string, buyFeeBps, sellFeeBps uint64, graduationThresholdUsd *uint256.Int,
 ) (entity.Pool, error) {
-	var gradThreshU *uint256.Int
-	if graduationThresholdUsd != nil {
-		gradThreshU = uint256.MustFromBig(graduationThresholdUsd)
-	}
 	ltAddr := strings.ToLower(t.LTPair)
 	staticExtra := StaticExtra{
 		PairAddress:            t.BondingPair,
@@ -228,7 +223,7 @@ func (u *PoolsListUpdater) newPool(
 		BuyFeeBps:              buyFeeBps,
 		SellFeeBps:             sellFeeBps,
 		BasePool:               ltAddr,
-		GraduationThresholdUsd: gradThreshU,
+		GraduationThresholdUsd: graduationThresholdUsd,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -64,8 +65,8 @@ func (u *PoolsListUpdater) fetchPool(ctx context.Context, maobAddr string) (enti
 	var (
 		baseTokenAddr   common.Address
 		quoteTokenAddr  common.Address
-		baseDecimalsBI  *big.Int
-		quoteDecimalsBI *big.Int
+		baseDecimalsBI  *uint256.Int
+		quoteDecimalsBI *uint256.Int
 		baseScale       *big.Int
 		quoteScale      *big.Int
 	)

@@ -71,7 +71,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 	}
 
-	batchSize := u.getBatchSize(int(poolFactoryData.AllPairsLength.Int64()), u.config.NewPoolLimit, offset)
+	batchSize := u.getBatchSize(int(poolFactoryData.AllPairsLength.Uint64()), u.config.NewPoolLimit, offset)
 
 	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
 	if err != nil {
@@ -247,7 +247,7 @@ func (u *PoolsListUpdater) initPools(
 func (u *PoolsListUpdater) listPoolData(
 	ctx context.Context,
 	poolAddresses []common.Address,
-) ([]PoolMetadata, []*big.Int, uint64, error) {
+) ([]PoolMetadata, []*uint256.Int, uint64, error) {
 	poolMetadataList := make([]PoolMetadata, len(poolAddresses))
 
 	listPoolMetadataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -264,7 +264,7 @@ func (u *PoolsListUpdater) listPoolData(
 		return nil, nil, 0, err
 	}
 
-	feeList := make([]*big.Int, len(poolAddresses))
+	feeList := make([]*uint256.Int, len(poolAddresses))
 
 	listPoolFeeRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -298,7 +298,7 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error) {
+func (u *PoolsListUpdater) newExtra(isPaused bool, fee *uint256.Int) ([]byte, error) {
 	extra := PoolExtra{
 		IsPaused: isPaused,
 		Fee:      fee.Uint64(),

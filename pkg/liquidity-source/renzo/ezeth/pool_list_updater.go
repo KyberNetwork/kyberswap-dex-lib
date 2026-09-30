@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -109,13 +110,13 @@ func getExtra(
 			OperatorDelegatorTVLs      []*big.Int
 			TotalTVL                   *big.Int
 		}
-		collateralTokenLength *big.Int
+		collateralTokenLength *uint256.Int
 		totalSupply           *big.Int
 		paused                bool
 		strategyManagerPaused *big.Int
 		renzoOracle           common.Address
 
-		operatorDelegatorsLength *big.Int
+		operatorDelegatorsLength *uint256.Int
 	)
 
 	getPoolStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
@@ -174,7 +175,7 @@ func getExtra(
 	calculateTVLs.OperatorDelegatorTVLs = calculateTVLsResult[1].([]*big.Int)
 	calculateTVLs.TotalTVL = calculateTVLsResult[2].(*big.Int)
 
-	collateralsLen := collateralTokenLength.Int64()
+	collateralsLen := int(collateralTokenLength.Uint64())
 
 	var (
 		collaterals = make([]common.Address, collateralsLen)
@@ -185,7 +186,7 @@ func getExtra(
 		getCollateralsRequest.SetOverrides(overrides)
 	}
 
-	for i := 0; i < int(collateralsLen); i++ {
+	for i := 0; i < collateralsLen; i++ {
 		getCollateralsRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
@@ -200,7 +201,7 @@ func getExtra(
 
 	// Get OperatorDelegators & Oracle addresses
 	var (
-		operatorDelegatorsLen    = operatorDelegatorsLength.Int64()
+		operatorDelegatorsLen    = int(operatorDelegatorsLength.Uint64())
 		operatorDelegators       = make([]common.Address, operatorDelegatorsLen)
 		tokenOracleAddresses     = make([]common.Address, len(collaterals))
 		collateralTokenTvlLimits = make([]*big.Int, len(collaterals))
@@ -211,7 +212,7 @@ func getExtra(
 		operatorDelegatorsRequest.SetOverrides(overrides)
 	}
 
-	for i := 0; i < int(operatorDelegatorsLen); i++ {
+	for i := 0; i < operatorDelegatorsLen; i++ {
 		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
@@ -259,9 +260,9 @@ func getExtra(
 		}, []any{&operatorDelegatorAllocations[i]})
 	}
 
-	for i := 0; i < int(operatorDelegatorsLen); i++ {
+	for i := 0; i < operatorDelegatorsLen; i++ {
 		tokenStrategies[i] = make([]common.Address, collateralsLen)
-		for j := 0; j < int(collateralsLen); j++ {
+		for j := 0; j < collateralsLen; j++ {
 			operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
 				ABI:    OperatorDelegatorABI,
 				Target: operatorDelegators[i].String(),
@@ -286,7 +287,7 @@ func getExtra(
 	}
 
 	tokenStrategyMapping := make([]map[string]bool, operatorDelegatorsLen)
-	for i := 0; i < int(operatorDelegatorsLen); i++ {
+	for i := 0; i < operatorDelegatorsLen; i++ {
 		tokenStrategyMapping[i] = map[string]bool{}
 		for j := 0; j < len(tokenStrategies[i]); j++ {
 			collateral := hexutil.Encode(collaterals[j][:])

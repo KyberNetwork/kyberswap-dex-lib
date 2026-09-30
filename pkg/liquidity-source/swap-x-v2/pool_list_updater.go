@@ -72,7 +72,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 	}
 
-	batchSize := u.getBatchSize(int(poolFactoryData.AllPairsLength.Int64()), u.config.NewPoolLimit, offset)
+	batchSize := u.getBatchSize(int(poolFactoryData.AllPairsLength.Uint64()), u.config.NewPoolLimit, offset)
 
 	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
 	if err != nil {
@@ -255,9 +255,9 @@ func (u *PoolsListUpdater) initPools(
 func (u *PoolsListUpdater) listPoolData(
 	ctx context.Context,
 	poolAddresses []common.Address,
-) ([]velodromev2.PoolMetadata, *big.Int, *big.Int, *big.Int, error) {
+) ([]velodromev2.PoolMetadata, *uint256.Int, *uint256.Int, *big.Int, error) {
 	var (
-		stableFee, volatileFee *big.Int
+		stableFee, volatileFee *uint256.Int
 
 		poolMetadataList = make([]velodromev2.PoolMetadata, len(poolAddresses))
 	)
@@ -307,7 +307,7 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error) {
+func (u *PoolsListUpdater) newExtra(isPaused bool, fee *uint256.Int) ([]byte, error) {
 	extra := velodromev2.PoolExtra{
 		IsPaused: isPaused,
 		Fee:      fee.Uint64(),

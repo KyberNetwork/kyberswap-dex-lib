@@ -51,6 +51,6 @@ type GetReservesResult struct {
 }
 
 type PoolFactoryData struct {
-	AllPairsLength *big.Int
+	AllPairsLength *uint256.Int
 	IsPaused       bool
 }

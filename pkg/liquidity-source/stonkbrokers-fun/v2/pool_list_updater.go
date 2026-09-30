@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -93,8 +94,8 @@ type padStatic struct {
 	twapPool       common.Address
 	twapWindowSecs uint32
 	ethUsdFeed     common.Address
-	bufferTaxBps   *big.Int
-	launchCount    *big.Int
+	bufferTaxBps   *uint256.Int
+	launchCount    *uint256.Int
 }
 
 func PoolAddress(pad string, launchID uint64) string {

@@ -2,7 +2,6 @@ package metronomeswap
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -123,9 +123,7 @@ func (u *PoolsListUpdater) newPools(ctx context.Context, poolAddrs []common.Addr
 		}
 	}
 
-	// decimals() is widened to uint256 in synthetic_token.json (ABI hygiene rule) — decode
-	// into *big.Int, not *uint8, to match the widened type.
-	decimalsRaw := make([]*big.Int, totalDebtTokens)
+	decimalsRaw := make([]*uint256.Int, totalDebtTokens)
 	reqDecimals := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, synth := range syntheticTokens {
 		reqDecimals.AddCall(&ethrpc.Call{

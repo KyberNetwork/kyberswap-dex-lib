@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -94,8 +95,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, error) {
 	var (
 		paused    bool
-		endTime   *big.Int
-		startTime *big.Int
+		endTime   *uint256.Int
+		startTime *uint256.Int
 	)
 
 	calls := client.NewRequest()
