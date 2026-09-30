@@ -2,7 +2,6 @@ package tessera
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -40,7 +39,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var rpcResult poolStateResult
 	var isInitialised bool
-	var reserves = make([]*big.Int, len(p.Tokens))
+	var reserves = make([]*uint256.Int, len(p.Tokens))
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
@@ -68,32 +67,32 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	poolOffset0, _ := uint256.FromBig(rpcResult.PoolOffset0)
-	poolOffset1, _ := uint256.FromBig(rpcResult.PoolOffset1)
+	poolOffset0 := cloneOrZero(rpcResult.PoolOffset0)
+	poolOffset1 := cloneOrZero(rpcResult.PoolOffset1)
 	tradingEnabled := rpcResult.TradingEnabled
 
 	orderBook0 := make([]LiquidityLevel, 0, 20)
 	orderBook1 := make([]LiquidityLevel, 0, 20)
 
 	for _, level := range rpcResult.OrderBook0 {
-		amtU, _ := uint256.FromBig(level.Amount)
+		amtU := cloneOrZero(level.Amount)
 		if amtU.IsZero() {
 			continue
 		}
 		orderBook0 = append(orderBook0, LiquidityLevel{
 			Amount: amtU,
-			Price:  level.Price.Uint64(),
+			Price:  cloneOrZero(level.Price).Uint64(),
 		})
 	}
 
 	for _, level := range rpcResult.OrderBook1 {
-		amtU, _ := uint256.FromBig(level.Amount)
+		amtU := cloneOrZero(level.Amount)
 		if amtU.IsZero() {
 			continue
 		}
 		orderBook1 = append(orderBook1, LiquidityLevel{
 			Amount: amtU,
-			Price:  level.Price.Uint64(),
+			Price:  cloneOrZero(level.Price).Uint64(),
 		})
 	}
 
@@ -207,12 +206,12 @@ func (d *PoolTracker) GetNewPoolState(
 	buildPrefetches := func(results []poolSwapViewAmounts, amounts []*uint256.Int) []PrefetchRate {
 		prefetches := make([]PrefetchRate, len(results))
 		for i, res := range results {
-			if res.AmountOut == nil || res.AmountOut.Sign() == 0 {
+			if cloneOrZero(res.AmountOut).IsZero() {
 				return prefetches[:i]
 			}
 			var rate *uint256.Int
-			if res.AmountIn != nil && res.AmountIn.Sign() != 0 {
-				rate = uint256.MustFromBig(res.AmountOut)
+			if !cloneOrZero(res.AmountIn).IsZero() {
+				rate = cloneOrZero(res.AmountOut)
 				rate.MulDivOverflow(rate, buffer, big256.UBasisPoint)
 			}
 			prefetches[i] = PrefetchRate{
@@ -244,13 +243,21 @@ func (d *PoolTracker) GetNewPoolState(
 
 	res0 := "0"
 	if reserves[0] != nil {
-		res0 = reserves[0].String()
+		res0 = reserves[0].Dec()
 	}
 	res1 := "0"
 	if reserves[1] != nil {
-		res1 = reserves[1].String()
+		res1 = reserves[1].Dec()
 	}
 	p.Reserves = []string{res0, res1}
 
 	return p, nil
+}
+
+func cloneOrZero(x *uint256.Int) *uint256.Int {
+	if x == nil {
+		return new(uint256.Int)
+	}
+
+	return new(uint256.Int).Set(x)
 }

@@ -2,7 +2,6 @@ package baseline
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -34,29 +33,29 @@ func NewPoolTracker(
 }
 
 type rpcCurveParams struct {
-	BLV           *big.Int `abi:"BLV"`
-	Circ          *big.Int `abi:"circ"`
-	Supply        *big.Int `abi:"supply"`
-	SwapFee       *big.Int `abi:"swapFee"`
-	Reserves      *big.Int `abi:"reserves"`
-	TotalSupply   *big.Int `abi:"totalSupply"`
-	ConvexityExp  *big.Int `abi:"convexityExp"`
-	LastInvariant *big.Int `abi:"lastInvariant"`
+	BLV           *uint256.Int `abi:"BLV"`
+	Circ          *uint256.Int `abi:"circ"`
+	Supply        *uint256.Int `abi:"supply"`
+	SwapFee       *uint256.Int `abi:"swapFee"`
+	Reserves      *uint256.Int `abi:"reserves"`
+	TotalSupply   *uint256.Int `abi:"totalSupply"`
+	ConvexityExp  *uint256.Int `abi:"convexityExp"`
+	LastInvariant *uint256.Int `abi:"lastInvariant"`
 }
 
 type rpcQuoteState struct {
 	SnapshotCurveParams     rpcCurveParams `abi:"snapshotCurveParams"`
-	QuoteBlockBuyDeltaCirc  *big.Int       `abi:"quoteBlockBuyDeltaCirc"`
-	QuoteBlockSellDeltaCirc *big.Int       `abi:"quoteBlockSellDeltaCirc"`
-	TotalSupply             *big.Int       `abi:"totalSupply"`
-	TotalBTokens            *big.Int       `abi:"totalBTokens"`
-	TotalReserves           *big.Int       `abi:"totalReserves"`
+	QuoteBlockBuyDeltaCirc  *uint256.Int   `abi:"quoteBlockBuyDeltaCirc"`
+	QuoteBlockSellDeltaCirc *uint256.Int   `abi:"quoteBlockSellDeltaCirc"`
+	TotalSupply             *uint256.Int   `abi:"totalSupply"`
+	TotalBTokens            *uint256.Int   `abi:"totalBTokens"`
+	TotalReserves           *uint256.Int   `abi:"totalReserves"`
 	ReserveDecimals         uint8          `abi:"reserveDecimals"`
-	LiquidityFeePct         *big.Int       `abi:"liquidityFeePct"`
-	PendingSurplus          *big.Int       `abi:"pendingSurplus"`
+	LiquidityFeePct         *uint256.Int   `abi:"liquidityFeePct"`
+	PendingSurplus          *uint256.Int   `abi:"pendingSurplus"`
 	ShouldSettlePending     bool           `abi:"shouldSettlePendingSurplus"`
-	MaxSellDelta            *big.Int       `abi:"maxSellDelta"`
-	SnapshotActivePrice     *big.Int       `abi:"snapshotActivePrice"`
+	MaxSellDelta            *uint256.Int   `abi:"maxSellDelta"`
+	SnapshotActivePrice     *uint256.Int   `abi:"snapshotActivePrice"`
 }
 
 type rpcGetQuoteStateResult struct {
@@ -66,31 +65,39 @@ type rpcGetQuoteStateResult struct {
 func (s rpcQuoteState) toQuoteState() *QuoteState {
 	return &QuoteState{
 		SnapshotCurveParams:     s.SnapshotCurveParams.toCurveParams(),
-		QuoteBlockBuyDeltaCirc:  uint256.MustFromBig(nonNilBI(s.QuoteBlockBuyDeltaCirc)),
-		QuoteBlockSellDeltaCirc: uint256.MustFromBig(nonNilBI(s.QuoteBlockSellDeltaCirc)),
-		TotalSupply:             uint256.MustFromBig(nonNilBI(s.TotalSupply)),
-		TotalBTokens:            uint256.MustFromBig(nonNilBI(s.TotalBTokens)),
-		TotalReserves:           uint256.MustFromBig(nonNilBI(s.TotalReserves)),
+		QuoteBlockBuyDeltaCirc:  cloneOrZeroU256(s.QuoteBlockBuyDeltaCirc),
+		QuoteBlockSellDeltaCirc: cloneOrZeroU256(s.QuoteBlockSellDeltaCirc),
+		TotalSupply:             cloneOrZeroU256(s.TotalSupply),
+		TotalBTokens:            cloneOrZeroU256(s.TotalBTokens),
+		TotalReserves:           cloneOrZeroU256(s.TotalReserves),
 		ReserveDecimals:         s.ReserveDecimals,
-		LiquidityFeePct:         uint256.MustFromBig(nonNilBI(s.LiquidityFeePct)),
-		PendingSurplus:          uint256.MustFromBig(nonNilBI(s.PendingSurplus)),
+		LiquidityFeePct:         cloneOrZeroU256(s.LiquidityFeePct),
+		PendingSurplus:          cloneOrZeroU256(s.PendingSurplus),
 		SettlePendingSurplus:    s.ShouldSettlePending,
-		MaxSellDelta:            uint256.MustFromBig(nonNilBI(s.MaxSellDelta)),
-		SnapshotActivePrice:     uint256.MustFromBig(nonNilBI(s.SnapshotActivePrice)),
+		MaxSellDelta:            cloneOrZeroU256(s.MaxSellDelta),
+		SnapshotActivePrice:     cloneOrZeroU256(s.SnapshotActivePrice),
 	}
 }
 
 func (p rpcCurveParams) toCurveParams() CurveParams {
 	return CurveParams{
-		BLV:           uint256.MustFromBig(nonNilBI(p.BLV)),
-		Circ:          uint256.MustFromBig(nonNilBI(p.Circ)),
-		Supply:        uint256.MustFromBig(nonNilBI(p.Supply)),
-		SwapFee:       uint256.MustFromBig(nonNilBI(p.SwapFee)),
-		Reserves:      uint256.MustFromBig(nonNilBI(p.Reserves)),
-		TotalSupply:   uint256.MustFromBig(nonNilBI(p.TotalSupply)),
-		ConvexityExp:  uint256.MustFromBig(nonNilBI(p.ConvexityExp)),
-		LastInvariant: uint256.MustFromBig(nonNilBI(p.LastInvariant)),
+		BLV:           cloneOrZeroU256(p.BLV),
+		Circ:          cloneOrZeroU256(p.Circ),
+		Supply:        cloneOrZeroU256(p.Supply),
+		SwapFee:       cloneOrZeroU256(p.SwapFee),
+		Reserves:      cloneOrZeroU256(p.Reserves),
+		TotalSupply:   cloneOrZeroU256(p.TotalSupply),
+		ConvexityExp:  cloneOrZeroU256(p.ConvexityExp),
+		LastInvariant: cloneOrZeroU256(p.LastInvariant),
 	}
+}
+
+func cloneOrZeroU256(x *uint256.Int) *uint256.Int {
+	if x == nil {
+		return new(uint256.Int)
+	}
+
+	return new(uint256.Int).Set(x)
 }
 
 func (d *PoolTracker) GetNewPoolState(
@@ -139,8 +146,8 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Reserves = entity.PoolReserves{
-		nonNilBI(quoteState.TotalReserves).String(),
-		nonNilBI(quoteState.TotalBTokens).String(),
+		cloneOrZeroU256(quoteState.TotalReserves).Dec(),
+		cloneOrZeroU256(quoteState.TotalBTokens).Dec(),
 	}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

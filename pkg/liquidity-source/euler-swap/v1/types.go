@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -41,14 +39,14 @@ type ParamsRPC struct {
 		Vault0               common.Address `abi:"vault0"`
 		Vault1               common.Address `abi:"vault1"`
 		EulerAccount         common.Address `abi:"eulerAccount"`
-		EquilibriumReserve0  *big.Int       `abi:"equilibriumReserve0"`
-		EquilibriumReserve1  *big.Int       `abi:"equilibriumReserve1"`
-		PriceX               *big.Int       `abi:"priceX"`
-		PriceY               *big.Int       `abi:"priceY"`
-		ConcentrationX       *big.Int       `abi:"concentrationX"`
-		ConcentrationY       *big.Int       `abi:"concentrationY"`
-		Fee                  *big.Int       `abi:"fee"`
-		ProtocolFee          *big.Int       `abi:"protocolFee"`
+		EquilibriumReserve0  *uint256.Int   `abi:"equilibriumReserve0"`
+		EquilibriumReserve1  *uint256.Int   `abi:"equilibriumReserve1"`
+		PriceX               *uint256.Int   `abi:"priceX"`
+		PriceY               *uint256.Int   `abi:"priceY"`
+		ConcentrationX       *uint256.Int   `abi:"concentrationX"`
+		ConcentrationY       *uint256.Int   `abi:"concentrationY"`
+		Fee                  *uint256.Int   `abi:"fee"`
+		ProtocolFee          *uint256.Int   `abi:"protocolFee"`
 		ProtocolFeeRecipient common.Address `abi:"protocolFeeRecipient"`
 	}
 }

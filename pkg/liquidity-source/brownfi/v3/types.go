@@ -1,15 +1,13 @@
 package brownfiv3
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
 type GetReservesResult struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
+	Reserve0           *uint256.Int
+	Reserve1           *uint256.Int
 	BlockTimestampLast uint32
 }
 
@@ -22,8 +20,8 @@ type PriceResult struct {
 
 // PairConfigResult decodes the getConfig(pair) tuple return.
 type PairConfigResult struct {
-	KB           *big.Int `abi:"kB"`
-	KQ           *big.Int `abi:"kQ"`
+	KB           *uint256.Int `abi:"kB"`
+	KQ           *uint256.Int `abi:"kQ"`
 	Lambda       uint64
 	Fee          uint32
 	FeeSplit     uint32

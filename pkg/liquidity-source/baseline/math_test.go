@@ -133,13 +133,13 @@ func TestApplyQuoteStateDoesNotSettleLocallyRecordedPendingSurplusSameBlock(t *t
 
 func TestRPCQuoteStateDoesNotInferPendingSurplusSettlement(t *testing.T) {
 	state := rpcQuoteState{
-		TotalSupply:             mustTestBI(t, "100000000000000000000"),
-		TotalBTokens:            mustTestBI(t, "94000000000000000000"),
-		TotalReserves:           mustTestBI(t, "1000"),
-		PendingSurplus:          mustTestBI(t, "25"),
-		LiquidityFeePct:         wadBI,
-		QuoteBlockBuyDeltaCirc:  big.NewInt(1),
-		QuoteBlockSellDeltaCirc: big.NewInt(0),
+		TotalSupply:             uint256.MustFromBig(mustTestBI(t, "100000000000000000000")),
+		TotalBTokens:            uint256.MustFromBig(mustTestBI(t, "94000000000000000000")),
+		TotalReserves:           uint256.MustFromBig(mustTestBI(t, "1000")),
+		PendingSurplus:          uint256.MustFromBig(mustTestBI(t, "25")),
+		LiquidityFeePct:         uint256.MustFromBig(wadBI),
+		QuoteBlockBuyDeltaCirc:  uint256.NewInt(1),
+		QuoteBlockSellDeltaCirc: uint256.NewInt(0),
 	}.toQuoteState()
 
 	if state.SettlePendingSurplus {

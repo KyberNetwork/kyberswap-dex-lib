@@ -261,14 +261,14 @@ func getPoolStaticData(
 		Vault0:               params.Data.Vault0.Hex(),
 		Vault1:               params.Data.Vault1.Hex(),
 		EulerAccount:         params.Data.EulerAccount.Hex(),
-		EquilibriumReserve0:  uint256.MustFromBig(params.Data.EquilibriumReserve0),
-		EquilibriumReserve1:  uint256.MustFromBig(params.Data.EquilibriumReserve1),
-		PriceX:               uint256.MustFromBig(params.Data.PriceX),
-		PriceY:               uint256.MustFromBig(params.Data.PriceY),
-		Fee:                  uint256.MustFromBig(params.Data.Fee),
-		ProtocolFee:          uint256.MustFromBig(params.Data.ProtocolFee),
-		ConcentrationX:       uint256.MustFromBig(params.Data.ConcentrationX),
-		ConcentrationY:       uint256.MustFromBig(params.Data.ConcentrationY),
+		EquilibriumReserve0:  cloneOrZero(params.Data.EquilibriumReserve0),
+		EquilibriumReserve1:  cloneOrZero(params.Data.EquilibriumReserve1),
+		PriceX:               cloneOrZero(params.Data.PriceX),
+		PriceY:               cloneOrZero(params.Data.PriceY),
+		Fee:                  cloneOrZero(params.Data.Fee),
+		ProtocolFee:          cloneOrZero(params.Data.ProtocolFee),
+		ConcentrationX:       cloneOrZero(params.Data.ConcentrationX),
+		ConcentrationY:       cloneOrZero(params.Data.ConcentrationY),
 		ProtocolFeeRecipient: params.Data.ProtocolFeeRecipient,
 		EVC:                  evc.Hex(),
 	}
@@ -292,6 +292,14 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 	}
 
 	return int(allPoolsLength.Uint64()), nil
+}
+
+func cloneOrZero(x *uint256.Int) *uint256.Int {
+	if x == nil {
+		return new(uint256.Int)
+	}
+
+	return new(uint256.Int).Set(x)
 }
 
 func (u *PoolsListUpdater) newMetadata(metadata PoolsListUpdaterMetadata) ([]byte, error) {

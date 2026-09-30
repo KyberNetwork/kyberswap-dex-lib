@@ -52,10 +52,10 @@ func (d *PoolTracker) GetNewPoolState(
 	}()
 
 	type WoStateContractType struct {
-		Price      *big.Int `json:"price"`
-		Spread     uint64   `json:"spread"`
-		Coeff      uint64   `json:"coeff"`
-		WoFeasible bool     `json:"woFeasible"`
+		Price      *uint256.Int `json:"price"`
+		Spread     uint64       `json:"spread"`
+		Coeff      uint64       `json:"coeff"`
+		WoFeasible bool         `json:"woFeasible"`
 	}
 
 	type clOracleResp struct {
@@ -67,12 +67,12 @@ func (d *PoolTracker) GetNewPoolState(
 	var (
 		isPaused                 bool
 		quoteToken, wooracle     common.Address
-		timestamp, staleDuration *big.Int
+		timestamp, staleDuration *uint256.Int
 		bound                    uint64
 		priceTokenDecimals       = make([]uint8, len(p.Tokens))
 		tokenInfos               = make([]struct {
-			Reserve *big.Int `json:"reserve"`
-			FeeRate uint16   `json:"feeRate"`
+			Reserve *uint256.Int `json:"reserve"`
+			FeeRate uint16       `json:"feeRate"`
 		}, len(p.Tokens))
 		woState   = make([]struct{ WoStateContractType }, len(p.Tokens))
 		clOracles = make([]clOracleResp, len(p.Tokens))
@@ -229,14 +229,14 @@ func (d *PoolTracker) GetNewPoolState(
 	reserves := make(entity.PoolReserves, len(p.Tokens))
 
 	for i, token := range p.Tokens {
-		tokenInfoReserve, overflow := uint256.FromBig(tokenInfos[i].Reserve)
-		if overflow {
-			return entity.Pool{}, errors.New("reserve overflow")
+		tokenInfoReserve := cloneOrZero(tokenInfos[i].Reserve)
+		if tokenInfos[i].Reserve == nil {
+			return entity.Pool{}, errors.New("reserve is nil")
 		}
 
-		price, overflow := uint256.FromBig(woState[i].Price)
-		if overflow {
-			return entity.Pool{}, errors.New("price overflow")
+		price := cloneOrZero(woState[i].Price)
+		if woState[i].Price == nil {
+			return entity.Pool{}, errors.New("price is nil")
 		}
 
 		extraTokenInfos[token.Address] = TokenInfo{
@@ -250,7 +250,7 @@ func (d *PoolTracker) GetNewPoolState(
 			WoFeasible: woState[i].WoFeasible,
 		}
 		extraDecimals[token.Address] = priceTokenDecimals[i]
-		reserves[i] = lo.Ternary(tokenInfos[i].Reserve != nil, tokenInfos[i].Reserve.String(), "0")
+		reserves[i] = lo.Ternary(tokenInfos[i].Reserve != nil, tokenInfos[i].Reserve.Dec(), "0")
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
@@ -260,8 +260,8 @@ func (d *PoolTracker) GetNewPoolState(
 			Address:       wooracle.Hex(),
 			States:        extraStates,
 			Decimals:      extraDecimals,
-			Timestamp:     timestamp.Int64(),
-			StaleDuration: staleDuration.Int64(),
+			Timestamp:     int64(cloneOrZero(timestamp).Uint64()),
+			StaleDuration: int64(cloneOrZero(staleDuration).Uint64()),
 			Bound:         bound,
 		},
 		Cloracle: poolCloracle,
@@ -287,4 +287,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
+}
+
+func cloneOrZero(x *uint256.Int) *uint256.Int {
+	if x == nil {
+		return new(uint256.Int)
+	}
+
+	return new(uint256.Int).Set(x)
 }

@@ -1,14 +1,10 @@
 package tessera
 
-import (
-	"math/big"
-
-	"github.com/holiman/uint256"
-)
+import "github.com/holiman/uint256"
 
 type poolSwapViewAmounts struct {
-	AmountIn  *big.Int
-	AmountOut *big.Int
+	AmountIn  *uint256.Int
+	AmountOut *uint256.Int
 }
 
 type LiquidityLevel struct {
@@ -41,14 +37,14 @@ type PrefetchRate struct {
 }
 
 type poolStateLevel struct {
-	Amount *big.Int `abi:"amount"`
-	Price  *big.Int `abi:"price"`
-	Active *big.Int `abi:"active"`
+	Amount *uint256.Int `abi:"amount"`
+	Price  *uint256.Int `abi:"price"`
+	Active *uint256.Int `abi:"active"`
 }
 
 type poolStateResult struct {
-	PoolOffset0       *big.Int           `abi:"poolOffset0"`
-	PoolOffset1       *big.Int           `abi:"poolOffset1"`
+	PoolOffset0       *uint256.Int       `abi:"poolOffset0"`
+	PoolOffset1       *uint256.Int       `abi:"poolOffset1"`
 	LpFeeRate         uint32             `abi:"lpFeeRate"`
 	MtFeeRate         uint32             `abi:"mtFeeRate"`
 	Side              uint8              `abi:"side"`

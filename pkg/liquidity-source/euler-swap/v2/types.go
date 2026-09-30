@@ -72,17 +72,17 @@ type StaticParamsRPC struct {
 }
 
 type DynamicParamsFields struct {
-	EquilibriumReserve0  *big.Int       `abi:"equilibriumReserve0"`
-	EquilibriumReserve1  *big.Int       `abi:"equilibriumReserve1"`
-	MinReserve0          *big.Int       `abi:"minReserve0"`
-	MinReserve1          *big.Int       `abi:"minReserve1"`
-	PriceX               *big.Int       `abi:"priceX"`
-	PriceY               *big.Int       `abi:"priceY"`
+	EquilibriumReserve0  *uint256.Int   `abi:"equilibriumReserve0"`
+	EquilibriumReserve1  *uint256.Int   `abi:"equilibriumReserve1"`
+	MinReserve0          *uint256.Int   `abi:"minReserve0"`
+	MinReserve1          *uint256.Int   `abi:"minReserve1"`
+	PriceX               *uint256.Int   `abi:"priceX"`
+	PriceY               *uint256.Int   `abi:"priceY"`
 	ConcentrationX       uint64         `abi:"concentrationX"`
 	ConcentrationY       uint64         `abi:"concentrationY"`
 	Fee0                 uint64         `abi:"fee0"`
 	Fee1                 uint64         `abi:"fee1"`
-	Expiration           *big.Int       `abi:"expiration"`
+	Expiration           *uint256.Int   `abi:"expiration"`
 	SwapHookedOperations uint8          `abi:"swapHookedOperations"`
 	SwapHook             common.Address `abi:"swapHook"`
 }
@@ -119,20 +119,28 @@ func buildStaticExtra(sp StaticParamsFields, evc common.Address) StaticExtra {
 // persisted DynamicParams.
 func buildDynamicParams(dp DynamicParamsFields) DynamicParams {
 	return DynamicParams{
-		EquilibriumReserve0: uint256.MustFromBig(dp.EquilibriumReserve0),
-		EquilibriumReserve1: uint256.MustFromBig(dp.EquilibriumReserve1),
-		MinReserve0:         uint256.MustFromBig(dp.MinReserve0),
-		MinReserve1:         uint256.MustFromBig(dp.MinReserve1),
-		PriceX:              uint256.MustFromBig(dp.PriceX),
-		PriceY:              uint256.MustFromBig(dp.PriceY),
+		EquilibriumReserve0: cloneOrZero(dp.EquilibriumReserve0),
+		EquilibriumReserve1: cloneOrZero(dp.EquilibriumReserve1),
+		MinReserve0:         cloneOrZero(dp.MinReserve0),
+		MinReserve1:         cloneOrZero(dp.MinReserve1),
+		PriceX:              cloneOrZero(dp.PriceX),
+		PriceY:              cloneOrZero(dp.PriceY),
 		ConcentrationX:      uint256.NewInt(dp.ConcentrationX),
 		ConcentrationY:      uint256.NewInt(dp.ConcentrationY),
 		Fee0:                uint256.NewInt(dp.Fee0),
 		Fee1:                uint256.NewInt(dp.Fee1),
-		Expiration:          dp.Expiration.Uint64(),
+		Expiration:          cloneOrZero(dp.Expiration).Uint64(),
 		SwapHookedOps:       dp.SwapHookedOperations,
 		SwapHook:            dp.SwapHook.Hex(),
 	}
+}
+
+func cloneOrZero(x *uint256.Int) *uint256.Int {
+	if x == nil {
+		return new(uint256.Int)
+	}
+
+	return new(uint256.Int).Set(x)
 }
 
 type TrackerData struct {

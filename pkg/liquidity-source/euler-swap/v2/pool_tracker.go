@@ -517,17 +517,17 @@ func (d *PoolTracker) updatePool(
 	pool.Reserves = entity.PoolReserves{reserve0, reserve1}
 
 	dParams := DynamicParams{
-		EquilibriumReserve0: uint256.MustFromBig(data.DynamicParams.Data.EquilibriumReserve0),
-		EquilibriumReserve1: uint256.MustFromBig(data.DynamicParams.Data.EquilibriumReserve1),
-		MinReserve0:         uint256.MustFromBig(data.DynamicParams.Data.MinReserve0),
-		MinReserve1:         uint256.MustFromBig(data.DynamicParams.Data.MinReserve1),
-		PriceX:              uint256.MustFromBig(data.DynamicParams.Data.PriceX),
-		PriceY:              uint256.MustFromBig(data.DynamicParams.Data.PriceY),
+		EquilibriumReserve0: cloneOrZero(data.DynamicParams.Data.EquilibriumReserve0),
+		EquilibriumReserve1: cloneOrZero(data.DynamicParams.Data.EquilibriumReserve1),
+		MinReserve0:         cloneOrZero(data.DynamicParams.Data.MinReserve0),
+		MinReserve1:         cloneOrZero(data.DynamicParams.Data.MinReserve1),
+		PriceX:              cloneOrZero(data.DynamicParams.Data.PriceX),
+		PriceY:              cloneOrZero(data.DynamicParams.Data.PriceY),
 		ConcentrationX:      uint256.NewInt(data.DynamicParams.Data.ConcentrationX),
 		ConcentrationY:      uint256.NewInt(data.DynamicParams.Data.ConcentrationY),
 		Fee0:                uint256.NewInt(data.DynamicParams.Data.Fee0),
 		Fee1:                uint256.NewInt(data.DynamicParams.Data.Fee1),
-		Expiration:          data.DynamicParams.Data.Expiration.Uint64(),
+		Expiration:          cloneOrZero(data.DynamicParams.Data.Expiration).Uint64(),
 		SwapHookedOps:       data.DynamicParams.Data.SwapHookedOperations,
 		SwapHook:            hexutil.Encode(data.DynamicParams.Data.SwapHook[:]),
 	}

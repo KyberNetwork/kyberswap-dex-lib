@@ -3,7 +3,6 @@ package brownfiv3
 import (
 	"context"
 	"encoding/hex"
-	"math/big"
 	"math/rand/v2"
 	"sync"
 	"time"
@@ -22,7 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -155,7 +153,7 @@ func (d *PoolTracker) GetNewPoolState(
 	// ── Batch A: reserves, full pairConfig, ammPrice, updateFee, router balance, pause state ─
 	var reserveData GetReservesResult
 	var configResult PairConfigResult
-	var ammPrice, updateFee, routerBalance *big.Int
+	var ammPrice, updateFee, routerBalance *uint256.Int
 	var isPaused bool
 	resp, err := d.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
@@ -198,8 +196,16 @@ func (d *PoolTracker) GetNewPoolState(
 	if extra.KQ == nil {
 		extra.KQ = new(uint256.Int)
 	}
-	extra.KB.SetFromBig(configResult.KB)
-	extra.KQ.SetFromBig(configResult.KQ)
+	if configResult.KB != nil {
+		extra.KB.Set(configResult.KB)
+	} else {
+		extra.KB.Clear()
+	}
+	if configResult.KQ != nil {
+		extra.KQ.Set(configResult.KQ)
+	} else {
+		extra.KQ.Clear()
+	}
 	extra.Fee = configResult.Fee
 	extra.Gamma = configResult.Gamma
 
@@ -218,7 +224,7 @@ func (d *PoolTracker) GetNewPoolState(
 		extra.AmmPrice = new(uint256.Int)
 	}
 	if ammPrice != nil {
-		extra.AmmPrice.SetFromBig(ammPrice)
+		extra.AmmPrice.Set(ammPrice)
 	} else {
 		extra.AmmPrice.Clear()
 	}
@@ -267,16 +273,16 @@ func (d *PoolTracker) GetNewPoolState(
 
 	// ── Router balance check ────────────────────────────────────────────────
 	poolActive := !isPaused &&
-		(routerBalance == nil || updateFee == nil || updateFee.Sign() <= 0 ||
-			routerBalance.Div(routerBalance, updateFee).Cmp(bignumber.Ten) > 0)
+		(routerBalance == nil || updateFee == nil || updateFee.IsZero() ||
+			new(uint256.Int).Div(routerBalance, updateFee).CmpUint64(10) > 0)
 
 	r0 := reserveData.Reserve0
 	r1 := reserveData.Reserve1
 	if r0 == nil {
-		r0 = bignumber.ZeroBI
+		r0 = new(uint256.Int)
 	}
 	if r1 == nil {
-		r1 = bignumber.ZeroBI
+		r1 = new(uint256.Int)
 	}
 
 	l.Info().Bool("is_paused", isPaused).Bool("pool_active", poolActive).
@@ -289,7 +295,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	if poolActive {
-		p.Reserves = entity.PoolReserves{r0.String(), r1.String()}
+		p.Reserves = entity.PoolReserves{r0.Dec(), r1.Dec()}
 	} else {
 		p.Reserves = entity.PoolReserves{"0", "0"}
 	}

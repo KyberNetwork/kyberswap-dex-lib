@@ -2,7 +2,6 @@ package gsm4626
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -45,14 +44,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	var (
 		canSwap         bool
-		currentExposure *big.Int
-		exposureCap     *big.Int
-		rate            *big.Int
+		currentExposure *uint256.Int
+		exposureCap     *uint256.Int
+		rate            *uint256.Int
 		feeStrategy     common.Address
-		tokenBalance    *big.Int
+		tokenBalance    *uint256.Int
 		ghoUsage        struct {
-			Limit *big.Int `abi:"limit"`
-			Used  *big.Int `abi:"used"`
+			Limit *uint256.Int `abi:"limit"`
+			Used  *uint256.Int `abi:"used"`
 		}
 	)
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
@@ -100,8 +99,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var (
-		sellFee *big.Int
-		buyFee  *big.Int
+		sellFee *uint256.Int
+		buyFee  *uint256.Int
 	)
 	if !eth.IsZeroAddress(feeStrategy) {
 		if _, err = t.ethrpcClient.NewRequest().SetContext(ctx).
@@ -122,18 +121,18 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			return p, nil
 		}
 	} else {
-		sellFee, buyFee = new(big.Int), new(big.Int)
+		sellFee, buyFee = new(uint256.Int), new(uint256.Int)
 	}
 
 	extraBytes, err := json.Marshal(Extra{
 		CanSwap:         canSwap,
-		CurrentExposure: uint256.MustFromBig(currentExposure),
-		ExposureCap:     uint256.MustFromBig(exposureCap),
-		Rate:            uint256.MustFromBig(rate),
-		BuyFee:          uint256.MustFromBig(buyFee),
-		SellFee:         uint256.MustFromBig(sellFee),
-		GhoLimit:        uint256.MustFromBig(ghoUsage.Limit),
-		GhoUsed:         uint256.MustFromBig(ghoUsage.Used),
+		CurrentExposure: cloneOrZero(currentExposure),
+		ExposureCap:     cloneOrZero(exposureCap),
+		Rate:            cloneOrZero(rate),
+		BuyFee:          cloneOrZero(buyFee),
+		SellFee:         cloneOrZero(sellFee),
+		GhoLimit:        cloneOrZero(ghoUsage.Limit),
+		GhoUsed:         cloneOrZero(ghoUsage.Used),
 	})
 	if err != nil {
 		return p, err
@@ -143,19 +142,27 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	// tokenBalance is GhoReserve's total balance shared across all its facilitators;
 	// this pool can only ever draw up to its own remaining bucket (ghoLimit - ghoUsed).
-	availableGho := new(big.Int).Sub(ghoUsage.Limit, ghoUsage.Used)
-	if availableGho.Sign() < 0 {
-		availableGho.SetInt64(0)
+	availableGho := new(uint256.Int)
+	if cloneOrZero(ghoUsage.Limit).Cmp(cloneOrZero(ghoUsage.Used)) >= 0 {
+		availableGho.Sub(cloneOrZero(ghoUsage.Limit), cloneOrZero(ghoUsage.Used))
 	}
 	ghoReserve := availableGho
-	if tokenBalance.Cmp(availableGho) < 0 {
+	if cloneOrZero(tokenBalance).Lt(availableGho) {
 		ghoReserve = tokenBalance
 	}
-	p.Reserves = []string{ghoReserve.String(), currentExposure.String()}
+	p.Reserves = []string{cloneOrZero(ghoReserve).Dec(), cloneOrZero(currentExposure).Dec()}
 
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	return p, nil
+}
+
+func cloneOrZero(x *uint256.Int) *uint256.Int {
+	if x == nil {
+		return new(uint256.Int)
+	}
+
+	return new(uint256.Int).Set(x)
 }
