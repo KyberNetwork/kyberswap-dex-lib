@@ -132,8 +132,8 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset, batchS
 type pairInfo struct {
 	Token0     common.Address
 	Token1     common.Address
-	Reserve0   *big.Int
-	Reserve1   *big.Int
+	Reserve0   *uint256.Int
+	Reserve1   *uint256.Int
 	Timestamp  uint32
 	HasFeeCfg  bool
 	QuoteToken common.Address
@@ -218,9 +218,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairs []common.Address
 	pools := make([]entity.Pool, 0, len(pairs))
 	now := time.Now().Unix()
 	for i, p := range pairs {
-		r0u, _ := uint256.FromBig(infos[i].Reserve0)
-		r1u, _ := uint256.FromBig(infos[i].Reserve1)
-		extra := Extra{Reserve0: r0u, Reserve1: r1u, BlockTimestampLast: infos[i].Timestamp}
+		extra := Extra{Reserve0: infos[i].Reserve0, Reserve1: infos[i].Reserve1, BlockTimestampLast: infos[i].Timestamp}
 		se := StaticExtra{
 			IsMemePair:         infos[i].HasFeeCfg,
 			QuoteToken:         infos[i].QuoteToken,

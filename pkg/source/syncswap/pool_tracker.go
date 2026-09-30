@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -43,7 +44,7 @@ func (d *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	var extra Vault
-	var getVaultBalances func(calls *ethrpc.Request, b0, b1 **big.Int) bool
+	var getVaultBalances func(calls *ethrpc.Request, b0, b1 **uint256.Int) bool
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -53,7 +54,7 @@ func (d *PoolTracker) GetNewPoolState(
 	if extra.VaultAddress != "" {
 		getVaultBalances = d.getVaultBalances(extra.VaultAddress, p)
 	} else {
-		getVaultBalances = func(calls *ethrpc.Request, b0, b1 **big.Int) bool { return false }
+		getVaultBalances = func(calls *ethrpc.Request, b0, b1 **uint256.Int) bool { return false }
 	}
 	switch p.Type {
 	case PoolTypeSyncSwapClassic:
@@ -68,8 +69,8 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 }
 
-func (d *PoolTracker) getVaultBalances(vault string, p entity.Pool) func(calls *ethrpc.Request, b0, b1 **big.Int) bool {
-	return func(calls *ethrpc.Request, b0, b1 **big.Int) bool {
+func (d *PoolTracker) getVaultBalances(vault string, p entity.Pool) func(calls *ethrpc.Request, b0, b1 **uint256.Int) bool {
+	return func(calls *ethrpc.Request, b0, b1 **uint256.Int) bool {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    classicPoolABI,
 			Target: p.Tokens[0].Address,
@@ -91,16 +92,16 @@ func (d *PoolTracker) getVaultBalances(vault string, p entity.Pool) func(calls *
 	}
 }
 
-func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, getVaultBalances func(calls *ethrpc.Request, b0, b1 **big.Int) bool) (entity.Pool, error) {
+func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, getVaultBalances func(calls *ethrpc.Request, b0, b1 **uint256.Int) bool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		swapFee0To1, swapFee1To0     *big.Int
-		reserves                     = make([]*big.Int, len(p.Tokens))
+		swapFee0To1, swapFee1To0     *uint256.Int
+		reserves                     = make([]*uint256.Int, len(p.Tokens))
 		vaultAddress                 common.Address
-		vaultBalance0, vaultBalance1 *big.Int
+		vaultBalance0, vaultBalance1 *uint256.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -175,11 +176,11 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, ge
 	}
 
 	extraBytes, err := json.Marshal(ExtraClassicPool{
-		SwapFee0To1:   swapFee0To1,
-		SwapFee1To0:   swapFee1To0,
+		SwapFee0To1:   u256ToBig(swapFee0To1),
+		SwapFee1To0:   u256ToBig(swapFee1To0),
 		VaultAddress:  vaultAddress.Hex(),
-		VaultBalance0: vaultBalance0,
-		VaultBalance1: vaultBalance1,
+		VaultBalance0: u256ToBig(vaultBalance0),
+		VaultBalance1: u256ToBig(vaultBalance1),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -201,17 +202,17 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, ge
 	return p, nil
 }
 
-func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, getVaultBalances func(calls *ethrpc.Request, b0, b1 **big.Int) bool) (entity.Pool, error) {
+func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, getVaultBalances func(calls *ethrpc.Request, b0, b1 **uint256.Int) bool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		swapFee0To1, swapFee1To0                             *big.Int
-		token0PrecisionMultiplier, token1PrecisionMultiplier *big.Int
+		swapFee0To1, swapFee1To0                             *uint256.Int
+		token0PrecisionMultiplier, token1PrecisionMultiplier *uint256.Int
 		vaultAddress                                         common.Address
-		reserves                                             = make([]*big.Int, len(p.Tokens))
-		vaultBalance0, vaultBalance1                         *big.Int
+		reserves                                             = make([]*uint256.Int, len(p.Tokens))
+		vaultBalance0, vaultBalance1                         *uint256.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -298,13 +299,13 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, get
 		// be proven to share a snapshot. Keep the prior block instead.
 	}
 	extraBytes, err := json.Marshal(ExtraStablePool{
-		SwapFee0To1:               swapFee0To1,
-		SwapFee1To0:               swapFee1To0,
-		Token0PrecisionMultiplier: token0PrecisionMultiplier,
-		Token1PrecisionMultiplier: token1PrecisionMultiplier,
+		SwapFee0To1:               u256ToBig(swapFee0To1),
+		SwapFee1To0:               u256ToBig(swapFee1To0),
+		Token0PrecisionMultiplier: u256ToBig(token0PrecisionMultiplier),
+		Token1PrecisionMultiplier: u256ToBig(token1PrecisionMultiplier),
 		VaultAddress:              vaultAddress.Hex(),
-		VaultBalance0:             vaultBalance0,
-		VaultBalance1:             vaultBalance1,
+		VaultBalance0:             u256ToBig(vaultBalance0),
+		VaultBalance1:             u256ToBig(vaultBalance1),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -324,4 +325,12 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, get
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }

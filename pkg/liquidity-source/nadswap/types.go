@@ -1,8 +1,6 @@
 package nadswap
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -40,9 +38,8 @@ func (r ReserveData) IsZero() bool {
 }
 
 // reservesRPCResult is the raw ABI binding target for NadFunPair.getReserves().
-// ABI uint112 decodes to *big.Int; convert to ReserveData (uint256) afterwards.
 type reservesRPCResult struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
+	Reserve0           *uint256.Int
+	Reserve1           *uint256.Int
 	BlockTimestampLast uint32
 }

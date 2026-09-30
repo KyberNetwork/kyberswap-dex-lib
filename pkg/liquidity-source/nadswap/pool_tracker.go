@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -86,7 +85,9 @@ func (t *PoolTracker) getReservesFromRPC(ctx context.Context, poolAddr string) (
 	if err != nil {
 		return ReserveData{}, nil, err
 	}
-	u0, _ := uint256.FromBig(result.Reserve0)
-	u1, _ := uint256.FromBig(result.Reserve1)
-	return ReserveData{Reserve0: u0, Reserve1: u1, BlockTimestampLast: result.BlockTimestampLast}, resp.BlockNumber, nil
+	return ReserveData{
+		Reserve0:           result.Reserve0,
+		Reserve1:           result.Reserve1,
+		BlockTimestampLast: result.BlockTimestampLast,
+	}, resp.BlockNumber, nil
 }
