@@ -3,12 +3,12 @@ package oneswap
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -36,7 +36,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		swapStorage SwapStorage
-		balances    = make([]*big.Int, len(p.Tokens))
+		balances    = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -67,8 +67,8 @@ func (d *PoolTracker) GetNewPoolState(
 	var extra = Extra{
 		InitialA:           swapStorage.InitialA.String(),
 		FutureA:            swapStorage.FutureA.String(),
-		InitialATime:       swapStorage.InitialATime.Int64(),
-		FutureATime:        swapStorage.FutureATime.Int64(),
+		InitialATime:       u256ToInt64(swapStorage.InitialATime),
+		FutureATime:        u256ToInt64(swapStorage.FutureATime),
 		SwapFee:            swapStorage.SwapFee.String(),
 		AdminFee:           swapStorage.AdminFee.String(),
 		DefaultWithdrawFee: swapStorage.DefaultWithdrawFee.String(),
@@ -92,7 +92,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var totalSupply *big.Int
+	var totalSupply *uint256.Int
 	calls = d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	calls.AddCall(&ethrpc.Call{
@@ -124,4 +124,12 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.Infof("[Oneswap] Finish getting new state of pool %v", p.Address)
 
 	return p, nil
+}
+
+func u256ToInt64(v *uint256.Int) int64 {
+	if v == nil {
+		return 0
+	}
+
+	return v.ToBig().Int64()
 }

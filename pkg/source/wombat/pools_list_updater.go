@@ -3,13 +3,13 @@ package wombat
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -189,7 +189,7 @@ func (d *PoolsListUpdater) querySubgraph(
 // PoolTypeWombatCrossChain has creditForTokensHaircut
 // PoolTypeWombatMain do not has creditForTokensHaircut and relativePrice in assets
 func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool) (string, error) {
-	var relativePrice, creditForTokensHaircut *big.Int
+	var relativePrice, creditForTokensHaircut *uint256.Int
 
 	if len(p.Assets) <= 0 {
 		return "", fmt.Errorf("asset is not found")

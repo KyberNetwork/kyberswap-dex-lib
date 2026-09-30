@@ -2,7 +2,6 @@ package saddle
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -55,10 +55,10 @@ func (d *PoolTracker) getNewPoolState(
 	logger.Infof("[%s] Start getting new state of pool: %v", d.config.DexID, p.Address)
 
 	var (
-		lpSupply    *big.Int
+		lpSupply    *uint256.Int
 		paused      bool
 		swapStorage SwapStorage
-		balances    = make([]*big.Int, len(p.Tokens))
+		balances    = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -109,8 +109,8 @@ func (d *PoolTracker) getNewPoolState(
 	extra := Extra{
 		InitialA:     swapStorage.InitialA.String(),
 		FutureA:      swapStorage.FutureA.String(),
-		InitialATime: swapStorage.InitialATime.Int64(),
-		FutureATime:  swapStorage.FutureATime.Int64(),
+		InitialATime: u256ToInt64(swapStorage.InitialATime),
+		FutureATime:  u256ToInt64(swapStorage.FutureATime),
 		SwapFee:      swapStorage.SwapFee.String(),
 		AdminFee:     swapStorage.AdminFee.String(),
 		Paused:       paused,
@@ -138,4 +138,12 @@ func (d *PoolTracker) getNewPoolState(
 	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
 
 	return p, nil
+}
+
+func u256ToInt64(v *uint256.Int) int64 {
+	if v == nil {
+		return 0
+	}
+
+	return v.ToBig().Int64()
 }

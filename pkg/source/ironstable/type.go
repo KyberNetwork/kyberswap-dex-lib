@@ -1,9 +1,8 @@
 package ironstable
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type PoolToken struct {
@@ -33,12 +32,12 @@ type Extra struct {
 }
 
 type SwapStorage struct {
-	InitialA           *big.Int
-	FutureA            *big.Int
-	InitialATime       *big.Int
-	FutureATime        *big.Int
-	Fee                *big.Int
-	AdminFee           *big.Int
-	DefaultWithdrawFee *big.Int
+	InitialA           *uint256.Int
+	FutureA            *uint256.Int
+	InitialATime       *uint256.Int
+	FutureATime        *uint256.Int
+	Fee                *uint256.Int
+	AdminFee           *uint256.Int
+	DefaultWithdrawFee *uint256.Int
 	LpToken            common.Address
 }

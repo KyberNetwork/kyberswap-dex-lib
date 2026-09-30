@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -111,19 +112,21 @@ func (t *PoolTracker) GetNewPoolState(
 
 func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolState, *big.Int, error) {
 	var state PoolState
+	var c1, haircutRate, retentionRatio, slippageParamK, slippageParamN, xThreshold *uint256.Int
+
 	request := t.ethClient.NewRequest().
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetC1,
 			Params: nil,
-		}, []any{&state.C1}).
+		}, []any{&c1}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetHaircutRate,
 			Params: nil,
-		}, []any{&state.HaircutRate}).
+		}, []any{&haircutRate}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
@@ -135,19 +138,19 @@ func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolSta
 			Target: address,
 			Method: poolMethodGetRetentionRatio,
 			Params: nil,
-		}, []any{&state.RetentionRatio}).
+		}, []any{&retentionRatio}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetSlippageParamK,
 			Params: nil,
-		}, []any{&state.SlippageParamK}).
+		}, []any{&slippageParamK}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetSlippageParamN,
 			Params: nil,
-		}, []any{&state.SlippageParamN}).
+		}, []any{&slippageParamN}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
@@ -159,7 +162,7 @@ func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolSta
 			Target: address,
 			Method: poolMethodGetXThreshold,
 			Params: nil,
-		}, []any{&state.XThreshold}).
+		}, []any{&xThreshold}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
@@ -171,6 +174,13 @@ func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolSta
 	if err != nil {
 		return PoolState{}, nil, err
 	}
+
+	state.C1 = u256ToBig(c1)
+	state.HaircutRate = u256ToBig(haircutRate)
+	state.RetentionRatio = u256ToBig(retentionRatio)
+	state.SlippageParamK = u256ToBig(slippageParamK)
+	state.SlippageParamN = u256ToBig(slippageParamN)
+	state.XThreshold = u256ToBig(xThreshold)
 
 	return state, response.BlockNumber, nil
 }
@@ -207,6 +217,8 @@ func (t *PoolTracker) getAssetStates(
 	blockNumber *big.Int,
 ) ([]AssetState, error) {
 	states := make([]AssetState, len(addresses))
+	cashes := make([]*uint256.Int, len(addresses))
+	liabilities := make([]*uint256.Int, len(addresses))
 	request := t.ethClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil {
 		request.SetBlockNumber(blockNumber)
@@ -219,7 +231,7 @@ func (t *PoolTracker) getAssetStates(
 				Target: address,
 				Method: assetMethodCash,
 				Params: nil,
-			}, []any{&states[i].Cash}).
+			}, []any{&cashes[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    assetABI,
 				Target: address,
@@ -231,7 +243,7 @@ func (t *PoolTracker) getAssetStates(
 				Target: address,
 				Method: assetMethodLiability,
 				Params: nil,
-			}, []any{&states[i].Liability}).
+			}, []any{&liabilities[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    assetABI,
 				Target: address,
@@ -249,11 +261,16 @@ func (t *PoolTracker) getAssetStates(
 		return nil, err
 	}
 
+	for i := range states {
+		states[i].Cash = u256ToBig(cashes[i])
+		states[i].Liability = u256ToBig(liabilities[i])
+	}
+
 	return states, nil
 }
 
 func (t *PoolTracker) getSAvaxRate(ctx context.Context, address string, blockNumber *big.Int) (*big.Int, error) {
-	var rate *big.Int
+	var rate *uint256.Int
 	request := t.ethClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    stakedAvaxABI,
@@ -268,5 +285,13 @@ func (t *PoolTracker) getSAvaxRate(ctx context.Context, address string, blockNum
 		return nil, err
 	}
 
-	return rate, nil
+	return u256ToBig(rate), nil
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }

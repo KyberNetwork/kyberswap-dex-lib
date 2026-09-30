@@ -3,12 +3,12 @@ package ironstable
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -40,8 +40,8 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		swapStorage        SwapStorage
-		tokenBalances      []*big.Int
-		lpTokenTotalSupply *big.Int
+		tokenBalances      []*uint256.Int
+		lpTokenTotalSupply *uint256.Int
 	)
 
 	req := d.ethrpcClient.
@@ -81,8 +81,8 @@ func (d *PoolTracker) GetNewPoolState(
 	extra := Extra{
 		InitialA:           swapStorage.InitialA.String(),
 		FutureA:            swapStorage.FutureA.String(),
-		InitialATime:       swapStorage.InitialATime.Int64(),
-		FutureATime:        swapStorage.FutureATime.Int64(),
+		InitialATime:       u256ToInt64(swapStorage.InitialATime),
+		FutureATime:        u256ToInt64(swapStorage.FutureATime),
 		SwapFee:            swapStorage.Fee.String(),
 		AdminFee:           swapStorage.AdminFee.String(),
 		DefaultWithdrawFee: swapStorage.DefaultWithdrawFee.String(),
@@ -107,4 +107,12 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func u256ToInt64(v *uint256.Int) int64 {
+	if v == nil {
+		return 0
+	}
+
+	return v.ToBig().Int64()
 }

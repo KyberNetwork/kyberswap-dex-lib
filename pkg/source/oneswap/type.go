@@ -1,9 +1,8 @@
 package oneswap
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type Metadata struct {
@@ -11,13 +10,13 @@ type Metadata struct {
 }
 
 type SwapStorage struct {
-	InitialA           *big.Int
-	FutureA            *big.Int
-	InitialATime       *big.Int
-	FutureATime        *big.Int
-	SwapFee            *big.Int
-	AdminFee           *big.Int
-	DefaultWithdrawFee *big.Int
+	InitialA           *uint256.Int
+	FutureA            *uint256.Int
+	InitialATime       *uint256.Int
+	FutureATime        *uint256.Int
+	SwapFee            *uint256.Int
+	AdminFee           *uint256.Int
+	DefaultWithdrawFee *uint256.Int
 	LpToken            common.Address
 }
 

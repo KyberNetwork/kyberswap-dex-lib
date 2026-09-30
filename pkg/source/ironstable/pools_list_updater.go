@@ -3,12 +3,12 @@ package ironstable
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -51,7 +51,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	ret := make([]entity.Pool, 0, len(pools))
 	for _, p := range pools {
 		var (
-			multipliers []*big.Int
+			multipliers []*uint256.Int
 			swapStorage SwapStorage
 		)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -205,6 +206,13 @@ func (p *PoolsListUpdater) getPoolStates(
 	ctx context.Context, addresses []string,
 ) ([]PoolState, error) {
 	states := make([]PoolState, len(addresses))
+	c1s := make([]*uint256.Int, len(addresses))
+	haircutRates := make([]*uint256.Int, len(addresses))
+	retentionRatios := make([]*uint256.Int, len(addresses))
+	slippageParamKs := make([]*uint256.Int, len(addresses))
+	slippageParamNs := make([]*uint256.Int, len(addresses))
+	xThresholds := make([]*uint256.Int, len(addresses))
+
 	request := p.ethClient.NewRequest()
 	for i, address := range addresses {
 		request.
@@ -213,13 +221,13 @@ func (p *PoolsListUpdater) getPoolStates(
 				Target: address,
 				Method: poolMethodGetC1,
 				Params: nil,
-			}, []any{&states[i].C1}).
+			}, []any{&c1s[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: address,
 				Method: poolMethodGetHaircutRate,
 				Params: nil,
-			}, []any{&states[i].HaircutRate}).
+			}, []any{&haircutRates[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: address,
@@ -231,19 +239,19 @@ func (p *PoolsListUpdater) getPoolStates(
 				Target: address,
 				Method: poolMethodGetRetentionRatio,
 				Params: nil,
-			}, []any{&states[i].RetentionRatio}).
+			}, []any{&retentionRatios[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: address,
 				Method: poolMethodGetSlippageParamK,
 				Params: nil,
-			}, []any{&states[i].SlippageParamK}).
+			}, []any{&slippageParamKs[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: address,
 				Method: poolMethodGetSlippageParamN,
 				Params: nil,
-			}, []any{&states[i].SlippageParamN}).
+			}, []any{&slippageParamNs[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: address,
@@ -255,7 +263,7 @@ func (p *PoolsListUpdater) getPoolStates(
 				Target: address,
 				Method: poolMethodGetXThreshold,
 				Params: nil,
-			}, []any{&states[i].XThreshold}).
+			}, []any{&xThresholds[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    poolABI,
 				Target: address,
@@ -275,6 +283,12 @@ func (p *PoolsListUpdater) getPoolStates(
 			continue
 		}
 
+		state.C1 = u256ToBig(c1s[i])
+		state.HaircutRate = u256ToBig(haircutRates[i])
+		state.RetentionRatio = u256ToBig(retentionRatios[i])
+		state.SlippageParamK = u256ToBig(slippageParamKs[i])
+		state.SlippageParamN = u256ToBig(slippageParamNs[i])
+		state.XThreshold = u256ToBig(xThresholds[i])
 		state.Address = addresses[i]
 		poolStates = append(poolStates, state)
 	}
@@ -312,9 +326,16 @@ func (p *PoolsListUpdater) getAssetStates(
 ) (map[string][]AssetState, error) {
 	request := p.ethClient.NewRequest()
 	poolAssetStatesMap := make(map[string][]AssetState)
+	poolAssetCashesMap := make(map[string][]*uint256.Int)
+	poolAssetLiabilitiesMap := make(map[string][]*uint256.Int)
+
 	for poolAddress, assetAddresses := range poolAssetAddressesMap {
 		assetStates := make([]AssetState, len(assetAddresses))
+		assetCashes := make([]*uint256.Int, len(assetAddresses))
+		assetLiabilities := make([]*uint256.Int, len(assetAddresses))
 		poolAssetStatesMap[poolAddress] = assetStates
+		poolAssetCashesMap[poolAddress] = assetCashes
+		poolAssetLiabilitiesMap[poolAddress] = assetLiabilities
 		for i, assetAddress := range assetAddresses {
 			address := assetAddress.Hex()
 			request.
@@ -323,7 +344,7 @@ func (p *PoolsListUpdater) getAssetStates(
 					Target: address,
 					Method: assetMethodCash,
 					Params: nil,
-				}, []any{&assetStates[i].Cash}).
+				}, []any{&assetCashes[i]}).
 				AddCall(&ethrpc.Call{
 					ABI:    assetABI,
 					Target: address,
@@ -335,7 +356,7 @@ func (p *PoolsListUpdater) getAssetStates(
 					Target: address,
 					Method: assetMethodLiability,
 					Params: nil,
-				}, []any{&assetStates[i].Liability}).
+				}, []any{&assetLiabilities[i]}).
 				AddCall(&ethrpc.Call{
 					ABI:    assetABI,
 					Target: address,
@@ -354,11 +375,20 @@ func (p *PoolsListUpdater) getAssetStates(
 		return nil, err
 	}
 
+	for poolAddress, assetStates := range poolAssetStatesMap {
+		assetCashes := poolAssetCashesMap[poolAddress]
+		assetLiabilities := poolAssetLiabilitiesMap[poolAddress]
+		for i := range assetStates {
+			assetStates[i].Cash = u256ToBig(assetCashes[i])
+			assetStates[i].Liability = u256ToBig(assetLiabilities[i])
+		}
+	}
+
 	return poolAssetStatesMap, nil
 }
 
 func (p *PoolsListUpdater) getSAvaxRate(ctx context.Context, address string) (*big.Int, error) {
-	var rate *big.Int
+	var rate *uint256.Int
 	request := p.ethClient.NewRequest().
 		AddCall(&ethrpc.Call{
 			ABI:    stakedAvaxABI,
@@ -370,5 +400,5 @@ func (p *PoolsListUpdater) getSAvaxRate(ctx context.Context, address string) (*b
 		return nil, err
 	}
 
-	return rate, nil
+	return u256ToBig(rate), nil
 }

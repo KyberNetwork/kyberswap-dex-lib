@@ -3,12 +3,12 @@ package nerve
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -63,8 +63,8 @@ func (d *PoolTracker) GetNewPoolState(
 	extra := Extra{
 		InitialA:           swapStorage.InitialA.String(),
 		FutureA:            swapStorage.FutureA.String(),
-		InitialATime:       swapStorage.InitialATime.Int64(),
-		FutureATime:        swapStorage.FutureATime.Int64(),
+		InitialATime:       u256ToInt64(swapStorage.InitialATime),
+		FutureATime:        u256ToInt64(swapStorage.FutureATime),
 		SwapFee:            swapStorage.SwapFee.String(),
 		AdminFee:           swapStorage.AdminFee.String(),
 		DefaultWithdrawFee: swapStorage.DefaultWithdrawFee.String(),
@@ -84,11 +84,8 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	balances := make([]*big.Int, len(p.Tokens))
-	for i := range balances {
-		balances[i] = Zero
-	}
-	var totalSupply *big.Int
+	balances := make([]*uint256.Int, len(p.Tokens))
+	var totalSupply *uint256.Int
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if resp.BlockNumber != nil {
@@ -136,4 +133,12 @@ func (d *PoolTracker) GetNewPoolState(
 	log.Infof("Finish getting new state")
 
 	return p, nil
+}
+
+func u256ToInt64(v *uint256.Int) int64 {
+	if v == nil {
+		return 0
+	}
+
+	return v.ToBig().Int64()
 }

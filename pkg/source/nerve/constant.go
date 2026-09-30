@@ -1,7 +1,5 @@
 package nerve
 
-import "math/big"
-
 const (
 	DexTypeNerve = "nerve"
 
@@ -10,5 +8,3 @@ const (
 	methodGetTotalSupply  = "totalSupply"
 	reserveZero           = "0"
 )
-
-var Zero = big.NewInt(0)

@@ -105,7 +105,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
 	var (
-		precisionMultipliers = make([][]*big.Int, len(poolAddresses))
+		precisionMultipliers = make([][]*uint256.Int, len(poolAddresses))
 		poolTokens           = make([][]common.Address, len(poolAddresses))
 	)
 

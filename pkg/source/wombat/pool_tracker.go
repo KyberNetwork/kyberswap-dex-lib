@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -67,7 +68,7 @@ func (d *PoolTracker) getNewPoolState(
 		"address": p.Address,
 	}).Infof("[%s] Start getting new states of pool", p.Type)
 
-	var ampFactor, haircutRate, startCovRatio, endcovRatio *big.Int
+	var ampFactor, haircutRate, startCovRatio, endcovRatio *uint256.Int
 	var paused bool
 	var assetAddresses = make([]common.Address, len(p.Tokens))
 
@@ -137,9 +138,9 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		cashes         = make([]*big.Int, len(assetAddresses))
-		liabilities    = make([]*big.Int, len(assetAddresses))
-		relativePrices = make([]*big.Int, len(assetAddresses))
+		cashes         = make([]*uint256.Int, len(assetAddresses))
+		liabilities    = make([]*uint256.Int, len(assetAddresses))
+		relativePrices = make([]*uint256.Int, len(assetAddresses))
 	)
 
 	assetCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -192,27 +193,30 @@ func (d *PoolTracker) getNewPoolState(
 		if eth.IsZeroAddress(assetAddresses[i]) {
 			continue
 		}
+		cash := u256ToBig(cashes[i])
+		liability := u256ToBig(liabilities[i])
+		relativePrice := u256ToBig(relativePrices[i])
 
 		assetMap[token.Address] = Asset{
 			IsPause:                 isAssetPaused[i],
 			Address:                 assetAddresses[i].Hex(),
 			UnderlyingTokenDecimals: p.Tokens[i].Decimals,
-			Cash:                    cashes[i],
-			Liability:               liabilities[i],
-			RelativePrice:           relativePrices[i],
+			Cash:                    cash,
+			Liability:               liability,
+			RelativePrice:           relativePrice,
 		}
-		if cashes[i] != nil {
-			underlyingReserves := dsmath.FromWAD(cashes[i], p.Tokens[i].Decimals)
+		if cash != nil {
+			underlyingReserves := dsmath.FromWAD(cash, p.Tokens[i].Decimals)
 			reserves[i] = underlyingReserves.String()
 		}
 	}
 
 	extraByte, err := json.Marshal(Extra{
 		Paused:             paused,
-		HaircutRate:        haircutRate,
-		AmpFactor:          ampFactor,
-		StartCovRatio:      startCovRatio,
-		EndCovRatio:        endcovRatio,
+		HaircutRate:        u256ToBig(haircutRate),
+		AmpFactor:          u256ToBig(ampFactor),
+		StartCovRatio:      u256ToBig(startCovRatio),
+		EndCovRatio:        u256ToBig(endcovRatio),
 		AssetMap:           assetMap,
 		DependenciesStored: true,
 	})
@@ -267,4 +271,12 @@ func (t *PoolTracker) SetDependenciesStored(p *entity.Pool, isStored bool) error
 	p.Extra = string(extraBytes)
 
 	return err
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }
