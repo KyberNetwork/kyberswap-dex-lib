@@ -2,12 +2,12 @@ package fxdx
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 )
 
 type FeeUtilsV2Reader struct {
@@ -33,7 +33,7 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 
 		boolValues    = make([]bool, 2)
 		addressValues = make([]common.Address, 2)
-		intValues     = make([]*big.Int, 3+len(vault.WhitelistedTokens))
+		intValues     = make([]*uint256.Int, 3+len(vault.WhitelistedTokens))
 
 		getStateResponse = []any{&addressValues, &intValues, &boolValues}
 	)
@@ -65,14 +65,14 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 
 	feeUtils.IsInitialized = isInitialized
 	feeUtils.IsActive = boolValues[1]
-	feeUtils.FeeMultiplierIfInactive = intValues[2]
+	feeUtils.FeeMultiplierIfInactive = u256ToBig(intValues[2])
 	feeUtils.HasDynamicFees = boolValues[0]
 
 	index := 3
 	for _, token := range tokens {
 		tokenAddr := hexutil.Encode(token[:])
-		feeUtils.TaxBasisPoints[tokenAddr] = intValues[index]
-		feeUtils.SwapFeeBasisPoints[tokenAddr] = intValues[index+2]
+		feeUtils.TaxBasisPoints[tokenAddr] = u256ToBig(intValues[index])
+		feeUtils.SwapFeeBasisPoints[tokenAddr] = u256ToBig(intValues[index+2])
 	}
 
 	return feeUtils, nil

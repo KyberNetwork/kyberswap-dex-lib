@@ -2,11 +2,11 @@ package quickperps
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type PriceFeedReader struct {
@@ -39,8 +39,8 @@ func (r *PriceFeedReader) Read(ctx context.Context, address string) (*PriceFeed,
 
 func (r *PriceFeedReader) read(ctx context.Context, address string, priceFeed *PriceFeed) error {
 	type State struct {
-		Value     *big.Int `json:"value"`
-		Timestamp uint32   `json:"timestamp"`
+		Value     *uint256.Int `json:"value"`
+		Timestamp uint32       `json:"timestamp"`
 	}
 	priceFeedState := State{}
 
@@ -57,7 +57,7 @@ func (r *PriceFeedReader) read(ctx context.Context, address string, priceFeed *P
 		return err
 	}
 
-	priceFeed.Price = priceFeedState.Value
+	priceFeed.Price = u256ToBig(priceFeedState.Value)
 	priceFeed.Timestamp = priceFeedState.Timestamp
 
 	return nil

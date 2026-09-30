@@ -2,11 +2,11 @@ package zkerafinance
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -31,7 +31,7 @@ func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 func (r *PriceFeedReader) Read(ctx context.Context, address string) (*PriceFeed, error) {
 	priceFeed := NewPriceFeed()
 
-	var v0, v1 *big.Int
+	var v0, v1 *uint256.Int
 
 	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
@@ -54,15 +54,17 @@ func (r *PriceFeedReader) Read(ctx context.Context, address string) (*PriceFeed,
 		return nil, err
 	}
 
-	if v0 == nil {
-		v0 = bignumber.ZeroBI
+	v0BI := u256ToBig(v0)
+	if v0BI == nil {
+		v0BI = bignumber.ZeroBI
 	}
-	if v1 == nil {
-		v1 = bignumber.ZeroBI
+	v1BI := u256ToBig(v1)
+	if v1BI == nil {
+		v1BI = bignumber.ZeroBI
 	}
 
-	priceFeed.LatestAnswers[maximizeTrue] = v0
-	priceFeed.LatestAnswers[maximizeFalse] = v1
+	priceFeed.LatestAnswers[maximizeTrue] = v0BI
+	priceFeed.LatestAnswers[maximizeFalse] = v1BI
 
 	return priceFeed, nil
 }
