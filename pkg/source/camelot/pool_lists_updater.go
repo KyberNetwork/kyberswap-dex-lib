@@ -100,7 +100,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 	var (
 		token0Addresses = make([]common.Address, len(pairAddresses))
 		token1Addresses = make([]common.Address, len(pairAddresses))
-		feeDenominators = make([]*big.Int, len(pairAddresses))
+		feeDenominators = make([]*uint256.Int, len(pairAddresses))
 	)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -150,7 +150,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 		}
 
 		staticExtra := StaticExtra{
-			FeeDenominator: feeDenominators[i],
+			FeeDenominator: u256ToBig(feeDenominators[i]),
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {

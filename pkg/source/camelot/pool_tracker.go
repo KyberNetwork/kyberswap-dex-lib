@@ -8,7 +8,9 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -85,7 +87,15 @@ func (d *PoolTracker) GetNewPoolState(
 }
 
 func (d *PoolTracker) getPair(ctx context.Context, address string, blockNumber *big.Int) (*Pair, *big.Int, error) {
-	var pair Pair
+	var rpcPair struct {
+		Reserve0             *uint256.Int
+		Reserve1             *uint256.Int
+		StableSwap           bool
+		Token0FeePercent     uint16
+		Token1FeePercent     uint16
+		PrecisionMultiplier0 *uint256.Int
+		PrecisionMultiplier1 *uint256.Int
+	}
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil {
@@ -97,37 +107,37 @@ func (d *PoolTracker) getPair(ctx context.Context, address string, blockNumber *
 			Target: address,
 			Method: pairMethodStableSwap,
 			Params: nil,
-		}, []any{&pair.StableSwap}).
+		}, []any{&rpcPair.StableSwap}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodToken0FeePercent,
 			Params: nil,
-		}, []any{&pair.Token0FeePercent}).
+		}, []any{&rpcPair.Token0FeePercent}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodToken1FeePercent,
 			Params: nil,
-		}, []any{&pair.Token1FeePercent}).
+		}, []any{&rpcPair.Token1FeePercent}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodPrecisionMultiplier0,
 			Params: nil,
-		}, []any{&pair.PrecisionMultiplier0}).
+		}, []any{&rpcPair.PrecisionMultiplier0}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodPrecisionMultiplier1,
 			Params: nil,
-		}, []any{&pair.PrecisionMultiplier1}).
+		}, []any{&rpcPair.PrecisionMultiplier1}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotPairABI,
 			Target: address,
 			Method: pairMethodGetReserves,
 			Params: nil,
-		}, []any{&pair})
+		}, []any{&rpcPair})
 
 	resp, err := req.Aggregate()
 	if err != nil {
@@ -138,11 +148,22 @@ func (d *PoolTracker) getPair(ctx context.Context, address string, blockNumber *
 		return nil, nil, err
 	}
 
-	return &pair, resp.BlockNumber, nil
+	return &Pair{
+		Reserve0:             u256ToBig(rpcPair.Reserve0),
+		Reserve1:             u256ToBig(rpcPair.Reserve1),
+		StableSwap:           rpcPair.StableSwap,
+		Token0FeePercent:     rpcPair.Token0FeePercent,
+		Token1FeePercent:     rpcPair.Token1FeePercent,
+		PrecisionMultiplier0: u256ToBig(rpcPair.PrecisionMultiplier0),
+		PrecisionMultiplier1: u256ToBig(rpcPair.PrecisionMultiplier1),
+	}, resp.BlockNumber, nil
 }
 
 func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, *big.Int, error) {
-	var factory Factory
+	var (
+		feeTo         common.Address
+		ownerFeeShare *uint256.Int
+	)
 	req := d.ethrpcClient.
 		NewRequest().
 		SetContext(ctx).
@@ -151,13 +172,13 @@ func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, *big.Int, error
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodFeeTo,
 			Params: nil,
-		}, []any{&factory.FeeTo}).
+		}, []any{&feeTo}).
 		AddCall(&ethrpc.Call{
 			ABI:    camelotFactoryABI,
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodOwnerFeeShare,
 			Params: nil,
-		}, []any{&factory.OwnerFeeShare})
+		}, []any{&ownerFeeShare})
 
 	resp, err := req.Aggregate()
 	if err != nil {
@@ -168,5 +189,8 @@ func (d *PoolTracker) getFactory(ctx context.Context) (*Factory, *big.Int, error
 		return nil, nil, err
 	}
 
-	return &factory, resp.BlockNumber, nil
+	return &Factory{
+		FeeTo:         feeTo,
+		OwnerFeeShare: u256ToBig(ownerFeeShare),
+	}, resp.BlockNumber, nil
 }
