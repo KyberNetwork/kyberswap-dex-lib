@@ -78,20 +78,24 @@ func TestFailClosed(t *testing.T) {
 		c := s
 		mutate(&c)
 		h := newHook(c)
-		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(1e14)})
-		require.Error(t, err)
+		for _, calcOut := range []bool{true, false} {
+			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, AmountSpecified: big.NewInt(1e14)})
+			require.Error(t, err)
+		}
 	}
 	h := newHook(s)
 	for _, in := range []*big.Int{nil, big.NewInt(-1), big.NewInt(0), new(big.Int).Lsh(big.NewInt(1), 256)} {
 		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: in})
 		require.Error(t, err)
 	}
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(1)})
-	require.ErrorIs(t, err, ErrExactOutput)
+	for _, in := range []*big.Int{nil, big.NewInt(-1), big.NewInt(0), new(big.Int).Lsh(big.NewInt(1), 256)} {
+		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: in})
+		require.Error(t, err)
+	}
 	h.UpdateBalance(nil)
 	require.Equal(t, s, h.State)
 	malformed := NewHook(&uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"bad":`)}).(*Hook)
-	_, err = malformed.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(1e14)})
+	_, err := malformed.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(1e14)})
 	require.Error(t, err)
 }
 
@@ -137,6 +141,30 @@ func BenchmarkQuote(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		if _, err := h.BeforeSwap(p); err != nil {
 			b.Fatal(err)
+		}
+	}
+}
+
+// CalcIn reverses exact-in: for each Solidity exact-in vector, the min amountIn reaching its output is at most its
+// input, and 1 wei less falls short.
+func TestCalcInReversesSolidityVectors(t *testing.T) {
+	for _, v := range vectors(t) {
+		if !v.Success {
+			continue
+		}
+		r, err := newHook(v.Before).BeforeSwap(&uniswapv4.BeforeSwapParams{
+			CalcOut: false, ZeroForOne: v.ZeroForOne, AmountSpecified: v.Output.ToBig(),
+		})
+		require.NoError(t, err, v.Name)
+		amountIn := r.DeltaUnspecified
+		require.LessOrEqual(t, amountIn.Cmp(v.Input.ToBig()), 0, v.Name)
+		require.Equal(t, new(big.Int).Neg(v.Output.ToBig()), r.DeltaSpecified, v.Name)
+
+		out, _, err := quote(v.Before, v.ZeroForOne, amountIn)
+		require.NoError(t, err, v.Name)
+		require.GreaterOrEqual(t, out.Cmp(v.Output.ToBig()), 0, v.Name)
+		if out, _, err = quote(v.Before, v.ZeroForOne, new(big.Int).Sub(amountIn, big.NewInt(1))); err == nil {
+			require.Negative(t, out.Cmp(v.Output.ToBig()), "%s: amountIn %s is not minimal", v.Name, amountIn)
 		}
 	}
 }

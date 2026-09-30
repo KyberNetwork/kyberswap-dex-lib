@@ -223,7 +223,7 @@ func (s *PoolSimulator) calculateSwapOutWithState(idxIn, idxOut int, amountOut *
 		return nil, nil, nil, err
 	}
 
-	var tmp, tmp2, tmp3 uint256.Int
+	var tmp, tmp2, tmp3, tmp4 uint256.Int
 	// Adjust output amount to internal decimals (9 precision as in contract)
 	amountOutAdjusted := s.adjustToInternalDecimals(amountOut, idxOut)
 	if amountOutAdjusted.Cmp(FourDecimals) < 0 || amountOutAdjusted.Cmp(X60) > 0 {
@@ -265,7 +265,7 @@ func (s *PoolSimulator) calculateSwapOutWithState(idxIn, idxOut int, amountOut *
 	if idxIn == 1 {
 		minPriceIn, minLiqPrice = PricePrecision, centerPrice
 	}
-	minTokenOut, _ := tmp.MulDivOverflow(newSupplies[idxIn], minPriceIn, tmp3.Mul(minLiqPrice, MinimumLiquiditySwap))
+	minTokenOut, _ := tmp.MulDivOverflow(newSupplies[idxIn], minPriceIn, tmp4.Mul(minLiqPrice, MinimumLiquiditySwap))
 	if newSupplies[idxOut].Cmp(minTokenOut) < 0 {
 		return nil, nil, nil, ErrTokenReservesRatioTooHigh
 	} else if newSupplies[idxIn].Cmp(X60) > 0 || newSupplies[idxOut].Cmp(X60) > 0 { // Check for overflow

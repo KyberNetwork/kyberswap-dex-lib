@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -86,40 +87,16 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 		return nil, ErrPoolIsNotTracked
 	}
 
-	if params.ZeroForOne == h.ClankerIsToken0 {
-		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
-			SwapFee:          h.ClankerFee,
-		}, nil
-	}
-
-	var scaledProtocolFee, fee big.Int
-	scaledProtocolFee.Mul(h.ProtocolFee, bignumber.BONE)
-	fee.Add(Million, h.ProtocolFee)
-	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
-	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
-	fee.Div(&fee, bignumber.BONE)
-
+	swappingForClanker := params.ZeroForOne != h.ClankerIsToken0
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   &fee,
+		DeltaSpecified:   beforeSwapDelta(params, swappingForClanker, h.ProtocolFee),
 		DeltaUnspecified: bignumber.ZeroBI,
-		SwapFee:          h.PairedFee,
+		SwapFee:          lo.Ternary(swappingForClanker, h.PairedFee, h.ClankerFee),
 	}, nil
 }
 
 func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	if params.ZeroForOne != h.ClankerIsToken0 {
-		return &uniswapv4.AfterSwapResult{
-			HookFee: bignumber.ZeroBI,
-		}, nil
-	}
-
-	var delta big.Int
-	delta.Mul(params.AmountOut, h.ProtocolFee)
-	delta.Div(&delta, FeeDenominator)
-
 	return &uniswapv4.AfterSwapResult{
-		HookFee: &delta,
+		HookFee: afterSwapHookFee(params, params.ZeroForOne != h.ClankerIsToken0, h.ProtocolFee),
 	}, nil
 }

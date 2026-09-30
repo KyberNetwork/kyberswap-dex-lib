@@ -10,7 +10,6 @@ import (
 
 var (
 	ErrState         = errors.New("inverse: invalid or unsupported snapshot")
-	ErrExactOutput   = errors.New("inverse: exact output unsupported")
 	ErrBounds        = errors.New("inverse: trade outside contract bounds")
 	ErrRounding      = errors.New("inverse: native rounding or custody limit")
 	ErrController    = errors.New("inverse: unsupported protocol fee controller")

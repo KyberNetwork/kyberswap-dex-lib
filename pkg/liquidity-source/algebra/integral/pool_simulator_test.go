@@ -49,62 +49,65 @@ var (
 		{Index: 887220, LiquidityGross: uint256.NewInt(35733795), LiquidityNet: int256.NewInt(-35733795)},
 	}, mockTickSpacing)
 
-	mockTimepoints = NewTimepointStorage(map[uint16]Timepoint{
-		0: {
-			Initialized:          true,
-			BlockTimestamp:       1722423991,
-			TickCumulative:       0,
-			VolatilityCumulative: uZERO,
-			Tick:                 0,
-			AverageTick:          0,
-			WindowStartIndex:     0,
-		},
-		19872: {
-			Initialized:          true,
-			BlockTimestamp:       1732902075,
-			TickCumulative:       -7029297,
-			VolatilityCumulative: uint256.NewInt(2411048939),
-			Tick:                 -6,
-			AverageTick:          -5,
-			WindowStartIndex:     19865,
-		},
-		19873: {
-			Initialized:          true,
-			BlockTimestamp:       1733084987,
-			TickCumulative:       -8126769,
-			VolatilityCumulative: uint256.NewInt(2411109909),
-			Tick:                 -6,
-			AverageTick:          -6,
-			WindowStartIndex:     19872,
-		},
-		19874: {
-			Initialized:          true,
-			BlockTimestamp:       1733131721,
-			TickCumulative:       -8407173,
-			VolatilityCumulative: uint256.NewInt(2411109909),
-			Tick:                 -6,
-			AverageTick:          -6,
-			WindowStartIndex:     19872,
-		},
-		19875: {
-			Initialized:          false,
-			BlockTimestamp:       0,
-			TickCumulative:       0,
-			VolatilityCumulative: uZERO,
-			Tick:                 0,
-			AverageTick:          0,
-			WindowStartIndex:     0,
-		},
-		19876: {
-			Initialized:          false,
-			BlockTimestamp:       0,
-			TickCumulative:       0,
-			VolatilityCumulative: uZERO,
-			Tick:                 0,
-			AverageTick:          0,
-			WindowStartIndex:     0,
-		},
-	})
+	// fresh storage per simulator: the first quote writes a timepoint into it
+	newMockTimepoints = func() *TimepointStorage {
+		return NewTimepointStorage(map[uint16]Timepoint{
+			0: {
+				Initialized:          true,
+				BlockTimestamp:       1722423991,
+				TickCumulative:       0,
+				VolatilityCumulative: uZERO,
+				Tick:                 0,
+				AverageTick:          0,
+				WindowStartIndex:     0,
+			},
+			19872: {
+				Initialized:          true,
+				BlockTimestamp:       1732902075,
+				TickCumulative:       -7029297,
+				VolatilityCumulative: uint256.NewInt(2411048939),
+				Tick:                 -6,
+				AverageTick:          -5,
+				WindowStartIndex:     19865,
+			},
+			19873: {
+				Initialized:          true,
+				BlockTimestamp:       1733084987,
+				TickCumulative:       -8126769,
+				VolatilityCumulative: uint256.NewInt(2411109909),
+				Tick:                 -6,
+				AverageTick:          -6,
+				WindowStartIndex:     19872,
+			},
+			19874: {
+				Initialized:          true,
+				BlockTimestamp:       1733131721,
+				TickCumulative:       -8407173,
+				VolatilityCumulative: uint256.NewInt(2411109909),
+				Tick:                 -6,
+				AverageTick:          -6,
+				WindowStartIndex:     19872,
+			},
+			19875: {
+				Initialized:          false,
+				BlockTimestamp:       0,
+				TickCumulative:       0,
+				VolatilityCumulative: uZERO,
+				Tick:                 0,
+				AverageTick:          0,
+				WindowStartIndex:     0,
+			},
+			19876: {
+				Initialized:          false,
+				BlockTimestamp:       0,
+				TickCumulative:       0,
+				VolatilityCumulative: uZERO,
+				Tick:                 0,
+				AverageTick:          0,
+				WindowStartIndex:     0,
+			},
+		})
+	}
 
 	mockTimepointIndex         uint16 = 19874
 	mockLastTimepointTimestamp uint32 = 1733131721
@@ -160,7 +163,7 @@ func TestCalcAmountOut(t *testing.T) {
 				ticks:      mockTicks,
 				tickMin:    mockTickmin,
 				tickMax:    mockTickmax,
-				timepoints: mockTimepoints,
+				timepoints: newMockTimepoints(),
 				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
@@ -236,7 +239,7 @@ func TestCalcAmountOut(t *testing.T) {
 				ticks:      mockTicks,
 				tickMin:    mockTickmin,
 				tickMax:    mockTickmax,
-				timepoints: mockTimepoints,
+				timepoints: newMockTimepoints(),
 				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
@@ -266,15 +269,15 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(997317),
+					Amount: big.NewInt(1000218),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(450),
+					Amount: big.NewInt(15),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(98862330578),
-					Price:     uint256.MustFromDecimal("79215936545101674541845231019"),
+					Price:     uint256.MustFromDecimal("79215938869158470978483439737"),
 					Tick:      -4,
 				},
 				Gas: 281278,
@@ -312,7 +315,7 @@ func TestCalcAmountOut(t *testing.T) {
 				ticks:      mockTicks,
 				tickMin:    mockTickmin,
 				tickMax:    mockTickmax,
-				timepoints: mockTimepoints,
+				timepoints: newMockTimepoints(),
 				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
@@ -346,12 +349,12 @@ func TestCalcAmountOut(t *testing.T) {
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(641565247949996),
+					Amount: big.NewInt(21385508264997),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(35733795),
-					Price:     uint256.MustFromDecimal("1991751945353340918"),
-					Tick:      -488157,
+					Price:     uint256.MustFromDecimal("1985975287040092911"),
+					Tick:      -488215,
 				},
 				Gas: 344516,
 			},
@@ -388,7 +391,7 @@ func TestCalcAmountOut(t *testing.T) {
 				ticks:      mockTicks,
 				tickMin:    mockTickmin,
 				tickMax:    mockTickmax,
-				timepoints: mockTimepoints,
+				timepoints: newMockTimepoints(),
 				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
@@ -418,16 +421,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(776240305),
+					Amount: big.NewInt(778224361),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(367831),
+					Amount: big.NewInt(12259),
 				},
 				SwapInfo: StateUpdate{
 					Liquidity: uint256.NewInt(3480992933),
-					Price:     uint256.MustFromDecimal("86573656772143189240293883608"),
-					Tick:      1773,
+					Price:     uint256.MustFromDecimal("86627609485054744257740325762"),
+					Tick:      1785,
 				},
 				Gas: 317414,
 			},

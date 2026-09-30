@@ -2,6 +2,7 @@ package dualpool
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -42,8 +43,10 @@ var (
 	ErrPoolNotLive           = errors.New("dualpool: pool is not live")
 	ErrNoDistribution        = errors.New("dualpool: no distribution")
 	ErrNoReserves            = errors.New("dualpool: no reserves")
-	ErrExactOutUnsupported   = errors.New("dualpool: exact output is not supported")
 	ErrInsufficientLiquidity = errors.New("dualpool: insufficient liquidity")
 	ErrZeroOutput            = errors.New("dualpool: zero output")
 	ErrStateNotSet           = errors.New("dualpool: hook state not set")
 )
+
+// q192 is 2^192, to turn sqrtPriceX96^2 into a price.
+var q192 = new(big.Int).Lsh(big.NewInt(1), 192)

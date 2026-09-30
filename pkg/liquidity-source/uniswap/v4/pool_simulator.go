@@ -222,6 +222,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	return
 }
 
+// CalcAmountIn reverses exact-in: hooks get CalcOut=false and must invert their exact-in fees,
+// not simulate on-chain exact-out, since the swap is always executed exact-in.
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult *pool.CalcAmountInResult, err error) {
 	originalTokenOut, originalTokenIn := param.TokenAmountOut.Token, param.TokenIn
 	var wrapAdditionalGas int64

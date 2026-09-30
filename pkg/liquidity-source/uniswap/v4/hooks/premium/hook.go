@@ -15,17 +15,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	ErrExactOutputDisabled = errors.New("premium: PremiumLaunchHook disables exact-output swaps (ExactOutputDisabled)")
-	ErrPoolPaused          = errors.New("premium: pool is paused (PremiumLaunchHook.poolConfig.paused)")
-)
+var ErrPoolPaused = errors.New("premium: pool is paused (PremiumLaunchHook.poolConfig.paused)")
 
 // Hook prices Premium's graduated meme/stock pools on Robinhood Chain.
 //
 // PremiumLaunchHook charges a flat 1% fee on the "desk" (non-meme) side of every trade
 // (mirrors PremiumLaunchHook.sol's _beforeSwap/_afterSwap):
 //
-//   - Exact-output is disabled on-chain (ExactOutputDisabled) - CalcOut=false is an error here.
+//   - Exact-output is disabled on-chain (ExactOutputDisabled), but CalcIn reverses exact-in, so it
+//     inverts the two exact-in fees below instead.
 //   - When the desk currency is the swap's SPECIFIED (input) side - i.e. a "buy" leg paying
 //     desk-in - the fee is taken up front in beforeSwap: floor(specifiedIn * 1%), reducing
 //     the amount that actually reaches the underlying curve. No afterSwap fee on this leg.
@@ -91,19 +89,19 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	})
 }
 
-// BeforeSwap takes the 1% desk fee up front when desk is the specified (input) currency;
-// otherwise returns a zero delta and defers to AfterSwap.
+// BeforeSwap takes the 1% desk fee up front when desk is the input currency; otherwise returns a
+// zero delta and defers to AfterSwap. CalcIn with desk output grosses the pool's output up instead.
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.Paused {
 		return nil, ErrPoolPaused
 	}
-	if !params.CalcOut {
-		return nil, ErrExactOutputDisabled
-	}
 
 	deltaSpecified := bignumber.ZeroBI
-	if h.deskIsSpecified(params.ZeroForOne) {
+	if deskIsInput := h.deskIsInput(params.ZeroForOne); params.CalcOut && deskIsInput {
 		deltaSpecified = deskFee(params.AmountSpecified)
+	} else if !params.CalcOut && !deskIsInput {
+		// pool must give enough desk output to leave AmountSpecified after the AfterSwap fee
+		deltaSpecified = deskGrossUp(params.AmountSpecified)
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
@@ -112,23 +110,33 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}, nil
 }
 
-// AfterSwap takes the 1% desk fee out of the realized output when desk is the unspecified
-// (output) currency; a no-op (fee already taken in BeforeSwap) otherwise.
+// AfterSwap takes the 1% desk fee out of the realized output when desk is the output currency; a
+// no-op (fee already taken in BeforeSwap) otherwise. CalcIn with desk input grosses the input up instead.
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	if h.deskIsSpecified(params.ZeroForOne) {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI, Gas: gasAfterSwap}, nil
+	hookFee := bignumber.ZeroBI
+	if deskIsInput := h.deskIsInput(params.ZeroForOne); params.CalcOut && !deskIsInput {
+		hookFee = deskFee(params.AmountOut)
+	} else if !params.CalcOut && deskIsInput {
+		// desk input whose BeforeSwap fee leaves the pool's AmountIn
+		hookFee = deskGrossUp(params.AmountIn)
 	}
-	return &uniswapv4.AfterSwapResult{HookFee: deskFee(params.AmountOut), Gas: gasAfterSwap}, nil
+	return &uniswapv4.AfterSwapResult{HookFee: hookFee, Gas: gasAfterSwap}, nil
 }
 
-// deskFee is floor(amount * 1%), PremiumLaunchHook's fee on whichever leg desk is specified/output on.
+// deskFee is floor(amount * 1%), PremiumLaunchHook's fee on whichever leg desk is input/output on.
 func deskFee(amount *big.Int) *big.Int {
 	return bignumber.MulDivDown(new(big.Int), amount, big.NewInt(feeBps), big.NewInt(bps))
 }
 
-// deskIsSpecified mirrors PremiumLaunchHook._deskCurrencyAndSpecified: currency0 is the
-// swap's specified (input) side iff zeroForOne, and desk is whichever currency meme is not.
-func (h *Hook) deskIsSpecified(zeroForOne bool) bool {
+// deskGrossUp returns the fee to add to net so that deducting deskFee from the sum leaves net.
+func deskGrossUp(net *big.Int) *big.Int {
+	gross := uniswapv4.GrossBeforeFee(net, big.NewInt(feeBps), big.NewInt(bps))
+	return gross.Sub(gross, net)
+}
+
+// deskIsInput mirrors PremiumLaunchHook._deskCurrencyAndSpecified for exact-in: currency0 is the
+// swap's input iff zeroForOne, and desk is whichever currency meme is not.
+func (h *Hook) deskIsInput(zeroForOne bool) bool {
 	return zeroForOne != h.MemeIsCurrency0
 }
 

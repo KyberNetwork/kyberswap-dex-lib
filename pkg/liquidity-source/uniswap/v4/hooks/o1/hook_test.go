@@ -9,7 +9,9 @@ import (
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/b20"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // reference values from a real o1 launch on Base (poolId
@@ -113,10 +115,13 @@ func TestAfterSwap_TokenSpecified_ChargesFeeOnOutput(t *testing.T) {
 	assert.Equal(t, big.NewInt(10_000), result.HookFee)
 }
 
-func TestBeforeSwap_ExactOutUnsupported(t *testing.T) {
-	h := &Hook{Extra: refExtra()}
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(1)})
-	assert.ErrorIs(t, err, b20.ErrCalcInUnsupported)
+// CalcAmountIn reverses exact-in through the shared b20.Extra fee logic.
+func TestCalcAmountIn(t *testing.T) {
+	e := refExtra()
+	b20.NowFn = func() int64 { return e.LaunchTime + 2 }
+	pSim := hooktest.NewPoolSimulator(t, HookAddresses[0], e)
+	hooktest.RequireRoundTrip(t, pSim)
+	testutil.TestCalcAmountIn(t, pSim)
 }
 
 // A pool whose Track() never succeeded (RPC failure, or a factory that constructs the

@@ -41,11 +41,10 @@ import (
 )
 
 var (
-	ErrNotTracked        = errors.New("arcade: pool state not tracked yet, refusing to quote at an unknown fee")
-	ErrNotGraduated      = errors.New("arcade: pool is on its bonding curve or graduating, V4 swaps revert")
-	ErrUnknownMode       = errors.New("arcade: unsupported launch mode")
-	ErrBuyExceedsCap     = errors.New("arcade: buy exceeds the per-transaction cap of the launch window")
-	ErrCalcInUnsupported = errors.New("arcade: exact-out not supported on a v1 pool")
+	ErrNotTracked    = errors.New("arcade: pool state not tracked yet, refusing to quote at an unknown fee")
+	ErrNotGraduated  = errors.New("arcade: pool is on its bonding curve or graduating, V4 swaps revert")
+	ErrUnknownMode   = errors.New("arcade: unsupported launch mode")
+	ErrBuyExceedsCap = errors.New("arcade: buy exceeds the per-transaction cap of the launch window")
 )
 
 // NowFn is a var so tests can pin the clock used by the launch-window buy cap.
@@ -199,12 +198,7 @@ func (e *Extra) hookTakesPumpFee() bool {
 	return e.Mode == ModePump && !e.NoSwapDelta
 }
 
-func (e *Extra) check(calcOut bool) error {
-	// v1 is quoted exact-in only, as before. A hook that never returns a swap delta has
-	// no fee side to get wrong, so exact-out is plain V4 math there.
-	if !calcOut && !e.NoSwapDelta {
-		return ErrCalcInUnsupported
-	}
+func (e *Extra) check() error {
 	if !e.Tracked {
 		return ErrNotTracked
 	}
@@ -219,44 +213,67 @@ func (e *Extra) check(calcOut bool) error {
 	}
 }
 
+// clampFeeBps applies ArcadeHook's MAX_TOTAL_TAKE_BPS clamp.
+func clampFeeBps(feeBps int64) int64 {
+	return min(feeBps, MaxTotalTakeBps)
+}
+
 // fee is floor(amount * feeBps / 10_000), after ArcadeHook's MAX_TOTAL_TAKE_BPS clamp.
 func fee(amount *big.Int, feeBps int64) *big.Int {
-	if feeBps > MaxTotalTakeBps {
-		feeBps = MaxTotalTakeBps
-	}
-	if feeBps <= 0 || amount == nil || amount.Sign() == 0 {
+	if feeBps = clampFeeBps(feeBps); feeBps <= 0 || amount == nil || amount.Sign() == 0 {
 		return bignumber.ZeroBI
 	}
 	return bignumber.MulDivDown(new(big.Int), amount, big.NewInt(feeBps), big.NewInt(bps))
 }
 
-// BeforeSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the specified input
-// when that input is USDC. Everything else passes through untouched, v2 PUMP included:
-// ArcadeHook v2's beforeSwap is the curve guard and returns ZERO_DELTA.
+// feeGrossUp returns the fee to add to net so that deducting fee from the sum leaves net.
+func feeGrossUp(net *big.Int, feeBps int64) *big.Int {
+	if feeBps = clampFeeBps(feeBps); feeBps <= 0 || net == nil || net.Sign() == 0 {
+		return bignumber.ZeroBI
+	}
+	gross := uniswapv4.GrossBeforeFee(net, big.NewInt(feeBps), big.NewInt(bps))
+	return gross.Sub(gross, net)
+}
+
+// BeforeSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the input when that
+// input is USDC. Everything else passes through untouched, v2 PUMP included: ArcadeHook
+// v2's beforeSwap is the curve guard and returns ZERO_DELTA. CalcIn reverses exact-in, so
+// with USDC output it grosses the pool's output up to leave AmountSpecified after the
+// AfterSwap fee.
 func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if err := e.check(params.CalcOut); err != nil {
+	if err := e.check(); err != nil {
 		return nil, err
 	}
 	result := &uniswapv4.BeforeSwapResult{DeltaSpecified: bignumber.ZeroBI, DeltaUnspecified: bignumber.ZeroBI}
-	// exact-in: the specified currency is currency0 iff zeroForOne.
-	if e.hookTakesPumpFee() && params.ZeroForOne == e.UsdcIsCurrency0 {
+	if !e.hookTakesPumpFee() {
+		return result, nil
+	}
+	// the input currency is currency0 iff zeroForOne.
+	if usdcIsInput := params.ZeroForOne == e.UsdcIsCurrency0; params.CalcOut && usdcIsInput {
 		result.DeltaSpecified = fee(params.AmountSpecified, e.PumpFeeBps())
+	} else if !params.CalcOut && !usdcIsInput {
+		result.DeltaSpecified = feeGrossUp(params.AmountSpecified, e.PumpFeeBps())
 	}
 	return result, nil
 }
 
-// AfterSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the unspecified USDC
-// output, a v2 one takes nothing; a CLANKER / RWA buy reverts above the launch-window
-// per-transaction cap on both generations.
+// AfterSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the USDC output, a v2
+// one takes nothing; a CLANKER / RWA buy reverts above the launch-window per-transaction
+// cap on both generations. CalcIn with USDC input grosses the input up instead, so the
+// BeforeSwap fee leaves the pool's AmountIn.
 func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	if err := e.check(params.CalcOut); err != nil {
+	if err := e.check(); err != nil {
 		return nil, err
 	}
 	if e.Mode == ModePump {
-		if e.hookTakesPumpFee() && params.ZeroForOne != e.UsdcIsCurrency0 { // selling the token for USDC
-			return &uniswapv4.AfterSwapResult{HookFee: fee(params.AmountOut, e.PumpFeeBps())}, nil
+		hookFee := bignumber.ZeroBI
+		if !e.hookTakesPumpFee() { // v2: the fee is the pool's own LP fee
+		} else if usdcIsInput := params.ZeroForOne == e.UsdcIsCurrency0; params.CalcOut && !usdcIsInput {
+			hookFee = fee(params.AmountOut, e.PumpFeeBps())
+		} else if !params.CalcOut && usdcIsInput {
+			hookFee = feeGrossUp(params.AmountIn, e.PumpFeeBps())
 		}
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: hookFee}, nil
 	}
 	isBuy := params.ZeroForOne == e.QuoteIsCurrency0 // quote in, launch token out
 	if isBuy && e.BuyCapEnabled {

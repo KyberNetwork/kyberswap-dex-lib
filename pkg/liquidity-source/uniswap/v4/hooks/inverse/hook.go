@@ -41,13 +41,44 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 		return nil, ErrBounds
 	}
 	if !p.CalcOut {
-		return nil, ErrExactOutput
+		return h.calcIn(p)
 	}
 	out, next, err := quote(h.State, p.ZeroForOne, p.AmountSpecified)
 	if err != nil {
 		return nil, err
 	}
 	return &uniswapv4.BeforeSwapResult{DeltaSpecified: new(big.Int).Set(p.AmountSpecified), DeltaUnspecified: new(big.Int).Neg(out), SwapFee: 3000, Gas: 900_000, SwapInfo: SwapInfo{Before: h.State, After: next}}, nil
+}
+
+// calcIn reverses exact-in: the hook only prices exact-in, so it searches the min amountIn whose exact-in quote
+// gives AmountSpecified out, and takes the whole swap off the pool.
+func (h *Hook) calcIn(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	if p.AmountSpecified == nil || !positiveBound(p.AmountSpecified, maxDelta) {
+		return nil, ErrBounds
+	} else if err := h.State.validate(); err != nil {
+		return nil, err
+	}
+	r := h.PoolState().Reserves // spot price guess
+	rIn, rOut := r[0], r[1]
+	if !p.ZeroForOne {
+		rIn, rOut = rOut, rIn
+	}
+	var guess *big.Int
+	if rOut.Sign() > 0 {
+		guess = up(p.AmountSpecified, rIn, rOut)
+	}
+	in, err := uniswapv4.MinAmountIn(p.AmountSpecified, guess, func(amountIn *big.Int) (*big.Int, error) {
+		out, _, err := quote(h.State, p.ZeroForOne, amountIn)
+		return out, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, next, err := quote(h.State, p.ZeroForOne, in)
+	if err != nil {
+		return nil, err
+	}
+	return &uniswapv4.BeforeSwapResult{DeltaSpecified: new(big.Int).Neg(p.AmountSpecified), DeltaUnspecified: in, SwapFee: 3000, Gas: 900_000, SwapInfo: SwapInfo{Before: h.State, After: next}}, nil
 }
 func (h *Hook) CloneState() uniswapv4.Hook { c := *h; return &c }
 func (h *Hook) UpdateBalance(info any) {
