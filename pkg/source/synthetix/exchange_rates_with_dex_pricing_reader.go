@@ -2,12 +2,12 @@ package synthetix
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -89,7 +89,7 @@ func (r *ExchangeRatesWithDexPricingReader) readCurrencyKeyData(
 
 	aggregatorAddresses := make([]common.Address, currencyKeysLen)
 	currencyKeyDecimals := make([]uint8, currencyKeysLen)
-	currentRoundIds := make([]*big.Int, currencyKeysLen)
+	currentRoundIds := make([]*uint256.Int, currencyKeysLen)
 	synthTooVolatileForAtomicExchanges := make([]bool, currencyKeysLen)
 
 	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber)
@@ -136,7 +136,7 @@ func (r *ExchangeRatesWithDexPricingReader) readCurrencyKeyData(
 	for i, key := range currencyKeys {
 		poolState.AggregatorAddresses[key] = aggregatorAddresses[i]
 		poolState.CurrencyKeyDecimals[key] = currencyKeyDecimals[i]
-		poolState.CurrentRoundIds[key] = currentRoundIds[i]
+		poolState.CurrentRoundIds[key] = u256ToBig(currentRoundIds[i])
 		poolState.SynthTooVolatileForAtomicExchanges[key] = synthTooVolatileForAtomicExchanges[i]
 	}
 

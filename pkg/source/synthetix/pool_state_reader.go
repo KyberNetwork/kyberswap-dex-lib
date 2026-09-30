@@ -2,12 +2,12 @@ package synthetix
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -77,7 +77,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 		currencyKeysLen   = len(currencyKeys)
 		synths            = make([]common.Address, currencyKeysLen)
 		synthProxyResults = make([]common.Address, synthsLen)
-		totalSupply       = make([]*big.Int, synthsLen)
+		totalSupply       = make([]*uint256.Int, synthsLen)
 	)
 
 	// call synthetix
@@ -141,7 +141,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 
 	for i, key := range currencyKeys {
 		poolState.Synths[key] = synthProxyResults[i]
-		poolState.SynthsTotalSupply[key] = totalSupply[i]
+		poolState.SynthsTotalSupply[key] = u256ToBig(totalSupply[i])
 		poolState.CurrencyKeyBySynth[synthProxyResults[i]] = key
 	}
 
@@ -155,9 +155,10 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 //   - TotalIssuedSUSD
 func (r *PoolStateReader) readData(ctx context.Context, address string, poolState *PoolState) error {
 	var (
-		currencyKeysResult [][32]byte
-		sUSDResult         [32]byte
-		totalIssuedSUSD    *big.Int
+		currencyKeysResult  [][32]byte
+		sUSDResult          [32]byte
+		availableSynthCount *uint256.Int
+		totalIssuedSUSD     *uint256.Int
 	)
 
 	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
@@ -172,7 +173,7 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 			Target: address,
 			Method: PoolStateMethodAvailableSynthCount,
 			Params: nil,
-		}, []any{&poolState.AvailableSynthCount}).
+		}, []any{&availableSynthCount}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -194,6 +195,7 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 		currencyKeys[i] = common.BytesToHash(key[:]).String()
 	}
 	poolState.CurrencyKeys = currencyKeys
+	poolState.AvailableSynthCount = u256ToBig(availableSynthCount)
 
 	poolState.SUSDCurrencyKey = common.BytesToHash(sUSDResult[:]).String()
 
@@ -213,7 +215,7 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 		}).Error("can not read data")
 		return err
 	}
-	poolState.TotalIssuedSUSD = totalIssuedSUSD
+	poolState.TotalIssuedSUSD = u256ToBig(totalIssuedSUSD)
 
 	return nil
 }

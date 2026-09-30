@@ -2,12 +2,12 @@ package synthetix
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -137,10 +137,10 @@ func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address 
 
 		pureChainlinkPriceForAtomicSwapsEnabled = make([]bool, currencyKeysLen)
 		atomicEquivalentForDexPricingAddresses  = make([]common.Address, currencyKeysLen)
-		atomicVolatilityConsiderationWindows    = make([]*big.Int, currencyKeysLen)
-		atomicVolatilityUpdateThresholds        = make([]*big.Int, currencyKeysLen)
-		atomicExchangeFeeRates                  = make([]*big.Int, currencyKeysLen)
-		exchangeFeeRates                        = make([]*big.Int, currencyKeysLen)
+		atomicVolatilityConsiderationWindows    = make([]*uint256.Int, currencyKeysLen)
+		atomicVolatilityUpdateThresholds        = make([]*uint256.Int, currencyKeysLen)
+		atomicExchangeFeeRates                  = make([]*uint256.Int, currencyKeysLen)
+		exchangeFeeRates                        = make([]*uint256.Int, currencyKeysLen)
 	)
 
 	req := newRequest(r.ethrpcClient, ctx, blockNumber)
@@ -198,10 +198,10 @@ func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address 
 	for i, key := range currencyKeys {
 		systemSettings.PureChainlinkPriceForAtomicSwapsEnabled[key] = pureChainlinkPriceForAtomicSwapsEnabled[i]
 		systemSettings.AtomicEquivalentForDexPricingAddresses[key] = atomicEquivalentForDexPricingAddresses[i]
-		systemSettings.AtomicVolatilityConsiderationWindow[key] = atomicVolatilityConsiderationWindows[i]
-		systemSettings.AtomicVolatilityUpdateThreshold[key] = atomicVolatilityUpdateThresholds[i]
-		systemSettings.AtomicExchangeFeeRate[key] = atomicExchangeFeeRates[i]
-		systemSettings.ExchangeFeeRate[key] = exchangeFeeRates[i]
+		systemSettings.AtomicVolatilityConsiderationWindow[key] = u256ToBig(atomicVolatilityConsiderationWindows[i])
+		systemSettings.AtomicVolatilityUpdateThreshold[key] = u256ToBig(atomicVolatilityUpdateThresholds[i])
+		systemSettings.AtomicExchangeFeeRate[key] = u256ToBig(atomicExchangeFeeRates[i])
+		systemSettings.ExchangeFeeRate[key] = u256ToBig(exchangeFeeRates[i])
 	}
 
 	return nil
@@ -209,6 +209,12 @@ func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address 
 
 func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address string, systemSettings *SystemSettings, blockNumber uint64) error {
 	dynamicFeeConfig := NewDynamicFeeConfig()
+	var (
+		rounds      *uint256.Int
+		threshold   *uint256.Int
+		weightDecay *uint256.Int
+		maxFee      *uint256.Int
+	)
 
 	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
@@ -216,25 +222,25 @@ func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address
 			Target: address,
 			Method: SystemSettingsMethodExchangeDynamicFeeRounds,
 			Params: nil,
-		}, []any{&dynamicFeeConfig.Rounds}).
+		}, []any{&rounds}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodExchangeDynamicFeeThreshold,
 			Params: nil,
-		}, []any{&dynamicFeeConfig.Threshold}).
+		}, []any{&threshold}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodExchangeDynamicFeeWeightDecay,
 			Params: nil,
-		}, []any{&dynamicFeeConfig.WeightDecay}).
+		}, []any{&weightDecay}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodExchangeMaxDynamicFee,
 			Params: nil,
-		}, []any{&dynamicFeeConfig.MaxFee})
+		}, []any{&maxFee})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -245,6 +251,11 @@ func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address
 		return err
 	}
 
+	dynamicFeeConfig.Rounds = u256ToBig(rounds)
+	dynamicFeeConfig.Threshold = u256ToBig(threshold)
+	dynamicFeeConfig.WeightDecay = u256ToBig(weightDecay)
+	dynamicFeeConfig.MaxFee = u256ToBig(maxFee)
+
 	systemSettings.DynamicFeeConfig = dynamicFeeConfig
 
 	return nil
@@ -254,19 +265,23 @@ func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address
 // - AtomicTwapWindow
 // - RateStalePeriod
 func (r *SystemSettingsReader) readData(ctx context.Context, address string, systemSettings *SystemSettings, blockNumber uint64) error {
+	var (
+		atomicTwapWindow *uint256.Int
+		rateStalePeriod  *uint256.Int
+	)
 	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodAtomicTwapWindow,
 			Params: nil,
-		}, []any{&systemSettings.AtomicTwapWindow}).
+		}, []any{&atomicTwapWindow}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodRateStalePeriod,
 			Params: nil,
-		}, []any{&systemSettings.RateStalePeriod})
+		}, []any{&rateStalePeriod})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -276,6 +291,9 @@ func (r *SystemSettingsReader) readData(ctx context.Context, address string, sys
 		}).Error("can not read data")
 		return err
 	}
+
+	systemSettings.AtomicTwapWindow = u256ToBig(atomicTwapWindow)
+	systemSettings.RateStalePeriod = u256ToBig(rateStalePeriod)
 
 	return nil
 }
