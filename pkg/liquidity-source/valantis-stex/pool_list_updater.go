@@ -2,7 +2,6 @@ package valantisstex
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -57,7 +56,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		var (
 			token0, token1, swapFeeModule common.Address
-			defaultSwapFeeBips            *big.Int
+			defaultSwapFeeBips            *uint256.Int
 		)
 		if _, err := u.ethrpcClient.NewRequest().
 			SetContext(ctx).
@@ -75,7 +74,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
 			SwapFeeModule:      swapFeeModule,
-			DefaultSwapFeeBips: uint256.MustFromBig(defaultSwapFeeBips),
+			DefaultSwapFeeBips: defaultSwapFeeBips,
 			StexAMM:            common.HexToAddress(stex),
 		})
 		if err != nil {

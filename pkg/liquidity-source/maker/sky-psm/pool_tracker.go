@@ -65,8 +65,8 @@ func (t *PoolTracker) getNewPoolState(
 
 	blockTimestamp := uint64(time.Now().Unix()) + sky.Blocktime
 
-	var rate *big.Int
-	balances := make([]*big.Int, len(p.Tokens))
+	var rate *uint256.Int
+	balances := make([]*uint256.Int, len(p.Tokens))
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		calls.SetOverrides(overrides)
@@ -92,7 +92,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(Extra{
-		Rate:           uint256.MustFromBig(rate),
+		Rate:           rate,
 		BlockTimestamp: blockTimestamp,
 	})
 	if err != nil {
@@ -100,7 +100,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	p.Extra = string(extraBytes)
 	for i, balance := range balances {
-		p.Reserves[i] = balance.String()
+		p.Reserves[i] = balance.Dec()
 	}
 	p.Timestamp = time.Now().Unix()
 

@@ -2,7 +2,6 @@ package clear
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -61,8 +60,8 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	iouTokens := make([]common.Address, len(p.Tokens))
 	rates := make([][]AmtInOut, len(p.Tokens))
-	output := make([][]*big.Int, len(p.Tokens))
-	tokenBalances := make([]*big.Int, len(p.Tokens))
+	output := make([][]*uint256.Int, len(p.Tokens))
+	tokenBalances := make([]*uint256.Int, len(p.Tokens))
 	for i, token := range p.Tokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clearVaultABI,
@@ -76,7 +75,7 @@ func (d *PoolTracker) GetNewPoolState(
 			Params: []any{tokens[i]},
 		}, []any{&tokenBalances[i]})
 		rates[i] = make([]AmtInOut, len(p.Tokens))
-		output[i] = make([]*big.Int, len(p.Tokens))
+		output[i] = make([]*uint256.Int, len(p.Tokens))
 		for j := range p.Tokens {
 			if i == j {
 				continue
@@ -108,7 +107,7 @@ func (d *PoolTracker) GetNewPoolState(
 			if o == nil {
 				rates[i][j][0] = nil
 			} else {
-				rates[i][j][1] = uint256.MustFromBig(o)
+				rates[i][j][1] = o
 				hasSwap[j] = true
 			}
 		}
@@ -130,9 +129,9 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = lo.Map(tokenBalances, func(bal *big.Int, i int) string {
+	p.Reserves = lo.Map(tokenBalances, func(bal *uint256.Int, i int) string {
 		if hasSwap[i] {
-			return bal.String()
+			return bal.Dec()
 		}
 		return "0"
 	})

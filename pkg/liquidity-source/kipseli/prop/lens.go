@@ -7,7 +7,7 @@ import (
 	"slices"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
@@ -67,9 +67,11 @@ func decodeSnapshot(data []byte) (*snapshot, error) {
 	if len(data) < 4 || !bytes.Equal(data[:4], lensErr.ID[:4]) {
 		return nil, ErrUnexpectedLensRevert
 	}
-	values, err := lensErr.Inputs.Unpack(data[4:])
-	if err != nil {
+	var out struct {
+		Snapshot snapshot
+	}
+	if err := ethrpcabi.UnpackArgs(lensErr.Inputs, &out, data[4:]); err != nil {
 		return nil, err
 	}
-	return abi.ConvertType(values[0], new(snapshot)).(*snapshot), nil
+	return &out.Snapshot, nil
 }

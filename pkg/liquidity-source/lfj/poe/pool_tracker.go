@@ -2,7 +2,6 @@ package poe
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -45,8 +44,8 @@ func (t *PoolTracker) GetNewPoolState(
 	var (
 		oracle   common.Address
 		reserves struct {
-			AmountX *big.Int
-			AmountY *big.Int
+			AmountX *uint256.Int
+			AmountY *uint256.Int
 		}
 	)
 
@@ -67,10 +66,10 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	var oracleData struct {
-		Price   *big.Int
-		FeeHbps *big.Int
-		Alpha   *big.Int
-		Expiry  *big.Int
+		Price   *uint256.Int
+		FeeHbps *uint256.Int
+		Alpha   *uint256.Int
+		Expiry  *uint256.Int
 	}
 
 	req = t.ethrpcClient.R().SetContext(ctx).
@@ -87,9 +86,9 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra := Extra{
 		Oracle:  oracle.String(),
-		Price:   uint256.MustFromBig(oracleData.Price),
-		FeeHbps: uint256.MustFromBig(oracleData.FeeHbps),
-		Alpha:   uint256.MustFromBig(oracleData.Alpha),
+		Price:   oracleData.Price,
+		FeeHbps: oracleData.FeeHbps,
+		Alpha:   oracleData.Alpha,
 		Expiry:  oracleData.Expiry.Uint64(),
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -99,8 +98,8 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{
-		reserves.AmountX.String(),
-		reserves.AmountY.String(),
+		reserves.AmountX.Dec(),
+		reserves.AmountY.Dec(),
 	}
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
