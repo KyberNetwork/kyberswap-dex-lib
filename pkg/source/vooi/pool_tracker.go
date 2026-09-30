@@ -60,9 +60,9 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var (
 		paused bool
-		a      *big.Int
-		lpFee  *big.Int
-		assets = make([]Asset, lastIndex)
+		a      *uint256.Int
+		lpFee  *uint256.Int
+		assets = make([]assetRPC, lastIndex)
 	)
 
 	getPoolState := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -119,7 +119,8 @@ func (t *PoolTracker) GetNewPoolState(
 	assetByToken := make(map[string]Asset, len(assets))
 	indexByToken := make(map[string]int, len(assets))
 
-	for i, asset := range assets {
+	for i, rpcAsset := range assets {
+		asset := rpcAsset.toAsset()
 		token := hexutil.Encode(asset.Token[:])
 
 		poolTokens = append(poolTokens, &entity.PoolToken{
@@ -136,8 +137,8 @@ func (t *PoolTracker) GetNewPoolState(
 		AssetByToken: assetByToken,
 		IndexByToken: indexByToken,
 		Paused:       paused,
-		A:            a,
-		LPFee:        lpFee,
+		A:            u256ToBig(a),
+		LPFee:        u256ToBig(lpFee),
 	}
 
 	poolExtraBytes, err := json.Marshal(poolExtra)
