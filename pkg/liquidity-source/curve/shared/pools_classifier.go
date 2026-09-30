@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -78,7 +79,7 @@ func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ 
 	typeMap := make(map[string]CurvePoolType, len(pools))
 
 	// Curve's offchain API doesn't have enough info, so fetch them via RPC
-	gammaList := make([]*big.Int, len(pools))
+	gammaList := make([]*uint256.Int, len(pools))
 	underlyingCoins128 := make([][MaxTokenCount]common.Address, len(pools))
 	underlyingCoins256 := make([][MaxTokenCount]common.Address, len(pools))
 

@@ -2,7 +2,6 @@ package litepsm
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -11,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -18,7 +18,6 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -103,7 +102,7 @@ func (t *PoolTracker) fetchRPCData(
 	ctx context.Context,
 	pool *entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) ([]*big.Int, *Extra, uint64, error) {
+) ([]*uint256.Int, *Extra, uint64, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
@@ -114,8 +113,8 @@ func (t *PoolTracker) fetchRPCData(
 	}
 
 	psm := common.HexToAddress(pool.Address)
-	var tIn, tOut *big.Int
-	reserves := make([]*big.Int, 2)
+	var tIn, tOut *uint256.Int
+	reserves := make([]*uint256.Int, 2)
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    LitePSMABI,
 		Target: pool.Address,
@@ -157,15 +156,15 @@ func (t *PoolTracker) fetchRPCData(
 	}
 
 	if staticExtra.IsMint {
-		reserves[0] = bignumber.TenPowInt(9 + pool.Tokens[0].Decimals)
+		reserves[0] = big256.TenPow(9 + pool.Tokens[0].Decimals)
 	}
 
 	var extra Extra
-	if tIn.Sign() > 0 {
-		extra.TIn = big256.FromBig(tIn)
+	if tIn != nil && !tIn.IsZero() {
+		extra.TIn = tIn
 	}
-	if tOut.Sign() > 0 {
-		extra.TOut = big256.FromBig(tOut)
+	if tOut != nil && !tOut.IsZero() {
+		extra.TOut = tOut
 	}
 	return reserves, &extra, blockNumber, nil
 }

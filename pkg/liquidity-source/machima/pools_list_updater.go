@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -145,7 +146,7 @@ func (d *PoolsListUpdater) fetchPoolParams(ctx context.Context,
 	for start := 0; start < len(addresses); start += rpcChunkSize {
 		chunk := addresses[start:min(start+rpcChunkSize, len(addresses))]
 
-		feeResults := make([]*big.Int, len(chunk))
+		feeResults := make([]*uint256.Int, len(chunk))
 		tickSpacingResults := make([]*big.Int, len(chunk))
 
 		req := d.ethrpcClient.NewRequest().SetContext(ctx)

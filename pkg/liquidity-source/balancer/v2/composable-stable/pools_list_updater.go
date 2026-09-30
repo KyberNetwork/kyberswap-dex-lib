@@ -2,7 +2,6 @@ package composablestable
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -114,8 +113,8 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	return vaults, nil
 }
 
-func (u *PoolsListUpdater) getBptIndex(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]*big.Int, error) {
-	bptIndexes := make([]*big.Int, len(subgraphPools))
+func (u *PoolsListUpdater) getBptIndex(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]*uint256.Int, error) {
+	bptIndexes := make([]*uint256.Int, len(subgraphPools))
 
 	req := u.ethrpcClient.R().SetContext(ctx)
 	for i, p := range subgraphPools {
@@ -135,7 +134,7 @@ func (u *PoolsListUpdater) getBptIndex(ctx context.Context, subgraphPools []*sha
 
 func (u *PoolsListUpdater) initPools(
 	subgraphPools []*shared.SubgraphPool,
-	bptIndexes []*big.Int,
+	bptIndexes []*uint256.Int,
 	vaults []string,
 ) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
@@ -153,7 +152,7 @@ func (u *PoolsListUpdater) initPools(
 
 func (u *PoolsListUpdater) initPool(
 	subgraphPool *shared.SubgraphPool,
-	bptIndex *big.Int,
+	bptIndex *uint256.Int,
 	vault string,
 ) (entity.Pool, error) {
 	var (
@@ -178,7 +177,7 @@ func (u *PoolsListUpdater) initPool(
 		PoolID:         subgraphPool.ID,
 		PoolType:       subgraphPool.Type,
 		PoolTypeVer:    subgraphPool.Version,
-		BptIndex:       int(bptIndex.Int64()),
+		BptIndex:       int(bptIndex.Uint64()),
 		ScalingFactors: scalingFactors,
 		Vault:          vault,
 	}

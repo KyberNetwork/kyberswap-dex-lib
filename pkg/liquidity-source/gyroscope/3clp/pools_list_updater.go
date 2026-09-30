@@ -2,7 +2,6 @@ package gyro3clp
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -89,8 +88,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getRoot3Alphas(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]*big.Int, error) {
-	values := make([]*big.Int, len(subgraphPools))
+func (u *PoolsListUpdater) getRoot3Alphas(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]*uint256.Int, error) {
+	values := make([]*uint256.Int, len(subgraphPools))
 
 	req := u.ethrpcClient.R()
 	for idx, subgraphPool := range subgraphPools {
@@ -142,7 +141,7 @@ func (u *PoolsListUpdater) initPools(
 	ctx context.Context,
 	subgraphPools []*shared.SubgraphPool,
 	vaults []string,
-	root3Alphas []*big.Int,
+	root3Alphas []*uint256.Int,
 ) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
@@ -162,7 +161,7 @@ func (u *PoolsListUpdater) initPool(
 	ctx context.Context,
 	subgraphPool *shared.SubgraphPool,
 	vault string,
-	root3Alpha *big.Int,
+	root3Alpha *uint256.Int,
 ) (entity.Pool, error) {
 	var (
 		poolTokens      = make([]*entity.PoolToken, len(subgraphPool.Tokens))
@@ -189,14 +188,12 @@ func (u *PoolsListUpdater) initPool(
 		poolTypeVersion = int(subgraphPool.PoolTypeVersion.Int64())
 	}
 
-	root3AlphaU256, _ := uint256.FromBig(root3Alpha)
-
 	staticExtra := StaticExtra{
 		PoolID:         subgraphPool.ID,
 		PoolType:       subgraphPool.PoolType,
 		PoolTypeVer:    poolTypeVersion,
 		ScalingFactors: scalingFactors,
-		Root3Alpha:     root3AlphaU256,
+		Root3Alpha:     root3Alpha,
 		Vault:          vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)

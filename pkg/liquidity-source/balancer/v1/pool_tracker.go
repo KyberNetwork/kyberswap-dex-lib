@@ -65,7 +65,7 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) getPoolData(ctx context.Context, address string) (PoolData, *big.Int, error) {
 	var (
 		tokenAddresses []common.Address
-		swapFee        *big.Int
+		swapFee        *uint256.Int
 		isPublicSwap   bool
 	)
 
@@ -97,8 +97,8 @@ func (t *PoolTracker) getPoolData(ctx context.Context, address string) (PoolData
 
 	tokensLen := len(tokenAddresses)
 	boundList := make([]bool, tokensLen)
-	balanceList := make([]*big.Int, tokensLen)
-	denormList := make([]*big.Int, tokensLen)
+	balanceList := make([]*uint256.Int, tokensLen)
+	denormList := make([]*uint256.Int, tokensLen)
 
 	getPoolRecordsRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 	for i, token := range tokenAddresses {
@@ -131,22 +131,17 @@ func (t *PoolTracker) getPoolData(ctx context.Context, address string) (PoolData
 	records := make(map[string]Record, tokensLen)
 	for i, token := range tokenAddresses {
 		tokenAddressStr := hexutil.Encode(token[:])
-		balance, _ := uint256.FromBig(balanceList[i])
-		denorm, _ := uint256.FromBig(denormList[i])
-
 		records[tokenAddressStr] = Record{
 			Bound:   boundList[i],
-			Balance: balance,
-			Denorm:  denorm,
+			Balance: balanceList[i],
+			Denorm:  denormList[i],
 		}
 		tokens = append(tokens, tokenAddressStr)
 	}
 
-	swapFeeUint256, _ := uint256.FromBig(swapFee)
-
 	return PoolData{
 		Tokens:       tokens,
-		SwapFee:      swapFeeUint256,
+		SwapFee:      swapFee,
 		IsPublicSwap: isPublicSwap,
 		Records:      records,
 	}, resp.BlockNumber, nil

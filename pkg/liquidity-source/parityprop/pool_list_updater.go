@@ -2,13 +2,13 @@ package parityprop
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -93,8 +93,8 @@ func (u *PoolsListUpdater) resolvePools(ctx context.Context, addrs []common.Addr
 	n := len(addrs)
 	baseHx := make([]common.Address, n)
 	quoteHx := make([]common.Address, n)
-	baseScaleRaw := make([]*big.Int, n)
-	quoteScaleRaw := make([]*big.Int, n)
+	baseScaleRaw := make([]*uint256.Int, n)
+	quoteScaleRaw := make([]*uint256.Int, n)
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, addr := range addrs {

@@ -71,11 +71,11 @@ func (t *PoolTracker) getNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 
-	var numRegisteredAssets *big.Int
+	var numRegisteredAssets *uint256.Int
 	var isBasketModeEnabledMint bool
 	var isBasketModeEnabledRedeem bool
 	var forcedBasketMode bool
-	var polFeeCollectorFeeRate *big.Int
+	var polFeeCollectorFeeRate *uint256.Int
 	if _, err = calls.AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
@@ -102,7 +102,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	noAssets := int(numRegisteredAssets.Int64())
+	noAssets := int(numRegisteredAssets.Uint64())
 	registeredAssets := lo.Map(extra.RegisteredAssets,
 		func(item string, _ int) common.Address { return common.HexToAddress(item) })
 	vaults := lo.Map(extra.Vaults, func(item string, _ int) common.Address { return common.HexToAddress(item) })
@@ -148,9 +148,9 @@ func (t *PoolTracker) getNewPoolState(
 
 	isPegged := make([]bool, noAssets)
 	isBadCollateral := make([]bool, noAssets)
-	mintRates := make([]*big.Int, noAssets)
-	redeemRates := make([]*big.Int, noAssets)
-	vaultsMaxRedeems := make([]*big.Int, noAssets)
+	mintRates := make([]*uint256.Int, noAssets)
+	redeemRates := make([]*uint256.Int, noAssets)
+	vaultsMaxRedeems := make([]*uint256.Int, noAssets)
 	poolAddress := common.HexToAddress(p.Address)
 	for i := range noAssets {
 		if hasNewAssets {
@@ -204,17 +204,14 @@ func (t *PoolTracker) getNewPoolState(
 		IsBasketEnabledRedeem:  isBasketModeEnabledRedeem,
 		IsPegged:               isPegged,
 		IsBadCollateral:        isBadCollateral,
-		PolFeeCollectorFeeRate: uint256.MustFromBig(polFeeCollectorFeeRate),
-		MintRates: lo.Map(mintRates,
-			func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
-		RedeemRates: lo.Map(redeemRates,
-			func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+		PolFeeCollectorFeeRate: polFeeCollectorFeeRate,
+		MintRates:              mintRates,
+		RedeemRates:            redeemRates,
 		Vaults: lo.Map(vaults,
 			func(item common.Address, _ int) string { return hexutil.Encode(item[:]) }),
-		VaultsDecimals: vaultsDecimals,
-		AssetsDecimals: assetsDecimals,
-		VaultsMaxRedeems: lo.Map(vaultsMaxRedeems,
-			func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+		VaultsDecimals:   vaultsDecimals,
+		AssetsDecimals:   assetsDecimals,
+		VaultsMaxRedeems: vaultsMaxRedeems,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

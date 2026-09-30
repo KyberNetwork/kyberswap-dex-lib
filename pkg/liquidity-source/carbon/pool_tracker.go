@@ -165,11 +165,11 @@ func (t *PoolTracker) fullScan(ctx context.Context, token0, token1 common.Addres
 	if err != nil {
 		return nil, 0, nil, err
 	}
-	if count == nil || count.Sign() == 0 {
+	if count == nil || count.IsZero() {
 		return nil, 0, blockNumber, nil
 	}
 
-	totalCount := int(count.Int64())
+	totalCount := int(count.Uint64())
 	strategies := make([]Strategy, 0, totalCount)
 	for offset := 0; offset < totalCount; offset += maxStrategiesPerBatch {
 		endIndex := min(offset+maxStrategiesPerBatch, totalCount)
@@ -182,7 +182,7 @@ func (t *PoolTracker) fullScan(ctx context.Context, token0, token1 common.Addres
 		strategies = append(strategies, batch...)
 	}
 
-	return strategies, count.Int64(), blockNumber, nil
+	return strategies, int64(count.Uint64()), blockNumber, nil
 }
 
 // incrementalScan avoids a full strategiesByPair walk on every poll: it only pays for a cheap
@@ -199,10 +199,10 @@ func (t *PoolTracker) incrementalScan(
 		return nil, 0, nil, 0, err
 	}
 	if count == nil {
-		count = big.NewInt(0)
+		count = uint256.NewInt(0)
 	}
 
-	if count.Int64() < prevExtra.StrategyCount {
+	if int64(count.Uint64()) < prevExtra.StrategyCount {
 		// a strategy was deleted on-chain; index positions may have shifted underneath us,
 		// so fall back to a full re-scan rather than trying to diff against stale indices.
 		strategies, strategyCount, blockNumber, err := t.fullScan(ctx, token0, token1)
@@ -215,9 +215,9 @@ func (t *PoolTracker) incrementalScan(
 
 	strategies := prevExtra.Strategies
 
-	if count.Int64() > prevExtra.StrategyCount {
+	if int64(count.Uint64()) > prevExtra.StrategyCount {
 		newStrategies, err := t.fetchStrategiesBatch(
-			ctx, token0, token1, int(prevExtra.StrategyCount), int(count.Int64()), blockNumber)
+			ctx, token0, token1, int(prevExtra.StrategyCount), int(count.Uint64()), blockNumber)
 		if err != nil {
 			return nil, 0, nil, 0, err
 		}
@@ -238,11 +238,11 @@ func (t *PoolTracker) incrementalScan(
 		strategies = refreshed
 	}
 
-	return strategies, count.Int64(), blockNumber, prevExtra.LastFullScanTime, nil
+	return strategies, int64(count.Uint64()), blockNumber, prevExtra.LastFullScanTime, nil
 }
 
-func (t *PoolTracker) getStrategyCount(ctx context.Context, token0, token1 common.Address) (*big.Int, *big.Int, error) {
-	var count *big.Int
+func (t *PoolTracker) getStrategyCount(ctx context.Context, token0, token1 common.Address) (*uint256.Int, *big.Int, error) {
+	var count *uint256.Int
 	resp, err := t.ethrpcClient.R().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    controllerABI,

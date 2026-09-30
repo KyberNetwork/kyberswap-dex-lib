@@ -91,8 +91,8 @@ func (t *PoolTracker) getPoolState(
 	var paused bool
 	var premium, oraclePrecision *big.Int
 	rateVars := make([]*big.Int, len(p.Tokens)-1)
-	liquidityVars := make([]*big.Int, len(p.Tokens)-1)
-	maxSwapVars := make([]*big.Int, len(p.Tokens)-1)
+	liquidityVars := make([]*uint256.Int, len(p.Tokens)-1)
+	maxSwapVars := make([]*uint256.Int, len(p.Tokens)-1)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    aTokenSwapABI,
@@ -117,8 +117,8 @@ func (t *PoolTracker) getPoolState(
 		maxSwapFunc := "maxSwapTo" + shortSymbol
 
 		rateVars[i] = new(big.Int)
-		liquidityVars[i] = new(big.Int)
-		maxSwapVars[i] = new(big.Int)
+		liquidityVars[i] = new(uint256.Int)
+		maxSwapVars[i] = new(uint256.Int)
 
 		req = req.AddCall(&ethrpc.Call{
 			ABI:    aTokenSwapABI,
@@ -154,8 +154,8 @@ func (t *PoolTracker) getPoolState(
 		}
 		return OutputTokenState{
 			RateWithPremium:    uint256.MustFromBig(rate),
-			AvailableLiquidity: uint256.MustFromBig(liquidityVars[i]),
-			MaxSwap:            uint256.MustFromBig(maxSwapVars[i]),
+			AvailableLiquidity: liquidityVars[i],
+			MaxSwap:            maxSwapVars[i],
 		}
 	})
 

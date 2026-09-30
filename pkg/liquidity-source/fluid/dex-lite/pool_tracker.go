@@ -2,7 +2,6 @@ package dexLite
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -163,7 +162,7 @@ func (t *PoolTracker) getPoolStateByDexId(
 	dexId DexId,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolState, uint64, error) {
-	var poolStateSlots [3]*big.Int
+	var poolStateSlots [3]*uint256.Int
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
 	for i, baseSlot := range []common.Hash{
@@ -190,9 +189,9 @@ func (t *PoolTracker) getPoolStateByDexId(
 
 	// Just return the 4 state variables - PoolSimulator will handle pause logic
 	poolState := &PoolState{
-		DexVariables:     uint256.MustFromBig(poolStateSlots[0]),
-		CenterPriceShift: uint256.MustFromBig(poolStateSlots[1]),
-		RangeShift:       uint256.MustFromBig(poolStateSlots[2]),
+		DexVariables:     poolStateSlots[0],
+		CenterPriceShift: poolStateSlots[1],
+		RangeShift:       poolStateSlots[2],
 		NewCenterPrice:   big256.U0,
 	}
 
@@ -210,7 +209,7 @@ func (t *PoolTracker) getPoolStateByDexId(
 
 func (t *PoolTracker) getCenterPrice(ctx context.Context, centerPriceContractAddressNonce uint64,
 	overrides map[common.Address]gethclient.OverrideAccount) (*uint256.Int, error) {
-	var expandedCenterPrice *big.Int
+	var expandedCenterPrice *uint256.Int
 	centerPriceSource := crypto.CreateAddress(t.config.DeployerAddress, centerPriceContractAddressNonce)
 	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    centerPriceABI,
@@ -221,12 +220,7 @@ func (t *PoolTracker) getCenterPrice(ctx context.Context, centerPriceContractAdd
 		return nil, err
 	}
 
-	centerPrice, ok := uint256.FromBig(expandedCenterPrice)
-	if !ok {
-		return nil, ErrCenterPriceOverflow
-	}
-
-	return centerPrice, nil
+	return expandedCenterPrice, nil
 }
 
 func calculatePoolStateSlot(dexId DexId, baseSlot common.Hash) common.Hash {

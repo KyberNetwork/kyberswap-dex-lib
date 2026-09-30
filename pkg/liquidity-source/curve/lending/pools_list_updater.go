@@ -3,7 +3,6 @@ package lending
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -103,7 +102,7 @@ func (u *PoolsListUpdater) getLendingVaults(ctx context.Context) ([]LendingVault
 
 func (u *PoolsListUpdater) initPools(ctx context.Context, lendingVaults []LendingVault) ([]entity.Pool, error) {
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
-	aCoefficients := make([]*big.Int, len(lendingVaults))
+	aCoefficients := make([]*uint256.Int, len(lendingVaults))
 	for i := range lendingVaults {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    llamma.CurveLlammaABI,
@@ -121,7 +120,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, lendingVaults []Lendin
 		collateralToken := vault.Assets["collateral"]
 
 		staticExtraBytes, err := json.Marshal(llamma.StaticExtra{
-			A:             uint256.MustFromBig(aCoefficients[i]),
+			A:             aCoefficients[i],
 			UseDynamicFee: true,
 		})
 		if err != nil {

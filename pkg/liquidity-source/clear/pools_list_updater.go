@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -41,7 +42,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	lengthBI := make([]*big.Int, len(d.config.FactoryAddresses))
+	lengthBI := make([]*uint256.Int, len(d.config.FactoryAddresses))
 	for i, factoryAddress := range d.config.FactoryAddresses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    clearFactoryABI,
@@ -57,7 +58,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 	left := d.config.NewPoolLimit
 	batchSizes := lo.Map(d.config.FactoryAddresses, func(factoryAddress string, i int) int {
-		totalNumberOfPools := int(lengthBI[i].Int64())
+		totalNumberOfPools := int(lengthBI[i].Uint64())
 		currentOffset := metadata.Offset[factoryAddress]
 		if currentOffset >= totalNumberOfPools || left <= 0 {
 			return 0

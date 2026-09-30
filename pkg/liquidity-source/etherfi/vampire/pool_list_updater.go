@@ -10,6 +10,7 @@ import (
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
@@ -222,7 +223,7 @@ func getCurvePoolInfo(
 	}, []any{&curvePlainExtra.AdminFee})
 
 	nCoins := 2
-	balances := make([]*big.Int, nCoins)
+	balances := make([]*uint256.Int, nCoins)
 
 	for i := 0; i < nCoins; i++ {
 		r.AddCall(&ethrpc.Call{

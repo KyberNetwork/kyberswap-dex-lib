@@ -10,12 +10,12 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -107,7 +107,7 @@ func (t *PoolTracker) GetNewPoolState(
 // block it executed at for free — avoids a separate eth_blockNumber round trip just to pin
 // the subsequent tick/curve reads to the same snapshot.
 func (t *PoolTracker) fetchReserves(ctx context.Context, p *entity.Pool, sE *StaticExtra) (*big.Int, error) {
-	reserves := make([]*big.Int, 2)
+	reserves := make([]*uint256.Int, 2)
 	swapDex := common.HexToAddress(t.cfg.SwapDex)
 
 	req := t.ethrpcClient.R().SetContext(ctx)
@@ -136,7 +136,7 @@ func (t *PoolTracker) fetchReserves(ctx context.Context, p *entity.Pool, sE *Sta
 		return nil, fmt.Errorf("aggregate returned no block number")
 	}
 
-	p.Reserves = bignum.ToStrings(reserves)
+	p.Reserves = []string{reserves[0].String(), reserves[1].String()}
 	return resp.BlockNumber, nil
 }
 

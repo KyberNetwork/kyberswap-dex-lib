@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -88,7 +89,7 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 
 // getAllPairsLength gets number of pairs from the factory contracts
 func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string) (int, error) {
-	var allPairsLength *big.Int
+	var allPairsLength *uint256.Int
 	//
 	getAllPairsLengthRequest := ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -103,7 +104,7 @@ func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 		return 0, err
 	}
 
-	return int(allPairsLength.Int64()), nil
+	return int(allPairsLength.Uint64()), nil
 }
 
 // listPairTokens receives list of pair addresses and returns their tokens

@@ -149,7 +149,7 @@ func getExtra(
 ) ([]PoolExtra, uint64, error) {
 	paused := make([]bool, len(pools))
 	oraclePriceData := make([]OraclePriceData, len(pools))
-	totalShares := make([]*big.Int, len(pools))
+	totalShares := make([]*uint256.Int, len(pools))
 
 	methodGetTotalShares := getMethodTotalShares(config.ChainID)
 
@@ -189,7 +189,7 @@ func getExtra(
 	for i := range pools {
 		poolExtras = append(poolExtras, PoolExtra{
 			Paused:                  paused[i],
-			TotalShares:             uint256.MustFromBig(totalShares[i]),
+			TotalShares:             totalShares[i],
 			OraclePrice:             uint256.MustFromBig(oraclePriceData[i].Price),
 			PriceTimestamp:          oraclePriceData[i].Timestamp.Uint64(),
 			RWADynamicOracleAddress: rwaDynamicOracleAddress[i],

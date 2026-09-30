@@ -54,9 +54,9 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(
 }
 
 type issuanceSettings struct {
-	MaxManagerFee       *big.Int
-	ManagerIssueFee     *big.Int
-	ManagerRedeemFee    *big.Int
+	MaxManagerFee       *uint256.Int
+	ManagerIssueFee     *uint256.Int
+	ManagerRedeemFee    *uint256.Int
 	FeeRecipient        common.Address
 	ManagerIssuanceHook common.Address
 }
@@ -79,7 +79,7 @@ func (t *PoolTracker) getNewPoolState(
 	var issuanceModule common.Address
 	var issuanceSettings issuanceSettings
 	var components, externalPositionModules []common.Address
-	var totalSupply, totalAsset, componentHyethBalance, maxDeposit, maxRedeem, defaultPositionRealUnit, hyethTotalSupply *big.Int
+	var totalSupply, totalAsset, componentHyethBalance, maxDeposit, maxRedeem, defaultPositionRealUnit, hyethTotalSupply *uint256.Int
 	var blockNumber *big.Int
 	newRequest := func() *ethrpc.Request {
 		request := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
@@ -190,7 +190,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	externalPositionRealUnits := make([]*big.Int, len(externalPositionModules))
+	externalPositionRealUnits := make([]*uint256.Int, len(externalPositionModules))
 	calls = newRequest()
 	for i, module := range externalPositionModules {
 		calls.AddCall(&ethrpc.Call{
@@ -207,20 +207,18 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		ManagerIssueFee:         uint256.MustFromBig(issuanceSettings.ManagerIssueFee),
-		ManagerRedeemFee:        uint256.MustFromBig(issuanceSettings.ManagerRedeemFee),
-		Component:               components[0],
-		ComponentTotalSupply:    uint256.MustFromBig(totalSupply),
-		ComponentTotalAsset:     uint256.MustFromBig(totalAsset),
-		DefaultPositionRealUnit: uint256.MustFromBig(defaultPositionRealUnit),
-		ComponentHyethBalance:   uint256.MustFromBig(componentHyethBalance),
-		HyethTotalSupply:        uint256.MustFromBig(hyethTotalSupply),
-		MaxDeposit:              lo.Ternary(maxDeposit != nil && maxDeposit.Sign() > 0, uint256.MustFromBig(maxDeposit), number.MaxU256),
-		MaxRedeem:               lo.Ternary(maxRedeem != nil && maxRedeem.Sign() > 0, uint256.MustFromBig(maxRedeem), number.MaxU256),
-		ExternalPositionRealUnits: lo.Map(externalPositionRealUnits, func(item *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(item)
-		}),
-		IsDisabled: false,
+		ManagerIssueFee:           issuanceSettings.ManagerIssueFee,
+		ManagerRedeemFee:          issuanceSettings.ManagerRedeemFee,
+		Component:                 components[0],
+		ComponentTotalSupply:      totalSupply,
+		ComponentTotalAsset:       totalAsset,
+		DefaultPositionRealUnit:   defaultPositionRealUnit,
+		ComponentHyethBalance:     componentHyethBalance,
+		HyethTotalSupply:          hyethTotalSupply,
+		MaxDeposit:                lo.Ternary(maxDeposit != nil && !maxDeposit.IsZero(), maxDeposit, number.MaxU256),
+		MaxRedeem:                 lo.Ternary(maxRedeem != nil && !maxRedeem.IsZero(), maxRedeem, number.MaxU256),
+		ExternalPositionRealUnits: externalPositionRealUnits,
+		IsDisabled:                false,
 	})
 
 	if err != nil {

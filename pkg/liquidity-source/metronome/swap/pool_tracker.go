@@ -2,7 +2,6 @@ package metronomeswap
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
@@ -103,9 +101,9 @@ func (t *PoolTracker) getNewPoolState(
 	// "Feed not found" for an isActive()==true token) — one bad call must not sink the whole
 	// pool's state refresh.
 	isActive := make([]bool, nTokens)
-	maxTotalSupply := make([]*big.Int, nTokens)
-	totalSupply := make([]*big.Int, nTokens)
-	priceInUsd := make([]*big.Int, nTokens)
+	maxTotalSupply := make([]*uint256.Int, nTokens)
+	totalSupply := make([]*uint256.Int, nTokens)
+	priceInUsd := make([]*uint256.Int, nTokens)
 
 	const callsPerToken = 4
 	req2 := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
@@ -126,14 +124,14 @@ func (t *PoolTracker) getNewPoolState(
 	// directed pair among this pool's tokens gets its own read.
 	type pairKey struct{ i, j int }
 	pairs := make([]pairKey, 0, nTokens*(nTokens-1))
-	swapFeesBps := make([]*big.Int, 0, nTokens*(nTokens-1))
+	swapFeesBps := make([]*uint256.Int, 0, nTokens*(nTokens-1))
 	for i, tokenIn := range p.Tokens {
 		for j, tokenOut := range p.Tokens {
 			if i == j {
 				continue
 			}
 			pairs = append(pairs, pairKey{i, j})
-			var fee *big.Int
+			var fee *uint256.Int
 			swapFeesBps = append(swapFeesBps, fee)
 			req2.AddCall(&ethrpc.Call{
 				ABI: feeProviderABI, Target: feeProviderStr, Method: feeProviderMethodSwapFees,
@@ -162,11 +160,9 @@ func (t *PoolTracker) getNewPoolState(
 		base := i * callsPerToken
 		tokenOk := resp2.Result[base] && resp2.Result[base+1] && resp2.Result[base+2] && resp2.Result[base+3]
 
-		// A failed call (per resp2.Result) leaves its destination *big.Int nil — guard before
-		// converting, since uint256.FromBig on a nil *big.Int is undefined behavior.
-		maxSupply := safeFromBig(maxTotalSupply[i])
-		supply := safeFromBig(totalSupply[i])
-		price := safeFromBig(priceInUsd[i])
+		maxSupply := coalesceU256(maxTotalSupply[i])
+		supply := coalesceU256(totalSupply[i])
+		price := coalesceU256(priceInUsd[i])
 
 		if !tokenOk {
 			logger.WithFields(logger.Fields{"exchange": p.Exchange, "token": token.Address}).
@@ -192,7 +188,7 @@ func (t *PoolTracker) getNewPoolState(
 			continue // leave unset -> CalcAmountOut treats a missing pair as zero fee, matching FeeProvider's own mapping default
 		}
 		tokenIn, tokenOut := p.Tokens[pair.i].Address, p.Tokens[pair.j].Address
-		extra.SwapFeesBps[tokenIn+"-"+tokenOut] = big256.FromBig(swapFeesBps[k])
+		extra.SwapFeesBps[tokenIn+"-"+tokenOut] = coalesceU256(swapFeesBps[k])
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -212,11 +208,9 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-// safeFromBig converts a *big.Int that may be nil (a TryAggregate call that failed leaves its
-// destination unset) into a zero uint256.Int instead of passing nil through to big256.FromBig.
-func safeFromBig(b *big.Int) *uint256.Int {
-	if b == nil {
-		return uint256.NewInt(0)
+func coalesceU256(v *uint256.Int) *uint256.Int {
+	if v != nil {
+		return v
 	}
-	return big256.FromBig(b)
+	return uint256.NewInt(0)
 }

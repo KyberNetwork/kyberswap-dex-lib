@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2"
@@ -34,7 +35,7 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 	}
 
 	calls := d.EthrpcClient.NewRequest().SetContext(ctx)
-	lengthBI := make([]*big.Int, len(d.Config.MasterAddress))
+	lengthBI := make([]*uint256.Int, len(d.Config.MasterAddress))
 	for i, masterAddress := range d.Config.MasterAddress {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    masterABI,
@@ -54,7 +55,7 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 	batchSizes := make([]int, len(d.Config.MasterAddress))
 	newPools := false
 	for i, masterAddress := range d.Config.MasterAddress {
-		totalNumberOfPools := int(lengthBI[i].Int64())
+		totalNumberOfPools := int(lengthBI[i].Uint64())
 		currentOffset := metadata.Offset[masterAddress]
 		if currentOffset >= totalNumberOfPools {
 			continue
