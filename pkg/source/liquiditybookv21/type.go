@@ -1,10 +1,6 @@
 package liquiditybookv21
 
-import (
-	"math/big"
-
-	"github.com/holiman/uint256"
-)
+import "github.com/holiman/uint256"
 
 type Metadata struct {
 	Offset int `json:"offset"`
@@ -67,8 +63,8 @@ type variableFeeParams struct {
 }
 
 type reserves struct {
-	ReserveX *big.Int `json:"reserveX"`
-	ReserveY *big.Int `json:"reserveY"`
+	ReserveX *uint256.Int `json:"reserveX"`
+	ReserveY *uint256.Int `json:"reserveY"`
 }
 
 type swapResult struct {
@@ -107,19 +103,19 @@ type staticFeeParamsResp struct {
 	FilterPeriod             uint16
 	DecayPeriod              uint16
 	ReductionFactor          uint16
-	VariableFeeControl       *big.Int
+	VariableFeeControl       *uint256.Int
 	ProtocolShare            uint16
-	MaxVolatilityAccumulator *big.Int
+	MaxVolatilityAccumulator *uint256.Int
 }
 
 type variableFeeParamsResp struct {
-	VolatilityAccumulator *big.Int
-	VolatilityReference   *big.Int
-	IdReference           *big.Int
-	TimeOfLastUpdate      *big.Int
+	VolatilityAccumulator *uint256.Int
+	VolatilityReference   *uint256.Int
+	IdReference           *uint256.Int
+	TimeOfLastUpdate      *uint256.Int
 }
 
 type bin struct {
-	BinReserveX *big.Int
-	BinReserveY *big.Int
+	BinReserveX *uint256.Int
+	BinReserveY *uint256.Int
 }

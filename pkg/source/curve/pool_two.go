@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -22,7 +23,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 ) ([]entity.Pool, error) {
 	var (
 		coins    = make([][8]common.Address, len(poolAndRegistries))
-		decimals = make([][8]*big.Int, len(poolAndRegistries))
+		decimals = make([][8]*uint256.Int, len(poolAndRegistries))
 		lpTokens = make([]common.Address, len(poolAndRegistries))
 	)
 
@@ -63,7 +64,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
@@ -99,11 +100,11 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		a, dExtra, gamma, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
-		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime        *big.Int
-		priceScale, priceOracle, lastPrices                                                                          *big.Int
+		a, dExtra, gamma, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *uint256.Int
+		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime        *uint256.Int
+		priceScale, priceOracle, lastPrices                                                                          *uint256.Int
 
-		balances = make([]*big.Int, len(p.Tokens))
+		balances = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
@@ -220,31 +221,31 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 		reserves = make(entity.PoolReserves, len(balances))
 	)
 	for i := range p.Tokens {
-		reserves[i] = balances[i].String()
+		reserves[i] = safeCastUint256ToReserve(balances[i])
 	}
 
 	var extra = PoolTwoExtra{
-		A:                  a.String(),
-		D:                  dExtra.String(),
-		Gamma:              gamma.String(),
-		FeeGamma:           feeGamma.String(),
-		MidFee:             midFee.String(),
-		OutFee:             outFee.String(),
-		FutureAGammaTime:   futureAGammaTime.Int64(),
-		FutureAGamma:       futureAGamma.String(),
-		InitialAGammaTime:  initialAGammaTime.Int64(),
-		InitialAGamma:      initialAGamma.String(),
-		PriceScale:         priceScale.String(),
-		LastPrices:         lastPrices.String(),
-		PriceOracle:        priceOracle.String(),
-		LpSupply:           lpSupply.String(),
-		XcpProfit:          xcpProfit.String(),
-		VirtualPrice:       virtualPrice.String(),
-		AllowedExtraProfit: allowedExtraProfit.String(),
-		AdjustmentStep:     adjustmentStep.String(),
-		MaHalfTime:         maHalfTime.String(),
+		A:                  safeCastUint256ToString(a),
+		D:                  safeCastUint256ToString(dExtra),
+		Gamma:              safeCastUint256ToString(gamma),
+		FeeGamma:           safeCastUint256ToString(feeGamma),
+		MidFee:             safeCastUint256ToString(midFee),
+		OutFee:             safeCastUint256ToString(outFee),
+		FutureAGammaTime:   safeCastUint256ToInt64(futureAGammaTime),
+		FutureAGamma:       safeCastUint256ToString(futureAGamma),
+		InitialAGammaTime:  safeCastUint256ToInt64(initialAGammaTime),
+		InitialAGamma:      safeCastUint256ToString(initialAGamma),
+		PriceScale:         safeCastUint256ToString(priceScale),
+		LastPrices:         safeCastUint256ToString(lastPrices),
+		PriceOracle:        safeCastUint256ToString(priceOracle),
+		LpSupply:           safeCastUint256ToString(lpSupply),
+		XcpProfit:          safeCastUint256ToString(xcpProfit),
+		VirtualPrice:       safeCastUint256ToString(virtualPrice),
+		AllowedExtraProfit: safeCastUint256ToString(allowedExtraProfit),
+		AdjustmentStep:     safeCastUint256ToString(adjustmentStep),
+		MaHalfTime:         safeCastUint256ToString(maHalfTime),
 
-		LastPricesTimestamp: lastPriceTimestamp.Int64(),
+		LastPricesTimestamp: safeCastUint256ToInt64(lastPriceTimestamp),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

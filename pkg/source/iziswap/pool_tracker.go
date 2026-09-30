@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
@@ -67,8 +68,8 @@ func (d *PoolTracker) GetNewPoolState(
 		PointDelta:   pointDelta,
 		RightMostPt:  rightMostPt,
 		LeftMostPt:   leftMostPt,
-		Liquidity:    rpcData.state.Liquidity,
-		LiquidityX:   rpcData.state.LiquidityX,
+		Liquidity:    u256ToBig(rpcData.state.Liquidity),
+		LiquidityX:   u256ToBig(rpcData.state.LiquidityX),
 	}
 
 	var (
@@ -122,8 +123,8 @@ func (d *PoolTracker) GetNewPoolState(
 		p.BlockNumber = rpcData.blockNumber.Uint64()
 	}
 	p.Reserves = entity.PoolReserves{
-		rpcData.reserve0.String(),
-		rpcData.reserve1.String(),
+		uint256ToString(rpcData.reserve0),
+		uint256ToString(rpcData.reserve1),
 	}
 
 	logger.Infof("[iZiSwap] Finish updating state of pool: %v", p.Address)
@@ -134,8 +135,8 @@ func (d *PoolTracker) GetNewPoolState(
 func (d *PoolTracker) fetchPoolState(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
 	var (
 		state    State
-		reserve0 = zeroBI
-		reserve1 = zeroBI
+		reserve0 = new(uint256.Int)
+		reserve1 = new(uint256.Int)
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
@@ -176,4 +177,12 @@ func (d *PoolTracker) fetchPoolState(ctx context.Context, p entity.Pool) (FetchR
 		blockNumber: resp.BlockNumber,
 	}, err
 
+}
+
+func uint256ToString(v *uint256.Int) string {
+	if v == nil {
+		return zeroBI.String()
+	}
+
+	return v.String()
 }

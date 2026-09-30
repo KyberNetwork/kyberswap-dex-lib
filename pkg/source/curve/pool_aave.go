@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -23,7 +24,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 	var (
 		coins           = make([][8]common.Address, len(poolAndRegistries))
 		underlyingCoins = make([][8]common.Address, len(poolAndRegistries))
-		decimals        = make([][8]*big.Int, len(poolAndRegistries))
+		decimals        = make([][8]*uint256.Int, len(poolAndRegistries))
 		lpAddresses     = make([]common.Address, len(poolAndRegistries))
 	)
 
@@ -70,7 +71,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
@@ -107,9 +108,9 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, offpegFee *big.Int
-		lpSupply                                                                   *big.Int
-		balances                                                                   = make([]*big.Int, len(p.Tokens))
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, offpegFee *uint256.Int
+		lpSupply                                                                   *uint256.Int
+		balances                                                                   = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
@@ -170,13 +171,13 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 	}
 
 	var extra = PoolAaveExtra{
-		InitialA:            initialA.String(),
-		FutureA:             futureA.String(),
-		InitialATime:        initialATime.Int64(),
-		FutureATime:         futureATime.Int64(),
-		SwapFee:             swapFee.String(),
-		AdminFee:            adminFee.String(),
-		OffpegFeeMultiplier: offpegFee.String(),
+		InitialA:            safeCastUint256ToString(initialA),
+		FutureA:             safeCastUint256ToString(futureA),
+		InitialATime:        safeCastUint256ToInt64(initialATime),
+		FutureATime:         safeCastUint256ToInt64(futureATime),
+		SwapFee:             safeCastUint256ToString(swapFee),
+		AdminFee:            safeCastUint256ToString(adminFee),
+		OffpegFeeMultiplier: safeCastUint256ToString(offpegFee),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -190,9 +191,9 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 
 	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
 	for _, balance := range balances {
-		reserves = append(reserves, balance.String())
+		reserves = append(reserves, safeCastUint256ToReserve(balance))
 	}
-	reserves = append(reserves, safeCastBigIntToReserve(lpSupply))
+	reserves = append(reserves, safeCastUint256ToReserve(lpSupply))
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

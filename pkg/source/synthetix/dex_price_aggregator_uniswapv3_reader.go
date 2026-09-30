@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -86,13 +87,15 @@ func (r *DexPriceAggregatorUniswapV3Reader) readData(
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
 	blockNumber uint64,
 ) error {
+	var defaultPoolFee *uint256.Int
+
 	req := newRequest(r.ethrpcClient, ctx, blockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: DexPriceAggregatorUniswapV3MethodDefaultPoolFee,
 			Params: nil,
-		}, []any{&dexPriceAggregator.DefaultPoolFee}).
+		}, []any{&defaultPoolFee}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -114,6 +117,8 @@ func (r *DexPriceAggregatorUniswapV3Reader) readData(
 		}).Error("can not read data")
 		return err
 	}
+
+	dexPriceAggregator.DefaultPoolFee = u256ToBig(defaultPoolFee)
 
 	return nil
 }
@@ -184,6 +189,16 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 	atomicEquivalentForDexPricing map[string]Token,
 	blockNumber uint64,
 ) error {
+	type slot0RPC struct {
+		SqrtPriceX96               *uint256.Int `json:"sqrtPriceX96"`
+		Tick                       *big.Int     `json:"tick"`
+		ObservationIndex           uint16       `json:"observationIndex"`
+		ObservationCardinality     uint16       `json:"observationCardinality"`
+		ObservationCardinalityNext uint16       `json:"observationCardinalityNext"`
+		FeeProtocol                uint8        `json:"feeProtocol"`
+		Unlocked                   bool         `json:"unlocked"`
+	}
+
 	tokensArr := make([]Token, 0, len(atomicEquivalentForDexPricing))
 	for _, token := range atomicEquivalentForDexPricing {
 		tokensArr = append(tokensArr, token)
@@ -191,7 +206,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 
 	poolAddresses := getPoolCombinationsFromTokens(dexPriceAggregator, tokensArr)
 	poolsLen := len(poolAddresses)
-	poolSlot0s := make([]Slot0, poolsLen)
+	poolSlot0s := make([]slot0RPC, poolsLen)
 
 	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, pool := range poolAddresses {
@@ -217,7 +232,15 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 			continue
 		}
 
-		dexPriceAggregator.UniswapV3Slot0[poolAddress.String()] = poolSlot0s[i]
+		dexPriceAggregator.UniswapV3Slot0[poolAddress.String()] = Slot0{
+			SqrtPriceX96:               u256ToBig(poolSlot0s[i].SqrtPriceX96),
+			Tick:                       poolSlot0s[i].Tick,
+			ObservationIndex:           poolSlot0s[i].ObservationIndex,
+			ObservationCardinality:     poolSlot0s[i].ObservationCardinality,
+			ObservationCardinalityNext: poolSlot0s[i].ObservationCardinalityNext,
+			FeeProtocol:                poolSlot0s[i].FeeProtocol,
+			Unlocked:                   poolSlot0s[i].Unlocked,
+		}
 	}
 
 	return nil
@@ -230,6 +253,13 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 	dexPriceAggregator *DexPriceAggregatorUniswapV3,
 	blockNumber uint64,
 ) error {
+	type oracleObservationRPC struct {
+		BlockTimestamp                    uint32       `json:"blockTimestamp"`
+		TickCumulative                    *big.Int     `json:"tickCumulative"`
+		SecondsPerLiquidityCumulativeX128 *uint256.Int `json:"secondsPerLiquidityCumulativeX128"`
+		Initialized                       bool         `json:"initialized"`
+	}
+
 	uniswapV3Slot0 := dexPriceAggregator.UniswapV3Slot0
 	poolsLen := len(uniswapV3Slot0)
 	poolAddresses := make([]string, 0, poolsLen)
@@ -238,8 +268,8 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 		poolAddresses = append(poolAddresses, poolAddress)
 	}
 
-	observations := make([]OracleObservation, poolsLen)
-	prevObservations := make([]OracleObservation, poolsLen)
+	observations := make([]oracleObservationRPC, poolsLen)
+	prevObservations := make([]oracleObservationRPC, poolsLen)
 
 	req := newRequest(r.ethrpcClient, ctx, blockNumber)
 	for i, poolAddress := range poolAddresses {
@@ -278,8 +308,18 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 		prevIndex := (observationIndex + observationCardinality - 1) % observationCardinality
 
 		dexPriceAggregator.UniswapV3Observations[poolAddress] = map[uint16]OracleObservation{
-			observationIndex: observations[i],
-			prevIndex:        prevObservations[i],
+			observationIndex: {
+				BlockTimestamp:                    observations[i].BlockTimestamp,
+				TickCumulative:                    observations[i].TickCumulative,
+				SecondsPerLiquidityCumulativeX128: u256ToBig(observations[i].SecondsPerLiquidityCumulativeX128),
+				Initialized:                       observations[i].Initialized,
+			},
+			prevIndex: {
+				BlockTimestamp:                    prevObservations[i].BlockTimestamp,
+				TickCumulative:                    prevObservations[i].TickCumulative,
+				SecondsPerLiquidityCumulativeX128: u256ToBig(prevObservations[i].SecondsPerLiquidityCumulativeX128),
+				Initialized:                       prevObservations[i].Initialized,
+			},
 		}
 	}
 
@@ -303,8 +343,8 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolTickCumulativeData(
 	}
 
 	type ObserveResult struct {
-		TickCumulatives                    []*big.Int `json:"TickCumulatives"`
-		SecondsPerLiquidityCumulativeX128s []*big.Int `json:"SecondsPerLiquidityCumulativeX128s"`
+		TickCumulatives                    []*big.Int     `json:"TickCumulatives"`
+		SecondsPerLiquidityCumulativeX128s []*uint256.Int `json:"SecondsPerLiquidityCumulativeX128s"`
 	}
 
 	observeResult := make([]ObserveResult, poolsLen)

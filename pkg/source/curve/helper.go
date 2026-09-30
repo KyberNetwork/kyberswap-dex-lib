@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 )
 
 func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
@@ -62,12 +63,15 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	return nil
 }
 
-func getAPrecisions(aList, aPreciseList []*big.Int) ([]*big.Int, error) {
+func getAPrecisions(aList, aPreciseList []*uint256.Int) ([]*big.Int, error) {
 	var aPrecisions = make([]*big.Int, len(aList))
 	for i := range aPrecisions {
-		if aList[i] != nil && aPreciseList[i] != nil {
-			aPrecisions[i] = new(big.Int).Div(aPreciseList[i], aList[i])
-		} else if aList[i] != nil {
+		a := u256ToBig(aList[i])
+		aPrecise := u256ToBig(aPreciseList[i])
+
+		if a != nil && aPrecise != nil {
+			aPrecisions[i] = new(big.Int).Div(aPrecise, a)
+		} else if a != nil {
 			aPrecisions[i] = big.NewInt(1)
 		} else {
 			return nil, errors.New("missing A data")
@@ -115,6 +119,38 @@ func safeCastBigIntToInt64(num *big.Int) int64 {
 }
 
 func safeCastBigIntToReserve(num *big.Int) string {
+	if num == nil {
+		return zeroString
+	}
+
+	return num.String()
+}
+
+func u256ToBig(num *uint256.Int) *big.Int {
+	if num == nil {
+		return nil
+	}
+
+	return num.ToBig()
+}
+
+func safeCastUint256ToString(num *uint256.Int) string {
+	if num == nil {
+		return zeroString
+	}
+
+	return num.String()
+}
+
+func safeCastUint256ToInt64(num *uint256.Int) int64 {
+	if num == nil {
+		return zero
+	}
+
+	return num.ToBig().Int64()
+}
+
+func safeCastUint256ToReserve(num *uint256.Int) string {
 	if num == nil {
 		return zeroString
 	}

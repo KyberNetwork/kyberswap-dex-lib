@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -24,7 +25,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 	var (
 		coins           = make([][8]common.Address, len(poolAndRegistries))
 		underlyingCoins = make([][8]common.Address, len(poolAndRegistries))
-		decimals        = make([][8]*big.Int, len(poolAndRegistries))
+		decimals        = make([][8]*uint256.Int, len(poolAndRegistries))
 		lpAddresses     = make([]common.Address, len(poolAndRegistries))
 	)
 
@@ -73,7 +74,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
@@ -111,9 +112,9 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		a, swapFee, adminFee *big.Int
-		rates8               [8]*big.Int
-		balances             = make([]*big.Int, len(p.Tokens))
+		a, swapFee, adminFee *uint256.Int
+		rates8               [8]*uint256.Int
+		balances             = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
@@ -160,7 +161,7 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 
 	var rates = make([]string, len(p.Tokens))
 	for i := range p.Tokens {
-		if rates8[i] == zeroBI {
+		if rates8[i] == nil || rates8[i].IsZero() {
 			logger.WithFields(logger.Fields{
 				"poolAddress":  p.Address,
 				"poolType":     p.Type,
@@ -168,13 +169,13 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 			}).Errorf("token has no rate")
 			return entity.Pool{}, errors.New("token has no rate")
 		}
-		rates[i] = rates8[i].String()
+		rates[i] = safeCastUint256ToString(rates8[i])
 	}
 
 	var extra = PoolCompoundExtra{
-		A:        a.String(),
-		SwapFee:  swapFee.String(),
-		AdminFee: adminFee.String(),
+		A:        safeCastUint256ToString(a),
+		SwapFee:  safeCastUint256ToString(swapFee),
+		AdminFee: safeCastUint256ToString(adminFee),
 		Rates:    rates,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -189,7 +190,7 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 
 	var reserves = make(entity.PoolReserves, len(balances))
 	for i := range balances {
-		reserves[i] = balances[i].String()
+		reserves[i] = safeCastUint256ToString(balances[i])
 	}
 
 	p.Extra = string(extraBytes)

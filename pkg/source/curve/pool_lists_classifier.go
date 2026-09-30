@@ -2,13 +2,13 @@ package curve
 
 import (
 	"context"
-	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 func (d *PoolsListUpdater) classifyPoolTypes(
@@ -43,10 +43,10 @@ func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 ) ([]string, error) {
 	var coins = make([][8]common.Address, len(poolAddresses))
 	var underlyingCoins = make([][8]common.Address, len(poolAddresses))
-	var aaveSignatures = make([]*big.Int, len(poolAddresses))
+	var aaveSignatures = make([]*uint256.Int, len(poolAddresses))
 	var plainOracleSignatures = make([]common.Address, len(poolAddresses))
 	var isMetaList = make([]bool, len(poolAddresses))
-	var gammaList = make([]*big.Int, len(poolAddresses))
+	var gammaList = make([]*uint256.Int, len(poolAddresses))
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(false)
 
@@ -235,7 +235,7 @@ func (d *PoolsListUpdater) isBasePool(coins [8]common.Address, underlyingCoins [
 // isAavePool AavePool should
 // have underlying coins and not native coin
 // have method "offpeg_fee_multiplier" in its contract
-func (d *PoolsListUpdater) isAavePool(aaveSignature *big.Int, underlyingCoins [8]common.Address) bool {
+func (d *PoolsListUpdater) isAavePool(aaveSignature *uint256.Int, underlyingCoins [8]common.Address) bool {
 	if strings.EqualFold(underlyingCoins[0].Hex(), addressZero) {
 		return false
 	}

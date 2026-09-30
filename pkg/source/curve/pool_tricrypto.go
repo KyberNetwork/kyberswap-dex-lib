@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -23,7 +24,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 ) ([]entity.Pool, error) {
 	var (
 		coins    = make([][8]common.Address, len(poolAndRegistries))
-		decimals = make([][8]*big.Int, len(poolAndRegistries))
+		decimals = make([][8]*uint256.Int, len(poolAndRegistries))
 		lpTokens = make([]common.Address, len(poolAndRegistries))
 	)
 
@@ -66,7 +67,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
@@ -105,16 +106,16 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		a, dExtra, gamma, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
+		a, dExtra, gamma, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *uint256.Int
 
-		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime, lpSupply *big.Int
+		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime, lpSupply *uint256.Int
 
-		balances = make([]*big.Int, len(p.Tokens))
+		balances = make([]*uint256.Int, len(p.Tokens))
 
 		// These 3 slices only has length = number of tokens - 1 (check in the contract)
-		priceScales  = make([]*big.Int, len(p.Tokens)-1)
-		priceOracles = make([]*big.Int, len(p.Tokens)-1)
-		lastPrices   = make([]*big.Int, len(p.Tokens)-1)
+		priceScales  = make([]*uint256.Int, len(p.Tokens)-1)
+		priceOracles = make([]*uint256.Int, len(p.Tokens)-1)
+		lastPrices   = make([]*uint256.Int, len(p.Tokens)-1)
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
@@ -234,41 +235,41 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
-	var reserves entity.PoolReserves = lo.Map(balances, func(value *big.Int, _ int) string {
-		return value.String()
+	var reserves entity.PoolReserves = lo.Map(balances, func(value *uint256.Int, _ int) string {
+		return safeCastUint256ToReserve(value)
 	})
-	priceScalesStr := lo.Map(priceScales, func(value *big.Int, _ int) string {
-		return value.String()
+	priceScalesStr := lo.Map(priceScales, func(value *uint256.Int, _ int) string {
+		return safeCastUint256ToString(value)
 	})
-	priceOraclesStr := lo.Map(priceOracles, func(value *big.Int, _ int) string {
-		return value.String()
+	priceOraclesStr := lo.Map(priceOracles, func(value *uint256.Int, _ int) string {
+		return safeCastUint256ToString(value)
 	})
-	lastPricesStr := lo.Map(lastPrices, func(value *big.Int, _ int) string {
-		return value.String()
+	lastPricesStr := lo.Map(lastPrices, func(value *uint256.Int, _ int) string {
+		return safeCastUint256ToString(value)
 	})
 
 	var extra = PoolTricryptoExtra{
-		A:                   a.String(),
-		D:                   dExtra.String(),
-		Gamma:               gamma.String(),
-		FeeGamma:            feeGamma.String(),
-		MidFee:              midFee.String(),
-		OutFee:              outFee.String(),
-		FutureAGammaTime:    futureAGammaTime.Int64(),
-		FutureAGamma:        futureAGamma.String(),
-		InitialAGammaTime:   initialAGammaTime.Int64(),
-		InitialAGamma:       initialAGamma.String(),
-		LastPricesTimestamp: lastPriceTimestamp.Int64(),
-		XcpProfit:           xcpProfit.String(),
-		VirtualPrice:        virtualPrice.String(),
-		AllowedExtraProfit:  allowedExtraProfit.String(),
-		AdjustmentStep:      adjustmentStep.String(),
-		MaHalfTime:          maHalfTime.String(),
+		A:                   safeCastUint256ToString(a),
+		D:                   safeCastUint256ToString(dExtra),
+		Gamma:               safeCastUint256ToString(gamma),
+		FeeGamma:            safeCastUint256ToString(feeGamma),
+		MidFee:              safeCastUint256ToString(midFee),
+		OutFee:              safeCastUint256ToString(outFee),
+		FutureAGammaTime:    safeCastUint256ToInt64(futureAGammaTime),
+		FutureAGamma:        safeCastUint256ToString(futureAGamma),
+		InitialAGammaTime:   safeCastUint256ToInt64(initialAGammaTime),
+		InitialAGamma:       safeCastUint256ToString(initialAGamma),
+		LastPricesTimestamp: safeCastUint256ToInt64(lastPriceTimestamp),
+		XcpProfit:           safeCastUint256ToString(xcpProfit),
+		VirtualPrice:        safeCastUint256ToString(virtualPrice),
+		AllowedExtraProfit:  safeCastUint256ToString(allowedExtraProfit),
+		AdjustmentStep:      safeCastUint256ToString(adjustmentStep),
+		MaHalfTime:          safeCastUint256ToString(maHalfTime),
 
 		PriceScale:  priceScalesStr,
 		LastPrices:  lastPricesStr,
 		PriceOracle: priceOraclesStr,
-		LpSupply:    lpSupply.String(),
+		LpSupply:    safeCastUint256ToString(lpSupply),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -22,10 +23,10 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 ) ([]entity.Pool, error) {
 	var (
 		coins        = make([][8]common.Address, len(poolAndRegistries))
-		decimals     = make([][8]*big.Int, len(poolAndRegistries))
-		aList        = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList = make([]*big.Int, len(poolAndRegistries))
-		rates        = make([][8]*big.Int, len(poolAndRegistries))
+		decimals     = make([][8]*uint256.Int, len(poolAndRegistries))
+		aList        = make([]*uint256.Int, len(poolAndRegistries))
+		aPreciseList = make([]*uint256.Int, len(poolAndRegistries))
+		rates        = make([][8]*uint256.Int, len(poolAndRegistries))
 		lpAddresses  = make([]common.Address, len(poolAndRegistries))
 	)
 
@@ -100,9 +101,9 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
-			staticExtra.Rates = append(staticExtra.Rates, new(big.Int).Mul(precision, rates[i][j]).String())
+			staticExtra.Rates = append(staticExtra.Rates, new(big.Int).Mul(precision, u256ToBig(rates[i][j])).String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
 				Address:   strings.ToLower(coinAddress),
@@ -143,8 +144,8 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 	logger.Infof("[%s] Start getting new state of pool %v with type %v", d.config.DexID, p.Address, p.Type)
 
 	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
-		balances                                                                  = make([]*big.Int, len(p.Tokens))
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *uint256.Int
+		balances                                                                  = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
@@ -201,12 +202,12 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 	}
 
 	var extra = PoolBaseExtra{
-		InitialA:     safeCastBigIntToString(initialA),
-		FutureA:      safeCastBigIntToString(futureA),
-		InitialATime: safeCastBigIntToInt64(initialATime),
-		FutureATime:  safeCastBigIntToInt64(futureATime),
-		SwapFee:      safeCastBigIntToString(swapFee),
-		AdminFee:     safeCastBigIntToString(adminFee),
+		InitialA:     safeCastUint256ToString(initialA),
+		FutureA:      safeCastUint256ToString(futureA),
+		InitialATime: safeCastUint256ToInt64(initialATime),
+		FutureATime:  safeCastUint256ToInt64(futureATime),
+		SwapFee:      safeCastUint256ToString(swapFee),
+		AdminFee:     safeCastUint256ToString(adminFee),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -220,9 +221,9 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 
 	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
 	for i := range balances {
-		reserves = append(reserves, safeCastBigIntToReserve(balances[i]))
+		reserves = append(reserves, safeCastUint256ToReserve(balances[i]))
 	}
-	reserves = append(reserves, safeCastBigIntToReserve(lpSupply))
+	reserves = append(reserves, safeCastUint256ToReserve(lpSupply))
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

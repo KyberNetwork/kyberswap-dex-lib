@@ -27,9 +27,9 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 		registryBasePools = make([]common.Address, len(poolAndRegistries))
 		coins             = make([][8]common.Address, len(poolAndRegistries))
 		underlyingCoins   = make([][8]common.Address, len(poolAndRegistries))
-		decimals          = make([][8]*big.Int, len(poolAndRegistries))
-		aList             = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList      = make([]*big.Int, len(poolAndRegistries))
+		decimals          = make([][8]*uint256.Int, len(poolAndRegistries))
+		aList             = make([]*uint256.Int, len(poolAndRegistries))
+		aPreciseList      = make([]*uint256.Int, len(poolAndRegistries))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -116,7 +116,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 		var staticExtra = PoolMetaStaticExtra{
 			LpToken:          hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			BasePool:         hexutil.Encode(basePools[i][:]),
-			RateMultiplier:   new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(36), decimals[i][0]), nil).String(),
+			RateMultiplier:   new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(36), u256ToBig(decimals[i][0])), nil).String(),
 			APrecision:       aPrecisions[i].String(),
 			UnderlyingTokens: extractNonZeroAddressesToStrings(underlyingCoins[i]),
 		}
@@ -125,7 +125,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			staticExtra.Rates = append(staticExtra.Rates, "")
 			reserves = append(reserves, zeroString)
@@ -162,8 +162,8 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int
-		balances                                                                  = make([]*big.Int, len(p.Tokens))
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *uint256.Int
+		balances                                                                  = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(AddrDummy).
@@ -219,7 +219,7 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
-	var snappedRedemptionPrice *big.Int
+	var snappedRedemptionPrice *uint256.Int
 	// Handle a specific case for the RAI Curve-Meta pool,
 	// since this pool uses a different contract version, leading the "rates"
 	// is calculated using contract data.
@@ -263,13 +263,13 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 	}
 
 	var extra = PoolMetaExtra{
-		InitialA:               initialA.String(),
-		FutureA:                futureA.String(),
-		InitialATime:           initialATime.Int64(),
-		FutureATime:            futureATime.Int64(),
-		SwapFee:                swapFee.String(),
-		AdminFee:               adminFee.String(),
-		SnappedRedemptionPrice: uint256.MustFromBig(snappedRedemptionPrice),
+		InitialA:               safeCastUint256ToString(initialA),
+		FutureA:                safeCastUint256ToString(futureA),
+		InitialATime:           safeCastUint256ToInt64(initialATime),
+		FutureATime:            safeCastUint256ToInt64(futureATime),
+		SwapFee:                safeCastUint256ToString(swapFee),
+		AdminFee:               safeCastUint256ToString(adminFee),
+		SnappedRedemptionPrice: snappedRedemptionPrice,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -284,9 +284,9 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 
 	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
 	for i := range balances {
-		reserves = append(reserves, safeCastBigIntToReserve(balances[i]))
+		reserves = append(reserves, safeCastUint256ToReserve(balances[i]))
 	}
-	reserves = append(reserves, safeCastBigIntToReserve(lpSupply))
+	reserves = append(reserves, safeCastUint256ToReserve(lpSupply))
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

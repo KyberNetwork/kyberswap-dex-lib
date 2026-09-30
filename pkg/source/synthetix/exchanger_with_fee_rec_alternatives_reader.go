@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type ExchangerWithFeeRecAlternativesReader struct {
@@ -40,8 +41,12 @@ func (r *ExchangerWithFeeRecAlternativesReader) Read(ctx context.Context, poolSt
 // - LastAtomicVolume
 func (r *ExchangerWithFeeRecAlternativesReader) readData(ctx context.Context, poolState *PoolState) error {
 	var (
-		address          = poolState.Addresses.Exchanger
-		lastAtomicVolume ExchangeVolumeAtPeriod
+		address                 = poolState.Addresses.Exchanger
+		atomicMaxVolumePerBlock *uint256.Int
+		lastAtomicVolume        struct {
+			Time   uint64       `json:"time"`
+			Volume *uint256.Int `json:"volume"`
+		}
 	)
 
 	req := newRequest(r.ethrpcClient, ctx, poolState.BlockNumber).
@@ -50,7 +55,7 @@ func (r *ExchangerWithFeeRecAlternativesReader) readData(ctx context.Context, po
 			Target: address,
 			Method: ExchangerWithFeeRecAlternativesMethodAtomicMaxVolumePerBlock,
 			Params: nil,
-		}, []any{&poolState.AtomicMaxVolumePerBlock}).
+		}, []any{&atomicMaxVolumePerBlock}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -67,7 +72,11 @@ func (r *ExchangerWithFeeRecAlternativesReader) readData(ctx context.Context, po
 		return err
 	}
 
-	poolState.LastAtomicVolume = &lastAtomicVolume
+	poolState.AtomicMaxVolumePerBlock = u256ToBig(atomicMaxVolumePerBlock)
+	poolState.LastAtomicVolume = &ExchangeVolumeAtPeriod{
+		Time:   lastAtomicVolume.Time,
+		Volume: u256ToBig(lastAtomicVolume.Volume),
+	}
 
 	return nil
 }

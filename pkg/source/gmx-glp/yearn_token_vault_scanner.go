@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -40,7 +41,16 @@ func NewYearnTokenVaultScanner(config *Config, ethrpcClient *ethrpc.Client) *Yea
 func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, address string) (*YearnTokenVault, error) {
 	withdrawalQueue := make([]common.Address, 10)
 	strategyList := []string{"0x321E9366a4Aaf40855713868710A306Ec665CA00"}
-	strategyListEstimatedTotalAssetsResult := make([]*big.Int, len(strategyList))
+	strategyListEstimatedTotalAssetsResult := make([]*uint256.Int, len(strategyList))
+	var (
+		totalSupply             *uint256.Int
+		totalAssets             *uint256.Int
+		lastReport              *uint256.Int
+		lockedProfitDegradation *uint256.Int
+		lockedProfit            *uint256.Int
+		depositLimit            *uint256.Int
+		totalIdle               *uint256.Int
+	)
 	yearnTokenVault := &YearnTokenVault{
 		Address:         strings.ToLower(address),
 		WithdrawalQueue: make([]string, 0),
@@ -48,15 +58,15 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 
 	type GetStrategies struct {
 		Strategies struct {
-			PerformanceFee    *big.Int `json:"performanceFee"`
-			Activation        *big.Int `json:"activation"`
-			DebtRatio         *big.Int `json:"debtRatio"`
-			MinDebtPerHarvest *big.Int `json:"minDebtPerHarvest"`
-			MaxDebtPerHarvest *big.Int `json:"maxDebtPerHarvest"`
-			LastReport        *big.Int `json:"lastReport"`
-			TotalDebt         *big.Int `json:"totalDebt"`
-			TotalGain         *big.Int `json:"totalGain"`
-			TotalLoss         *big.Int `json:"totalLoss"`
+			PerformanceFee    *uint256.Int `json:"performanceFee"`
+			Activation        *uint256.Int `json:"activation"`
+			DebtRatio         *uint256.Int `json:"debtRatio"`
+			MinDebtPerHarvest *uint256.Int `json:"minDebtPerHarvest"`
+			MaxDebtPerHarvest *uint256.Int `json:"maxDebtPerHarvest"`
+			LastReport        *uint256.Int `json:"lastReport"`
+			TotalDebt         *uint256.Int `json:"totalDebt"`
+			TotalGain         *uint256.Int `json:"totalGain"`
+			TotalLoss         *uint256.Int `json:"totalLoss"`
 		}
 	}
 	yearnStrategy := make([]GetStrategies, len(strategyList))
@@ -67,43 +77,43 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 		Target: address,
 		Method: yearnTokenVaultMethodTotalSupply,
 		Params: nil,
-	}, []any{&yearnTokenVault.TotalSupply})
+	}, []any{&totalSupply})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodTotalAssets,
 		Params: nil,
-	}, []any{&yearnTokenVault.TotalAsset})
+	}, []any{&totalAssets})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodLastReport,
 		Params: nil,
-	}, []any{&yearnTokenVault.LastReport})
+	}, []any{&lastReport})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodLockedProfitDegradation,
 		Params: nil,
-	}, []any{&yearnTokenVault.LockedProfitDegradation})
+	}, []any{&lockedProfitDegradation})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodLockedProfit,
 		Params: nil,
-	}, []any{&yearnTokenVault.LockedProfit})
+	}, []any{&lockedProfit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodDepositLimit,
 		Params: nil,
-	}, []any{&yearnTokenVault.DepositLimit})
+	}, []any{&depositLimit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
 		Method: yearnTokenVaultMethodTotalIdle,
 		Params: nil,
-	}, []any{&yearnTokenVault.TotalIdle})
+	}, []any{&totalIdle})
 	for i := 0; i < 10; i++ {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    yearnTokenVaultABI,
@@ -143,11 +153,18 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 	yearnStrategyMap := make(map[string]*YearnStrategy, len(strategyList))
 	for i, strategy := range strategyList {
 		yearnStrategyMap[strategy] = &YearnStrategy{
-			TotalDebt:            yearnStrategy[i].Strategies.TotalDebt,
-			EstimatedTotalAssets: strategyListEstimatedTotalAssetsResult[i],
+			TotalDebt:            u256ToBig(yearnStrategy[i].Strategies.TotalDebt),
+			EstimatedTotalAssets: u256ToBig(strategyListEstimatedTotalAssetsResult[i]),
 		}
 	}
 
+	yearnTokenVault.TotalSupply = u256ToBig(totalSupply)
+	yearnTokenVault.TotalAsset = u256ToBig(totalAssets)
+	yearnTokenVault.LastReport = u256ToBig(lastReport)
+	yearnTokenVault.LockedProfitDegradation = u256ToBig(lockedProfitDegradation)
+	yearnTokenVault.LockedProfit = u256ToBig(lockedProfit)
+	yearnTokenVault.DepositLimit = u256ToBig(depositLimit)
+	yearnTokenVault.TotalIdle = u256ToBig(totalIdle)
 	yearnTokenVault.WithdrawalQueue = withdrawalQueueResult
 	yearnTokenVault.YearnStrategyMap = yearnStrategyMap
 

@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -36,12 +37,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	logger.Infof("[kokonut] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		a, dExtra, gamma, feeGamma, midFee, outFee                                                            *big.Int
-		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime *big.Int
-		priceScale, priceOracle, lastPrices, minRemainingPostRebalanceRatio                                   *big.Int
+		a, dExtra, gamma, feeGamma, midFee, outFee                                                            *uint256.Int
+		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime *uint256.Int
+		priceScale, priceOracle, lastPrices, minRemainingPostRebalanceRatio                                   *uint256.Int
 		futureAGammaTime, initialAGammaTime, futureA, initialA                                                uint32
 		futureGamma, initialGamma                                                                             uint64
-		balances                                                                                              = make([]*big.Int, len(p.Tokens))
+		balances                                                                                              = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -236,33 +237,33 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		reserves = make(entity.PoolReserves, len(balances))
 	)
 	for i := range p.Tokens {
-		reserves[i] = balances[i].String()
+		reserves[i] = u256ToString(balances[i])
 	}
 
 	var extra = Extra{
-		A:                              a.String(),
-		D:                              dExtra.String(),
-		Gamma:                          gamma.String(),
-		FeeGamma:                       feeGamma.String(),
-		MidFee:                         midFee.String(),
-		OutFee:                         outFee.String(),
+		A:                              u256ToString(a),
+		D:                              u256ToString(dExtra),
+		Gamma:                          u256ToString(gamma),
+		FeeGamma:                       u256ToString(feeGamma),
+		MidFee:                         u256ToString(midFee),
+		OutFee:                         u256ToString(outFee),
 		FutureAGammaTime:               int64(futureAGammaTime),
 		FutureA:                        strconv.FormatUint(uint64(futureA), 10),
 		FutureGamma:                    strconv.FormatUint(futureGamma, 10),
 		InitialAGammaTime:              int64(initialAGammaTime),
 		InitialA:                       strconv.FormatUint(uint64(initialA), 10),
 		InitialGamma:                   strconv.FormatUint(initialGamma, 10),
-		PriceScale:                     priceScale.String(),
-		LastPrices:                     lastPrices.String(),
-		PriceOracle:                    priceOracle.String(),
-		LpSupply:                       lpSupply.String(),
-		XcpProfit:                      xcpProfit.String(),
-		VirtualPrice:                   virtualPrice.String(),
-		AllowedExtraProfit:             allowedExtraProfit.String(),
-		AdjustmentStep:                 adjustmentStep.String(),
-		MaHalfTime:                     maHalfTime.String(),
-		LastPricesTimestamp:            lastPriceTimestamp.Int64(),
-		MinRemainingPostRebalanceRatio: minRemainingPostRebalanceRatio.String(),
+		PriceScale:                     u256ToString(priceScale),
+		LastPrices:                     u256ToString(lastPrices),
+		PriceOracle:                    u256ToString(priceOracle),
+		LpSupply:                       u256ToString(lpSupply),
+		XcpProfit:                      u256ToString(xcpProfit),
+		VirtualPrice:                   u256ToString(virtualPrice),
+		AllowedExtraProfit:             u256ToString(allowedExtraProfit),
+		AdjustmentStep:                 u256ToString(adjustmentStep),
+		MaHalfTime:                     u256ToString(maHalfTime),
+		LastPricesTimestamp:            u256ToInt64(lastPriceTimestamp),
+		MinRemainingPostRebalanceRatio: u256ToString(minRemainingPostRebalanceRatio),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -281,4 +282,20 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	logger.Infof("[kokonut] Finish getting new state of pool %v with type %v", p.Address, p.Type)
 
 	return p, nil
+}
+
+func u256ToString(v *uint256.Int) string {
+	if v == nil {
+		return zeroString
+	}
+
+	return v.String()
+}
+
+func u256ToInt64(v *uint256.Int) int64 {
+	if v == nil {
+		return 0
+	}
+
+	return v.ToBig().Int64()
 }

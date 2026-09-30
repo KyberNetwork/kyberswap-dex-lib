@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
@@ -134,18 +135,30 @@ func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Poo
 			continue
 		}
 		for idx, limitOrder := range limitOrderDataRaw {
-			if limitOrder.SellingX.Cmp(zeroBI) == 0 && limitOrder.SellingY.Cmp(zeroBI) == 0 {
+			if isZeroU256(limitOrder.SellingX) && isZeroU256(limitOrder.SellingY) {
 				continue
 			}
 			limitOrderPointData = append(
 				limitOrderPointData,
 				swap.LimitOrderPoint{
-					SellingX: limitOrder.SellingX,
-					SellingY: limitOrder.SellingY,
+					SellingX: u256ToBig(limitOrder.SellingX),
+					SellingY: u256ToBig(limitOrder.SellingY),
 					Point:    start + idx*pointDelta,
 				},
 			)
 		}
 	}
 	return limitOrderPointData, nil
+}
+
+func isZeroU256(v *uint256.Int) bool {
+	return v == nil || v.Sign() == 0
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }

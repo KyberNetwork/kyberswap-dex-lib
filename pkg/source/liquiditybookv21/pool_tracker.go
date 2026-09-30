@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kutils"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -108,8 +109,8 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		staticFeeParamsResp   staticFeeParamsResp
 		variableFeeParamsResp variableFeeParamsResp
 		reserves              reserves
-		activeBinID           *big.Int
-		priceX128             *big.Int
+		activeBinID           *uint256.Int
+		priceX128             *uint256.Int
 		blockNumberBI         *big.Int
 	)
 
@@ -529,10 +530,18 @@ func (t *PoolTracker) queryRPCBinsByChunk(ctx context.Context, poolAddress strin
 	return lo.Map(bins, func(_ bin, idx int) Bin {
 		return Bin{
 			ID:       binIDs[idx],
-			ReserveX: bins[idx].BinReserveX,
-			ReserveY: bins[idx].BinReserveY,
+			ReserveX: u256ToBig(bins[idx].BinReserveX),
+			ReserveY: u256ToBig(bins[idx].BinReserveY),
 		}
 	}), nil
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }
 
 func (t *PoolTracker) mergeBinsFromLogsToPoolBins(ctx context.Context, p *entity.Pool, binsFromLogs []Bin) ([]Bin,

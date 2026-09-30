@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -23,9 +24,9 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 ) ([]entity.Pool, error) {
 	var (
 		coins        = make([][8]common.Address, len(poolAndRegistries))
-		decimals     = make([][8]*big.Int, len(poolAndRegistries))
-		aList        = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList = make([]*big.Int, len(poolAndRegistries))
+		decimals     = make([][8]*uint256.Int, len(poolAndRegistries))
+		aList        = make([]*uint256.Int, len(poolAndRegistries))
+		aPreciseList = make([]*uint256.Int, len(poolAndRegistries))
 		plainOracles = make([]common.Address, len(poolAndRegistries))
 		lpAddresses  = make([]common.Address, len(poolAndRegistries))
 	)
@@ -95,7 +96,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 			if strings.EqualFold(coinAddress, addressZero) {
 				break
 			}
-			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), decimals[i][j]), nil)
+			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), u256ToBig(decimals[i][j])), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
@@ -133,10 +134,11 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
 	var (
-		plainOraclePoolPrecision                                                                      = bignumber.TenPowInt(18)
-		staticExtra                                                                                   PoolPlainOracleStaticExtra
-		initialA, futureA, initialATime, futureATime, swapFee, adminFee, oracleLatestAnswer, lpSupply *big.Int
-		balances                                                                                      = make([]*big.Int, len(p.Tokens))
+		plainOraclePoolPrecision                                                  = bignumber.TenPowInt(18)
+		staticExtra                                                               PoolPlainOracleStaticExtra
+		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *uint256.Int
+		oracleLatestAnswer                                                        *big.Int
+		balances                                                                  = make([]*uint256.Int, len(p.Tokens))
 	)
 
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
@@ -209,12 +211,12 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 	}
 
 	var extra = PoolPlainOracleExtra{
-		InitialA:     safeCastBigIntToString(initialA),
-		FutureA:      safeCastBigIntToString(futureA),
-		InitialATime: safeCastBigIntToInt64(initialATime),
-		FutureATime:  safeCastBigIntToInt64(futureATime),
-		SwapFee:      safeCastBigIntToString(swapFee),
-		AdminFee:     safeCastBigIntToString(adminFee),
+		InitialA:     safeCastUint256ToString(initialA),
+		FutureA:      safeCastUint256ToString(futureA),
+		InitialATime: safeCastUint256ToInt64(initialATime),
+		FutureATime:  safeCastUint256ToInt64(futureATime),
+		SwapFee:      safeCastUint256ToString(swapFee),
+		AdminFee:     safeCastUint256ToString(adminFee),
 		Rates: []*big.Int{
 			plainOraclePoolPrecision,
 			oracleLatestAnswer,
@@ -232,9 +234,9 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 
 	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
 	for i := range balances {
-		reserves = append(reserves, safeCastBigIntToReserve(balances[i]))
+		reserves = append(reserves, safeCastUint256ToReserve(balances[i]))
 	}
-	reserves = append(reserves, safeCastBigIntToReserve(lpSupply))
+	reserves = append(reserves, safeCastUint256ToReserve(lpSupply))
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
