@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -59,8 +60,8 @@ func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entit
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	var totalPooledEther *big.Int
-	var totalShares *big.Int
+	var totalPooledEther *uint256.Int
+	var totalShares *uint256.Int
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stEthABI,

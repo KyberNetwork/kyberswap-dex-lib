@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -47,7 +48,7 @@ func (f *PoolFactory) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	var deployed struct {
 		Pool common.Address `abi:"pool"`
 	}
-	if err := factoryABI.UnpackIntoInterface(&deployed, "PoolDeployed", event.Data); err != nil {
+	if err := ethrpcabi.UnpackIntoInterface(&factoryABI, &deployed, "PoolDeployed", event.Data); err != nil {
 		return nil, err
 	}
 

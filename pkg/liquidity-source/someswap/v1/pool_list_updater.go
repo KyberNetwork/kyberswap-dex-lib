@@ -24,20 +24,20 @@ type (
 )
 
 type feeBase struct {
-	BaseFeeBps *big.Int `abi:"baseFeeBps"`
-	WToken0In  *big.Int `abi:"wToken0In"`
-	WToken1In  *big.Int `abi:"wToken1In"`
+	BaseFeeBps *uint256.Int `abi:"baseFeeBps"`
+	WToken0In  *uint256.Int `abi:"wToken0In"`
+	WToken1In  *uint256.Int `abi:"wToken1In"`
 }
 
 type dynamicFee struct {
-	CurrentBps  *big.Int `abi:"currentBps"`
-	Initialized uint8    `abi:"initialized"`
+	CurrentBps  *uint256.Int `abi:"currentBps"`
+	Initialized uint8        `abi:"initialized"`
 }
 
 type feeParams struct {
-	BaseFee          feeBase    `abi:"baseFee"`
-	DynamicFee       dynamicFee `abi:"dynamicFee"`
-	ProtocolShareBps *big.Int   `abi:"protocolShareBps"`
+	BaseFee          feeBase      `abi:"baseFee"`
+	DynamicFee       dynamicFee   `abi:"dynamicFee"`
+	ProtocolShareBps *uint256.Int `abi:"protocolShareBps"`
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -107,7 +107,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
-	var allPairsLength *big.Int
+	var allPairsLength uint64
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
@@ -118,7 +118,7 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 	if _, err := req.Call(); err != nil {
 		return 0, err
 	}
-	return int(allPairsLength.Int64()), nil
+	return int(allPairsLength), nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
@@ -180,12 +180,15 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 
 	pools := make([]entity.Pool, len(pairAddresses))
 	for i, pairAddress := range pairAddresses {
-		baseFeeBps, _ := fees[i].BaseFee.BaseFeeBps.Float64()
-		dynamicFeeBps, _ := fees[i].DynamicFee.CurrentBps.Float64()
+		baseFeeBps := float64(u256OrZero(fees[i].BaseFee.BaseFeeBps).Uint64())
+		dynamicFeeBps := float64(u256OrZero(fees[i].DynamicFee.CurrentBps).Uint64())
 		swapFee := min(maxFeeBps, baseFeeBps+dynamicFeeBps) / bps
 
 		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			WTokens: [2]*uint256.Int{toU256(fees[i].BaseFee.WToken0In), toU256(fees[i].BaseFee.WToken1In)},
+			WTokens: [2]*uint256.Int{
+				u256OrZero(fees[i].BaseFee.WToken0In),
+				u256OrZero(fees[i].BaseFee.WToken1In),
+			},
 		})
 
 		pools[i] = entity.Pool{
@@ -240,9 +243,8 @@ func (u *PoolsListUpdater) newMetadata(offset int) ([]byte, error) {
 	return json.Marshal(Metadata{Offset: offset})
 }
 
-func toU256(b *big.Int) *uint256.Int {
-	u, overflow := uint256.FromBig(b)
-	if u == nil || overflow {
+func u256OrZero(u *uint256.Int) *uint256.Int {
+	if u == nil {
 		return new(uint256.Int)
 	}
 	return u

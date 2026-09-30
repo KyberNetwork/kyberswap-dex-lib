@@ -1,7 +1,6 @@
 package lunarbase
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -34,8 +33,8 @@ type snapshotCache struct {
 
 func cloneRPCState(state *rpcState) *rpcState {
 	copyState := *state
-	copyState.reserveX = new(big.Int).Set(state.reserveX)
-	copyState.reserveY = new(big.Int).Set(state.reserveY)
+	copyState.reserveX = new(uint256.Int).Set(state.reserveX)
+	copyState.reserveY = new(uint256.Int).Set(state.reserveY)
 	copyState.extra.SqrtPriceX96 = new(uint256.Int).Set(state.extra.SqrtPriceX96)
 	return &copyState
 }

@@ -3,13 +3,13 @@ package polmatic
 import (
 	"context"
 	"errors"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -74,8 +74,8 @@ func (t *PoolTracker) getNewPoolState(
 	}()
 
 	var (
-		maticReserves   *big.Int
-		polygonReserves *big.Int
+		maticReserves   *uint256.Int
+		polygonReserves *uint256.Int
 	)
 
 	poolAddress := common.HexToAddress(p.Address)

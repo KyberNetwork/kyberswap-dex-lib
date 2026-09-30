@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -80,7 +81,7 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, *
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	var stEthPerToken, tokensPerStEth *big.Int
+	var stEthPerToken, tokensPerStEth *uint256.Int
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    wstETHABI,
@@ -105,8 +106,8 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, *
 	}
 
 	extra := Extra{
-		StEthPerToken:  stEthPerToken,
-		TokensPerStEth: tokensPerStEth,
+		StEthPerToken:  u256ToBig(stEthPerToken),
+		TokensPerStEth: u256ToBig(tokensPerStEth),
 	}
 
 	return extra, response.BlockNumber, nil
@@ -115,7 +116,7 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, *
 func (d *PoolTracker) getPoolReserves(
 	ctx context.Context, p entity.Pool, blockNumber *big.Int,
 ) (entity.PoolReserves, *big.Int, error) {
-	var reserves = make([]*big.Int, len(p.Tokens))
+	var reserves = make([]*uint256.Int, len(p.Tokens))
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
@@ -156,4 +157,11 @@ func (d *PoolTracker) getPoolReserves(
 	}
 
 	return poolReserves, response.BlockNumber, nil
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+	return v.ToBig()
 }

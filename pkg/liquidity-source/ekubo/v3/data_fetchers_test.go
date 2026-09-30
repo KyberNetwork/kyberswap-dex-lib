@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
@@ -49,8 +50,8 @@ func TestDecodeVe33QuoteData(t *testing.T) {
 	require.NoError(t, err)
 
 	var decoded []ve33QuoteData
-	require.NoError(t, abis.Ve33DataFetcherABI.UnpackIntoInterface(
-		&decoded, ve33DataFetcherMethod, encoded,
+	require.NoError(t, ethrpcabi.UnpackIntoInterface(
+		&abis.Ve33DataFetcherABI, &decoded, ve33DataFetcherMethod, encoded,
 	))
 	require.Len(t, decoded, 1)
 	require.Equal(t, expected[0].SwapFee, decoded[0].SwapFee)

@@ -9,6 +9,7 @@ import (
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/common"
@@ -73,7 +74,7 @@ func (t *PoolTracker) getExtra(
 ) (PoolExtra, uint64, error) {
 	var (
 		paused         bool
-		swETHToETHRate *big.Int
+		swETHToETHRate *uint256.Int
 	)
 
 	getPoolStateRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -105,6 +106,13 @@ func (t *PoolTracker) getExtra(
 
 	return PoolExtra{
 		Paused:         paused,
-		SWETHToETHRate: swETHToETHRate,
+		SWETHToETHRate: u256ToBig(swETHToETHRate),
 	}, resp.BlockNumber.Uint64(), nil
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+	return v.ToBig()
 }

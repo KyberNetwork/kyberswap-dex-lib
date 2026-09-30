@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -177,7 +178,7 @@ func TestValidateABIDecode_RealOnChainResponse(t *testing.T) {
 			"0000000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, err)
 	var noTaxResult validateResult
-	require.NoError(t, detectorABI.UnpackIntoInterface(&noTaxResult, methodValidate, noTax))
+	require.NoError(t, ethrpcabi.UnpackIntoInterface(&detectorABI, &noTaxResult, methodValidate, noTax))
 	assert.Equal(t, 0, noTaxResult.Fees.BuyFeeBps.Cmp(big.NewInt(0)))
 	assert.Equal(t, 0, noTaxResult.Fees.SellFeeBps.Cmp(big.NewInt(0)))
 
@@ -190,7 +191,7 @@ func TestValidateABIDecode_RealOnChainResponse(t *testing.T) {
 			"0000000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, err)
 	var withTaxResult validateResult
-	require.NoError(t, detectorABI.UnpackIntoInterface(&withTaxResult, methodValidate, withTax))
+	require.NoError(t, ethrpcabi.UnpackIntoInterface(&detectorABI, &withTaxResult, methodValidate, withTax))
 	assert.Equal(t, 0, withTaxResult.Fees.BuyFeeBps.Cmp(big.NewInt(100)))
 	assert.Equal(t, 0, withTaxResult.Fees.SellFeeBps.Cmp(big.NewInt(100)))
 	assert.False(t, withTaxResult.Fees.SellReverted)
@@ -203,7 +204,7 @@ func TestValidateABIDecode_RealOnChainResponse(t *testing.T) {
 			"00000000000000000000000000000000000000000000000000000000000003e8")
 	require.NoError(t, err)
 	var basicResult validateBasicResult
-	require.NoError(t, detectorBasicABI.UnpackIntoInterface(&basicResult, methodValidate, basicWithTax))
+	require.NoError(t, ethrpcabi.UnpackIntoInterface(&detectorBasicABI, &basicResult, methodValidate, basicWithTax))
 	assert.Equal(t, 0, basicResult.Fees.BuyFeeBps.Cmp(big.NewInt(100)))
 	assert.Equal(t, 0, basicResult.Fees.SellFeeBps.Cmp(big.NewInt(1000)))
 }

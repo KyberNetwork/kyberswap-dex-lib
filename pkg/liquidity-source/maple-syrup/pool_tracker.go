@@ -67,7 +67,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var (
 		active       bool
-		liquidityCap *big.Int
+		liquidityCap *uint256.Int
 	)
 	resp, err := t.ethrpcClient.NewRequest().
 		SetContext(ctx).
@@ -94,7 +94,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 	extra.Active = active
-	extra.LiquidityCap = uint256.MustFromBig(liquidityCap)
+	extra.LiquidityCap = liquidityCap
 	extra.Router = t.cfg.Vaults[p.Address].Router
 
 	extraBytes, err := json.Marshal(extra)

@@ -1,9 +1,9 @@
 package someswapv1
 
 import (
-	"math/big"
-
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/holiman/uint256"
 )
 
 func isSyncEvent(log types.Log) bool {
@@ -15,10 +15,10 @@ func isSyncEvent(log types.Log) bool {
 
 func decodeSyncEvent(log types.Log) (ReserveData, error) {
 	var evt struct {
-		Reserve0 *big.Int `abi:"reserve0"`
-		Reserve1 *big.Int `abi:"reserve1"`
+		Reserve0 *uint256.Int `abi:"reserve0"`
+		Reserve1 *uint256.Int `abi:"reserve1"`
 	}
-	if err := PairABI.UnpackIntoInterface(&evt, "Sync", log.Data); err != nil {
+	if err := ethrpcabi.UnpackIntoInterface(&PairABI, &evt, "Sync", log.Data); err != nil {
 		return ReserveData{}, err
 	}
 	return ReserveData{

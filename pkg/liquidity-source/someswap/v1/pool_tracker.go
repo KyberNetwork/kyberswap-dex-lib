@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -93,7 +94,7 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 	return reserves, resp.BlockNumber, nil
 }
 
-func reserveString(reserve *big.Int) string {
+func reserveString(reserve *uint256.Int) string {
 	if reserve == nil {
 		return "0"
 	}

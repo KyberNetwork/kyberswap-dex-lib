@@ -1,14 +1,12 @@
 package someswapv1
 
 import (
-	"math/big"
-
 	"github.com/holiman/uint256"
 )
 
 type ReserveData struct {
-	Reserve0 *big.Int `abi:"_r0"`
-	Reserve1 *big.Int `abi:"_r1"`
+	Reserve0 *uint256.Int `abi:"_r0"`
+	Reserve1 *uint256.Int `abi:"_r1"`
 }
 
 func (d ReserveData) IsZero() bool {

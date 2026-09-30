@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,7 @@ func TestToLevels_MatchesGetAmountOut(t *testing.T) {
 	require.NoError(t, err)
 
 	var res getOrderBookResult
-	require.NoError(t, routerABI.UnpackIntoInterface(&res, methodGetOrderBook, data))
+	require.NoError(t, ethrpcabi.UnpackIntoInterface(&routerABI, &res, methodGetOrderBook, data))
 
 	require.Len(t, res.Book.Side0.Orders, 12)
 	require.Len(t, res.Book.Side1.Orders, 13)
@@ -72,7 +73,7 @@ func TestToLevels_SmallTradeNotRejected(t *testing.T) {
 	require.NoError(t, err)
 
 	var res getOrderBookResult
-	require.NoError(t, routerABI.UnpackIntoInterface(&res, methodGetOrderBook, data))
+	require.NoError(t, ethrpcabi.UnpackIntoInterface(&routerABI, &res, methodGetOrderBook, data))
 
 	levels := toLevels(res.Book.Side0, res.Book.Side1, 18, 6)
 

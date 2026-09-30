@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -131,7 +132,7 @@ func (d *PoolTracker) getStateFromRPCNode(ctx context.Context, poolAddress strin
 	return reserves, moduleMask, userModule, resp.BlockNumber, nil
 }
 
-func reserveString(reserve *big.Int) string {
+func reserveString(reserve *uint256.Int) string {
 	if reserve == nil {
 		return "0"
 	}

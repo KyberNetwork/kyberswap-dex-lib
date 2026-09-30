@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -27,8 +28,8 @@ type rpcState struct {
 	hasNative   bool
 	tokenX      string
 	tokenY      string
-	reserveX    *big.Int
-	reserveY    *big.Int
+	reserveX    *uint256.Int
+	reserveY    *uint256.Int
 	extra       Extra
 }
 
@@ -113,11 +114,11 @@ func fetchSelectedRPCState(ctx context.Context, coreAddress string, chainID valu
 		blockDelay       uint64
 		concentrationK   uint32
 		maxPunishmentX24 uint32
-		anchorPrice      *big.Int
-		reserveX         *big.Int
-		reserveY         *big.Int
+		anchorPrice      *uint256.Int
+		reserveX         *uint256.Int
+		reserveY         *uint256.Int
 		state            struct {
-			AnchorPrice       *big.Int
+			AnchorPrice       *uint256.Int
 			FeeAskX24         uint32
 			FeeBidX24         uint32
 			LatestUpdateBlock uint64
@@ -196,7 +197,7 @@ func fetchSelectedRPCState(ctx context.Context, coreAddress string, chainID valu
 	// decode failure while leaving its Result entry true. Independently
 	// validate the raw aggregate and every successful getter payload.
 	var aggregate ethrpc.TryBlockAndAggregateResult
-	if err := snapshotAggregateABI.UnpackIntoInterface(&aggregate, "tryBlockAndAggregate", resp.RawResponse); err != nil {
+	if err := ethrpcabi.UnpackIntoInterface(&snapshotAggregateABI, &aggregate, "tryBlockAndAggregate", resp.RawResponse); err != nil {
 		return nil, fmt.Errorf("lunarbase snapshot aggregate decode: %w", err)
 	}
 	if aggregate.BlockNumber == nil || !aggregate.BlockNumber.IsUint64() || aggregate.BlockNumber.Sign() <= 0 ||
@@ -225,7 +226,7 @@ func fetchSelectedRPCState(ctx context.Context, coreAddress string, chainID valu
 		if err != nil || !bytes.Equal(canonical, item.ReturnData) {
 			return nil, fmt.Errorf("lunarbase snapshot: getter %s has noncanonical output", call.Method)
 		}
-		if err := call.ABI.UnpackIntoInterface(call.Output[0], call.Method, item.ReturnData); err != nil {
+		if err := ethrpcabi.UnpackIntoInterface(&call.ABI, call.Output[0], call.Method, item.ReturnData); err != nil {
 			return nil, fmt.Errorf("lunarbase snapshot getter %s: %w", call.Method, err)
 		}
 	}
@@ -239,12 +240,12 @@ func fetchSelectedRPCState(ctx context.Context, coreAddress string, chainID valu
 		maxPunishmentX24 = 0
 	}
 	if tokenX == tokenY || blockDelay == 0 || blockDelay >= 1<<48 ||
-		state.AnchorPrice == nil || state.AnchorPrice.Sign() < 0 || state.AnchorPrice.BitLen() > 160 ||
-		anchorPrice == nil || state.AnchorPrice.Cmp(anchorPrice) != 0 ||
+		state.AnchorPrice == nil || state.AnchorPrice.BitLen() > 160 ||
+		anchorPrice == nil || !state.AnchorPrice.Eq(anchorPrice) ||
 		state.FeeAskX24 >= 1<<24 || state.FeeBidX24 >= 1<<24 || maxPunishmentX24 >= 1<<24 ||
 		state.LatestUpdateBlock > blockNumber ||
-		reserveX == nil || reserveX.Sign() < 0 || reserveX.BitLen() > 112 ||
-		reserveY == nil || reserveY.Sign() < 0 || reserveY.BitLen() > 112 {
+		reserveX == nil || reserveX.BitLen() > 112 ||
+		reserveY == nil || reserveY.BitLen() > 112 {
 		return nil, fmt.Errorf("lunarbase snapshot: invalid or inconsistent getter values")
 	}
 	var hashText string
@@ -264,7 +265,7 @@ func fetchSelectedRPCState(ctx context.Context, coreAddress string, chainID valu
 		return nil, fmt.Errorf("lunarbase snapshot: tokens alias after native wrapping")
 	}
 
-	sqrtPriceX96 := uint256.MustFromBig(state.AnchorPrice)
+	sqrtPriceX96 := new(uint256.Int).Set(state.AnchorPrice)
 
 	return &rpcState{
 		blockNumber: blockNumber,

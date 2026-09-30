@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/KyberNetwork/logger"
 	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -56,8 +57,8 @@ var tickIndexTopicArgs = ethabi.Arguments{
 }
 
 type tickIndexTopics struct {
-	TickLower *big.Int
-	TickUpper *big.Int
+	TickLower int32
+	TickUpper int32
 }
 
 func extractTickIndexes(event ethtypes.Log) (lower, upper int, err error) {
@@ -66,11 +67,11 @@ func extractTickIndexes(event ethtypes.Log) (lower, upper int, err error) {
 	}
 
 	var topics tickIndexTopics
-	if err := ethabi.ParseTopics(&topics, tickIndexTopicArgs, event.Topics[2:4]); err != nil {
+	if err := ethrpcabi.ParseTopics(&topics, tickIndexTopicArgs, event.Topics[2:4]); err != nil {
 		return 0, 0, err
 	}
 
-	return int(topics.TickLower.Int64()), int(topics.TickUpper.Int64()), nil
+	return int(topics.TickLower), int(topics.TickUpper), nil
 }
 
 type Tracker struct {

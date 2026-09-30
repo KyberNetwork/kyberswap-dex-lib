@@ -750,8 +750,8 @@ func TestPerformanceSnapshotCacheClonesMutableIntegers(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantPrice := first.extra.SqrtPriceX96.String()
-	first.reserveX.SetInt64(0)
-	first.reserveY.SetInt64(1)
+	first.reserveX.SetUint64(0)
+	first.reserveY.SetUint64(1)
 	first.extra.SqrtPriceX96.Clear()
 	for i := 0; i < 2; i++ {
 		got, err := fetchRPCStateWithCache(context.Background(), verifiedPoolAddress, valueobject.ChainIDBSC, client, cache)
@@ -761,8 +761,8 @@ func TestPerformanceSnapshotCacheClonesMutableIntegers(t *testing.T) {
 		if got.reserveX.String() != "1230000000" || got.reserveY.String() != "4560000000" || got.extra.SqrtPriceX96.String() != wantPrice {
 			t.Fatal("returned mutable integers alias cached state")
 		}
-		got.reserveX.SetInt64(777)
-		got.reserveY.SetInt64(888)
+		got.reserveX.SetUint64(777)
+		got.reserveY.SetUint64(888)
 		got.extra.SqrtPriceX96.Clear()
 	}
 }

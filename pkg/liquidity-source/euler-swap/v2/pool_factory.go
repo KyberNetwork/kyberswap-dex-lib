@@ -3,15 +3,16 @@ package v2
 import (
 	"context"
 	"errors"
-	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethrpcabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
@@ -48,9 +49,9 @@ func (f *PoolFactory) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
 	var registered struct {
 		Pool         common.Address     `abi:"pool"`
 		SParams      StaticParamsFields `abi:"sParams"`
-		ValidityBond *big.Int           `abi:"validityBond"`
+		ValidityBond *uint256.Int       `abi:"validityBond"`
 	}
-	if err := registryABI.UnpackIntoInterface(&registered, "PoolRegistered", event.Data); err != nil {
+	if err := ethrpcabi.UnpackIntoInterface(&registryABI, &registered, "PoolRegistered", event.Data); err != nil {
 		return nil, err
 	}
 
