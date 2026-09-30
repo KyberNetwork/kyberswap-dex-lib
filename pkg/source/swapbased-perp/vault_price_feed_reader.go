@@ -2,13 +2,13 @@ package swapbasedperp
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 )
 
 type VaultPriceFeedReader struct {
@@ -109,9 +109,9 @@ func (r *VaultPriceFeedReader) readTokenData(
 	tokensLen := len(tokens)
 
 	priceFeedsAddresses := make([]common.Address, tokensLen)
-	priceDecimals := make([]*big.Int, tokensLen)
-	spreadBasisPoints := make([]*big.Int, tokensLen)
-	adjustmentBasisPoints := make([]*big.Int, tokensLen)
+	priceDecimals := make([]*uint256.Int, tokensLen)
+	spreadBasisPoints := make([]*uint256.Int, tokensLen)
+	adjustmentBasisPoints := make([]*uint256.Int, tokensLen)
 	strictStableTokens := make([]bool, tokensLen)
 	isAdjustmentAdditive := make([]bool, tokensLen)
 
@@ -136,9 +136,9 @@ func (r *VaultPriceFeedReader) readTokenData(
 
 	for i, token := range tokens {
 		vaultPriceFeed.PriceFeedsAddresses[token] = priceFeedsAddresses[i]
-		vaultPriceFeed.PriceDecimals[token] = priceDecimals[i]
-		vaultPriceFeed.SpreadBasisPoints[token] = spreadBasisPoints[i]
-		vaultPriceFeed.AdjustmentBasisPoints[token] = adjustmentBasisPoints[i]
+		vaultPriceFeed.PriceDecimals[token] = u256ToBig(priceDecimals[i])
+		vaultPriceFeed.SpreadBasisPoints[token] = u256ToBig(spreadBasisPoints[i])
+		vaultPriceFeed.AdjustmentBasisPoints[token] = u256ToBig(adjustmentBasisPoints[i])
 		vaultPriceFeed.StrictStableTokens[token] = strictStableTokens[i]
 		vaultPriceFeed.IsAdjustmentAdditive[token] = isAdjustmentAdditive[i]
 	}

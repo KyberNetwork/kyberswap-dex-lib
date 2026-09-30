@@ -2,12 +2,12 @@ package madmex
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type FastPriceFeedV1Reader struct {
@@ -82,7 +82,7 @@ func (r *FastPriceFeedV1Reader) readTokenData(
 ) error {
 	tokensLen := len(tokens)
 
-	prices := make([]*big.Int, tokensLen)
+	prices := make([]*uint256.Int, tokensLen)
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -100,7 +100,7 @@ func (r *FastPriceFeedV1Reader) readTokenData(
 	}
 
 	for i, token := range tokens {
-		fastPriceFeed.Prices[token] = prices[i]
+		fastPriceFeed.Prices[token] = u256ToBig(prices[i])
 	}
 
 	return nil

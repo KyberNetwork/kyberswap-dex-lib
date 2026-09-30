@@ -2,11 +2,11 @@ package fxdx
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type USDFReader struct {
@@ -27,7 +27,7 @@ func NewUSDFReader(ethrpcClient *ethrpc.Client) *USDFReader {
 }
 
 func (r *USDFReader) Read(ctx context.Context, address string) (*USDF, error) {
-	var totalSupply *big.Int
+	var totalSupply *uint256.Int
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -44,6 +44,6 @@ func (r *USDFReader) Read(ctx context.Context, address string) (*USDF, error) {
 
 	return &USDF{
 		Address:     address,
-		TotalSupply: totalSupply,
+		TotalSupply: u256ToBig(totalSupply),
 	}, nil
 }

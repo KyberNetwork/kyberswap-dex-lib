@@ -2,11 +2,11 @@ package metavault
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type USDMReader struct {
@@ -27,7 +27,7 @@ func NewUSDMReader(ethrpcClient *ethrpc.Client) *USDMReader {
 }
 
 func (r *USDMReader) Read(ctx context.Context, address string) (*USDM, error) {
-	var totalSupply *big.Int
+	var totalSupply *uint256.Int
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -45,6 +45,6 @@ func (r *USDMReader) Read(ctx context.Context, address string) (*USDM, error) {
 
 	return &USDM{
 		Address:     address,
-		TotalSupply: totalSupply,
+		TotalSupply: u256ToBig(totalSupply),
 	}, nil
 }

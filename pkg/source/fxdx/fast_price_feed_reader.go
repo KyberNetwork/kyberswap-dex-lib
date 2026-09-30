@@ -2,12 +2,12 @@ package fxdx
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type FastPriceFeedReader struct {
@@ -74,9 +74,9 @@ func (r *FastPriceFeedReader) readTokenData(
 ) error {
 	tokensLen := len(tokens)
 
-	prices := make([]*big.Int, tokensLen)
-	maxCumulativeDeltaDiffs := make([]*big.Int, tokensLen)
-	priceData := make([][4]*big.Int, tokensLen)
+	prices := make([]*uint256.Int, tokensLen)
+	maxCumulativeDeltaDiffs := make([]*uint256.Int, tokensLen)
+	priceData := make([][4]*uint256.Int, tokensLen)
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -92,13 +92,13 @@ func (r *FastPriceFeedReader) readTokenData(
 	}
 
 	for i, token := range tokens {
-		fastPriceFeed.Prices[token] = prices[i]
-		fastPriceFeed.MaxCumulativeDeltaDiffs[token] = maxCumulativeDeltaDiffs[i]
+		fastPriceFeed.Prices[token] = u256ToBig(prices[i])
+		fastPriceFeed.MaxCumulativeDeltaDiffs[token] = u256ToBig(maxCumulativeDeltaDiffs[i])
 		fastPriceFeed.PriceData[token] = PriceDataItem{
-			RefPrice:            priceData[i][0],
-			RefTime:             priceData[i][1],
-			CumulativeRefDelta:  priceData[i][2],
-			CumulativeFastDelta: priceData[i][3],
+			RefPrice:            u256ToBig(priceData[i][0]),
+			RefTime:             u256ToBig(priceData[i][1]),
+			CumulativeRefDelta:  u256ToBig(priceData[i][2]),
+			CumulativeFastDelta: u256ToBig(priceData[i][3]),
 		}
 	}
 

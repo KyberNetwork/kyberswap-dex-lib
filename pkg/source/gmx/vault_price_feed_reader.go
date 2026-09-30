@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 )
 
 type VaultPriceFeedReader struct {
@@ -138,14 +139,14 @@ func (r *VaultPriceFeedReader) readTokenData(
 	tokensLen := len(tokens)
 
 	priceFeedsAddresses := make([]common.Address, tokensLen)
-	priceDecimals := make([]*big.Int, tokensLen)
-	spreadBasisPoints := make([]*big.Int, tokensLen)
-	adjustmentBasisPoints := make([]*big.Int, tokensLen)
+	priceDecimals := make([]*uint256.Int, tokensLen)
+	spreadBasisPoints := make([]*uint256.Int, tokensLen)
+	adjustmentBasisPoints := make([]*uint256.Int, tokensLen)
 	strictStableTokens := make([]bool, tokensLen)
 	isAdjustmentAdditive := make([]bool, tokensLen)
-	var prices [][2]*big.Int
+	var prices [][2]*uint256.Int
 	if r.priceFeedType == PriceFeedTypeDirect {
-		prices = make([][2]*big.Int, tokensLen)
+		prices = make([][2]*uint256.Int, tokensLen)
 	}
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
@@ -178,16 +179,16 @@ func (r *VaultPriceFeedReader) readTokenData(
 
 	for i, token := range tokens {
 		vaultPriceFeed.PriceFeedsAddresses[token] = priceFeedsAddresses[i]
-		vaultPriceFeed.PriceDecimals[token] = priceDecimals[i]
-		vaultPriceFeed.SpreadBasisPoints[token] = spreadBasisPoints[i]
-		vaultPriceFeed.AdjustmentBasisPoints[token] = adjustmentBasisPoints[i]
+		vaultPriceFeed.PriceDecimals[token] = u256ToBig(priceDecimals[i])
+		vaultPriceFeed.SpreadBasisPoints[token] = u256ToBig(spreadBasisPoints[i])
+		vaultPriceFeed.AdjustmentBasisPoints[token] = u256ToBig(adjustmentBasisPoints[i])
 		vaultPriceFeed.StrictStableTokens[token] = strictStableTokens[i]
 		vaultPriceFeed.IsAdjustmentAdditive[token] = isAdjustmentAdditive[i]
 		if r.priceFeedType == PriceFeedTypeDirect {
 			vaultPriceFeed.PriceFeeds[token] = &PriceFeed{
 				Answers: map[string]*big.Int{
-					"false": prices[i][0],
-					"true":  prices[i][1],
+					"false": u256ToBig(prices[i][0]),
+					"true":  u256ToBig(prices[i][1]),
 				},
 			}
 		}

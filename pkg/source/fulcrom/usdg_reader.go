@@ -2,11 +2,11 @@ package fulcrom
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type USDGReader struct {
@@ -27,7 +27,7 @@ func NewUSDGReader(ethrpcClient *ethrpc.Client) *USDGReader {
 }
 
 func (r *USDGReader) Read(ctx context.Context, address string) (*USDG, error) {
-	var totalSupply *big.Int
+	var totalSupply *uint256.Int
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -44,6 +44,6 @@ func (r *USDGReader) Read(ctx context.Context, address string) (*USDG, error) {
 
 	return &USDG{
 		Address:     address,
-		TotalSupply: totalSupply,
+		TotalSupply: u256ToBig(totalSupply),
 	}, nil
 }

@@ -2,12 +2,12 @@ package quickperps
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type FastPriceFeedV2Reader struct {
@@ -84,8 +84,8 @@ func (r *FastPriceFeedV2Reader) readTokenData(
 ) error {
 	tokensLen := len(tokens)
 
-	prices := make([]*big.Int, tokensLen)
-	maxCumulativeDeltaDiffs := make([]*big.Int, tokensLen)
+	prices := make([]*uint256.Int, tokensLen)
+	maxCumulativeDeltaDiffs := make([]*uint256.Int, tokensLen)
 	priceData := make([]PriceDataItem, tokensLen)
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
@@ -102,8 +102,8 @@ func (r *FastPriceFeedV2Reader) readTokenData(
 	}
 
 	for i, token := range tokens {
-		fastPriceFeed.Prices[token] = prices[i]
-		fastPriceFeed.MaxCumulativeDeltaDiffs[token] = maxCumulativeDeltaDiffs[i]
+		fastPriceFeed.Prices[token] = u256ToBig(prices[i])
+		fastPriceFeed.MaxCumulativeDeltaDiffs[token] = u256ToBig(maxCumulativeDeltaDiffs[i])
 		fastPriceFeed.PriceData[token] = priceData[i]
 	}
 

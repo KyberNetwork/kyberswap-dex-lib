@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type PancakePairReader struct {
@@ -28,8 +29,8 @@ func NewPancakePairReader(ethrpcClient *ethrpc.Client) *PancakePairReader {
 
 func (r *PancakePairReader) Read(ctx context.Context, address string) (*PancakePair, error) {
 	var reserves struct {
-		Reserve0           *big.Int
-		Reserve1           *big.Int
+		Reserve0           *uint256.Int
+		Reserve1           *uint256.Int
 		BlockTimestampLast uint32
 	}
 
@@ -49,8 +50,8 @@ func (r *PancakePairReader) Read(ctx context.Context, address string) (*PancakeP
 
 	return &PancakePair{
 		Reserves: []*big.Int{
-			reserves.Reserve0,
-			reserves.Reserve1,
+			u256ToBig(reserves.Reserve0),
+			u256ToBig(reserves.Reserve1),
 		},
 		TimestampLast: reserves.BlockTimestampLast,
 	}, nil

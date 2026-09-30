@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 )
 
 type VaultReader struct {
@@ -100,14 +101,14 @@ func (r *VaultReader) readWhitelistedTokens(
 
 func (r *VaultReader) readTokensData(ctx context.Context, address string, vault *Vault) (*big.Int, error) {
 	tokensLen := len(vault.WhitelistedTokens)
-	poolAmounts := make([]*big.Int, tokensLen)
-	bufferAmounts := make([]*big.Int, tokensLen)
-	reservedAmounts := make([]*big.Int, tokensLen)
-	tokenDecimals := make([]*big.Int, tokensLen)
+	poolAmounts := make([]*uint256.Int, tokensLen)
+	bufferAmounts := make([]*uint256.Int, tokensLen)
+	reservedAmounts := make([]*uint256.Int, tokensLen)
+	tokenDecimals := make([]*uint256.Int, tokensLen)
 	stableTokens := make([]bool, tokensLen)
-	usdfAmounts := make([]*big.Int, tokensLen)
-	maxUSDFAmounts := make([]*big.Int, tokensLen)
-	tokenWeights := make([]*big.Int, tokensLen)
+	usdfAmounts := make([]*uint256.Int, tokensLen)
+	maxUSDFAmounts := make([]*uint256.Int, tokensLen)
+	tokenWeights := make([]*uint256.Int, tokensLen)
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 	callParamsFactory := CallParamsFactory(r.abi, address)
@@ -131,14 +132,14 @@ func (r *VaultReader) readTokensData(ctx context.Context, address string, vault 
 	}
 
 	for i, token := range vault.WhitelistedTokens {
-		vault.PoolAmounts[token] = poolAmounts[i]
-		vault.BufferAmounts[token] = bufferAmounts[i]
-		vault.ReservedAmounts[token] = reservedAmounts[i]
-		vault.TokenDecimals[token] = tokenDecimals[i]
+		vault.PoolAmounts[token] = u256ToBig(poolAmounts[i])
+		vault.BufferAmounts[token] = u256ToBig(bufferAmounts[i])
+		vault.ReservedAmounts[token] = u256ToBig(reservedAmounts[i])
+		vault.TokenDecimals[token] = u256ToBig(tokenDecimals[i])
 		vault.StableTokens[token] = stableTokens[i]
-		vault.USDFAmounts[token] = usdfAmounts[i]
-		vault.MaxUSDFAmounts[token] = maxUSDFAmounts[i]
-		vault.TokenWeights[token] = tokenWeights[i]
+		vault.USDFAmounts[token] = u256ToBig(usdfAmounts[i])
+		vault.MaxUSDFAmounts[token] = u256ToBig(maxUSDFAmounts[i])
+		vault.TokenWeights[token] = u256ToBig(tokenWeights[i])
 	}
 
 	return response.BlockNumber, nil

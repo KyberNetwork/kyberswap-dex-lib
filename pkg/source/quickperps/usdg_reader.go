@@ -2,11 +2,11 @@ package quickperps
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type USDQReader struct {
@@ -27,7 +27,7 @@ func NewUSDQReader(ethrpcClient *ethrpc.Client) *USDQReader {
 }
 
 func (r *USDQReader) Read(ctx context.Context, address string) (*USDQ, error) {
-	var totalSupply *big.Int
+	var totalSupply *uint256.Int
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -44,6 +44,6 @@ func (r *USDQReader) Read(ctx context.Context, address string) (*USDQ, error) {
 
 	return &USDQ{
 		Address:     address,
-		TotalSupply: totalSupply,
+		TotalSupply: u256ToBig(totalSupply),
 	}, nil
 }

@@ -2,12 +2,12 @@ package fulcrom
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type VaultPriceFeedReader struct {
@@ -57,8 +57,8 @@ func (r *VaultPriceFeedReader) readTokenData(
 ) error {
 	tokensLen := len(tokens)
 
-	maxPrices := make([]*big.Int, tokensLen)
-	minPrices := make([]*big.Int, tokensLen)
+	maxPrices := make([]*uint256.Int, tokensLen)
+	minPrices := make([]*uint256.Int, tokensLen)
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
@@ -76,8 +76,8 @@ func (r *VaultPriceFeedReader) readTokenData(
 	}
 
 	for i, token := range tokens {
-		vaultPriceFeed.MinPrices[token] = minPrices[i]
-		vaultPriceFeed.MaxPrices[token] = maxPrices[i]
+		vaultPriceFeed.MinPrices[token] = u256ToBig(minPrices[i])
+		vaultPriceFeed.MaxPrices[token] = u256ToBig(maxPrices[i])
 	}
 
 	return nil

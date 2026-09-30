@@ -2,11 +2,11 @@ package swapbasedperp
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/holiman/uint256"
 )
 
 type USDBReader struct {
@@ -27,7 +27,7 @@ func NewUSDBReader(ethrpcClient *ethrpc.Client) *USDBReader {
 }
 
 func (r *USDBReader) Read(ctx context.Context, address string) (*USDB, error) {
-	var totalSupply *big.Int
+	var totalSupply *uint256.Int
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -44,6 +44,6 @@ func (r *USDBReader) Read(ctx context.Context, address string) (*USDB, error) {
 
 	return &USDB{
 		Address:     address,
-		TotalSupply: totalSupply,
+		TotalSupply: u256ToBig(totalSupply),
 	}, nil
 }
