@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -57,12 +58,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	// TokenManager use 1-based indexing
-	if offset >= tokenIdentifier.Uint64() {
+	if offset >= tokenIdentifier {
 		u.logger.Info("no new pools")
 		return nil, metadataBytes, nil
 	}
 
-	newOffset := min(tokenIdentifier.Uint64(), offset+uint64(u.config.NewPoolLimit))
+	newOffset := min(tokenIdentifier, offset+uint64(u.config.NewPoolLimit))
 	pools, err := u.initPools(ctx, offset, newOffset)
 	if err != nil {
 		u.logger.Error("failed to initPools")
@@ -147,8 +148,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, offset, newOffset uint
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) getTokenIdentifier(ctx context.Context) (*big.Int, error) {
-	var tokenIdentifier *big.Int
+func (u *PoolsListUpdater) getTokenIdentifier(ctx context.Context) (uint64, error) {
+	var tokenIdentifier uint256.Int
 	req := u.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    tokenManagerABI,
@@ -157,10 +158,10 @@ func (u *PoolsListUpdater) getTokenIdentifier(ctx context.Context) (*big.Int, er
 		}, []any{&tokenIdentifier})
 
 	if _, err := req.Call(); err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return tokenIdentifier, nil
+	return tokenIdentifier.Uint64(), nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (uint64, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -99,7 +100,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		pools = make([]entity.Pool, 0, len(poolAddresses))
 
 		tokens  = make([][maxPoolTokenNumber]bytes32, limit)
-		weights = make([][maxPoolTokenNumber]*big.Int, limit)
+		weights = make([][maxPoolTokenNumber]*uint256.Int, limit)
 	)
 
 	req := d.ethrpcClient.R().SetContext(ctx)
@@ -157,7 +158,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				Address:   t,
 				Swappable: true,
 			})
-			tokenWeights = append(tokenWeights, w)
+			tokenWeights = append(tokenWeights, u256ToBig(w))
 			reserves = append(reserves, reserveZero)
 		}
 
@@ -226,7 +227,7 @@ func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, b
 }
 
 func (d *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
-	var l *big.Int
+	var l uint256.Int
 	req := d.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
@@ -289,4 +290,12 @@ func getBatchSize(length int, limit int, offset int) int {
 	}
 
 	return limit
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }

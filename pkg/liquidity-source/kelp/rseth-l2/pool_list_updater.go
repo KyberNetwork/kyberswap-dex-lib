@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -57,9 +58,9 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 	var supportedTokens []common.Address
 	var supportedTokenOracles []common.Address
 	var wrsETH common.Address
-	var rates []*big.Int
-	var feeBps *big.Int
-	var rseTHRate *big.Int
+	var rates []*uint256.Int
+	var feeBps *uint256.Int
+	var rseTHRate *uint256.Int
 	nativeEnabled := true
 	req := rpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -111,7 +112,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		return nil, err
 	}
 	if len(extra.SupportedTokenOracles) > 0 {
-		rates = make([]*big.Int, len(extra.SupportedTokenOracles))
+		rates = make([]*uint256.Int, len(extra.SupportedTokenOracles))
 		ReqRates(req, lo.Map(extra.SupportedTokenOracles, func(oracle string, _ int) common.Address { return common.HexToAddress(oracle) }), rates)
 	}
 
@@ -147,7 +148,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 				snapshotBlock = block
 			}
 		}
-		rates = make([]*big.Int, len(supportedTokenOracles))
+		rates = make([]*uint256.Int, len(supportedTokenOracles))
 		req = rpcClient.NewRequest().SetContext(ctx)
 		setBlockNumber(req, snapshotBlock)
 		ReqRates(req, supportedTokenOracles, rates)
@@ -159,7 +160,7 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 		// oracles changed
 		req := rpcClient.NewRequest().SetContext(ctx)
 		setBlockNumber(req, snapshotBlock)
-		rates = make([]*big.Int, len(supportedTokenOracles))
+		rates = make([]*uint256.Int, len(supportedTokenOracles))
 		ReqRates(req, supportedTokenOracles, rates)
 		resp, err = req.Aggregate()
 		if err != nil {
@@ -171,9 +172,9 @@ func TrackPool(ctx context.Context, pool *entity.Pool, rpcClient *ethrpc.Client,
 	}
 
 	extra.SupportedTokenOracles = lo.Map(supportedTokenOracles, func(oracle common.Address, _ int) string { return hexutil.Encode(oracle[:]) })
-	extra.SupportedTokenRates = rates
-	extra.RSETHRate = rseTHRate
-	extra.Fee = feeBps
+	extra.SupportedTokenRates = lo.Map(rates, func(rate *uint256.Int, _ int) *big.Int { return u256ToBig(rate) })
+	extra.RSETHRate = u256ToBig(rseTHRate)
+	extra.Fee = u256ToBig(feeBps)
 	extra.NativeEnabled = nativeEnabled
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -220,7 +221,7 @@ func ReqOracles(req *ethrpc.Request, supportedTokens []common.Address, supported
 	}
 }
 
-func ReqRates(req *ethrpc.Request, supportedTokenOracles []common.Address, rates []*big.Int) {
+func ReqRates(req *ethrpc.Request, supportedTokenOracles []common.Address, rates []*uint256.Int) {
 	for i, oracle := range supportedTokenOracles {
 		req.AddCall(&ethrpc.Call{
 			ABI:    LRTOracleABI,
@@ -229,4 +230,12 @@ func ReqRates(req *ethrpc.Request, supportedTokenOracles []common.Address, rates
 			Params: nil,
 		}, []any{&rates[i]})
 	}
+}
+
+func u256ToBig(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+
+	return v.ToBig()
 }

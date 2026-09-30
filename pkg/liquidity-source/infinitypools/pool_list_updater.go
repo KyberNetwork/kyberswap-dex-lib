@@ -2,7 +2,6 @@ package infinitypools
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -104,8 +104,8 @@ func (u *PoolListUpdater) getPoolEntity(ctx context.Context, poolAddress string)
 	token0 := poolInfoResponse[0].(common.Address)
 	token1 := poolInfoResponse[1].(common.Address)
 
-	var balanceToken0 *big.Int
-	var balanceToken1 *big.Int
+	var balanceToken0 uint256.Int
+	var balanceToken1 uint256.Int
 
 	req = u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{

@@ -81,7 +81,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	var (
 		amms          = make([]common.Address, batchSize)
 		collaterals   = make([]common.Address, batchSize)
-		aCoefficients = make([]*big.Int, batchSize)
+		aCoefficients = make([]uint256.Int, batchSize)
 		decimals      = make([]uint8, batchSize+1)
 	)
 
@@ -128,7 +128,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	pools := make([]entity.Pool, 0, len(amms))
 	for i, amm := range amms {
 		staticExtraBytes, err := json.Marshal(StaticExtra{
-			A:             uint256.MustFromBig(aCoefficients[i]),
+			A:             &aCoefficients[i],
 			UseDynamicFee: (offset + i) > 5, // Workaround for old pools
 		})
 		if err != nil {
@@ -162,7 +162,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 }
 
 func (u *PoolsListUpdater) nCollaterals(ctx context.Context) (int, error) {
-	var nCollaterals *big.Int
+	var nCollaterals uint256.Int
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    CurveControllerFactoryABI,
@@ -173,7 +173,7 @@ func (u *PoolsListUpdater) nCollaterals(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	return int(nCollaterals.Int64()), nil
+	return int(nCollaterals.Uint64()), nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
