@@ -18,3 +18,6 @@ var curveBytes []byte
 
 //go:embed abi/Oracle.json
 var oracleBytes []byte
+
+//go:embed abi/DynamicFeeProvider.json
+var feeProviderBytes []byte

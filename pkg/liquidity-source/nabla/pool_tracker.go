@@ -147,6 +147,20 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			return p, err
 		}
 
+		// Older SwapPool versions lack dynamicFeeProvider; their reverts leave the zero address.
+		feeProviders := make([]common.Address, len(assets))
+		req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+		for i, sp := range poolByAssets {
+			req.AddCall(&ethrpc.Call{
+				ABI:    swapPoolABI,
+				Target: sp.String(),
+				Method: "dynamicFeeProvider",
+			}, []any{&feeProviders[i]})
+		}
+		if _, err = req.TryAggregate(); err != nil {
+			return p, err
+		}
+
 		p.Tokens = lo.Map(assets, func(asset common.Address, _ int) *entity.PoolToken {
 			return &entity.PoolToken{
 				Address:   hexutil.Encode(asset[:]),
@@ -159,8 +173,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				Address: poolByAsset,
 				Curve:   curves[i],
 				Meta: NablaPoolMeta{
-					CurveBeta: int256.MustFromBig(betaCParams[i].Beta),
-					CurveC:    int256.MustFromBig(betaCParams[i].C),
+					CurveBeta:   int256.MustFromBig(betaCParams[i].Beta),
+					CurveC:      int256.MustFromBig(betaCParams[i].C),
+					FeeProvider: feeProviders[i],
 				},
 			}
 		})
@@ -267,12 +282,47 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 			extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
 		}
 	}
+	if err = t.getSurgeFees(ctx, p, extra, resp.BlockNumber); err != nil {
+		return err
+	}
 	extra.PriceTimestamp = time.Now().Unix()
 
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	logger.Infof("finished getting state from RPC for %v", p.Address)
 
+	return nil
+}
+
+// getSurgeFees reads DynamicFeeProvider.getFee for pools that have a provider. getFee resolves asset class
+// and expiry on-chain, so it is re-read with every price refresh to drop expired fees.
+func (t *PoolTracker) getSurgeFees(ctx context.Context, p *entity.Pool, extra *Extra, blockNumber *big.Int) error {
+	fees := make([]SurgeFees, len(extra.Pools))
+	req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber)
+	for i, np := range extra.Pools {
+		if np.Meta.FeeProvider == (common.Address{}) {
+			continue
+		}
+		req.AddCall(&ethrpc.Call{
+			ABI:    feeProvABI,
+			Target: hexutil.Encode(np.Meta.FeeProvider[:]),
+			Method: "getFee",
+			Params: []any{common.HexToAddress(p.Tokens[i].Address)},
+		}, []any{&fees[i]})
+	}
+	if len(req.Calls) > 0 {
+		if _, err := req.Aggregate(); err != nil {
+			return err
+		}
+	}
+
+	for i := range extra.Pools {
+		extra.Pools[i].Meta.SwapInFee, extra.Pools[i].Meta.SwapOutFee = 0, 0
+		if fees[i].SwapInFee != nil {
+			extra.Pools[i].Meta.SwapInFee = fees[i].SwapInFee.Uint64()
+			extra.Pools[i].Meta.SwapOutFee = fees[i].SwapOutFee.Uint64()
+		}
+	}
 	return nil
 }
 
@@ -360,7 +410,10 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 
 		address := hexutil.Encode(event.Address[:])
 
-		if event.Address == extra.Oracle {
+		// Surge fees are re-read together with prices; FeesUpdated is a global provider event.
+		if event.Address == extra.Oracle || slices.ContainsFunc(extra.Pools, func(np NablaPool) bool {
+			return np.Meta.FeeProvider == event.Address
+		}) {
 			shouldGetAssetPrices = true
 		}
 
@@ -401,6 +454,24 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 			extra.Pools[idx].Meta.ProtocolFee = int256.MustFromBig(data.ProtocolFee)
 			extra.Pools[idx].Meta.BackstopFee = int256.MustFromBig(data.BackstopFee)
 
+		case swapPoolABI.Events["DynamicFeeProviderSet"].ID:
+			data, err := swapPoolABI.Unpack("DynamicFeeProviderSet", event.Data)
+			if err != nil || len(data) != 2 {
+				logger.Errorf("failed to parse DynamicFeeProviderSet event, error %v", err)
+				continue
+			}
+
+			_, idx, _ := lo.FindIndexOf(extra.Pools, func(np NablaPool) bool {
+				return hexutil.Encode(np.Address[:]) == address
+			})
+			if idx < 0 {
+				continue
+			}
+
+			extra.Pools[idx].Meta.FeeProvider = data[1].(common.Address)
+			extra.DependenciesStored = false
+			shouldGetAssetPrices = true
+
 		default:
 		}
 	}
@@ -419,6 +490,10 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 				extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
 			}
 		}
+		if err = t.getSurgeFees(ctx, p, extra, big.NewInt(int64(p.BlockNumber))); err != nil {
+			logger.Errorf("failed to get surge fees: %v", err)
+			return
+		}
 		extra.PriceTimestamp = time.Now().Unix()
 	}
 }
@@ -435,6 +510,12 @@ func (t *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]strin
 	})
 	if extra.Oracle != (common.Address{}) {
 		deps = append(deps, hexutil.Encode(extra.Oracle[:]))
+	}
+	for _, np := range extra.Pools {
+		if provider := hexutil.Encode(np.Meta.FeeProvider[:]); np.Meta.FeeProvider != (common.Address{}) &&
+			!slices.Contains(deps, provider) {
+			deps = append(deps, provider)
+		}
 	}
 	return deps, extra.DependenciesStored, nil
 }

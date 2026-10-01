@@ -17,6 +17,7 @@ var (
 	swapPoolABI abi.ABI
 	curveABI    abi.ABI
 	oracleABI   abi.ABI
+	feeProvABI  abi.ABI
 
 	swapPoolFilterer = lo.Must(abis.NewNablaSwapPoolFilterer(common.Address{}, nil))
 )
@@ -31,6 +32,7 @@ func init() {
 		{&swapPoolABI, swapPoolBytes},
 		{&curveABI, curveBytes},
 		{&oracleABI, oracleBytes},
+		{&feeProvABI, feeProviderBytes},
 	}
 
 	for _, b := range builder {

@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/int256"
+	i256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/int256"
 )
 
 var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
@@ -104,6 +105,12 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	curveIn := NewCurve(fr.Meta.CurveBeta, fr.Meta.CurveC)
 	curveOut := NewCurve(to.Meta.CurveBeta, to.Meta.CurveC)
 
+	// Swap-in surge fee: the input curve and the credited reserve use the reduced amount.
+	if fr.Meta.SwapInFee > 0 {
+		sellFee := new(int256.Int).Mul(amountIn, int256.NewInt(int64(fr.Meta.SwapInFee)))
+		amountIn = sellFee.Sub(amountIn, sellFee.Quo(sellFee, feePrecision))
+	}
+
 	effectiveAmountIn := curveIn.InverseHorizontal(fr.State.Reserve, fr.State.TotalLiabilities,
 		new(int256.Int).Add(fr.State.ReserveWithSlippage, amountIn), int64(frDecimals))
 
@@ -178,6 +185,12 @@ func sell(fr, to NablaPool, amountIn *int256.Int, frDecimals, toDecimals uint8) 
 	)
 	if newOutputReserveWithSlippage.Gt(reserveWithSlippageAfterAmountOut) {
 		newOutputReserveWithSlippage = reserveWithSlippageAfterAmountOut
+	}
+
+	// Swap-out surge fee: cut from the final output; it stays in the out pool and leaves its state unchanged.
+	if to.Meta.SwapOutFee > 0 {
+		buyFee := new(int256.Int).Mul(amountOut, int256.NewInt(int64(to.Meta.SwapOutFee)))
+		amountOut.Sub(amountOut, buyFee.Quo(buyFee, feePrecision))
 	}
 
 	return amountOut, &SwapInfo{
