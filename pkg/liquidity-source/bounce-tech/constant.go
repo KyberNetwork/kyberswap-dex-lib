@@ -1,9 +1,10 @@
 package bouncetech
 
 import (
-	"errors"
-
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const (
@@ -19,7 +20,7 @@ var (
 	ErrZeroAmount          = errors.New("zero amount")
 	ErrInsufficientBalance = errors.New("insufficient base asset balance")
 	ErrZeroExchangeRate    = errors.New("zero exchange rate")
-	ErrBelowMinAmount      = errors.New("below min transaction size")
+	ErrBelowMinAmount      = errors.WithMessage(pool.ErrSwapAmountBelowMin, "below min transaction size")
 	ErrFeeRateTooHigh      = errors.New("redemption fee rate too high")
 
 	// 1e12 for scaling USDC (6 dec) → 18 dec

@@ -101,6 +101,7 @@ func UpdateEntityState(p *entity.Pool, vaultCfg erc4626.VaultCfg, state *erc4626
 		Gas:          erc4626.Gas(vaultCfg.Gas),
 		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
 		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
+		MinDeposit:   uint256.MustFromBig(state.MinDeposit),
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		TotalAssets:  uint256.MustFromBig(state.TotalAssets),
@@ -159,6 +160,9 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 	if vaultCfg.Gas.Deposit > 0 {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxDeposit, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxDeposit})
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodTotalAssets}, []any{&state.TotalAssets})
+		if m := vaultCfg.MinDepositMethod; m != "" {
+			addFn(&ethrpc.Call{ABI: erc4626.Uint256GetterABI(m), Target: vaultAddr, Method: m}, []any{&state.MinDeposit})
+		}
 		for i, amt := range erc4626.PrefetchAmounts {
 			addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodPreviewDeposit, Params: []any{amt.ToBig()}}, []any{&state.DepositRates[i]})
 		}
@@ -177,6 +181,9 @@ func normalizePoolState(state *erc4626.PoolState) {
 		state.MaxDeposit = state.TotalAssets // fallback to a sensible value
 	} else if state.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
 		state.MaxDeposit = nil // no limit
+	}
+	if state.MinDeposit != nil && state.MinDeposit.Sign() == 0 {
+		state.MinDeposit = nil
 	}
 	if state.MaxRedeem == nil || state.MaxRedeem.Sign() == 0 {
 		state.MaxRedeem = state.TotalSupply // fallback to a sensible value

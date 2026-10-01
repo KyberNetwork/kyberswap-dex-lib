@@ -618,7 +618,7 @@ func swapIn(
 	amountInAdjusted := toAdjustedAmount(amountIn, inDecimals)
 
 	if amountInAdjusted.Cmp(SixDecimals) < 0 || amountIn.Cmp(TwoDecimals) < 0 {
-		return nil, ErrInvalidAmountIn
+		return nil, ErrAmountInTooSmall
 	}
 
 	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, inDecimals, outDecimals,

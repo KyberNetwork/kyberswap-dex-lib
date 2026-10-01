@@ -171,6 +171,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		FilledOrders: []*FilledOrderInfo{},
 	}
 	isAmountInFulfilled := false
+	// an order could cover the remaining amountIn but rejected it as too small; a larger swap may fill it
+	isOrderMinNotMet := false
 
 	// we need to update maker's remaining balance in 2 places:
 	// - in UpdateBalance: mainly to deal with case where maker has orders with same makerAsset but different takerAsset
@@ -232,6 +234,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			if err != nil {
 				// if only allow full fill, skip this order
 				if err == ErrOnlyAllowFullFill {
+					isOrderMinNotMet = true
 					continue
 				}
 
@@ -240,6 +243,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 			// order too small
 			if orderAmountOut.Sign() <= 0 {
+				isOrderMinNotMet = true
 				continue
 			}
 
@@ -327,6 +331,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	if !isAmountInFulfilled {
+		if isOrderMinNotMet {
+			return nil, ErrAmountInBelowOrderMin
+		}
 		return nil, ErrCannotFulfillAmountIn
 	}
 

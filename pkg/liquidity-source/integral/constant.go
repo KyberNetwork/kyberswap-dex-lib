@@ -1,10 +1,11 @@
 package integral
 
 import (
-	"errors"
-
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -35,7 +36,7 @@ var (
 	ErrTokenNotFound = errors.New("tokens not found")
 	ErrNoSwapLimit   = errors.New("no swap limit")
 
-	ErrTR03 = errors.New("TR03")
+	ErrTR03 = errors.WithMessage(pool.ErrSwapAmountBelowMin, "TR03")
 	ErrTR3A = errors.New("TR3A")
 	ErrTR05 = errors.New("TR05")
 )

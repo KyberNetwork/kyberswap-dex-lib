@@ -1,9 +1,11 @@
 package erc4626
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -85,4 +87,42 @@ func TestCalcAmountOut(t *testing.T) {
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
+}
+
+// evaUSDT (0x501ebf66...) reverts deposits below minAmount() (2000 USDT); quoting them would make routes fail.
+func TestMinDeposit(t *testing.T) {
+	t.Parallel()
+	var p entity.Pool
+	assert.NoError(t, json.Unmarshal([]byte(`{"address":"0x501ebf66d76a96d4fb26ccead42957653e16b8b8","exchange":"erc4626","type":"erc4626","reserves":["0","0"],"tokens":[{"address":"0x501ebf66d76a96d4fb26ccead42957653e16b8b8","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","decimals":6,"swappable":true}],"extra":"{\"g\":{\"d\":220062},\"minD\":\"2000000000\",\"dR\":[\"1000000\",\"1000000000000\",\"1000000000000000000\",\"1000000000000000000000000\",\"1000000000000000000000000000000\"]}"}`), &p))
+	sim := lo.Must(NewPoolSimulator(p))
+	share, usdt := p.Tokens[0].Address, p.Tokens[1].Address
+
+	_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdt, Amount: big.NewInt(1999999999)}, TokenOut: share})
+	assert.ErrorIs(t, err, ErrERC4626DepositLessThanMin)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdt, Amount: big.NewInt(2000000000)}, TokenOut: share})
+	assert.NoError(t, err)
+	assert.Equal(t, big.NewInt(2000000000), res.TokenAmountOut.Amount)
+
+	_, err = sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: share, Amount: big.NewInt(1000000000)}, TokenIn: usdt})
+	assert.ErrorIs(t, err, ErrERC4626DepositLessThanMin)
+}
+
+// The configured method name must pack to the on-chain selector, e.g. evaUSDT's minAmount() = 0x9b2cb5d8.
+func TestUint256GetterABI(t *testing.T) {
+	t.Parallel()
+	a := Uint256GetterABI("minAmount")
+	data, err := a.Pack("minAmount")
+	assert.NoError(t, err)
+	assert.Equal(t, "9b2cb5d8", hex.EncodeToString(data))
+
+	var out *big.Int
+	ret := common.LeftPadBytes(big.NewInt(2e9).Bytes(), 32)
+	unpacked, err := a.Methods["minAmount"].Outputs.Unpack(ret)
+	assert.NoError(t, err)
+	assert.NoError(t, a.Methods["minAmount"].Outputs.Copy(&out, unpacked))
+	assert.Equal(t, big.NewInt(2e9), out)
 }

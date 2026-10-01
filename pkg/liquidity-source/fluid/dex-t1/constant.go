@@ -1,9 +1,11 @@
 package dexT1
 
 import (
-	"errors"
 	"math/big"
 
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -44,6 +46,7 @@ var (
 
 var (
 	ErrInvalidAmountIn  = errors.New("invalid amountIn")
+	ErrAmountInTooSmall = errors.WithMessage(pool.ErrSwapAmountBelowMin, "amountIn too small")
 	ErrInvalidAmountOut = errors.New("invalid amount out")
 
 	ErrInsufficientReserve    = errors.New("insufficient reserve: tokenOut amount exceeds reserve")

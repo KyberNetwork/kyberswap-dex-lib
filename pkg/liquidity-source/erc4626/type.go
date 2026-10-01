@@ -25,6 +25,7 @@ type (
 		Gas          Gas            `json:"g"`
 		MaxDeposit   *uint256.Int   `json:"mD,omitempty"`
 		MaxRedeem    *uint256.Int   `json:"mR,omitempty"`
+		MinDeposit   *uint256.Int   `json:"minD,omitempty"`
 		DepositRates []*uint256.Int `json:"dR,omitempty"`
 		RedeemRates  []*uint256.Int `json:"rR,omitempty"`
 		TotalAssets  *uint256.Int   `json:"tA,omitempty"`
@@ -43,6 +44,7 @@ type (
 	PoolState struct {
 		MaxDeposit   *big.Int
 		MaxRedeem    *big.Int
+		MinDeposit   *big.Int
 		TotalAssets  *big.Int
 		TotalSupply  *big.Int
 		DepositRates []*big.Int
