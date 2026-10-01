@@ -1,16 +1,15 @@
 package nabla
 
 import (
+	"testing"
 	"time"
 
+	"github.com/KyberNetwork/int256"
 	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"testing"
-
-	"github.com/KyberNetwork/int256"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_sell(t *testing.T) {
@@ -508,4 +507,83 @@ func TestNewPoolSimulator_StaleCheck(t *testing.T) {
 
 	_, err = pool.Factory(DexType)(pool.FactoryParams{EntityPool: newEntity(0)})
 	require.NoError(t, err)
+}
+
+// Surge fees (nabla-integration-reference ts/swapLogic.test.ts): the in-fee cuts amountIn before the input
+// curve, the out-fee cuts the final output; both floor-divide by 1e6 and only apply on their own leg.
+func Test_sell_surgeFees(t *testing.T) {
+	const dynInFee, dynOutFee = 2_000, 1_000
+	balanced := func(inFee, outFee uint64) NablaPool {
+		return NablaPool{
+			Meta: NablaPoolMeta{
+				CurveBeta:   int256.NewInt(5000000000000000),
+				CurveC:      int256.MustFromDec("17075887234393789126"),
+				BackstopFee: int256.NewInt(300),
+				ProtocolFee: int256.NewInt(100),
+				LpFee:       int256.NewInt(200),
+				SwapInFee:   inFee,
+				SwapOutFee:  outFee,
+			},
+			State: NablaPoolState{
+				Reserve:             int256.MustFromDec("1000000000000000000000"),
+				ReserveWithSlippage: int256.MustFromDec("1000000000000000000000"),
+				TotalLiabilities:    int256.MustFromDec("1000000000000000000000"),
+				Price:               int256.NewInt(1e8),
+			},
+		}
+	}
+	quote := func(fr, to NablaPool, amountIn *int256.Int) (*int256.Int, *SwapInfo) {
+		out, info, err := sell(fr, to, amountIn, 18, 18)
+		require.NoError(t, err)
+		return out, info
+	}
+	floorFee := func(x *int256.Int, fee int64) *int256.Int {
+		f := new(int256.Int).Mul(x, int256.NewInt(fee))
+		return f.Quo(f, feePrecision)
+	}
+	oneEth := int256.MustFromDec("1000000000000000000")
+	baseline, _ := quote(balanced(0, 0), balanced(0, 0), oneEth)
+	require.Equal(t, "999399447164390453", baseline.Dec())
+
+	t.Run("in and out fees compose in contract order", func(t *testing.T) {
+		reducedIn := new(int256.Int).Sub(oneEth, floorFee(oneEth, dynInFee))
+		curveOut, _ := quote(balanced(0, 0), balanced(0, 0), reducedIn)
+		want := new(int256.Int).Sub(curveOut, floorFee(curveOut, dynOutFee))
+
+		got, info := quote(balanced(dynInFee, 0), balanced(0, dynOutFee), oneEth)
+		require.Equal(t, want.Dec(), got.Dec())
+		require.True(t, got.Lt(baseline))
+
+		// The input pool is credited only the reduced amount; the out-fee stays in the out pool untouched.
+		_, noOutFeeInfo := quote(balanced(dynInFee, 0), balanced(0, 0), oneEth)
+		require.Equal(t, "1000998000000000000000", info.frPoolNewState.ReserveWithSlippage.Dec())
+		require.Equal(t, noOutFeeInfo.toPoolNewState, info.toPoolNewState)
+	})
+
+	t.Run("fees floor-divide", func(t *testing.T) {
+		got, _ := quote(balanced(dynInFee, 0), balanced(0, 0), int256.NewInt(3)) // 3*2000/1e6 = 0
+		want, _ := quote(balanced(0, 0), balanced(0, 0), int256.NewInt(3))
+		require.Equal(t, want.Dec(), got.Dec())
+
+		got, _ = quote(balanced(0, 0), balanced(0, 333333), oneEth)
+		require.Equal(t, new(int256.Int).Sub(baseline, floorFee(baseline, 333333)).Dec(), got.Dec())
+	})
+
+	t.Run("max uint16 fees", func(t *testing.T) {
+		reducedIn := new(int256.Int).Sub(oneEth, floorFee(oneEth, 65535))
+		curveOut, _ := quote(balanced(0, 0), balanced(0, 0), reducedIn)
+		got, _ := quote(balanced(65535, 0), balanced(0, 65535), oneEth)
+		require.Equal(t, new(int256.Int).Sub(curveOut, floorFee(curveOut, 65535)).Dec(), got.Dec())
+	})
+
+	t.Run("wrong-leg fees are ignored", func(t *testing.T) {
+		got, _ := quote(balanced(0, dynOutFee), balanced(dynInFee, 0), oneEth)
+		require.Equal(t, baseline.Dec(), got.Dec())
+	})
+
+	t.Run("caller amountIn is not mutated", func(t *testing.T) {
+		amountIn := new(int256.Int).Set(oneEth)
+		quote(balanced(dynInFee, 0), balanced(0, 0), amountIn)
+		require.Equal(t, oneEth.Dec(), amountIn.Dec())
+	})
 }

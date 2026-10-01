@@ -14,6 +14,11 @@ type NablaPoolMeta struct {
 	ProtocolFee               *int256.Int `json:"protocolFee"`
 	LpFee                     *int256.Int `json:"lpFee"`
 	MaxCoverageRatioForSwapIn *int256.Int `json:"maxCoverageRatioForSwapIn,omitempty"`
+
+	// Surge fees (ppm) from the pool's optional DynamicFeeProvider; zero when unset or expired.
+	FeeProvider common.Address `json:"feeProvider"`
+	SwapInFee   uint64         `json:"swapInFee,omitempty"`
+	SwapOutFee  uint64         `json:"swapOutFee,omitempty"`
 }
 
 type NablaPoolState struct {
@@ -34,6 +39,11 @@ type SwapFees struct {
 	LpFee       *big.Int
 	BackstopFee *big.Int
 	ProtocolFee *big.Int
+}
+
+type SurgeFees struct {
+	SwapInFee  *big.Int
+	SwapOutFee *big.Int
 }
 
 type Params struct {
