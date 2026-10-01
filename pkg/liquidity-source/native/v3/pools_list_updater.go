@@ -217,7 +217,7 @@ func (d *PoolsListUpdater) FetchStaticData(
 		endIndex := min(i+rpcChunkSize, len(pools))
 		chunk := pools[i:endIndex]
 
-		tickSpacings := make([]*big.Int, len(chunk))
+		tickSpacings := make([]int32, len(chunk))
 		underlyingTokens0 := make([]common.Address, len(chunk))
 		underlyingTokens1 := make([]common.Address, len(chunk))
 
@@ -258,7 +258,7 @@ func (d *PoolsListUpdater) FetchStaticData(
 		for j := range chunk {
 			poolAddress := pools[i+j].ID
 			result[poolAddress] = StaticData{
-				TickSpacing: tickSpacings[j].Uint64(),
+				TickSpacing: uint64(tickSpacings[j]),
 				UnderlyingTokens: []string{
 					hexutil.Encode(underlyingTokens0[j][:]),
 					hexutil.Encode(underlyingTokens1[j][:]),

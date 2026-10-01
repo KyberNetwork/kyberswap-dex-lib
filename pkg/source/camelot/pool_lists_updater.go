@@ -211,7 +211,7 @@ func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, 
 }
 
 func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, *big.Int, error) {
-	var pairCount *uint256.Int
+	var pairCount uint256.Int
 
 	req := d.ethrpcClient.
 		NewRequest().

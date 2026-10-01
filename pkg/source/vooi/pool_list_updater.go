@@ -203,7 +203,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 }
 
 func (u *PoolsListUpdater) getLastIndex(_ context.Context, address string) (int, error) {
-	var lastIndex *uint256.Int
+	var lastIndex uint256.Int
 
 	getLastIndexRequest := u.ethrpcClient.NewRequest()
 	getLastIndexRequest.AddCall(&ethrpc.Call{

@@ -147,7 +147,7 @@ func (d *PoolsListUpdater) fetchPoolParams(ctx context.Context,
 		chunk := addresses[start:min(start+rpcChunkSize, len(addresses))]
 
 		feeResults := make([]*uint256.Int, len(chunk))
-		tickSpacingResults := make([]*big.Int, len(chunk))
+		tickSpacingResults := make([]int32, len(chunk))
 
 		req := d.ethrpcClient.NewRequest().SetContext(ctx)
 		for i, address := range chunk {
@@ -167,9 +167,7 @@ func (d *PoolsListUpdater) fetchPoolParams(ctx context.Context,
 			if feeResults[i] != nil {
 				fees[address] = uint32(feeResults[i].Uint64())
 			}
-			if tickSpacingResults[i] != nil {
-				tickSpacings[address] = tickSpacingResults[i].Uint64()
-			}
+			tickSpacings[address] = uint64(tickSpacingResults[i])
 		}
 	}
 
