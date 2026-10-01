@@ -337,6 +337,7 @@ const (
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
 	ExchangeUniswapV4Mofo               = "uniswap-v4-mofo"
+	ExchangeUniswapV4NavJit				= "uniswap-v4-navjit"
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4O1                 = "uniswap-v4-o1"
 	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
