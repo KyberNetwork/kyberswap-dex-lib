@@ -1,8 +1,9 @@
 package altfun
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -22,7 +23,7 @@ var (
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 	ErrInsufficientBalance   = errors.New("insufficient base asset balance")
 	ErrOverflow              = errors.New("overflow")
-	ErrBelowMinAmount        = errors.New("below min amount")
+	ErrBelowMinAmount        = errors.WithMessage(pool.ErrSwapAmountBelowMin, "below min amount")
 	ErrMintPaused            = errors.New("mint is paused")
 	ErrBasePoolNotFound      = errors.New("base pool (bounce-tech LT) not found")
 

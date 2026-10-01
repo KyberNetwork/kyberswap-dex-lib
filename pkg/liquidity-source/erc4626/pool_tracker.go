@@ -98,6 +98,7 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 		Gas:          Gas(vaultCfg.Gas),
 		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
 		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
+		MinDeposit:   uint256.MustFromBig(state.MinDeposit),
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		TotalAssets:  uint256.MustFromBig(state.TotalAssets),
@@ -144,6 +145,13 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Target: vaultAddr,
 			Method: Erc4626MethodTotalAssets,
 		}, []any{&poolState.TotalAssets})
+		if vaultCfg.MinDepositMethod != "" {
+			req.AddCall(&ethrpc.Call{
+				ABI:    Uint256GetterABI(vaultCfg.MinDepositMethod),
+				Target: vaultAddr,
+				Method: vaultCfg.MinDepositMethod,
+			}, []any{&poolState.MinDeposit})
+		}
 
 		for i, amt := range PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
@@ -185,6 +193,9 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		poolState.MaxDeposit = poolState.TotalAssets // fallback to a sensible value
 	} else if poolState.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
 		poolState.MaxDeposit = nil // no limit
+	}
+	if poolState.MinDeposit != nil && poolState.MinDeposit.Sign() == 0 {
+		poolState.MinDeposit = nil
 	}
 	if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
 		poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value

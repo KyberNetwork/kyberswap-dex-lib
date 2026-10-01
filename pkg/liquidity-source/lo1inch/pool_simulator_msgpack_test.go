@@ -58,5 +58,5 @@ func TestPoolSimulator_NoPartialFillsSurvivesMsgpack(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: big.NewInt(50)},
 		TokenOut:      makerAsset,
 	})
-	require.ErrorIs(t, err, lo1inch.ErrCannotFulfillAmountIn)
+	require.ErrorIs(t, err, lo1inch.ErrAmountInBelowOrderMin)
 }

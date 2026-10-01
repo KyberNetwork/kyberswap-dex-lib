@@ -779,7 +779,7 @@ func TestPoolSimulator_CalcAmountOut_NoPartialFillsWithoutExtension(t *testing.T
 		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: halfTakingAmount.ToBig()},
 		TokenOut:      makerAsset,
 	})
-	require.ErrorIs(t, err, ErrCannotFulfillAmountIn)
+	require.ErrorIs(t, err, ErrAmountInBelowOrderMin)
 
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: takingAmount.ToBig()},

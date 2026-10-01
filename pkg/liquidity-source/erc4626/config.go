@@ -12,6 +12,8 @@ type Config struct {
 
 type VaultCfg struct {
 	Gas GasCfg `json:"gas"`
+	// MinDepositMethod is an optional no-arg view returning the min deposit assets, e.g. "minAmount".
+	MinDepositMethod string `json:"minDepositMethod,omitempty"`
 }
 
 type GasCfg struct {

@@ -1,7 +1,9 @@
 package clipper
 
 import (
-	"errors"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const DexType = "clipper"
@@ -14,7 +16,7 @@ var (
 	ErrInvalidPair          = errors.New("invalid pair")
 	ErrFMVCheckFailed       = errors.New("FMV check failed")
 	ErrAmountOutNaN         = errors.New("amountOut is NaN")
-	ErrMinAmountInNotEnough = errors.New("minAmountIn is not enough")
+	ErrMinAmountInNotEnough = errors.WithMessage(pool.ErrSwapAmountBelowMin, "minAmountIn is not enough")
 
 	basisPoint float64 = 10000
 )
