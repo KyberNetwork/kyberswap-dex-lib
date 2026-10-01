@@ -2,6 +2,7 @@ package nabla
 
 import (
 	"errors"
+	"time"
 
 	"github.com/KyberNetwork/int256"
 
@@ -14,6 +15,10 @@ const (
 	decimals = 18
 
 	defaultGas = 244218
+
+	// MaxAge bounds how old fetched oracle prices may be when route finding (StaleCheck).
+	// Base oracle events arrive up to ~12s apart; its on-chain price max age is 60s.
+	MaxAge = 30 * time.Second
 )
 
 var (
