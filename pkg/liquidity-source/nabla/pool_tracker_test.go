@@ -31,7 +31,6 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 		DexId:       DexType,
 		ChainId:     valueobject.ChainIDBerachain,
 		Portal:      "0x1F917Fe724F186a1fFA7744A73afed18C335b9eC",
-		Oracle:      "0x6d6190Da8fD73E0C911929DED2D6B47cE066e441",
 		Whitelisted: "0x8756fd992569e0389bf357eb087f5827f364d2a4",
 	}
 

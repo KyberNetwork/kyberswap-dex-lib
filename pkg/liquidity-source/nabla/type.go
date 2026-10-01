@@ -42,8 +42,10 @@ type Params struct {
 }
 
 type Extra struct {
-	Pools              []NablaPool `json:"pools"`
-	DependenciesStored bool        `json:"ds,omitempty"`
+	Pools              []NablaPool    `json:"pools"`
+	Oracle             common.Address `json:"oracle"`
+	PriceTimestamp     int64          `json:"priceTs,omitempty"` // unix seconds of the last price read
+	DependenciesStored bool           `json:"ds,omitempty"`
 }
 
 type Meta struct {

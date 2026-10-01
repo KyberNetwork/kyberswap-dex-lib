@@ -8,6 +8,5 @@ type Config struct {
 	DexId       string              `json:"dexId"`
 	ChainId     valueobject.ChainID `json:"chainId"`
 	Portal      string              `json:"portal"`
-	Oracle      string              `json:"oracle"`
 	Whitelisted string              `json:"whitelisted,omitempty"`
 }

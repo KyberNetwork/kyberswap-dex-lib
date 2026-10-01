@@ -1,8 +1,10 @@
 package nabla
 
 import (
+	"math"
 	"math/big"
 	"slices"
+	"time"
 
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
@@ -15,7 +17,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/int256"
 )
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	return NewPoolSimulatorWith(params.EntityPool, lo.Ternary(params.Opts.StaleCheck, MaxAge, math.MaxInt64))
+})
 
 type PoolSimulator struct {
 	pool.Pool
@@ -24,9 +28,17 @@ type PoolSimulator struct {
 }
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
+	return NewPoolSimulatorWith(ep, math.MaxInt64)
+}
+
+// NewPoolSimulatorWith rejects pools whose oracle prices were last read more than maxAge ago.
+func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
+	}
+	if time.Since(time.Unix(extra.PriceTimestamp, 0)) > maxAge {
+		return nil, ErrStalePrice
 	}
 
 	return &PoolSimulator{

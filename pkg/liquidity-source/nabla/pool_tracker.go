@@ -3,7 +3,7 @@ package nabla
 import (
 	"context"
 	"math/big"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -50,16 +50,32 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	extra.DependenciesStored = true
 
-	var assets []common.Address
-	if _, err := t.ethrpcClient.R().
-		SetContext(ctx).
+	var (
+		assets       []common.Address
+		oracle       common.Address
+		currentPools = make([]common.Address, len(p.Tokens))
+	)
+	req := t.ethrpcClient.R().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    portalABI,
 			Target: t.config.Portal,
 			Method: "getRouterAssets",
 			Params: []any{common.HexToAddress(p.Address)},
 		}, []any{&assets}).
-		Call(); err != nil {
+		AddCall(&ethrpc.Call{
+			ABI:    RouterABI,
+			Target: p.Address,
+			Method: "oracleAdapter",
+		}, []any{&oracle})
+	for i, token := range p.Tokens {
+		req.AddCall(&ethrpc.Call{
+			ABI:    RouterABI,
+			Target: p.Address,
+			Method: "poolByAsset",
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&currentPools[i]})
+	}
+	if _, err := req.Aggregate(); err != nil {
 		logger.Errorf("failed to get router assets")
 		return p, err
 	}
@@ -68,12 +84,17 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return common.HexToAddress(t.Address)
 	})
 
+	// Swap pools can be replaced behind an unchanged asset list, and the router's oracle can change.
 	removedAssets, addedAssets := lo.Difference(currentAssets, assets)
-	if len(removedAssets) > 0 || len(addedAssets) > 0 || eth.HasRevertedLog(params.Logs) {
-		logger.Infof("starting refresh of pool %v due to asset changes", p.Address)
+	poolsChanged := !slices.EqualFunc(extra.Pools, currentPools, func(np NablaPool, sp common.Address) bool {
+		return np.Address == sp
+	})
+	if len(removedAssets) > 0 || len(addedAssets) > 0 || poolsChanged || oracle != extra.Oracle ||
+		eth.HasRevertedLog(params.Logs) {
+		logger.Infof("starting refresh of pool %v due to asset, swap pool or oracle changes", p.Address)
 
 		poolByAssets := make([]common.Address, len(assets))
-		req := t.ethrpcClient.R().SetContext(ctx)
+		req = t.ethrpcClient.R().SetContext(ctx)
 		for i, asset := range assets {
 			req.AddCall(&ethrpc.Call{
 				ABI:    RouterABI,
@@ -87,6 +108,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			logger.Errorf("failed to aggregate pool by asset")
 			return p, err
 		}
+
+		// Skip unregistered assets: getRouterAssets still lists them but poolByAsset is zero.
+		n := 0
+		for i, sp := range poolByAssets {
+			if sp != (common.Address{}) {
+				assets[n], poolByAssets[n] = assets[i], sp
+				n++
+			}
+		}
+		assets, poolByAssets = assets[:n], poolByAssets[:n]
 
 		curves := make([]common.Address, len(assets))
 		req = t.ethrpcClient.R().SetContext(ctx)
@@ -134,6 +165,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			}
 		})
 
+		extra.Oracle = oracle
 		extra.DependenciesStored = false
 
 		if err = t.getRPCState(ctx, &p, &extra); err != nil {
@@ -141,7 +173,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			return p, err
 		}
 
-		logger.Infof("finished refreshing pool %v after asset changes", p.Address)
+		logger.Infof("finished refreshing pool %v", p.Address)
 	}
 
 	if len(params.Logs) > 0 {
@@ -201,7 +233,7 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 		if len(t.config.Whitelisted) == 0 {
 			req.AddCall(&ethrpc.Call{
 				ABI:    oracleABI,
-				Target: t.config.Oracle,
+				Target: hexutil.Encode(extra.Oracle[:]),
 				Method: "getAssetPrice",
 				Params: []any{common.HexToAddress(p.Tokens[i].Address)},
 			}, []any{&prices[i]})
@@ -214,7 +246,7 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 
 	if len(t.config.Whitelisted) > 0 {
 		assets := lo.Map(p.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address })
-		prices, err = t.getAssetPrices(ctx, assets, resp.BlockNumber)
+		prices, err = t.getAssetPrices(ctx, extra.Oracle, assets, resp.BlockNumber)
 		if err != nil {
 			return err
 		}
@@ -235,6 +267,7 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 			extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
 		}
 	}
+	extra.PriceTimestamp = time.Now().Unix()
 
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
@@ -243,10 +276,13 @@ func (t *PoolTracker) getRPCState(ctx context.Context, p *entity.Pool, extra *Ex
 	return nil
 }
 
-func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, blockNumber *big.Int) ([]*big.Int, error) {
+func (t *PoolTracker) getAssetPrices(ctx context.Context, oracle common.Address, assets []string,
+	blockNumber *big.Int) ([]*big.Int, error) {
 	if len(assets) == 0 {
 		return nil, nil
 	}
+
+	oracleAddr := hexutil.Encode(oracle[:])
 
 	prices := make([]*big.Int, len(assets))
 
@@ -255,7 +291,7 @@ func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, block
 		for i, asset := range assets {
 			req.AddCall(&ethrpc.Call{
 				ABI:    oracleABI,
-				Target: t.config.Oracle,
+				Target: oracleAddr,
 				Method: "getAssetPrice",
 				Params: []any{common.HexToAddress(asset)},
 			}, []any{&prices[i]})
@@ -283,7 +319,7 @@ func (t *PoolTracker) getAssetPrices(ctx context.Context, assets []string, block
 			Args: []any{
 				map[string]any{
 					"from": lo.Ternary(len(t.config.Whitelisted) > 0, t.config.Whitelisted, valueobject.ZeroAddress),
-					"to":   t.config.Oracle,
+					"to":   oracleAddr,
 					"data": hexutil.Encode(callData),
 				},
 				blockNumberHex,
@@ -324,7 +360,7 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 
 		address := hexutil.Encode(event.Address[:])
 
-		if strings.EqualFold(address, t.config.Oracle) {
+		if event.Address == extra.Oracle {
 			shouldGetAssetPrices = true
 		}
 
@@ -371,7 +407,7 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 
 	if shouldGetAssetPrices {
 		assets := lo.Map(p.Tokens, func(token *entity.PoolToken, index int) string { return token.Address })
-		prices, err := t.getAssetPrices(ctx, assets, big.NewInt(int64(p.BlockNumber)))
+		prices, err := t.getAssetPrices(ctx, extra.Oracle, assets, big.NewInt(int64(p.BlockNumber)))
 		if err != nil {
 			logger.Errorf("failed to get asset prices: %v", err)
 			return
@@ -383,6 +419,7 @@ func (t *PoolTracker) handleEvents(ctx context.Context, p *entity.Pool, extra *E
 				extra.Pools[i].State.Price = int256.MustFromBig(prices[i])
 			}
 		}
+		extra.PriceTimestamp = time.Now().Unix()
 	}
 }
 
@@ -393,9 +430,13 @@ func (t *PoolTracker) GetDependencies(_ context.Context, p entity.Pool) ([]strin
 		return nil, false, err
 	}
 
-	return append(lo.Map(extra.Pools, func(np NablaPool, _ int) string {
+	deps := lo.Map(extra.Pools, func(np NablaPool, _ int) string {
 		return hexutil.Encode(np.Address[:])
-	}), strings.ToLower(t.config.Oracle)), extra.DependenciesStored, nil
+	})
+	if extra.Oracle != (common.Address{}) {
+		deps = append(deps, hexutil.Encode(extra.Oracle[:]))
+	}
+	return deps, extra.DependenciesStored, nil
 }
 
 func (t *PoolTracker) SetDependenciesStored(p *entity.Pool, isStored bool) error {

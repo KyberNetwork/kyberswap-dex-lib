@@ -1,6 +1,12 @@
 package nabla
 
 import (
+	"time"
+
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"testing"
 
 	"github.com/KyberNetwork/int256"
@@ -478,4 +484,28 @@ func Test_sell_baseSnapshotSwapInfo(t *testing.T) {
 	require.Equal(t, expectedOutputReserve.Dec(), swapInfo.toPoolNewState.Reserve.Dec())
 	require.Equal(t, expectedOutputReserveWithSlippage.Dec(), swapInfo.toPoolNewState.ReserveWithSlippage.Dec())
 	require.Equal(t, actualTotalLiabilitiesOut.Dec(), swapInfo.toPoolNewState.TotalLiabilities.Dec())
+}
+
+// Route finding (StaleCheck) must drop pools whose prices stopped refreshing: the on-chain oracle reverts
+// once its own max age passes, but our last-read price would keep quoting. Indexing must still load them.
+func TestNewPoolSimulator_StaleCheck(t *testing.T) {
+	newEntity := func(priceTs int64) entity.Pool {
+		extra, _ := json.Marshal(Extra{PriceTimestamp: priceTs})
+		return entity.Pool{Exchange: DexType, Type: DexType, Extra: string(extra)}
+	}
+	staleCheck := pool.FactoryOpts{StaleCheck: true}
+	now := time.Now().Unix()
+
+	_, err := pool.Factory(DexType)(pool.FactoryParams{EntityPool: newEntity(now - 5), Opts: staleCheck})
+	require.NoError(t, err)
+
+	_, err = pool.Factory(DexType)(pool.FactoryParams{EntityPool: newEntity(now - int64(MaxAge.Seconds()) - 5), Opts: staleCheck})
+	require.ErrorIs(t, err, ErrStalePrice)
+
+	// Pools written before priceTs existed count as stale until the tracker reads prices again.
+	_, err = pool.Factory(DexType)(pool.FactoryParams{EntityPool: newEntity(0), Opts: staleCheck})
+	require.ErrorIs(t, err, ErrStalePrice)
+
+	_, err = pool.Factory(DexType)(pool.FactoryParams{EntityPool: newEntity(0)})
+	require.NoError(t, err)
 }
