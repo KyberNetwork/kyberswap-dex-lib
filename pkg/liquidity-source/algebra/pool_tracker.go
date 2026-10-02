@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"math/big"
+	"slices"
 	"sort"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -33,11 +34,13 @@ type PoolTracker[T Timepoint, R TimepointRPC[T]] struct {
 }
 
 func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context, callPrototype *ethrpc.Call,
-	blockNumber *big.Int, yesterday uint32, currentIndex uint16, timepoints map[uint16]Timepoint,
-	overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint,
+	blockNumber *big.Int, yesterday uint32, currentIndex uint16, currentTimestamp uint32,
+	timepoints map[uint16]Timepoint, overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint,
 	error) {
 	if timepoints == nil {
 		timepoints = make(map[uint16]Timepoint, maxTimepointPageSize)
+	} else {
+		dropOverwrittenTimepoints(timepoints, currentIndex, currentTimestamp)
 	}
 
 	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
@@ -139,6 +142,47 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 		return nil, nil // some new pools don't have timepoints initialized yet, ignore them
 	}
 	return timepoints, nil
+}
+
+// dropOverwrittenTimepoints removes cached timepoints that the plugin has overwritten since they were cached.
+// The timepoints form a uint16 ring buffer, so a slot is not immutable: after wrap-around it is rewritten with a new
+// timepoint, while the cached copy still holds the one from the previous cycle (older timestamp). Besides the slots
+// below the head, the cache holds a few slots ahead of it (the oldest ones, fetched by GetTimepoints), which become
+// the next slots to be written.
+//
+// Slots written since the last refresh form the run (prevIndex, currentIndex]. Timestamps increase along the buffer
+// up to the head, so going backwards from currentIndex through the cached slots, they must not increase. A cached slot
+// that is newer than the one after it marks the end of the run: everything visited before it is stale. The head must
+// also carry currentTimestamp (the plugin's lastTimepointTimestamp), otherwise it is stale itself.
+// Cost is linear in the cache size and involves no RPC. currentTimestamp == 0 means unknown, so the cache is trusted.
+func dropOverwrittenTimepoints[T Timepoint](timepoints map[uint16]T, currentIndex uint16, currentTimestamp uint32) {
+	if currentTimestamp == 0 {
+		return
+	}
+	indices := make([]uint16, 0, len(timepoints))
+	for idx, tp := range timepoints {
+		if tp.GetInitialized() {
+			indices = append(indices, idx)
+		}
+	}
+	// distance walked backwards from the head
+	slices.SortFunc(indices, func(a, b uint16) int { return cmp.Compare(currentIndex-a, currentIndex-b) })
+
+	headStale := false
+	if tp, ok := timepoints[currentIndex]; ok && tp.GetInitialized() {
+		headStale = tp.GetBlockTimestamp() != currentTimestamp
+	}
+	for i := 1; i < len(indices); i++ {
+		if timepoints[indices[i]].GetBlockTimestamp() > timepoints[indices[i-1]].GetBlockTimestamp() {
+			for _, idx := range indices[:i] {
+				delete(timepoints, idx)
+			}
+			return
+		}
+	}
+	if headStale { // no older slot proves otherwise, so the whole cache is from a previous cycle
+		clear(timepoints)
+	}
 }
 
 // LteConsideringOverflow returns true if a <= b with c as greatest value anchor for overflow checking.

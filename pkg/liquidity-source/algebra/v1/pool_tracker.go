@@ -406,7 +406,7 @@ func (t *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 		ABI:    algebraV1PoolABI,
 		Target: poolAddress,
 		Method: methodGetTimepoints,
-	}, nil, yesterday, currentIndex, nil, nil)
+	}, nil, yesterday, currentIndex, 0, nil, nil)
 }
 
 func (t *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address) (*big.Int,

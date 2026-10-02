@@ -296,7 +296,7 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginA
 		var extra ExtraTimepoint
 		_ = json.Unmarshal([]byte(p.Extra), &extra)
 		if timepoints, err = d.getTimepoints(ctx, plugin, blockNumber, volatilityOracleData.TimepointIndex,
-			extra.Timepoints, overrides); err != nil {
+			volatilityOracleData.LastTimepointTimestamp, extra.Timepoints, overrides); err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to fetch timepoints data from plugin")
@@ -409,13 +409,13 @@ func (d *PoolTracker) getSlidingFeeData(req *ethrpc.Request, pluginAddress strin
 }
 
 func (d *PoolTracker) getTimepoints(ctx context.Context, pluginAddress string, blockNumber *big.Int,
-	currentIndex uint16, timepoints map[uint16]Timepoint,
+	currentIndex uint16, currentTimestamp uint32, timepoints map[uint16]Timepoint,
 	overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint, error) {
 	return d.GetTimepoints(ctx, &ethrpc.Call{
 		ABI:    basePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginTimepointsMethod,
-	}, blockNumber, blockTimestamp()-WINDOW, currentIndex, timepoints, overrides)
+	}, blockNumber, blockTimestamp()-WINDOW, currentIndex, currentTimestamp, timepoints, overrides)
 }
 
 func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
