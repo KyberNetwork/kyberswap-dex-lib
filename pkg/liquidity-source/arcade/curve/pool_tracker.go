@@ -57,8 +57,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	extra := Extra{
 		Tracked:           true,
-		TokensSold:        uint256.MustFromBig(state.TokensSold),
-		RealUsdcReserve:   uint256.MustFromBig(state.RealUsdcReserve),
+		TokensSold:        state.TokensSold,
+		RealUsdcReserve:   state.RealUsdcReserve,
 		Mode:              state.Mode,
 		Status:            state.Status,
 		Paused:            paused,

@@ -57,9 +57,9 @@ type MetaInfo struct {
 
 // Decode targets, field order matching the ABI outputs.
 type curveStateResult struct {
-	VirtualUsdcReserve *big.Int
-	RealUsdcReserve    *big.Int
-	TokensSold         *big.Int
+	VirtualUsdcReserve *uint256.Int
+	RealUsdcReserve    *uint256.Int
+	TokensSold         *uint256.Int
 	Mode               uint8
 	Status             uint8
 	Creator            common.Address
