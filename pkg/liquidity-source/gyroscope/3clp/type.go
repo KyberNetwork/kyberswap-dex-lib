@@ -43,7 +43,7 @@ type StaticExtra struct {
 
 type PoolTokensResp struct {
 	Tokens          []common.Address
-	Balances        []*big.Int
+	Balances        []*uint256.Int
 	LastChangeBlock *big.Int
 }
 
@@ -54,8 +54,8 @@ type PausedStateResp struct {
 }
 
 type PoolTokenInfoResp struct {
-	Cash            *big.Int
-	Managed         *big.Int
+	Cash            *uint256.Int
+	Managed         *uint256.Int
 	LastChangeBlock *big.Int
 	AssetManager    common.Address
 }
@@ -63,7 +63,7 @@ type PoolTokenInfoResp struct {
 type rpcRes struct {
 	PoolTokens        PoolTokensResp
 	PoolTokenInfos    []PoolTokenInfoResp
-	SwapFeePercentage *big.Int
+	SwapFeePercentage *uint256.Int
 	PausedState       PausedStateResp
 	BlockNumber       uint64
 }

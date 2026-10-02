@@ -59,8 +59,8 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	points := [2][]*big.Int{
-		ladder.SamplePoints(p, 0, balances[0], balances[1]),
-		ladder.SamplePoints(p, 1, balances[1], balances[0]),
+		ladder.SamplePoints(p, 0, balances[0].ToBig(), balances[1].ToBig()),
+		ladder.SamplePoints(p, 1, balances[1].ToBig(), balances[0].ToBig()),
 	}
 
 	results, err := t.fetchQuotes(ctx, p, staticExtra.Address, points, blockNumber)
@@ -76,8 +76,7 @@ func (t *PoolTracker) GetNewPoolState(
 		collectLadder(results[1]),
 	}
 
-	r0, r1 := uint256.MustFromBig(balances[0]), uint256.MustFromBig(balances[1])
-	return t.persist(p, ladder.Extra{Ladders: ladders}, r0, r1, blockNumber), nil
+	return t.persist(p, ladder.Extra{Ladders: ladders}, balances[0], balances[1], blockNumber), nil
 }
 
 // fetchBalances reads each pool token's balanceOf(vault): Address (the
@@ -87,11 +86,11 @@ func (t *PoolTracker) GetNewPoolState(
 // token balances, not Address's.
 func (t *PoolTracker) fetchBalances(
 	ctx context.Context, vault string, tokens []*entity.PoolToken,
-) ([]*big.Int, *big.Int, error) {
+) ([]*uint256.Int, *big.Int, error) {
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	balances := make([]*big.Int, len(tokens))
+	balances := make([]*uint256.Int, len(tokens))
 	for i, tok := range tokens {
-		balances[i] = new(big.Int)
+		balances[i] = new(uint256.Int)
 		req.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: tok.Address,

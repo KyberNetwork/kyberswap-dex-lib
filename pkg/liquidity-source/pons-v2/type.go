@@ -1,8 +1,6 @@
 package ponsv2
 
 import (
-	"math/big"
-
 	"github.com/holiman/uint256"
 )
 
@@ -83,11 +81,8 @@ type MetaInfo struct {
 }
 
 // curveReservesResult mirrors PonsV2BondingCurve.getReserves()'s two return
-// values for ethrpc decoding. Fields must stay *big.Int (not *uint256.Int):
-// go-ethereum's reflection-based abi.set only knows how to populate
-// *big.Int for a uint256 output; converting to *uint256.Int happens
-// afterward in pool_tracker.go.
+// values for ethrpc decoding.
 type curveReservesResult struct {
-	QuoteReserve *big.Int
-	TokenReserve *big.Int
+	QuoteReserve *uint256.Int
+	TokenReserve *uint256.Int
 }

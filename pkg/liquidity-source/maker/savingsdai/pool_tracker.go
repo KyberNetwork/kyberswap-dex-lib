@@ -2,7 +2,6 @@ package savingsdai
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -66,8 +65,8 @@ func (t *PoolTracker) getNewPoolState(
 	}()
 
 	var (
-		savingsRate, rho, chi    *big.Int
-		totalAssets, totalSupply *big.Int
+		savingsRate, rho, chi    *uint256.Int
+		totalAssets, totalSupply *uint256.Int
 	)
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
@@ -115,15 +114,15 @@ func (t *PoolTracker) getNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		BlockTimestamp: uint256.NewInt(blockTimestamp + Blocktime),
-		SavingsRate:    uint256.MustFromBig(savingsRate),
-		RHO:            uint256.MustFromBig(rho),
-		CHI:            uint256.MustFromBig(chi),
+		SavingsRate:    savingsRate,
+		RHO:            rho,
+		CHI:            chi,
 	})
 	if err != nil {
 		return p, err
 	}
 
-	p.Reserves = entity.PoolReserves{totalAssets.String(), totalSupply.String()}
+	p.Reserves = entity.PoolReserves{totalAssets.Dec(), totalSupply.Dec()}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 	p.BlockNumber = result.BlockNumber.Uint64()

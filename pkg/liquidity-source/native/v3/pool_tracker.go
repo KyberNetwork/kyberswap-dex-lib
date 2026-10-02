@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
@@ -156,9 +155,9 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	for i, v := range vaultRPCs {
 		vaults[i].DepositPaused = v.DepositPaused
 		vaults[i].RedeemPaused = v.RedeemPaused
-		vaults[i].MinDeposit = uint256.MustFromBig(v.MinDeposit)
-		vaults[i].ExchangeRate = uint256.MustFromBig(v.ExchangeRate)
-		vaults[i].MinRedeemInterval = uint256.MustFromBig(v.MinRedeemInterval)
+		vaults[i].MinDeposit = v.MinDeposit
+		vaults[i].ExchangeRate = v.ExchangeRate
+		vaults[i].MinRedeemInterval = v.MinRedeemInterval
 		vaults[i].RedeemCoolDownExempt = v.RedeemCoolDownExempt
 	}
 

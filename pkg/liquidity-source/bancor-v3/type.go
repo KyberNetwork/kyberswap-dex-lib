@@ -61,9 +61,9 @@ type (
 	}
 
 	poolLiquidityResp struct {
-		BntTradingLiquidity       *big.Int
-		BaseTokenTradingLiquidity *big.Int
-		StakedBalance             *big.Int
+		BntTradingLiquidity       *uint256.Int
+		BaseTokenTradingLiquidity *uint256.Int
+		StakedBalance             *uint256.Int
 	}
 
 	tradeTokens struct {

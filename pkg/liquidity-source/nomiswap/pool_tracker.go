@@ -2,7 +2,6 @@ package nomiswap
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -21,8 +20,8 @@ type PoolTracker struct {
 }
 
 type NomiStableReserve struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
+	Reserve0           *uint256.Int
+	Reserve1           *uint256.Int
 	BlockTimestampLast uint32
 }
 
@@ -48,9 +47,9 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		swapFee                                              uint32
-		token0PrecisionMultiplier, token1PrecisionMultiplier *big.Int
+		token0PrecisionMultiplier, token1PrecisionMultiplier *uint256.Int
 		reserve                                              NomiStableReserve
-		A                                                    *big.Int
+		A                                                    *uint256.Int
 	)
 	stablePoolABI, _ := NomiStablePoolMetaData.GetAbi()
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -95,9 +94,9 @@ func (d *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(ExtraStablePool{
 		SwapFee:                   swapFee,
-		Token0PrecisionMultiplier: uint256.MustFromBig(token0PrecisionMultiplier),
-		Token1PrecisionMultiplier: uint256.MustFromBig(token1PrecisionMultiplier),
-		A:                         uint256.MustFromBig(A),
+		Token0PrecisionMultiplier: token0PrecisionMultiplier,
+		Token1PrecisionMultiplier: token1PrecisionMultiplier,
+		A:                         A,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -107,7 +106,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 		return entity.Pool{}, err
 	}
-	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
+	p.Reserves = entity.PoolReserves{reserve.Reserve0.Dec(), reserve.Reserve1.Dec()}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = resp.BlockNumber.Uint64()

@@ -74,9 +74,9 @@ type (
 	VaultRPC struct {
 		DepositPaused        bool
 		RedeemPaused         bool
-		MinDeposit           *big.Int
-		ExchangeRate         *big.Int
-		MinRedeemInterval    *big.Int
+		MinDeposit           *uint256.Int
+		ExchangeRate         *uint256.Int
+		MinRedeemInterval    *uint256.Int
 		RedeemCoolDownExempt bool
 	}
 

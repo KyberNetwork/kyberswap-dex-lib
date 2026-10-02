@@ -2,7 +2,6 @@ package ponsv2
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -39,9 +38,9 @@ func (t *PoolTracker) GetNewPoolState(
 	var (
 		reserves       curveReservesResult
 		graduated      bool
-		feeBps         *big.Int
-		creatorTaxBps  *big.Int
-		reservedTokens *big.Int
+		feeBps         *uint256.Int
+		creatorTaxBps  *uint256.Int
+		reservedTokens *uint256.Int
 		isNativeQuote  bool
 	)
 
@@ -91,8 +90,8 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInvalidReserve
 	}
 
-	quoteReserve := uint256.MustFromBig(reserves.QuoteReserve)
-	tokenReserve := uint256.MustFromBig(reserves.TokenReserve)
+	quoteReserve := reserves.QuoteReserve
+	tokenReserve := reserves.TokenReserve
 
 	extra := Extra{
 		QuoteReserve: quoteReserve,
@@ -107,7 +106,7 @@ func (t *PoolTracker) GetNewPoolState(
 	staticExtra := StaticExtra{
 		FeeBps:         uint16(feeBps.Uint64()),
 		CreatorTaxBps:  uint16(creatorTaxBps.Uint64()),
-		ReservedTokens: uint256.MustFromBig(reservedTokens),
+		ReservedTokens: reservedTokens,
 		IsNativeQuote:  isNativeQuote,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)

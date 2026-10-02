@@ -2,7 +2,6 @@ package syncswapv2classic
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -44,8 +43,8 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		swapFee0To1, swapFee1To0 *big.Int
-		reserves                 = make([]*big.Int, len(p.Tokens))
+		swapFee0To1, swapFee1To0 *uint256.Int
+		reserves                 = make([]*uint256.Int, len(p.Tokens))
 		vaultAddress             common.Address
 	)
 
@@ -100,8 +99,8 @@ func (d *PoolTracker) GetNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(ExtraClassicPool{
-		SwapFee0To1:  uint256.MustFromBig(swapFee0To1),
-		SwapFee1To0:  uint256.MustFromBig(swapFee1To0),
+		SwapFee0To1:  swapFee0To1,
+		SwapFee1To0:  swapFee1To0,
 		VaultAddress: vaultAddress.Hex(),
 	})
 	if err != nil {
@@ -113,7 +112,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{reserves[0].String(), reserves[1].String()}
+	p.Reserves = entity.PoolReserves{reserves[0].Dec(), reserves[1].Dec()}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 

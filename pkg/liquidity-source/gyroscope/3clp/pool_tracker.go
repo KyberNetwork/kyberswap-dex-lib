@@ -3,7 +3,6 @@ package gyro3clp
 import (
 	"context"
 	"errors"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -93,10 +92,10 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		swapFeePercentage, _ = uint256.FromBig(rpcRes.SwapFeePercentage)
-		poolTokens           = rpcRes.PoolTokens
-		pausedState          = rpcRes.PausedState
-		blockNumber          = rpcRes.BlockNumber
+		swapFeePercentage = rpcRes.SwapFeePercentage
+		poolTokens        = rpcRes.PoolTokens
+		pausedState       = rpcRes.PausedState
+		blockNumber       = rpcRes.BlockNumber
 	)
 
 	// update pool
@@ -134,8 +133,8 @@ func (t *PoolTracker) initPoolTokenInfos(rpcResponse []PoolTokenInfoResp) []Pool
 	ret := make([]PoolTokenInfo, len(rpcResponse))
 	for idx, info := range rpcResponse {
 		ret[idx] = PoolTokenInfo{
-			Cash:            uint256.MustFromBig(info.Cash),
-			Managed:         uint256.MustFromBig(info.Managed),
+			Cash:            info.Cash,
+			Managed:         info.Managed,
 			LastChangeBlock: info.LastChangeBlock.Uint64(),
 			AssetManager:    info.AssetManager.Hex(),
 		}
@@ -149,7 +148,7 @@ func (t *PoolTracker) initReserves(
 	p entity.Pool,
 	poolTokens PoolTokensResp,
 ) ([]string, error) {
-	reserveByToken := make(map[string]*big.Int)
+	reserveByToken := make(map[string]*uint256.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
 		reserveByToken[addr] = poolTokens.Balances[idx]
@@ -168,7 +167,7 @@ func (t *PoolTracker) initReserves(
 			return nil, ErrReserveNotFound
 		}
 
-		reserves[idx] = r.String()
+		reserves[idx] = r.Dec()
 	}
 
 	return reserves, nil
@@ -185,7 +184,7 @@ func (t *PoolTracker) queryRPC(
 	var (
 		poolTokens        PoolTokensResp
 		poolTokenInfos    = make([]PoolTokenInfoResp, len(tokens))
-		swapFeePercentage *big.Int
+		swapFeePercentage *uint256.Int
 		pausedState       PausedStateResp
 
 		poolIDHash = common.HexToHash(poolID)

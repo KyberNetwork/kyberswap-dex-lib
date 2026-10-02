@@ -146,10 +146,10 @@ func (t *PoolTracker) updatePool(
 			}
 
 			var (
-				poolToken                    = hexutil.Encode(poolDat.PoolToken[:])
-				bntTradingLiquidity, _       = uint256.FromBig(poolDat.PoolLiquidity.BntTradingLiquidity)
-				baseTokenTradingLiquidity, _ = uint256.FromBig(poolDat.PoolLiquidity.BaseTokenTradingLiquidity)
-				stakedBalance, _             = uint256.FromBig(poolDat.PoolLiquidity.StakedBalance)
+				poolToken                 = hexutil.Encode(poolDat.PoolToken[:])
+				bntTradingLiquidity       = poolDat.PoolLiquidity.BntTradingLiquidity
+				baseTokenTradingLiquidity = poolDat.PoolLiquidity.BaseTokenTradingLiquidity
+				stakedBalance             = poolDat.PoolLiquidity.StakedBalance
 			)
 
 			pool := pool{
