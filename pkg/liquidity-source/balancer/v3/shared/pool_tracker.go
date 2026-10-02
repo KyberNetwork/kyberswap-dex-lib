@@ -1,8 +1,6 @@
 package shared
 
 import (
-	"math/big"
-
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -14,8 +12,8 @@ import (
 func GetBufferTokens(addFn func(*ethrpc.Call, []any), chainID valueobject.ChainID, exchange string, bufferTokens []string) func() []*ExtraBuffer {
 	var (
 		rates       = make([][]Rate, len(bufferTokens))
-		maxDeposits = make([]*big.Int, len(bufferTokens))
-		maxRedeems  = make([]*big.Int, len(bufferTokens))
+		maxDeposits = make([]*uint256.Int, len(bufferTokens))
+		maxRedeems  = make([]*uint256.Int, len(bufferTokens))
 	)
 
 	vault := Vault(chainID, exchange)
@@ -62,13 +60,13 @@ func GetBufferTokens(addFn func(*ethrpc.Call, []any), chainID valueobject.ChainI
 			var extra = ExtraBuffer{
 				DepositRates: make([]*uint256.Int, len(rates)),
 				RedeemRates:  make([]*uint256.Int, len(rates)),
-				MaxDeposit:   uint256.MustFromBig(maxDeposits[i]),
-				MaxRedeem:    uint256.MustFromBig(maxRedeems[i]),
+				MaxDeposit:   maxDeposits[i],
+				MaxRedeem:    maxRedeems[i],
 			}
 
 			for j, rate := range rates {
-				extra.DepositRates[j] = uint256.MustFromBig(rate.DepositRate)
-				extra.RedeemRates[j] = uint256.MustFromBig(rate.RedeemRate)
+				extra.DepositRates[j] = rate.DepositRate
+				extra.RedeemRates[j] = rate.RedeemRate
 			}
 
 			return &extra

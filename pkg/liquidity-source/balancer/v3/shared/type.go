@@ -41,8 +41,8 @@ type ExtraBuffer struct {
 }
 
 type Rate struct {
-	DepositRate *big.Int
-	RedeemRate  *big.Int
+	DepositRate *uint256.Int
+	RedeemRate  *uint256.Int
 }
 
 type PoolDataRPC struct {
