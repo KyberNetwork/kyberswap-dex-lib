@@ -87,7 +87,7 @@ type RangePoolDynamicDataABI struct {
 	VirtualBalances         []*big.Int
 	LeverageRatios          []*big.Int
 	TokenRates              []*big.Int
-	StaticSwapFeePercentage *big.Int
+	StaticSwapFeePercentage *uint256.Int
 	TotalSupply             *big.Int
 	IsPoolRegistered        bool
 	IsPoolInitialized       bool
@@ -104,8 +104,8 @@ type PoolConfigABI struct {
 		EnableRemoveLiquidityCustom bool
 		EnableDonation              bool
 	}
-	StaticSwapFeePercentage     *big.Int
-	AggregateSwapFeePercentage  *big.Int
+	StaticSwapFeePercentage     *uint256.Int
+	AggregateSwapFeePercentage  *uint256.Int
 	AggregateYieldFeePercentage *big.Int
 	TokenDecimalDiffs           *big.Int
 	PauseWindowEndTime          uint32

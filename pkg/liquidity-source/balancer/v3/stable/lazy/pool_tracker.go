@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -195,11 +194,11 @@ func buildPoolState(
 	extra.TokenRates = shared.FromBigs(rpcRes.PoolData.TokenRates)
 	extra.Buffers = rpcRes.Buffers()
 	if staticExtra.HookType == shared.StableSurgeHookType {
-		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(rpcRes.MaxSurgeFeePercentage)
-		extra.SurgeThresholdPercentage, _ = uint256.FromBig(rpcRes.SurgeThresholdPercentage)
+		extra.MaxSurgeFeePercentage = rpcRes.MaxSurgeFeePercentage
+		extra.SurgeThresholdPercentage = rpcRes.SurgeThresholdPercentage
 	}
 	extra.IsRisky = isRisky(extra.SurgePercentages, p, chainID)
-	extra.AmplificationParameter, _ = uint256.FromBig(rpcRes.Value)
+	extra.AmplificationParameter = rpcRes.Value
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

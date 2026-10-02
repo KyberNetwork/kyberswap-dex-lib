@@ -27,12 +27,12 @@ type RpcResult struct {
 }
 
 type SurgePercentagesRpc struct {
-	MaxSurgeFeePercentage    *big.Int
-	SurgeThresholdPercentage *big.Int
+	MaxSurgeFeePercentage    *uint256.Int
+	SurgeThresholdPercentage *uint256.Int
 }
 
 type AmplificationParameterRpc struct {
-	Value      *big.Int
+	Value      *uint256.Int
 	IsUpdating bool
 	Precision  *big.Int
 }

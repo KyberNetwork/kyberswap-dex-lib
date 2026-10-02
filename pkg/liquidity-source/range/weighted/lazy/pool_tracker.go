@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -50,7 +51,7 @@ func (t *PoolTracker) GetNewPoolState(
 	var (
 		dyn      rangeweighted.RangePoolDynamicDataResult
 		cfg      rangeweighted.PoolConfigResult
-		minTrade *big.Int
+		minTrade *uint256.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -120,7 +121,7 @@ func (t *PoolTracker) lazyNewPoolState(
 	var (
 		dyn      rangeweighted.RangePoolDynamicDataResult
 		cfg      rangeweighted.PoolConfigResult
-		minTrade *big.Int
+		minTrade *uint256.Int
 	)
 
 	r := t.ethrpcClient.R().SetContext(ctx)

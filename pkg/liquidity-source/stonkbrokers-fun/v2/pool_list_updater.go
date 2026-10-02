@@ -50,11 +50,11 @@ type launchRaw struct {
 	Graduated          bool
 	Bonded             bool
 	Aborted            bool
-	LoadedSupply       *big.Int
-	VQuote             *big.Int
-	VToken             *big.Int
-	RealQuote          *big.Int
-	BuyCount           *big.Int
+	LoadedSupply       *uint256.Int
+	VQuote             *uint256.Int
+	VToken             *uint256.Int
+	RealQuote          *uint256.Int
+	BuyCount           *uint256.Int
 }
 
 // modesRaw mirrors StonkSafeLaunchpadV2.LaunchModes.
@@ -227,7 +227,7 @@ func (l *PoolsListUpdater) fetchLaunches(
 			PostTaxBps:        mr.PostTaxBps,
 			MaxBuyPpm:         mr.MaxBuyPpm,
 			GradMcapUsd8:      lr.GradMcapUsd8,
-			LoadedSupply:      lr.LoadedSupply.String(),
+			LoadedSupply:      lr.LoadedSupply.Dec(),
 			QuoteIsToken0:     ps.quoteIsToken0,
 		}
 		if (ps.quoteUsdFeed != common.Address{}) {

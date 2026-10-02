@@ -82,11 +82,11 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) fetchState(
 	ctx context.Context,
 	poolAddress string,
-) (*RangePoolDynamicDataABI, *PoolConfigABI, *big.Int, uint64, error) {
+) (*RangePoolDynamicDataABI, *PoolConfigABI, *uint256.Int, uint64, error) {
 	var (
 		dyn      RangePoolDynamicDataResult
 		cfg      PoolConfigResult
-		minTrade *big.Int
+		minTrade *uint256.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -124,7 +124,7 @@ func AddRPCCalls(
 	poolAddress string,
 	dyn *RangePoolDynamicDataResult,
 	cfg *PoolConfigResult,
-	minTrade **big.Int,
+	minTrade **uint256.Int,
 ) {
 	addFn(&ethrpc.Call{
 		ABI:    rangePoolABI,
@@ -151,19 +151,19 @@ func BuildPoolState(
 	staticExtra *StaticExtra,
 	dyn *RangePoolDynamicDataABI,
 	cfg *PoolConfigABI,
-	minTrade *big.Int,
+	minTrade *uint256.Int,
 	blockNumber uint64,
 ) (entity.Pool, error) {
 	extra := Extra{
 		Extra: &shared.Extra{
-			StaticSwapFeePercentage:    uint256.MustFromBig(dyn.StaticSwapFeePercentage),
-			AggregateSwapFeePercentage: uint256.MustFromBig(cfg.AggregateSwapFeePercentage),
+			StaticSwapFeePercentage:    dyn.StaticSwapFeePercentage,
+			AggregateSwapFeePercentage: cfg.AggregateSwapFeePercentage,
 			BalancesLiveScaled18:       shared.FromBigs(dyn.BalancesLiveScaled18),
 			DecimalScalingFactors:      staticExtra.DecimalScalingFactors,
 			TokenRates:                 shared.FromBigs(dyn.TokenRates),
 		},
 		VirtualBalances:      shared.FromBigs(dyn.VirtualBalances),
-		MinimumTradeAmount:   uint256.MustFromBig(minTrade),
+		MinimumTradeAmount:   minTrade,
 		IsPoolRegistered:     dyn.IsPoolRegistered,
 		IsPoolInitialized:    dyn.IsPoolInitialized,
 		IsPoolPaused:         dyn.IsPoolPaused,

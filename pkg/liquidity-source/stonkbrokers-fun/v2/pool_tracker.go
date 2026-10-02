@@ -61,8 +61,8 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	extra := Extra{
-		VQuote:       uint256.MustFromBig(lr.VQuote),
-		VToken:       uint256.MustFromBig(lr.VToken),
+		VQuote:       lr.VQuote,
+		VToken:       lr.VToken,
 		SellsEnabled: lr.SellsEnabled,
 		Armed:        lr.Armed,
 		Graduated:    lr.Graduated,
