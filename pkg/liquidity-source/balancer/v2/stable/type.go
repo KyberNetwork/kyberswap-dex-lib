@@ -42,7 +42,7 @@ type PausedState struct {
 }
 
 type AmplificationParameter struct {
-	Value      *big.Int
+	Value      *uint256.Int
 	IsUpdating bool
 	Precision  *big.Int
 }
@@ -56,11 +56,11 @@ type PoolMetaInfo struct {
 }
 
 type rpcRes struct {
-	Amp                       *big.Int
+	Amp                       *uint256.Int
 	PoolTokens                PoolTokens
-	SwapFeePercentage         *big.Int
-	ProtocolSwapFeePercentage *big.Int
-	ScalingFactors            []*big.Int
+	SwapFeePercentage         *uint256.Int
+	ProtocolSwapFeePercentage *uint256.Int
+	ScalingFactors            []*uint256.Int
 	PausedState               PausedState
 	BlockNumber               uint64
 }

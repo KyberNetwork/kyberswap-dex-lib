@@ -105,21 +105,16 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		amp, _                       = uint256.FromBig(rpcRes.Amp)
-		swapFeePercentage, _         = uint256.FromBig(rpcRes.SwapFeePercentage)
-		protocolSwapFeePercentage, _ = uint256.FromBig(rpcRes.ProtocolSwapFeePercentage)
-		poolTokens                   = rpcRes.PoolTokens
-		pausedState                  = rpcRes.PausedState
-		blockNumber                  = rpcRes.BlockNumber
+		amp                       = rpcRes.Amp
+		swapFeePercentage         = rpcRes.SwapFeePercentage
+		protocolSwapFeePercentage = rpcRes.ProtocolSwapFeePercentage
+		poolTokens                = rpcRes.PoolTokens
+		pausedState               = rpcRes.PausedState
+		blockNumber               = rpcRes.BlockNumber
 	)
 
 	if staticExtra.PoolType == poolTypeMetaStable || staticExtra.PoolType == poolTypeLegacyMetaStable {
-		factors := make([]*uint256.Int, len(rpcRes.ScalingFactors))
-		for idx, factor := range rpcRes.ScalingFactors {
-			factors[idx], _ = uint256.FromBig(factor)
-		}
-
-		scalingFactors = factors
+		scalingFactors = rpcRes.ScalingFactors
 	}
 
 	// update pool
@@ -194,10 +189,10 @@ func (t *PoolTracker) queryRPC(
 ) (*rpcRes, error) {
 	var (
 		poolTokens                                   PoolTokens
-		protocolSwapFeePercentage, swapFeePercentage *big.Int
+		protocolSwapFeePercentage, swapFeePercentage *uint256.Int
 		pausedState                                  PausedState
 		ampParams                                    AmplificationParameter
-		scalingFactors                               []*big.Int
+		scalingFactors                               []*uint256.Int
 	)
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
