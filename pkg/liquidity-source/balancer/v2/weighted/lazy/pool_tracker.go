@@ -18,7 +18,6 @@ import (
 	weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/weighted"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -118,17 +117,17 @@ func (t *PoolTracker) getNewPoolState(
 
 type trackerData struct {
 	poolTokens                weighted.PoolTokens
-	swapFeePercentage         *big.Int
-	protocolSwapFeePercentage *big.Int
+	swapFeePercentage         *uint256.Int
+	protocolSwapFeePercentage *uint256.Int
 	pausedState               weighted.PausedState
-	lastInvariant             *big.Int
-	totalSupply               *big.Int
+	lastInvariant             *uint256.Int
+	totalSupply               *uint256.Int
 }
 
 func newTrackerData() *trackerData {
 	return &trackerData{
-		protocolSwapFeePercentage: bignumber.ZeroBI,
-		lastInvariant:             bignumber.ZeroBI,
+		protocolSwapFeePercentage: uint256.NewInt(0),
+		lastInvariant:             uint256.NewInt(0),
 	}
 }
 
@@ -179,10 +178,10 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, poolTypeVe
 
 func buildPoolState(t *PoolTracker, p entity.Pool, d *trackerData, blockNumber *big.Int) (entity.Pool, error) {
 	extra := weighted.Extra{
-		SwapFeePercentage:         uint256.MustFromBig(d.swapFeePercentage),
-		ProtocolSwapFeePercentage: uint256.MustFromBig(d.protocolSwapFeePercentage),
-		LastInvariant:             uint256.MustFromBig(d.lastInvariant),
-		TotalSupply:               uint256.MustFromBig(d.totalSupply),
+		SwapFeePercentage:         d.swapFeePercentage,
+		ProtocolSwapFeePercentage: d.protocolSwapFeePercentage,
+		LastInvariant:             d.lastInvariant,
+		TotalSupply:               d.totalSupply,
 		Paused:                    !isNotPaused(d.pausedState),
 	}
 	extraBytes, err := json.Marshal(extra)

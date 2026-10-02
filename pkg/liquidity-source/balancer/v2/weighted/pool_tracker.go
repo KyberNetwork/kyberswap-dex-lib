@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var ErrReserveNotFound = errors.New("reserve not found")
@@ -145,11 +144,11 @@ func (t *PoolTracker) queryRPC(
 ) (*RPCRes, error) {
 	var (
 		poolTokens                PoolTokens
-		swapFeePercentage         *big.Int
-		protocolSwapFeePercentage = bignumber.ZeroBI
+		swapFeePercentage         *uint256.Int
+		protocolSwapFeePercentage = uint256.NewInt(0)
 		pausedState               PausedState
-		lastInvariant             = bignumber.ZeroBI
-		totalSupply               *big.Int
+		lastInvariant             = uint256.NewInt(0)
+		totalSupply               *uint256.Int
 	)
 
 	req := t.ethrpcClient.R().SetContext(ctx)
@@ -214,11 +213,11 @@ func (t *PoolTracker) queryRPC(
 
 	return &RPCRes{
 		PoolTokens:                poolTokens,
-		SwapFeePercentage:         uint256.MustFromBig(swapFeePercentage),
-		ProtocolSwapFeePercentage: uint256.MustFromBig(protocolSwapFeePercentage),
+		SwapFeePercentage:         swapFeePercentage,
+		ProtocolSwapFeePercentage: protocolSwapFeePercentage,
 		PausedState:               pausedState,
-		LastInvariant:             uint256.MustFromBig(lastInvariant),
-		TotalSupply:               uint256.MustFromBig(totalSupply),
+		LastInvariant:             lastInvariant,
+		TotalSupply:               totalSupply,
 		BlockNumber:               res.BlockNumber.Uint64(),
 	}, nil
 }
