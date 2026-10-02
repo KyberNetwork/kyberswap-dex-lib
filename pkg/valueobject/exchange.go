@@ -150,6 +150,7 @@ const (
 	ExchangeGhost                       = "ghost"
 	ExchangeInfinifi                    = "infinifi-gateway"
 	ExchangeInfinityPools               = "infinitypools"
+	ExchangeIlyris                      = "ilyris"
 	ExchangeIntegral                    = "integral"
 	ExchangeJetSwap                     = "jetswap"
 	ExchangeKanseiV2                    = "kansei-v2"
