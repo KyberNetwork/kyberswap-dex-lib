@@ -32,9 +32,18 @@ var L2BlockByChain = map[valueobject.ChainID]common.Address{
 }
 
 // Rung sizes in whole USD. Buy rungs are USDG in; sell rungs are LOT in, converted at the
-// tracked NAV. Dense enough that the chord error stays within a few bps at every size (the fill
-// curve bends only with the constituent pools' slippage).
-var rungsUsd = []uint64{1, 10, 100, 500, 1_000, 2_500, 5_000, 10_000, 20_000, 50_000}
+// tracked NAV. The 30k/40k rungs split the widest segment: without them the chord under-quoted
+// the live venues by up to ~9 bps between 20k and 50k (2026-10-02).
+var rungsUsd = []uint64{1, 10, 100, 500, 1_000, 2_500, 5_000, 10_000, 20_000, 30_000, 40_000, 50_000}
+
+// buyHaircutPpm is taken off every buy (USDG in) output, in parts per million. The buy fill
+// curve is not concave: the mint rounds to whole constituent units, which puts ~±1 bp ripples on
+// it, and a chord between two rungs can sit above a ripple. Dense live sweeps against the
+// V4Quoter (2026-10-02, three venues) put the worst chord over-quote at +1.0 bp; the haircut
+// covers that with margin. Sells showed no over-quote (worst +0.000 bp), so they are not cut.
+const buyHaircutPpm = 150
+
+const ppm = 1_000_000
 
 // floatRungsBps: extra sell rungs as a fraction of the PoolManager's LOT balance. That balance is
 // only an upper bound on a sell: inside the swap, _restoreStanding re-centres the standing position

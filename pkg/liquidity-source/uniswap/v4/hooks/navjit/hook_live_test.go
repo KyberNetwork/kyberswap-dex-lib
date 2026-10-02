@@ -35,22 +35,24 @@ func init() {
 	}
 }
 
-// liveBpsBound is the brief's acceptance bound: the plugin's quote within 5 bps of V4Quoter.
+// liveBpsBound is the acceptance bound on |plugin - V4Quoter| / V4Quoter, in bps. It includes the
+// 1.5 bps buy haircut on top of the chord's own (under-quoting) error.
 const liveBpsBound = 5.0
+
+// sweepFracs places sizes strictly inside every ladder segment (and below the first rung), so the
+// interpolation itself is what is measured, not the rungs it was built from.
+var sweepFracs = []float64{0.1, 0.25, 0.4, 0.55, 0.7, 0.9}
 
 // TestLive_PluginVsV4Quoter runs each live venue through Kyber's own pipeline (PoolTracker ->
 // hook Track -> NewPoolSimulator -> CalcAmountOut) and compares the result with a fresh V4Quoter
-// call pinned to the same block, at five sizes per direction chosen BETWEEN the ladder rungs, so
-// the interpolation itself is what is measured.
+// call pinned to the same block, at six sizes inside every ladder segment in both directions.
+// The plugin must never quote more than the V4Quoter (beyond one base unit of rounding).
 func TestLive_PluginVsV4Quoter(t *testing.T) {
 	skipInCI(t)
 	ctx := context.Background()
 	rpc := liveRPC()
 	log := newLiveLog(t)
 	log.Printf("# plugin vs V4Quoter, %s", time.Now().UTC().Format(time.RFC3339))
-
-	buyUsd := []float64{2.5, 37, 420, 2_600, 12_000}
-	sellFrac := []float64{0.004, 0.06, 0.3, 0.65, 0.97} // of the top sell rung
 
 	for _, v := range liveVenues {
 		p := trackPool(ctx, t, rpc, v)
@@ -69,35 +71,50 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 		require.NotEmpty(t, hx.Buy)
 		require.NotEmpty(t, hx.Sell)
 
-		check := func(dir string, tokenIn, tokenOut string, zeroForOne bool, amt *big.Int) {
-			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: new(big.Int).Set(amt)},
-				TokenOut:      tokenOut,
-			})
-			ref, ok := v4Quote(ctx, rpc, block, v, zeroForOne, amt)
-			if !ok {
-				log.Printf("%s %s in=%s quoter=REVERT plugin_err=%v", v.Name, dir, amt, err)
-				assert.Error(t, err, "plugin must refuse what the quoter refuses")
-				return
-			}
-			require.NoError(t, err, "%s %s %s", v.Name, dir, amt)
-			e := errBps(res.TokenAmountOut.Amount, ref)
-			log.Printf("%s %s in=%s plugin=%s quoter=%s err_bps=%+.4f gas=%d", v.Name, dir, amt,
-				res.TokenAmountOut.Amount, ref, e, res.Gas)
-			assert.LessOrEqual(t, math.Abs(e), liveBpsBound, "%s %s %s", v.Name, dir, amt)
-			// Not exactly concave (whole-unit mint rounding): allow a sliver over, never a real over-quote.
-			assert.LessOrEqual(t, e, 0.5, "%s %s: plugin must not over-quote the real fill", v.Name, dir)
-		}
-
 		usdg, lot := strings.ToLower(v.Currency0), strings.ToLower(v.Currency1)
-		for _, usd := range buyUsd {
-			amt, _ := new(big.Float).Mul(big.NewFloat(usd), new(big.Float).SetInt(bignumber.TenPowInt(usdgDecimals))).Int(nil)
-			check("buy", usdg, lot, true, amt)
-		}
-		top := hx.Sell[len(hx.Sell)-1].In.ToBig()
-		for _, f := range sellFrac {
-			amt, _ := new(big.Float).Mul(big.NewFloat(f), new(big.Float).SetInt(top)).Int(nil)
-			check("sell", lot, usdg, false, amt)
+		for _, d := range []struct {
+			name              string
+			ladder            []Rung
+			tokenIn, tokenOut string
+			zeroForOne        bool
+		}{{"buy", hx.Buy, usdg, lot, true}, {"sell", hx.Sell, lot, usdg, false}} {
+			var worstOver, worstUnder float64
+			n := 0
+			prev := new(big.Int)
+			for _, r := range d.ladder {
+				hi := r.In.ToBig()
+				span := new(big.Int).Sub(hi, prev)
+				for _, f := range sweepFracs {
+					amt, _ := new(big.Float).Mul(big.NewFloat(f), new(big.Float).SetInt(span)).Int(nil)
+					amt.Add(amt, prev)
+					if amt.Sign() <= 0 {
+						continue
+					}
+					res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: d.tokenIn, Amount: new(big.Int).Set(amt)},
+						TokenOut:      d.tokenOut,
+					})
+					ref, ok := v4Quote(ctx, rpc, block, v, d.zeroForOne, amt)
+					if !ok {
+						log.Printf("%s %s in=%s quoter=REVERT plugin_err=%v", v.Name, d.name, amt, err)
+						assert.Error(t, err, "plugin must refuse what the quoter refuses")
+						continue
+					}
+					require.NoError(t, err, "%s %s %s", v.Name, d.name, amt)
+					got := res.TokenAmountOut.Amount
+					e := errBps(got, ref)
+					n++
+					worstOver, worstUnder = math.Max(worstOver, e), math.Min(worstUnder, e)
+					log.Printf("%s %s in=%s plugin=%s quoter=%s err_bps=%+.4f gas=%d", v.Name, d.name, amt,
+						got, ref, e, res.Gas)
+					assert.LessOrEqual(t, math.Abs(e), liveBpsBound, "%s %s %s", v.Name, d.name, amt)
+					assert.LessOrEqual(t, got.Cmp(new(big.Int).Add(ref, big.NewInt(1))), 0,
+						"%s %s %s: plugin must not over-quote the real fill (%+.4f bps)", v.Name, d.name, amt, e)
+				}
+				prev = hi
+			}
+			log.Printf("SUMMARY %s %s block=%d sizes=%d worst_over_bps=%+.4f worst_under_bps=%+.4f",
+				v.Name, d.name, hx.Block, n, worstOver, worstUnder)
 		}
 
 		// Beyond the float: the hook reverts SellExceedsFloat, the plugin must refuse.

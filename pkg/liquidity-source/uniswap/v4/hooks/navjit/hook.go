@@ -20,8 +20,10 @@
 //
 //   - the fill curve is close to linear and bends down with size (constituent slippage only
 //     grows), so the chord between two rungs sits at or just below it. It is not exactly concave
-//     (the mint rounds to whole constituent amounts): the largest over-quote measured live on
-//     2026-10-01 was +0.15 bps, the largest under-quote -3.9 bps before the ladder was densified;
+//     (the mint rounds to whole constituent amounts, rippling it by ~±1 bp), so a chord can sit
+//     up to ~1 bp above it; buys therefore lose buyHaircutPpm (1.5 bps) so they never over-quote;
+//   - consecutive swaps in one direction on the same simulator state are priced as one walk
+//     along the ladder (see Hook.consumedIn);
 //   - below the first rung the quote is proportional to it (measured flat to < 0.01 bps between
 //     $1 and $100 on all three live venues);
 //   - above the top rung the quote is refused: beyond it the hook may revert OutsideBand,
@@ -44,6 +46,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -87,6 +90,25 @@ type Extra struct {
 type Hook struct {
 	uniswapv4.Hook `json:"-"`
 	Extra
+
+	// consumedIn/consumedOut accumulate, per ladder (dirBuy, dirSell), what earlier swaps on this
+	// simulator state took, so the next swap in the same direction is priced further along the
+	// fill curve: every buy pushes the constituent pools up, every sell pushes them down. The
+	// opposite direction is left alone, which errs toward under-quoting it. Out is pre-haircut.
+	consumedIn, consumedOut [2]uint256.Int
+}
+
+const (
+	dirBuy  = 0
+	dirSell = 1
+)
+
+// SwapInfo is what BeforeSwap hands to UpdateBalance: the input and the pre-haircut ladder
+// output the swap consumed.
+type SwapInfo struct {
+	Dir       int
+	AmountIn  uint256.Int
+	RawAmount uint256.Int
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -100,9 +122,19 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 func (h *Hook) AllowEmptyTicks() bool { return true }
 
 func (h *Hook) CloneState() uniswapv4.Hook {
-	// The ladder is replaced wholesale by Track and never written by a swap.
+	// The ladder is replaced wholesale by Track and never written by a swap; the consumed amounts
+	// are value arrays, so the shallow copy already owns them.
 	cloned := *h
 	return &cloned
+}
+
+func (h *Hook) UpdateBalance(swapInfo any) {
+	info, ok := swapInfo.(*SwapInfo)
+	if !ok || info == nil {
+		return
+	}
+	h.consumedIn[info.Dir].Add(&h.consumedIn[info.Dir], &info.AmountIn)
+	h.consumedOut[info.Dir].Add(&h.consumedOut[info.Dir], &info.RawAmount)
 }
 
 // GetReserves reports what the venue can actually deliver: the top rung's output in each
@@ -111,16 +143,19 @@ func (h *Hook) GetReserves(context.Context, *uniswapv4.HookParam) (entity.PoolRe
 	if !h.Tracked {
 		return nil, nil
 	}
-	usdgRes, lotRes := topOut(h.Sell), topOut(h.Buy)
+	usdgRes, lotRes := topOut(h.Sell, false), topOut(h.Buy, true)
 	if h.UsdgIs0 {
 		return entity.PoolReserves{usdgRes, lotRes}, nil
 	}
 	return entity.PoolReserves{lotRes, usdgRes}, nil
 }
 
-func topOut(l []Rung) string {
+func topOut(l []Rung, buy bool) string {
 	if len(l) == 0 {
 		return "0"
+	}
+	if buy {
+		return haircut(l[len(l)-1].Out).Dec()
 	}
 	return l[len(l)-1].Out.Dec()
 }
@@ -370,14 +405,16 @@ func u256OrNil(x *big.Int) *uint256.Int {
 // pool's own CL math runs on zero. CalcOut (exact-in): in -= specified, out -= unspecified, hence
 // DeltaSpecified = amountIn and DeltaUnspecified = -amountOut. CalcIn (the reverse of exact-in):
 // out += specified, in += unspecified, hence DeltaSpecified = -amountOut, DeltaUnspecified = amountIn.
+//
+// Both are priced as the increment of the ladder between what earlier swaps on this state
+// consumed and that plus this swap (see consumedIn); buys then lose buyHaircutPpm.
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if !h.Tracked {
 		return nil, ErrPoolIsNotTracked
 	}
-	buy := params.ZeroForOne == h.UsdgIs0
-	ladder := h.Sell
-	if buy {
-		ladder = h.Buy
+	dir, ladder := dirSell, h.Sell
+	if params.ZeroForOne == h.UsdgIs0 {
+		dir, ladder = dirBuy, h.Buy
 	}
 	if len(ladder) == 0 {
 		return nil, ErrEmptyLadder
@@ -386,34 +423,84 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if overflow || params.AmountSpecified.Sign() <= 0 {
 		return nil, ErrZeroOutput
 	}
+	usedIn, usedOut := &h.consumedIn[dir], &h.consumedOut[dir]
+	info := &SwapInfo{Dir: dir}
 
 	if params.CalcOut {
-		if !buy && h.Float != nil && amt.Gt(h.Float) {
+		var totalIn uint256.Int
+		if _, of := totalIn.AddOverflow(usedIn, amt); of {
+			return nil, ErrBeyondLadder
+		}
+		if dir == dirSell && h.Float != nil && totalIn.Gt(h.Float) {
 			return nil, ErrSellExceedsFloat
 		}
-		out, gas, err := quoteOut(ladder, amt)
+		totalOut, gas, err := quoteOut(ladder, &totalIn)
 		if err != nil {
 			return nil, err
+		}
+		if !totalOut.Gt(usedOut) {
+			return nil, ErrZeroOutput
+		}
+		info.AmountIn.Set(amt)
+		info.RawAmount.Sub(totalOut, usedOut)
+		out := &info.RawAmount
+		if dir == dirBuy {
+			out = haircut(out)
+		}
+		if out.IsZero() {
+			return nil, ErrZeroOutput
 		}
 		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecified:   new(big.Int).Set(params.AmountSpecified),
 			DeltaUnspecified: new(big.Int).Neg(out.ToBig()),
 			Gas:              hookGas(gas),
+			SwapInfo:         info,
 		}, nil
 	}
 
-	in, gas, err := quoteIn(ladder, amt)
+	// Exact-out: the ladder must deliver enough raw output that the haircut leaves amt.
+	raw := amt
+	if dir == dirBuy {
+		raw = unHaircut(amt)
+	}
+	var totalOut uint256.Int
+	if _, of := totalOut.AddOverflow(usedOut, raw); of {
+		return nil, ErrBeyondLadder
+	}
+	totalIn, gas, err := quoteIn(ladder, &totalOut)
 	if err != nil {
 		return nil, err
 	}
-	if !buy && h.Float != nil && in.Gt(h.Float) {
+	if !totalIn.Gt(usedIn) {
+		return nil, ErrZeroOutput
+	}
+	if dir == dirSell && h.Float != nil && totalIn.Gt(h.Float) {
 		return nil, ErrSellExceedsFloat
 	}
+	info.AmountIn.Sub(totalIn, usedIn)
+	info.RawAmount.Set(raw)
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   new(big.Int).Neg(params.AmountSpecified),
-		DeltaUnspecified: in.ToBig(),
+		DeltaUnspecified: info.AmountIn.ToBig(),
 		Gas:              hookGas(gas),
+		SwapInfo:         info,
 	}, nil
+}
+
+var (
+	uPpm         = uint256.NewInt(ppm)
+	uPpmAfterCut = uint256.NewInt(ppm - buyHaircutPpm)
+)
+
+// haircut returns floor(x * (ppm - buyHaircutPpm) / ppm).
+func haircut(x *uint256.Int) *uint256.Int {
+	return u256.MulDivDown(new(uint256.Int), x, uPpmAfterCut, uPpm)
+}
+
+// unHaircut returns the smallest raw amount whose haircut is at least x:
+// ceil(x * ppm / (ppm - buyHaircutPpm)).
+func unHaircut(x *uint256.Int) *uint256.Int {
+	return u256.MulDivUp(new(uint256.Int), x, uPpm, uPpmAfterCut)
 }
 
 // hookGas: the quoter's estimate covers the whole swap; the v4 simulator adds its own base gas.
