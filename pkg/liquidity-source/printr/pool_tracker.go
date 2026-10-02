@@ -102,8 +102,8 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserve := uint256.MustFromBig(curveResult.Data.Reserve)
-	completionThreshold := uint256.MustFromBig(curveResult.Data.CompletionThreshold)
+	reserve := curveResult.Data.Reserve
+	completionThreshold := curveResult.Data.CompletionThreshold
 
 	// completionThreshold == 0 means graduated → zero reserves to disable routing
 	if completionThreshold.IsZero() {
@@ -151,7 +151,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		curveResult.Data.Reserve.String(),
+		curveResult.Data.Reserve.Dec(),
 		buyableTokens.ToBig().String(),
 	}
 	p.BlockNumber = resp.BlockNumber.Uint64()

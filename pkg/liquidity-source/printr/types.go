@@ -1,8 +1,6 @@
 package printr
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -13,10 +11,10 @@ type GetCurveResult struct {
 	Data struct {
 		BasePair            common.Address
 		TotalCurves         uint16
-		MaxTokenSupply      *big.Int
-		VirtualReserve      *big.Int
-		Reserve             *big.Int
-		CompletionThreshold *big.Int
+		MaxTokenSupply      *uint256.Int
+		VirtualReserve      *uint256.Int
+		Reserve             *uint256.Int
+		CompletionThreshold *uint256.Int
 	}
 }
 
