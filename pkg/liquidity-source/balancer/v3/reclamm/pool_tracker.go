@@ -92,15 +92,15 @@ func (t *PoolTracker) getNewPoolState(
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
 	extra.Buffers = res.Buffers()
-	extra.LastTimestamp, _ = uint256.FromBig(res.Data.LastTimestamp)
-	extra.CurrentTimestamp, _ = uint256.FromBig(big.NewInt(time.Now().Unix()))
-	extra.DailyPriceShiftBase, _ = uint256.FromBig(res.Data.DailyPriceShiftBase)
+	extra.LastTimestamp = res.Data.LastTimestamp
+	extra.CurrentTimestamp = new(uint256.Int).SetUint64(uint64(time.Now().Unix()))
+	extra.DailyPriceShiftBase = res.Data.DailyPriceShiftBase
 	extra.LastVirtualBalances = shared.FromBigs(res.Data.LastVirtualBalances)
-	extra.CenterednessMargin, _ = uint256.FromBig(res.Data.CenterednessMargin)
-	extra.StartFourthRootPriceRatio, _ = uint256.FromBig(res.Data.StartFourthRootPriceRatio)
-	extra.EndFourthRootPriceRatio, _ = uint256.FromBig(res.Data.EndFourthRootPriceRatio)
-	extra.PriceRatioUpdateStartTime, _ = uint256.FromBig(big.NewInt(int64(res.Data.PriceRatioUpdateStartTime)))
-	extra.PriceRatioUpdateEndTime, _ = uint256.FromBig(big.NewInt(int64(res.Data.PriceRatioUpdateEndTime)))
+	extra.CenterednessMargin = res.Data.CenterednessMargin
+	extra.StartFourthRootPriceRatio = res.Data.StartFourthRootPriceRatio
+	extra.EndFourthRootPriceRatio = res.Data.EndFourthRootPriceRatio
+	extra.PriceRatioUpdateStartTime = new(uint256.Int).SetUint64(uint64(res.Data.PriceRatioUpdateStartTime))
+	extra.PriceRatioUpdateEndTime = new(uint256.Int).SetUint64(uint64(res.Data.PriceRatioUpdateEndTime))
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

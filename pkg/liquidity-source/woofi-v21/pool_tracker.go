@@ -180,11 +180,11 @@ func (d *PoolTracker) GetNewPoolState(
 
 	// Call ChainLink Oracle to get latestRoundData
 	latestRoundData := make([]struct {
-		RoundId         *big.Int `json:"roundId" abi:"roundId"`
-		Answer          *big.Int `json:"answer" abi:"answer"`
-		StartedAt       *big.Int `json:"startedAt" abi:"startedAt"`
-		UpdatedAt       *big.Int `json:"updatedAt" abi:"updatedAt"`
-		AnsweredInRound *big.Int `json:"answeredInRound" abi:"answeredInRound"`
+		RoundId         *big.Int     `json:"roundId" abi:"roundId"`
+		Answer          *big.Int     `json:"answer" abi:"answer"`
+		StartedAt       *big.Int     `json:"startedAt" abi:"startedAt"`
+		UpdatedAt       *uint256.Int `json:"updatedAt" abi:"updatedAt"`
+		AnsweredInRound *big.Int     `json:"answeredInRound" abi:"answeredInRound"`
 	}, len(p.Tokens))
 
 	cloracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
@@ -206,12 +206,11 @@ func (d *PoolTracker) GetNewPoolState(
 	poolCloracle := make(map[string]Cloracle, len(p.Tokens))
 	for i, token := range p.Tokens {
 		answer, _ := uint256.FromBig(latestRoundData[i].Answer)
-		updatedAt, _ := uint256.FromBig(latestRoundData[i].UpdatedAt)
 
 		poolCloracle[token.Address] = Cloracle{
 			OracleAddress: clOracles[i].Oracle,
 			Answer:        answer,
-			UpdatedAt:     updatedAt,
+			UpdatedAt:     latestRoundData[i].UpdatedAt,
 			CloPreferred:  clOracles[i].CloPreferred,
 		}
 	}

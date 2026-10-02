@@ -32,15 +32,15 @@ type DynamicDataRpc struct {
 		TokenRates                  []*big.Int
 		StaticSwapFeePercentage     *big.Int
 		TotalSupply                 *big.Int
-		LastTimestamp               *big.Int
+		LastTimestamp               *uint256.Int
 		LastVirtualBalances         []*big.Int
 		DailyPriceShiftExponent     *big.Int
-		DailyPriceShiftBase         *big.Int
-		CenterednessMargin          *big.Int
+		DailyPriceShiftBase         *uint256.Int
+		CenterednessMargin          *uint256.Int
 		CurrentPriceRatio           *big.Int
 		CurrentFourthRootPriceRatio *big.Int
-		StartFourthRootPriceRatio   *big.Int
-		EndFourthRootPriceRatio     *big.Int
+		StartFourthRootPriceRatio   *uint256.Int
+		EndFourthRootPriceRatio     *uint256.Int
 		PriceRatioUpdateStartTime   uint32
 		PriceRatioUpdateEndTime     uint32
 		IsPoolInitialized           bool
