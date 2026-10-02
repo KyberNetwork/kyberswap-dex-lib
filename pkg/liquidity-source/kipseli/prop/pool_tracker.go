@@ -36,9 +36,9 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 }
 
 // GetNewPoolState probes both directions in one KipseliPropLens call, which
-// also returns the fresh balances and caps. The sample grid is therefore sized
-// from the previous cycle's reserves and caps (already in p); the first cycle
-// needs neither (decimals sweep). The pAMM variant overrides Titan's pushed
+// also returns the fresh balances. The sample grid is therefore sized from the
+// previous cycle's ladders and reserves (already in p); the first cycle needs
+// neither (decimals sweep). The pAMM variant overrides Titan's pushed
 // state into that same call.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
@@ -89,38 +89,29 @@ func (t *PoolTracker) GetNewPoolState(
 	extraBytes, err := json.Marshal(Extra{
 		Ladders: ladders,
 		SO:      titanState.ToStateOverrides(),
-		Caps:    [2]string{balStr(snap.Caps[0]), balStr(snap.Caps[1])},
 	})
 	if err != nil {
 		return p, err
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{balStr(snap.Balances[0]), balStr(snap.Balances[1])}
+	p.Reserves = ladder.ZeroUnquotedReserves(entity.PoolReserves{balStr(snap.Balances[0]), balStr(snap.Balances[1])}, ladders)
 	p.BlockNumber = snap.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 	return p, nil
 }
 
 // samplePoints builds each direction's probe grid from the previous cycle's
-// reserves and caps, bounded like the venue itself: by the input token's
-// balance, or its remaining cap room when that is tighter.
+// ladder and output-side reserve. The input side is left unbounded: probes
+// past the venue's cap revert and are dropped, and the ladder tracks that edge.
 func samplePoints(p entity.Pool) [2][]*big.Int {
-	var prevExtra Extra
-	_ = json.Unmarshal([]byte(p.Extra), &prevExtra)
-
-	var balances, caps [2]*big.Int
-	for i := range 2 {
-		if i < len(p.Reserves) {
-			balances[i] = bignumber.NewBig10(p.Reserves[i])
-		}
-		caps[i] = bignumber.NewBig10(prevExtra.Caps[i])
-	}
-
 	var points [2][]*big.Int
 	for dir := range 2 {
-		bound := sampleBound(balances[dir], maxIn(balances[dir], caps[dir]))
-		points[dir] = ladder.SamplePoints(p, dir, bound, balances[1-dir])
+		var prevOut *big.Int
+		if 1-dir < len(p.Reserves) {
+			prevOut = bignumber.NewBig10(p.Reserves[1-dir])
+		}
+		points[dir] = ladder.SamplePoints(p, dir, nil, prevOut)
 	}
 	return points
 }
@@ -150,30 +141,6 @@ func (t *PoolTracker) applyBuffer(results []*big.Int) {
 			bignumber.MulDivDown(r, r, buf, bignumber.BasisPoint)
 		}
 	}
-}
-
-// sampleBound picks the tighter of the venue's own balance and its published
-// cap room as the grid's ceiling — a token with no cap published falls back
-// to its balance.
-func sampleBound(balance, maxIn *big.Int) *big.Int {
-	bound := balance
-	if maxIn != nil && maxIn.Sign() > 0 && (bound == nil || maxIn.Cmp(bound) < 0) {
-		bound = maxIn
-	}
-	return bound
-}
-
-// maxIn reports how much of a token the venue can still absorb before its
-// published cap. No cap published (nil, zero, or max-uint) yields nil, which
-// keeps the grid falling back to the raw balance.
-func maxIn(balance, cap_ *big.Int) *big.Int {
-	if cap_ == nil || cap_.Sign() <= 0 || cap_.Cmp(bignumber.MaxUint256) == 0 {
-		return nil
-	}
-	if balance == nil || cap_.Cmp(balance) <= 0 {
-		return nil
-	}
-	return new(big.Int).Sub(cap_, balance)
 }
 
 func allEmpty(ladders [2][]ladder.Point) bool {

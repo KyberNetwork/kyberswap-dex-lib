@@ -90,7 +90,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = resp.BlockNumber.Uint64()
-	p.Reserves = entity.PoolReserves{reserves.Reserve0.String(), reserves.Reserve1.String()}
+	p.Reserves = ladder.ZeroUnquotedReserves(entity.PoolReserves{reserves.Reserve0.String(), reserves.Reserve1.String()}, ladders)
 
 	return p, nil
 }
