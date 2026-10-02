@@ -1,91 +1,193 @@
 package prmfun
 
 import (
-	"os"
+	"context"
+	"encoding/json"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
+const testHead = uint64(65000000)
+
 var multicall3 = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
 
-const (
-	referenceCurve     = "0xaea1eaf948e97581fbe9d8dea2951c327669af57" // ETH-paired, Phase.Trading
-	referenceMemeToken = "0x54c1fa485f182a17b3ba9190e7ed481b6b60109e"
-	graduatedCurve     = "0x0ea38ACC640A159F2cEbE5439A54D977ded64158" // $PRM's MemeCurve, Phase.Graduated
-	graduatedMemeToken = "0xf24f8F6b08fE87CF062E833a732AD7F636064BC8"
-)
+const routerAddress = "0x08A59435c8359A45F4F5dC8D91DF893Cc33DaF29"
+const factoryAddress = "0x34fb85aF7588dB97Fd6db6508Aa387D0f088564c"
+const prmToken = "0xf24f8f6b08fe87cf062e833a732ad7f636064bc8"
+const stockToken = "0x64e8bee350c0ba7c7601f7eca7f61ab965148b51"
 
-func testPool(curveAddr, memeToken string) entity.Pool {
-	staticExtraBytes, _ := json.Marshal(StaticExtra{
-		RouterAddress:  "0x08A59435c8359A45F4F5dC8D91DF893Cc33DaF29",
-		CurveAddress:   curveAddr,
-		MemeToken:      memeToken,
-		GraduationDesk: "4200000000000000000",
-	})
-	return entity.Pool{
-		Address:     curveAddr,
-		Exchange:    DexType,
-		Type:        DexType,
-		Tokens:      []*entity.PoolToken{{Address: testDeskToken}, {Address: memeToken}},
-		Reserves:    []string{"0", "0"},
-		StaticExtra: string(staticExtraBytes),
+type mockCall struct {
+	Target   common.Address
+	CallData []byte
+}
+type rpcRequest struct {
+	ID     json.RawMessage   `json:"id"`
+	Method string            `json:"method"`
+	Params []json.RawMessage `json:"params"`
+}
+
+// A real ABI-encoding RPC stub catches tuple decoding, required-call failures,
+// cursor loss and accidental use of the L1 block returned by Multicall.
+func mockClient(t *testing.T, answer func(common.Address, *abi.Method, []any) ([]any, bool)) *ethrpc.Client {
+	t.Helper()
+	multi, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"aggregate","inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]}]`))
+	require.NoError(t, err)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req rpcRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Error(err)
+			return
+		}
+		var result any
+		switch req.Method {
+		case "eth_blockNumber":
+			result = hexutil.EncodeUint64(testHead)
+		case "eth_call":
+			var call struct {
+				Input string `json:"input"`
+				Data  string `json:"data"`
+			}
+			if err := json.Unmarshal(req.Params[0], &call); err != nil {
+				t.Error(err)
+				return
+			}
+			var tag string
+			if err := json.Unmarshal(req.Params[1], &tag); err != nil {
+				t.Error(err)
+				return
+			}
+			if tag != hexutil.EncodeUint64(testHead) {
+				t.Errorf("unexpected block %s", tag)
+				return
+			}
+			input := call.Input
+			if input == "" {
+				input = call.Data
+			}
+			data, err := hexutil.Decode(input)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			args, err := multi.Methods["aggregate"].Inputs.Unpack(data[4:])
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			calls := *abi.ConvertType(args[0], new([]mockCall)).(*[]mockCall)
+			outputs := make([][]byte, len(calls))
+			for i, c := range calls {
+				contract := memeCurveABI
+				if c.Target == common.HexToAddress(factoryAddress) {
+					contract = memeFactoryABI
+				}
+				method, err := contract.MethodById(c.CallData[:4])
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				args, err := method.Inputs.Unpack(c.CallData[4:])
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				values, ok := answer(c.Target, method, args)
+				if !ok {
+					_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "error": map[string]any{"code": 3, "message": "required getter reverted"}})
+					return
+				}
+				outputs[i], err = method.Outputs.Pack(values...)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+			}
+			// Deliberately an L1 block, different from eth_blockNumber.
+			encoded, err := multi.Methods["aggregate"].Outputs.Pack(big.NewInt(24000000), outputs)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			result = hexutil.Encode(encoded)
+		default:
+			t.Errorf("unexpected method %s", req.Method)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": result})
+	}))
+	t.Cleanup(server.Close)
+	return ethrpc.New(server.URL).SetMulticallContract(multicall3)
+}
+
+func testPool(t *testing.T) entity.Pool {
+	t.Helper()
+	s := newTestSimulator(t)
+	static, err := json.Marshal(StaticExtra{RouterAddress: routerAddress, CurveAddress: s.curveAddress, MemeToken: memeToken, GraduationDesk: s.graduationDesk.Dec(), IsNativeQuote: true})
+	require.NoError(t, err)
+	return entity.Pool{Address: s.curveAddress, Exchange: DexType, Type: DexType, Tokens: []*entity.PoolToken{{Address: testDeskToken}, {Address: memeToken}}, Reserves: []string{"0", "0"}, StaticExtra: string(static)}
+}
+
+func TestTrackerSnapshotsAndLifecycle(t *testing.T) {
+	for _, phase := range []uint8{PhaseTrading, PhasePaused, PhaseGraduated} {
+		t.Run(string(rune('0'+phase)), func(t *testing.T) {
+			s := newTestSimulator(t)
+			client := mockClient(t, func(_ common.Address, m *abi.Method, _ []any) ([]any, bool) {
+				switch m.Name {
+				case "phase":
+					return []any{phase}, true
+				case "getReserves":
+					return []any{s.virtualDesk.ToBig(), s.virtualMeme.ToBig()}, true
+				case "memeSold":
+					return []any{s.memeSold.ToBig()}, true
+				case "deskRaised":
+					return []any{s.deskRaised.ToBig()}, true
+				case "deskToken":
+					return []any{common.HexToAddress(testDeskToken)}, true
+				case "isNativeQuote":
+					return []any{true}, true
+				}
+				return nil, false
+			})
+			tracker, err := NewPoolTracker(&Config{ChainId: 4663}, client)
+			require.NoError(t, err)
+			p, err := tracker.GetNewPoolState(context.Background(), testPool(t), pool.GetNewPoolStateParams{})
+			require.NoError(t, err)
+			require.Equal(t, testHead, p.BlockNumber)
+			if phase == PhaseGraduated {
+				require.EqualValues(t, 1, p.Timestamp)
+			} else {
+				require.Greater(t, p.Timestamp, int64(1))
+			}
+			if phase == PhaseTrading {
+				require.Equal(t, s.virtualDesk.Dec(), p.Reserves[0])
+			} else {
+				require.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
+			}
+			sim, err := NewPoolSimulator(p)
+			require.NoError(t, err)
+			require.Equal(t, testHead, sim.GetMetaInfo(testDeskToken, memeToken).(PoolMeta).BlockNumber)
+		})
 	}
 }
 
-func TestGetNewPoolState_TradingPool(t *testing.T) {
-	t.Parallel()
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping RPC test in CI")
-	}
-
-	rpcClient := ethrpc.New("https://rpc.mainnet.chain.robinhood.com").SetMulticallContract(multicall3)
-	tracker, err := NewPoolTracker(&Config{ChainId: 4663}, rpcClient)
+func TestTrackerRequiredReadFailurePreservesPool(t *testing.T) {
+	client := mockClient(t, func(_ common.Address, _ *abi.Method, _ []any) ([]any, bool) { return nil, false })
+	tracker, err := NewPoolTracker(&Config{}, client)
 	require.NoError(t, err)
-
-	p, err := tracker.GetNewPoolState(t.Context(), testPool(referenceCurve, referenceMemeToken), pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-
-	var extra Extra
-	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
-	t.Logf("phase=%d virtualMeme=%s virtualDesk=%s memeSold=%s deskRaised=%s",
-		extra.Phase, extra.VirtualMeme, extra.VirtualDesk, extra.MemeSold, extra.DeskRaised)
-
-	require.Equal(t, PhaseTrading, extra.Phase)
-	// derived reserves must equal the observed on-chain values (virtualMeme,
-	// virtualDesk respectively - explorer.md's math_checks used curve-state order
-	// [virtualMeme, virtualDesk], not the pool's own token index order).
-	require.Equal(t, "1062330437710576052235807612", extra.VirtualMeme.Dec())
-	require.Equal(t, "1405714531301211559", extra.VirtualDesk.Dec())
-
-	// p.Reserves follows this pool type's own token index convention (0=desk, 1=meme).
-	require.Equal(t, "1405714531301211559", p.Reserves[0])
-	require.Equal(t, "1062330437710576052235807612", p.Reserves[1])
-}
-
-// TestGetNewPoolState_GraduatedPool exercises the "left Trading phase" branch against
-// $PRM's real MemeCurve, which is genuinely graduated.
-func TestGetNewPoolState_GraduatedPool(t *testing.T) {
-	t.Parallel()
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping RPC test in CI")
-	}
-
-	rpcClient := ethrpc.New("https://rpc.mainnet.chain.robinhood.com").SetMulticallContract(multicall3)
-	tracker, err := NewPoolTracker(&Config{ChainId: 4663}, rpcClient)
-	require.NoError(t, err)
-
-	p, err := tracker.GetNewPoolState(t.Context(), testPool(graduatedCurve, graduatedMemeToken), pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-
-	var extra Extra
-	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
-	require.Equal(t, PhaseGraduated, extra.Phase)
-	require.Equal(t, []string{"0", "0"}, []string(p.Reserves))
+	before := testPool(t)
+	after, err := tracker.GetNewPoolState(context.Background(), before, pool.GetNewPoolStateParams{})
+	require.Error(t, err)
+	require.Equal(t, before, after)
 }
