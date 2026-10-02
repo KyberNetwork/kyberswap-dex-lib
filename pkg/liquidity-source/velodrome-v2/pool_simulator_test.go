@@ -365,3 +365,97 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		t.Logf("amountIn: %s", result.TokenAmountIn.Amount.String())
 	})
 }
+
+func TestPoolSimulator_CalcAmountOut_StableScaledKOverflow(t *testing.T) {
+	t.Parallel()
+	const (
+		weth  = "0x4200000000000000000000000000000000000006"
+		usdbc = "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca"
+	)
+	sim := lo.Must(NewPoolSimulator(entity.Pool{
+		Address:     "0x44d7dd237001aef7fc7d8cb13ab4452f65ce5e40",
+		Exchange:    "aerodrome",
+		Type:        DexType,
+		Reserves:    []string{"207865610615023052", "1697015871"},
+		Tokens:      []*entity.PoolToken{{Address: weth, Swappable: true}, {Address: usdbc, Swappable: true}},
+		Extra:       `{"isPaused":false,"fee":5}`,
+		StaticExtra: `{"feePrecision":10000,"decimal0":"1000000000000000000","decimal1":"1000000","stable":true}`,
+	}))
+
+	testCases := []struct {
+		name              string
+		amountIn          string
+		expectedAmountOut string
+		expectedErr       error
+	}{
+		{name: "overflow 0.13", amountIn: "130000000000000000", expectedErr: ErrArithmeticOverflow},
+		{name: "overflow 0.15", amountIn: "150000000000000000", expectedErr: ErrArithmeticOverflow},
+		{name: "overflow 0.25", amountIn: "250000000000000000", expectedErr: ErrArithmeticOverflow},
+		{name: "overflow 0.3", amountIn: "300000000000000000", expectedErr: ErrArithmeticOverflow},
+		{name: "100000000000000", amountIn: "100000000000000", expectedAmountOut: "271910"},
+		{name: "162795579369555", amountIn: "162795579369555", expectedAmountOut: "442568"},
+		{name: "0.01", amountIn: "10000000000000000", expectedAmountOut: "26359184"},
+		{name: "0.05", amountIn: "50000000000000000", expectedAmountOut: "117600560"},
+		{name: "0.1", amountIn: "100000000000000000", expectedAmountOut: "208169449"},
+		{name: "0.12", amountIn: "120000000000000000", expectedAmountOut: "239070270"},
+		{name: "0.14", amountIn: "140000000000000000", expectedAmountOut: "267555629"},
+		{name: "0.145", amountIn: "145000000000000000", expectedAmountOut: "274337440"},
+		{name: "0.16", amountIn: "160000000000000000", expectedAmountOut: "293937703"},
+		{name: "0.18", amountIn: "180000000000000000", expectedAmountOut: "318474048"},
+		{name: "0.2", amountIn: "200000000000000000", expectedAmountOut: "341379404"},
+		{name: "0.5", amountIn: "500000000000000000", expectedAmountOut: "568915879"},
+		{name: "1", amountIn: "1000000000000000000", expectedAmountOut: "752954377"},
+		{name: "2", amountIn: "2000000000000000000", expectedAmountOut: "924892005"},
+		{name: "!y", amountIn: "1000000000000", expectedErr: ErrY},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{Token: weth, Amount: bignumber.NewBig10(tc.amountIn)},
+				TokenOut:      usdbc,
+			})
+			if tc.expectedErr != nil {
+				assert.ErrorIs(t, err, tc.expectedErr)
+				assert.Nil(t, result)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount.String())
+		})
+	}
+}
+
+func TestCheckedMath(t *testing.T) {
+	t.Parallel()
+	maxUint := new(uint256.Int).SetAllOne()
+	two := uint256.NewInt(2)
+	one := uint256.NewInt(1)
+	zero := new(uint256.Int)
+
+	var z uint256.Int
+	assert.ErrorIs(t, checkedAdd(&z, maxUint, one), ErrArithmeticOverflow)
+	assert.ErrorIs(t, checkedSub(&z, zero, one), ErrArithmeticOverflow)
+	assert.ErrorIs(t, checkedMul(&z, maxUint, two), ErrArithmeticOverflow)
+	assert.ErrorIs(t, checkedDiv(&z, one, zero), ErrDivisionByZero)
+	assert.ErrorIs(t, checkedMulDiv(&z, maxUint, two, one), ErrArithmeticOverflow)
+	assert.ErrorIs(t, checkedMulDiv(&z, one, two, zero), ErrDivisionByZero)
+
+	assert.NoError(t, checkedMulDiv(&z, uint256.NewInt(6), two, uint256.NewInt(4)))
+	assert.Equal(t, uint64(3), z.Uint64())
+
+	_, err := _f(maxUint, one)
+	assert.ErrorIs(t, err, ErrArithmeticOverflow)
+	_, err = _d(maxUint, one)
+	assert.ErrorIs(t, err, ErrArithmeticOverflow)
+
+	stable := &PoolSimulator{
+		stable:    true,
+		decimals0: number.NewUint256("1000000000000000000"),
+		decimals1: number.NewUint256("1000000"),
+	}
+	_, err = stable._k(number.NewUint256("207865610615023052"), number.NewUint256("1697015871"))
+	assert.NoError(t, err)
+	_, err = stable._k(number.NewUint256("1000000000000000000"), number.NewUint256("100000000000000000000000000000000000000000000000000"))
+	assert.ErrorIs(t, err, ErrArithmeticOverflow)
+}

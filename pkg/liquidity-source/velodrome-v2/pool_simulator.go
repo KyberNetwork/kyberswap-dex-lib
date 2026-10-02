@@ -97,12 +97,16 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
-	var feeAmount uint256.Int
-	feeAmount.Div(feeAmount.Mul(amountIn, p.fee), p.feePrecision)
-	amountInAfterFee := new(uint256.Int).Sub(amountIn, &feeAmount)
+	var feeAmount, amountInAfterFee uint256.Int
+	if err := checkedMulDiv(&feeAmount, amountIn, p.fee, p.feePrecision); err != nil {
+		return nil, err
+	}
+	if err := checkedSub(&amountInAfterFee, amountIn, &feeAmount); err != nil {
+		return nil, err
+	}
 
 	amountOut, err := p.getAmountOut(
-		amountInAfterFee,
+		&amountInAfterFee,
 		params.TokenAmountIn.Token,
 	)
 	if err != nil {
@@ -209,7 +213,15 @@ func (p *PoolSimulator) getAmountOut(
 		balance1 = new(uint256.Int).Add(reserve1, amountIn)
 	}
 
-	if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
+	kAfter, err := p._k(balance0, balance1)
+	if err != nil {
+		return nil, err
+	}
+	kBefore, err := p._k(reserve0, reserve1)
+	if err != nil {
+		return nil, err
+	}
+	if kAfter.Cmp(kBefore) < 0 {
 		return nil, ErrK
 	}
 
@@ -223,9 +235,17 @@ func (p *PoolSimulator) _getAmountOut(
 	_reserve1 *uint256.Int,
 ) (*uint256.Int, error) {
 	if p.stable {
-		xy := p._k(_reserve0, _reserve1)
-		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
-		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
+		xy, err := p._k(_reserve0, _reserve1)
+		if err != nil {
+			return nil, err
+		}
+		var _reserveA, _reserveB uint256.Int
+		if err = checkedMulDiv(&_reserveA, _reserve0, number.Number_1e18, p.decimals0); err != nil {
+			return nil, err
+		}
+		if err = checkedMulDiv(&_reserveB, _reserve1, number.Number_1e18, p.decimals1); err != nil {
+			return nil, err
+		}
 		decimalsA, decimalsB := p.decimals0, p.decimals1
 
 		if tokenIn != p.Info.Tokens[0] {
@@ -233,15 +253,25 @@ func (p *PoolSimulator) _getAmountOut(
 			decimalsA, decimalsB = decimalsB, decimalsA
 		}
 
-		amountIn = new(uint256.Int).Mul(amountIn, number.Number_1e18)
-		amountIn.Div(amountIn, decimalsA)
-		y, err := p._get_y(new(uint256.Int).Add(amountIn, _reserveA), xy, _reserveB)
+		var scaledAmountIn, x0 uint256.Int
+		if err = checkedMulDiv(&scaledAmountIn, amountIn, number.Number_1e18, decimalsA); err != nil {
+			return nil, err
+		}
+		if err = checkedAdd(&x0, &scaledAmountIn, &_reserveA); err != nil {
+			return nil, err
+		}
+		y, err := p._get_y(&x0, xy, &_reserveB)
 		if err != nil {
 			return nil, err
 		}
-		y = new(uint256.Int).Sub(_reserveB, y)
+		if err = checkedSub(y, &_reserveB, y); err != nil {
+			return nil, err
+		}
+		if err = checkedMulDiv(y, y, decimalsB, number.Number_1e18); err != nil {
+			return nil, err
+		}
 
-		return y.Div(y.Mul(y, decimalsB), number.Number_1e18), nil
+		return y, nil
 	}
 
 	var amountOut, newReserve uint256.Int
@@ -293,7 +323,15 @@ func (p *PoolSimulator) getAmountIn(
 
 	// Skip K invariant check for stable pools since the invariant is different
 	if !p.stable {
-		if p._k(balance0, balance1).Cmp(p._k(reserve0, reserve1)) < 0 {
+		kAfter, err := p._k(balance0, balance1)
+		if err != nil {
+			return nil, err
+		}
+		kBefore, err := p._k(reserve0, reserve1)
+		if err != nil {
+			return nil, err
+		}
+		if kAfter.Cmp(kBefore) < 0 {
 			return nil, ErrK
 		}
 	}
@@ -308,31 +346,46 @@ func (p *PoolSimulator) _getAmountIn(
 	_reserve1 *uint256.Int,
 ) (amountIn *uint256.Int, err error) {
 	if p.stable {
-		xy := p._k(_reserve0, _reserve1)
+		xy, err := p._k(_reserve0, _reserve1)
+		if err != nil {
+			return nil, err
+		}
 		var tmp uint256.Int
 		_reserveA := big256.MulDivDown(new(uint256.Int), _reserve0, number.Number_1e18, p.decimals0)
 		_reserveB := big256.MulDivDown(new(uint256.Int), _reserve1, number.Number_1e18, p.decimals1)
 
 		if tokenOut == p.Info.Tokens[0] {
 			amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals0)
-			newReserveA := new(uint256.Int).Sub(_reserveA, amountOutScaled)
+			newReserveA := new(uint256.Int)
+			if err = checkedSub(newReserveA, _reserveA, amountOutScaled); err != nil {
+				return nil, err
+			}
 			x, err := p._get_y(newReserveA, xy, _reserveB)
 			if err != nil {
 				return nil, err
 			}
-			amountIn = new(uint256.Int).Sub(x, _reserveB)
+			amountIn = new(uint256.Int)
+			if err = checkedSub(amountIn, x, _reserveB); err != nil {
+				return nil, err
+			}
 			tmp.Sub(p.feePrecision, p.fee)
 			amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
 			return big256.MulWadUp(&tmp, amountIn, p.decimals1), nil
 		}
 
 		amountOutScaled := big256.MulDivUp(&tmp, amountOut, number.Number_1e18, p.decimals1)
-		newReserveB := new(uint256.Int).Sub(_reserveB, amountOutScaled)
+		newReserveB := new(uint256.Int)
+		if err = checkedSub(newReserveB, _reserveB, amountOutScaled); err != nil {
+			return nil, err
+		}
 		x, err := p._get_y(newReserveB, xy, _reserveA)
 		if err != nil {
 			return nil, err
 		}
-		amountIn = new(uint256.Int).Sub(x, _reserveA)
+		amountIn = new(uint256.Int)
+		if err = checkedSub(amountIn, x, _reserveA); err != nil {
+			return nil, err
+		}
 		tmp.Sub(p.feePrecision, p.fee)
 		amountIn = big256.MulDivUp(&tmp, amountIn, p.feePrecision, &tmp)
 		return big256.MulWadUp(&tmp, amountIn, p.decimals0), nil
@@ -369,100 +422,149 @@ func (p *PoolSimulator) _getAmountIn(
 	return SafeAdd(numerator.Div(numerator, denominator), number.Number_1), nil
 }
 
-func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
-	if p.stable {
-		var _x, _y, _a uint256.Int
-		_x.Div(_x.Mul(x, number.Number_1e18), p.decimals0)
-		_y.Div(_y.Mul(y, number.Number_1e18), p.decimals1)
-		_a.Div(_a.Mul(&_x, &_y), number.Number_1e18)
-		_b := _x.Add(
-			_x.Div(
-				_x.Mul(&_x, &_x),
-				number.Number_1e18,
-			),
-			_y.Div(
-				_y.Mul(&_y, &_y),
-				number.Number_1e18,
-			),
-		)
-		return _a.Div(_a.Mul(&_a, _b), number.Number_1e18)
+func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
+	if !p.stable {
+		return new(uint256.Int).Mul(x, y), nil
 	}
 
-	return new(uint256.Int).Mul(x, y)
+	var _x, _y, _a, _b, t uint256.Int
+	if err := checkedMulDiv(&_x, x, number.Number_1e18, p.decimals0); err != nil {
+		return nil, err
+	}
+	if err := checkedMulDiv(&_y, y, number.Number_1e18, p.decimals1); err != nil {
+		return nil, err
+	}
+	if err := checkedMulDiv(&_a, &_x, &_y, number.Number_1e18); err != nil {
+		return nil, err
+	}
+	if err := checkedMulDiv(&_b, &_x, &_x, number.Number_1e18); err != nil {
+		return nil, err
+	}
+	if err := checkedMulDiv(&t, &_y, &_y, number.Number_1e18); err != nil {
+		return nil, err
+	}
+	if err := checkedAdd(&_b, &_b, &t); err != nil {
+		return nil, err
+	}
+	if err := checkedMulDiv(&_a, &_a, &_b, number.Number_1e18); err != nil {
+		return nil, err
+	}
+
+	return &_a, nil
 }
 
 func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
-	var dy uint256.Int
+	var dy, yNext uint256.Int
 	y = y.Clone()
 	for range 255 {
-		k := _f(x0, y)
+		k, err := _f(x0, y)
+		if err != nil {
+			return nil, err
+		}
 
-		if k.Cmp(xy) < 0 {
-			dy.Div(
-				dy.Mul(dy.Sub(xy, k), number.Number_1e18),
-				_d(x0, y),
-			)
-			if dy.Sign() == 0 {
-				if k.Cmp(xy) == 0 {
+		if k.Lt(xy) {
+			dy.Sub(xy, &k)
+			if err = checkedMul(&dy, &dy, number.Number_1e18); err != nil {
+				return nil, err
+			}
+			d, err := _d(x0, y)
+			if err != nil {
+				return nil, err
+			}
+			if err = checkedDiv(&dy, &dy, &d); err != nil {
+				return nil, err
+			}
+			if dy.IsZero() {
+				if k.Eq(xy) {
 					return y, nil
 				}
-				if y := new(uint256.Int).AddUint64(y, 1); p._k(x0, y).Cmp(xy) > 0 {
-					return y, nil
+				if err = checkedAdd(&yNext, y, number.Number_1); err != nil {
+					return nil, err
+				}
+				kNext, err := p._k(x0, &yNext)
+				if err != nil {
+					return nil, err
+				}
+				if kNext.Gt(xy) {
+					return &yNext, nil
 				}
 				dy.SetOne()
 			}
-			y.Add(y, &dy)
+			if err = checkedAdd(y, y, &dy); err != nil {
+				return nil, err
+			}
 		} else {
-			dy.Div(
-				dy.Mul(dy.Sub(k, xy), number.Number_1e18),
-				_d(x0, y),
-			)
-			if dy.Sign() == 0 {
-				if k.Cmp(xy) == 0 || _f(x0, new(uint256.Int).SubUint64(y, 1)).Cmp(xy) < 0 {
+			dy.Sub(&k, xy)
+			if err = checkedMul(&dy, &dy, number.Number_1e18); err != nil {
+				return nil, err
+			}
+			d, err := _d(x0, y)
+			if err != nil {
+				return nil, err
+			}
+			if err = checkedDiv(&dy, &dy, &d); err != nil {
+				return nil, err
+			}
+			if dy.IsZero() {
+				if k.Eq(xy) {
+					return y, nil
+				}
+				if err = checkedSub(&yNext, y, number.Number_1); err != nil {
+					return nil, err
+				}
+				kPrev, err := _f(x0, &yNext)
+				if err != nil {
+					return nil, err
+				}
+				if kPrev.Lt(xy) {
 					return y, nil
 				}
 				dy.SetOne()
 			}
-			y.Sub(y, &dy)
+			if err = checkedSub(y, y, &dy); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return nil, ErrY
 }
 
-func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
-	var _a, _b uint256.Int
-	_b.Add(
-		_a.Div(
-			_a.Mul(x0, x0),
-			number.Number_1e18,
-		),
-		_b.Div(
-			_b.Mul(y, y),
-			number.Number_1e18,
-		),
-	)
-	_a.Div(_a.Mul(x0, y), number.Number_1e18)
-	return _a.Div(_a.Mul(&_a, &_b), number.Number_1e18)
+func _f(x0 *uint256.Int, y *uint256.Int) (res uint256.Int, err error) {
+	var _a, _b, t uint256.Int
+	if err = checkedMulDiv(&_a, x0, y, number.Number_1e18); err != nil {
+		return res, err
+	}
+	if err = checkedMulDiv(&_b, x0, x0, number.Number_1e18); err != nil {
+		return res, err
+	}
+	if err = checkedMulDiv(&t, y, y, number.Number_1e18); err != nil {
+		return res, err
+	}
+	if err = checkedAdd(&_b, &_b, &t); err != nil {
+		return res, err
+	}
+	err = checkedMulDiv(&res, &_a, &_b, number.Number_1e18)
+	return res, err
 }
 
-func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+func _d(x0 *uint256.Int, y *uint256.Int) (res uint256.Int, err error) {
 	var a, b uint256.Int
-	return a.Add(
-		a.Div(
-			a.Mul(
-				a.Mul(
-					number.Number_3,
-					x0,
-				),
-				b.Div(b.Mul(y, y), number.Number_1e18),
-			),
-			number.Number_1e18,
-		),
-		b.Div(
-			b.Mul(
-				b.Div(b.Mul(x0, x0), number.Number_1e18),
-				x0),
-			number.Number_1e18),
-	)
+	if err = checkedMul(&a, number.Number_3, x0); err != nil {
+		return res, err
+	}
+	if err = checkedMulDiv(&b, y, y, number.Number_1e18); err != nil {
+		return res, err
+	}
+	if err = checkedMulDiv(&a, &a, &b, number.Number_1e18); err != nil {
+		return res, err
+	}
+	if err = checkedMulDiv(&b, x0, x0, number.Number_1e18); err != nil {
+		return res, err
+	}
+	if err = checkedMulDiv(&b, &b, x0, number.Number_1e18); err != nil {
+		return res, err
+	}
+	err = checkedAdd(&res, &a, &b)
+	return res, err
 }
