@@ -3,7 +3,6 @@ package generic_simple_rate
 import (
 	"context"
 	"errors"
-	"math/big"
 	"strings"
 	"time"
 
@@ -115,7 +114,7 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 
 	var (
 		paused bool
-		rate   *big.Int
+		rate   *uint256.Int
 	)
 
 	req := d.ethrpcClient.NewRequest()
@@ -136,7 +135,7 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 			Params: []any{},
 		}, []any{&rate})
 	} else {
-		rate = d.config.DefaultRate
+		rate = uint256.MustFromBig(d.config.DefaultRate)
 	}
 
 	if len(req.Calls) > 0 {
@@ -153,7 +152,7 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 
 	poolExtraBytes, err := json.Marshal(PoolExtra{
 		Paused:          paused,
-		Rate:            uint256.MustFromBig(rate),
+		Rate:            rate,
 		RateUnit:        uint256.MustFromBig(d.config.RateUnit),
 		IsRateInversed:  d.config.IsRateInversed,
 		IsBidirectional: d.config.IsBidirectional,

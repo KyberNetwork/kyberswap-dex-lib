@@ -93,10 +93,10 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		swapFeePercentage, _ = uint256.FromBig(rpcRes.SwapFeePercentage)
-		poolTokens           = rpcRes.PoolTokens
-		pausedState          = rpcRes.PausedState
-		blockNumber          = rpcRes.BlockNumber
+		swapFeePercentage = rpcRes.SwapFeePercentage
+		poolTokens        = rpcRes.PoolTokens
+		pausedState       = rpcRes.PausedState
+		blockNumber       = rpcRes.BlockNumber
 	)
 
 	// update pool
@@ -168,7 +168,7 @@ func (t *PoolTracker) queryRPC(
 ) (*rpcRes, error) {
 	var (
 		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
+		swapFeePercentage *uint256.Int
 		pausedState       PausedState
 		sqrtParameters    [2]*big.Int
 	)

@@ -2,7 +2,6 @@ package gyro2clp
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -89,8 +88,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getSqrtParameters(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([][2]*big.Int, error) {
-	sqrtParameters := make([][2]*big.Int, len(subgraphPools))
+func (u *PoolsListUpdater) getSqrtParameters(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([][2]*uint256.Int, error) {
+	sqrtParameters := make([][2]*uint256.Int, len(subgraphPools))
 
 	req := u.ethrpcClient.R()
 	for idx, subgraphPool := range subgraphPools {
@@ -142,7 +141,7 @@ func (u *PoolsListUpdater) initPools(
 	ctx context.Context,
 	subgraphPools []*shared.SubgraphPool,
 	vaults []string,
-	sqrtParameters [][2]*big.Int,
+	sqrtParameters [][2]*uint256.Int,
 ) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
@@ -162,7 +161,7 @@ func (u *PoolsListUpdater) initPool(
 	ctx context.Context,
 	subgraphPool *shared.SubgraphPool,
 	vault string,
-	sqrtParameters [2]*big.Int,
+	sqrtParameters [2]*uint256.Int,
 ) (entity.Pool, error) {
 	var (
 		poolTokens      = make([]*entity.PoolToken, len(subgraphPool.Tokens))
@@ -187,7 +186,7 @@ func (u *PoolsListUpdater) initPool(
 	}
 
 	for j, s := range sqrtParameters {
-		sqrtParams[j], _ = uint256.FromBig(s)
+		sqrtParams[j] = s
 	}
 
 	if subgraphPool.PoolTypeVersion != nil {

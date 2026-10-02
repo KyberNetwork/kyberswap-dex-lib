@@ -190,7 +190,7 @@ func getExtra(
 		poolExtras = append(poolExtras, PoolExtra{
 			Paused:                  paused[i],
 			TotalShares:             totalShares[i],
-			OraclePrice:             uint256.MustFromBig(oraclePriceData[i].Price),
+			OraclePrice:             oraclePriceData[i].Price,
 			PriceTimestamp:          oraclePriceData[i].Timestamp.Uint64(),
 			RWADynamicOracleAddress: rwaDynamicOracleAddress[i],
 		})

@@ -102,8 +102,8 @@ func getExtra(
 
 	var (
 		paused                   bool
-		minDeposit               *big.Int
-		maxDeposit               *big.Int
+		minDeposit               *uint256.Int
+		maxDeposit               *uint256.Int
 		staderOracleExchangeRate StaderOracleExchangeRate
 	)
 
@@ -147,11 +147,11 @@ func getExtra(
 
 	poolExtra := PoolExtra{
 		Paused:               paused,
-		MinDeposit:           uint256.MustFromBig(minDeposit),
-		MaxDeposit:           uint256.MustFromBig(maxDeposit),
+		MinDeposit:           minDeposit,
+		MaxDeposit:           maxDeposit,
 		ReportingBlockNumber: staderOracleExchangeRate.ReportingBlockNumber.Uint64(),
-		TotalETHBalance:      uint256.MustFromBig(staderOracleExchangeRate.TotalETHBalance),
-		TotalETHXSupply:      uint256.MustFromBig(staderOracleExchangeRate.TotalETHXSupply),
+		TotalETHBalance:      staderOracleExchangeRate.TotalETHBalance,
+		TotalETHXSupply:      staderOracleExchangeRate.TotalETHXSupply,
 	}
 
 	return poolExtra, resp.BlockNumber.Uint64(), nil

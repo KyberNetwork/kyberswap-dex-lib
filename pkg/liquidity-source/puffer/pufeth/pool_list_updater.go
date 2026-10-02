@@ -83,10 +83,10 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, error) {
 	var (
-		totalSupply      *big.Int
-		totalAssets      *big.Int
-		totalShares      *big.Int
-		totalPooledEther *big.Int
+		totalSupply      *uint256.Int
+		totalAssets      *uint256.Int
+		totalShares      *uint256.Int
+		totalPooledEther *uint256.Int
 	)
 
 	getPoolStateRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -129,9 +129,9 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 	}
 
 	return PoolExtra{
-		TotalSupply:      uint256.MustFromBig(totalSupply),
-		TotalAssets:      uint256.MustFromBig(totalAssets),
-		TotalPooledEther: uint256.MustFromBig(totalPooledEther),
-		TotalShares:      uint256.MustFromBig(totalShares),
+		TotalSupply:      totalSupply,
+		TotalAssets:      totalAssets,
+		TotalPooledEther: totalPooledEther,
+		TotalShares:      totalShares,
 	}, resp.BlockNumber.Uint64(), nil
 }

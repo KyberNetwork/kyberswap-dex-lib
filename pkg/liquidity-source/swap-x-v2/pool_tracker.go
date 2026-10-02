@@ -2,7 +2,6 @@ package swapxv2
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
@@ -91,7 +91,7 @@ func (d *PoolTracker) getPoolData(
 ) (velodromev2.ReserveData, bool, uint64, uint64, error) {
 	var (
 		isPaused          bool
-		fee               *big.Int
+		fee               *uint256.Int
 		getReservesResult velodromev2.GetReservesResult
 	)
 

@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -154,8 +153,8 @@ func (u *PoolListUpdater) getLobConfig(ctx context.Context, markets []*MarketInf
 	}
 	return lo.Map(lobCfgs, func(lobCfg *LobConfig, _ int) *StaticExtra {
 		return &StaticExtra{
-			ScalingFactorX:    uint256.MustFromBig(lobCfg.ScalingFactorTokenX),
-			ScalingFactorY:    uint256.MustFromBig(lobCfg.ScalingFactorTokenY),
+			ScalingFactorX:    lobCfg.ScalingFactorTokenX,
+			ScalingFactorY:    lobCfg.ScalingFactorTokenY,
 			SupportsNativeEth: lobCfg.SupportsNativeEth,
 		}
 	}), nil

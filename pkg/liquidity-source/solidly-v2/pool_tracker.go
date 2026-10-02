@@ -2,7 +2,6 @@ package solidlyv2
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
@@ -129,7 +129,7 @@ func (d *PoolTracker) updateShadowLegacyPool(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	var (
-		fee               = ZERO
+		fee               = uint256.NewInt(0)
 		getReservesResult MemecoreReserves
 	)
 
@@ -172,7 +172,7 @@ func (d *PoolTracker) updateStandardPool(
 ) (entity.Pool, error) {
 	var (
 		isPaused          bool
-		fee               *big.Int
+		fee               *uint256.Int
 		getReservesResult velodromev2.GetReservesResult
 	)
 

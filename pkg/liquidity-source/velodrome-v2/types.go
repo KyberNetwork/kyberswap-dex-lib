@@ -26,8 +26,8 @@ type PoolMeta struct {
 }
 
 type PoolMetadata struct {
-	Dec0 *big.Int
-	Dec1 *big.Int
+	Dec0 *uint256.Int
+	Dec1 *uint256.Int
 	R0   *big.Int
 	R1   *big.Int
 	St   bool

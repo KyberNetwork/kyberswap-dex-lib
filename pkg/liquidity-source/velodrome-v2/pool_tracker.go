@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -90,7 +91,7 @@ func (d *PoolTracker) getPoolData(
 ) (ReserveData, bool, uint64, uint64, error) {
 	var (
 		isPaused          bool
-		fee               *big.Int
+		fee               *uint256.Int
 		getReservesResult = GetReservesResult{
 			Reserve0: big.NewInt(0),
 			Reserve1: big.NewInt(0),

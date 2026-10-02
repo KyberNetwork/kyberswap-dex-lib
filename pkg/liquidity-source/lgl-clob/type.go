@@ -1,8 +1,6 @@
 package lglclob
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -13,8 +11,8 @@ type OrderBookLevels struct {
 }
 
 type OrderBookLevelsRPC struct {
-	ArrayPrices []*big.Int
-	ArrayShares []*big.Int
+	ArrayPrices []*uint256.Int
+	ArrayShares []*uint256.Int
 }
 
 type OrderBook struct {
@@ -34,8 +32,8 @@ type StaticExtra struct {
 }
 
 type LobConfig struct {
-	ScalingFactorTokenX           *big.Int
-	ScalingFactorTokenY           *big.Int
+	ScalingFactorTokenX           *uint256.Int
+	ScalingFactorTokenY           *uint256.Int
 	TokenX                        common.Address
 	TokenY                        common.Address
 	SupportsNativeEth             bool

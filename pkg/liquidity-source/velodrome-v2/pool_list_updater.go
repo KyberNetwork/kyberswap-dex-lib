@@ -2,7 +2,6 @@ package velodromev2
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"time"
 
@@ -308,20 +307,10 @@ func (u *PoolsListUpdater) newExtra(isPaused bool, fee *uint256.Int) ([]byte, er
 }
 
 func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, error) {
-	decimal0, overflow := uint256.FromBig(poolMetadata.Dec0)
-	if overflow {
-		return nil, errors.New("dec0 overflow")
-	}
-
-	decimal1, overflow := uint256.FromBig(poolMetadata.Dec1)
-	if overflow {
-		return nil, errors.New("dec1 overflow")
-	}
-
 	staticExtra := PoolStaticExtra{
 		FeePrecision: u.config.FeePrecision,
-		Decimal0:     decimal0,
-		Decimal1:     decimal1,
+		Decimal0:     poolMetadata.Dec0,
+		Decimal1:     poolMetadata.Dec1,
 		Stable:       poolMetadata.St,
 	}
 

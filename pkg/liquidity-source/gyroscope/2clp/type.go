@@ -47,7 +47,7 @@ type PoolMetaInfo struct {
 
 type rpcRes struct {
 	PoolTokens        PoolTokens
-	SwapFeePercentage *big.Int
+	SwapFeePercentage *uint256.Int
 	PausedState       PausedState
 	BlockNumber       uint64
 }

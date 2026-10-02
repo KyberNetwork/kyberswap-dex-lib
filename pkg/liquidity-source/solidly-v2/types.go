@@ -4,11 +4,12 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type PoolMetadata struct {
-	Dec0     *big.Int
-	Dec1     *big.Int
+	Dec0     *uint256.Int
+	Dec1     *uint256.Int
 	R0       *big.Int
 	R1       *big.Int
 	St       bool
@@ -18,8 +19,8 @@ type PoolMetadata struct {
 }
 
 type ShadowLegacyMetadata struct {
-	Dec0 *big.Int       `abi:"_decimals0"`
-	Dec1 *big.Int       `abi:"_decimals1"`
+	Dec0 *uint256.Int   `abi:"_decimals0"`
+	Dec1 *uint256.Int   `abi:"_decimals1"`
 	R0   *big.Int       `abi:"_reserve0"`
 	R1   *big.Int       `abi:"_reserve1"`
 	St   bool           `abi:"_stable"`

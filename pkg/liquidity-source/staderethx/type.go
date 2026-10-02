@@ -2,7 +2,6 @@ package staderethx
 
 import (
 	"github.com/holiman/uint256"
-	"math/big"
 )
 
 type PoolMeta struct {
@@ -23,7 +22,7 @@ type Gas struct {
 }
 
 type StaderOracleExchangeRate struct {
-	ReportingBlockNumber *big.Int `json:"reportingBlockNumber"`
-	TotalETHBalance      *big.Int `json:"totalETHBalance"`
-	TotalETHXSupply      *big.Int `json:"totalETHXSupply"`
+	ReportingBlockNumber *uint256.Int `json:"reportingBlockNumber"`
+	TotalETHBalance      *uint256.Int `json:"totalETHBalance"`
+	TotalETHXSupply      *uint256.Int `json:"totalETHXSupply"`
 }

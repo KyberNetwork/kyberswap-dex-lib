@@ -1,8 +1,6 @@
 package ondo_usdy
 
 import (
-	"math/big"
-
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -28,8 +26,8 @@ type PoolExtra struct {
 }
 
 type OraclePriceData struct {
-	Price     *big.Int `json:"price"`
-	Timestamp *big.Int `json:"timestamp"`
+	Price     *uint256.Int `json:"price"`
+	Timestamp *uint256.Int `json:"timestamp"`
 }
 
 type Gas struct {

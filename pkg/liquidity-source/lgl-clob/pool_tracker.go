@@ -2,14 +2,12 @@ package lglclob
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -63,20 +61,12 @@ func (t *PoolTracker) GetNewPoolState(
 
 	orderBook := OrderBook{
 		Bids: OrderBookLevels{
-			ArrayPrices: lo.Map(orderBookRPC.Bids.ArrayPrices, func(price *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(price)
-			}),
-			ArrayShares: lo.Map(orderBookRPC.Bids.ArrayShares, func(share *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(share)
-			}),
+			ArrayPrices: orderBookRPC.Bids.ArrayPrices,
+			ArrayShares: orderBookRPC.Bids.ArrayShares,
 		},
 		Asks: OrderBookLevels{
-			ArrayPrices: lo.Map(orderBookRPC.Asks.ArrayPrices, func(price *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(price)
-			}),
-			ArrayShares: lo.Map(orderBookRPC.Asks.ArrayShares, func(share *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(share)
-			}),
+			ArrayPrices: orderBookRPC.Asks.ArrayPrices,
+			ArrayShares: orderBookRPC.Asks.ArrayShares,
 		},
 	}
 	extraBytes, err := json.Marshal(orderBook)

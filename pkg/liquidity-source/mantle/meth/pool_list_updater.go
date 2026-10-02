@@ -101,12 +101,12 @@ func getExtra(
 ) (PoolExtra, uint64, error) {
 	var (
 		isStakingPaused        bool
-		minimumStakeBound      *big.Int
-		maximumMETHSupply      *big.Int
-		maximumDepositAmount   *big.Int
-		totalControlled        *big.Int
+		minimumStakeBound      *uint256.Int
+		maximumMETHSupply      *uint256.Int
+		maximumDepositAmount   *uint256.Int
+		totalControlled        *uint256.Int
 		exchangeAdjustmentRate uint16
-		mETHTotalSupply        *big.Int
+		mETHTotalSupply        *uint256.Int
 	)
 
 	calls := client.NewRequest().SetContext(ctx)
@@ -168,10 +168,10 @@ func getExtra(
 
 	return PoolExtra{
 		IsStakingPaused:        isStakingPaused,
-		MinimumStakeBound:      uint256.MustFromBig(minimumStakeBound),
-		MaximumMETHSupply:      uint256.MustFromBig(maximumMETHSupply),
-		TotalControlled:        uint256.MustFromBig(totalControlled),
+		MinimumStakeBound:      minimumStakeBound,
+		MaximumMETHSupply:      maximumMETHSupply,
+		TotalControlled:        totalControlled,
 		ExchangeAdjustmentRate: exchangeAdjustmentRate,
-		METHTotalSupply:        uint256.MustFromBig(mETHTotalSupply),
+		METHTotalSupply:        mETHTotalSupply,
 	}, resp.BlockNumber.Uint64(), nil
 }

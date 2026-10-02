@@ -2,7 +2,6 @@ package gsm4626
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -63,7 +62,7 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.
 		ghoReserve      common.Address
 		ghoToken        common.Address
 		underlyingAsset common.Address
-		priceRatio      *big.Int
+		priceRatio      *uint256.Int
 	)
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
@@ -92,7 +91,7 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.
 
 	extraBytes, err := json.Marshal(StaticExtra{
 		GhoReserve: ghoReserve,
-		PriceRatio: uint256.MustFromBig(priceRatio),
+		PriceRatio: priceRatio,
 	})
 	if err != nil {
 		return nil, err
