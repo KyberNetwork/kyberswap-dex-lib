@@ -459,3 +459,15 @@ func CollectLadder(points []*big.Int, results []*big.Int) []Point {
 	}
 	return pts
 }
+
+// ZeroUnquotedReserves zeroes the output-side reserve of every direction with
+// no quote: an empty ladders[dir] means no token 1-dir is obtainable, so the
+// pool must not report it as liquidity.
+func ZeroUnquotedReserves(reserves entity.PoolReserves, ladders [2][]Point) entity.PoolReserves {
+	for dir, l := range ladders {
+		if len(l) == 0 && 1-dir < len(reserves) {
+			reserves[1-dir] = "0"
+		}
+	}
+	return reserves
+}

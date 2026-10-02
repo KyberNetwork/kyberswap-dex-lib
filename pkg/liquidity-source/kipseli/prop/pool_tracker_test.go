@@ -4,10 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func bigs(vals ...int64) []*big.Int {
@@ -34,15 +35,25 @@ func TestTrimAtWalletCap(t *testing.T) {
 	assert.Equal(t, bigs(10, 20), untouched, "an empty wallet reading is no cap")
 }
 
-func TestSampleBound(t *testing.T) {
-	balance := big.NewInt(100)
+// One-sided zeroing (ladder.ZeroUnquotedReserves) only touches the unquoted
+// direction's output token. The live direction must keep the grid its own
+// ladder guides, so it can't read the zeroed token's reserve as an input bound.
+func TestSamplePoints_OneSidedNoQuote(t *testing.T) {
+	extra, _ := json.Marshal(Extra{Ladders: [2][]ladder.Point{{{1e6, 1e6}, {2e6, 2e6}, {3e6, 2.1e6}}, nil}})
+	p := entity.Pool{
+		Tokens:   []*entity.PoolToken{{Decimals: 6}, {Decimals: 18}},
+		Reserves: entity.PoolReserves{"5000000", "9000000"},
+		Extra:    string(extra),
+	}
+	before := samplePoints(p)
 
-	assert.Equal(t, big.NewInt(30), sampleBound(balance, maxIn(balance, big.NewInt(130))),
-		"cap room tighter than the balance bounds the grid")
-	assert.Equal(t, balance, sampleBound(balance, maxIn(balance, big.NewInt(1000))))
-	assert.Equal(t, balance, sampleBound(balance, maxIn(balance, bignumber.MaxUint256)),
-		"the quote token's max-uint cap means uncapped")
-	assert.Nil(t, maxIn(balance, big.NewInt(90)), "over cap: no room to report, fall back to balance")
+	p.Reserves = ladder.ZeroUnquotedReserves(p.Reserves, [2][]ladder.Point{{{1, 1}}, nil})
+	after := samplePoints(p)
+
+	assert.Equal(t, entity.PoolReserves{"0", "9000000"}, p.Reserves)
+	assert.Equal(t, before[0], after[0], "live 0->1 grid ignores the zeroed token0 reserve")
+	assert.NotEqual(t, ladder.BuildDecimalsSweep(6), after[0], "live grid stays guided by its ladder")
+	assert.Equal(t, ladder.BuildDecimalsSweep(18), after[1], "unquoted 1->0 falls back to the decimals sweep")
 }
 
 func TestApplyBuffer(t *testing.T) {

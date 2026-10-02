@@ -208,3 +208,22 @@ func TestWithGrowthCanaries(t *testing.T) {
 		}
 	})
 }
+
+// A direction with no quote can deliver none of its output token, so that
+// token's reserve must not count as liquidity; the quoted side keeps its
+// balance so next cycle's sampling still scales off it.
+func TestZeroUnquotedReserves(t *testing.T) {
+	t.Parallel()
+
+	quoted := []Point{{1, 2}}
+	assert.Equal(t, entity.PoolReserves{"10", "20"},
+		ZeroUnquotedReserves(entity.PoolReserves{"10", "20"}, [2][]Point{quoted, quoted}))
+	assert.Equal(t, entity.PoolReserves{"10", "0"},
+		ZeroUnquotedReserves(entity.PoolReserves{"10", "20"}, [2][]Point{nil, quoted}),
+		"no 0->1 quote: token1 unobtainable")
+	assert.Equal(t, entity.PoolReserves{"0", "20"},
+		ZeroUnquotedReserves(entity.PoolReserves{"10", "20"}, [2][]Point{quoted, nil}),
+		"no 1->0 quote: token0 unobtainable")
+	assert.Equal(t, entity.PoolReserves{"0", "0"},
+		ZeroUnquotedReserves(entity.PoolReserves{"10", "20"}, [2][]Point{}))
+}

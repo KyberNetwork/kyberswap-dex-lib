@@ -203,7 +203,7 @@ func (t *PoolTracker) warnGapInQuotes(p entity.Pool, points, outputs [2][]*big.I
 func (t *PoolTracker) persist(p entity.Pool, extra ladder.Extra, r0, r1 *uint256.Int, blockNumber *big.Int) entity.Pool {
 	extraBytes, _ := json.Marshal(extra)
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{r0.Dec(), r1.Dec()}
+	p.Reserves = ladder.ZeroUnquotedReserves(entity.PoolReserves{r0.Dec(), r1.Dec()}, extra.Ladders)
 	if blockNumber != nil {
 		p.BlockNumber = blockNumber.Uint64()
 	}
