@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -28,7 +27,7 @@ type PoolTracker struct {
 
 var (
 	_ pool.IBatchRPCPoolTracker = (*PoolTracker)(nil)
-	_ = pooltrack.RegisterFactoryCE(eclp.DexType, NewPoolTracker)
+	_                           = pooltrack.RegisterFactoryCE(eclp.DexType, NewPoolTracker)
 )
 
 func NewPoolTracker(
@@ -99,8 +98,8 @@ func buildPoolState(p *entity.Pool, res *eclp.RpcResult, staticExtra shared.Stat
 	extra.ShouldCallComputeDynamicSwapFee = res.HooksConfigData.ShouldCallComputeDynamicSwapFee
 	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap
 	extra.ShouldCallAfterSwap = res.HooksConfigData.ShouldCallAfterSwap
-	extra.StaticSwapFeePercentage, _ = uint256.FromBig(res.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+	extra.StaticSwapFeePercentage = res.StaticSwapFeePercentage
+	extra.AggregateSwapFeePercentage = res.AggregateSwapFeePercentage
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)

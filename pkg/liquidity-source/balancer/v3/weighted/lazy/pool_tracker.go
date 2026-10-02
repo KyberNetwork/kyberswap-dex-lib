@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -172,8 +171,8 @@ func buildPoolState(
 	extra.ShouldCallComputeDynamicSwapFee = rpcRes.HooksConfigData.ShouldCallComputeDynamicSwapFee
 	extra.ShouldCallBeforeSwap = rpcRes.HooksConfigData.ShouldCallBeforeSwap
 	extra.ShouldCallAfterSwap = rpcRes.HooksConfigData.ShouldCallAfterSwap
-	extra.StaticSwapFeePercentage, _ = uint256.FromBig(rpcRes.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(rpcRes.AggregateSwapFeePercentage)
+	extra.StaticSwapFeePercentage = rpcRes.StaticSwapFeePercentage
+	extra.AggregateSwapFeePercentage = rpcRes.AggregateSwapFeePercentage
 	extra.BalancesLiveScaled18 = shared.FromBigs(rpcRes.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(rpcRes.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(rpcRes.PoolData.TokenRates)

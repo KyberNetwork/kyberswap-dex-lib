@@ -86,8 +86,8 @@ func (t *PoolTracker) getNewPoolState(
 	extra.ShouldCallComputeDynamicSwapFee = res.HooksConfigData.ShouldCallComputeDynamicSwapFee
 	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap
 	extra.ShouldCallAfterSwap = res.HooksConfigData.ShouldCallAfterSwap
-	extra.StaticSwapFeePercentage, _ = uint256.FromBig(res.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+	extra.StaticSwapFeePercentage = res.StaticSwapFeePercentage
+	extra.AggregateSwapFeePercentage = res.AggregateSwapFeePercentage
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)

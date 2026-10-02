@@ -25,7 +25,7 @@ type Extra struct {
 
 type RpcResult struct {
 	HooksConfigRPC
-	StaticSwapFeePercentage *big.Int
+	StaticSwapFeePercentage *uint256.Int
 	AggregateFeePercentageRPC
 	PoolDataRPC
 	Buffers        func() []*ExtraBuffer
@@ -96,7 +96,7 @@ type PoolMetaInfo struct {
 }
 
 type AggregateFeePercentageRPC struct {
-	AggregateSwapFeePercentage  *big.Int
+	AggregateSwapFeePercentage  *uint256.Int
 	AggregateYieldFeePercentage *big.Int
 }
 
