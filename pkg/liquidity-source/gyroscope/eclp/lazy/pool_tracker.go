@@ -2,7 +2,6 @@ package lazy
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -135,7 +134,7 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, vault, poolID str
 
 func buildPoolState(p entity.Pool, staticExtra *gyroeclp.StaticExtra, d *gyroeclp.RPCResp) (entity.Pool, error) {
 	paused := !gyroeclp.IsNotPaused(d.PausedState)
-	swapFeePercentage, _ := uint256.FromBig(d.SwapFeePercentage)
+	swapFeePercentage := d.SwapFeePercentage
 	paramsAlpha, _ := int256.FromBig(d.ECLPParamsResp.Params.Alpha)
 	paramsBeta, _ := int256.FromBig(d.ECLPParamsResp.Params.Beta)
 	paramsC, _ := int256.FromBig(d.ECLPParamsResp.Params.C)
@@ -154,8 +153,8 @@ func buildPoolState(p entity.Pool, staticExtra *gyroeclp.StaticExtra, d *gyroecl
 	var tokenRates []*uint256.Int
 	if staticExtra.PoolTypeVer > gyroeclp.PoolTypeVer1 {
 		tokenRates = make([]*uint256.Int, 2)
-		tokenRates[0], _ = uint256.FromBig(d.TokenRatesResp.Rate0)
-		tokenRates[1], _ = uint256.FromBig(d.TokenRatesResp.Rate1)
+		tokenRates[0] = d.TokenRatesResp.Rate0
+		tokenRates[1] = d.TokenRatesResp.Rate1
 	}
 
 	extra := gyroeclp.Extra{
@@ -196,7 +195,7 @@ func buildPoolState(p entity.Pool, staticExtra *gyroeclp.StaticExtra, d *gyroecl
 }
 
 func initReserves(p entity.Pool, poolTokens gyroeclp.PoolTokensResp) ([]string, error) {
-	reserveByToken := make(map[string]*big.Int)
+	reserveByToken := make(map[string]*uint256.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
 		reserveByToken[addr] = poolTokens.Balances[idx]
@@ -208,7 +207,7 @@ func initReserves(p entity.Pool, poolTokens gyroeclp.PoolTokensResp) ([]string, 
 		if !ok {
 			return nil, gyroeclp.ErrReserveNotFound
 		}
-		reserves[idx] = r.String()
+		reserves[idx] = r.Dec()
 	}
 
 	return reserves, nil

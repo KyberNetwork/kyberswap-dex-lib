@@ -49,13 +49,13 @@ type Extra struct {
 }
 
 type TokenRatesResp struct {
-	Rate0 *big.Int
-	Rate1 *big.Int
+	Rate0 *uint256.Int
+	Rate1 *uint256.Int
 }
 
 type PoolTokensResp struct {
 	Tokens          []common.Address
-	Balances        []*big.Int
+	Balances        []*uint256.Int
 	LastChangeBlock *big.Int
 }
 
@@ -93,7 +93,7 @@ type ECLPParamsResp struct {
 
 type RPCResp struct {
 	PoolTokens        PoolTokensResp
-	SwapFeePercentage *big.Int
+	SwapFeePercentage *uint256.Int
 	PausedState       PausedStateResp
 	TokenRatesResp    TokenRatesResp
 	ECLPParamsResp    ECLPParamsResp

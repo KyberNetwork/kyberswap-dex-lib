@@ -2,7 +2,6 @@ package gyroeclp
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -92,7 +91,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	paused := !IsNotPaused(rpcResp.PausedState)
-	swapFeePercentage, _ := uint256.FromBig(rpcResp.SwapFeePercentage)
+	swapFeePercentage := rpcResp.SwapFeePercentage
 	paramsAlpha, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Alpha)
 	paramsBeta, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Beta)
 	paramsC, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.C)
@@ -111,8 +110,8 @@ func (t *PoolTracker) getNewPoolState(
 	var tokenRates []*uint256.Int
 	if staticExtra.PoolTypeVer > PoolTypeVer1 {
 		tokenRates = make([]*uint256.Int, 2)
-		tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
-		tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
+		tokenRates[0] = rpcResp.TokenRatesResp.Rate0
+		tokenRates[1] = rpcResp.TokenRatesResp.Rate1
 	}
 
 	extra := Extra{
@@ -153,7 +152,7 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 func (t *PoolTracker) initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]string, error) {
-	reserveByToken := make(map[string]*big.Int)
+	reserveByToken := make(map[string]*uint256.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := hexutil.Encode(token[:])
 		reserveByToken[addr] = poolTokens.Balances[idx]
@@ -171,7 +170,7 @@ func (t *PoolTracker) initReserves(p entity.Pool, poolTokens PoolTokensResp) ([]
 			return nil, ErrReserveNotFound
 		}
 
-		reserves[idx] = r.String()
+		reserves[idx] = r.Dec()
 	}
 
 	return reserves, nil

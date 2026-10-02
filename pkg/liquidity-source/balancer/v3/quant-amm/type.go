@@ -53,6 +53,6 @@ type ImmutableDataRpc struct {
 		EpsilonMax               uint64
 		AbsoluteWeightGuardRail  uint64
 		UpdateInterval           uint64
-		MaxTradeSizeRatio        *big.Int
+		MaxTradeSizeRatio        *uint256.Int
 	}
 }

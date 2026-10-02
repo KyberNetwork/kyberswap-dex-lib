@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -95,7 +94,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	// QuantAMM-specific fields
 	if staticExtra.MaxTradeSizeRatio == nil {
-		staticExtra.MaxTradeSizeRatio, _ = uint256.FromBig(res.ImmutableData.MaxTradeSizeRatio)
+		staticExtra.MaxTradeSizeRatio = res.ImmutableData.MaxTradeSizeRatio
 		if staticExtraBytes, err := json.Marshal(staticExtra); err == nil {
 			p.StaticExtra = string(staticExtraBytes)
 		}
