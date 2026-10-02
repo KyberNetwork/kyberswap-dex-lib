@@ -69,8 +69,8 @@ func (t *PoolTracker) getNewPoolState(
 	// ── Phase 1: read paused state, fair prices, base fee, miFactor ─────────
 	var (
 		isPaused      bool
-		fairPrice0To1 *big.Int
-		fairPrice1To0 *big.Int
+		fairPrice0To1 *uint256.Int
+		fairPrice1To0 *uint256.Int
 		baseFeeBpsRaw uint16
 	)
 	resp, err := t.ethrpcClient.NewRequest().
@@ -108,7 +108,7 @@ func (t *PoolTracker) getNewPoolState(
 	// amount, and we treat its output as a snapshot representative fee.
 	var (
 		liquidity struct {
-			Token0Amount, Token1Amount *big.Int
+			Token0Amount, Token1Amount *uint256.Int
 		}
 		feeData0To1, feeData1To0 struct {
 			Data valantisstex.SwapFeeModuleData
@@ -152,15 +152,12 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	fp01, _ := uint256.FromBig(fairPrice0To1)
-	fp10, _ := uint256.FromBig(fairPrice1To0)
-
 	fallback := uint64(baseFeeBpsRaw)
 	refFee01 := resolveRefFee(feeData0To1.Data.FeeInBips, fallback)
 	refFee10 := resolveRefFee(feeData1To0.Data.FeeInBips, fallback)
 
 	extraBytes, err := json.Marshal(Extra{
-		FairPriceFrom: [2]*uint256.Int{fp01, fp10},
+		FairPriceFrom: [2]*uint256.Int{fairPrice0To1, fairPrice1To0},
 		RefFeeFrom:    [2]uint64{refFee01, refFee10},
 		IsPaused:      isPaused,
 	})
@@ -172,8 +169,8 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Reserves = entity.PoolReserves{
-		liquidity.Token0Amount.String(),
-		liquidity.Token1Amount.String(),
+		liquidity.Token0Amount.Dec(),
+		liquidity.Token1Amount.Dec(),
 	}
 
 	return p, nil
