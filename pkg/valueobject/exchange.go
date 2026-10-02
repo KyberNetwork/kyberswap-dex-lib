@@ -169,6 +169,7 @@ const (
 	ExchangeKyberSwapLimitOrder         = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS       = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                  = "liquidcore"
+	ExchangeUSCore                      = "uscore"
 	ExchangeLiquidityParty              = "liquidity-party"
 	ExchangeListaStable                 = "lista-stable"
 	ExchangeListaStake                  = "lista-stake"
