@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -140,20 +139,21 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 		return p, nil
 	}
 
-	extraBytes, err := json.Marshal(vaultState.ToVaultState(mToken, staticExtra.VaultType))
+	vault := vaultState.ToVaultState(mToken, staticExtra.VaultType)
+	extraBytes, err := json.Marshal(vault)
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
 
 	p.Reserves = []string{
-		convertFromBase18(uint256.MustFromBig(vaultState.InstantDailyLimit), p.Tokens[0].Decimals).String(),
+		convertFromBase18(vault.InstantDailyLimit, p.Tokens[0].Decimals).String(),
 	}
 
 	var tokenLimits []string
 	for i := 0; i < len(paymentTokens); i++ {
 		tokenLimits = append(tokenLimits,
-			convertFromBase18(uint256.MustFromBig(vaultState.TokensConfig[i].Allowance), p.Tokens[i+1].Decimals).String())
+			convertFromBase18(vault.TokenConfigs[i].Allowance, p.Tokens[i+1].Decimals).String())
 	}
 	p.Reserves = append(p.Reserves, tokenLimits...)
 
