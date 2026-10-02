@@ -12,8 +12,8 @@ func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 	normalizedVolatility := new(uint256.Int).Div(volatility, uFIFTEEN)
 
 	sumOfSigmoids := new(uint256.Int).Add(
-		sigmoid(normalizedVolatility, config.Gamma1, config.Alpha1, config.Beta1),
-		sigmoid(normalizedVolatility, config.Gamma2, config.Alpha2, config.Beta2),
+		sigmoid(new(uint256.Int).Set(normalizedVolatility), config.Gamma1, config.Alpha1, config.Beta1),
+		sigmoid(new(uint256.Int).Set(normalizedVolatility), config.Gamma2, config.Alpha2, config.Beta2),
 	)
 
 	result := normalizedVolatility.Add(
@@ -32,11 +32,12 @@ func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 // that is a sigmoid with a maximum value of α, x-shifted by β, and stretched by γ
 // @dev returns uint256 for fuzzy testing. Guaranteed that the result is not greater than alpha
 func sigmoid(x *uint256.Int, gU16 uint16, alpha uint16, beta uint32) *uint256.Int {
-	x.SubUint64(x, uint64(beta))
 	g := uint64(gU16)
 	g4 := g * g * g * g
 	var tmp, res uint256.Int
-	if x.Sign() > 0 {
+	if x.CmpUint64(uint64(beta)) > 0 {
+		x.SubUint64(x, uint64(beta))
+
 		// If x >= 6*g, return alpha
 		if x.CmpUint64(6*g) >= 0 {
 			return tmp.SetUint64(uint64(alpha))
@@ -49,10 +50,10 @@ func sigmoid(x *uint256.Int, gU16 uint16, alpha uint16, beta uint32) *uint256.In
 		denominator := tmp.AddUint64(ex, g4)
 		return res.Div(numerator, denominator)
 	} else {
-		x.Abs(x)
+		x.Sub(tmp.SetUint64(uint64(beta)), x)
 
 		if x.CmpUint64(6*g) >= 0 {
-			return uZERO
+			return new(uint256.Int)
 		}
 
 		ex := expXg4(x, g)
@@ -89,10 +90,11 @@ func expXg4(x *uint256.Int, g uint64) *uint256.Int {
 
 	x.Mod(x, gU)
 
+	closestValueAdjusted := new(uint256.Int).Set(closestValue)
 	if x.CmpUint64(g/2) >= 0 {
 		// (x - closestValue) >= 0.5, so closestValue := closestValue * e^0.5
 		x.SubUint64(x, g/2)
-		closestValue.Mul(closestValue, E_HALF_MULTIPLIER).Div(closestValue, E_MULTIPLIER_BIG)
+		closestValueAdjusted.Mul(closestValueAdjusted, E_HALF_MULTIPLIER).Div(closestValueAdjusted, E_MULTIPLIER_BIG)
 	}
 
 	// After calculating the closestValue x/g is <= 0.5, so that the series in the neighborhood of zero converges with sufficient speed
@@ -117,7 +119,7 @@ func expXg4(x *uint256.Int, g uint64) *uint256.Int {
 		uTWENTYFOUR,
 	)) // g^4 + x * g^3 + (x^2 * g^2)/2 + x^3(g*4 + x)/24, res < 73
 
-	res.Mul(res, closestValue).Div(res, E_MULTIPLIER_BIG)
+	res.Mul(res, closestValueAdjusted).Div(res, E_MULTIPLIER_BIG)
 
 	return res
 }

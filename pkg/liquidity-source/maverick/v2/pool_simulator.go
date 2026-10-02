@@ -237,7 +237,7 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn, exactOutput b
 		combine(delta, newDelta)
 	}
 
-	return delta.DeltaOutErc, binCrossed, nil
+	return lo.Ternary(exactOutput, delta.DeltaInErc, delta.DeltaOutErc), binCrossed, nil
 }
 
 // swapTick
