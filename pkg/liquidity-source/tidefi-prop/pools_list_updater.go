@@ -52,7 +52,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		metadata.Seen = make(map[string]bool)
 	}
 
-	tokens, err := u.fetchAssets(ctx)
+	tokens, err := u.getTokens(ctx)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -115,6 +115,19 @@ type takerMarkets struct {
 	Assets []struct {
 		TokenAddress string `json:"token_address"`
 	} `json:"assets"`
+}
+
+// getTokens returns the configured static token list if set, else the
+// Taker API's asset list.
+func (u *PoolsListUpdater) getTokens(ctx context.Context) ([]string, error) {
+	if len(u.cfg.Tokens) == 0 {
+		return u.fetchAssets(ctx)
+	}
+	tokens := make([]string, len(u.cfg.Tokens))
+	for i, t := range u.cfg.Tokens {
+		tokens[i] = strings.ToLower(t)
+	}
+	return tokens, nil
 }
 
 // fetchAssets connects to the Taker API, reads the first (and only, for our

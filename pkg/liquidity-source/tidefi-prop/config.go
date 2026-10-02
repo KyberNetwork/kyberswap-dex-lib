@@ -30,5 +30,9 @@ type Config struct {
 	TakerAPIURL string `json:"takerApiUrl"`
 	AuthToken   string `json:"authToken"`
 
+	// Tokens, when set, replaces Taker API discovery with a static token
+	// list, for chains where the Taker API isn't reachable from our cluster.
+	Tokens []string `json:"tokens"`
+
 	Buffer int64 `json:"buffer"`
 }

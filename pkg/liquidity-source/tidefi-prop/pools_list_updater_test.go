@@ -77,3 +77,30 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, pools2)
 }
+
+// A static token list must replace Taker API discovery entirely: on chains
+// where the API is unreachable, any dial attempt would fail the whole update.
+func TestPoolsListUpdater_GetNewPools_StaticTokens(t *testing.T) {
+	t.Parallel()
+
+	cfg := &Config{
+		DexID:       DexType,
+		Address:     "0xSwapper",
+		TakerAPIURL: "ws://127.0.0.1:1/", // unreachable; must not be dialed
+		Tokens: []string{
+			"0xB000000000000000000000000000000000000B",
+			"0xA000000000000000000000000000000000000A",
+			"0xC000000000000000000000000000000000000C",
+		},
+	}
+	u := NewPoolsListUpdater(cfg, nil)
+
+	pools, _, err := u.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	require.Len(t, pools, 3)
+
+	for _, p := range pools {
+		assert.Less(t, p.Tokens[0].Address, p.Tokens[1].Address, "pair tokens must be sorted")
+		assert.Equal(t, strings.ToLower(p.Tokens[0].Address), p.Tokens[0].Address, "tokens must be lowercased")
+	}
+}
