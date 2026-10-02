@@ -110,12 +110,12 @@ func (t *PoolTracker) getPoolState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*Extra, uint64, error) {
 	var (
-		fee         *big.Int
-		slippageFee *big.Int
-		balAdd0     *big.Int
-		balAdd1     *big.Int
-		balRem0     *big.Int
-		balRem1     *big.Int
+		fee         *uint256.Int
+		slippageFee *uint256.Int
+		balAdd0     *uint256.Int
+		balAdd1     *uint256.Int
+		balRem0     *uint256.Int
+		balRem1     *uint256.Int
 	)
 
 	token0Addr := common.HexToAddress(tokens[0].Address)
@@ -173,11 +173,11 @@ func (t *PoolTracker) getPoolState(
 	}
 
 	return &Extra{
-		Fee:         uint256.MustFromBig(fee),
-		SlippageFee: uint256.MustFromBig(slippageFee),
-		BalAdd0:     uint256.MustFromBig(balAdd0),
-		BalAdd1:     uint256.MustFromBig(balAdd1),
-		BalRem0:     uint256.MustFromBig(balRem0),
-		BalRem1:     uint256.MustFromBig(balRem1),
+		Fee:         fee,
+		SlippageFee: slippageFee,
+		BalAdd0:     balAdd0,
+		BalAdd1:     balAdd1,
+		BalRem0:     balRem0,
+		BalRem1:     balRem1,
 	}, resp.BlockNumber.Uint64(), nil
 }

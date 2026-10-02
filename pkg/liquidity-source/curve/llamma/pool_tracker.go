@@ -81,12 +81,12 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		basePrice   *big.Int
-		priceOracle *big.Int
-		fee         *big.Int
-		adminFee    *big.Int
-		adminFeesX  *big.Int
-		adminFeesY  *big.Int
+		basePrice   *uint256.Int
+		priceOracle *uint256.Int
+		fee         *uint256.Int
+		adminFee    *uint256.Int
+		adminFeesX  *uint256.Int
+		adminFeesY  *uint256.Int
 		activeBand  *big.Int
 		minBand     *big.Int
 		maxBand     *big.Int
@@ -154,12 +154,12 @@ func (t *PoolTracker) getNewPoolState(
 	availableBalances := t.calcAvailableBalances(p.Tokens, bands)
 
 	extraBytes, err := json.Marshal(&Extra{
-		BasePrice:         uint256.MustFromBig(basePrice),
-		PriceOracle:       uint256.MustFromBig(priceOracle),
-		Fee:               uint256.MustFromBig(fee),
-		AdminFee:          uint256.MustFromBig(adminFee),
-		AdminFeesX:        uint256.MustFromBig(adminFeesX),
-		AdminFeesY:        uint256.MustFromBig(adminFeesY),
+		BasePrice:         basePrice,
+		PriceOracle:       priceOracle,
+		Fee:               fee,
+		AdminFee:          adminFee,
+		AdminFeesX:        adminFeesX,
+		AdminFeesY:        adminFeesY,
 		ActiveBand:        activeBand.Int64(),
 		MinBand:           minBand.Int64(),
 		MaxBand:           maxBand.Int64(),
@@ -176,8 +176,8 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		new(big.Int).Sub(balances[0], adminFeesX).String(),
-		new(big.Int).Sub(balances[1], adminFeesY).String(),
+		new(big.Int).Sub(balances[0], adminFeesX.ToBig()).String(),
+		new(big.Int).Sub(balances[1], adminFeesY.ToBig()).String(),
 	}
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
@@ -206,8 +206,8 @@ func (t *PoolTracker) getBands(
 
 	bandCount := endBand - startBand + 1
 	var (
-		bandsX = make([]*big.Int, bandCount)
-		bandsY = make([]*big.Int, bandCount)
+		bandsX = make([]*uint256.Int, bandCount)
+		bandsY = make([]*uint256.Int, bandCount)
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides)
@@ -237,8 +237,8 @@ func (t *PoolTracker) getBands(
 
 		bands = append(bands, Band{
 			Index: i + startBand,
-			BandX: uint256.MustFromBig(bandsX[i]),
-			BandY: uint256.MustFromBig(bandsY[i]),
+			BandX: bandsX[i],
+			BandY: bandsY[i],
 		})
 	}
 

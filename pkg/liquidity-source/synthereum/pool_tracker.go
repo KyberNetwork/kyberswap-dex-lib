@@ -104,7 +104,7 @@ func (t *PoolTracker) getMultiLpPoolState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	var (
-		maxCapacity, totalSynthetic, feePercentage *big.Int
+		maxCapacity, totalSynthetic, feePercentage *uint256.Int
 		finderAddr                                 common.Address
 		priceIdentifier                            [32]byte
 	)
@@ -155,9 +155,9 @@ func (t *PoolTracker) getMultiLpPoolState(
 	}
 
 	extra := Extra{
-		FeePercentage: fromBig(feePercentage),
-		MaxSynthCap:   fromBig(maxCapacity),
-		TotalSynth:    fromBig(totalSynthetic),
+		FeePercentage: feePercentage,
+		MaxSynthCap:   maxCapacity,
+		TotalSynth:    totalSynthetic,
 	}
 
 	// A zero finder/identifier means those two calls reverted under TryAggregate;
@@ -223,7 +223,7 @@ func (t *PoolTracker) getMultiLpPoolPrice(
 		return nil, false
 	}
 
-	var price *big.Int
+	var price *uint256.Int
 	priceReq := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil {
 		priceReq.SetBlockNumber(blockNumber)
@@ -250,7 +250,7 @@ func (t *PoolTracker) getMultiLpPoolPrice(
 		return nil, false
 	}
 
-	return fromBig(price), true
+	return price, true
 }
 
 // getWrapperPoolState refreshes the state of the fixed-rate wrapper. Wrapping is
@@ -277,9 +277,9 @@ func (t *PoolTracker) getWrapperPoolState(
 	}
 
 	var (
-		maxWithdraw                *big.Int
-		totalSynthetic, conversion *big.Int
-		maxDeposit                 *big.Int
+		maxWithdraw                *uint256.Int
+		totalSynthetic, conversion *uint256.Int
+		maxDeposit                 *uint256.Int
 	)
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
@@ -320,10 +320,10 @@ func (t *PoolTracker) getWrapperPoolState(
 	}
 
 	extra := Extra{
-		WrapperReserve:    fromBig(maxWithdraw),
-		WrapperSynthCap:   fromBig(totalSynthetic),
-		WrapperRate:       fromBig(conversion),
-		WrapperMaxDeposit: fromBig(maxDeposit), // best-effort: nil leaves wrap() capacity-unchecked, matching pre-fix behavior
+		WrapperReserve:    maxWithdraw,
+		WrapperSynthCap:   totalSynthetic,
+		WrapperRate:       conversion,
+		WrapperMaxDeposit: maxDeposit, // best-effort: nil leaves wrap() capacity-unchecked, matching pre-fix behavior
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

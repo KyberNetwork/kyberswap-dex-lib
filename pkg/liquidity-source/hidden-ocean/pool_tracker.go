@@ -2,13 +2,13 @@ package hiddenocean
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -55,11 +55,11 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) fetchPoolState(ctx context.Context, p *entity.Pool) (Extra, []string, uint64, error) {
 	var (
 		slot0     Slot0
-		liquidity *big.Int
-		fee       *big.Int
+		liquidity *uint256.Int
+		fee       *uint256.Int
 		rangeInfo RangeInfo
-		balance0  *big.Int
-		balance1  *big.Int
+		balance0  *uint256.Int
+		balance1  *uint256.Int
 	)
 
 	poolAddr := common.HexToAddress(p.Address)
@@ -99,16 +99,16 @@ func (t *PoolTracker) fetchPoolState(ctx context.Context, p *entity.Pool) (Extra
 	}
 
 	extra := Extra{
-		SqrtPriceX96: uint256FromBigInt(slot0.SqrtPriceX96),
-		Liquidity:    uint256FromBigInt(liquidity),
+		SqrtPriceX96: slot0.SqrtPriceX96,
+		Liquidity:    liquidity,
 		Fee:          uint32(fee.Uint64()),
-		SqrtPaX96:    uint256FromBigInt(rangeInfo.SqrtPaX96),
-		SqrtPbX96:    uint256FromBigInt(rangeInfo.SqrtPbX96),
+		SqrtPaX96:    rangeInfo.SqrtPaX96,
+		SqrtPbX96:    rangeInfo.SqrtPbX96,
 	}
 
 	reserves := []string{
-		balance0.String(),
-		balance1.String(),
+		balance0.Dec(),
+		balance1.Dec(),
 	}
 
 	var blockNumber uint64
