@@ -157,11 +157,11 @@ func (u *PoolsListUpdater) getPoolsFromFactory(ctx context.Context, startIndex *
 }
 
 // listPoolData receives list of pool addresses and returns their tokenA, tokenB and tick spacing
-func (u *PoolsListUpdater) listPoolData(ctx context.Context, poolAddresses []common.Address) ([]common.Address, []common.Address, []*big.Int, error) {
+func (u *PoolsListUpdater) listPoolData(ctx context.Context, poolAddresses []common.Address) ([]common.Address, []common.Address, []int32, error) {
 	var (
 		listTokenAResult = make([]common.Address, len(poolAddresses))
 		listTokenBResult = make([]common.Address, len(poolAddresses))
-		tickSpacingList  = make([]*big.Int, len(poolAddresses))
+		tickSpacingList  = make([]int32, len(poolAddresses))
 	)
 
 	listDataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -232,7 +232,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 
 		// Create StaticExtra with data from both on-chain and API
 		staticExtra := StaticExtra{
-			TickSpacing: int32(tickSpacingList[i].Int64()),
+			TickSpacing: tickSpacingList[i],
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

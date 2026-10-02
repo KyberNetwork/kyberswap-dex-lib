@@ -258,8 +258,8 @@ func (d *PoolsListUpdater) getPoolStaticData(
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	var (
-		precisionMultipliers = make([]*big.Int, numCoins)
-		rates                = make([]*big.Int, numCoins)
+		precisionMultipliers = make([]*uint256.Int, numCoins)
+		rates                = make([]*uint256.Int, numCoins)
 		lpToken              common.Address
 	)
 
@@ -290,11 +290,17 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		return StaticExtra{}, err
 	}
 
-	rateStrings := lo.Map(rates, func(item *big.Int, _ int) string {
+	rateStrings := lo.Map(rates, func(item *uint256.Int, _ int) string {
+		if item == nil {
+			return "0"
+		}
 		return item.String()
 	})
 
-	precisionStrings := lo.Map(precisionMultipliers, func(item *big.Int, _ int) string {
+	precisionStrings := lo.Map(precisionMultipliers, func(item *uint256.Int, _ int) string {
+		if item == nil {
+			return "0"
+		}
 		return item.String()
 	})
 

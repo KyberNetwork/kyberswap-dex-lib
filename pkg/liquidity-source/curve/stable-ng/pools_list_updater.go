@@ -2,11 +2,9 @@ package stableng
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -75,8 +73,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.CurvePoolWithType) ([]entity.Pool,
 	error) {
 	var (
-		aList        = make([]*big.Int, len(curvePools))
-		aPreciseList = make([]*big.Int, len(curvePools))
+		aList        = make([]*uint256.Int, len(curvePools))
+		aPreciseList = make([]*uint256.Int, len(curvePools))
 	)
 
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy)
@@ -125,8 +123,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		}
 
 		if aList[i] != nil && aPreciseList[i] != nil {
-			staticExtra.APrecision = new(uint256.Int).Div(number.SetFromBig(aPreciseList[i]),
-				number.SetFromBig(aList[i]))
+			staticExtra.APrecision = new(uint256.Int).Div(aPreciseList[i], aList[i])
 		} else if aList[i] != nil {
 			staticExtra.APrecision = uint256.NewInt(1)
 		} else {

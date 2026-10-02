@@ -2,7 +2,6 @@ package arberaden
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -40,8 +39,8 @@ type PoolsListUpdaterMetadata struct {
 
 type PoolState struct {
 	Assets        []RPCAsset
-	AssetSupplies []*big.Int
-	Supply        *big.Int
+	AssetSupplies []*uint256.Int
+	Supply        *uint256.Int
 	Fee           RPCFee
 }
 
@@ -56,10 +55,10 @@ type RPCFee struct {
 
 type RPCAsset struct {
 	Token           common.Address
-	Weight          *big.Int
-	BasePriceUSDX96 *big.Int
+	Weight          *uint256.Int
+	BasePriceUSDX96 *uint256.Int
 	C1              common.Address
-	Q1              *big.Int
+	Q1              *uint256.Int
 }
 
 type Index struct {
@@ -136,10 +135,10 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 			Assets: lo.Map(poolState.Assets, func(asset RPCAsset, _ int) Asset {
 				return Asset{
 					Token:           hexutil.Encode(asset.Token[:]),
-					Weighting:       uint256.MustFromBig(asset.Weight),
-					BasePriceUSDX96: uint256.MustFromBig(asset.BasePriceUSDX96),
+					Weighting:       asset.Weight,
+					BasePriceUSDX96: asset.BasePriceUSDX96,
 					C1:              hexutil.Encode(asset.C1[:]),
-					Q1:              uint256.MustFromBig(asset.Q1),
+					Q1:              asset.Q1,
 				}
 			}),
 		})
@@ -189,7 +188,7 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 	req := rpcClient.NewRequest().SetContext(ctx)
 	poolStates := make([]PoolState, len(pools))
 	for i, pool := range pools {
-		poolStates[i].AssetSupplies = make([]*big.Int, len(pool.Tokens)-1)
+		poolStates[i].AssetSupplies = make([]*uint256.Int, len(pool.Tokens)-1)
 		for j, asset := range pool.Tokens[1:] {
 			req.AddCall(&ethrpc.Call{
 				ABI:    weightedIndexABI,
@@ -222,10 +221,10 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 		if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
 			return nil, err
 		}
-		extra.AssetSupplies = lo.Map(poolStates[i].AssetSupplies, func(asset *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(asset)
+		extra.AssetSupplies = lo.Map(poolStates[i].AssetSupplies, func(asset *uint256.Int, _ int) *uint256.Int {
+			return asset
 		})
-		extra.Supply = uint256.MustFromBig(poolStates[i].Supply)
+		extra.Supply = poolStates[i].Supply
 		extra.Fee = Fee{
 			Bond:   uint256.NewInt(uint64(poolStates[i].Fee.Bond)),
 			Debond: uint256.NewInt(uint64(poolStates[i].Fee.Debond)),
