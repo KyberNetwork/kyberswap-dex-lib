@@ -1,14 +1,13 @@
 package prop
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type AssetReserves struct {
 	Tokens   []common.Address
-	Balances []*big.Int
+	Balances []uint256.Int
 }
 
 type StaticExtra struct {

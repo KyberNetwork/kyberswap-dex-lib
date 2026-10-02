@@ -39,7 +39,7 @@ func (t *PoolTracker) GetNewPoolState(
 	token0, token1 := common.HexToAddress(p.Tokens[0].Address), common.HexToAddress(p.Tokens[1].Address)
 
 	var balances struct {
-		ReserveX, ReserveY *big.Int
+		ReserveX, ReserveY *uint256.Int
 	}
 	address, pairID := staticExtra.Address, common.HexToHash(p.Address)
 	for i, xor := range common.HexToAddress(address) {
@@ -56,13 +56,14 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 	blockNumber := resp.BlockNumber
 
-	points0 := ladder.SamplePoints(p, 0, balances.ReserveX, balances.ReserveY)
-	points1 := ladder.SamplePoints(p, 1, balances.ReserveY, balances.ReserveX)
+	reserveXBig, reserveYBig := balances.ReserveX.ToBig(), balances.ReserveY.ToBig()
+	points0 := ladder.SamplePoints(p, 0, reserveXBig, reserveYBig)
+	points1 := ladder.SamplePoints(p, 1, reserveYBig, reserveXBig)
 	ladders, err := t.probeQuotes(ctx, address, pairID, token0, token1, points0, points1, blockNumber)
 	if err != nil {
 		return p, err
 	}
-	r0, r1 := uint256.MustFromBig(balances.ReserveX), uint256.MustFromBig(balances.ReserveY)
+	r0, r1 := balances.ReserveX, balances.ReserveY
 
 	extra := ladder.Extra{Ladders: ladders}
 	return t.persist(p, extra, r0, r1, blockNumber), nil

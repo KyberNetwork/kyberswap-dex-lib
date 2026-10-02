@@ -50,8 +50,8 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	points := [2][]*big.Int{
-		ladder.SamplePoints(p, 0, balances[0], balances[1]),
-		ladder.SamplePoints(p, 1, balances[1], balances[0]),
+		ladder.SamplePoints(p, 0, balances[0].ToBig(), balances[1].ToBig()),
+		ladder.SamplePoints(p, 1, balances[1].ToBig(), balances[0].ToBig()),
 	}
 
 	outputs, err := t.fetchQuotes(ctx, p, staticExtra.RouterAddress, points, blockNumber)
@@ -67,13 +67,12 @@ func (t *PoolTracker) GetNewPoolState(
 		ladder.CollectLadder(points[1], outputs[1]),
 	}
 
-	r0, r1 := uint256.MustFromBig(balances[0]), uint256.MustFromBig(balances[1])
-	return t.persist(p, ladder.Extra{Ladders: ladders}, r0, r1, blockNumber), nil
+	return t.persist(p, ladder.Extra{Ladders: ladders}, balances[0], balances[1], blockNumber), nil
 }
 
 // fetchBalances calls getAssetReserves on the router and returns the two balances
 // that correspond to the pool's token pair, in pool token order.
-func (t *PoolTracker) fetchBalances(ctx context.Context, routerAddr string, tokens []*entity.PoolToken) ([]*big.Int, *big.Int, error) {
+func (t *PoolTracker) fetchBalances(ctx context.Context, routerAddr string, tokens []*entity.PoolToken) ([]*uint256.Int, *big.Int, error) {
 	var assetReserves AssetReserves
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -88,14 +87,14 @@ func (t *PoolTracker) fetchBalances(ctx context.Context, routerAddr string, toke
 		return nil, nil, err
 	}
 
-	balanceByAddr := make(map[string]*big.Int, len(assetReserves.Tokens))
+	balanceByAddr := make(map[string]*uint256.Int, len(assetReserves.Tokens))
 	for i, addr := range assetReserves.Tokens {
 		if i < len(assetReserves.Balances) {
-			balanceByAddr[strings.ToLower(hexutil.Encode(addr[:]))] = assetReserves.Balances[i]
+			balanceByAddr[strings.ToLower(hexutil.Encode(addr[:]))] = &assetReserves.Balances[i]
 		}
 	}
 
-	balances := make([]*big.Int, len(tokens))
+	balances := make([]*uint256.Int, len(tokens))
 	for i, tok := range tokens {
 		bal := balanceByAddr[strings.ToLower(tok.Address)]
 		if bal == nil {
