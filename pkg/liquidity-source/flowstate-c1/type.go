@@ -1,8 +1,6 @@
 package flowstatec1
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -27,14 +25,12 @@ type Extra struct {
 	FeeBps         uint16       `json:"fb"`
 }
 
-// Quote mirrors the Market's on-chain Quote struct exactly, so its fields stay
-// *big.Int -- that's the type go-ethereum's ABI decoder unpacks a uint256 into at
-// the RPC boundary. Convert to uint256.Int only once decoded, in the tracker.
+// Quote mirrors the Market's on-chain Quote struct exactly for RPC decoding.
 type Quote struct {
 	Available      bool
-	FillableAmount *big.Int
-	QuoteAmount    *big.Int
-	FeeAmount      *big.Int
+	FillableAmount *uint256.Int
+	QuoteAmount    *uint256.Int
+	FeeAmount      *uint256.Int
 	FeeBps         uint16
 	QuoteAsset     common.Address
 }

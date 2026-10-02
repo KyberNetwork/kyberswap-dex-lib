@@ -2,7 +2,6 @@ package flowstatec1
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -52,7 +51,7 @@ func (t *PoolTracker) GetNewPoolState(
 	// to equal quoteBuyFromPool's fillableAmount when probing at/above full depth).
 	var (
 		quoteOut  struct{ Quote Quote }
-		balanceOf *big.Int
+		balanceOf *uint256.Int
 	)
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -80,8 +79,8 @@ func (t *PoolTracker) GetNewPoolState(
 
 	quote := quoteOut.Quote
 	extra.Available = quote.Available
-	extra.ProbeQuoteCost = uint256.MustFromBig(quote.QuoteAmount)
-	extra.FillableAmount = uint256.MustFromBig(balanceOf)
+	extra.ProbeQuoteCost = quote.QuoteAmount
+	extra.FillableAmount = balanceOf
 	extra.FeeBps = quote.FeeBps
 
 	extraBytes, err := json.Marshal(extra)
