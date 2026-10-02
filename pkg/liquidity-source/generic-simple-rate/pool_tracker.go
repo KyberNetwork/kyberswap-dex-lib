@@ -2,7 +2,6 @@ package generic_simple_rate
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -61,7 +60,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	var (
 		paused bool
-		rate   *big.Int
+		rate   *uint256.Int
 	)
 
 	calls := t.ethrpcClient.NewRequest()
@@ -108,7 +107,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	if t.config.IsRateUpdatable {
-		poolExtra.Rate = uint256.MustFromBig(rate)
+		poolExtra.Rate = rate
 	}
 
 	extraBytes, err := json.Marshal(poolExtra)

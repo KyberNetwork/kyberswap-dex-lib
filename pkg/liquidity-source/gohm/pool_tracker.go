@@ -88,8 +88,8 @@ func fetchDynamic(
 	overrides map[gethcommon.Address]gethclient.OverrideAccount,
 ) (PoolExtra, uint64, error) {
 	var (
-		indexBig     *big.Int
-		warmupPeriod *big.Int
+		index        *uint256.Int
+		warmupPeriod *uint256.Int
 	)
 
 	req1 := ethrpcClient.NewRequest().SetContext(ctx)
@@ -100,7 +100,7 @@ func fetchDynamic(
 		ABI:    olympusStakingABI,
 		Target: stakingAddress,
 		Method: "index",
-	}, []any{&indexBig}).AddCall(&ethrpc.Call{
+	}, []any{&index}).AddCall(&ethrpc.Call{
 		ABI:    olympusStakingABI,
 		Target: stakingAddress,
 		Method: "warmupPeriod",
@@ -115,8 +115,8 @@ func fetchDynamic(
 	}
 
 	var (
-		ohmReserveBig  *big.Int
-		sohmReserveBig *big.Int
+		ohmReserve  *uint256.Int
+		sohmReserve *uint256.Int
 	)
 	req2 := ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
@@ -127,20 +127,20 @@ func fetchDynamic(
 		Target: ohmAddr,
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
-	}, []any{&ohmReserveBig}).AddCall(&ethrpc.Call{
+	}, []any{&ohmReserve}).AddCall(&ethrpc.Call{
 		ABI:    utilabi.Erc20ABI,
 		Target: sohmAddr,
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
-	}, []any{&sohmReserveBig})
+	}, []any{&sohmReserve})
 	if _, err = req2.Aggregate(); err != nil {
 		return PoolExtra{}, 0, err
 	}
 
 	return PoolExtra{
-		Index:        uint256.MustFromBig(indexBig),
+		Index:        index,
 		WarmupPeriod: warmupPeriod.Uint64(),
-		OHMReserve:   uint256.MustFromBig(ohmReserveBig),
-		SOHMReserve:  uint256.MustFromBig(sohmReserveBig),
+		OHMReserve:   ohmReserve,
+		SOHMReserve:  sohmReserve,
 	}, resp1.BlockNumber.Uint64(), nil
 }
