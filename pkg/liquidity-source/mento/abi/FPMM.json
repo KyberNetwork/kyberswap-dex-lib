@@ -1,0 +1,17 @@
+[
+  {"type":"function","name":"metadata","stateMutability":"view","inputs":[],"outputs":[
+    {"name":"dec0","type":"uint256"},{"name":"dec1","type":"uint256"},{"name":"r0","type":"uint256"},{"name":"r1","type":"uint256"},{"name":"t0","type":"address"},{"name":"t1","type":"address"}]},
+  {"type":"function","name":"getReserves","stateMutability":"view","inputs":[],"outputs":[
+    {"name":"reserve0","type":"uint256"},{"name":"reserve1","type":"uint256"},{"name":"blockTimestampLast","type":"uint256"}]},
+  {"type":"function","name":"token0","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"token1","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"lpFee","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"protocolFee","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"oracleAdapter","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"referenceRateFeedID","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"invertRateFeed","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"bool"}]},
+  {"type":"function","name":"getAmountOut","stateMutability":"view","inputs":[{"name":"amountIn","type":"uint256"},{"name":"tokenIn","type":"address"}],"outputs":[{"name":"amountOut","type":"uint256"}]},
+  {"type":"function","name":"getTradingLimits","stateMutability":"view","inputs":[{"name":"token","type":"address"}],"outputs":[
+    {"name":"config","type":"tuple","components":[{"name":"limit0","type":"int120"},{"name":"limit1","type":"int120"},{"name":"decimals","type":"uint8"}]},
+    {"name":"state","type":"tuple","components":[{"name":"lastUpdated0","type":"uint32"},{"name":"lastUpdated1","type":"uint32"},{"name":"netflow0","type":"int96"},{"name":"netflow1","type":"int96"}]}]}
+]

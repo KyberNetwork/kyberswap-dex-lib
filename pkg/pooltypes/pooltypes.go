@@ -130,6 +130,7 @@ import (
 	maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mento"
 	metronomeswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metronome/swap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
@@ -445,6 +446,7 @@ type Types struct {
 	ArcadeFun                  string
 	ArenaBC                    string
 	XsolvBTC                   string
+	Mento                      string
 	Midas                      string
 	MiroMigrator               string
 	ArberaDen                  string
@@ -702,6 +704,7 @@ var (
 		ArcadeFun:                  arcadecurve.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
+		Mento:                      mento.DexType,
 		Midas:                      midas.DexType,
 		MiroMigrator:               miromigrator.DexType,
 		ArberaDen:                  arberaden.DexType,
