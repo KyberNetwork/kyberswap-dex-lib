@@ -1,0 +1,32 @@
+=== RUN   TestLocalForkQuoteExecutionParity
+=== RUN   TestLocalForkQuoteExecutionParity/weth_graduated
+    fork_test.go:157: input 10000000000: buy 7916372695951034526644799; sell half 4610208811; refund 0; gas 905766/759130
+    fork_test.go:157: input 100000000000: buy 78412020095450049170515682; sell half 46299827524; refund 0; gas 787124/696371
+    fork_test.go:157: input 1000000000000: buy 715837536488085153500745713; sell half 481782258247; refund 0; gas 705713/802856
+=== RUN   TestLocalForkQuoteExecutionParity/boomer_graduated
+    fork_test.go:157: input 10000000000: buy 100193447052493753918107399; sell half 3758597218; refund 0; gas 1042031/893052
+    fork_test.go:157: input 100000000000: buy 892904465221418561565757020; sell half 39508109345; refund 0; gas 955075/816536
+    fork_test.go:157: input 1000000000000: buy 4157164459227725592605242936; sell half 510341795405; refund 0; gas 927734/816572
+=== RUN   TestLocalForkQuoteExecutionParity/boomer_curve
+    fork_test.go:157: input 10000000000: buy 12312008601697463689275; sell half 3735782808; refund 0; gas 672295/682760
+    fork_test.go:157: input 100000000000: buy 123119532773518517319512; sell half 37357909886; refund 0; gas 617584/669089
+    fork_test.go:157: input 1000000000000: buy 1231140005997475098252653; sell half 373587277565; refund 0; gas 617597/669099
+=== RUN   TestLocalForkQuoteExecutionParity/weth_graduation_refund
+    fork_test.go:157: input 1000000000: buy 3100775193798449612403100775; sell half 468056692; refund 0; gas 739378/690525
+    fork_test.go:157: input 400000000000: buy 75372689326088252832438878950; sell half 65260301174; refund 296325459317; gas 1526845/763720
+=== RUN   TestLocalForkQuoteExecutionParity/boomer_graduation_refund
+    fork_test.go:157: input 1000000000: buy 3942063866147093360956881477; sell half 381089593; refund 0; gas 857600/788746
+    fork_test.go:157: input 400000000000: buy 74952044990003376014489363456; sell half 41181334899; refund 259407772209; gas 1677304/965032
+=== RUN   TestLocalForkQuoteExecutionParity/pons_v3_curve
+    fork_test.go:157: input 10000000000: buy 16343067434758041467; sell half 4580393472; refund 0; gas 926516/867257
+    fork_test.go:157: input 100000000000: buy 163430674076505228596; sell half 45803934757; refund 0; gas 958148/789513
+    fork_test.go:157: input 1000000000000: buy 1634306713657543150857; sell half 458039350998; refund 0; gas 778315/787283
+--- PASS: TestLocalForkQuoteExecutionParity (59.21s)
+    --- PASS: TestLocalForkQuoteExecutionParity/weth_graduated (7.48s)
+    --- PASS: TestLocalForkQuoteExecutionParity/boomer_graduated (8.40s)
+    --- PASS: TestLocalForkQuoteExecutionParity/boomer_curve (3.27s)
+    --- PASS: TestLocalForkQuoteExecutionParity/weth_graduation_refund (3.17s)
+    --- PASS: TestLocalForkQuoteExecutionParity/boomer_graduation_refund (3.06s)
+    --- PASS: TestLocalForkQuoteExecutionParity/pons_v3_curve (33.76s)
+PASS
+ok  	github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flywheel-fun	59.277s

@@ -1,0 +1,8 @@
+{
+  "name": "flywheel-kyber-review-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portable local-fork verification tools; no signing keys",
+  "engines": { "node": ">=22" },
+  "dependencies": { "ethers": "6.17.0" }
+}
