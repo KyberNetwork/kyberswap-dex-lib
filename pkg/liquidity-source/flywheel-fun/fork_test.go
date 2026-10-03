@@ -28,7 +28,7 @@ var executionABI = mustABI(`[{"type":"function","name":"executeFlywheelNative","
 func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	url := os.Getenv("FLYWHEEL_LOCAL_TEST_RPC")
 	if url == "" {
-		t.Skip("run node quote-fork.cjs for local-fork parity")
+		t.Skip("run node testdata/runner/run-forks.cjs quotes for local-fork parity")
 	}
 	require.True(t, strings.HasPrefix(url, "http://127.0.0.1:"))
 	ctx := context.Background()

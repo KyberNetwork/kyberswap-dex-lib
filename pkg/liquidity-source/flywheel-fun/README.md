@@ -37,11 +37,23 @@ The launch's canonical pool is internal to this simulator. Do NOT expose it as f
 
 Tests run from a checkout with go test ./pkg/liquidity-source/flywheel-fun ./pkg/msgpack ./pkg/msgpack/generate ./pkg/pooltypes; go vet ./pkg/liquidity-source/flywheel-fun. Fuzz: go test ./pkg/liquidity-source/flywheel-fun -run '^$' -fuzz '^FuzzCompositeQuotePurity$' -fuzztime 10s.
 
-Local-fork tests are opt-in, require a loopback Anvil endpoint and refuse a non-Anvil client. The workspace quote-fork.cjs harness starts it behind a write-denying upstream proxy and loads no private signing key. Fixture pools include locally created test launches; their local addresses must not be treated as deployed production tokens. testdata has its own go.mod and is excluded from dependency module archives.
+Local-fork tests are opt-in, require a loopback Anvil endpoint and refuse a non-Anvil client. The included `testdata/runner/run-forks.cjs` harness starts it behind a write-denying upstream proxy and loads no private signing key. Fixture pools include locally created test launches; their local addresses must not be treated as deployed production tokens. testdata has its own go.mod and is excluded from dependency module archives. `testdata/config.json` contains the reviewed route configuration used by these examples.
+
+To reproduce with the companion adapter contribution checked out in a sibling `ks-dex-adapter-lib` directory (or set `FLYWHEEL_ADAPTER_LIB_DIR`):
+
+```sh
+cd pkg/liquidity-source/flywheel-fun/testdata/runner
+npm ci --ignore-scripts --no-audit --no-fund
+# Set FLYWHEEL_RPC_URL to your archive-capable Robinhood HTTP RPC via your environment.
+node run-forks.cjs adapter
+node run-forks.cjs quotes
+```
+
+Node 22+, Go 1.25.10, Foundry 1.8.3 and Solc 0.8.30 were used. `GO_BIN`, `FORGE_BIN`, `ANVIL_BIN` and `FLYWHEEL_DEX_LIB_DIR` override defaults; Go must also be on PATH. The adapter runner caps upstream reads at 900, the quote runner at 2,500. All test transactions execute locally. Output goes to ignored `.results/` or `FLYWHEEL_RESULTS_DIR`; no wallet key is used. No exact-output or all-asset compatibility claim follows from these tests.
 
 ## Remaining integration work
 
-Not enabled in production and not yet a completed integration PR:
+This draft is not enabled in production. Before activation:
 
 1. Validate Kyber's actual executor/router and native callbacks, refund ownership and outer calldata envelope. A module call must execute outside any existing V4 manager unlock. The public module is prefunded only within one atomic transaction and is not custody.
 2. Confirm pool-service discovery/linking of shared route bases and consistent snapshots, including split routes combining Flywheel and generic V3/V4 paths. Unit-level shared-state checks are not an end-to-end routing-engine test.
