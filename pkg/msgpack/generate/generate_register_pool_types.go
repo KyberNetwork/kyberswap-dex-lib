@@ -159,11 +159,11 @@ func getPackageNamesAndImportPaths(structByFile map[string]string, dir, moduleNa
 	fileByPath = make(map[string]string, len(structByFile))
 	for file := range structByFile {
 		relPath, _ := filepath.Rel(dir, file)
-		name := filepath.Dir(relPath)
+		name := filepath.ToSlash(filepath.Dir(relPath))
 		name = strings.ReplaceAll(name, "-", "")
 		name = strings.ReplaceAll(name, "/", "_")
 		nameByFile[file] = name
-		path := filepath.Join(moduleName, filepath.Dir(relPath))
+		path := filepath.ToSlash(filepath.Join(moduleName, filepath.Dir(relPath)))
 		fileByPath[path] = file
 	}
 	return nameByFile, fileByPath
