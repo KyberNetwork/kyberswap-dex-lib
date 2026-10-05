@@ -2,7 +2,6 @@ package altfun
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -119,18 +118,18 @@ func (t *PoolTracker) getNewPoolState(
 	// Phase 2: fetch only bonding-curve Pair state.
 	// LT pricing (exchangeRate, fees, mintPaused) is owned by the bounce-tech base pool.
 	type reserveResult struct {
-		TokenReserve *big.Int
-		AssetReserve *big.Int
+		TokenReserve *uint256.Int
+		AssetReserve *uint256.Int
 	}
 
 	var (
-		k                = new(big.Int)
-		tokenBalance     = new(big.Int)
-		baseAssetBalance = new(big.Int)
+		k                = new(uint256.Int)
+		tokenBalance     = new(uint256.Int)
+		baseAssetBalance = new(uint256.Int)
 
 		reserves = reserveResult{
-			TokenReserve: new(big.Int),
-			AssetReserve: new(big.Int),
+			TokenReserve: new(uint256.Int),
+			AssetReserve: new(uint256.Int),
 		}
 	)
 
@@ -166,10 +165,10 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	extra := Extra{
-		ReserveToken: uint256.MustFromBig(reserves.TokenReserve),
-		ReserveAsset: uint256.MustFromBig(reserves.AssetReserve),
-		K:            uint256.MustFromBig(k),
-		TokenBalance: uint256.MustFromBig(tokenBalance),
+		ReserveToken: reserves.TokenReserve,
+		ReserveAsset: reserves.AssetReserve,
+		K:            k,
+		TokenBalance: tokenBalance,
 		Lifecycle:    LifecycleCurve,
 	}
 
@@ -182,8 +181,8 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		baseAssetBalance.String(),
-		tokenBalance.String(),
+		baseAssetBalance.Dec(),
+		tokenBalance.Dec(),
 	}
 
 	return p, nil

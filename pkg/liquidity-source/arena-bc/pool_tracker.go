@@ -2,7 +2,6 @@ package arenabc
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -80,12 +79,12 @@ func (t *PoolTracker) getNewPoolState(
 		isPaused              bool
 		canDeployLp           bool
 		tokenParams           TokenParametersResult
-		tokenBalance          *big.Int
-		maxTokensForSale      *big.Int
-		allowedTokenSupply    *big.Int
+		tokenBalance          *uint256.Int
+		maxTokensForSale      *uint256.Int
+		allowedTokenSupply    *uint256.Int
 		protocolFeeBasisPoint uint8
 		referralFeeBasisPoint uint8
-		tokenSupply           *big.Int
+		tokenSupply           *uint256.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetOverrides(overrides)
@@ -151,12 +150,12 @@ func (t *PoolTracker) getNewPoolState(
 		IsPaused:              isPaused,
 		CanDeployLp:           canDeployLp,
 		TokenParams:           tokenParams.ToTokenParameters(),
-		TokenBalance:          uint256.MustFromBig(tokenBalance),
-		MaxTokensForSale:      uint256.MustFromBig(maxTokensForSale),
-		AllowedTokenSupply:    uint256.MustFromBig(allowedTokenSupply),
+		TokenBalance:          tokenBalance,
+		MaxTokensForSale:      maxTokensForSale,
+		AllowedTokenSupply:    allowedTokenSupply,
 		ProtocolFeeBasisPoint: protocolFeeBasisPoint,
 		ReferralFeeBasisPoint: referralFeeBasisPoint,
-		TokenSupply:           uint256.MustFromBig(tokenSupply),
+		TokenSupply:           tokenSupply,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

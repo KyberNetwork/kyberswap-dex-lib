@@ -2,7 +2,6 @@ package nadfun
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -42,19 +41,19 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var (
 		curveData struct {
-			RealMonReserve          *big.Int
-			RealTokenReserve        *big.Int
-			VirtualMonReserve       *big.Int
-			VirtualTokenReserve     *big.Int
-			K                       *big.Int
-			TargetTokenAmount       *big.Int
-			InitVirtualMonReserve   *big.Int
-			InitVirtualTokenReserve *big.Int
+			RealMonReserve          *uint256.Int
+			RealTokenReserve        *uint256.Int
+			VirtualMonReserve       *uint256.Int
+			VirtualTokenReserve     *uint256.Int
+			K                       *uint256.Int
+			TargetTokenAmount       *uint256.Int
+			InitVirtualMonReserve   *uint256.Int
+			InitVirtualTokenReserve *uint256.Int
 		}
 		feeConfigData struct {
-			DeployFeeAmount   *big.Int
-			GraduateFeeAmount *big.Int
-			ProtocolFee       *big.Int
+			DeployFeeAmount   *uint256.Int
+			GraduateFeeAmount *uint256.Int
+			ProtocolFee       *uint256.Int
 		}
 		isLocked    bool
 		isGraduated bool
@@ -99,11 +98,11 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra.IsLocked = isLocked
 	extra.IsGraduated = isGraduated
-	extra.VirtualNative = uint256.MustFromBig(curveData.VirtualMonReserve)
-	extra.VirtualToken = uint256.MustFromBig(curveData.VirtualTokenReserve)
-	extra.K = uint256.MustFromBig(curveData.K)
-	extra.TargetToken = uint256.MustFromBig(curveData.TargetTokenAmount)
-	extra.ProtocolFee = uint256.MustFromBig(feeConfigData.ProtocolFee)
+	extra.VirtualNative = curveData.VirtualMonReserve
+	extra.VirtualToken = curveData.VirtualTokenReserve
+	extra.K = curveData.K
+	extra.TargetToken = curveData.TargetTokenAmount
+	extra.ProtocolFee = feeConfigData.ProtocolFee
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -116,8 +115,8 @@ func (t *PoolTracker) GetNewPoolState(
 		p.Reserves = entity.PoolReserves{"0", "0"}
 	} else {
 		p.Reserves = entity.PoolReserves{
-			curveData.RealMonReserve.String(),
-			curveData.RealTokenReserve.String(),
+			curveData.RealMonReserve.Dec(),
+			curveData.RealTokenReserve.Dec(),
 		}
 	}
 
