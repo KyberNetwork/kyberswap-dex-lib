@@ -61,21 +61,21 @@ type StaticExtra struct {
 }
 
 type AmplificationParameterResp struct {
-	Value      *big.Int
+	Value      *uint256.Int
 	IsUpdating bool
 	Precision  *big.Int
 }
 
 type LastJoinExitResp struct {
-	LastJoinExitAmplification *big.Int
-	LastPostJoinExitInvariant *big.Int
+	LastJoinExitAmplification *uint256.Int
+	LastPostJoinExitInvariant *uint256.Int
 }
 
 type TokenRateCacheResp struct {
-	Rate     *big.Int
-	OldRate  *big.Int
-	Duration *big.Int
-	Expires  *big.Int
+	Rate     *uint256.Int
+	OldRate  *uint256.Int
+	Duration *uint256.Int
+	Expires  *uint256.Int
 }
 
 type TokenRateCacheLegacyResp struct {
@@ -99,13 +99,13 @@ type PausedStateResp struct {
 type rpcRes struct {
 	CanNotUpdateTokenRates            bool
 	PoolTokens                        PoolTokensResp
-	BptTotalSupply                    *big.Int
-	Amp                               *big.Int
+	BptTotalSupply                    *uint256.Int
+	Amp                               *uint256.Int
 	LastJoinExit                      LastJoinExitResp
 	RateProviders                     []common.Address
 	TokenRateCaches                   []TokenRateCacheResp
-	SwapFeePercentage                 *big.Int
-	ProtocolFeePercentageCache        map[int]*big.Int
+	SwapFeePercentage                 *uint256.Int
+	ProtocolFeePercentageCache        map[int]*uint256.Int
 	IsTokenExemptFromYieldProtocolFee []bool
 	IsExemptFromYieldProtocolFee      bool
 	InRecoveryMode                    bool

@@ -155,14 +155,14 @@ func (t *PoolTracker) queryRPC(
 		tokenNbr = len(tokens)
 
 		poolTokens                        PoolTokensResp
-		bptTotalSupply                    *big.Int
+		bptTotalSupply                    *uint256.Int
 		ampParams                         AmplificationParameterResp
 		lastJoinExit                      LastJoinExitResp
 		rateProviders                     = make([]common.Address, tokenNbr)
 		tokenRateCaches                   = make([]TokenRateCacheResp, tokenNbr)
 		tokenRateCachesLegacy             = make([]TokenRateCacheLegacyResp, tokenNbr)
-		swapFeePercentage                 *big.Int
-		protocolFeePercentageCache        = make(map[int]*big.Int)
+		swapFeePercentage                 *uint256.Int
+		protocolFeePercentageCache        = make(map[int]*uint256.Int)
 		isTokenExemptFromYieldProtocolFee = make([]bool, tokenNbr)
 		isExemptFromYieldProtocolFee      bool
 		inRecoveryMode                    bool
@@ -258,7 +258,7 @@ func (t *PoolTracker) queryRPC(
 	}, []any{&swapFeePercentage})
 
 	for _, feeType := range feeTypes {
-		value := big.NewInt(0)
+		value := uint256.NewInt(0)
 		protocolFeePercentageCache[feeType] = value
 
 		req.AddCall(&ethrpc.Call{
@@ -297,11 +297,14 @@ func (t *PoolTracker) queryRPC(
 	if poolTypeVer == 0 {
 		for i := range tokenRateCaches {
 			if tokenRateCachesLegacy[i].Rate != nil {
+				rate, _ := uint256.FromBig(tokenRateCachesLegacy[i].Rate)
+				duration, _ := uint256.FromBig(tokenRateCachesLegacy[i].Duration)
+				expires, _ := uint256.FromBig(tokenRateCachesLegacy[i].Expires)
 				tokenRateCaches[i] = TokenRateCacheResp{
-					Rate:     tokenRateCachesLegacy[i].Rate,
-					OldRate:  tokenRateCachesLegacy[i].Rate,
-					Duration: tokenRateCachesLegacy[i].Duration,
-					Expires:  tokenRateCachesLegacy[i].Expires,
+					Rate:     rate,
+					OldRate:  rate,
+					Duration: duration,
+					Expires:  expires,
 				}
 			}
 		}
@@ -317,11 +320,12 @@ func (t *PoolTracker) queryRPC(
 	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNbr).SetOverrides(overrides)
 
 	rateUpdatedTokenIndexes := make([]int, 0, len(tokens))
-	updatedRate := make([]*big.Int, tokenNbr)
+	updatedRate := make([]*uint256.Int, tokenNbr)
 	for i, token := range tokens {
+		expires := tokenRateCaches[i].Expires
 		if !token.Swappable || token.Address == poolAddress ||
-			rateProviders[i].Hex() == zeroAddress || tokenRateCaches[i].Expires == nil ||
-			time.Now().Unix() < tokenRateCaches[i].Expires.Int64() {
+			rateProviders[i].Hex() == zeroAddress || expires == nil ||
+			uint64(time.Now().Unix()) < expires.Uint64() {
 			continue
 		}
 
@@ -350,7 +354,9 @@ func (t *PoolTracker) queryRPC(
 				continue
 			}
 			tokenRateCaches[i].Rate = updatedRate[i]
-			tokenRateCaches[i].Expires = big.NewInt(time.Now().Unix() + tokenRateCaches[i].Duration.Int64())
+			tokenRateCaches[i].Expires = new(uint256.Int).SetUint64(
+				uint64(time.Now().Unix()) + tokenRateCaches[i].Duration.Uint64(),
+			)
 		}
 	}
 
@@ -382,9 +388,7 @@ func (t *PoolTracker) initExtra(
 		if i == staticExtra.BptIndex || rpcRes.RateProviders[i].Hex() == zeroAddress {
 			rate = number.Number_1e18
 		} else {
-			if rpcRes.TokenRateCaches[i].Rate != nil {
-				rate, _ = uint256.FromBig(rpcRes.TokenRateCaches[i].Rate)
-			}
+			rate = rpcRes.TokenRateCaches[i].Rate
 		}
 
 		scalingFactors[i] = scalingFactor
@@ -398,23 +402,12 @@ func (t *PoolTracker) initExtra(
 		}
 	}
 
-	bptTotalSupply, overflow := uint256.FromBig(rpcRes.BptTotalSupply)
-	if overflow {
-		return nil, ErrOverflow
-	}
-
-	amp, overflow := uint256.FromBig(rpcRes.Amp)
-	if overflow {
-		return nil, ErrOverflow
-	}
+	bptTotalSupply := rpcRes.BptTotalSupply
+	amp := rpcRes.Amp
 
 	var lastJoinExit LastJoinExitData
-	lastJoinExit.LastJoinExitAmplification, _ = uint256.FromBig(
-		rpcRes.LastJoinExit.LastJoinExitAmplification,
-	)
-	lastJoinExit.LastPostJoinExitInvariant, _ = uint256.FromBig(
-		rpcRes.LastJoinExit.LastPostJoinExitInvariant,
-	)
+	lastJoinExit.LastJoinExitAmplification = rpcRes.LastJoinExit.LastJoinExitAmplification
+	lastJoinExit.LastPostJoinExitInvariant = rpcRes.LastJoinExit.LastPostJoinExitInvariant
 
 	rateProviders := make([]string, len(rpcRes.RateProviders))
 	for i, rateProvider := range rpcRes.RateProviders {
@@ -423,23 +416,19 @@ func (t *PoolTracker) initExtra(
 
 	tokenRateCaches := make([]TokenRateCache, len(rpcRes.TokenRateCaches))
 	for i, tokenRateCache := range rpcRes.TokenRateCaches {
-		rate, _ := uint256.FromBig(tokenRateCache.Rate)
-		oldRate, _ := uint256.FromBig(tokenRateCache.OldRate)
-		duration, _ := uint256.FromBig(tokenRateCache.Duration)
-		expires, _ := uint256.FromBig(tokenRateCache.Expires)
 		tokenRateCaches[i] = TokenRateCache{
-			Rate:     rate,
-			OldRate:  oldRate,
-			Duration: duration,
-			Expires:  expires,
+			Rate:     tokenRateCache.Rate,
+			OldRate:  tokenRateCache.OldRate,
+			Duration: tokenRateCache.Duration,
+			Expires:  tokenRateCache.Expires,
 		}
 	}
 
-	swapFeePercentage, _ := uint256.FromBig(rpcRes.SwapFeePercentage)
+	swapFeePercentage := rpcRes.SwapFeePercentage
 
 	protocolFeePercentageCache := make(map[int]*uint256.Int)
 	for feeType, value := range rpcRes.ProtocolFeePercentageCache {
-		protocolFeePercentageCache[feeType], _ = uint256.FromBig(value)
+		protocolFeePercentageCache[feeType] = value
 	}
 
 	isTokenExemptFromYieldProtocolFee := rpcRes.IsTokenExemptFromYieldProtocolFee
