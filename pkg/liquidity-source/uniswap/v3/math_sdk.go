@@ -429,6 +429,10 @@ var invLog2Sqrt1_0001 = 2.0 / math.Log2(1.0001)
 
 const q96 = 0x1p96 // 2^96, the Q96 denominator
 
+// tickAtSqrtRatioMargin is how close to a tick boundary GetTickAtSqrtRatio's float estimate may land
+// before it verifies against TickMath: 20x the worst combined error.
+const tickAtSqrtRatioMargin = 1e-4
+
 func GetTickAtSqrtRatio(sqrtPX96 *uint256.Int) (int, error) {
 	if sqrtPX96.Lt(MinSqrtRatioU256) || !sqrtPX96.Lt(MaxSqrtRatioU256) {
 		return 0, errInvalidSqrtRatio
@@ -439,7 +443,14 @@ func GetTickAtSqrtRatio(sqrtPX96 *uint256.Int) (int, error) {
 	// gives ~4e-12 tick precision — far below 1 tick — so the estimate needs at most a ±1
 	// correction, verified by at most two GetSqrtRatioAtTick calls.
 	sqrtF := float64(sqrtPX96[2])*0x1p128 + float64(sqrtPX96[1])*0x1p64 + float64(sqrtPX96[0])
-	tick := int(math.Floor(math.Log2(sqrtF/q96) * invLog2Sqrt1_0001))
+	tickF := math.Log2(sqrtF/q96) * invLog2Sqrt1_0001
+	tick := int(math.Floor(tickF))
+	// TickMath sits within ~5e-6 ticks of the true curve (its round-up at the lowest prices) and the
+	// estimate within ~1e-9, so away from a tick boundary the floor is already exact.
+	if frac := tickF - float64(tick); frac > tickAtSqrtRatioMargin && frac < 1-tickAtSqrtRatioMargin &&
+		MinTick <= tick && tick < MaxTick {
+		return tick, nil
+	}
 	// Float error can push tick one past the valid range; clamp before calling GetSqrtRatioAtTick.
 	if tick < MinTick {
 		tick = MinTick
@@ -496,10 +507,51 @@ func GetAmount1DeltaV2(sqrtPAX96, sqrtPBX96 *uint256.Int, liquidity *uint256.Int
 	}
 	var diff uint256.Int
 	diff.Sub(sqrtPBX96, sqrtPAX96)
-	if roundUp {
-		return MulDivRoundingUpV2(liquidity, &diff, q96U256, result)
+	inexact, err := mulShr96(liquidity, &diff, result)
+	if err == nil && roundUp && inexact {
+		if result.Eq(maxUint256) {
+			return errInvariant
+		}
+		result.AddUint64(result, 1)
 	}
-	return MulDivV2(liquidity, &diff, q96U256, result, nil)
+	return err
+}
+
+// mulDivSmall sets z = floor(x*y / d) for one-limb y and d > 0 and reports whether the division was
+// inexact. Both swap-step fee formulas have this shape; long division by one limb skips the general
+// 512-bit path. Errors when the quotient exceeds 256 bits, like MulDivV2.
+func mulDivSmall(z, x *uint256.Int, y, d uint64) (inexact bool, err error) {
+	if d == 0 { // MulDivV2 answers 0 here
+		z.Clear()
+		return false, nil
+	}
+	var p [5]uint64
+	var c uint64
+	for i := range 4 {
+		hi, lo := bits.Mul64(x[i], y)
+		p[i], c = bits.Add64(lo, c, 0)
+		c += hi
+	}
+	p[4] = c
+	if p[4] >= d {
+		return false, errMulDivOverflow
+	}
+	r := p[4]
+	for i := 3; i >= 0; i-- {
+		z[i], r = bits.Div64(r, p[i], d)
+	}
+	return r != 0, nil
+}
+
+// mulShr96 sets z = floor(x*y / 2^96) and reports whether bits were dropped. Dividing by Q96 is a
+// shift, which skips the general 512-bit division MulDivV2 would run.
+func mulShr96(x, y, z *uint256.Int) (inexact bool, err error) {
+	p := umul(x, y)
+	if p[5]>>32|p[6]|p[7] != 0 {
+		return false, errMulDivOverflow
+	}
+	z[0], z[1], z[2], z[3] = p[1]>>32|p[2]<<32, p[2]>>32|p[3]<<32, p[3]>>32|p[4]<<32, p[4]>>32|p[5]<<32
+	return p[0]|p[1]<<32 != 0, nil
 }
 
 func GetNextSqrtPriceFromInput(sqrtPX96 *uint256.Int, liquidity *uint256.Int, amountIn *uint256.Int, zeroForOne bool,
@@ -588,8 +640,6 @@ func getNextSqrtPriceFromAmount1RoundingDown(sqrtPX96 *uint256.Int, liquidity *u
 
 const maxFeeInt = 1000000
 
-var maxFeeUint256 = uint256.NewInt(maxFeeInt)
-
 func ComputeSwapStep(
 	sqrtPCurrentX96, sqrtPTargetX96 *uint256.Int,
 	liquidity *uint256.Int,
@@ -607,9 +657,6 @@ func ComputeSwapStep(
 		amountRemainingU.Neg(amountRemaining)
 	}
 
-	var maxFeeMinusFeePips uint256.Int
-	maxFeeMinusFeePips.SetUint64(maxFeeInt - uint64(feePips))
-
 	if exactIn {
 		if zeroForOne {
 			if err := GetAmount0DeltaV2(sqrtPTargetX96, sqrtPCurrentX96, liquidity, true, amountIn); err != nil {
@@ -619,7 +666,10 @@ func ComputeSwapStep(
 			return err
 		}
 		var amountRemainingLessFee uint256.Int
-		u256.MulDivDown(&amountRemainingLessFee, &amountRemainingU, &maxFeeMinusFeePips, maxFeeUint256)
+		if _, err := mulDivSmall(&amountRemainingLessFee, &amountRemainingU, maxFeeInt-uint64(feePips),
+			maxFeeInt); err != nil {
+			return err
+		}
 		if !amountRemainingLessFee.Lt(amountIn) {
 			sqrtPNextX96.Set(sqrtPTargetX96)
 		} else if err := GetNextSqrtPriceFromInput(sqrtPCurrentX96, liquidity, &amountRemainingLessFee, zeroForOne,
@@ -675,10 +725,14 @@ func ComputeSwapStep(
 	if exactIn && !sqrtPNextX96.Eq(sqrtPTargetX96) {
 		feeAmount.Sub(&amountRemainingU, amountIn)
 	} else {
-		var feePipsU256 uint256.Int
-		feePipsU256.SetUint64(uint64(feePips))
-		if err := MulDivRoundingUpV2(amountIn, &feePipsU256, &maxFeeMinusFeePips, feeAmount); err != nil {
+		inexact, err := mulDivSmall(feeAmount, amountIn, uint64(feePips), maxFeeInt-uint64(feePips))
+		if err != nil {
 			return err
+		} else if inexact {
+			if feeAmount.Eq(maxUint256) {
+				return errInvariant
+			}
+			feeAmount.AddUint64(feeAmount, 1)
 		}
 	}
 

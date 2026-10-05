@@ -2,6 +2,7 @@ package uniswapv3
 
 import (
 	"math/big"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/KyberNetwork/int256"
@@ -560,4 +561,103 @@ func TestNextInitializedTickWithinOneWordPastListEnds(t *testing.T) {
 	up, err := pool.GetOutputAmountV2(false, *uint256.NewInt(1e15), uint256.Int{})
 	require.NoError(t, err)
 	require.False(t, up.AmountCalculated.IsZero(), "upward the swap reaches real liquidity")
+}
+
+// TestGetAmount1DeltaShiftMatchesMulDiv pins the Q96 shift in GetAmount1DeltaV2 to the general
+// MulDivV2 it replaced, rounding and overflow included: amount1 sits in every swap step.
+func TestGetAmount1DeltaShiftMatchesMulDiv(t *testing.T) {
+	t.Parallel()
+
+	rng := rand.New(rand.NewPCG(1, 2))
+	randBits := func(n int) *uint256.Int {
+		var x uint256.Int
+		for i := range x {
+			x[i] = rng.Uint64()
+		}
+		return x.Rsh(&x, uint(256-n))
+	}
+	var zero uint256.Int
+	for i := range 200000 {
+		liquidity, price := randBits(1+i%256), randBits(1+i/256%256)
+		switch i % 7 {
+		case 0: // a multiple of 2^96 leaves no remainder
+			liquidity.Lsh(liquidity, 96)
+		case 1: // a remainder only in bits 64..95
+			liquidity.Lsh(liquidity, 64)
+		}
+		for _, roundUp := range []bool{false, true} {
+			var want, got uint256.Int
+			var wantErr error
+			if roundUp {
+				wantErr = MulDivRoundingUpV2(liquidity, price, q96U256, &want)
+			} else {
+				wantErr = MulDivV2(liquidity, price, q96U256, &want, nil)
+			}
+			gotErr := GetAmount1DeltaV2(&zero, price, liquidity, roundUp, &got)
+			require.Equal(t, wantErr, gotErr, "%s * %s", liquidity.Dec(), price.Dec())
+			if wantErr == nil {
+				require.Equal(t, want, got, "%s * %s roundUp %v", liquidity.Dec(), price.Dec(), roundUp)
+			}
+		}
+	}
+}
+
+// TestMulDivSmallMatchesMulDiv pins the one-limb long division behind ComputeSwapStep's fee and
+// amountRemainingLessFee to the general MulDivV2, rounding and overflow included.
+func TestMulDivSmallMatchesMulDiv(t *testing.T) {
+	t.Parallel()
+
+	rng := rand.New(rand.NewPCG(3, 4))
+	for i := range 200000 {
+		var x uint256.Int
+		for j := range x {
+			x[j] = rng.Uint64()
+		}
+		x.Rsh(&x, uint(i%256))
+		y, d := rng.Uint64N(maxFeeInt+1), rng.Uint64N(maxFeeInt)+1
+		switch i % 5 {
+		case 0: // exact multiples leave no remainder
+			x.Mul(x.Rsh(&x, 64), uint256.NewInt(d))
+		case 1: // full-width limbs
+			y, d = rng.Uint64(), rng.Uint64()|1
+		}
+		var want, wantRem, got uint256.Int
+		wantErr := MulDivV2(&x, uint256.NewInt(y), uint256.NewInt(d), &want, &wantRem)
+		inexact, gotErr := mulDivSmall(&got, &x, y, d)
+		require.Equal(t, wantErr, gotErr, "%s * %d / %d", x.Dec(), y, d)
+		if wantErr == nil {
+			require.Equal(t, want, got, "%s * %d / %d", x.Dec(), y, d)
+			require.Equal(t, !wantRem.IsZero(), inexact, "%s * %d / %d", x.Dec(), y, d)
+		}
+	}
+}
+
+// TestGetTickAtSqrtRatioEveryBoundary checks both sides of every tick boundary, plus interior prices,
+// against TickMath's definition: the greatest tick whose sqrt price is <= sqrtPX96. The float
+// estimate skips verification away from boundaries, so the boundaries are where it could go wrong.
+func TestGetTickAtSqrtRatioEveryBoundary(t *testing.T) {
+	t.Parallel()
+
+	rng := rand.New(rand.NewPCG(5, 6))
+	var at, next, p uint256.Int
+	require.NoError(t, GetSqrtRatioAtTick(MinTick, &at))
+	for tick := MinTick; tick < MaxTick; tick++ {
+		require.NoError(t, GetSqrtRatioAtTick(tick+1, &next))
+		got, err := GetTickAtSqrtRatio(&at)
+		require.NoError(t, err)
+		require.Equal(t, tick, got, "sqrt price at tick %d", tick)
+		if tick+1 < MaxTick {
+			got, err = GetTickAtSqrtRatio(p.SubUint64(&next, 1))
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "sqrt price at tick %d minus 1", tick+1)
+		}
+		if tick%97 == 0 { // a random interior price
+			p.Sub(&next, &at)
+			p.Rsh(p.Mul(&p, uint256.NewInt(rng.Uint64N(1<<32))), 32).Add(&p, &at)
+			got, err = GetTickAtSqrtRatio(&p)
+			require.NoError(t, err)
+			require.Equal(t, tick, got, "sqrt price %s inside tick %d", p.Dec(), tick)
+		}
+		at = next
+	}
 }
