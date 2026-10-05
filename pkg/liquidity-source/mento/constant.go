@@ -40,9 +40,13 @@ const (
 	methodIsFXMarketOpen = "isFXMarketOpen"
 
 	// defaultGas is the measured cost of MentoV3Adapter.executeMentoV3 (quote,
-	// transfer in, FPMM.swap) on the Monad USDC/USDm pool: 263,582 gas in the
-	// ks-dex-adapter-lib fork test, both directions within 10k of each other.
-	defaultGas int64 = 265_000
+	// transfer in, FPMM.swap) on the Monad USDC/USDm pool under Monad's gas
+	// schedule: 493,421 and 495,073 gas for the two directions in the
+	// ks-dex-adapter-lib fork test run with FOUNDRY_NETWORK=monad. Monad
+	// prices cold account and storage access well above Ethereum, and the
+	// swap touches the pool proxy, oracle adapter, SortedOracles, BreakerBox
+	// and both tokens; the same call measures ~260k under Ethereum's schedule.
+	defaultGas int64 = 495_000
 
 	// bps is FPMM.BASIS_POINTS_DENOMINATOR.
 	bps = 10_000
