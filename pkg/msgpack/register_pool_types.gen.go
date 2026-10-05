@@ -34,6 +34,7 @@ import (
 	pkg_liquiditysource_bedrock_unibtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	pkg_liquiditysource_bedrock_unieth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	pkg_liquiditysource_biconomyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/biconomy-prop"
 	pkg_liquiditysource_bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_brownfi_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
@@ -317,6 +318,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unibtc.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unieth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_biconomyprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bouncetech.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
