@@ -161,7 +161,6 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 			if listTick, listPos, listInit, err = nextInitializedTickPos(p.Ticks, tick, zeroForOne); err != nil {
 				return SwapResult{}, err
 			}
-			haveListTick = true
 		}
 		tickNext, slicePos, initialized := clampToWord(tick, p.TickSpacing, zeroForOne, listTick, listPos, listInit)
 		haveListTick = slicePos == noSlicePos
