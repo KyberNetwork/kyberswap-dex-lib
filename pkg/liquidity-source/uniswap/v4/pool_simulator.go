@@ -209,8 +209,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountIn,
 			},
-			AmountIn:  amountIn,
-			AmountOut: swapResult.TokenAmountOut.Amount,
+			AmountIn:         amountIn,
+			AmountOut:        swapResult.TokenAmountOut.Amount,
+			BeforeSwapResult: beforeSwapResult,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("[AfterSwap] %w", err)
@@ -352,8 +353,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountOut,
 			},
-			AmountIn:  swapResult.TokenAmountIn.Amount,
-			AmountOut: amountOut,
+			AmountIn:         swapResult.TokenAmountIn.Amount,
+			AmountOut:        amountOut,
+			BeforeSwapResult: beforeSwapResult,
 		}); err != nil {
 			return nil, fmt.Errorf("[AfterSwap] %w", err)
 		} else if err = ValidateAfterSwapResult(afterSwapResult); err != nil {

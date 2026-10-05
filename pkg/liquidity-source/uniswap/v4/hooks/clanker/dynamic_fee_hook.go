@@ -30,6 +30,14 @@ type DynamicFeeHook struct {
 	ClankerTracked  bool                   `json:"t,omitempty"`
 }
 
+// dynamicFeeSwapInfo is the hook state a swap writes on-chain; AfterSwap reads it and UpdateBalance applies it.
+// Timestamps are wall-clock, so UpdateBalance stamps them to keep quotes deterministic.
+type dynamicFeeSwapInfo struct {
+	fVars       PoolDynamicFeeVars
+	resetTick   bool
+	protocolFee *big.Int
+}
+
 type PoolDynamicFeeVars struct {
 	ReferenceTick      int64        `json:"r,omitempty"`
 	ResetTick          int64        `json:"t,omitempty"`
@@ -273,9 +281,9 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountSpecified *big.Int, zero
 	return volatilityAccumulator, nil
 }
 
+// setProtocolFee replaces ProtocolFee instead of writing into it, as clones may share the old value.
 func (h *DynamicFeeHook) setProtocolFee(lpFee uint64) {
-	h.ProtocolFee.Mul(big.NewInt(int64(lpFee)), ProtocolFeeNumerator)
-	h.ProtocolFee.Div(h.ProtocolFee, FeeDenominator)
+	h.ProtocolFee = bignumber.MulDivDown(new(big.Int), big.NewInt(int64(lpFee)), ProtocolFeeNumerator, FeeDenominator)
 }
 
 func (h *DynamicFeeHook) getLpFee(volAccumulator uint64) uint64 {
@@ -297,27 +305,60 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswa
 		return nil, ErrPoolSimIsNil
 	}
 
-	volAccumulator, err := h.getVolatilityAccumulator(params.AmountSpecified, params.ZeroForOne, params.CalcOut)
+	// A quote must not write shared state: compute the fee on a copy of the hook, its fee vars and its
+	// v3 pool. The copy's PoolFVars/ProtocolFee become the SwapInfo.
+	hc, poolSim, fVars := *h, *h.poolSim, *h.PoolFVars
+	v3Pool := *poolSim.V3Pool
+	poolSim.V3Pool = &v3Pool
+	hc.poolSim, hc.PoolFVars = &poolSim, &fVars
+
+	volAccumulator, err := hc.getVolatilityAccumulator(params.AmountSpecified, params.ZeroForOne, params.CalcOut)
 	if err != nil {
 		return nil, err
 	}
 
-	lpFee := h.getLpFee(volAccumulator)
+	lpFee := hc.getLpFee(volAccumulator)
 
 	// overwrite protocol fee of hook
-	h.setProtocolFee(lpFee)
+	hc.setProtocolFee(lpFee)
+
+	si := &dynamicFeeSwapInfo{fVars: fVars, resetTick: fVars.ResetTickTimestamp != h.PoolFVars.ResetTickTimestamp,
+		protocolFee: hc.ProtocolFee}
+	si.fVars.ResetTickTimestamp, si.fVars.LastSwapTimestamp = nil, nil
 
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   beforeSwapDelta(params, params.ZeroForOne != h.ClankerIsToken0, h.ProtocolFee),
+		DeltaSpecified:   beforeSwapDelta(params, params.ZeroForOne != h.ClankerIsToken0, hc.ProtocolFee),
 		DeltaUnspecified: bignumber.ZeroBI,
 		SwapFee:          uniswapv4.FeeAmount(lpFee), // to overwrite swap fee of pool
+		SwapInfo:         si,
 	}, nil
 }
 
 func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+	protocolFee := h.ProtocolFee
+	if r := params.BeforeSwapResult; r != nil {
+		if si, ok := r.SwapInfo.(*dynamicFeeSwapInfo); ok {
+			protocolFee = si.protocolFee
+		}
+	}
 	return &uniswapv4.AfterSwapResult{
-		HookFee: afterSwapHookFee(params, params.ZeroForOne != h.ClankerIsToken0, h.ProtocolFee),
+		HookFee: afterSwapHookFee(params, params.ZeroForOne != h.ClankerIsToken0, protocolFee),
 	}, nil
+}
+
+// UpdateBalance applies the fee vars and protocol fee the on-chain hook writes on every swap.
+func (h *DynamicFeeHook) UpdateBalance(swapInfo any) {
+	si, ok := swapInfo.(*dynamicFeeSwapInfo)
+	if !ok {
+		return
+	}
+	fVars := si.fVars
+	fVars.LastSwapTimestamp, fVars.ResetTickTimestamp = uint256.NewInt(uint64(time.Now().Unix())),
+		h.PoolFVars.ResetTickTimestamp
+	if si.resetTick {
+		fVars.ResetTickTimestamp = fVars.LastSwapTimestamp
+	}
+	h.PoolFVars, h.ProtocolFee = &fVars, si.protocolFee
 }
 
 func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, calcOut bool) (swapInfo uniswapv3.SwapInfo,
