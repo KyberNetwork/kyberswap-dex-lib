@@ -2,7 +2,6 @@ package lunyafun
 
 import (
 	"context"
-	"math/big"
 	"slices"
 	"time"
 
@@ -39,9 +38,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	var (
 		phase    uint8
-		reserve  *big.Int
-		sold     *big.Int
-		openedAt *big.Int
+		reserve  *uint256.Int
+		sold     *uint256.Int
+		openedAt *uint256.Int
 		cfg      launchConfigResp
 	)
 
@@ -70,11 +69,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	extra := Extra{
 		Phase:        phase,
-		Reserve:      uint256.MustFromBig(reserve),
-		Sold:         uint256.MustFromBig(sold),
-		VirtualQuote: uint256.MustFromBig(cfg.VirtualQuote),
-		VirtualToken: uint256.MustFromBig(cfg.VirtualToken),
-		CurveSupply:  uint256.MustFromBig(cfg.CurveSupply),
+		Reserve:      reserve,
+		Sold:         sold,
+		VirtualQuote: cfg.VirtualQuote,
+		VirtualToken: cfg.VirtualToken,
+		CurveSupply:  cfg.CurveSupply,
 		CurveFeeBps:  cfg.CurveFeeBps,
 		SnipeTaxBps:  cfg.SnipeTaxBps,
 		SnipeWindow:  cfg.SnipeWindow,
@@ -87,14 +86,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	// What each side can still pay out: the quote the curve holds, and the tokens it has left to sell.
-	tokensLeft := new(big.Int)
-	if cfg.CurveSupply.Cmp(sold) > 0 {
+	tokensLeft := new(uint256.Int)
+	if cfg.CurveSupply.Gt(sold) {
 		tokensLeft.Sub(cfg.CurveSupply, sold)
 	}
 
 	p.Extra = string(extraBytes)
 	p.SwapFee = float64(cfg.CurveFeeBps)
-	p.Reserves = entity.PoolReserves{reserve.String(), tokensLeft.String()}
+	p.Reserves = entity.PoolReserves{reserve.Dec(), tokensLeft.Dec()}
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = resp.BlockNumber.Uint64()
 

@@ -101,16 +101,16 @@ func fetchState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (Extra, uint64, error) {
 	var (
-		supply, totalEthValue, managementFeeBps, lastAccrual, ethBalance, timestamp *big.Int
+		supply, totalEthValue, managementFeeBps, lastAccrual, ethBalance, timestamp *uint256.Int
 		navReliable                                                                 bool
 		fees                                                                        struct {
-			ProtocolFee    *big.Int
-			StabilityFee   *big.Int
-			MinDeposit     *big.Int
-			OracleAge      *big.Int
-			OracleAgeTrade *big.Int
-			SellCooldown   *big.Int
-			BasketCap      *big.Int
+			ProtocolFee    *uint256.Int
+			StabilityFee   *uint256.Int
+			MinDeposit     *uint256.Int
+			OracleAge      *uint256.Int
+			OracleAgeTrade *uint256.Int
+			SellCooldown   *uint256.Int
+			BasketCap      *uint256.Int
 		}
 		round struct {
 			RoundId         *big.Int
@@ -160,19 +160,19 @@ func fetchState(
 	}
 
 	extra := Extra{
-		Supply:           uint256.MustFromBig(supply),
+		Supply:           supply,
 		LastAccrual:      lastAccrual.Uint64(),
 		ManagementFeeBps: managementFeeBps.Uint64(),
 		ProtocolFeeBps:   fees.ProtocolFee.Uint64(),
 		StabilityFeeBps:  fees.StabilityFee.Uint64(),
-		MinDeposit:       uint256.MustFromBig(fees.MinDeposit),
+		MinDeposit:       fees.MinDeposit,
 		Timestamp:        timestamp.Uint64(),
 	}
 
 	if ok(1) && totalEthValue != nil {
-		nav := uint256.MustFromBig(totalEthValue)
+		nav := new(uint256.Int).Set(totalEthValue)
 		if ok(6) && ethBalance != nil {
-			nav.Add(nav, uint256.MustFromBig(ethBalance))
+			nav.Add(nav, ethBalance)
 		}
 		extra.NavEth = nav
 		extra.NavReliable = ok(2) && navReliable

@@ -2,7 +2,6 @@ package bouncetech
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -58,13 +57,13 @@ func (t *PoolTracker) getNewPoolState(
 	ltAddr := p.Address
 
 	var (
-		exchangeRate   = new(big.Int)
-		targetLeverage = new(big.Int)
+		exchangeRate   = new(uint256.Int)
+		targetLeverage = new(uint256.Int)
 		mintPaused     bool
-		totalSupply    = new(big.Int)
-		baseBalance    = new(big.Int)
-		redemptionFee  = new(big.Int)
-		minTxSize      = new(big.Int)
+		totalSupply    = new(uint256.Int)
+		baseBalance    = new(uint256.Int)
+		redemptionFee  = new(uint256.Int)
+		minTxSize      = new(uint256.Int)
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -114,10 +113,10 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	extra := Extra{
-		ExchangeRate:       uint256.MustFromBig(exchangeRate),
-		RedemptionFee:      uint256.MustFromBig(redemptionFee),
-		TargetLeverage:     uint256.MustFromBig(targetLeverage),
-		MinTransactionSize: uint256.MustFromBig(minTxSize),
+		ExchangeRate:       exchangeRate,
+		RedemptionFee:      redemptionFee,
+		TargetLeverage:     targetLeverage,
+		MinTransactionSize: minTxSize,
 		MintPaused:         mintPaused,
 	}
 
@@ -130,8 +129,8 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		baseBalance.String(),
-		totalSupply.String(),
+		baseBalance.Dec(),
+		totalSupply.Dec(),
 	}
 
 	return p, nil

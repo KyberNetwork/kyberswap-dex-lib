@@ -1,8 +1,6 @@
 package lunyafun
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -58,17 +56,17 @@ type launchConfigResp struct {
 	PositionManager     common.Address
 	LiquidityHelper     common.Address
 	Locker              common.Address
-	NativeDivisor       *big.Int
+	NativeDivisor       *uint256.Int
 	WrapsNative         bool
-	TotalSupply         *big.Int
-	VirtualQuote        *big.Int
-	VirtualToken        *big.Int
-	CurveSupply         *big.Int
-	LpSupply            *big.Int
+	TotalSupply         *uint256.Int
+	VirtualQuote        *uint256.Int
+	VirtualToken        *uint256.Int
+	CurveSupply         *uint256.Int
+	LpSupply            *uint256.Int
 	SnipeTaxBps         uint16
 	SnipeWindow         uint32
 	SnipeDecay          uint8
-	GraduationReward    *big.Int
+	GraduationReward    *uint256.Int
 	CurveFeeBps         uint16
 	CurveFeeProtocolBps uint16
 	GraduationFeeBps    uint16
