@@ -1,10 +1,6 @@
 package erc4626
 
-import (
-	"math/big"
-
-	"github.com/holiman/uint256"
-)
+import "github.com/holiman/uint256"
 
 type SwapType uint8
 
@@ -41,12 +37,12 @@ type (
 	}
 
 	PoolState struct {
-		MaxDeposit   *big.Int
-		MaxRedeem    *big.Int
-		TotalAssets  *big.Int
-		TotalSupply  *big.Int
-		DepositRates []*big.Int
-		RedeemRates  []*big.Int
+		MaxDeposit   *uint256.Int
+		MaxRedeem    *uint256.Int
+		TotalAssets  *uint256.Int
+		TotalSupply  *uint256.Int
+		DepositRates []*uint256.Int
+		RedeemRates  []*uint256.Int
 
 		BlockNumber uint64
 	}

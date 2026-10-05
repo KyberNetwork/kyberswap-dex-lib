@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	erc4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
@@ -72,8 +73,8 @@ func Lazycall(
 ) (poolpkg.ILazyRequest, func(*big.Int) (entity.Pool, error)) {
 	var assetToken common.Address
 	poolState := erc4626.PoolState{
-		DepositRates: make([]*big.Int, len(erc4626.PrefetchAmounts)),
-		RedeemRates:  make([]*big.Int, len(erc4626.PrefetchAmounts)),
+		DepositRates: make([]*uint256.Int, len(erc4626.PrefetchAmounts)),
+		RedeemRates:  make([]*uint256.Int, len(erc4626.PrefetchAmounts)),
 	}
 	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req := poolpkg.LazyRequest{Request: r}

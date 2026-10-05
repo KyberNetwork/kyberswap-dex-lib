@@ -2,7 +2,6 @@ package erc4626
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,7 +11,6 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -96,19 +94,21 @@ func (t *PoolTracker) getNewPoolState(
 func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
 	extraBytes, err := json.Marshal(Extra{
 		Gas:          Gas(vaultCfg.Gas),
-		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
-		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
-		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
-		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
-		TotalAssets:  uint256.MustFromBig(state.TotalAssets),
+		MaxDeposit:   state.MaxDeposit,
+		MaxRedeem:    state.MaxRedeem,
+		DepositRates: state.DepositRates,
+		RedeemRates:  state.RedeemRates,
+		TotalAssets:  state.TotalAssets,
 	})
 	if err != nil {
 		return errors.WithMessage(err, "json.Marshal extra")
 	}
 
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{lo.CoalesceOrEmpty(state.MaxDeposit, state.TotalAssets, bignumber.ZeroBI).String(),
-		lo.CoalesceOrEmpty(state.MaxRedeem, state.TotalSupply, bignumber.ZeroBI).String()}
+	p.Reserves = entity.PoolReserves{
+		coalesceUint256Dec(state.MaxDeposit, state.TotalAssets),
+		coalesceUint256Dec(state.MaxRedeem, state.TotalSupply),
+	}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = state.BlockNumber
 	return nil
@@ -119,8 +119,8 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	var (
 		assetToken common.Address
 		poolState  = PoolState{
-			DepositRates: make([]*big.Int, len(PrefetchAmounts)),
-			RedeemRates:  make([]*big.Int, len(PrefetchAmounts)),
+			DepositRates: make([]*uint256.Int, len(PrefetchAmounts)),
+			RedeemRates:  make([]*uint256.Int, len(PrefetchAmounts)),
 		}
 	)
 
@@ -181,14 +181,14 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		return assetToken, nil, err
 	}
 
-	if poolState.MaxDeposit == nil || poolState.MaxDeposit.Sign() == 0 {
+	if poolState.MaxDeposit == nil || poolState.MaxDeposit.IsZero() {
 		poolState.MaxDeposit = poolState.TotalAssets // fallback to a sensible value
-	} else if poolState.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
+	} else if poolState.MaxDeposit.ToBig().Cmp(bignumber.MaxUint128) > 0 {
 		poolState.MaxDeposit = nil // no limit
 	}
-	if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
+	if poolState.MaxRedeem == nil || poolState.MaxRedeem.IsZero() {
 		poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value
-	} else if poolState.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
+	} else if poolState.MaxRedeem.ToBig().Cmp(bignumber.MaxUint128) > 0 {
 		poolState.MaxRedeem = nil // no limit
 	}
 
@@ -196,4 +196,14 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		poolState.BlockNumber = resp.BlockNumber.Uint64()
 	}
 	return assetToken, &poolState, nil
+}
+
+func coalesceUint256Dec(primary, fallback *uint256.Int) string {
+	if primary != nil {
+		return primary.Dec()
+	}
+	if fallback != nil {
+		return fallback.Dec()
+	}
+	return "0"
 }

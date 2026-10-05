@@ -2,12 +2,12 @@ package frxusd
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
@@ -62,14 +62,14 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	overrides map[common.Address]gethclient.OverrideAccount) (*erc4626.PoolState, error) {
 	var (
 		poolState = erc4626.PoolState{
-			DepositRates: make([]*big.Int, len(erc4626.PrefetchAmounts)),
-			RedeemRates:  make([]*big.Int, len(erc4626.PrefetchAmounts)),
+			DepositRates: make([]*uint256.Int, len(erc4626.PrefetchAmounts)),
+			RedeemRates:  make([]*uint256.Int, len(erc4626.PrefetchAmounts)),
 		}
 		mdwrCombo struct {
-			MaxAssetsDepositable  *big.Int
-			MaxSharesMintable     *big.Int
-			MaxAssetsWithdrawable *big.Int
-			MaxSharesRedeemable   *big.Int
+			MaxAssetsDepositable  *uint256.Int
+			MaxSharesMintable     *uint256.Int
+			MaxAssetsWithdrawable *uint256.Int
+			MaxSharesRedeemable   *uint256.Int
 		}
 	)
 
