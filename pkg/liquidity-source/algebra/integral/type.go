@@ -230,20 +230,6 @@ type PoolMeta struct {
 	PriceLimit  *uint256.Int `json:"priceLimit"`
 }
 
-type FeesAmount struct {
-	communityFeeAmount *uint256.Int
-	pluginFeeAmount    *uint256.Int
-}
-
-type SwapCalculationCache struct {
-	amountRequiredInitial *uint256.Int // The initial value of the exact input/output amount
-	amountCalculated      *uint256.Int // The additive amount of total output/input calculated through the swap
-	pluginFee             *uint256.Int // The plugin fee
-	communityFee          *uint256.Int // The community fee of the selling token, uint256 to minimize casts
-	fee                   uint64       // The current fee value in hundredths of a bip, i.e. 1e-6
-	exactInput            bool         // Whether the exact input or output is specified
-}
-
 type PriceMovementCache struct {
 	stepSqrtPrice uint256.Int // The Q64.96 sqrt of the price at the start of the step
 	nextTickPrice uint256.Int // The Q64.96 sqrt of the price calculated from the _nextTick_
