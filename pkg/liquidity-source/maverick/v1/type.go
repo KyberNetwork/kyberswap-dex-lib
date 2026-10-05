@@ -1,10 +1,6 @@
 package maverickv1
 
-import (
-	"math/big"
-
-	"github.com/holiman/uint256"
-)
+import "github.com/holiman/uint256"
 
 type Metadata struct {
 	LastCreateTime uint64
@@ -97,18 +93,18 @@ type GetStateResult struct {
 	State struct {
 		ActiveTick       int32
 		Status           uint8
-		BinCounter       *big.Int
+		BinCounter       *uint256.Int
 		ProtocolFeeRatio uint64
 	}
 }
 
 type GetBinResult struct {
 	BinState struct {
-		ReserveA        *big.Int
-		ReserveB        *big.Int
-		MergeBinBalance *big.Int
-		MergeID         *big.Int
-		TotalSupply     *big.Int
+		ReserveA        *uint256.Int
+		ReserveB        *uint256.Int
+		MergeBinBalance *uint256.Int
+		MergeID         *uint256.Int
+		TotalSupply     *uint256.Int
 		Kind            uint8
 		LowerTick       int32
 	}

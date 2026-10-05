@@ -62,7 +62,7 @@ func (d *PoolTracker) getNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		fee, binBalanceA, binBalanceB, tokenAScale, tokenBScale *big.Int
+		fee, binBalanceA, binBalanceB, tokenAScale, tokenBScale *uint256.Int
 		getStateResult                                          GetStateResult
 	)
 
@@ -130,7 +130,7 @@ func (d *PoolTracker) getNewPoolState(
 	activeTick := getStateResult.State.ActiveTick
 	protocolFeeRatio := uint256.NewInt(getStateResult.State.ProtocolFeeRatio)
 
-	binLength := int(binCounter.Int64())
+	binLength := int(binCounter.Uint64())
 	binRaws := make([]GetBinResult, binLength+1)
 
 	// NOTE:
@@ -187,20 +187,20 @@ func (d *PoolTracker) getNewPoolState(
 	binMap := make(map[int16]*uint256.Int)
 	for i, binRaw := range binRaws {
 		i := uint32(i)
-		if binRaw.BinState.MergeID.Sign() != 0 ||
-			(binRaw.BinState.ReserveA.Sign() == 0 && binRaw.BinState.ReserveB.Sign() == 0) {
+		if !binRaw.BinState.MergeID.IsZero() ||
+			(binRaw.BinState.ReserveA.IsZero() && binRaw.BinState.ReserveB.IsZero()) {
 			continue
 		}
 
 		bin := Bin{
-			ReserveA:  uint256.MustFromBig(binRaw.BinState.ReserveA),
-			ReserveB:  uint256.MustFromBig(binRaw.BinState.ReserveB),
+			ReserveA:  binRaw.BinState.ReserveA,
+			ReserveB:  binRaw.BinState.ReserveB,
 			LowerTick: binRaw.BinState.LowerTick,
 			Kind:      binRaw.BinState.Kind,
 		}
 		bins[i] = bin
 
-		if binRaw.BinState.MergeID.Sign() == 0 {
+		if binRaw.BinState.MergeID.IsZero() {
 			_ = d.putTypeAtTick(binMap, bin.Kind, bin.LowerTick)
 			binPosition := binPositions[bin.LowerTick]
 			if binPosition == nil {
@@ -220,7 +220,7 @@ func (d *PoolTracker) getNewPoolState(
 
 		return entity.Pool{}, err
 	}
-	feeU := uint256.MustFromBig(fee)
+	feeU := fee
 	_, _, sqrtPrice, liquidity, _, _ := currentTickLiquidity(activeTick, &MaverickPoolState{
 		TickSpacing:      staticExtra.TickSpacing,
 		Fee:              feeU,
@@ -252,7 +252,7 @@ func (d *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{binBalanceA.String(), binBalanceB.String()}
+	p.Reserves = entity.PoolReserves{binBalanceA.Dec(), binBalanceB.Dec()}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 
