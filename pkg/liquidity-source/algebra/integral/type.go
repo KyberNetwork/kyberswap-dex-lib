@@ -238,6 +238,5 @@ type PriceMovementCache struct {
 	output        uint256.Int // The additive amount of token that have been withdrawn
 	feeAmount     uint256.Int // The total amount of fee earned within a current step
 
-	nextTick    int32 // The tick till the current step goes
-	initialized bool  // True if the _nextTick is initialized
+	nextTick int32 // The tick till the current step goes
 }

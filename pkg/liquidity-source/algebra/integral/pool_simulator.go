@@ -442,7 +442,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		if err != nil {
 			return err
 		}
-		step.nextTick, step.initialized = int32(nextTick), true
+		step.nextTick = int32(nextTick)
 		ticksCrossed++
 
 		step.stepSqrtPrice.Set(currentPrice)
