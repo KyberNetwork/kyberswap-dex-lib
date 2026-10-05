@@ -2,7 +2,6 @@ package uniswapv3
 
 import (
 	"math/big"
-	"math/bits"
 	"slices"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -197,7 +197,7 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		return nil, ErrZeroAmount
 	}
 	b := &calcAmountInBacking{sqrtPrice: result.SqrtRatioX96}
-	amountInBI := setBigBacked(&b.inBI, &b.inWords, &result.AmountCalculated)
+	amountInBI := big256.ToBigBacked(&b.inBI, &b.inWords, &result.AmountCalculated)
 	if p.exceedsMaxTx(tokenIn, amountInBI) {
 		// tokenIn is the launched token here (a sell): it moves user -> pool, the same leg
 		// OdysToken._move caps by maxTx.
@@ -253,7 +253,7 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 		return nil, ErrZeroAmount
 	}
 	b := &calcAmountOutBacking{remainingIn: result.RemainingAmountIn, sqrtPrice: result.SqrtRatioX96}
-	amountOutBI := setBigBacked(&b.outBI, &b.outWords, &result.AmountCalculated)
+	amountOutBI := big256.ToBigBacked(&b.outBI, &b.outWords, &result.AmountCalculated)
 	if amountOutBI.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	} else if p.exceedsMaxTx(tokenOut, amountOutBI) {
@@ -264,7 +264,7 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 
 	b.remaining = pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI}
 	if !result.RemainingAmountIn.IsZero() {
-		b.remaining.Amount = setBigBacked(&b.remainingBI, &b.remainingWords, &b.remainingIn)
+		b.remaining.Amount = big256.ToBigBacked(&b.remainingBI, &b.remainingWords, &b.remainingIn)
 	}
 	b.out, b.fee = pool.TokenAmount{Token: tokenOut, Amount: amountOutBI}, pool.TokenAmount{Token: tokenIn}
 	b.res = pool.CalcAmountOutResult{
@@ -299,21 +299,6 @@ type calcAmountInBacking struct {
 	sqrtPrice uint256.Int // SwapInfo points here
 	inBI      big.Int
 	inWords   [4]big.Word
-}
-
-// setBigBacked sets z to x with words as its storage, saving big.Int's own allocations.
-func setBigBacked(z *big.Int, words *[4]big.Word, x *uint256.Int) *big.Int {
-	if bits.UintSize != 64 {
-		return z.Set(x.ToBig())
-	}
-	n := len(x)
-	for n > 0 && x[n-1] == 0 {
-		n--
-	}
-	for i := range n {
-		words[i] = big.Word(x[i])
-	}
-	return z.SetBits(words[:n])
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {

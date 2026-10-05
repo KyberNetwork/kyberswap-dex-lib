@@ -3,6 +3,7 @@ package big256
 import (
 	"math"
 	"math/big"
+	"math/bits"
 
 	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -130,6 +131,22 @@ func FromBig(big *big.Int) *uint256.Int {
 func SFromBig(big *big.Int) *int256.Int {
 	i, _ := int256.FromBig(big)
 	return i
+}
+
+// ToBigBacked sets z to the unsigned u with words as its storage. Keeping z and words in one
+// caller-owned struct saves big.Int's own allocations on hot result paths.
+func ToBigBacked(z *big.Int, words *[4]big.Word, u *uint256.Int) *big.Int {
+	if bits.UintSize != 64 {
+		return z.Set(u.ToBig())
+	}
+	n := len(u)
+	for n > 0 && u[n-1] == 0 {
+		n--
+	}
+	for i := range n {
+		words[i] = big.Word(u[i])
+	}
+	return z.SetBits(words[:n])
 }
 
 func ToBig(u *uint256.Int) *big.Int {

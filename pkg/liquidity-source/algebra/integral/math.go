@@ -6,29 +6,20 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func addDelta(x *uint256.Int, y *int256.Int) (*uint256.Int, error) {
-	if y.Sign() >= 0 {
-		uY, err := ToUInt256(y)
-		if err != nil {
-			return nil, err
+// addDelta adds the signed liquidity delta d, negated when neg, to z in place.
+func addDelta(z *uint256.Int, d *int256.Int, neg bool) error {
+	var abs uint256.Int
+	abs.Abs((*uint256.Int)(d))
+	if (d.Sign() >= 0) != neg || d.IsZero() {
+		if _, overflow := z.AddOverflow(z, &abs); overflow {
+			return ErrLiquidityAdd
 		}
-		res := new(uint256.Int).Add(x, uY)
-		if res.Cmp(x) < 0 {
-			return nil, ErrLiquidityAdd
-		}
-		return res, nil
+		return nil
 	}
-
-	uY, err := ToUInt256(new(int256.Int).Neg(y))
-	if err != nil {
-		return nil, err
+	if _, underflow := z.SubOverflow(z, &abs); underflow {
+		return ErrLiquiditySub
 	}
-
-	res := new(uint256.Int).Sub(x, uY)
-	if res.Cmp(x) >= 0 {
-		return nil, ErrLiquiditySub
-	}
-	return res, nil
+	return nil
 }
 
 func ToUInt256(x *int256.Int) (*uint256.Int, error) {

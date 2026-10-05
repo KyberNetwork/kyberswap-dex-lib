@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -471,87 +472,75 @@ func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceCh
 	return feeFactors, nil
 }
 
-func getInputTokenDelta01(to, from, liquidity *uint256.Int) (*uint256.Int, error) {
-	return getToken0Delta(to, from, liquidity, true)
+func getInputTokenDelta01(res, to, from, liquidity *uint256.Int) error {
+	return getToken0Delta(res, to, from, liquidity, true)
 }
 
-func getInputTokenDelta10(to, from, liquidity *uint256.Int) (*uint256.Int, error) {
-	return getToken1Delta(from, to, liquidity, true)
+func getInputTokenDelta10(res, to, from, liquidity *uint256.Int) error {
+	return getToken1Delta(res, from, to, liquidity, true)
 }
 
-func getOutputTokenDelta01(to, from, liquidity *uint256.Int) (*uint256.Int, error) {
-	return getToken1Delta(to, from, liquidity, false)
+func getOutputTokenDelta01(res, to, from, liquidity *uint256.Int) error {
+	return getToken1Delta(res, to, from, liquidity, false)
 }
 
-func getOutputTokenDelta10(to, from, liquidity *uint256.Int) (*uint256.Int, error) {
-	return getToken0Delta(from, to, liquidity, false)
+func getOutputTokenDelta10(res, to, from, liquidity *uint256.Int) error {
+	return getToken0Delta(res, from, to, liquidity, false)
 }
 
 // https://github.com/cryptoalgebra/Algebra/blob/357ae6b/src/core/contracts/libraries/TokenDeltaMath.sol#L20
-func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
+func getToken0Delta(res, priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) error {
 	if priceLower.Sign() < 0 {
-		return nil, ErrInvalidPriceLower
+		return ErrInvalidPriceLower
 	}
-	var priceDelta uint256.Int
+	var priceDelta, liquidityShifted uint256.Int
 	priceDelta.Sub(priceUpper, priceLower)
-	var liquidityShifted uint256.Int
 	liquidityShifted.Lsh(liquidity, RESOLUTION)
 
 	if roundUp {
-		delta, err := v3Utils.MulDivRoundingUp(&priceDelta, &liquidityShifted, priceUpper)
-		if err != nil {
-			return nil, err
+		if err := v3Utils.MulDivRoundingUpV2(&priceDelta, &liquidityShifted, priceUpper, res); err != nil {
+			return err
 		}
-
-		v3Utils.DivRoundingUp(delta, priceLower, delta)
-		return delta, nil
+		v3Utils.DivRoundingUp(res, priceLower, res)
+		return nil
 	}
 
-	mulDivResult, overflow := priceDelta.MulDivOverflow(&priceDelta, &liquidityShifted, priceUpper)
-	if overflow {
-		return nil, ErrOverflow
+	if _, overflow := res.MulDivOverflow(&priceDelta, &liquidityShifted, priceUpper); overflow {
+		return ErrOverflow
 	}
-	return mulDivResult.Div(mulDivResult, priceLower), nil
+	res.Div(res, priceLower)
+	return nil
 }
 
 // https://github.com/cryptoalgebra/Algebra/blob/357ae6b/src/core/contracts/libraries/TokenDeltaMath.sol#L39
-func getToken1Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
+func getToken1Delta(res, priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) error {
 	if priceUpper.Cmp(priceLower) < 0 {
-		return nil, ErrInvalidPriceUpperLower
+		return ErrInvalidPriceUpperLower
 	}
-	var priceDelta uint256.Int
-	priceDelta.Sub(priceUpper, priceLower)
-
-	if roundUp {
-		return v3Utils.MulDivRoundingUp(&priceDelta, liquidity, Q96)
+	// Same mulDiv by Q96 as TokenDeltaMath, as a shift.
+	if err := uniswapv3.GetAmount1DeltaV2(priceLower, priceUpper, liquidity, roundUp, res); err != nil {
+		return lo.Ternary(roundUp, err, ErrOverflow)
 	}
-
-	token1Delta, overflow := priceDelta.MulDivOverflow(&priceDelta, liquidity, Q96)
-	if overflow {
-		return nil, ErrOverflow
-	}
-	return token1Delta, nil
+	return nil
 }
 
-func getNewPriceAfterInput(price, liquidity, input *uint256.Int, zeroToOne bool) (*uint256.Int, error) {
-	return getNewPrice(price, liquidity, input, zeroToOne, true)
+func getNewPriceAfterInput(res, price, liquidity, input *uint256.Int, zeroToOne bool) error {
+	return getNewPrice(res, price, liquidity, input, zeroToOne, true)
 }
 
-func getNewPriceAfterOutput(price, liquidity, output *uint256.Int, zeroToOne bool) (*uint256.Int, error) {
-	return getNewPrice(price, liquidity, output, zeroToOne, false)
+func getNewPriceAfterOutput(res, price, liquidity, output *uint256.Int, zeroToOne bool) error {
+	return getNewPrice(res, price, liquidity, output, zeroToOne, false)
 }
 
-func getNewPrice(
-	price, liquidity *uint256.Int,
-	amount *uint256.Int,
-	zeroToOne, fromInput bool,
-) (*uint256.Int, error) {
+// getNewPrice writes the price after moving amount into res, which must not alias the inputs.
+func getNewPrice(res, price, liquidity, amount *uint256.Int, zeroToOne, fromInput bool) error {
 	if price.IsZero() {
-		return nil, ErrZeroPrice
+		return ErrZeroPrice
 	} else if liquidity.IsZero() {
-		return nil, ErrZeroLiquidity
+		return ErrZeroLiquidity
 	} else if amount.IsZero() {
-		return price.Clone(), nil
+		res.Set(price)
+		return nil
 	}
 
 	var liquidityShifted uint256.Int
@@ -559,71 +548,63 @@ func getNewPrice(
 
 	if zeroToOne == fromInput {
 		var product uint256.Int
-		_, overflow := product.MulOverflow(amount, price)
-		if overflow {
-			return nil, ErrOverflow
+		if _, overflow := product.MulOverflow(amount, price); overflow {
+			return ErrOverflow
 		}
 
 		var denominator uint256.Int
 		if fromInput {
-			if _, overflow = denominator.AddOverflow(&liquidityShifted, &product); overflow {
-				return nil, ErrOverflow
+			if _, overflow := denominator.AddOverflow(&liquidityShifted, &product); overflow {
+				return ErrOverflow
 			}
 		} else {
-			if _, overflow = denominator.SubOverflow(&liquidityShifted, &product); overflow {
-				return nil, ErrUnderflow
+			if _, overflow := denominator.SubOverflow(&liquidityShifted, &product); overflow {
+				return ErrUnderflow
 			}
 		}
-		resultPrice, err := v3Utils.MulDivRoundingUp(&liquidityShifted, price, &denominator)
-		if err != nil {
-			return nil, err
-		} else if resultPrice.BitLen() > 160 {
-			return nil, ErrOverflow
+		if err := v3Utils.MulDivRoundingUpV2(&liquidityShifted, price, &denominator, res); err != nil {
+			return err
+		} else if res.BitLen() > 160 {
+			return ErrOverflow
+		}
+		return nil
+	}
+
+	var shiftedAmount uint256.Int
+	if fromInput {
+		if amount.BitLen() < 160 {
+			shiftedAmount.Lsh(amount, RESOLUTION)
+			shiftedAmount.Div(&shiftedAmount, liquidity)
+		} else {
+			shiftedAmount.Lsh(uONE, RESOLUTION)
+			if _, overflow := shiftedAmount.MulDivOverflow(amount, &shiftedAmount, liquidity); overflow {
+				return ErrOverflow
+			}
 		}
 
-		return resultPrice, nil
+		if _, overflow := res.AddOverflow(price, &shiftedAmount); overflow || res.BitLen() > 160 {
+			return ErrOverflow
+		}
+		return nil
+	}
+
+	if amount.BitLen() < 160 {
+		shiftedAmount.Lsh(amount, RESOLUTION)
+		v3Utils.DivRoundingUp(&shiftedAmount, liquidity, &shiftedAmount)
 	} else {
-		if fromInput {
-			var shiftedAmount uint256.Int
-			if amount.BitLen() < 160 {
-				shiftedAmount.Lsh(amount, RESOLUTION)
-				shiftedAmount.Div(&shiftedAmount, liquidity)
-			} else {
-				shiftedAmount.Lsh(uONE, RESOLUTION)
-				if _, overflow := shiftedAmount.MulDivOverflow(amount, &shiftedAmount, liquidity); overflow {
-					return nil, ErrOverflow
-				}
-			}
-
-			resultPrice, overflow := shiftedAmount.AddOverflow(price, &shiftedAmount)
-			if overflow || resultPrice.BitLen() > 160 {
-				return nil, ErrOverflow
-			}
-			return resultPrice, nil
-		} else {
-			var shiftedAmount uint256.Int
-			if amount.BitLen() < 160 {
-				shiftedAmount.Lsh(amount, RESOLUTION)
-				v3Utils.DivRoundingUp(&shiftedAmount, liquidity, &shiftedAmount)
-			} else {
-				var oneShifted uint256.Int
-				oneShifted.Lsh(uONE, RESOLUTION)
-				shiftedAmountPtr, mulDivErr := v3Utils.MulDivRoundingUp(amount, &oneShifted, liquidity)
-				if mulDivErr != nil {
-					return nil, mulDivErr
-				}
-				shiftedAmount = *shiftedAmountPtr
-			}
-
-			resultPrice, overflow := shiftedAmount.SubOverflow(price, &shiftedAmount)
-			if overflow {
-				return nil, ErrUnderflow
-			} else if resultPrice.BitLen() > 160 {
-				return nil, ErrOverflow
-			}
-			return resultPrice, nil
+		var oneShifted uint256.Int
+		oneShifted.Lsh(uONE, RESOLUTION)
+		if err := v3Utils.MulDivRoundingUpV2(amount, &oneShifted, liquidity, &shiftedAmount); err != nil {
+			return err
 		}
 	}
+
+	if _, underflow := res.SubOverflow(price, &shiftedAmount); underflow {
+		return ErrUnderflow
+	} else if res.BitLen() > 160 {
+		return ErrOverflow
+	}
+	return nil
 }
 
 // lteConsideringOverflow returns true if a <= b with c as greatest value anchor for overflow checking.
