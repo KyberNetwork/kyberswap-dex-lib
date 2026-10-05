@@ -230,27 +230,13 @@ type PoolMeta struct {
 	PriceLimit  *uint256.Int `json:"priceLimit"`
 }
 
-type FeesAmount struct {
-	communityFeeAmount *uint256.Int
-	pluginFeeAmount    *uint256.Int
-}
-
-type SwapCalculationCache struct {
-	amountRequiredInitial *uint256.Int // The initial value of the exact input/output amount
-	amountCalculated      *uint256.Int // The additive amount of total output/input calculated through the swap
-	pluginFee             *uint256.Int // The plugin fee
-	communityFee          *uint256.Int // The community fee of the selling token, uint256 to minimize casts
-	fee                   uint64       // The current fee value in hundredths of a bip, i.e. 1e-6
-	exactInput            bool         // Whether the exact input or output is specified
-}
-
 type PriceMovementCache struct {
-	stepSqrtPrice *uint256.Int // The Q64.96 sqrt of the price at the start of the step, uint256 to minimize casts
-	nextTickPrice *uint256.Int // The Q64.96 sqrt of the price calculated from the _nextTick_, uint256 to minimize casts
-	input         *uint256.Int // The additive amount of tokens that have been provided
-	output        *uint256.Int // The additive amount of token that have been withdrawn
-	feeAmount     *uint256.Int // The total amount of fee earned within a current step
+	stepSqrtPrice uint256.Int // The Q64.96 sqrt of the price at the start of the step
+	nextTickPrice uint256.Int // The Q64.96 sqrt of the price calculated from the _nextTick_
+	resultPrice   uint256.Int // The Q64.96 sqrt of the price the step reaches
+	input         uint256.Int // The additive amount of tokens that have been provided
+	output        uint256.Int // The additive amount of token that have been withdrawn
+	feeAmount     uint256.Int // The total amount of fee earned within a current step
 
-	nextTick    int32 // The tick till the current step goes
-	initialized bool  // True if the _nextTick is initialized
+	nextTick int32 // The tick till the current step goes
 }
