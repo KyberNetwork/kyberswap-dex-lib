@@ -79,9 +79,9 @@ type TokenRateCacheResp struct {
 }
 
 type TokenRateCacheLegacyResp struct {
-	Rate     *big.Int
-	Duration *big.Int
-	Expires  *big.Int
+	Rate     *uint256.Int
+	Duration *uint256.Int
+	Expires  *uint256.Int
 }
 
 type PoolTokensResp struct {

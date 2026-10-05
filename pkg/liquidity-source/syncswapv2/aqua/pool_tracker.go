@@ -22,14 +22,14 @@ import (
 // )
 
 type Params struct {
-	A          *big.Int
-	Gamma      *big.Int
-	FutureTime *big.Int
+	A          *uint256.Int
+	Gamma      *uint256.Int
+	FutureTime *uint256.Int
 }
 type SwapFeeAquaData struct {
-	Gamma  uint64   `json:"gamma"`
-	MinFee *big.Int `json:"minFee"`
-	MaxFee *big.Int `json:"maxFee"`
+	Gamma  uint64       `json:"gamma"`
+	MinFee *uint256.Int `json:"minFee"`
+	MaxFee *uint256.Int `json:"maxFee"`
 }
 type SwapFeeAqua struct {
 	SwapFeeAquaData
@@ -82,9 +82,9 @@ func (d *PoolTracker) GetNewPoolState(
 		reserves                                                = make([]*big.Int, len(p.Tokens))
 		params                                                  Params
 		poolParams                                              PoolParams
-		token0PrecisionMultiplier, token1PrecisionMultiplier, D *big.Int
-		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice   *big.Int
-		priceScale, priceOracle, lastPrices                     *big.Int
+		token0PrecisionMultiplier, token1PrecisionMultiplier, D *uint256.Int
+		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice   *uint256.Int
+		priceScale, priceOracle, lastPrices                     *uint256.Int
 		rebalaceParams                                          RebalanceParams
 		feeManagerV2Address                                     common.Address
 	)
@@ -253,28 +253,28 @@ func (d *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(
 		ExtraAquaPool{
-			A:                         uint256.MustFromBig(params.A),
-			D:                         uint256.MustFromBig(D),
-			Gamma:                     uint256.MustFromBig(params.Gamma),
-			SwapFee0To1Min:            uint256.MustFromBig(swapFee0To1Aqua.MinFee),
-			SwapFee0To1Max:            uint256.MustFromBig(swapFee0To1Aqua.MaxFee),
+			A:                         params.A,
+			D:                         D,
+			Gamma:                     params.Gamma,
+			SwapFee0To1Min:            swapFee0To1Aqua.MinFee,
+			SwapFee0To1Max:            swapFee0To1Aqua.MaxFee,
 			SwapFee0To1Gamma:          uint256.NewInt(swapFee0To1Aqua.Gamma),
-			SwapFee1To0Min:            uint256.MustFromBig(swapFee1To0Aqua.MinFee),
-			SwapFee1To0Max:            uint256.MustFromBig(swapFee1To0Aqua.MaxFee),
+			SwapFee1To0Min:            swapFee1To0Aqua.MinFee,
+			SwapFee1To0Max:            swapFee1To0Aqua.MaxFee,
 			SwapFee1To0Gamma:          uint256.NewInt(swapFee1To0Aqua.Gamma),
-			FutureTime:                params.FutureTime.Int64(),
-			PriceScale:                uint256.MustFromBig(priceScale),
-			LastPrices:                uint256.MustFromBig(lastPrices),
-			PriceOracle:               uint256.MustFromBig(priceOracle),
-			LpSupply:                  uint256.MustFromBig(lpSupply),
-			XcpProfit:                 uint256.MustFromBig(xcpProfit),
-			VirtualPrice:              uint256.MustFromBig(virtualPrice),
+			FutureTime:                int64(params.FutureTime.Uint64()),
+			PriceScale:                priceScale,
+			LastPrices:                lastPrices,
+			PriceOracle:               priceOracle,
+			LpSupply:                  lpSupply,
+			XcpProfit:                 xcpProfit,
+			VirtualPrice:              virtualPrice,
 			AllowedExtraProfit:        uint256.NewInt(rebalaceParams.AllowedExtraProfit),
 			AdjustmentStep:            uint256.NewInt(rebalaceParams.AdjustmentStep),
 			MaHalfTime:                uint256.NewInt(uint64(rebalaceParams.MaTime)),
-			LastPricesTimestamp:       lastPriceTimestamp.Int64(),
-			Token0PrecisionMultiplier: uint256.MustFromBig(token0PrecisionMultiplier),
-			Token1PrecisionMultiplier: uint256.MustFromBig(token1PrecisionMultiplier),
+			LastPricesTimestamp:       int64(lastPriceTimestamp.Uint64()),
+			Token0PrecisionMultiplier: token0PrecisionMultiplier,
+			Token1PrecisionMultiplier: token1PrecisionMultiplier,
 			VaultAddress:              vaultAddress.Hex(),
 			InitialA:                  int64(poolParams.InitialA),
 			FutureA:                   int64(poolParams.FutureA),

@@ -44,8 +44,8 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		swapFee0To1, swapFee1To0                             *big.Int
-		token0PrecisionMultiplier, token1PrecisionMultiplier *big.Int
+		swapFee0To1, swapFee1To0                             *uint256.Int
+		token0PrecisionMultiplier, token1PrecisionMultiplier *uint256.Int
 		vaultAddress                                         common.Address
 		reserves                                             = make([]*big.Int, len(p.Tokens))
 		A                                                    uint64
@@ -123,10 +123,10 @@ func (d *PoolTracker) GetNewPoolState(
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
 	extraBytes, err := json.Marshal(ExtraStablePool{
-		SwapFee0To1:               uint256.MustFromBig(swapFee0To1),
-		SwapFee1To0:               uint256.MustFromBig(swapFee1To0),
-		Token0PrecisionMultiplier: uint256.MustFromBig(token0PrecisionMultiplier),
-		Token1PrecisionMultiplier: uint256.MustFromBig(token1PrecisionMultiplier),
+		SwapFee0To1:               swapFee0To1,
+		SwapFee1To0:               swapFee1To0,
+		Token0PrecisionMultiplier: token0PrecisionMultiplier,
+		Token1PrecisionMultiplier: token1PrecisionMultiplier,
 		VaultAddress:              vaultAddress.Hex(),
 		A:                         uint256.NewInt(A),
 	})

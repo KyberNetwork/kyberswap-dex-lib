@@ -121,8 +121,8 @@ func TestGetState(t *testing.T) {
 			// Validate state fields
 			assert.NotNil(t, state.ReserveA, "ReserveA should not be nil")
 			assert.NotNil(t, state.ReserveB, "ReserveB should not be nil")
-			assert.True(t, state.ReserveA.Cmp(big.NewInt(0)) >= 0, "ReserveA should be non-negative")
-			assert.True(t, state.ReserveB.Cmp(big.NewInt(0)) >= 0, "ReserveB should be non-negative")
+			assert.NotNil(t, state.ReserveA, "ReserveA should be valid")
+			assert.NotNil(t, state.ReserveB, "ReserveB should be valid")
 			assert.True(t, state.BinCounter > 0, "BinCounter should be positive")
 			assert.True(t, blockNumber.Cmp(big.NewInt(0)) > 0, "Block number should be positive")
 
@@ -133,7 +133,7 @@ func TestGetState(t *testing.T) {
 			// assert.True(t, state.ProtocolFeeRatioD3 >= 0, "ProtocolFeeRatioD3 should be non-negative")
 
 			// Check that at least one reserve has liquidity (unless it's a completely empty pool)
-			hasLiquidity := state.ReserveA.Cmp(big.NewInt(0)) > 0 || state.ReserveB.Cmp(big.NewInt(0)) > 0
+			hasLiquidity := !state.ReserveA.IsZero() || !state.ReserveB.IsZero()
 			if !hasLiquidity {
 				t.Logf("Warning: Pool %s appears to have no liquidity", tc.poolAddress)
 			}

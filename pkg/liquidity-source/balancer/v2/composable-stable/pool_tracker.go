@@ -297,14 +297,11 @@ func (t *PoolTracker) queryRPC(
 	if poolTypeVer == 0 {
 		for i := range tokenRateCaches {
 			if tokenRateCachesLegacy[i].Rate != nil {
-				rate, _ := uint256.FromBig(tokenRateCachesLegacy[i].Rate)
-				duration, _ := uint256.FromBig(tokenRateCachesLegacy[i].Duration)
-				expires, _ := uint256.FromBig(tokenRateCachesLegacy[i].Expires)
 				tokenRateCaches[i] = TokenRateCacheResp{
-					Rate:     rate,
-					OldRate:  rate,
-					Duration: duration,
-					Expires:  expires,
+					Rate:     tokenRateCachesLegacy[i].Rate,
+					OldRate:  tokenRateCachesLegacy[i].Rate,
+					Duration: tokenRateCachesLegacy[i].Duration,
+					Expires:  tokenRateCachesLegacy[i].Expires,
 				}
 			}
 		}

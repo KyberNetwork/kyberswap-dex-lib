@@ -24,17 +24,17 @@ type (
 	}
 
 	GetStateResult struct {
-		ReserveA           *big.Int `json:"reserveA"`
-		ReserveB           *big.Int `json:"reserveB"`
-		LastTwaD8          int64    `json:"lastTwaD8"`
-		LastLogPriceD8     int64    `json:"lastLogPriceD8"`
-		LastTimestamp      *big.Int `json:"lastTimestamp"`
-		ActiveTick         int32    `json:"activeTick"`
-		IsLocked           bool     `json:"isLocked"`
-		BinCounter         uint32   `json:"binCounter"`
-		ProtocolFeeRatioD3 uint8    `json:"protocolFeeRatioD3"`
-		FeeAIn             uint64   `json:"feeAIn"` // Fee for tokenA -> tokenB swaps
-		FeeBIn             uint64   `json:"feeBIn"` // Fee for tokenB -> tokenA swaps
+		ReserveA           *uint256.Int `json:"reserveA"`
+		ReserveB           *uint256.Int `json:"reserveB"`
+		LastTwaD8          int64        `json:"lastTwaD8"`
+		LastLogPriceD8     int64        `json:"lastLogPriceD8"`
+		LastTimestamp      *big.Int     `json:"lastTimestamp"`
+		ActiveTick         int32        `json:"activeTick"`
+		IsLocked           bool         `json:"isLocked"`
+		BinCounter         uint32       `json:"binCounter"`
+		ProtocolFeeRatioD3 uint8        `json:"protocolFeeRatioD3"`
+		FeeAIn             uint64       `json:"feeAIn"` // Fee for tokenA -> tokenB swaps
+		FeeBIn             uint64       `json:"feeBIn"` // Fee for tokenB -> tokenA swaps
 	}
 
 	// because the result is a tuple with internal type = struct IMaverickV2Pool.State, we need to wrap it in a struct like this
@@ -119,7 +119,7 @@ func (t *PoolTracker) getState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (State, *big.Int, error) {
 	var getStateResult GetStateResultWrapper
-	var feeAIn, feeBIn *big.Int
+	var feeAIn, feeBIn *uint256.Int
 
 	getStateRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true)
 	if overrides != nil {
@@ -229,16 +229,16 @@ func (t *PoolTracker) getFullPoolState(
 			// Convert BinStateMapping to Bin
 			bin := Bin{
 				Tick:        binState.Tick,
-				TotalSupply: uint256.MustFromBig(binState.TotalSupply),
-				TickBalance: uint256.MustFromBig(binState.TickBalance),
+				TotalSupply: binState.TotalSupply,
+				TickBalance: binState.TickBalance,
 			}
 
 			tickState := fullPoolState.TickStateMapping[binIndex]
 			bins[uint32(binId)] = bin
 			ticks[bin.Tick] = Tick{
-				ReserveA:     uint256.MustFromBig(tickState.ReserveA),
-				ReserveB:     uint256.MustFromBig(tickState.ReserveB),
-				TotalSupply:  uint256.MustFromBig(tickState.TotalSupply),
+				ReserveA:     tickState.ReserveA,
+				ReserveB:     tickState.ReserveB,
+				TotalSupply:  tickState.TotalSupply,
 				BinIdsByTick: make(map[uint8]uint32),
 			}
 			for i, binId := range tickState.BinIdsByTick {
@@ -256,7 +256,7 @@ func (t *PoolTracker) updatePool(
 	blockNumber *big.Int,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	pool.Reserves = entity.PoolReserves{state.ReserveA.String(), state.ReserveB.String()}
+	pool.Reserves = entity.PoolReserves{state.ReserveA.Dec(), state.ReserveB.Dec()}
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = time.Now().Unix()
 
