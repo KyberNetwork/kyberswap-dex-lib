@@ -73,3 +73,26 @@ func TestGetClosestRate(t *testing.T) {
 	_, err := GetClosestRate([]*uint256.Int{nil, nil}, u256.TenPow(18), false)
 	assert.ErrorIs(t, err, ErrInvalidRate)
 }
+
+// A linear vault's samples lie on one floored line through the origin, and that line gives the on-chain value to
+// the wei; interpolating from the lower sample carried its rounding error and quoted 1 wei low.
+// Samples and expectation: stLBGT (berachain 0xface73a169e2ca2934036c8af9f464b5de9ef0ca) previewDeposit at block
+// 11708261.
+func TestGetClosestRateLinearVault(t *testing.T) {
+	t.Parallel()
+	rates := []*uint256.Int{
+		uint256.NewInt(348_724),
+		uint256.NewInt(348_724_589_834),
+		uint256.MustFromDecimal("348724589834892976"),
+		uint256.MustFromDecimal("348724589834892976145851"),
+		uint256.MustFromDecimal("348724589834892976145851533150"),
+	}
+	amountIn := u256.TenPow(17)
+	out, err := GetClosestRate(rates, amountIn, false)
+	require.NoError(t, err)
+	assert.Equal(t, "34872458983489297", out.Dec())
+
+	in, err := GetClosestRate(rates, out, true)
+	require.NoError(t, err)
+	assert.False(t, in.Gt(amountIn), "min amountIn for an exact-in output must not exceed that input")
+}

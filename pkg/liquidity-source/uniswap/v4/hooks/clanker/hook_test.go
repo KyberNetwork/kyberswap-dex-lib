@@ -110,14 +110,44 @@ func Test_CalcAmountIn(t *testing.T) {
 	testutil.TestCalcAmountIn(t, pSim)
 }
 
+const dynamicFeePoolData = `{"address":"0xe2e7c620191449a2228b69231b63f2395f486ca7550de706feddf7ec9b9cd5d7","swapFee":30000,"exchange":"uniswap-v4-clanker","type":"uniswap-v4","timestamp":1753291890,"reserves":["70747613414474548452393626071","48591284065701221020"],"tokens":[{"address":"0x6488cf3cd609f8fe683e96b461e765d98dcedb07","symbol":"🟦","decimals":18,"swappable":true},{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"hX\":{\"p\":2000,\"f\":{\"r\":-210992,\"t\":-210992,\"s\":\"1753071293\",\"l\":\"1753071293\",\"p\":\"5\"},\"c\":{\"b\":5000,\"m\":50000,\"r\":\"30\",\"p\":\"120\",\"f\":200,\"c\":\"500000000\",\"d\":\"7500\"},\"0\":true,\"t\":true},\"liquidity\":1854108243979608403116743,\"sqrtPriceX96\":2076361055636673935789906,\"tick\":-211000,\"tickSpacing\":200,\"ticks\":[{\"index\":-211000,\"liquidityGross\":1854108243979608403116743,\"liquidityNet\":1854108243979608403116743},{\"index\":-120000,\"liquidityGross\":1854108243979608403116743,\"liquidityNet\":-1854108243979608403116743}]}","staticExtra":"{\"0x0\":[false,false],\"fee\":8388608,\"tS\":200,\"hooks\":\"0xfd213be7883db36e1049dc42f5bd6a0ec66b68cc\",\"uR\":\"0xa51afafe0263b40edaef0df8781ea9aa03e381a3\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}","blockNumber":360796346}`
+
 // CalcAmountIn reverses exact-in, so the dynamic fee hook must invert the exact-in protocol fees in both directions.
 func Test_CalcAmountIn_DynamicFee(t *testing.T) {
 	var p entity.Pool
-	poolData := `{"address":"0xe2e7c620191449a2228b69231b63f2395f486ca7550de706feddf7ec9b9cd5d7","swapFee":30000,"exchange":"uniswap-v4-clanker","type":"uniswap-v4","timestamp":1753291890,"reserves":["70747613414474548452393626071","48591284065701221020"],"tokens":[{"address":"0x6488cf3cd609f8fe683e96b461e765d98dcedb07","symbol":"🟦","decimals":18,"swappable":true},{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"hX\":{\"p\":2000,\"f\":{\"r\":-210992,\"t\":-210992,\"s\":\"1753071293\",\"l\":\"1753071293\",\"p\":\"5\"},\"c\":{\"b\":5000,\"m\":50000,\"r\":\"30\",\"p\":\"120\",\"f\":200,\"c\":\"500000000\",\"d\":\"7500\"},\"0\":true,\"t\":true},\"liquidity\":1854108243979608403116743,\"sqrtPriceX96\":2076361055636673935789906,\"tick\":-211000,\"tickSpacing\":200,\"ticks\":[{\"index\":-211000,\"liquidityGross\":1854108243979608403116743,\"liquidityNet\":1854108243979608403116743},{\"index\":-120000,\"liquidityGross\":1854108243979608403116743,\"liquidityNet\":-1854108243979608403116743}]}","staticExtra":"{\"0x0\":[false,false],\"fee\":8388608,\"tS\":200,\"hooks\":\"0xfd213be7883db36e1049dc42f5bd6a0ec66b68cc\",\"uR\":\"0xa51afafe0263b40edaef0df8781ea9aa03e381a3\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}","blockNumber":360796346}`
-	require.NoError(t, json.Unmarshal([]byte(poolData), &p))
+	require.NoError(t, json.Unmarshal([]byte(dynamicFeePoolData), &p))
 
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDArbitrumOne)
 	require.NoError(t, err)
 
 	testutil.TestCalcAmountIn(t, pSim)
+}
+
+// Quotes run concurrently on shared hook and pool state, so a quote must not write it. Only a swap
+// applied through UpdateBalance moves the fee vars, as the on-chain hook writes them on every swap.
+func TestDynamicFeeHook_QuoteLeavesStateUntouched(t *testing.T) {
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(dynamicFeePoolData), &p))
+	var extra uniswapv4.ExtraU256
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+	h := NewDynamicFeeHook(Clanker)(&uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{ChainID: valueobject.ChainIDArbitrumOne},
+		Pool:      &p,
+		HookExtra: uniswapv4.HookExtra(extra.HookExtra),
+	}).(*DynamicFeeHook)
+	fVars, protocolFee, lpFee := *h.PoolFVars, new(big.Int).Set(h.ProtocolFee), h.poolSim.V3Pool.Fee
+
+	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e18)}
+	res, err := h.BeforeSwap(params)
+	require.NoError(t, err)
+	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: params, AmountIn: params.AmountSpecified,
+		AmountOut: big.NewInt(1e9), BeforeSwapResult: res})
+	require.NoError(t, err)
+
+	require.Equal(t, fVars, *h.PoolFVars)
+	require.Equal(t, protocolFee, h.ProtocolFee)
+	require.Equal(t, lpFee, h.poolSim.V3Pool.Fee)
+
+	h.UpdateBalance(res.SwapInfo)
+	require.NotEqual(t, fVars.LastSwapTimestamp, h.PoolFVars.LastSwapTimestamp, "a swap must update the fee vars")
 }
