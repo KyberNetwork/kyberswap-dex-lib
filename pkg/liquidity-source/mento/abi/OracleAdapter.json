@@ -1,0 +1,5 @@
+[
+  {"type":"function","name":"sortedOracles","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"breakerBox","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"marketHoursBreaker","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]}
+]

@@ -1,0 +1,3 @@
+[
+  {"type":"function","name":"deployedFPMMAddresses","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address[]"}]}
+]
