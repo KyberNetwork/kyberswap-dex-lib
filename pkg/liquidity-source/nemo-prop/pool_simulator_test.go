@@ -108,13 +108,25 @@ func TestPoolSimulator_StaleSnapshots(t *testing.T) {
 	} {
 		_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p, Opts: pool.FactoryOpts{StaleCheck: true}})
 		assert.ErrorIs(t, err, ladder.ErrStale, name)
+
+		// Without StaleCheck it builds but quotes and delivers nothing: an aged-out
+		// snapshot must never quote better than a younger, decayed one.
+		sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
+		require.NoError(t, err, name)
+		_, err = quote(sim, 0, big.NewInt(1000))
+		assert.ErrorIs(t, err, ladder.ErrNoQuote, name)
+		for token, limit := range sim.CalculateLimit() {
+			assert.Zero(t, limit.Sign(), "%s: %s limit", name, token)
+		}
 	}
 
-	// Without StaleCheck an unrefreshed pool builds but quotes nothing.
-	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: testPool(t)})
+	// Just under the maximum age it still quotes, decayed (3.9s past a 1s
+	// window at 10 bps/s: 2000 / 1.0039).
+	sim, err := NewPoolSimulator(pool.FactoryParams{
+		EntityPool: pooledState(t, linearLadders(2, 0.5), reserves1e9, 4900*time.Millisecond, 1000, 5000, 10),
+	})
 	require.NoError(t, err)
-	_, err = quote(sim, 0, big.NewInt(1000))
-	assert.ErrorIs(t, err, ladder.ErrNoQuote)
+	assert.InDelta(t, 1992, quote1000(sim), 2)
 }
 
 func TestExtra_DecayAt(t *testing.T) {

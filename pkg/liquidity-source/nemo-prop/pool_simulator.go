@@ -6,6 +6,7 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -27,9 +28,11 @@ var (
 
 // NewPoolSimulator ages the snapshot once, at build time, from when the
 // tracker received it. Past the fresh window its ladder outputs decay like
-// the contract's quotes do between pushes. With StaleCheck, a snapshot past
-// the maximum age, or past the fresh window with decay disabled, is
-// rejected with ladder.ErrStale.
+// the contract's quotes do between pushes. A snapshot past the maximum age,
+// or past the fresh window with decay disabled, is rejected with
+// ladder.ErrStale under StaleCheck; otherwise the simulator is built with
+// empty ladders and zero reserves, as the tracker writes once a snapshot
+// ages out, so older prices never quote.
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	p := params.EntityPool
 	var staticExtra StaticExtra
@@ -45,7 +48,11 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	if params.Opts.StaleCheck && !quotable {
 		return nil, ladder.ErrStale
 	}
-	if scale < 1 {
+	switch {
+	case !quotable:
+		extra.Ladders = [2][]ladder.Point{}
+		p.Reserves = entity.PoolReserves{"0", "0"}
+	case scale < 1:
 		for dir := range extra.Ladders {
 			decayed := make([]ladder.Point, len(extra.Ladders[dir]))
 			for i, pt := range extra.Ladders[dir] {
@@ -53,6 +60,8 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			}
 			extra.Ladders[dir] = decayed
 		}
+	}
+	if !quotable || scale < 1 {
 		extraBytes, err := json.Marshal(extra.Extra)
 		if err != nil {
 			return nil, err
