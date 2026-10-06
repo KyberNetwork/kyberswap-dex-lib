@@ -184,7 +184,7 @@ func TestMixedRouteOrderingAndValidation(t *testing.T) {
 	q := quoteBuy(t, s, 10000000000)
 	info := q.SwapInfo.(SwapInfo)
 	require.Len(t, info.Steps, 2)
-	data, err := encodeRoute(info.Route, true)
+	data, err := EncodeRoute(info.Route, true)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0x4e, 0x41, 0x54, 0x31}, data[:4])
 	decoded, err := routeArguments.Unpack(data[4:])

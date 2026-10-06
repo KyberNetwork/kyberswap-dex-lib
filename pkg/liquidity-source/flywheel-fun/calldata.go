@@ -36,7 +36,8 @@ type encodedHop struct {
 	Key  PoolKey
 }
 
-func encodeRoute(hops []RouteHop, reverse bool) ([]byte, error) {
+// EncodeRoute returns the settlement route bytes for hops; reverse walks quote -> WETH (sells, refunds).
+func EncodeRoute(hops []RouteHop, reverse bool) ([]byte, error) {
 	if len(hops) == 0 {
 		return nil, nil
 	}
@@ -82,7 +83,7 @@ func EncodeTradeData(info SwapInfo, slippageBps uint16, now, deadline uint64) ([
 	}
 	t := AdapterTrade{Token: common.HexToAddress(info.Token), MinQuote: minimum(info.MinQuote.ToBig()), MinOutput: minimum(info.AmountOut), Deadline: new(big.Int).SetUint64(deadline), MinRefundETH: new(big.Int)}
 	var err error
-	t.Route, err = encodeRoute(info.Route, !info.Buy)
+	t.Route, err = EncodeRoute(info.Route, !info.Buy)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func EncodeTradeData(info SwapInfo, slippageBps uint16, now, deadline uint64) ([
 			return nil, ErrAmount
 		}
 		t.MinRefundETH = minimum(info.RefundRouteOutput)
-		t.RefundRoute, err = encodeRoute(info.Route, true)
+		t.RefundRoute, err = EncodeRoute(info.Route, true)
 		if err != nil {
 			return nil, err
 		}
