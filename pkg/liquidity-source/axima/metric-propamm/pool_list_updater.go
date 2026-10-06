@@ -45,11 +45,20 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryC(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *axima.Config) *PoolsListUpdater {
+	return &PoolsListUpdater{config: config, client: newClient(config)}
+}
+
+// newClient sends the API key on every request: without it Metric returns only the
+// public view (e.g. /metadata answers "Unknown chainId" for key-gated chains).
+func newClient(config *axima.Config) *resty.Client {
 	client := resty.NewWithClient(http.DefaultClient).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)
-	return &PoolsListUpdater{config: config, client: client}
+	if config.HTTPConfig.APIKey != "" {
+		client.SetAuthToken(config.HTTPConfig.APIKey)
+	}
+	return client
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {

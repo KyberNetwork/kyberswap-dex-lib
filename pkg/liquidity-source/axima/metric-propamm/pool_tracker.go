@@ -3,7 +3,6 @@ package metricpropamm
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -44,14 +43,7 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *axima.Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	client := resty.NewWithClient(http.DefaultClient).
-		SetBaseURL(config.HTTPConfig.BaseURL).
-		SetTimeout(config.HTTPConfig.Timeout.Duration).
-		SetRetryCount(config.HTTPConfig.RetryCount)
-	if config.HTTPConfig.APIKey != "" {
-		client = client.SetAuthToken(config.HTTPConfig.APIKey)
-	}
-	return &PoolTracker{config: config, client: client, ethrpcClient: ethrpcClient}
+	return &PoolTracker{config: config, client: newClient(config), ethrpcClient: ethrpcClient}
 }
 
 func (t *PoolTracker) GetNewPoolState(
