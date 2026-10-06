@@ -70,7 +70,7 @@ func EncodeRoute(hops []RouteHop, reverse bool) ([]byte, error) {
 // Refund protection uses the reverse swap's ETH output, not the larger refund
 // that also includes returned platform fees.
 func EncodeTradeData(info SwapInfo, slippageBps uint16, now, deadline uint64) ([]byte, error) {
-	if slippageBps >= 10000 || deadline <= now || deadline-now > 3600 || !common.IsHexAddress(info.Token) || common.HexToAddress(info.Token) == (common.Address{}) || info.MinQuote == nil || info.MinQuote.IsZero() || info.AmountOut == nil || info.AmountOut.Sign() <= 0 || info.AmountOut.BitLen() > 256 || info.Refund == nil || info.Refund.Sign() < 0 || info.Refund.BitLen() > 256 {
+	if slippageBps >= 10000 || deadline <= now || deadline-now > 3600 || !common.IsHexAddress(info.Token) || common.HexToAddress(info.Token) == (common.Address{}) || info.MinQuote == nil || info.MinQuote.IsZero() || info.AmountOut == nil || info.AmountOut.IsZero() || info.Refund == nil {
 		return nil, ErrAmount
 	}
 	minimum := func(x *big.Int) *big.Int {
@@ -81,17 +81,17 @@ func EncodeTradeData(info SwapInfo, slippageBps uint16, now, deadline uint64) ([
 		}
 		return v
 	}
-	t := AdapterTrade{Token: common.HexToAddress(info.Token), MinQuote: minimum(info.MinQuote.ToBig()), MinOutput: minimum(info.AmountOut), Deadline: new(big.Int).SetUint64(deadline), MinRefundETH: new(big.Int)}
+	t := AdapterTrade{Token: common.HexToAddress(info.Token), MinQuote: minimum(info.MinQuote.ToBig()), MinOutput: minimum(info.AmountOut.ToBig()), Deadline: new(big.Int).SetUint64(deadline), MinRefundETH: new(big.Int)}
 	var err error
 	t.Route, err = EncodeRoute(info.Route, !info.Buy)
 	if err != nil {
 		return nil, err
 	}
-	if info.Refund.Sign() > 0 {
-		if !info.Buy || info.RefundRouteOutput == nil || info.RefundRouteOutput.Sign() <= 0 || info.RefundRouteOutput.BitLen() > 256 {
+	if !info.Refund.IsZero() {
+		if !info.Buy || info.RefundRouteOutput == nil || info.RefundRouteOutput.IsZero() {
 			return nil, ErrAmount
 		}
-		t.MinRefundETH = minimum(info.RefundRouteOutput)
+		t.MinRefundETH = minimum(info.RefundRouteOutput.ToBig())
 		t.RefundRoute, err = EncodeRoute(info.Route, true)
 		if err != nil {
 			return nil, err

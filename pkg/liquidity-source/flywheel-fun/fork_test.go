@@ -185,7 +185,7 @@ func TestCurveRefundAndCalldata(t *testing.T) {
 	require.Error(t, e)
 	_, e = EncodeTradeData(info, 0, 400, 100)
 	require.Error(t, e)
-	info.RefundRouteOutput = big.NewInt(0)
+	info.RefundRouteOutput = new(uint256.Int)
 	_, e = EncodeTradeData(info, 0, 100, 400)
 	require.Error(t, e)
 	amount := uint256.NewInt(1000)

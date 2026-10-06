@@ -52,9 +52,9 @@ type SwapInfo struct {
 	Previous          CurveState   `json:"-"`
 	Token             string       `json:"token"`
 	MinQuote          *uint256.Int `json:"quotedQuoteAmount"`
-	AmountOut         *big.Int     `json:"amountOut"`
-	Refund            *big.Int     `json:"refund"`
-	RefundRouteOutput *big.Int     `json:"refundRouteOutput"`
+	AmountOut         *uint256.Int `json:"amountOut"`
+	Refund            *uint256.Int `json:"refund"`
+	RefundRouteOutput *uint256.Int `json:"refundRouteOutput"`
 	Route             []RouteHop   `json:"route,omitempty"`
 	Buy               bool         `json:"buy"`
 	Revision          uint64       `json:"-"`

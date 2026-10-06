@@ -246,7 +246,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 	if !s.Curve.Graduated && next.Graduated {
 		gas += 1_800_000
 	}
-	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote.Clone(), AmountOut: out.ToBig(), Refund: refund.ToBig(), RefundRouteOutput: refundRouteOutput.ToBig(), Buy: buy, Route: copyRoutes(s.Route), Steps: steps, Revision: s.Revision}
+	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote.Clone(), AmountOut: out.Clone(), Refund: refund.Clone(), RefundRouteOutput: refundRouteOutput.Clone(), Buy: buy, Route: copyRoutes(s.Route), Steps: steps, Revision: s.Revision}
 	return &pool.CalcAmountOutResult{TokenAmountOut: &pool.TokenAmount{Token: p.TokenOut, Amount: out.ToBig()}, RemainingTokenAmountIn: &pool.TokenAmount{Token: p.TokenAmountIn.Token, Amount: refund.ToBig()}, Fee: &pool.TokenAmount{Token: WETH, Amount: fee.ToBig()}, Gas: gas, SwapInfo: info}, nil
 }
 func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
