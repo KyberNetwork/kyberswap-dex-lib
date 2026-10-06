@@ -8,6 +8,7 @@ import (
 
 var (
 	factoryABI abi.ABI
+	helperABI  abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&factoryABI, factoryABIData},
+		{&helperABI, helperABIData},
 	}
 
 	for _, b := range builder {

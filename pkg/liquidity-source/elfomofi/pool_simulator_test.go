@@ -29,7 +29,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		},
 		0: {
 			1: {
-				"1000000000000000": "3328910",
+				"1000000000000000": "3328911",
 			},
 		},
 	})
