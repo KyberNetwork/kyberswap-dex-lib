@@ -1,4 +1,4 @@
-package uscore_test
+package uscoreprop_test
 
 import (
 	"math/big"
@@ -9,18 +9,18 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore"
+	uscoreprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestFactoryAndSerialization(t *testing.T) {
-	require.Equal(t, "uscore", uscore.DexType)
-	factory := pool.Factory(uscore.DexType)
+	require.Equal(t, "uscore-prop", uscoreprop.DexType)
+	factory := pool.Factory(uscoreprop.DexType)
 	require.NotNil(t, factory)
 	p := entity.Pool{
 		Address:  "0x1111111111111111111111111111111111111111",
-		Exchange: uscore.DexType, Type: uscore.DexType,
+		Exchange: uscoreprop.DexType, Type: uscoreprop.DexType,
 		Timestamp: time.Now().Unix(), BlockNumber: 123,
 		Tokens: []*entity.PoolToken{
 			{Address: "0x2222222222222222222222222222222222222222", Swappable: true},
@@ -47,13 +47,13 @@ func TestFactoryAndSerialization(t *testing.T) {
 	restored, err := msgpack.DecodePoolSimulatorsMap(encoded)
 	require.NoError(t, err)
 	decoded := restored[p.Address]
-	require.IsType(t, &uscore.PoolSimulator{}, decoded)
+	require.IsType(t, &uscoreprop.PoolSimulator{}, decoded)
 	actual, err := decoded.CalcAmountOut(q)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
 	require.Equal(t, sim.GetReserves(), decoded.GetReserves())
 	require.Equal(t, ladder.PoolMeta{BlockNumber: 123}, decoded.GetMetaInfo(q.TokenAmountIn.Token, q.TokenOut))
-	p.Timestamp = time.Now().Add(-uscore.MaxAge - time.Second).Unix()
+	p.Timestamp = time.Now().Add(-uscoreprop.MaxAge - time.Second).Unix()
 	_, err = factory(pool.FactoryParams{EntityPool: p, Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.ErrorIs(t, err, ladder.ErrStale)
 }

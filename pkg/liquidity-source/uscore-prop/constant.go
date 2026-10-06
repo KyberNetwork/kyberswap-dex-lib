@@ -1,4 +1,4 @@
-package uscore
+package uscoreprop
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DexType             = valueobject.ExchangeUSCore
+	DexType             = valueobject.ExchangeUSCoreProp
 	defaultGas          = 122_000
 	MaxAge              = 10 * time.Second
 	multicall3          = "0xcA11bde05977b3631167028862bE2a173976CA11"
@@ -16,4 +16,4 @@ const (
 	maxSamplePoints     = 96
 )
 
-var ErrInvalidState = errors.New("uscore: invalid pool state")
+var ErrInvalidState = errors.New("uscore-prop: invalid pool state")

@@ -1,4 +1,4 @@
-package uscore
+package uscoreprop
 
 import (
 	"context"
@@ -39,7 +39,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadata []byte) ([]
 	queued := map[string]bool{}
 	for _, raw := range u.config.Pools {
 		if !common.IsHexAddress(raw) {
-			return nil, metadata, fmt.Errorf("invalid USCore pool: %s", raw)
+			return nil, metadata, fmt.Errorf("invalid uscore-prop pool: %s", raw)
 		}
 		addr := common.HexToAddress(raw)
 		if addr == (common.Address{}) {

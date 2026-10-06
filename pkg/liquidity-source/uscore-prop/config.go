@@ -1,4 +1,4 @@
-package uscore
+package uscoreprop
 
 type Config struct {
 	DexId string   `json:"dexId"`

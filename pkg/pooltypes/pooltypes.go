@@ -191,7 +191,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/evplusai"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/inverse"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore"
+	uscoreprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore-prop"
 	usd_ai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
@@ -468,7 +468,7 @@ type Types struct {
 	UmbraeDamm                 string
 	UmbraeDlmm                 string
 	LiquidCore                 string
-	USCore                     string
+	USCoreProp                 string
 	LiquidityParty             string
 	LunarBase                  string
 	FrxUSD                     string
@@ -727,7 +727,7 @@ var (
 		UmbraeDamm:                 umbraedamm.DexType,
 		UmbraeDlmm:                 umbraedlmm.DexType,
 		LiquidCore:                 liquidcore.DexType,
-		USCore:                     uscore.DexType,
+		USCoreProp:                 uscoreprop.DexType,
 		LiquidityParty:             liquidityparty.DexType,
 		LunarBase:                  lunarbase.DexType,
 		FrxUSD:                     frxusd.DexType,

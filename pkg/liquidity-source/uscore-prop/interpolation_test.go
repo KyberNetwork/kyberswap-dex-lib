@@ -1,4 +1,4 @@
-package uscore
+package uscoreprop
 
 import (
 	"encoding/json"
