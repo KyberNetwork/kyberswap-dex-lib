@@ -1,71 +1,32 @@
-# Flywheel native settlement source — integration draft
+# flywheel-fun
 
-Scope: Robinhood chain 4663, native-fee factory 0xee54da52128dd851c71b1c58d371966231b66c40, starting at block 76741585. Older Flywheel factories require separate integrations.
+Flywheel launchpad on Robinhood chain (4663), native-fee factory 0xee54da52128dd851c71b1c58d371966231b66c40.
+Contracts, ABIs and mechanics: https://flywheel.cash/integrations/20260930/index.html
 
-## Implemented
+## Pricing
 
-- On-chain discovery, persisted cursor, reorg replay and pinned-block refreshes.
-- Curve buys/sells and graduated canonical V4 markets. The pinned native hook charges no LP swap fee; directional Uniswap protocol fees are included in execution math and offset against the platform allocation.
-- WETH/ETH settlement with configured quote routes of up to three authenticated V3 or hook-free, static-fee V4 pools. Native zero-address currency is normalized to WETH for route continuity.
-- Exact NativeFeeMath uint256 accounting, 512-bit mul/div and Solidity rounding.
-- Graduation partial fills: invert the consumed quote amount, recompute allocations, reverse the unused quote against the state AFTER the forward swap, return the ETH refund as RemainingTokenAmountIn. The protocol requires a refresh of the newly created canonical pool before subsequent simulated trades.
-- Pure quotes, cloned state, stale-update rejection and replay of saved swap steps. Shared route liquidity is exposed through IMetaPoolSimulator/GetBasePools/SetBasePool; a candidate consuming a shared pool changes its subsequent prices.
-- ABI-encoded execution-module Trade payloads with quote, output, refund and deadline protections. The refund minimum covers the reverse swap's output, not the larger refund including returned platform fees.
-- Same-block route cache to avoid re-reading identical routes for every Flywheel launch; cache keys include block hash. Full scans are capped at 256 bitmap words / 1,024 initialized ticks. V3 reads only the packed gross/net-liquidity word, using the immutable standard factory's storage layout.
-- Dependency refresh metadata, registrations and simulator serialization.
+Every trade goes through `NativeTradeSettlement` 0x04111c295399582b2b702ad5de8d11be2b50dd5d (`buyWithRefund`/`sell`, ETH in or out). Direct factory/V4 swaps revert at the hook. One pool = one launch, WETH <-> launch token. The settlement:
 
-## Configuration
+1. Optionally swaps ETH <-> the launch's pairing token through one configured Uniswap pool (the route).
+2. Trades the bonding curve, or after graduation the hook-locked canonical V4 pool. The native hook charges no LP fee; directional Uniswap protocol fees are offset against the platform allocation.
+3. Takes NativeFeeMath fees, ported exactly (512-bit mul/div, Solidity rounding).
 
-QuoteRoutes is a map from the lowercase pairing-token address to an ordered WETH-to-quote array. There is no route for WETH itself. Each hop specifies kind 3 plus a V3 pool address, or kind 4 plus a V4 PoolKey (pool must be zero). Pools must form a simple path without duplicate assets or the launched token. V3 identities are checked against the frozen factory; V4 keys are hashed and checked against tracked state. Protocol/LP fields in configuration are replaced with on-chain values.
+A buy that crosses graduation fills the curve up to the threshold, reverses the unused quote through the route and refunds the ETH as `RemainingTokenAmountIn`. The new canonical pool needs a refresh before the next quote.
 
-Verified single-hop routes at fork block 76791655:
+## Route base pools
 
-- BOOMER 0x73c2de14c7fa0a57cc2d9722b959ea70b881ffe4: V4 key currency0=0x0000000000000000000000000000000000000000, currency1=BOOMER, fee=98700, tickSpacing=987, hooks=zero. External pool fees are additional to Flywheel settlement fees.
-- PONS 0x39dbed3a2bd333467115de45665cc57f813c4571: V3 pool 0xed50bdeea8adc232f159486192a4157281d722ff, fee 3000.
+`quoteBasePools` maps a pairing token to the uniswapv3 pool address or uniswap-v4 pool id the settlement swaps through. WETH-paired launches need none. The lister copies the id into `StaticExtra.basePools`; router-service loads that indexed pool and passes it in via BasePoolMap, so the route adds no duplicate source. The simulator quotes the hop with the base's own simulator, deep-copies it on clone (like curve meta pools) and rebuilds the settlement route bytes from it: a V3 address, or a hook-free V4 key that must hash to the pool id. A missing base fails with `ErrBasePool`.
 
-These examples establish quote/execution parity, not a promise that either route is currently optimal. Unconfigured custom quotes remain discoverable but cannot be quoted. Do not advertise all pairing assets as supported without an approved executable route.
-
-The launch's canonical pool is internal to this simulator. Do NOT expose it as freely tradable generic V4 liquidity: its hook authorizes Flywheel settlement only. The external route bases must share identity with Kyber's other uses of those pools; supply/relink BasePoolMap through the meta-pool interface. Reject base snapshots from a different block instead of combining inconsistent states.
-
-## Validation
-
-- 390 exact fee vectors generated by executing the frozen Solidity fee library locally.
-- 32 exact buy/sell comparisons against deployed contracts on a LOCAL mainnet fork: WETH graduated; BOOMER curve and graduated; WETH and BOOMER curve-to-graduation refunds; PONS V3 custom pairing. Actual outputs and refunds match base units. Sells also test the state after simulated buys. Fork cases check measured execution gas against draft estimates.
-- Separate execution module: 27 Foundry unit/fuzz/fork tests, including ETH/WETH, refund preservation, approvals, reentrancy, recipients and delegatecall tests. Fork tests verify direct factory/V4 calls are rejected while adapter trades succeed, plus graduation/refund/sell through a minimal executor.
-- Regression tests: shared liquidity, clones, stale quotes, route ordering/cycles/hooks, directional protocol fees, malformed amounts, calldata bounds, failed reads, reorgs, cache invalidation and serialization round trips.
-- Composite quote fuzzing: successful and rejected inputs must preserve state, return consistent amounts and yield valid protected calldata.
-
-Tests run from a checkout with go test ./pkg/liquidity-source/flywheel-fun ./pkg/msgpack ./pkg/msgpack/generate ./pkg/pooltypes; go vet ./pkg/liquidity-source/flywheel-fun. Fuzz: go test ./pkg/liquidity-source/flywheel-fun -run '^$' -fuzz '^FuzzCompositeQuotePurity$' -fuzztime 10s.
-
-Local-fork tests are opt-in, require a loopback Anvil endpoint and refuse a non-Anvil client. The included `testdata/runner/run-forks.cjs` harness starts it behind a write-denying upstream proxy and loads no private signing key. Fixture pools include locally created test launches; their local addresses must not be treated as deployed production tokens. testdata has its own go.mod and is excluded from dependency module archives. `testdata/config.json` contains the reviewed route configuration used by these examples.
-
-To reproduce with the companion adapter contribution checked out in a sibling `ks-dex-adapter-lib` directory (or set `FLYWHEEL_ADAPTER_LIB_DIR`):
-
-```sh
-cd pkg/liquidity-source/flywheel-fun/testdata/runner
-npm ci --ignore-scripts --no-audit --no-fund
-# Set FLYWHEEL_RPC_URL to your archive-capable Robinhood HTTP RPC via your environment.
-node run-forks.cjs adapter
-node run-forks.cjs quotes
+```json
+"quoteBasePools": {
+  "0x73c2de14c7fa0a57cc2d9722b959ea70b881ffe4": "0x8742f10cc122395bfb79eb2dc51fb15b97b297759a5f79b5f2463d38af59083d",
+  "0x39dbed3a2bd333467115de45665cc57f813c4571": "0xed50bdeea8adc232f159486192a4157281d722ff"
+}
 ```
 
-Node 22+, Go 1.25.10, Foundry 1.8.3 and Solc 0.8.30 were used. `GO_BIN`, `FORGE_BIN`, `ANVIL_BIN` and `FLYWHEEL_DEX_LIB_DIR` override defaults; Go must also be on PATH. The adapter runner caps upstream reads at 900, the quote runner at 2,500. All test transactions execute locally. Output goes to ignored `.results/` or `FLYWHEEL_RESULTS_DIR`; no wallet key is used. No exact-output or all-asset compatibility claim follows from these tests.
+The tracker reads curve and canonical-market state, plus the base's spot price to value the quote reserve in WETH.
 
-## Remaining integration work
+## Tests
 
-This draft is not enabled in production. Before activation:
-
-1. Validate Kyber's actual executor/router and native callbacks, refund ownership and outer calldata envelope. A module call must execute outside any existing V4 manager unlock. The public module is prefunded only within one atomic transaction and is not custody.
-2. Confirm pool-service discovery/linking of shared route bases and consistent snapshots, including split routes combining Flywheel and generic V3/V4 paths. Unit-level shared-state checks are not an end-to-end routing-engine test.
-3. Prefer Kyber's incremental tick indexer for dense/small-spacing markets and expand reviewed route coverage. Current standalone full scans are bounded; custom hook/dynamic-fee external routes fail closed. Arbitrary taxed/rebasing/restricted quote assets are not certified by discovering a pool.
-4. Mixed two-/three-hop composition has regression coverage; the new Kyber module's fork parity cases currently use single-hop external routes. Add executor-level mixed-path and production gas-estimation checks when Kyber's runner is available.
-
-Gas estimates are conservative draft estimates, including migration overhead; final transactions still need executor-level estimation. Fee is the settlement deduction valued using realized quote conversion; Uniswap protocol/external route fees are reflected in output, not separately reported by that field. No exact-output interface is registered.
-
-## Public references
-
-- Flywheel contracts, ABIs and mechanics: https://flywheel.cash/integrations/20260930/index.html
-- V3 storage layout for the authenticated factory: https://github.com/Uniswap/v3-core/blob/v1.0.0/contracts/UniswapV3Pool.sol#L67-L90
-- V4 StateLibrary layout: https://github.com/Uniswap/v4-core/blob/main/src/libraries/StateLibrary.sol
-
-The serialization generator change uses filepath.ToSlash for Windows-compatible imports and deterministic aliases, with a regression test.
+- 390 fee vectors from the frozen Solidity fee library; curve, simulator, tracker and lister tests; quote purity fuzzing (`-fuzz '^FuzzCompositeQuotePurity$'`).
+- `TestLocalForkQuoteExecutionParity` is opt-in: `testdata/runner/run-forks.cjs` starts a local Anvil fork behind a read-only proxy (set `FLYWHEEL_RPC_URL`). It covers WETH-paired launches; routed launches need the indexed base pools and are verified end to end through router-service.

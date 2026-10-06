@@ -80,6 +80,9 @@ func (m *mockChain) execute(data []byte) ([]byte, error) {
 		method, err = tokenABI.MethodById(data[:4])
 	}
 	if err != nil {
+		method, err = stateABI.MethodById(data[:4])
+	}
+	if err != nil {
 		return nil, err
 	}
 	switch method.Name {
@@ -95,6 +98,8 @@ func (m *mockChain) execute(data []byte) ([]byte, error) {
 		return method.Outputs.Pack(common.HexToAddress(MarketAdapter))
 	case "balanceOf":
 		return method.Outputs.Pack(big.NewInt(100000000))
+	case "extsload": // V4 slot0 with sqrtPriceX96 = 2^97, i.e. 4 quote per WETH
+		return method.Outputs.Pack([][32]byte{common.BigToHash(new(big.Int).Lsh(big.NewInt(1), 97))})
 	case "curves":
 		zero := common.Address{}
 		return method.Outputs.Pack(zero, m.quote, big.NewInt(100000), big.NewInt(100000000), big.NewInt(50000), big.NewInt(1000000), big.NewInt(1), big.NewInt(0), uint16(0), uint16(295), uint16(95), uint16(0), m.graduated, zero, zero, zero, big.NewInt(0))
@@ -173,4 +178,25 @@ func TestCustomPairDiscoveredButNotMisquoted(t *testing.T) {
 	require.NoError(t, err)
 	_, err = NewPoolSimulator(tracked)
 	require.ErrorIs(t, err, ErrUnsupported)
+}
+
+// Listing copies the configured base pool into StaticExtra (router-service reads basePools
+// from it), and the tracker values the quote reserve in WETH at the hop's spot price.
+func TestRoutedPairListedWithBasePools(t *testing.T) {
+	client, m := fixtureRPC(t)
+	boomer := common.HexToAddress("0x73c2de14c7fa0a57cc2d9722b959ea70b881ffe4")
+	m.quote = boomer
+	id := "0x8742f10cc122395bfb79eb2dc51fb15b97b297759a5f79b5f2463d38af59083d"
+	list := NewPoolsListUpdater(&Config{QuoteBasePools: map[string]string{boomer.Hex(): id}}, client)
+	p, _, err := list.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	var st StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(p[0].StaticExtra), &st))
+	require.Equal(t, []string{id}, st.BasePools)
+	tracker, _ := NewPoolTracker(nil, client)
+	tracked, err := tracker.GetNewPoolState(context.Background(), p[0], pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Equal(t, []string{"12500", "100000000"}, []string(tracked.Reserves), "50000 BOOMER of real quote = 12500 WETH")
+	_, err = NewPoolSimulator(tracked)
+	require.ErrorIs(t, err, ErrBasePool)
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 )
 
@@ -19,28 +20,23 @@ var (
 type Split struct{ Net, Rewards, Burn, Liquidity, Platform uint256.Int }
 
 // mulDiv preserves Solidity's 512-bit intermediate and checked uint256 result.
-func mulDiv(x, y, d *uint256.Int, up bool) (uint256.Int, error) {
-	var q, r uint256.Int
+func mulDiv(x, y, d *uint256.Int, up bool) (q uint256.Int, err error) {
 	if d.IsZero() {
 		return q, ErrMath
 	}
-	if _, overflow := q.MulDivOverflow(x, y, d); overflow {
-		return q, ErrMath
-	}
 	if up {
-		r.MulMod(x, y, d)
-		if !r.IsZero() {
-			if _, overflow := q.AddOverflow(&q, uint256.NewInt(1)); overflow {
-				return q, ErrMath
-			}
+		if v3Utils.MulDivRoundingUpV2(x, y, d, &q) != nil {
+			return q, ErrMath
 		}
+	} else if _, overflow := q.MulDivOverflow(x, y, d); overflow {
+		return q, ErrMath
 	}
 	return q, nil
 }
 func ratio(x *uint256.Int, n, d uint64, up bool) (uint256.Int, error) {
-	return mulDiv(x, uint256.NewInt(n), uint256.NewInt(d), up)
+	var nn, dd uint256.Int
+	return mulDiv(x, nn.SetUint64(n), dd.SetUint64(d), up)
 }
-
 func BuyPlatform(gross *uint256.Int, protocol uint32) (uint256.Int, error) {
 	if protocol > 1000 {
 		return uint256.Int{}, ErrProtocol

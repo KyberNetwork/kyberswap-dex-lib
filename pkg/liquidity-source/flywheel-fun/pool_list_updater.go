@@ -3,6 +3,7 @@ package flywheelfun
 import (
 	"context"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,6 +36,10 @@ func NewPoolsListUpdater(c *Config, r *ethrpc.Client) *PoolsListUpdater {
 	}
 	if cfg.DexID == "" {
 		cfg.DexID = DexType
+	}
+	cfg.QuoteBasePools = make(map[string]string, len(c.QuoteBasePools))
+	for quote, id := range c.QuoteBasePools {
+		cfg.QuoteBasePools[strings.ToLower(quote)] = strings.ToLower(id)
 	}
 	return &PoolsListUpdater{config: cfg, rpc: r}
 }
@@ -105,7 +110,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadata []byte) ([]
 			return nil, metadata, ErrState
 		}
 		address := hexutil.Encode(a[:])
-		s, _ := json.Marshal(StaticExtra{Factory: Factory, Settlement: Settlement, Quote: hexutil.Encode(quotes[i][:])})
+		st := StaticExtra{Factory: Factory, Settlement: Settlement, Quote: hexutil.Encode(quotes[i][:])}
+		if id := u.config.QuoteBasePools[st.Quote]; id != "" {
+			st.BasePools = []string{id}
+		}
+		s, _ := json.Marshal(st)
 		pools = append(pools, entity.Pool{Address: address, Exchange: u.config.DexID, Type: DexType, Timestamp: int64(head.Time), Tokens: []*entity.PoolToken{{Address: WETH, Swappable: true}, {Address: address, Swappable: true}}, Reserves: entity.PoolReserves{"0", "0"}, StaticExtra: string(s)})
 	}
 	out, err := json.Marshal(listCursor{Offset: cursor.Offset + size, Block: head.Number.Uint64(), Hash: head.Hash()})
