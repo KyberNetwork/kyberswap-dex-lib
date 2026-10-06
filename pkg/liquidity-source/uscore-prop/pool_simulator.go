@@ -5,17 +5,23 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
-	*ladder.PoolSimulator
-	consumedIn, consumedOut [2]float64
+	pool.Pool
+	extra    Extra
+	slopes   [2][][2]uint256.Int
+	reserves [2]uint256.Int
+	// consumedIn/Out accumulate swaps per direction so a split route walks the same curve.
+	consumedIn, consumedOut [2]uint256.Int
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -25,26 +31,43 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 }
 
 func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator, error) {
-	base, err := ladder.NewPoolSimulatorWith(ep, maxAge)
-	if err != nil {
+	if time.Since(time.Unix(ep.Timestamp, 0)) > maxAge {
+		return nil, ladder.ErrStale
+	}
+	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 {
+		return nil, ErrInvalidState
+	}
+	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{
+		Address:     ep.Address,
+		Exchange:    ep.Exchange,
+		Type:        ep.Type,
+		Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
+		Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignum.NewBig(r) }),
+		BlockNumber: ep.BlockNumber,
+	}}}
+	if err := json.Unmarshal([]byte(ep.Extra), &s.extra); err != nil {
 		return nil, err
 	}
-	for _, points := range base.Extra.Ladders {
-		lastIn, lastOut := 0.0, 0.0
-		for _, point := range points {
-			if !finite(point.AmountIn()) || !finite(point.AmountOut()) || point.AmountIn() <= lastIn || point.AmountOut() <= 0 || point.AmountOut() < lastOut {
-				return nil, ErrInvalidState
-			}
-			lastIn, lastOut = point.AmountIn(), point.AmountOut()
+	for i, r := range ep.Reserves {
+		if err := s.reserves[i].SetFromDecimal(r); err != nil {
+			return nil, err
 		}
 	}
-	base.Gas = defaultGas
-	return &PoolSimulator{PoolSimulator: base}, nil
+	for dir, points := range s.extra.Ladders {
+		for i, p := range points {
+			if p[0] == nil || p[1] == nil || p[0].IsZero() || p[1].IsZero() || p[0].Gt(maxPoint) || p[1].Gt(maxPoint) ||
+				i > 0 && (!p[0].Gt(points[i-1][0]) || p[1].Lt(points[i-1][1])) {
+				return nil, ErrInvalidState
+			}
+		}
+		s.slopes[dir] = segmentSlopes(points)
+	}
+	return s, nil
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.PoolSimulator = s.PoolSimulator.CloneState().(*ladder.PoolSimulator)
+	cloned.Info.Reserves = []*big.Int{new(big.Int).Set(s.Info.Reserves[0]), new(big.Int).Set(s.Info.Reserves[1])}
 	return &cloned
 }
 
@@ -56,61 +79,53 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ladder.ErrZeroAmountIn
 	}
-	amount, _ := params.TokenAmountIn.Amount.Float64()
-	totalIn := s.consumedIn[in] + amount
-	if totalIn <= s.consumedIn[in] {
-		return nil, ladder.ErrNoQuote
+	var total, amountOut uint256.Int
+	if total.SetFromBig(params.TokenAmountIn.Amount) {
+		return nil, ladder.ErrAmountInTooLarge
 	}
-	total, err := interpolate(s.Extra.Ladders[in], totalIn)
-	if err != nil {
+	if _, overflow := total.AddOverflow(&total, &s.consumedIn[in]); overflow {
+		return nil, ladder.ErrAmountInTooLarge
+	}
+	if err := interpolate(s.extra.Ladders[in], s.slopes[in], &total, &amountOut); err != nil {
 		return nil, err
 	}
-	value := total - s.consumedOut[in]
-	if !finite(value) || value <= 0 {
+	if !amountOut.Gt(&s.consumedOut[in]) {
 		return nil, ladder.ErrNoQuote
 	}
-	output, _ := big.NewFloat(value).Int(nil)
-	if output.Sign() <= 0 {
-		return nil, ladder.ErrNoQuote
-	}
-	reserve := s.Reserve1
-	if in == 1 {
-		reserve = s.Reserve0
-	}
-	if output.Cmp(reserve.ToBig()) > 0 {
+	if amountOut.Sub(&amountOut, &s.consumedOut[in]).Gt(&s.reserves[out]) {
 		return nil, ladder.ErrInsufficientLiquidity
 	}
-	if params.Limit != nil && output.Cmp(params.Limit.GetLimit(params.TokenOut)) > 0 {
-		return nil, pool.ErrNotEnoughInventory
-	}
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: output},
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
-		Gas:            s.Gas,
+		Gas:            defaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	in, out := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
-	if in < 0 || out < 0 || in == out || params.TokenAmountIn.Amount == nil || params.TokenAmountOut.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 || params.TokenAmountOut.Amount.Sign() <= 0 {
+	if in < 0 || out < 0 || in == out || params.TokenAmountIn.Amount == nil || params.TokenAmountOut.Amount == nil ||
+		params.TokenAmountIn.Amount.Sign() <= 0 || params.TokenAmountOut.Amount.Sign() <= 0 {
 		return
 	}
-	iu, io := uint256.FromBig(params.TokenAmountIn.Amount)
-	ou, oo := uint256.FromBig(params.TokenAmountOut.Amount)
-	if io || oo || iu == nil || ou == nil {
+	var amountIn, amountOut, reserveIn, consumedIn uint256.Int
+	if amountIn.SetFromBig(params.TokenAmountIn.Amount) || amountOut.SetFromBig(params.TokenAmountOut.Amount) ||
+		amountOut.Gt(&s.reserves[out]) {
 		return
 	}
-	reserveIn, reserveOut := s.Reserve0, s.Reserve1
-	if in == 1 {
-		reserveIn, reserveOut = reserveOut, reserveIn
-	}
-	var next uint256.Int
-	if _, overflow := next.AddOverflow(reserveIn, iu); overflow || ou.Gt(reserveOut) {
+	if _, overflow := reserveIn.AddOverflow(&s.reserves[in], &amountIn); overflow {
 		return
 	}
-	amount, _ := params.TokenAmountIn.Amount.Float64()
-	output, _ := params.TokenAmountOut.Amount.Float64()
-	s.consumedIn[in] += amount
-	s.consumedOut[in] += output
-	s.PoolSimulator.UpdateBalance(params)
+	if _, overflow := consumedIn.AddOverflow(&s.consumedIn[in], &amountIn); overflow {
+		return
+	}
+	s.consumedIn[in] = consumedIn
+	s.consumedOut[in].Add(&s.consumedOut[in], &amountOut)
+	s.reserves[in] = reserveIn
+	s.reserves[out].Sub(&s.reserves[out], &amountOut)
+	s.Info.Reserves[in], s.Info.Reserves[out] = s.reserves[in].ToBig(), s.reserves[out].ToBig()
+}
+
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return ladder.PoolMeta{BlockNumber: s.Info.BlockNumber}
 }

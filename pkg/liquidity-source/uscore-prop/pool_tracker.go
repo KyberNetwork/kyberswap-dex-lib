@@ -2,24 +2,28 @@ package uscoreprop
 
 import (
 	"context"
-	"math"
 	"math/big"
-	"sort"
+	"slices"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 type PoolTracker struct{ client *ethrpc.Client }
+
+// ABI decode targets; amounts are converted to uint256 right after decoding.
 type reservesResult struct{ ReserveQuote, ReserveBase *big.Int }
 type quoteResult struct {
 	AmountOut, Fee *big.Int
@@ -29,6 +33,18 @@ type ladderResult struct {
 	Outs, Fees []*big.Int
 	Status     uint8
 }
+
+// ladderQuote is a validated quoteLadder response: one output per sampled input.
+type ladderQuote struct {
+	outs   []*uint256.Int
+	status uint8
+}
+
+var (
+	refineSplits   = uint256.NewInt(8)
+	scoreThreshold = new(uint256.Int).Div(one, big256.U100000) // 0.00001
+	scoreCap       = new(uint256.Int).Lsh(big256.U1, maxShapeBits)
+)
 
 func NewPoolTracker(_ *Config, client *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{client: client}
@@ -48,15 +64,15 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides map[co
 	}
 	var seed reservesResult
 	var probes [2]quoteResult
-	var units [2]*big.Int
+	var units [2]*uint256.Int
 	req := t.client.R().SetContext(ctx).SetOverrides(overrides)
 	req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "getReserves"}, []any{&seed})
 	for i, token := range p.Tokens {
 		if token.Decimals > 38 || !common.IsHexAddress(token.Address) {
 			return p, ErrInvalidState
 		}
-		units[i] = new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(token.Decimals)), nil)
-		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "quoteExactIn", Params: []any{common.HexToAddress(token.Address), units[i]}}, []any{&probes[i]})
+		units[i] = big256.TenPow(token.Decimals)
+		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "quoteExactIn", Params: []any{common.HexToAddress(token.Address), units[i].ToBig()}}, []any{&probes[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		return p, err
@@ -64,55 +80,48 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides map[co
 	if seed.ReserveQuote == nil || seed.ReserveBase == nil {
 		return p, ErrInvalidState
 	}
-	seedReserves := [2]*big.Int{seed.ReserveQuote, seed.ReserveBase}
-	var points [2][]*big.Int
+	seedReserves := [2]*uint256.Int{uint256.MustFromBig(seed.ReserveQuote), uint256.MustFromBig(seed.ReserveBase)}
+	var points [2][]*uint256.Int
 	for i := range 2 {
-		basis := seedReserves[i]
-		var minimum *big.Int
-		if seedReserves[1-i].Sign() > 0 && probes[i].Status == 3 {
+		var basis uint256.Int
+		basis.Set(seedReserves[i])
+		var minimum *uint256.Int
+		if !seedReserves[1-i].IsZero() && probes[i].Status == 3 {
 			rateIn, rateOut, low, err := t.smallerProbe(ctx, p.Address, p.Tokens[i].Address, units[i], overrides)
 			if err != nil {
 				return p, err
 			}
 			if rateOut != nil {
 				minimum = low
-				basis = new(big.Int).Mul(seedReserves[1-i], rateIn)
-				basis.Div(basis, rateOut)
+				mulDivCapped(&basis, seedReserves[1-i], rateIn, rateOut)
 			}
 		}
 		if probes[i].Status == 0 && probes[i].AmountOut != nil && probes[i].AmountOut.Sign() > 0 {
-			basis = new(big.Int).Mul(seedReserves[1-i], units[i])
-			basis.Div(basis, probes[i].AmountOut)
+			mulDivCapped(&basis, seedReserves[1-i], units[i], uint256.MustFromBig(probes[i].AmountOut))
 		}
-		maxInput := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
-		if basis.Cmp(maxInput) > 0 {
-			basis = maxInput
+		if basis.Gt(maxPoint) {
+			basis.Set(maxPoint)
 		}
-		points[i] = ladder.BuildSamplePointsN(basis, ladder.SampleSize)
+		points[i] = big256.MustFromBigs(ladder.BuildSamplePointsN(basis.ToBig(), ladder.SampleSize))
 		if minimum != nil {
-			filtered := []*big.Int{minimum}
-			for _, amount := range points[i] {
-				if amount.Cmp(minimum) > 0 {
-					filtered = append(filtered, amount)
-				}
-			}
-			points[i] = filtered
+			points[i] = append([]*uint256.Int{minimum}, slices.DeleteFunc(points[i], func(x *uint256.Int) bool { return !x.Gt(minimum) })...)
 		}
 	}
 
 	var reserves reservesResult
-	var quotes [2]ladderResult
-	var timestamp *big.Int
-	var blockNumber *big.Int
-	var ladders [2][]ladder.Point
+	var results [2]ladderResult
+	var quotes [2]ladderQuote
+	var timestamp, blockNumber *big.Int
+	var ladders [2][]Point
 	for round := 0; ; round++ {
-		reserves, quotes, timestamp = reservesResult{}, [2]ladderResult{}, nil
+		reserves, results, timestamp = reservesResult{}, [2]ladderResult{}, nil
 		req = t.client.R().SetContext(ctx).SetOverrides(overrides)
 		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "getReserves"}, []any{&reserves})
 		req.AddCall(&ethrpc.Call{ABI: clockABI, Target: multicall3, Method: "getCurrentBlockTimestamp"}, []any{&timestamp})
 		for i := range 2 {
 			if len(points[i]) > 0 {
-				req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "quoteLadder", Params: []any{common.HexToAddress(p.Tokens[i].Address), points[i]}}, []any{&quotes[i]})
+				amounts := lo.Map(points[i], func(x *uint256.Int, _ int) *big.Int { return x.ToBig() })
+				req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "quoteLadder", Params: []any{common.HexToAddress(p.Tokens[i].Address), amounts}}, []any{&results[i]})
 			}
 		}
 		resp, err := req.Aggregate()
@@ -124,10 +133,10 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides map[co
 		}
 		blockNumber = resp.BlockNumber
 		for i := range 2 {
-			ladders[i], err = collectQuotes(points[i], quotes[i])
-			if err != nil {
+			if quotes[i], err = toLadderQuote(points[i], results[i]); err != nil {
 				return p, err
 			}
+			ladders[i] = collectQuotes(points[i], quotes[i])
 		}
 		if round == maxRefinementRounds {
 			break
@@ -138,7 +147,7 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides map[co
 			if round == 2 || len(refined) <= len(points[i]) {
 				refined = refineCurve(points[i], quotes[i])
 			}
-			if len(refined) > len(points[i]) {
+			if refined != nil && !slices.EqualFunc(refined, points[i], (*uint256.Int).Eq) {
 				points[i], changed = refined, true
 			}
 		}
@@ -146,7 +155,7 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides map[co
 			break
 		}
 	}
-	extra, err := json.Marshal(ladder.Extra{Ladders: ladders})
+	extra, err := json.Marshal(Extra{Ladders: ladders, Time: timestamp.Int64()})
 	if err != nil {
 		return p, err
 	}
@@ -157,27 +166,37 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides map[co
 	return p, nil
 }
 
-func refineUpper(points []*big.Int, result ladderResult) []*big.Int {
-	if result.Status != 3 || len(points) >= maxSamplePoints {
+// mulDivCapped sets z = x*y/d, or maxPoint when that overflows.
+func mulDivCapped(z, x, y, d *uint256.Int) {
+	if _, overflow := z.MulDivOverflow(x, y, d); overflow {
+		z.Set(maxPoint)
+	}
+}
+
+// refineUpper bisects the gap where a partial (status 3) ladder first fails, to find how far the
+// pool can actually quote.
+func refineUpper(points []*uint256.Int, q ladderQuote) []*uint256.Int {
+	if q.status != 3 || len(points) >= maxSamplePoints {
 		return nil
 	}
-	for i, out := range result.Outs {
-		if out != nil && out.Sign() > 0 {
-			if i > 0 && out.Cmp(result.Outs[i-1]) < 0 {
+	for i, out := range q.outs {
+		if !out.IsZero() {
+			if i > 0 && out.Lt(q.outs[i-1]) {
 				return nil
 			}
 			continue
 		}
-		if i == 0 || i >= len(points) {
+		if i == 0 {
 			return nil
 		}
 		lo, hi := points[i-1], points[i]
-		gap := new(big.Int).Sub(hi, lo)
-		refined := append([]*big.Int(nil), points[:i]...)
-		for n := int64(1); n < 8 && len(refined)+len(points)-i < maxSamplePoints; n++ {
-			x := new(big.Int).Mul(gap, big.NewInt(n))
-			x.Div(x, big.NewInt(8)).Add(x, lo)
-			if x.Cmp(refined[len(refined)-1]) > 0 && x.Cmp(hi) < 0 {
+		var gap, n uint256.Int
+		gap.Sub(hi, lo)
+		refined := append([]*uint256.Int(nil), points[:i]...)
+		for k := uint64(1); k < 8 && len(refined)+len(points)-i < maxSamplePoints; k++ {
+			x := new(uint256.Int)
+			x.MulDivOverflow(&gap, n.SetUint64(k), refineSplits)
+			if x.Add(x, lo).Gt(refined[len(refined)-1]) && x.Lt(hi) {
 				refined = append(refined, x)
 			}
 		}
@@ -186,49 +205,70 @@ func refineUpper(points []*big.Int, result ladderResult) []*big.Int {
 	return nil
 }
 
-func refineCurve(points []*big.Int, result ladderResult) []*big.Int {
-	if len(points) == 0 || (result.Status != 0 && result.Status != 3) {
+// refineCurve spends the remaining sample budget on segments whose rate differs most from their
+// neighbours'. score = |rate_i - rate_j| * width_i / out_i = |delta_i - delta_j*width_i/width_j| / out_i,
+// kept in fixed point.
+func refineCurve(points []*uint256.Int, q ladderQuote) []*uint256.Int {
+	if len(points) == 0 || (q.status != 0 && q.status != 3) {
 		return nil
 	}
-	refined := append([]*big.Int(nil), points...)
 	type segment struct {
-		lo, hi                  *big.Int
-		width, rate, out, score float64
-		parts                   int
+		lo, hi, out         *uint256.Int
+		width, delta, score uint256.Int // delta is signed
+		parts               uint64
 	}
 	var segments []segment
-	for i, out := range result.Outs {
-		if out == nil || out.Sign() <= 0 {
+	for i, out := range q.outs {
+		if out.IsZero() || out.Gt(maxPoint) {
 			break
 		}
-		lo, prev := big.NewInt(0), big.NewInt(0)
+		lo, prev := big256.U0, big256.U0
 		if i > 0 {
-			lo, prev = points[i-1], result.Outs[i-1]
+			lo, prev = points[i-1], q.outs[i-1]
 		}
-		width, _ := new(big.Int).Sub(points[i], lo).Float64()
-		delta, _ := new(big.Int).Sub(out, prev).Float64()
-		value, _ := out.Float64()
-		segments = append(segments, segment{lo: lo, hi: points[i], width: width, rate: delta / width, out: value, parts: 1})
-		if delta < 0 {
+		segments = append(segments, segment{lo: lo, hi: points[i], out: out, parts: 1})
+		s := &segments[len(segments)-1]
+		s.width.Sub(points[i], lo)
+		if s.delta.Sub(out, prev).Sign() < 0 {
 			break
 		}
 	}
+	// Samples past the first zero or decreasing output never reach the ladder: keep that first one
+	// as the upper bound and give their budget to the curve.
+	end := len(segments) + 1
+	if len(segments) > 0 && segments[len(segments)-1].delta.Sign() < 0 {
+		end--
+	}
+	points = points[:min(end, len(points))]
+	var scaled, diff, score uint256.Int
 	for i := range segments {
 		s := &segments[i]
+		if i == 0 || s.width.CmpUint64(2) < 0 {
+			continue
+		}
 		for _, j := range []int{i - 1, i + 1} {
-			if j >= 0 && j < len(segments) {
-				s.score = math.Max(s.score, math.Abs(s.rate-segments[j].rate)*s.width/s.out)
+			if j >= len(segments) {
+				continue
+			}
+			if !mulDiv(&scaled, &segments[j].delta, &s.width, &segments[j].width) {
+				s.score.Set(scoreCap)
+				break
+			}
+			abs(&diff, diff.Sub(&s.delta, &scaled))
+			if _, overflow := score.MulDivOverflow(&diff, one, s.out); overflow || score.Gt(scoreCap) {
+				score.Set(scoreCap)
+			}
+			if score.Gt(&s.score) {
+				s.score.Set(&score)
 			}
 		}
-		if i == 0 || new(big.Int).Sub(s.hi, s.lo).Cmp(big.NewInt(2)) < 0 {
-			s.score = 0
-		}
 	}
-	budget := maxSamplePoints - len(points)
+	budget := uint64(maxSamplePoints - len(points))
 	for budget > 0 {
 		best := -1
-		for i, s := range segments {
-			if s.parts <= budget && s.score > 0.00001 && (best < 0 || s.score > segments[best].score) {
+		for i := range segments {
+			s := &segments[i]
+			if s.parts <= budget && s.score.Gt(scoreThreshold) && (best < 0 || s.score.Gt(&segments[best].score)) {
 				best = i
 			}
 		}
@@ -238,32 +278,29 @@ func refineCurve(points []*big.Int, result ladderResult) []*big.Int {
 		s := &segments[best]
 		budget -= s.parts
 		s.parts *= 2
-		s.score /= 4
+		s.score.Rsh(&s.score, 2)
 	}
-	for _, s := range segments {
-		gap := new(big.Int).Sub(s.hi, s.lo)
-		for n := 1; n < s.parts; n++ {
-			x := new(big.Int).Mul(gap, big.NewInt(int64(n)))
-			x.Div(x, big.NewInt(int64(s.parts))).Add(x, s.lo)
-			if x.Cmp(s.lo) > 0 && x.Cmp(s.hi) < 0 {
+	refined := append([]*uint256.Int(nil), points...)
+	var n, parts uint256.Int
+	for i := range segments {
+		s := &segments[i]
+		parts.SetUint64(s.parts)
+		for k := uint64(1); k < s.parts; k++ {
+			x := new(uint256.Int)
+			x.MulDivOverflow(&s.width, n.SetUint64(k), &parts)
+			if x.Add(x, s.lo).Gt(s.lo) && x.Lt(s.hi) {
 				refined = append(refined, x)
 			}
 		}
 	}
-	sort.Slice(refined, func(i, j int) bool { return refined[i].Cmp(refined[j]) < 0 })
-	deduped := refined[:0]
-	for _, x := range refined {
-		if len(deduped) == 0 || x.Cmp(deduped[len(deduped)-1]) > 0 {
-			deduped = append(deduped, x)
-		}
-	}
-	return deduped
+	slices.SortFunc(refined, func(a, b *uint256.Int) int { return a.Cmp(b) })
+	return slices.CompactFunc(refined, func(a, b *uint256.Int) bool { return a.Eq(b) })
 }
 
-func (t *PoolTracker) smallerProbe(ctx context.Context, address, token string, unit *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (rateIn, rateOut, minimum *big.Int, err error) {
-	var amounts []*big.Int
-	for amount := new(big.Int).Rsh(new(big.Int).Set(unit), 1); amount.Sign() > 0; amount.Rsh(amount, 1) {
-		amounts = append(amounts, new(big.Int).Set(amount))
+func (t *PoolTracker) smallerProbe(ctx context.Context, address, token string, unit *uint256.Int, overrides map[common.Address]gethclient.OverrideAccount) (rateIn, rateOut, minimum *uint256.Int, err error) {
+	var amounts []*uint256.Int
+	for amount := new(uint256.Int).Rsh(unit, 1); !amount.IsZero(); amount = new(uint256.Int).Rsh(amount, 1) {
+		amounts = append(amounts, amount)
 	}
 	if len(amounts) == 0 {
 		return nil, nil, nil, nil
@@ -271,7 +308,7 @@ func (t *PoolTracker) smallerProbe(ctx context.Context, address, token string, u
 	results := make([]quoteResult, len(amounts))
 	req := t.client.R().SetContext(ctx).SetOverrides(overrides)
 	for i, amount := range amounts {
-		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: address, Method: "quoteExactIn", Params: []any{common.HexToAddress(token), amount}}, []any{&results[i]})
+		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: address, Method: "quoteExactIn", Params: []any{common.HexToAddress(token), amount.ToBig()}}, []any{&results[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		return nil, nil, nil, err
@@ -279,7 +316,7 @@ func (t *PoolTracker) smallerProbe(ctx context.Context, address, token string, u
 	for i, result := range results {
 		if result.Status == 0 && result.AmountOut != nil && result.AmountOut.Sign() > 0 {
 			if rateIn == nil {
-				rateIn, rateOut = amounts[i], result.AmountOut
+				rateIn, rateOut = amounts[i], uint256.MustFromBig(result.AmountOut)
 			}
 			minimum = amounts[i]
 		}
@@ -287,20 +324,28 @@ func (t *PoolTracker) smallerProbe(ctx context.Context, address, token string, u
 	return rateIn, rateOut, minimum, nil
 }
 
-func collectQuotes(points []*big.Int, result ladderResult) ([]ladder.Point, error) {
+// toLadderQuote validates a quoteLadder response against the sampled inputs.
+func toLadderQuote(points []*uint256.Int, result ladderResult) (ladderQuote, error) {
 	if len(points) == 0 {
-		return nil, nil
+		return ladderQuote{}, nil
 	}
-	if result.Status > 5 || len(result.Outs) != len(points) || len(result.Fees) != len(points) {
-		return nil, ErrInvalidState
+	if result.Status > 5 || len(result.Outs) != len(points) || len(result.Fees) != len(points) || slices.Contains(result.Outs, nil) {
+		return ladderQuote{}, ErrInvalidState
 	}
-	if result.Status != 0 && result.Status != 3 {
-		return nil, nil
+	return ladderQuote{outs: big256.MustFromBigs(result.Outs), status: result.Status}, nil
+}
+
+// collectQuotes keeps the quotable prefix: it stops at the first zero, decreasing or oversized output.
+func collectQuotes(points []*uint256.Int, q ladderQuote) []Point {
+	if q.status != 0 && q.status != 3 {
+		return nil
 	}
-	for i, out := range result.Outs {
-		if out == nil || out.Sign() <= 0 || (i > 0 && out.Cmp(result.Outs[i-1]) < 0) {
-			return ladder.CollectLadder(points[:i], result.Outs[:i]), nil
+	curve := make([]Point, 0, len(q.outs))
+	for i, out := range q.outs {
+		if out.IsZero() || out.Gt(maxPoint) || i > 0 && out.Lt(q.outs[i-1]) {
+			break
 		}
+		curve = append(curve, Point{points[i], out})
 	}
-	return ladder.CollectLadder(points, result.Outs), nil
+	return curve
 }

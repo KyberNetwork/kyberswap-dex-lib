@@ -24,6 +24,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const testPool = "0xed2ef1b02f2d82d238d6af17e6404a4977b0fefa"
@@ -194,7 +195,7 @@ func TestTrackerSmallSingleSidedPool(t *testing.T) {
 				}
 				require.GreaterOrEqual(t, count, minimumCalls)
 				require.LessOrEqual(t, count, minimumCalls+maxRefinementRounds)
-				var extra ladder.Extra
+				var extra Extra
 				require.NoError(t, json.Unmarshal([]byte(tracked.Extra), &extra))
 				require.Empty(t, extra.Ladders[0])
 				require.NotEmpty(t, extra.Ladders[1])
@@ -280,16 +281,16 @@ func TestTrackerAtomicStatePartialLadderAndOverrides(t *testing.T) {
 		Overrides: map[common.Address]gethclient.OverrideAccount{common.HexToAddress(testPool): {Nonce: 1}},
 	})
 	require.NoError(t, err)
-	require.Equal(t, 4, count)
+	require.Equal(t, 5, count)
 	require.True(t, overrides)
-	require.Equal(t, uint64(103), p.BlockNumber)
-	require.Equal(t, int64(1_800_000_003), p.Timestamp)
+	require.Equal(t, uint64(104), p.BlockNumber)
+	require.Equal(t, int64(1_800_000_004), p.Timestamp)
 	require.Equal(t, entity.PoolReserves{"900", "1100"}, p.Reserves)
-	var extra ladder.Extra
+	var extra Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	for _, points := range extra.Ladders {
 		require.NotEmpty(t, points)
-		require.Equal(t, float64(300), points[len(points)-1].AmountIn())
+		require.Equal(t, uint64(300), points[len(points)-1][0].Uint64())
 	}
 	s, err := NewPoolSimulatorWith(p, math.MaxInt64)
 	require.NoError(t, err)
@@ -304,7 +305,7 @@ func TestTrackerAtomicStatePartialLadderAndOverrides(t *testing.T) {
 	second, err := s.CalcAmountOut(q)
 	require.NoError(t, err)
 	require.Equal(t, first.TokenAmountOut.Amount, second.TokenAmountOut.Amount)
-	require.Equal(t, ladder.PoolMeta{BlockNumber: 103}, s.GetMetaInfo(testQuote, testBase))
+	require.Equal(t, ladder.PoolMeta{BlockNumber: 104}, s.GetMetaInfo(testQuote, testBase))
 	q.TokenAmountIn.Amount = big.NewInt(290)
 	large, err := s.CalcAmountOut(q)
 	require.NoError(t, err)
@@ -317,7 +318,7 @@ func TestTrackerAtomicStatePartialLadderAndOverrides(t *testing.T) {
 func TestTrackerPausedClearsLadders(t *testing.T) {
 	p, err := NewPoolTracker(&Config{}, mockRPC(t, true, false, nil, nil)).GetNewPoolState(t.Context(), testEntity(), pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
-	var extra ladder.Extra
+	var extra Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	require.Empty(t, extra.Ladders[0])
 	require.Empty(t, extra.Ladders[1])
@@ -328,8 +329,13 @@ func TestTrackerPausedClearsLadders(t *testing.T) {
 }
 
 func TestCollectQuotesRejectsMalformedResponse(t *testing.T) {
-	_, err := collectQuotes([]*big.Int{big.NewInt(1)}, ladderResult{Status: 0})
-	require.ErrorIs(t, err, ErrInvalidState)
+	for _, result := range []ladderResult{
+		{}, {Status: 6, Outs: []*big.Int{big.NewInt(1)}, Fees: []*big.Int{big.NewInt(0)}},
+		{Outs: []*big.Int{nil}, Fees: []*big.Int{big.NewInt(0)}}, {Outs: []*big.Int{big.NewInt(1)}},
+	} {
+		_, err := toLadderQuote(testAmounts(1), result)
+		require.ErrorIs(t, err, ErrInvalidState)
+	}
 }
 
 func TestLiveUSCore(t *testing.T) {
@@ -359,7 +365,7 @@ func TestLiveUSCore(t *testing.T) {
 
 func compareLiveQuotes(t *testing.T, client *ethrpc.Client, p entity.Pool) {
 	t.Helper()
-	var old ladder.Extra
+	var old Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &old))
 	var samples, probes [2][]*big.Int
 	var sampled, exact [2]ladderResult
@@ -370,8 +376,7 @@ func compareLiveQuotes(t *testing.T, client *ethrpc.Client, p entity.Pool) {
 	req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "getReserves"}, []any{&reserves})
 	for dir := range 2 {
 		for _, point := range old.Ladders[dir] {
-			amount, _ := big.NewFloat(point.AmountIn()).Int(nil)
-			samples[dir] = append(samples[dir], amount)
+			samples[dir] = append(samples[dir], point[0].ToBig())
 		}
 		for i := 0; i < len(samples[dir]); i++ {
 			lo, hi := big.NewInt(0), samples[dir][i]
@@ -391,7 +396,7 @@ func compareLiveQuotes(t *testing.T, client *ethrpc.Client, p entity.Pool) {
 		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "quoteLadder", Params: []any{token, samples[dir]}}, []any{&sampled[dir]})
 		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "quoteLadder", Params: []any{token, probes[dir]}}, []any{&exact[dir]})
 		unit := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(p.Tokens[dir].Decimals)), nil)
-		checks[dir] = testAmounts(1, 10, 100)
+		checks[dir] = []*big.Int{big.NewInt(1), big.NewInt(10), big.NewInt(100)}
 		for _, divisor := range []int64{1_000_000, 10_000, 100, 10} {
 			checks[dir] = append(checks[dir], new(big.Int).Div(unit, big.NewInt(divisor)))
 		}
@@ -412,10 +417,12 @@ func compareLiveQuotes(t *testing.T, client *ethrpc.Client, p entity.Pool) {
 	}
 	resp, err := req.Aggregate()
 	require.NoError(t, err)
-	var extra ladder.Extra
+	var extra Extra
 	for dir := range 2 {
-		extra.Ladders[dir], err = collectQuotes(samples[dir], sampled[dir])
+		points := big256.MustFromBigs(samples[dir])
+		q, err := toLadderQuote(points, sampled[dir])
 		require.NoError(t, err)
+		extra.Ladders[dir] = collectQuotes(points, q)
 	}
 	b, err := json.Marshal(extra)
 	require.NoError(t, err)
@@ -438,7 +445,7 @@ func compareLiveQuotes(t *testing.T, client *ethrpc.Client, p entity.Pool) {
 				require.ErrorIs(t, err, ladder.ErrAmountInTooLarge)
 				points := extra.Ladders[dir]
 				require.NotEmpty(t, points)
-				best, _ := big.NewFloat(points[len(points)-1].AmountOut()).Int(nil)
+				best := points[len(points)-1][1].ToBig()
 				bound := new(big.Int).Div(best, big.NewInt(1_000))
 				bound.Add(bound, best).Add(bound, big.NewInt(1))
 				require.LessOrEqual(t, actual.Cmp(bound), 0, "productive input omitted: pool=%s direction=%d amountIn=%s", p.Address, dir, amount)
