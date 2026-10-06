@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -85,7 +84,7 @@ func newFakeFeed(t *testing.T, token string) *fakeFeed {
 		}
 	}))
 	t.Cleanup(func() {
-		if v, ok := feeds.LoadAndDelete(feedKey(f.settings(), hexAddr(testProxy))); ok {
+		if v, ok := feeds.LoadAndDelete(feedKey(f.url(), 8453, hexAddr(testProxy))); ok {
 			v.(*feedClient).close()
 		}
 		f.dropAll()
@@ -96,10 +95,13 @@ func newFakeFeed(t *testing.T, token string) *fakeFeed {
 
 func (f *fakeFeed) url() string { return "ws" + strings.TrimPrefix(f.srv.URL, "http") }
 
-func (f *fakeFeed) settings() FeedSettings {
+// config is a tracker config for this feed with long freshness windows, so
+// only a test's own changes stop quoting.
+func (f *fakeFeed) config() *Config {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return FeedSettings{URL: f.url(), AuthToken: f.token, ChainID: 8453}
+	return &Config{DexID: DexType, ChainID: 8453, Address: hexAddr(testProxy),
+		Feed: FeedConfig{URL: f.url(), AuthToken: f.token, FreshMs: 60_000, MaxAgeMs: 60_000}}
 }
 
 func (f *fakeFeed) setToken(token string) {
@@ -161,27 +163,44 @@ func snapshotFrame(seq uint64, rate0, rate1 float64) feedMessage {
 	}
 }
 
-// testPool is a (USDC, WETH) pool as the tracker would persist it.
-func testPool(t *testing.T, feed FeedSettings, timestamp int64) entity.Pool {
+// testPool is a freshly discovered (USDC, WETH) pool.
+func testPool(t *testing.T) entity.Pool {
 	t.Helper()
-	extra, err := json.Marshal(Extra{Feed: feed})
-	require.NoError(t, err)
 	staticExtra, err := json.Marshal(StaticExtra{Address: hexAddr(testProxy)})
 	require.NoError(t, err)
 	return entity.Pool{
 		Address:  poolAddress(testProxy, testUSDC, testWETH),
 		Exchange: DexType,
 		Type:     DexType,
-		Reserves: entity.PoolReserves{"1000000000", "1000000000"},
+		Reserves: entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
 			{Address: hexAddr(testUSDC), Decimals: 6, Swappable: true},
 			{Address: hexAddr(testWETH), Decimals: 18, Swappable: true},
 		},
-		Extra:       string(extra),
+		Extra:       "{}",
 		StaticExtra: string(staticExtra),
-		BlockNumber: 7,
-		Timestamp:   timestamp,
 	}
+}
+
+// btcPool is the (USDC, cbBTC) pool of the same proxy.
+func btcPool(t *testing.T) entity.Pool {
+	p := testPool(t)
+	p.Address = poolAddress(testProxy, testUSDC, testCBBTC)
+	p.Tokens[1] = &entity.PoolToken{Address: hexAddr(testCBBTC), Decimals: 8, Swappable: true}
+	return p
+}
+
+// pooledState is a pool as the tracker writes it from a snapshot received
+// age ago, with fresh window freshMs, decay decayBps and max age maxAgeMs.
+func pooledState(t *testing.T, ladders [2][]ladder.Point, reserves entity.PoolReserves, age time.Duration,
+	freshMs, maxAgeMs, decayBps int64) entity.Pool {
+	t.Helper()
+	p := testPool(t)
+	extra, err := json.Marshal(Extra{Extra: ladder.Extra{Ladders: ladders},
+		ReceivedAtMs: time.Now().Add(-age).UnixMilli(), FreshMs: freshMs, MaxAgeMs: maxAgeMs, DecayBps: decayBps})
+	require.NoError(t, err)
+	p.Extra, p.Reserves, p.BlockNumber = string(extra), reserves, 1001
+	return p
 }
 
 // ---------------------------------------------------------------------------
@@ -246,8 +265,4 @@ func (c *fakeChain) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		resp["result"] = hexutil.Encode(out)
 	}
 	_ = json.NewEncoder(w).Encode(resp)
-}
-
-func reserves1e9() [2]*uint256.Int {
-	return [2]*uint256.Int{uint256.NewInt(1e9), uint256.NewInt(1e9)}
 }

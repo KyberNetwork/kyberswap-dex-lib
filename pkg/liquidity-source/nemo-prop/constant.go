@@ -18,7 +18,8 @@ const (
 
 	// defaultFeedFresh is how long a snapshot quotes undecayed. The feed
 	// server resends faster than this even when nothing changed, so an older
-	// snapshot means the feed is unhealthy and its quotes start decaying.
+	// snapshot means the feed (or the tracker refresh) is behind and its
+	// quotes start decaying.
 	defaultFeedFresh = time.Second
 
 	// defaultFeedMaxAge bounds how long after receipt a snapshot quotes at
@@ -35,9 +36,5 @@ const (
 )
 
 var (
-	// ErrNoFeed is returned when there is no quotable feed snapshot
-	// covering the pool's market. Nemo is quoted from its live feed only.
-	ErrNoFeed = errors.New("no quotable nemo feed snapshot")
-
 	ErrInvalidMarkets = errors.New("invalid getMarkets_v1 encoding")
 )

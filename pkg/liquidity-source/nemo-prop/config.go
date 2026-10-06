@@ -5,9 +5,8 @@ import (
 )
 
 // Config is the per-dex-id configuration, seen only by the lister and the
-// tracker. Router-side simulators never see it: the tracker copies the feed
-// settings into each pool's Extra, since simulators are built from pool
-// state alone.
+// tracker. The live feed runs in the tracker's process only; simulators are
+// built from the ladders and timing the tracker writes into pool state.
 type Config struct {
 	DexID   string              `json:"dexId"`
 	ChainID valueobject.ChainID `json:"chainId"`
@@ -23,9 +22,7 @@ type Config struct {
 
 	// DecayBps is how much quotes worsen per second once a snapshot is past
 	// Feed.FreshMs: outputs scale by 1/(1 + DecayBps/10000 * secondsStale).
-	// A dropped connection keeps its last snapshot, which decays until
-	// Feed.MaxAgeMs. 0 disables decay: quoting stops once the snapshot is no
-	// longer fresh.
+	// 0 disables decay: quoting stops once the snapshot is no longer fresh.
 	DecayBps int64 `json:"decayBps"`
 
 	Feed FeedConfig `json:"feed"`
@@ -35,9 +32,8 @@ type Config struct {
 type FeedConfig struct {
 	URL string `json:"url"`
 	// AuthToken is a read-only integrator key, sent only as an
-	// "Authorization: Bearer" handshake header. It travels to router
-	// processes inside pool state, so it must never grant more than read
-	// access to the feed.
+	// "Authorization: Bearer" handshake header. It stays in the tracker's
+	// config and never enters pool state.
 	AuthToken string `json:"authToken"`
 	// FreshMs is how long a snapshot quotes undecayed (default
 	// defaultFeedFresh). Decay (see Config.DecayBps) starts after it.
@@ -45,4 +41,20 @@ type FeedConfig struct {
 	// MaxAgeMs is how long after receipt a snapshot quotes at all, decayed
 	// or not (default defaultFeedMaxAge, or FreshMs if that's longer).
 	MaxAgeMs int64 `json:"maxAgeMs"`
+}
+
+func (c *Config) freshMs() int64 {
+	if c.Feed.FreshMs > 0 {
+		return c.Feed.FreshMs
+	}
+	return defaultFeedFresh.Milliseconds()
+}
+
+// maxAgeMs bounds how long after receipt a snapshot quotes at all. Unset, it
+// is defaultFeedMaxAge, or the fresh window if that's longer.
+func (c *Config) maxAgeMs() int64 {
+	if c.Feed.MaxAgeMs > 0 {
+		return c.Feed.MaxAgeMs
+	}
+	return max(defaultFeedMaxAge.Milliseconds(), c.freshMs())
 }

@@ -2,14 +2,12 @@ package nemoprop
 
 import (
 	"math"
-	"math/big"
 	"testing"
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestShapeLadder(t *testing.T) {
@@ -66,28 +64,6 @@ func TestValidateLadder(t *testing.T) {
 	} {
 		assert.ErrorIs(t, validateLadder(l), errInvalidLadder, name)
 	}
-}
-
-// 10. A direction with no quote delivers none of its output token, so that
-// reserve isn't reported as liquidity or as swap limit.
-func TestNewMarketState_ZeroesUnquotedReserves(t *testing.T) {
-	t.Parallel()
-	ladders := [2][]ladder.Point{{{1000, 2000}}, nil} // no market -> base quotes
-	state, err := newMarketState(hexAddr(testUSDC), hexAddr(testWETH), reserves1e9(), ladders, 7)
-	assert.NoError(t, err)
-
-	reserves, limits := state.GetReserves(), state.CalculateLimit()
-	assert.Equal(t, "0", reserves[0].String(), "base is unobtainable")
-	assert.Equal(t, "1000000000", reserves[1].String())
-	assert.Equal(t, "0", limits[hexAddr(testUSDC)].String())
-	assert.Equal(t, "1000000000", limits[hexAddr(testWETH)].String())
-
-	out, err := state.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: hexAddr(testUSDC), Amount: big.NewInt(500)},
-		TokenOut:      hexAddr(testWETH),
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1000), out.TokenAmountOut.Amount.Int64(), "the quoted direction still quotes")
 }
 
 func TestDeliverable(t *testing.T) {

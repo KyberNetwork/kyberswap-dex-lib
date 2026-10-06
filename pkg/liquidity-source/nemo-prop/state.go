@@ -4,10 +4,8 @@ import (
 	"errors"
 	"math"
 
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -80,29 +78,4 @@ func validateLadder(points []ladder.Point) error {
 		prevIn, prevOut = in, out
 	}
 	return nil
-}
-
-// newMarketState builds the immutable quoting state for one market from
-// already-shaped ladders and deliverable reserves. It is built once per feed
-// snapshot and shared by every quote on it, so callers must CloneState
-// before UpdateBalance. Like every ladder tracker, it zeroes the output
-// reserve of a direction with no quote: none of that token is obtainable.
-func newMarketState(base, market string, reserves [2]*uint256.Int, ladders [2][]ladder.Point,
-	blockNumber uint64) (*ladder.PoolSimulator, error) {
-	extraBytes, err := json.Marshal(ladder.Extra{Ladders: ladders})
-	if err != nil {
-		return nil, err
-	}
-	state, err := ladder.NewPoolSimulator(entity.Pool{
-		Type:        DexType,
-		Reserves:    ladder.ZeroUnquotedReserves(entity.PoolReserves{reserves[0].Dec(), reserves[1].Dec()}, ladders),
-		Tokens:      []*entity.PoolToken{{Address: base, Swappable: true}, {Address: market, Swappable: true}},
-		Extra:       string(extraBytes),
-		BlockNumber: blockNumber,
-	})
-	if err != nil {
-		return nil, err
-	}
-	state.Gas = defaultGas
-	return state, nil
 }

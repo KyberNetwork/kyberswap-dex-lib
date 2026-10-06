@@ -46,11 +46,11 @@ import (
 //	  {"v":1,"type":"unavailable","reason":"..."}
 //
 // Frames of any other type are ignored, so the server can add message types
-// without breaking routers that run an older version of this client.
+// without breaking pool-services that run an older version of this client.
 // Invalid frames and withdrawals clear the cached snapshot until the next
 // valid one. A disconnect keeps it: past the fresh window its quotes decay
 // (or stop, with decay disabled), and past the maximum age they stop. Both
-// are timed from receipt on the client's own clock.
+// are timed from receipt on the tracker's own clock.
 const (
 	feedProtocolVersion = 1
 
@@ -69,7 +69,7 @@ const (
 
 var (
 	errFeedInvalid   = errors.New("invalid feed frame")
-	errFeedReconnect = errors.New("feed settings rotated")
+	errFeedReconnect = errors.New("feed auth token rotated")
 )
 
 type (
@@ -111,62 +111,51 @@ type (
 	}
 )
 
-// feedSnapshot is one complete, coherent feed state with every market's
-// quoting state prebuilt, so quotes only do a map lookup. Immutable once
-// published.
+// feedSnapshot is one complete, coherent feed state: every market's raw,
+// validated ladders and the vault's deliverable inventory per token.
+// Immutable once published.
 type feedSnapshot struct {
 	seq         uint64
 	receivedAt  time.Time
 	blockNumber uint64
 	base        string
-	markets     map[string]*ladder.PoolSimulator
-
-	raw *feedMessage // kept to reshape on a buffer change
+	reserves    map[string]*uint256.Int
+	markets     map[string][2][]ladder.Point
 }
 
-// market returns the quoting state for (base, market), or nil if there is
-// no snapshot or it doesn't cover the market.
-func (s *feedSnapshot) market(base, market string) *ladder.PoolSimulator {
-	if s == nil || s.base != base {
-		return nil
+// snapshotMarket is one market's view of a snapshot: raw ladders in pool order
+// and the deliverable inventory of [base, asset].
+type snapshotMarket struct {
+	ladders  [2][]ladder.Point
+	reserves [2]*uint256.Int
+}
+
+// market returns (base, asset)'s ladders and inventory, and false if there
+// is no snapshot or it doesn't cover the market.
+func (s *feedSnapshot) market(base, asset string) (snapshotMarket, bool) {
+	if s == nil {
+		return snapshotMarket{}, false
 	}
-	return s.markets[market]
-}
-
-type versionedSettings struct {
-	FeedSettings
-	version int64
-}
-
-func (s *versionedSettings) freshWindow() time.Duration {
-	if s.FreshMs > 0 {
-		return time.Duration(s.FreshMs) * time.Millisecond
+	base, asset = strings.ToLower(base), strings.ToLower(asset)
+	ladders, ok := s.markets[asset]
+	if !ok || s.base != base {
+		return snapshotMarket{}, false
 	}
-	return defaultFeedFresh
-}
-
-// maxAge bounds how long after receipt a snapshot quotes at all, decayed or
-// not. Unset, it is defaultFeedMaxAge, or the fresh window if that's longer.
-func (s *versionedSettings) maxAge() time.Duration {
-	if s.MaxAgeMs > 0 {
-		return time.Duration(s.MaxAgeMs) * time.Millisecond
-	}
-	return max(defaultFeedMaxAge, s.freshWindow())
+	return snapshotMarket{ladders: ladders, reserves: [2]*uint256.Int{s.reserves[base], s.reserves[asset]}}, true
 }
 
 // feedClient is one persistent, authenticated connection, shared by every
-// tracker and simulator of a proxy in this process. Like angstrom's
-// AttestationController it lives for the whole process. Quotes only touch
-// the atomics; mu serializes writers.
+// tracker of a proxy in this process. Only trackers use it, so it runs in
+// pool-service and never in router processes. Like angstrom's
+// AttestationController it lives for the whole process.
 type feedClient struct {
 	url     string
 	chainID int64
 	proxy   string
 
-	settings atomic.Pointer[versionedSettings]
-	snapshot atomic.Pointer[feedSnapshot]
+	authToken atomic.Pointer[string]
+	snapshot  atomic.Pointer[feedSnapshot]
 
-	mu        sync.Mutex
 	reconnect chan struct{}
 	done      chan struct{}
 	closeOnce sync.Once
@@ -176,94 +165,51 @@ type feedClient struct {
 // feeds holds one *feedClient per feedKey for the process lifetime.
 var feeds sync.Map
 
-// feedKey identifies a shared connection. Empty means the feed is disabled.
-func feedKey(s FeedSettings, proxy string) string {
-	if s.URL == "" || proxy == "" {
-		return ""
-	}
-	return s.URL + "#" + strconv.FormatInt(s.ChainID, 10) + "#" + proxy
+func feedKey(url string, chainID int64, proxy string) string {
+	return url + "#" + strconv.FormatInt(chainID, 10) + "#" + proxy
 }
 
-// acquireFeed returns the process-wide client for key, starting its
-// connection on first use, and offers s (pool state written at version) as
-// possibly newer settings. It never blocks on the network.
-func acquireFeed(key string, s FeedSettings, proxy string, version int64) *feedClient {
-	if v, ok := feeds.Load(key); ok {
-		c := v.(*feedClient)
-		c.offer(s, version)
-		return c
+// acquireFeed returns the process-wide client for cfg's feed and proxy,
+// starting its connection on first use, or nil if no feed is configured.
+// A tracker built with a rotated auth token reconnects the shared client
+// with it. It never blocks on the network.
+func acquireFeed(cfg *Config) *feedClient {
+	if cfg.Feed.URL == "" || cfg.Address == "" {
+		return nil
 	}
+	proxy := strings.ToLower(cfg.Address)
+	key := feedKey(cfg.Feed.URL, int64(cfg.ChainID), proxy)
+	token := cfg.Feed.AuthToken
 
 	c := &feedClient{
-		url:       s.URL,
-		chainID:   s.ChainID,
+		url:       cfg.Feed.URL,
+		chainID:   int64(cfg.ChainID),
 		proxy:     proxy,
 		reconnect: make(chan struct{}, 1),
 		done:      make(chan struct{}),
 	}
-	c.settings.Store(&versionedSettings{FeedSettings: s, version: version})
+	c.authToken.Store(&token)
 	if v, loaded := feeds.LoadOrStore(key, c); loaded {
 		c = v.(*feedClient)
-		c.offer(s, version)
+		if old := c.authToken.Swap(&token); *old != token {
+			select {
+			case c.reconnect <- struct{}{}:
+			default:
+			}
+		}
 		return c
 	}
 	go c.run()
 	return c
 }
 
-// offer adopts s if it comes from fresher pool state than the current
-// settings, which is how a rotated auth token reaches every process.
-func (c *feedClient) offer(s FeedSettings, version int64) {
-	if cur := c.settings.Load(); cur.FeedSettings == s || version <= cur.version {
-		return
+// latest returns the newest valid snapshot, or nil. Lock-free; safe on a
+// nil client (no feed configured).
+func (c *feedClient) latest() *feedSnapshot {
+	if c == nil {
+		return nil
 	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	cur := c.settings.Load()
-	if cur.FeedSettings == s || version <= cur.version {
-		return
-	}
-	c.settings.Store(&versionedSettings{FeedSettings: s, version: version})
-
-	if s.AuthToken != cur.AuthToken {
-		select {
-		case c.reconnect <- struct{}{}:
-		default:
-		}
-	}
-	if s.Buffer != cur.Buffer {
-		if snap := c.snapshot.Load(); snap != nil {
-			reshaped, _ := buildFeedSnapshot(snap.raw, s.Buffer, snap.receivedAt)
-			// Swap, not store: the connection clears a withdrawn snapshot
-			// without taking mu, and that must not be undone here.
-			c.snapshot.CompareAndSwap(snap, reshaped)
-		}
-	}
-}
-
-// quotable returns the latest snapshot and its decay: DecayBps times the
-// milliseconds it is past the fresh window, 0 while fresh. It returns nil
-// past the maximum age, or past the fresh window with decay disabled.
-// Lock-free.
-func (c *feedClient) quotable(now time.Time) (*feedSnapshot, uint64) {
-	snap := c.snapshot.Load()
-	if snap == nil {
-		return nil, 0
-	}
-	settings := c.settings.Load()
-	age := now.Sub(snap.receivedAt)
-	if age >= settings.maxAge() {
-		return nil, 0
-	}
-	stale := age - settings.freshWindow()
-	if stale <= 0 {
-		return snap, 0
-	}
-	if settings.DecayBps <= 0 {
-		return nil, 0
-	}
-	return snap, uint64(settings.DecayBps) * uint64(stale.Milliseconds())
+	return c.snapshot.Load()
 }
 
 func (c *feedClient) clear() {
@@ -281,7 +227,7 @@ func (c *feedClient) log() logger.Logger {
 }
 
 // run reconnects forever with jittered exponential backoff. A session that
-// delivered a valid snapshot resets the backoff; a settings rotation
+// delivered a valid snapshot resets the backoff; an auth token rotation
 // reconnects immediately.
 func (c *feedClient) run() {
 	backoff := feedBackoffMin
@@ -318,9 +264,8 @@ func (c *feedClient) session() (healthy bool, err error) {
 	default:
 	}
 
-	settings := c.settings.Load()
 	ctx, cancel := context.WithTimeout(context.Background(), feedDialTimeout)
-	header := http.Header{"Authorization": {"Bearer " + settings.AuthToken}}
+	header := http.Header{"Authorization": {"Bearer " + *c.authToken.Load()}}
 	conn, resp, err := websocket.DefaultDialer.DialContext(ctx, c.url, header)
 	cancel()
 	if err != nil {
@@ -412,8 +357,8 @@ func (c *feedClient) handle(data []byte) bool {
 			return false
 		}
 	default:
-		// Ignored, not invalid: routers run whichever dex-lib version Kyber
-		// last deployed, so new message types must not withdraw their quotes.
+		// Ignored, not invalid: pool-service runs whichever dex-lib version Kyber
+		// last deployed, so new message types must not withdraw Nemo's quotes.
 		return false
 	}
 
@@ -426,9 +371,7 @@ func (c *feedClient) handle(data []byte) bool {
 		return false
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	snap, err := buildFeedSnapshot(&msg, c.settings.Load().Buffer, time.Now())
+	snap, err := buildFeedSnapshot(&msg, time.Now())
 	if err != nil {
 		c.snapshot.Store(nil)
 		c.log().Warnf("nemo-prop feed: dropping snapshot %d: %v", msg.Seq, err)
@@ -443,9 +386,9 @@ func (c *feedClient) invalidate(err error) {
 	c.log().Warnf("nemo-prop feed: %v: %v", errFeedInvalid, err)
 }
 
-// buildFeedSnapshot validates a snapshot frame and prebuilds every market's
-// quoting state from it, shaped with buffer.
-func buildFeedSnapshot(msg *feedMessage, buffer int64, receivedAt time.Time) (*feedSnapshot, error) {
+// buildFeedSnapshot validates a snapshot frame: addresses, ladders, and
+// inventory for the base and every market asset.
+func buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (*feedSnapshot, error) {
 	if !common.IsHexAddress(msg.Base) {
 		return nil, errFeedInvalid
 	}
@@ -463,28 +406,20 @@ func buildFeedSnapshot(msg *feedMessage, buffer int64, receivedAt time.Time) (*f
 		}
 		reserves[strings.ToLower(token)] = deliverable(balance, allowance)
 	}
-	baseReserve, ok := reserves[base]
-	if !ok {
+	if _, ok := reserves[base]; !ok {
 		return nil, errFeedInvalid
 	}
 
-	markets := make(map[string]*ladder.PoolSimulator, len(msg.Markets))
+	markets := make(map[string][2][]ladder.Point, len(msg.Markets))
 	for asset, m := range msg.Markets {
 		asset = strings.ToLower(asset)
-		assetReserve, ok := reserves[asset]
-		if !ok || !common.IsHexAddress(asset) || asset == base {
+		if _, ok := reserves[asset]; !ok || !common.IsHexAddress(asset) || asset == base {
 			return nil, errFeedInvalid
 		}
 		if validateLadder(m.Ladders[0]) != nil || validateLadder(m.Ladders[1]) != nil {
 			return nil, errInvalidLadder
 		}
-		poolReserves := [2]*uint256.Int{baseReserve, assetReserve}
-		state, err := newMarketState(base, asset, poolReserves, shapeLadders(m.Ladders, poolReserves, buffer),
-			msg.BlockNumber)
-		if err != nil {
-			return nil, err
-		}
-		markets[asset] = state
+		markets[asset] = m.Ladders
 	}
 
 	return &feedSnapshot{
@@ -492,7 +427,7 @@ func buildFeedSnapshot(msg *feedMessage, buffer int64, receivedAt time.Time) (*f
 		receivedAt:  receivedAt,
 		blockNumber: msg.BlockNumber,
 		base:        base,
+		reserves:    reserves,
 		markets:     markets,
-		raw:         msg,
 	}, nil
 }
