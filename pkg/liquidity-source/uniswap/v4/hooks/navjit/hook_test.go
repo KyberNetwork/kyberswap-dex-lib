@@ -292,6 +292,12 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(30_000_000_000)}, TokenOut: lot})
 	assert.ErrorIs(t, err, ErrBeyondLadder)
 
+	// The JIT fill runs past the standing ticks [276277, 276477]: a limit there stops it part-way.
+	for _, pair := range [][2]string{{usdg, lot}, {lot, usdg}} {
+		meta := sim.GetMetaInfo(pair[0], pair[1]).(uniswapv4.PoolMetaInfo)
+		assert.Nil(t, meta.PriceLimit, "no tick-derived price limit")
+	}
+
 	// UpdateBalance moves the simulator along the sell ladder; the clone taken before it does not.
 	cloned := sim.CloneState()
 	sim.UpdateBalance(pool.UpdateBalanceParams{

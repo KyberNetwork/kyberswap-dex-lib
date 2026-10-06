@@ -545,6 +545,11 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrap)
 	}
 
+	priceLimit := p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0])
+	if _, ok := p.hook.(NoPriceLimitHook); ok {
+		priceLimit = nil // encoded as 0: the executor swaps to MIN/MAX_SQRT_PRICE
+	}
+
 	return PoolMetaInfo{
 		BlockNumber:       p.Info.BlockNumber,
 		Router:            p.staticExtra.UniversalRouterAddress,
@@ -555,7 +560,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TickSpacing:       p.staticExtra.TickSpacing,
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          p.hook.GetHookData(),
-		PriceLimit:        p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0]),
+		PriceLimit:        priceLimit,
 		TokenWrapMetadata: wrapMetadata,
 	}
 }

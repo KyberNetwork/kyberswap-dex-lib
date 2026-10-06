@@ -121,6 +121,10 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 // the whole amount, so the pool's own CL math always runs on a zero remainder.
 func (h *Hook) AllowEmptyTicks() bool { return true }
 
+// NoPriceLimit: the on-chain fill runs through the JIT range the hook places per swap, beyond the
+// tracked standing-position ticks. A limit at those ticks stops the fill part-way (seen on e2e).
+func (h *Hook) NoPriceLimit() {}
+
 func (h *Hook) CloneState() uniswapv4.Hook {
 	// The ladder is replaced wholesale by Track and never written by a swap; the consumed amounts
 	// are value arrays, so the shallow copy already owns them.
