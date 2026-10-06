@@ -2,15 +2,15 @@ package elfomofi
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/big"
-	"time"
+	"sync"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
@@ -20,8 +20,10 @@ import (
 )
 
 type PoolTracker struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
+	config        *Config
+	ethrpcClient  *ethrpc.Client
+	helperMu      sync.Mutex
+	helperAddress string
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -58,86 +60,129 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	_ map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-
-	samples := make([][][2]*big.Int, len(p.Tokens))
-	for i := range p.Tokens {
-		samples[i] = make([][2]*big.Int, sampleSize)
-		start := lo.Ternary(p.Tokens[i].Decimals < sampleSize/2, 0, p.Tokens[i].Decimals-sampleSize/2)
-		index := 0
-		for k := start; k < start+sampleSize; k++ {
-			samples[i][index] = [2]*big.Int{bignumber.TenPowInt(k), new(big.Int)}
-			req.AddCall(&ethrpc.Call{
-				ABI:    factoryABI,
-				Target: t.config.FactoryAddress,
-				Method: "getAmountOut",
-				Params: []any{
-					common.HexToAddress(p.Tokens[i].Address),
-					common.HexToAddress(p.Tokens[1-i].Address),
-					samples[i][index][0],
-				},
-			}, []any{&samples[i][index][1]})
-			index++
-		}
+	if len(p.Tokens) != 2 || p.Tokens[0] == nil || p.Tokens[1] == nil {
+		return entity.Pool{}, fmt.Errorf("elfomofi: expected two pool tokens")
 	}
-
-	resp, err := req.TryBlockAndAggregate()
+	if t.config.Buffer <= 0 || t.config.Buffer > 10_000 {
+		return entity.Pool{}, fmt.Errorf("elfomofi: buffer must be in (0, 10000] bps")
+	}
+	helperAddress, err := t.resolveHelperAddress(ctx)
 	if err != nil {
 		return entity.Pool{}, err
 	}
-	p.BlockNumber = resp.BlockNumber.Uint64()
 
-	// Scale samples with buffer
-	buffer := big.NewInt(t.config.Buffer)
-	for i := range samples {
-		for j := range samples[i] {
-			if samples[i][j][1] != nil {
-				samples[i][j][1].Mul(samples[i][j][1], buffer).Div(samples[i][j][1], bignumber.BasisPoint)
-			}
-		}
+	base, quote := common.HexToAddress(p.Tokens[0].Address), common.HexToAddress(p.Tokens[1].Address)
+	var result getOrderbookResult
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		ABI:    helperABI,
+		Target: helperAddress,
+		Method: "getOrderbook",
+		Params: []any{base, quote},
+	}, []any{&result}).TryBlockAndAggregate()
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	book, helperBlock, helperTimestamp := result.Book, result.BlockNumber, result.BlockTimestamp
+	if book.Base != base || book.Quote != quote {
+		return entity.Pool{}, fmt.Errorf("elfomofi: helper returned a different pair: %s/%s", book.Base, book.Quote)
+	}
+	if book.BalanceBase == nil || book.BalanceQuote == nil || book.BalanceBase.Sign() < 0 || book.BalanceQuote.Sign() < 0 {
+		return entity.Pool{}, fmt.Errorf("elfomofi: helper returned invalid balances")
+	}
+	if helperBlock == nil || !helperBlock.IsUint64() || helperBlock.Sign() == 0 ||
+		helperTimestamp == nil || !helperTimestamp.IsInt64() || helperTimestamp.Sign() <= 0 || resp.BlockNumber == nil ||
+		helperBlock.Cmp(resp.BlockNumber) != 0 {
+		return entity.Pool{}, fmt.Errorf("elfomofi: helper returned invalid block metadata")
 	}
 
-	// Turn the cumulative (amountIn, amountOut) samples into marginal order-book price levels: each
-	// level's price is the marginal rate for that increment only, so consuming a level shifts later
-	// quotes to the next (worse) rate instead of reusing one bracket's average rate for its whole range.
-	var extra orderbook.Extra
-	var reserves [2]big.Int
-	for i := range samples {
-		decIn, decOut := math.Pow10(int(p.Tokens[i].Decimals)), math.Pow10(int(p.Tokens[1-i].Decimals))
-
-		levels := make([]orderbook.Level, 1, sampleSize+1) // first level == min trade == 0
-		var prevIn, prevOut float64
-		var prevOutWei big.Int
-		for _, sample := range samples[i] {
-			outWei := sample[1]
-			if outWei == nil || outWei.Cmp(&prevOutWei) <= 0 {
-				break
-			}
-
-			inF, _ := sample[0].Float64()
-			outF, _ := outWei.Float64()
-			in, out := inF/decIn, outF/decOut
-			size := in - prevIn
-			levels = append(levels, orderbook.Level{size, (out - prevOut) / size})
-
-			prevIn, prevOut = in, out
-			prevOutWei = *outWei
-		}
-		extra.LevelsFrom[i] = levels
-
-		// The largest cumulative amountOut reached before liquidity ran out is the max reserve
-		// obtainable on the other side.
-		reserves[1-i] = prevOutWei
+	// The helper probes at the pool's actual depth breaks. Its asks spend quote
+	// for base, while bids spend base for quote; our pool tokens are base, quote.
+	bids, err := cumulativeLevelsToOrderbook(book.BidCumulativeLevels, p.Tokens[0].Decimals, p.Tokens[1].Decimals, t.config.Buffer)
+	if err != nil {
+		return entity.Pool{}, err
 	}
-
-	extraBytes, err := json.Marshal(extra)
+	asks, err := cumulativeLevelsToOrderbook(book.AskCumulativeLevels, p.Tokens[1].Decimals, p.Tokens[0].Decimals, t.config.Buffer)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	extraBytes, err := json.Marshal(orderbook.Extra{LevelsFrom: [2][]orderbook.Level{bids, asks}})
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = []string{reserves[0].String(), reserves[1].String()}
-	p.Timestamp = time.Now().Unix()
+	p.Reserves = []string{book.BalanceBase.String(), book.BalanceQuote.String()}
+	p.BlockNumber = helperBlock.Uint64()
+	p.Timestamp = helperTimestamp.Int64()
 
 	return p, nil
+}
+
+func (t *PoolTracker) resolveHelperAddress(ctx context.Context) (string, error) {
+	if t.config.HelperAddress != "" {
+		if !common.IsHexAddress(t.config.HelperAddress) || common.HexToAddress(t.config.HelperAddress) == (common.Address{}) {
+			return "", fmt.Errorf("elfomofi: invalid helperAddress %q", t.config.HelperAddress)
+		}
+		return t.config.HelperAddress, nil
+	}
+
+	t.helperMu.Lock()
+	defer t.helperMu.Unlock()
+	if t.helperAddress != "" {
+		return t.helperAddress, nil
+	}
+	chainID, err := t.ethrpcClient.GetETHClient().ChainID(ctx)
+	if err != nil {
+		return "", fmt.Errorf("elfomofi: get chain ID for helper: %w", err)
+	}
+	if !chainID.IsUint64() {
+		return "", fmt.Errorf("elfomofi: unsupported chain ID %s", chainID)
+	}
+	helperAddress, ok := helperAddresses[chainID.Uint64()]
+	if !ok {
+		return "", fmt.Errorf("elfomofi: no helper address for chain ID %s", chainID)
+	}
+	t.helperAddress = helperAddress
+	return helperAddress, nil
+}
+
+// cumulativeLevelsToOrderbook turns buffered cumulative outputs into marginal
+// levels. Subtract in integer units before converting to floats so large
+// cumulative values cannot erase small level deltas through cancellation.
+func cumulativeLevelsToOrderbook(probes []CumulativeLevel, decimalsIn, decimalsOut uint8, buffer int64) ([]orderbook.Level, error) {
+	if len(probes) == 0 {
+		return nil, nil
+	}
+	levels := make([]orderbook.Level, 1, len(probes)+1) // zero-size sentinel
+	var previousIn, previousOut big.Int
+	bufferBI := big.NewInt(buffer)
+	for _, probe := range probes {
+		if probe.AmountIn == nil || probe.AmountOut == nil {
+			return nil, fmt.Errorf("elfomofi: helper returned a nil cumulative level")
+		}
+		if probe.AmountIn.Sign() <= 0 || probe.AmountOut.Sign() <= 0 {
+			continue
+		}
+		bufferedOut := new(big.Int).Mul(probe.AmountOut, bufferBI)
+		bufferedOut.Div(bufferedOut, bignumber.BasisPoint)
+		if probe.AmountIn.Cmp(&previousIn) <= 0 || bufferedOut.Cmp(&previousOut) <= 0 {
+			continue
+		}
+		deltaIn := new(big.Int).Sub(probe.AmountIn, &previousIn)
+		deltaOut := new(big.Int).Sub(bufferedOut, &previousOut)
+		inFloat, _ := deltaIn.Float64()
+		outFloat, _ := deltaOut.Float64()
+		size := inFloat / math.Pow10(int(decimalsIn))
+		price := outFloat / math.Pow10(int(decimalsOut)) / size
+		if size <= 0 || price <= 0 || math.IsInf(size, 0) || math.IsInf(price, 0) || math.IsNaN(price) {
+			return nil, fmt.Errorf("elfomofi: helper returned an unrepresentable cumulative level")
+		}
+		levels = append(levels, orderbook.Level{size, price})
+		previousIn.Set(probe.AmountIn)
+		previousOut.Set(bufferedOut)
+	}
+	if len(levels) == 1 {
+		return nil, nil
+	}
+	return levels, nil
 }

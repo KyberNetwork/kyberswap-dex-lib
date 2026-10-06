@@ -79,6 +79,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pools := lo.Map(pairs[offset:], func(pair Pair, _ int) entity.Pool {
+		// Keep the factory's tokenA/tokenB order for helper getOrderbook(base, quote).
 		token0, token1 := hexutil.Encode(pair.Token0[:]), hexutil.Encode(pair.Token1[:])
 		poolAddress := fmt.Sprintf("%s_%s_%s", u.config.DexID, token0, token1)
 		p := entity.Pool{
