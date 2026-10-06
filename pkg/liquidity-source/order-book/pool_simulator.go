@@ -3,6 +3,7 @@ package orderbook
 import (
 	"math"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,8 @@ type PoolSimulator struct {
 	tokens      [2]*entity.PoolToken
 	minTrades   [2]float64
 	fee         float64
+	validUntil  int64
+	minAmounts  [2]*big.Int
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -52,8 +55,15 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
+	if extra.ValidUntil != 0 && time.Now().Unix() >= extra.ValidUntil {
+		return nil, ErrLevelsTooOld
+	}
 
 	firstLevelFrom0, firstLevelFrom1 := lo.FirstOrEmpty(extra.LevelsFrom[0]), lo.FirstOrEmpty(extra.LevelsFrom[1])
+	minAmounts := [2]*big.Int{
+		minimumRawAmount(firstLevelFrom0.Size(), entityPool.Tokens[0].Decimals),
+		minimumRawAmount(firstLevelFrom1.Size(), entityPool.Tokens[1].Decimals),
+	}
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -71,15 +81,24 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 		levelsFroms: extra.LevelsFrom,
 		tokens:      [2]*entity.PoolToken(entity.ClonePoolTokens(entityPool.Tokens)),
 		minTrades:   [2]float64{firstLevelFrom0.Size(), firstLevelFrom1.Size()},
+		minAmounts:  minAmounts,
 		fee:         entityPool.SwapFee,
+		validUntil:  extra.ValidUntil,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if p.validUntil != 0 && time.Now().Unix() >= p.validUntil {
+		return nil, ErrLevelsTooOld
+	}
 	tokenIn, tokenOut, amtIn := params.TokenAmountIn.Token, params.TokenOut, params.TokenAmountIn.Amount
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
+	}
+	// Float conversion can round a sub-minimum raw input up to the minimum.
+	if amtIn.Cmp(p.minAmounts[indexIn]) < 0 {
+		return nil, ErrInvalidAmountIn
 	}
 
 	result, err := p.calcOut(amtIn, p.tokens[indexIn], p.tokens[indexOut], p.levelsFroms[indexIn], p.minTrades[indexIn])
@@ -96,7 +115,25 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return result, nil
 }
 
+func minimumRawAmount(size float64, decimals uint8) *big.Int {
+	r, ok := new(big.Rat).SetString(strconv.FormatFloat(size, 'f', -1, 64))
+	if !ok {
+		return new(big.Int)
+	}
+	scale := new(big.Int).Exp(big.NewInt(10), new(big.Int).SetUint64(uint64(decimals)), nil)
+	r.Mul(r, new(big.Rat).SetInt(scale))
+	var result, rem big.Int
+	result.QuoRem(r.Num(), r.Denom(), &rem)
+	if rem.Sign() > 0 {
+		result.Add(&result, big.NewInt(1))
+	}
+	return &result
+}
+
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	if p.validUntil != 0 && time.Now().Unix() >= p.validUntil {
+		return nil, ErrLevelsTooOld
+	}
 	tokenIn, tokenOut, amtOut := params.TokenIn, params.TokenAmountOut.Token, params.TokenAmountOut.Amount
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {

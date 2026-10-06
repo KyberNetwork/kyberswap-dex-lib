@@ -7,6 +7,8 @@ type (
 
 	Extra struct {
 		LevelsFrom [2][]Level `json:"l"`
+		// ValidUntil is the maker's indicative-book expiry in Unix seconds; zero is unset.
+		ValidUntil int64 `json:"vu,omitempty"`
 	}
 
 	Prices map[[2]string]Extra
