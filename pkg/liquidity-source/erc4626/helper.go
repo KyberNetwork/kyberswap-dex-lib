@@ -40,8 +40,13 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int, isExactOut bool) 
 }
 
 // interpolateAmountOut returns floor(y) on the line through (xLo, yLo) and (xHi, yHi) at x in (xLo, xHi].
+// If (xLo, yLo) lies on the floored line through (0, 0) and (xHi, yHi), as for a linear vault, it uses that
+// line instead: it matches on-chain to the wei, while interpolating would carry yLo's rounding error.
 func interpolateAmountOut(xLo, yLo, xHi, yHi, x *uint256.Int) *uint256.Int {
 	var result, dx, dy uint256.Int
+	if u256.MulDivDown(&result, xLo, yHi, xHi).Eq(yLo) {
+		return u256.MulDivDown(&result, x, yHi, xHi)
+	}
 	dx.Sub(xHi, xLo)
 	if !yHi.Lt(yLo) {
 		u256.MulDivDown(&result, result.Sub(x, xLo), dy.Sub(yHi, yLo), &dx)
@@ -54,6 +59,9 @@ func interpolateAmountOut(xLo, yLo, xHi, yHi, x *uint256.Int) *uint256.Int {
 // interpolateAmountIn returns the min x with interpolateAmountOut(x) >= y, for y in (yLo, yHi].
 func interpolateAmountIn(xLo, yLo, xHi, yHi, y *uint256.Int) *uint256.Int {
 	var result, dx, dy uint256.Int
+	if u256.MulDivDown(&result, xLo, yHi, xHi).Eq(yLo) {
+		return u256.MulDivUp(&result, y, xHi, yHi)
+	}
 	u256.MulDivUp(&result, result.Sub(y, yLo), dx.Sub(xHi, xLo), dy.Sub(yHi, yLo))
 	return result.Add(xLo, &result)
 }

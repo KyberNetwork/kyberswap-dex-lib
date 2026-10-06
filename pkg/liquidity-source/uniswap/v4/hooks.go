@@ -65,6 +65,9 @@ type AfterSwapParams struct {
 	*BeforeSwapParams
 	AmountIn  *big.Int
 	AmountOut *big.Int
+	// BeforeSwapResult is this quote's BeforeSwap result (nil if the hook has none), so a hook can pass
+	// quote-scoped values to AfterSwap without writing its own state.
+	BeforeSwapResult *BeforeSwapResult
 }
 
 type FeeAmount = uniswapv3.FeeAmount

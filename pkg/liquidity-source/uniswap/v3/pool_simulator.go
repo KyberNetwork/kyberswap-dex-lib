@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -192,26 +193,30 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		return nil, err
 	}
 
-	amountInBI := result.AmountCalculated.ToBig()
-	if !p.allowEmptyTicks && amountInBI.Sign() <= 0 {
+	if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
-	} else if p.exceedsMaxTx(tokenIn, amountInBI) {
+	}
+	b := &calcAmountInBacking{sqrtPrice: result.SqrtRatioX96}
+	amountInBI := big256.ToBigBacked(&b.inBI, &b.inWords, &result.AmountCalculated)
+	if p.exceedsMaxTx(tokenIn, amountInBI) {
 		// tokenIn is the launched token here (a sell): it moves user -> pool, the same leg
 		// OdysToken._move caps by maxTx.
 		return nil, ErrMaxTxExceeded
 	}
 
-	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountInBI},
-		Fee:           &pool.TokenAmount{Token: tokenIn},
+	b.in, b.fee = pool.TokenAmount{Token: tokenIn, Amount: amountInBI}, pool.TokenAmount{Token: tokenIn}
+	b.res = pool.CalcAmountInResult{
+		TokenAmountIn: &b.in,
+		Fee:           &b.fee,
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
 			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
-			NextStateSqrtRatioX96: &result.SqrtRatioX96,
+			NextStateSqrtRatioX96: &b.sqrtPrice,
 			NextStateLiquidity:    result.Liquidity,
 			NextStateTickCurrent:  result.CurrentTick,
 		},
-	}, nil
+	}
+	return &b.res, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -247,7 +252,8 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
-	amountOutBI := result.AmountCalculated.ToBig()
+	b := &calcAmountOutBacking{remainingIn: result.RemainingAmountIn, sqrtPrice: result.SqrtRatioX96}
+	amountOutBI := big256.ToBigBacked(&b.outBI, &b.outWords, &result.AmountCalculated)
 	if amountOutBI.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	} else if p.exceedsMaxTx(tokenOut, amountOutBI) {
@@ -256,26 +262,43 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 		return nil, ErrMaxTxExceeded
 	}
 
-	remainingTokenAmountIn := &pool.TokenAmount{
-		Token:  tokenIn,
-		Amount: bignumber.ZeroBI,
-	}
+	b.remaining = pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI}
 	if !result.RemainingAmountIn.IsZero() {
-		remainingTokenAmountIn.Amount = result.RemainingAmountIn.ToBig()
+		b.remaining.Amount = big256.ToBigBacked(&b.remainingBI, &b.remainingWords, &b.remainingIn)
 	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: amountOutBI},
-		RemainingTokenAmountIn: remainingTokenAmountIn, Fee: &pool.TokenAmount{Token: tokenIn},
+	b.out, b.fee = pool.TokenAmount{Token: tokenOut, Amount: amountOutBI}, pool.TokenAmount{Token: tokenIn}
+	b.res = pool.CalcAmountOutResult{
+		TokenAmountOut:         &b.out,
+		RemainingTokenAmountIn: &b.remaining, Fee: &b.fee,
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
 			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
-			RemainingAmountIn:     &result.RemainingAmountIn,
-			NextStateSqrtRatioX96: &result.SqrtRatioX96,
+			RemainingAmountIn:     &b.remainingIn,
+			NextStateSqrtRatioX96: &b.sqrtPrice,
 			NextStateLiquidity:    result.Liquidity,
 			NextStateTickCurrent:  result.CurrentTick,
 		},
-	}, nil
+	}
+	return &b.res, nil
+}
+
+// calcAmountOutBacking holds everything a CalcAmountOut result points to, so a quote costs one
+// allocation for it plus the SwapInfo interface box instead of eight.
+type calcAmountOutBacking struct {
+	res                      pool.CalcAmountOutResult
+	out, remaining, fee      pool.TokenAmount
+	remainingIn, sqrtPrice   uint256.Int // SwapInfo points here
+	outBI, remainingBI       big.Int
+	outWords, remainingWords [4]big.Word
+}
+
+// calcAmountInBacking is calcAmountOutBacking for CalcAmountIn.
+type calcAmountInBacking struct {
+	res       pool.CalcAmountInResult
+	in, fee   pool.TokenAmount
+	sqrtPrice uint256.Int // SwapInfo points here
+	inBI      big.Int
+	inWords   [4]big.Word
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {

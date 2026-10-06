@@ -147,17 +147,23 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 	exactInput := amountSpecified.Sign() >= 0
 	var amountCalculated uint256.Int
 	var crossInitTickLoops, crossEmptyWordLoops int
+	paidWords := 0 // empty words walked exactly at nonzero liquidity, toward floatWalkAfterWords
 	var upEdges *upEdgeTable
+	// The next tick in the list stays the same while the loop walks empty words toward it.
+	listTick, listPos, listInit, haveListTick := 0, 0, false, false
 
 	for !amountSpecifiedRemaining.IsZero() && !sqrtPriceLimitX96.Eq(&sqrtPriceX96) {
 		sqrtPriceStartX96 := sqrtPriceX96
 		var sqrtPriceNextX96 uint256.Int
 
-		tickNext, slicePos, initialized, err := nextInitializedTickWithinOneWord(p.Ticks, tick, p.TickSpacing,
-			zeroForOne)
-		if err != nil {
-			return SwapResult{}, err
+		var err error
+		if !haveListTick {
+			if listTick, listPos, listInit, err = nextInitializedTickPos(p.Ticks, tick, zeroForOne); err != nil {
+				return SwapResult{}, err
+			}
 		}
+		tickNext, slicePos, initialized := clampToWord(tick, p.TickSpacing, zeroForOne, listTick, listPos, listInit)
+		haveListTick = slicePos == noSlicePos
 
 		if tickNext < MinTick {
 			tickNext = MinTick
@@ -189,7 +195,10 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 		}
 
 		var nxtSqrtPriceX96, amountIn, amountOut, feeAmount uint256.Int
-		if err = ComputeSwapStep(&sqrtPriceX96, &targetValue, &liquidity, &amountSpecifiedRemaining,
+		if liquidity.IsZero() {
+			// Every amount of the step is zero, so nothing rounds: the price moves straight to the target.
+			nxtSqrtPriceX96 = targetValue
+		} else if err = ComputeSwapStep(&sqrtPriceX96, &targetValue, &liquidity, &amountSpecifiedRemaining,
 			p.Fee, &nxtSqrtPriceX96, &amountIn, &amountOut, &feeAmount); err != nil {
 			return SwapResult{}, err
 		}
@@ -223,11 +232,22 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 				crossInitTickLoops++
 			} else {
 				crossEmptyWordLoops++
+				if !liquidity.IsZero() {
+					paidWords++
+				}
 			}
 			if zeroForOne {
 				tick = tickNext - 1
 			} else {
 				tick = tickNext
+			}
+			if slicePos == noSlicePos && (liquidity.IsZero() || paidWords >= floatWalkAfterWords) {
+				var words int
+				if tick, words, err = p.walkWordsFloat(zeroForOne, exactInput, tick, listTick, &liquidity,
+					&sqrtPriceLimitX96, &sqrtPriceX96, &amountSpecifiedRemaining, &amountCalculated); err != nil {
+					return SwapResult{}, err
+				}
+				crossEmptyWordLoops += words
 			}
 		} else if !sqrtPriceX96.Eq(&sqrtPriceStartX96) {
 			if tick, err = GetTickAtSqrtRatio(&sqrtPriceX96); err != nil {
@@ -318,13 +338,18 @@ func nextInitializedTickWithinOneWord(ticks []TickU256, tick, tickSpacing int, l
 	if err != nil {
 		return 0, 0, false, err
 	}
+	tickNext, slicePos, initialized = clampToWord(tick, tickSpacing, lte, tickVal, pos, init)
+	return tickNext, slicePos, initialized, nil
+}
 
-	// The tick exists but may sit in a further word, which the bitmap search cannot see.
+// clampToWord stops at the word edge when the next tick in the list (tickVal, pos, init) sits in a
+// further word, which the bitmap search cannot see.
+func clampToWord(tick, tickSpacing int, lte bool, tickVal, pos int, init bool) (int, int, bool) {
 	if boundary := wordBoundaryTick(tick, tickSpacing, lte); (lte && boundary > tickVal) ||
 		(!lte && boundary < tickVal) {
-		return boundary, noSlicePos, false, nil
+		return boundary, noSlicePos, false
 	}
-	return tickVal, pos, init, nil
+	return tickVal, pos, init
 }
 
 // wordBoundaryTick returns the tick that TickBitmap.nextInitializedTickWithinOneWord stops at when
