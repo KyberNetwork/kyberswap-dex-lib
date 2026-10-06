@@ -26,6 +26,9 @@ type PoolParams struct {
 	DecimalsY             int
 	VariableFeeControl    int
 	VolatilityAccumulator int
+	// FeeRate, when non-zero, is the resolved getTotalFeeRate() at 1e9 precision and
+	// replaces the bps/volatility derivation (which cannot represent sub-bps rates).
+	FeeRate uint64
 }
 
 // PoolSimulator prices swaps against a snapshot of the book.
@@ -124,6 +127,9 @@ func (s *binSimulator) VariableFeeRate(volatilityAccumulator *uint256.Int) *uint
 
 // TotalFeeRate is base + variable, capped, at 1e9 precision.
 func (s *binSimulator) TotalFeeRate() *uint256.Int {
+	if s.params.FeeRate != 0 {
+		return uint256.NewInt(s.params.FeeRate)
+	}
 	var volAcc uint256.Int
 	volAcc.SetUint64(uint64(s.params.VolatilityAccumulator))
 

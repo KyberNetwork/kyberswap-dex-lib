@@ -323,3 +323,20 @@ func TestSequentialSwapsDoNotRequoteSpentBins(t *testing.T) {
 		t.Fatal("clone's bins were not mutated independently of the original")
 	}
 }
+
+// A sub-bps volatility surcharge must reach the fee: BinPool charges
+// amountIn - amountIn*(1e9-rate)/1e9 with the full 1e9-precision rate.
+func TestSubBpsFeeRateIsCharged(t *testing.T) {
+	s := newTestSim()
+	s.totalFeeRate = 3_123_456
+	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(10_000_000)},
+		TokenOut:      tokX,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := big.NewInt(10_000_000 - 10_000_000*(1_000_000_000-3_123_456)/1_000_000_000); res.Fee.Amount.Cmp(want) != 0 {
+		t.Fatalf("fee = %s, want %s", res.Fee.Amount, want)
+	}
+}

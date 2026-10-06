@@ -194,9 +194,8 @@ func (p *PoolSimulator) kernel() (*binSimulator, error) {
 		ActiveID:   int(p.activeID),
 		DecimalsX:  p.decimalsX,
 		DecimalsY:  p.decimalsY,
-		// The kernel takes the fee as bps and applies the contract's own formula. Passing the
-		// already-resolved total rate keeps the volatility component the tracker read from
-		// chain rather than re-deriving it here, which would be a second fee model.
-		SwapFeeBps: int(p.totalFeeRate * bps / feePrecision),
+		// The tracker's getTotalFeeRate() at 1e9 precision, volatility surcharge included.
+		// Converting it to bps would truncate the surcharge and over-quote.
+		FeeRate: p.totalFeeRate,
 	}, bins)
 }

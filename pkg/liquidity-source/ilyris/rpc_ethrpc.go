@@ -90,7 +90,9 @@ type lensBinInfo struct {
 }
 
 func (c *EthrpcChain) PoolState(ctx context.Context, poolAddr string, radius uint32) (RawPoolState, error) {
-	var st lensPoolState
+	// A single-tuple output unpacks into the target's FIRST field, so wrap the struct.
+	var res struct{ State lensPoolState }
+	st := &res.State
 	var bins []lensBinInfo
 
 	req := c.client.R().SetContext(ctx)
@@ -102,7 +104,7 @@ func (c *EthrpcChain) PoolState(ctx context.Context, poolAddr string, radius uin
 		// encodes a different type and the call reverts with EMPTY data, which reads as a
 		// broken lens rather than a wrong ABI.
 		Params: []any{common.HexToAddress(poolAddr), big.NewInt(int64(radius))},
-	}, []any{&st})
+	}, []any{&res})
 
 	resp, err := req.Aggregate()
 	if err != nil {
