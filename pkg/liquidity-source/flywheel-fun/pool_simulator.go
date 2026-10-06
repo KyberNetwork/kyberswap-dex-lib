@@ -16,15 +16,14 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	Curve         CurveState
-	Static        StaticExtra
-	Valid         bool
-	MarketPool    *v3.PoolSimulator
-	Protocol      [2]uint32
-	Route         []RouteHop
-	RouteEntities []entity.Pool
-	Bases         []pool.IPoolSimulator
-	Revision      uint64
+	Curve      CurveState
+	Static     StaticExtra
+	Valid      bool
+	MarketPool *v3.PoolSimulator
+	Protocol   [2]uint32
+	Base       pool.IPoolSimulator // route pool (indexed uniswap pool), nil for WETH; deep-copied on clone
+	Route      []byte              // settlement route through Base
+	Revision   uint64
 }
 
 var _ pool.IMetaPoolSimulator = (*PoolSimulator)(nil)
@@ -45,47 +44,27 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 	if len(p.Tokens) != 2 || p.Tokens[0] == nil || p.Tokens[1] == nil || !common.IsHexAddress(p.Address) || p.Tokens[0].Address != WETH || strings.ToLower(p.Address) != p.Tokens[1].Address || p.BlockNumber == 0 || st.Factory != Factory || st.Settlement != Settlement || !common.IsHexAddress(st.Quote) || st.Quote == p.Address {
 		return nil, ErrState
 	}
-	if st.Quote != WETH && len(e.Route) == 0 || e.Curve.Graduated && e.MarketPool == nil {
+	if st.Quote != WETH && len(st.BasePools) == 0 || e.Curve.Graduated && e.MarketPool == nil {
 		return nil, ErrUnsupported
 	}
-	if !e.Valid {
+	if !e.Valid || len(st.BasePools) > 1 || st.Quote == WETH && len(st.BasePools) > 0 {
 		return nil, ErrState
 	}
-	if len(e.Route) > 3 || len(e.Route) != len(e.RoutePools) || st.Quote == WETH && len(e.Route) > 0 {
-		return nil, ErrState
-	}
-	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, Reserves: []*big.Int{e.Curve.QuoteReserve.ToBig(), e.Curve.TokenReserve.ToBig()}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol, Route: e.Route, RouteEntities: e.RoutePools}
-	current := WETH
-	visited := map[string]bool{WETH: true}
-	for i, h := range e.Route {
-		id, err := h.id()
+	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol}
+	if len(st.BasePools) == 1 {
+		if s.Base = baseMap[st.BasePools[0]]; s.Base == nil {
+			return nil, ErrBasePool
+		}
+		if s.Base.GetTokenIndex(WETH) < 0 || s.Base.GetTokenIndex(st.Quote) < 0 {
+			return nil, ErrState
+		}
+		hop, err := hopFor(s.Base)
 		if err != nil {
 			return nil, err
 		}
-		base := baseMap[id]
-		if base == nil {
-			base, err = routePool(e.RoutePools[i], h)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if err = validateBase(base, e.RoutePools[i], h, p.BlockNumber); err != nil {
+		if s.Route, err = encodeRoute(hop); err != nil {
 			return nil, err
 		}
-		c, _ := core(base)
-		ix := c.GetTokenIndex(current)
-		if ix < 0 {
-			return nil, ErrState
-		}
-		current = c.Info.Tokens[1-ix]
-		if visited[current] || current == p.Address {
-			return nil, ErrState
-		}
-		visited[current] = true
-		s.Bases = append(s.Bases, base)
-	}
-	if current != st.Quote {
-		return nil, ErrState
 	}
 	if e.Curve.Graduated {
 		var err error
@@ -113,30 +92,26 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 	}
 	buy := i == 0
 	protocol := uint32(0)
-	var market *v3.PoolSimulator
-	if s.Curve.Graduated {
-		if s.MarketPool == nil {
-			return nil, ErrState
-		}
-		market = s.MarketPool.CloneState().(*v3.PoolSimulator)
+	if s.MarketPool != nil {
 		in := s.Static.Quote
 		if !buy {
 			in = s.Info.Address
 		}
-		protocol = s.Protocol[market.GetTokenIndex(in)]
+		protocol = s.Protocol[s.MarketPool.GetTokenIndex(in)]
+	} else if s.Curve.Graduated {
+		return nil, ErrState
 	}
-	bases := cloneBases(s.Bases)
 	next := s.Curve
 	gas := int64(900_000)
-	var steps []SwapStep
+	steps := make([]SwapStep, 0, 3)
 	var out, fee, minQuote, refund, refundRouteOutput uint256.Int
 	runMarket := func(a *uint256.Int) (uint256.Int, uint256.Int, error) {
-		if market != nil {
+		if s.MarketPool != nil {
 			in, out := s.Static.Quote, s.Info.Address
 			if !buy {
 				in, out = out, in
 			}
-			v, step, g, err := swapCL(market, a, in, out, protocol, -1)
+			v, step, g, err := swapCL(s.MarketPool, a, in, out, protocol)
 			if err == nil {
 				steps = append(steps, step)
 				gas += g
@@ -147,10 +122,20 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		next = n
 		return v, used, err
 	}
-	runRoute := func(a *uint256.Int, direction bool) (uint256.Int, error) {
-		v, st, g, err := s.routeSwap(a, direction, bases)
-		steps = append(steps, st...)
-		gas += g
+	// runRoute swaps WETH <-> quote through base; WETH-paired launches pass amounts through.
+	runRoute := func(base pool.IPoolSimulator, a *uint256.Int, toQuote bool) (uint256.Int, error) {
+		if base == nil {
+			return *a, nil
+		}
+		in, out := WETH, s.Static.Quote
+		if !toQuote {
+			in, out = out, in
+		}
+		v, step, g, err := hopSwap(base, a, in, out, 0)
+		if err == nil {
+			steps = append(steps, step)
+			gas += g
+		}
 		return v, err
 	}
 	if buy {
@@ -161,7 +146,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		originalPlatform := platform
 		var routingInput uint256.Int
 		routingInput.Sub(input, &platform)
-		quote, err := runRoute(&routingInput, true)
+		quote, err := runRoute(s.Base, &routingInput, true)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +180,13 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 			var remaining uint256.Int
 			remaining.Sub(&quote, &usedGross)
 			if !remaining.IsZero() {
-				refundRouteOutput, err = runRoute(&remaining, false)
+				// The refund swaps back through the base after the forward swap moved it.
+				base := s.Base
+				if base != nil {
+					base = base.CloneState()
+					base.UpdateBalance(steps[0].Params)
+				}
+				refundRouteOutput, err = runRoute(base, &remaining, false)
 				if err != nil {
 					return nil, err
 				}
@@ -223,7 +214,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		if err != nil {
 			return nil, err
 		}
-		realized, err := runRoute(&reserves.Net, false)
+		realized, err := runRoute(s.Base, &reserves.Net, false)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +237,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 	if !s.Curve.Graduated && next.Graduated {
 		gas += 1_800_000
 	}
-	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote.Clone(), AmountOut: out.Clone(), Refund: refund.Clone(), RefundRouteOutput: refundRouteOutput.Clone(), Buy: buy, Route: copyRoutes(s.Route), Steps: steps, Revision: s.Revision}
+	info := SwapInfo{Token: s.Info.Address, Buy: buy, Route: s.Route, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Next: next, Previous: s.Curve, Revision: s.Revision, Steps: steps}
 	return &pool.CalcAmountOutResult{TokenAmountOut: &pool.TokenAmount{Token: p.TokenOut, Amount: out.ToBig()}, RemainingTokenAmountIn: &pool.TokenAmount{Token: p.TokenAmountIn.Token, Amount: refund.ToBig()}, Fee: &pool.TokenAmount{Token: WETH, Amount: fee.ToBig()}, Gas: gas, SwapInfo: info}, nil
 }
 func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
@@ -255,31 +246,13 @@ func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
 		s.Valid = false
 		return
 	}
-	// Validate the entire replay on clones before mutating any shared liquidity.
-	bases := cloneBases(s.Bases)
-	var market pool.IPoolSimulator
-	if s.MarketPool != nil {
-		market = s.MarketPool.CloneState()
-	}
-	target := func(index int, base []pool.IPoolSimulator, m pool.IPoolSimulator) pool.IPoolSimulator {
-		if index == -1 {
-			return m
-		}
-		if index < 0 || index >= len(base) {
-			return nil
-		}
-		return base[index]
-	}
+	// Same revision: the steps were quoted on exactly this state.
 	for _, step := range info.Steps {
-		dest := target(step.Index, bases, market)
-		if dest == nil || fingerprint(dest) != step.Before {
-			s.Valid = false
-			return
+		if step.Index == -1 {
+			s.MarketPool.UpdateBalance(step.Params)
+		} else {
+			s.Base.UpdateBalance(step.Params)
 		}
-		dest.UpdateBalance(step.Params)
-	}
-	for _, step := range info.Steps {
-		target(step.Index, s.Bases, s.MarketPool).UpdateBalance(step.Params)
 	}
 	s.Curve = info.Next
 	s.Revision++
@@ -297,78 +270,56 @@ func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
 // a reserve-value proxy, never an assertion of spendable native inventory;
 // CalcAmountOut still executes every route and market leg with its price impact.
 func (s *PoolSimulator) syncReserves() error {
-	var quote, tokens *big.Int
+	var quote, tokens uint256.Int
 	if s.MarketPool != nil {
 		ix := s.MarketPool.GetTokenIndex(s.Static.Quote)
-		quote = new(big.Int).Set(s.MarketPool.Info.Reserves[ix])
-		tokens = new(big.Int).Set(s.MarketPool.Info.Reserves[1-ix])
+		if quote.SetFromBig(s.MarketPool.Info.Reserves[ix]) || tokens.SetFromBig(s.MarketPool.Info.Reserves[1-ix]) {
+			return ErrState
+		}
 	} else if s.Curve.Graduated {
 		s.Info.Reserves = []*big.Int{new(big.Int), new(big.Int)}
 		return nil
 	} else {
-		quote = new(big.Int).Sub(s.Curve.QuoteReserve.ToBig(), s.Curve.VirtualQuote.ToBig())
-		tokens = s.Curve.TokenReserve.ToBig()
-		if quote.Sign() < 0 {
+		if _, underflow := quote.SubOverflow(&s.Curve.QuoteReserve, &s.Curve.VirtualQuote); underflow {
 			return ErrState
 		}
+		tokens.Set(&s.Curve.TokenReserve)
 	}
-	current := s.Static.Quote
-	q192 := new(big.Int).Lsh(big.NewInt(1), 192)
-	for i := len(s.Bases) - 1; i >= 0; i-- {
-		c, err := core(s.Bases[i])
+	if s.Base != nil {
+		c, err := core(s.Base)
 		if err != nil {
 			return err
 		}
-		ix := c.GetTokenIndex(current)
-		if ix < 0 {
-			return ErrState
+		if err = quoteToWETH(&quote, &c.V3Pool.SqrtRatioX96, c.Info.Tokens[0] == s.Static.Quote); err != nil {
+			return err
 		}
-		price := c.V3Pool.SqrtRatioX96.ToBig()
-		price.Mul(price, price)
-		if price.Sign() == 0 {
-			return ErrState
-		}
-		if ix == 0 {
-			quote.Mul(quote, price)
-			quote.Div(quote, q192)
-		} else {
-			quote.Mul(quote, q192)
-			quote.Div(quote, price)
-		}
-		current = c.Info.Tokens[1-ix]
 	}
-	if current != WETH || quote.BitLen() > 256 {
-		return ErrState
-	}
-	s.Info.Reserves = []*big.Int{quote, tokens}
+	s.Info.Reserves = []*big.Int{quote.ToBig(), tokens.ToBig()}
 	return nil
 }
+
+// CloneState copies what UpdateBalance mutates in place: the base and market pools.
+// Reserves are reassigned wholesale by syncReserves.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	c := *s
-	c.Info.Tokens = append([]string(nil), s.Info.Tokens...)
-	c.Info.Reserves = cloneReserves(s.Info.Reserves)
-	c.Route = copyRoutes(s.Route)
-	c.Bases = cloneBases(s.Bases)
+	if s.Base != nil {
+		c.Base = s.Base.CloneState()
+	}
 	if s.MarketPool != nil {
 		c.MarketPool = s.MarketPool.CloneState().(*v3.PoolSimulator)
 	}
 	return &c
 }
 func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	return append([]pool.IPoolSimulator(nil), s.Bases...)
+	if s.Base == nil {
+		return nil
+	}
+	return []pool.IPoolSimulator{s.Base}
 }
 func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
-	if p == nil {
-		return
-	}
-	for i, b := range s.Bases {
-		if b.GetAddress() == p.GetAddress() {
-			if validateBase(p, s.RouteEntities[i], s.Route[i], s.Info.BlockNumber) != nil {
-				s.Valid = false
-				return
-			}
-			s.Bases[i] = p
-		}
+	if p != nil && s.Base != nil && p.GetAddress() == s.Base.GetAddress() {
+		s.Base = p
+		s.Revision++ // quotes taken on the old base no longer apply
 	}
 }
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {

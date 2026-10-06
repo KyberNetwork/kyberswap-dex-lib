@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -57,8 +58,7 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	client := ethrpc.NewWithClient(eth).SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 	boomer := "0x73c2de14c7fa0a57cc2d9722b959ea70b881ffe4"
 	pons := "0x39dbed3a2bd333467115de45665cc57f813c4571"
-	route := []RouteHop{{Kind: 4, Key: PoolKey{Currency1: common.HexToAddress(boomer), Fee: big.NewInt(98700), TickSpacing: big.NewInt(987)}}}
-	tracker, err := NewPoolTracker(&Config{QuoteRoutes: map[string][]RouteHop{boomer: route, pons: {{Kind: 3, Pool: common.HexToAddress("0xed50bdeea8adc232f159486192a4157281d722ff")}}}}, client)
+	tracker, err := NewPoolTracker(nil, client)
 	require.NoError(t, err)
 	var captured []entity.Pool
 	var lastGas uint64
@@ -97,6 +97,10 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	cases = append(cases, struct{ name, token, quote string }{"pons_v3_curve", os.Getenv("FLYWHEEL_LOCAL_PONS_CURVE"), pons})
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.quote != WETH {
+				// Route hops run on the indexed uniswap pools, which this harness doesn't track.
+				t.Skip("routed launches: verify via router-service e2e")
+			}
 			amounts := []int64{10_000_000_000, 100_000_000_000, 1_000_000_000_000}
 			if strings.Contains(tc.name, "refund") {
 				amounts = []int64{1_000_000_000, 400_000_000_000}
@@ -173,7 +177,7 @@ func TestCurveRefundAndCalldata(t *testing.T) {
 	info := q.SwapInfo.(SwapInfo)
 	require.True(t, info.Next.Graduated)
 	require.Positive(t, info.Refund.Sign())
-	require.True(t, info.Refund.Cmp(info.RefundRouteOutput) >= 0)
+	require.True(t, info.Refund.Cmp(&info.RefundRouteOutput) >= 0)
 	data, e := EncodeTradeData(info, 100, 100, 400)
 	require.NoError(t, e)
 	unpacked, e := tradeArguments.Unpack(data)
@@ -185,7 +189,7 @@ func TestCurveRefundAndCalldata(t *testing.T) {
 	require.Error(t, e)
 	_, e = EncodeTradeData(info, 0, 400, 100)
 	require.Error(t, e)
-	info.RefundRouteOutput = new(uint256.Int)
+	info.RefundRouteOutput.Clear()
 	_, e = EncodeTradeData(info, 0, 100, 400)
 	require.Error(t, e)
 	amount := uint256.NewInt(1000)
@@ -194,4 +198,42 @@ func TestCurveRefundAndCalldata(t *testing.T) {
 	require.Equal(t, uint64(1000), used.Uint64())
 	require.False(t, next.Graduated)
 	require.False(t, out.IsZero())
+}
+
+var tradeArguments = abi.Arguments{{Type: abiType("tuple", []abi.ArgumentMarshaling{{Name: "token", Type: "address"}, {Name: "minQuote", Type: "uint256"}, {Name: "minOutput", Type: "uint256"}, {Name: "deadline", Type: "uint256"}, {Name: "route", Type: "bytes"}, {Name: "minRefundETH", Type: "uint256"}, {Name: "refundRoute", Type: "bytes"}})}}
+
+type AdapterTrade struct {
+	Token        common.Address
+	MinQuote     *big.Int
+	MinOutput    *big.Int
+	Deadline     *big.Int
+	Route        []byte
+	MinRefundETH *big.Int
+	RefundRoute  []byte
+}
+
+// EncodeTradeData returns abi.encode(Trade) for the local fork harness's execution module.
+// Refund protection uses the reverse swap's ETH output, not the larger refund that also
+// includes returned platform fees.
+func EncodeTradeData(info SwapInfo, slippageBps uint16, now, deadline uint64) ([]byte, error) {
+	if slippageBps >= 10000 || deadline <= now || deadline-now > 3600 || !common.IsHexAddress(info.Token) || common.HexToAddress(info.Token) == (common.Address{}) || info.MinQuote.IsZero() || info.AmountOut.IsZero() {
+		return nil, ErrAmount
+	}
+	minimum := func(x *uint256.Int) *big.Int {
+		v := new(big.Int).Mul(x.ToBig(), big.NewInt(int64(10000-slippageBps)))
+		v.Div(v, big.NewInt(10000))
+		if v.Sign() == 0 {
+			v.SetInt64(1)
+		}
+		return v
+	}
+	t := AdapterTrade{Token: common.HexToAddress(info.Token), MinQuote: minimum(&info.MinQuote), MinOutput: minimum(&info.AmountOut), Deadline: new(big.Int).SetUint64(deadline), Route: info.Route, MinRefundETH: new(big.Int)}
+	if !info.Refund.IsZero() {
+		if !info.Buy || info.RefundRouteOutput.IsZero() {
+			return nil, ErrAmount
+		}
+		t.MinRefundETH = minimum(&info.RefundRouteOutput)
+		t.RefundRoute = info.Route
+	}
+	return tradeArguments.Pack(t)
 }
