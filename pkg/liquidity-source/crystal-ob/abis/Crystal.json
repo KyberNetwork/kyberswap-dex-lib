@@ -1,0 +1,21 @@
+[
+  {"type":"function","name":"allMarketsLength","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"allMarkets","stateMutability":"view","inputs":[{"name":"","type":"uint256"}],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"getMarketByTokens","stateMutability":"view","inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"getMarket","stateMutability":"view","inputs":[{"name":"market","type":"address"}],"outputs":[{"name":"info","type":"tuple","components":[
+    {"name":"quoteAsset","type":"address"},{"name":"baseAsset","type":"address"},{"name":"marketType","type":"uint256"},
+    {"name":"highestBid","type":"uint256"},{"name":"lowestAsk","type":"uint256"},{"name":"scaleFactor","type":"uint256"},
+    {"name":"tickSize","type":"uint256"},{"name":"maxPrice","type":"uint256"},{"name":"minSize","type":"uint256"},
+    {"name":"takerFee","type":"uint256"},{"name":"makerRebate","type":"uint256"},{"name":"reserveQuote","type":"uint256"},
+    {"name":"reserveBase","type":"uint256"},{"name":"isAMMEnabled","type":"bool"}]}]},
+  {"type":"function","name":"getPriceLevelsFromMid","stateMutability":"nonpayable","inputs":[{"name":"market","type":"address"},{"name":"distance","type":"uint256"},{"name":"interval","type":"uint256"},{"name":"max","type":"uint256"}],
+    "outputs":[{"name":"highestBid","type":"uint256"},{"name":"lowestAsk","type":"uint256"},{"name":"bids","type":"bytes"},{"name":"asks","type":"bytes"}]},
+  {"type":"function","name":"getPriceLevel","stateMutability":"view","inputs":[{"name":"market","type":"address"},{"name":"price","type":"uint256"}],"outputs":[{"name":"","type":"tuple","components":[
+    {"name":"size","type":"uint256"},{"name":"latestNativeId","type":"uint256"},{"name":"latest","type":"uint256"},{"name":"fillNext","type":"uint256"}]}]},
+  {"type":"function","name":"getOrder","stateMutability":"view","inputs":[{"name":"market","type":"address"},{"name":"price","type":"uint256"},{"name":"id","type":"uint256"}],"outputs":[{"name":"","type":"tuple","components":[
+    {"name":"isBuy","type":"bool"},{"name":"market","type":"address"},{"name":"price","type":"uint256"},{"name":"size","type":"uint256"},
+    {"name":"orderType","type":"uint256"},{"name":"userId","type":"uint256"},{"name":"fillBefore","type":"uint256"},{"name":"fillAfter","type":"uint256"}]}]},
+  {"type":"function","name":"getOrderByCloid","stateMutability":"view","inputs":[{"name":"userId","type":"uint256"},{"name":"cloid","type":"uint256"}],"outputs":[{"name":"","type":"tuple","components":[
+    {"name":"isBuy","type":"bool"},{"name":"market","type":"address"},{"name":"price","type":"uint256"},{"name":"size","type":"uint256"},
+    {"name":"orderType","type":"uint256"},{"name":"userId","type":"uint256"},{"name":"fillBefore","type":"uint256"},{"name":"fillAfter","type":"uint256"}]}]}
+]

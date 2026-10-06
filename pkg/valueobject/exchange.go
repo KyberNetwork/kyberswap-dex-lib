@@ -80,6 +80,7 @@ const (
 	ExchangeCometh                      = "cometh"
 	ExchangeCompoundV2                  = "compound-v2"
 	ExchangeCronaSwap                   = "cronaswap"
+	ExchangeCrystalOB                   = "crystal-ob"
 	ExchangeCurve                       = "curve"
 	ExchangeCurveLending                = "curve-lending"
 	ExchangeCurveLlamma                 = "curve-llamma"

@@ -45,6 +45,7 @@ import (
 	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
+	crystalob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/crystal-ob"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
@@ -456,6 +457,7 @@ type Types struct {
 	NadFun                     string
 	NadSwap                    string
 	CloberOB                   string
+	CrystalOB                  string
 	FluidDexV2                 string
 	Wildcard                   string
 	ValantisStex               string
@@ -714,6 +716,7 @@ var (
 		NadFun:                     nadfun.DexType,
 		NadSwap:                    nadswap.DexType,
 		CloberOB:                   cloberob.DexType,
+		CrystalOB:                  crystalob.DexType,
 		FluidDexV2:                 dexv2.DexType,
 		Wildcard:                   wildcard.DexType,
 		ValantisStex:               valantisstex.DexType,
