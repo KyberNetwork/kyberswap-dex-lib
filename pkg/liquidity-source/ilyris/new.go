@@ -3,6 +3,7 @@ package ilyris
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"sort"
 	"strings"
@@ -35,10 +36,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if len(ep.Tokens) != 2 {
 		return nil, ErrInvalidToken
 	}
-	if se.BinStepBps == 0 {
-		// A zero bin step makes price(id) = 1 for every id -- every bin the same price, which
-		// is not a pool, it is a rounding accident. Refuse rather than quote from it.
+	if ex.Fee == nil {
 		return nil, ErrMalformedExtra
+	}
+	if err := (PoolParams{
+		BinStepBps: int(se.BinStepBps), ActiveID: int(ex.ActiveID),
+		DecimalsX: int(se.DecimalsX), DecimalsY: int(se.DecimalsY),
+	}).validate(); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrMalformedExtra, err)
 	}
 
 	bins := make([]bin, 0, len(ex.Bins))
@@ -91,7 +96,8 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		decimalsX:        int(se.DecimalsX),
 		decimalsY:        int(se.DecimalsY),
 		bins:             bins,
-		totalFeeRate:     ex.TotalFeeRate,
+		fee:              *ex.Fee,
+		totalFeeRate:     ex.Fee.totalFeeRate(se.BinStepBps, ex.ActiveID, ex.BlockTimestamp),
 		guardSwapsPaused: ex.GuardSwapsPaused,
 		guardFreezeEnd:   ex.GuardFreezeEnd,
 		blockTimestamp:   ex.BlockTimestamp,

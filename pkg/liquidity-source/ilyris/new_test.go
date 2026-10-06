@@ -2,13 +2,13 @@ package ilyris
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 
-	"github.com/holiman/uint256"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -43,6 +43,7 @@ func liveLikeExtra() Extra {
 	return Extra{
 		ActiveID:     7796,
 		TotalFeeRate: 3_000_000,
+		Fee:          &FeeParams{BaseFactor: 30_000, FilterPeriod: 30, DecayPeriod: 600, ReductionFactor: 5_000, MaxVolatilityAccumulator: 350_000, IDReference: 7796},
 		Bins: []BinJSON{
 			{ID: 7795, ReserveX: "0", ReserveY: "500000000"},
 			{ID: 7796, ReserveX: "1000000000000000000", ReserveY: "500000000"},
@@ -123,7 +124,7 @@ func TestEmptyBookIsRefused(t *testing.T) {
 func TestZeroBinStepIsRefused(t *testing.T) {
 	ep := testEntity(t, liveLikeExtra())
 	ep.StaticExtra = mustJSON(t, StaticExtra{BinStepBps: 0, DecimalsX: 18, DecimalsY: 6})
-	if _, err := NewPoolSimulator(ep); err != ErrMalformedExtra {
+	if _, err := NewPoolSimulator(ep); !errors.Is(err, ErrMalformedExtra) {
 		t.Fatalf("expected ErrMalformedExtra, got %v", err)
 	}
 }

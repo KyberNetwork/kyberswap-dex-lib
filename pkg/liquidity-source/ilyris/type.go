@@ -15,11 +15,11 @@ type Extra struct {
 	ActiveID int32     `json:"activeId"`
 	Bins     []BinJSON `json:"bins"`
 
-	// TotalFeeRate is in FEE_PRECISION units (1e9) and ALREADY includes the volatility
-	// component. Stored resolved rather than as its parts because the contract owns the fee
-	// model: re-deriving it here would be a second source of truth, and the way that fails is
-	// a fee that disagrees with the chain by a few units and misprices every quote.
-	TotalFeeRate uint64 `json:"totalFeeRate"`
+	// TotalFeeRate is getTotalFeeRate() at BlockNumber (1e9 precision). The simulator derives
+	// the rate from Fee instead, so it can move after each swap; the tracker refuses a
+	// snapshot where the two disagree.
+	TotalFeeRate uint64     `json:"totalFeeRate"`
+	Fee          *FeeParams `json:"fee"`
 
 	// Guard state, read at the SAME BLOCK as the book above.
 	//

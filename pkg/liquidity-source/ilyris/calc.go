@@ -2,6 +2,7 @@ package ilyris
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/holiman/uint256"
 
@@ -54,10 +55,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrOverflow
 	}
 
-	sim, err := p.kernel()
-	if err != nil {
-		return nil, err
-	}
+	sim := p.kernel()
 	q, err := sim.QuoteExactIn(xForY, amountInU)
 	if err != nil {
 		// The kernel already distinguishes "cannot fill" from "bad input". Surfacing its
@@ -97,20 +95,24 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	// NET of fee, not gross. The fee is skimmed before the input reaches any bin, so adding
-	// the gross amount would inflate reserves by the fee on every single swap and drift the
-	// book further from chain with each one.
-	netIn := new(big.Int).Set(params.TokenAmountIn.Amount)
+	// NET of fee, not gross: BinPool credits the fee to a per-share accumulator, not to bin
+	// reserves. Fresh big.Ints because a clone shares these pointers.
+	reserveIn := new(big.Int).Add(p.Info.Reserves[inIdx], params.TokenAmountIn.Amount)
 	if params.Fee.Amount != nil {
-		netIn.Sub(netIn, params.Fee.Amount)
+		reserveIn.Sub(reserveIn, params.Fee.Amount)
 	}
-	p.Info.Reserves[inIdx] = new(big.Int).Add(p.Info.Reserves[inIdx], netIn)
+	p.Info.Reserves[inIdx] = reserveIn
 	p.Info.Reserves[outIdx] = new(big.Int).Sub(p.Info.Reserves[outIdx], params.TokenAmountOut.Amount)
 
-	// Per-bin reserves must move with the swap. Leaving them untouched is what
-	// made split/multi-hop re-quotes see the original book and overstate depth.
+	// Per-bin reserves move with the swap. Copy-on-write: a clone shares p.bins, so write
+	// into a fresh slice rather than in place.
+	p.bins = slices.Clone(p.bins)
 	p.applyFills(si.Fills)
+
+	// _commitVolatility runs before activeId moves, so the next swap pays the post-swap rate.
+	p.fee.commit(p.activeID, si.NewActiveID, p.blockTimestamp)
 	p.activeID = si.NewActiveID
+	p.totalFeeRate = p.fee.totalFeeRate(p.binStepBps, p.activeID, p.blockTimestamp)
 }
 
 func (p *PoolSimulator) applyFills(fills []BinFill) {
@@ -153,12 +155,11 @@ func subFloor(v, d *uint256.Int) *uint256.Int {
 }
 
 func (p *PoolSimulator) binIndex(id int32) int {
-	for i, b := range p.bins {
-		if b.ID == id {
-			return i
-		}
+	i, ok := slices.BinarySearchFunc(p.bins, id, func(b bin, id int32) int { return int(b.ID - id) })
+	if !ok {
+		return -1
 	}
-	return -1
+	return i
 }
 
 // binsCrossed counts levels traversed, inclusive of the one the swap started in.
@@ -180,22 +181,15 @@ func gasFor(crossed int) int64 {
 	return BaseSwapGas + int64(crossed-1)*PerExtraBinGas
 }
 
-// kernel builds the in-package parity-tested bin book from this adapter's snapshot.
-func (p *PoolSimulator) kernel() (*binSimulator, error) {
-	bins := make(map[int]BinReserves, len(p.bins))
-	for _, b := range p.bins {
-		bins[int(b.ID)] = BinReserves{
-			ReserveX: new(uint256.Int).Set(b.ReserveX),
-			ReserveY: new(uint256.Int).Set(b.ReserveY),
-		}
-	}
-	return newBinSimulator(PoolParams{
+// kernel wraps this snapshot for the parity-tested traversal. No copy: QuoteExactIn only
+// reads the bins, and the params were validated once in NewPoolSimulator.
+func (p *PoolSimulator) kernel() binSimulator {
+	return binSimulator{params: PoolParams{
 		BinStepBps: int(p.binStepBps),
 		ActiveID:   int(p.activeID),
 		DecimalsX:  p.decimalsX,
 		DecimalsY:  p.decimalsY,
-		// The tracker's getTotalFeeRate() at 1e9 precision, volatility surcharge included.
-		// Converting it to bps would truncate the surcharge and over-quote.
+		// Fee rate at 1e9 precision, recomputed from the volatility state after each swap.
 		FeeRate: p.totalFeeRate,
-	}, bins)
+	}, bins: p.bins}
 }

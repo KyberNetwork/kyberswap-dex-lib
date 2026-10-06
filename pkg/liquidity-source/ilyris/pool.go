@@ -31,45 +31,29 @@ type PoolParams struct {
 	FeeRate uint64
 }
 
-// PoolSimulator prices swaps against a snapshot of the book.
+// binSimulator prices swaps against a snapshot of the book.
 //
 // Quoting does not mutate it, so one instance may be reused across the array of amounts
 // KyberSwap asks about. The traversal is stateful within a single quote only.
 type binSimulator struct {
 	params PoolParams
-	bins   map[int]BinReserves
-	// initializedIDs is kept sorted ascending. Bin traversal is a walk outward from the
-	// active bin, so an ordered index is what makes it O(log n) to enter and O(1) to step
-	// rather than a scan of the whole book per bin.
-	initializedIDs []int
+	// bins is ascending by ID. Traversal walks outward from the active bin, so binary search
+	// enters it in O(log n) and each step is O(1). Read-only here: PoolSimulator passes its own
+	// slice without copying.
+	bins []bin
 }
 
-// NewPoolSimulator builds a simulator over the given bins. Bins with no reserves on either
-// side are dropped: they cannot be a source of output and carrying them would make every
-// traversal step over dead entries.
+// newBinSimulator builds a simulator over the given bins. Bins with no reserves on either
+// side are dropped: they cannot be a source of output.
 func newBinSimulator(params PoolParams, bins map[int]BinReserves) (*binSimulator, error) {
-	if params.BinStepBps <= 0 || params.BinStepBps > 1000 {
-		return nil, fmt.Errorf("ilyris: invalid bin step %d", params.BinStepBps)
+	if err := params.validate(); err != nil {
+		return nil, err
 	}
-	if params.DecimalsX < 0 || params.DecimalsX > 18 || params.DecimalsY < 0 || params.DecimalsY > 18 {
-		return nil, fmt.Errorf("ilyris: invalid decimals %d/%d", params.DecimalsX, params.DecimalsY)
-	}
-	if params.ActiveID < MinBinID || params.ActiveID > MaxBinID {
-		return nil, fmt.Errorf("ilyris: activeId %d out of range", params.ActiveID)
-	}
-
-	s := &binSimulator{
-		params:         params,
-		bins:           make(map[int]BinReserves, len(bins)),
-		initializedIDs: make([]int, 0, len(bins)),
-	}
+	s := &binSimulator{params: params, bins: make([]bin, 0, len(bins))}
 	for id, r := range bins {
 		if id < MinBinID || id > MaxBinID {
 			return nil, fmt.Errorf("ilyris: bin id %d out of range", id)
 		}
-		// A nil side is an absent side, not an error. Negative is impossible now that the
-		// type is unsigned, which is one whole class of malformed input the caller can no
-		// longer construct.
 		x, y := r.ReserveX, r.ReserveY
 		if x == nil {
 			x = new(uint256.Int)
@@ -80,14 +64,27 @@ func newBinSimulator(params PoolParams, bins map[int]BinReserves) (*binSimulator
 		if x.IsZero() && y.IsZero() {
 			continue
 		}
-		s.bins[id] = BinReserves{
+		s.bins = append(s.bins, bin{
+			ID:       int32(id),
 			ReserveX: new(uint256.Int).Set(x),
 			ReserveY: new(uint256.Int).Set(y),
-		}
-		s.initializedIDs = append(s.initializedIDs, id)
+		})
 	}
-	sort.Ints(s.initializedIDs)
+	sort.Slice(s.bins, func(i, j int) bool { return s.bins[i].ID < s.bins[j].ID })
 	return s, nil
+}
+
+func (params PoolParams) validate() error {
+	if params.BinStepBps <= 0 || params.BinStepBps > 1000 {
+		return fmt.Errorf("ilyris: invalid bin step %d", params.BinStepBps)
+	}
+	if params.DecimalsX < 0 || params.DecimalsX > 18 || params.DecimalsY < 0 || params.DecimalsY > 18 {
+		return fmt.Errorf("ilyris: invalid decimals %d/%d", params.DecimalsX, params.DecimalsY)
+	}
+	if params.ActiveID < MinBinID || params.ActiveID > MaxBinID {
+		return fmt.Errorf("ilyris: activeId %d out of range", params.ActiveID)
+	}
+	return nil
 }
 
 // Params exposes the configuration, notably ActiveID for computing bins crossed.
@@ -110,19 +107,8 @@ func (s *binSimulator) BaseFeeRate() *uint256.Int {
 // volatilityAccumulator are uint24 and binStep is capped at 1000, so the widest possible
 // numerator is 2^24 * (2^24 * 1000)^2, under 2^93. Unsigned wraparound is unreachable here.
 func (s *binSimulator) VariableFeeRate(volatilityAccumulator *uint256.Int) *uint256.Int {
-	if s.params.VariableFeeControl == 0 {
-		return new(uint256.Int)
-	}
-	var term, num uint256.Int
-	term.SetUint64(uint64(s.params.BinStepBps))
-	term.Mul(volatilityAccumulator, &term)
-
-	num.SetUint64(uint64(s.params.VariableFeeControl))
-	num.Mul(&num, &term)
-	num.Mul(&num, &term)
-	num.Add(&num, variableFeeScale)
-	num.SubUint64(&num, 1)
-	return num.Div(&num, variableFeeScale)
+	return uint256.NewInt(variableFeeRate(uint32(s.params.VariableFeeControl),
+		uint32(s.params.BinStepBps), uint32(volatilityAccumulator.Uint64())))
 }
 
 // TotalFeeRate is base + variable, capped, at 1e9 precision.
@@ -140,8 +126,9 @@ func (s *binSimulator) TotalFeeRate() *uint256.Int {
 	return rate
 }
 
-// findNextWithOutput returns the next bin from fromId (inclusive) holding output-side
-// reserves, walking DOWN for xForY and UP otherwise. Returns false when the book is exhausted.
+// findNextWithOutput returns the index of the next bin from fromId (inclusive) holding
+// output-side reserves, walking DOWN for xForY and UP otherwise. Returns false when the book
+// is exhausted.
 //
 // The direction matters and is easy to invert: selling X consumes Y, and Y sits at and BELOW
 // the active bin, so an X-for-Y swap walks down. Reversing this quotes against liquidity that
@@ -150,23 +137,21 @@ func (s *binSimulator) findNextWithOutput(fromID int, xForY bool) (int, bool) {
 	if fromID < MinBinID || fromID > MaxBinID {
 		return 0, false
 	}
+	// First index with ID > fromID (down) or >= fromID (up).
+	i := sort.Search(len(s.bins), func(i int) bool {
+		return int(s.bins[i].ID) > fromID || (!xForY && int(s.bins[i].ID) == fromID)
+	})
 	if xForY {
-		// Largest initialized id <= fromID, walking down.
-		i := sort.SearchInts(s.initializedIDs, fromID+1) - 1
-		for ; i >= 0; i-- {
-			id := s.initializedIDs[i]
-			if !s.bins[id].ReserveY.IsZero() {
-				return id, true
+		for i--; i >= 0; i-- {
+			if !s.bins[i].ReserveY.IsZero() {
+				return i, true
 			}
 		}
 		return 0, false
 	}
-	// Smallest initialized id >= fromID, walking up.
-	i := sort.SearchInts(s.initializedIDs, fromID)
-	for ; i < len(s.initializedIDs); i++ {
-		id := s.initializedIDs[i]
-		if !s.bins[id].ReserveX.IsZero() {
-			return id, true
+	for ; i < len(s.bins); i++ {
+		if !s.bins[i].ReserveX.IsZero() {
+			return i, true
 		}
 	}
 	return 0, false
@@ -243,11 +228,12 @@ func (s *binSimulator) QuoteExactIn(xForY bool, amountIn *uint256.Int) (*ExactIn
 	var fills []BinFill
 
 	for !remaining.IsZero() {
-		id, ok := s.findNextWithOutput(cursor, xForY)
+		idx, ok := s.findNextWithOutput(cursor, xForY)
 		if !ok {
 			return nil, ErrInsufficientLiquidity
 		}
-		bin := s.bins[id]
+		bin := s.bins[idx]
+		id := int(bin.ID)
 		price, err := PriceFromID(s.params.BinStepBps, id)
 		if err != nil {
 			return nil, err
@@ -347,11 +333,12 @@ func (s *binSimulator) QuoteExactOut(xForY bool, amountOut *uint256.Int) (*Exact
 	finalID := s.params.ActiveID
 
 	for !remainingOut.IsZero() {
-		id, ok := s.findNextWithOutput(cursor, xForY)
+		idx, ok := s.findNextWithOutput(cursor, xForY)
 		if !ok {
 			return nil, ErrInsufficientLiquidity
 		}
-		bin := s.bins[id]
+		bin := s.bins[idx]
+		id := int(bin.ID)
 
 		availableOut := bin.ReserveY
 		if !xForY {

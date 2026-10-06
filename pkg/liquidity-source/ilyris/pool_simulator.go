@@ -2,7 +2,7 @@ package ilyris
 
 import (
 	"errors"
-	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/holiman/uint256"
@@ -58,9 +58,9 @@ type PoolSimulator struct {
 	decimalsY  int
 	bins       []bin // ascending by ID, populated bins only
 
-	// Fee rate in FEE_PRECISION units (1e9), already including any volatility component.
-	// Read per refresh rather than derived here: the contract owns the fee model and a
-	// re-implementation of it is a second source of truth that can disagree.
+	// fee is BinPool's fee config + volatility state; totalFeeRate is getTotalFeeRate() derived
+	// from it at blockTimestamp (1e9 precision). UpdateBalance advances both like a real swap.
+	fee          FeeParams
 	totalFeeRate uint64
 
 	// Guard state, pinned to the same block as the book above. See ErrSwapsPaused.
@@ -80,25 +80,11 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 // breaks split routing and multi-hop: the aggregator cannot restore pre-swap state, so it
 // cannot evaluate a second path through this pool.
 //
-// Clones exactly what UpdateBalance mutates -- reserves, the bin book, and the active id --
-// and nothing else. A deeper copy would be waste on a hot path; a shallower one would let a
-// speculative route corrupt the state the next route reads.
+// Copy-on-write: UpdateBalance writes Info.Reserves by index, so that slice is copied here.
+// It replaces p.bins wholesale and the fee state is held by value, so both are shared safely.
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-
-	cloned.Info.Reserves = make([]*big.Int, len(p.Info.Reserves))
-	for i, r := range p.Info.Reserves {
-		cloned.Info.Reserves[i] = new(big.Int).Set(r)
-	}
-
-	cloned.bins = make([]bin, len(p.bins))
-	for i, b := range p.bins {
-		cloned.bins[i] = bin{
-			ID:       b.ID,
-			ReserveX: new(uint256.Int).Set(b.ReserveX),
-			ReserveY: new(uint256.Int).Set(b.ReserveY),
-		}
-	}
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
 	return &cloned
 }
 

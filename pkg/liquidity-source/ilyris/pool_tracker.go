@@ -3,6 +3,7 @@ package ilyris
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sort"
 	"strings"
@@ -16,44 +17,34 @@ var (
 	_ pool.ITicksBasedPoolTracker = (*PoolTracker)(nil)
 )
 
-// defaultRadius is how many bins either side of active to load.
-//
-// 30 matches what the web app requests and comfortably covers the depth any realistic route
-// crosses. It is not "all bins": a book can be thousands wide, and quoting needs the ones a
-// swap can actually reach.
-const defaultRadius uint32 = 30
+// Bitmap walk bounds. Each round reads scanWords bitmap words (256 bins each) per open
+// direction plus one nextNonEmptyBin probe past them, in a single multicall.
+const (
+	scanWords = 8
+	// ponytail: a book with more than maxScanRounds separate gaps wider than 2048 bins is
+	// only partly tracked; swaps past that run out of bins (no misprice). Raise if one appears.
+	maxScanRounds = 16
+	minWord       = MinBinID >> 8
+	maxWord       = MaxBinID >> 8
+)
 
 // PoolTracker keeps a pool's book in step with the chain.
 type PoolTracker struct {
-	chain  chainReader
-	radius uint32
+	chain chainReader
 }
 
 func NewPoolTracker(chain chainReader) *PoolTracker {
-	return &PoolTracker{chain: chain, radius: defaultRadius}
+	return &PoolTracker{chain: chain}
 }
 
-// GetNewPoolState refreshes a pool.
-//
-// THE COLD START IS THE WHOLE POINT OF THIS METHOD'S SHAPE. Their service hands a tracker
-// RECENT LOGS, never history. A log-only implementation therefore starts with an empty book
-// and stays empty forever for any pool that was created before the service started watching --
-// listed, ranked, and never routed, with nothing anywhere reporting an error.
-//
-// So: if the stored pool has no usable book, do a full RPC refresh instead of folding logs
-// into nothing.
+// GetNewPoolState does a full refresh every time. Their service hands a tracker RECENT logs,
+// never history, so folding logs would leave a pre-existing pool's book empty; and a swap
+// moves the active bin, every crossed bin and the volatility state, which one read captures.
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams) (entity.Pool, error) {
-	if needsBootstrap(p) {
-		return t.BootstrapPoolState(ctx, p, params)
-	}
-	// A swap moves the active bin and both sides of every bin it crossed. Reconstructing that
-	// from logs alone means re-deriving the contract's traversal off-chain and hoping the two
-	// agree; a full read is one call and cannot drift. Revisit only if their service starts
-	// calling this per block and the RPC cost shows up.
 	return t.BootstrapPoolState(ctx, p, params)
 }
 
-// BootstrapPoolState performs the full refresh: lens read, then guard read at the same block.
+// BootstrapPoolState performs the full refresh: pool state, bins and guard at one block.
 func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	st, guard, err := t.FetchRPCData(ctx, p)
 	if err != nil {
@@ -67,8 +58,17 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 // FetchRPCData reads bins and the market guard at one block. The guard has no
 // on-chain block tag of its own, so the pin is the call's block number.
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (RawPoolState, RawGuardState, error) {
-	st, err := t.chain.PoolState(ctx, p.Address, t.radius)
+	st, err := t.chain.PoolState(ctx, p.Address)
 	if err != nil {
+		return RawPoolState{}, RawGuardState{}, err
+	}
+	// The simulator derives the fee from st.Fee so it can move after a swap. Refuse a snapshot
+	// where that derivation disagrees with the contract at the same block.
+	if got := st.Fee.totalFeeRate(st.BinStepBps, st.ActiveID, st.BlockTimestamp); got != st.TotalFeeRate {
+		return RawPoolState{}, RawGuardState{}, fmt.Errorf("ilyris: derived fee rate %d != getTotalFeeRate %d",
+			got, st.TotalFeeRate)
+	}
+	if st.Bins, err = t.fetchBins(ctx, p.Address, st.BlockNumber, st.ActiveID); err != nil {
 		return RawPoolState{}, RawGuardState{}, err
 	}
 
@@ -100,30 +100,84 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (RawPoolS
 }
 
 // FetchPoolTicks re-reads the book. Same call as the bootstrap for us: our "ticks" are bins and
-// they come from the same lens read, so there is no cheaper partial path to offer.
+// they come from the same full read, so there is no cheaper partial path to offer.
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	return t.BootstrapPoolState(ctx, p, pool.GetNewPoolStateParams{})
 }
 
-// needsBootstrap reports whether the stored pool can be priced from at all.
-func needsBootstrap(p entity.Pool) bool {
-	if p.Extra == "" || p.StaticExtra == "" {
-		return true
-	}
-	var ex Extra
-	if err := json.Unmarshal([]byte(p.Extra), &ex); err != nil {
-		return true
-	}
-	if len(ex.Bins) == 0 {
-		return true
-	}
-	// Bins present but all empty is the same situation as no bins: nothing to quote from.
-	for _, b := range ex.Bins {
-		if b.ReserveX != "0" || b.ReserveY != "0" {
-			return false
+// fetchBins reads every initialized bin a swap can reach, at blockNumber. It walks the
+// bitmap outward from the active word; after each batch a nextNonEmptyBin probe either
+// closes that direction (no output-side liquidity beyond) or jumps the walk to the next
+// populated bin, so a gap costs one probe instead of a word read per 256 bins.
+//
+// Skipped gaps hold no output-side reserves. X-only bins below active (or Y-only above) in a
+// gap are left out; a swap reaches them only after crossing the gap, and missing them
+// under-quotes rather than over-quotes.
+func (t *PoolTracker) fetchBins(ctx context.Context, poolAddr string, blockNumber uint64, activeID int32) ([]RawBin, error) {
+	aw := activeID >> 8
+	lo, hi := aw+1, aw // scanned words are [lo, hi]; next batches end at lo-1 / start at hi+1
+	downOpen, upOpen := true, true
+	var ids []int32
+	for round := 0; round < maxScanRounds && (downOpen || upOpen); round++ {
+		var words []int32
+		var probes []BinProbe
+		var downProbe, upProbe = -1, -1
+		if downOpen {
+			newLo := max(lo-scanWords, minWord)
+			for w := newLo; w < lo; w++ {
+				words = append(words, w)
+			}
+			lo = newLo
+			if downOpen = lo > minWord; downOpen {
+				downProbe = len(probes)
+				probes = append(probes, BinProbe{From: lo<<8 - 1, XForY: true})
+			}
+		}
+		if upOpen {
+			newHi := min(hi+scanWords, maxWord)
+			for w := hi + 1; w <= newHi; w++ {
+				words = append(words, w)
+			}
+			hi = newHi
+			if upOpen = hi < maxWord; upOpen {
+				upProbe = len(probes)
+				probes = append(probes, BinProbe{From: (hi + 1) << 8, XForY: false})
+			}
+		}
+
+		bits, next, err := t.chain.ScanBitmap(ctx, poolAddr, blockNumber, words, probes)
+		if err != nil {
+			return nil, err
+		}
+		if len(bits) != len(words) || len(next) != len(probes) {
+			return nil, fmt.Errorf("ilyris: bitmap scan returned %d/%d results", len(bits)+len(next), len(words)+len(probes))
+		}
+		for i, w := range words {
+			for b := 0; bits[i] != nil && b < bits[i].BitLen(); b++ {
+				if id := w<<8 + int32(b); bits[i].Bit(b) == 1 && id >= MinBinID && id <= MaxBinID {
+					ids = append(ids, id)
+				}
+			}
+		}
+		if downProbe >= 0 {
+			if r := next[downProbe]; r.Found {
+				lo = r.ID>>8 + 1 // next batch ends at the found bin's word
+			} else {
+				downOpen = false
+			}
+		}
+		if upProbe >= 0 {
+			if r := next[upProbe]; r.Found {
+				hi = r.ID>>8 - 1 // next batch starts at the found bin's word
+			} else {
+				upOpen = false
+			}
 		}
 	}
-	return true
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return t.chain.BinReserves(ctx, poolAddr, blockNumber, ids)
 }
 
 // applyState writes a chain read back into their entity.
@@ -149,6 +203,7 @@ func applyState(p entity.Pool, st RawPoolState, g RawGuardState) entity.Pool {
 		ActiveID:         st.ActiveID,
 		Bins:             bins,
 		TotalFeeRate:     st.TotalFeeRate,
+		Fee:              &st.Fee,
 		MarketGuard:      strings.ToLower(st.MarketGuard),
 		GuardSwapsPaused: g.SwapsPaused,
 		GuardFreezeEnd:   g.FreezeEnd,

@@ -15,12 +15,17 @@ import (
 // The ethrpc implementation is a thin binding over this in rpc_ethrpc.go; it holds no logic,
 // so there is nothing in it to test that a live call would not have to prove anyway.
 type chainReader interface {
-	// PoolState is one BinPoolLens.getPoolState(pool, radius) call.
-	//
-	// NOTE the radius is uint24 on chain, NOT uint16. Encoding it as uint16 reverts with
-	// empty return data, which reads as a broken lens rather than a wrong ABI -- it cost a
-	// probe during the research pass and it will cost an integrator one too.
-	PoolState(ctx context.Context, pool string, radius uint32) (RawPoolState, error)
+	// PoolState reads pool metadata, activeId, getTotalFeeRate() and the fee config/state in
+	// one multicall, and reports the block it ran at. Bins are read separately (see below).
+	PoolState(ctx context.Context, pool string) (RawPoolState, error)
+
+	// ScanBitmap reads getBitmapWord for each word and nextNonEmptyBin for each probe in one
+	// multicall pinned to blockNumber.
+	ScanBitmap(ctx context.Context, pool string, blockNumber uint64, words []int32,
+		probes []BinProbe) ([]*big.Int, []BinProbeResult, error)
+
+	// BinReserves reads getBinReserves(ids) pinned to blockNumber.
+	BinReserves(ctx context.Context, pool string, blockNumber uint64, ids []int32) ([]RawBin, error)
 
 	// GuardState reads the market guard at blockNumber so the gate and the bin
 	// book are the same block. Separate call because the guard is a separate
@@ -32,13 +37,14 @@ type chainReader interface {
 	FactoryPools(ctx context.Context, factory string, offset, limit int) (pools []string, total int, err error)
 }
 
-// RawPoolState is one lens read, pinned to a single block.
+// RawPoolState is one pool read (lens state, fee state, bins), pinned to a single block.
 type RawPoolState struct {
 	TokenX, TokenY       string
 	DecimalsX, DecimalsY uint8
 	BinStepBps           uint32
 	ActiveID             int32
 	TotalFeeRate         uint64
+	Fee                  FeeParams
 	MarketGuard          string
 	Bins                 []RawBin
 	BlockNumber          uint64
@@ -49,6 +55,17 @@ type RawBin struct {
 	ID       int32
 	ReserveX *big.Int
 	ReserveY *big.Int
+}
+
+// BinProbe is one nextNonEmptyBin(From, XForY) call.
+type BinProbe struct {
+	From  int32
+	XForY bool
+}
+
+type BinProbeResult struct {
+	Found bool
+	ID    int32
 }
 
 // RawGuardState is what decides whether a quote may be offered at all.

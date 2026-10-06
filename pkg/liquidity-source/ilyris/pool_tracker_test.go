@@ -11,24 +11,67 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// fakeChain lets the parts that carry bugs be tested without a node.
+// fakeChain lets the parts that carry bugs be tested without a node. book is the pool's full
+// on-chain bin set; the bitmap and probe reads are answered from it like BinPool would.
 type fakeChain struct {
 	state          RawPoolState
+	book           []RawBin
 	guard          RawGuardState
 	stateErr       error
 	guardErr       error
 	stateCalls     int
 	guardCalls     int
+	scanCalls      int
 	lastGuardBlock uint64
 	pools          []string
 	total          int
 	poolsErr       error
 }
 
-func (f *fakeChain) PoolState(_ context.Context, _ string, _ uint32) (RawPoolState, error) {
+func (f *fakeChain) PoolState(_ context.Context, _ string) (RawPoolState, error) {
 	f.stateCalls++
 	return f.state, f.stateErr
 }
+
+func (f *fakeChain) ScanBitmap(_ context.Context, _ string, _ uint64, words []int32,
+	probes []BinProbe) ([]*big.Int, []BinProbeResult, error) {
+	f.scanCalls++
+	bits := make([]*big.Int, len(words))
+	for i, w := range words {
+		bits[i] = new(big.Int)
+		for _, b := range f.book {
+			if b.ID>>8 == w {
+				bits[i].SetBit(bits[i], int(b.ID&0xff), 1)
+			}
+		}
+	}
+	next := make([]BinProbeResult, len(probes))
+	for i, p := range probes {
+		for _, b := range f.book { // book is ascending
+			if p.XForY && b.ID <= p.From && b.ReserveY.Sign() > 0 {
+				next[i] = BinProbeResult{Found: true, ID: b.ID} // keep the highest
+			}
+			if !p.XForY && b.ID >= p.From && b.ReserveX.Sign() > 0 && !next[i].Found {
+				next[i] = BinProbeResult{Found: true, ID: b.ID}
+			}
+		}
+	}
+	return bits, next, nil
+}
+
+func (f *fakeChain) BinReserves(_ context.Context, _ string, _ uint64, ids []int32) ([]RawBin, error) {
+	out := make([]RawBin, len(ids))
+	for i, id := range ids {
+		out[i] = RawBin{ID: id, ReserveX: new(big.Int), ReserveY: new(big.Int)}
+		for _, b := range f.book {
+			if b.ID == id {
+				out[i] = b
+			}
+		}
+	}
+	return out, nil
+}
+
 func (f *fakeChain) GuardState(_ context.Context, _ string, blockNumber uint64) (RawGuardState, error) {
 	f.guardCalls++
 	f.lastGuardBlock = blockNumber
@@ -56,12 +99,14 @@ func liveLikeChain() *fakeChain {
 			TokenX: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", DecimalsX: 18,
 			TokenY: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", DecimalsY: 6,
 			BinStepBps: 10, ActiveID: 7796, TotalFeeRate: 3_000_000,
+			// baseFactor 30000 * binStep 10 * 10 = 3e6, no surcharge.
+			Fee:         FeeParams{BaseFactor: 30_000, FilterPeriod: 30, DecayPeriod: 600, ReductionFactor: 5_000, MaxVolatilityAccumulator: 350_000, IDReference: 7796},
 			MarketGuard: "0xDd74981476f81c8e45e962Af6DF886a3c5788816",
-			Bins: []RawBin{
-				{ID: 7795, ReserveX: big.NewInt(0), ReserveY: big.NewInt(500_000_000)},
-				{ID: 7796, ReserveX: big.NewInt(1e18), ReserveY: big.NewInt(500_000_000)},
-			},
 			BlockNumber: 43307616, BlockTimestamp: 1_700_000_000,
+		},
+		book: []RawBin{
+			{ID: 7795, ReserveX: big.NewInt(0), ReserveY: big.NewInt(500_000_000)},
+			{ID: 7796, ReserveX: big.NewInt(1e18), ReserveY: big.NewInt(500_000_000)},
 		},
 	}
 }
@@ -95,11 +140,77 @@ func TestEmptyPoolTriggersAColdStart(t *testing.T) {
 	}
 }
 
-// Bins present but all zero is the same situation as no bins.
-func TestAllZeroBinsAlsoColdStart(t *testing.T) {
-	empty, _ := json.Marshal(Extra{Bins: []BinJSON{{ID: 1, ReserveX: "0", ReserveY: "0"}}})
-	if !needsBootstrap(entity.Pool{Extra: string(empty), StaticExtra: "{}"}) {
-		t.Fatal("a book of empty bins must be treated as needing a bootstrap")
+// The tracker must load every bin a swap can reach, not a window around active. A swap that
+// crosses past the tracked bins fails as "insufficient liquidity" while the chain fills it.
+// The book here has Y spread 200 bins down plus one bin past a 5000-bin gap, and X 300 up.
+func TestTrackerLoadsTheWholeBook(t *testing.T) {
+	c := liveLikeChain()
+	c.book = nil
+	var wantY, wantX int64
+	add := func(id int32, x, y int64) {
+		c.book = append(c.book, RawBin{ID: id, ReserveX: big.NewInt(x), ReserveY: big.NewInt(y)})
+		wantX += x
+		wantY += y
+	}
+	add(7796-5000, 0, 1_000_000_000) // isolated, far below
+	for id := int32(7796 - 200); id < 7796; id++ {
+		add(id, 0, 1_000_000)
+	}
+	add(7796, 1e15, 1_000_000)
+	for id := int32(7797); id <= 7796+300; id++ {
+		add(id, 1e15, 0)
+	}
+
+	p, err := NewPoolTracker(c).BootstrapPoolState(context.Background(),
+		entity.Pool{Address: "0xpool", Exchange: DexType, Type: DexType, Tokens: []*entity.PoolToken{{}, {}}},
+		pool.GetNewPoolStateParams{})
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	var ex Extra
+	if err := json.Unmarshal([]byte(p.Extra), &ex); err != nil {
+		t.Fatal(err)
+	}
+	if len(ex.Bins) != len(c.book) {
+		t.Fatalf("tracked %d bins, chain has %d", len(ex.Bins), len(c.book))
+	}
+	if p.Reserves[0] != big.NewInt(wantX).String() || p.Reserves[1] != big.NewInt(wantY).String() {
+		t.Fatalf("reserves %v, want %d/%d", p.Reserves, wantX, wantY)
+	}
+
+	// Selling X for all but the isolated bin's Y must still fill: it walks 200 bins down and
+	// then jumps the gap into the isolated bin.
+	s, err := NewPoolSimulator(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: big.NewInt(3e17)},
+		TokenOut:      s.Info.Tokens[1],
+	}); err != nil {
+		t.Fatalf("swap through the whole book failed: %v", err)
+	}
+	// Buying X for 500 USDG crosses ~190 upper bins and must fill too.
+	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[1], Amount: big.NewInt(500_000_000)},
+		TokenOut:      s.Info.Tokens[0],
+	}); err != nil {
+		t.Fatalf("swap up through the book failed: %v", err)
+	}
+}
+
+// The simulator derives the fee from feeConfig/feeState. A snapshot where that derivation
+// disagrees with getTotalFeeRate() at the same block must be refused, not quoted from.
+func TestFeeDerivationMismatchIsRefused(t *testing.T) {
+	c := liveLikeChain()
+	c.state.TotalFeeRate++
+	before := entity.Pool{Address: "0xpool", Extra: "{}"}
+	got, err := NewPoolTracker(c).BootstrapPoolState(context.Background(), before, pool.GetNewPoolStateParams{})
+	if err == nil {
+		t.Fatal("expected a fee mismatch error")
+	}
+	if got.Extra != before.Extra {
+		t.Fatal("a refused snapshot must not overwrite the stored pool")
 	}
 }
 

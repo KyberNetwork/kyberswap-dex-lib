@@ -43,12 +43,14 @@ func newTestSim() *PoolSimulator {
 			Tokens:   []string{tokX, tokY},
 			Reserves: []*big.Int{sumX.ToBig(), sumY.ToBig()},
 		}},
-		binStepBps:   10,
-		activeID:     7796,
-		decimalsX:    18,
-		decimalsY:    6,
-		bins:         bins,
-		totalFeeRate: 3_000_000, // 0.30% in FEE_PRECISION (1e9) units
+		binStepBps: 10,
+		activeID:   7796,
+		decimalsX:  18,
+		decimalsY:  6,
+		bins:       bins,
+		// baseFactor 30000 * binStep 10 * 10 = 3e6 = 0.30% at 1e9 precision; no surcharge.
+		fee:          FeeParams{BaseFactor: 30_000, FilterPeriod: 30, DecayPeriod: 600, ReductionFactor: 5_000, MaxVolatilityAccumulator: 350_000, IDReference: 7796},
+		totalFeeRate: 3_000_000,
 	}
 }
 
@@ -129,27 +131,43 @@ func TestTokenLookupIsCaseInsensitive(t *testing.T) {
 	}
 }
 
-// CloneState must deep-copy what UpdateBalance mutates. The base returns nil, which silently
-// breaks split routing -- the aggregator cannot restore state to try a second path.
-func TestCloneStateIsDeepAndNotNil(t *testing.T) {
+// A swap applied to a clone must leave the original untouched. The base returns nil, which
+// silently breaks split routing -- the aggregator cannot restore state to try a second path.
+func TestCloneStateIsolatesUpdateBalance(t *testing.T) {
 	s := newTestSim()
+	s.fee.VariableFeeControl = 122_448
 	c := s.CloneState()
 	if c == nil {
 		t.Fatal("CloneState returned nil - split routing would break")
 	}
 	clone := c.(*PoolSimulator)
-	clone.bins[0].ReserveY.SetUint64(1)
-	clone.Info.Reserves[1].SetInt64(1)
-	clone.activeID = 1
-
-	if s.bins[0].ReserveY.Uint64() == 1 {
-		t.Fatal("bin reserves are shared with the clone")
+	in := big.NewInt(3_000_000_000) // 3000 USDG buys past bin 7796 (1 WETH ~ 2400 USDG)
+	res, err := clone.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenOut: tokX,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if s.Info.Reserves[1].Int64() == 1 {
+	clone.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenAmountOut: *res.TokenAmountOut,
+		Fee: *res.Fee, SwapInfo: res.SwapInfo,
+	})
+
+	fresh := newTestSim()
+	fresh.fee.VariableFeeControl = 122_448
+	if clone.activeID == s.activeID || clone.totalFeeRate == s.totalFeeRate {
+		t.Fatal("the clone's swap did not move its own state")
+	}
+	if s.activeID != fresh.activeID || s.fee != fresh.fee || s.totalFeeRate != fresh.totalFeeRate {
+		t.Fatal("active bin / fee state leaked from the clone")
+	}
+	if s.Info.Reserves[0].Cmp(fresh.Info.Reserves[0]) != 0 || s.Info.Reserves[1].Cmp(fresh.Info.Reserves[1]) != 0 {
 		t.Fatal("Info.Reserves is shared with the clone")
 	}
-	if s.activeID == 1 {
-		t.Fatal("activeID leaked from the clone")
+	for i, b := range s.bins {
+		if !b.ReserveX.Eq(fresh.bins[i].ReserveX) || !b.ReserveY.Eq(fresh.bins[i].ReserveY) {
+			t.Fatalf("bin %d reserves are shared with the clone", b.ID)
+		}
 	}
 }
 
@@ -338,5 +356,62 @@ func TestSubBpsFeeRateIsCharged(t *testing.T) {
 	}
 	if want := big.NewInt(10_000_000 - 10_000_000*(1_000_000_000-3_123_456)/1_000_000_000); res.Fee.Amount.Cmp(want) != 0 {
 		t.Fatalf("fee = %s, want %s", res.Fee.Amount, want)
+	}
+}
+
+// BinPool fixes the fee for a whole swap, then _commitVolatility folds the bins it moved into
+// the accumulator, so the NEXT swap in the same route pays more. Expected rates are
+// baseFactor*binStep*10 + ceil(control*(acc*binStep)^2/1e11), computed by hand.
+func TestSecondSwapPaysPostSwapVolatilityFee(t *testing.T) {
+	cases := []struct {
+		name                 string
+		now, tlu             uint64
+		va                   uint32
+		wantRate1, wantRate2 uint64
+	}{
+		// Same block, fresh window: acc goes 0 -> 1 bin (10000).
+		{"no prior volatility", 0, 0, 0, 3_000_000, 3_012_245},
+		// 100s since the last swap: past filterPeriod (30), inside decayPeriod (600), so the
+		// reference decays to va*5000/10000 = 100000 and re-anchors at the pre-swap bin.
+		{"decayed reference", 1000, 900, 200_000, 4_224_480, 4_481_621},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s := newTestSim()
+			s.fee.VariableFeeControl = 122_448
+			s.fee.TimeLastUpdate, s.fee.VolatilityAccumulator = c.tlu, c.va
+			s.blockTimestamp = c.now
+			s.totalFeeRate = s.fee.totalFeeRate(s.binStepBps, s.activeID, s.blockTimestamp)
+			if s.totalFeeRate != c.wantRate1 {
+				t.Fatalf("first swap rate %d, want %d", s.totalFeeRate, c.wantRate1)
+			}
+
+			in := big.NewInt(3_000_000_000) // 3000 USDG: 7796 -> 7797
+			res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenOut: tokX,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if si := res.SwapInfo.(SwapInfo); si.NewActiveID != 7797 {
+				t.Fatalf("first swap ended in bin %d, want 7797", si.NewActiveID)
+			}
+			s.UpdateBalance(pool.UpdateBalanceParams{
+				TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenAmountOut: *res.TokenAmountOut,
+				Fee: *res.Fee, SwapInfo: res.SwapInfo,
+			})
+
+			in2 := big.NewInt(10_000_000)
+			res2, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in2}, TokenOut: tokX,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantFee := 10_000_000 - 10_000_000*(1_000_000_000-c.wantRate2)/1_000_000_000
+			if res2.Fee.Amount.Uint64() != wantFee {
+				t.Fatalf("second swap fee %s, want %d (rate %d)", res2.Fee.Amount, wantFee, c.wantRate2)
+			}
+		})
 	}
 }
