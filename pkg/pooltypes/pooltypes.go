@@ -114,6 +114,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
+	kuruob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob"
+	kuruobv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
@@ -505,6 +507,8 @@ type Types struct {
 	NetStaking                 string
 	Gblin                      string
 	EverlongFlamm              string
+	KuruOB                     string
+	KuruOBV2                   string
 }
 
 var (
@@ -764,5 +768,7 @@ var (
 		NetStaking:                 netstaking.DexType,
 		Gblin:                      gblin.DexType,
 		EverlongFlamm:              everlongflamm.DexType,
+		KuruOB:                     kuruob.DexType,
+		KuruOBV2:                   kuruobv2.DexType,
 	}
 )

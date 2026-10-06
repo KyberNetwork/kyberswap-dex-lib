@@ -162,6 +162,7 @@ const (
 	ExchangeKrptoDex                    = "kryptodex"
 	ExchangeKTX                         = "ktx"
 	ExchangeKuruOB                      = "kuru-ob"
+	ExchangeKuruOBV2                    = "kuru-ob-v2"
 	ExchangeKyberPMM                    = "kyber-pmm"
 	ExchangeKipseliProp                 = "kipseli-prop"
 	ExchangeKipseliPamm                 = "kipseli-pamm"
