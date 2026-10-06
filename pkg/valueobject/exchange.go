@@ -11,6 +11,7 @@ const (
 	ExchangeAeroV2Volatile              = "aero-v2-volatile"
 	ExchangeAlienBaseStableSwap         = "alien-base-stableswap"
 	ExchangeAltFun                      = "alt-fun"
+	ExchangeFlywheelFun                 = "flywheel-fun"
 	ExchangeAmbient                     = "ambient"
 	ExchangeApeSwap                     = "apeswap"
 	ExchangeArberaDen                   = "arbera-den"

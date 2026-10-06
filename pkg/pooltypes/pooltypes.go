@@ -90,6 +90,7 @@ import (
 	dexv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1/lazy"
+	flywheelfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/flywheel-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
@@ -490,6 +491,7 @@ type Types struct {
 	CapricornPamm              string
 	BounceTech                 string
 	AltFun                     string
+	FlywheelFun                string
 	Prop1010                   string
 	FermiProp                  string
 	Machima                    string
@@ -747,6 +749,7 @@ var (
 		CapricornPamm:              capricornpamm.DexType,
 		BounceTech:                 bouncetech.DexType,
 		AltFun:                     altfun.DexType,
+		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
