@@ -145,3 +145,15 @@ func TestUntrackedPoolRefusesToQuote(t *testing.T) {
 	_, err := (&Hook{}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1)})
 	assert.ErrorIs(t, err, ErrPoolNotRegistered)
 }
+
+func BenchmarkHook(b *testing.B) {
+	NowFn = func() int64 { return 1100 }
+	h := &Hook{Extra: Extra{StartFeeBips: 5000, EndFeeBips: 300, DecayDuration: 300, LaunchTime: 1000}}
+	amt := bi("123456789012345678")
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amt})
+		_, _ = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountOut: amt})
+		_, _ = h.BeforeSwap(&uniswapv4.BeforeSwapParams{ZeroForOne: false, AmountSpecified: amt})
+	}
+}

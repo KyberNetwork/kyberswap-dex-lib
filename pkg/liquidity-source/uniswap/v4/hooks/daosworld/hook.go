@@ -18,9 +18,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -32,6 +34,13 @@ var HookAddresses = []common.Address{
 var (
 	ErrPoolNotRegistered      = errors.New("daosworld: pool not launched through the hook")
 	ErrPoolTokensNotAvailable = errors.New("daosworld: pool tokens not available")
+)
+
+const (
+	totalBips = 10_000 // DaosWorldLaunchHook.TOTAL_BIPS
+	// Estimates: both callbacks run on every swap; afterSwap also takes the ETH and forwards it (<=50k gas).
+	gasBeforeSwap = 40000
+	gasAfterSwap  = 100000
 )
 
 // NowFn is the clock the decaying tax reads; a variable so tests can pin it.
@@ -104,15 +113,22 @@ func (e *Extra) feeBips(now int64) uint64 {
 }
 
 // ethTax is the hook's tax on an ETH amount. net=false: amount is pre-tax, tax = floor(amount*bips/10000),
-// as on-chain. net=true (CalcIn): amount is what is left after the tax; returns the min tax that leaves it.
+// as on-chain. net=true (CalcIn): amount is what is left after the tax; returns the min tax that leaves it,
+// i.e. floor((amount-1)*10000/(10000-bips)) + 1 - amount.
 func (h *Hook) ethTax(amount *big.Int, net bool) *big.Int {
-	var bips big.Int
-	bips.SetUint64(h.feeBips(NowFn()))
-	if !net {
-		return bignumber.MulDivDown(new(big.Int), amount, &bips, bignumber.BasisPoint)
+	var a, bips, denom uint256.Int
+	if amount.Sign() <= 0 || a.SetFromBig(amount) {
+		return bignumber.ZeroBI
 	}
-	gross := uniswapv4.GrossBeforeFee(amount, &bips, bignumber.BasisPoint)
-	return gross.Sub(gross, amount)
+	bips.SetUint64(h.feeBips(NowFn()))
+	denom.SetUint64(totalBips)
+	if !net {
+		return big256.ToBig(big256.MulDivDown(&a, &a, &bips, &denom))
+	}
+	amount1 := a
+	bips.Sub(&denom, &bips) // 10000 - bips, never 0: bips <= MAX_START_FEE_BIPS
+	big256.MulDivDown(&a, a.SubUint64(&a, 1), &denom, &bips)
+	return big256.ToBig(a.Add(&a, uint256.NewInt(1)).Sub(&a, &amount1))
 }
 
 // BeforeSwap taxes the ETH leg when it is the specified amount (ZeroForOne == CalcOut): a buy's ETH input
@@ -125,7 +141,7 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	if p.ZeroForOne == p.CalcOut {
 		fee = h.ethTax(p.AmountSpecified, !p.CalcOut)
 	}
-	return &uniswapv4.BeforeSwapResult{DeltaSpecified: fee, DeltaUnspecified: bignumber.ZeroBI}, nil
+	return &uniswapv4.BeforeSwapResult{DeltaSpecified: fee, DeltaUnspecified: bignumber.ZeroBI, Gas: gasBeforeSwap}, nil
 }
 
 // AfterSwap taxes the ETH leg when it is unspecified: a sell's pool ETH output (CalcOut), or a buy's pool ETH
@@ -138,5 +154,5 @@ func (h *Hook) AfterSwap(p *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResu
 	if p.ZeroForOne != p.CalcOut {
 		fee = h.ethTax(lo.Ternary(p.CalcOut, p.AmountOut, p.AmountIn), !p.CalcOut)
 	}
-	return &uniswapv4.AfterSwapResult{HookFee: fee}, nil
+	return &uniswapv4.AfterSwapResult{HookFee: fee, Gas: gasAfterSwap}, nil
 }
