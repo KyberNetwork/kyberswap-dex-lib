@@ -38,9 +38,10 @@ var (
 
 const (
 	totalBips = 10_000 // DaosWorldLaunchHook.TOTAL_BIPS
-	// Estimates: both callbacks run on every swap; afterSwap also takes the ETH and forwards it (<=50k gas).
-	gasBeforeSwap = 40000
-	gasAfterSwap  = 100000
+	// Measured from Tenderly traces of buy and sell swaps: PoolManager's beforeSwap (9.6k buy / 8.3k sell)
+	// and afterSwap incl. the hook's take and ETH forward (25.8k / 26.1k); a contract recipient costs more.
+	gasBeforeSwap = 10000
+	gasAfterSwap  = 26000
 )
 
 // NowFn is the clock the decaying tax reads; a variable so tests can pin it.
