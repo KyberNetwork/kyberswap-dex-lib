@@ -2,7 +2,6 @@ package deltaswapv1
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -21,6 +20,22 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+}
+
+type dsFeeInfo struct {
+	DsFee          uint8
+	DsFeeThreshold uint8
+}
+
+type tradeLiquidityEMAResult struct {
+	TradeLiquidityEMA     *uint256.Int
+	LastTradeLiquiditySum *uint256.Int
+	LastTradeBlockNumber  uint32
+}
+
+type liquidityEMAResult struct {
+	LiquidityEMA             *uint256.Int
+	LastLiquidityBlockNumber uint32
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -63,10 +78,10 @@ func (t *PoolTracker) getNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		dsFeeInfoTuple          [2]any // dsFee, dsFeeThreshold uint8
-		reservesResult          uniswapv2.ReserveData
-		tradeLiquidityEMAParams [3]any // tradeLiquidityEMA, lastTradeLiquiditySum uint112, lastTradeBlockNumber uint32
-		liquidityEMA            [2]any // liquidityEMA uint112, lastLiquidityBlockNumber uint32
+		dsFeeInfoData         dsFeeInfo
+		reservesResult        uniswapv2.ReserveData
+		tradeLiquidityEMAData tradeLiquidityEMAResult
+		liquidityEMAData      liquidityEMAResult
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -78,7 +93,7 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    deltaSwapV1FactoryABI,
 		Target: t.config.FactoryAddress,
 		Method: factoryMethodDsFeeInfo,
-	}, []any{&dsFeeInfoTuple})
+	}, []any{&dsFeeInfoData})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    deltaSwapV1PairABI,
 		Target: p.Address,
@@ -88,12 +103,12 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    deltaSwapV1PairABI,
 		Target: p.Address,
 		Method: factoryMethodGetTradeLiquidityEMAParams,
-	}, []any{&tradeLiquidityEMAParams})
+	}, []any{&tradeLiquidityEMAData})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    deltaSwapV1PairABI,
 		Target: p.Address,
 		Method: factoryMethodGetLiquidityEMA,
-	}, []any{&liquidityEMA})
+	}, []any{&liquidityEMAData})
 
 	resp, err := calls.Aggregate()
 	if err != nil {
@@ -105,13 +120,13 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		DsFee:                    dsFeeInfoTuple[0].(uint8),
-		DsFeeThreshold:           dsFeeInfoTuple[1].(uint8),
-		LiquidityEMA:             uint256.MustFromBig(liquidityEMA[0].(*big.Int)),
-		LastLiquidityBlockNumber: uint64(liquidityEMA[1].(uint32)),
-		TradeLiquidityEMA:        uint256.MustFromBig(tradeLiquidityEMAParams[0].(*big.Int)),
-		LastTradeLiquiditySum:    uint256.MustFromBig(tradeLiquidityEMAParams[1].(*big.Int)),
-		LastTradeBlockNumber:     uint64(tradeLiquidityEMAParams[2].(uint32)),
+		DsFee:                    dsFeeInfoData.DsFee,
+		DsFeeThreshold:           dsFeeInfoData.DsFeeThreshold,
+		LiquidityEMA:             liquidityEMAData.LiquidityEMA,
+		LastLiquidityBlockNumber: uint64(liquidityEMAData.LastLiquidityBlockNumber),
+		TradeLiquidityEMA:        tradeLiquidityEMAData.TradeLiquidityEMA,
+		LastTradeLiquiditySum:    tradeLiquidityEMAData.LastTradeLiquiditySum,
+		LastTradeBlockNumber:     uint64(tradeLiquidityEMAData.LastTradeBlockNumber),
 	})
 
 	if err != nil {
@@ -123,14 +138,12 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	if resp.BlockNumber == nil {
-		resp.BlockNumber = big.NewInt(0)
-	}
-
 	p.Reserves = entity.PoolReserves{reservesResult.Reserve0.String(), reservesResult.Reserve1.String()}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
+	}
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
