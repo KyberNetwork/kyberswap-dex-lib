@@ -52,7 +52,7 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (r orderR
 	}
 
 	var rq, rb uint256.Int
-	ammOn := p.rq != nil && !(p.rq.IsZero() && p.rb.IsZero())
+	ammOn := p.rq != nil && (!p.rq.IsZero() || !p.rb.IsZero())
 	if ammOn {
 		if p.rq.IsZero() || p.rb.IsZero() {
 			return r, ErrMarketInactive // on-chain divides by the zero side
