@@ -30,7 +30,7 @@ import (
 //	than the client's fresh window (1s by default) even when nothing
 //	changed:
 //	  {"v":1,"type":"snapshot","chainId":8453,"proxy":"0x...","seq":42,
-//	   "timestampMs":...,"blockNumber":...,"base":"0x...",
+//	   "timestampMs":<pricing time>,"blockNumber":...,"base":"0x...",
 //	   "tokens":{"0x...":{"balance":"...","allowance":"..."}},
 //	   "markets":{"0x<asset>":{"l":[[[in,out],...],[[in,out],...]]}}}
 //
@@ -116,7 +116,7 @@ type (
 // Immutable once published.
 type feedSnapshot struct {
 	seq         uint64
-	receivedAt  time.Time
+	pricedAt    time.Time
 	blockNumber uint64
 	base        string
 	reserves    map[string]*uint256.Int
@@ -393,6 +393,9 @@ func (c *feedClient) buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (
 	if !common.IsHexAddress(msg.Base) {
 		return nil, errFeedInvalid
 	}
+	if msg.TimestampMs <= 0 {
+		return nil, errFeedInvalid
+	}
 	base := strings.ToLower(msg.Base)
 
 	reserves := make(map[string]*uint256.Int, len(msg.Tokens))
@@ -424,10 +427,19 @@ func (c *feedClient) buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (
 
 	return &feedSnapshot{
 		seq:         msg.Seq,
-		receivedAt:  receivedAt,
+		pricedAt:    pricedAt(msg.TimestampMs, receivedAt),
 		blockNumber: msg.BlockNumber,
 		base:        base,
 		reserves:    reserves,
 		markets:     markets,
 	}, nil
+}
+
+// pricedAt is when Nemo priced the snapshot (timestampMs), capped at receipt
+// so a server clock running ahead can't extend a snapshot's life.
+func pricedAt(timestampMs int64, receivedAt time.Time) time.Time {
+	if t := time.UnixMilli(timestampMs); t.Before(receivedAt) {
+		return t
+	}
+	return receivedAt
 }

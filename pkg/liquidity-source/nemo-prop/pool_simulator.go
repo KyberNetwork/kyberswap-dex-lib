@@ -82,10 +82,10 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 // quotable: within the maximum age, and fresh unless decay is enabled. A
 // pool without a snapshot has no ladders, so it quotes nothing either way.
 func (e *Extra) decayAt(now time.Time) (float64, bool) {
-	if e.ReceivedAtMs == 0 {
+	if e.PricedAtMs == 0 {
 		return 1, false
 	}
-	age := now.UnixMilli() - e.ReceivedAtMs
+	age := now.UnixMilli() - e.PricedAtMs
 	if age >= e.MaxAgeMs {
 		return 1, false
 	}

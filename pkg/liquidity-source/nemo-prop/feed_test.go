@@ -149,3 +149,29 @@ func TestFeed_BadMarketDropsOnlyThatMarket(t *testing.T) {
 		assert.False(t, ok, name)
 	}
 }
+
+// Snapshots age from when Nemo priced them: a resent old price must not look
+// fresh, and a server clock running ahead must not extend a snapshot's life.
+func TestFeed_AgesFromPricingTime(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	for name, tc := range map[string]struct {
+		timestampMs int64
+		want        time.Time
+	}{
+		"priced earlier": {now.Add(-3 * time.Second).UnixMilli(), time.UnixMilli(now.Add(-3 * time.Second).UnixMilli())},
+		"clock ahead":    {now.Add(time.Minute).UnixMilli(), now},
+	} {
+		c := &feedClient{chainID: 8453, proxy: hexAddr(testProxy)}
+		msg := snapshotFrame(1, 2, 0.5)
+		msg.TimestampMs = tc.timestampMs
+		snap, err := c.buildFeedSnapshot(&msg, now)
+		require.NoError(t, err, name)
+		assert.Equal(t, tc.want, snap.pricedAt, name)
+	}
+
+	msg := snapshotFrame(1, 2, 0.5)
+	msg.TimestampMs = 0
+	_, err := (&feedClient{}).buildFeedSnapshot(&msg, now)
+	assert.ErrorIs(t, err, errFeedInvalid)
+}

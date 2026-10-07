@@ -21,7 +21,7 @@ const (
 	// quotes start decaying.
 	defaultFeedFresh = time.Second
 
-	// defaultFeedMaxAge bounds how long after receipt a snapshot quotes at
+	// defaultFeedMaxAge bounds how long after pricing a snapshot quotes at
 	// all, decayed or not, so a feed gone quiet can't keep quoting stale
 	// prices and stale inventory. It leaves room for a reconnect.
 	defaultFeedMaxAge = 5 * time.Second

@@ -143,7 +143,7 @@ func TestExtra_DecayAt(t *testing.T) {
 		"max age":             {5 * time.Second, Extra{FreshMs: 1000, MaxAgeMs: 5000, DecayBps: 10}, 1, false},
 		"stale without decay": {2 * time.Second, Extra{FreshMs: 1000, MaxAgeMs: 5000}, 1, false},
 	} {
-		tc.extra.ReceivedAtMs = now.Add(-tc.age).UnixMilli()
+		tc.extra.PricedAtMs = now.Add(-tc.age).UnixMilli()
 		scale, quotable := tc.extra.decayAt(now)
 		assert.InDelta(t, tc.scale, scale, 1e-12, name)
 		assert.Equal(t, tc.quotable, quotable, name)

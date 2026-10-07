@@ -60,7 +60,7 @@ func TestPoolTracker_WritesSnapshotIntoPoolState(t *testing.T) {
 	f.push(frame)
 	p, extra = eventuallyBlock(t, tracker, p, 1001)
 	assert.Equal(t, entity.PoolReserves{"500", "4000"}, p.Reserves, "deliverable = min(balance, allowance)")
-	assert.InDelta(t, time.Now().UnixMilli(), extra.ReceivedAtMs, 5000)
+	assert.InDelta(t, time.Now().UnixMilli(), extra.PricedAtMs, 5000)
 	assert.Equal(t, []ladder.Point{{1000, 1800}, {2000, 3600}}, extra.Ladders[0], "truncated, then buffered")
 	assert.NotContains(t, p.Extra, "integrator-key", "the auth token never enters pool state")
 
@@ -77,7 +77,7 @@ func TestPoolTracker_WritesSnapshotIntoPoolState(t *testing.T) {
 	p, extra = eventuallyBlock(t, tracker, p, 1002)
 	assert.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
 	assert.Empty(t, extra.Ladders[0])
-	assert.Zero(t, extra.ReceivedAtMs)
+	assert.Zero(t, extra.PricedAtMs)
 }
 
 // A direction with no quote delivers none of its output token.
@@ -261,7 +261,7 @@ func TestPoolTracker_StopsOnStaleOnChainAnchors(t *testing.T) {
 	chain.setAnchorsAge(testPricing, maxAge+time.Second)
 	p, extra = refresh(t, tracker, p)
 	assert.Empty(t, extra.Ladders[0])
-	assert.Zero(t, extra.ReceivedAtMs)
+	assert.Zero(t, extra.PricedAtMs)
 	assert.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
 
 	// Upgrade to a pricing contract with fresh anchors: the refresh that sees

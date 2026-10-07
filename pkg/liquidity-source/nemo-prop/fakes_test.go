@@ -198,7 +198,7 @@ func pooledState(t *testing.T, ladders [2][]ladder.Point, reserves entity.PoolRe
 	t.Helper()
 	p := testPool(t)
 	extra, err := json.Marshal(Extra{Extra: ladder.Extra{Ladders: ladders},
-		ReceivedAtMs: time.Now().Add(-age).UnixMilli(), FreshMs: freshMs, MaxAgeMs: maxAgeMs, DecayBps: decayBps})
+		PricedAtMs: time.Now().Add(-age).UnixMilli(), FreshMs: freshMs, MaxAgeMs: maxAgeMs, DecayBps: decayBps})
 	require.NoError(t, err)
 	p.Extra, p.Reserves, p.BlockNumber = string(extra), reserves, 1001
 	return p

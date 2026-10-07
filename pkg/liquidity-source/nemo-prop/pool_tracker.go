@@ -52,7 +52,7 @@ func (t *PoolTracker) GetNewPoolState(
 	now := time.Now()
 	p.Timestamp = now.Unix()
 
-	if snap := t.feed.latest(); snap != nil && now.Sub(snap.receivedAt).Milliseconds() < extra.MaxAgeMs {
+	if snap := t.feed.latest(); snap != nil && now.Sub(snap.pricedAt).Milliseconds() < extra.MaxAgeMs {
 		if m, ok := snap.market(p.Tokens[0].Address, p.Tokens[1].Address); ok {
 			anchorsMs, err := t.anchorsUpdatedAtMs(ctx)
 			if err != nil {
@@ -63,8 +63,8 @@ func (t *PoolTracker) GetNewPoolState(
 			if now.UnixMilli()-anchorsMs < extra.MaxAgeMs {
 				reserves = m.reserves
 				extra.Ladders = shapeLadders(m.ladders, reserves, t.cfg.Buffer)
-				extra.ReceivedAtMs = snap.receivedAt.UnixMilli()
-				p.Timestamp = snap.receivedAt.Unix()
+				extra.PricedAtMs = snap.pricedAt.UnixMilli()
+				p.Timestamp = snap.pricedAt.Unix()
 			}
 		}
 		if snap.blockNumber != 0 {

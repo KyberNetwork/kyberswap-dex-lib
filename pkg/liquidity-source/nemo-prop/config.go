@@ -38,7 +38,7 @@ type FeedConfig struct {
 	// FreshMs is how long a snapshot quotes undecayed (default
 	// defaultFeedFresh). Decay (see Config.DecayBps) starts after it.
 	FreshMs int64 `json:"freshMs"`
-	// MaxAgeMs is how long after receipt a snapshot quotes at all, decayed
+	// MaxAgeMs is how long after pricing a snapshot quotes at all, decayed
 	// or not (default defaultFeedMaxAge, or FreshMs if that's longer).
 	MaxAgeMs int64 `json:"maxAgeMs"`
 }

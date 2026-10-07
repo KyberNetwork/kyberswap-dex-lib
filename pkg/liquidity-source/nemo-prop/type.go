@@ -12,12 +12,12 @@ type StaticExtra struct {
 }
 
 // Extra is a feed snapshot's shaped ladders for one market, plus what the
-// simulator needs to age them: when the tracker received the snapshot and
+// simulator needs to age them: when Nemo priced the snapshot and
 // the freshness, decay and maximum-age settings in force.
 type Extra struct {
 	ladder.Extra
-	ReceivedAtMs int64 `json:"t,omitempty"`
-	FreshMs      int64 `json:"fr,omitempty"`
-	MaxAgeMs     int64 `json:"ma,omitempty"`
-	DecayBps     int64 `json:"d,omitempty"`
+	PricedAtMs int64 `json:"t,omitempty"`
+	FreshMs    int64 `json:"fr,omitempty"`
+	MaxAgeMs   int64 `json:"ma,omitempty"`
+	DecayBps   int64 `json:"d,omitempty"`
 }
