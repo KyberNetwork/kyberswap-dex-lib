@@ -11,8 +11,9 @@ const (
 	DexType = valueobject.ExchangeNemoProp
 
 	// defaultGas is the whole hop in Kyber's executor: the input transfer to
-	// the proxy plus NemoSwap.swapPrepaid. Tenderly measured 97k-101k on Base.
-	defaultGas = 100_000
+	// the proxy plus NemoSwap.swapPrepaidWithFee. Tenderly on Base measured
+	// swapPrepaidWithFee at 62k-72k, 7k-17k above swapPrepaid's ~100k hop.
+	defaultGas = 110_000
 
 	// defaultFeedFresh is how long a snapshot quotes undecayed. The feed
 	// server resends faster than this even when nothing changed, so an older
