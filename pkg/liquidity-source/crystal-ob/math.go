@@ -45,7 +45,7 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (r orderR
 	amountIn, amountOut := &r.amountIn, &r.amountOut
 	worst, levels, endPrice := &p.tickSize, p.bids, big256.U0
 	if isBuy {
-		big256.MulDivUp(&size, origSize, &p.takerFee, u1e5) // input net of taker fee
+		divUp(&size, size.Mul(origSize, &p.takerFee), u1e5) // input net of taker fee; < 2^145
 		worst, levels, endPrice = &p.buyWorst, p.asks, &p.maxPrice
 	} else {
 		size.Set(origSize)
@@ -95,11 +95,13 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (r orderR
 		lvl := levels[li]
 		for ; 1+oi < len(lvl) && !sizeLeft.IsZero(); oi++ {
 			order := lvl[1+oi]
-			big256.MulDivDown(&tmp, &sizeLeft, &p.makerRebate, u1e5)
+			// Book products fit 256 bits: sizes <= 2^128 (orders 2^112), scale <= 2^112 and
+			// price <= 2^80 (CrystalMarket constructor), fees < 2^17.
+			tmp.Mul(&sizeLeft, &p.makerRebate).Div(&tmp, u1e5)
 			if isBuy {
-				big256.MulDivDown(&tmp, &tmp, &p.scale, price)
+				tmp.Mul(&tmp, &p.scale).Div(&tmp, price)
 			} else {
-				big256.MulDivDown(&tmp, &tmp, price, &p.scale)
+				tmp.Mul(&tmp, price).Div(&tmp, &p.scale)
 			}
 			if order.Gt(&tmp) { // _canFillRemaining: partial fill ends the order
 				amountOut.Add(amountOut, &tmp)
@@ -109,11 +111,11 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (r orderR
 				break
 			}
 			if isBuy { // maker transfer amount, rounded down
-				big256.MulDivDown(&tmp, order, price, &p.scale)
+				tmp.Mul(order, price).Div(&tmp, &p.scale)
 			} else {
-				big256.MulDivDown(&tmp, order, &p.scale, price)
+				tmp.Mul(order, &p.scale).Div(&tmp, price)
 			}
-			big256.MulDivDown(&tmp, &tmp, u1e5, &p.makerRebate)
+			tmp.Mul(&tmp, u1e5).Div(&tmp, &p.makerRebate)
 			if tmp.Gt(&sizeLeft) {
 				return r, ErrOverflow // checked subtraction on-chain
 			}
@@ -143,7 +145,7 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (r orderR
 		r.fee.Sub(amountIn, &r.fee)
 	} else {
 		r.fee.Set(amountOut)
-		big256.MulDivDown(amountOut, amountOut, &p.takerFee, u1e5)
+		amountOut.Mul(amountOut, &p.takerFee).Div(amountOut, u1e5) // out < 2^200, fee < 2^17
 		r.fee.Sub(&r.fee, amountOut)
 	}
 	if amountOut.IsZero() {
@@ -173,7 +175,7 @@ func (p *PoolSimulator) ammStep(isBuy bool, rq, rb, limit, sizeLeft *uint256.Int
 		ammIn = exactInputBuySolve(rq, rb, limit, &p.makerRebate, sizeLeft, &p.scale, &p.ammFee, fast)
 		num.Mul(&ammIn, &p.ammFee)
 		den.Mul(rq, u1e4).Add(&den, &num)
-		big256.MulDivDown(&ammOut, &num, rb, &den)
+		ammOut.Mul(&num, rb).Div(&ammOut, &den) // ammIn*fee < 2^142, reserve <= 2^112
 		if ammOut.IsZero() {
 			return
 		}
@@ -191,7 +193,7 @@ func (p *PoolSimulator) ammStep(isBuy bool, rq, rb, limit, sizeLeft *uint256.Int
 		ammIn = exactInputSellSolve(rq, rb, limit, &p.makerRebate, sizeLeft, &p.scale, &p.ammFee, fast)
 		num.Mul(&ammIn, &p.ammFee)
 		den.Mul(rb, u1e4).Add(&den, &num)
-		big256.MulDivDown(&ammOut, &num, rq, &den)
+		ammOut.Mul(&num, rq).Div(&ammOut, &den)
 		if ammOut.IsZero() {
 			return
 		}
