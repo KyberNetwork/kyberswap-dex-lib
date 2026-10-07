@@ -28,7 +28,8 @@
 //     $1 and $100 on all three live venues);
 //   - above the top rung the quote is refused: beyond it the hook may revert OutsideBand,
 //     SellExceedsFloat or a constituent pool may run dry, and the V4Quoter did not say;
-//   - a sell (LOT in) above the PoolManager's LOT float is refused, mirroring SellExceedsFloat.
+//   - a sell (LOT in) above the PoolManager's LOT float is refused, mirroring SellExceedsFloat;
+//   - with StaleCheck (route finding), a ladder older than maxAgeSec is refused.
 //
 // AfterSwap charges nothing (the hook returns a zero delta; its surplus is taken from its own
 // USDG delta, not from the trader's), and the hook holds no return-delta permission at all.
@@ -37,6 +38,7 @@ package navjit
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -59,32 +61,23 @@ type Rung struct {
 	Gas int64        `json:"g"`
 }
 
-// Params mirrors NavJitHook.Params. Informational: the ladder already prices them in.
-type Params struct {
-	BuySpreadBps  uint16   `json:"b"`
-	SellSpreadBps uint16   `json:"s"`
-	BandBps       uint16   `json:"w"`
-	SizeBufferBps uint16   `json:"z"`
-	WidthTicks    *big.Int `json:"t"`
-}
-
 type Extra struct {
 	Tracked bool `json:"tr,omitempty"`
 	// UsdgIs0: USDG is currency0, so a zeroForOne swap is a buy (USDG in, LOT out).
 	UsdgIs0 bool `json:"u0,omitempty"`
-	// Nav is NavGuard.checkedNavPerUnit18(lot) (USD per LOT, 1e18) at the tracked block; nil if
-	// the hook exposes no NAV guard.
+	// Nav is NavGuard.checkedNavPerUnit18(lot) (USD per LOT, 1e18) at the tracked block; nil when
+	// the guard reverts, and then both ladders are empty (the hook's swap path would revert too).
 	Nav *uint256.Int `json:"n,omitempty"`
 	// Float is the PoolManager's ERC-20 balance of the Lot: an UPPER bound on a LOT-in swap the
 	// hook can redeem in-swap (see floatRungsBps for why the real cap is a little lower; the
-	// ladder carries that). nil if unread, and then only the ladder bounds sells.
-	Float  *uint256.Int `json:"f,omitempty"`
-	Params *Params      `json:"p,omitempty"`
+	// ladder carries that).
+	Float *uint256.Int `json:"f,omitempty"`
 	// Buy: USDG in -> LOT out. Sell: LOT in -> USDG out. Ascending in both In and Out.
 	Buy  []Rung `json:"bl,omitempty"`
 	Sell []Rung `json:"sl,omitempty"`
-	// Block is the block every read of the last Track was pinned to.
-	Block uint64 `json:"bn,omitempty"`
+	// Block is the block every read of the last Track was pinned to; TrackedAt its unix time.
+	Block     uint64 `json:"bn,omitempty"`
+	TrackedAt int64  `json:"ts,omitempty"`
 }
 
 type Hook struct {
@@ -96,6 +89,7 @@ type Hook struct {
 	// fill curve: every buy pushes the constituent pools up, every sell pushes them down. The
 	// opposite direction is left alone, which errs toward under-quoting it. Out is pre-haircut.
 	consumedIn, consumedOut [2]uint256.Int
+	staleCheck              bool
 }
 
 const (
@@ -112,7 +106,8 @@ type SwapInfo struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit}}
+	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit},
+		staleCheck: param.StaleCheck}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
 }, HookAddresses...)
@@ -159,7 +154,8 @@ func topOut(l []Rung, buy bool) string {
 		return "0"
 	}
 	if buy {
-		return haircut(l[len(l)-1].Out).Dec()
+		var out uint256.Int
+		return haircut(&out, l[len(l)-1].Out).Dec()
 	}
 	return l[len(l)-1].Out.Dec()
 }
@@ -182,84 +178,58 @@ type quoteResult struct {
 	GasEstimate *big.Int
 }
 
-// Track reads, all pinned to one block: the hook's USDG, NAV guard, PoolManager and params; which
-// currency the pool is the venue of; NAV and the PoolManager's LOT float; then V4Quoter exact-in
-// ladders in both directions. Only the ladder is load-bearing: every other read is tolerated
-// missing, so a later hook generation with a different admin surface still quotes.
+// Track reads, all pinned to one block: the hook's USDG, NAV guard and PoolManager and which
+// currency the pool is the venue of; then NAV, the PoolManager's LOT float and the buy ladder;
+// then the sell ladder, sized at NAV. On Robinhood, pool-service's multicall is ArbMulticall2, so
+// HookParam.BlockNumber is the L2 block (plain Multicall3 would report the L1 one).
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	if param.RpcClient == nil {
-		if !h.Tracked {
-			return nil, ErrPoolIsNotTracked
-		}
-		return json.Marshal(h)
-	}
 	p := param.Pool
 	if p == nil || len(p.Tokens) < 2 {
 		return nil, ErrNotAVenue
 	}
+	quoter, ok := QuoterByChain[param.Cfg.ChainID]
+	if !ok {
+		return nil, ErrPoolIsNotTracked
+	}
 	var staticExtra uniswapv4.StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return nil, err
-	}
-	chainID := valueobject.ChainIDRobinhood
-	if param.Cfg != nil && param.Cfg.ChainID != 0 {
-		chainID = param.Cfg.ChainID
-	}
-	quoter, ok := QuoterByChain[chainID]
-	if !ok {
-		return nil, ErrPoolIsNotTracked
 	}
 
 	hookAddr := hexutil.Encode(param.HookAddress[:])
 	poolID := common.HexToHash(p.Address)
 	tok0, tok1 := common.HexToAddress(p.Tokens[0].Address), common.HexToAddress(p.Tokens[1].Address)
 
-	// Round 1: hook surface + which side is the Lot. On an Arbitrum-stack chain it is NOT pinned
-	// to HookParam.BlockNumber (an L1 number there, see L2BlockByChain); it reads the latest state
-	// together with the L2 block number, and rounds 2 and 3 pin to that block.
+	// Round 1: the hook surface and which side is the Lot.
 	var (
 		usdg, navGuard, pm common.Address
-		params             struct{ Params } // getParams returns one tuple: unpack it into the field
 		venue0, venue1     common.Hash
-		l2Block            *big.Int
 	)
-	arbSys, isL2 := L2BlockByChain[chainID]
 	req := param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides)
-	if param.BlockNumber != nil && !isL2 {
+	if param.BlockNumber != nil {
 		req.SetBlockNumber(param.BlockNumber)
 	}
-	req.
+	res, err := req.
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "usdg"}, []any{&usdg}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "navGuard"}, []any{&navGuard}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "poolManager"}, []any{&pm}).
-		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "getParams"}, []any{&params}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "venueOf", Params: []any{tok0}}, []any{&venue0}).
-		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "venueOf", Params: []any{tok1}}, []any{&venue1})
-	if isL2 {
-		req.AddCall(&ethrpc.Call{ABI: arbSysABI, Target: hexutil.Encode(arbSys[:]), Method: "arbBlockNumber"},
-			[]any{&l2Block})
-	}
-	res, err := req.TryBlockAndAggregate()
+		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "venueOf", Params: []any{tok1}}, []any{&venue1}).
+		Aggregate()
 	if err != nil {
 		return nil, err
 	}
 	block := param.BlockNumber
-	switch {
-	case isL2:
-		if !res.Result[6] || l2Block == nil {
-			return nil, ErrPoolIsNotTracked
-		}
-		block = l2Block
-	case block == nil:
+	if block == nil {
 		block = res.BlockNumber
 	}
 
 	var usdgIs0 bool
 	var lot common.Address
 	switch {
-	case venue1 == poolID && (!res.Result[0] || usdg == tok0):
+	case venue1 == poolID && usdg == tok0:
 		usdgIs0, lot = true, tok1
-	case venue0 == poolID && (!res.Result[0] || usdg == tok1):
+	case venue0 == poolID && usdg == tok1:
 		usdgIs0, lot = false, tok0
 	default:
 		return nil, ErrNotAVenue
@@ -270,77 +240,50 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	}
 	usdgDecimals := p.Tokens[usdgIdx].Decimals
 
-	key := quoteParams{}
+	key := quoteParams{HookData: []byte{}}
 	key.PoolKey.Currency0, key.PoolKey.Currency1, key.PoolKey.Hooks = tok0, tok1, param.HookAddress
 	key.PoolKey.Fee = big.NewInt(int64(staticExtra.Fee))
 	key.PoolKey.TickSpacing = big.NewInt(int64(staticExtra.TickSpacing))
-	key.HookData = []byte{}
 
 	// Round 2: NAV, float and the buy ladder (USDG in).
 	var nav, float *big.Int
+	usdgUnit := bignumber.TenPowInt(usdgDecimals)
 	buyIn := make([]*big.Int, len(rungsUsd))
 	for i, usd := range rungsUsd {
-		buyIn[i] = new(big.Int).Mul(new(big.Int).SetUint64(usd), bignumber.TenPowInt(usdgDecimals))
+		buyIn[i] = new(big.Int).Mul(new(big.Int).SetUint64(usd), usdgUnit)
 	}
 	buyOut := make([]quoteResult, len(buyIn))
-	req = param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).SetBlockNumber(block)
-	navCall := res.Result[1] && navGuard != (common.Address{})
-	if navCall {
-		req.AddCall(&ethrpc.Call{ABI: navGuardABI, Target: hexutil.Encode(navGuard[:]),
-			Method: "checkedNavPerUnit18", Params: []any{lot}}, []any{&nav})
-	}
-	floatCall := res.Result[2] && pm != (common.Address{})
-	if floatCall {
-		req.AddCall(&ethrpc.Call{ABI: erc20ABI, Target: hexutil.Encode(lot[:]),
+	req = param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).SetBlockNumber(block).
+		AddCall(&ethrpc.Call{ABI: navGuardABI, Target: hexutil.Encode(navGuard[:]),
+			Method: "checkedNavPerUnit18", Params: []any{lot}}, []any{&nav}).
+		AddCall(&ethrpc.Call{ABI: erc20ABI, Target: hexutil.Encode(lot[:]),
 			Method: "balanceOf", Params: []any{pm}}, []any{&float})
-	}
 	addLadder(req, quoter, key, usdgIs0, buyIn, buyOut)
 	res2, err := req.TryAggregate()
 	if err != nil {
 		return nil, err
 	}
-	off := 0
-	if navCall {
-		if !res2.Result[off] {
-			nav = nil
-		}
-		off++
+	h.Extra = Extra{Tracked: true, UsdgIs0: usdgIs0, Block: block.Uint64(), TrackedAt: time.Now().Unix()}
+	// The hook's beforeSwap reads the same guard: if it reverts, so does every swap.
+	if !res2.Result[0] || nav == nil || nav.Sign() == 0 || !res2.Result[1] || float == nil {
+		return json.Marshal(h)
 	}
-	if floatCall {
-		if !res2.Result[off] {
-			float = nil
-		}
-		off++
-	}
-	buy := toLadder(buyIn, buyOut, res2.Result[off:])
+	h.Nav, h.Float = uint256.MustFromBig(nav), uint256.MustFromBig(float)
+	h.Buy = toLadder(buyIn, buyOut, res2.Result[2:])
 
-	// Round 3: the sell ladder (LOT in), sized at NAV (or, without one, at the first buy rung's
-	// price), plus a rung just under the float.
-	usdPerLot18 := nav
-	if usdPerLot18 == nil && len(buy) > 0 {
-		// USD18 per LOT from the first buy rung: in(usdg)*1e(18-dec)*1e18/out(lot)
-		usdPerLot18 = new(big.Int).Mul(buy[0].In.ToBig(), bignumber.TenPowInt(36-usdgDecimals))
-		usdPerLot18.Div(usdPerLot18, buy[0].Out.ToBig())
-	}
-	if usdPerLot18 == nil || usdPerLot18.Sign() == 0 {
-		return nil, ErrEmptyLadder
-	}
-	sellIn := make([]*big.Int, 0, len(rungsUsd)+1)
+	// Round 3: the sell ladder (LOT in), sized at NAV, plus rungs just under the float.
+	sellIn := make([]*big.Int, 0, len(rungsUsd)+len(floatRungsBps))
 	for _, usd := range rungsUsd {
 		amt := new(big.Int).Mul(new(big.Int).SetUint64(usd), bignumber.TenPowInt(36))
-		amt.Div(amt, usdPerLot18)
-		if float != nil && amt.Cmp(float) >= 0 {
+		if amt.Div(amt, nav).Cmp(float) >= 0 {
 			break
 		}
 		sellIn = append(sellIn, amt)
 	}
-	if float != nil {
-		for _, fb := range floatRungsBps {
-			fr := new(big.Int).Mul(float, big.NewInt(fb))
-			fr.Div(fr, big.NewInt(bps))
-			if fr.Sign() > 0 && (len(sellIn) == 0 || fr.Cmp(sellIn[len(sellIn)-1]) > 0) {
-				sellIn = append(sellIn, fr)
-			}
+	for _, fb := range floatRungsBps {
+		fr := new(big.Int).Mul(float, big.NewInt(fb))
+		if fr.Div(fr, bignumber.BasisPoint).Sign() > 0 && (len(sellIn) == 0 || fr.Cmp(sellIn[len(sellIn)-1]) > 0) {
+			sellIn = append(sellIn, fr)
 		}
 	}
 	sellOut := make([]quoteResult, len(sellIn))
@@ -350,31 +293,19 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if err != nil {
 		return nil, err
 	}
-	sell := toLadder(sellIn, sellOut, res3.Result)
-
-	h.Extra = Extra{
-		Tracked: true,
-		UsdgIs0: usdgIs0,
-		Nav:     u256OrNil(nav),
-		Float:   u256OrNil(float),
-		Buy:     buy,
-		Sell:    sell,
-		Block:   block.Uint64(),
-	}
-	if res.Result[3] {
-		h.Extra.Params = &params.Params
-	}
+	h.Sell = toLadder(sellIn, sellOut, res3.Result)
 	return json.Marshal(h)
 }
 
 func addLadder(req *ethrpc.Request, quoter common.Address, key quoteParams, zeroForOne bool,
 	amounts []*big.Int, out []quoteResult) {
+	target := hexutil.Encode(quoter[:])
 	for i, amt := range amounts {
 		qp := key
 		qp.ZeroForOne = zeroForOne
 		qp.ExactAmount = amt
-		req.AddCall(&ethrpc.Call{ABI: quoterABI, Target: hexutil.Encode(quoter[:]),
-			Method: "quoteExactInputSingle", Params: []any{qp}}, []any{&out[i]})
+		req.AddCall(&ethrpc.Call{ABI: quoterABI, Target: target, Method: "quoteExactInputSingle",
+			Params: []any{qp}}, []any{&out[i]})
 	}
 }
 
@@ -398,13 +329,6 @@ func toLadder(in []*big.Int, out []quoteResult, ok []bool) []Rung {
 	return ladder
 }
 
-func u256OrNil(x *big.Int) *uint256.Int {
-	if x == nil {
-		return nil
-	}
-	return uint256.MustFromBig(x)
-}
-
 // BeforeSwap takes the whole specified amount and pays the interpolated ladder output, so the
 // pool's own CL math runs on zero. CalcOut (exact-in): in -= specified, out -= unspecified, hence
 // DeltaSpecified = amountIn and DeltaUnspecified = -amountOut. CalcIn (the reverse of exact-in):
@@ -415,6 +339,8 @@ func u256OrNil(x *big.Int) *uint256.Int {
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if !h.Tracked {
 		return nil, ErrPoolIsNotTracked
+	} else if h.staleCheck && time.Now().Unix()-h.TrackedAt > maxAgeSec {
+		return nil, ErrStale
 	}
 	dir, ladder := dirSell, h.Sell
 	if params.ZeroForOne == h.UsdgIs0 {
@@ -423,16 +349,16 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if len(ladder) == 0 {
 		return nil, ErrEmptyLadder
 	}
-	amt, overflow := uint256.FromBig(params.AmountSpecified)
-	if overflow || params.AmountSpecified.Sign() <= 0 {
-		return nil, ErrZeroOutput
+	var amt uint256.Int
+	if params.AmountSpecified.Sign() <= 0 || amt.SetFromBig(params.AmountSpecified) {
+		return nil, ErrInvalidAmount
 	}
 	usedIn, usedOut := &h.consumedIn[dir], &h.consumedOut[dir]
 	info := &SwapInfo{Dir: dir}
 
 	if params.CalcOut {
 		var totalIn uint256.Int
-		if _, of := totalIn.AddOverflow(usedIn, amt); of {
+		if _, of := totalIn.AddOverflow(usedIn, &amt); of {
 			return nil, ErrBeyondLadder
 		}
 		if dir == dirSell && h.Float != nil && totalIn.Gt(h.Float) {
@@ -445,27 +371,27 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		if !totalOut.Gt(usedOut) {
 			return nil, ErrZeroOutput
 		}
-		info.AmountIn.Set(amt)
-		info.RawAmount.Sub(totalOut, usedOut)
-		out := &info.RawAmount
+		info.AmountIn.Set(&amt)
+		out := info.RawAmount.Sub(&totalOut, usedOut)
 		if dir == dirBuy {
-			out = haircut(out)
+			out = haircut(&totalOut, out) // totalOut is no longer needed
 		}
 		if out.IsZero() {
 			return nil, ErrZeroOutput
 		}
+		deltaUnspecified := out.ToBig()
 		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecified:   new(big.Int).Set(params.AmountSpecified),
-			DeltaUnspecified: new(big.Int).Neg(out.ToBig()),
+			DeltaUnspecified: deltaUnspecified.Neg(deltaUnspecified),
 			Gas:              hookGas(gas),
 			SwapInfo:         info,
 		}, nil
 	}
 
 	// Exact-out: the ladder must deliver enough raw output that the haircut leaves amt.
-	raw := amt
+	raw := info.RawAmount.Set(&amt)
 	if dir == dirBuy {
-		raw = unHaircut(amt)
+		u256.MulDivUp(raw, &amt, uPpm, uPpmAfterCut)
 	}
 	var totalOut uint256.Int
 	if _, of := totalOut.AddOverflow(usedOut, raw); of {
@@ -481,8 +407,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if dir == dirSell && h.Float != nil && totalIn.Gt(h.Float) {
 		return nil, ErrSellExceedsFloat
 	}
-	info.AmountIn.Sub(totalIn, usedIn)
-	info.RawAmount.Set(raw)
+	info.AmountIn.Sub(&totalIn, usedIn)
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   new(big.Int).Neg(params.AmountSpecified),
 		DeltaUnspecified: info.AmountIn.ToBig(),
@@ -496,15 +421,9 @@ var (
 	uPpmAfterCut = uint256.NewInt(ppm - buyHaircutPpm)
 )
 
-// haircut returns floor(x * (ppm - buyHaircutPpm) / ppm).
-func haircut(x *uint256.Int) *uint256.Int {
-	return u256.MulDivDown(new(uint256.Int), x, uPpmAfterCut, uPpm)
-}
-
-// unHaircut returns the smallest raw amount whose haircut is at least x:
-// ceil(x * ppm / (ppm - buyHaircutPpm)).
-func unHaircut(x *uint256.Int) *uint256.Int {
-	return u256.MulDivUp(new(uint256.Int), x, uPpm, uPpmAfterCut)
+// haircut sets z = floor(x * (ppm - buyHaircutPpm) / ppm) and returns z.
+func haircut(z, x *uint256.Int) *uint256.Int {
+	return u256.MulDivDown(z, x, uPpmAfterCut, uPpm)
 }
 
 // hookGas: the quoter's estimate covers the whole swap; the v4 simulator adds its own base gas.
@@ -513,66 +432,53 @@ func hookGas(quoterGas int64) int64 {
 }
 
 // quoteOut interpolates the exact-in ladder at amountIn, rounding down.
-func quoteOut(ladder []Rung, amountIn *uint256.Int) (*uint256.Int, int64, error) {
-	top := ladder[len(ladder)-1]
-	if amountIn.Gt(top.In) {
-		return nil, 0, ErrBeyondLadder
+func quoteOut(ladder []Rung, amountIn *uint256.Int) (out uint256.Int, gas int64, err error) {
+	if amountIn.Gt(ladder[len(ladder)-1].In) {
+		return out, 0, ErrBeyondLadder
 	}
-	var out, num, den uint256.Int
 	i := 0
-	for i < len(ladder) && amountIn.Gt(ladder[i].In) {
+	for amountIn.Gt(ladder[i].In) {
 		i++
 	}
 	hi := ladder[i]
 	if i == 0 {
-		num.Mul(amountIn, hi.Out)
-		out.Div(&num, hi.In)
+		u256.MulDivDown(&out, amountIn, hi.Out, hi.In)
 	} else {
 		lo := ladder[i-1]
-		num.Sub(amountIn, lo.In)
-		num.Mul(&num, den.Sub(hi.Out, lo.Out))
-		den.Sub(hi.In, lo.In)
-		out.Div(&num, &den)
-		out.Add(&out, lo.Out)
+		var dx, dy, span uint256.Int
+		dx.Sub(amountIn, lo.In)
+		dy.Sub(hi.Out, lo.Out)
+		span.Sub(hi.In, lo.In)
+		u256.MulDivDown(&out, &dx, &dy, &span).Add(&out, lo.Out)
 	}
 	if out.IsZero() {
-		return nil, 0, ErrZeroOutput
+		return out, 0, ErrZeroOutput
 	}
-	return &out, hi.Gas, nil
+	return out, hi.Gas, nil
 }
 
 // quoteIn inverts the same chords at amountOut, rounding the input up.
-func quoteIn(ladder []Rung, amountOut *uint256.Int) (*uint256.Int, int64, error) {
-	top := ladder[len(ladder)-1]
-	if amountOut.Gt(top.Out) {
-		return nil, 0, ErrBeyondLadder
+func quoteIn(ladder []Rung, amountOut *uint256.Int) (in uint256.Int, gas int64, err error) {
+	if amountOut.Gt(ladder[len(ladder)-1].Out) {
+		return in, 0, ErrBeyondLadder
 	}
-	var in, num, den, outDelta uint256.Int
 	i := 0
-	for i < len(ladder) && amountOut.Gt(ladder[i].Out) {
+	for amountOut.Gt(ladder[i].Out) {
 		i++
 	}
 	hi := ladder[i]
 	if i == 0 {
-		num.Mul(amountOut, hi.In)
-		divUp(&in, &num, hi.Out)
+		u256.MulDivUp(&in, amountOut, hi.In, hi.Out)
 	} else {
 		lo := ladder[i-1]
-		outDelta.Sub(amountOut, lo.Out)
-		num.Mul(&outDelta, den.Sub(hi.In, lo.In))
-		divUp(&in, &num, den.Sub(hi.Out, lo.Out))
-		in.Add(&in, lo.In)
+		var dy, dx, span uint256.Int
+		dy.Sub(amountOut, lo.Out)
+		dx.Sub(hi.In, lo.In)
+		span.Sub(hi.Out, lo.Out)
+		u256.MulDivUp(&in, &dy, &dx, &span).Add(&in, lo.In)
 	}
 	if in.IsZero() {
-		return nil, 0, ErrZeroOutput
+		return in, 0, ErrZeroOutput
 	}
-	return &in, hi.Gas, nil
-}
-
-func divUp(z, x, y *uint256.Int) {
-	var rem uint256.Int
-	z.DivMod(x, y, &rem)
-	if !rem.IsZero() {
-		z.AddUint64(z, 1)
-	}
+	return in, hi.Gas, nil
 }

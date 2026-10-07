@@ -1,3 +1,0 @@
-[
-  {"type":"function","name":"arbBlockNumber","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]}
-]

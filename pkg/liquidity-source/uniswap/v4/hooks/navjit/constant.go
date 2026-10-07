@@ -22,14 +22,9 @@ var QuoterByChain = map[valueobject.ChainID]common.Address{
 	valueobject.ChainIDRobinhood: common.HexToAddress("0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94"),
 }
 
-// L2BlockByChain marks Arbitrum-stack chains, where block.number inside an eth_call (and so the
-// block Multicall3 reports, which the v4 tracker passes on as HookParam.BlockNumber) is the L1
-// block, not the chain's own. On 4663 at 2026-10-01: Multicall3.getBlockNumber() = 26,097,221 vs
-// eth_blockNumber = arbBlockNumber() = 77,345,0xx. Pinning to the former reads a months-old
-// state (or fails on a non-archive node), so on these chains Track pins to ArbSys.arbBlockNumber().
-var L2BlockByChain = map[valueobject.ChainID]common.Address{
-	valueobject.ChainIDRobinhood: common.HexToAddress("0x0000000000000000000000000000000000000064"),
-}
+// maxAgeSec bounds the ladder's age under StaleCheck. pool-service re-tracks every 10s; constituent
+// pools and NAV move the fill curve, not this pool's own events, so an untracked ladder drifts.
+const maxAgeSec = 60
 
 // Rung sizes in whole USD. Buy rungs are USDG in; sell rungs are LOT in, converted at the
 // tracked NAV. The 30k/40k rungs split the widest segment: without them the chord under-quoted
@@ -51,5 +46,3 @@ const ppm = 1_000_000
 // effective cap is lower by a swap-dependent amount (measured 2026-10-01 on LOT-two: balance 49.265,
 // SellExceedsFloat(49.077, 49.1)). The ladder finds the real edge; these rungs keep it close.
 var floatRungsBps = []int64{9_000, 9_700, 9_950}
-
-const bps = 10_000

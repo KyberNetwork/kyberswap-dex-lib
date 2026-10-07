@@ -23,6 +23,12 @@ var (
 	// the PoolManager already holds.
 	ErrSellExceedsFloat = errors.New("navjit: sell exceeds the PoolManager LOT float")
 
+	// ErrInvalidAmount: a non-positive or over-256-bit specified amount.
+	ErrInvalidAmount = errors.New("navjit: invalid amount")
+
+	// ErrStale: under StaleCheck, the ladder is older than maxAgeSec.
+	ErrStale = errors.New("navjit: ladder is stale")
+
 	// ErrZeroOutput: the interpolated output rounds to zero (the hook would revert TradeTooSmall).
 	ErrZeroOutput = errors.New("navjit: zero output")
 )

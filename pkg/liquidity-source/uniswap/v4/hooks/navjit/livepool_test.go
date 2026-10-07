@@ -25,8 +25,10 @@ import (
 
 // Robinhood chain (4663) addresses used by the live tests.
 const (
-	defaultRPC   = "https://rpc.mainnet.chain.robinhood.com"
-	multicall3   = "0xcA11bde05977b3631167028862be2a173976CA11"
+	defaultRPC = "https://rpc.mainnet.chain.robinhood.com"
+	// ArbMulticall2, as pool-service uses on 4663: its block number is the L2 one, which plain
+	// Multicall3 (block.number = the L1 block on Arbitrum stacks) is not.
+	multicall3   = "0x2cAC2D899eCC914d704FeaAE33ac1bF36277DaD1"
 	stateView    = "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b"
 	usdgAddr     = "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
 	usdgDecimals = 6
@@ -83,7 +85,6 @@ func scanTicks(ctx context.Context, t *testing.T, rpc *ethrpc.Client, spec poolS
 		ProtocolFee  *big.Int
 		LpFee        *big.Int
 	}
-	// Unpinned: on 4663 the block Multicall3 reports is the L1 block (see L2BlockByChain).
 	_, err := rpc.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{ABI: stateViewABI, Target: stateView,
 		Method: "getSlot0", Params: []any{id}}, []any{&slot0}).Aggregate()
 	require.NoError(t, err)

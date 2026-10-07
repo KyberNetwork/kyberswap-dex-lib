@@ -3,6 +3,7 @@ package navjit
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -19,8 +20,11 @@ import (
 
 func u(s string) *uint256.Int { return uint256.MustFromDecimal(s) }
 
+// net is a raw buy ladder output less the haircut.
+func net(raw *uint256.Int) *uint256.Int { return haircut(new(uint256.Int), raw) }
+
 // cut is the buy haircut applied to a raw ladder output, as a negative delta string.
-func cut(raw *uint256.Int) string { return "-" + haircut(raw).Dec() }
+func cut(raw *uint256.Int) string { return "-" + net(raw).Dec() }
 
 // A ladder shaped like the live LOT-two venue on 2026-10-01 (block 77346769): USDG (6 dp) in,
 // LOT (18 dp) out, flat to $1k then bending with constituent slippage.
@@ -130,7 +134,7 @@ func TestBeforeSwap_Refusals(t *testing.T) {
 // result back through exact-in returns at least the requested output.
 func TestBeforeSwap_ExactOut_InvertsTheLadder(t *testing.T) {
 	h := trackedHook()
-	topNet := haircut(buyLadder[len(buyLadder)-1].Out)
+	topNet := net(buyLadder[len(buyLadder)-1].Out)
 	for _, want := range []string{"1", "500000000000000000", "99166757344856474324", "5000000000000000000000",
 		topNet.Dec()} {
 		r, err := h.BeforeSwap(exactOut(true, want))
@@ -213,7 +217,7 @@ func TestCloneState_IsIndependent(t *testing.T) {
 func TestGetReserves_ReportsTheTopRungs(t *testing.T) {
 	res, err := trackedHook().GetReserves(nil, nil)
 	require.NoError(t, err)
-	topBuy := haircut(buyLadder[len(buyLadder)-1].Out).Dec()
+	topBuy := net(buyLadder[len(buyLadder)-1].Out).Dec()
 	assert.Equal(t, entity.PoolReserves{"47377000", topBuy}, res)
 
 	h := trackedHook()
@@ -250,8 +254,8 @@ const (
 	simUsdg = "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
 )
 
-// newTestSim builds the v4 simulator for a LOT-two-shaped venue carrying trackedHook's ladders.
-func newTestSim(tb testing.TB) *uniswapv4.PoolSimulator {
+// newTestPool is a LOT-two-shaped venue carrying trackedHook's ladders.
+func newTestPool(tb testing.TB) entity.Pool {
 	hookExtra, err := json.Marshal(trackedHook())
 	require.NoError(tb, err)
 	staticExtra, _ := json.Marshal(uniswapv4.StaticExtra{Fee: 0, TickSpacing: 1, HooksAddress: HookAddresses[0]})
@@ -271,7 +275,11 @@ func newTestSim(tb testing.TB) *uniswapv4.PoolSimulator {
 		StaticExtra: string(staticExtra),
 		Extra:       string(extra),
 	}
-	sim, err := uniswapv4.NewPoolSimulator(ep, valueobject.ChainIDRobinhood)
+	return ep
+}
+
+func newTestSim(tb testing.TB) *uniswapv4.PoolSimulator {
+	sim, err := uniswapv4.NewPoolSimulator(newTestPool(tb), valueobject.ChainIDRobinhood)
 	require.NoError(tb, err)
 	return sim
 }
@@ -282,7 +290,7 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(100_000_000)}, TokenOut: lot})
 	require.NoError(t, err)
-	assert.Equal(t, haircut(buyLadder[1].Out).Dec(), res.TokenAmountOut.Amount.String(),
+	assert.Equal(t, net(buyLadder[1].Out).Dec(), res.TokenAmountOut.Amount.String(),
 		"exactly the (haircut) ladder: the standing ticks contribute nothing")
 	assert.Equal(t, int64(1_130_794), res.Gas, "the quoter's gas estimate for the whole swap")
 
@@ -324,6 +332,40 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	// The 2nd LOT is priced on the rung0-rung1 chord at 2 LOT: 991370 + floor(1e18*(9913706-991370)/9e18)
 	// = 1982740, less the 991370 the first swap consumed.
 	assert.Equal(t, "991370", next.TokenAmountOut.Amount.String(), "priced as the second LOT along the ladder")
+}
+
+// Route finding (StaleCheck) must not quote a ladder pool-service stopped refreshing: the fill curve
+// moves with NAV and the constituent pools, not with this pool's own events. Indexing still quotes.
+func TestBeforeSwap_StaleCheck(t *testing.T) {
+	h := trackedHook()
+	h.TrackedAt = time.Now().Unix() - maxAgeSec - 1
+	_, err := h.BeforeSwap(exactIn(true, "1000000"))
+	require.NoError(t, err, "no StaleCheck: an old ladder still quotes")
+
+	h.staleCheck = true
+	_, err = h.BeforeSwap(exactIn(true, "1000000"))
+	assert.ErrorIs(t, err, ErrStale)
+
+	h.TrackedAt = time.Now().Unix()
+	_, err = h.BeforeSwap(exactIn(true, "1000000"))
+	assert.NoError(t, err, "a fresh ladder quotes under StaleCheck")
+}
+
+// The flag must reach the hook through the registered v4 factory (pool.FactoryOpts).
+func TestPoolFactory_PassesStaleCheck(t *testing.T) {
+	params := pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: simUsdg, Amount: big.NewInt(1_000_000)}, TokenOut: simLot}
+	for _, staleCheck := range []bool{false, true} {
+		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: newTestPool(t),
+			ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
+		require.NoError(t, err)
+		_, err = sim.CalcAmountOut(params) // trackedHook has no TrackedAt: older than maxAgeSec
+		if staleCheck {
+			assert.ErrorIs(t, err, ErrStale)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
 }
 
 func TestRegistration(t *testing.T) {
