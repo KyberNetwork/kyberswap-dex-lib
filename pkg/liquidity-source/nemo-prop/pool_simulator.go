@@ -1,6 +1,7 @@
 package nemoprop
 
 import (
+	"math/big"
 	"strings"
 	"time"
 
@@ -72,6 +73,8 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	base, err := ladder.NewPoolSimulator(p)
 	if err != nil {
 		return nil, err
+	} else if base.GetTokenIndex(StableToken) < 0 {
+		return nil, ErrInvalidStablePair
 	}
 	base.Gas = defaultGas
 	return &PoolSimulator{PoolSimulator: base, proxy: strings.ToLower(staticExtra.Address)}, nil
@@ -109,4 +112,27 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 // shape) so callers that read pool.ApprovalInfo off it resolve the proxy.
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{ApprovalAddress: s.proxy, BlockNumber: s.Info.BlockNumber}
+}
+
+// CalcAmountOutWithStableFee mirrors swapPrepaidWithFee: stableFee comes off
+// the input before quoting when the input is the stable token, else off the
+// quoted output. On-chain a fee >= the stable amount reverts or pays nothing.
+func (s *PoolSimulator) CalcAmountOutWithStableFee(params pool.CalcAmountOutParams,
+	stableFee *big.Int) (*pool.CalcAmountOutResult, error) {
+	if params.TokenAmountIn.Token == StableToken {
+		if stableFee.Cmp(params.TokenAmountIn.Amount) >= 0 {
+			return nil, ErrFeeTooLarge
+		}
+		params.TokenAmountIn.Amount = new(big.Int).Sub(params.TokenAmountIn.Amount, stableFee)
+		return s.CalcAmountOut(params)
+	}
+
+	res, err := s.CalcAmountOut(params)
+	if err != nil {
+		return nil, err
+	} else if res.TokenAmountOut.Amount.Cmp(stableFee) <= 0 {
+		return nil, ErrFeeTooLarge
+	}
+	res.TokenAmountOut.Amount.Sub(res.TokenAmountOut.Amount, stableFee)
+	return res, nil
 }

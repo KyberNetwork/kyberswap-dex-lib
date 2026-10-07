@@ -31,8 +31,14 @@ const (
 
 	// marketEntrySize is one getMarkets_v1 entry: [asset: 160 bits][unit: 96 bits].
 	marketEntrySize = 32
+
+	// StableToken is NemoSwap's hardcoded USDC (Base): swapPrepaidWithFee takes
+	// its fee in it and reverts InvalidStablePair on a pair without it.
+	StableToken = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 )
 
 var (
-	ErrInvalidMarkets = errors.New("invalid getMarkets_v1 encoding")
+	ErrInvalidMarkets    = errors.New("invalid getMarkets_v1 encoding")
+	ErrInvalidStablePair = errors.New("pair has no stable token")
+	ErrFeeTooLarge       = errors.New("stable fee consumes the whole stable side")
 )
