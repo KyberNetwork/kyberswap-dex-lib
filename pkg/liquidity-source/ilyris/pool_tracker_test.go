@@ -2,40 +2,35 @@ package ilyris
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// fakeChain lets the parts that carry bugs be tested without a node. book is the pool's full
-// on-chain bin set; the bitmap and probe reads are answered from it like BinPool would.
+// fakeChain answers bitmap, probe and reserve reads from book, the pool's full bin set,
+// the way BinPool would.
 type fakeChain struct {
-	state          RawPoolState
-	book           []RawBin
-	guard          RawGuardState
-	stateErr       error
-	guardErr       error
-	stateCalls     int
-	guardCalls     int
-	scanCalls      int
-	lastGuardBlock uint64
-	pools          []string
-	total          int
-	poolsErr       error
+	state      RawPoolState
+	book       []RawBin // ascending
+	guard      RawGuardState
+	guardErr   error
+	guardBlock uint64
+	pools      []FactoryPool
+	poolsErr   error
 }
 
-func (f *fakeChain) PoolState(_ context.Context, _ string) (RawPoolState, error) {
-	f.stateCalls++
-	return f.state, f.stateErr
-}
+func (f *fakeChain) PoolState(context.Context, string) (RawPoolState, error) { return f.state, nil }
 
 func (f *fakeChain) ScanBitmap(_ context.Context, _ string, _ uint64, words []int32,
-	probes []BinProbe) ([]*big.Int, []BinProbeResult, error) {
-	f.scanCalls++
+	probes []binProbe) ([]*big.Int, []binProbeResult, error) {
 	bits := make([]*big.Int, len(words))
 	for i, w := range words {
 		bits[i] = new(big.Int)
@@ -45,14 +40,13 @@ func (f *fakeChain) ScanBitmap(_ context.Context, _ string, _ uint64, words []in
 			}
 		}
 	}
-	next := make([]BinProbeResult, len(probes))
+	next := make([]binProbeResult, len(probes))
 	for i, p := range probes {
-		for _, b := range f.book { // book is ascending
+		for _, b := range f.book {
 			if p.XForY && b.ID <= p.From && b.ReserveY.Sign() > 0 {
-				next[i] = BinProbeResult{Found: true, ID: b.ID} // keep the highest
-			}
-			if !p.XForY && b.ID >= p.From && b.ReserveX.Sign() > 0 && !next[i].Found {
-				next[i] = BinProbeResult{Found: true, ID: b.ID}
+				next[i] = binProbeResult{Found: true, ID: b.ID} // keeps the highest
+			} else if !p.XForY && b.ID >= p.From && b.ReserveX.Sign() > 0 && !next[i].Found {
+				next[i] = binProbeResult{Found: true, ID: b.ID}
 			}
 		}
 	}
@@ -60,48 +54,36 @@ func (f *fakeChain) ScanBitmap(_ context.Context, _ string, _ uint64, words []in
 }
 
 func (f *fakeChain) BinReserves(_ context.Context, _ string, _ uint64, ids []int32) ([]RawBin, error) {
-	out := make([]RawBin, len(ids))
-	for i, id := range ids {
-		out[i] = RawBin{ID: id, ReserveX: new(big.Int), ReserveY: new(big.Int)}
-		for _, b := range f.book {
+	out := make([]RawBin, 0, len(ids))
+	for _, b := range f.book {
+		for _, id := range ids {
 			if b.ID == id {
-				out[i] = b
+				out = append(out, b)
 			}
 		}
 	}
 	return out, nil
 }
 
-func (f *fakeChain) GuardState(_ context.Context, _ string, blockNumber uint64) (RawGuardState, error) {
-	f.guardCalls++
-	f.lastGuardBlock = blockNumber
-	g := f.guard
-	g.BlockNumber = blockNumber
-	return g, f.guardErr
+func (f *fakeChain) GuardState(_ context.Context, _, _ string, _ int32, blockNumber uint64) (RawGuardState, error) {
+	f.guardBlock = blockNumber
+	return f.guard, f.guardErr
 }
-func (f *fakeChain) FactoryPools(_ context.Context, _ string, offset, limit int) ([]string, int, error) {
+
+func (f *fakeChain) FactoryPools(_ context.Context, _ string, offset, limit int) ([]FactoryPool, int, error) {
 	if f.poolsErr != nil {
 		return nil, 0, f.poolsErr
 	}
-	if offset >= len(f.pools) {
-		return nil, f.total, nil
-	}
-	end := offset + limit
-	if end > len(f.pools) {
-		end = len(f.pools)
-	}
-	return f.pools[offset:end], f.total, nil
+	return f.pools[min(offset, len(f.pools)):min(offset+limit, len(f.pools))], len(f.pools), nil
 }
 
-func liveLikeChain() *fakeChain {
+func newFakeChain() *fakeChain {
 	return &fakeChain{
 		state: RawPoolState{
-			TokenX: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", DecimalsX: 18,
-			TokenY: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", DecimalsY: 6,
-			BinStepBps: 10, ActiveID: 7796, TotalFeeRate: 3_000_000,
-			// baseFactor 30000 * binStep 10 * 10 = 3e6, no surcharge.
+			BinStepBps: 10, DecimalsX: 18, DecimalsY: 6, ActiveID: 7796, TotalFeeRate: 3_000_000,
+			// baseFactor 30000 * binStep 10 * 10 = 3e6, no surcharge
 			Fee:         FeeParams{BaseFactor: 30_000, FilterPeriod: 30, DecayPeriod: 600, ReductionFactor: 5_000, MaxVolatilityAccumulator: 350_000, IDReference: 7796},
-			MarketGuard: "0xDd74981476f81c8e45e962Af6DF886a3c5788816",
+			MarketGuard: common.HexToAddress("0xDd74981476f81c8e45e962Af6DF886a3c5788816"),
 			BlockNumber: 43307616, BlockTimestamp: 1_700_000_000,
 		},
 		book: []RawBin{
@@ -111,48 +93,28 @@ func liveLikeChain() *fakeChain {
 	}
 }
 
-// THE FAILURE THIS ADAPTER EXISTS TO AVOID. Their service hands a tracker recent logs, never
-// history. A pool stored with no book must trigger a full RPC refresh -- otherwise it folds
-// logs into nothing, stays empty forever, and we are listed and never routed with nothing
-// reporting an error anywhere.
-func TestEmptyPoolTriggersAColdStart(t *testing.T) {
-	c := liveLikeChain()
-	tr := NewPoolTracker(c)
-
-	got, err := tr.GetNewPoolState(context.Background(),
-		entity.Pool{Address: "0xpool", Tokens: []*entity.PoolToken{{}, {}}},
-		pool.GetNewPoolStateParams{}) // no logs at all
-	if err != nil {
-		t.Fatalf("refresh: %v", err)
+func refresh(t *testing.T, c *fakeChain, p entity.Pool) (entity.Pool, Extra, error) {
+	t.Helper()
+	if p.Tokens == nil {
+		p.Tokens = []*entity.PoolToken{{Address: tokX}, {Address: tokY}}
 	}
-	if c.stateCalls == 0 {
-		t.Fatal("no chain read - the book would have stayed empty forever")
-	}
+	got, err := (&PoolTracker{chain: c}).GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 	var ex Extra
-	if err := json.Unmarshal([]byte(got.Extra), &ex); err != nil {
-		t.Fatalf("extra: %v", err)
+	if err == nil {
+		require.NoError(t, json.Unmarshal([]byte(got.Extra), &ex))
 	}
-	if len(ex.Bins) == 0 {
-		t.Fatal("cold start produced no bins")
-	}
-	if ex.ActiveID != 7796 {
-		t.Fatalf("activeId not carried: %d", ex.ActiveID)
-	}
+	return got, ex, err
 }
 
-// The tracker must load every bin a swap can reach, not a window around active. A swap that
-// crosses past the tracked bins fails as "insufficient liquidity" while the chain fills it.
-// The book here has Y spread 200 bins down plus one bin past a 5000-bin gap, and X 300 up.
+// A ±N window around active misses liquidity a large swap reaches. The book has Y 200 bins
+// down plus one bin past a 5000-bin gap, and X 300 bins up; all must be tracked and fillable.
 func TestTrackerLoadsTheWholeBook(t *testing.T) {
-	c := liveLikeChain()
+	c := newFakeChain()
 	c.book = nil
-	var wantY, wantX int64
 	add := func(id int32, x, y int64) {
 		c.book = append(c.book, RawBin{ID: id, ReserveX: big.NewInt(x), ReserveY: big.NewInt(y)})
-		wantX += x
-		wantY += y
 	}
-	add(7796-5000, 0, 1_000_000_000) // isolated, far below
+	add(7796-5000, 0, 1_000_000_000)
 	for id := int32(7796 - 200); id < 7796; id++ {
 		add(id, 0, 1_000_000)
 	}
@@ -161,229 +123,75 @@ func TestTrackerLoadsTheWholeBook(t *testing.T) {
 		add(id, 1e15, 0)
 	}
 
-	p, err := NewPoolTracker(c).BootstrapPoolState(context.Background(),
-		entity.Pool{Address: "0xpool", Exchange: DexType, Type: DexType, Tokens: []*entity.PoolToken{{}, {}}},
-		pool.GetNewPoolStateParams{})
-	if err != nil {
-		t.Fatalf("refresh: %v", err)
-	}
-	var ex Extra
-	if err := json.Unmarshal([]byte(p.Extra), &ex); err != nil {
-		t.Fatal(err)
-	}
-	if len(ex.Bins) != len(c.book) {
-		t.Fatalf("tracked %d bins, chain has %d", len(ex.Bins), len(c.book))
-	}
-	if p.Reserves[0] != big.NewInt(wantX).String() || p.Reserves[1] != big.NewInt(wantY).String() {
-		t.Fatalf("reserves %v, want %d/%d", p.Reserves, wantX, wantY)
-	}
+	p, ex, err := refresh(t, c, entity.Pool{Address: "0xpool", Exchange: DexType, Type: DexType})
+	require.NoError(t, err)
+	require.Len(t, ex.Bins, len(c.book))
+	assert.Equal(t, entity.PoolReserves{"301000000000000000", "1201000000"}, p.Reserves)
 
-	// Selling X for all but the isolated bin's Y must still fill: it walks 200 bins down and
-	// then jumps the gap into the isolated bin.
 	s, err := NewPoolSimulator(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: big.NewInt(3e17)},
-		TokenOut:      s.Info.Tokens[1],
-	}); err != nil {
-		t.Fatalf("swap through the whole book failed: %v", err)
-	}
-	// Buying X for 500 USDG crosses ~190 upper bins and must fill too.
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[1], Amount: big.NewInt(500_000_000)},
-		TokenOut:      s.Info.Tokens[0],
-	}); err != nil {
-		t.Fatalf("swap up through the book failed: %v", err)
-	}
+	require.NoError(t, err)
+	// Sells X through all 201 near bins and on into the isolated one.
+	_, err = s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: big.NewInt(3e17)}, TokenOut: tokY})
+	require.NoError(t, err)
+	// Buys X across ~190 upper bins.
+	_, err = s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(500_000_000)}, TokenOut: tokX})
+	require.NoError(t, err)
 }
 
-// The simulator derives the fee from feeConfig/feeState. A snapshot where that derivation
-// disagrees with getTotalFeeRate() at the same block must be refused, not quoted from.
+// The simulator derives the fee from feeConfig/feeState; a snapshot where that disagrees with
+// getTotalFeeRate() at the same block must be refused and the stored pool kept.
 func TestFeeDerivationMismatchIsRefused(t *testing.T) {
-	c := liveLikeChain()
+	c := newFakeChain()
 	c.state.TotalFeeRate++
 	before := entity.Pool{Address: "0xpool", Extra: "{}"}
-	got, err := NewPoolTracker(c).BootstrapPoolState(context.Background(), before, pool.GetNewPoolStateParams{})
-	if err == nil {
-		t.Fatal("expected a fee mismatch error")
-	}
-	if got.Extra != before.Extra {
-		t.Fatal("a refused snapshot must not overwrite the stored pool")
-	}
+	got, _, err := refresh(t, c, before)
+	assert.ErrorIs(t, err, ErrFeeMismatch)
+	assert.Equal(t, before.Extra, got.Extra)
 }
 
-// An unreadable guard must fail CLOSED. We cannot prove swaps are open, and quoting into a
-// reverting swap reads as our pool being broken rather than closed.
-func TestUnreadableGuardFailsClosed(t *testing.T) {
-	c := liveLikeChain()
+// The guard is read at the book's block every refresh (its address is owner-mutable), and an
+// unreadable guard fails closed: quoting into a reverting swap is worse than skipping a pool.
+func TestGuardIsPinnedAndFailsClosed(t *testing.T) {
+	c := newFakeChain()
+	c.guard = RawGuardState{FreezeEnd: 1_700_000_500}
+	p, ex, err := refresh(t, c, entity.Pool{Address: "0xpool"})
+	require.NoError(t, err)
+	assert.Equal(t, c.state.BlockNumber, c.guardBlock)
+	assert.Equal(t, c.state.BlockNumber, p.BlockNumber)
+	assert.EqualValues(t, 1_700_000_500, ex.GuardFreezeEnd)
+	assert.False(t, ex.GuardSwapsPaused)
+
 	c.guardErr = errors.New("rpc down")
-	tr := NewPoolTracker(c)
-
-	got, err := tr.BootstrapPoolState(context.Background(),
-		entity.Pool{Address: "0xpool", Tokens: []*entity.PoolToken{{}, {}}},
-		pool.GetNewPoolStateParams{})
-	if err != nil {
-		t.Fatalf("refresh: %v", err)
-	}
-	var ex Extra
-	_ = json.Unmarshal([]byte(got.Extra), &ex)
-	if !ex.GuardSwapsPaused {
-		t.Fatal("unreadable guard must leave swaps marked paused")
-	}
+	_, ex, err = refresh(t, c, entity.Pool{Address: "0xpool"})
+	require.NoError(t, err)
+	assert.True(t, ex.GuardSwapsPaused)
 }
 
-// The guard ADDRESS is owner-mutable (setMarketGuard), so it must be re-read every refresh
-// rather than cached from pool creation.
-func TestGuardIsReadEveryRefresh(t *testing.T) {
-	c := liveLikeChain()
-	tr := NewPoolTracker(c)
-	p := entity.Pool{Address: "0xpool", Tokens: []*entity.PoolToken{{}, {}}}
-	for i := 0; i < 3; i++ {
-		p, _ = tr.BootstrapPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
-	}
-	if c.guardCalls != 3 {
-		t.Fatalf("guard should be read on every refresh, got %d reads", c.guardCalls)
-	}
-}
-
-// A transient RPC failure must leave the stored pool untouched. Replacing a good book with an
-// empty one would quietly delist us.
-func TestFailedReadLeavesThePoolUnchanged(t *testing.T) {
-	c := liveLikeChain()
-	c.stateErr = errors.New("rpc down")
-	tr := NewPoolTracker(c)
-
-	before := entity.Pool{Address: "0xpool", Extra: `{"activeId":1,"bins":[{"id":1,"x":"5","y":"5"}]}`}
-	got, err := tr.BootstrapPoolState(context.Background(), before, pool.GetNewPoolStateParams{})
-	if err == nil {
-		t.Fatal("expected the RPC error to surface")
-	}
-	if got.Extra != before.Extra {
-		t.Fatal("a failed read must not overwrite the stored book")
-	}
-}
-
-// StaticExtra is immutable. Rewriting it every refresh would let one bad read silently
-// redefine the pool's decimals.
+// StaticExtra is immutable; a later bad read must not redefine decimals or bin step.
 func TestStaticExtraIsWrittenOnlyOnce(t *testing.T) {
-	c := liveLikeChain()
-	tr := NewPoolTracker(c)
-	p := entity.Pool{Address: "0xpool", Tokens: []*entity.PoolToken{{}, {}},
-		StaticExtra: `{"binStepBps":25,"decimalsX":18,"decimalsY":6}`}
-	got, _ := tr.BootstrapPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
-	if got.StaticExtra != p.StaticExtra {
-		t.Fatalf("StaticExtra was rewritten: %s", got.StaticExtra)
-	}
+	const static = `{"binStepBps":25,"decimalsX":18,"decimalsY":6}`
+	got, _, err := refresh(t, newFakeChain(), entity.Pool{Address: "0xpool", StaticExtra: static})
+	require.NoError(t, err)
+	assert.Equal(t, static, got.StaticExtra)
 }
 
-// A refreshed pool must be directly constructible into a working simulator. This is the seam
-// where a tracker and a simulator most easily disagree about the wire format.
-func TestRefreshedPoolBuildsAWorkingSimulator(t *testing.T) {
-	c := liveLikeChain()
-	tr := NewPoolTracker(c)
-	p, err := tr.BootstrapPoolState(context.Background(),
-		entity.Pool{
-			Address:  "0x90d0950065c567b9324a08a9aae8a28890fbab16",
-			Exchange: DexType, Type: DexType,
-			Tokens: []*entity.PoolToken{{}, {}},
-		}, pool.GetNewPoolStateParams{})
-	if err != nil {
-		t.Fatalf("refresh: %v", err)
-	}
-	s, err := NewPoolSimulator(p)
-	if err != nil {
-		t.Fatalf("tracker output did not build a simulator: %v", err)
-	}
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[1], Amount: big.NewInt(1_000_000)},
-		TokenOut:      s.Info.Tokens[0],
-	}); err != nil {
-		t.Fatalf("refreshed pool could not quote: %v", err)
-	}
-}
-
-// ---- lister ----
-
-// The cursor is an offset into an append-only array, which is what makes resuming safe.
-func TestListerAdvancesItsCursor(t *testing.T) {
-	c := &fakeChain{pools: []string{"0xa", "0xb", "0xc"}, total: 3}
-	u := NewPoolsListUpdater(c, "0xfactory", DexType)
-	u.limit = 2
+// The cursor only advances past pools that were returned, so a failed page is retried.
+func TestListerCursor(t *testing.T) {
+	c := &fakeChain{pools: []FactoryPool{{Address: "0xa"}, {Address: "0xb"}, {Address: "0xc"}}}
+	u := &PoolsListUpdater{cfg: &Config{DexID: DexType, NewPoolLimit: 2}, chain: c}
 
 	first, md, err := u.GetNewPools(context.Background(), nil)
-	if err != nil || len(first) != 2 {
-		t.Fatalf("first page: %d pools, err %v", len(first), err)
-	}
-	second, _, err := u.GetNewPools(context.Background(), md)
-	if err != nil || len(second) != 1 {
-		t.Fatalf("second page: %d pools, err %v", len(second), err)
-	}
-	if second[0].Address != "0xc" {
-		t.Fatalf("cursor did not resume correctly: %s", second[0].Address)
-	}
-}
+	require.NoError(t, err)
+	require.Len(t, first, 2)
+	second, md, err := u.GetNewPools(context.Background(), md)
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "0xc", second[0].Address)
 
-// A failed enumeration must hand the cursor back UNCHANGED. Advancing past pools we never read
-// would skip them permanently -- the array is append-only, so nothing revisits that range.
-func TestListerDoesNotAdvancePastAFailure(t *testing.T) {
-	c := &fakeChain{poolsErr: errors.New("rpc down")}
-	u := NewPoolsListUpdater(c, "0xfactory", DexType)
-	in, _ := json.Marshal(Metadata{Offset: 7})
-	_, out, err := u.GetNewPools(context.Background(), in)
-	if err == nil {
-		t.Fatal("expected the error to surface")
-	}
-	if string(out) != string(in) {
-		t.Fatalf("cursor moved despite a failure: %s", out)
-	}
-}
-
-// A corrupt cursor must not silently restart from zero -- that re-emits every pool as new on
-// every round, forever.
-func TestCorruptCursorIsRefusedNotReset(t *testing.T) {
-	c := &fakeChain{pools: []string{"0xa"}, total: 1}
-	u := NewPoolsListUpdater(c, "0xfactory", DexType)
-	if _, _, err := u.GetNewPools(context.Background(), []byte("{not json")); err == nil {
-		t.Fatal("a corrupt cursor must surface, not reset the scan")
-	}
-}
-
-// Bins and the market guard must be pinned to one block. A guard from a later
-// block can disagree with the book (freeze already lifted, or not yet) and the
-// quote either routes into a revert or skips an open pool.
-func TestBinsAndGuardShareOneBlock(t *testing.T) {
-	c := liveLikeChain()
-	tr := NewPoolTracker(c)
-	got, err := tr.BootstrapPoolState(context.Background(),
-		entity.Pool{Address: "0xpool", Tokens: []*entity.PoolToken{{}, {}}},
-		pool.GetNewPoolStateParams{})
-	if err != nil {
-		t.Fatalf("refresh: %v", err)
-	}
-	if c.lastGuardBlock != c.state.BlockNumber {
-		t.Fatalf("guard fetched at block %d, bins at %d", c.lastGuardBlock, c.state.BlockNumber)
-	}
-	if got.BlockNumber != c.state.BlockNumber {
-		t.Fatalf("entity block %d, bins at %d", got.BlockNumber, c.state.BlockNumber)
-	}
-	var ex Extra
-	if err := json.Unmarshal([]byte(got.Extra), &ex); err != nil {
-		t.Fatalf("extra: %v", err)
-	}
-	if ex.BlockNumber != got.BlockNumber {
-		t.Fatalf("extra block %d != entity block %d", ex.BlockNumber, got.BlockNumber)
-	}
-
-	st, g, err := tr.FetchRPCData(context.Background(), entity.Pool{Address: "0xpool"})
-	if err != nil {
-		t.Fatalf("FetchRPCData: %v", err)
-	}
-	if st.BlockNumber != g.BlockNumber {
-		t.Fatalf("FetchRPCData mixed blocks: bins %d guard %d", st.BlockNumber, g.BlockNumber)
-	}
-	if st.BlockNumber == 0 {
-		t.Fatal("expected a pinned block number")
-	}
+	c.poolsErr = errors.New("rpc down")
+	_, same, err := u.GetNewPools(context.Background(), md)
+	assert.Error(t, err)
+	assert.Equal(t, md, same)
 }

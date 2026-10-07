@@ -1,5 +1,5 @@
 [
   {"inputs":[],"name":"swapsPaused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"freezeEnd","outputs":[{"internalType":"uint64","name":"","type":"uint64"}],"stateMutability":"view","type":"function"},
-  {"inputs":[],"name":"guardedPool","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}
+  {"inputs":[{"internalType":"address","name":"pool","type":"address"},{"internalType":"bool","name":"xForY","type":"bool"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"quotedOut","type":"uint256"},{"internalType":"int24","name":"activeIdBefore","type":"int24"},{"internalType":"int24","name":"finalIdAfter","type":"int24"}],"name":"checkSwap","outputs":[],"stateMutability":"view","type":"function"}
 ]

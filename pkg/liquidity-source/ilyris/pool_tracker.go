@@ -2,135 +2,77 @@ package ilyris
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"math/big"
-	"sort"
-	"strings"
+	"slices"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	_ pool.IPoolTracker           = (*PoolTracker)(nil)
-	_ pool.ITicksBasedPoolTracker = (*PoolTracker)(nil)
-)
-
-// Bitmap walk bounds. Each round reads scanWords bitmap words (256 bins each) per open
-// direction plus one nextNonEmptyBin probe past them, in a single multicall.
-const (
-	scanWords = 8
-	// ponytail: a book with more than maxScanRounds separate gaps wider than 2048 bins is
-	// only partly tracked; swaps past that run out of bins (no misprice). Raise if one appears.
-	maxScanRounds = 16
-	minWord       = MinBinID >> 8
-	maxWord       = MaxBinID >> 8
-)
-
-// PoolTracker keeps a pool's book in step with the chain.
 type PoolTracker struct {
 	chain chainReader
 }
 
-func NewPoolTracker(chain chainReader) *PoolTracker {
-	return &PoolTracker{chain: chain}
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+
+func NewPoolTracker(cfg *Config, client *ethrpc.Client) *PoolTracker {
+	return &PoolTracker{chain: &ethrpcChain{client: client, lens: cfg.LensAddress}}
 }
 
-// GetNewPoolState does a full refresh every time. Their service hands a tracker RECENT logs,
-// never history, so folding logs would leave a pre-existing pool's book empty; and a swap
-// moves the active bin, every crossed bin and the volatility state, which one read captures.
-func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams) (entity.Pool, error) {
-	return t.BootstrapPoolState(ctx, p, params)
-}
-
-// BootstrapPoolState performs the full refresh: pool state, bins and guard at one block.
-func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
-	st, guard, err := t.FetchRPCData(ctx, p)
-	if err != nil {
-		// Return the pool UNCHANGED. Returning a zeroed one would replace a good book with an
-		// empty one and quietly delist us on a transient RPC error.
-		return p, err
-	}
-	return applyState(p, st, guard), nil
-}
-
-// FetchRPCData reads bins and the market guard at one block. The guard has no
-// on-chain block tag of its own, so the pin is the call's block number.
-func (t *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (RawPoolState, RawGuardState, error) {
+// GetNewPoolState always does a full refresh: logs carry no guard or fee-decay changes, and
+// one read of the book cannot drift from the chain the way replaying swaps can.
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	st, err := t.chain.PoolState(ctx, p.Address)
 	if err != nil {
-		return RawPoolState{}, RawGuardState{}, err
+		return p, err
 	}
-	// The simulator derives the fee from st.Fee so it can move after a swap. Refuse a snapshot
-	// where that derivation disagrees with the contract at the same block.
-	if got := st.Fee.totalFeeRate(st.BinStepBps, st.ActiveID, st.BlockTimestamp); got != st.TotalFeeRate {
-		return RawPoolState{}, RawGuardState{}, fmt.Errorf("ilyris: derived fee rate %d != getTotalFeeRate %d",
-			got, st.TotalFeeRate)
+	if st.Fee.totalFeeRate(st.BinStepBps, st.ActiveID, st.BlockTimestamp) != st.TotalFeeRate {
+		return p, ErrFeeMismatch
 	}
 	if st.Bins, err = t.fetchBins(ctx, p.Address, st.BlockNumber, st.ActiveID); err != nil {
-		return RawPoolState{}, RawGuardState{}, err
+		return p, err
 	}
 
-	guard := RawGuardState{BlockNumber: st.BlockNumber}
-	if st.MarketGuard != "" && !isZeroAddress(st.MarketGuard) {
-		// Read every refresh, never cached: setMarketGuard can repoint it at any time
-		// (BinPool.sol:322), so a guard address captured at pool creation can be stale.
-		g, gerr := t.chain.GuardState(ctx, st.MarketGuard, st.BlockNumber)
-		if gerr != nil {
-			// Guard unreadable means we cannot prove swaps are open. Fail CLOSED by leaving
-			// swapsPaused set: refusing to quote costs a route, quoting into a reverting swap
-			// costs the integration's credibility.
-			guard.SwapsPaused = true
-			guard.BlockNumber = st.BlockNumber
-		} else {
-			guard = g
-			if guard.BlockNumber == 0 {
-				guard.BlockNumber = st.BlockNumber
-			}
+	var guard RawGuardState
+	if !valueobject.IsZeroAddress(st.MarketGuard) {
+		guardAddr := hexutil.Encode(st.MarketGuard[:])
+		if guard, err = t.chain.GuardState(ctx, guardAddr, p.Address, st.ActiveID, st.BlockNumber); err != nil {
+			guard.SwapsPaused = true // cannot prove swaps are open: fail closed
 		}
 	}
-	if st.BlockNumber != 0 && guard.BlockNumber != 0 && guard.BlockNumber != st.BlockNumber {
-		// Mixed-block snapshot: refuse to quote rather than pair reserves with a
-		// later/earlier gate.
-		guard.SwapsPaused = true
-		guard.BlockNumber = st.BlockNumber
-	}
-	return st, guard, nil
+	return applyState(p, &st, guard)
 }
 
-// FetchPoolTicks re-reads the book. Same call as the bootstrap for us: our "ticks" are bins and
-// they come from the same full read, so there is no cheaper partial path to offer.
-func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	return t.BootstrapPoolState(ctx, p, pool.GetNewPoolStateParams{})
-}
-
-// fetchBins reads every initialized bin a swap can reach, at blockNumber. It walks the
-// bitmap outward from the active word; after each batch a nextNonEmptyBin probe either
-// closes that direction (no output-side liquidity beyond) or jumps the walk to the next
-// populated bin, so a gap costs one probe instead of a word read per 256 bins.
-//
-// Skipped gaps hold no output-side reserves. X-only bins below active (or Y-only above) in a
-// gap are left out; a swap reaches them only after crossing the gap, and missing them
-// under-quotes rather than over-quotes.
+// fetchBins reads every initialized bin a swap can reach. It walks the bitmap out from the
+// active word; after each batch a nextNonEmptyBin probe either closes that side or jumps the
+// walk to the next bin with output-side reserves, so a gap costs one probe.
+// ponytail: wrong-side bins inside a skipped gap, and anything past maxScanRounds jumps, are
+// not tracked; missing them under-quotes, never over-quotes.
 func (t *PoolTracker) fetchBins(ctx context.Context, poolAddr string, blockNumber uint64, activeID int32) ([]RawBin, error) {
 	aw := activeID >> 8
-	lo, hi := aw+1, aw // scanned words are [lo, hi]; next batches end at lo-1 / start at hi+1
+	lo, hi := aw+1, aw // scanned words are [lo, hi]
 	downOpen, upOpen := true, true
 	var ids []int32
 	for round := 0; round < maxScanRounds && (downOpen || upOpen); round++ {
 		var words []int32
-		var probes []BinProbe
-		var downProbe, upProbe = -1, -1
+		var probes []binProbe
+		downProbe, upProbe := -1, -1
 		if downOpen {
 			newLo := max(lo-scanWords, minWord)
 			for w := newLo; w < lo; w++ {
 				words = append(words, w)
 			}
-			lo = newLo
-			if downOpen = lo > minWord; downOpen {
+			if lo = newLo; lo > minWord {
 				downProbe = len(probes)
-				probes = append(probes, BinProbe{From: lo<<8 - 1, XForY: true})
+				probes = append(probes, binProbe{From: lo<<8 - 1, XForY: true})
+			} else {
+				downOpen = false
 			}
 		}
 		if upOpen {
@@ -138,10 +80,11 @@ func (t *PoolTracker) fetchBins(ctx context.Context, poolAddr string, blockNumbe
 			for w := hi + 1; w <= newHi; w++ {
 				words = append(words, w)
 			}
-			hi = newHi
-			if upOpen = hi < maxWord; upOpen {
+			if hi = newHi; hi < maxWord {
 				upProbe = len(probes)
-				probes = append(probes, BinProbe{From: (hi + 1) << 8, XForY: false})
+				probes = append(probes, binProbe{From: (hi + 1) << 8})
+			} else {
+				upOpen = false
 			}
 		}
 
@@ -149,12 +92,9 @@ func (t *PoolTracker) fetchBins(ctx context.Context, poolAddr string, blockNumbe
 		if err != nil {
 			return nil, err
 		}
-		if len(bits) != len(words) || len(next) != len(probes) {
-			return nil, fmt.Errorf("ilyris: bitmap scan returned %d/%d results", len(bits)+len(next), len(words)+len(probes))
-		}
 		for i, w := range words {
-			for b := 0; bits[i] != nil && b < bits[i].BitLen(); b++ {
-				if id := w<<8 + int32(b); bits[i].Bit(b) == 1 && id >= MinBinID && id <= MaxBinID {
+			for b := 0; b < bits[i].BitLen(); b++ {
+				if id := w<<8 + int32(b); bits[i].Bit(b) == 1 && id >= minBinID && id <= maxBinID {
 					ids = append(ids, id)
 				}
 			}
@@ -174,70 +114,48 @@ func (t *PoolTracker) fetchBins(ctx context.Context, poolAddr string, blockNumbe
 			}
 		}
 	}
-	if len(ids) == 0 {
-		return nil, nil
-	}
 	return t.chain.BinReserves(ctx, poolAddr, blockNumber, ids)
 }
 
-// applyState writes a chain read back into their entity.
-func applyState(p entity.Pool, st RawPoolState, g RawGuardState) entity.Pool {
-	bins := make([]BinJSON, 0, len(st.Bins))
-	sumX, sumY := new(big.Int), new(big.Int)
+func applyState(p entity.Pool, st *RawPoolState, g RawGuardState) (entity.Pool, error) {
+	bins := make([]Bin, 0, len(st.Bins))
+	var sumX, sumY big.Int
 	for _, b := range st.Bins {
-		if b.ReserveX == nil || b.ReserveY == nil {
-			continue
-		}
 		if b.ReserveX.Sign() == 0 && b.ReserveY.Sign() == 0 {
 			continue
 		}
-		// Decimal strings, not JSON numbers: these are uint128 and float64 loses precision
-		// above 2^53, which would corrupt a quote rather than raise an error.
-		bins = append(bins, BinJSON{ID: b.ID, ReserveX: b.ReserveX.String(), ReserveY: b.ReserveY.String()})
-		sumX.Add(sumX, b.ReserveX)
-		sumY.Add(sumY, b.ReserveY)
+		bin := Bin{ID: b.ID}
+		bin.ReserveX.SetFromBig(b.ReserveX)
+		bin.ReserveY.SetFromBig(b.ReserveY)
+		bins = append(bins, bin)
+		sumX.Add(&sumX, b.ReserveX)
+		sumY.Add(&sumY, b.ReserveY)
 	}
-	sort.Slice(bins, func(i, j int) bool { return bins[i].ID < bins[j].ID })
+	slices.SortFunc(bins, func(a, b Bin) int { return int(a.ID - b.ID) })
 
-	ex, _ := json.Marshal(Extra{
+	extra, err := json.Marshal(Extra{
 		ActiveID:         st.ActiveID,
 		Bins:             bins,
-		TotalFeeRate:     st.TotalFeeRate,
 		Fee:              &st.Fee,
-		MarketGuard:      strings.ToLower(st.MarketGuard),
 		GuardSwapsPaused: g.SwapsPaused,
 		GuardFreezeEnd:   g.FreezeEnd,
 		BlockTimestamp:   st.BlockTimestamp,
-		BlockNumber:      st.BlockNumber,
 	})
-	p.Extra = string(ex)
-
-	// StaticExtra is written only if absent. It is immutable by definition, and rewriting it
-	// every refresh would let a bad read silently redefine the pool's decimals.
+	if err != nil {
+		return p, err
+	}
 	if p.StaticExtra == "" {
-		se, _ := json.Marshal(StaticExtra{
+		staticExtra, err := json.Marshal(StaticExtra{
 			BinStepBps: st.BinStepBps, DecimalsX: st.DecimalsX, DecimalsY: st.DecimalsY,
 		})
-		p.StaticExtra = string(se)
+		if err != nil {
+			return p, err
+		}
+		p.StaticExtra = string(staticExtra)
 	}
-
+	p.Extra = string(extra)
 	p.Reserves = entity.PoolReserves{sumX.String(), sumY.String()}
 	p.BlockNumber = st.BlockNumber
 	p.Timestamp = int64(st.BlockTimestamp)
-	if len(p.Tokens) == 2 {
-		if p.Tokens[0].Address == "" {
-			p.Tokens[0].Address = strings.ToLower(st.TokenX)
-		}
-		if p.Tokens[1].Address == "" {
-			p.Tokens[1].Address = strings.ToLower(st.TokenY)
-		}
-		p.Tokens[0].Decimals, p.Tokens[1].Decimals = st.DecimalsX, st.DecimalsY
-		p.Tokens[0].Swappable, p.Tokens[1].Swappable = true, true
-	}
-	return p
-}
-
-func isZeroAddress(a string) bool {
-	s := strings.TrimPrefix(strings.ToLower(a), "0x")
-	return s == "" || strings.Trim(s, "0") == ""
+	return p, nil
 }

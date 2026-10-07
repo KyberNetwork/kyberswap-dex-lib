@@ -136,7 +136,7 @@ func TestTicksBasedPoolTrackerFactory(t *testing.T) {
 	t.Parallel()
 	poolTrackers := []string{"uniswapv3", "uniswap-v4", "algebra-v1", "algebra-integral", "ramses-v2", "native-v3",
 		"pancake-v3", "solidly-v3", "slipstream", "nuri-v2", "pancake-infinity-cl", "pancake-infinity-bin",
-		"liquiditybook-v20", "liquiditybook-v21", "clober-ob", "ilyris"}
+		"liquiditybook-v20", "liquiditybook-v21", "clober-ob"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {

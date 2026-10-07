@@ -1,6 +1,6 @@
 package ilyris
 
-// Config is what the aggregator service reads from its dex config file.
+// Config is the pool-service dex config.
 type Config struct {
 	DexID          string `json:"dexID"`
 	FactoryAddress string `json:"factoryAddress"`

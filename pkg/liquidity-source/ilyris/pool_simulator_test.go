@@ -1,11 +1,17 @@
 package ilyris
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/msgpack/v5"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
@@ -15,403 +21,236 @@ const (
 	tokY = "0x5fc5360d0400a0fd4f2af552add042d716f1d168" // USDG, 6dp
 )
 
-// A small book straddling the active bin: Y at and below, X at and above.
-func newTestSim() *PoolSimulator {
-	e18 := func(n uint64) *uint256.Int {
-		return new(uint256.Int).Mul(uint256.NewInt(n), big256.TenPow(18))
+// newTestSim is a 5-bin book around active 7796: Y at and below, X at and above, 0.30% fee.
+func newTestSim(t *testing.T) *PoolSimulator {
+	e18, e6 := big256.TenPow(18).Dec(), "500000000"
+	b := func(id int32, x, y string) Bin {
+		return Bin{ID: id, ReserveX: *uint256.MustFromDecimal(x), ReserveY: *uint256.MustFromDecimal(y)}
 	}
-	e6 := func(n uint64) *uint256.Int {
-		return new(uint256.Int).Mul(uint256.NewInt(n), big256.TenPow(6))
-	}
-	bins := []bin{
-		{ID: 7794, ReserveX: new(uint256.Int), ReserveY: e6(500)},
-		{ID: 7795, ReserveX: new(uint256.Int), ReserveY: e6(500)},
-		{ID: 7796, ReserveX: e18(1), ReserveY: e6(500)},
-		{ID: 7797, ReserveX: e18(1), ReserveY: new(uint256.Int)},
-		{ID: 7798, ReserveX: e18(1), ReserveY: new(uint256.Int)},
-	}
-	sumX, sumY := new(uint256.Int), new(uint256.Int)
-	for _, b := range bins {
-		sumX.Add(sumX, b.ReserveX)
-		sumY.Add(sumY, b.ReserveY)
-	}
-	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:  "0x90d0950065c567b9324a08a9aae8a28890fbab16",
-			Exchange: DexType,
-			Type:     DexType,
-			Tokens:   []string{tokX, tokY},
-			Reserves: []*big.Int{sumX.ToBig(), sumY.ToBig()},
-		}},
-		binStepBps: 10,
-		activeID:   7796,
-		decimalsX:  18,
-		decimalsY:  6,
-		bins:       bins,
-		// baseFactor 30000 * binStep 10 * 10 = 3e6 = 0.30% at 1e9 precision; no surcharge.
-		fee:          FeeParams{BaseFactor: 30_000, FilterPeriod: 30, DecayPeriod: 600, ReductionFactor: 5_000, MaxVolatilityAccumulator: 350_000, IDReference: 7796},
-		totalFeeRate: 3_000_000,
-	}
-}
-
-// The assertion that justifies this whole module. It is compile-time, so this test exists to
-// state WHY it matters rather than to add coverage: their interface is 14 methods and a
-// transcription of it looks right until their CI disagrees in public.
-func TestSatisfiesTheirInterface(t *testing.T) {
-	var _ pool.IPoolSimulator = newTestSim()
-}
-
-func TestCalcAmountOutSellingQuote(t *testing.T) {
-	s := newTestSim()
-	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(10_000_000)}, // 10 USDG
-		TokenOut:      tokX,
+	extra, err := json.Marshal(Extra{
+		ActiveID: 7796,
+		Bins:     []Bin{b(7798, e18, "0"), b(7794, "0", e6), b(7795, "0", e6), b(7796, e18, e6), b(7797, e18, "0")},
+		Fee:      &FeeParams{BaseFactor: 30_000, FilterPeriod: 30, DecayPeriod: 600, ReductionFactor: 5_000, MaxVolatilityAccumulator: 350_000, IDReference: 7796},
 	})
-	if err != nil {
-		t.Fatalf("quote failed: %v", err)
-	}
-	if res.TokenAmountOut.Amount.Sign() <= 0 {
-		t.Fatalf("non-positive amountOut: %s", res.TokenAmountOut.Amount)
-	}
-	// Fee is denominated in the INPUT token, because that is where BinPool takes it.
-	if res.Fee.Token != tokY {
-		t.Fatalf("fee should be in the input token, got %s", res.Fee.Token)
-	}
-	if res.Gas < BaseSwapGas {
-		t.Fatalf("gas below the measured floor: %d", res.Gas)
-	}
+	require.NoError(t, err)
+	s, err := NewPoolSimulator(entity.Pool{
+		Address: "0xpool", Exchange: DexType, Type: DexType,
+		Tokens:      []*entity.PoolToken{{Address: tokX}, {Address: tokY}},
+		StaticExtra: `{"binStepBps":10,"decimalsX":18,"decimalsY":6}`,
+		Extra:       string(extra),
+	})
+	require.NoError(t, err)
+	return s
 }
 
-// An unfillable quote must be an ERROR. A zero would be routed as a genuine offer of nothing
-// and rank us last instead of skipping us.
-func TestUnfillableIsAnErrorNotAZero(t *testing.T) {
-	s := newTestSim()
-	huge := new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil)
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: huge},
-		TokenOut:      tokX,
-	}); err == nil {
-		t.Fatal("expected an error for an amount the book cannot fill")
+func quote(s *PoolSimulator, in string, amount *big.Int) (*pool.CalcAmountOutResult, error) {
+	out := tokX
+	if in == tokX {
+		out = tokY
 	}
+	return s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount}, TokenOut: out})
 }
 
-// The guard is invisible to quoteExactIn on chain, so the simulator must model it or we route
-// into a reverting swap.
+func swap(t *testing.T, s *PoolSimulator, in string, amount *big.Int) *pool.CalcAmountOutResult {
+	t.Helper()
+	res, err := quote(s, in, amount)
+	require.NoError(t, err)
+	s.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount},
+		TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee, SwapInfo: res.SwapInfo})
+	return res
+}
+
+func TestNewPoolSimulator(t *testing.T) {
+	s := newTestSim(t)
+	for i := 1; i < len(s.bins); i++ {
+		require.Less(t, s.bins[i-1].ID, s.bins[i].ID, "traversal assumes ascending bins")
+	}
+	assert.Equal(t, "3000000000000000000", s.Info.Reserves[0].String())
+	assert.EqualValues(t, 3_000_000, s.feeRate)
+
+	ep := entity.Pool{Tokens: []*entity.PoolToken{{}, {}}, StaticExtra: `{"binStepBps":10}`,
+		Extra: `{"activeId":1,"bins":[{"id":1,"x":"0","y":"0"}],"fee":{}}`}
+	_, err := NewPoolSimulator(ep)
+	assert.ErrorIs(t, err, ErrEmptyBook, "an empty book would quote zero, which routes as a real offer")
+	ep.Extra = `{"activeId":1,"bins":[{"id":1,"x":"1","y":"0"}]}`
+	_, err = NewPoolSimulator(ep)
+	assert.ErrorIs(t, err, ErrMalformedExtra, "a missing fee state would quote at a zero fee")
+}
+
+// uint128 reserves exceed float64 precision; they must survive tracker -> extra -> simulator.
+func TestMaxUint128ReserveSurvivesTheWire(t *testing.T) {
+	maxU128, _ := new(big.Int).SetString("340282366920938463463374607431768211455", 10)
+	c := newFakeChain()
+	c.book[1].ReserveX = maxU128
+	p, _, err := refresh(t, c, entity.Pool{Address: "0xpool"})
+	require.NoError(t, err)
+	s, err := NewPoolSimulator(p)
+	require.NoError(t, err)
+	assert.Equal(t, maxU128.String(), s.bins[1].ReserveX.Dec())
+}
+
+func TestCalcAmountOut(t *testing.T) {
+	s := newTestSim(t)
+	res, err := quote(s, tokY, big.NewInt(10_000_000))
+	require.NoError(t, err)
+	assert.Positive(t, res.TokenAmountOut.Amount.Sign())
+	assert.Equal(t, tokY, res.Fee.Token, "BinPool takes the fee from the input")
+	assert.EqualValues(t, 30_000, res.Fee.Amount.Int64())
+	assert.EqualValues(t, baseSwapGas, res.Gas)
+
+	// Gas grows per bin crossed: 3000 USDG buys past 7796 into 7797.
+	res, err = quote(s, tokY, big.NewInt(3_000_000_000))
+	require.NoError(t, err)
+	assert.EqualValues(t, baseSwapGas+perExtraBinGas, res.Gas)
+
+	// Quoting must not mutate: the router prices many amounts against one simulator.
+	again, err := quote(s, tokY, big.NewInt(3_000_000_000))
+	require.NoError(t, err)
+	assert.Equal(t, res.TokenAmountOut.Amount, again.TokenAmountOut.Amount)
+
+	// An unfillable size is an error, never a zero.
+	_, err = quote(s, tokY, new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil))
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+// swapExactIn calls the market guard; quoteExactIn does not. The simulator must reject what
+// would revert. Any freeze ending after the snapshot blocks.
 func TestGuardBlocksQuotes(t *testing.T) {
-	s := newTestSim()
-	s.guardSwapsPaused = true
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(1_000_000)},
-		TokenOut:      tokX,
-	}); err != ErrSwapsPaused {
-		t.Fatalf("paused guard must block the quote, got %v", err)
-	}
+	s := newTestSim(t)
+	s.swapsPaused = true
+	_, err := quote(s, tokY, big.NewInt(1_000_000))
+	assert.ErrorIs(t, err, ErrSwapsPaused)
 
-	s2 := newTestSim()
-	s2.blockTimestamp = 1000
-	s2.guardFreezeEnd = 2000
-	if _, err := s2.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(1_000_000)},
-		TokenOut:      tokX,
-	}); err != ErrCorporateActionFreeze {
-		t.Fatalf("active freeze must block the quote, got %v", err)
-	}
+	s = newTestSim(t)
+	s.blockTimestamp, s.freezeEnd = 1000, 1001
+	_, err = quote(s, tokY, big.NewInt(1_000_000))
+	assert.ErrorIs(t, err, ErrCorporateActionFreeze)
+	s.freezeEnd = 1000 // ended: frozen() is start <= now < end
+	_, err = quote(s, tokY, big.NewInt(1_000_000))
+	assert.NoError(t, err)
 }
 
-// Addresses arrive checksummed from our manifest and lowercased from their loader. Their own
-// GetTokenIndex compares with ==, so folding case here is what stops one source silently
-// failing.
-func TestTokenLookupIsCaseInsensitive(t *testing.T) {
-	s := newTestSim()
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "0x5FC5360D0400A0FD4F2AF552ADD042D716F1D168", Amount: big.NewInt(1_000_000)},
-		TokenOut:      "0x0BD7D308F8E1639FAB988DF18A8011F41EACAD73",
-	}); err != nil {
-		t.Fatalf("checksummed addresses must resolve: %v", err)
-	}
-}
+// UpdateBalance moves the crossed bins by the quoted fills, net of fee (BinPool credits the fee
+// to accumulators, not reserves), so a second leg cannot re-spend them.
+func TestUpdateBalanceSpendsTheBook(t *testing.T) {
+	s := newTestSim(t)
+	in := big.NewInt(5e17)
+	res := swap(t, s, tokX, in)
+	assert.EqualValues(t, 7794, s.activeID) // ~1210 USDG out: crosses 7796 and 7795
 
-// A swap applied to a clone must leave the original untouched. The base returns nil, which
-// silently breaks split routing -- the aggregator cannot restore state to try a second path.
-func TestCloneStateIsolatesUpdateBalance(t *testing.T) {
-	s := newTestSim()
-	s.fee.VariableFeeControl = 122_448
-	c := s.CloneState()
-	if c == nil {
-		t.Fatal("CloneState returned nil - split routing would break")
-	}
-	clone := c.(*PoolSimulator)
-	in := big.NewInt(3_000_000_000) // 3000 USDG buys past bin 7796 (1 WETH ~ 2400 USDG)
-	res, err := clone.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenOut: tokX,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	clone.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenAmountOut: *res.TokenAmountOut,
-		Fee: *res.Fee, SwapInfo: res.SwapInfo,
-	})
-
-	fresh := newTestSim()
-	fresh.fee.VariableFeeControl = 122_448
-	if clone.activeID == s.activeID || clone.totalFeeRate == s.totalFeeRate {
-		t.Fatal("the clone's swap did not move its own state")
-	}
-	if s.activeID != fresh.activeID || s.fee != fresh.fee || s.totalFeeRate != fresh.totalFeeRate {
-		t.Fatal("active bin / fee state leaked from the clone")
-	}
-	if s.Info.Reserves[0].Cmp(fresh.Info.Reserves[0]) != 0 || s.Info.Reserves[1].Cmp(fresh.Info.Reserves[1]) != 0 {
-		t.Fatal("Info.Reserves is shared with the clone")
-	}
-	for i, b := range s.bins {
-		if !b.ReserveX.Eq(fresh.bins[i].ReserveX) || !b.ReserveY.Eq(fresh.bins[i].ReserveY) {
-			t.Fatalf("bin %d reserves are shared with the clone", b.ID)
-		}
-	}
-}
-
-// UpdateBalance must add the NET input. Adding the gross would inflate reserves by the fee on
-// every swap and drift the book from chain a little more each time.
-func TestUpdateBalanceAddsNetOfFee(t *testing.T) {
-	s := newTestSim()
-	before := new(big.Int).Set(s.Info.Reserves[1])
-
-	in := big.NewInt(10_000_000)
-	fee := big.NewInt(30_000)
-	out := big.NewInt(1_000_000_000_000)
-
-	s.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: tokY, Amount: in},
-		TokenAmountOut: pool.TokenAmount{Token: tokX, Amount: out},
-		Fee:            pool.TokenAmount{Token: tokY, Amount: fee},
-		SwapInfo:       SwapInfo{NewActiveID: 7795, XForY: false, BinsCrossed: 2},
-	})
-
-	want := new(big.Int).Add(before, new(big.Int).Sub(in, fee))
-	if s.Info.Reserves[1].Cmp(want) != 0 {
-		t.Fatalf("reserve should grow by NET input: got %s want %s", s.Info.Reserves[1], want)
-	}
-	if s.activeID != 7795 {
-		t.Fatalf("activeID not applied: %d", s.activeID)
-	}
-}
-
-// A SwapInfo that is not ours must abort the update, not continue into a nil dereference the
-// way the liquiditybookv21 template does.
-func TestUpdateBalanceIgnoresForeignSwapInfo(t *testing.T) {
-	s := newTestSim()
-	before := new(big.Int).Set(s.Info.Reserves[1])
-	s.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: tokY, Amount: big.NewInt(1_000_000)},
-		TokenAmountOut: pool.TokenAmount{Token: tokX, Amount: big.NewInt(1)},
-		Fee:            pool.TokenAmount{Token: tokY, Amount: big.NewInt(0)},
-		SwapInfo:       "not ours",
-	})
-	if s.Info.Reserves[1].Cmp(before) != 0 {
-		t.Fatal("a foreign SwapInfo must leave the book untouched")
-	}
-}
-
-// Gas must scale with bins crossed. A flat constant flatters large swaps and penalises small
-// ones, which is how a router ends up preferring the wrong venue.
-func TestGasScalesWithBinsCrossed(t *testing.T) {
-	if gasFor(1) != BaseSwapGas {
-		t.Fatalf("single-bin swap should be the base cost, got %d", gasFor(1))
-	}
-	if gasFor(3) != BaseSwapGas+2*PerExtraBinGas {
-		t.Fatalf("three bins should add two increments, got %d", gasFor(3))
-	}
-}
-
-// A freezeEnd in the past is not a freeze. BlockTimestamp == 0 would make any
-// nonzero freezeEnd look active forever, which is why the tracker must pin the
-// header timestamp of the same block as the book.
-func TestExpiredFreezeIsNotFrozen(t *testing.T) {
-	s := newTestSim()
-	s.guardFreezeEnd = 1_700_000_000
-	s.blockTimestamp = 1_700_000_000
-	if err := s.blocked(); err != nil {
-		t.Fatalf("freezeEnd == BlockTimestamp must not freeze, got %v", err)
-	}
-	s.blockTimestamp = 1_700_000_001
-	if _, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(1_000_000)},
-		TokenOut:      tokX,
-	}); err != nil {
-		t.Fatalf("expired freeze must not block a quote, got %v", err)
-	}
-	s.blockTimestamp = 1_699_999_999
-	if err := s.blocked(); err != ErrCorporateActionFreeze {
-		t.Fatalf("freezeEnd still in the future must freeze, got %v", err)
-	}
-}
-
-func binY(s *PoolSimulator) *uint256.Int {
-	sum := new(uint256.Int)
+	var sumX, sumY uint256.Int
 	for _, b := range s.bins {
-		sum.Add(sum, b.ReserveY)
+		sumX.Add(&sumX, &b.ReserveX)
+		sumY.Add(&sumY, &b.ReserveY)
 	}
-	return sum
+	assert.Equal(t, new(big.Int).Sub(big.NewInt(1_500_000_000), res.TokenAmountOut.Amount), sumY.ToBig())
+	wantX := new(big.Int).Mul(big.NewInt(3), big256.TenPow(18).ToBig())
+	wantX.Sub(wantX.Add(wantX, in), res.Fee.Amount)
+	assert.Equal(t, wantX, sumX.ToBig())
+	assert.Equal(t, sumY.ToBig(), s.Info.Reserves[1])
+	assert.Equal(t, sumX.ToBig(), s.Info.Reserves[0])
+
+	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: "foreign"}) // must be a no-op, not a panic
 }
 
-// After a swap, the bins that were crossed must shrink. If UpdateBalance only
-// moved aggregate reserves + activeID, a split/multi-hop re-quote would see the
-// original book and pay out more than is left.
-func TestSequentialSwapsDoNotRequoteSpentBins(t *testing.T) {
-	in := new(big.Int).Mul(big.NewInt(5), new(big.Int).Exp(big.NewInt(10), big.NewInt(17), nil)) // 0.5 X
+// A swap applied to a clone must leave the original untouched; a nil or shallow clone breaks
+// split routing.
+func TestCloneStateIsolatesUpdateBalance(t *testing.T) {
+	s, fresh := newTestSim(t), newTestSim(t)
+	s.fee.VariableFeeControl, fresh.fee.VariableFeeControl = 122_448, 122_448
+	clone := s.CloneState().(*PoolSimulator)
+	swap(t, clone, tokY, big.NewInt(3_000_000_000))
 
-	s := newTestSim()
-	first, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
-		TokenOut:      tokY,
-	})
-	if err != nil {
-		t.Fatalf("first quote: %v", err)
-	}
-	si, ok := first.SwapInfo.(SwapInfo)
-	if !ok || len(si.Fills) == 0 {
-		t.Fatal("quote must hand back the bins it crossed")
-	}
-
-	yBefore := binY(s)
-	s.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: tokX, Amount: in},
-		TokenAmountOut: pool.TokenAmount{Token: tokY, Amount: first.TokenAmountOut.Amount},
-		Fee:            pool.TokenAmount{Token: tokX, Amount: first.Fee.Amount},
-		SwapInfo:       first.SwapInfo,
-	})
-	yAfter := binY(s)
-	if yAfter.Cmp(yBefore) >= 0 {
-		t.Fatalf("bin Y did not shrink after paying out Y: before=%s after=%s", yBefore, yAfter)
-	}
-	wantY := new(big.Int).Sub(yBefore.ToBig(), first.TokenAmountOut.Amount)
-	if yAfter.ToBig().Cmp(wantY) != 0 {
-		t.Fatalf("bin Y should fall by amountOut: got %s want %s", yAfter, wantY)
-	}
-
-	second, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
-		TokenOut:      tokY,
-	})
-	if err != nil {
-		if err != ErrInsufficientLiquidity {
-			t.Fatalf("second quote: %v", err)
-		}
-		// Remaining bins cannot fill the same size — that is the spent-book signal.
-	} else {
-		if second.TokenAmountOut.Amount.Cmp(yAfter.ToBig()) > 0 {
-			t.Fatalf("second quote paid %s Y but bins only hold %s", second.TokenAmountOut.Amount, yAfter)
-		}
-		if second.TokenAmountOut.Amount.Cmp(first.TokenAmountOut.Amount) >= 0 {
-			t.Fatalf("second quote did not shrink after consuming bins: first=%s second=%s",
-				first.TokenAmountOut.Amount, second.TokenAmountOut.Amount)
-		}
-	}
-
-	// Split routing: clone, take the first leg, then quote the second from the clone.
-	base := newTestSim()
-	leg := base.CloneState().(*PoolSimulator)
-	q1, err := leg.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
-		TokenOut:      tokY,
-	})
-	if err != nil {
-		t.Fatalf("split first leg: %v", err)
-	}
-	leg.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: tokX, Amount: in},
-		TokenAmountOut: pool.TokenAmount{Token: tokY, Amount: q1.TokenAmountOut.Amount},
-		Fee:            pool.TokenAmount{Token: tokX, Amount: q1.Fee.Amount},
-		SwapInfo:       q1.SwapInfo,
-	})
-	remaining := binY(leg)
-	q2, err := leg.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokX, Amount: in},
-		TokenOut:      tokY,
-	})
-	if err != nil {
-		if err != ErrInsufficientLiquidity {
-			t.Fatalf("split second leg: %v", err)
-		}
-	} else if q2.TokenAmountOut.Amount.Cmp(remaining.ToBig()) > 0 {
-		t.Fatalf("cloned second leg paid %s Y but bins only hold %s", q2.TokenAmountOut.Amount, remaining)
-	}
-	if base.bins[2].ReserveY.Cmp(leg.bins[2].ReserveY) == 0 {
-		t.Fatal("clone's bins were not mutated independently of the original")
-	}
+	require.NotEqual(t, s.activeID, clone.activeID)
+	require.NotEqual(t, s.fee, clone.fee)
+	assert.Equal(t, fresh.activeID, s.activeID)
+	assert.Equal(t, fresh.fee, s.fee)
+	assert.Equal(t, fresh.feeRate, s.feeRate)
+	assert.Equal(t, fresh.Info.Reserves, s.Info.Reserves)
+	assert.Equal(t, fresh.bins, s.bins)
 }
 
-// A sub-bps volatility surcharge must reach the fee: BinPool charges
-// amountIn - amountIn*(1e9-rate)/1e9 with the full 1e9-precision rate.
+// BinPool charges amountIn - amountIn*(1e9-rate)/1e9 at the full 1e9-precision rate.
 func TestSubBpsFeeRateIsCharged(t *testing.T) {
-	s := newTestSim()
-	s.totalFeeRate = 3_123_456
-	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: big.NewInt(10_000_000)},
-		TokenOut:      tokX,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := big.NewInt(10_000_000 - 10_000_000*(1_000_000_000-3_123_456)/1_000_000_000); res.Fee.Amount.Cmp(want) != 0 {
-		t.Fatalf("fee = %s, want %s", res.Fee.Amount, want)
-	}
+	s := newTestSim(t)
+	s.feeRate = 3_123_456
+	res, err := quote(s, tokY, big.NewInt(10_000_000))
+	require.NoError(t, err)
+	assert.EqualValues(t, 10_000_000-10_000_000*(1_000_000_000-3_123_456)/1_000_000_000, res.Fee.Amount.Int64())
 }
 
-// BinPool fixes the fee for a whole swap, then _commitVolatility folds the bins it moved into
-// the accumulator, so the NEXT swap in the same route pays more. Expected rates are
-// baseFactor*binStep*10 + ceil(control*(acc*binStep)^2/1e11), computed by hand.
+// The rate is fixed per swap; _commitVolatility then folds the bins moved into the accumulator,
+// so the next swap in a route pays more. Rates: baseFactor*binStep*10 + ceil(c*(acc*step)^2/1e11).
 func TestSecondSwapPaysPostSwapVolatilityFee(t *testing.T) {
-	cases := []struct {
-		name                 string
-		now, tlu             uint64
-		va                   uint32
-		wantRate1, wantRate2 uint64
+	for _, c := range []struct {
+		name         string
+		now, tlu     uint64
+		va           uint32
+		rate1, rate2 uint64
 	}{
-		// Same block, fresh window: acc goes 0 -> 1 bin (10000).
-		{"no prior volatility", 0, 0, 0, 3_000_000, 3_012_245},
-		// 100s since the last swap: past filterPeriod (30), inside decayPeriod (600), so the
-		// reference decays to va*5000/10000 = 100000 and re-anchors at the pre-swap bin.
+		{"fresh window, acc 0 -> 1 bin", 0, 0, 0, 3_000_000, 3_012_245},
+		// 100s after the last swap: past filterPeriod, inside decayPeriod, so the reference
+		// decays to va/2 = 100000 and re-anchors at the pre-swap bin.
 		{"decayed reference", 1000, 900, 200_000, 4_224_480, 4_481_621},
-	}
-	for _, c := range cases {
+	} {
 		t.Run(c.name, func(t *testing.T) {
-			s := newTestSim()
-			s.fee.VariableFeeControl = 122_448
-			s.fee.TimeLastUpdate, s.fee.VolatilityAccumulator = c.tlu, c.va
+			s := newTestSim(t)
+			s.fee.VariableFeeControl, s.fee.TimeLastUpdate, s.fee.VolatilityAccumulator = 122_448, c.tlu, c.va
 			s.blockTimestamp = c.now
-			s.totalFeeRate = s.fee.totalFeeRate(s.binStepBps, s.activeID, s.blockTimestamp)
-			if s.totalFeeRate != c.wantRate1 {
-				t.Fatalf("first swap rate %d, want %d", s.totalFeeRate, c.wantRate1)
-			}
+			s.feeRate = s.fee.totalFeeRate(s.binStepBps, s.activeID, s.blockTimestamp)
+			require.Equal(t, c.rate1, s.feeRate)
 
-			in := big.NewInt(3_000_000_000) // 3000 USDG: 7796 -> 7797
-			res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenOut: tokX,
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if si := res.SwapInfo.(SwapInfo); si.NewActiveID != 7797 {
-				t.Fatalf("first swap ended in bin %d, want 7797", si.NewActiveID)
-			}
-			s.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in}, TokenAmountOut: *res.TokenAmountOut,
-				Fee: *res.Fee, SwapInfo: res.SwapInfo,
-			})
-
-			in2 := big.NewInt(10_000_000)
-			res2, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokY, Amount: in2}, TokenOut: tokX,
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			wantFee := 10_000_000 - 10_000_000*(1_000_000_000-c.wantRate2)/1_000_000_000
-			if res2.Fee.Amount.Uint64() != wantFee {
-				t.Fatalf("second swap fee %s, want %d (rate %d)", res2.Fee.Amount, wantFee, c.wantRate2)
-			}
+			swap(t, s, tokY, big.NewInt(3_000_000_000)) // 7796 -> 7797
+			res, err := quote(s, tokY, big.NewInt(10_000_000))
+			require.NoError(t, err)
+			assert.EqualValues(t, 10_000_000-10_000_000*(1_000_000_000-c.rate2)/1_000_000_000, res.Fee.Amount.Int64())
 		})
 	}
+}
+
+// Four swaps on an anvil fork of Robinhood from the state in testdata (three in one block, the
+// fourth 28s later). Expected values are the on-chain Swap events: amountOut, fee, finalId and
+// volatilityAccumulatorAfter. The fourth crosses 45 bins, past BinPool's 16-hop fast path.
+func TestSequentialSwapsMatchFork(t *testing.T) {
+	s := liveSim(t)
+	for _, c := range []struct {
+		in       string
+		amount   int64
+		out, fee string
+		finalID  int32
+		va       uint32
+	}{
+		{tokX, 800_000_000_000_000, "2085394", "80000000000", 7863, 140_000},
+		{tokX, 200_000_000_000_000, "515260", "499996200000", 7859, 180_000},
+		{tokY, 1_000_000, "384904743862370", "4068", 7866, 110_000},
+		{tokX, 3_000_000_000_000_000, "7556670", "4744863000000", 7822, 350_000},
+	} {
+		res := swap(t, s, c.in, big.NewInt(c.amount))
+		assert.Equal(t, c.out, res.TokenAmountOut.Amount.String())
+		assert.Equal(t, c.fee, res.Fee.Amount.String())
+		assert.Equal(t, c.finalID, s.activeID)
+		assert.Equal(t, c.va, s.fee.VolatilityAccumulator)
+	}
+	assert.EqualValues(t, 15_099_880, s.feeRate, "getTotalFeeRate() on the fork after the 4th swap")
+}
+
+// pool-service ships simulators to router-service via msgpack with unexported fields; every
+// pricing field (bins, decimal factor, fee state, guard) must survive or quotes drift.
+func TestMsgpackRoundTrip(t *testing.T) {
+	s := liveSim(t)
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf)
+	enc.IncludeUnexported(true)
+	enc.SetForceAsArray(true)
+	require.NoError(t, enc.Encode(s))
+	dec := msgpack.NewDecoder(&buf)
+	dec.IncludeUnexported(true)
+	var decoded PoolSimulator
+	require.NoError(t, dec.Decode(&decoded))
+
+	want := swap(t, s, tokX, big.NewInt(3e15))
+	got := swap(t, &decoded, tokX, big.NewInt(3e15))
+	assert.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount)
+	assert.Equal(t, s.fee, decoded.fee)
+	assert.Equal(t, s.feeRate, decoded.feeRate)
 }
