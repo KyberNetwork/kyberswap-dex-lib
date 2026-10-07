@@ -54,6 +54,9 @@ func TestOnChainParity(t *testing.T) {
 				common.HexToAddress(p.Tokens[1].Address)}}, []any{&canonical}).Call()
 		require.NoError(t, err)
 		require.Equal(t, common.HexToAddress(p.Address), canonical)
+		var staticExtra StaticExtra
+		require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &staticExtra))
+		require.Equal(t, p.Tokens[0].Address == wmon || p.Tokens[1].Address == wmon, staticExtra.HasNative)
 	}
 	again, _, err := lister.GetNewPools(ctx, metadataBytes)
 	require.NoError(t, err)

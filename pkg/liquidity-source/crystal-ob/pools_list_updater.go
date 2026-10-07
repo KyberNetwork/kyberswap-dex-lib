@@ -38,9 +38,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	var length *big.Int
-	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
-		ABI: crystalABI, Target: u.config.RouterAddress, Method: "allMarketsLength"}, []any{&length}).
-		Call(); err != nil {
+	var weth common.Address
+	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{ABI: crystalABI, Target: u.config.RouterAddress, Method: "allMarketsLength"},
+			[]any{&length}).
+		AddCall(&ethrpc.Call{ABI: crystalABI, Target: u.config.RouterAddress, Method: "weth"}, []any{&weth}).
+		Aggregate(); err != nil {
 		return nil, metadataBytes, err
 	}
 	end := min(int(length.Int64()), metadata.Offset+listBatchSize)
@@ -83,6 +86,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			TickSize:    uint256.MustFromBig(m.TickSize),
 			MaxPrice:    uint256.MustFromBig(m.MaxPrice),
 			Router:      router,
+			HasNative:   m.QuoteAsset == weth || m.BaseAsset == weth,
 		})
 		pools = append(pools, entity.Pool{
 			Address:   hexutil.Encode(market[:]),

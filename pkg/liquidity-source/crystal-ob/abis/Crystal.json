@@ -1,4 +1,5 @@
 [
+  {"type":"function","name":"weth","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
   {"type":"function","name":"allMarketsLength","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
   {"type":"function","name":"allMarkets","stateMutability":"view","inputs":[{"name":"","type":"uint256"}],"outputs":[{"name":"","type":"address"}]},
   {"type":"function","name":"getMarketByTokens","stateMutability":"view","inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"outputs":[{"name":"","type":"address"}]},

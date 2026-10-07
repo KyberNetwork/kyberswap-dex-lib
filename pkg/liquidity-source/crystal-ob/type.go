@@ -26,6 +26,14 @@ type StaticExtra struct {
 	TickSize    *uint256.Int `json:"ts"`
 	MaxPrice    *uint256.Int `json:"mp"`
 	Router      string       `json:"r"`
+	HasNative   bool         `json:"n,omitempty"` // a token is Crystal.weth, so swap() takes native
+}
+
+// MetaInfo keeps pool.MetaInfo's approvalAddress key, which the encoder reads as the router.
+type MetaInfo struct {
+	ApprovalAddress string `json:"approvalAddress"`
+	HasNative       bool   `json:"n,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
 
 type SwapInfo struct {

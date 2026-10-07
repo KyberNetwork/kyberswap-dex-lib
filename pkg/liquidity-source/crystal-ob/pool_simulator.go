@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // PoolSimulator is one Crystal market: a limit order book plus an optional constant-product AMM.
@@ -25,11 +26,15 @@ type market struct {
 	scale, tickSize, maxPrice, buyWorst uint256.Int
 	takerFee, makerRebate, ammFee       uint256.Int
 	router                              string
+	hasNative                           bool
 }
 
 // No age check: pool-service skips saving (and re-stamping) unchanged state, so a quiet market's
 // timestamp ages while its book is still current.
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var (
+	_                             = pool.RegisterFactory0(DexType, NewPoolSimulator)
+	_ pool.IPoolSupportNativeSwap = (*PoolSimulator)(nil)
+)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -61,7 +66,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		asks:   extra.Asks,
 		rq:     extra.ReserveQ,
 		rb:     extra.ReserveB,
-		market: &market{router: staticExtra.Router},
+		market: &market{router: staticExtra.Router, hasNative: staticExtra.HasNative},
 	}
 	if p.rq == nil || p.rb == nil {
 		p.rq, p.rb = nil, nil
@@ -140,5 +145,14 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return pool.MetaInfo{ApprovalAddress: p.router, BlockNumber: p.Info.BlockNumber}
+	return MetaInfo{ApprovalAddress: p.router, HasNative: p.hasNative, BlockNumber: p.Info.BlockNumber}
+}
+
+// Crystal.swap wraps native input (tokenIn == eth) and unwraps native output for weth markets.
+func (p *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
+	return p.hasNative && valueobject.IsWrappedNative(tokenIn, chainId)
+}
+
+func (p *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobject.ChainID) bool {
+	return p.hasNative && valueobject.IsWrappedNative(tokenOut, chainId)
 }

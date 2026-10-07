@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -170,6 +172,11 @@ func (t *PoolTracker) resolveOrders(ctx context.Context, market common.Address, 
 		i := lo
 		for i < hi && next[i] == nil && sumSizes(sum.Clear(), levels[i:i+1]).Eq(&totals[i]) {
 			i++
+		}
+		if i < hi {
+			logger.WithFields(logger.Fields{"dexID": t.config.DexID, "market": hexutil.Encode(market[:]),
+				"price": levels[i][0].Dec(), "orders": len(levels[i]) - 1, "kept": i - lo, "fetched": hi - lo}).
+				Warn("crystal-ob: book side cut at a level whose orders could not be fully walked")
 		}
 		return levels[lo:i:i]
 	}
