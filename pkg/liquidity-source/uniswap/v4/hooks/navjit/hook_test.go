@@ -245,9 +245,15 @@ func TestExtra_JSONRoundTrip(t *testing.T) {
 // End to end through uniswap-v4's PoolSimulator: an entity.Pool keyed at the NavJit hook gets this
 // plugin, quotes the ladder in both directions and both swap types, and survives UpdateBalance /
 // CloneState, with a standing position in the ticks that the plugin must ignore.
-func TestPoolSimulator_UsesThePlugin(t *testing.T) {
+const (
+	simLot  = "0xf5e660dc904b5017ff2cecc22608567c2be6d7c6"
+	simUsdg = "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+)
+
+// newTestSim builds the v4 simulator for a LOT-two-shaped venue carrying trackedHook's ladders.
+func newTestSim(tb testing.TB) *uniswapv4.PoolSimulator {
 	hookExtra, err := json.Marshal(trackedHook())
-	require.NoError(t, err)
+	require.NoError(tb, err)
 	staticExtra, _ := json.Marshal(uniswapv4.StaticExtra{Fee: 0, TickSpacing: 1, HooksAddress: HookAddresses[0]})
 	sqrt, _ := new(big.Int).SetString("79438280045202668386950967478741068", 10) // tick 276377, ~1 LOT = $1.00
 	extra, _ := json.Marshal(uniswapv4.Extra{Extra: &uniswapv3.Extra{
@@ -256,19 +262,22 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 			{Index: 276277, LiquidityGross: big.NewInt(4_917_000_000_000_000), LiquidityNet: big.NewInt(4_917_000_000_000_000)},
 			{Index: 276477, LiquidityGross: big.NewInt(4_917_000_000_000_000), LiquidityNet: big.NewInt(-4_917_000_000_000_000)},
 		}}, HookExtra: hookExtra})
-	lot := "0xf5e660dc904b5017ff2cecc22608567c2be6d7c6"
-	usdg := "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
 	ep := entity.Pool{
 		Address:     "0x8327ac000f8b77d690b8315290ba7dcb4834b12b377b0367234b3d6661f20056",
 		Exchange:    valueobject.ExchangeUniswapV4NavJit,
 		Type:        uniswapv4.DexType,
-		Tokens:      []*entity.PoolToken{{Address: usdg, Decimals: 6, Swappable: true}, {Address: lot, Decimals: 18, Swappable: true}},
+		Tokens:      []*entity.PoolToken{{Address: simUsdg, Decimals: 6, Swappable: true}, {Address: simLot, Decimals: 18, Swappable: true}},
 		Reserves:    entity.PoolReserves{"47377000", "19793764531416765581247"},
 		StaticExtra: string(staticExtra),
 		Extra:       string(extra),
 	}
 	sim, err := uniswapv4.NewPoolSimulator(ep, valueobject.ChainIDRobinhood)
-	require.NoError(t, err)
+	require.NoError(tb, err)
+	return sim
+}
+
+func TestPoolSimulator_UsesThePlugin(t *testing.T) {
+	sim, usdg, lot := newTestSim(t), simUsdg, simLot
 
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(100_000_000)}, TokenOut: lot})
