@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -207,4 +208,126 @@ func TestPoolSimulatorErrInsufficientLiquidity(t *testing.T) {
 		},
 	)
 	assert.Error(t, err)
+}
+
+// getLiveEthenaARMPool mirrors the live router-api snapshot of
+// 0xceda2d856238aa0d12f6329de20b9115f07c366d (EthenaARM, USDe/sUSDe) at block 26138217:
+// buy cap 25000e18, unlimited sell cap, sUSDe adapter rates, zero sUSDe inventory.
+func getLiveEthenaARMPool(t *testing.T) *PoolSimulator {
+	t.Helper()
+	var poolE entity.Pool
+	err := json.Unmarshal([]byte(`{
+		"address":"0xceda2d856238aa0d12f6329de20b9115f07c366d",
+		"exchange":"generic-arm",
+		"type":"generic-arm",
+		"reserves":["45256181038753054998564","0"],
+		"tokens":[
+			{"address":"0x4c9edd5852cd905f086c759e8383e09bff1e68b3","symbol":"USDe","decimals":18,"swappable":true},
+			{"address":"0x9d39a5de30e57443bff2a8307a4256c8797a3497","symbol":"sUSDe","decimals":18,"swappable":true}
+		],
+		"extra":"{\"r0\":null,\"r1\":null,\"ps\":\"1000000000000000000000000000000000000\",\"wq\":\"501512577692366754714659\",\"wc\":\"501487474264845152962976\",\"la\":\"0x4c9edd5852cd905f086c759e8383e09bff1e68b3\",\"lad\":18,\"swapType\":3,\"armType\":2,\"hasWithdrawalQueue\":true,\"g\":{\"z2o\":80794,\"o2z\":108163},\"bas\":[{\"d\":18,\"pg\":false,\"bp\":\"999575000000000000000000000000000000\",\"sp\":\"999960000000000000000000000000000000\",\"blr\":\"25000000000000000000000\",\"slr\":\"340282366920938463463374607431768211455\",\"cra\":\"1251799382980073314\",\"crs\":\"798850050252755583\"}]}"
+	}`), &poolE)
+	assert.NoError(t, err)
+	p, err := NewPoolSimulator(poolE)
+	assert.NoError(t, err)
+	return p
+}
+
+// Regression: on-chain swaps consume the per-base-asset liquidity cap
+// (AbstractARM._validateAndConsumeSwapLiquidity reverts with InsufficientLiquidity once the
+// cumulative output exceeds buy/sellLiquidityRemaining). Verified on a Tenderly mainnet fork at
+// block 26138217: 1000 sUSDe -> 1251267850447842770102 USDe decreased buyLiquidityRemaining by
+// exactly the output, and a later swap exceeding the leftover cap reverted on-chain while the
+// stale simulator still quoted it.
+func TestEthenaARMSequentialSwapsConsumeBuyCap(t *testing.T) {
+	usde := "0x4c9edd5852cd905f086c759e8383e09bff1e68b3"
+	susde := "0x9d39a5de30e57443bff2a8307a4256c8797a3497"
+
+	p := getLiveEthenaARMPool(t)
+
+	swap1In := bignumber.NewBig("15000000000000000000000")
+	out1, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: susde, Amount: swap1In},
+		TokenOut:      usde,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "18769010523634601742623", out1.TokenAmountOut.Amount.String())
+
+	// The second swap quotes fine on the untouched pool...
+	swap2In := bignumber.NewBig("10000000000000000000000")
+	freshOut2, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: susde, Amount: swap2In},
+		TokenOut:      usde,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "12512673682423067828415", freshOut2.TokenAmountOut.Amount.String())
+
+	// ...but after applying swap 1 the leftover cap (25000e18 - out1) no longer covers it.
+	p.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: susde, Amount: swap1In},
+		TokenAmountOut: pool.TokenAmount{Token: usde, Amount: out1.TokenAmountOut.Amount},
+	})
+	assert.Equal(t, "6230989476365398257377", p.BaseAssets[0].BuyLiquidityRemaining.String())
+	assert.Equal(t, "26487170515118453255941", p.Info.Reserves[0].String())
+	assert.Equal(t, "15000000000000000000000", p.Info.Reserves[1].String())
+
+	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: susde, Amount: swap2In},
+		TokenOut:      usde,
+	})
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+// Sell side consumes sellLiquidityRemaining; with zero sUSDe inventory the pool correctly
+// refuses USDe -> sUSDe (matches on-chain balance check).
+func TestEthenaARMSellSideConsumesSellCap(t *testing.T) {
+	usde := "0x4c9edd5852cd905f086c759e8383e09bff1e68b3"
+	susde := "0x9d39a5de30e57443bff2a8307a4256c8797a3497"
+
+	p := getLiveEthenaARMPool(t)
+
+	_, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usde, Amount: bignumber.NewBig("10000000000000000000000")},
+		TokenOut:      susde,
+	})
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+
+	// Give the ARM sUSDe inventory and a finite sell cap to observe the decrement.
+	p.Info.Reserves[1] = bignumber.NewBig("50000000000000000000000")
+	p.BaseAssets[0].SellLiquidityRemaining = uint256.MustFromBig(bignumber.NewBig("30000000000000000000000"))
+
+	out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usde, Amount: bignumber.NewBig("10000000000000000000000")},
+		TokenOut:      susde,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "7988820055329769020760", out.TokenAmountOut.Amount.String())
+
+	p.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: usde, Amount: bignumber.NewBig("10000000000000000000000")},
+		TokenAmountOut: pool.TokenAmount{Token: susde, Amount: out.TokenAmountOut.Amount},
+	})
+	assert.Equal(t, "22011179944670230979240", p.BaseAssets[0].SellLiquidityRemaining.String())
+	assert.Equal(t, "25000000000000000000000", p.BaseAssets[0].BuyLiquidityRemaining.String())
+}
+
+// CloneState must isolate the per-base-asset caps: updating the clone leaves the original
+// (reserves and Buy/SellLiquidityRemaining) untouched.
+func TestEthenaARMCloneIsolatesLiquidityCaps(t *testing.T) {
+	usde := "0x4c9edd5852cd905f086c759e8383e09bff1e68b3"
+	susde := "0x9d39a5de30e57443bff2a8307a4256c8797a3497"
+
+	p := getLiveEthenaARMPool(t)
+	clone, ok := p.CloneState().(*PoolSimulator)
+	assert.True(t, ok)
+
+	clone.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: susde, Amount: bignumber.NewBig("15000000000000000000000")},
+		TokenAmountOut: pool.TokenAmount{Token: usde, Amount: bignumber.NewBig("18769010523634601742623")},
+	})
+
+	assert.Equal(t, "6230989476365398257377", clone.BaseAssets[0].BuyLiquidityRemaining.String())
+	assert.Equal(t, "25000000000000000000000", p.BaseAssets[0].BuyLiquidityRemaining.String())
+	assert.Equal(t, "45256181038753054998564", p.Info.Reserves[0].String())
+	assert.Equal(t, "0", p.Info.Reserves[1].String())
 }
