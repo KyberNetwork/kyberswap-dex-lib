@@ -2,7 +2,6 @@ package netstaking
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -98,8 +97,8 @@ func fetchDynamic(
 	hasWrap := wrapAddress != ""
 
 	var (
-		indexBig    *big.Int
-		blockNumber = big.NewInt(0)
+		index       *uint256.Int
+		blockNumber uint64
 	)
 
 	// index() is only ever consumed by the wrap-side math (sNetToWs/wsToSNet), which
@@ -114,21 +113,21 @@ func fetchDynamic(
 			ABI:    stakedNETABI,
 			Target: sNetAddr,
 			Method: "index",
-		}, []any{&indexBig})
+		}, []any{&index})
 
 		resp1, err := req1.Aggregate()
 		if err != nil {
 			return PoolExtra{}, 0, err
 		}
 		if resp1.BlockNumber != nil {
-			blockNumber = resp1.BlockNumber
+			blockNumber = resp1.BlockNumber.Uint64()
 		}
 	}
 
 	var (
-		netReserveBig         *big.Int
-		sNetStakingReserveBig *big.Int
-		sNetWrapReserveBig    *big.Int
+		netReserve         *uint256.Int
+		sNetStakingReserve *uint256.Int
+		sNetWrapReserve    *uint256.Int
 	)
 	req2 := ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
@@ -139,36 +138,36 @@ func fetchDynamic(
 		Target: netAddr,
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
-	}, []any{&netReserveBig}).AddCall(&ethrpc.Call{
+	}, []any{&netReserve}).AddCall(&ethrpc.Call{
 		ABI:    utilabi.Erc20ABI,
 		Target: sNetAddr,
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
-	}, []any{&sNetStakingReserveBig})
+	}, []any{&sNetStakingReserve})
 	if hasWrap {
 		req2.AddCall(&ethrpc.Call{
 			ABI:    utilabi.Erc20ABI,
 			Target: sNetAddr,
 			Method: utilabi.Erc20BalanceOfMethod,
 			Params: []any{gethcommon.HexToAddress(wrapAddress)},
-		}, []any{&sNetWrapReserveBig})
+		}, []any{&sNetWrapReserve})
 	}
 	resp2, err := req2.Aggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
 	if !hasWrap && resp2.BlockNumber != nil {
-		blockNumber = resp2.BlockNumber
+		blockNumber = resp2.BlockNumber.Uint64()
 	}
 
 	extra := PoolExtra{
-		NETReserve:         uint256.MustFromBig(netReserveBig),
-		SNETStakingReserve: uint256.MustFromBig(sNetStakingReserveBig),
+		NETReserve:         netReserve,
+		SNETStakingReserve: sNetStakingReserve,
 	}
 	if hasWrap {
-		extra.Index = uint256.MustFromBig(indexBig)
-		extra.SNETWrapReserve = uint256.MustFromBig(sNetWrapReserveBig)
+		extra.Index = index
+		extra.SNETWrapReserve = sNetWrapReserve
 	}
 
-	return extra, blockNumber.Uint64(), nil
+	return extra, blockNumber, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -49,9 +48,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, errors.New("failed to decode StaticExtra")
 	}
 
-	var curveRes struct{ Alpha, Beta, Delta, Epsilon, Lambda, TotalSupply *big.Int }
-	var reserves [2]*big.Int
-	var rates [2]*big.Int
+	var curveRes struct{ Alpha, Beta, Delta, Epsilon, Lambda, TotalSupply *uint256.Int }
+	var reserves [2]*uint256.Int
+	var rates [2]*uint256.Int
 	poolAddr := common.HexToAddress(p.Address)
 	request := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    stabullPoolABI,
@@ -87,18 +86,18 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	extra := Extra{
 		CurveParams: CurveParams{
-			Alpha:   uint256.MustFromBig(curveRes.Alpha),
-			Beta:    uint256.MustFromBig(curveRes.Beta),
-			Delta:   uint256.MustFromBig(curveRes.Delta),
-			Epsilon: uint256.MustFromBig(curveRes.Epsilon),
-			Lambda:  uint256.MustFromBig(curveRes.Lambda),
+			Alpha:   curveRes.Alpha,
+			Beta:    curveRes.Beta,
+			Delta:   curveRes.Delta,
+			Epsilon: curveRes.Epsilon,
+			Lambda:  curveRes.Lambda,
 		},
-		OracleRates: [2]*uint256.Int{uint256.MustFromBig(rates[0]), uint256.MustFromBig(rates[1])},
+		OracleRates: [2]*uint256.Int{rates[0], rates[1]},
 	}
 	// oracleRate = baseRate / quoteRate (scaled by precision)
 	extra.OracleRate, _ = new(uint256.Int).MulDivOverflow(extra.OracleRates[0], big256.BONE, extra.OracleRates[1])
 
-	p.Reserves = entity.PoolReserves{reserves[0].String(), reserves[1].String()}
+	p.Reserves = entity.PoolReserves{reserves[0].Dec(), reserves[1].Dec()}
 	extraBytes, _ := json.Marshal(extra)
 	p.Extra = string(extraBytes)
 	p.SwapFee = math.Round(extra.Epsilon.Float64()*1e8/math.Pow(2, 64)) / 1e8
