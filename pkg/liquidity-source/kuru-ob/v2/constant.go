@@ -15,6 +15,9 @@ const (
 	marketStateLive = 0
 	marketBatchSize = 100
 
+	// Keeps quote*10^decimals far from 2^256 in the walk.
+	maxQuoteDecimals = 30
+
 	// ponytail: V1 gas until a V2 executor helper (deposit+swap+withdraw) exists to measure.
 	gasBase  = 221703
 	gasLevel = 84155

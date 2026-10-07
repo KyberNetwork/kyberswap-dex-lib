@@ -116,6 +116,45 @@ func TestUpdateBalance(t *testing.T) {
 	require.Len(t, sim.Asks, 6)
 }
 
+// A second quote after UpdateBalance must see the consumed book (sequential swaps on one pool),
+// on the ask side too, and the earlier clone must keep the original book.
+func TestUpdateBalance_BuySideSequential(t *testing.T) {
+	sim := newTestSim(t, testMarkets[1])
+	clone := sim.CloneState().(*PoolSimulator)
+	first, err := calc(sim, "quote", "base", 10e6) // fills ask 0 (7986357) and part of ask 1
+	require.NoError(t, err)
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: "quote", Amount: big.NewInt(10e6)},
+		TokenAmountOut: *first.TokenAmountOut, SwapInfo: first.SwapInfo})
+
+	require.Len(t, sim.Asks, 5)
+	require.Len(t, clone.Asks, 6)
+	require.EqualValues(t, 14988684, clone.Asks[1].Size.Uint64())
+	require.Less(t, sim.Asks[0].Size.Uint64(), uint64(14988684))
+
+	again, err := calc(sim, "quote", "base", 10e6)
+	require.NoError(t, err)
+	fresh, err := calc(clone, "quote", "base", 10e6)
+	require.NoError(t, err)
+	require.Equal(t, 1, fresh.TokenAmountOut.Amount.Cmp(again.TokenAmountOut.Amount), "price must worsen")
+}
+
+func TestNewPoolSimulator_RejectsBadParams(t *testing.T) {
+	for name, mutate := range map[string]func(*testMarket){
+		"zero baseSizeMultiplier": func(m *testMarket) { m.staticExtra.BaseSizeMultiplier = uint256.NewInt(0) },
+		"zero sizePrecision":      func(m *testMarket) { m.staticExtra.SizePrecision = uint256.NewInt(0) },
+		"fee >= 100%":             func(m *testMarket) { m.extra.TakerFeePps = 10_000_000 },
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := testMarkets[1]
+			mutate(&m)
+			_, err := NewPoolSimulator(entity.Pool{Tokens: []*entity.PoolToken{{}, {}},
+				Extra: string(lo.Must(json.Marshal(m.extra))), StaticExtra: string(lo.Must(json.Marshal(m.staticExtra)))})
+			require.ErrorIs(t, err, ErrInvalidStaticExtra)
+		})
+	}
+}
+
 func TestCalcAmountOut_Rejects(t *testing.T) {
 	sim := newTestSim(t, testMarkets[0])
 	_, err := calc(sim, "base", "quote", 1e7) // below one book quantity (1e8 atoms)
@@ -127,4 +166,32 @@ func TestCalcAmountOut_Rejects(t *testing.T) {
 	closed.extra = Extra{}
 	_, err = calc(newTestSim(t, closed), "quote", "base", 1e6)
 	require.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	for _, dir := range []struct {
+		name, in, out string
+		amt           int64
+	}{{"sell", "base", "quote", 30e6}, {"buy", "quote", "base", 30e6}} {
+		b.Run(dir.name, func(b *testing.B) {
+			sim := newTestSim(&testing.T{}, testMarkets[1])
+			params := pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: dir.in, Amount: big.NewInt(dir.amt)}, TokenOut: dir.out}
+			b.ReportAllocs()
+			for b.Loop() {
+				_, _ = sim.CalcAmountOut(params)
+			}
+		})
+	}
+}
+
+func BenchmarkCloneAndUpdate(b *testing.B) {
+	sim := newTestSim(&testing.T{}, testMarkets[1])
+	res, _ := calc(sim, "base", "quote", 10e6)
+	params := pool.UpdateBalanceParams{
+		TokenAmountIn: pool.TokenAmount{Token: "base", Amount: big.NewInt(10e6)}, SwapInfo: res.SwapInfo}
+	b.ReportAllocs()
+	for b.Loop() {
+		sim.CloneState().UpdateBalance(params)
+	}
 }

@@ -30,6 +30,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
+	} else if staticExtra.SizePrecision == nil || staticExtra.BaseSizeMultiplier == nil {
+		return p, ErrInvalidStaticExtra
 	}
 
 	var book L2Book
@@ -51,20 +53,21 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var extra Extra
-	reserves := [2]*uint256.Int{new(uint256.Int), new(uint256.Int)}
+	var baseReserve, quoteReserve uint256.Int
 	if marketState == marketStateLive && !protocolPaused {
 		extra.TakerFeePps = takerFeePps.Uint64()
 		extra.Bids = toLevels(book.BidPrices, book.BidSizes)
 		extra.Asks = toLevels(book.AskPrices, book.AskSizes)
 		// Reserves: base on the asks, quote on the bids (floor quote conversion like the sell walk).
 		var tmp, quote uint256.Int
-		quoteScale, pricePrecision := big256.TenPow(staticExtra.QuoteDecimals), uint256.NewInt(staticExtra.PricePrecision)
-		for _, level := range extra.Asks {
-			reserves[0].Add(reserves[0], tmp.Mul(level.Size, staticExtra.BaseSizeMultiplier))
+		quoteScale, pricePrecision := big256.TenPow(staticExtra.QuoteDecimals), tmp.SetUint64(staticExtra.PricePrecision)
+		for i := range extra.Asks {
+			baseReserve.Add(&baseReserve, quote.Mul(&extra.Asks[i].Size, staticExtra.BaseSizeMultiplier))
 		}
-		for _, level := range extra.Bids {
-			big256.MulDivDown(&quote, tmp.SetUint64(level.Price), level.Size, staticExtra.SizePrecision)
-			reserves[1].Add(reserves[1], big256.MulDivDown(&quote, &quote, quoteScale, pricePrecision))
+		for i := range extra.Bids {
+			// price < 2^32 and size < 2^128: the product fits.
+			quote.Mul(quote.SetUint64(extra.Bids[i].Price), &extra.Bids[i].Size).Div(&quote, staticExtra.SizePrecision)
+			quoteReserve.Add(&quoteReserve, big256.MulDivDown(&quote, &quote, quoteScale, pricePrecision))
 		}
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -72,7 +75,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return p, err
 	}
 
-	p.Reserves = entity.PoolReserves{reserves[0].Dec(), reserves[1].Dec()}
+	p.Reserves = entity.PoolReserves{baseReserve.Dec(), quoteReserve.Dec()}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	return p, nil
@@ -85,7 +88,11 @@ func toLevels(prices []uint32, sizes []*big.Int) []Level {
 		if price == 0 || sizes[i].Sign() <= 0 {
 			break
 		}
-		levels = append(levels, Level{Price: uint64(price), Size: uint256.MustFromBig(sizes[i])})
+		var size uint256.Int
+		if size.SetFromBig(sizes[i]) || size.BitLen() > 128 { // book sizes are uint128
+			break
+		}
+		levels = append(levels, Level{Price: uint64(price), Size: size})
 	}
 	return levels
 }
