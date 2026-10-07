@@ -7,7 +7,4 @@ import (
 	"github.com/samber/lo"
 )
 
-var (
-	poolABI  = lo.Must(abi.JSON(bytes.NewReader(poolABIJson)))
-	clockABI = lo.Must(abi.JSON(bytes.NewReader(clockABIJson)))
-)
+var poolABI = lo.Must(abi.JSON(bytes.NewReader(poolABIJson)))

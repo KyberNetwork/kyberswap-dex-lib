@@ -1,0 +1,106 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract IUSCorePool",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address[2]",
+        "name": "tokens",
+        "type": "address[2]"
+      },
+      {
+        "internalType": "uint256[2]",
+        "name": "units",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "bps",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxPoints",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxRounds",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "blockNumber",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "reserveQuote",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "reserveBase",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "points0",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "outs0",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint8",
+            "name": "status0",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "points1",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "outs1",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint8",
+            "name": "status1",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "rounds",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct USCoreSampler.Snapshot",
+        "name": "snapshot",
+        "type": "tuple"
+      }
+    ],
+    "name": "Sample",
+    "type": "error"
+  }
+]

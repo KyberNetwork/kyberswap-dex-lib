@@ -139,25 +139,6 @@ func divFix(z, x, d *uint256.Int) bool {
 	return true
 }
 
-// mulDiv sets z = x*y/d (truncated) for two's-complement x, y, d; false if d is 0 or |z| is too big.
-func mulDiv(z, x, y, d *uint256.Int) bool {
-	var ax, ay, ad uint256.Int
-	neg := abs(&ax, x) != abs(&ay, y)
-	if abs(&ad, d) {
-		neg = !neg
-	}
-	if ad.IsZero() {
-		return false
-	}
-	if _, overflow := z.MulDivOverflow(&ax, &ay, &ad); overflow || z.BitLen() > maxShapeBits {
-		return false
-	}
-	if neg {
-		z.Neg(z)
-	}
-	return true
-}
-
 func abs(z, x *uint256.Int) bool {
 	if x.Sign() < 0 {
 		z.Neg(x)

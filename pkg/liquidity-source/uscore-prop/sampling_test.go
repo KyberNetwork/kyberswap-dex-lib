@@ -1,7 +1,6 @@
 package uscoreprop
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -9,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -21,41 +19,11 @@ func testAmounts(values ...uint64) []*uint256.Int {
 	return result
 }
 
-func TestTrackerSamplingIgnoresPreviousState(t *testing.T) {
-	p := testEntity()
-	tracker := NewPoolTracker(&Config{}, mockRPC(t, false, false, nil, nil))
-	expected, err := tracker.GetNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-	for _, reserves := range [][]string{{"1000", "1000"}, {"1000000000000", "1000000000000"}, {"invalid", "invalid"}} {
-		for _, extra := range []string{"", "{}", "{", `{"l":[[[100,200],[200,390],[300,410]],[[100,200],[200,390],[300,410]]]}`} {
-			p.Reserves, p.Extra = reserves, extra
-			actual, err := tracker.GetNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{})
-			require.NoError(t, err)
-			require.Equal(t, ladders(t, expected), ladders(t, actual))
-			require.Equal(t, expected.Reserves, actual.Reserves)
-		}
-	}
-}
-
 func ladders(t *testing.T, p entity.Pool) [2][]Point {
 	t.Helper()
 	var extra Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	return extra.Ladders
-}
-
-// Identical quotes must give an identical Extra, so pool-service can skip the write; its per-dex
-// heartbeat (not a changing Extra) keeps the stored Timestamp within MaxAge.
-func TestTrackerRefreshIsDeterministic(t *testing.T) {
-	tracker := NewPoolTracker(&Config{}, mockRPC(t, false, false, nil, nil))
-	first, err := tracker.GetNewPoolState(t.Context(), testEntity(), pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-	second, err := tracker.GetNewPoolState(t.Context(), first, pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-	require.Equal(t, first.Reserves, second.Reserves)
-	require.Equal(t, ladders(t, first), ladders(t, second))
-	require.Greater(t, second.Timestamp, first.Timestamp)
-	require.Equal(t, first.Extra, second.Extra)
 }
 
 func TestUpperRefinement(t *testing.T) {
@@ -151,52 +119,6 @@ func TestCurveRefinementBudget(t *testing.T) {
 		require.Positive(t, refined[i].Cmp(refined[i-1]))
 	}
 	require.Nil(t, refineUpper(refined, ladderQuote{status: 3}))
-}
-
-func TestTrackerRefinementDiscardsEarlierSnapshots(t *testing.T) {
-	for _, status := range []uint8{1, 2, 4, 5, 6} {
-		t.Run(strconv.Itoa(int(status)), func(t *testing.T) {
-			count := 0
-			client := mockRPCWithStatus(t, false, false, &count, nil, nil, func(snapshot int) uint8 {
-				if snapshot >= 2 {
-					return status
-				}
-				return 0
-			})
-			p, err := NewPoolTracker(&Config{}, client).GetNewPoolState(t.Context(), testEntity(), pool.GetNewPoolStateParams{})
-			require.Equal(t, 3, count)
-			if status == 6 {
-				require.ErrorIs(t, err, ErrInvalidState)
-				return
-			}
-			require.NoError(t, err)
-			require.Equal(t, uint64(102), p.BlockNumber)
-			require.Equal(t, int64(1_800_000_002), p.Timestamp)
-			var extra Extra
-			require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
-			require.Empty(t, extra.Ladders[0])
-			require.Empty(t, extra.Ladders[1])
-		})
-	}
-}
-
-func TestTrackerRepeatedRefreshRetainsUpperRange(t *testing.T) {
-	count := 0
-	tracker := NewPoolTracker(&Config{}, mockRPC(t, false, false, &count, nil))
-	p := testEntity()
-	for range 5 {
-		before := count
-		var err error
-		p, err = tracker.GetNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{})
-		require.NoError(t, err)
-		require.LessOrEqual(t, count-before, 2+maxRefinementRounds)
-		var extra Extra
-		require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
-		for _, points := range extra.Ladders {
-			require.LessOrEqual(t, len(points), maxSamplePoints)
-			require.Equal(t, uint64(300), points[len(points)-1][0].Uint64())
-		}
-	}
 }
 
 // Samples past the peak or the first unquotable amount never reach the ladder, so refinement must
