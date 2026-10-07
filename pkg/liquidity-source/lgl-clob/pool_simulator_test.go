@@ -613,3 +613,79 @@ func BenchmarkRound(b *testing.B) {
 		round(c, 6, false)
 	}
 }
+
+func TestPoolSimulator_CalcAmountOut_GasByLevels(t *testing.T) {
+	t.Parallel()
+
+	// withMakerQuoteGas is the WXTZ/USDC pool with its market maker's quote
+	// measured as makerQuoteGas.
+	withMakerQuoteGas := func(t *testing.T, makerQuoteGas *MakerQuoteGas) *PoolSimulator {
+		t.Helper()
+		var ep entity.Pool
+		require.NoError(t, json.Unmarshal([]byte(wxtzUsdcPoolJSON), &ep))
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(ep.Extra), &extra))
+		extra.MakerQuoteGas = makerQuoteGas
+		data, err := json.Marshal(extra)
+		require.NoError(t, err)
+		ep.Extra = string(data)
+		sim, err := NewPoolSimulator(ep)
+		require.NoError(t, err)
+		return sim
+	}
+	// gasFor sells amountIn WXTZ, filling the pool's bids.
+	gasFor := func(t *testing.T, sim *PoolSimulator, amountIn string) int64 {
+		t.Helper()
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0xc9b53ab2679f573e480d01e0f49e2b5cfb7a3eab",
+				Amount: bignumber.NewBig10(amountIn),
+			},
+			TokenOut: "0x796ea11fa2dd751ed01b53c372ffdb4aaa8f00f9",
+		})
+		require.NoError(t, err)
+		return res.Gas
+	}
+	// The best bid holds 18826 shares of 0.1 WXTZ, so 100 WXTZ fills within it
+	// and 3000 WXTZ empties it and fills into the next.
+	const oneLevel, twoLevels = "100000000000000000000", "3000000000000000000000"
+
+	tests := []struct {
+		name     string
+		sim      func(t *testing.T) *PoolSimulator
+		one, two int64
+	}{
+		{
+			name: "a pool without a market maker keeps the original estimate",
+			sim: func(t *testing.T) *PoolSimulator {
+				return mustNewSim(t, wxtzUsdcPoolJSON)
+			},
+			one: 494_222,
+			two: 574_238,
+		},
+		{
+			name: "a measured side pays its market maker's quote and the rest of the order",
+			sim: func(t *testing.T) *PoolSimulator {
+				return withMakerQuoteGas(t, &MakerQuoteGas{Bids: &LevelGas{First: 231_726, Next: 54_950}})
+			},
+			one: 231_726 + orderGas,
+			two: 231_726 + 54_950 + orderGas + orderGasPerLevel,
+		},
+		{
+			name: "a side whose quote was not measured pays unmeasuredMakerQuote",
+			sim: func(t *testing.T) *PoolSimulator {
+				return withMakerQuoteGas(t, &MakerQuoteGas{Asks: &LevelGas{First: 224_416, Next: 54_973}})
+			},
+			one: unmeasuredMakerQuote.First + orderGas,
+			two: unmeasuredMakerQuote.First + unmeasuredMakerQuote.Next + orderGas + orderGasPerLevel,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			sim := tt.sim(t)
+			assert.Equal(t, tt.one, gasFor(t, sim, oneLevel))
+			assert.Equal(t, tt.two, gasFor(t, sim, twoLevels))
+		})
+	}
+}
