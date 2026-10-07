@@ -69,8 +69,11 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}
 	log.Info().Str("dexID", u.config.DexID).Int("count", len(markets)).Msg("fetched new markets")
 
-	pools := make([]entity.Pool, len(markets))
+	pools := make([]entity.Pool, 0, len(markets))
 	for i, market := range markets {
+		if !params[i].Verified { // the index API is untrusted: only AccountCore-registered books settle
+			continue
+		}
 		var native bool
 		tokens := lo.Map([]string{market.BaseToken.TokenAddress, market.QuoteToken.TokenAddress},
 			func(token string, _ int) *entity.PoolToken {
@@ -86,7 +89,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			QuoteDecimals:      params[i].QuoteTokenDecimals,
 			HasNative:          native,
 		})
-		pools[i] = entity.Pool{
+		pools = append(pools, entity.Pool{
 			Address:     strings.ToLower(market.MarketAddress),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
@@ -95,7 +98,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			Tokens:      tokens,
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
-		}
+		})
 	}
 
 	metadata.LastCount, metadata.LastPoolsChecksum = len(markets), poolsChecksum
@@ -127,7 +130,9 @@ func (u *PoolListUpdater) getMarketParams(ctx context.Context, markets []*Market
 				AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: target, Method: "baseSizeMultiplier"},
 					[]any{&params[i].BaseSizeMultiplier}).
 				AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: target, Method: "quoteTokenDecimals"},
-					[]any{&params[i].QuoteTokenDecimals})
+					[]any{&params[i].QuoteTokenDecimals}).
+				AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: u.config.AccountCore, Method: "verifiedSpotOrderBook",
+					Params: []any{common.HexToAddress(target)}}, []any{&params[i].Verified})
 		}
 		if _, err := req.Aggregate(); err != nil {
 			return nil, err

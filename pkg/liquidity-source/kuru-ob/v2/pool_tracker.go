@@ -35,18 +35,18 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var book L2Book
-	var takerFeePps *big.Int
+	var takerFeeCap, defaultTakerFee *big.Int
 	var marketState uint8
 	var protocolPaused bool
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: p.Address, Method: "getL2Book",
 			Params: []any{big.NewInt(bookDepth)}}, []any{&book}).
-		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: p.Address, Method: "takerFeePps"}, []any{&takerFeePps}).
-		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: p.Address, Method: "marketState"}, []any{&marketState})
-	if t.config.AccountCore != "" {
-		req.AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: t.config.AccountCore, Method: "protocolPaused"},
+		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: p.Address, Method: "takerFeePps"}, []any{&takerFeeCap}).
+		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: p.Address, Method: "marketState"}, []any{&marketState}).
+		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: t.config.AccountCore, Method: "defaultSpotTakerFeePps"},
+			[]any{&defaultTakerFee}).
+		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: t.config.AccountCore, Method: "protocolPaused"},
 			[]any{&protocolPaused})
-	}
 	resp, err := req.Aggregate()
 	if err != nil {
 		return p, err
@@ -55,7 +55,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	var extra Extra
 	var baseReserve, quoteReserve uint256.Int
 	if marketState == marketStateLive && !protocolPaused {
-		extra.TakerFeePps = takerFeePps.Uint64()
+		// The market value is only a cap; AccountCore charges min(default tier, cap) (matches
+		// effectiveSpotTakerFeePps for accounts without a tier).
+		extra.TakerFeePps = min(takerFeeCap.Uint64(), defaultTakerFee.Uint64())
 		extra.Bids = toLevels(book.BidPrices, book.BidSizes)
 		extra.Asks = toLevels(book.AskPrices, book.AskSizes)
 		// Reserves: base on the asks, quote on the bids (floor quote conversion like the sell walk).

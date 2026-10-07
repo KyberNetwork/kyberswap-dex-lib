@@ -19,7 +19,7 @@ type HTTPConfig struct {
 type Config struct {
 	DexID       string              `mapstructure:"dexID" json:"dexID,omitempty"`
 	ChainId     valueobject.ChainID `mapstructure:"chain_id" json:"chain_id,omitempty"`
-	AccountCore string              `mapstructure:"account_core" json:"account_core,omitempty"`
+	AccountCore string              `mapstructure:"account_core" json:"account_core,omitempty"` // required
 	HTTPConfig  HTTPConfig          `mapstructure:"http_config" json:"http_config,omitempty"`
 }
 
@@ -43,6 +43,7 @@ type MarketParamsRPC struct {
 	SizePrecision      *big.Int
 	BaseSizeMultiplier *big.Int
 	QuoteTokenDecimals uint8
+	Verified           bool // AccountCore.verifiedSpotOrderBook
 }
 
 type L2Book struct {

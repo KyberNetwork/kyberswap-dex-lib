@@ -123,5 +123,34 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "verifiedSpotOrderBook",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "orderBook",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "defaultSpotTakerFeePps",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
   }
 ]
