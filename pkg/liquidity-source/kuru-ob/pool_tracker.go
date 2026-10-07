@@ -92,15 +92,13 @@ func (t *PoolTracker) GetNewPoolState(
 
 	if vaultParams.VaultBidOrderSize.Sign() > 0 && vaultParams.KuruAmmVault != valueobject.AddrZero {
 		spread := vaultParams.Spread.Uint64() / 10
-		currentSize := [2]*uint256.Int{uint256.MustFromBig(vaultParams.VaultBidOrderSize),
-			uint256.MustFromBig(vaultParams.VaultAskOrderSize)}
-		bidPartiallyFilledSize := uint256.MustFromBig(vaultParams.BidPartiallyFilledSize)
-		askPartiallyFilledSize := uint256.MustFromBig(vaultParams.AskPartiallyFilledSize)
+		currentSize := [2]*uint256.Int{vaultParams.VaultBidOrderSize, vaultParams.VaultAskOrderSize}
+		bidPartiallyFilledSize := vaultParams.BidPartiallyFilledSize
+		askPartiallyFilledSize := vaultParams.AskPartiallyFilledSize
 		firstOrderSize := [2]*uint256.Int{bidPartiallyFilledSize.Sub(currentSize[0], bidPartiallyFilledSize),
 			askPartiallyFilledSize.Sub(currentSize[1], askPartiallyFilledSize)}
 
-		currentPrice := [2]*uint256.Int{uint256.MustFromBig(vaultParams.VaultBestBid),
-			uint256.MustFromBig(vaultParams.VaultBestAsk)}
+		currentPrice := [2]*uint256.Int{vaultParams.VaultBestBid, vaultParams.VaultBestAsk}
 		spreadPlus1k := tmp.SetUint64(spread + 1000)
 		spreadPlus2k := tmp2.SetUint64(spread + 2000)
 

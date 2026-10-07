@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type MarketInfo struct {
@@ -39,13 +40,13 @@ type Metadata struct {
 
 type VaultParamsRPC struct {
 	KuruAmmVault           common.Address
-	VaultBestBid           *big.Int
-	BidPartiallyFilledSize *big.Int
-	VaultBestAsk           *big.Int
-	AskPartiallyFilledSize *big.Int
-	VaultBidOrderSize      *big.Int
-	VaultAskOrderSize      *big.Int
-	Spread                 *big.Int
+	VaultBestBid           *uint256.Int
+	BidPartiallyFilledSize *uint256.Int
+	VaultBestAsk           *uint256.Int
+	AskPartiallyFilledSize *uint256.Int
+	VaultBidOrderSize      *uint256.Int
+	VaultAskOrderSize      *uint256.Int
+	Spread                 *uint256.Int
 }
 
 type StaticExtra struct {
