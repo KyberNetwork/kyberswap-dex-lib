@@ -1,6 +1,7 @@
 package navjit
 
 import (
+	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -215,14 +216,14 @@ func TestCloneState_IsIndependent(t *testing.T) {
 }
 
 func TestGetReserves_ReportsTheTopRungs(t *testing.T) {
-	res, err := trackedHook().GetReserves(nil, nil)
+	res, err := trackedHook().GetReserves(context.Background(), nil)
 	require.NoError(t, err)
 	topBuy := net(buyLadder[len(buyLadder)-1].Out).Dec()
 	assert.Equal(t, entity.PoolReserves{"47377000", topBuy}, res)
 
 	h := trackedHook()
 	h.UsdgIs0 = false
-	res, _ = h.GetReserves(nil, nil)
+	res, _ = h.GetReserves(context.Background(), nil)
 	assert.Equal(t, entity.PoolReserves{topBuy, "47377000"}, res)
 }
 
