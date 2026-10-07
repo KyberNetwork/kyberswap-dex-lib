@@ -41,7 +41,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			Params: []any{common.HexToAddress(p.Tokens[0].Address), common.HexToAddress(p.Tokens[1].Address)}},
 			[]any{&canonical}).
 		AddCall(&ethrpc.Call{ABI: crystalABI, Target: t.config.RouterAddress, Method: "getPriceLevelsFromMid",
-			Params: []any{market, levelsDistance.ToBig(), big.NewInt(1), big.NewInt(maxLevels)}},
+			Params: []any{market, levelsDistance, levelsInterval, levelsMax}},
 					[]any{&book}).
 		TryBlockAndAggregate() // getPriceLevelsFromMid reverts on bonding-curve launchpad markets
 	if err != nil {
@@ -59,10 +59,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		}
 		m := &info.Info
 		extra.TakerFee, extra.MakerRebate = m.TakerFee.Uint64(), m.MakerRebate.Uint64()
-		if extra.Bids, err = t.resolveOrders(ctx, market, resp.BlockNumber, book.Bids); err != nil {
-			return p, err
-		}
-		if extra.Asks, err = t.resolveOrders(ctx, market, resp.BlockNumber, book.Asks); err != nil {
+		if extra.Bids, extra.Asks, err = t.resolveOrders(ctx, market, resp.BlockNumber, book.Bids,
+			book.Asks); err != nil {
 			return p, err
 		}
 		var rq, rb uint256.Int
@@ -95,12 +93,15 @@ func sumSizes(acc *uint256.Int, levels []Level) *uint256.Int {
 }
 
 // resolveOrders splits each aggregated level (price<<128 | size) into its resting orders, since
-// _marketOrder rounds per order. The book is cut before any level whose orders can't be resolved.
+// _marketOrder rounds per order. Both sides share each multicall. A side is cut before any level
+// whose orders can't be resolved.
 func (t *PoolTracker) resolveOrders(ctx context.Context, market common.Address, block *big.Int,
-	packed []byte) ([]Level, error) {
+	bidsPacked, asksPacked []byte) (bids, asks []Level, err error) {
+	nb := len(bidsPacked) / 32
+	packed := append(bidsPacked[:nb*32:nb*32], asksPacked...)
 	n := len(packed) / 32
 	if n == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	levels := make([]Level, n)
 	totals := make([]uint256.Int, n)
@@ -115,8 +116,8 @@ func (t *PoolTracker) resolveOrders(ctx context.Context, market common.Address, 
 		req.AddCall(&ethrpc.Call{ABI: crystalABI, Target: t.config.RouterAddress, Method: "getPriceLevel",
 			Params: []any{market, price.ToBig()}}, []any{&heads[i]})
 	}
-	if err := aggregatePinned(ctx, req); err != nil {
-		return nil, err
+	if err = aggregatePinned(ctx, req); err != nil {
+		return nil, nil, err
 	}
 
 	// Walk the FIFO list from fillNext; most levels hold a single order (fillNext == latest).
@@ -150,8 +151,8 @@ func (t *PoolTracker) resolveOrders(ctx context.Context, market common.Address, 
 		if len(pending) == 0 {
 			break
 		}
-		if err := aggregatePinned(ctx, req); err != nil {
-			return nil, err
+		if err = aggregatePinned(ctx, req); err != nil {
+			return nil, nil, err
 		}
 		for _, i := range pending {
 			o := &orders[i].Order
@@ -165,12 +166,14 @@ func (t *PoolTracker) resolveOrders(ctx context.Context, market common.Address, 
 		}
 	}
 
-	for i := range n {
-		if next[i] != nil || sumSizes(sum.Clear(), levels[i:i+1]).Cmp(&totals[i]) != 0 {
-			return levels[:i], nil
+	cut := func(lo, hi int) []Level {
+		i := lo
+		for i < hi && next[i] == nil && sumSizes(sum.Clear(), levels[i:i+1]).Eq(&totals[i]) {
+			i++
 		}
+		return levels[lo:i:i]
 	}
-	return levels, nil
+	return cut(0, nb), cut(nb, n), nil
 }
 
 // aggregatePinned retries block-pinned reads: Monad RPC backends can lag the block that the

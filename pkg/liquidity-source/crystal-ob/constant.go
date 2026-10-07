@@ -2,6 +2,7 @@ package crystalob
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/holiman/uint256"
 )
@@ -18,15 +19,16 @@ const (
 
 	// executeCrystal gas from Tenderly sims on Monad (1/4/6 book levels, AMM only), excluding the
 	// executor's one-time Crystal.registerUser (~62k).
-	gasBase     = 195000
-	gasPerLevel = 22000
-	gasAMM      = 28000
+	gasBase     int64 = 195000
+	gasPerLevel int64 = 22000
+	gasAMM      int64 = 28000
 )
 
 var (
-	levelsDistance = uint256.NewInt(1 << 62) // ticks; the contract clamps it to the book bounds
-	maskU112       = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(uint256.NewInt(1), 112), 1)
-	maskU41        = uint256.NewInt(1<<41 - 1)
+	// getPriceLevelsFromMid(distance, interval, max): every tick (clamped on-chain), exact prices.
+	levelsDistance, levelsInterval, levelsMax = big.NewInt(1 << 62), big.NewInt(1), big.NewInt(maxLevels)
+	maskU112                                  = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(uint256.NewInt(1), 112), 1)
+	maskU41                                   = uint256.NewInt(1<<41 - 1)
 
 	ErrInvalidToken     = errors.New("invalid token")
 	ErrMarketInactive   = errors.New("market inactive")
