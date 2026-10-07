@@ -91,6 +91,7 @@ func (q mockQuoter) quoteLadder(dir int, xs []*uint256.Int) ([]*uint256.Int, uin
 type evmRPC struct {
 	client           *ethrpc.Client
 	calls, overrides atomic.Int32
+	bareReverts      atomic.Int32 // answer this many calls with a revert without data
 	gasUsed          atomic.Uint64
 }
 
@@ -130,6 +131,12 @@ func newEVMRPC(t *testing.T, m mockPool) *evmRPC {
 		}
 		require.NoError(t, json.Unmarshal(body.Params[0], &call))
 		require.Nil(t, call.To, "the tracker only sends deployless calls")
+		if r.bareReverts.Add(-1) >= 0 {
+			w.Header().Set("content-type", "application/json")
+			require.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": body.ID,
+				"error": map[string]any{"code": 3, "message": "execution reverted"}}))
+			return
+		}
 		run := *cfg
 		run.State = statedb.Copy()
 		ret, _, left, err := runtime.Create(call.Data, &run)

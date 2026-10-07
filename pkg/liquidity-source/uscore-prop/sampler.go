@@ -3,12 +3,14 @@ package uscoreprop
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math/big"
 	"slices"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -47,8 +49,13 @@ func sample(ctx context.Context, client *ethrpc.Client, pool common.Address, tok
 	if err != nil {
 		return nil, err
 	}
-	data, err := eth.DeploylessCallWithGas(ctx, client.GetETHClient().Client(), slices.Concat(samplerBytecode, args),
-		samplerGas, overrides, nil)
+	initCode := slices.Concat(samplerBytecode, args)
+	data, err := eth.DeploylessCallWithGas(ctx, client.GetETHClient().Client(), initCode, samplerGas, overrides, nil)
+	if isBareRevert(err) {
+		// The public HyperEVM RPC sporadically (~5% of calls) reverts the sampler without data, and
+		// the same call succeeds right after; retry once rather than skip the refresh.
+		data, err = eth.DeploylessCallWithGas(ctx, client.GetETHClient().Client(), initCode, samplerGas, overrides, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -65,4 +72,11 @@ func decodeSnapshot(data []byte) (*snapshot, error) {
 		return nil, err
 	}
 	return abi.ConvertType(values[0], new(snapshot)).(*snapshot), nil
+}
+
+// isBareRevert reports an execution revert that carries no data.
+func isBareRevert(err error) bool {
+	var rpcErr rpc.Error
+	var dataErr rpc.DataError
+	return errors.As(err, &rpcErr) && rpcErr.ErrorCode() == 3 && (!errors.As(err, &dataErr) || dataErr.ErrorData() == nil)
 }

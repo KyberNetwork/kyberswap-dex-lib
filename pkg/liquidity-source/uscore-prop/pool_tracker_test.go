@@ -160,3 +160,14 @@ func TestDecodeSnapshotRejectsOtherReverts(t *testing.T) {
 	_, err = toLadderQuote(testAmounts(1), []*big.Int{big.NewInt(1)}, maxStatus+1)
 	require.ErrorIs(t, err, ErrInvalidState)
 }
+
+// A revert without data is a transient node failure on HyperEVM: retried once, then reported.
+func TestTrackerRetriesBareRevertOnce(t *testing.T) {
+	for reverts, wantErr := range map[int32]bool{1: false, 2: true} {
+		rpc := newEVMRPC(t, testPools["deep"])
+		rpc.bareReverts.Store(reverts)
+		_, err := NewPoolTracker(&Config{}, rpc.client).GetNewPoolState(t.Context(), testEntity(), pool.GetNewPoolStateParams{})
+		require.Equal(t, wantErr, err != nil, "reverts=%d err=%v", reverts, err)
+		require.EqualValues(t, 2, rpc.calls.Load())
+	}
+}
