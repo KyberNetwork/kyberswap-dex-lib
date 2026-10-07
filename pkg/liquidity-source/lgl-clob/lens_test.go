@@ -49,10 +49,10 @@ func TestDecodeState_LiveBase(t *testing.T) {
 	assert.Equal(t, uint64(52_279_003), state.block)
 	assert.True(t, state.hasMaker)
 	assert.Equal(t, [4]quote{
-		{buy: false, gas: 229_336, levels: 1},
-		{buy: false, gas: 284_272, levels: 2},
-		{buy: true, gas: 222_006, levels: 1},
-		{buy: true, gas: 276_965, levels: 2},
+		{gas: 229_336, levels: 1},
+		{gas: 284_272, levels: 2},
+		{gas: 222_006, levels: 1},
+		{gas: 276_965, levels: 2},
 	}, state.quotes)
 	assert.Equal(t, OrderBook{
 		Bids: levelsOf([2]uint64{260790, 7669}, [2]uint64{260785, 19172}, [2]uint64{260778, 115040},
@@ -78,7 +78,7 @@ func TestDecodeState_BookOnly(t *testing.T) {
 	assert.Equal(t, measured.block, state.block)
 	assert.Equal(t, measured.book, state.book)
 	assert.False(t, state.hasMaker)
-	assert.Equal(t, [4]quote{{}, {}, {buy: true}, {buy: true}}, state.quotes)
+	assert.Equal(t, [4]quote{}, state.quotes)
 }
 
 // Anything but Lens's own answer must fail, rather than read as a pool, and a
@@ -175,11 +175,9 @@ func TestFitLevelGas(t *testing.T) {
 			want: &LevelGas{First: 100_000, Next: unmeasuredMakerQuote.Next},
 		},
 		{
-			name: "a side without quotes is nil",
-			quotes: []quote{
-				{buy: true, gas: 100_000, levels: 1},
-			},
-			want: nil,
+			name:   "a side without quotes is nil",
+			quotes: nil,
+			want:   nil,
 		},
 		{
 			name: "a side whose quotes all failed is nil",
@@ -192,7 +190,7 @@ func TestFitLevelGas(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.want, fitLevelGas(tt.quotes, false))
+			assert.Equal(t, tt.want, fitLevelGas(tt.quotes))
 		})
 	}
 }

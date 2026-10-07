@@ -22,7 +22,6 @@ const (
 // quote is one size Lens had a pool's market maker quote, and what it
 // measured.
 type quote struct {
-	buy    bool
 	gas    int64
 	levels int64
 }
@@ -69,7 +68,6 @@ func decodeState(data []byte) (*lensState, error) {
 	for i := range state.quotes {
 		at := 13 + 5*i
 		state.quotes[i] = quote{
-			buy:    i >= 2,
 			gas:    int64(binary.BigEndian.Uint32(data[at : at+4])),
 			levels: int64(data[at+4]),
 		}
@@ -112,7 +110,7 @@ func (s *lensState) makerQuoteGas() *MakerQuoteGas {
 	if !s.hasMaker {
 		return nil
 	}
-	return &MakerQuoteGas{Bids: fitLevelGas(s.quotes[:], false), Asks: fitLevelGas(s.quotes[:], true)}
+	return &MakerQuoteGas{Bids: fitLevelGas(s.quotes[:2]), Asks: fitLevelGas(s.quotes[2:])}
 }
 
 // measureDue reports whether the market maker's quote is to be measured again
@@ -134,10 +132,10 @@ func measureDue(last Extra, now time.Time) bool {
 // filling a different number of levels give what each level more adds, and a
 // single one takes unmeasuredMakerQuote's. A quote that failed or quoted nothing is left out,
 // and a side without any is nil.
-func fitLevelGas(quotes []quote, buy bool) *LevelGas {
+func fitLevelGas(quotes []quote) *LevelGas {
 	var fit []quote
 	for _, q := range quotes {
-		if q.buy == buy && q.gas > 0 && q.levels > 0 {
+		if q.gas > 0 && q.levels > 0 {
 			fit = append(fit, q)
 		}
 	}
