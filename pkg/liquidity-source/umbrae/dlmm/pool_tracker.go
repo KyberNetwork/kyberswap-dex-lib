@@ -2,7 +2,6 @@ package umbraedlmm
 
 import (
 	"context"
-	"math/big"
 	"sort"
 	"time"
 
@@ -29,30 +28,30 @@ type feeParamsRPC struct {
 	DecayPeriod              uint16
 	ReductionFactor          uint16
 	VariableFeeControl       uint16
-	MaxVolatilityAccumulator *big.Int // uint24
+	MaxVolatilityAccumulator uint32
 	MinSwapBps               uint16
 }
 
 type quoteStateRPC struct {
 	FeeParams             feeParamsRPC
-	VolatilityAccumulator *big.Int // uint128
-	VolatilityReference   *big.Int // uint24 — the anchor bin id in V2
-	LastVolatilityUpdate  *big.Int // uint40
-	ScaleX                *big.Int // 10^(18-decimalsX)
-	ScaleY                *big.Int // 10^(18-decimalsY)
+	VolatilityAccumulator *uint256.Int // uint128
+	VolatilityReference   uint32       // uint24 — the anchor bin id in V2
+	LastVolatilityUpdate  uint64       // uint40
+	ScaleX                *uint256.Int // 10^(18-decimalsX)
+	ScaleY                *uint256.Int // 10^(18-decimalsY)
 	Factory               common.Address
 }
 
 type reservesRPC struct {
-	ReserveX *big.Int
-	ReserveY *big.Int
+	ReserveX *uint256.Int
+	ReserveY *uint256.Int
 }
 
 type activeBinsRPC struct {
-	BinIds      []*big.Int
-	ReservesX   []*big.Int
-	ReservesY   []*big.Int
-	TotalShares []*big.Int
+	BinIds      []uint32
+	ReservesX   []*uint256.Int
+	ReservesY   []*uint256.Int
+	TotalShares []*uint256.Int
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -76,7 +75,7 @@ func (t *PoolTracker) GetNewPoolState(
 	// All reads pinned to one block. Fee + volatility state come via getQuoteState; native total
 	// reserves via getReserves; per-bin reserves via the PairViewer.
 	var (
-		activeID  *big.Int
+		activeID  uint32
 		quote     quoteStateRPC
 		reserves  reservesRPC
 		activeBin activeBinsRPC
@@ -110,17 +109,17 @@ func (t *PoolTracker) GetNewPoolState(
 	// normalized — this flipped in the redeploy). The swap math runs on normalized values, and bin
 	// reserves only ever change by whole multiples of the scale factors, so scaling back up is
 	// exact. Drop empty bins.
-	scaleX, _ := uint256.FromBig(quote.ScaleX)
-	scaleY, _ := uint256.FromBig(quote.ScaleY)
+	scaleX := quote.ScaleX
+	scaleY := quote.ScaleY
 	bins := make([]Bin, 0, len(activeBin.BinIds))
 	for i, id := range activeBin.BinIds {
-		rx, _ := uint256.FromBig(activeBin.ReservesX[i])
-		ry, _ := uint256.FromBig(activeBin.ReservesY[i])
+		rx := activeBin.ReservesX[i]
+		ry := activeBin.ReservesY[i]
 		if (rx == nil || rx.IsZero()) && (ry == nil || ry.IsZero()) {
 			continue
 		}
 		bins = append(bins, Bin{
-			ID:       uint32(id.Uint64()),
+			ID:       id,
 			ReserveX: new(uint256.Int).Mul(orZero(rx), scaleX),
 			ReserveY: new(uint256.Int).Mul(orZero(ry), scaleY),
 		})
@@ -128,7 +127,7 @@ func (t *PoolTracker) GetNewPoolState(
 	sort.Slice(bins, func(i, j int) bool { return bins[i].ID < bins[j].ID })
 
 	extra := Extra{
-		ActiveID: uint32(activeID.Uint64()),
+		ActiveID: activeID,
 		Bins:     bins,
 		FeeParameters: FeeParameters{
 			BaseFactor:               quote.FeeParams.BaseFactor,
@@ -136,13 +135,13 @@ func (t *PoolTracker) GetNewPoolState(
 			DecayPeriod:              quote.FeeParams.DecayPeriod,
 			ReductionFactor:          quote.FeeParams.ReductionFactor,
 			VariableFeeControl:       quote.FeeParams.VariableFeeControl,
-			MaxVolatilityAccumulator: uint32(quote.FeeParams.MaxVolatilityAccumulator.Uint64()),
+			MaxVolatilityAccumulator: quote.FeeParams.MaxVolatilityAccumulator,
 			MinSwapBps:               quote.FeeParams.MinSwapBps,
 		},
 		VariableFeeCap:        variableFeeCap,
 		VolatilityAccumulator: quote.VolatilityAccumulator.Uint64(),
-		VolatilityReference:   uint32(quote.VolatilityReference.Uint64()),
-		LastVolatilityUpdate:  quote.LastVolatilityUpdate.Uint64(),
+		VolatilityReference:   quote.VolatilityReference,
+		LastVolatilityUpdate:  quote.LastVolatilityUpdate,
 		Timestamp:             uint64(time.Now().Unix()),
 	}
 
@@ -152,7 +151,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{reserves.ReserveX.String(), reserves.ReserveY.String()}
+	p.Reserves = entity.PoolReserves{reserves.ReserveX.Dec(), reserves.ReserveY.Dec()}
 	p.BlockNumber = blockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 
