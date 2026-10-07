@@ -1,10 +1,6 @@
 package smardex
 
-import (
-	"math/big"
-
-	"github.com/holiman/uint256"
-)
+import "github.com/holiman/uint256"
 
 type Gas struct {
 	Swap int64
@@ -26,9 +22,9 @@ type SmardexPair struct {
 }
 
 type PairFeeResult struct {
-	FeesLP   *big.Int
-	FeesPool *big.Int
-	FeesBase *big.Int
+	FeesLP   *uint256.Int
+	FeesPool *uint256.Int
+	FeesBase *uint256.Int
 }
 
 type PairFee struct {
@@ -38,8 +34,8 @@ type PairFee struct {
 }
 
 type FictiveReserveResult struct {
-	FictiveReserve0 *big.Int
-	FictiveReserve1 *big.Int
+	FictiveReserve0 *uint256.Int
+	FictiveReserve1 *uint256.Int
 }
 
 type FictiveReserve struct {
@@ -48,9 +44,9 @@ type FictiveReserve struct {
 }
 
 type PriceAverageResult struct {
-	PriceAverage0             *big.Int
-	PriceAverage1             *big.Int
-	PriceAverageLastTimestamp *big.Int
+	PriceAverage0             *uint256.Int
+	PriceAverage1             *uint256.Int
+	PriceAverageLastTimestamp *uint256.Int
 }
 
 type PriceAverage struct {
@@ -60,8 +56,8 @@ type PriceAverage struct {
 }
 
 type FeeToAmountResult struct {
-	Fees0 *big.Int
-	Fees1 *big.Int
+	Fees0 *uint256.Int
+	Fees1 *uint256.Int
 }
 
 type FeeToAmount struct {
@@ -70,8 +66,8 @@ type FeeToAmount struct {
 }
 
 type Reserve struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
+	Reserve0 *uint256.Int
+	Reserve1 *uint256.Int
 }
 
 type GetAmountParameters struct {

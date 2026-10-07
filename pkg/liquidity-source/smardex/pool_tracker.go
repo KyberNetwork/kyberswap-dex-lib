@@ -91,13 +91,13 @@ func (u *PoolTracker) getNewPoolState(
 	 */
 	if u.config.ChainID == 1 {
 		pairFee = PairFeeResult{
-			FeesPool: FEES_POOL_DEFAULT_ETHEREUM,
-			FeesLP:   FEES_LP_DEFAULT_ETHEREUM,
-			FeesBase: FEES_BASE_ETHEREUM,
+			FeesPool: uint256.MustFromBig(FEES_POOL_DEFAULT_ETHEREUM),
+			FeesLP:   uint256.MustFromBig(FEES_LP_DEFAULT_ETHEREUM),
+			FeesBase: uint256.MustFromBig(FEES_BASE_ETHEREUM),
 		}
 	} else {
 		pairFee = PairFeeResult{
-			FeesBase: FEES_BASE,
+			FeesBase: uint256.MustFromBig(FEES_BASE),
 		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
@@ -140,22 +140,22 @@ func (u *PoolTracker) getNewPoolState(
 
 	extraBytes, err := json.Marshal(SmardexPair{
 		PairFee: PairFee{
-			FeesLP:   uint256.MustFromBig(pairFee.FeesLP),
-			FeesPool: uint256.MustFromBig(pairFee.FeesPool),
-			FeesBase: uint256.MustFromBig(pairFee.FeesBase),
+			FeesLP:   pairFee.FeesLP,
+			FeesPool: pairFee.FeesPool,
+			FeesBase: pairFee.FeesBase,
 		},
 		FictiveReserve: FictiveReserve{
-			FictiveReserve0: uint256.MustFromBig(fictiveReserve.FictiveReserve0),
-			FictiveReserve1: uint256.MustFromBig(fictiveReserve.FictiveReserve1),
+			FictiveReserve0: fictiveReserve.FictiveReserve0,
+			FictiveReserve1: fictiveReserve.FictiveReserve1,
 		},
 		PriceAverage: PriceAverage{
-			PriceAverage0:             uint256.MustFromBig(priceAverage.PriceAverage0),
-			PriceAverage1:             uint256.MustFromBig(priceAverage.PriceAverage1),
-			PriceAverageLastTimestamp: uint256.MustFromBig(priceAverage.PriceAverageLastTimestamp),
+			PriceAverage0:             priceAverage.PriceAverage0,
+			PriceAverage1:             priceAverage.PriceAverage1,
+			PriceAverageLastTimestamp: priceAverage.PriceAverageLastTimestamp,
 		},
 		FeeToAmount: FeeToAmount{
-			Fees0: uint256.MustFromBig(feeToAmount.Fees0),
-			Fees1: uint256.MustFromBig(feeToAmount.Fees1),
+			Fees0: feeToAmount.Fees0,
+			Fees1: feeToAmount.Fees1,
 		},
 	})
 	if err != nil {
@@ -169,7 +169,7 @@ func (u *PoolTracker) getNewPoolState(
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = []string{reserve.Reserve0.String(), reserve.Reserve1.String()}
+	p.Reserves = []string{reserve.Reserve0.Dec(), reserve.Reserve1.Dec()}
 
 	return p, nil
 
