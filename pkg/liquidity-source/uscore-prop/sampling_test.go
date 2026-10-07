@@ -44,9 +44,9 @@ func ladders(t *testing.T, p entity.Pool) [2][]Point {
 	return extra.Ladders
 }
 
-// pool-service skips the save (and so the Timestamp bump) when Extra and Reserves are unchanged.
-// Every refresh must therefore change Extra, or an oracle that holds still for MaxAge goes stale.
-func TestTrackerRefreshChangesExtraWhenQuotesDoNot(t *testing.T) {
+// Identical quotes must give an identical Extra, so pool-service can skip the write; its per-dex
+// heartbeat (not a changing Extra) keeps the stored Timestamp within MaxAge.
+func TestTrackerRefreshIsDeterministic(t *testing.T) {
 	tracker := NewPoolTracker(&Config{}, mockRPC(t, false, false, nil, nil))
 	first, err := tracker.GetNewPoolState(t.Context(), testEntity(), pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
@@ -55,7 +55,7 @@ func TestTrackerRefreshChangesExtraWhenQuotesDoNot(t *testing.T) {
 	require.Equal(t, first.Reserves, second.Reserves)
 	require.Equal(t, ladders(t, first), ladders(t, second))
 	require.Greater(t, second.Timestamp, first.Timestamp)
-	require.NotEqual(t, first.Extra, second.Extra)
+	require.Equal(t, first.Extra, second.Extra)
 }
 
 func TestUpperRefinement(t *testing.T) {

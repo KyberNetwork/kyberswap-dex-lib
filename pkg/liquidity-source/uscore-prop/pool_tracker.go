@@ -107,7 +107,7 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool, overrides stateO
 			break
 		}
 	}
-	extra, err := json.Marshal(Extra{Ladders: ladders, Time: timestamp.Int64()})
+	extra, err := json.Marshal(Extra{Ladders: ladders})
 	if err != nil {
 		return p, err
 	}
