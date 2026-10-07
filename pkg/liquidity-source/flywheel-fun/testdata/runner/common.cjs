@@ -7,7 +7,7 @@ const root = __dirname;
 const dex = path.resolve(process.env.FLYWHEEL_DEX_LIB_DIR || path.resolve(root, '../../../../..'));
 const adapters = path.resolve(process.env.FLYWHEEL_ADAPTER_LIB_DIR || path.resolve(dex, '../ks-dex-adapter-lib'));
 const bins = { go: process.env.GO_BIN || 'go', forge: process.env.FORGE_BIN || 'forge', anvil: process.env.ANVIL_BIN || 'anvil' };
-const block = 76791655;
+const block = 82183340;
 function save(name, data) {
   const dir = path.resolve(process.env.FLYWHEEL_RESULTS_DIR || path.join(root, '.results')); fs.mkdirSync(dir, {recursive:true});
   fs.writeFileSync(path.join(dir, name), typeof data === 'string' ? data : JSON.stringify(data, null, 2) + '\n');

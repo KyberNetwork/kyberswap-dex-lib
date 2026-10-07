@@ -1,6 +1,7 @@
 package flywheelfun
 
 import (
+	"bytes"
 	"math/big"
 	"strings"
 
@@ -16,14 +17,16 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	Curve      CurveState
-	Static     StaticExtra
-	Valid      bool
-	MarketPool *v3.PoolSimulator
-	Protocol   [2]uint32
-	Base       pool.IPoolSimulator // route pool (indexed uniswap pool), nil for WETH; deep-copied on clone
-	Route      []byte              // settlement route through Base
-	Revision   uint64
+	Curve       CurveState
+	Static      StaticExtra
+	Valid       bool
+	MarketPool  *v3.PoolSimulator
+	Protocol    [2]uint32
+	Base        pool.IPoolSimulator // route pool (indexed uniswap pool), nil for WETH; deep-copied on clone
+	Route       []byte              // settlement route through Base
+	Parents     []NativeParent
+	ParentPools []pool.IPoolSimulator
+	Revision    uint64
 }
 
 var _ pool.IMetaPoolSimulator = (*PoolSimulator)(nil)
@@ -44,18 +47,26 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 	if len(p.Tokens) != 2 || p.Tokens[0] == nil || p.Tokens[1] == nil || !common.IsHexAddress(p.Address) || p.Tokens[0].Address != WETH || strings.ToLower(p.Address) != p.Tokens[1].Address || p.BlockNumber == 0 || st.Factory != Factory || st.Settlement != Settlement || !common.IsHexAddress(st.Quote) || st.Quote == p.Address {
 		return nil, ErrState
 	}
-	if st.Quote != WETH && len(st.BasePools) == 0 || e.Curve.Graduated && e.MarketPool == nil {
+	leaf, parentErr := validateParents(p.Address, st.Quote, e.Parents)
+	if parentErr != nil {
+		return nil, parentErr
+	}
+	if leaf != WETH && len(st.BasePools) == 0 || e.Curve.Graduated && e.MarketPool == nil {
 		return nil, ErrUnsupported
 	}
-	if !e.Valid || len(st.BasePools) > 1 || st.Quote == WETH && len(st.BasePools) > 0 {
+	if !e.Valid || e.Curve.Invariant.IsZero() || len(st.BasePools) > 1 || leaf == WETH && len(st.BasePools) > 0 {
 		return nil, ErrState
 	}
-	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol}
+	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol, Parents: cloneParents(e.Parents)}
 	if len(st.BasePools) == 1 {
 		if s.Base = baseMap[st.BasePools[0]]; s.Base == nil {
 			return nil, ErrBasePool
 		}
-		if s.Base.GetTokenIndex(WETH) < 0 || s.Base.GetTokenIndex(st.Quote) < 0 {
+		if s.Base.GetTokenIndex(WETH) < 0 || s.Base.GetTokenIndex(leaf) < 0 {
+			return nil, ErrState
+		}
+		baseCore, err := core(s.Base)
+		if err != nil || baseCore.Info.BlockNumber != p.BlockNumber {
 			return nil, ErrState
 		}
 		hop, err := hopFor(s.Base)
@@ -66,6 +77,14 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 			return nil, err
 		}
 	}
+	if err := s.bindParents(baseMap); err != nil {
+		return nil, err
+	}
+	var wrapErr error
+	s.Route, wrapErr = wrapParentRoute(s.parentTokens(), s.Route)
+	if wrapErr != nil {
+		return nil, wrapErr
+	}
 	if e.Curve.Graduated {
 		var err error
 		s.MarketPool, err = v3.NewPoolSimulator(*e.MarketPool, 4663)
@@ -75,6 +94,13 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 		if s.MarketPool.Info.BlockNumber != p.BlockNumber || s.MarketPool.GetTokenIndex(st.Quote) < 0 || s.MarketPool.GetTokenIndex(p.Address) < 0 || s.Protocol[0] > 1000 || s.Protocol[1] > 1000 {
 			return nil, ErrState
 		}
+	}
+	if e.MarketPool != nil && baseMap[e.MarketPool.Address] != nil {
+		c, err := nativeCore(baseMap[e.MarketPool.Address], *e.MarketPool, p.BlockNumber)
+		if err != nil {
+			return nil, err
+		}
+		s.MarketPool = c
 	}
 	if err := s.syncReserves(); err != nil {
 		return nil, err
@@ -92,26 +118,32 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 	}
 	buy := i == 0
 	protocol := uint32(0)
-	if s.MarketPool != nil {
+	var market *v3.PoolSimulator
+	if s.Curve.Graduated {
+		if s.MarketPool == nil {
+			return nil, ErrState
+		}
+		market = s.MarketPool.CloneState().(*v3.PoolSimulator)
 		in := s.Static.Quote
 		if !buy {
 			in = s.Info.Address
 		}
-		protocol = s.Protocol[s.MarketPool.GetTokenIndex(in)]
-	} else if s.Curve.Graduated {
-		return nil, ErrState
+		protocol = s.Protocol[market.GetTokenIndex(in)]
 	}
+	bases := cloneBases(s.allBases())
 	next := s.Curve
-	gas := int64(900_000)
-	steps := make([]SwapStep, 0, 3)
+	// Cold reward-accounting writes vary with the recipients' prior activity.
+	// Keep headroom above measured fork execution; routes add their own costs.
+	gas := int64(1_200_000)
+	var steps []SwapStep
 	var out, fee, minQuote, refund, refundRouteOutput uint256.Int
 	runMarket := func(a *uint256.Int) (uint256.Int, uint256.Int, error) {
-		if s.MarketPool != nil {
+		if market != nil {
 			in, out := s.Static.Quote, s.Info.Address
 			if !buy {
 				in, out = out, in
 			}
-			v, step, g, err := swapCL(s.MarketPool, a, in, out, protocol)
+			v, step, g, err := swapCL(market, a, in, out, protocol, -1)
 			if err == nil {
 				steps = append(steps, step)
 				gas += g
@@ -122,20 +154,10 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		next = n
 		return v, used, err
 	}
-	// runRoute swaps WETH <-> quote through base; WETH-paired launches pass amounts through.
-	runRoute := func(base pool.IPoolSimulator, a *uint256.Int, toQuote bool) (uint256.Int, error) {
-		if base == nil {
-			return *a, nil
-		}
-		in, out := WETH, s.Static.Quote
-		if !toQuote {
-			in, out = out, in
-		}
-		v, step, g, err := hopSwap(base, a, in, out, 0)
-		if err == nil {
-			steps = append(steps, step)
-			gas += g
-		}
+	runRoute := func(a *uint256.Int, direction bool) (uint256.Int, error) {
+		v, st, g, err := s.routeSwap(a, direction, bases)
+		steps = append(steps, st...)
+		gas += g
 		return v, err
 	}
 	if buy {
@@ -146,7 +168,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		originalPlatform := platform
 		var routingInput uint256.Int
 		routingInput.Sub(input, &platform)
-		quote, err := runRoute(s.Base, &routingInput, true)
+		quote, err := runRoute(&routingInput, true)
 		if err != nil {
 			return nil, err
 		}
@@ -180,13 +202,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 			var remaining uint256.Int
 			remaining.Sub(&quote, &usedGross)
 			if !remaining.IsZero() {
-				// The refund swaps back through the base after the forward swap moved it.
-				base := s.Base
-				if base != nil {
-					base = base.CloneState()
-					base.UpdateBalance(steps[0].Params)
-				}
-				refundRouteOutput, err = runRoute(base, &remaining, false)
+				refundRouteOutput, err = runRoute(&remaining, false)
 				if err != nil {
 					return nil, err
 				}
@@ -214,7 +230,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		if err != nil {
 			return nil, err
 		}
-		realized, err := runRoute(s.Base, &reserves.Net, false)
+		realized, err := runRoute(&reserves.Net, false)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +253,12 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 	if !s.Curve.Graduated && next.Graduated {
 		gas += 1_800_000
 	}
-	info := SwapInfo{Token: s.Info.Address, Buy: buy, Route: s.Route, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Next: next, Previous: s.Curve, Revision: s.Revision, Steps: steps}
+	for _, step := range steps {
+		if _, bad := fee.AddOverflow(&fee, &step.NativeFeeETH); bad {
+			return nil, ErrMath
+		}
+	}
+	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Buy: buy, Route: append([]byte(nil), s.Route...), Steps: steps, Revision: s.Revision}
 	return &pool.CalcAmountOutResult{TokenAmountOut: &pool.TokenAmount{Token: p.TokenOut, Amount: out.ToBig()}, RemainingTokenAmountIn: &pool.TokenAmount{Token: p.TokenAmountIn.Token, Amount: refund.ToBig()}, Fee: &pool.TokenAmount{Token: WETH, Amount: fee.ToBig()}, Gas: gas, SwapInfo: info}, nil
 }
 func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
@@ -246,13 +267,31 @@ func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
 		s.Valid = false
 		return
 	}
-	// Same revision: the steps were quoted on exactly this state.
-	for _, step := range info.Steps {
-		if step.Index == -1 {
-			s.MarketPool.UpdateBalance(step.Params)
-		} else {
-			s.Base.UpdateBalance(step.Params)
+	// Validate the entire replay on clones before mutating any shared liquidity.
+	bases := cloneBases(s.allBases())
+	var market pool.IPoolSimulator
+	if s.MarketPool != nil {
+		market = s.MarketPool.CloneState()
+	}
+	target := func(index int, base []pool.IPoolSimulator, m pool.IPoolSimulator) pool.IPoolSimulator {
+		if index == -1 {
+			return m
 		}
+		if index < 0 || index >= len(base) {
+			return nil
+		}
+		return base[index]
+	}
+	for _, step := range info.Steps {
+		dest := target(step.Index, bases, market)
+		if dest == nil || fingerprint(dest) != step.Before {
+			s.Valid = false
+			return
+		}
+		dest.UpdateBalance(step.Params)
+	}
+	for _, step := range info.Steps {
+		target(step.Index, s.allBases(), s.MarketPool).UpdateBalance(step.Params)
 	}
 	s.Curve = info.Next
 	s.Revision++
@@ -283,14 +322,25 @@ func (s *PoolSimulator) syncReserves() error {
 		if _, underflow := quote.SubOverflow(&s.Curve.QuoteReserve, &s.Curve.VirtualQuote); underflow {
 			return ErrState
 		}
-		tokens.Set(&s.Curve.TokenReserve)
+		if _, underflow := tokens.SubOverflow(&s.Curve.TokenReserve, &s.Curve.VirtualToken); underflow {
+			return ErrState
+		}
+	}
+	for i, parent := range s.Parents {
+		c, err := core(s.ParentPools[i])
+		if err != nil {
+			return err
+		}
+		if err = quoteToWETH(&quote, &c.V3Pool.SqrtRatioX96, c.Info.Tokens[0] == parent.Token); err != nil {
+			return err
+		}
 	}
 	if s.Base != nil {
 		c, err := core(s.Base)
 		if err != nil {
 			return err
 		}
-		if err = quoteToWETH(&quote, &c.V3Pool.SqrtRatioX96, c.Info.Tokens[0] == s.Static.Quote); err != nil {
+		if err = quoteToWETH(&quote, &c.V3Pool.SqrtRatioX96, c.Info.Tokens[0] == s.baseQuote()); err != nil {
 			return err
 		}
 	}
@@ -302,6 +352,10 @@ func (s *PoolSimulator) syncReserves() error {
 // Reserves are reassigned wholesale by syncReserves.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	c := *s
+	c.Parents = cloneParents(s.Parents)
+	c.ParentPools = cloneBases(s.ParentPools)
+	c.Route = append([]byte(nil), s.Route...)
+	c.Static.BasePools = append([]string(nil), s.Static.BasePools...)
 	if s.Base != nil {
 		c.Base = s.Base.CloneState()
 	}
@@ -310,16 +364,65 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	}
 	return &c
 }
+func (s *PoolSimulator) allBases() []pool.IPoolSimulator {
+	return append([]pool.IPoolSimulator{s.Base}, s.ParentPools...)
+}
 func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	if s.Base == nil {
-		return nil
+	out := append([]pool.IPoolSimulator(nil), s.ParentPools...)
+	if s.Base != nil {
+		out = append(out, s.Base)
 	}
-	return []pool.IPoolSimulator{s.Base}
+	if s.MarketPool != nil {
+		out = append(out, s.MarketPool)
+	}
+	return out
 }
 func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
-	if p != nil && s.Base != nil && p.GetAddress() == s.Base.GetAddress() {
+	if p == nil {
+		return
+	}
+	if s.Base != nil && s.Base.GetAddress() == p.GetAddress() {
+		c, err := core(p)
+		if err != nil || c.Info.BlockNumber != s.Info.BlockNumber {
+			s.Valid = false
+			return
+		}
+		hop, err := hopFor(p)
+		if err != nil {
+			s.Valid = false
+			return
+		}
+		encoded, err := encodeRoute(hop)
+		if err != nil {
+			s.Valid = false
+			return
+		}
+		wrapped, err := wrapParentRoute(s.parentTokens(), encoded)
+		if err != nil || !bytes.Equal(wrapped, s.Route) {
+			s.Valid = false
+			return
+		}
 		s.Base = p
-		s.Revision++ // quotes taken on the old base no longer apply
+		s.Revision++
+	}
+	for i, parent := range s.Parents {
+		if parent.Pool.Address == p.GetAddress() {
+			if _, err := nativeCore(p, parent.Pool, s.Info.BlockNumber); err != nil {
+				s.Valid = false
+				return
+			}
+			s.ParentPools[i] = p
+			s.Revision++
+		}
+	}
+	if s.MarketPool != nil && s.MarketPool.GetAddress() == p.GetAddress() {
+		c, err := nativeCore(p, entity.Pool{Address: p.GetAddress(), BlockNumber: s.Info.BlockNumber, Tokens: []*entity.PoolToken{{Address: s.MarketPool.Info.Tokens[0]}, {Address: s.MarketPool.Info.Tokens[1]}}}, s.Info.BlockNumber)
+		if err != nil {
+			s.Valid = false
+			return
+		}
+		s.MarketPool = c
+		s.Revision++
 	}
 }
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
