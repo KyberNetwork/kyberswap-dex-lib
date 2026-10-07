@@ -16,6 +16,9 @@ const (
 	MaxAge              = 10 * time.Second
 	maxRefinementRounds = 3
 	maxSamplePoints     = 128
+	// samplerGas covers USCoreSampler (~3.5M on the live pools); HyperEVM nodes otherwise may
+	// default an eth_call to a small block's gas limit.
+	samplerGas = 30_000_000
 )
 
 // quoteExactIn/quoteLadder status codes; any other code up to maxStatus means no quote.

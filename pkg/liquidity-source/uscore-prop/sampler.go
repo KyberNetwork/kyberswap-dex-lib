@@ -47,8 +47,8 @@ func sample(ctx context.Context, client *ethrpc.Client, pool common.Address, tok
 	if err != nil {
 		return nil, err
 	}
-	data, err := eth.DeploylessCall(ctx, client.GetETHClient().Client(), slices.Concat(samplerBytecode, args),
-		overrides, nil)
+	data, err := eth.DeploylessCallWithGas(ctx, client.GetETHClient().Client(), slices.Concat(samplerBytecode, args),
+		samplerGas, overrides, nil)
 	if err != nil {
 		return nil, err
 	}
