@@ -42,47 +42,47 @@ func TestIsFXMarketOpen(t *testing.T) {
 	assert.Equal(t, uint64(closedMarketProbeTimestamp), ts("2024-01-06T00:00:00Z"))
 }
 
-func TestConvertWithRateAndFee_ReproducesOnChainQuote(t *testing.T) {
+func TestQuoteRate_ReproducesOnChainQuote(t *testing.T) {
 	t.Parallel()
 	// Monad USDC/USDm pool, block 107045873: medianRate 999935510000000000/1e18,
 	// lpFee 3, protocolFee 2. getAmountOut(1e6, USDC) = 999435542245000000.
 	num := big256.New("999935510000000000")
 	den := big256.New("1000000000000000000")
 	dec0, dec1 := big256.TenPow(6), big256.TenPow(18)
-	feeNum := uint256.NewInt(bps - 5)
 
-	out, err := convertWithRateAndFee(uint256.NewInt(1_000_000), dec0, dec1, num, den, feeNum, uBps)
+	var out, fee uint256.Int
+	r, err := newQuoteRate(num, den, dec0, dec1, bps-5)
 	require.NoError(t, err)
+	require.NoError(t, r.amountOut(uint256.NewInt(1_000_000), &out, &fee))
 	assert.Equal(t, "999435542245000000", out.Dec())
+	assert.Equal(t, "499967755000000", fee.Dec()) // gross 999935510000000000 - out
 
-	out, err = convertWithRateAndFee(big256.New("1000000000000000000"), dec1, dec0, den, num, feeNum, uBps)
+	r, err = newQuoteRate(den, num, dec1, dec0, bps-5)
 	require.NoError(t, err)
+	require.NoError(t, r.amountOut(big256.New("1000000000000000000"), &out, &fee))
 	assert.Equal(t, "999564", out.Dec())
-
-	gross, err := convertWithRate(uint256.NewInt(1_000_000), dec0, dec1, num, den)
-	require.NoError(t, err)
-	assert.Equal(t, "999935510000000000", gross.Dec())
 }
 
-func TestConvertWithRate_Overflow(t *testing.T) {
+// Solidity's checked arithmetic reverts when amount * num * toDec * feeNum overflows,
+// even though a 512-bit MulDiv would produce a representable result.
+func TestQuoteRate_Overflow(t *testing.T) {
 	t.Parallel()
-	huge := new(uint256.Int).Sub(big256.UMax, uint256.NewInt(1))
-	_, err := convertWithRate(huge, big256.TenPow(6), big256.TenPow(18), uint256.NewInt(2), uint256.NewInt(1))
-	assert.ErrorIs(t, err, ErrOverflow)
-	_, err = convertWithRateAndFee(huge, big256.TenPow(6), big256.TenPow(18), uint256.NewInt(2), uint256.NewInt(1),
-		uint256.NewInt(9995), uBps)
+	r, err := newQuoteRate(uint256.NewInt(2), uint256.NewInt(1), big256.TenPow(6), big256.TenPow(18), bps-5)
+	require.NoError(t, err)
+	var out, fee uint256.Int
+	assert.ErrorIs(t, r.amountOut(new(uint256.Int).Div(big256.UMax, big256.TenPow(18)), &out, &fee), ErrOverflow)
+
+	_, err = newQuoteRate(big256.UMax, uint256.NewInt(1), big256.TenPow(6), big256.TenPow(18), bps-5)
 	assert.ErrorIs(t, err, ErrOverflow)
 }
 
 func TestScaleValue(t *testing.T) {
 	t.Parallel()
-	v, err := scaleValue(uint256.NewInt(1_000_000), 6)
-	require.NoError(t, err)
+	var v uint256.Int
+	require.NoError(t, scaleValue(&v, uint256.NewInt(1_000_000), 6))
 	assert.Equal(t, "1000000000000000", v.Dec()) // 1 token -> 1e15
-	v, err = scaleValue(big256.New("1500000000000000000"), 18)
-	require.NoError(t, err)
+	require.NoError(t, scaleValue(&v, big256.New("1500000000000000000"), 18))
 	assert.Equal(t, "1500000000000000", v.Dec()) // 1.5 token -> 1.5e15
-	v, err = scaleValue(new(uint256.Int), 18)
-	require.NoError(t, err)
+	require.NoError(t, scaleValue(&v, new(uint256.Int), 18))
 	assert.True(t, v.IsZero())
 }

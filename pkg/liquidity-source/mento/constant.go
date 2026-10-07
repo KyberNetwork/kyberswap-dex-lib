@@ -39,14 +39,10 @@ const (
 	// MarketHoursBreaker
 	methodIsFXMarketOpen = "isFXMarketOpen"
 
-	// defaultGas is the measured cost of MentoV3Adapter.executeMentoV3 (quote,
-	// transfer in, FPMM.swap) on the Monad USDC/USDm pool under Monad's gas
-	// schedule: 493,421 and 495,073 gas for the two directions in the
-	// ks-dex-adapter-lib fork test run with FOUNDRY_NETWORK=monad. Monad
-	// prices cold account and storage access well above Ethereum, and the
-	// swap touches the pool proxy, oracle adapter, SortedOracles, BreakerBox
-	// and both tokens; the same call measures ~260k under Ethereum's schedule.
-	defaultGas int64 = 495_000
+	// defaultGas is executeSolidlyV2 (transfer in, getAmountOut, FPMM.swap) on the Monad
+	// USDC/USDm pool in a Tenderly sim: 371,985 and 379,905 gas. Monad prices cold access
+	// well above Ethereum, and the swap reads the oracle adapter, SortedOracles and BreakerBox.
+	defaultGas int64 = 380_000
 
 	// bps is FPMM.BASIS_POINTS_DENOMINATOR.
 	bps = 10_000
@@ -60,23 +56,14 @@ const (
 	limitWindow1          = 86400 // TIMESTEP1, 1 day
 	limitInternalDecimals = 15    // INTERNAL_DECIMALS
 
-	// rateStalenessBufferSeconds is subtracted from the oracle report expiry so
-	// a quote issued right before the rate expires is not routed and then
-	// reverted with NoRecentRate() at execution.
-	rateStalenessBufferSeconds = 30
+	// executionDelaySeconds is the quote-to-execution allowance: the oracle rate
+	// and FX market must stay valid this long, or the swap would revert on-chain.
+	executionDelaySeconds = 30
 
-	// closedMarketProbeTimestamp is Saturday 2024-01-06 00:00:00 UTC. The
-	// tracker asks the pool's MarketHoursBreaker whether the FX market is open
-	// at this instant: a breaker that enforces FX hours answers false, the
-	// always-open breaker used by stablecoin pools answers true. That tells the
-	// simulator whether to apply the market-hours calendar off-chain.
+	// closedMarketProbeTimestamp is Saturday 2024-01-06 00:00 UTC. A MarketHoursBreaker
+	// that enforces FX hours reports closed here; the always-open one used by stablecoin
+	// pools reports open. The tracker probes it to set Extra.EnforceMarketHours.
 	closedMarketProbeTimestamp = 1_704_499_200
-
-	// sortedOraclesDenominator is the fixidity scale SortedOracles.medianRate
-	// always returns as denominator; OracleAdapter asserts it.
-	sortedOraclesDenominatorStr = "1000000000000000000000000"
-	// oracleAdapterScaleDown is the 1e6 OracleAdapter divides both rate terms by.
-	oracleAdapterScaleDownStr = "1000000"
 )
 
 var (

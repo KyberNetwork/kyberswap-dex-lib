@@ -60,17 +60,11 @@ type (
 	}
 )
 
-// GetNewPoolState refreshes everything FPMM.swap() checks, in three
-// multicalls pinned to the block of the first:
-//  1. pool: reserves, fees, oracle adapter, rate feed, invert flag, trading limits
-//  2. oracle adapter: sortedOracles, breakerBox, marketHoursBreaker
-//  3. feed: median rate + timestamp + expiry, breaker trading mode, and a
-//     market-hours probe at a known-closed timestamp
-//
-// Round 3 is revert-tolerant: a feed that is not registered in the
-// BreakerBox reverts getRateFeedTradingMode, which is exactly the state in
-// which swaps revert too, so the pool is persisted as Unquoteable rather
-// than dropped.
+// GetNewPoolState refreshes everything FPMM.swap() checks in three multicalls pinned to
+// one block: (1) pool reserves, fees, oracle adapter, feed, invert flag, trading limits;
+// (2) the adapter's sortedOracles, breakerBox, marketHoursBreaker; (3) the feed's median
+// rate/timestamp/expiry, breaker trading mode and a market-hours probe. Round 3 tolerates
+// reverts: an unregistered feed reverts swaps too, so the pool is kept as Unquoteable.
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	_ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	if len(p.Tokens) != 2 {

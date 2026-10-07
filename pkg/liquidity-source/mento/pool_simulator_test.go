@@ -1,12 +1,14 @@
 package mento
 
 import (
+	"bytes"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/msgpack/v5"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,7 +42,7 @@ const snapshotExtra = `{
 	]
 }`
 
-func snapshotPool(t *testing.T) entity.Pool {
+func snapshotPool(t testing.TB) entity.Pool {
 	t.Helper()
 	return entity.Pool{
 		Address:     usdcUsdmPool,
@@ -166,7 +168,7 @@ func TestCalcAmountOut_Guards(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInsufficientLiquidity)
 		res, err := calc(sim, usdc, "199000000000", usdm)
 		require.NoError(t, err)
-		assert.Equal(t, 1, sim.Info.Reserves[1].Cmp(res.TokenAmountOut.Amount))
+		assert.Equal(t, 1, sim.reserves[1].ToBig().Cmp(res.TokenAmountOut.Amount))
 	})
 	t.Run("unquoteable", func(t *testing.T) {
 		ep := snapshotPool(t)
@@ -183,9 +185,11 @@ func TestCalcAmountOut_Guards(t *testing.T) {
 		assert.ErrorIs(t, err, ErrTradingSuspended)
 	})
 	t.Run("zero rate", func(t *testing.T) {
-		sim := newSnapshotSim(t)
-		sim.rateNumerator = new(uint256.Int)
-		_, err := calc(sim, usdc, "1000000", usdm)
+		ep := snapshotPool(t)
+		ep.Extra = strings.Replace(snapshotExtra, `"rateNum": "999935510000000000"`, `"rateNum": "0"`, 1)
+		sim, err := NewPoolSimulator(ep)
+		require.NoError(t, err)
+		_, err = calc(sim, usdc, "1000000", usdm)
 		assert.ErrorIs(t, err, ErrInvalidRate)
 	})
 }
@@ -193,11 +197,11 @@ func TestCalcAmountOut_Guards(t *testing.T) {
 func TestCalcAmountOut_RateStaleness(t *testing.T) {
 	expiry := uint64(rateTimestamp + rateExpiry)
 
-	withNow(t, expiry-rateStalenessBufferSeconds) // now + buffer == expiry: still valid
+	withNow(t, expiry-executionDelaySeconds) // now + buffer == expiry: still valid
 	_, err := calc(newSnapshotSim(t), usdc, "1000000", usdm)
 	require.NoError(t, err)
 
-	withNow(t, expiry-rateStalenessBufferSeconds+1) // inside the safety buffer
+	withNow(t, expiry-executionDelaySeconds+1) // inside the safety buffer
 	_, err = calc(newSnapshotSim(t), usdc, "1000000", usdm)
 	assert.ErrorIs(t, err, ErrNoRecentRate)
 
@@ -222,6 +226,15 @@ func TestCalcAmountOut_MarketHours(t *testing.T) {
 
 	sim = fresh(t)
 	sim.enforceMarketHours = true
+	_, err = calc(sim, usdc, "1000000", usdm)
+	assert.ErrorIs(t, err, ErrFXMarketClosed)
+
+	// 10s before the Friday close: open now, but the swap would land after 21:00 and revert.
+	friday := ts("2026-09-25T20:59:50Z")
+	withNow(t, friday)
+	sim = fresh(t)
+	sim.enforceMarketHours = true
+	sim.rateTimestamp = friday
 	_, err = calc(sim, usdc, "1000000", usdm)
 	assert.ErrorIs(t, err, ErrFXMarketClosed)
 
@@ -327,8 +340,8 @@ func TestUpdateBalance(t *testing.T) {
 	})
 
 	// reserve0 grows by amountIn minus the 2 bps protocol fee (200 units).
-	assert.Equal(t, "154963484250", sim.Info.Reserves[0].String())
-	assert.Equal(t, "199719064864718895443613", sim.Info.Reserves[1].String())
+	assert.Equal(t, "154963484250", sim.reserves[0].Dec())
+	assert.Equal(t, "199719064864718895443613", sim.reserves[1].Dec())
 	assert.Equal(t, "999500000000000", sim.limits[0].Netflow0.Dec())
 	assert.Equal(t, "-999435542245000", sim.limits[1].Netflow0.Dec())
 
@@ -355,7 +368,8 @@ func TestCloneState(t *testing.T) {
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
-	assert.Equal(t, "154962484450", sim.Info.Reserves[0].String())
+	assert.Equal(t, "154962484450", sim.reserves[0].Dec())
+	assert.Equal(t, "154963484250", clone.reserves[0].Dec())
 	assert.Equal(t, "-62512118000000000", sim.limits[0].Netflow0.Dec())
 	assert.Equal(t, "999500000000000", clone.limits[0].Netflow0.Dec())
 }
@@ -389,4 +403,63 @@ func TestGetMetaInfo(t *testing.T) {
 	t.Parallel()
 	sim := newSnapshotSim(t)
 	assert.Equal(t, MetaInfo{BlockNumber: snapshotBlock}, sim.GetMetaInfo(usdc, usdm))
+}
+
+// Router-service receives simulators through pkg/msgpack (unexported fields, ForceAsArray), so
+// the precomputed rates, uint256 reserves and int256 limits must survive the trip unchanged.
+func TestMsgpackRoundTrip(t *testing.T) {
+	withNow(t, snapshotTimestamp)
+	sim := newSnapshotSim(t)
+
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf)
+	enc.IncludeUnexported(true)
+	enc.SetForceAsArray(true)
+	require.NoError(t, enc.Encode(sim))
+	dec := msgpack.NewDecoder(&buf)
+	dec.IncludeUnexported(true)
+	var decoded PoolSimulator
+	require.NoError(t, dec.Decode(&decoded))
+
+	want, err := calc(sim, usdc, "1000000", usdm)
+	require.NoError(t, err)
+	got, err := calc(&decoded, usdc, "1000000", usdm)
+	require.NoError(t, err)
+	assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
+	assert.Equal(t, want.Fee.Amount.String(), got.Fee.Amount.String())
+	assert.Equal(t, want.SwapInfo, got.SwapInfo)
+}
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	prev := nowFunc
+	nowFunc = func() uint64 { return snapshotTimestamp }
+	b.Cleanup(func() { nowFunc = prev })
+	sim, err := NewPoolSimulator(snapshotPool(b))
+	require.NoError(b, err)
+	params := pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_000_000_000)},
+		TokenOut:      usdm,
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := sim.CalcAmountOut(params); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkUpdateBalance(b *testing.B) {
+	prev := nowFunc
+	nowFunc = func() uint64 { return snapshotTimestamp }
+	b.Cleanup(func() { nowFunc = prev })
+	sim, err := NewPoolSimulator(snapshotPool(b))
+	require.NoError(b, err)
+	tokenIn := pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_000_000)}
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: tokenIn, TokenOut: usdm})
+	require.NoError(b, err)
+	params := pool.UpdateBalanceParams{TokenAmountIn: tokenIn, TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo}
+	b.ReportAllocs()
+	for b.Loop() {
+		sim.CloneState().(*PoolSimulator).UpdateBalance(params)
+	}
 }
