@@ -1,4 +1,4 @@
-package ilyris
+package ilyrislb
 
 import "github.com/holiman/uint256"
 

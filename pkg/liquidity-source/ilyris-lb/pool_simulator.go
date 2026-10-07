@@ -1,4 +1,4 @@
-package ilyris
+package ilyrislb
 
 import (
 	"math/big"

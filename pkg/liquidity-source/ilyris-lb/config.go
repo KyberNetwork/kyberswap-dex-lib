@@ -1,4 +1,4 @@
-package ilyris
+package ilyrislb
 
 // Config is the pool-service dex config.
 type Config struct {

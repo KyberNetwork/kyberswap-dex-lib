@@ -1,4 +1,4 @@
-package ilyris
+package ilyrislb
 
 import (
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
