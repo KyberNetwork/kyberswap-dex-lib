@@ -123,8 +123,9 @@ func TestLive_SlyngOnMainnet(t *testing.T) {
 		TokenOut:      p.Tokens[0].Address,
 	})
 	require.NoError(t, err)
-	if chainGross.Cmp(curve.QuoteReserve) > 0 {
-		chainGross = curve.QuoteReserve
+	curveQuoteReserve := curve.QuoteReserve.ToBig()
+	if chainGross.Cmp(curveQuoteReserve) > 0 {
+		chainGross = curveQuoteReserve
 	}
 	expected := new(big.Int).Sub(chainGross, new(big.Int).Div(chainGross, big.NewInt(100)))
 	assert.Equal(t, expected.String(), sold.TokenAmountOut.Amount.String(),

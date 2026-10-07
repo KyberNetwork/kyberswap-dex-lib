@@ -1,8 +1,6 @@
 package slyngfun
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -78,14 +76,13 @@ type PoolMeta struct {
 	BlockNumber     uint64 `json:"blockNumber"`
 }
 
-// curveResp mirrors the tuple Launchpad.curves(token) returns, in declaration order. Fields must
-// stay *big.Int: go-ethereum's reflection-based unpacker only fills *big.Int for a uint256.
+// curveResp mirrors the tuple Launchpad.curves(token) returns, in declaration order.
 type curveResp struct {
-	QuoteReserve     *big.Int
-	TokenReserve     *big.Int
-	GraduationTarget *big.Int
-	VirtualQuote     *big.Int
-	LpQuote          *big.Int
+	QuoteReserve     *uint256.Int
+	TokenReserve     *uint256.Int
+	GraduationTarget *uint256.Int
+	VirtualQuote     *uint256.Int
+	LpQuote          *uint256.Int
 	Quote            common.Address
 	Creator          common.Address
 	CreatedAt        uint64

@@ -2,7 +2,6 @@ package slyngfun
 
 import (
 	"context"
-	"math/big"
 	"slices"
 	"strings"
 	"time"
@@ -42,9 +41,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	var (
 		curve       curveResp
-		tradeFeeBps *big.Int
-		snipeBps    *big.Int
-		snipeWindow *big.Int
+		tradeFeeBps *uint256.Int
+		snipeBps    *uint256.Int
+		snipeWindow *uint256.Int
 	)
 
 	token := common.HexToAddress(p.Address)
@@ -79,8 +78,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	extra := Extra{
-		QuoteReserve: uint256.MustFromBig(curve.QuoteReserve),
-		TokenReserve: uint256.MustFromBig(curve.TokenReserve),
+		QuoteReserve: curve.QuoteReserve,
+		TokenReserve: curve.TokenReserve,
 		Graduated:    curve.Graduated,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -91,8 +90,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	staticExtra := StaticExtra{
 		Launchpad:          strings.ToLower(t.config.Launchpad),
 		IsNativeQuote:      valueobject.IsNativeOrZeroAddr(curve.Quote),
-		GraduationTarget:   uint256.MustFromBig(curve.GraduationTarget),
-		VirtualQuote:       uint256.MustFromBig(curve.VirtualQuote),
+		GraduationTarget:   curve.GraduationTarget,
+		VirtualQuote:       curve.VirtualQuote,
 		CreatedAt:          curve.CreatedAt,
 		TradeFeeBps:        tradeFeeBps.Uint64(),
 		SnipeBps:           snipeBps.Uint64(),
