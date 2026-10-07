@@ -174,7 +174,7 @@ func (s *PoolSimulator) validate(now uint64) error {
 	if s.unquoteable {
 		return ErrUnquoteable
 	}
-	if s.enforceMarketHours && !(isFXMarketOpen(now) && isFXMarketOpen(now+executionDelaySeconds)) {
+	if s.enforceMarketHours && (!isFXMarketOpen(now) || !isFXMarketOpen(now+executionDelaySeconds)) {
 		return ErrFXMarketClosed
 	}
 	if s.tradingMode != tradingModeBidirectional {

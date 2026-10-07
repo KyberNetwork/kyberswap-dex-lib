@@ -173,5 +173,5 @@ func isFXMarketOpen(timestamp uint64) bool {
 		}
 		return day != 25
 	}
-	return !(month == 1 && day == 1)
+	return month != 1 || day != 1
 }
