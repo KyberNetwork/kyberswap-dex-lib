@@ -10,11 +10,9 @@ import (
 const (
 	DexType = valueobject.ExchangeNemoProp
 
-	// defaultGas is NemoSwap.swapPrepaid, the entrypoint Kyber's executor
-	// calls after transferring the input to the proxy. Measured at 50k-62k
-	// on Base (vault paying itself), plus up to 20k for a taker's first
-	// balance of the output token.
-	defaultGas = 80_000
+	// defaultGas is the whole hop in Kyber's executor: the input transfer to
+	// the proxy plus NemoSwap.swapPrepaid. Tenderly measured 97k-101k on Base.
+	defaultGas = 100_000
 
 	// defaultFeedFresh is how long a snapshot quotes undecayed. The feed
 	// server resends faster than this even when nothing changed, so an older
