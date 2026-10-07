@@ -17,7 +17,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	extra    Extra
+	ladders  [2][]Point
 	slopes   [2][][2]uint256.Int
 	reserves [2]uint256.Int
 	// consumedIn/Out accumulate swaps per direction so a split route walks the same curve.
@@ -42,21 +42,24 @@ func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator,
 		Exchange:    ep.Exchange,
 		Type:        ep.Type,
 		Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
-		Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignum.NewBig(r) }),
+		Reserves:    make([]*big.Int, 2),
 		BlockNumber: ep.BlockNumber,
 	}}}
-	if err := json.Unmarshal([]byte(ep.Extra), &s.extra); err != nil {
+	var extra Extra
+	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
 	}
+	s.ladders = extra.Ladders
 	for i, r := range ep.Reserves {
 		if err := s.reserves[i].SetFromDecimal(r); err != nil {
 			return nil, err
 		}
+		s.Info.Reserves[i] = s.reserves[i].ToBig()
 	}
-	for dir, points := range s.extra.Ladders {
-		for i, p := range points {
-			if p[0] == nil || p[1] == nil || p[0].IsZero() || p[1].IsZero() || p[0].Gt(maxPoint) || p[1].Gt(maxPoint) ||
-				i > 0 && (!p[0].Gt(points[i-1][0]) || p[1].Lt(points[i-1][1])) {
+	for dir, points := range s.ladders {
+		for i := range points {
+			if p := &points[i]; p[0].IsZero() || p[1].IsZero() || p[0].Gt(maxPoint) || p[1].Gt(maxPoint) ||
+				i > 0 && (!p[0].Gt(&points[i-1][0]) || p[1].Lt(&points[i-1][1])) {
 				return nil, ErrInvalidState
 			}
 		}
@@ -86,7 +89,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if _, overflow := total.AddOverflow(&total, &s.consumedIn[in]); overflow {
 		return nil, ladder.ErrAmountInTooLarge
 	}
-	if err := interpolate(s.extra.Ladders[in], s.slopes[in], &total, &amountOut); err != nil {
+	if err := interpolate(s.ladders[in], s.slopes[in], &total, &amountOut); err != nil {
 		return nil, err
 	}
 	if !amountOut.Gt(&s.consumedOut[in]) {
@@ -97,7 +100,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: bignum.ZeroBI},
 		Gas:            defaultGas,
 	}, nil
 }

@@ -1,0 +1,13 @@
+[
+  {
+    "type": "function",
+    "name": "getCurrentBlockTimestamp",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

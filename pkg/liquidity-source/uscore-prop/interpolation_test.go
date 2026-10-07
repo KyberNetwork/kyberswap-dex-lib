@@ -64,7 +64,7 @@ func interpolateFloat(points [][2]float64, amount float64) float64 {
 func curve(xy ...*uint256.Int) []Point {
 	points := make([]Point, len(xy)/2)
 	for i := range points {
-		points[i] = Point{xy[2*i], xy[2*i+1]}
+		points[i] = Point{*xy[2*i], *xy[2*i+1]}
 	}
 	return points
 }
@@ -124,7 +124,7 @@ func TestInterpolationLinearIsExact(t *testing.T) {
 	for range 1000 {
 		amount := new(uint256.Int).SetUint64(rng.Uint64())
 		amount.Mul(amount, uint256.NewInt(rng.Uint64N(300_000)+1)).AddUint64(amount, 1)
-		if amount.Gt(points[len(points)-1][0]) {
+		if amount.Gt(&points[len(points)-1][0]) {
 			continue
 		}
 		require.Equal(t, new(uint256.Int).Mul(amount, uint256.NewInt(3)), at(t, points, amount), "amount=%s", amount)
@@ -155,7 +155,7 @@ func TestInterpolationMatchesFloatReference(t *testing.T) {
 			if yi.Sign() <= 0 || len(points) > 0 && yi.Cmp(points[len(points)-1][1].ToBig()) < 0 {
 				continue
 			}
-			p := Point{uint256.MustFromBig(xi), uint256.MustFromBig(yi)}
+			p := Point{*uint256.MustFromBig(xi), *uint256.MustFromBig(yi)}
 			points = append(points, p)
 			ref = append(ref, [2]float64{p[0].Float64(), p[1].Float64()})
 		}
@@ -190,8 +190,8 @@ func checkInterpolation(t *testing.T, points []Point) {
 	slopes := segmentSlopes(points)
 	x0, y0 := uint256.NewInt(0), uint256.NewInt(0)
 	var out, previous, x, step uint256.Int
-	for _, p := range points {
-		x1, y1 := p[0], p[1]
+	for i := range points {
+		x1, y1 := &points[i][0], &points[i][1]
 		previous.Set(y0)
 		step.Sub(x1, x0)
 		for k := uint64(1); k <= 32; k++ {
@@ -246,7 +246,7 @@ func FuzzInterpolationMonotone(f *testing.F) {
 			if y.IsZero() {
 				continue
 			}
-			points = append(points, Point{x, y})
+			points = append(points, Point{*x, *y})
 		}
 		checkInterpolation(t, points)
 	})
@@ -254,7 +254,7 @@ func FuzzInterpolationMonotone(f *testing.F) {
 
 func TestSimulatorRejectsMalformedCurve(t *testing.T) {
 	for _, ladder := range []string{
-		`[["0","1"]]`, `[["1","0"]]`, `[[null,"1"]]`, `[["1"]]`,
+		`[["0","1"]]`, `[["1","0"]]`, `[["1"]]`,
 		`[["2","1"],["1","2"]]`, `[["1","1"],["1","2"]]`, `[["1","2"],["2","1"]]`,
 		`[["340282366920938463463374607431768211456","1"]]`, `[["1","340282366920938463463374607431768211456"]]`,
 	} {
@@ -263,6 +263,10 @@ func TestSimulatorRejectsMalformedCurve(t *testing.T) {
 		_, err := NewPoolSimulatorWith(p, math.MaxInt64)
 		require.ErrorIs(t, err, ErrInvalidState, ladder)
 	}
+	p := testEntity()
+	p.Extra = `{"l":[[[null,"1"]],null]}`
+	_, err := NewPoolSimulatorWith(p, math.MaxInt64)
+	require.Error(t, err)
 }
 
 func TestSimulatorSplitAndClone(t *testing.T) {

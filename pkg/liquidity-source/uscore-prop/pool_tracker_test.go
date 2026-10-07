@@ -254,7 +254,7 @@ func TestRegisteredFactories(t *testing.T) {
 }
 
 func TestDiscoveryDeduplicatesAndRetriesFailures(t *testing.T) {
-	cfg := &Config{DexId: DexType, Pools: []string{testPool, common.HexToAddress(testPool).Hex()}}
+	cfg := &Config{DexID: DexType, Pools: []string{testPool, common.HexToAddress(testPool).Hex()}}
 	failed := NewPoolsListUpdater(cfg, mockRPC(t, false, true, nil, nil))
 	pools, meta, err := failed.GetNewPools(t.Context(), nil)
 	require.NoError(t, err)
@@ -322,6 +322,7 @@ func TestTrackerPausedClearsLadders(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	require.Empty(t, extra.Ladders[0])
 	require.Empty(t, extra.Ladders[1])
+	require.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves, "a paused pool offers no liquidity")
 	s, err := NewPoolSimulatorWith(p, math.MaxInt64)
 	require.NoError(t, err)
 	_, err = s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: testQuote, Amount: big.NewInt(10)}, TokenOut: testBase})
@@ -344,7 +345,7 @@ func TestLiveUSCore(t *testing.T) {
 		t.Skip("set USCORE_RPC_URL for live HyperEVM checks")
 	}
 	client := ethrpc.New(url).SetMulticallContract(common.HexToAddress(multicall3))
-	cfg := &Config{DexId: DexType, Pools: []string{testPool, "0xb9fa3bdfa88da2dc78c20ca03472e043992c6671"}}
+	cfg := &Config{DexID: DexType, Pools: []string{testPool, "0xb9fa3bdfa88da2dc78c20ca03472e043992c6671"}}
 	pools, _, err := NewPoolsListUpdater(cfg, client).GetNewPools(t.Context(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 2)

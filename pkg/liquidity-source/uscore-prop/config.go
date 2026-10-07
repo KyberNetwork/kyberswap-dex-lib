@@ -1,6 +1,6 @@
 package uscoreprop
 
 type Config struct {
-	DexId string   `json:"dexId"`
+	DexID string   `json:"dexID"`
 	Pools []string `json:"pools"`
 }

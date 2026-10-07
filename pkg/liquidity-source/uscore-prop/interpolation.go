@@ -13,8 +13,8 @@ import (
 // finer than float64's 2^-53). Amounts stay exact integers.
 const fracBits = 64
 
-// maxShapeBits bounds intermediate shape values so sums of a few of them can't overflow int256.
-const maxShapeBits = 200
+// maxShapeBits bounds shape values so x<<fracBits and products of two stay below 2^255.
+const maxShapeBits = 190
 
 var (
 	one      = new(uint256.Int).Lsh(big256.U1, fracBits)
@@ -50,7 +50,7 @@ func endSlopes(points []Point, i int, left, right *uint256.Int) bool {
 		if k == 0 {
 			return big256.U0, big256.U0
 		}
-		return points[k-1][0], points[k-1][1]
+		return &points[k-1][0], &points[k-1][1]
 	}
 	x0, y0 := at(i)
 	x1, y1 := at(i + 1)
@@ -71,7 +71,7 @@ func endSlopes(points []Point, i int, left, right *uint256.Int) bool {
 		for k := n - 1; k >= order; k-- {
 			coeff[k].Sub(&coeff[k], &coeff[k-1])
 			den.Sub(&nodes[k], &nodes[k-order])
-			if !mulDiv(&coeff[k], &coeff[k], one, &den) {
+			if !divFix(&coeff[k], &coeff[k], &den) {
 				return false
 			}
 		}
@@ -86,11 +86,11 @@ func derivative(nodes, coeff *[4]uint256.Int, n int, z, res *uint256.Int) bool {
 	res.Clear()
 	for k := n - 2; k >= 0; k-- {
 		d.Sub(z, &nodes[k])
-		if !mulDiv(res, res, &d, one) {
+		if !mulFix(res, res, &d) {
 			return false
 		}
 		res.Add(res, &value)
-		if !mulDiv(&value, &value, &d, one) {
+		if !mulFix(&value, &value, &d) {
 			return false
 		}
 		value.Add(&value, &coeff[k])
@@ -108,6 +108,35 @@ func normalize(z, v, origin, scale *uint256.Int) {
 		return
 	}
 	z.Sub(v, origin).Lsh(z, fracBits).Div(z, scale)
+}
+
+// mulFix sets z = x*y/2^fracBits (truncated) for two's-complement fixed-point x, y.
+func mulFix(z, x, y *uint256.Int) bool {
+	var ax, ay uint256.Int
+	neg := abs(&ax, x) != abs(&ay, y)
+	if ax.BitLen()+ay.BitLen() > fracBits+maxShapeBits {
+		return false
+	}
+	if z.Mul(&ax, &ay).Rsh(z, fracBits); neg {
+		z.Neg(z)
+	}
+	return true
+}
+
+// divFix sets z = x*2^fracBits/d (truncated) for two's-complement fixed-point x, d.
+func divFix(z, x, d *uint256.Int) bool {
+	var ax, ad uint256.Int
+	neg := abs(&ax, x) != abs(&ad, d)
+	if ad.IsZero() || ax.BitLen() > maxShapeBits {
+		return false
+	}
+	if z.Lsh(&ax, fracBits).Div(z, &ad); z.BitLen() > maxShapeBits {
+		return false
+	}
+	if neg {
+		z.Neg(z)
+	}
+	return true
 }
 
 // mulDiv sets z = x*y/d (truncated) for two's-complement x, y, d; false if d is 0 or |z| is too big.
@@ -157,14 +186,14 @@ func interpolate(points []Point, slopes [][2]uint256.Int, amount, out *uint256.I
 	if i == len(points) {
 		return ladder.ErrAmountInTooLarge
 	}
-	x1, y1 := points[i][0], points[i][1]
+	x1, y1 := &points[i][0], &points[i][1]
 	if x1.Eq(amount) {
 		out.Set(y1)
 		return nil
 	}
 	x0, y0 := big256.U0, big256.U0
 	if i > 0 {
-		x0, y0 = points[i-1][0], points[i-1][1]
+		x0, y0 = &points[i-1][0], &points[i-1][1]
 	}
 	var w, h, u, inner, tmp uint256.Int
 	w.Sub(amount, x0)

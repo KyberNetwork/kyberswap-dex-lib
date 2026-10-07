@@ -70,11 +70,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadata []byte) ([]
 	var pools []entity.Pool
 	for i, address := range addresses {
 		pair := tokens[i]
-		if !resp.Result[2*i] || !resp.Result[2*i+1] || pair[0] == (common.Address{}) || pair[1] == (common.Address{}) || pair[0] == pair[1] {
+		if !resp.Result[2*i] || !resp.Result[2*i+1] || pair[0] == (common.Address{}) || pair[1] == (common.Address{}) ||
+			pair[0] == pair[1] {
 			continue
 		}
 		pools = append(pools, entity.Pool{
-			Address: address, Exchange: u.config.DexId, Type: DexType, Timestamp: time.Now().Unix(),
+			Address: address, Exchange: u.config.DexID, Type: DexType, Timestamp: time.Now().Unix(),
 			Reserves: entity.PoolReserves{"0", "0"}, Extra: "{}",
 			Tokens: []*entity.PoolToken{
 				{Address: hexutil.Encode(pair[0][:]), Swappable: true},
