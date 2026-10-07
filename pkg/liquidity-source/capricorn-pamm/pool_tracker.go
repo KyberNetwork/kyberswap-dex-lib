@@ -65,10 +65,10 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var (
 		reserves struct {
-			Reserve0 *big.Int
-			Reserve1 *big.Int
+			Reserve0 *uint256.Int
+			Reserve1 *uint256.Int
 		}
-		feeBpsRaw       *big.Int
+		feeBpsRaw       *uint256.Int
 		pricingEngineHx common.Address
 		paused          bool
 	)
@@ -85,8 +85,8 @@ func (t *PoolTracker) GetNewPoolState(
 	pricingEngineAddr := hexutil.Encode(pricingEngineHx[:])
 
 	var (
-		maxAmountIn0     *big.Int
-		maxAmountIn1     *big.Int
+		maxAmountIn0     *uint256.Int
+		maxAmountIn1     *uint256.Int
 		oracleRegistryHx common.Address
 	)
 	req2 := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
@@ -114,10 +114,10 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var (
 		oraclePaused        bool
-		maxPushPriceAge     *big.Int
-		pythValidTimePeriod *big.Int
+		maxPushPriceAge     *uint256.Int
+		pythValidTimePeriod *uint256.Int
 		oraclePrice         struct {
-			PriceUd60x18 *big.Int
+			PriceUd60x18 *uint256.Int
 			PublishTime  uint32
 		}
 	)
@@ -142,8 +142,8 @@ func (t *PoolTracker) GetNewPoolState(
 		publishTime = uint64(oraclePrice.PublishTime)
 	}
 
-	r0 := uint256.MustFromBig(reserves.Reserve0)
-	r1 := uint256.MustFromBig(reserves.Reserve1)
+	r0 := reserves.Reserve0
+	r1 := reserves.Reserve1
 	extra := Extra{
 		FeeBps:          feeBpsRaw.Uint64(),
 		Paused:          paused,
@@ -167,8 +167,8 @@ func (t *PoolTracker) GetNewPoolState(
 		return t.persist(p, extra, r0, r1, blockNumber), nil
 	}
 
-	grid0 := buildGrid(p.Tokens[0].Decimals, reserves.Reserve0, maxAmountIn0)
-	grid1 := buildGrid(p.Tokens[1].Decimals, reserves.Reserve1, maxAmountIn1)
+	grid0 := buildGrid(p.Tokens[0].Decimals, reserves.Reserve0.ToBig(), uint256ToBigOrNil(maxAmountIn0))
+	grid1 := buildGrid(p.Tokens[1].Decimals, reserves.Reserve1.ToBig(), uint256ToBigOrNil(maxAmountIn1))
 	ladder0, ladder1, err := t.probeLadders(ctx, p.Address, token0Addr, token1Addr, grid0, grid1, blockNumber)
 	if err != nil {
 		return p, err
@@ -236,10 +236,10 @@ func (t *PoolTracker) probeLadders(
 		return nil, nil, nil
 	}
 
-	out0 := make([]*big.Int, len(grid0))
-	out1 := make([]*big.Int, len(grid1))
+	out0 := make([]*uint256.Int, len(grid0))
+	out1 := make([]*uint256.Int, len(grid1))
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	addProbe := func(tokenIn string, amounts []*big.Int, outs []*big.Int) {
+	addProbe := func(tokenIn string, amounts []*big.Int, outs []*uint256.Int) {
 		for i, amt := range amounts {
 			req.AddCall(&ethrpc.Call{
 				ABI:    pammPoolABI,
@@ -261,7 +261,7 @@ func (t *PoolTracker) probeLadders(
 		nil
 }
 
-func collectLadder(grid, out []*big.Int, results []bool, offset int) []LadderPoint {
+func collectLadder(grid []*big.Int, out []*uint256.Int, results []bool, offset int) []LadderPoint {
 	ladder := make([]LadderPoint, 0, len(grid))
 	for i, amt := range grid {
 		idx := offset + i
@@ -272,13 +272,19 @@ func collectLadder(grid, out []*big.Int, results []bool, offset int) []LadderPoi
 			continue
 		}
 		amtU, _ := uint256.FromBig(amt)
-		outU, _ := uint256.FromBig(out[i])
-		if amtU == nil || outU == nil {
+		if amtU == nil {
 			continue
 		}
-		ladder = append(ladder, LadderPoint{AmountIn: amtU, AmountOut: outU})
+		ladder = append(ladder, LadderPoint{AmountIn: amtU, AmountOut: out[i]})
 	}
 	return ladder
+}
+
+func uint256ToBigOrNil(v *uint256.Int) *big.Int {
+	if v == nil {
+		return nil
+	}
+	return v.ToBig()
 }
 
 func (t *PoolTracker) persist(p entity.Pool, extra Extra, r0, r1 *uint256.Int, blockNumber *big.Int) entity.Pool {
