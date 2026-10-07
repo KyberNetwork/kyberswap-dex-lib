@@ -138,6 +138,7 @@ func applyState(p entity.Pool, st *RawPoolState, g RawGuardState) (entity.Pool, 
 		Bins:             bins,
 		Fee:              &st.Fee,
 		GuardSwapsPaused: g.SwapsPaused,
+		GuardFreezeStart: g.FreezeStart,
 		GuardFreezeEnd:   g.FreezeEnd,
 		BlockTimestamp:   st.BlockTimestamp,
 	})

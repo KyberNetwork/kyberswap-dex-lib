@@ -43,6 +43,7 @@ type RawBin struct {
 
 type RawGuardState struct {
 	SwapsPaused bool // swapsPaused(), or checkSwap reverted
+	FreezeStart uint64
 	FreezeEnd   uint64
 }
 

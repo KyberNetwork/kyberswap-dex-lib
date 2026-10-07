@@ -155,11 +155,12 @@ func TestFeeDerivationMismatchIsRefused(t *testing.T) {
 // unreadable guard fails closed: quoting into a reverting swap is worse than skipping a pool.
 func TestGuardIsPinnedAndFailsClosed(t *testing.T) {
 	c := newFakeChain()
-	c.guard = RawGuardState{FreezeEnd: 1_700_000_500}
+	c.guard = RawGuardState{FreezeStart: 1_700_000_100, FreezeEnd: 1_700_000_500}
 	p, ex, err := refresh(t, c, entity.Pool{Address: "0xpool"})
 	require.NoError(t, err)
 	assert.Equal(t, c.state.BlockNumber, c.guardBlock)
 	assert.Equal(t, c.state.BlockNumber, p.BlockNumber)
+	assert.EqualValues(t, 1_700_000_100, ex.GuardFreezeStart)
 	assert.EqualValues(t, 1_700_000_500, ex.GuardFreezeEnd)
 	assert.False(t, ex.GuardSwapsPaused)
 

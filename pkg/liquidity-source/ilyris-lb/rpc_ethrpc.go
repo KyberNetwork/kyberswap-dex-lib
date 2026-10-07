@@ -168,14 +168,15 @@ func (c *ethrpcChain) BinReserves(ctx context.Context, poolAddr string, blockNum
 func (c *ethrpcChain) GuardState(ctx context.Context, guard, poolAddr string, activeID int32,
 	blockNumber uint64) (RawGuardState, error) {
 	var (
-		paused    bool
-		freezeEnd uint64
-		none      struct{}
-		pool, id  = common.HexToAddress(poolAddr), big.NewInt(int64(activeID))
-		one       = big.NewInt(1)
+		paused                 bool
+		freezeStart, freezeEnd uint64
+		none                   struct{}
+		pool, id               = common.HexToAddress(poolAddr), big.NewInt(int64(activeID))
+		one                    = big.NewInt(1)
 	)
 	req := c.req(ctx, blockNumber)
 	req.AddCall(&ethrpc.Call{ABI: guardABI, Target: guard, Method: "swapsPaused"}, []any{&paused})
+	req.AddCall(&ethrpc.Call{ABI: guardABI, Target: guard, Method: "freezeStart"}, []any{&freezeStart})
 	req.AddCall(&ethrpc.Call{ABI: guardABI, Target: guard, Method: "freezeEnd"}, []any{&freezeEnd})
 	for _, xForY := range []bool{true, false} {
 		req.AddCall(&ethrpc.Call{ABI: guardABI, Target: guard, Method: "checkSwap",
@@ -185,7 +186,7 @@ func (c *ethrpcChain) GuardState(ctx context.Context, guard, poolAddr string, ac
 	if err != nil {
 		return RawGuardState{}, err
 	}
-	g := RawGuardState{SwapsPaused: paused, FreezeEnd: freezeEnd}
+	g := RawGuardState{SwapsPaused: paused, FreezeStart: freezeStart, FreezeEnd: freezeEnd}
 	for _, ok := range resp.Result {
 		g.SwapsPaused = g.SwapsPaused || !ok // unreadable flag or reverting checkSwap: fail closed
 	}

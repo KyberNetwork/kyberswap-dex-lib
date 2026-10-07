@@ -23,6 +23,7 @@ type PoolSimulator struct {
 	feeRate        uint64 // getTotalFeeRate() derived from fee at blockTimestamp, 1e9 precision
 	blockTimestamp uint64
 	swapsPaused    bool
+	freezeStart    uint64
 	freezeEnd      uint64
 }
 
@@ -68,6 +69,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		fee:            *ex.Fee,
 		blockTimestamp: ex.BlockTimestamp,
 		swapsPaused:    ex.GuardSwapsPaused,
+		freezeStart:    ex.GuardFreezeStart,
 		freezeEnd:      ex.GuardFreezeEnd,
 	}
 	decimalFactor(&p.decimalFactor, se.DecimalsX, se.DecimalsY)
@@ -76,11 +78,11 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	// The guard is skipped by quoteExactIn but enforced by swapExactIn. Any freeze ending after
-	// the snapshot blocks, since the snapshot cannot see when a scheduled window starts.
+	// The guard is skipped by quoteExactIn but enforced by swapExactIn. Its frozen() is
+	// freezeStart <= now < freezeEnd, so a scheduled window does not block until it starts.
 	if p.swapsPaused {
 		return nil, ErrSwapsPaused
-	} else if p.freezeEnd > p.blockTimestamp {
+	} else if p.freezeStart <= p.blockTimestamp && p.blockTimestamp < p.freezeEnd {
 		return nil, ErrCorporateActionFreeze
 	}
 	inIdx, outIdx := p.GetTokenIndex(params.TokenAmountIn.Token), p.GetTokenIndex(params.TokenOut)

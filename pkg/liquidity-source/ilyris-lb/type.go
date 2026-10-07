@@ -16,6 +16,7 @@ type Extra struct {
 	Fee      *FeeParams `json:"fee"`
 	// Market guard state. Quotes skip the guard on chain but swaps do not.
 	GuardSwapsPaused bool   `json:"guardSwapsPaused,omitempty"`
+	GuardFreezeStart uint64 `json:"guardFreezeStart,omitempty"`
 	GuardFreezeEnd   uint64 `json:"guardFreezeEnd,omitempty"`
 	BlockTimestamp   uint64 `json:"blockTimestamp"`
 }

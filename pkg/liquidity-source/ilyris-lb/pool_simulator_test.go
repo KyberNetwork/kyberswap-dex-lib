@@ -114,20 +114,33 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 // swapExactIn calls the market guard; quoteExactIn does not. The simulator must reject what
-// would revert. Any freeze ending after the snapshot blocks.
+// would revert, and only that: the guard's frozen() is freezeStart <= now < freezeEnd
+// (checked on a fork), so a scheduled freeze still swaps until it starts.
 func TestGuardBlocksQuotes(t *testing.T) {
 	s := newTestSim(t)
 	s.swapsPaused = true
 	_, err := quote(s, tokY, big.NewInt(1_000_000))
 	assert.ErrorIs(t, err, ErrSwapsPaused)
 
-	s = newTestSim(t)
-	s.blockTimestamp, s.freezeEnd = 1000, 1001
-	_, err = quote(s, tokY, big.NewInt(1_000_000))
-	assert.ErrorIs(t, err, ErrCorporateActionFreeze)
-	s.freezeEnd = 1000 // ended: frozen() is start <= now < end
-	_, err = quote(s, tokY, big.NewInt(1_000_000))
-	assert.NoError(t, err)
+	for _, c := range []struct {
+		name       string
+		start, end uint64
+		blocked    bool
+	}{
+		{"scheduled, not started", 1001, 2000, false},
+		{"starts now", 1000, 2000, true},
+		{"last second", 500, 1001, true},
+		{"ended", 500, 1000, false},
+	} {
+		s = newTestSim(t)
+		s.blockTimestamp, s.freezeStart, s.freezeEnd = 1000, c.start, c.end
+		_, err = quote(s, tokY, big.NewInt(1_000_000))
+		if c.blocked {
+			assert.ErrorIs(t, err, ErrCorporateActionFreeze, c.name)
+		} else {
+			assert.NoError(t, err, c.name)
+		}
+	}
 }
 
 // UpdateBalance moves the crossed bins by the quoted fills, net of fee (BinPool credits the fee
