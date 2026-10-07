@@ -8,5 +8,12 @@
       { "name": "markets", "type": "bytes" }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pricing",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view"
   }
 ]

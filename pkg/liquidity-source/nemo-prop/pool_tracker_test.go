@@ -45,7 +45,7 @@ func TestPoolTracker_WritesSnapshotIntoPoolState(t *testing.T) {
 	f := newFakeFeed(t, "integrator-key")
 	cfg := f.config()
 	cfg.Buffer, cfg.DecayBps, cfg.Feed.FreshMs, cfg.Feed.MaxAgeMs = 9000, 10, 1000, 0
-	tracker := NewPoolTracker(cfg, nil)
+	tracker := NewPoolTracker(cfg, newFakeChain().rpcClient(t))
 
 	// No snapshot yet: nothing to quote.
 	p, extra := refresh(t, tracker, testPool(t))
@@ -84,7 +84,7 @@ func TestPoolTracker_WritesSnapshotIntoPoolState(t *testing.T) {
 func TestPoolTracker_ZeroesUnquotedReserves(t *testing.T) {
 	t.Parallel()
 	f := newFakeFeed(t, "key")
-	tracker := NewPoolTracker(f.config(), nil)
+	tracker := NewPoolTracker(f.config(), newFakeChain().rpcClient(t))
 	f.waitConns(1)
 	frame := snapshotFrame(1, 2, 0.5)
 	frame.Markets[hexAddr(testWETH)] = feedMarket{Ladders: [2][]ladder.Point{{{1000, 2000}}, nil}}
@@ -133,7 +133,7 @@ func TestPoolTracker_StopsWithoutLiveSnapshot(t *testing.T) {
 			if tc.maxAgeMs != 0 {
 				cfg.Feed.FreshMs, cfg.Feed.MaxAgeMs = tc.maxAgeMs, tc.maxAgeMs
 			}
-			tracker := NewPoolTracker(cfg, nil)
+			tracker := NewPoolTracker(cfg, newFakeChain().rpcClient(t))
 			f.waitConns(1)
 			f.push(snapshotFrame(1, 2, 0.5))
 			p, _ := eventuallyBlock(t, tracker, testPool(t), 1001)
@@ -160,7 +160,7 @@ func TestPoolTracker_StopsWithoutLiveSnapshot(t *testing.T) {
 func TestPoolTracker_OneConnectionPerProxyAndRotation(t *testing.T) {
 	t.Parallel()
 	f := newFakeFeed(t, "key-1")
-	trackers := []*PoolTracker{NewPoolTracker(f.config(), nil), NewPoolTracker(f.config(), nil)}
+	trackers := []*PoolTracker{NewPoolTracker(f.config(), newFakeChain().rpcClient(t)), NewPoolTracker(f.config(), newFakeChain().rpcClient(t))}
 	f.waitConns(1)
 	f.push(snapshotFrame(1, 2, 0.5))
 	eventuallyBlock(t, trackers[0], testPool(t), 1001)
@@ -171,7 +171,7 @@ func TestPoolTracker_OneConnectionPerProxyAndRotation(t *testing.T) {
 	f.mu.Unlock()
 
 	f.setToken("key-2")
-	NewPoolTracker(f.config(), nil)
+	NewPoolTracker(f.config(), newFakeChain().rpcClient(t))
 	f.waitConns(2)
 	f.mu.Lock()
 	assert.Equal(t, "Bearer key-2", f.authSeen[len(f.authSeen)-1])
@@ -241,4 +241,54 @@ func TestDecodeMarkets(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidMarkets)
 	_, err = decodeMarkets(testUSDC, make([]byte, 32))
 	assert.ErrorIs(t, err, ErrInvalidMarkets)
+}
+
+// Swaps execute against Nemo's on-chain anchors. Once those are older than
+// the maximum age, a live feed must not keep the pool quoting; a pricing
+// upgrade switches the anchors read to the new pricing contract.
+func TestPoolTracker_StopsOnStaleOnChainAnchors(t *testing.T) {
+	t.Parallel()
+	f := newFakeFeed(t, "key")
+	chain := newFakeChain()
+	cfg := f.config()
+	tracker := NewPoolTracker(cfg, chain.rpcClient(t))
+	f.waitConns(1)
+	f.push(snapshotFrame(1, 2, 0.5))
+	p, extra := eventuallyBlock(t, tracker, testPool(t), 1001)
+	require.NotEmpty(t, extra.Ladders[0], "fresh anchors quote")
+
+	maxAge := time.Duration(cfg.maxAgeMs()) * time.Millisecond
+	chain.setAnchorsAge(testPricing, maxAge+time.Second)
+	p, extra = refresh(t, tracker, p)
+	assert.Empty(t, extra.Ladders[0])
+	assert.Zero(t, extra.ReceivedAtMs)
+	assert.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
+
+	// Upgrade to a pricing contract with fresh anchors: the refresh that sees
+	// the upgrade stays empty, the next quotes again.
+	upgraded := common.HexToAddress("0x00000000000000000000000000000000000e0e04")
+	chain.mu.Lock()
+	chain.pricing, chain.anchorsAge[upgraded] = upgraded, 0
+	chain.mu.Unlock()
+	_, extra = refresh(t, tracker, p)
+	assert.Empty(t, extra.Ladders[0])
+	p, extra = refresh(t, tracker, p)
+	assert.NotEmpty(t, extra.Ladders[0])
+	assert.Equal(t, reserves1e9, p.Reserves)
+}
+
+// An RPC failure reading the anchors fails the refresh, so the pool keeps its
+// previous state and ages out in the simulator rather than quoting unchecked.
+func TestPoolTracker_AnchorsReadFailure(t *testing.T) {
+	t.Parallel()
+	f := newFakeFeed(t, "key")
+	chain := newFakeChain()
+	chain.pricing = testOther // no pricing contract there: lastUpdatedTimestampMs reverts
+	tracker := NewPoolTracker(f.config(), chain.rpcClient(t))
+	f.waitConns(1)
+	f.push(snapshotFrame(1, 2, 0.5))
+	require.Eventually(t, func() bool {
+		_, err := tracker.GetNewPoolState(ctx, testPool(t), pool.GetNewPoolStateParams{})
+		return err != nil
+	}, 5*time.Second, 2*time.Millisecond)
 }

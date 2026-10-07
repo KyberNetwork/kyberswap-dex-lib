@@ -6,7 +6,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var nemoSwapABI abi.ABI
+var (
+	nemoSwapABI    abi.ABI
+	nemoPricingABI abi.ABI
+)
 
 func init() {
 	builder := []struct {
@@ -14,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&nemoSwapABI, nemoSwapABIData},
+		{&nemoPricingABI, nemoPricingABIData},
 	}
 
 	for _, b := range builder {

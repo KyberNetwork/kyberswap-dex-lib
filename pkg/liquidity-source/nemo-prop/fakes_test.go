@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
@@ -204,25 +205,52 @@ func pooledState(t *testing.T, ladders [2][]ladder.Point, reserves entity.PoolRe
 }
 
 // ---------------------------------------------------------------------------
-// Fake chain behind a JSON-RPC server, serving the proxy's getMarkets_v1.
+// Fake chain behind a JSON-RPC server: the proxy's getMarkets_v1 and
+// pricing(), the pricing contract's lastUpdatedTimestampMs(), and Multicall3's
+// aggregate over them.
+
+var (
+	testPricing   = common.HexToAddress("0x00000000000000000000000000000000000e0e03")
+	testMulticall = common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11")
+
+	aggregateABI = func() abi.ABI {
+		a, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"aggregate","stateMutability":"view",
+			"inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
+			"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]}]`))
+		if err != nil {
+			panic(err)
+		}
+		return a
+	}()
+)
 
 type fakeChain struct {
-	mu      sync.Mutex
-	markets []common.Address
-	units   map[common.Address]*big.Int
+	mu         sync.Mutex
+	markets    []common.Address
+	units      map[common.Address]*big.Int
+	pricing    common.Address
+	anchorsAge map[common.Address]time.Duration // per pricing contract, at call time
 }
 
 func newFakeChain() *fakeChain {
 	return &fakeChain{
-		markets: []common.Address{testWETH, testCBBTC},
-		units:   map[common.Address]*big.Int{testWETH: big.NewInt(1e18), testCBBTC: big.NewInt(1e8)},
+		markets:    []common.Address{testWETH, testCBBTC},
+		units:      map[common.Address]*big.Int{testWETH: big.NewInt(1e18), testCBBTC: big.NewInt(1e8)},
+		pricing:    testPricing,
+		anchorsAge: map[common.Address]time.Duration{testPricing: 0},
 	}
 }
 
 func (c *fakeChain) rpcClient(t *testing.T) *ethrpc.Client {
 	srv := httptest.NewServer(http.HandlerFunc(c.serveHTTP))
 	t.Cleanup(srv.Close)
-	return ethrpc.New(srv.URL)
+	return ethrpc.New(srv.URL).SetMulticallContract(testMulticall)
+}
+
+func (c *fakeChain) setAnchorsAge(pricing common.Address, age time.Duration) {
+	c.mu.Lock()
+	c.anchorsAge[pricing] = age
+	c.mu.Unlock()
 }
 
 func (c *fakeChain) marketsBytes() []byte {
@@ -234,6 +262,58 @@ func (c *fakeChain) marketsBytes() []byte {
 		out = append(out, word...)
 	}
 	return out
+}
+
+// answer runs one call, with c.mu held; ok is false where the real contract
+// would revert.
+func (c *fakeChain) answer(to common.Address, data []byte) ([]byte, bool) {
+	if len(data) < 4 {
+		return nil, false
+	}
+	if to == testMulticall {
+		method, err := aggregateABI.MethodById(data)
+		if err != nil {
+			return nil, false
+		}
+		args, err := method.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, false
+		}
+		calls := args[0].([]struct {
+			Target   common.Address `json:"target"`
+			CallData []byte         `json:"callData"`
+		})
+		returnData := make([][]byte, len(calls))
+		for i, call := range calls {
+			out, ok := c.answer(call.Target, call.CallData)
+			if !ok {
+				return nil, false
+			}
+			returnData[i] = out
+		}
+		out, _ := method.Outputs.Pack(big.NewInt(1000), returnData)
+		return out, true
+	}
+	if age, ok := c.anchorsAge[to]; ok {
+		method, err := nemoPricingABI.MethodById(data)
+		if err != nil {
+			return nil, false
+		}
+		out, _ := method.Outputs.Pack(big.NewInt(time.Now().Add(-age).UnixMilli()))
+		return out, true
+	}
+	method, err := nemoSwapABI.MethodById(data)
+	if to != testProxy || err != nil {
+		return nil, false
+	}
+	var out []byte
+	switch method.Name {
+	case "getMarkets_v1":
+		out, _ = method.Outputs.Pack(testUSDC, c.marketsBytes())
+	case "pricing":
+		out, _ = method.Outputs.Pack(c.pricing)
+	}
+	return out, true
 }
 
 func (c *fakeChain) serveHTTP(w http.ResponseWriter, r *http.Request) {
@@ -252,16 +332,14 @@ func (c *fakeChain) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(req.Params) > 0 {
 		_ = json.Unmarshal(req.Params[0], &msg)
 	}
-	data := append(msg.Data, msg.Input...)
 
 	resp := map[string]any{"jsonrpc": "2.0", "id": req.ID}
-	method, err := nemoSwapABI.MethodById(data)
-	if req.Method != "eth_call" || msg.To != testProxy || err != nil || method.Name != "getMarkets_v1" {
+	c.mu.Lock()
+	out, ok := c.answer(msg.To, append(msg.Data, msg.Input...))
+	c.mu.Unlock()
+	if req.Method != "eth_call" || !ok {
 		resp["error"] = map[string]any{"code": 3, "message": "execution reverted"}
 	} else {
-		c.mu.Lock()
-		out, _ := method.Outputs.Pack(testUSDC, c.marketsBytes())
-		c.mu.Unlock()
 		resp["result"] = hexutil.Encode(out)
 	}
 	_ = json.NewEncoder(w).Encode(resp)

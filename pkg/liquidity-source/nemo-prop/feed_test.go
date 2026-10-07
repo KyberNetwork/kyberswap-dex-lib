@@ -95,7 +95,7 @@ func TestFeed_IgnoresUnknownMessageTypes(t *testing.T) {
 func TestFeed_ConcurrentRefreshesDuringPushes(t *testing.T) {
 	t.Parallel()
 	f := newFakeFeed(t, "key")
-	tracker := NewPoolTracker(f.config(), nil)
+	tracker := NewPoolTracker(f.config(), newFakeChain().rpcClient(t))
 	f.waitConns(1)
 
 	var wg sync.WaitGroup
