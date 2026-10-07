@@ -53,8 +53,8 @@ func oracleSim(t *testing.T, v oracleVector) *PoolSimulator {
 		require.NoError(t, json.Unmarshal(raw[0], &b.ID))
 		require.NoError(t, json.Unmarshal(raw[1], &x))
 		require.NoError(t, json.Unmarshal(raw[2], &y))
-		b.ReserveX.SetFromDecimal(x)
-		b.ReserveY.SetFromDecimal(y)
+		require.NoError(t, b.ReserveX.SetFromDecimal(x))
+		require.NoError(t, b.ReserveY.SetFromDecimal(y))
 		p.bins = append(p.bins, b)
 	}
 	return p
