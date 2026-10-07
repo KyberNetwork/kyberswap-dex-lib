@@ -72,6 +72,10 @@ type Extra struct {
 	// hook can redeem in-swap (see floatRungsBps for why the real cap is a little lower; the
 	// ladder carries that).
 	Float *uint256.Int `json:"f,omitempty"`
+	// BandBps is getParams().bandBps: afterSwap reverts OutsideBand unless the pool ends within it
+	// of NAV. UsdgDecimals converts NAV to the pool's sqrtPrice (see SqrtPriceLimit).
+	BandBps      uint16 `json:"w,omitempty"`
+	UsdgDecimals uint8  `json:"d,omitempty"`
 	// Buy: USDG in -> LOT out. Sell: LOT in -> USDG out. Ascending in both In and Out.
 	Buy  []Rung `json:"bl,omitempty"`
 	Sell []Rung `json:"sl,omitempty"`
@@ -116,9 +120,39 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 // the whole amount, so the pool's own CL math always runs on a zero remainder.
 func (h *Hook) AllowEmptyTicks() bool { return true }
 
-// NoPriceLimit: the on-chain fill runs through the JIT range the hook places per swap, beyond the
-// tracked standing-position ticks. A limit at those ticks stops the fill part-way (seen on e2e).
-func (h *Hook) NoPriceLimit() {}
+// SqrtPriceLimit replaces the tick-derived limit, which sits at the standing position's edge and
+// stops the JIT fill part-way. It is the band edge afterSwap enforces (|px - nav| * BPS <=
+// nav * bandBps) on the side this swap moves toward, pulled in by priceLimitBufferBps and rounded
+// toward NAV, so the limit never lies past the band. nil (untracked) keeps the default.
+func (h *Hook) SqrtPriceLimit(zeroForOne bool) *uint256.Int {
+	if h.Nav == nil || h.BandBps <= priceLimitBufferBps || h.UsdgDecimals > 18 {
+		return nil
+	}
+	var usdPerLot, factor uint256.Int // USD per LOT, 1e18, at the limit
+	off := uint64(h.BandBps - priceLimitBufferBps)
+	if zeroForOne == h.UsdgIs0 { // a buy pushes USD per LOT up
+		u256.MulDivDown(&usdPerLot, h.Nav, factor.SetUint64(bps+off), u256.UBasisPoint)
+	} else {
+		u256.MulDivUp(&usdPerLot, h.Nav, factor.SetUint64(bps-off), u256.UBasisPoint)
+	}
+	// NavJitHook._sqrtPriceForUsd18: ratioX192 = scale<<192/p (USDG is currency0) or p<<192/scale.
+	scale := u256.TenPow(36 - int(h.UsdgDecimals))
+	num, den := scale, &usdPerLot
+	if !h.UsdgIs0 {
+		num, den = &usdPerLot, scale
+	}
+	var ratio uint256.Int
+	limit := new(uint256.Int)
+	if !zeroForOne { // an upper bound: floor
+		return limit.Sqrt(u256.MulDivDown(&ratio, num, u256.U2Pow192, den))
+	}
+	// a lower bound: ceil
+	limit.Sqrt(u256.MulDivUp(&ratio, num, u256.U2Pow192, den))
+	if factor.Mul(limit, limit).Lt(&ratio) {
+		limit.AddUint64(limit, 1)
+	}
+	return limit
+}
 
 func (h *Hook) CloneState() uniswapv4.Hook {
 	// The ladder is replaced wholesale by Track and never written by a swap; the consumed amounts
@@ -158,6 +192,15 @@ func topOut(l []Rung, buy bool) string {
 		return haircut(&out, l[len(l)-1].Out).Dec()
 	}
 	return l[len(l)-1].Out.Dec()
+}
+
+// hookParams mirrors NavJitHook.Params; only BandBps is used (SqrtPriceLimit).
+type hookParams struct {
+	BuySpreadBps  uint16
+	SellSpreadBps uint16
+	BandBps       uint16
+	SizeBufferBps uint16
+	WidthTicks    *big.Int
 }
 
 type quoteParams struct {
@@ -204,6 +247,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	var (
 		usdg, navGuard, pm common.Address
 		venue0, venue1     common.Hash
+		params             struct{ P hookParams } // getParams returns one tuple
 	)
 	req := param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides)
 	if param.BlockNumber != nil {
@@ -213,6 +257,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "usdg"}, []any{&usdg}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "navGuard"}, []any{&navGuard}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "poolManager"}, []any{&pm}).
+		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "getParams"}, []any{&params}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "venueOf", Params: []any{tok0}}, []any{&venue0}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: hookAddr, Method: "venueOf", Params: []any{tok1}}, []any{&venue1}).
 		Aggregate()
@@ -263,7 +308,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if err != nil {
 		return nil, err
 	}
-	h.Extra = Extra{Tracked: true, UsdgIs0: usdgIs0, Block: block.Uint64(), TrackedAt: time.Now().Unix()}
+	h.Extra = Extra{Tracked: true, UsdgIs0: usdgIs0, BandBps: params.P.BandBps, UsdgDecimals: usdgDecimals,
+		Block: block.Uint64(), TrackedAt: time.Now().Unix()}
 	// The hook's beforeSwap reads the same guard: if it reverts, so does every swap.
 	if !res2.Result[0] || nav == nil || nav.Sign() == 0 || !res2.Result[1] || float == nil {
 		return json.Marshal(h)

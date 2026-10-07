@@ -552,9 +552,12 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrap)
 	}
 
-	priceLimit := p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0])
-	if _, ok := p.hook.(NoPriceLimitHook); ok {
-		priceLimit = nil // encoded as 0: the executor swaps to MIN/MAX_SQRT_PRICE
+	zeroForOne := tokenInAfterWrap == p.Info.Tokens[0]
+	priceLimit := p.GetSqrtPriceLimit(zeroForOne)
+	if provider, ok := p.hook.(HookPriceLimitProvider); ok {
+		if hookLimit := provider.SqrtPriceLimit(zeroForOne); hookLimit != nil {
+			priceLimit = hookLimit
+		}
 	}
 
 	return PoolMetaInfo{

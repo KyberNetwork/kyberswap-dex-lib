@@ -44,8 +44,8 @@ var sellLadder = []Rung{
 
 func trackedHook() *Hook {
 	return &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit},
-		Extra: Extra{Tracked: true, UsdgIs0: true, Float: u("49265362021832501903"),
-			Buy: buyLadder, Sell: sellLadder, Block: 77346769}}
+		Extra: Extra{Tracked: true, UsdgIs0: true, Nav: u("1001792378992843260"), Float: u("49265362021832501903"),
+			BandBps: 200, UsdgDecimals: 6, Buy: buyLadder, Sell: sellLadder, Block: 77346769}}
 }
 
 func exactIn(zeroForOne bool, amt string) *uniswapv4.BeforeSwapParams {
@@ -309,10 +309,19 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(30_000_000_000)}, TokenOut: lot})
 	assert.ErrorIs(t, err, ErrBeyondLadder)
 
-	// The JIT fill runs past the standing ticks [276277, 276477]: a limit there stops it part-way.
-	for _, pair := range [][2]string{{usdg, lot}, {lot, usdg}} {
-		meta := sim.GetMetaInfo(pair[0], pair[1]).(uniswapv4.PoolMetaInfo)
-		assert.Nil(t, meta.PriceLimit, "no tick-derived price limit")
+	// The JIT fill runs past the standing ticks [276277, 276477]: their limit stopped it part-way
+	// (a 493 LOT sell filled 0.89-0.95 of quote on e2e). The hook's band limit replaces it.
+	for _, d := range []struct {
+		in, out    string
+		zeroForOne bool
+		tick       int
+	}{{usdg, lot, true, 276277}, {lot, usdg, false, 276477}} {
+		meta := sim.GetMetaInfo(d.in, d.out).(uniswapv4.PoolMetaInfo)
+		require.NotNil(t, meta.PriceLimit, "an executor limit of 0 means MIN/MAX: no band protection")
+		var tickLimit uint256.Int
+		require.NoError(t, uniswapv3.GetSqrtRatioAtTick(d.tick, &tickLimit))
+		assert.NotEqual(t, tickLimit.Dec(), meta.PriceLimit.Dec(), "not the tick-derived limit")
+		assert.Equal(t, trackedHook().SqrtPriceLimit(d.zeroForOne).Dec(), meta.PriceLimit.Dec())
 	}
 
 	// UpdateBalance moves the simulator along the sell ladder; the clone taken before it does not.
@@ -332,6 +341,53 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	// The 2nd LOT is priced on the rung0-rung1 chord at 2 LOT: 991370 + floor(1e18*(9913706-991370)/9e18)
 	// = 1982740, less the 991370 the first swap consumed.
 	assert.Equal(t, "991370", next.TokenAmountOut.Amount.String(), "priced as the second LOT along the ladder")
+}
+
+// poolUsd18 is NavJitHook._poolUsd18: the pool price as USD (1e18) per LOT, as afterSwap reads it.
+// For LOT-as-currency0 the deployed code divides by 1e36 where 1e18 inverts _sqrtPriceForUsd18, so
+// such a venue always reverts OutsideBand (every live venue has USDG as currency0); this uses 1e18.
+func poolUsd18(sqrtPrice *uint256.Int, usdgIs0 bool, usdgDecimals uint8) *big.Int {
+	s := sqrtPrice.ToBig()
+	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(36-usdgDecimals)), nil)
+	e18, e36 := big.NewInt(1e18), new(big.Int).Exp(big.NewInt(10), big.NewInt(36), nil)
+	raw18 := new(big.Int).Mul(s, s)
+	raw18.Mul(raw18, e18).Rsh(raw18, 192)
+	if usdgIs0 {
+		px := new(big.Int).Mul(scale, e36)
+		return px.Div(px.Div(px, raw18), e18)
+	}
+	px := new(big.Int).Mul(raw18, scale)
+	return px.Div(px, e18)
+}
+
+// The limit is where afterSwap's band check would still pass, on the side the swap moves price
+// toward, pulled in by priceLimitBufferBps: a swap stopped there keeps the pool inside the band
+// (no OutsideBand revert) and a normal fill (spread + JIT width, < band - buffer) is not cut.
+func TestSqrtPriceLimit_IsTheBandEdge(t *testing.T) {
+	for _, usdgIs0 := range []bool{true, false} {
+		h := trackedHook()
+		h.UsdgIs0 = usdgIs0
+		nav := h.Nav.ToBig()
+		for _, zeroForOne := range []bool{true, false} {
+			buy := zeroForOne == usdgIs0
+			limit := h.SqrtPriceLimit(zeroForOne)
+			require.NotNil(t, limit)
+			px := poolUsd18(limit, usdgIs0, h.UsdgDecimals)
+
+			diff := new(big.Int).Sub(px, nav)
+			assert.Equal(t, buy, diff.Sign() > 0, "usdgIs0=%v buy=%v: the limit is on the side the swap moves", usdgIs0, buy)
+			diff.Abs(diff).Mul(diff, big.NewInt(bps))
+			band := new(big.Int).Mul(nav, big.NewInt(int64(h.BandBps)))
+			assert.LessOrEqual(t, diff.Cmp(band), 0, "usdgIs0=%v buy=%v: within the hook's band", usdgIs0, buy)
+			// 0.01 bp of slack: _poolUsd18 floors the price to ~1e-6 relative for LOT-as-currency0.
+			tight := new(big.Int).Mul(nav, big.NewInt(int64(h.BandBps-priceLimitBufferBps)*100+1))
+			assert.LessOrEqual(t, new(big.Int).Mul(diff, big.NewInt(100)).Cmp(tight), 0,
+				"usdgIs0=%v buy=%v: inside the buffer", usdgIs0, buy)
+			nearlyTight := new(big.Int).Mul(nav, big.NewInt(int64(h.BandBps-priceLimitBufferBps-1)))
+			assert.Positive(t, diff.Cmp(nearlyTight), "usdgIs0=%v buy=%v: at the buffered edge, not short of it", usdgIs0, buy)
+		}
+	}
+	assert.Nil(t, (&Hook{}).SqrtPriceLimit(true), "untracked: keep the default")
 }
 
 // Route finding (StaleCheck) must not quote a ladder pool-service stopped refreshing: the fill curve

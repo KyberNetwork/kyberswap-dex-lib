@@ -259,9 +259,12 @@ func (h *BaseHook) GetHookData() []byte {
 	return EmptyBytes
 }
 
-// NoPriceLimitHook marks hooks that fill swaps with liquidity placed in-swap (JIT), outside the
-// tracked ticks; a tick-derived sqrtPriceLimit would stop that fill early, so none is encoded.
-type NoPriceLimitHook interface{ NoPriceLimit() }
+// HookPriceLimitProvider supplies a hook's own sqrtPriceLimitX96 for a swap in the given direction,
+// replacing the tick-derived one (e.g. a hook filling through liquidity it places in-swap, outside
+// the tracked ticks). A nil result keeps the default.
+type HookPriceLimitProvider interface {
+	SqrtPriceLimit(zeroForOne bool) *uint256.Int
+}
 
 // HookPoolStateProvider supplies the complete post-swap state for hooks whose
 // rebases or liquidity replacement cannot be represented by ordinary deltas.

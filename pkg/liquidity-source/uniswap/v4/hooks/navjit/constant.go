@@ -40,6 +40,12 @@ const buyHaircutPpm = 150
 
 const ppm = 1_000_000
 
+const bps = 10_000
+
+// priceLimitBufferBps pulls the price limit this far inside the hook's band: it absorbs NAV drift
+// within the maxAgeSec staleness window, and still clears a normal fill (spread + JIT width).
+const priceLimitBufferBps = 25
+
 // floatRungsBps: extra sell rungs as a fraction of the PoolManager's LOT balance. That balance is
 // only an upper bound on a sell: inside the swap, _restoreStanding re-centres the standing position
 // on NAV and takes whatever LOT no longer fits to the owner BEFORE _unwind checks the float, so the
