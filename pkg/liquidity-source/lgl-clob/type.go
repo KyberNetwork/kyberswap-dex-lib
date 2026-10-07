@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 )
 
@@ -65,7 +66,9 @@ type MarketInfo struct {
 	OrderbookAddress string    `json:"orderbookAddress"`
 	BaseToken        TokenInfo `json:"baseToken"`
 	QuoteToken       TokenInfo `json:"quoteToken"`
-	AggressiveFee    float64   `json:"aggressiveFee"`
+	// AggressiveFee is the taker fee as a fraction, which hanji's API sends as
+	// a number and xpress's as a string.
+	AggressiveFee json.Number `json:"aggressiveFee"`
 }
 
 type SwapInfo struct {
