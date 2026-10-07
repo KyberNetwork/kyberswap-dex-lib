@@ -2,7 +2,6 @@ package cusd
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -49,7 +48,7 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	var (
 		whitelisted bool
 		paused      bool
-		capSupply   *big.Int
+		capSupply   *uint256.Int
 		assets      []common.Address
 	)
 	req := ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
@@ -90,9 +89,9 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	var (
 		assetsPaused       = make([]bool, assetCount)
 		prices             = make([]PriceResult, assetCount+1)
-		vaultAssetSupplies = make([]*big.Int, assetCount)
+		vaultAssetSupplies = make([]*uint256.Int, assetCount)
 		fees               = make([]*FeeDataResult, assetCount)
-		availableBalances  = make([]*big.Int, assetCount)
+		availableBalances  = make([]*uint256.Int, assetCount)
 	)
 
 	req = ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
@@ -140,12 +139,12 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		Paused:       paused,
 		AssetsPaused: assetsPaused,
 		IsWhitelist:  whitelisted,
-		CapSupply:    uint256.MustFromBig(capSupply),
+		CapSupply:    capSupply,
 		Prices: lo.Map(prices, func(item PriceResult, _ int) *uint256.Int {
-			return uint256.MustFromBig(item.Price)
+			return item.Price
 		}),
-		VaultAssetSupplies: lo.Map(vaultAssetSupplies, func(item *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(item)
+		VaultAssetSupplies: lo.Map(vaultAssetSupplies, func(item *uint256.Int, _ int) *uint256.Int {
+			return item
 		}),
 		Fees: lo.Map(fees, func(item *FeeDataResult, _ int) *FeeData {
 			return item.toFeeData()
@@ -153,8 +152,8 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 		Assets: lo.Map(assets, func(item common.Address, index int) string {
 			return hexutil.Encode(item[:])
 		}),
-		AvailableBalances: lo.Map(availableBalances, func(item *big.Int, index int) *uint256.Int {
-			return uint256.MustFromBig(item)
+		AvailableBalances: lo.Map(availableBalances, func(item *uint256.Int, index int) *uint256.Int {
+			return item
 		}),
 	})
 	if err != nil {
@@ -162,7 +161,8 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = lo.Map(append(availableBalances, bignum.B2Pow128), func(r *big.Int, index int) string { return r.String() })
+	p.Reserves = lo.Map(availableBalances, func(r *uint256.Int, index int) string { return r.Dec() })
+	p.Reserves = append(p.Reserves, bignum.B2Pow128.String())
 	p.Tokens = tokens
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = resp.BlockNumber.Uint64()

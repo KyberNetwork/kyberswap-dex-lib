@@ -1,14 +1,12 @@
 package valantisstex
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
 type SwapFeeModuleData struct {
-	FeeInBips       *big.Int
+	FeeInBips       *uint256.Int
 	InternalContext []byte
 }
 

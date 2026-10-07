@@ -489,8 +489,8 @@ func (t *PoolTracker) queryRPCBinsByChunk(ctx context.Context, poolAddress strin
 	return lo.Map(bins, func(_ BinResp, idx int) Bin {
 		return Bin{
 			ID:       binIDs[idx],
-			ReserveX: uint256.MustFromBig(bins[idx].BinReserveX),
-			ReserveY: uint256.MustFromBig(bins[idx].BinReserveY),
+			ReserveX: bins[idx].BinReserveX,
+			ReserveY: bins[idx].BinReserveY,
 		}
 	}), nil
 }

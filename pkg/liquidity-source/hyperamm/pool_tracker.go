@@ -2,7 +2,6 @@ package hyperamm
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -178,7 +177,7 @@ func (t *PoolTracker) getNewPoolState(
 
 // resolveRefFee returns the fee from feeInBips if non-nil and non-zero,
 // otherwise falls back to fallback (the pool's base fee).
-func resolveRefFee(feeInBips *big.Int, fallback uint64) uint64 {
+func resolveRefFee(feeInBips *uint256.Int, fallback uint64) uint64 {
 	if feeInBips != nil && feeInBips.Sign() > 0 {
 		return feeInBips.Uint64()
 	}

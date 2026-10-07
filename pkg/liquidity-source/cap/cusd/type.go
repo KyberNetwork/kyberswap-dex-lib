@@ -1,23 +1,21 @@
 package cusd
 
 import (
-	"math/big"
-
 	"github.com/holiman/uint256"
 )
 
 type FeeDataResult struct {
-	MinMintFee    *big.Int
-	Slope0        *big.Int
-	Slope1        *big.Int
-	MintKinkRatio *big.Int
-	BurnKinkRatio *big.Int
-	OptimalRatio  *big.Int
+	MinMintFee    *uint256.Int
+	Slope0        *uint256.Int
+	Slope1        *uint256.Int
+	MintKinkRatio *uint256.Int
+	BurnKinkRatio *uint256.Int
+	OptimalRatio  *uint256.Int
 }
 
 type PriceResult struct {
-	Price       *big.Int
-	LastUpdated *big.Int
+	Price       *uint256.Int
+	LastUpdated *uint256.Int
 }
 
 type Extra struct {
@@ -47,11 +45,11 @@ type FeeData struct {
 
 func (f *FeeDataResult) toFeeData() *FeeData {
 	return &FeeData{
-		MinMintFee:    uint256.MustFromBig(f.MinMintFee),
-		Slope0:        uint256.MustFromBig(f.Slope0),
-		Slope1:        uint256.MustFromBig(f.Slope1),
-		MintKinkRatio: uint256.MustFromBig(f.MintKinkRatio),
-		BurnKinkRatio: uint256.MustFromBig(f.BurnKinkRatio),
-		OptimalRatio:  uint256.MustFromBig(f.OptimalRatio),
+		MinMintFee:    f.MinMintFee,
+		Slope0:        f.Slope0,
+		Slope1:        f.Slope1,
+		MintKinkRatio: f.MintKinkRatio,
+		BurnKinkRatio: f.BurnKinkRatio,
+		OptimalRatio:  f.OptimalRatio,
 	}
 }

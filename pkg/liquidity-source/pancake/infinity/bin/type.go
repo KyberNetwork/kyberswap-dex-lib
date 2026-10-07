@@ -48,10 +48,10 @@ type FetchRPCResult struct {
 }
 
 type BinResp struct {
-	BinReserveX  *big.Int
-	BinReserveY  *big.Int
-	BinLiquidity *big.Int
-	TotalShares  *big.Int
+	BinReserveX  *uint256.Int
+	BinReserveY  *uint256.Int
+	BinLiquidity *uint256.Int
+	TotalShares  *uint256.Int
 }
 
 type Extra struct {

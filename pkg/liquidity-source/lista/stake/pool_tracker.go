@@ -60,11 +60,11 @@ func (t *PoolTracker) getNewPoolState(
 
 	var (
 		paused           bool
-		depositRate      *big.Int
-		withdrawRate     *big.Int
-		feeRate          *big.Int
-		amountToDelegate *big.Int
-		minBnb           *big.Int
+		depositRate      *uint256.Int
+		withdrawRate     *uint256.Int
+		feeRate          *uint256.Int
+		amountToDelegate *uint256.Int
+		minBnb           *uint256.Int
 		whitelistOff     bool
 	)
 
@@ -105,10 +105,10 @@ func (t *PoolTracker) getNewPoolState(
 
 	extra := Extra{
 		Paused:                  paused,
-		DepositRate:             uint256.MustFromBig(depositRate),
-		WithdrawRate:            uint256.MustFromBig(withdrawRate),
-		InstantWithdrawFeeRate:  uint256.MustFromBig(feeRate),
-		MinBnb:                  uint256.MustFromBig(minBnb),
+		DepositRate:             depositRate,
+		WithdrawRate:            withdrawRate,
+		InstantWithdrawFeeRate:  feeRate,
+		MinBnb:                  minBnb,
 		InstantWithdrawEligible: whitelistOff,
 	}
 	extraBytes, err := json.Marshal(extra)

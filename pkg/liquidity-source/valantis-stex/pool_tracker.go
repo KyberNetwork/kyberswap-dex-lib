@@ -2,7 +2,6 @@ package valantisstex
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -67,12 +66,12 @@ func (t *PoolTracker) getNewPoolState(
 
 	var (
 		reserves struct {
-			Token0 *big.Int
-			Token1 *big.Int
+			Token0 *uint256.Int
+			Token1 *uint256.Int
 		}
 		withdrawalModule                     common.Address
-		rate0To1                             *big.Int
-		rate1To0                             *big.Int
+		rate0To1                             *uint256.Int
+		rate1To0                             *uint256.Int
 		swapFeeInBipsZtoO, swapFeeInBips0toZ struct {
 			Data SwapFeeModuleData
 		}
@@ -136,10 +135,10 @@ func (t *PoolTracker) getNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		WithdrawalModule:  withdrawalModule,
-		SwapFeeInBipsZtoO: uint256.MustFromBig(swapFeeInBipsZtoO.Data.FeeInBips),
-		SwapFeeInBipsOtoZ: uint256.MustFromBig(swapFeeInBips0toZ.Data.FeeInBips),
-		Rate0To1:          uint256.MustFromBig(rate0To1),
-		Rate1To0:          uint256.MustFromBig(rate1To0),
+		SwapFeeInBipsZtoO: swapFeeInBipsZtoO.Data.FeeInBips,
+		SwapFeeInBipsOtoZ: swapFeeInBips0toZ.Data.FeeInBips,
+		Rate0To1:          rate0To1,
+		Rate1To0:          rate1To0,
 		Gas:               cfg.Gas,
 	})
 	if err != nil {
