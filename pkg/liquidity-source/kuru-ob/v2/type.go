@@ -64,8 +64,8 @@ type StaticExtra struct {
 
 // Level is one aggregated L2 price level: raw price and book quantity.
 type Level struct {
-	Price uint64       `json:"p"`
-	Size  *uint256.Int `json:"s"`
+	Price uint64      `json:"p"`
+	Size  uint256.Int `json:"s"`
 }
 
 // Extra is empty (no levels) when the market or AccountCore is paused.
@@ -77,8 +77,8 @@ type Extra struct {
 
 // SwapInfo tells UpdateBalance how far the swap walked the book on the consumed side.
 type SwapInfo struct {
-	FullLevels  int          `json:"-"`
-	PartialFill *uint256.Int `json:"-"`
+	FullLevels  int         `json:"-"`
+	PartialFill uint256.Int `json:"-"`
 }
 
 // MetaInfo feeds the encoder: IdxIn 1 = quote in = OrderBook.swap isBuy.

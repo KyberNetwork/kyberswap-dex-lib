@@ -1,6 +1,7 @@
 package kuruobv2
 
 import (
+	"math"
 	"math/big"
 	"slices"
 
@@ -32,7 +33,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
-	if staticExtra.SizePrecision == nil || staticExtra.BaseSizeMultiplier == nil || staticExtra.PricePrecision == 0 {
+	// The walk relies on these bounds: sizes and prices keep the Mul+Div steps inside 256 bits,
+	// and zero divisors would silently give zero (uint256 Div by zero does not panic).
+	if len(entityPool.Tokens) != 2 || staticExtra.SizePrecision == nil || staticExtra.BaseSizeMultiplier == nil ||
+		staticExtra.PricePrecision == 0 || staticExtra.PricePrecision > math.MaxUint32 ||
+		staticExtra.SizePrecision.IsZero() || staticExtra.SizePrecision.BitLen() > 128 ||
+		staticExtra.BaseSizeMultiplier.IsZero() || staticExtra.BaseSizeMultiplier.BitLen() > 128 ||
+		staticExtra.QuoteDecimals > maxQuoteDecimals || extra.TakerFeePps >= feeDenominator.Uint64() {
 		return nil, ErrInvalidStaticExtra
 	}
 	return &PoolSimulator{
@@ -54,103 +61,124 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if idxIn < 0 || idxOut < 0 || idxIn == idxOut {
 		return nil, ErrInvalidToken
 	}
-	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
-	if overflow || amountIn.BitLen() > 128 { // OrderBook.swap takes uint128 amountIn
+	var amountIn, used, out uint256.Int
+	if amountIn.SetFromBig(params.TokenAmountIn.Amount) || amountIn.BitLen() > 128 { // swap takes uint128
 		return nil, ErrOverflow
 	} else if amountIn.IsZero() {
 		return nil, ErrZeroAmountOut
 	}
-	var used, out *uint256.Int
-	var swapInfo SwapInfo
+	var si SwapInfo
 	var err error
 	if idxIn == 0 {
-		used, out, swapInfo, err = p.sell(amountIn)
+		err = p.sell(&amountIn, &used, &out, &si)
 	} else {
-		used, out, swapInfo, err = p.buy(amountIn)
+		err = p.buy(&amountIn, &used, &out, &si)
 	}
 	if err != nil {
 		return nil, err
 	}
 
+	levels := int64(si.FullLevels)
+	if !si.PartialFill.IsZero() {
+		levels++
+	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: out.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: bignumber.ZeroBI},
 		RemainingTokenAmountIn: &pool.TokenAmount{Token: params.TokenAmountIn.Token,
-			Amount: amountIn.Sub(amountIn, used).ToBig()},
-		Gas:      gasBase + gasLevel*int64(swapInfo.FullLevels+lo.Ternary(swapInfo.PartialFill.IsZero(), 0, 1)),
-		SwapInfo: swapInfo,
+			Amount: amountIn.Sub(&amountIn, &used).ToBig()},
+		Gas:      gasBase + gasLevel*levels,
+		SwapInfo: si,
 	}, nil
+}
+
+// divUp sets z = ceil(x / d) for d != 0.
+func divUp(z, x, d *uint256.Int) *uint256.Int {
+	var rem uint256.Int
+	if z.DivMod(x, d, &rem); !rem.IsZero() {
+		z.AddUint64(z, 1)
+	}
+	return z
 }
 
 // sell (base in) walks bids. Each fill floors twice: price*size/sizePrecision, then
 // *quoteScale/pricePrecision; the taker fee is ceiled once on the aggregate quote.
 // ponytail: floors per aggregated L2 level, on-chain floors per maker order (<=1 wei/order lower).
-func (p *PoolSimulator) sell(amountIn *uint256.Int) (used, out *uint256.Int, si SwapInfo, err error) {
+func (p *PoolSimulator) sell(amountIn, used, out *uint256.Int, si *SwapInfo) error {
 	if len(p.Bids) == 0 {
-		return nil, nil, si, ErrInsufficientLiquidity
+		return ErrInsufficientLiquidity
 	}
 	var remaining, fill, quote, tmp uint256.Int
 	quoteScale := big256.TenPow(p.QuoteDecimals)
+	pricePrecision := tmp.SetUint64(p.PricePrecision)
 	remaining.Div(amountIn, p.BaseSizeMultiplier)
-	used, out, si.PartialFill = remaining.Clone(), new(uint256.Int), new(uint256.Int)
-	for _, level := range p.Bids {
+	used.Set(&remaining)
+	for i := range p.Bids {
+		level := &p.Bids[i]
 		if remaining.IsZero() {
 			break
-		} else if remaining.Lt(level.Size) {
+		} else if remaining.Lt(&level.Size) {
 			fill.Set(&remaining)
 			si.PartialFill.Set(&remaining)
 		} else {
-			fill.Set(level.Size)
+			fill.Set(&level.Size)
 			si.FullLevels++
 		}
-		big256.MulDivDown(&quote, tmp.SetUint64(level.Price), &fill, p.SizePrecision)
-		out.Add(out, big256.MulDivDown(&quote, &quote, quoteScale, tmp.SetUint64(p.PricePrecision)))
+		// price < 2^32 and fill <= 2^128, so the product fits; quote*quoteScale may not.
+		quote.Mul(quote.SetUint64(level.Price), &fill).Div(&quote, p.SizePrecision)
+		out.Add(out, big256.MulDivDown(&quote, &quote, quoteScale, pricePrecision))
 		remaining.Sub(&remaining, &fill)
 	}
-	out.Sub(out, big256.MulDivUp(&tmp, out, tmp.SetUint64(p.TakerFeePps), feeDenominator))
+	// out < 2^192 and fee < 2^24, so the product fits.
+	out.Sub(out, divUp(&tmp, tmp.Mul(out, quote.SetUint64(p.TakerFeePps)), feeDenominator))
 	if out.IsZero() {
-		return nil, nil, si, ErrZeroAmountOut
+		return ErrZeroAmountOut
 	}
-	return used.Sub(used, &remaining).Mul(used, p.BaseSizeMultiplier), out, si, nil
+	used.Sub(used, &remaining).Mul(used, p.BaseSizeMultiplier)
+	return nil
 }
 
 // buy (quote in) treats amountIn as fee-inclusive: principal = floor(in*D/(D+fee)). Ask fills
 // cost ceil(sum(price*size*quoteScale) / (sizePrecision*pricePrecision)) for the whole match,
 // and the taker fee is ceiled once on that quote. Verified exact against testnet estimateSwap.
-func (p *PoolSimulator) buy(amountIn *uint256.Int) (used, out *uint256.Int, si SwapInfo, err error) {
+func (p *PoolSimulator) buy(amountIn, used, out *uint256.Int, si *SwapInfo) error {
 	if len(p.Asks) == 0 {
-		return nil, nil, si, ErrInsufficientLiquidity
+		return ErrInsufficientLiquidity
 	}
 	var budget, numerator, perUnit, fill, priceSizePP, tmp uint256.Int
 	quoteScale := big256.TenPow(p.QuoteDecimals)
-	priceSizePP.Mul(p.SizePrecision, tmp.SetUint64(p.PricePrecision))
-	big256.MulDivDown(&budget, amountIn, feeDenominator, tmp.AddUint64(feeDenominator, p.TakerFeePps))
+	priceSizePP.Mul(p.SizePrecision, tmp.SetUint64(p.PricePrecision)) // both bounded: fits
+	// amountIn < 2^128 and fee denominator < 2^24, so the product fits.
+	budget.Mul(amountIn, feeDenominator).Div(&budget, tmp.AddUint64(feeDenominator, p.TakerFeePps))
 	if _, overflow := budget.MulOverflow(&budget, &priceSizePP); overflow {
-		return nil, nil, si, ErrOverflow
+		return ErrOverflow
 	}
-	out, si.PartialFill = new(uint256.Int), new(uint256.Int)
-	for _, level := range p.Asks {
+	var filled uint256.Int
+	for i := range p.Asks {
+		level := &p.Asks[i]
 		perUnit.Mul(tmp.SetUint64(level.Price), quoteScale)
 		if fill.Sub(&budget, &numerator).Div(&fill, &perUnit).IsZero() {
 			break
-		} else if fill.Lt(level.Size) {
+		} else if fill.Lt(&level.Size) {
 			si.PartialFill.Set(&fill)
 		} else {
-			fill.Set(level.Size)
+			fill.Set(&level.Size)
 			si.FullLevels++
 		}
-		out.Add(out, &fill)
-		numerator.Add(&numerator, perUnit.Mul(&perUnit, &fill))
+		filled.Add(&filled, &fill)
+		numerator.Add(&numerator, perUnit.Mul(&perUnit, &fill)) // <= budget
 		if !si.PartialFill.IsZero() {
 			break
 		}
 	}
-	if out.IsZero() {
-		return nil, nil, si, ErrZeroAmountOut
+	if filled.IsZero() {
+		return ErrZeroAmountOut
 	}
-	used = big256.MulDivUp(new(uint256.Int), &numerator, big256.U1, &priceSizePP)
-	return used.Add(used, big256.MulDivUp(&tmp, used, tmp.SetUint64(p.TakerFeePps), feeDenominator)),
-		out.Mul(out, p.BaseSizeMultiplier), si, nil
+	// used < amountIn < 2^128, fee < 2^24: the product fits.
+	divUp(used, &numerator, &priceSizePP)
+	used.Add(used, divUp(&tmp, tmp.Mul(used, perUnit.SetUint64(p.TakerFeePps)), feeDenominator))
+	out.Mul(&filled, p.BaseSizeMultiplier)
+	return nil
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -169,8 +197,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		book = &p.Asks
 	}
 	*book = (*book)[min(si.FullLevels, len(*book)):]
-	if len(*book) > 0 && !si.PartialFill.IsZero() { // copy-on-write: levels are shared with clones
-		(*book)[0].Size = new(uint256.Int).Sub((*book)[0].Size, si.PartialFill)
+	if len(*book) > 0 && !si.PartialFill.IsZero() {
+		(*book)[0].Size.Sub(&(*book)[0].Size, &si.PartialFill)
 	}
 }
 
