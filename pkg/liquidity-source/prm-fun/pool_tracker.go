@@ -2,7 +2,6 @@ package prmfun
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -63,8 +62,8 @@ func (t *PoolTracker) getNewPoolState(
 	var (
 		phase          uint8
 		reservesResult GetReservesResult
-		memeSold       *big.Int
-		deskRaised     *big.Int
+		memeSold       *uint256.Int
+		deskRaised     *uint256.Int
 	)
 
 	resp, err := t.ethrpcClient.NewRequest().SetOverrides(overrides).SetContext(ctx).
@@ -84,17 +83,15 @@ func (t *PoolTracker) getNewPoolState(
 	if err != nil {
 		return p, err
 	}
-	virtualDesk := uint256.MustFromBig(reservesResult.QuoteReserve)
-	virtualMeme := uint256.MustFromBig(reservesResult.TokenReserve)
-	uMemeSold := uint256.MustFromBig(memeSold)
-	uDeskRaised := uint256.MustFromBig(deskRaised)
+	virtualDesk := reservesResult.QuoteReserve
+	virtualMeme := reservesResult.TokenReserve
 
 	extra := Extra{
 		Phase:       phase,
 		VirtualMeme: virtualMeme,
 		VirtualDesk: virtualDesk,
-		MemeSold:    uMemeSold,
-		DeskRaised:  uDeskRaised,
+		MemeSold:    memeSold,
+		DeskRaised:  deskRaised,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

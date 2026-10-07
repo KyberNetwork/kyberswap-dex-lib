@@ -55,6 +55,6 @@ type PoolMeta struct {
 }
 
 type GetReservesResult struct {
-	QuoteReserve *big.Int
-	TokenReserve *big.Int
+	QuoteReserve *uint256.Int
+	TokenReserve *uint256.Int
 }
