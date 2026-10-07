@@ -135,6 +135,9 @@ type HookParam struct {
 	// latest on-chain state. Threaded through by PoolTracker.GetNewPoolStateWithOverrides; nil
 	// in the normal-flow (GetNewPoolState) path.
 	Overrides map[common.Address]gethclient.OverrideAccount
+	// StaleCheck is pool.FactoryOpts.StaleCheck (set by route finding, not indexing): hooks that
+	// price off a tracked quote may refuse to quote once that quote is too old.
+	StaleCheck bool
 }
 
 type HookExtra json.RawMessage
