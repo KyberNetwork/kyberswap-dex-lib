@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -121,4 +122,30 @@ func TestFeed_ConcurrentRefreshesDuringPushes(t *testing.T) {
 	eventuallyRate(t, tracker.feed, 3) // seq 50: rate 1+50%3 = 3
 	close(stop)
 	wg.Wait()
+}
+
+// One market with a bad ladder or inventory is dropped alone: it must not
+// withdraw quotes for the other markets of the same snapshot.
+func TestFeed_BadMarketDropsOnlyThatMarket(t *testing.T) {
+	t.Parallel()
+	for name, spoil := range map[string]func(m *feedMessage){
+		"bad ladder": func(m *feedMessage) {
+			m.Tokens[hexAddr(testCBBTC)] = feedToken{Balance: "1", Allowance: "1"}
+			m.Markets[hexAddr(testCBBTC)] = feedMarket{Ladders: [2][]ladder.Point{{{2000, 2}, {1000, 3}}, nil}}
+		},
+		"bad inventory": func(m *feedMessage) {
+			m.Tokens[hexAddr(testCBBTC)] = feedToken{Balance: "x", Allowance: "1"}
+			m.Markets[hexAddr(testCBBTC)] = feedMarket{Ladders: linearLadders(2, 0.5)}
+		},
+	} {
+		c := &feedClient{chainID: 8453, proxy: hexAddr(testProxy)}
+		msg := snapshotFrame(1, 2, 0.5)
+		spoil(&msg)
+		frame, err := json.Marshal(msg)
+		require.NoError(t, err)
+		require.True(t, c.handle(frame), name)
+		assert.Equal(t, float64(2), rate0(c), name)
+		_, ok := c.latest().market(hexAddr(testUSDC), hexAddr(testCBBTC))
+		assert.False(t, ok, name)
+	}
 }

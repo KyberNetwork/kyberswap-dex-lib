@@ -192,7 +192,7 @@ func TestPoolTracker_NoFeedConfigured(t *testing.T) {
 	assert.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
 }
 
-// 11. Discovery is keyed by asset, so a pricing upgrade that reorders or
+// Discovery is keyed by asset, so a pricing upgrade that reorders or
 // adds markets keeps existing pool addresses.
 func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 	t.Parallel()

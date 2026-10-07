@@ -371,7 +371,7 @@ func (c *feedClient) handle(data []byte) bool {
 		return false
 	}
 
-	snap, err := buildFeedSnapshot(&msg, time.Now())
+	snap, err := c.buildFeedSnapshot(&msg, time.Now())
 	if err != nil {
 		c.snapshot.Store(nil)
 		c.log().Warnf("nemo-prop feed: dropping snapshot %d: %v", msg.Seq, err)
@@ -386,9 +386,10 @@ func (c *feedClient) invalidate(err error) {
 	c.log().Warnf("nemo-prop feed: %v: %v", errFeedInvalid, err)
 }
 
-// buildFeedSnapshot validates a snapshot frame: addresses, ladders, and
-// inventory for the base and every market asset.
-func buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (*feedSnapshot, error) {
+// buildFeedSnapshot validates a snapshot frame. A bad base or base inventory
+// invalidates the frame; a bad market (ladder or inventory) is dropped alone,
+// so it can't withdraw the other markets' quotes.
+func (c *feedClient) buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (*feedSnapshot, error) {
 	if !common.IsHexAddress(msg.Base) {
 		return nil, errFeedInvalid
 	}
@@ -398,11 +399,11 @@ func buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (*feedSnapshot, e
 	for token, t := range msg.Tokens {
 		balance, err := uint256.FromDecimal(t.Balance)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		allowance, err := uint256.FromDecimal(t.Allowance)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		reserves[strings.ToLower(token)] = deliverable(balance, allowance)
 	}
@@ -413,11 +414,10 @@ func buildFeedSnapshot(msg *feedMessage, receivedAt time.Time) (*feedSnapshot, e
 	markets := make(map[string][2][]ladder.Point, len(msg.Markets))
 	for asset, m := range msg.Markets {
 		asset = strings.ToLower(asset)
-		if _, ok := reserves[asset]; !ok || !common.IsHexAddress(asset) || asset == base {
-			return nil, errFeedInvalid
-		}
-		if validateLadder(m.Ladders[0]) != nil || validateLadder(m.Ladders[1]) != nil {
-			return nil, errInvalidLadder
+		if _, ok := reserves[asset]; !ok || !common.IsHexAddress(asset) || asset == base ||
+			validateLadder(m.Ladders[0]) != nil || validateLadder(m.Ladders[1]) != nil {
+			c.log().Warnf("nemo-prop feed: snapshot %d: dropping invalid market %s", msg.Seq, asset)
+			continue
 		}
 		markets[asset] = m.Ladders
 	}
