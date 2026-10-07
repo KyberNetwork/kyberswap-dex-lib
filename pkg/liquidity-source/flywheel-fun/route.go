@@ -114,7 +114,7 @@ func swapCL(p pool.IPoolSimulator, amount *uint256.Int, in, out string, fee uint
 	if overflow || value.IsZero() {
 		return zero, SwapStep{}, 0, ErrAmount
 	}
-	var info any = r.SwapInfo
+	info := r.SwapInfo
 	if _, ok := p.(*v4.PoolSimulator); ok {
 		info = v4.SwapInfo{PoolSwapInfo: r.SwapInfo.(v3.SwapInfo)}
 	}
