@@ -16,16 +16,15 @@ import (
 // Tokens are [quote, base]; a buy is quote -> base and walks the asks.
 type PoolSimulator struct {
 	pool.Pool
-	bids, asks  []Level
-	rq, rb      *uint256.Int // nil when the AMM is disabled
-	scale       uint256.Int
-	tickSize    uint256.Int
-	maxPrice    uint256.Int
-	buyWorst    uint256.Int
-	takerFee    uint256.Int
-	makerRebate uint256.Int
-	ammFee      uint256.Int
-	router      string
+	bids, asks []Level
+	rq, rb     *uint256.Int // nil when the AMM is disabled
+	*market                 // fixed for this snapshot, shared by clones
+}
+
+type market struct {
+	scale, tickSize, maxPrice, buyWorst uint256.Int
+	takerFee, makerRebate, ammFee       uint256.Int
+	router                              string
 }
 
 // No age check: pool-service skips saving (and re-stamping) unchanged state, so a quiet market's
@@ -62,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		asks:   extra.Asks,
 		rq:     extra.ReserveQ,
 		rb:     extra.ReserveB,
-		router: staticExtra.Router,
+		market: &market{router: staticExtra.Router},
 	}
 	if p.rq == nil || p.rb == nil {
 		p.rq, p.rb = nil, nil
@@ -101,7 +100,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut:         &pool.TokenAmount{Token: params.TokenOut, Amount: r.amountOut.ToBig()},
-		Fee:                    &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
+		Fee:                    &pool.TokenAmount{Token: p.Info.Tokens[0], Amount: r.fee.ToBig()},
 		RemainingTokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn.Sub(amountIn, &r.amountIn).ToBig()},
 		Gas:                    gas,
 		SwapInfo:               r.si,

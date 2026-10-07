@@ -16,11 +16,16 @@ var (
 )
 
 type orderResult struct {
-	amountIn, amountOut uint256.Int
-	si                  SwapInfo
-	levels              int
-	usedAMM             bool
+	amountIn, amountOut, fee uint256.Int // fee is in quote: tokenIn on buys, tokenOut on sells
+	si                       SwapInfo
+	levels                   int
+	usedAMM                  bool
 }
+
+// maxFastScaleBits bounds scaleFactor so no solver/AMM product exceeds 256 bits (sizes <= 2^128,
+// reserves <= 2^112, fees < 2^17). Below it the solver predicates are monotone; above it the
+// literal, wrapping on-chain search is kept.
+const maxFastScaleBits = 96
 
 func divUp(z, x, y *uint256.Int) *uint256.Int {
 	var rem uint256.Int
@@ -31,12 +36,12 @@ func divUp(z, x, y *uint256.Int) *uint256.Int {
 }
 
 // marketOrder mirrors _marketOrder for an exact-input taker order of origSize.
-func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (*orderResult, error) {
+func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (r orderResult, err error) {
 	if origSize.Gt(big256.UMaxU128) {
-		return nil, ErrAmountTooLarge
+		return r, ErrAmountTooLarge
 	}
 	var size, sizeLeft, tmp uint256.Int
-	r := orderResult{si: SwapInfo{IsBuy: isBuy}}
+	r.si.IsBuy = isBuy
 	amountIn, amountOut := &r.amountIn, &r.amountOut
 	worst, levels, endPrice := &p.tickSize, p.bids, big256.U0
 	if isBuy {
@@ -50,7 +55,7 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (*orderRe
 	ammOn := p.rq != nil && !(p.rq.IsZero() && p.rb.IsZero())
 	if ammOn {
 		if p.rq.IsZero() || p.rb.IsZero() {
-			return nil, ErrMarketInactive // on-chain divides by the zero side
+			return r, ErrMarketInactive // on-chain divides by the zero side
 		}
 		rq.Set(p.rq)
 		rb.Set(p.rb)
@@ -71,7 +76,7 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (*orderRe
 			}
 			ammIn, ammOut, err := p.ammStep(isBuy, &rq, &rb, limit, &sizeLeft)
 			if err != nil {
-				return nil, err
+				return r, err
 			} else if !ammOut.IsZero() {
 				r.usedAMM = true
 				amountIn.Add(amountIn, &ammIn)
@@ -110,7 +115,7 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (*orderRe
 			}
 			big256.MulDivDown(&tmp, &tmp, u1e5, &p.makerRebate)
 			if tmp.Gt(&sizeLeft) {
-				return nil, ErrOverflow
+				return r, ErrOverflow // checked subtraction on-chain
 			}
 			amountIn.Add(amountIn, &tmp)
 			amountOut.Add(amountOut, order)
@@ -126,24 +131,28 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (*orderRe
 	r.si.LevelsDone, r.si.OrdersDone = li, oi
 
 	if amountIn.IsZero() && amountOut.IsZero() {
-		return nil, ErrInsufficientBook
+		return r, ErrInsufficientBook
 	}
 	if isBuy { // fee in quote: complete fills consume exactly origSize
+		r.fee.Set(amountIn)
 		if size.Eq(amountIn) {
 			amountIn.Set(origSize)
 		} else {
 			divUp(amountIn, tmp.Mul(amountIn, u1e5), &p.takerFee)
 		}
+		r.fee.Sub(amountIn, &r.fee)
 	} else {
+		r.fee.Set(amountOut)
 		big256.MulDivDown(amountOut, amountOut, &p.takerFee, u1e5)
+		r.fee.Sub(&r.fee, amountOut)
 	}
 	if amountOut.IsZero() {
-		return nil, ErrInsufficientBook
+		return r, ErrInsufficientBook
 	}
 	if ammOn {
 		r.si.ReserveQ, r.si.ReserveB = rq.Clone(), rb.Clone()
 	}
-	return &r, nil
+	return r, nil
 }
 
 // ammStep fills the AMM up to limit (the next book price or the worst price). rq and rb are
@@ -151,13 +160,17 @@ func (p *PoolSimulator) marketOrder(isBuy bool, origSize *uint256.Int) (*orderRe
 func (p *PoolSimulator) ammStep(isBuy bool, rq, rb, limit, sizeLeft *uint256.Int) (ammIn, ammOut uint256.Int,
 	err error) {
 	var num, den uint256.Int
+	fast := p.scale.BitLen() <= maxFastScaleBits
 	if isBuy {
+		if !fast && mulOverflows(rq, &p.scale, u1e4, &p.makerRebate) {
+			return ammIn, ammOut, ErrOverflow // checked math on-chain
+		}
 		num.Mul(rq, &p.scale).Mul(&num, u1e4).Mul(&num, &p.makerRebate)
 		den.Mul(rb, &p.ammFee).Mul(&den, u1e5)
 		if !limit.Gt(divUp(&num, &num, &den)) {
 			return
 		}
-		ammIn = exactInputBuySolve(rq, rb, limit, &p.makerRebate, sizeLeft, &p.scale, &p.ammFee)
+		ammIn = exactInputBuySolve(rq, rb, limit, &p.makerRebate, sizeLeft, &p.scale, &p.ammFee, fast)
 		num.Mul(&ammIn, &p.ammFee)
 		den.Mul(rq, u1e4).Add(&den, &num)
 		big256.MulDivDown(&ammOut, &num, rb, &den)
@@ -167,12 +180,15 @@ func (p *PoolSimulator) ammStep(isBuy bool, rq, rb, limit, sizeLeft *uint256.Int
 		rq.Add(rq, &ammIn)
 		rb.Sub(rb, &ammOut)
 	} else {
+		if !fast && mulOverflows(rq, &p.scale, &p.ammFee, u1e5) {
+			return ammIn, ammOut, ErrOverflow
+		}
 		num.Mul(rq, &p.scale).Mul(&num, &p.ammFee).Mul(&num, u1e5)
 		den.Mul(rb, u1e4).Mul(&den, &p.makerRebate)
 		if !limit.Lt(num.Div(&num, &den)) {
 			return
 		}
-		ammIn = exactInputSellSolve(rq, rb, limit, &p.makerRebate, sizeLeft, &p.scale, &p.ammFee)
+		ammIn = exactInputSellSolve(rq, rb, limit, &p.makerRebate, sizeLeft, &p.scale, &p.ammFee, fast)
 		num.Mul(&ammIn, &p.ammFee)
 		den.Mul(rb, u1e4).Add(&den, &num)
 		big256.MulDivDown(&ammOut, &num, rq, &den)
@@ -188,18 +204,29 @@ func (p *PoolSimulator) ammStep(isBuy bool, rq, rb, limit, sizeLeft *uint256.Int
 	return
 }
 
-// exactInputBuySolve is CrystalMath._exactInputBuySolve (unchecked; uint256 wraps the same way).
-func exactInputBuySolve(rq, rb, target, mr, high, s, fee *uint256.Int) (low uint256.Int) {
-	var hi, mid, num, den, t uint256.Int
+func mulOverflows(a, b, c, d *uint256.Int) bool {
+	var z uint256.Int
+	_, o1 := z.MulOverflow(a, b)
+	_, o2 := z.MulOverflow(&z, c)
+	_, o3 := z.MulOverflow(&z, d)
+	return o1 || o2 || o3
+}
+
+// exactInputBuySolve is CrystalMath._exactInputBuySolve: the largest input in [0, high] whose
+// post-swap price stays <= target. With fast set the price is monotone in the input, so a passing
+// high skips the search with the same result.
+func exactInputBuySolve(rq, rb, target, mr, high, s, fee *uint256.Int, fast bool) (low uint256.Int) {
+	var hi, p uint256.Int
+	if high.IsZero() {
+		return
+	} else if fast && !buyPriceAfter(&p, high, rq, rb, mr, s, fee).Gt(target) {
+		return *high
+	}
 	hi.Set(high)
+	var mid uint256.Int
 	for low.Lt(&hi) {
 		mid.Sub(&hi, &low).AddUint64(&mid, 1).Rsh(&mid, 1).Add(&mid, &low)
-		t.Mul(&mid, fee)
-		den.Mul(rq, u1e4).Add(&den, &t)
-		t.Mul(&t, rb).Div(&t, &den)
-		den.Sub(rb, &t).Mul(&den, fee).Mul(&den, u1e5)
-		num.Add(rq, &mid).Mul(&num, u1e4).Mul(&num, s).Mul(&num, mr)
-		if divUp(&num, &num, &den).Gt(target) {
+		if buyPriceAfter(&p, &mid, rq, rb, mr, s, fee).Gt(target) {
 			hi.SubUint64(&mid, 1)
 		} else {
 			low.Set(&mid)
@@ -208,24 +235,48 @@ func exactInputBuySolve(rq, rb, target, mr, high, s, fee *uint256.Int) (low uint
 	return
 }
 
-// exactInputSellSolve is CrystalMath._exactInputSellSolve.
-func exactInputSellSolve(rq, rb, target, mr, high, s, fee *uint256.Int) (low uint256.Int) {
-	var hi, mid, num, den, t uint256.Int
+// buyPriceAfter is the solver's pMid for input mid (unchecked, wraps like the contract).
+func buyPriceAfter(z, mid, rq, rb, mr, s, fee *uint256.Int) *uint256.Int {
+	var t, den uint256.Int
+	t.Mul(mid, fee)
+	den.Mul(rq, u1e4).Add(&den, &t)
+	t.Mul(&t, rb).Div(&t, &den)
+	den.Sub(rb, &t).Mul(&den, fee).Mul(&den, u1e5)
+	z.Add(rq, mid).Mul(z, u1e4).Mul(z, s).Mul(z, mr)
+	return divUp(z, z, &den)
+}
+
+// exactInputSellSolve is CrystalMath._exactInputSellSolve: the largest input in [0, high] whose
+// post-swap price stays >= target.
+func exactInputSellSolve(rq, rb, target, mr, high, s, fee *uint256.Int, fast bool) (low uint256.Int) {
+	var hi, p uint256.Int
+	if high.IsZero() {
+		return
+	} else if fast && !sellPriceAfter(&p, high, rq, rb, mr, s, fee).Lt(target) {
+		return *high
+	}
 	hi.Set(high)
+	var mid uint256.Int
 	for low.Lt(&hi) {
 		mid.Sub(&hi, &low).AddUint64(&mid, 1).Rsh(&mid, 1).Add(&mid, &low)
-		t.Mul(&mid, fee)
-		den.Mul(rb, u1e4).Add(&den, &t)
-		t.Mul(&t, rq).Div(&t, &den)
-		num.Sub(rq, &t).Mul(&num, fee).Mul(&num, s).Mul(&num, u1e5)
-		den.Add(rb, &mid).Mul(&den, u1e4).Mul(&den, mr)
-		if num.Div(&num, &den).Lt(target) {
+		if sellPriceAfter(&p, &mid, rq, rb, mr, s, fee).Lt(target) {
 			hi.SubUint64(&mid, 1)
 		} else {
 			low.Set(&mid)
 		}
 	}
 	return
+}
+
+// sellPriceAfter is the sell solver's pMid for input mid.
+func sellPriceAfter(z, mid, rq, rb, mr, s, fee *uint256.Int) *uint256.Int {
+	var t, den uint256.Int
+	t.Mul(mid, fee)
+	den.Mul(rb, u1e4).Add(&den, &t)
+	t.Mul(&t, rq).Div(&t, &den)
+	z.Sub(rq, &t).Mul(z, fee).Mul(z, s).Mul(z, u1e5)
+	den.Add(rb, mid).Mul(&den, u1e4).Mul(&den, mr)
+	return z.Div(z, &den)
 }
 
 // defaultBuyWorstPrice is one tick below maxPrice, as _marketOrder defaults it for taker buys.

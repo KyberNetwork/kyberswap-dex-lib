@@ -2,11 +2,14 @@ package crystalob
 
 import (
 	"bytes"
+	"encoding/binary"
 	"math/big"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/KyberNetwork/msgpack/v5"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,7 +32,7 @@ const (
 	ammPoolJSON  = `{"address": "0x2c906871eeb9be58f00d4127d7b5eb53fec539a1", "exchange": "crystal-ob", "type": "crystal-ob", "reserves": ["116739929569124381627445", "594202274318705746850106683"], "tokens": [{"address": "0x3bd359c1119da7da1d913d1c4d2b7c461115433a", "swappable": true}, {"address": "0x3ebbbaa60c309ec7d857a399051a5e20eb886215", "swappable": true}], "extra": "{\"b\":[[\"74818\",\"100000000000000000000\"]],\"rq\":\"116639929569124381627445\",\"rb\":\"594202274318705746850106683\",\"tf\":99970,\"mr\":99995}", "staticExtra": "{\"t\":4,\"s\":\"1000000000\",\"ts\":\"1\",\"mp\":\"1000000000000000\",\"r\":\"0x508254c838b2e936b0631440c5c6e3ab3a4a98bd\"}", "blockNumber": 111073992}`
 )
 
-func newTestSim(t *testing.T, raw string) *PoolSimulator {
+func newTestSim(t testing.TB, raw string) *PoolSimulator {
 	var ep entity.Pool
 	require.NoError(t, json.Unmarshal([]byte(raw), &ep))
 	sim, err := NewPoolSimulator(ep)
@@ -166,5 +169,96 @@ func TestMsgpackRoundTrip(t *testing.T) {
 			_, got, _ := quote(t, &decoded, in, out, "1000000000000000000000")
 			assert.Equal(t, want, got)
 		}
+	}
+}
+
+// The fast path returns high without searching when high already satisfies the target. That is
+// only equal to the contract's binary search because the solver price is monotone in the input.
+func TestSolverFastPathMatchesBinarySearch(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewPCG(1, 2))
+	rnd := func(bits int) *uint256.Int {
+		var z uint256.Int
+		z.SetBytes(binary.BigEndian.AppendUint64(binary.BigEndian.AppendUint64(nil, rng.Uint64()), rng.Uint64()))
+		return z.Rsh(&z, uint(128-bits)).AddUint64(&z, 1)
+	}
+	fee, mr := uint256.NewInt(ammFeeFour), uint256.NewInt(99995)
+	for i := range 2000 {
+		rq, rb, s := rnd(20+rng.IntN(92)), rnd(20+rng.IntN(92)), big256.TenPow(rng.IntN(29))
+		high := rnd(1 + rng.IntN(100))
+		var p0 uint256.Int
+		target := buyPriceAfter(&p0, rnd(1+rng.IntN(100)), rq, rb, mr, s, fee)
+		fast, slow := exactInputBuySolve(rq, rb, target, mr, high, s, fee, true),
+			exactInputBuySolve(rq, rb, target, mr, high, s, fee, false)
+		require.Equal(t, slow.Dec(), fast.Dec(), "buy case %d", i)
+		target = sellPriceAfter(&p0, rnd(1+rng.IntN(100)), rq, rb, mr, s, fee)
+		fast, slow = exactInputSellSolve(rq, rb, target, mr, high, s, fee, true),
+			exactInputSellSolve(rq, rb, target, mr, high, s, fee, false)
+		require.Equal(t, slow.Dec(), fast.Dec(), "sell case %d", i)
+	}
+}
+
+// The taker fee is charged in quote: on buys it is the input above the pre-fee size, on sells
+// the output withheld from the matched amount.
+func TestCalcAmountOut_Fee(t *testing.T) {
+	t.Parallel()
+	amm := newTestSim(t, ammPoolJSON)
+	res, _, _ := quote(t, amm, wmon, token, "1000000000000000000")
+	assert.Equal(t, wmon, res.Fee.Token)
+	assert.Equal(t, "300000000000000", res.Fee.Amount.String()) // 1e18 - ceil(1e18 * 99970 / 1e5)
+
+	res, out, _ := quote(t, amm, token, wmon, "1000000000000000000000")
+	assert.Equal(t, wmon, res.Fee.Token)
+	gross := new(big.Int).Add(res.Fee.Amount, res.TokenAmountOut.Amount)
+	assert.Equal(t, out, gross.Div(gross.Mul(gross, big.NewInt(99970)), big.NewInt(100000)).String())
+}
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	book, amm := newTestSim(b, bookPoolJSON), newTestSim(b, ammPoolJSON)
+	for _, bc := range []struct {
+		name              string
+		sim               *PoolSimulator
+		tokenIn, tokenOut string
+		amountIn          string
+	}{
+		{"book_buy_6levels", book, usdc, wmon, "1000000000"},
+		{"book_sell_7levels", book, wmon, usdc, "134000000000000000000000"},
+		{"amm_buy", amm, wmon, token, "1000000000000000000000"},
+		{"amm_sell_through_bid", amm, token, wmon, "1000000000000000000000000"},
+	} {
+		params := pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: bc.tokenIn, Amount: bignumber.NewBig(bc.amountIn)},
+			TokenOut:      bc.tokenOut}
+		b.Run(bc.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := bc.sim.CalcAmountOut(params); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkUpdateBalance(b *testing.B) {
+	book := newTestSim(b, bookPoolJSON)
+	res, err := book.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: wmon, Amount: bignumber.NewBig("134000000000000000000000")},
+		TokenOut:      usdc})
+	if err != nil {
+		b.Fatal(err)
+	}
+	params := pool.UpdateBalanceParams{SwapInfo: res.SwapInfo}
+	b.ReportAllocs()
+	for b.Loop() {
+		book.CloneState().UpdateBalance(params)
+	}
+}
+
+func BenchmarkCloneState(b *testing.B) {
+	book := newTestSim(b, bookPoolJSON)
+	b.ReportAllocs()
+	for b.Loop() {
+		_ = book.CloneState()
 	}
 }
