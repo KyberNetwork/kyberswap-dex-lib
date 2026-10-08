@@ -170,6 +170,7 @@ const (
 	ExchangeKyberSwapLimitOrder         = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS       = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                  = "liquidcore"
+	ExchangeUSCoreProp                  = "uscore-prop"
 	ExchangeLiquidityParty              = "liquidity-party"
 	ExchangeListaStable                 = "lista-stable"
 	ExchangeListaStake                  = "lista-stake"
@@ -471,6 +472,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeTideFiProp:         {},
 	ExchangeThogProp:           {},
 	ExchangeSpireProp:          {},
+	ExchangeUSCoreProp:         {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
