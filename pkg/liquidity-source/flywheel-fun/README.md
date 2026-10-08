@@ -30,7 +30,7 @@ Every Flywheel market crossed charges its own fees. Parent trades and refund sal
 
 The tracker reads curve and authenticated canonical-market state at one block, discovers the parent chain from this factory, and reads the external base's spot price to value quote reserves in WETH. Configure `quoteBasePools` for the external leaf, including when it is behind native parents. External bases are indexed and refreshed independently, so their block may differ from the Flywheel pool's; the settlement re-prices them at execution.
 
-Native parent pools and a graduated token's own canonical pool are exposed via `GetBasePools` and can be relinked via `SetBasePool`, so child routes share their parents' liquidity. Clones own all mutable liquidity; stale quote replay is validated entirely before any shared pool is modified. Same-factory graduated parents only, maximum depth two, no cycles.
+Native parent pools and a graduated token's own canonical pool are exposed via `GetBasePools` and can be relinked via `SetBasePool`. Router-service only relinks the indexed external bases (`basePools`), so each pool keeps its own copy of parent and canonical liquidity. Clones own all mutable liquidity; stale quote replay is validated entirely before any shared pool is modified. Same-factory graduated parents only, maximum depth two, no cycles.
 
 ## Tests
 
