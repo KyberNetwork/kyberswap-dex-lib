@@ -191,6 +191,7 @@ const (
 	ExchangeMapleSyrup                  = "maple-syrup"
 	ExchangeMaverickV2                  = "maverick-v2"
 	ExchangeMemeBox                     = "memebox"
+	ExchangeMento                       = "mento"
 	ExchangeMeshSwap                    = "meshswap"
 	ExchangeMetronomeSwap               = "metronome-swap"
 	ExchangeMetropolis                  = "metropolis"
@@ -432,6 +433,7 @@ var needFallbackSourceSet = map[Exchange]struct{}{
 	ExchangeWooFiV3:       {},
 	ExchangeBrownfiV2:     {},
 	ExchangeBrownfiV3:     {},
+	ExchangeMento:         {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {

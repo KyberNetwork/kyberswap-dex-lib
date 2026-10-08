@@ -1,0 +1,3 @@
+[
+  {"type":"function","name":"getRateFeedTradingMode","stateMutability":"view","inputs":[{"name":"rateFeedID","type":"address"}],"outputs":[{"name":"tradingMode","type":"uint8"}]}
+]
