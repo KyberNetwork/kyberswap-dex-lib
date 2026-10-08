@@ -227,8 +227,8 @@ func (d *PoolTracker) getPoolData(
 	var (
 		controllerDecimals  uint8
 		controllerAsset     common.Address
-		collatTotalAssets   = make([]*big.Int, len(collaterals))
-		collatTotalSupplies = make([]*big.Int, len(collaterals))
+		collatTotalAssets   = make([]*uint256.Int, len(collaterals))
+		collatTotalSupplies = make([]*uint256.Int, len(collaterals))
 		collateralDecimals  = make([]uint8, len(collaterals))
 		collateralAssets    = make([]common.Address, len(collaterals))
 	)
@@ -278,14 +278,14 @@ func (d *PoolTracker) getPoolData(
 			if resp, err = req.TryBlockAndAggregate(); err != nil {
 				return nil, 0, err
 			}
-			vaults[idx].EulerAccountBalance = big.NewInt(0)
+			vaults[idx].EulerAccountBalance = uint256.NewInt(0)
 		}
 	}
 
 	data.UniqueVaultAddresses = uniqueVaultAddresses
 	data.Vaults = vaults
 
-	data.CollatAmounts = make([]*big.Int, len(collaterals))
+	data.CollatAmounts = make([]*uint256.Int, len(collaterals))
 	fullVaultList := lo.Map(uniqueVaultAddresses, func(addr string, _ int) shared.VaultInfo {
 		if v, ok := lo.Find(vaultList, func(v shared.VaultInfo) bool {
 			return strings.EqualFold(v.VaultAddress, addr)
@@ -479,12 +479,12 @@ func (d *PoolTracker) updatePool(
 	for idx, v := range data.Vaults {
 		addr := strings.ToLower(data.UniqueVaultAddresses[idx])
 		state := &shared.VaultState{
-			Cash:                uint256.MustFromBig(v.Cash),
-			Debt:                uint256.MustFromBig(v.Debt),
-			MaxDeposit:          uint256.MustFromBig(v.MaxDeposit),
+			Cash:                v.Cash,
+			Debt:                v.Debt,
+			MaxDeposit:          v.MaxDeposit,
 			BorrowCap:           shared.DecodeCap(uint256.NewInt(uint64(v.Caps[1]))),
-			TotalBorrows:        uint256.MustFromBig(v.TotalBorrows),
-			EulerAccountAssets:  uint256.MustFromBig(v.EulerAccountBalance),
+			TotalBorrows:        v.TotalBorrows,
+			EulerAccountAssets:  v.EulerAccountBalance,
 			IsControllerEnabled: v.IsControllerEnabled,
 		}
 
@@ -506,8 +506,8 @@ func (d *PoolTracker) updatePool(
 		vaultMap[addr] = state
 	}
 
-	reserve0 := data.Reserves.Reserve0.String()
-	reserve1 := data.Reserves.Reserve1.String()
+	reserve0 := data.Reserves.Reserve0.Dec()
+	reserve1 := data.Reserves.Reserve1.Dec()
 	status := data.Reserves.Status
 	if !data.IsOperatorAuthorized {
 		reserve0 = "0"
@@ -558,11 +558,9 @@ func (d *PoolTracker) updatePool(
 		SupplyVault:     [2]*shared.VaultState{vaultMap[strings.ToLower(staticExtra.SupplyVault0)], vaultMap[strings.ToLower(staticExtra.SupplyVault1)]},
 		BorrowVault:     [3]*shared.VaultState{vaultMap[strings.ToLower(staticExtra.BorrowVault0)], vaultMap[strings.ToLower(staticExtra.BorrowVault1)], vaultMap[strings.ToLower(data.Controller)]},
 		ControllerVault: data.Controller,
-		Collaterals: lo.Map(data.CollatAmounts, func(v *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(v)
-		}),
-		DynamicParams: dParams,
-		HookExtra:     hookExtra,
+		Collaterals:     data.CollatAmounts,
+		DynamicParams:   dParams,
+		HookExtra:       hookExtra,
 	})
 	if err != nil {
 		return entity.Pool{}, err

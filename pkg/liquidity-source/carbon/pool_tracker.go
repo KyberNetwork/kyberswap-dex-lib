@@ -329,14 +329,14 @@ func mapRawStrategy(raw StrategyByPairResp, token0 common.Address) Strategy {
 		Id: raw.ID,
 		Orders: [2]Order{
 			{
-				Y: uint256.MustFromBig(raw.Orders[i0].Y),
-				Z: uint256.MustFromBig(raw.Orders[i0].Z),
+				Y: raw.Orders[i0].Y,
+				Z: raw.Orders[i0].Z,
 				A: raw.Orders[i0].A,
 				B: raw.Orders[i0].B,
 			},
 			{
-				Y: uint256.MustFromBig(raw.Orders[i1].Y),
-				Z: uint256.MustFromBig(raw.Orders[i1].Z),
+				Y: raw.Orders[i1].Y,
+				Z: raw.Orders[i1].Z,
 				A: raw.Orders[i1].A,
 				B: raw.Orders[i1].B,
 			},

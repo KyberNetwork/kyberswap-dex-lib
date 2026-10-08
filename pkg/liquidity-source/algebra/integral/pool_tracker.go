@@ -129,10 +129,10 @@ func (d *PoolTracker) BootstrapPoolState(
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		Liquidity:        uint256.MustFromBig(rpcData.Liquidity),
+		Liquidity:        rpcData.Liquidity,
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
-		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
+		TickSpacing:      rpcData.TickSpacing,
 		ExtraTimepoint:   ExtraTimepoint{Timepoints: rpcData.Timepoints},
 		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
@@ -148,8 +148,8 @@ func (d *PoolTracker) BootstrapPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = entity.PoolReserves{
-		rpcData.Reserve0.String(),
-		rpcData.Reserve1.String(),
+		rpcData.Reserve0.Dec(),
+		rpcData.Reserve1.Dec(),
 	}
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
 
@@ -225,8 +225,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}
 
 	res.State = GlobalState{
-		Price:        uint256.MustFromBig(rpcState.Price),
-		Tick:         int32(rpcState.Tick.Int64()),
+		Price:        rpcState.Price,
+		Tick:         rpcState.Tick,
 		LastFee:      rpcState.LastFee,
 		PluginConfig: rpcState.PluginConfig,
 		CommunityFee: rpcState.CommunityFee,
@@ -402,8 +402,8 @@ func (d *PoolTracker) getSlidingFeeData(req *ethrpc.Request, pluginAddress strin
 				return errors.New("failed to fetch SlidingFeeConfig." + req.Calls[i].Method)
 			}
 		}
-		cfg.ZeroToOneFeeFactor = uint256.MustFromBig(result.OneToZeroFeeFactor)
-		cfg.OneToZeroFeeFactor = uint256.MustFromBig(result.ZeroToOneFeeFactor)
+		cfg.ZeroToOneFeeFactor = result.OneToZeroFeeFactor
+		cfg.OneToZeroFeeFactor = result.ZeroToOneFeeFactor
 		return nil
 	}
 }
@@ -678,10 +678,10 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	})
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:        uint256.MustFromBig(rpcState.Liquidity),
+		Liquidity:        rpcState.Liquidity,
 		GlobalState:      rpcState.State,
 		Ticks:            entityPoolTicks,
-		TickSpacing:      int32(rpcState.TickSpacing.Int64()),
+		TickSpacing:      rpcState.TickSpacing,
 		ExtraTimepoint:   ExtraTimepoint{Timepoints: rpcState.Timepoints},
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
@@ -698,8 +698,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	p.Extra = string(extraBytes)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 	p.Reserves = entity.PoolReserves{
-		rpcState.Reserve0.String(),
-		rpcState.Reserve1.String(),
+		rpcState.Reserve0.Dec(),
+		rpcState.Reserve1.Dec(),
 	}
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 

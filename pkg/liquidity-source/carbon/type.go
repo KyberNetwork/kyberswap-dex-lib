@@ -103,8 +103,8 @@ type StrategyByPairResp struct {
 	Owner  common.Address
 	Tokens [2]common.Address
 	Orders [2]struct {
-		Y *big.Int
-		Z *big.Int
+		Y *uint256.Int
+		Z *uint256.Int
 		A uint64
 		B uint64
 	}

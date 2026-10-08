@@ -13,20 +13,20 @@ type VaultInfo struct {
 }
 
 type ReserveRPC struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
+	Reserve0 *uint256.Int
+	Reserve1 *uint256.Int
 	Status   uint32
 }
 
 type VaultRPC struct {
-	Cash                *big.Int
-	Debt                *big.Int
-	MaxDeposit          *big.Int
-	TotalBorrows        *big.Int
-	TotalAssets         *big.Int
-	TotalSupply         *big.Int
-	EulerAccountBalance *big.Int
-	MaxWithdraw         *big.Int // V1 only
+	Cash                *uint256.Int
+	Debt                *uint256.Int
+	MaxDeposit          *uint256.Int
+	TotalBorrows        *uint256.Int
+	TotalAssets         *uint256.Int
+	TotalSupply         *uint256.Int
+	EulerAccountBalance *uint256.Int
+	MaxWithdraw         *uint256.Int // V1 only
 	Caps                [2]uint16
 	IsControllerEnabled bool
 }
@@ -73,7 +73,7 @@ type TrackerData struct {
 	Controller           string            // controller debt vault, if exist
 	VaultPrices          [3][3][2]*big.Int // other vault -> debt vault -> [bid/value,ask/debt]
 	VaultLtvs            [3][3]uint16      // vault 0/1/controller -> debt vault
-	CollatAmounts        []*big.Int        // asset amount of euler account across collateral vaults
+	CollatAmounts        []*uint256.Int    // asset amount of euler account across collateral vaults
 	CollatPrices         [][3][2]*big.Int  // collat -> debt vault -> [bid,ask]
 	CollatLtvs           [][3]uint16       // collat -> debt vault
 	IsOperatorAuthorized bool

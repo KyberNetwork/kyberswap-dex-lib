@@ -61,7 +61,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	var (
 		newExtra           Extra
-		reserve0, reserve1 *big.Int
+		reserve0, reserve1 *uint256.Int
 		blockNumber        *big.Int
 		err                error
 	)
@@ -90,16 +90,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 }
 
 func (t *PoolTracker) fetchCLState(ctx context.Context, p entity.Pool, previous Extra,
-	logs []ethtypes.Log) (Extra, *big.Int, *big.Int, *big.Int, error) {
+	logs []ethtypes.Log) (Extra, *uint256.Int, *uint256.Int, *big.Int, error) {
 	var (
 		slot0        slot0Resp
-		liquidity    *big.Int
+		liquidity    *uint256.Int
 		feeToken     uint8
 		plugin       common.Address
 		pluginConfig uint16
 		tickTreeRoot uint32
-		reserve0     *big.Int
-		reserve1     *big.Int
+		reserve0     *uint256.Int
+		reserve1     *uint256.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -126,7 +126,7 @@ func (t *PoolTracker) fetchCLState(ctx context.Context, p entity.Pool, previous 
 		return Extra{}, nil, nil, nil, ErrFailedCall
 	}
 
-	fee, halted, err := t.fetchPluginState(ctx, plugin, pluginConfig, uint32(slot0.Fee.Uint64()), resp.BlockNumber)
+	fee, halted, err := t.fetchPluginState(ctx, plugin, pluginConfig, slot0.Fee, resp.BlockNumber)
 	if err != nil {
 		return Extra{}, nil, nil, nil, err
 	}
@@ -142,34 +142,34 @@ func (t *PoolTracker) fetchCLState(ctx context.Context, p entity.Pool, previous 
 	}
 
 	return Extra{
-		SqrtPriceX96: uint256.MustFromBig(slot0.SqrtPriceX96),
-		Liquidity:    uint256.MustFromBig(liquidity),
+		SqrtPriceX96: slot0.SqrtPriceX96,
+		Liquidity:    liquidity,
 		Fee:          fee,
 		FeeToken:     feeToken,
 		Halted:       halted,
-		Tick:         int(slot0.Tick.Int64()),
+		Tick:         int(slot0.Tick),
 		Ticks:        ticks,
 	}, reserve0, reserve1, resp.BlockNumber, nil
 }
 
-func (t *PoolTracker) fetchStableState(ctx context.Context, p entity.Pool) (Extra, *big.Int, *big.Int, *big.Int,
+func (t *PoolTracker) fetchStableState(ctx context.Context, p entity.Pool) (Extra, *uint256.Int, *uint256.Int, *big.Int,
 	error) {
 	var (
 		slot0             slot0Resp
-		liquidity         *big.Int
+		liquidity         *uint256.Int
 		feeToken          uint8
 		plugin            common.Address
 		pluginConfig      uint16
-		curveReserve0     *big.Int
-		curveReserve1     *big.Int
-		rate0             *big.Int
-		rate1             *big.Int
-		priceScaleSqrtQ96 *big.Int
+		curveReserve0     *uint256.Int
+		curveReserve1     *uint256.Int
+		rate0             *uint256.Int
+		rate1             *uint256.Int
+		priceScaleSqrtQ96 *uint256.Int
 		amplificationX100 uint32
 		ramping           bool
 		ramp              amplificationRampResp
-		reserve0          *big.Int
-		reserve1          *big.Int
+		reserve0          *uint256.Int
+		reserve1          *uint256.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -203,22 +203,22 @@ func (t *PoolTracker) fetchStableState(ctx context.Context, p entity.Pool) (Extr
 		return Extra{}, nil, nil, nil, ErrFailedCall
 	}
 
-	fee, halted, err := t.fetchPluginState(ctx, plugin, pluginConfig, uint32(slot0.Fee.Uint64()), resp.BlockNumber)
+	fee, halted, err := t.fetchPluginState(ctx, plugin, pluginConfig, slot0.Fee, resp.BlockNumber)
 	if err != nil {
 		return Extra{}, nil, nil, nil, err
 	}
 
 	extra := Extra{
-		SqrtPriceX96:      uint256.MustFromBig(slot0.SqrtPriceX96),
-		Liquidity:         uint256.MustFromBig(liquidity),
+		SqrtPriceX96:      slot0.SqrtPriceX96,
+		Liquidity:         liquidity,
 		Fee:               fee,
 		FeeToken:          feeToken,
 		Halted:            halted,
-		CurveReserve0:     uint256.MustFromBig(curveReserve0),
-		CurveReserve1:     uint256.MustFromBig(curveReserve1),
-		Rate0:             uint256.MustFromBig(rate0),
-		Rate1:             uint256.MustFromBig(rate1),
-		PriceScaleSqrtQ96: uint256.MustFromBig(priceScaleSqrtQ96),
+		CurveReserve0:     curveReserve0,
+		CurveReserve1:     curveReserve1,
+		Rate0:             rate0,
+		Rate1:             rate1,
+		PriceScaleSqrtQ96: priceScaleSqrtQ96,
 		AmplificationX100: amplificationX100,
 	}
 	if ramping {
@@ -233,8 +233,8 @@ func (t *PoolTracker) fetchStableState(ctx context.Context, p entity.Pool) (Extr
 	return extra, reserve0, reserve1, resp.BlockNumber, nil
 }
 
-func (t *PoolTracker) addReserveCalls(req *ethrpc.Request, p entity.Pool, reserve0, reserve1 **big.Int) {
-	for i, out := range []**big.Int{reserve0, reserve1} {
+func (t *PoolTracker) addReserveCalls(req *ethrpc.Request, p entity.Pool, reserve0, reserve1 **uint256.Int) {
+	for i, out := range []**uint256.Int{reserve0, reserve1} {
 		req.AddCall(&ethrpc.Call{
 			ABI:    abi.Erc20ABI,
 			Target: p.Tokens[i].Address,
@@ -254,7 +254,7 @@ func (t *PoolTracker) fetchPluginState(ctx context.Context, plugin common.Addres
 	}
 
 	var (
-		currentFee *big.Int
+		currentFee uint32
 		status     uint8
 	)
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
@@ -268,10 +268,10 @@ func (t *PoolTracker) fetchPluginState(ctx context.Context, plugin common.Addres
 
 	fee = slot0Fee
 	if pluginConfig&pluginFlagDynamicFee != 0 {
-		if !resp.Result[0] || currentFee == nil {
+		if !resp.Result[0] {
 			return 0, false, ErrFailedCall
 		}
-		fee = uint32(currentFee.Uint64())
+		fee = currentFee
 	}
 	// A plugin without SecurityModule has no status to read, and no halt this source knows about.
 	return fee, resp.Result[1] && status != pluginStatusActive, nil
@@ -376,7 +376,7 @@ func (t *PoolTracker) fetchTicks(ctx context.Context, poolAddress string, indexe
 			}
 			ticks = append(ticks, Tick{
 				Index:          chunk[i],
-				LiquidityGross: uint256.MustFromBig(resp.LiquidityGross),
+				LiquidityGross: resp.LiquidityGross,
 				LiquidityNet:   &liquidityNet,
 			})
 		}

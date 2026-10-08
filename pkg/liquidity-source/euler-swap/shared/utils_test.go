@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,8 +73,22 @@ func TestConvertToAssets(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.NotPanics(t, func() {
-				got := ConvertToAssets(tt.shares, tt.totalAssets, tt.totalSupply)
-				assert.Zero(t, got.Cmp(tt.want), "got %s want %s", got, tt.want)
+				var (
+					shares      *uint256.Int
+					totalAssets *uint256.Int
+					totalSupply *uint256.Int
+				)
+				if tt.shares != nil {
+					shares = uint256.MustFromBig(tt.shares)
+				}
+				if tt.totalAssets != nil {
+					totalAssets = uint256.MustFromBig(tt.totalAssets)
+				}
+				if tt.totalSupply != nil {
+					totalSupply = uint256.MustFromBig(tt.totalSupply)
+				}
+				got := ConvertToAssets(shares, totalAssets, totalSupply)
+				assert.Equal(t, tt.want.String(), got.Dec(), "got %s want %s", got, tt.want)
 			})
 		})
 	}

@@ -20,7 +20,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -204,8 +203,8 @@ func (d *PoolTracker) getPoolData(
 	var (
 		controllerDecimals       uint8
 		controllerAsset          common.Address
-		collatTotalAssets        = make([]*big.Int, len(collaterals))
-		collatTotalSupplies      = make([]*big.Int, len(collaterals))
+		collatTotalAssets        = make([]*uint256.Int, len(collaterals))
+		collatTotalSupplies      = make([]*uint256.Int, len(collaterals))
 		collateralDecimals       = make([]uint8, len(collaterals))
 		collateralAssets         = make([]common.Address, len(collaterals))
 		collateralOracles        = make([]common.Address, len(collaterals))
@@ -245,7 +244,7 @@ func (d *PoolTracker) getPoolData(
 		}, []any{&unitOfAccounts[2]})
 	}
 
-	data.CollatAmounts = make([]*big.Int, len(collaterals))
+	data.CollatAmounts = make([]*uint256.Int, len(collaterals))
 	vaultAddrs := lo.Map(vaultList, func(vaultInfo shared.VaultInfo, _ int) common.Address {
 		return common.HexToAddress(vaultInfo.VaultAddress)
 	})
@@ -390,12 +389,12 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *shared.TrackerData, blo
 	var vaults [3]*shared.VaultState
 	for i := range data.Vaults {
 		vaults[i] = &shared.VaultState{
-			Cash:               uint256.MustFromBig(data.Vaults[i].Cash),
-			Debt:               uint256.MustFromBig(data.Vaults[i].Debt),
-			MaxDeposit:         uint256.MustFromBig(data.Vaults[i].MaxDeposit),
+			Cash:               data.Vaults[i].Cash,
+			Debt:               data.Vaults[i].Debt,
+			MaxDeposit:         data.Vaults[i].MaxDeposit,
 			MaxWithdraw:        shared.DecodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
-			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
-			EulerAccountAssets: uint256.MustFromBig(data.Vaults[i].EulerAccountBalance),
+			TotalBorrows:       data.Vaults[i].TotalBorrows,
+			EulerAccountAssets: data.Vaults[i].EulerAccountBalance,
 			DebtPrice:          uint256.MustFromBig(data.VaultPrices[i][i][1]),
 			ValuePrices: lo.Map(data.CollatPrices,
 				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) }),
@@ -407,8 +406,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *shared.TrackerData, blo
 		}
 	}
 
-	reserve0 := data.Reserves.Reserve0.String()
-	reserve1 := data.Reserves.Reserve1.String()
+	reserve0 := data.Reserves.Reserve0.Dec()
+	reserve1 := data.Reserves.Reserve1.Dec()
 	status := data.Reserves.Status
 	if !data.IsOperatorAuthorized {
 		reserve0 = "0"
@@ -420,7 +419,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *shared.TrackerData, blo
 		Pause:           status,
 		Vaults:          vaults,
 		ControllerVault: data.Controller,
-		Collaterals:     big256.MustFromBigs(data.CollatAmounts),
+		Collaterals:     data.CollatAmounts,
 	})
 	if err != nil {
 		return entity.Pool{}, err

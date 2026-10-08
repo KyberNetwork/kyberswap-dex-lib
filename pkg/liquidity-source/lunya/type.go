@@ -78,15 +78,15 @@ type PoolMeta struct {
 }
 
 type slot0Resp struct {
-	SqrtPriceX96 *big.Int
-	Tick         *big.Int
-	Fee          *big.Int
+	SqrtPriceX96 *uint256.Int
+	Tick         int32
+	Fee          uint32
 	FeeProtocol0 uint16
 	FeeProtocol1 uint16
 }
 
 type tickResp struct {
-	LiquidityGross        *big.Int
+	LiquidityGross        *uint256.Int
 	LiquidityNet          *big.Int
 	FeeGrowthOutside0X128 *big.Int
 	FeeGrowthOutside1X128 *big.Int

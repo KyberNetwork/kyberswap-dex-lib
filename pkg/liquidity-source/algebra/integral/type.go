@@ -84,8 +84,8 @@ type SubgraphPoolTicks struct {
 
 // GlobalStateFromRPC for algebra v1 with single fee for both direction
 type GlobalStateFromRPC struct {
-	Price        *big.Int
-	Tick         *big.Int
+	Price        *uint256.Int
+	Tick         int32
 	LastFee      uint16
 	PluginConfig uint8
 	CommunityFee uint16
@@ -103,11 +103,11 @@ type GlobalState struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int
+	Liquidity   *uint256.Int
 	State       GlobalState
-	TickSpacing *big.Int
-	Reserve0    *big.Int
-	Reserve1    *big.Int
+	TickSpacing int32
+	Reserve0    *uint256.Int
+	Reserve1    *uint256.Int
 
 	Timepoints       map[uint16]Timepoint
 	VolatilityOracle *VolatilityOraclePlugin
@@ -138,10 +138,10 @@ func (t Timepoint) GetBlockTimestamp() uint32 {
 type TimepointRPC struct {
 	Initialized          bool
 	BlockTimestamp       uint32
-	TickCumulative       *big.Int
-	VolatilityCumulative *big.Int
-	Tick                 *big.Int
-	AverageTick          *big.Int
+	TickCumulative       int64
+	VolatilityCumulative *uint256.Int
+	Tick                 int32
+	AverageTick          int32
 	WindowStartIndex     uint16
 }
 
@@ -154,14 +154,13 @@ func (tp TimepointRPC) GetBlockTimestamp() uint32 {
 }
 
 func (tp TimepointRPC) ToTimepoint() Timepoint {
-	volatilityCumulative := uint256.MustFromBig(tp.VolatilityCumulative)
 	return Timepoint{
 		Initialized:          tp.Initialized,
 		BlockTimestamp:       tp.BlockTimestamp,
-		TickCumulative:       tp.TickCumulative.Int64(),
-		VolatilityCumulative: volatilityCumulative,
-		Tick:                 int32(tp.Tick.Int64()),
-		AverageTick:          int32(tp.AverageTick.Int64()),
+		TickCumulative:       tp.TickCumulative,
+		VolatilityCumulative: tp.VolatilityCumulative,
+		Tick:                 tp.Tick,
+		AverageTick:          tp.AverageTick,
 		WindowStartIndex:     tp.WindowStartIndex,
 	}
 }
@@ -210,8 +209,8 @@ type SlidingFeeConfig struct {
 }
 
 type SlidingFeeConfigRPC struct {
-	ZeroToOneFeeFactor *big.Int
-	OneToZeroFeeFactor *big.Int
+	ZeroToOneFeeFactor *uint256.Int
+	OneToZeroFeeFactor *uint256.Int
 }
 
 type StaticExtra struct {

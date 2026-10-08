@@ -1,8 +1,6 @@
 package shared
 
 import (
-	"math/big"
-
 	"github.com/holiman/uint256"
 
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -12,21 +10,27 @@ var (
 	sixtyThree = uint256.NewInt(63)
 )
 
-func ConvertToAssets(shares, totalAssets, totalSupply *big.Int) *big.Int {
+func ConvertToAssets(shares, totalAssets, totalSupply *uint256.Int) *uint256.Int {
 	if shares == nil {
-		return big.NewInt(0)
+		return new(uint256.Int)
 	}
 	// A nil total means the vault's balances were never fetched (e.g. the
 	// controller-only vault v2's pool_tracker appends past the batch RPC has no
 	// totalAssets/totalSupply call), and a zero supply means no shares are
-	// outstanding — in both cases assets == shares 1:1. Guarding here avoids the
-	// nil *big.Int deref in totalSupply.Sign()/Add that otherwise panics.
-	if totalSupply == nil || totalAssets == nil || totalSupply.Sign() == 0 {
+	// outstanding — in both cases assets == shares 1:1.
+	if totalSupply == nil || totalAssets == nil || totalSupply.IsZero() {
 		return shares
 	}
 	// (shares * (totalAssets + VirtualAmount)) / (totalSupply + VirtualAmount)
-	return new(big.Int).Div(new(big.Int).Mul(shares, new(big.Int).Add(totalAssets, VirtualAmount)),
-		new(big.Int).Add(totalSupply, VirtualAmount))
+	var (
+		num uint256.Int
+		den uint256.Int
+		res uint256.Int
+	)
+	num.Add(totalAssets, uint256.NewInt(1e6))
+	den.Add(totalSupply, uint256.NewInt(1e6))
+	big256.MulDivDown(&res, shares, &num, &den)
+	return &res
 }
 
 func SubTill0(amt, sub *uint256.Int) *uint256.Int {
