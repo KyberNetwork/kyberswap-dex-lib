@@ -328,6 +328,7 @@ const (
 	ExchangeUniswapV4Clanker            = "uniswap-v4-clanker"
 	ExchangeUniswapV4CooCoo             = "uniswap-v4-coocoo"
 	ExchangeUniswapV4Cult               = "uniswap-v4-cult"
+	ExchangeUniswapV4DaosWorld          = "uniswap-v4-daosworld"
 	ExchangeUniswapV4Deli               = "uniswap-v4-deli"
 	ExchangeUniswapV4Doppler            = "uniswap-v4-doppler"
 	ExchangeUniswapV4DualPool           = "uniswap-v4-dualpool"
