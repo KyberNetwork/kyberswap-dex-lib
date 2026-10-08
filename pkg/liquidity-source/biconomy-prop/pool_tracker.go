@@ -95,14 +95,14 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// Each reserve is what the direction paying that token out can deliver, before the protocol fee.
-	now := uint64(time.Now().Unix())
-	reserve1 := deliverable(members, 0, now) // token0 -> token1 pays out token1
-	reserve0 := deliverable(members, 1, now) // token1 -> token0 pays out token0
+	now := time.Now().Unix()
+	reserve1 := deliverable(members, 0, uint64(now)) // token0 -> token1 pays out token1
+	reserve0 := deliverable(members, 1, uint64(now)) // token1 -> token0 pays out token0
 
 	p.Extra = string(extra)
 	p.Reserves = entity.PoolReserves{reserve0.Dec(), reserve1.Dec()}
 	p.BlockNumber = makersResp.BlockNumber.Uint64()
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	return p, nil
 }
 
@@ -129,6 +129,7 @@ func toBoard(rb rawBoard) Board {
 // deliverable sums the output of filling every live board of a direction up to its limit.
 func deliverable(members []MemberExtra, dirIndex int, now uint64) *uint256.Int {
 	total := new(uint256.Int)
+	var limit, cursor, out, take uint256.Int
 	for i := range members {
 		board := &members[i].Dir0
 		if dirIndex == 1 {
@@ -137,21 +138,20 @@ func deliverable(members []MemberExtra, dirIndex int, now uint64) *uint256.Int {
 		if !boardLive(board, now) {
 			continue
 		}
-		limit := fillLimit(board)
-		cursor := board.Filled.Clone()
-		var out, take uint256.Int
+		fillLimit(&limit, board)
+		cursor.Set(board.Filled)
 		for j := range board.Sizes {
-			if !cursor.Lt(limit) {
+			if !cursor.Lt(&limit) {
 				break
 			}
 			top := board.Sizes[j]
 			if !cursor.Lt(top) {
 				continue
 			}
-			if top.Gt(limit) {
-				top = limit
+			if top.Gt(&limit) {
+				top = &limit
 			}
-			take.Sub(top, cursor)
+			take.Sub(top, &cursor)
 			segmentOut(&out, &take, board.Prices[j])
 			total.Add(total, &out)
 			cursor.Set(top)

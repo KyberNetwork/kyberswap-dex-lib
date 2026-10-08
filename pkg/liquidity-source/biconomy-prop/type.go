@@ -40,12 +40,6 @@ type memberTake struct {
 }
 
 type SwapInfo struct {
-	DirIndex  int          `json:"dirIndex"`
-	Takes     []memberTake `json:"takes"`
-	AmountOut *uint256.Int `json:"amountOut"`
-}
-
-type MetaInfo struct {
-	Venue       string `json:"venue"`
-	BlockNumber uint64 `json:"blockNumber"`
+	DirIndex int          `json:"dirIndex"`
+	Takes    []memberTake `json:"takes"`
 }

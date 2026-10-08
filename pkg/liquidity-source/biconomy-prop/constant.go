@@ -16,6 +16,9 @@ const (
 
 	bpsDenominator = 10_000
 
+	// maxMakers is the venue's registry cap.
+	maxMakers = 16
+
 	// Venue swap gas: one maker fill, plus each further maker the order reaches.
 	defaultGas   = 280_000
 	perMemberGas = 65_000
@@ -27,4 +30,5 @@ var (
 	ErrInsufficientLiquidity = errors.New("biconomy-prop: amountIn exceeds live board depth")
 	ErrZeroAmountOut         = errors.New("biconomy-prop: zero amountOut")
 	ErrOverflow              = errors.New("biconomy-prop: uint256 overflow")
+	ErrTooManyMakers         = errors.New("biconomy-prop: more makers than the venue registry cap")
 )

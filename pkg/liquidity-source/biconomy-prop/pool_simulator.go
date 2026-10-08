@@ -2,6 +2,7 @@ package biconomyprop
 
 import (
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -26,7 +27,7 @@ type PoolSimulator struct {
 
 	// cursors[i][d] is maker i's filled meter for direction d, seeded from Board.Filled and
 	// advanced by UpdateBalance. Boards are never mutated, so clones copy only the cursors.
-	cursors [][2]*uint256.Int
+	cursors [][2]uint256.Int
 
 	now uint64
 }
@@ -42,15 +43,22 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
 	}
+	if len(extra.Members) > maxMakers {
+		return nil, ErrTooManyMakers
+	}
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(ep.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
-	cursors := make([][2]*uint256.Int, len(extra.Members))
+	cursors := make([][2]uint256.Int, len(extra.Members))
 	for i := range extra.Members {
-		cursors[i][0] = cursorOf(&extra.Members[i].Dir0)
-		cursors[i][1] = cursorOf(&extra.Members[i].Dir1)
+		for d := range cursors[i] {
+			// A dark board has no Sizes, so it can never be filled whatever the meter says.
+			if f := extra.Members[i].board(d).Filled; f != nil {
+				cursors[i][d].Set(f)
+			}
+		}
 	}
 
 	return &PoolSimulator{
@@ -70,66 +78,62 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func cursorOf(b *Board) *uint256.Int {
-	if b.Filled == nil {
-		return new(uint256.Int)
+func (m *MemberExtra) board(dirIndex int) *Board {
+	if dirIndex == 0 {
+		return &m.Dir0
 	}
-	return b.Filled.Clone()
+	return &m.Dir1
 }
 
-func (s *PoolSimulator) board(member, dirIndex int) *Board {
-	if dirIndex == 0 {
-		return &s.members[member].Dir0
-	}
-	return &s.members[member].Dir1
+// fill is the result of one allocation pass over the book.
+type fill struct {
+	alloc, outBy [maxMakers]uint256.Int // tokenIn taken from and tokenOut paid by each maker
+	out, covered uint256.Int            // total tokenOut and tokenIn covered
 }
 
 // merge is the venue's _merge for one direction: allocate, then drop any maker whose allocation
 // pays out zero (the executor would revert) and allocate again over the rest.
-func (s *PoolSimulator) merge(dirIndex int, amountIn *uint256.Int) (alloc []*uint256.Int, out, covered *uint256.Int) {
-	excluded := make([]bool, len(s.members))
+func (s *PoolSimulator) merge(dirIndex int, amountIn *uint256.Int, f *fill) {
+	var excluded [maxMakers]bool
 	for i := range s.members {
-		excluded[i] = !boardLive(s.board(i, dirIndex), s.now)
+		excluded[i] = !boardLive(s.members[i].board(dirIndex), s.now)
 	}
 	for {
-		var outBy []*uint256.Int
-		alloc, outBy, out, covered = s.allocate(dirIndex, amountIn, excluded)
+		s.allocate(dirIndex, amountIn, &excluded, f)
 		redo := false
-		for i := range alloc {
-			if !alloc[i].IsZero() && outBy[i].IsZero() {
+		for i := range s.members {
+			if !f.alloc[i].IsZero() && f.outBy[i].IsZero() {
 				excluded[i] = true
 				redo = true
 			}
 		}
 		if !redo {
-			return alloc, out, covered
+			return
 		}
 	}
 }
 
 // allocate is one pass of the venue's _allocate.
-func (s *PoolSimulator) allocate(dirIndex int, amountIn *uint256.Int, excluded []bool) (alloc, outBy []*uint256.Int, out, covered *uint256.Int) {
+func (s *PoolSimulator) allocate(dirIndex int, amountIn *uint256.Int, excluded *[maxMakers]bool, f *fill) {
+	*f = fill{}
+	var cursor, left [maxMakers]uint256.Int
+	var next [maxMakers]int // -1 once a maker is out
 	k := len(s.members)
-	alloc = make([]*uint256.Int, k)
-	outBy = make([]*uint256.Int, k)
-	cursor := make([]*uint256.Int, k)
-	left := make([]*uint256.Int, k)
-	next := make([]int, k) // -1 once a maker is out
 	for i := 0; i < k; i++ {
-		alloc[i], outBy[i] = new(uint256.Int), new(uint256.Int)
 		next[i] = -1
 		if excluded[i] {
 			continue
 		}
-		b := s.board(i, dirIndex)
-		cursor[i] = s.cursors[i][dirIndex].Clone()
-		limit := fillLimit(b)
-		if !cursor[i].Lt(limit) {
+		b := s.members[i].board(dirIndex)
+		cursor[i].Set(&s.cursors[i][dirIndex])
+		var limit uint256.Int
+		fillLimit(&limit, b)
+		if !cursor[i].Lt(&limit) {
 			continue
 		}
-		left[i] = new(uint256.Int).Sub(limit, cursor[i])
+		left[i].Sub(&limit, &cursor[i])
 		j := 0
-		for j < len(b.Sizes) && !b.Sizes[j].Gt(cursor[i]) {
+		for j < len(b.Sizes) && !b.Sizes[j].Gt(&cursor[i]) {
 			j++
 		}
 		if j < len(b.Sizes) {
@@ -137,9 +141,8 @@ func (s *PoolSimulator) allocate(dirIndex int, amountIn *uint256.Int, excluded [
 		}
 	}
 
-	out, covered = new(uint256.Int), new(uint256.Int)
-	remaining := amountIn.Clone()
-	var take, segOut uint256.Int
+	var remaining, take, segOut uint256.Int
+	remaining.Set(amountIn)
 	for !remaining.IsZero() {
 		best := -1
 		var bestPrice *uint256.Int
@@ -147,38 +150,38 @@ func (s *PoolSimulator) allocate(dirIndex int, amountIn *uint256.Int, excluded [
 			if next[i] < 0 {
 				continue
 			}
-			if price := s.board(i, dirIndex).Prices[next[i]]; best < 0 || price.Gt(bestPrice) {
+			if price := s.members[i].board(dirIndex).Prices[next[i]]; best < 0 || price.Gt(bestPrice) {
 				best, bestPrice = i, price
 			}
 		}
 		if best < 0 {
 			break
 		}
-		top := s.board(best, dirIndex).Sizes[next[best]]
-		take.Sub(top, cursor[best])
-		if take.Gt(remaining) {
-			take.Set(remaining)
+		b := s.members[best].board(dirIndex)
+		top := b.Sizes[next[best]]
+		take.Sub(top, &cursor[best])
+		if take.Gt(&remaining) {
+			take.Set(&remaining)
 		}
-		if take.Gt(left[best]) {
-			take.Set(left[best])
+		if take.Gt(&left[best]) {
+			take.Set(&left[best])
 		}
 		segmentOut(&segOut, &take, bestPrice)
-		alloc[best].Add(alloc[best], &take)
-		outBy[best].Add(outBy[best], &segOut)
-		out.Add(out, &segOut)
-		covered.Add(covered, &take)
-		remaining.Sub(remaining, &take)
-		cursor[best].Add(cursor[best], &take)
-		left[best].Sub(left[best], &take)
+		f.alloc[best].Add(&f.alloc[best], &take)
+		f.outBy[best].Add(&f.outBy[best], &segOut)
+		f.out.Add(&f.out, &segOut)
+		f.covered.Add(&f.covered, &take)
+		remaining.Sub(&remaining, &take)
+		cursor[best].Add(&cursor[best], &take)
+		left[best].Sub(&left[best], &take)
 		if left[best].IsZero() {
 			next[best] = -1
 		} else if cursor[best].Eq(top) {
-			if next[best]++; next[best] >= len(s.board(best, dirIndex).Sizes) {
+			if next[best]++; next[best] >= len(b.Sizes) {
 				next[best] = -1
 			}
 		}
 	}
-	return alloc, outBy, out, covered
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -186,29 +189,33 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
 	}
-	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrOverflow
-	}
-	if amountIn.IsZero() {
+	var amountIn uint256.Int
+	if params.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrZeroAmountIn
+	}
+	if amountIn.SetFromBig(params.TokenAmountIn.Amount) {
+		return nil, ErrOverflow
 	}
 
 	dirIndex := indexIn
-	alloc, gross, covered := s.merge(dirIndex, amountIn)
+	var f fill
+	s.merge(dirIndex, &amountIn, &f)
 	// The venue never fills partially: short coverage reverts Inactive().
-	if covered.Lt(amountIn) {
+	if f.covered.Lt(&amountIn) {
 		return nil, ErrInsufficientLiquidity
 	}
-	amountOut, fee := afterProtocolFee(gross, s.feeBps)
+	var amountOut, fee uint256.Int
+	if err := afterProtocolFee(&amountOut, &fee, &f.out, s.feeBps); err != nil {
+		return nil, err
+	}
 	if amountOut.IsZero() {
 		return nil, ErrZeroAmountOut
 	}
 
-	var takes []memberTake
-	for i, a := range alloc {
-		if !a.IsZero() {
-			takes = append(takes, memberTake{Member: i, AmountIn: a})
+	takes := make([]memberTake, 0, len(s.members))
+	for i := range s.members {
+		if !f.alloc[i].IsZero() {
+			takes = append(takes, memberTake{Member: i, AmountIn: f.alloc[i].Clone()})
 		}
 	}
 
@@ -216,7 +223,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: fee.ToBig()},
 		Gas:            defaultGas + int64(len(takes)-1)*perMemberGas,
-		SwapInfo:       SwapInfo{DirIndex: dirIndex, Takes: takes, AmountOut: amountOut},
+		SwapInfo:       SwapInfo{DirIndex: dirIndex, Takes: takes},
 	}, nil
 }
 
@@ -230,25 +237,25 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if take.Member < 0 || take.Member >= len(s.cursors) || take.AmountIn == nil {
 			continue
 		}
-		cursor := s.cursors[take.Member][swapInfo.DirIndex]
+		cursor := &s.cursors[take.Member][swapInfo.DirIndex]
 		cursor.Add(cursor, take.AmountIn)
 	}
 
-	outIdx := 1 - swapInfo.DirIndex
-	reserveOut := new(big.Int).Sub(s.Info.Reserves[outIdx], swapInfo.AmountOut.ToBig())
+	// The reserve is the gross deliverable, so the protocol fee leaves it too.
+	reserveOut := s.Info.Reserves[1-swapInfo.DirIndex]
+	for _, amt := range []*big.Int{params.TokenAmountOut.Amount, params.Fee.Amount} {
+		if amt != nil {
+			reserveOut.Sub(reserveOut, amt)
+		}
+	}
 	if reserveOut.Sign() < 0 {
 		reserveOut.SetInt64(0)
 	}
-	s.Info.Reserves[outIdx] = reserveOut
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.cursors = make([][2]*uint256.Int, len(s.cursors))
-	for i := range s.cursors {
-		cloned.cursors[i][0] = s.cursors[i][0].Clone()
-		cloned.cursors[i][1] = s.cursors[i][1].Clone()
-	}
+	cloned.cursors = slices.Clone(s.cursors)
 	cloned.Info.Reserves = lo.Map(s.Info.Reserves, func(r *big.Int, _ int) *big.Int { return new(big.Int).Set(r) })
 	return &cloned
 }
@@ -257,5 +264,5 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 // swap(tokenIn, tokenOut, amountIn, minAmountOut, recipient, deadline) after tokenIn has been
 // transferred to it.
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return MetaInfo{Venue: s.staticExtra.Venue, BlockNumber: s.Info.BlockNumber}
+	return pool.MetaInfo{ApprovalAddress: s.staticExtra.Venue, BlockNumber: s.Info.BlockNumber}
 }

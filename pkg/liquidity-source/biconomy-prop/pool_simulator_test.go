@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	testVenue  = "0x000000Da21a0f02b2626874870b6447Db220C1EF"
+	testVenue  = "0x000000da21a0f02b2626874870b6447db220c1ef"
 	testToken0 = "0x4200000000000000000000000000000000000006"
 	testToken1 = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 )
@@ -282,13 +282,14 @@ func TestUpdateBalance_AdvancesCursors(t *testing.T) {
 // Simulated fills can exhaust a board; the tracked Board itself is left unchanged.
 func TestUpdateBalance_ExhaustsBoard(t *testing.T) {
 	sim := buildPool(t, twoMakers())
+	sim.Info.Reserves[1] = big.NewInt(0).SetBytes(u("9998000000000000000001").Bytes())
 	res, err := calc(t, sim, "5000000000000000000") // the whole book
 	require.NoError(t, err)
-	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: res.SwapInfo})
+	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee, SwapInfo: res.SwapInfo})
 
 	_, err = calc(t, sim, "1")
 	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
-	assert.Equal(t, "0", sim.Info.Reserves[1].String())
+	assert.Equal(t, "1", sim.Info.Reserves[1].String(), "reserve drops by the quoted output")
 	assert.True(t, sim.members[0].Dir0.Filled.IsZero(), "Board.Filled stays as tracked")
 }
 
@@ -326,9 +327,9 @@ func TestDeterminism(t *testing.T) {
 
 func TestGetMetaInfo(t *testing.T) {
 	sim := buildPool(t, twoMakers())
-	meta, ok := sim.GetMetaInfo(testToken0, testToken1).(MetaInfo)
+	meta, ok := sim.GetMetaInfo(testToken0, testToken1).(pool.MetaInfo)
 	require.True(t, ok)
-	assert.Equal(t, testVenue, meta.Venue)
+	assert.Equal(t, testVenue, meta.ApprovalAddress)
 	assert.Equal(t, uint64(12345), meta.BlockNumber)
 }
 
@@ -500,4 +501,24 @@ func BenchmarkCloneState(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		sim.CloneState()
 	}
+}
+
+func TestNewPoolSimulator_RejectsMoreMakersThanRegistryCap(t *testing.T) {
+	extra, err := json.Marshal(Extra{Members: make([]MemberExtra, maxMakers+1)})
+	require.NoError(t, err)
+	_, err = NewPoolSimulator(entity.Pool{
+		Reserves: entity.PoolReserves{"0", "0"},
+		Tokens:   []*entity.PoolToken{{Address: testToken0}, {Address: testToken1}},
+		Extra:    string(extra),
+	})
+	assert.ErrorIs(t, err, ErrTooManyMakers)
+}
+
+// The venue computes the fee with checked arithmetic, so an output that overflows it reverts.
+func TestAfterProtocolFee_Overflow(t *testing.T) {
+	var net, fee uint256.Int
+	assert.ErrorIs(t, afterProtocolFee(&net, &fee, uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"), 30), ErrOverflow)
+	require.NoError(t, afterProtocolFee(&net, &fee, u("1000000"), 30))
+	assert.Equal(t, "3000", fee.Dec())
+	assert.Equal(t, "997000", net.Dec())
 }

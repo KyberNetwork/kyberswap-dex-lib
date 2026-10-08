@@ -43,7 +43,7 @@ func TestVenueABI_BoardDecodesIntoRawBoard(t *testing.T) {
 	assert.Equal(t, "2000000000000000000", rb.Remaining.String())
 	assert.Equal(t, "1700000000", rb.ExpiresAt.String())
 
-	for _, name := range []string{"levels", "quote", "swap", "swapWithFee", "makers", "getPairs", "isActive", "feeBps"} {
+	for _, name := range []string{methodMakers, methodGetPairs, methodFeeBps} {
 		_, ok := venueABI.Methods[name]
 		assert.True(t, ok, "missing method %s", name)
 	}
