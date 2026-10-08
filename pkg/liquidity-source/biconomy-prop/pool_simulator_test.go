@@ -438,3 +438,66 @@ func TestCalcAmountOut_GasPerMaker(t *testing.T) {
 	assert.Equal(t, int64(defaultGas), one.Gas)
 	assert.Equal(t, int64(defaultGas+perMemberGas), two.Gas)
 }
+
+// benchPool has 3 makers with 3 levels each, so a 6e18 order walks 3 makers and 5 levels.
+func benchPool(b *testing.B) (*PoolSimulator, pool.CalcAmountOutParams) {
+	b.Helper()
+	exp := farExpiry()
+	sizes := []string{"2000000000000000000", "4000000000000000000", "6000000000000000000"}
+	board := func(p0, p1, p2 string) Board {
+		return liveBoard(sizes, []string{p0, p1, p2}, "0", exp)
+	}
+	members := []MemberExtra{
+		{Maker: "0xaa", Dir0: board("2000000000000000000000", "1999000000000000000000", "1998000000000000000000"), Dir1: darkBoard()},
+		{Maker: "0xbb", Dir0: board("2000000000000000000000", "1999500000000000000000", "1997000000000000000000"), Dir1: darkBoard()},
+		{Maker: "0xcc", Dir0: board("1999900000000000000000", "1999400000000000000000", "1996000000000000000000"), Dir1: darkBoard()},
+	}
+	extra, _ := json.Marshal(Extra{Members: members})
+	staticExtra, _ := json.Marshal(StaticExtra{Venue: testVenue})
+	sim, err := NewPoolSimulator(entity.Pool{
+		Address:     testVenue + "_" + testToken0 + "_" + testToken1,
+		Type:        DexType,
+		Reserves:    entity.PoolReserves{"1000000000000000000000000", "1000000000000000000000000"},
+		Tokens:      []*entity.PoolToken{{Address: testToken0}, {Address: testToken1}},
+		Extra:       string(extra),
+		StaticExtra: string(staticExtra),
+	})
+	require.NoError(b, err)
+	in, _ := new(big.Int).SetString("5500000000000000000", 10)
+	return sim, pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testToken0, Amount: in},
+		TokenOut:      testToken1,
+	}
+}
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	sim, params := benchPool(b)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if _, err := sim.CalcAmountOut(params); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkUpdateBalance(b *testing.B) {
+	sim, params := benchPool(b)
+	res, err := sim.CalcAmountOut(params)
+	require.NoError(b, err)
+	up := pool.UpdateBalanceParams{
+		TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
+		Fee: *res.Fee, SwapInfo: res.SwapInfo,
+	}
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		sim.UpdateBalance(up)
+	}
+}
+
+func BenchmarkCloneState(b *testing.B) {
+	sim, _ := benchPool(b)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		sim.CloneState()
+	}
+}
