@@ -68,7 +68,7 @@ func TestArithmeticGuards(t *testing.T) {
 	require.ErrorIs(t, err, ErrMath)
 }
 func testCurve() CurveState {
-	return CurveState{QuoteReserve: *uint256.NewInt(100000), TokenReserve: *uint256.NewInt(100000000), VirtualQuote: *uint256.NewInt(50000), Threshold: *uint256.NewInt(1000000)}
+	return CurveState{QuoteReserve: *uint256.NewInt(100000), TokenReserve: *uint256.NewInt(100000000), VirtualQuote: *uint256.NewInt(50000), Threshold: *uint256.NewInt(1000000), Invariant: *uint256.NewInt(10000000000000)}
 }
 func TestCurveRoundingAndLimits(t *testing.T) {
 	c := testCurve()
