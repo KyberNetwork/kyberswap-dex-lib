@@ -32,6 +32,12 @@ The tracker reads curve and authenticated canonical-market state at one block, d
 
 Native parent pools and a graduated token's own canonical pool are exposed via `GetBasePools` and can be relinked via `SetBasePool`. Router-service only relinks the indexed external bases (`basePools`), so each pool keeps its own copy of parent and canonical liquidity. Clones own all mutable liquidity; stale quote replay is validated entirely before any shared pool is modified. Same-factory graduated parents only, maximum depth two, no cycles.
 
+Known limitation (accepted): a parent's canonical market is copied into the parent's own pool and
+into each child routing through it. A route using both (e.g. P -> WETH on pool P, then WETH -> C on
+child pool C, which buys P in the same market) prices each leg against the market's pre-trade state,
+so the quote can be off; execution stays correct and minReturn bounds it. Fix if parent-paired
+volume matters: share parent markets as indexed base pools so every pool relinks one copy.
+
 ## Tests
 
 - 390 fee vectors from the frozen Solidity fee library; curve, simulator, tracker and lister tests; quote purity fuzzing (`-fuzz '^FuzzCompositeQuotePurity$'`).

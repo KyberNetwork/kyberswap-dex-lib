@@ -89,11 +89,14 @@ func TestPoolSimulator_MsgpackRoundTrip(t *testing.T) {
 // fixed when the simulator is built.
 func TestPoolSimulator_DecaysPastFreshWindow(t *testing.T) {
 	t.Parallel()
-	// 2s past a 1s window at 50%/s: outputs scale by 1/(1 + 0.5*2) = 1/2.
+	// 2s past a 1s window at 50%/s: outputs scale by 1/(1 + 0.5*2) = 1/2. Test runtime (and
+	// ms truncation) adds staleness, so bound the decay by the measured build time.
+	start := time.Now()
 	sim := newSim(t, pooledState(t, linearLadders(2, 0.5), reserves1e9, 3*time.Second, 1000, 60_000, 5000))
+	maxStale := 2 + time.Since(start).Seconds() + 0.001
 	got := quote1000(sim)
-	assert.InDelta(t, 1000, got, 5, "a few ms of test runtime add a little more decay")
 	assert.LessOrEqual(t, got, int64(1000))
+	assert.GreaterOrEqual(t, got, int64(2000/(1+0.5*maxStale))-1)
 
 	time.Sleep(20 * time.Millisecond)
 	assert.Equal(t, got, quote1000(sim), "decay is fixed at build, quotes don't read the clock")
