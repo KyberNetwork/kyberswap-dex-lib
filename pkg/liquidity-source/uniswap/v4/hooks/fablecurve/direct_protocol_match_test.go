@@ -12,6 +12,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -221,18 +222,18 @@ func TestBirthFloor_SellsStopAtBirthPrice(t *testing.T) {
 	}
 }
 
-// A mesh pool (none is live yet) holds one full-range position and has no floor: the same FABLE/ETH price and
-// liquidity spread over the full range quotes a sell far past the launch pool's birth price, identical to a
-// hookless full-range pool with a static 1% fee.
+// A mesh pool (e.g. 0x7a63e4f3...24b9, hook birthSqrtPriceX96 = MIN_SQRT_PRICE+1) holds one full-range position
+// (ticks +-887270 at spacing 10) and has no floor: the FABLE/ETH price and liquidity spread over the full range quote
+// a sell far past the launch pool's birth price, identical to a hookless full-range pool with a static 1% fee.
 func TestMeshPool_NoFloor(t *testing.T) {
 	pinClock(t, fixtureTime)
-	const meshState = `"liquidity":13357598883239533669812,"sqrtPriceX96":1849867144864904834059615894201144,"tickSpacing":200,"tick":201175,` +
-		`"ticks":[{"index":-887200,"liquidityGross":13357598883239533669812,"liquidityNet":13357598883239533669812},` +
-		`{"index":887200,"liquidityGross":13357598883239533669812,"liquidityNet":-13357598883239533669812}]`
+	const meshState = `"liquidity":13357598883239533669812,"sqrtPriceX96":1849867144864904834059615894201144,"tickSpacing":10,"tick":201175,` +
+		`"ticks":[{"index":-887270,"liquidityGross":13357598883239533669812,"liquidityNet":13357598883239533669812},` +
+		`{"index":887270,"liquidityGross":13357598883239533669812,"liquidityNet":-13357598883239533669812}]`
 	mesh := newSim(t, "0x00000000000000000000000000000000000000000000000000000000000000fa", [2]string{native, fableToken},
-		staticExtra(true, "200", hookAddr), `{`+meshState+`,"hX":{"f":10000,"l":1791309607}}`, 0)
+		staticExtra(true, "10", hookAddr), `{`+meshState+`,"hX":{"f":10000,"l":1791309607}}`, 0)
 	plain := newSim(t, "0x00000000000000000000000000000000000000000000000000000000000000fa", [2]string{native, fableToken},
-		staticExtra(true, "200", native), `{`+meshState+`}`, 10000)
+		staticExtra(true, "10", native), `{`+meshState+`}`, 10000)
 
 	tooBigForLaunchPool := bi(t, "100000000000000000000000000") // 1e8 FABLE, refused by the launch pool above
 	a, err := mesh.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: fableToken, Amount: tooBigForLaunchPool}, TokenOut: native})
@@ -287,5 +288,31 @@ func TestSameAsStaticFeePool(t *testing.T) {
 				assert.Equal(t, b.TokenAmountIn.Amount.String(), a.TokenAmountIn.Amount.String())
 			}
 		})
+	}
+}
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	t := &testing.T{}
+	sim := fableEthSim(t)
+	amountIn := bi(t, "100000000000000")
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{Token: native, Amount: amountIn},
+			TokenOut:      fableToken,
+		}); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkBeforeSwap(b *testing.B) {
+	h := &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{FeePips: 10_000, LaunchedAt: launchedAt}}
+	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(18)}
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := h.BeforeSwap(p); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

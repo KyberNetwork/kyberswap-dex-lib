@@ -1,33 +1,12 @@
-// Package fablecurve implements FableHook, the single Uniswap v4 hook every coin launched on Fable
-// (https://fablecurve.fun) trades through on Robinhood chain. Not to be confused with package fables, an unrelated
-// protocol. Verified on robin.etherscan.io at 0x376aA4C2e48AC2498CaaAc06bd7A6b6ef373f8E0. Enabled callbacks:
-// beforeInitialize, afterInitialize, beforeAddLiquidity, beforeSwap, afterSwap, beforeDonate (address permission
-// bits 0x38e0) -- no return-delta flags, no hookData, no owner, not upgradeable. It succeeds MofoHook (package mofo)
-// and prices the same way; what a quoter sees:
+// Package fablecurve implements FableHook (0x376aA4C2e48AC2498CaaAc06bd7A6b6ef373f8E0, Robinhood), the one Uniswap v4
+// hook every coin launched on Fable (https://fablecurve.fun) trades through. Same pricing as MofoHook (package mofo).
 //
-//   - beforeSwap first calls the LiquidityLocker's checkpointCreatorFees(poolId), which records fee-growth
-//     bookkeeping for the coin's creator and moves no tokens and no price, then returns the pool's LP fee OR'd with
-//     OVERRIDE_FEE_FLAG: the pool's feePips (frozen at initialisation, at most 20%), except during the first
-//     3 seconds after the pool was created, when it steps down from 99% (see currentFeePips). The checkpoint costs
-//     gas only (gasBeforeSwap). beforeDonate makes the same call and nothing else.
-//   - afterInitialize writes the pool's fee into its public fee field (slot0.lpFee) once, at creation, so the pool
-//     fee the tracker reads already equals feePips. The override is still what every swap pays.
-//   - pools come in two kinds. LAUNCH pools (opened with the coin) have MofoHook's birth-price floor: afterSwap
-//     reverts BelowBirthPrice if a swap would leave the coin priced below the price the pool was initialised at. No
-//     hook fee is taken. The LiquidityLocker is the only address allowed to add liquidity and keeps exactly one
-//     position per pool, forever; a launch pool's position has one edge exactly at that birth price, so the birth
-//     tick is the outermost initialised tick on the sell side. The simulator therefore refuses a sell larger than the
-//     range can absorb (the shared tick math errors past the last tick) rather than quote a swap the hook would
-//     revert; the one gap is an exact-output sell within a few raw units of the pool's whole capacity, from the
-//     shared math's rounding. The price limit it hands the executor (GetSqrtPriceLimit, one unit inside that tick)
-//     stops a swap before birth. A swap sent without a price limit, after the price has moved against the quote,
-//     reverts BelowBirthPrice instead; nothing is lost.
-//   - MESH pools (opened later by a coin's own pot, flagged by the factory at creation) have no floor, and
-//     beforeAddLiquidity refuses them anything but full-range liquidity, so the shared tick math quotes them like
-//     any hookless full-range pool.
-//
-// Neither pool kind needs a pricing branch here: the floor is carried by the launch pool's tick layout, so the hook
-// state kept per pool is the fee and the creation time only.
+//   - beforeSwap checkpoints the LiquidityLocker (gas only, gasBeforeSwap) and returns the pool's feePips (at most
+//     20%, frozen at creation) as an override fee, stepping down from 99% over the first 3 s (currentFeePips).
+//   - Launch pools: afterSwap reverts BelowBirthPrice if a swap prices the coin below the pool's birth price. The
+//     locker's one position has an edge exactly at that price, so the tick math already errors past it and the
+//     executor's price limit stays inside it. Mesh pools have no floor and hold full-range liquidity only.
+//   - No hook fee and no deltas, so per-pool state is just the fee and the creation time.
 package fablecurve
 
 import (
