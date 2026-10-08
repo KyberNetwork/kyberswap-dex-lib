@@ -50,8 +50,8 @@ func FuzzCompositeQuotePurity(f *testing.F) {
 			t.Fatal("clone update changed original")
 		}
 		info := first.SwapInfo.(SwapInfo)
-		if _, err = EncodeTradeData(info, 50, 100, 400); err != nil {
-			t.Fatal(err)
+		if info.Refunds != (first.RemainingTokenAmountIn.Amount.Sign() > 0) {
+			t.Fatal("Refunds must match the quoted refund")
 		}
 	})
 }

@@ -65,10 +65,6 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 		if s.Base.GetTokenIndex(WETH) < 0 || s.Base.GetTokenIndex(leaf) < 0 {
 			return nil, ErrState
 		}
-		baseCore, err := core(s.Base)
-		if err != nil || baseCore.Info.BlockNumber != p.BlockNumber {
-			return nil, ErrState
-		}
 		hop, err := hopFor(s.Base)
 		if err != nil {
 			return nil, err
@@ -381,11 +377,6 @@ func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
 		return
 	}
 	if s.Base != nil && s.Base.GetAddress() == p.GetAddress() {
-		c, err := core(p)
-		if err != nil || c.Info.BlockNumber != s.Info.BlockNumber {
-			s.Valid = false
-			return
-		}
 		hop, err := hopFor(p)
 		if err != nil {
 			s.Valid = false

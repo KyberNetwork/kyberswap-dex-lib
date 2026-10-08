@@ -149,7 +149,7 @@ func TestCompositeSnapshotsPurityAndProtection(t *testing.T) {
 		require.True(t, common.IsHexAddress(a), a)
 	}
 }
-func TestDirectionalProtocolFeeAndCalldata(t *testing.T) {
+func TestDirectionalProtocolFee(t *testing.T) {
 	p := snapshots(t)[0]
 	var e Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &e))
@@ -170,14 +170,6 @@ func TestDirectionalProtocolFeeAndCalldata(t *testing.T) {
 	out, _, _, err := swapCL(isolated, &split.Net, WETH, s.Info.Address, rate, -1)
 	require.NoError(t, err)
 	require.Equal(t, out.ToBig(), q.TokenAmountOut.Amount)
-	data, err := EncodeTradeData(info, 75, 100, 400)
-	require.NoError(t, err)
-	decoded, err := tradeArguments.Unpack(data)
-	require.NoError(t, err)
-	trade := abi.ConvertType(decoded[0], new(AdapterTrade)).(*AdapterTrade)
-	require.Equal(t, new(big.Int).Div(new(big.Int).Mul(gross.ToBig(), big.NewInt(9925)), big.NewInt(10000)), trade.MinQuote)
-	require.Zero(t, trade.MinRefundETH.Sign())
-	require.Empty(t, trade.Route)
 	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
 	sell, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *q.TokenAmountOut, TokenOut: WETH})
 	require.NoError(t, err)

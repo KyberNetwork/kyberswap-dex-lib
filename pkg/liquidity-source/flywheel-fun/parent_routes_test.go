@@ -50,11 +50,11 @@ func TestNativeParentsSharedLiquidityAndClones(t *testing.T) {
 		for i, base := range child.ParentPools {
 			require.Equal(t, prior[i], fingerprint(base), "stale replay must not partially update any parent")
 		}
-		data, err := EncodeTradeData(first.SwapInfo.(SwapInfo), 100, 100, 400)
+		// The settlement takes abi.encode(bytes4("FWL1"), parentsNearestFirst, externalRoute) verbatim.
+		unpacked, err := parentArguments.Unpack(first.SwapInfo.(SwapInfo).Route)
 		require.NoError(t, err)
-		unpacked, err := tradeArguments.Unpack(data)
-		require.NoError(t, err)
-		require.Len(t, unpacked, 1)
+		require.Equal(t, [4]byte{'F', 'W', 'L', '1'}, unpacked[0])
+		require.Len(t, unpacked[1], len(extra.Parents))
 		tested++
 	}
 	require.Equal(t, 4, tested)

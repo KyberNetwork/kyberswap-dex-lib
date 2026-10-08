@@ -3,23 +3,17 @@
 const {spawn} = require('node:child_process');
 const net = require('node:net');
 const {Interface} = require('ethers');
-const {fs,path,root,dex,adapters,bins,block,run,save,startReadBridge} = require('./common.cjs');
+const {fs,path,root,dex,bins,block,run,save,startReadBridge} = require('./common.cjs');
 async function main() {
-  const mode = process.argv[2];
-  if (!['adapter','quotes'].includes(mode)) throw Error('Usage: node run-forks.cjs adapter|quotes');
+  const mode = 'quotes';
   let bridge, anvil;
   try {
-    // Build before spending RPC requests. No network/signing config is loaded.
-    const build = await run(bins.forge, ['build','--evm-version','cancun','--use','0.8.30'], adapters);
-    if (build.code) throw Error('Adapter build failed');
-    bridge = await startReadBridge(mode === 'adapter' ? 900 : 2500);
+    bridge = await startReadBridge(2500);
     let result;
-    if (mode === 'adapter') {
-      result = await run(bins.forge, ['test','--match-path','test/adapters/flywheel-fun/*.t.sol','--evm-version','cancun','--use','0.8.30','--fuzz-runs','128'], adapters, {FLYWHEEL_READONLY_FORK_URL:bridge.url});
-    } else {
+    {
       const probe = net.createServer(); await new Promise(r => probe.listen(0,'127.0.0.1',r));
       const port = probe.address().port; await new Promise(r => probe.close(r));
-      anvil = spawn(bins.anvil, ['--host','127.0.0.1','--port',String(port),'--fork-url',bridge.url,'--fork-block-number',String(block),'--chain-id','4663','--silent','--no-storage-caching'], {windowsHide:true,stdio:['ignore','ignore','pipe']});
+      anvil = spawn(bins.anvil, ['--host','127.0.0.1','--port',String(port),'--fork-url',bridge.url,...(block?['--fork-block-number',block]:[]),'--chain-id','4663','--silent','--no-storage-caching'], {windowsHide:true,stdio:['ignore','ignore','pipe']});
       let startupFailed = false; anvil.on('error', () => {startupFailed=true;}); anvil.stderr.on('data', () => {});
       const local = 'http://127.0.0.1:'+port;
       async function rpc(method, params=[]) {
@@ -29,14 +23,16 @@ async function main() {
       let ready = false;
       for (let n=0;n<100;n++) {if(startupFailed)break;try {await rpc('eth_chainId');ready=true;break;}catch{await new Promise(r=>setTimeout(r,200));}}
       if(!ready)throw Error('Local Anvil did not start');
-      const accounts = await rpc('eth_accounts');
+      // Anvil's default accounts can carry EIP-7702 code and a live nonce on the fork; use a fresh one.
+      const accounts = ['0x20000000000000000000000000000000deadbeef'];
+      await rpc('anvil_setCode',[accounts[0],'0x']);
+      await rpc('anvil_setBalance',[accounts[0],'0x3635c9adc5dea00000']);
+      await rpc('anvil_impersonateAccount',[accounts[0]]);
       async function send(tx) {
         const hash=await rpc('eth_sendTransaction',[tx]);
-        for(let n=0;n<100;n++){const r=await rpc('eth_getTransactionReceipt',[hash]);if(r){if(r.status!=='0x1')throw Error('Local test transaction reverted');return r;}await new Promise(r=>setTimeout(r,100));}
+        for(let n=0;n<600;n++){const r=await rpc('eth_getTransactionReceipt',[hash]);if(r){if(r.status!=='0x1')throw Error('Local test transaction reverted');return r;}await new Promise(r=>setTimeout(r,100));}
         throw Error('Local receipt timeout');
       }
-      const artifact=JSON.parse(fs.readFileSync(path.join(adapters,'out/FlywheelNativeAdapter.sol/FlywheelNativeAdapter.json'),'utf8'));
-      const deployed=await send({from:accounts[0],data:artifact.bytecode.object,gas:'0x989680'});
       const gateway=new Interface(JSON.parse(fs.readFileSync(path.join(root,'abi/NativeLaunchGateway.json'),'utf8')));
       const factory=new Interface(['function launchFeeWei() view returns(uint256)']);
       const fee=BigInt(await rpc('eth_call',[{to:'0xe7743b4039DBCd05C5242939aA8db274c65fCBfA',data:factory.encodeFunctionData('launchFeeWei')},'latest']));
@@ -49,8 +45,7 @@ async function main() {
       if(launches.length!==3)throw Error('Missing local test launches');
       const nested=await require('./nested-fixtures.cjs')({send,account:accounts[0],fee,gateway});
       result=await run(bins.go,['test','./pkg/liquidity-source/flywheel-fun','-run','TestLocalFork','-count=1','-v','-timeout','8m'],dex,{
-        ...nested,FLYWHEEL_CAPTURE_FIXTURES:'0',FLYWHEEL_LOCAL_TEST_RPC:local,FLYWHEEL_LOCAL_ADAPTER:deployed.contractAddress,
-        FLYWHEEL_LOCAL_WETH_CURVE:launches[0],FLYWHEEL_LOCAL_BOOMER_CURVE:launches[1],FLYWHEEL_LOCAL_PONS_CURVE:launches[2]
+        ...nested,FLYWHEEL_CAPTURE_FIXTURES:'0',FLYWHEEL_LOCAL_TEST_RPC:local,        FLYWHEEL_LOCAL_WETH_CURVE:launches[0],FLYWHEEL_LOCAL_BOOMER_CURVE:launches[1],FLYWHEEL_LOCAL_PONS_CURVE:launches[2]
       });
     }
     save(mode+'-tests.txt',result.output);

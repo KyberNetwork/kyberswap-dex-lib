@@ -22,38 +22,47 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-var executionABI = mustABI(`[{"type":"function","name":"executeFlywheelNative","inputs":[{"type":"bytes"},{"type":"uint256"},{"type":"address"},{"type":"address"},{"type":"address"}],"outputs":[{"type":"uint256"},{"type":"uint256"}]},{"type":"function","name":"transfer","inputs":[{"type":"address"},{"type":"uint256"}],"outputs":[{"type":"bool"}]}]`)
+// The settlement entry points aggregator-encoding calls through executeGeneric.
+var settlementABI = mustABI(`[{"type":"function","name":"buy","inputs":[{"type":"address"},{"type":"uint256"},{"type":"uint256"},{"type":"uint256"},{"type":"bytes"}],"outputs":[{"type":"uint256"}]},{"type":"function","name":"buyWithRefund","inputs":[{"type":"address"},{"type":"uint256"},{"type":"uint256"},{"type":"uint256"},{"type":"bytes"},{"type":"uint256"},{"type":"bytes"}],"outputs":[{"type":"uint256"}]},{"type":"function","name":"sell","inputs":[{"type":"address"},{"type":"uint256"},{"type":"uint256"},{"type":"uint256"},{"type":"uint256"},{"type":"bytes"}],"outputs":[{"type":"uint256"}]}]`)
+var erc20ABI = mustABI(`[{"type":"function","name":"approve","inputs":[{"type":"address"},{"type":"uint256"}],"outputs":[{"type":"bool"}]}]`)
 
-// Opt-in integration test. Transactions are sent ONLY to a locally spawned
-// Anvil instance, behind a read-only upstream proxy; never to the chain RPC.
+// Opt-in integration test. Transactions are sent ONLY to a locally spawned Anvil instance
+// or a Tenderly virtual testnet; never to the chain RPC.
 func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	url := os.Getenv("FLYWHEEL_LOCAL_TEST_RPC")
 	if url == "" {
-		t.Skip("run node testdata/runner/run-forks.cjs quotes for local-fork parity")
+		t.Skip("run node testdata/runner/run-forks.cjs for local-fork parity")
 	}
-	require.True(t, strings.HasPrefix(url, "http://127.0.0.1:"))
+	require.True(t, strings.HasPrefix(url, "http://127.0.0.1:") || strings.HasPrefix(url, "https://virtual."), "local Anvil or a Tenderly virtual testnet only")
 	ctx := context.Background()
 	raw, err := rpc.DialContext(ctx, url)
 	require.NoError(t, err)
 	defer raw.Close()
 	var version string
 	require.NoError(t, raw.CallContext(ctx, &version, "web3_clientVersion"))
-	require.Contains(t, strings.ToLower(version), "anvil")
+	// Anvil and Tenderly virtual testnets (archive-backed forks) expose the same cheats under different names.
+	cheat := "tenderly_"
+	if strings.Contains(strings.ToLower(version), "anvil") {
+		cheat = "anvil_"
+	}
 	eth := ethclient.NewClient(raw)
 	chain, err := eth.ChainID(ctx)
 	require.NoError(t, err)
 	require.Equal(t, int64(4663), chain.Int64())
-	adapter := common.HexToAddress(os.Getenv("FLYWHEEL_LOCAL_ADAPTER"))
-	require.NotEqual(t, common.Address{}, adapter)
-	var accounts []common.Address
-	require.NoError(t, raw.CallContext(ctx, &accounts, "eth_accounts"))
-	require.GreaterOrEqual(t, len(accounts), 2)
-	sender, recipient := accounts[0], common.HexToAddress("0x10000000000000000000000000000000feedf00d")
-	// Public Anvil default addresses can have EIP-7702 code on the forked chain.
-	// Use a dedicated empty-code local receiver for balance-delta assertions.
-	require.NoError(t, raw.CallContext(ctx, nil, "anvil_setCode", recipient, "0x"))
-	require.NoError(t, raw.CallContext(ctx, nil, "anvil_setBalance", recipient, "0x3635c9adc5dea00000"))
-	require.NoError(t, raw.CallContext(ctx, nil, "anvil_impersonateAccount", recipient))
+	settlement := common.HexToAddress(Settlement)
+	// A dedicated empty-code account plays the executor: it calls the settlement directly, like
+	// executeGeneric, and receives the tokens, ETH proceeds and graduation refund. Public Anvil
+	// default addresses can have EIP-7702 code on the forked chain.
+	exec := common.HexToAddress("0x10000000000000000000000000000000feedf00d")
+	require.NoError(t, raw.CallContext(ctx, nil, cheat+"setCode", exec, "0x"))
+	var who any = exec
+	if cheat == "tenderly_" {
+		who = []common.Address{exec}
+	}
+	require.NoError(t, raw.CallContext(ctx, nil, cheat+"setBalance", who, "0x3635c9adc5dea00000"))
+	if cheat == "anvil_" {
+		require.NoError(t, raw.CallContext(ctx, nil, "anvil_impersonateAccount", exec))
+	}
 	native := common.HexToAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE")
 	client := ethrpc.NewWithClient(eth).SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 	boomer := "0x73c2de14c7fa0a57cc2d9722b959ea70b881ffe4"
@@ -62,6 +71,7 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	require.NoError(t, err)
 	var captured []entity.Pool
 	var lastGas uint64
+	lastCost := new(big.Int) // gas paid by the last tx, added back to ETH balance deltas
 	send := func(from, to common.Address, data []byte, value *big.Int) common.Hash {
 		t.Helper()
 		var hash common.Hash
@@ -71,13 +81,14 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 		}
 		require.NoError(t, raw.CallContext(ctx, &hash, "eth_sendTransaction", tx))
 		receipt, e := eth.TransactionReceipt(ctx, hash)
-		for n := 0; e != nil && n < 100; n++ {
+		for n := 0; e != nil && n < 600; n++ {
 			time.Sleep(100 * time.Millisecond)
 			receipt, e = eth.TransactionReceipt(ctx, hash)
 		}
 		require.NoError(t, e)
 		require.Equal(t, uint64(1), receipt.Status)
 		lastGas = receipt.GasUsed
+		lastCost.Mul(new(big.Int).SetUint64(receipt.GasUsed), receipt.EffectiveGasPrice)
 		return hash
 	}
 	balance := func(token, who common.Address) *big.Int {
@@ -164,18 +175,26 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				quote, e := sim.CalcAmountOut(params)
 				require.NoError(t, e)
 				token := common.HexToAddress(tc.token)
-				before := balance(token, recipient)
-				beforeRefund := balance(native, adapter)
-				data, e := EncodeTradeData(quote.SwapInfo.(SwapInfo), 0, uint64(time.Now().Unix()), uint64(time.Now().Unix()+1800))
+				info := quote.SwapInfo.(SwapInfo)
+				before := balance(token, exec)
+				beforeETH := balance(native, exec)
+				deadline := big.NewInt(time.Now().Unix() + 1800)
+				one := big.NewInt(1)
+				// Same entry-point choice and minima as aggregator-encoding's PackFlywheelFun.
+				var call []byte
+				if info.Refunds {
+					call, e = settlementABI.Pack("buyWithRefund", token, one, one, deadline, []byte(info.Route), one, []byte(info.Route))
+				} else {
+					call, e = settlementABI.Pack("buy", token, one, one, deadline, []byte(info.Route))
+				}
 				require.NoError(t, e)
-				call, e := executionABI.Pack("executeFlywheelNative", data, big.NewInt(amount), native, token, recipient)
-				require.NoError(t, e)
-				send(sender, adapter, call, big.NewInt(amount))
+				send(exec, settlement, call, big.NewInt(amount))
 				buyGas := lastGas
 				require.GreaterOrEqual(t, quote.Gas, int64(buyGas), "gas estimate must cover measured fork buy")
-				received := new(big.Int).Sub(balance(token, recipient), before)
+				received := new(big.Int).Sub(balance(token, exec), before)
 				require.Equal(t, quote.TokenAmountOut.Amount.String(), received.String(), "buy quote must match actual base units")
-				refund := new(big.Int).Sub(balance(native, adapter), beforeRefund)
+				refund := new(big.Int).Sub(balance(native, exec), beforeETH)
+				refund.Add(refund, big.NewInt(amount)).Add(refund, lastCost)
 				require.Equal(t, quote.RemainingTokenAmountIn.Amount.String(), refund.String())
 				sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: quote.SwapInfo})
 				if quote.SwapInfo.(SwapInfo).Next.Graduated && sim.MarketPool == nil {
@@ -189,18 +208,14 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				sold := new(big.Int).Div(received, big.NewInt(2))
 				sell, e := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tc.token, Amount: sold}, TokenOut: WETH})
 				require.NoError(t, e)
-				transfer, e := executionABI.Pack("transfer", adapter, sold)
+				send(exec, token, mustPack(t, erc20ABI, "approve", settlement, sold), nil)
+				call, e = settlementABI.Pack("sell", token, sold, one, one, deadline, []byte(sell.SwapInfo.(SwapInfo).Route))
 				require.NoError(t, e)
-				send(recipient, token, transfer, nil)
-				data, e = EncodeTradeData(sell.SwapInfo.(SwapInfo), 0, uint64(time.Now().Unix()), uint64(time.Now().Unix()+1800))
-				require.NoError(t, e)
-				call, e = executionABI.Pack("executeFlywheelNative", data, sold, token, native, recipient)
-				require.NoError(t, e)
-				before = balance(native, recipient)
-				send(sender, adapter, call, nil)
+				before = balance(native, exec)
+				send(exec, settlement, call, nil)
 				require.GreaterOrEqual(t, sell.Gas, int64(lastGas), "gas estimate must cover measured fork sell")
-				after := balance(native, recipient)
-				received.Sub(after, before)
+				after := balance(native, exec)
+				received.Sub(after, before).Add(received, lastCost)
 				require.Equal(t, sell.TokenAmountOut.Amount.String(), received.String(), "sell after UpdateBalance must match actual base units")
 				t.Logf("input %d: buy %s; sell half %s; refund %s; gas %d/%d", amount, quote.TokenAmountOut.Amount, received, refund, buyGas, lastGas)
 			}
@@ -213,7 +228,14 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	}
 }
 
-func TestCurveRefundAndCalldata(t *testing.T) {
+func mustPack(t *testing.T, a abi.ABI, method string, args ...any) []byte {
+	t.Helper()
+	data, err := a.Pack(method, args...)
+	require.NoError(t, err)
+	return data
+}
+
+func TestCurveRefund(t *testing.T) {
 	s, e := NewPoolSimulator(testEntity())
 	require.NoError(t, e)
 	q, e := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(2000000)}, TokenOut: s.Info.Address})
@@ -222,62 +244,13 @@ func TestCurveRefundAndCalldata(t *testing.T) {
 	require.True(t, info.Next.Graduated)
 	require.Positive(t, info.Refund.Sign())
 	require.True(t, info.Refund.Cmp(&info.RefundRouteOutput) >= 0)
-	data, e := EncodeTradeData(info, 100, 100, 400)
-	require.NoError(t, e)
-	unpacked, e := tradeArguments.Unpack(data)
-	require.NoError(t, e)
-	require.Len(t, unpacked, 1)
+	require.True(t, info.Refunds)
 	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
 	require.False(t, s.Valid, "requires refreshed pool state after migration")
-	_, e = EncodeTradeData(info, 10000, 100, 400)
-	require.Error(t, e)
-	_, e = EncodeTradeData(info, 0, 400, 100)
-	require.Error(t, e)
-	info.RefundRouteOutput.Clear()
-	_, e = EncodeTradeData(info, 0, 100, 400)
-	require.Error(t, e)
 	amount := uint256.NewInt(1000)
 	out, next, used, e := CurveFill(testCurve(), amount, true)
 	require.NoError(t, e)
 	require.Equal(t, uint64(1000), used.Uint64())
 	require.False(t, next.Graduated)
 	require.False(t, out.IsZero())
-}
-
-var tradeArguments = abi.Arguments{{Type: abiType("tuple", []abi.ArgumentMarshaling{{Name: "token", Type: "address"}, {Name: "minQuote", Type: "uint256"}, {Name: "minOutput", Type: "uint256"}, {Name: "deadline", Type: "uint256"}, {Name: "route", Type: "bytes"}, {Name: "minRefundETH", Type: "uint256"}, {Name: "refundRoute", Type: "bytes"}})}}
-
-type AdapterTrade struct {
-	Token        common.Address
-	MinQuote     *big.Int
-	MinOutput    *big.Int
-	Deadline     *big.Int
-	Route        []byte
-	MinRefundETH *big.Int
-	RefundRoute  []byte
-}
-
-// EncodeTradeData returns abi.encode(Trade) for the local fork harness's execution module.
-// Refund protection uses the reverse swap's ETH output, not the larger refund that also
-// includes returned platform fees.
-func EncodeTradeData(info SwapInfo, slippageBps uint16, now, deadline uint64) ([]byte, error) {
-	if slippageBps >= 10000 || deadline <= now || deadline-now > 3600 || !common.IsHexAddress(info.Token) || common.HexToAddress(info.Token) == (common.Address{}) || info.MinQuote.IsZero() || info.AmountOut.IsZero() {
-		return nil, ErrAmount
-	}
-	minimum := func(x *uint256.Int) *big.Int {
-		v := new(big.Int).Mul(x.ToBig(), big.NewInt(int64(10000-slippageBps)))
-		v.Div(v, big.NewInt(10000))
-		if v.Sign() == 0 {
-			v.SetInt64(1)
-		}
-		return v
-	}
-	t := AdapterTrade{Token: common.HexToAddress(info.Token), MinQuote: minimum(&info.MinQuote), MinOutput: minimum(&info.AmountOut), Deadline: new(big.Int).SetUint64(deadline), Route: info.Route, MinRefundETH: new(big.Int)}
-	if !info.Refund.IsZero() {
-		if !info.Buy || info.RefundRouteOutput.IsZero() {
-			return nil, ErrAmount
-		}
-		t.MinRefundETH = minimum(&info.RefundRouteOutput)
-		t.RefundRoute = info.Route
-	}
-	return tradeArguments.Pack(t)
 }
