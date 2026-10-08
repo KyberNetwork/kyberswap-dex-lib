@@ -26,9 +26,15 @@ type PoolSimulator struct {
 	tokenWrappers []ITokenWrapper
 }
 
-var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	return newPoolSimulator(params.EntityPool, params.ChainID, params.Opts.StaleCheck)
+})
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+	return newPoolSimulator(entityPool, chainID, false)
+}
+
+func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, staleCheck bool) (*PoolSimulator, error) {
 	var extra ExtraU256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -39,9 +45,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
-		Cfg:       &Config{ChainID: chainID},
-		Pool:      &entityPool,
-		HookExtra: HookExtra(extra.HookExtra),
+		Cfg:        &Config{ChainID: chainID},
+		Pool:       &entityPool,
+		HookExtra:  HookExtra(extra.HookExtra),
+		StaleCheck: staleCheck,
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook
@@ -545,6 +552,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrap)
 	}
 
+	zeroForOne := tokenInAfterWrap == p.Info.Tokens[0]
+	priceLimit := p.GetSqrtPriceLimit(zeroForOne)
+	if provider, ok := p.hook.(HookPriceLimitProvider); ok {
+		if hookLimit := provider.SqrtPriceLimit(zeroForOne); hookLimit != nil {
+			priceLimit = hookLimit
+		}
+	}
+
 	return PoolMetaInfo{
 		BlockNumber:       p.Info.BlockNumber,
 		Router:            p.staticExtra.UniversalRouterAddress,
@@ -555,7 +570,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TickSpacing:       p.staticExtra.TickSpacing,
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          p.hook.GetHookData(),
-		PriceLimit:        p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0]),
+		PriceLimit:        priceLimit,
 		TokenWrapMetadata: wrapMetadata,
 	}
 }

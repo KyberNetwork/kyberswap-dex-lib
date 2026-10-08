@@ -7,6 +7,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -34,8 +36,14 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 		},
 		ethrpcClient: ethrpc.New(rpcURL).SetMulticallContract(multicallAddress),
 	}
-	_, err := pt.GetNewPoolState(context.Background(),
-		entity.Pool{Address: poolAddress},
+	// The reserves scale the book by the pool's scaling factors, so the pool needs them.
+	p, err := pt.GetNewPoolState(context.Background(),
+		entity.Pool{Address: poolAddress, StaticExtra: `{"sX":"1","sY":"1"}`},
 		pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
+
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+	assert.NotZero(t, p.BlockNumber)
+	assert.NotZero(t, extra.MeasuredAt, "a pool never measured is measured")
 }

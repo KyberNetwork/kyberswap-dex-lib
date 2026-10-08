@@ -45,6 +45,7 @@ import (
 	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
+	crystalob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/crystal-ob"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
@@ -108,6 +109,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyperamm"
+	ilyrislb "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ilyris-lb"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
@@ -131,6 +133,7 @@ import (
 	maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mento"
 	metronomeswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metronome/swap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
@@ -192,6 +195,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/evplusai"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/inverse"
+	uscoreprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore-prop"
 	usd_ai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	valantisstex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/valantis-stex"
@@ -322,6 +326,7 @@ type Types struct {
 	LiquidityBookV21           string
 	LiquidityBookV20           string
 	Smardex                    string
+	IlyrisLB                   string
 	Integral                   string
 	Fxdx                       string
 	UniPool                    string
@@ -447,6 +452,7 @@ type Types struct {
 	ArcadeFun                  string
 	ArenaBC                    string
 	XsolvBTC                   string
+	Mento                      string
 	Midas                      string
 	MiroMigrator               string
 	ArberaDen                  string
@@ -457,6 +463,7 @@ type Types struct {
 	NadFun                     string
 	NadSwap                    string
 	CloberOB                   string
+	CrystalOB                  string
 	FluidDexV2                 string
 	Wildcard                   string
 	ValantisStex               string
@@ -469,6 +476,7 @@ type Types struct {
 	UmbraeDamm                 string
 	UmbraeDlmm                 string
 	LiquidCore                 string
+	USCoreProp                 string
 	LiquidityParty             string
 	LunarBase                  string
 	FrxUSD                     string
@@ -581,6 +589,7 @@ var (
 		LiquidityBookV21:           liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:           liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                    smardex.DexTypeSmardex,
+		IlyrisLB:                   ilyrislb.DexType,
 		Integral:                   integral.DexTypeIntegral,
 		Fxdx:                       fxdx.DexTypeFxdx,
 		UniPool:                    unipool.DexType,
@@ -706,6 +715,7 @@ var (
 		ArcadeFun:                  arcadecurve.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
+		Mento:                      mento.DexType,
 		Midas:                      midas.DexType,
 		MiroMigrator:               miromigrator.DexType,
 		ArberaDen:                  arberaden.DexType,
@@ -716,6 +726,7 @@ var (
 		NadFun:                     nadfun.DexType,
 		NadSwap:                    nadswap.DexType,
 		CloberOB:                   cloberob.DexType,
+		CrystalOB:                  crystalob.DexType,
 		FluidDexV2:                 dexv2.DexType,
 		Wildcard:                   wildcard.DexType,
 		ValantisStex:               valantisstex.DexType,
@@ -728,6 +739,7 @@ var (
 		UmbraeDamm:                 umbraedamm.DexType,
 		UmbraeDlmm:                 umbraedlmm.DexType,
 		LiquidCore:                 liquidcore.DexType,
+		USCoreProp:                 uscoreprop.DexType,
 		LiquidityParty:             liquidityparty.DexType,
 		LunarBase:                  lunarbase.DexType,
 		FrxUSD:                     frxusd.DexType,

@@ -86,7 +86,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		staticExtraBytes, _ := json.Marshal(staticExtras[i])
 		pools[i] = entity.Pool{
 			Address:  strings.ToLower(market.OrderbookAddress),
-			SwapFee:  market.AggressiveFee,
+			SwapFee:  swapFee(market),
 			Exchange: u.config.DexID,
 			Type:     DexType,
 			Tokens: []*entity.PoolToken{
@@ -159,4 +159,10 @@ func (u *PoolListUpdater) getLobConfig(ctx context.Context, markets []*MarketInf
 			SupportsNativeEth: lobCfg.SupportsNativeEth,
 		}
 	}), nil
+}
+
+// swapFee is market's taker fee, zero when the API sends none.
+func swapFee(market *MarketInfo) float64 {
+	fee, _ := market.AggressiveFee.Float64()
+	return fee
 }

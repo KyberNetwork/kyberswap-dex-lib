@@ -3,7 +3,6 @@ package metricpropamm
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -33,6 +32,12 @@ type bidAsk struct {
 	TotalToken1Available string      `json:"totalToken1Available"`
 	ServerTs             int64       `json:"serverTs"`
 	Depth                axima.Depth `json:"depth"`
+	PriceProviderStatus  string      `json:"priceProviderStatus"`
+}
+
+// quotable is false while Metric's price feed is down, when depth is empty and the quote is unusable.
+func (b *bidAsk) quotable() bool {
+	return b.PriceProviderStatus != statusFeedDown && (len(b.Depth.Asks) > 0 || len(b.Depth.Bids) > 0)
 }
 
 type PoolTracker struct {
@@ -44,14 +49,7 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *axima.Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	client := resty.NewWithClient(http.DefaultClient).
-		SetBaseURL(config.HTTPConfig.BaseURL).
-		SetTimeout(config.HTTPConfig.Timeout.Duration).
-		SetRetryCount(config.HTTPConfig.RetryCount)
-	if config.HTTPConfig.APIKey != "" {
-		client = client.SetAuthToken(config.HTTPConfig.APIKey)
-	}
-	return &PoolTracker{config: config, client: client, ethrpcClient: ethrpcClient}
+	return &PoolTracker{config: config, client: newClient(config), ethrpcClient: ethrpcClient}
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -101,6 +99,11 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 			fetchErr = fmt.Errorf("bid_ask API error: %s", res.String())
 		}
 	}
+	if !unswappable && fetchErr == nil && !ba.quotable() {
+		logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr, "status": ba.PriceProviderStatus}).
+			Warnf("no usable quote: feed down or empty depth")
+		unswappable = true
+	}
 	if unswappable || fetchErr != nil {
 		if fetchErr != nil {
 			logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr}).
@@ -108,6 +111,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}
 		unavailable, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true})
 		p.Extra = string(unavailable)
+		p.Reserves = []string{"0", "0"}
 		return p, nil
 	}
 
