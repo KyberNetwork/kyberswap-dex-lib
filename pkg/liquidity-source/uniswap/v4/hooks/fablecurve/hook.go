@@ -5,7 +5,8 @@
 //     20%, frozen at creation) as an override fee, stepping down from 99% over the first 3 s (currentFeePips).
 //   - Launch pools: afterSwap reverts BelowBirthPrice if a swap prices the coin below the pool's birth price. The
 //     locker's one position has an edge exactly at that price, so the tick math already errors past it and the
-//     executor's price limit stays inside it. Mesh pools have no floor and hold full-range liquidity only.
+//     executor's price limit stays inside it. The hook doesn't enforce that layout; it relies on the Fable factory and
+//     locker always adding the single launch position there. Mesh pools have no floor, full-range liquidity only.
 //   - No hook fee and no deltas, so per-pool state is just the fee and the creation time.
 package fablecurve
 
