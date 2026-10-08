@@ -39,16 +39,17 @@ async function main() {
       const deployed=await send({from:accounts[0],data:artifact.bytecode.object,gas:'0x989680'});
       const gateway=new Interface(JSON.parse(fs.readFileSync(path.join(root,'abi/NativeLaunchGateway.json'),'utf8')));
       const factory=new Interface(['function launchFeeWei() view returns(uint256)']);
-      const fee=BigInt(await rpc('eth_call',[{to:'0xEE54DA52128dd851c71b1c58d371966231B66C40',data:factory.encodeFunctionData('launchFeeWei')},'latest']));
+      const fee=BigInt(await rpc('eth_call',[{to:'0xe7743b4039DBCd05C5242939aA8db274c65fCBfA',data:factory.encodeFunctionData('launchFeeWei')},'latest']));
       const launches=[];
       for(const [quote,threshold] of [['0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73',100000000000n],['0x73c2dE14C7FA0a57cc2d9722b959eA70B881fFe4',100000000000000000n],['0x39dBED3a2bd333467115dE45665cC57F813C4571',10n**24n]]){
         const data=gateway.encodeFunctionData('launch',[[quote,'KYBER LOCAL QUOTE PARITY','KYBERLOCAL',['','','','',''],10n**29n,threshold*3n/10n,threshold,true],[0,0,Math.floor(Date.now()/1000)+3600,'0x',0,'0x']]);
-        const receipt=await send({from:accounts[0],to:'0x8728D5073da6C9d30843f7E8B5A8dF2392C49d85',data,value:'0x'+fee.toString(16),gas:'0x1c9c380'});
+        const receipt=await send({from:accounts[0],to:'0x341649D9A20fAf349aB8F1a1a4449bDa47cFAb35',data,value:'0x'+fee.toString(16),gas:'0x1c9c380'});
         for(const log of receipt.logs){try{const e=gateway.parseLog(log);if(e?.name==='NativeLaunched')launches.push(e.args.token.toLowerCase());}catch{}}
       }
       if(launches.length!==3)throw Error('Missing local test launches');
+      const nested=await require('./nested-fixtures.cjs')({send,account:accounts[0],fee,gateway});
       result=await run(bins.go,['test','./pkg/liquidity-source/flywheel-fun','-run','TestLocalFork','-count=1','-v','-timeout','8m'],dex,{
-        FLYWHEEL_CAPTURE_FIXTURES:'0',FLYWHEEL_LOCAL_TEST_RPC:local,FLYWHEEL_LOCAL_ADAPTER:deployed.contractAddress,
+        ...nested,FLYWHEEL_CAPTURE_FIXTURES:'0',FLYWHEEL_LOCAL_TEST_RPC:local,FLYWHEEL_LOCAL_ADAPTER:deployed.contractAddress,
         FLYWHEEL_LOCAL_WETH_CURVE:launches[0],FLYWHEEL_LOCAL_BOOMER_CURVE:launches[1],FLYWHEEL_LOCAL_PONS_CURVE:launches[2]
       });
     }

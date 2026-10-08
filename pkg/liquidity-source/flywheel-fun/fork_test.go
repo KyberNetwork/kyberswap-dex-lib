@@ -92,15 +92,61 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 		require.NoError(t, e)
 		return v
 	}
-	cases := []struct{ name, token, quote string }{{"weth_graduated", "0x644c1eb68e1c764b3115a37a9ef8703fb3590735", WETH}, {"boomer_graduated", "0x985de77f500890c80e0b23d162aa8f534da0c37e", boomer}, {"boomer_curve", "0x7e2c6ef342e2b8f9dedb25b5cab4ea8edae5d3c5", boomer}}
+	cases := []struct{ name, token, quote string }{{"weth_graduated", "0x3245af253dc425459c331b2ff8b2fe170d781ae5", WETH}, {"boomer_graduated", "0x0d451b146208549b4c6bdc86d8ae7830f91efd84", boomer}}
 	cases = append(cases, struct{ name, token, quote string }{"weth_graduation_refund", os.Getenv("FLYWHEEL_LOCAL_WETH_CURVE"), WETH}, struct{ name, token, quote string }{"boomer_graduation_refund", os.Getenv("FLYWHEEL_LOCAL_BOOMER_CURVE"), boomer})
 	cases = append(cases, struct{ name, token, quote string }{"pons_v3_curve", os.Getenv("FLYWHEEL_LOCAL_PONS_CURVE"), pons})
+	cases = append(cases,
+		struct{ name, token, quote string }{"one_parent_curve", os.Getenv("FLYWHEEL_LOCAL_CHILD"), os.Getenv("FLYWHEEL_LOCAL_PARENT")},
+		struct{ name, token, quote string }{"one_parent_refund", os.Getenv("FLYWHEEL_LOCAL_CHILD_REFUND"), os.Getenv("FLYWHEEL_LOCAL_PARENT")},
+		struct{ name, token, quote string }{"two_parent_curve", os.Getenv("FLYWHEEL_LOCAL_GRANDCHILD"), os.Getenv("FLYWHEEL_LOCAL_NESTED_PARENT")},
+		struct{ name, token, quote string }{"two_parent_refund", os.Getenv("FLYWHEEL_LOCAL_GRANDCHILD_REFUND"), os.Getenv("FLYWHEEL_LOCAL_NESTED_PARENT")})
+	// A separate local provider supplies indexed V3/V4 bases at the same block.
+	fixtureBytes, e := os.ReadFile("testdata/replacement-fork-markets.json")
+	require.NoError(t, e)
+	var fixtures []entity.Pool
+	require.NoError(t, json.Unmarshal(fixtureBytes, &fixtures))
+	external := map[string]forkBaseHop{}
+	for _, fp := range fixtures {
+		var x struct {
+			Route []forkBaseHop `json:"route"`
+		}
+		var st StaticExtra
+		require.NoError(t, json.Unmarshal([]byte(fp.Extra), &x))
+		require.NoError(t, json.Unmarshal([]byte(fp.StaticExtra), &st))
+		if len(x.Route) == 1 {
+			external[st.Quote] = x.Route[0]
+		}
+	}
+	hydrate := func(ep entity.Pool) (entity.Pool, map[string]pool.IPoolSimulator) {
+		t.Helper()
+		bases := map[string]pool.IPoolSimulator{}
+		var st StaticExtra
+		require.NoError(t, json.Unmarshal([]byte(ep.StaticExtra), &st))
+		if h, ok := external[st.Quote]; ok {
+			id, e := h.id()
+			require.NoError(t, e)
+			st.BasePools = []string{id}
+			b, e := json.Marshal(st)
+			require.NoError(t, e)
+			ep.StaticExtra = string(b)
+		}
+		ep, e = tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
+		require.NoError(t, e)
+		if h, ok := external[st.Quote]; ok {
+			block := new(big.Int).SetUint64(ep.BlockNumber)
+			var bp entity.Pool
+			if h.Kind == 3 {
+				bp, _, e = tracker.forkTrackV3(ctx, h, block)
+			} else {
+				bp, _, e = tracker.forkTrackV4(ctx, h, block, false)
+			}
+			require.NoError(t, e)
+			bases[bp.Address] = baseSim(t, bp)
+		}
+		return ep, bases
+	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.quote != WETH {
-				// Route hops run on the indexed uniswap pools, which this harness doesn't track.
-				t.Skip("routed launches: verify via router-service e2e")
-			}
 			amounts := []int64{10_000_000_000, 100_000_000_000, 1_000_000_000_000}
 			if strings.Contains(tc.name, "refund") {
 				amounts = []int64{1_000_000_000, 400_000_000_000}
@@ -108,12 +154,11 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 			for _, amount := range amounts {
 				st, _ := json.Marshal(StaticExtra{Factory: Factory, Settlement: Settlement, Quote: tc.quote})
 				ep := entity.Pool{Address: tc.token, Type: DexType, Exchange: DexType, StaticExtra: string(st), Tokens: []*entity.PoolToken{{Address: WETH}, {Address: tc.token}}}
-				ep, e := tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
-				require.NoError(t, e)
+				ep, bases := hydrate(ep)
 				if amount == amounts[0] {
 					captured = append(captured, ep)
 				}
-				sim, e := NewPoolSimulator(ep)
+				sim, e := NewPoolSimulatorWithBases(ep, bases)
 				require.NoError(t, e)
 				params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(amount)}, TokenOut: tc.token}
 				quote, e := sim.CalcAmountOut(params)
@@ -136,9 +181,8 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				if quote.SwapInfo.(SwapInfo).Next.Graduated && sim.MarketPool == nil {
 					require.False(t, sim.Valid)
 					require.Positive(t, refund.Sign())
-					ep, e = tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
-					require.NoError(t, e)
-					sim, e = NewPoolSimulator(ep)
+					ep, bases = hydrate(ep)
+					sim, e = NewPoolSimulatorWithBases(ep, bases)
 					require.NoError(t, e)
 				}
 				require.True(t, sim.Valid)
@@ -165,7 +209,7 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 	if os.Getenv("FLYWHEEL_CAPTURE_FIXTURES") == "1" {
 		b, e := json.MarshalIndent(captured, "", "  ")
 		require.NoError(t, e)
-		require.NoError(t, os.WriteFile("testdata/fork-markets.json", b, 0600))
+		require.NoError(t, os.WriteFile("testdata/indexed-fork-markets.json", b, 0600))
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"slices"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -12,6 +13,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
@@ -23,17 +25,27 @@ type CurveRPC struct {
 	Graduated                                                                                                   bool
 	Pool, Token0, Token1                                                                                        common.Address
 	PositionTokenId                                                                                             *big.Int
+	VirtualTokenOffset, CurveInvariant                                                                          *big.Int
 }
 type PoolTracker struct {
-	rpc *ethrpc.Client
+	rpc    *ethrpc.Client
+	config Config
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 // NewPoolTracker tracks curve and market state only. Route hops are the indexed
 // uniswapv3/uniswap-v4 pools, tracked by their own sources.
-func NewPoolTracker(_ *Config, r *ethrpc.Client) (*PoolTracker, error) {
-	return &PoolTracker{rpc: r}, nil
+func NewPoolTracker(config *Config, r *ethrpc.Client) (*PoolTracker, error) {
+	if config == nil {
+		config = &Config{}
+	}
+	cfg := *config
+	cfg.QuoteBasePools = map[string]string{}
+	for quote, id := range config.QuoteBasePools {
+		cfg.QuoteBasePools[strings.ToLower(quote)] = strings.ToLower(id)
+	}
+	return &PoolTracker{rpc: r, config: cfg}, nil
 }
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
@@ -63,16 +75,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	req.AddCall(&ethrpc.Call{ABI: factoryABI, Target: Factory, Method: "nativeMarketAdapter"}, []any{&a})
 	req.AddCall(&ethrpc.Call{ABI: tokenABI, Target: p.Address, Method: "factory"}, []any{&f})
 	req.AddCall(&ethrpc.Call{ABI: tokenABI, Target: p.Address, Method: "balanceOf", Params: []any{common.HexToAddress(Factory)}}, []any{&held})
-	var v3slot v3Slot
-	var v4slot []common.Hash
-	if len(s.BasePools) == 1 {
-		if id := s.BasePools[0]; common.IsHexAddress(id) {
-			req.AddCall(&ethrpc.Call{ABI: stateABI, Target: id, Method: "slot0"}, []any{&v3slot})
-		} else {
-			root := mappingSlot(common.HexToHash(id).Big(), common.BigToHash(big.NewInt(6)))
-			req.AddCall(&ethrpc.Call{ABI: stateABI, Target: Manager, Method: "extsload", Params: []any{[]common.Hash{root}}}, []any{&v4slot})
-		}
-	}
 	if _, err = req.Aggregate(); err != nil {
 		return p, err
 	}
@@ -83,15 +85,75 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	for _, pair := range []struct {
 		src *big.Int
 		dst *uint256.Int
-	}{{c.QuoteReserve, &state.QuoteReserve}, {c.TokenReserve, &state.TokenReserve}, {c.VirtualQuoteOffset, &state.VirtualQuote}, {c.GraduationThreshold, &state.Threshold}} {
+	}{{c.QuoteReserve, &state.QuoteReserve}, {c.TokenReserve, &state.TokenReserve}, {c.VirtualQuoteOffset, &state.VirtualQuote}, {c.GraduationThreshold, &state.Threshold}, {c.VirtualTokenOffset, &state.VirtualToken}, {c.CurveInvariant, &state.Invariant}} {
 		if pair.src == nil || pair.src.Sign() < 0 || pair.dst.SetFromBig(pair.src) {
 			return p, ErrState
 		}
 	}
-	if held == nil || (!c.Graduated && held.Cmp(c.TokenReserve) < 0) {
+	realTokens := new(big.Int).Sub(c.TokenReserve, c.VirtualTokenOffset)
+	if state.Invariant.IsZero() || realTokens.Sign() < 0 || held == nil || (!c.Graduated && held.Cmp(realTokens) < 0) {
 		return p, ErrState
 	}
-	e := Extra{Curve: state, Valid: s.Quote == WETH || len(s.BasePools) > 0, Dependencies: []string{Factory, MarketAdapter, Manager}}
+
+	leaf := s.Quote
+	parents := []NativeParent{}
+	seen := map[string]bool{p.Address: true}
+	for leaf != WETH {
+		var pc CurveRPC
+		if _, er := t.rpc.NewRequest().SetContext(ctx).SetBlockNumber(head.Number).AddCall(&ethrpc.Call{ABI: factoryABI, Target: Factory, Method: "curves", Params: []any{common.HexToAddress(leaf)}}, []any{&pc}).Aggregate(); er != nil {
+			return p, er
+		}
+		if pc.QuoteAsset == (common.Address{}) {
+			break
+		}
+		if len(parents) >= 2 || seen[leaf] || !pc.Graduated {
+			return p, ErrUnsupported
+		}
+		seen[leaf] = true
+		market, protocol, er := t.canonical(ctx, leaf, pc, head.Number)
+		if er != nil {
+			return p, er
+		}
+		parents = append(parents, NativeParent{Token: leaf, Quote: hexutil.Encode(pc.QuoteAsset[:]), Pool: market, Protocol: protocol})
+		leaf = hexutil.Encode(pc.QuoteAsset[:])
+	}
+	if len(parents) > 0 {
+		s.BasePools = nil
+		if id := t.config.QuoteBasePools[leaf]; id != "" {
+			s.BasePools = []string{id}
+		}
+	}
+	if leaf == WETH {
+		s.BasePools = nil
+	}
+	if len(s.BasePools) > 1 {
+		return p, ErrUnsupported
+	}
+	req = t.rpc.NewRequest().SetContext(ctx).SetBlockNumber(head.Number)
+	var v3slot v3Slot
+	var v4slot []common.Hash
+	if len(s.BasePools) == 1 {
+		if id := s.BasePools[0]; common.IsHexAddress(id) {
+			req.AddCall(&ethrpc.Call{ABI: stateABI, Target: id, Method: "slot0"}, []any{&v3slot})
+		} else {
+			root := mappingSlot(common.HexToHash(id).Big(), common.BigToHash(big.NewInt(6)))
+			req.AddCall(&ethrpc.Call{ABI: stateABI, Target: Manager, Method: "extsload", Params: []any{[]common.Hash{root}}}, []any{&v4slot})
+		}
+	}
+	if len(s.BasePools) > 0 {
+		if _, err = req.Aggregate(); err != nil {
+			return p, err
+		}
+	}
+	static, er := json.Marshal(s)
+	if er != nil {
+		return p, er
+	}
+	p.StaticExtra = string(static)
+	e := Extra{Curve: state, Parents: parents, Valid: leaf == WETH || len(s.BasePools) == 1, Dependencies: []string{Factory, MarketAdapter, Manager}}
+	for _, parent := range parents {
+		e.Dependencies = append(e.Dependencies, parent.Token)
+	}
 	if c.Graduated && e.Valid {
 		market, protocol, er := t.canonical(ctx, p.Address, c, head.Number)
 		if er != nil {
@@ -117,7 +179,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		if _, overflow := quote.SubOverflow(&state.QuoteReserve, &state.VirtualQuote); overflow {
 			return p, ErrState
 		}
-		tokens.Set(&state.TokenReserve)
+		if _, underflow := tokens.SubOverflow(&state.TokenReserve, &state.VirtualToken); underflow {
+			return p, ErrState
+		}
 		if e.MarketPool != nil {
 			ix := 0
 			if e.MarketPool.Tokens[0].Address != s.Quote {
@@ -127,11 +191,24 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 				return p, ErrState
 			}
 		}
+		for _, parent := range parents {
+			var ex v3.Extra
+			if er := json.Unmarshal([]byte(parent.Pool.Extra), &ex); er != nil {
+				return p, er
+			}
+			price, over := uint256.FromBig(ex.SqrtPriceX96)
+			if over {
+				return p, ErrState
+			}
+			if er := quoteToWETH(&quote, price, parent.Pool.Tokens[0].Address == parent.Token); er != nil {
+				return p, er
+			}
+		}
 		if len(s.BasePools) == 1 {
 			var price uint256.Int
 			// ponytail: assumes a V4 base's WETH side is native ETH (currency0); an ERC20-WETH V4
 			// pool with quote < WETH inverts this reserve proxy. Router quotes use the real key.
-			quoteIsToken0 := s.Quote < WETH && common.IsHexAddress(s.BasePools[0])
+			quoteIsToken0 := leaf < WETH && common.IsHexAddress(s.BasePools[0])
 			if len(v4slot) == 1 {
 				price.SetBytes(v4slot[0][12:]) // sqrtPriceX96 is slot0's low 160 bits
 			} else if v3slot.SqrtPriceX96 == nil || price.SetFromBig(v3slot.SqrtPriceX96) {
