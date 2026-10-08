@@ -135,6 +135,9 @@ type HookParam struct {
 	// latest on-chain state. Threaded through by PoolTracker.GetNewPoolStateWithOverrides; nil
 	// in the normal-flow (GetNewPoolState) path.
 	Overrides map[common.Address]gethclient.OverrideAccount
+	// StaleCheck is pool.FactoryOpts.StaleCheck (set by route finding, not indexing): hooks that
+	// price off a tracked quote may refuse to quote once that quote is too old.
+	StaleCheck bool
 }
 
 type HookExtra json.RawMessage
@@ -254,6 +257,13 @@ var EmptyBytes = make([]byte, 0)
 
 func (h *BaseHook) GetHookData() []byte {
 	return EmptyBytes
+}
+
+// HookPriceLimitProvider supplies a hook's own sqrtPriceLimitX96 for a swap in the given direction,
+// replacing the tick-derived one (e.g. a hook filling through liquidity it places in-swap, outside
+// the tracked ticks). A nil result keeps the default.
+type HookPriceLimitProvider interface {
+	SqrtPriceLimit(zeroForOne bool) *uint256.Int
 }
 
 // HookPoolStateProvider supplies the complete post-swap state for hooks whose

@@ -1,0 +1,435 @@
+package navjit
+
+import (
+	"context"
+	"math/big"
+	"testing"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+func u(s string) *uint256.Int { return uint256.MustFromDecimal(s) }
+
+// net is a raw buy ladder output less the haircut.
+func net(raw *uint256.Int) *uint256.Int { return haircut(new(uint256.Int), raw) }
+
+// cut is the buy haircut applied to a raw ladder output, as a negative delta string.
+func cut(raw *uint256.Int) string { return "-" + net(raw).Dec() }
+
+// A ladder shaped like the live LOT-two venue on 2026-10-01 (block 77346769): USDG (6 dp) in,
+// LOT (18 dp) out, flat to $1k then bending with constituent slippage.
+var buyLadder = []Rung{
+	{In: u("1000000"), Out: u("991667573448564743"), Gas: 1_130_316},
+	{In: u("100000000"), Out: u("99166757344856474324"), Gas: 1_130_794},
+	{In: u("1000000000"), Out: u("991568512243632021814"), Gas: 1_130_454},
+	{In: u("20000000000"), Out: u("19793764531416765581247"), Gas: 1_193_710},
+}
+
+// LOT in, USDG out; float 49.27 LOT, ladder topped just under it.
+var sellLadder = []Rung{
+	{In: u("1000000000000000000"), Out: u("991370"), Gas: 887_439},
+	{In: u("10000000000000000000"), Out: u("9913706"), Gas: 887_439},
+	{In: u("47790000000000000000"), Out: u("47377000"), Gas: 885_300},
+}
+
+func trackedHook() *Hook {
+	return &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit},
+		Extra: Extra{Tracked: true, UsdgIs0: true, Nav: u("1001792378992843260"), Float: u("49265362021832501903"),
+			BandBps: 200, UsdgDecimals: 6, Buy: buyLadder, Sell: sellLadder, Block: 77346769}}
+}
+
+func exactIn(zeroForOne bool, amt string) *uniswapv4.BeforeSwapParams {
+	a, _ := new(big.Int).SetString(amt, 10)
+	return &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: a}
+}
+
+func exactOut(zeroForOne bool, amt string) *uniswapv4.BeforeSwapParams {
+	a, _ := new(big.Int).SetString(amt, 10)
+	return &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: zeroForOne, AmountSpecified: a}
+}
+
+// The plugin takes the WHOLE specified amount, so the pool's own CL math (which says nothing about
+// a NavJit fill) runs on zero, and pays the ladder output (less the buy haircut) through the
+// unspecified delta.
+func TestBeforeSwap_ExactIn_TakesWholeAmountAtTheRung(t *testing.T) {
+	r, err := trackedHook().BeforeSwap(exactIn(true, "100000000"))
+	require.NoError(t, err)
+	assert.Equal(t, "100000000", r.DeltaSpecified.String())
+	assert.Equal(t, "-99151882331254745852", r.DeltaUnspecified.String(), "the quoter's rung less 1.5 bps")
+	assert.Equal(t, cut(buyLadder[1].Out), r.DeltaUnspecified.String())
+	assert.Equal(t, int64(1_130_794)-uniswapv4.DefaultGas.BaseGas, r.Gas)
+	assert.Zero(t, r.SwapFee)
+}
+
+func TestBeforeSwap_ExactIn_InterpolatesBetweenRungs(t *testing.T) {
+	// halfway between the $1k and $20k rungs (10.5k USDG)
+	r, err := trackedHook().BeforeSwap(exactIn(true, "10500000000"))
+	require.NoError(t, err)
+	// lo.Out + (amt-lo.In)*(hi.Out-lo.Out)/(hi.In-lo.In), floored
+	lo, hi := buyLadder[2], buyLadder[3]
+	want := new(big.Int).Sub(hi.Out.ToBig(), lo.Out.ToBig())
+	want.Mul(want, big.NewInt(9_500_000_000))
+	want.Div(want, big.NewInt(19_000_000_000))
+	want.Add(want, lo.Out.ToBig())
+	assert.Equal(t, cut(uint256.MustFromBig(want)), r.DeltaUnspecified.String())
+	assert.Equal(t, hi.Gas-uniswapv4.DefaultGas.BaseGas, r.Gas, "gas of the upper rung")
+}
+
+func TestBeforeSwap_ExactIn_BelowFirstRungIsProportional(t *testing.T) {
+	r, err := trackedHook().BeforeSwap(exactIn(true, "250000")) // $0.25
+	require.NoError(t, err)
+	assert.Equal(t, cut(u("247916893362141185")), r.DeltaUnspecified.String()) // floor(0.25 * rung0)
+}
+
+func TestBeforeSwap_Sell_IsTheOtherDirection(t *testing.T) {
+	r, err := trackedHook().BeforeSwap(exactIn(false, "10000000000000000000"))
+	require.NoError(t, err)
+	assert.Equal(t, "-9913706", r.DeltaUnspecified.String(), "sells are not haircut")
+}
+
+// USDG as currency1 flips which zeroForOne is the buy.
+func TestBeforeSwap_UsdgIsCurrency1(t *testing.T) {
+	h := trackedHook()
+	h.UsdgIs0 = false
+	r, err := h.BeforeSwap(exactIn(false, "100000000")) // oneForZero = USDG in = buy
+	require.NoError(t, err)
+	assert.Equal(t, cut(buyLadder[1].Out), r.DeltaUnspecified.String())
+}
+
+func TestBeforeSwap_Refusals(t *testing.T) {
+	h := trackedHook()
+	_, err := h.BeforeSwap(exactIn(true, "20000000001"))
+	assert.ErrorIs(t, err, ErrBeyondLadder, "one wei above the top buy rung")
+
+	_, err = h.BeforeSwap(exactIn(false, "49265362021832501904"))
+	assert.ErrorIs(t, err, ErrSellExceedsFloat, "one wei above the PoolManager float")
+
+	_, err = h.BeforeSwap(exactIn(false, "48000000000000000000"))
+	assert.ErrorIs(t, err, ErrBeyondLadder, "under the float but above the top quoted sell")
+
+	_, err = h.BeforeSwap(exactIn(false, "1")) // 1 wei of LOT is worth 0 USDG units
+	assert.ErrorIs(t, err, ErrZeroOutput)
+	_, err = h.BeforeSwap(exactIn(true, "0"))
+	assert.Error(t, err)
+
+	h.Sell = nil
+	_, err = h.BeforeSwap(exactIn(false, "1000000000000000000"))
+	assert.ErrorIs(t, err, ErrEmptyLadder)
+
+	_, err = (&Hook{}).BeforeSwap(exactIn(true, "1000000"))
+	assert.ErrorIs(t, err, ErrPoolIsNotTracked)
+}
+
+// CalcIn inverts the same chords (and the buy haircut), rounding the input UP, so feeding the
+// result back through exact-in returns at least the requested output.
+func TestBeforeSwap_ExactOut_InvertsTheLadder(t *testing.T) {
+	h := trackedHook()
+	topNet := net(buyLadder[len(buyLadder)-1].Out)
+	for _, want := range []string{"1", "500000000000000000", "99166757344856474324", "5000000000000000000000",
+		topNet.Dec()} {
+		r, err := h.BeforeSwap(exactOut(true, want))
+		require.NoError(t, err, want)
+		assert.Equal(t, "-"+want, r.DeltaSpecified.String())
+		back, err := h.BeforeSwap(exactIn(true, r.DeltaUnspecified.String()))
+		require.NoError(t, err)
+		got := new(big.Int).Neg(back.DeltaUnspecified)
+		w, _ := new(big.Int).SetString(want, 10)
+		assert.True(t, got.Cmp(w) >= 0, "round trip %s -> in %s -> %s", want, r.DeltaUnspecified, got)
+	}
+	_, err := h.BeforeSwap(exactOut(true, new(uint256.Int).AddUint64(topNet, 1).Dec()))
+	assert.ErrorIs(t, err, ErrBeyondLadder, "one wei above the top rung's haircut output")
+
+	// Sells invert without a haircut.
+	r, err := h.BeforeSwap(exactOut(false, "9913706"))
+	require.NoError(t, err)
+	assert.Equal(t, "10000000000000000000", r.DeltaUnspecified.String())
+}
+
+// UpdateBalance moves the next swap in the same direction further along the fill curve, so two
+// swaps quote exactly what one swap of their sum would, and leaves the other direction alone.
+func TestBeforeSwap_SequentialSwapsWalkTheLadder(t *testing.T) {
+	h := trackedHook()
+	whole, err := h.BeforeSwap(exactIn(true, "10500000000"))
+	require.NoError(t, err)
+
+	first, err := h.BeforeSwap(exactIn(true, "500000000"))
+	require.NoError(t, err)
+	h.UpdateBalance(first.SwapInfo)
+	second, err := h.BeforeSwap(exactIn(true, "10000000000"))
+	require.NoError(t, err)
+
+	fresh, err := trackedHook().BeforeSwap(exactIn(true, "10000000000"))
+	require.NoError(t, err)
+	assert.True(t, new(big.Int).Neg(second.DeltaUnspecified).Cmp(new(big.Int).Neg(fresh.DeltaUnspecified)) < 0,
+		"the second buy is priced further up the curve than a fresh one")
+	sum := new(big.Int).Add(first.DeltaUnspecified, second.DeltaUnspecified)
+	diff := new(big.Int).Sub(sum, whole.DeltaUnspecified)
+	assert.True(t, diff.CmpAbs(big.NewInt(2)) <= 0, "split == whole up to rounding: %s", diff)
+
+	sell, err := h.BeforeSwap(exactIn(false, "10000000000000000000"))
+	require.NoError(t, err)
+	assert.Equal(t, "-9913706", sell.DeltaUnspecified.String(), "the sell ladder is untouched by buys")
+
+	h.UpdateBalance(second.SwapInfo)
+	_, err = h.BeforeSwap(exactIn(true, "9500000001"))
+	assert.ErrorIs(t, err, ErrBeyondLadder, "the consumed 10.5k counts against the 20k top rung")
+	_, err = h.BeforeSwap(exactIn(true, "9500000000"))
+	assert.NoError(t, err)
+}
+
+// Sells accumulate against the PoolManager float too.
+func TestBeforeSwap_SequentialSellsCountAgainstTheFloat(t *testing.T) {
+	h := trackedHook()
+	r, err := h.BeforeSwap(exactIn(false, "40000000000000000000"))
+	require.NoError(t, err)
+	h.UpdateBalance(r.SwapInfo)
+	_, err = h.BeforeSwap(exactIn(false, "9265362021832501904"))
+	assert.ErrorIs(t, err, ErrSellExceedsFloat)
+	_, err = h.BeforeSwap(exactIn(false, "7790000000000000000"))
+	assert.NoError(t, err, "up to the top sell rung still quotes")
+}
+
+// A clone owns its consumed amounts: updating one leaves the other's quotes unchanged.
+func TestCloneState_IsIndependent(t *testing.T) {
+	h := trackedHook()
+	before, err := h.BeforeSwap(exactIn(true, "1000000000"))
+	require.NoError(t, err)
+	cloned := h.CloneState().(*Hook)
+	cloned.UpdateBalance(before.SwapInfo)
+	after, err := h.BeforeSwap(exactIn(true, "1000000000"))
+	require.NoError(t, err)
+	assert.Equal(t, before.DeltaUnspecified, after.DeltaUnspecified)
+	moved, err := cloned.BeforeSwap(exactIn(true, "1000000000"))
+	require.NoError(t, err)
+	assert.NotEqual(t, before.DeltaUnspecified, moved.DeltaUnspecified)
+}
+
+func TestGetReserves_ReportsTheTopRungs(t *testing.T) {
+	res, err := trackedHook().GetReserves(context.Background(), nil)
+	require.NoError(t, err)
+	topBuy := net(buyLadder[len(buyLadder)-1].Out).Dec()
+	assert.Equal(t, entity.PoolReserves{"47377000", topBuy}, res)
+
+	h := trackedHook()
+	h.UsdgIs0 = false
+	res, _ = h.GetReserves(context.Background(), nil)
+	assert.Equal(t, entity.PoolReserves{topBuy, "47377000"}, res)
+}
+
+func TestToLadder_StopsAtTheFirstRevertOrNonMonotoneRung(t *testing.T) {
+	in := []*big.Int{big.NewInt(1), big.NewInt(10), big.NewInt(100), big.NewInt(1000)}
+	out := []quoteResult{{big.NewInt(2), big.NewInt(5)}, {big.NewInt(20), big.NewInt(5)},
+		{big.NewInt(200), big.NewInt(5)}, {big.NewInt(2000), big.NewInt(5)}}
+	assert.Len(t, toLadder(in, out, []bool{true, true, false, true}), 2, "a revert ends the ladder")
+	out[2].AmountOut = big.NewInt(20)
+	assert.Len(t, toLadder(in, out, []bool{true, true, true, true}), 2, "a flat rung ends the ladder")
+	assert.Len(t, toLadder(in, out, []bool{false, true, true, true}), 0)
+}
+
+// The extra round-trips through JSON, which is what the pool-service persists between Track and
+// the simulator.
+func TestExtra_JSONRoundTrip(t *testing.T) {
+	raw, err := json.Marshal(trackedHook())
+	require.NoError(t, err)
+	var back Extra
+	require.NoError(t, uniswapv4.HookExtra(raw).Unmarshal(&back))
+	assert.Equal(t, trackedHook().Extra, back)
+}
+
+// End to end through uniswap-v4's PoolSimulator: an entity.Pool keyed at the NavJit hook gets this
+// plugin, quotes the ladder in both directions and both swap types, and survives UpdateBalance /
+// CloneState, with a standing position in the ticks that the plugin must ignore.
+const (
+	simLot  = "0xf5e660dc904b5017ff2cecc22608567c2be6d7c6"
+	simUsdg = "0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+)
+
+// newTestPool is a LOT-two-shaped venue carrying trackedHook's ladders.
+func newTestPool(tb testing.TB) entity.Pool {
+	hookExtra, err := json.Marshal(trackedHook())
+	require.NoError(tb, err)
+	staticExtra, _ := json.Marshal(uniswapv4.StaticExtra{Fee: 0, TickSpacing: 1, HooksAddress: HookAddresses[0]})
+	sqrt, _ := new(big.Int).SetString("79438280045202668386950967478741068", 10) // tick 276377, ~1 LOT = $1.00
+	extra, _ := json.Marshal(uniswapv4.Extra{Extra: &uniswapv3.Extra{
+		Liquidity: big.NewInt(4_917_000_000_000_000), SqrtPriceX96: sqrt, TickSpacing: 1, Tick: big.NewInt(276377),
+		Ticks: []uniswapv3.Tick{
+			{Index: 276277, LiquidityGross: big.NewInt(4_917_000_000_000_000), LiquidityNet: big.NewInt(4_917_000_000_000_000)},
+			{Index: 276477, LiquidityGross: big.NewInt(4_917_000_000_000_000), LiquidityNet: big.NewInt(-4_917_000_000_000_000)},
+		}}, HookExtra: hookExtra})
+	ep := entity.Pool{
+		Address:     "0x8327ac000f8b77d690b8315290ba7dcb4834b12b377b0367234b3d6661f20056",
+		Exchange:    valueobject.ExchangeUniswapV4NavJit,
+		Type:        uniswapv4.DexType,
+		Tokens:      []*entity.PoolToken{{Address: simUsdg, Decimals: 6, Swappable: true}, {Address: simLot, Decimals: 18, Swappable: true}},
+		Reserves:    entity.PoolReserves{"47377000", "19793764531416765581247"},
+		StaticExtra: string(staticExtra),
+		Extra:       string(extra),
+	}
+	return ep
+}
+
+func newTestSim(tb testing.TB) *uniswapv4.PoolSimulator {
+	sim, err := uniswapv4.NewPoolSimulator(newTestPool(tb), valueobject.ChainIDRobinhood)
+	require.NoError(tb, err)
+	return sim
+}
+
+func TestPoolSimulator_UsesThePlugin(t *testing.T) {
+	sim, usdg, lot := newTestSim(t), simUsdg, simLot
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(100_000_000)}, TokenOut: lot})
+	require.NoError(t, err)
+	assert.Equal(t, net(buyLadder[1].Out).Dec(), res.TokenAmountOut.Amount.String(),
+		"exactly the (haircut) ladder: the standing ticks contribute nothing")
+	assert.Equal(t, int64(1_130_794), res.Gas, "the quoter's gas estimate for the whole swap")
+
+	res, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenOut: usdg})
+	require.NoError(t, err)
+	assert.Equal(t, "991370", res.TokenAmountOut.Amount.String())
+
+	inRes, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenIn: usdg})
+	require.NoError(t, err)
+	// raw = ceil(1e18 * 1e6 / 999850) = 1000150022503375507; in = ceil(raw * 1e6 / 991667573448564743)
+	assert.Equal(t, "1008554", inRes.TokenAmountIn.Amount.String())
+
+	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(30_000_000_000)}, TokenOut: lot})
+	assert.ErrorIs(t, err, ErrBeyondLadder)
+
+	// The JIT fill runs past the standing ticks [276277, 276477]: their limit stopped it part-way
+	// (a 493 LOT sell filled 0.89-0.95 of quote on e2e). The hook's band limit replaces it.
+	for _, d := range []struct {
+		in, out    string
+		zeroForOne bool
+		tick       int
+	}{{usdg, lot, true, 276277}, {lot, usdg, false, 276477}} {
+		meta := sim.GetMetaInfo(d.in, d.out).(uniswapv4.PoolMetaInfo)
+		require.NotNil(t, meta.PriceLimit, "an executor limit of 0 means MIN/MAX: no band protection")
+		var tickLimit uint256.Int
+		require.NoError(t, uniswapv3.GetSqrtRatioAtTick(d.tick, &tickLimit))
+		assert.NotEqual(t, tickLimit.Dec(), meta.PriceLimit.Dec(), "not the tick-derived limit")
+		assert.Equal(t, trackedHook().SqrtPriceLimit(d.zeroForOne).Dec(), meta.PriceLimit.Dec())
+	}
+
+	// UpdateBalance moves the simulator along the sell ladder; the clone taken before it does not.
+	cloned := sim.CloneState()
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)},
+		TokenAmountOut: pool.TokenAmount{Token: usdg, Amount: res.TokenAmountOut.Amount},
+		SwapInfo:       res.SwapInfo,
+	})
+	again, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenOut: usdg})
+	require.NoError(t, err)
+	assert.Equal(t, "991370", again.TokenAmountOut.Amount.String(), "the clone is untouched")
+	next, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenOut: usdg})
+	require.NoError(t, err)
+	// The 2nd LOT is priced on the rung0-rung1 chord at 2 LOT: 991370 + floor(1e18*(9913706-991370)/9e18)
+	// = 1982740, less the 991370 the first swap consumed.
+	assert.Equal(t, "991370", next.TokenAmountOut.Amount.String(), "priced as the second LOT along the ladder")
+}
+
+// poolUsd18 is NavJitHook._poolUsd18: the pool price as USD (1e18) per LOT, as afterSwap reads it.
+// For LOT-as-currency0 the deployed code divides by 1e36 where 1e18 inverts _sqrtPriceForUsd18, so
+// such a venue always reverts OutsideBand (every live venue has USDG as currency0); this uses 1e18.
+func poolUsd18(sqrtPrice *uint256.Int, usdgIs0 bool, usdgDecimals uint8) *big.Int {
+	s := sqrtPrice.ToBig()
+	scale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(36-usdgDecimals)), nil)
+	e18, e36 := big.NewInt(1e18), new(big.Int).Exp(big.NewInt(10), big.NewInt(36), nil)
+	raw18 := new(big.Int).Mul(s, s)
+	raw18.Mul(raw18, e18).Rsh(raw18, 192)
+	if usdgIs0 {
+		px := new(big.Int).Mul(scale, e36)
+		return px.Div(px.Div(px, raw18), e18)
+	}
+	px := new(big.Int).Mul(raw18, scale)
+	return px.Div(px, e18)
+}
+
+// The limit is where afterSwap's band check would still pass, on the side the swap moves price
+// toward, pulled in by priceLimitBufferBps: a swap stopped there keeps the pool inside the band
+// (no OutsideBand revert) and a normal fill (spread + JIT width, < band - buffer) is not cut.
+func TestSqrtPriceLimit_IsTheBandEdge(t *testing.T) {
+	for _, usdgIs0 := range []bool{true, false} {
+		h := trackedHook()
+		h.UsdgIs0 = usdgIs0
+		nav := h.Nav.ToBig()
+		for _, zeroForOne := range []bool{true, false} {
+			buy := zeroForOne == usdgIs0
+			limit := h.SqrtPriceLimit(zeroForOne)
+			require.NotNil(t, limit)
+			px := poolUsd18(limit, usdgIs0, h.UsdgDecimals)
+
+			diff := new(big.Int).Sub(px, nav)
+			assert.Equal(t, buy, diff.Sign() > 0, "usdgIs0=%v buy=%v: the limit is on the side the swap moves", usdgIs0, buy)
+			diff.Abs(diff).Mul(diff, big.NewInt(bps))
+			band := new(big.Int).Mul(nav, big.NewInt(int64(h.BandBps)))
+			assert.LessOrEqual(t, diff.Cmp(band), 0, "usdgIs0=%v buy=%v: within the hook's band", usdgIs0, buy)
+			// 0.01 bp of slack: _poolUsd18 floors the price to ~1e-6 relative for LOT-as-currency0.
+			tight := new(big.Int).Mul(nav, big.NewInt(int64(h.BandBps-priceLimitBufferBps)*100+1))
+			assert.LessOrEqual(t, new(big.Int).Mul(diff, big.NewInt(100)).Cmp(tight), 0,
+				"usdgIs0=%v buy=%v: inside the buffer", usdgIs0, buy)
+			nearlyTight := new(big.Int).Mul(nav, big.NewInt(int64(h.BandBps-priceLimitBufferBps-1)))
+			assert.Positive(t, diff.Cmp(nearlyTight), "usdgIs0=%v buy=%v: at the buffered edge, not short of it", usdgIs0, buy)
+		}
+	}
+	assert.Nil(t, (&Hook{}).SqrtPriceLimit(true), "untracked: keep the default")
+}
+
+// Route finding (StaleCheck) must not quote a ladder pool-service stopped refreshing: the fill curve
+// moves with NAV and the constituent pools, not with this pool's own events. Indexing still quotes.
+func TestBeforeSwap_StaleCheck(t *testing.T) {
+	h := trackedHook()
+	h.TrackedAt = time.Now().Unix() - maxAgeSec - 1
+	_, err := h.BeforeSwap(exactIn(true, "1000000"))
+	require.NoError(t, err, "no StaleCheck: an old ladder still quotes")
+
+	h.staleCheck = true
+	_, err = h.BeforeSwap(exactIn(true, "1000000"))
+	assert.ErrorIs(t, err, ErrStale)
+
+	h.TrackedAt = time.Now().Unix()
+	_, err = h.BeforeSwap(exactIn(true, "1000000"))
+	assert.NoError(t, err, "a fresh ladder quotes under StaleCheck")
+}
+
+// The flag must reach the hook through the registered v4 factory (pool.FactoryOpts).
+func TestPoolFactory_PassesStaleCheck(t *testing.T) {
+	params := pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: simUsdg, Amount: big.NewInt(1_000_000)}, TokenOut: simLot}
+	for _, staleCheck := range []bool{false, true} {
+		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: newTestPool(t),
+			ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
+		require.NoError(t, err)
+		_, err = sim.CalcAmountOut(params) // trackedHook has no TrackedAt: older than maxAgeSec
+		if staleCheck {
+			assert.ErrorIs(t, err, ErrStale)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}
+
+func TestRegistration(t *testing.T) {
+	h, ok := uniswapv4.GetHook(common.HexToAddress("0x99a670d2103e1e4ebd53a483f725dd651a08eae0"), nil)
+	require.True(t, ok)
+	assert.Equal(t, valueobject.ExchangeUniswapV4NavJit, h.GetExchange())
+	assert.True(t, h.AllowEmptyTicks())
+	assert.True(t, uniswapv4.HasSwapPermissions(HookAddresses[0]))
+	assert.True(t, h.CanBeforeSwap(HookAddresses[0]))
+}
