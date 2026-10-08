@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	ethabi "github.com/KyberNetwork/ethrpc/abi"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,7 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	dexabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -45,8 +46,8 @@ type DecodedHyperparameters struct {
 }
 
 type DecodedIssuedByCollateral struct {
-	StablecoinsFromCollateral *big.Int
-	StablecoinsIssued         *big.Int
+	StablecoinsFromCollateral *uint256.Int
+	StablecoinsIssued         *uint256.Int
 }
 
 type DecodedPyth struct {
@@ -58,11 +59,11 @@ type DecodedPyth struct {
 }
 
 type DecodedChainlink struct {
-	RoundId         *big.Int
+	RoundId         *uint256.Int
 	Answer          *big.Int
-	StartedAt       *big.Int
-	UpdatedAt       *big.Int
-	AnsweredInRound *big.Int
+	StartedAt       *uint256.Int
+	UpdatedAt       *uint256.Int
+	AnsweredInRound *uint256.Int
 }
 
 type DecodedPythStateTuple struct {
@@ -70,10 +71,10 @@ type DecodedPythStateTuple struct {
 }
 
 type DecodedPythState struct {
-	Price       int64    // price from Pyth
-	Conf        uint64   // confidence interval
-	Expo        int32    // exponent
-	PublishTime *big.Int // publish timestamp
+	Price       int64  // price from Pyth
+	Conf        uint64 // confidence interval
+	Expo        int32  // exponent
+	PublishTime *uint256.Int
 }
 
 type DecodedFeeMints struct {
@@ -82,12 +83,12 @@ type DecodedFeeMints struct {
 }
 
 type DecodedMax struct {
-	MaxValue *big.Int
+	MaxValue *uint256.Int
 }
 
 type DecodedMorpho struct {
 	Oracle              common.Address
-	NormalizationFactor *big.Int
+	NormalizationFactor *uint256.Int
 }
 
 type ManagerData struct {
@@ -101,7 +102,7 @@ type CollateralInfo struct {
 	IsBurnLive        uint8
 	Decimals          uint8
 	OnlyWhitelisted   uint8
-	NormalizedStables *big.Int
+	NormalizedStables *uint256.Int
 	XFeeMint          []uint64
 	YFeeMint          []int64
 	XFeeBurn          []uint64
@@ -165,9 +166,9 @@ func (t *PoolTracker) getNewPoolState(
 	collateralInfo := make([]*CollateralInfo, len(collateralList))
 	oracleConfigs := make([]DecodedOracleConfig, len(collateralList))
 	issuedByCollateral := make([]DecodedIssuedByCollateral, len(collateralList))
-	stablecoinCap := make([]*big.Int, len(collateralList))
-	collateralBalances := make([]*big.Int, len(collateralList))
-	var totalStablecoinIssued *big.Int
+	stablecoinCap := make([]*uint256.Int, len(collateralList))
+	collateralBalances := make([]*uint256.Int, len(collateralList))
+	var totalStablecoinIssued *uint256.Int
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	for i, collateral := range collateralList {
@@ -199,9 +200,9 @@ func (t *PoolTracker) getNewPoolState(
 
 		// For unmanaged collateral tokens only
 		calls.AddCall(&ethrpc.Call{
-			ABI:    abi.Erc20ABI,
+			ABI:    dexabi.Erc20ABI,
 			Target: collateral.String(),
-			Method: abi.Erc20BalanceOfMethod,
+			Method: dexabi.Erc20BalanceOfMethod,
 			Params: []any{common.HexToAddress(t.config.Transmuter)},
 		}, []any{&collateralBalances[i]})
 	}
@@ -226,7 +227,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	transmuterState := TransmuterState{
 		Collaterals:           make(map[string]CollateralState),
-		TotalStablecoinIssued: uint256.MustFromBig(totalStablecoinIssued),
+		TotalStablecoinIssued: totalStablecoinIssued,
 	}
 
 	pyths := [2][]Pyth{
@@ -260,11 +261,7 @@ func (t *PoolTracker) getNewPoolState(
 			switch cfg.typ {
 			case PYTH:
 				var decodedPyth DecodedPyth
-				unpacked, err := PythArgument.Unpack(cfg.data)
-				if err != nil {
-					return p, err
-				}
-				if err := PythArgument.Copy(&decodedPyth, unpacked); err != nil {
+				if err := ethabi.UnpackArgs(PythArgument, &decodedPyth, cfg.data); err != nil {
 					return p, err
 				}
 				pyths[j][i] = Pyth{
@@ -287,12 +284,7 @@ func (t *PoolTracker) getNewPoolState(
 				}
 			case CHAINLINK_FEEDS:
 				var chainlink Chainlink
-				unpacked, err := ChainlinkArgument.Unpack(cfg.data)
-				if err != nil {
-					return p, err
-				}
-
-				if err := ChainlinkArgument.Copy(&chainlink, unpacked); err != nil {
+				if err := ethabi.UnpackArgs(ChainlinkArgument, &chainlink, cfg.data); err != nil {
 					return p, err
 				}
 
@@ -307,18 +299,13 @@ func (t *PoolTracker) getNewPoolState(
 				}
 			case MORPHO_ORACLE:
 				var decodedMorpho DecodedMorpho
-				unpacked, err := MorphoArgument.Unpack(cfg.data)
-				if err != nil {
-					return p, err
-				}
-
-				if err := MorphoArgument.Copy(&decodedMorpho, unpacked); err != nil {
+				if err := ethabi.UnpackArgs(MorphoArgument, &decodedMorpho, cfg.data); err != nil {
 					return p, err
 				}
 
 				morphos[j][i] = Morpho{
 					Oracle:              decodedMorpho.Oracle,
-					NormalizationFactor: uint256.MustFromBig(decodedMorpho.NormalizationFactor),
+					NormalizationFactor: decodedMorpho.NormalizationFactor,
 				}
 
 				calls.AddCall(&ethrpc.Call{
@@ -328,15 +315,10 @@ func (t *PoolTracker) getNewPoolState(
 				}, []any{&morphos[j][i].RawState})
 			case MAX:
 				var decodedMax DecodedMax
-				unpacked, err := MaxArgument.Unpack(cfg.data)
-				if err != nil {
+				if err := ethabi.UnpackArgs(MaxArgument, &decodedMax, cfg.data); err != nil {
 					return p, err
 				}
-
-				if err := MaxArgument.Copy(&decodedMax, unpacked); err != nil {
-					return p, err
-				}
-				maxes[j][i] = uint256.MustFromBig(decodedMax.MaxValue)
+				maxes[j][i] = decodedMax.MaxValue
 			}
 		}
 	}
@@ -353,8 +335,8 @@ func (t *PoolTracker) getNewPoolState(
 			IsManaged:         collatInfo.IsManaged != 0,
 			IsBurnLive:        collatInfo.IsBurnLive != 0,
 			IsMintLive:        collatInfo.IsMintLive != 0,
-			Balance:           uint256.MustFromBig(collateralBalances[i]),
-			NormalizedStables: uint256.MustFromBig(collatInfo.NormalizedStables),
+			Balance:           collateralBalances[i],
+			NormalizedStables: collatInfo.NormalizedStables,
 			Fees: Fees{
 				XFeeMint: lo.Map(collatInfo.XFeeMint, func(item uint64, _ int) *uint256.Int {
 					return uint256.NewInt(item)
@@ -369,21 +351,17 @@ func (t *PoolTracker) getNewPoolState(
 					return u256.MustFromInt64(item)
 				}),
 			},
-			StablecoinsFromCollateral: uint256.MustFromBig(issuedByCollateral[i].StablecoinsFromCollateral),
-			StablecoinsIssued:         uint256.MustFromBig(issuedByCollateral[i].StablecoinsIssued),
-			StablecoinCap:             uint256.MustFromBig(stablecoinCap[i]),
+			StablecoinsFromCollateral: issuedByCollateral[i].StablecoinsFromCollateral,
+			StablecoinsIssued:         issuedByCollateral[i].StablecoinsIssued,
+			StablecoinCap:             stablecoinCap[i],
 			Config: Oracle{
 				OracleType: OracleReadType(oracleConfigs[i].OracleType),
 				TargetType: OracleReadType(oracleConfigs[i].TargetType),
 				OracleFeed: t.getOracleFeed(0, i, oracleCfg, pyths, chainlinks, morphos, maxes),
 				TargetFeed: t.getOracleFeed(1, i, oracleCfg, pyths, chainlinks, morphos, maxes),
 				Hyperparameters: func() Hyperparameters {
-					unpacked, err := HyperparametersArgument.Unpack(oracleCfg.Hyperparameters)
-					if err != nil {
-						return Hyperparameters{}
-					}
 					var params DecodedHyperparameters
-					if err := HyperparametersArgument.Copy(&params, unpacked); err != nil {
+					if err := ethabi.UnpackArgs(HyperparametersArgument, &params, oracleCfg.Hyperparameters); err != nil {
 						return Hyperparameters{}
 					}
 					return Hyperparameters{
@@ -409,8 +387,8 @@ func (t *PoolTracker) getNewPoolState(
 			Swappable: true,
 		}
 	}), p.Tokens[len(p.Tokens)-1]) // last one is stable token
-	p.Reserves = append(lo.Map(collateralBalances, func(b *big.Int, _ int) string {
-		return b.String()
+	p.Reserves = append(lo.Map(collateralBalances, func(b *uint256.Int, _ int) string {
+		return b.Dec()
 	}), defaultReserve)
 
 	logger.WithFields(logger.Fields{
@@ -434,7 +412,7 @@ func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, oracleCfg Dec
 					return PythState{
 						Price:     uint256.NewInt(uint64(item.Price)),
 						Expo:      uint256.MustFromBig(big.NewInt(int64(item.Expo))),
-						Timestamp: uint256.MustFromBig(item.PublishTime),
+						Timestamp: item.PublishTime,
 					}
 				})
 			return &pyths[oracleOrTarget][index]
@@ -455,7 +433,7 @@ func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, oracleCfg Dec
 			return nil
 		})(),
 		Morpho: lo.Ternary(oracleType == MORPHO_ORACLE, func() *Morpho {
-			morphos[oracleOrTarget][index].Price = uint256.MustFromBig(morphos[oracleOrTarget][index].RawState)
+			morphos[oracleOrTarget][index].Price = morphos[oracleOrTarget][index].RawState
 			return &morphos[oracleOrTarget][index]
 		}, func() *Morpho {
 			return nil

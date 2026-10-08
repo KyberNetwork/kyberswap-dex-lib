@@ -70,11 +70,11 @@ type SwapInfo struct {
 type TrackerData struct {
 	Vaults               []VaultRPC
 	Reserves             ReserveRPC
-	Controller           string            // controller debt vault, if exist
-	VaultPrices          [3][3][2]*big.Int // other vault -> debt vault -> [bid/value,ask/debt]
-	VaultLtvs            [3][3]uint16      // vault 0/1/controller -> debt vault
-	CollatAmounts        []*uint256.Int    // asset amount of euler account across collateral vaults
-	CollatPrices         [][3][2]*big.Int  // collat -> debt vault -> [bid,ask]
-	CollatLtvs           [][3]uint16       // collat -> debt vault
+	Controller           string                // controller debt vault, if exist
+	VaultPrices          [3][3][2]*uint256.Int // other vault -> debt vault -> [bid/value,ask/debt]
+	VaultLtvs            [3][3]uint16          // vault 0/1/controller -> debt vault
+	CollatAmounts        []*uint256.Int        // asset amount of euler account across collateral vaults
+	CollatPrices         [][3][2]*uint256.Int  // collat -> debt vault -> [bid,ask]
+	CollatLtvs           [][3]uint16           // collat -> debt vault
 	IsOperatorAuthorized bool
 }

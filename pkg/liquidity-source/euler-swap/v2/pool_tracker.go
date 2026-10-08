@@ -346,11 +346,11 @@ func (d *PoolTracker) getPoolData(
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	collatQuoteAmts := make([]*big.Int, len(collaterals))
-	data.CollatPrices = make([][][2]*big.Int, len(collaterals))
+	data.CollatPrices = make([][][2]*uint256.Int, len(collaterals))
 	data.CollatLtvs = make([][]uint16, len(collaterals))
 
-	data.VaultPrices = lo.Times(len(fullVaultList), func(_ int) [][2]*big.Int {
-		return make([][2]*big.Int, len(uniqueVaultAddresses))
+	data.VaultPrices = lo.Times(len(fullVaultList), func(_ int) [][2]*uint256.Int {
+		return make([][2]*uint256.Int, len(uniqueVaultAddresses))
 	})
 	data.VaultLtvs = lo.Times(len(fullVaultList), func(_ int) []uint16 {
 		return make([]uint16, len(uniqueVaultAddresses))
@@ -382,7 +382,7 @@ func (d *PoolTracker) getPoolData(
 		for j, collateral := range collaterals {
 			if len(data.CollatPrices[j]) <= i {
 				for len(data.CollatPrices[j]) <= i {
-					data.CollatPrices[j] = append(data.CollatPrices[j], [2]*big.Int{})
+					data.CollatPrices[j] = append(data.CollatPrices[j], [2]*uint256.Int{})
 				}
 			}
 			if len(data.CollatLtvs[j]) <= i {
@@ -417,11 +417,12 @@ func (d *PoolTracker) getPoolData(
 
 	for i := range uniqueVaultAddresses {
 		for j, v := range fullVaultList {
+			quoteAmt := uint256.MustFromBig(v.QuoteAmount)
 			for k, q := range data.VaultPrices[j][i] {
 				if q != nil {
-					data.VaultPrices[j][i][k] = new(big.Int).Div(q, v.QuoteAmount)
+					data.VaultPrices[j][i][k] = new(uint256.Int).Div(q, quoteAmt)
 				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
+					data.VaultPrices[j][i][k] = new(uint256.Int)
 				}
 			}
 		}
@@ -430,11 +431,12 @@ func (d *PoolTracker) getPoolData(
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				continue
 			}
+			collatQuoteAmt := uint256.MustFromBig(collatQuoteAmts[j])
 			for k, q := range data.CollatPrices[j][i] {
 				if q != nil {
-					data.CollatPrices[j][i][k] = new(big.Int).Div(q, collatQuoteAmts[j])
+					data.CollatPrices[j][i][k] = new(uint256.Int).Div(q, collatQuoteAmt)
 				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
+					data.CollatPrices[j][i][k] = new(uint256.Int)
 				}
 			}
 		}
@@ -489,13 +491,13 @@ func (d *PoolTracker) updatePool(
 		}
 
 		if idx < len(data.VaultPrices) {
-			state.DebtPrice = uint256.MustFromBig(data.VaultPrices[idx][idx][1])
-			state.ValuePrices = lo.Map(data.CollatPrices, func(p [][2]*big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(p[idx][0])
+			state.DebtPrice = data.VaultPrices[idx][idx][1]
+			state.ValuePrices = lo.Map(data.CollatPrices, func(p [][2]*uint256.Int, _ int) *uint256.Int {
+				return p[idx][0]
 			})
 			state.VaultValuePrices = [2]*uint256.Int{
-				uint256.MustFromBig(data.VaultPrices[idx0][idx][0]),
-				uint256.MustFromBig(data.VaultPrices[idx1][idx][0]),
+				data.VaultPrices[idx0][idx][0],
+				data.VaultPrices[idx1][idx][0],
 			}
 			state.LTVs = lo.Map(data.CollatLtvs, func(l []uint16, _ int) uint64 { return uint64(l[idx]) })
 			state.VaultLTVs = [2]uint64{

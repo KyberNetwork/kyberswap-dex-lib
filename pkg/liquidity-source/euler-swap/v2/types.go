@@ -1,8 +1,6 @@
 package v2
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -147,12 +145,12 @@ type TrackerData struct {
 	Vaults               []shared.VaultRPC
 	Reserves             shared.ReserveRPC
 	DynamicParams        DynamicParamsRPC
-	Controller           string          // controller debt vault, if exist
-	VaultPrices          [][][2]*big.Int // other vault -> debt vault -> [bid/value,ask/debt]
-	VaultLtvs            [][]uint16      // vault 0/1/controller -> debt vault
-	CollatAmounts        []*uint256.Int  // asset amount of euler account across collateral vaults
-	CollatPrices         [][][2]*big.Int // collat -> debt vault -> [bid,ask]
-	CollatLtvs           [][]uint16      // collat -> debt vault
+	Controller           string              // controller debt vault, if exist
+	VaultPrices          [][][2]*uint256.Int // other vault -> debt vault -> [bid/value,ask/debt]
+	VaultLtvs            [][]uint16          // vault 0/1/controller -> debt vault
+	CollatAmounts        []*uint256.Int      // asset amount of euler account across collateral vaults
+	CollatPrices         [][][2]*uint256.Int // collat -> debt vault -> [bid,ask]
+	CollatLtvs           [][]uint16          // collat -> debt vault
 	IsOperatorAuthorized bool
 	UniqueVaultAddresses []string // addresses corresponding to Vaults
 }

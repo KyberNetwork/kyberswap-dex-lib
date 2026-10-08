@@ -298,7 +298,7 @@ func (d *PoolTracker) getPoolData(
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	collatQuoteAmts := make([]*big.Int, len(collaterals))
-	data.CollatPrices = make([][3][2]*big.Int, len(collaterals))
+	data.CollatPrices = make([][3][2]*uint256.Int, len(collaterals))
 	data.CollatLtvs = make([][3]uint16, len(collaterals))
 
 	for i := range vaultList {
@@ -351,11 +351,12 @@ func (d *PoolTracker) getPoolData(
 			v.EulerAccountBalance = shared.ConvertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
 		}
 		for j, otherV := range vaultList {
+			quoteAmt := uint256.MustFromBig(otherV.QuoteAmount)
 			for k, q := range data.VaultPrices[j][i] {
 				if q != nil {
-					q.Div(q, otherV.QuoteAmount)
+					q.Div(q, quoteAmt)
 				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
+					data.VaultPrices[j][i][k] = new(uint256.Int)
 				}
 			}
 		}
@@ -364,11 +365,12 @@ func (d *PoolTracker) getPoolData(
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				continue
 			}
+			collatQuoteAmt := uint256.MustFromBig(collatQuoteAmts[j])
 			for k, q := range data.CollatPrices[j][i] {
 				if q != nil {
-					q.Div(q, collatQuoteAmts[j])
+					q.Div(q, collatQuoteAmt)
 				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
+					data.CollatPrices[j][i][k] = new(uint256.Int)
 				}
 			}
 		}
@@ -395,11 +397,11 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *shared.TrackerData, blo
 			MaxWithdraw:        shared.DecodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
 			TotalBorrows:       data.Vaults[i].TotalBorrows,
 			EulerAccountAssets: data.Vaults[i].EulerAccountBalance,
-			DebtPrice:          uint256.MustFromBig(data.VaultPrices[i][i][1]),
+			DebtPrice:          data.VaultPrices[i][i][1],
 			ValuePrices: lo.Map(data.CollatPrices,
-				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) }),
+				func(p [3][2]*uint256.Int, _ int) *uint256.Int { return p[i][0] }),
 			VaultValuePrices: [2]*uint256.Int(lo.Map(data.VaultPrices[:2],
-				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) })),
+				func(p [3][2]*uint256.Int, _ int) *uint256.Int { return p[i][0] })),
 			LTVs:                lo.Map(data.CollatLtvs, func(l [3]uint16, _ int) uint64 { return uint64(l[i]) }),
 			VaultLTVs:           [2]uint64(lo.Map(data.VaultLtvs[:2], func(l [3]uint16, _ int) uint64 { return uint64(l[i]) })),
 			IsControllerEnabled: data.Vaults[i].IsControllerEnabled,

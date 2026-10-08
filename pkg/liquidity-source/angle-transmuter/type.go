@@ -1,8 +1,6 @@
 package angletransmuter
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -119,7 +117,7 @@ type (
 		Oracle              common.Address `json:"oracle,omitempty"`
 		NormalizationFactor *uint256.Int   `json:"normalizationFactor,omitempty"`
 		Price               *uint256.Int   `json:"price,omitempty"`
-		RawState            *big.Int       `json:"-"`
+		RawState            *uint256.Int   `json:"-"`
 	}
 )
 
