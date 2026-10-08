@@ -61,6 +61,9 @@ type SwapInfo struct {
 	Buy   bool   `json:"buy"`
 	// Settlement route bytes, used for the swap and a buy's graduation refund alike.
 	Route hexutil.Bytes `json:"route,omitempty"`
+	// Refunds marks a buy quoted to cross graduation and refund ETH. The settlement reverts
+	// buyWithRefund on a full fill and buy on a partial one, so the encoder must pick by it.
+	Refunds bool `json:"refunds,omitempty"`
 
 	MinQuote, AmountOut, Refund, RefundRouteOutput uint256.Int `json:"-"`
 	Next, Previous                                 CurveState  `json:"-"`

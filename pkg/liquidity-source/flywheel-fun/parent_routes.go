@@ -2,7 +2,6 @@ package flywheelfun
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -14,12 +13,6 @@ import (
 // Covers measured cold-account mainnet-fork execution, beyond the CL swap gas.
 const nativeParentGas int64 = 750000
 
-func cloneParents(parents []NativeParent) []NativeParent {
-	b, _ := json.Marshal(parents)
-	var out []NativeParent
-	_ = json.Unmarshal(b, &out)
-	return out
-}
 func validateParents(token, quote string, parents []NativeParent) (string, error) {
 	if len(parents) > 2 {
 		return "", ErrUnsupported

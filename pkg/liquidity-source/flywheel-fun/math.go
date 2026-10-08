@@ -239,5 +239,14 @@ func curveDivision(c CurveState, d *uint256.Int) (uint256.Int, error) {
 	if c.Invariant.IsZero() {
 		return mulDiv(&c.QuoteReserve, &c.TokenReserve, d, true)
 	}
-	return mulDiv(&c.Invariant, uint256.NewInt(1), d, true)
+	// ceil(invariant / d)
+	if d.IsZero() {
+		return uint256.Int{}, ErrMath
+	}
+	var q, r uint256.Int
+	q.DivMod(&c.Invariant, d, &r)
+	if !r.IsZero() {
+		q.AddUint64(&q, 1)
+	}
+	return q, nil
 }

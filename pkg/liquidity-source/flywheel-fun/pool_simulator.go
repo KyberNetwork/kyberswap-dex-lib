@@ -57,7 +57,7 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 	if !e.Valid || e.Curve.Invariant.IsZero() || len(st.BasePools) > 1 || leaf == WETH && len(st.BasePools) > 0 {
 		return nil, ErrState
 	}
-	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol, Parents: cloneParents(e.Parents)}
+	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol, Parents: e.Parents}
 	if len(st.BasePools) == 1 {
 		if s.Base = baseMap[st.BasePools[0]]; s.Base == nil {
 			return nil, ErrBasePool
@@ -258,7 +258,7 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 			return nil, ErrMath
 		}
 	}
-	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Buy: buy, Route: append([]byte(nil), s.Route...), Steps: steps, Revision: s.Revision}
+	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Buy: buy, Route: s.Route, Refunds: !refund.IsZero(), Steps: steps, Revision: s.Revision}
 	return &pool.CalcAmountOutResult{TokenAmountOut: &pool.TokenAmount{Token: p.TokenOut, Amount: out.ToBig()}, RemainingTokenAmountIn: &pool.TokenAmount{Token: p.TokenAmountIn.Token, Amount: refund.ToBig()}, Fee: &pool.TokenAmount{Token: WETH, Amount: fee.ToBig()}, Gas: gas, SwapInfo: info}, nil
 }
 func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
@@ -349,12 +349,11 @@ func (s *PoolSimulator) syncReserves() error {
 }
 
 // CloneState copies what UpdateBalance mutates in place: the base and market pools.
+// Parents and Route are read-only after construction and shared.
 // Reserves are reassigned wholesale by syncReserves.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	c := *s
-	c.Parents = cloneParents(s.Parents)
 	c.ParentPools = cloneBases(s.ParentPools)
-	c.Route = append([]byte(nil), s.Route...)
 	c.Static.BasePools = append([]string(nil), s.Static.BasePools...)
 	if s.Base != nil {
 		c.Base = s.Base.CloneState()

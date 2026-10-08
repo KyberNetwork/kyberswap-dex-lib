@@ -263,3 +263,27 @@ func TestRouteFromBasePool(t *testing.T) {
 		require.ErrorIs(t, err, c.err, name)
 	}
 }
+
+// The settlement reverts buyWithRefund on a full fill and buy on a partial one, so the
+// encoder reads SwapInfo.Refunds (via the route-summary JSON) to pick the entry point.
+func TestRefundsFlagReachesEncoder(t *testing.T) {
+	for _, p := range snapshots(t) {
+		s := newSim(t, p)
+		if s.Static.Quote != WETH || s.Curve.Graduated {
+			continue
+		}
+		small := quoteBuy(t, s, 1000000000).SwapInfo.(SwapInfo)
+		require.False(t, small.Refunds)
+		large, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 100)}, TokenOut: s.Info.Address})
+		if err != nil {
+			continue
+		}
+		raw, err := json.Marshal(large.SwapInfo)
+		require.NoError(t, err)
+		var m map[string]any
+		require.NoError(t, json.Unmarshal(raw, &m))
+		require.Equal(t, true, m["refunds"])
+		return
+	}
+	t.Skip("no curve snapshot crosses graduation")
+}
