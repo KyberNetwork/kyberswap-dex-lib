@@ -5,9 +5,9 @@ const http = require('node:http');
 const { spawn } = require('node:child_process');
 const root = __dirname;
 const dex = path.resolve(process.env.FLYWHEEL_DEX_LIB_DIR || path.resolve(root, '../../../../..'));
-const adapters = path.resolve(process.env.FLYWHEEL_ADAPTER_LIB_DIR || path.resolve(dex, '../ks-dex-adapter-lib'));
-const bins = { go: process.env.GO_BIN || 'go', forge: process.env.FORGE_BIN || 'forge', anvil: process.env.ANVIL_BIN || 'anvil' };
-const block = 76791655;
+const bins = { go: process.env.GO_BIN || 'go', anvil: process.env.ANVIL_BIN || 'anvil' };
+// Archive RPCs can pin the fork with FLYWHEEL_FORK_BLOCK (e.g. 82183340); otherwise fork the head.
+const block = process.env.FLYWHEEL_FORK_BLOCK || '';
 function save(name, data) {
   const dir = path.resolve(process.env.FLYWHEEL_RESULTS_DIR || path.join(root, '.results')); fs.mkdirSync(dir, {recursive:true});
   fs.writeFileSync(path.join(dir, name), typeof data === 'string' ? data : JSON.stringify(data, null, 2) + '\n');
@@ -66,4 +66,4 @@ async function startReadBridge(limit = 2500) {
     stats:() => ({reads,readLimit:limit,deniedMethods:denied,mainnetTransactions:0}),
     close:async () => {server.closeAllConnections();await new Promise(r => server.close(r));}};
 }
-module.exports = {fs,path,root,dex,adapters,bins,block,run,save,startReadBridge};
+module.exports = {fs,path,root,dex,bins,block,run,save,startReadBridge};

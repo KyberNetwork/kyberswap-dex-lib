@@ -110,6 +110,8 @@ func SellETH(realized, grossQuote *uint256.Int, protocol uint32) (s Split, err e
 }
 
 type CurveState struct {
+	VirtualToken uint256.Int `json:"virtualToken"`
+	Invariant    uint256.Int `json:"invariant"`
 	QuoteReserve uint256.Int `json:"quoteReserve"`
 	TokenReserve uint256.Int `json:"tokenReserve"`
 	VirtualQuote uint256.Int `json:"virtualQuote"`
@@ -120,6 +122,8 @@ type CurveState struct {
 // Value fields avoid shared mutable integers, while explicit decimal JSON keeps
 // the persisted format independent of uint256's pointer marshaler.
 type curveJSON struct {
+	VirtualToken string `json:"virtualToken"`
+	Invariant    string `json:"invariant"`
 	QuoteReserve string `json:"quoteReserve"`
 	TokenReserve string `json:"tokenReserve"`
 	VirtualQuote string `json:"virtualQuote"`
@@ -128,7 +132,7 @@ type curveJSON struct {
 }
 
 func (c CurveState) MarshalJSON() ([]byte, error) {
-	return json.Marshal(curveJSON{c.QuoteReserve.Dec(), c.TokenReserve.Dec(), c.VirtualQuote.Dec(), c.Threshold.Dec(), c.Graduated})
+	return json.Marshal(curveJSON{c.VirtualToken.Dec(), c.Invariant.Dec(), c.QuoteReserve.Dec(), c.TokenReserve.Dec(), c.VirtualQuote.Dec(), c.Threshold.Dec(), c.Graduated})
 }
 func (c *CurveState) UnmarshalJSON(data []byte) error {
 	var wire curveJSON
@@ -137,10 +141,16 @@ func (c *CurveState) UnmarshalJSON(data []byte) error {
 	}
 	var next CurveState
 	next.Graduated = wire.Graduated
+	if wire.VirtualToken == "" {
+		wire.VirtualToken = "0"
+	}
+	if wire.Invariant == "" {
+		wire.Invariant = "0"
+	}
 	for _, p := range []struct {
 		s string
 		d *uint256.Int
-	}{{wire.QuoteReserve, &next.QuoteReserve}, {wire.TokenReserve, &next.TokenReserve}, {wire.VirtualQuote, &next.VirtualQuote}, {wire.Threshold, &next.Threshold}} {
+	}{{wire.VirtualToken, &next.VirtualToken}, {wire.Invariant, &next.Invariant}, {wire.QuoteReserve, &next.QuoteReserve}, {wire.TokenReserve, &next.TokenReserve}, {wire.VirtualQuote, &next.VirtualQuote}, {wire.Threshold, &next.Threshold}} {
 		x, err := uint256.FromDecimal(p.s)
 		if err != nil {
 			return err
@@ -192,9 +202,12 @@ func curveTrade(c CurveState, amount *uint256.Int, buy bool, allowGraduation boo
 		if _, overflow := next.QuoteReserve.AddOverflow(&c.QuoteReserve, amount); overflow {
 			return out, c, ErrMath
 		}
-		next.TokenReserve, err = mulDiv(&c.QuoteReserve, &c.TokenReserve, &next.QuoteReserve, true)
+		next.TokenReserve, err = curveDivision(c, &next.QuoteReserve)
 		if err != nil {
 			return out, c, err
+		}
+		if next.TokenReserve.Lt(&c.VirtualToken) || next.TokenReserve.Gt(&c.TokenReserve) {
+			return out, c, ErrCurve
 		}
 		out.Sub(&c.TokenReserve, &next.TokenReserve)
 		next.Graduated = amount.Eq(&remaining)
@@ -202,11 +215,14 @@ func curveTrade(c CurveState, amount *uint256.Int, buy bool, allowGraduation boo
 		if _, overflow := next.TokenReserve.AddOverflow(&c.TokenReserve, amount); overflow {
 			return out, c, ErrMath
 		}
-		next.QuoteReserve, err = mulDiv(&c.QuoteReserve, &c.TokenReserve, &next.TokenReserve, true)
+		next.QuoteReserve, err = curveDivision(c, &next.TokenReserve)
 		if err != nil {
 			return out, c, err
 		}
 		if next.QuoteReserve.Cmp(&c.VirtualQuote) < 0 {
+			return out, c, ErrCurve
+		}
+		if next.QuoteReserve.Gt(&c.QuoteReserve) {
 			return out, c, ErrCurve
 		}
 		out.Sub(&c.QuoteReserve, &next.QuoteReserve)
@@ -215,4 +231,22 @@ func curveTrade(c CurveState, amount *uint256.Int, buy bool, allowGraduation boo
 		return out, c, ErrAmount
 	}
 	return out, next, nil
+}
+
+// Zero invariant is retained only for historical offline test vectors. The live
+// replacement tracker and simulator reject snapshots without the fixed invariant.
+func curveDivision(c CurveState, d *uint256.Int) (uint256.Int, error) {
+	if c.Invariant.IsZero() {
+		return mulDiv(&c.QuoteReserve, &c.TokenReserve, d, true)
+	}
+	// ceil(invariant / d)
+	if d.IsZero() {
+		return uint256.Int{}, ErrMath
+	}
+	var q, r uint256.Int
+	q.DivMod(&c.Invariant, d, &r)
+	if !r.IsZero() {
+		q.AddUint64(&q, 1)
+	}
+	return q, nil
 }
