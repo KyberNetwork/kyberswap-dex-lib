@@ -108,6 +108,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyperamm"
+	ilyrislb "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ilyris-lb"
 	infinifi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinifi/gateway"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
@@ -323,6 +324,7 @@ type Types struct {
 	LiquidityBookV21           string
 	LiquidityBookV20           string
 	Smardex                    string
+	IlyrisLB                   string
 	Integral                   string
 	Fxdx                       string
 	UniPool                    string
@@ -583,6 +585,7 @@ var (
 		LiquidityBookV21:           liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:           liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                    smardex.DexTypeSmardex,
+		IlyrisLB:                   ilyrislb.DexType,
 		Integral:                   integral.DexTypeIntegral,
 		Fxdx:                       fxdx.DexTypeFxdx,
 		UniPool:                    unipool.DexType,
