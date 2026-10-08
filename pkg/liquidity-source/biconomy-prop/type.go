@@ -42,4 +42,5 @@ type memberTake struct {
 type SwapInfo struct {
 	DirIndex int          `json:"dirIndex"`
 	Takes    []memberTake `json:"takes"`
+	GrossOut *uint256.Int `json:"grossOut"` // tokenOut before the protocol fee
 }

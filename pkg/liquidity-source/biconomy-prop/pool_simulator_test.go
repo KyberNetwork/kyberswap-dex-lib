@@ -285,11 +285,11 @@ func TestUpdateBalance_ExhaustsBoard(t *testing.T) {
 	sim.Info.Reserves[1] = big.NewInt(0).SetBytes(u("9998000000000000000001").Bytes())
 	res, err := calc(t, sim, "5000000000000000000") // the whole book
 	require.NoError(t, err)
-	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee, SwapInfo: res.SwapInfo})
+	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: res.SwapInfo})
 
 	_, err = calc(t, sim, "1")
 	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
-	assert.Equal(t, "1", sim.Info.Reserves[1].String(), "reserve drops by the quoted output")
+	assert.Equal(t, "1", sim.Info.Reserves[1].String(), "reserve drops by the gross output")
 	assert.True(t, sim.members[0].Dir0.Filled.IsZero(), "Board.Filled stays as tracked")
 }
 
@@ -352,39 +352,9 @@ func TestCalcAmountOut_BlockCapLimitsMaker(t *testing.T) {
 	assert.Equal(t, "6999500000000000000000", deliverable(members, 0, uint64(time.Now().Unix())).Dec())
 }
 
-// A maker whose allocation pays out nothing is dropped and the order is allocated again, so a
-// third maker can cover the size instead of the quote failing.
-func TestCalcAmountOut_DustMakerDroppedAndReallocated(t *testing.T) {
-	exp := farExpiry()
-	sim := buildPool(t, []MemberExtra{
-		{
-			Maker: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			Dir0:  liveBoard([]string{"1000000000000000000"}, []string{"2000000000000000000000"}, "0", exp),
-			Dir1:  darkBoard(),
-		},
-		{
-			Maker: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-			Dir0:  liveBoard([]string{"1000000000000000000"}, []string{"500000000000000000"}, "0", exp),
-			Dir1:  darkBoard(),
-		},
-		{
-			Maker: "0xcccccccccccccccccccccccccccccccccccccccc",
-			Dir0:  liveBoard([]string{"1000000000000000000"}, []string{"400000000000000000"}, "0", exp),
-			Dir1:  darkBoard(),
-		},
-	})
-
-	// One wei past A lands on B at 0.5 and pays 0, so B is dropped; C at 0.4 pays 0 too.
-	_, err := calc(t, sim, "1000000000000000001")
-	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
-
-	// Three wei: B pays floor(3 * 0.5) = 1, so B stays.
-	res, err := calc(t, sim, "1000000000000000003")
-	require.NoError(t, err)
-	assert.Equal(t, "2000000000000000000001", res.TokenAmountOut.Amount.String())
-}
-
-func TestCalcAmountOut_DustMakerDroppedOtherMakerCovers(t *testing.T) {
+// A size is covered only if every maker it is allocated to pays a non-zero amount: 5 wei puts
+// 1 wei on A at 0.5 (pays 0), so the whole size is rejected even though B alone could cover it.
+func TestCalcAmountOut_DustAllocationFailsTheSize(t *testing.T) {
 	exp := farExpiry()
 	sim := buildPool(t, []MemberExtra{
 		{
@@ -398,14 +368,26 @@ func TestCalcAmountOut_DustMakerDroppedOtherMakerCovers(t *testing.T) {
 			Dir1:  darkBoard(),
 		},
 	})
+	_, err := calc(t, sim, "5")
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
 
-	// 5 wei: A takes 1 wei and pays 0, so A is dropped and B covers all 5 for floor(5 * 0.4) = 2.
-	res, err := calc(t, sim, "5")
+	// Same with a larger size: A's best-priced wei still pays 0.
+	_, err = calc(t, sim, "10")
+	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
+
+	// With A priced so its wei pays out, both makers pay and the size is covered.
+	sim = buildPool(t, []MemberExtra{{
+		Maker: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Dir0:  liveBoard([]string{"1"}, []string{"2000000000000000000"}, "0", exp),
+		Dir1:  darkBoard(),
+	}, {
+		Maker: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		Dir0:  liveBoard([]string{"10"}, []string{"400000000000000000"}, "0", exp),
+		Dir1:  darkBoard(),
+	}})
+	res, err := calc(t, sim, "5") // A 1 wei -> 2, B 4 wei -> floor(1.6) = 1
 	require.NoError(t, err)
-	assert.Equal(t, "2", res.TokenAmountOut.Amount.String())
-	swapInfo := res.SwapInfo.(SwapInfo)
-	require.Len(t, swapInfo.Takes, 1)
-	assert.Equal(t, 1, swapInfo.Takes[0].Member)
+	assert.Equal(t, "3", res.TokenAmountOut.Amount.String())
 }
 
 func TestCalcAmountOut_ProtocolFee(t *testing.T) {

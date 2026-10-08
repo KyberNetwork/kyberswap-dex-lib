@@ -91,23 +91,19 @@ type fill struct {
 	out, covered uint256.Int            // total tokenOut and tokenIn covered
 }
 
-// merge is the venue's _merge for one direction: allocate, then drop any maker whose allocation
-// pays out zero (the executor would revert) and allocate again over the rest.
+// merge is the venue's _merge for one direction. The docs say a size is covered only if every
+// maker it is allocated to pays out a non-zero amount, so one dust allocation fails the whole
+// size (the venue reverts Inactive). The venue source is unverified, so this takes the
+// conservative reading rather than reallocating over the remaining makers.
 func (s *PoolSimulator) merge(dirIndex int, amountIn *uint256.Int, f *fill) {
 	var excluded [maxMakers]bool
 	for i := range s.members {
 		excluded[i] = !boardLive(s.members[i].board(dirIndex), s.now)
 	}
-	for {
-		s.allocate(dirIndex, amountIn, &excluded, f)
-		redo := false
-		for i := range s.members {
-			if !f.alloc[i].IsZero() && f.outBy[i].IsZero() {
-				excluded[i] = true
-				redo = true
-			}
-		}
-		if !redo {
+	s.allocate(dirIndex, amountIn, &excluded, f)
+	for i := range s.members {
+		if !f.alloc[i].IsZero() && f.outBy[i].IsZero() {
+			f.covered.Clear()
 			return
 		}
 	}
@@ -223,7 +219,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: fee.ToBig()},
 		Gas:            defaultGas + int64(len(takes)-1)*perMemberGas,
-		SwapInfo:       SwapInfo{DirIndex: dirIndex, Takes: takes},
+		SwapInfo:       SwapInfo{DirIndex: dirIndex, Takes: takes, GrossOut: f.out.Clone()},
 	}, nil
 }
 
@@ -241,12 +237,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		cursor.Add(cursor, take.AmountIn)
 	}
 
-	// The reserve is the gross deliverable, so the protocol fee leaves it too.
+	// The reserve is the gross deliverable.
 	reserveOut := s.Info.Reserves[1-swapInfo.DirIndex]
-	for _, amt := range []*big.Int{params.TokenAmountOut.Amount, params.Fee.Amount} {
-		if amt != nil {
-			reserveOut.Sub(reserveOut, amt)
-		}
+	if swapInfo.GrossOut != nil {
+		reserveOut.Sub(reserveOut, swapInfo.GrossOut.ToBig())
 	}
 	if reserveOut.Sign() < 0 {
 		reserveOut.SetInt64(0)
