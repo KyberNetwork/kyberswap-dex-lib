@@ -1,0 +1,19 @@
+[
+  {
+    "type": "function",
+    "name": "getMarkets_v1",
+    "inputs": [],
+    "outputs": [
+      { "name": "base", "type": "address" },
+      { "name": "markets", "type": "bytes" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pricing",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view"
+  }
+]
