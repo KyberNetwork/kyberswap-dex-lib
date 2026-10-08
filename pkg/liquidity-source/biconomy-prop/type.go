@@ -10,7 +10,8 @@ type StaticExtra struct {
 
 // Board is one maker's board for one direction, as PropAMMVenue.board(mm, tokenIn, tokenOut)
 // returns it: cumulative sizes, the price each level fills at when read, the tokenIn already
-// filled, the depth a fill may still take (capped by the board's per-block limit) and the expiry.
+// filled, the depth a fill may still take (capped by the board's per-block limit and by what the
+// maker's provider reports it can pay) and the expiry.
 // A dark, expired or exhausted board has Remaining == 0.
 type Board struct {
 	Sizes     []*uint256.Int `json:"sizes"`
