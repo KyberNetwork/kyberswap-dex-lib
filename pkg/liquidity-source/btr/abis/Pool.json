@@ -1,0 +1,161 @@
+[
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tk",
+    "type": "address"
+   }
+  ],
+  "name": "getRiskFlags",
+  "outputs": [
+   {
+    "internalType": "uint16",
+    "name": "",
+    "type": "uint16"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tokenIn",
+    "type": "address"
+   },
+   {
+    "internalType": "address",
+    "name": "tokenOut",
+    "type": "address"
+   },
+   {
+    "internalType": "uint256",
+    "name": "amountIn",
+    "type": "uint256"
+   }
+  ],
+  "name": "getSwapQuote",
+  "outputs": [
+   {
+    "components": [
+     {
+      "internalType": "uint256",
+      "name": "amountOut",
+      "type": "uint256"
+     },
+     {
+      "internalType": "uint256",
+      "name": "amountIn",
+      "type": "uint256"
+     },
+     {
+      "internalType": "uint16",
+      "name": "spreadPbps",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint256",
+      "name": "protoFee",
+      "type": "uint256"
+     },
+     {
+      "internalType": "uint256",
+      "name": "lpFee",
+      "type": "uint256"
+     },
+     {
+      "internalType": "int8",
+      "name": "skewIn",
+      "type": "int8"
+     },
+     {
+      "internalType": "int8",
+      "name": "skewOut",
+      "type": "int8"
+     },
+     {
+      "internalType": "uint256",
+      "name": "markPrice",
+      "type": "uint256"
+     },
+     {
+      "internalType": "uint256",
+      "name": "midPrice",
+      "type": "uint256"
+     },
+     {
+      "internalType": "uint256",
+      "name": "covToll",
+      "type": "uint256"
+     },
+     {
+      "internalType": "address[]",
+      "name": "routeHops",
+      "type": "address[]"
+     },
+     {
+      "internalType": "uint256[]",
+      "name": "hopAmounts",
+      "type": "uint256[]"
+     },
+     {
+      "internalType": "uint256[]",
+      "name": "hopPrices",
+      "type": "uint256[]"
+     }
+    ],
+    "internalType": "struct IPool.SwapQuote",
+    "name": "",
+    "type": "tuple"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tokenIn",
+    "type": "address"
+   },
+   {
+    "internalType": "address",
+    "name": "tokenOut",
+    "type": "address"
+   },
+   {
+    "internalType": "uint256",
+    "name": "amountIn",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "minAmountOut",
+    "type": "uint256"
+   },
+   {
+    "internalType": "address",
+    "name": "recipient",
+    "type": "address"
+   },
+   {
+    "internalType": "uint256",
+    "name": "deadline",
+    "type": "uint256"
+   }
+  ],
+  "name": "swap_qe",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "out",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "payable",
+  "type": "function"
+ }
+]
