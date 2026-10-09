@@ -51,3 +51,19 @@ func TestTrackerMarksFeedDownPoolUnquotable(t *testing.T) {
 		})
 	}
 }
+
+func TestQuoteTimestamp(t *testing.T) {
+	const now = int64(1_700_000_100)
+	for name, tc := range map[string]struct{ serverTs, want int64 }{
+		"server timestamp is used":                            {now - 7, now - 7},
+		"server timestamp equal to now":                       {now, now},
+		"missing server timestamp falls back to now":          {0, now},
+		"negative server timestamp falls back to now":         {-1, now},
+		"server clock ahead is capped at now":                 {now + 90, now},
+		"stale server timestamp is kept so the pool ages out": {now - 3600, now - 3600},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.want, quoteTimestamp(tc.serverTs, now))
+		})
+	}
+}
