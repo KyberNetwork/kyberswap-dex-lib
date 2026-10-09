@@ -36,7 +36,6 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	if err != nil {
 		return nil, err
 	}
-	poolSim.Gas = defaultGas
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(params.EntityPool.StaticExtra), &staticExtra); err != nil {
