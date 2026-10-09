@@ -8,7 +8,7 @@ var (
 	ErrBTRGated = errors.New("btr: leg gated or halted")
 	// ErrBTRGatedLane is returned when SWAP_GATED is set and the executor does
 	// not hold lane 0x400. The launch Monad core is gated; every route reverts
-	// NotAuthorized until SG-0 (owner) clears it or grants a lane.
+	// NotAuthorized until BTR governance clears it or grants a lane.
 	ErrBTRGatedLane = errors.New("btr: pool is SWAP_GATED; executor needs lane 0x400")
 	// ErrBTRNoRoute is returned when no sampled ladder exists for the pair.
 	ErrBTRNoRoute = errors.New("btr: no sampled ladder for pair")

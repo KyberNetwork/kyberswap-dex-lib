@@ -8,8 +8,7 @@ import (
 )
 
 // Minimal ABI surface used by the adapter. Source of truth is the embedded
-// dex-evm/abi/Pool.json (repo pin), refreshed by `go:generate`, never
-// hand-copied.
+// abis/Pool.json, a pinned copy of the deployed BTR Pool ABI.
 var poolABI abi.ABI
 
 func init() {

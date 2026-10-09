@@ -83,7 +83,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	}, nil
 }
 
-// gate is pure so it can be unit-tested. It mirrors dex-evm's open-path
+// gate is pure so it can be unit-tested. It mirrors the BTR pool's open-path
 // predicate `(flags & OpenPathMask) == SwapEnabledBit`, but distinguishes a
 // lane-gated leg (SWAP_GATED) from a halted/disabled one for the route finder.
 func gate(flags uint16) error {
@@ -114,7 +114,7 @@ func (s *PoolSimulator) legAllowed(token string) error {
 
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
 // ladder. It refuses a leg that is not on the open path, so while the live core
-// is SWAP_GATED it returns no route (the correct behaviour until SG-0).
+// is SWAP_GATED it returns no route (the correct behaviour until the gate is lifted).
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrBTRInvalidAmount

@@ -2,15 +2,13 @@ package btr
 
 import "time"
 
-// Monad mainnet records (dex-evm/deployments/143.deploy.json and
-// deployments/monad.manifest.json, verified 2026-10-08).
+// Monad mainnet records (BTR deployment records, verified 2026-10-08).
 //
-// The Router at RouterAddress holds no lane 0x400 (`monad.manifest.json`:
-// "the Router holds no lane, so a routed swap reverts"), so an aggregator must
+// The Router at RouterAddress holds no lane 0x400, so an aggregator must
 // NOT route through Router.swap: the call reaches Pool.swap_qe with
 // msg.sender = Router, which has no lane, and reverts NotAuthorized. The
 // aggregator's own on-chain adapter must call Pool.swap_qe directly and hold
-// lane 0x400, or SWAP_GATED must be cleared (owner SG-0).
+// lane 0x400, or SWAP_GATED must be cleared by BTR governance.
 const (
 	ChainIDMonad = 143
 
@@ -42,7 +40,7 @@ const (
 	RPCTimeout = 15 * time.Second
 )
 
-// Risk-flag bits (dex-evm/abi/constants.json, generated from Solidity).
+// Risk-flag bits (BTR Solidity constants).
 // Only the bits an open-path executor must gate on are listed.
 const (
 	SwapEnabledBit uint16 = 16   // SWAP_ENABLED_BIT
