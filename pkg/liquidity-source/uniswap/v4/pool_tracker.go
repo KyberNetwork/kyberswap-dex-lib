@@ -52,6 +52,33 @@ func NewPoolTracker(
 	}
 }
 
+// newHook builds the pool's hook and its HookParam from StaticExtra and the persisted hX.
+func (t *PoolTracker) newHook(p *entity.Pool, overrides map[common.Address]gethclient.OverrideAccount,
+) (Hook, *HookParam, StaticExtra) {
+	var staticExtra StaticExtra
+	var hookAddress common.Address
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"dexID":       t.config.DexID,
+			"error":       err,
+		}).Error("failed to unmarshal static extra")
+	} else {
+		hookAddress = staticExtra.HooksAddress
+	}
+
+	// GetHook reads the carried model from HookParam.HookExtra, not Pool.Extra.
+	var extra Extra
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+
+	hookParam := &HookParam{
+		Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, Overrides: overrides,
+		HookExtra: HookExtra(extra.HookExtra),
+	}
+	hook, _ := GetHook(hookAddress, hookParam)
+	return hook, hookParam, staticExtra
+}
+
 // fetchOnchainState fetches liquidity/slot0 via RPC and constructs the hook.
 // It deliberately stops short of hook.GetReserves/Track/GetExchange: those
 // must run only once ticks are known (see resolveHookState), since
@@ -67,30 +94,7 @@ func (t *PoolTracker) fetchOnchainState(
 	ctx context.Context, p *entity.Pool, blockNumber uint64,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*FetchRPCResult, Hook, *HookParam, error) {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": p.Address,
-		"dexID":       t.config.DexID,
-	})
-
-	var staticExtra StaticExtra
-	var hookAddress common.Address
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to unmarshal static extra")
-	} else {
-		hookAddress = staticExtra.HooksAddress
-	}
-
-	// GetHook reads the carried model from HookParam.HookExtra, not Pool.Extra.
-	var extra Extra
-	_ = json.Unmarshal([]byte(p.Extra), &extra)
-
-	hookParam := &HookParam{
-		Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, Overrides: overrides,
-		HookExtra: HookExtra(extra.HookExtra),
-	}
-	hook, _ := GetHook(hookAddress, hookParam)
+	hook, hookParam, staticExtra := t.newHook(p, overrides)
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
@@ -297,6 +301,15 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
 	params poolpkg.GetNewPoolStateWithOverridesParams) (entity.Pool, error) {
 	return t.getNewPoolState(ctx, p, params.Logs, nil, params.Overrides)
+}
+
+// NextUpdateAt returns the unix time the hook wants the pool updated again, or 0. No RPC.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	hook, hookParam, _ := t.newHook(&p, nil)
+	if h, ok := hook.(HookWithSchedule); ok {
+		return h.NextTrackAt(hookParam)
+	}
+	return 0
 }
 
 func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
