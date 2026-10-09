@@ -84,6 +84,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+	p.SwapFee = 0 // the levels already include the taker spread; clears the old calibrated fee
 	p.Extra = string(extraBytes)
 	p.BlockNumber = resp.BlockNumber.Uint64()
 
