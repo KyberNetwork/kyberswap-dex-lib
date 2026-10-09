@@ -303,18 +303,18 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity
 	return t.getNewPoolState(ctx, p, params.Logs, nil, params.Overrides)
 }
 
+// NextUpdateAt returns the unix time the hook wants the pool updated again, or 0. No RPC.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	hook, hookParam, _ := t.newHook(&p, nil)
+	if h, ok := hook.(HookWithSchedule); ok {
+		return h.NextTrackAt(hookParam)
+	}
+	return 0
+}
+
 func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
 	blockHeaders map[uint64]entity.BlockHeader, overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	// Events keep the pool current, so an interval task (only zero-value logs) just lets
-	// Track recalibrate. Skip all RPC when the hook says it is not due.
-	if overrides == nil && !slices.ContainsFunc(logs, func(l ethtypes.Log) bool { return l.Address != (common.Address{}) }) {
-		hook, hookParam, _ := t.newHook(&p, nil)
-		if d, ok := hook.(TrackDuer); ok && !d.TrackDue(hookParam) {
-			return p, nil
-		}
-	}
-
 	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
