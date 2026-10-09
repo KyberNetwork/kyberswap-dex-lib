@@ -123,6 +123,10 @@ type Hook interface {
 	GetHookData() []byte
 }
 
+// TrackDuer is an optional Hook method. On an update with no real logs, the
+// tracker returns the stored pool unchanged, with no RPC, when TrackDue is false.
+type TrackDuer interface{ TrackDue(*HookParam) bool }
+
 type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
