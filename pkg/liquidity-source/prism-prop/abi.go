@@ -8,6 +8,7 @@ import (
 
 var routerABI abi.ABI
 
+// Subset of Prism's public Swap ABI (IEngine structs).
 const routerABIJSON = `[
 	{
 		"name": "getSupportedPairs",
@@ -15,65 +16,49 @@ const routerABIJSON = `[
 		"stateMutability": "view",
 		"inputs": [],
 		"outputs": [{"name": "", "type": "tuple[]", "components": [
-			{"name": "token0", "type": "address"},
-			{"name": "token1", "type": "address"}
+			{"name": "tokenA", "type": "address"},
+			{"name": "tokenB", "type": "address"}
 		]}]
 	},
 	{
-		"name": "getOrderBook",
+		"name": "getOrderBookWithParams",
 		"type": "function",
-		"stateMutability": "nonpayable",
+		"stateMutability": "view",
 		"inputs": [
-			{"name": "tokenSell", "type": "address"},
-			{"name": "tokenBuy", "type": "address"}
+			{"name": "baseToken", "type": "address"},
+			{"name": "quoteToken", "type": "address"},
+			{"name": "params", "type": "tuple", "components": [
+				{"name": "msgSender", "type": "address"},
+				{"name": "txOrigin", "type": "address"},
+				{"name": "gasPrice", "type": "uint256"},
+				{"name": "pathType", "type": "uint8"}
+			]}
 		],
 		"outputs": [{"name": "book", "type": "tuple", "components": [
-			{"name": "token0", "type": "address"},
-			{"name": "token1", "type": "address"},
-			{"name": "blockNumber", "type": "uint256"},
-			{"name": "side0", "type": "tuple", "components": [
-				{"name": "orders", "type": "tuple[]", "components": [
-					{"name": "amountIn", "type": "uint256"},
-					{"name": "amountOut", "type": "uint256"}
+			{"name": "baseToken", "type": "address"},
+			{"name": "quoteToken", "type": "address"},
+			{"name": "snapshotBlock", "type": "uint64"},
+			{"name": "bids", "type": "tuple", "components": [
+				{"name": "levels", "type": "tuple[]", "components": [
+					{"name": "baseAmount", "type": "uint256"},
+					{"name": "quoteAmount", "type": "uint256"}
 				]},
-				{"name": "s1", "type": "uint256"},
-				{"name": "s2", "type": "uint256"},
-				{"name": "s3", "type": "uint256"},
-				{"name": "s4", "type": "uint256"}
+				{"name": "outputVaultBalance", "type": "uint256"},
+				{"name": "minTradeSize", "type": "uint128"},
+				{"name": "maxTradeSize", "type": "uint128"},
+				{"name": "tif", "type": "uint64"}
 			]},
-			{"name": "side1", "type": "tuple", "components": [
-				{"name": "orders", "type": "tuple[]", "components": [
-					{"name": "amountIn", "type": "uint256"},
-					{"name": "amountOut", "type": "uint256"}
+			{"name": "asks", "type": "tuple", "components": [
+				{"name": "levels", "type": "tuple[]", "components": [
+					{"name": "baseAmount", "type": "uint256"},
+					{"name": "quoteAmount", "type": "uint256"}
 				]},
-				{"name": "s1", "type": "uint256"},
-				{"name": "s2", "type": "uint256"},
-				{"name": "s3", "type": "uint256"},
-				{"name": "s4", "type": "uint256"}
+				{"name": "outputVaultBalance", "type": "uint256"},
+				{"name": "minTradeSize", "type": "uint128"},
+				{"name": "maxTradeSize", "type": "uint128"},
+				{"name": "tif", "type": "uint64"}
 			]}
 		]}]
-	},
-	{
-		"name": "getAmountOut",
-		"type": "function",
-		"stateMutability": "view",
-		"inputs": [
-			{"name": "tokenIn", "type": "address"},
-			{"name": "tokenOut", "type": "address"},
-			{"name": "amountIn", "type": "uint256"}
-		],
-		"outputs": [{"name": "amountOut", "type": "uint256"}]
-	},
-	{
-		"name": "getAmountIn",
-		"type": "function",
-		"stateMutability": "view",
-		"inputs": [
-			{"name": "tokenIn", "type": "address"},
-			{"name": "tokenOut", "type": "address"},
-			{"name": "amountOut", "type": "uint256"}
-		],
-		"outputs": [{"name": "amountIn", "type": "uint256"}]
 	}
 ]`
 
