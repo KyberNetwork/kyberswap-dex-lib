@@ -336,6 +336,7 @@ const (
 	ExchangeUniswapV4Euler              = "uniswap-v4-euler"
 	ExchangeUniswapV4EulerV2            = "uniswap-v4-euler-v2"
 	ExchangeUniswapV4EVPLUSAI           = "uniswap-v4-evplusai"
+	ExchangeUniswapV4FableCurve         = "uniswap-v4-fablecurve"
 	ExchangeUniswapV4Fables             = "uniswap-v4-fables"
 	ExchangeUniswapV4FairFlow           = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch            = "uniswap-v4-flaunch"
