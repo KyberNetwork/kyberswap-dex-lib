@@ -23,11 +23,12 @@ type PoolSimulator struct {
 	extra Extra
 	// ladders[from*n+to] points into extra.Ladders; nil when the pair has no ladder.
 	ladders []*Ladder
-	// used[from*n+to] is the input already swapped through the pair by
-	// UpdateBalance, so a later swap in the same route continues along the
-	// curve instead of restarting at the first sample. Nil until first use.
-	used  []uint256.Int
-	gated bool
+	// inUsed[i] and outTaken[j] are the totals UpdateBalance has moved in and out
+	// of each token, over every pair. The core prices from per-token inventory, so
+	// a route that splits one swap across pairs sharing a token (USDC>WMON plus
+	// USDC>cbBTC>WMON) must not restart each leg at the first sample. Nil until first use.
+	inUsed, outTaken []uint256.Int
+	gated            bool
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -149,6 +150,52 @@ func interpolate(pts []Point, x, res *uint256.Int) error {
 	return ErrBTRAmountTooLarge
 }
 
+// startPoint writes into res how far along the pair's curve earlier swaps have
+// already pushed: the larger of the input already sold of tokenIn and the input
+// that would have yielded the output already taken of tokenOut.
+func (s *PoolSimulator) startPoint(pts []Point, i, j int, res *uint256.Int) {
+	if s.inUsed == nil {
+		res.Clear()
+		return
+	}
+	res.Set(&s.inUsed[i])
+	if !s.outTaken[j].IsZero() {
+		var x uint256.Int
+		if invert(pts, &s.outTaken[j], &x); x.Gt(res) {
+			res.Set(&x)
+		}
+	}
+}
+
+// invert writes into res the input that interpolate maps to output y, rounded
+// up (the worse price). At or above the last sample it returns the last input.
+func invert(pts []Point, y, res *uint256.Int) {
+	if !y.Lt(&pts[len(pts)-1].Out) {
+		res.Set(&pts[len(pts)-1].In)
+		return
+	}
+	k := 0
+	for y.Gt(&pts[k].Out) {
+		k++
+	}
+	var dy, dx, dn uint256.Int
+	switch {
+	case k > 0: // x = lo.In + (y-lo.Out) * (hi.In-lo.In) / (hi.Out-lo.Out)
+		lo, hi := &pts[k-1], &pts[k]
+		big256.MulDivUp(res, dy.Sub(y, &lo.Out), dx.Sub(&hi.In, &lo.In), dn.Sub(&hi.Out, &lo.Out))
+		res.Add(res, &lo.In)
+	case len(pts) == 1:
+		big256.MulDivUp(res, y, &pts[0].In, &pts[0].Out)
+	default: // below the first sample: first segment extended back, floored at 0
+		big256.MulDivDown(res, dy.Sub(&pts[0].Out, y), dx.Sub(&pts[1].In, &pts[0].In), dn.Sub(&pts[1].Out, &pts[0].Out))
+		if res.Gt(&pts[0].In) {
+			res.Clear()
+		} else {
+			res.Sub(&pts[0].In, res)
+		}
+	}
+}
+
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
 // ladder. It refuses a leg that is not on the open path, so while the live core
 // is SWAP_GATED it returns no route.
@@ -175,22 +222,26 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrBTRNoRoute
 	}
 
-	// Output for this swap = f(used+in) - f(used) along the pair's curve.
-	var amountOut, x uint256.Int
-	if s.used != nil && !s.used[i*n+j].IsZero() {
-		var base uint256.Int
-		if err := interpolate(ladder.Points, &s.used[i*n+j], &base); err != nil {
+	// Output for this swap = f(x0+in) - f(x0), where x0 is the point on the
+	// pair's curve already consumed by earlier swaps.
+	var amountOut, x0 uint256.Int
+	s.startPoint(ladder.Points, i, j, &x0)
+	if x0.IsZero() {
+		if err := interpolate(ladder.Points, &amountIn, &amountOut); err != nil {
 			return nil, err
 		}
-		if _, overflow := x.AddOverflow(&amountIn, &s.used[i*n+j]); overflow {
+	} else {
+		var base, x uint256.Int
+		if _, overflow := x.AddOverflow(&amountIn, &x0); overflow {
 			return nil, ErrBTRAmountTooLarge
 		}
 		if err := interpolate(ladder.Points, &x, &amountOut); err != nil {
 			return nil, err
 		}
+		if err := interpolate(ladder.Points, &x0, &base); err != nil {
+			return nil, err
+		}
 		amountOut.Sub(&amountOut, &base)
-	} else if err := interpolate(ladder.Points, &amountIn, &amountOut); err != nil {
-		return nil, err
 	}
 	if amountOut.IsZero() {
 		return nil, ErrBTRNoFill
@@ -203,29 +254,32 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
-// CloneState deep-copies used, the only slice UpdateBalance writes in place.
-// Ladders and flags are immutable.
+// CloneState deep-copies inUsed and outTaken, the slices UpdateBalance writes in
+// place. Ladders and flags are immutable.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.used = slices.Clone(s.used)
+	cloned.inUsed = slices.Clone(s.inUsed)
+	cloned.outTaken = slices.Clone(s.outTaken)
 	return &cloned
 }
 
-// UpdateBalance records the swapped input on the pair so the next quote on the
-// pair continues along the curve. The opposite direction is not credited, which
-// only under-quotes it.
+// UpdateBalance records the swapped amounts per token so the next quote on any
+// pair sharing a token continues along its curve. The opposite direction is not
+// credited, which only under-quotes it.
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	i, j := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if i < 0 || j < 0 || i == j {
 		return
 	}
-	n := len(s.Info.Tokens)
-	if s.used == nil {
-		s.used = make([]uint256.Int, n*n)
+	if s.inUsed == nil {
+		n := len(s.Info.Tokens)
+		s.inUsed, s.outTaken = make([]uint256.Int, n), make([]uint256.Int, n)
 	}
-	var in uint256.Int
+	var in, out uint256.Int
 	in.SetFromBig(params.TokenAmountIn.Amount)
-	s.used[i*n+j].Add(&s.used[i*n+j], &in)
+	out.SetFromBig(params.TokenAmountOut.Amount)
+	s.inUsed[i].Add(&s.inUsed[i], &in)
+	s.outTaken[j].Add(&s.outTaken[j], &out)
 
 	s.Info.Reserves = slices.Clone(s.Info.Reserves)
 	s.Info.Reserves[i] = new(big.Int).Add(s.Info.Reserves[i], params.TokenAmountIn.Amount)

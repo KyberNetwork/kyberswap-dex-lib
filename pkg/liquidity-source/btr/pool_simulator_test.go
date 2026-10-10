@@ -162,3 +162,56 @@ func TestNewPoolSimulatorRejectsUntrackedPool(t *testing.T) {
 	}})
 	require.Equal(t, ErrBTRBadState, err)
 }
+
+// Swaps on different pairs that share a token draw on the same inventory. A
+// route that sells A>C and then B>C must price the B>C leg after the C already
+// taken, not from the first sample: on the live core, splitting USDC>WMON over
+// USDC>cbBTC>WMON paths was quoted 2.5% above what the chain delivered.
+func TestUpdateBalanceSharesOutputToken(t *testing.T) {
+	const c = "0x0555e30da8f98308edb960aa94c0db47230d2b9c"
+	extra, err := json.Marshal(Extra{
+		Flags: []uint16{SwapEnabledBit, SwapEnabledBit, SwapEnabledBit},
+		Ladders: []Ladder{
+			{From: 0, To: 2, Points: pts(1000, 990, 2000, 1900)},
+			{From: 1, To: 2, Points: pts(500, 1000, 1000, 1900)},
+		},
+	})
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(extra),
+		Tokens:   []*entity.PoolToken{{Address: usdc}, {Address: wmon}, {Address: c}},
+		Reserves: entity.PoolReserves{"1", "1", "1"},
+	}})
+	require.NoError(t, err)
+	quoteBC := func(s *PoolSimulator) string {
+		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: wmon, Amount: big.NewInt(100)}, TokenOut: c,
+		})
+		require.NoError(t, err)
+		return res.TokenAmountOut.Amount.String()
+	}
+	require.Equal(t, "280", quoteBC(sim)) // 1000 - ceil(400*900/500) = 280, no history
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: usdc, Amount: big.NewInt(1000)},
+		TokenAmountOut: pool.TokenAmount{Token: c, Amount: big.NewInt(990)},
+	})
+	// 990 of C is gone: B>C restarts at invert(990) = 494, so 100 more input
+	// yields f(594)-f(494) = 1169-989 = 180.
+	require.Equal(t, "180", quoteBC(sim))
+}
+
+// invert must never map an output to a smaller input than interpolate needs: a
+// round-down would let a later leg start earlier on the curve than the earlier legs left it.
+func TestInvertRoundsAgainstTrader(t *testing.T) {
+	ladder := pts(500, 1000, 1000, 1900, 2000, 3000)
+	for _, y := range []uint64{1, 400, 999, 1000, 1001, 1500, 1900, 2500, 2999} {
+		var x, back uint256.Int
+		invert(ladder, uint256.NewInt(y), &x)
+		require.NoError(t, interpolate(ladder, &x, &back))
+		require.GreaterOrEqual(t, back.Uint64(), y, "y=%d x=%d", y, x.Uint64())
+	}
+	var x uint256.Int
+	invert(ladder, uint256.NewInt(3000), &x)
+	require.Equal(t, uint64(2000), x.Uint64(), "at or above the last sample returns the last input")
+}
