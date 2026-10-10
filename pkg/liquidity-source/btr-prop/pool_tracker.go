@@ -3,6 +3,7 @@ package btrprop
 import (
 	"context"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -28,6 +29,17 @@ var probeExps = [...]int{-2, 0, 2}
 // near 93% of the balance, and the curve is near-linear below that, so the
 // samples are denser toward the top where the cap shows up.
 var gridPermille = [...]uint64{1, 3, 10, 30, 60, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000}
+
+// The core caps its output near 92.7% of the out balance, which sits at about
+// 0.98-0.995 of maxIn in input terms on the live pairs. The grid's last segment
+// (900..1000) would straddle that kink and underquote by ~140 bps, so a few
+// extra samples go around it. Cold start (no previous ladder): fixed permille
+// of maxIn. Warm start: permille of the previous ladder's last In, which is the
+// first sample at the cap. The 1005 point catches an onset that drifted up.
+var (
+	coldKneePermille = [...]uint64{950, 975, 990}
+	warmKneePermille = [...]uint64{950, 980, 995}
+)
 
 // PoolTracker refreshes a BTR pool every block: it caches the per-token risk
 // flags and balances and probes `getSwapQuote` over a grid per ordered pair to
@@ -76,6 +88,8 @@ type pairProbe struct {
 	ins      []uint256.Int
 	res      []*rpcSwapQuoteResult
 	ok       []bool
+	// probes is the pair's rate probes; set on grids only.
+	probes *pairProbe
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -96,6 +110,10 @@ func (t *PoolTracker) GetNewPoolState(
 		addrs[i] = common.HexToAddress(tok.Address)
 	}
 	poolAddr := common.HexToAddress(p.Address)
+
+	// The previous ladders locate the cap onset for the knee samples.
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
 
 	// Phase 1: flags, balances and the rate probes, all in one multicall.
 	flags := make([]uint16, n)
@@ -150,7 +168,8 @@ func (t *PoolTracker) GetNewPoolState(
 		if balOut.SetFromBig(balances[pp.to]) {
 			continue
 		}
-		g := &pairProbe{from: pp.from, to: pp.to, ins: gridAmounts(pp.maxIn(&balOut))}
+		maxIn := pp.maxIn(&balOut)
+		g := &pairProbe{from: pp.from, to: pp.to, probes: pp, ins: gridAmounts(maxIn, kneeAmounts(prev.ladder(pp.from, pp.to), &maxIn))}
 		if len(g.ins) == 0 {
 			continue
 		}
@@ -166,7 +185,7 @@ func (t *PoolTracker) GetNewPoolState(
 		okAll := gridResp.Result
 		for _, g := range grids {
 			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
-			if pts := g.ladder(); len(pts) > 0 {
+			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
 				extra.Ladders = append(extra.Ladders, Ladder{From: g.from, To: g.to, Points: pts})
 			}
 		}
@@ -252,6 +271,34 @@ func (pp *pairProbe) ladder() []Point {
 	return pts
 }
 
+// mergeInto adds the filled rate probes to pts, the grid ladder. The probes come
+// from the same block and cost no extra call; the small ones sit below the first
+// grid sample and cut the dust extrapolation. A probe is dropped, never allowed
+// to cut the ladder, unless it lies strictly inside it with an output strictly
+// between its neighbours' (pts stays strictly increasing in In and Out).
+func (pp *pairProbe) mergeInto(pts []Point) []Point {
+	if len(pts) == 0 {
+		return pts
+	}
+	last := &pts[len(pts)-1].In
+	for k := range pp.ins {
+		in := &pp.ins[k]
+		var out uint256.Int
+		if !pp.ok[k] || !in.Lt(last) {
+			continue
+		}
+		if q := pp.res[k].Quote.AmountOut; q == nil || out.SetFromBig(q) || out.IsZero() {
+			continue
+		}
+		i, found := slices.BinarySearchFunc(pts, in, func(p Point, x *uint256.Int) int { return p.In.Cmp(x) })
+		if found || (i > 0 && !out.Gt(&pts[i-1].Out)) || !out.Lt(&pts[i].Out) {
+			continue
+		}
+		pts = slices.Insert(pts, i, Point{In: *in, Out: out})
+	}
+	return pts
+}
+
 // unitAmount returns 10^(decimals+exp) wei, at least 1.
 func unitAmount(decimals uint8, exp int) uint256.Int {
 	var res uint256.Int
@@ -262,17 +309,39 @@ func unitAmount(decimals uint8, exp int) uint256.Int {
 	return res
 }
 
-// gridAmounts returns maxIn scaled by gridPermille, dropping zeros and repeats
-// so the amounts stay strictly increasing.
-func gridAmounts(maxIn uint256.Int) []uint256.Int {
-	amounts := make([]uint256.Int, 0, len(gridPermille))
-	var a, m, d uint256.Int
+// kneeAmounts returns the extra samples around the cap onset: permille of the
+// previous ladder's last In when it has one, else of maxIn.
+func kneeAmounts(prev []Point, maxIn *uint256.Int) []uint256.Int {
+	base, permille := maxIn, coldKneePermille[:]
+	if len(prev) >= 2 {
+		base, permille = &prev[len(prev)-1].In, warmKneePermille[:]
+	}
+	res := make([]uint256.Int, len(permille))
+	var m, d uint256.Int
 	d.SetUint64(1000)
-	for _, pm := range gridPermille {
+	for k, pm := range permille {
+		// base is a token amount far below 2^192, so base*pm fits.
+		res[k].Div(res[k].Mul(base, m.SetUint64(pm)), &d)
+	}
+	return res
+}
+
+// gridAmounts returns maxIn scaled by gridPermille plus the knee amounts,
+// sorted, dropping zeros and repeats so the amounts stay strictly increasing.
+func gridAmounts(maxIn uint256.Int, knee []uint256.Int) []uint256.Int {
+	all := make([]uint256.Int, len(gridPermille), len(gridPermille)+len(knee))
+	var m, d uint256.Int
+	d.SetUint64(1000)
+	for k, pm := range gridPermille {
 		// maxIn is a token amount far below 2^192, so maxIn*pm fits.
-		a.Div(a.Mul(&maxIn, m.SetUint64(pm)), &d)
-		if !a.IsZero() && (len(amounts) == 0 || a.Gt(&amounts[len(amounts)-1])) {
-			amounts = append(amounts, a)
+		all[k].Div(all[k].Mul(&maxIn, m.SetUint64(pm)), &d)
+	}
+	all = append(all, knee...)
+	slices.SortFunc(all, func(a, b uint256.Int) int { return a.Cmp(&b) })
+	amounts := all[:0]
+	for k := range all {
+		if !all[k].IsZero() && (len(amounts) == 0 || all[k].Gt(&amounts[len(amounts)-1])) {
+			amounts = append(amounts, all[k])
 		}
 	}
 	return amounts

@@ -85,8 +85,8 @@ func TestInterpolate(t *testing.T) {
 	}{
 		{2000, 1990}, // exact sample
 		{1500, 1494}, // 999 + (1990-999)*500/1000 = 1494, floor
-		{500, 503},   // below the first sample the first segment extends back: 999 - ceil(500*991/1000)
-		{1, 8},
+		{500, 499},   // below the first sample: min(extension 999-ceil(500*991/1000)=503, proportional 499)
+		{1, 0},
 	} {
 		require.NoError(t, interpolate(ladder, uint256.NewInt(c.in), &res))
 		require.Equal(t, c.want, res.Uint64(), c.in)
@@ -96,6 +96,23 @@ func TestInterpolate(t *testing.T) {
 	require.True(t, res.IsZero())
 	// Past the last sample the pool caps output but still takes the input.
 	require.Equal(t, ErrBTRAmountTooLarge, interpolate(ladder, uint256.NewInt(2001), &res))
+}
+
+// The live curve is concave, so the first segment extended backwards sits above
+// it at dust (+145 bps USDC>WMON, +101 bps WMON>USDC measured) and only the line
+// from the origin stays below. Without the min() this fails at every dust size.
+func TestInterpolateDustNotAboveConcaveCurve(t *testing.T) {
+	const b = 1_000_000
+	exact := func(x uint64) uint64 { return x * b / (x + b) } // concave, exact(0) = 0
+	var ladder []Point
+	for _, x := range []uint64{100_000, 200_000, 400_000} {
+		ladder = append(ladder, Point{In: *uint256.NewInt(x), Out: *uint256.NewInt(exact(x))})
+	}
+	var res uint256.Int
+	for _, x := range []uint64{1, 7, 100, 1000, 9999, 50_000, 99_999} {
+		require.NoError(t, interpolate(ladder, uint256.NewInt(x), &res))
+		require.LessOrEqual(t, res.Uint64(), exact(x), "overquote at dust x=%d", x)
+	}
 }
 
 func TestCalcAmountOutGated(t *testing.T) {
@@ -190,28 +207,34 @@ func TestUpdateBalanceSharesOutputToken(t *testing.T) {
 		require.NoError(t, err)
 		return res.TokenAmountOut.Amount.String()
 	}
-	require.Equal(t, "280", quoteBC(sim)) // 1000 - ceil(400*900/500) = 280, no history
+	require.Equal(t, "200", quoteBC(sim)) // below the first sample: min(1000-ceil(400*900/500)=280, 1000*100/500=200)
 
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: usdc, Amount: big.NewInt(1000)},
 		TokenAmountOut: pool.TokenAmount{Token: c, Amount: big.NewInt(990)},
 	})
-	// 990 of C is gone: B>C restarts at invert(990) = 494, so 100 more input
-	// yields f(594)-f(494) = 1169-989 = 180.
-	require.Equal(t, "180", quoteBC(sim))
+	// 990 of C is gone: B>C restarts at invert(990) = 495, so 100 more input
+	// yields f(595)-f(495) = 1171-990 = 181.
+	require.Equal(t, "181", quoteBC(sim))
 }
 
 // invert must never map an output to a smaller input than interpolate needs: a
 // round-down would let a later leg start earlier on the curve than the earlier legs left it.
 func TestInvertRoundsAgainstTrader(t *testing.T) {
-	ladder := pts(500, 1000, 1000, 1900, 2000, 3000)
-	for _, y := range []uint64{1, 400, 999, 1000, 1001, 1500, 1900, 2500, 2999} {
-		var x, back uint256.Int
-		invert(ladder, uint256.NewInt(y), &x)
-		require.NoError(t, interpolate(ladder, &x, &back))
-		require.GreaterOrEqual(t, back.Uint64(), y, "y=%d x=%d", y, x.Uint64())
+	// The second ladder has a positive backward intercept (300), so below the first
+	// sample the proportional line binds instead of the extension.
+	for _, ladder := range [][]Point{pts(500, 1000, 1000, 1900, 2000, 3000), pts(1000, 900, 2000, 1500)} {
+		for _, y := range []uint64{1, 100, 400, 899, 900, 999, 1000, 1001, 1500, 1900, 2500, 2999} {
+			if y > ladder[len(ladder)-1].Out.Uint64() {
+				continue
+			}
+			var x, back uint256.Int
+			invert(ladder, uint256.NewInt(y), &x)
+			require.NoError(t, interpolate(ladder, &x, &back))
+			require.GreaterOrEqual(t, back.Uint64(), y, "y=%d x=%d", y, x.Uint64())
+		}
 	}
 	var x uint256.Int
-	invert(ladder, uint256.NewInt(3000), &x)
+	invert(pts(500, 1000, 1000, 1900, 2000, 3000), uint256.NewInt(3000), &x)
 	require.Equal(t, uint64(2000), x.Uint64(), "at or above the last sample returns the last input")
 }

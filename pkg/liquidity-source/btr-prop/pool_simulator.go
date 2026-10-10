@@ -112,26 +112,29 @@ func gate(flags uint16) error {
 }
 
 // interpolate writes the ladder output for x into res: piecewise linear between
-// samples, ErrBTRAmountTooLarge above the last. Below the first sample it
-// extends the first segment backwards (zero once it crosses the axis), because
-// the live curve has a fixed cost that makes the dust head convex: scaling from
-// the origin would overquote there by up to ~20%.
+// samples, ErrBTRAmountTooLarge above the last. Below the first sample it takes
+// the lower of two lines: the first segment extended backwards (zero once it
+// crosses the axis) and the proportional line from the origin. The live curve is
+// concave, so the extension sits above it by up to ~145 bps at dust, while the
+// chord from the origin sits below it.
 func interpolate(pts []Point, x, res *uint256.Int) error {
 	if x.Gt(&pts[len(pts)-1].In) {
 		return ErrBTRAmountTooLarge
 	}
 	if !x.Gt(&pts[0].In) {
+		big256.MulDivDown(res, &pts[0].Out, x, &pts[0].In)
 		if len(pts) == 1 {
-			big256.MulDivDown(res, &pts[0].Out, x, &pts[0].In)
 			return nil
 		}
 		// out = p0.Out - (p0.In-x) * (p1.Out-p0.Out) / (p1.In-p0.In), rounded down
-		var dy, dx, dn, cut uint256.Int
-		big256.MulDivUp(&cut, dx.Sub(&pts[0].In, x), dy.Sub(&pts[1].Out, &pts[0].Out), dn.Sub(&pts[1].In, &pts[0].In))
-		if cut.Gt(&pts[0].Out) {
+		var dy, dx, dn, ext uint256.Int
+		big256.MulDivUp(&ext, dx.Sub(&pts[0].In, x), dy.Sub(&pts[1].Out, &pts[0].Out), dn.Sub(&pts[1].In, &pts[0].In))
+		if ext.Gt(&pts[0].Out) {
 			res.Clear()
-		} else {
-			res.Sub(&pts[0].Out, &cut)
+			return nil
+		}
+		if ext.Sub(&pts[0].Out, &ext); ext.Lt(res) {
+			res.Set(&ext)
 		}
 		return nil
 	}
@@ -186,12 +189,19 @@ func invert(pts []Point, y, res *uint256.Int) {
 		res.Add(res, &lo.In)
 	case len(pts) == 1:
 		big256.MulDivUp(res, y, &pts[0].In, &pts[0].Out)
-	default: // below the first sample: first segment extended back, floored at 0
+	default:
+		// Below the first sample interpolate takes the lower of the extended first
+		// segment (floored at 0) and the line from the origin, so the input is the
+		// larger of the two inverses.
 		big256.MulDivDown(res, dy.Sub(&pts[0].Out, y), dx.Sub(&pts[1].In, &pts[0].In), dn.Sub(&pts[1].Out, &pts[0].Out))
 		if res.Gt(&pts[0].In) {
 			res.Clear()
 		} else {
 			res.Sub(&pts[0].In, res)
+		}
+		big256.MulDivUp(&dy, y, &pts[0].In, &pts[0].Out)
+		if dy.Gt(res) {
+			res.Set(&dy)
 		}
 	}
 }

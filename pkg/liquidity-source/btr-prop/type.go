@@ -55,6 +55,16 @@ type Extra struct {
 	Ladders []Ladder `json:"ladders"`
 }
 
+// ladder returns the points for Tokens[from] -> Tokens[to], or nil.
+func (e *Extra) ladder(from, to int) []Point {
+	for k := range e.Ladders {
+		if e.Ladders[k].From == from && e.Ladders[k].To == to {
+			return e.Ladders[k].Points
+		}
+	}
+	return nil
+}
+
 // PoolMeta is the GetMetaInfo payload. ApprovalAddress is the core pool: the
 // executor approves the pool and swap_qe pulls amountIn via transferFrom.
 type PoolMeta struct {
