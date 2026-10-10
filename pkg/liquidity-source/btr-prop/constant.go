@@ -20,8 +20,8 @@ const (
 	// call measured 155k-161k gas in Tenderly (USDC<->WMON).
 	DefaultGas = 170_000
 	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
-	// has since moved.
-	MaxAge = time.Minute
+	// has since moved. Marks drift within seconds, so keep it well below 1 min.
+	MaxAge = 15 * time.Second
 	// RPCTimeout bounds one tracker refresh.
 	RPCTimeout = 15 * time.Second
 )

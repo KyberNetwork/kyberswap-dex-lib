@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -178,6 +179,27 @@ func TestNewPoolSimulatorRejectsUntrackedPool(t *testing.T) {
 		Tokens: []*entity.PoolToken{{Address: usdc}, {Address: wmon}}, Extra: "{}",
 	}})
 	require.Equal(t, ErrBTRBadState, err)
+}
+
+// The snapshot age bound is 15s: older ladders quote marks the keeper has moved.
+func TestNewPoolSimulatorStaleCheckMaxAge(t *testing.T) {
+	extra, err := json.Marshal(Extra{Flags: []uint16{SwapEnabledBit, SwapEnabledBit}})
+	require.NoError(t, err)
+	build := func(age time.Duration, staleCheck bool) error {
+		_, err := NewPoolSimulator(pool.FactoryParams{
+			EntityPool: entity.Pool{
+				Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(extra),
+				Timestamp: time.Now().Add(-age).Unix(),
+				Tokens:    []*entity.PoolToken{{Address: usdc, Swappable: true}, {Address: wmon, Swappable: true}},
+				Reserves:  entity.PoolReserves{"1", "1"},
+			},
+			Opts: pool.FactoryOpts{StaleCheck: staleCheck},
+		})
+		return err
+	}
+	require.NoError(t, build(14*time.Second, true))
+	require.Equal(t, ErrBTRBadState, build(16*time.Second, true))
+	require.NoError(t, build(16*time.Second, false)) // check is opt-in
 }
 
 // Swaps on different pairs that share a token draw on the same inventory. A
