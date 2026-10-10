@@ -1,0 +1,11 @@
+    parity_test.go:172: mag5:buy           n=100 bothFill=100 (exact 100) bothRevert=  0 simRevertOnly=0 over=0 inexact=3 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: mag5:sell          n=  6 bothFill=  6 (exact   6) bothRevert=  0 simRevertOnly=0 over=0 inexact=0 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: mag5:sell:prefund  n= 94 bothFill= 93 (exact  93) bothRevert=  1 simRevertOnly=0 over=0 inexact=0 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: mq:buy             n=100 bothFill= 85 (exact  85) bothRevert= 15 simRevertOnly=0 over=0 inexact=0 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: mq:sell:prefund    n=100 bothFill= 80 (exact  80) bothRevert= 20 simRevertOnly=0 over=0 inexact=0 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: two:buy            n=100 bothFill=100 (exact 100) bothRevert=  0 simRevertOnly=0 over=0 inexact=5 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: two:sell           n= 28 bothFill= 28 (exact  28) bothRevert=  0 simRevertOnly=0 over=0 inexact=0 maxDevBps=0.0000 (inexact 0.0000)
+    parity_test.go:172: two:sell:prefund   n= 72 bothFill= 72 (exact  72) bothRevert=  0 simRevertOnly=0 over=0 inexact=0 maxDevBps=0.0000 (inexact 0.0000)
+--- PASS: TestLiveParity (400.79s)
+ok  	github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/navjitv17	401.437s
+pin 83734949 anvil 127.0.0.1:8591 fork of public 4663 RPC; historical-state lines 0
