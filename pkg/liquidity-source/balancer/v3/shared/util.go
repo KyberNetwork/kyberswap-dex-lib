@@ -41,3 +41,23 @@ func Vault(chainID valueobject.ChainID, exchange string) common.Address {
 	}
 	return vault
 }
+
+var (
+	feeMask  = uint256.NewInt(1<<24 - 1)
+	feeScale = uint256.NewInt(1e11) // FEE_SCALING_FACTOR
+)
+
+const aggregateSwapFeeOffset = 42 // PoolConfigConst.AGGREGATE_SWAP_FEE_OFFSET
+
+// AggregateSwapFee returns the explorer's aggregate swap fee, or decodes it from poolConfigBits when the
+// explorer call failed (no VaultExplorer deployed, so the Vault is used as the explorer).
+func (r *RpcResult) AggregateSwapFee() *uint256.Int {
+	if r.AggregateSwapFeePercentage != nil {
+		v, _ := uint256.FromBig(r.AggregateSwapFeePercentage)
+		return v
+	}
+	v := new(uint256.Int).SetBytes32(r.PoolData.PoolConfigBits[:])
+	v.Rsh(v, aggregateSwapFeeOffset)
+	v.And(v, feeMask)
+	return v.Mul(v, feeScale)
+}

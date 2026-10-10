@@ -27,6 +27,8 @@ type (
 	Metadata struct {
 		LastBlockTimestamp int64 `json:"lastBlockTimestamp"`
 		Skip               int   `json:"skip"`
+		// Offsets is the count of pools already emitted per factory (on-chain discovery).
+		Offsets []int `json:"offsets,omitempty"`
 	}
 )
 
@@ -58,6 +60,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 	u.count++
+
+	if len(u.config.Factories) > 0 {
+		return u.getNewPoolsOnchain(ctx, metadata, metadataBytes)
+	}
 
 	subgraphPools, metadata, err := u.querySubgraph(ctx, metadata)
 	if err != nil {
