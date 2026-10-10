@@ -247,7 +247,7 @@ func concat(bs [][]byte) []byte {
 	return o
 }
 
-func wordAddr(w *big.Int) string { return common.BigToAddress(w).Hex() }
+func wordAddr(w *big.Int) string { a := common.BigToAddress(w); return hexutil.Encode(a[:]) }
 
 // signed interprets the low `bits` of w as two's complement.
 func signedBits(w *big.Int, bits uint) *big.Int {
@@ -300,7 +300,7 @@ func (l *RPCLoader) Constituents(ctx context.Context, lot string) ([]string, []*
 	}
 	var stocks []string
 	for _, a := range v[0].([]common.Address) {
-		stocks = append(stocks, a.Hex())
+		stocks = append(stocks, hexutil.Encode(a[:]))
 	}
 	return stocks, v[1].([]*big.Int), nil
 }
@@ -424,11 +424,11 @@ func (l *RPCLoader) Stock(ctx context.Context, stock string) (*StockSnapshot, er
 		StableDecimals   uint8          `json:"stableDecimals"`
 		Enabled          bool           `json:"enabled"`
 	})
-	snap := &StockSnapshot{Registry: RegistryEntry{Stable: s.Stable.Hex(), PriceIndex: int(s.PriceIndex),
+	snap := &StockSnapshot{Registry: RegistryEntry{Stable: hexutil.Encode(s.Stable[:]), PriceIndex: int(s.PriceIndex),
 		StockIsCurrency0: s.StockIsCurrency0}, StockDecimals: int(s.StockDecimals), StableDecimals: int(s.StableDecimals)}
 	for _, p := range s.Pools {
-		id := crypto.Keccak256Hash(encAddr(p.Currency0.Hex()), encAddr(p.Currency1.Hex()), encWord(p.Fee),
-			encWord(p.TickSpacing), encAddr(p.Hooks.Hex())).Hex()
+		id := crypto.Keccak256Hash(encAddr(hexutil.Encode(p.Currency0[:])), encAddr(hexutil.Encode(p.Currency1[:])), encWord(p.Fee),
+			encWord(p.TickSpacing), encAddr(hexutil.Encode(p.Hooks[:]))).Hex()
 		sqrtP, _, _, _, err := l.v4Slot0(ctx, id)
 		if err != nil {
 			return nil, err
@@ -439,9 +439,9 @@ func (l *RPCLoader) Stock(ctx context.Context, stock string) (*StockSnapshot, er
 		}
 		liq.And(liq, maxU128)
 		l.mu.Lock()
-		l.keys[lc(id)] = rpcKey{fee: uint32(p.Fee.Uint64()), tickSpacing: int(p.TickSpacing.Int64()), hooks: p.Hooks.Hex()}
+		l.keys[lc(id)] = rpcKey{fee: uint32(p.Fee.Uint64()), tickSpacing: int(p.TickSpacing.Int64()), hooks: hexutil.Encode(p.Hooks[:])}
 		l.mu.Unlock()
-		snap.Registry.Pools = append(snap.Registry.Pools, RegistryPoolView{PoolID: id, Hooks: p.Hooks.Hex(),
+		snap.Registry.Pools = append(snap.Registry.Pools, RegistryPoolView{PoolID: id, Hooks: hexutil.Encode(p.Hooks[:]),
 			TickSpacing: int(p.TickSpacing.Int64()), SqrtPriceX96: sqrtP, Liquidity: liq})
 	}
 	if w, err := l.word(ctx, stock, "oraclePaused()"); err == nil {
