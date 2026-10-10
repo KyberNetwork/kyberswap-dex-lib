@@ -382,7 +382,7 @@ const (
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
-	ExchangeBTR                         = "btr"
+	ExchangeBTRProp                     = "btr-prop"
 	ExchangeBopAMM                      = "bop-amm"
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"

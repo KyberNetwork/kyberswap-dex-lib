@@ -1,4 +1,4 @@
-package btr
+package btrprop
 
 import "time"
 

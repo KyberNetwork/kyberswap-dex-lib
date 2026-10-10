@@ -1,4 +1,4 @@
-package btr
+package btrprop
 
 import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 

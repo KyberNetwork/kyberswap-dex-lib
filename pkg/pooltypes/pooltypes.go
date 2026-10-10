@@ -35,7 +35,7 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/btr"
+	btrprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/btr-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/caliberprop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/canonic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
@@ -516,7 +516,7 @@ type Types struct {
 	NetStaking                 string
 	Gblin                      string
 	EverlongFlamm              string
-	BTR                        string
+	BTRProp                    string
 }
 
 var (
@@ -781,6 +781,6 @@ var (
 		NetStaking:                 netstaking.DexType,
 		Gblin:                      gblin.DexType,
 		EverlongFlamm:              everlongflamm.DexType,
-		BTR:                        btr.DexType,
+		BTRProp:                    btrprop.DexType,
 	}
 )

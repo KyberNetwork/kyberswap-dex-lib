@@ -1,4 +1,4 @@
-package btr
+package btrprop
 
 import (
 	"errors"
@@ -27,7 +27,7 @@ var (
 )
 
 // DexType is the dex-lib pool type for BTR's AIMM book.
-const DexType = "btr"
+const DexType = "btr-prop"
 
 // Point is one on-chain-probed sample of the curve: quoting In returns Out.
 type Point struct {
