@@ -16,9 +16,9 @@ const (
 	// PoolFactory mints official pools.
 	PoolFactory = "0xbbbbbbbbbd5e955e20f323ca1f95f8191fd0e0bf"
 
-	// DefaultGas is a conservative gas figure for one swap_qe at Monad's
-	// cold-access pricing.
-	DefaultGas = 350_000
+	// DefaultGas covers one swap_qe at Monad's cold-access pricing: the pool
+	// call measured 155k-161k gas in Tenderly (USDC<->WMON).
+	DefaultGas = 170_000
 	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
 	// has since moved.
 	MaxAge = time.Minute
