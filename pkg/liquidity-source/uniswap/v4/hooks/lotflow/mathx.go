@@ -13,7 +13,6 @@ import (
 
 var (
 	bigBps  = big.NewInt(10_000)
-	bigE6   = big.NewInt(1_000_000)
 	bigE18  = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 	bigE36  = new(big.Int).Exp(big.NewInt(10), big.NewInt(36), nil)
 	bigQ96  = new(big.Int).Lsh(big.NewInt(1), 96)

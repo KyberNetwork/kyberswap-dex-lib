@@ -104,6 +104,7 @@ var (
 	selBalanceOf   = sel("balanceOf(address)")
 )
 
+//nolint:staticcheck // ST1008: Track's hook, extra and error come first; test instrumentation follows.
 func tapeTrack(t *testing.T, v struct{ name, hook, lot, poolID string }, f replayFaults) (*Hook, json.RawMessage,
 	error, *rpcCounter) {
 	t.Helper()
@@ -112,6 +113,8 @@ func tapeTrack(t *testing.T, v struct{ name, hook, lot, poolID string }, f repla
 }
 
 // tapeTrackTimed is tapeTrack, also returning the instant just before Track was called.
+//
+//nolint:staticcheck // ST1008: same result order as tapeTrack.
 func tapeTrackTimed(t *testing.T, v struct{ name, hook, lot, poolID string }, f replayFaults) (*Hook,
 	json.RawMessage, error, *rpcCounter, time.Time) {
 	t.Helper()

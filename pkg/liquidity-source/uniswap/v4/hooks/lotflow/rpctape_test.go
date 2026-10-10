@@ -77,7 +77,7 @@ func loadTape(t testing.TB, path string) *rpcTape {
 	t.Helper()
 	f, err := os.Open(path)
 	require.NoError(t, err)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	zr, err := gzip.NewReader(f)
 	require.NoError(t, err)
 	var tape rpcTape
@@ -204,11 +204,11 @@ func recordingProxy(t *testing.T, upstream string, tape *rpcTape, counter *rpcCo
 		counter.count(reqs)
 		resp, err := http.Post(upstream, "application/json", bytes.NewReader(body))
 		if err != nil {
-			http.Error(w, err.Error(), 502)
+			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
 		out, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
 		_, _ = w.Write(out)

@@ -368,7 +368,7 @@ func (s *TrackerState) Invalidate(ev Event) []Entity {
 			}
 		}
 	case from == lc(s.PoolManager):
-		if !(ev.is("Swap") || ev.is("ModifyLiquidity") || ev.is("ProtocolFeeUpdated")) {
+		if !ev.is("Swap") && !ev.is("ModifyLiquidity") && !ev.is("ProtocolFeeUpdated") {
 			break
 		}
 		id := ev.bytes32(0)

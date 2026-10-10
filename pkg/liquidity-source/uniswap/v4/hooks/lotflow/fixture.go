@@ -46,7 +46,7 @@ func (b *Big) UnmarshalJSON(data []byte) error {
 	if len(s) > 2 && (s[:2] == "0x" || s[:2] == "0X") {
 		s, base = s[2:], 16
 	}
-	if _, ok := b.Int.SetString(s, base); !ok {
+	if _, ok := b.SetString(s, base); !ok {
 		return fmt.Errorf("lotflow: bad integer %q", s)
 	}
 	return nil
@@ -616,7 +616,7 @@ func readFile(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	zr, err := gzip.NewReader(f)
 	if err != nil {
 		return nil, fmt.Errorf("lotflow: %s: %w", path, err)
