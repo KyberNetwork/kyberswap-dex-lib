@@ -27,8 +27,10 @@ var probeExps = [...]int{-2, 0, 2}
 // gridPermille are the grid amounts as a share of maxIn, the tokenIn amount
 // worth the full tokenOut balance at the probed rate. The core caps its output
 // near 93% of the balance, and the curve is near-linear below that, so the
-// samples are denser toward the top where the cap shows up.
-var gridPermille = [...]uint64{1, 3, 10, 30, 60, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000}
+// samples are denser toward the top where the cap shows up. The 17 sample trims
+// the chord overquote between 10 and 30 (the pool's own +-50 sat output
+// sawtooth on cbBTC pairs remains).
+var gridPermille = [...]uint64{1, 3, 10, 17, 30, 60, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000}
 
 // The core caps its output near 92.7% of the out balance, which sits at about
 // 0.98-0.995 of maxIn in input terms on the live pairs. The grid's last segment
