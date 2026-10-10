@@ -6,14 +6,52 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// Live Monad core flag word (2026-10-08): SWAP_ENABLED|LIABILITY_SWAP|
-// DEPOSIT_GATED|SWAP_GATED|COOP_ENABLED = 3632.
-const liveCoreFlags uint16 = 3632
+const (
+	usdc = "0x754704bc059f8c67012fed69bc8a327a5aafb603"
+	wmon = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
+	// Live Monad core flag word (2026-10-08): SWAP_ENABLED|LIABILITY_SWAP|
+	// DEPOSIT_GATED|SWAP_GATED|COOP_ENABLED = 3632.
+	liveCoreFlags uint16 = 3632
+)
+
+func pts(v ...uint64) []Point {
+	res := make([]Point, len(v)/2)
+	for i := range res {
+		res[i] = Point{In: *uint256.NewInt(v[2*i]), Out: *uint256.NewInt(v[2*i+1])}
+	}
+	return res
+}
+
+// newSim builds a USDC/WMON simulator with one USDC->WMON ladder.
+func newSim(t *testing.T, flags uint16, ladder []Point) *PoolSimulator {
+	t.Helper()
+	extra, err := json.Marshal(Extra{Flags: []uint16{flags, flags}, Ladders: []Ladder{{From: 0, To: 1, Points: ladder}}})
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(extra),
+		Tokens:   []*entity.PoolToken{{Address: usdc, Swappable: true}, {Address: wmon, Swappable: true}},
+		Reserves: entity.PoolReserves{"1000000", "1000000"},
+	}})
+	require.NoError(t, err)
+	return sim
+}
+
+func calc(sim *PoolSimulator, in int64) (*big.Int, error) {
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(in)}, TokenOut: wmon,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.TokenAmountOut.Amount, nil
+}
 
 func TestGate(t *testing.T) {
 	cases := []struct {
@@ -26,123 +64,101 @@ func TestGate(t *testing.T) {
 		{"halted", SwapEnabledBit | HaltBit, ErrBTRGated},
 		{"swap disabled", 0, ErrBTRGated},
 		{"gated only", SwapEnabledBit | SwapGatedBit, ErrBTRGatedLane},
-		{"halt mask wrong bits", SwapEnabledBit | 4, ErrBTRGated},
+		{"feed halt", SwapEnabledBit | 4, ErrBTRGated},
 	}
 	for _, c := range cases {
-		if got := gate(c.flags); got != c.want {
-			t.Fatalf("%s: gate(%d)=%v want %v", c.name, c.flags, got, c.want)
-		}
-	}
-}
-
-func TestOpenPathAllowed(t *testing.T) {
-	// The full predicate, not the weaker `(flags&5)==0 && (flags&16)!=0`
-	// (which is true on the live gated word).
-	if openPathAllowed(liveCoreFlags) {
-		t.Fatal("live SWAP_GATED word must not be open-path allowed")
-	}
-	if !openPathAllowed(SwapEnabledBit) {
-		t.Fatal("clean SWAP_ENABLED word must be allowed")
+		require.Equal(t, c.want, gate(c.flags), c.name)
 	}
 }
 
 func TestSelector(t *testing.T) {
-	// swap_qe selector is suffix-mined; a change is a contract-level event.
-	got := "0x" + hex.EncodeToString(poolABI.Methods["swap_qe"].ID)
-	if got != SwapSelector {
-		t.Fatalf("swap_qe selector changed: %s", got)
-	}
+	// swap_qe selector is suffix-mined; the encoder hard-codes the ABI signature.
+	require.Equal(t, "01dc30b8", hex.EncodeToString(poolABI.Methods["swap_qe"].ID))
 }
 
 func TestInterpolate(t *testing.T) {
-	ladder := []Point{
-		{In: "1000", Out: "999"},
-		{In: "2000", Out: "1990"},
+	ladder := pts(1000, 999, 2000, 1990)
+	var res uint256.Int
+	for _, c := range []struct {
+		in   uint64
+		want uint64
+	}{
+		{2000, 1990}, // exact sample
+		{1500, 1494}, // 999 + (1990-999)*500/1000 = 1494, floor
+		{500, 503},   // below the first sample the first segment extends back: 999 - ceil(500*991/1000)
+		{1, 8},
+	} {
+		require.NoError(t, interpolate(ladder, uint256.NewInt(c.in), &res))
+		require.Equal(t, c.want, res.Uint64(), c.in)
 	}
-	// Exact at a sampled point.
-	if got, err := interpolate(ladder, big.NewInt(2000)); err != nil || got.String() != "1990" {
-		t.Fatalf("exact point: got %v err %v", got, err)
-	}
-	// Midpoint linear: 1500 -> 999 + (1990-999)*500/1000 = 999+495 = 1494.
-	if got, err := interpolate(ladder, big.NewInt(1500)); err != nil || got.String() != "1494" {
-		t.Fatalf("midpoint: got %v err %v", got, err)
-	}
-	// Below the first point scales from the origin.
-	if got, err := interpolate(ladder, big.NewInt(500)); err != nil || got.String() != "499" {
-		t.Fatalf("below-first: got %v err %v", got, err)
-	}
-	// Above the last point fails closed.
-	if _, err := interpolate(ladder, big.NewInt(2001)); err != ErrBTRAmountTooLarge {
-		t.Fatalf("above-last: err %v", err)
-	}
-	if _, err := interpolate(nil, big.NewInt(1)); err != ErrBTRNoRoute {
-		t.Fatalf("empty: err %v", err)
-	}
+	// A fixed cost makes the head convex: the extension must not go negative.
+	require.NoError(t, interpolate(pts(1000, 100, 2000, 1000), uint256.NewInt(100), &res))
+	require.True(t, res.IsZero())
+	// Past the last sample the pool caps output but still takes the input.
+	require.Equal(t, ErrBTRAmountTooLarge, interpolate(ladder, uint256.NewInt(2001), &res))
 }
 
 func TestCalcAmountOutGated(t *testing.T) {
-	extra, _ := json.Marshal(Extra{
-		Flags: map[string]uint16{lowerAddr(WMON): liveCoreFlags, lowerAddr(USDC): liveCoreFlags},
-	})
-	ep := entity.Pool{
-		Address: CreditPoolCore,
-		Tokens: []*entity.PoolToken{
-			{Address: USDC, Decimals: 6, Swappable: true},
-			{Address: WMON, Decimals: 18, Swappable: true},
-		},
-		Reserves: entity.PoolReserves{"0", "0"},
-		Extra:    string(extra),
-	}
-	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: ep})
-	if err != nil {
-		t.Fatalf("simulator: %v", err)
-	}
+	sim := newSim(t, liveCoreFlags, pts(1000, 999))
+	_, err := calc(sim, 100)
+	require.Equal(t, ErrBTRGatedLane, err)
+	require.True(t, sim.GetMetaInfo("", "").(PoolMeta).Gated)
+}
+
+func TestCalcAmountOutBounds(t *testing.T) {
+	sim := newSim(t, SwapEnabledBit, pts(1000, 999, 2000, 1990))
+	out, err := calc(sim, 1500)
+	require.NoError(t, err)
+	require.Equal(t, "1494", out.String())
+
+	_, err = calc(sim, 2001)
+	require.Equal(t, ErrBTRAmountTooLarge, err)
+	_, err = calc(sim, 0)
+	require.Equal(t, ErrBTRInvalidAmount, err)
+	// Dust below the fixed cost fills nothing.
+	_, err = calc(newSim(t, SwapEnabledBit, pts(1000, 100, 2000, 1000)), 100)
+	require.Equal(t, ErrBTRNoFill, err)
+
+	// The reverse pair has no ladder.
 	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: WMON, Amount: big.NewInt(1e18)},
-		TokenOut:      USDC,
+		TokenAmountIn: pool.TokenAmount{Token: wmon, Amount: big.NewInt(1000)}, TokenOut: usdc,
 	})
-	if err != ErrBTRGatedLane {
-		t.Fatalf("live core must return ErrBTRGatedLane, got %v", err)
-	}
+	require.Equal(t, ErrBTRNoRoute, err)
 }
 
-func TestCalcAmountOutUsesLadder(t *testing.T) {
-	extra, _ := json.Marshal(Extra{
-		Flags: map[string]uint16{lowerAddr(WMON): SwapEnabledBit, lowerAddr(USDC): SwapEnabledBit},
-		Ladders: map[string][]Point{
-			pairKey(WMON, USDC): {
-				{In: "1000000000000000000", Out: "42000000"},
-				{In: "2000000000000000000", Out: "83000000"},
-			},
-		},
+// A second swap on the same pair must price along the curve, and a clone must
+// not leak into the original: split routes would otherwise reuse the best
+// segment for every leg.
+func TestUpdateBalanceContinuesCurve(t *testing.T) {
+	sim := newSim(t, SwapEnabledBit, pts(1000, 990, 2000, 1900)) // slope drops from 0.99 to 0.91
+	first, err := calc(sim, 1000)
+	require.NoError(t, err)
+	whole, err := calc(sim, 2000)
+	require.NoError(t, err)
+
+	cloned := sim.CloneState().(*PoolSimulator)
+	cloned.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: usdc, Amount: big.NewInt(1000)},
+		TokenAmountOut: pool.TokenAmount{Token: wmon, Amount: first},
 	})
-	ep := entity.Pool{
-		Address: CreditPoolCore,
-		Tokens: []*entity.PoolToken{
-			{Address: USDC, Decimals: 6, Swappable: true},
-			{Address: WMON, Decimals: 18, Swappable: true},
-		},
-		Reserves: entity.PoolReserves{"0", "0"},
-		Extra:    string(extra),
-	}
-	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: ep})
-	if err != nil {
-		t.Fatalf("simulator: %v", err)
-	}
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: WMON, Amount: big.NewInt(1_000_000_000_000_000_000)},
-		TokenOut:      USDC,
-	})
-	if err != nil {
-		t.Fatalf("calc: %v", err)
-	}
-	if res.TokenAmountOut.Amount.String() != "42000000" {
-		t.Fatalf("amount out = %s", res.TokenAmountOut.Amount)
-	}
+	second, err := calc(cloned, 1000)
+	require.NoError(t, err)
+	require.Equal(t, whole.Int64(), first.Int64()+second.Int64(), "two halves must equal one whole swap")
+	require.Less(t, second.Int64(), first.Int64())
+
+	again, err := calc(sim, 1000)
+	require.NoError(t, err)
+	require.Equal(t, first, again, "UpdateBalance on the clone changed the original")
+	require.Equal(t, "1000000", sim.Info.Reserves[0].String())
+	require.Equal(t, "1001000", cloned.Info.Reserves[0].String())
+
+	_, err = calc(cloned, 1001) // 1000 used + 1001 exceeds the last sample
+	require.Equal(t, ErrBTRAmountTooLarge, err)
 }
 
-func TestRegistration(t *testing.T) {
-	if pool.Factory(DexType) == nil {
-		t.Fatal("btr pool factory not registered")
-	}
+func TestNewPoolSimulatorRejectsUntrackedPool(t *testing.T) {
+	_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Tokens: []*entity.PoolToken{{Address: usdc}, {Address: wmon}}, Extra: "{}",
+	}})
+	require.Equal(t, ErrBTRBadState, err)
 }

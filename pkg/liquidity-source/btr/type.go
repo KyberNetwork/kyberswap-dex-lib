@@ -1,65 +1,58 @@
 package btr
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/holiman/uint256"
+)
 
 var (
-	// ErrBTRGated is returned when a leg is halted, swapped off, or otherwise
-	// not on the open path. The aggregator treats it as "no route".
+	// ErrBTRGated is returned when a leg is halted or swapped off.
 	ErrBTRGated = errors.New("btr: leg gated or halted")
 	// ErrBTRGatedLane is returned when SWAP_GATED is set and the executor does
-	// not hold lane 0x400. The launch Monad core is gated; every route reverts
-	// NotAuthorized until BTR governance clears it or grants a lane.
+	// not hold lane 0x400: every swap reverts NotAuthorized.
 	ErrBTRGatedLane = errors.New("btr: pool is SWAP_GATED; executor needs lane 0x400")
 	// ErrBTRNoRoute is returned when no sampled ladder exists for the pair.
 	ErrBTRNoRoute = errors.New("btr: no sampled ladder for pair")
 	// ErrBTRNoFill is returned when a sampled quote yields zero.
 	ErrBTRNoFill = errors.New("btr: no fill at this size")
-	// ErrBTRAmountTooLarge is returned above the largest sampled amount; the
-	// ladder is never extrapolated (fail closed).
+	// ErrBTRAmountTooLarge is returned above the largest sampled amount. The
+	// ladder is never extrapolated: past the pool's liquidity cap swap_qe takes
+	// the full input but pays only the capped output.
 	ErrBTRAmountTooLarge = errors.New("btr: amount above sampled range")
 	// ErrBTRInvalidAmount is returned for a nil/non-positive amount in.
 	ErrBTRInvalidAmount = errors.New("btr: invalid amount in")
-	// ErrBTRBadState is returned when serialized state cannot be trusted.
+	// ErrBTRBadState is returned when the pool state cannot be trusted.
 	ErrBTRBadState = errors.New("btr: invalid pool state")
 )
 
 // DexType is the dex-lib pool type for BTR's AIMM book.
 const DexType = "btr"
 
-// StaticExtra holds per-pool constants that never change.
-type StaticExtra struct {
-	Pool      string   `json:"pool"`
-	Factory   string   `json:"factory"`
-	Tokens    []string `json:"tokens"`
-	BaseToken string   `json:"baseToken"`
-	// Router is recorded for reference only; see RouterAddress. The executor
-	// must call Pool.swap_qe directly, not the Router.
-	Router string `json:"router"`
+// Point is one on-chain-probed sample of the curve: quoting In returns Out.
+type Point struct {
+	In  uint256.Int `json:"in"`
+	Out uint256.Int `json:"out"`
 }
 
-// Point is one on-chain-probed sample of the curve for an ordered pair:
-// quoting AmountIn (a decimal string, exact wei) returns AmountOut. Amounts are
-// strings, not float64: the aggregator's floor is wei-exact and the differential
-// test compares at 1 bps, so the cached samples must not lose low-order bits.
-type Point struct {
-	In  string `json:"in"`
-	Out string `json:"out"`
+// Ladder is the sampled curve for the ordered pair Tokens[From] -> Tokens[To],
+// ascending and strictly increasing in both In and Out.
+type Ladder struct {
+	From   int     `json:"from"`
+	To     int     `json:"to"`
+	Points []Point `json:"points"`
 }
 
 // Extra is the mutable per-block state. BTR prices from keeper-pushed marks in
 // a separate store, so a reserve-only model is wrong: the tracker probes the
 // on-chain `getSwapQuote` view over a grid per ordered pair and stores the
-// resulting ladder. `getSwapQuote` is side-effect-free and omits BTR's
-// execution guards, so flags are cached too and every leg is gated before a
-// ladder is used (M1/M5). The router's min-out floor still comes from a pinned
-// `swap_qe` simulation in the on-chain adapter, never from this ladder.
+// resulting ladder. The view omits BTR's execution guards, so the risk flags
+// are cached too and every leg is gated before a ladder is used.
 type Extra struct {
-	BlockNumber uint64 `json:"blockNumber"`
-	// Flags[token] is the raw 16-bit word from Pool.getRiskFlags(token).
-	Flags map[string]uint16 `json:"flags"`
-	// Ladders["in|out"] is the sampled curve, ascending by In, for that
-	// ordered pair (lower-cased addresses).
-	Ladders map[string][]Point `json:"ladders"`
+	// Flags[i] is the raw 16-bit word from Pool.getRiskFlags(Tokens[i]); 0 when
+	// the read failed (treated as swap disabled).
+	Flags   []uint16 `json:"flags"`
+	Ladders []Ladder `json:"ladders"`
 }
 
 // PoolMeta is the GetMetaInfo payload. ApprovalAddress is the core pool: the
@@ -67,25 +60,7 @@ type Extra struct {
 type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
-	// Gated reports whether every cached leg is on the open path. While the
-	// live core is SWAP_GATED this is false and CalcAmountOut returns no route.
+	// Gated reports whether any cached leg is off the open path. While the
+	// live core is SWAP_GATED this is true and CalcAmountOut returns no route.
 	Gated bool `json:"gated"`
-}
-
-// SwapInfo is the execution hint for the on-chain adapter. The adapter encodes
-// the same fields as calldata (`ks-dex-adapter-lib`); this is informational for
-// the route builder and is not the min-out guarantee.
-type SwapInfo struct {
-	Pool      string `json:"pool"`
-	TokenIn   string `json:"tokenIn"`
-	TokenOut  string `json:"tokenOut"`
-	AmountIn  string `json:"amountIn"`
-	MinOut    string `json:"minOut"`
-	Recipient string `json:"recipient"`
-	Deadline  string `json:"deadline"`
-}
-
-// pairKey is the canonical map key for an ordered pair.
-func pairKey(tokenIn, tokenOut string) string {
-	return lowerAddr(tokenIn) + "|" + lowerAddr(tokenOut)
 }
