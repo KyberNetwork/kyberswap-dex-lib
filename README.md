@@ -17,7 +17,7 @@ in order to search for the optimal aggregated swapping route.
 1. PoolsListUpdater: fetches latest pool list incrementally
 2. PoolTracker: tracks latest pool state on new log event or on an interval
 3. PoolSimulator: simulates expected output for a given input swap amount
-  a. It's recommended to use uint256.Int for better performance
+  a. Use uint256.Int/int256.Int, not big.Int, for all simulator math and pool state; new big.Int simulators are not accepted
   b. CloneState should also be implemented
 
 * On-chain: Contribute encoding to https://github.com/KyberNetwork/ks-dex-adapter-lib
