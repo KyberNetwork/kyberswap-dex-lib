@@ -2,6 +2,7 @@ package v2
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
@@ -684,6 +685,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.reserves = [2]*uint256.Int{p.reserves[0].Clone(), p.reserves[1].Clone()}
 	cloned.collateralValue = p.collateralValue.Clone()
+	cloned.Collaterals = slices.Clone(p.Collaterals)
 	cloned.SupplyVault = [2]*shared.VaultState(lo.Map(p.SupplyVault[:], func(v *shared.VaultState, _ int) *shared.VaultState {
 		if v == nil {
 			return nil
@@ -761,10 +763,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	for i := 0; i < 3; i++ {
 		if p.BorrowVault[i] != nil {
 			if i == swapInfo.DebtVaultIdx {
-				p.BorrowVault[i].Debt.Set(swapInfo.Debt)
+				p.BorrowVault[i].Debt = new(uint256.Int).Set(swapInfo.Debt)
 				p.BorrowVault[i].IsControllerEnabled = !swapInfo.Debt.IsZero()
 			} else {
-				p.BorrowVault[i].Debt.Clear()
+				p.BorrowVault[i].Debt = new(uint256.Int)
 				p.BorrowVault[i].IsControllerEnabled = false
 			}
 		}
