@@ -20,7 +20,7 @@ import (
 const HookTypeUnknown HookType = "UNKNOWN"
 
 // getNewPoolsOnchain lists pools from config.Factories for deployments without a subgraph, then feeds them
-// through initPools like subgraph pools. Relisting is not needed: see ListFactoryPools.
+// through initPools like subgraph pools. GetNewPools resets the offsets periodically to relist.
 func (u *PoolsListUpdater) getNewPoolsOnchain(ctx context.Context, metadata Metadata, oldMetadata []byte) ([]entity.Pool, []byte, error) {
 	factoryPools, offsets, err := ListFactoryPools(ctx, u.ethrpcClient, u.config.Factories, metadata.Offsets,
 		u.config.NewPoolLimit)
@@ -47,7 +47,8 @@ func (u *PoolsListUpdater) getNewPoolsOnchain(ctx context.Context, metadata Meta
 
 // ListFactoryPools returns, per factory, the pools added since offsets (getPoolCount + getPoolsInRange, at most
 // limit per factory when limit > 0), and the advanced offsets. A factory's pool list is append-only, so the
-// cursor only advances and never needs a relist. offsets is keyed by lowercased factory address and not mutated.
+// cursor only advances; callers relist by passing nil offsets. offsets is keyed by lowercased factory address and
+// not mutated.
 func ListFactoryPools(ctx context.Context, client *ethrpc.Client, factories []string, offsets map[string]int,
 	limit int) ([][]common.Address, map[string]int, error) {
 	keys := make([]string, len(factories))

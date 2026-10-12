@@ -54,8 +54,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}()
 
 	var metadata Metadata
-	// Relist (cursor reset) only for the subgraph; an on-chain factory's pool list is append-only.
-	if len(metadataBytes) > 0 && (len(u.config.Factories) > 0 || u.count%RelistInterval > 0) {
+	// Every RelistInterval runs, drop the cursor (subgraph skip/timestamp and every factory offset) to relist all pools.
+	// On-chain pools need it too: StaticExtra.BufferTokens is only set at listing.
+	if len(metadataBytes) > 0 && u.count%RelistInterval > 0 {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, nil, err
 		}
