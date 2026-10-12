@@ -153,6 +153,18 @@ func TestMergeProbesKeepsInvariants(t *testing.T) {
 	require.Equal(t, grid[len(grid)-1], got[len(got)-1], "probes never move the cut")
 }
 
+// The ladder comes from append, so it has spare capacity and Insert shifts it in
+// place. A probe near the cut must still merge after a smaller one was inserted.
+func TestMergeProbesWithSpareCapacity(t *testing.T) {
+	grid := append(make([]Point, 0, 8), pts(1000, 900, 2000, 1700, 3000, 2000)...)
+	got := probe([]uint64{500, 2500}, []int64{450, 1900}).mergeInto(grid)
+	var ins []uint64
+	for _, p := range got {
+		ins = append(ins, p.In.Uint64())
+	}
+	require.Equal(t, []uint64{500, 1000, 2000, 2500, 3000}, ins)
+}
+
 // A dust probe below the first grid sample replaces the long backward extension.
 func TestMergeProbesAddsDustSample(t *testing.T) {
 	got := probe([]uint64{10}, []int64{9}).mergeInto(pts(1000, 900, 2000, 1700))

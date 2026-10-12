@@ -282,11 +282,11 @@ func (pp *pairProbe) mergeInto(pts []Point) []Point {
 	if len(pts) == 0 {
 		return pts
 	}
-	last := &pts[len(pts)-1].In
+	last := pts[len(pts)-1].In // by value: slices.Insert may shift pts in place
 	for k := range pp.ins {
 		in := &pp.ins[k]
 		var out uint256.Int
-		if !pp.ok[k] || !in.Lt(last) {
+		if !pp.ok[k] || !in.Lt(&last) {
 			continue
 		}
 		if q := pp.res[k].Quote.AmountOut; q == nil || out.SetFromBig(q) || out.IsZero() {
