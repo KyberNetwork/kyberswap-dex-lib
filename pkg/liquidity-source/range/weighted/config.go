@@ -17,7 +17,7 @@ const (
 //
 // Range runs on a custom, non-canonical Balancer V3 Vault, so it is not indexed
 // by any subgraph; these addresses are hardcoded and pools are discovered on-chain
-// via RangePoolFactory.getPools().
+// via the factories (getPoolCount + getPoolsInRange).
 var (
 	// HookMap is keyed by chain: Range's Hook (unlike the canonical Balancer V3
 	// deployment) is redeployed per chain with a different address. Use
@@ -42,8 +42,8 @@ func HookAddress(chainID valueobject.ChainID) common.Address {
 
 // Config is the per-instance runtime configuration for the Range Pool connector.
 type Config struct {
-	DexID          string              `json:"dexID"`
-	ChainID        valueobject.ChainID `json:"chainID"`
-	FactoryAddress string              `json:"factoryAddress"`
-	NewPoolLimit   int                 `json:"newPoolLimit"`
+	DexID        string              `json:"dexID"`
+	ChainID      valueobject.ChainID `json:"chainID"`
+	Factories    []string            `json:"factories"`
+	NewPoolLimit int                 `json:"newPoolLimit"`
 }

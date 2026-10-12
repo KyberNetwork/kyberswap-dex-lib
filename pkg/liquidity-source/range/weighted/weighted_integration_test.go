@@ -41,8 +41,8 @@ const (
 )
 
 var (
-	// factoryAddress is the mainnet RangePoolFactory (pool discovery via getPools()).
-	// Live per-chain factory addresses come from Config.FactoryAddress (config-driven).
+	// factoryAddress is the mainnet RangePoolFactory (pool discovery via getPoolsInRange).
+	// Live per-chain factory addresses come from Config.Factories (config-driven).
 	factoryAddress = common.HexToAddress("0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0")
 
 	// routerAddress is sourced from shared.BatchRouterMap (keyed "range", like the
@@ -67,10 +67,10 @@ func (ts *IntegrationSuite) SetupSuite() {
 	ts.client = ethrpc.New(rpcURL).SetMulticallContract(common.HexToAddress(mainnetMulticall3))
 
 	cfg := &Config{
-		DexID:          DexType,
-		ChainID:        valueobject.ChainIDEthereum,
-		FactoryAddress: hexutil.Encode(factoryAddress[:]),
-		NewPoolLimit:   100,
+		DexID:        DexType,
+		ChainID:      valueobject.ChainIDEthereum,
+		Factories:    []string{hexutil.Encode(factoryAddress[:])},
+		NewPoolLimit: 100,
 	}
 	ts.lister = NewPoolsListUpdater(cfg, ts.client)
 

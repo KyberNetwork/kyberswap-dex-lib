@@ -54,10 +54,10 @@ func (ts *ParitySuite) SetupSuite() {
 	ts.client = ethrpc.New(rpcURL).SetMulticallContract(common.HexToAddress(mainnetMulticall3))
 
 	cfg := &Config{
-		DexID:          DexType,
-		ChainID:        valueobject.ChainIDEthereum,
-		FactoryAddress: hexutil.Encode(factoryAddress[:]),
-		NewPoolLimit:   100,
+		DexID:        DexType,
+		ChainID:      valueobject.ChainIDEthereum,
+		Factories:    []string{hexutil.Encode(factoryAddress[:])},
+		NewPoolLimit: 100,
 	}
 	ts.lister = NewPoolsListUpdater(cfg, ts.client)
 

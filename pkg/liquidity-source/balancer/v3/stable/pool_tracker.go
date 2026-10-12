@@ -89,7 +89,7 @@ func (t *PoolTracker) getNewPoolState(
 	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap
 	extra.ShouldCallAfterSwap = res.HooksConfigData.ShouldCallAfterSwap
 	extra.StaticSwapFeePercentage, _ = uint256.FromBig(res.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+	extra.AggregateSwapFeePercentage = res.AggregateSwapFee()
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
@@ -145,11 +145,6 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Method: shared.VaultMethodGetStaticSwapFeePercentage,
 		Params: paramsPool,
 	}, []any{&rpcRes.StaticSwapFeePercentage}).AddCall(&ethrpc.Call{
-		ABI:    shared.VaultExplorerABI,
-		Target: t.config.VaultExplorer,
-		Method: shared.VaultMethodGetAggregateFeePercentages,
-		Params: paramsPool,
-	}, []any{&rpcRes.AggregateFeePercentageRPC}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetPoolData,
