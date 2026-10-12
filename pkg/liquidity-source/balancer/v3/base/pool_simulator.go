@@ -376,7 +376,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		swapInfo.AmountInBeforeConvert,
 		params.TokenAmountIn.Amount,
 	)
-	if isTokenInUnderlying {
+	if isTokenInUnderlying && swapInfo.AmountInBeforeConvert == nil {
 		// If token in is underlying we must use the converted shares amount for the balance update
 		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(
 			uint256.MustFromBig(amountIn), false)
@@ -400,7 +400,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		swapInfo.AmountOutBeforeConvert,
 		params.TokenAmountOut.Amount,
 	)
-	if isTokenOutUnderlying {
+	if isTokenOutUnderlying && swapInfo.AmountOutBeforeConvert == nil {
 		// If token out is underlying we must use the converted assets amount for the balance update
 		convertedAmount, _ := p.buffers[indexOut].ConvertToAssets(
 			uint256.MustFromBig(amountOut), false)
