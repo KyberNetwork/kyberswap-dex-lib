@@ -1,0 +1,3 @@
+source: Lots (Robinhood Chain 4663) fixture generator, NavJitHookV17 finalised build d190fc1e-equivalent runtime
+schema: kyber-v3v4/P2-FIX/v1 (base 85, a5 38+5 multi, mq 14)
+note: generated on anvil forks of chain 4663 at the pins recorded in each case; verified: 0 unclassified storage slots, reruns identical

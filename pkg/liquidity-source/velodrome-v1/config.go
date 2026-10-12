@@ -11,6 +11,7 @@ type Config struct {
 	Fee            uint64         `json:"fee"`
 	FeePrecision   uint64         `json:"feePrecision"`
 	FeeTracker     *FeeTrackerCfg `json:"feeTracker"`
+	Gas            int64          `json:"gas"`
 }
 
 type FeeTrackerCfg struct {

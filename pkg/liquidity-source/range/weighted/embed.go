@@ -5,9 +5,6 @@ import _ "embed"
 //go:embed abis/RangePool.json
 var rangePoolJson []byte
 
-//go:embed abis/RangePoolFactory.json
-var rangePoolFactoryJson []byte
-
 //go:embed abis/RangeVault.json
 var rangeVaultJson []byte
 

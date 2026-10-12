@@ -102,7 +102,7 @@ Suffixes:
 - Successful quotes must return positive output amounts; zero-output swap should return an error.
 - If a swap does not consume the full input amount, the remaining amount must be returned.
 - Gas estimation should reflect the actual swap execution cost.
-- Prefer `uint256.Int`/`int256.Int` over `big.Int` for math and state, and reuse helpers in `pkg/util` (`big256`, `int256`, ...) instead of reimplementing.
+- Use `uint256.Int`/`int256.Int` for all simulator math and pool state. New `big.Int` code there is not accepted: the router calls `CalcAmountOut` thousands of times per route, and `big.Int` is 100x+ slower with far more allocations. `big.Int` is fine only at the edges (ABI/RPC decoding in trackers); convert before storing. Reuse helpers in `pkg/util` (`big256`, `int256`, ...) instead of reimplementing.
 - Test integration correctness, including pricing, limits, and protocol constraints. Port all relevant on-chain or documented math test cases.
 
 **Optional capabilities**: 

@@ -228,6 +228,7 @@ func (u *PoolsListUpdater) initPools(
 		staticExtra, err := json.Marshal(PoolStaticExtra{
 			FeePrecision: u.config.FeePrecision,
 			Stable:       metadataList[i].St,
+			Gas:          u.config.Gas,
 		})
 		if err != nil {
 			logger.

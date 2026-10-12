@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("{\"mArket\":{\"Mq\\1")
+uint64(999999840)
+bool(false)

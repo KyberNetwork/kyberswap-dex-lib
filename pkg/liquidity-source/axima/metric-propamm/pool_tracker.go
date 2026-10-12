@@ -130,6 +130,13 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	p.Reserves = []string{ba.TotalToken0Available, ba.TotalToken1Available}
 	p.Extra = string(extra)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = quoteTimestamp(ba.ServerTs, time.Now().Unix())
 	return p, nil
+}
+
+func quoteTimestamp(serverTs, now int64) int64 {
+	if serverTs <= 0 || serverTs > now {
+		return now
+	}
+	return serverTs
 }
