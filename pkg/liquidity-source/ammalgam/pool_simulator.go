@@ -139,7 +139,18 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	if amountIn.IsZero() {
 		return nil, ErrInvalidAmount
 	}
-	info, err := s.postSwap(i, &amountIn, &amountOut)
+	// The adapter executes exact-input with the resolved amountIn. Its actual
+	// output can exceed the requested exact-out target because of integer
+	// granularity, so state must use the forward quote that executes on-chain.
+	executedAmountOut, err := quoteExactIn(&amountIn, &s.reserves[i], &s.extra.ReferenceReserves[i],
+		&s.reserves[j], &s.extra.MissingAssets[i], &s.extra.MissingAssets[j])
+	if err != nil {
+		return nil, err
+	}
+	if executedAmountOut.Lt(&amountOut) {
+		return nil, ErrInvalidAmount
+	}
+	info, err := s.postSwap(i, &amountIn, &executedAmountOut)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +210,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	i, j, err := s.tokenIndices(params.TokenAmountIn.Token, params.TokenAmountOut.Token)
 	if err != nil || i != info.InputIndex || j != 1-i || params.TokenAmountIn.Amount == nil ||
 		params.TokenAmountOut.Amount == nil || info.AmountIn.ToBig().Cmp(params.TokenAmountIn.Amount) != 0 ||
-		info.AmountOut.ToBig().Cmp(params.TokenAmountOut.Amount) != 0 {
+		params.TokenAmountOut.Amount.Sign() <= 0 || info.AmountOut.ToBig().Cmp(params.TokenAmountOut.Amount) < 0 {
 		return
 	}
 	s.reserves = info.Reserves

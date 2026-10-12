@@ -133,6 +133,32 @@ func TestPoolSimulatorRejectsStaleSwapInfo(t *testing.T) {
 	require.Equal(t, afterFresh[1], s.Info.Reserves[1].String())
 }
 
+func TestPoolSimulatorExactOutUpdatesWithExecutedExactInOutput(t *testing.T) {
+	ep := simulatorFixture(t,
+		[2]string{"1000000000000000000", "1000000000000000000000000"},
+		[2]string{"1000000000000000000", "1000000000000000000000000"},
+		[2]string{"0", "0"})
+	s, err := NewPoolSimulator(pool.FactoryParams{EntityPool: ep})
+	require.NoError(t, err)
+
+	requestedOut := big.NewInt(1)
+	quote, err := s.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: testTokenY, Amount: requestedOut}, TokenIn: testTokenX,
+	})
+	require.NoError(t, err)
+	info := quote.SwapInfo.(SwapInfo)
+	require.Greater(t, info.AmountOut.ToBig().Cmp(requestedOut), 0,
+		"the exact-input adapter can execute more output than the exact-out target")
+
+	s.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  *quote.TokenAmountIn,
+		TokenAmountOut: pool.TokenAmount{Token: testTokenY, Amount: requestedOut},
+		SwapInfo:       quote.SwapInfo,
+	})
+	require.Equal(t, info.Reserves[0].String(), s.Info.Reserves[0].String())
+	require.Equal(t, info.Reserves[1].String(), s.Info.Reserves[1].String())
+}
+
 func TestPoolSimulatorMetaAndApproval(t *testing.T) {
 	s := newTestSimulator(t)
 	require.Equal(t, pool.RouterMetaInfo{Router: testPair, BlockNumber: 1234}, s.GetMetaInfo(testTokenX, testTokenY))
