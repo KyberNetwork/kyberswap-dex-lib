@@ -212,7 +212,7 @@ func TestUpdateBalance(t *testing.T) {
 			tokenOutAmount: big.NewInt(1e18),
 			expectedReserves: []*big.Int{
 				big.NewInt(4e18),                // waEthLidoWETH + in
-				big.NewInt(2996618043619696715), // waEthLidowstETH reserve - out/ERC4626rate
+				big.NewInt(3003370557302528819), // waEthLidowstETH reserve - out/ERC4626rate
 			},
 			aggregateFee: big.NewInt(0), // Zero fee for test examples
 		},
@@ -225,7 +225,7 @@ func TestUpdateBalance(t *testing.T) {
 			tokenOutAmount: big.NewInt(1e18),
 			expectedReserves: []*big.Int{
 				big.NewInt(3952511634683290746), // waEthLidoWETH + in/ERC4626rate
-				big.NewInt(2996618043619696715), // waEthLidowstETH reserve - out/ERC4626rate
+				big.NewInt(3003370557302528819), // waEthLidowstETH reserve - out/ERC4626rate
 			},
 			aggregateFee: big.NewInt(0), // Zero fee for test examples
 		},
@@ -280,6 +280,80 @@ func TestUpdateBalance(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A swap paying out an underlying token is settled in the pool's wrapped token, so it must use up exactly the
+// wrapped amount the vault paid. Otherwise a later hop on the same pool re-quotes liquidity this swap already
+// took: a route sold USDai->USDT0 and then USDai->waUSDT0 on one pool, quoted both against its full waUSDT0
+// balance, and the second hop returned almost nothing on-chain.
+func TestUpdateBalanceSwapToUnderlyingConsumesWrappedReserve(t *testing.T) {
+	t.Parallel()
+
+	const (
+		weth            = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+		wstETH          = "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"
+		waEthLidowstETH = "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
+	)
+	quote := func(sim pool.IPoolSimulator, amountIn *big.Int, tokenOut string) (*pool.CalcAmountOutResult, error) {
+		return sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: amountIn},
+			TokenOut:      tokenOut,
+		})
+	}
+
+	sim := poolSim.CloneState()
+	reserveBefore := new(big.Int).Set(sim.GetReserves()[1])
+
+	// Takes nearly all wrapped wstETH; the underlying paid out exceeds the raw wrapped reserve
+	drainIn, _ := new(big.Int).SetString("3000000000000000000000", 10)
+	drain, err := quote(sim, drainIn, wstETH)
+	assert.NoError(t, err)
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: weth, Amount: drainIn},
+		TokenAmountOut: *drain.TokenAmountOut,
+		Fee:            *drain.Fee,
+		SwapInfo:       drain.SwapInfo,
+	})
+
+	sharesPaid := drain.SwapInfo.(shared.SwapInfo).AmountOutBeforeConvert
+	reserveLeft := new(big.Int).Sub(reserveBefore, sharesPaid)
+	assert.Equal(t, reserveLeft, sim.GetReserves()[1], "wrapped reserve must drop by the shares the vault paid")
+
+	// The next hop into the wrapped token can only get what is left
+	next, err := quote(sim, big.NewInt(1e18), waEthLidowstETH)
+	if err == nil {
+		assert.LessOrEqual(t, next.TokenAmountOut.Amount.Cmp(reserveLeft), 0,
+			"quote %s exceeds the %s wrapped tokens left in the pool", next.TokenAmountOut.Amount, reserveLeft)
+	}
+}
+
+// For exact out, CalcAmountIn reports AmountInBeforeConvert as the vault's wrapped amount in. It must be added to
+// the reserve as-is, not converted to shares a second time.
+func TestUpdateBalanceExactOutFromUnderlying(t *testing.T) {
+	t.Parallel()
+
+	const (
+		weth   = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+		wstETH = "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"
+	)
+
+	sim := poolSim.CloneState().(*base.PoolSimulator)
+	reserveBefore := new(big.Int).Set(sim.GetReserves()[0])
+
+	amountOut := pool.TokenAmount{Token: wstETH, Amount: big.NewInt(1e18)}
+	res, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: amountOut, TokenIn: weth})
+	assert.NoError(t, err)
+	sim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  *res.TokenAmountIn,
+		TokenAmountOut: amountOut,
+		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
+	})
+
+	swapInfo := res.SwapInfo.(shared.SwapInfo)
+	expected := new(big.Int).Add(reserveBefore, swapInfo.AmountInBeforeConvert)
+	expected.Sub(expected, swapInfo.AggregateFee)
+	assert.Equal(t, expected, sim.GetReserves()[0], "wrapped reserve must grow by the vault's amount in, less fees")
 }
 
 func TestCalcAmountOutPanic(t *testing.T) {
