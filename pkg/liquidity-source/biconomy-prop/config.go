@@ -5,6 +5,6 @@ import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 type Config struct {
 	DexID   string              `json:"dexID"`
 	ChainID valueobject.ChainID `json:"chainId"`
-	// Venue is the PropAMMVenue, 0x000000Da21a0f02b2626874870b6447Db220C1EF on Base and BSC.
+	// Venue is the PropAMMVenue, 0x0000005880209CB9387C5904237ECeF97158DB69 on Base and BSC.
 	Venue string `json:"venue"`
 }
