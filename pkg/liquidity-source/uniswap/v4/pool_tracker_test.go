@@ -23,6 +23,9 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip()
 	}
+	if os.Getenv("THEGRAPH_API_KEY") == "" {
+		t.Skip("THEGRAPH_API_KEY not set")
+	}
 
 	pt := &PoolTracker{
 		config:        &Config{DexID: DexType, StateViewAddress: "0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227"},
