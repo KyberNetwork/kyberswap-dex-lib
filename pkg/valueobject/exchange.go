@@ -483,6 +483,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeSpireProp:          {},
 	ExchangeUSCoreProp:         {},
 	ExchangeNemoProp:           {},
+	ExchangeBTRProp:            {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
