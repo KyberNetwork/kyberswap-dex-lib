@@ -27,6 +27,9 @@ var (
 		"coinhane": {
 			valueobject.ChainIDBSC: common.HexToAddress("0xBdf45255f34B9DD3d2F9aDacc7AeB482059f1C54"),
 		},
+		"bush": {
+			valueobject.ChainIDRobinhood: common.HexToAddress("0xfDBb603653985df584EB2a4FB33Fe66B5d41C88F"),
+		},
 		// Range Pools run on a custom, non-canonical Balancer V3 deployment (like coinhane).
 		// Their single-swap Router (also exposing querySwap...) is the approval/target
 		// address; the "range" key matches exchange prefix "range-v3-weighted" (split on "-").
@@ -38,6 +41,7 @@ var (
 	VaultMap = map[string]common.Address{
 		"":         common.HexToAddress("0xbA1333333333a1BA1108E8412f11850A5C319bA9"), // default
 		"coinhane": common.HexToAddress("0xb61cb1E8EF4BB1b74bB858B8B60d82d79488F13D"),
+		"bush":     common.HexToAddress("0xB055000fbE3cc9bDE7742C583a86cc6283E3fF85"), // Robinhood
 		"range":    common.HexToAddress("0x955244EDC797A1C1b04134b600f819aC23C76081"), // Ethereum
 	}
 	// VaultOverrideMap overrides VaultMap's per-prefix default on chains where the
@@ -67,7 +71,6 @@ const (
 	VaultMethodGetBufferAsset             = "getBufferAsset"
 	VaultMethodGetHooksConfig             = "getHooksConfig"
 	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
-	VaultMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
 	VaultMethodGetPoolData                = "getPoolData"
 
 	VaultMethodIsVaultPaused        = "isVaultPaused"

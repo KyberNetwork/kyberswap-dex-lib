@@ -128,12 +128,6 @@ func addRPCCalls(
 	addFn(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: vaultExplorer,
-		Method: shared.VaultMethodGetAggregateFeePercentages,
-		Params: paramsPool,
-	}, []any{&rpcRes.AggregateFeePercentageRPC})
-	addFn(&ethrpc.Call{
-		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
 		Method: shared.VaultMethodGetPoolData,
 		Params: paramsPool,
 	}, []any{&rpcRes.PoolDataRPC})
@@ -173,7 +167,7 @@ func buildPoolState(
 	extra.ShouldCallBeforeSwap = rpcRes.HooksConfigData.ShouldCallBeforeSwap
 	extra.ShouldCallAfterSwap = rpcRes.HooksConfigData.ShouldCallAfterSwap
 	extra.StaticSwapFeePercentage, _ = uint256.FromBig(rpcRes.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(rpcRes.AggregateSwapFeePercentage)
+	extra.AggregateSwapFeePercentage = rpcRes.AggregateSwapFee()
 	extra.BalancesLiveScaled18 = shared.FromBigs(rpcRes.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(rpcRes.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(rpcRes.PoolData.TokenRates)
