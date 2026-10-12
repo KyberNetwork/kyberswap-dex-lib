@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
@@ -41,7 +43,8 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 		},
 	}
 	p := entity.Pool{BlockNumber: 9, Timestamp: 1, Reserves: entity.PoolReserves{"1", "2"}}
-	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot, 1_700_000_000, true)
+	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot,
+		1_700_000_000, 1_700_000_000)
 	require.NoError(t, err)
 	require.Equal(t, entity.PoolReserves{"1000", "2000"}, got.Reserves)
 	require.Equal(t, uint64(10), got.BlockNumber)
@@ -72,7 +75,7 @@ func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
 		BlockNumber:    10,
 		Beacon:         beacon,
 		Implementation: implementation,
-	}, 100, false)
+	}, 100, want.Timestamp)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
 }
@@ -93,10 +96,21 @@ func TestUpdatePoolFromSnapshotScheduledRefreshPreservesActivityTimestamp(t *tes
 		}},
 	}
 	p := entity.Pool{BlockNumber: 9, Timestamp: 123, Reserves: entity.PoolReserves{"1", "2"}}
-	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot, 1_000, false)
+	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot, 1_000, p.Timestamp)
 	require.NoError(t, err)
 	require.Equal(t, int64(123), got.Timestamp)
 	require.Equal(t, int64(1_300), (&PoolTracker{}).NextUpdateAt(got))
+}
+
+func TestPoolTrackerActivityTimestampIgnoresScheduledZeroLog(t *testing.T) {
+	p := entity.Pool{Timestamp: 1_000}
+	headers := map[uint64]entity.BlockHeader{100: {Timestamp: 2_000}}
+	require.Equal(t, int64(1_000), activityTimestamp(p, pool.GetNewPoolStateParams{
+		Logs: []ethtypes.Log{{}}, BlockHeaders: headers,
+	}))
+	require.Equal(t, int64(2_000), activityTimestamp(p, pool.GetNewPoolStateParams{
+		Logs: []ethtypes.Log{{Address: common.HexToAddress("0x1"), BlockNumber: 100}}, BlockHeaders: headers,
+	}))
 }
 
 func TestReconcileTrackerMetadataLearnsBlankValuesAndRejectsMismatch(t *testing.T) {

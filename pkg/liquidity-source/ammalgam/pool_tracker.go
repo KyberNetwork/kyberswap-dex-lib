@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -119,7 +120,26 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	return updatePoolFromSnapshot(p, t.config, staticExtra, snapshot, time.Now().Unix(), len(params.Logs) > 0)
+	return updatePoolFromSnapshot(p, t.config, staticExtra, snapshot, time.Now().Unix(), activityTimestamp(p, params))
+}
+
+func activityTimestamp(p entity.Pool, params pool.GetNewPoolStateParams) int64 {
+	if len(params.Logs) == 0 || params.BlockHeaders == nil {
+		return p.Timestamp
+	}
+	latest := params.Logs[len(params.Logs)-1]
+	if isZeroLog(latest) {
+		return p.Timestamp
+	}
+	if header, ok := params.BlockHeaders[latest.BlockNumber]; ok {
+		return max(p.Timestamp, int64(header.Timestamp))
+	}
+	return p.Timestamp
+}
+
+func isZeroLog(log ethtypes.Log) bool {
+	return log.Address == (common.Address{}) && log.BlockNumber == 0 && log.BlockHash == (common.Hash{}) &&
+		log.TxHash == (common.Hash{}) && len(log.Topics) == 0 && len(log.Data) == 0
 }
 
 func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
@@ -191,7 +211,7 @@ func updatePoolFromSnapshot(
 	staticExtra StaticExtra,
 	snapshot trackerSnapshot,
 	now int64,
-	hasLogs bool,
+	lastActivityTimestamp int64,
 ) (entity.Pool, error) {
 	if p.BlockNumber > snapshot.BlockNumber {
 		return p, nil
@@ -249,9 +269,7 @@ func updatePoolFromSnapshot(
 	p.Extra = string(extraBytes)
 	p.StaticExtra = string(staticExtraBytes)
 	p.BlockNumber = snapshot.BlockNumber
-	if hasLogs {
-		p.Timestamp = now
-	}
+	p.Timestamp = max(p.Timestamp, lastActivityTimestamp)
 	return p, nil
 }
 
