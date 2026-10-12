@@ -1,3 +1,6 @@
 [
-  {"type":"function","name":"underlyingTokens","stateMutability":"view","inputs":[],"outputs":[{"name":"tokenX","type":"address"},{"name":"tokenY","type":"address"}]}
+  {"type":"function","name":"underlyingTokens","stateMutability":"view","inputs":[],"outputs":[{"name":"tokenX","type":"address"},{"name":"tokenY","type":"address"}]},
+  {"type":"function","name":"getReserves","stateMutability":"view","inputs":[],"outputs":[{"name":"reserveX","type":"uint112"},{"name":"reserveY","type":"uint112"},{"name":"lastUpdateTimestamp","type":"uint32"}]},
+  {"type":"function","name":"referenceReserves","stateMutability":"view","inputs":[],"outputs":[{"name":"referenceReserveX","type":"uint112"},{"name":"referenceReserveY","type":"uint112"}]},
+  {"type":"function","name":"totalAssetsAndShares","stateMutability":"view","inputs":[{"name":"withInterest","type":"bool"}],"outputs":[{"name":"allAssets","type":"uint112[6]"},{"name":"allShares","type":"uint112[6]"}]}
 ]
