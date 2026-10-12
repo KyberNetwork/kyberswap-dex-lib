@@ -155,7 +155,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 }
 
 func (s *PoolSimulator) postSwap(inputIndex int, amountIn, amountOut *uint256.Int) (SwapInfo, error) {
-	var info SwapInfo
+	info := SwapInfo{PoolAddress: s.Info.Address, PreReserves: s.reserves}
 	outputIndex := 1 - inputIndex
 	if amountOut.IsZero() {
 		return info, ErrZeroOutput
@@ -192,7 +192,8 @@ func (s *PoolSimulator) inputFee(inputIndex int, amountIn *uint256.Int) (uint256
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	info, ok := params.SwapInfo.(SwapInfo)
-	if !ok || info.InputIndex < 0 || info.InputIndex > 1 {
+	if !ok || !strings.EqualFold(info.PoolAddress, s.Info.Address) || info.InputIndex < 0 || info.InputIndex > 1 ||
+		!info.PreReserves[0].Eq(&s.reserves[0]) || !info.PreReserves[1].Eq(&s.reserves[1]) {
 		return
 	}
 	i, j, err := s.tokenIndices(params.TokenAmountIn.Token, params.TokenAmountOut.Token)

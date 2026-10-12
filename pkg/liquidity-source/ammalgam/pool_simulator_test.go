@@ -109,6 +109,30 @@ func TestPoolSimulatorDepletionAndStateIsolation(t *testing.T) {
 	require.Equal(t, "1000000000000000000000", clone.extra.ReferenceReserves[0].String())
 }
 
+func TestPoolSimulatorRejectsStaleSwapInfo(t *testing.T) {
+	s := newTestSimulator(t)
+	stale, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testTokenX, Amount: big.NewInt(1e18)}, TokenOut: testTokenY,
+	})
+	require.NoError(t, err)
+	fresh, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testTokenX, Amount: big.NewInt(2e18)}, TokenOut: testTokenY,
+	})
+	require.NoError(t, err)
+
+	s.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: testTokenX, Amount: big.NewInt(2e18)},
+		TokenAmountOut: *fresh.TokenAmountOut, SwapInfo: fresh.SwapInfo,
+	})
+	afterFresh := [2]string{s.Info.Reserves[0].String(), s.Info.Reserves[1].String()}
+	s.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: testTokenX, Amount: big.NewInt(1e18)},
+		TokenAmountOut: *stale.TokenAmountOut, SwapInfo: stale.SwapInfo,
+	})
+	require.Equal(t, afterFresh[0], s.Info.Reserves[0].String())
+	require.Equal(t, afterFresh[1], s.Info.Reserves[1].String())
+}
+
 func TestPoolSimulatorMetaAndApproval(t *testing.T) {
 	s := newTestSimulator(t)
 	require.Equal(t, pool.RouterMetaInfo{Router: testPair, BlockNumber: 1234}, s.GetMetaInfo(testTokenX, testTokenY))
