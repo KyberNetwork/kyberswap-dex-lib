@@ -2,6 +2,9 @@ package weighted
 
 import (
 	"context"
+	"errors"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -21,10 +24,12 @@ type (
 		ethrpcClient *ethrpc.Client
 	}
 
-	// PoolsListUpdaterMetadata persists how many pools we have already emitted, so
-	// each GetNewPools call only initializes pools the factory has added since.
+	// PoolsListUpdaterMetadata persists how many pools we have already emitted per lowercased factory
+	// address, so each GetNewPools call only initializes pools a factory has added since.
 	PoolsListUpdaterMetadata struct {
-		Offset int `json:"offset"`
+		Offsets map[string]int `json:"offsets,omitempty"`
+		// Offset is the legacy single-factory count, migrated to Offsets[Factories[0]].
+		Offset int `json:"offset,omitempty"`
 	}
 )
 
@@ -34,85 +39,73 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 	return &PoolsListUpdater{config: cfg, ethrpcClient: ethrpcClient}
 }
 
-// GetNewPools discovers Range Pools on-chain from RangePoolFactory.getPools() (Range
-// is not indexed by any subgraph — custom, non-canonical Vault). It reads
-// getRangePoolImmutableData for each newly seen pool to build its tokens + StaticExtra,
-// and advances the metadata offset so subsequent calls are incremental.
+// GetNewPools discovers Range Pools on-chain from the RangePoolFactories (Range is not indexed by any
+// subgraph — custom, non-canonical Vault) via getPoolCount + getPoolsInRange. It reads
+// getRangePoolImmutableData for each newly seen pool to build its tokens + StaticExtra, and advances the
+// per-factory offsets so subsequent calls are incremental.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	startTime := time.Now()
 	l := log.Ctx(ctx).With().Str("dex", DexType).Str("dexID", u.config.DexID).Logger()
 	l.Info().Msg("Started getting new pools")
 
-	allPools, err := u.listPoolAddresses(ctx)
+	if len(u.config.Factories) == 0 {
+		return nil, metadataBytes, errors.New("no factories configured")
+	}
+	metadata, err := u.getMetadata(metadataBytes)
 	if err != nil {
-		l.Error().Err(err).Msg("getPools failed")
+		l.Warn().Err(err).Msg("getMetadata failed")
+	}
+
+	factoryPools, offsets, err := shared.ListFactoryPools(ctx, u.ethrpcClient, u.config.Factories,
+		metadata.Offsets, u.config.NewPoolLimit)
+	if err != nil {
+		l.Error().Err(err).Msg("ListFactoryPools failed")
 		return nil, metadataBytes, err
 	}
-
-	offset, err := u.getOffset(metadataBytes)
-	if err != nil {
-		l.Warn().Err(err).Msg("getOffset failed")
-	}
-	if offset > len(allPools) {
-		offset = len(allPools)
+	var addrs []common.Address
+	var factoryOf []string
+	for i, pools := range factoryPools {
+		addrs = append(addrs, pools...)
+		factoryOf = append(factoryOf, slices.Repeat([]string{u.config.Factories[i]}, len(pools))...)
 	}
 
-	batch := allPools[offset:]
-	if limit := u.config.NewPoolLimit; limit > 0 && len(batch) > limit {
-		batch = batch[:limit]
-	}
-
-	pools, err := u.initPools(ctx, batch)
+	pools, err := u.initPools(ctx, addrs, factoryOf)
 	if err != nil {
 		l.Error().Err(err).Msg("initPools failed")
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := json.Marshal(PoolsListUpdaterMetadata{Offset: offset + len(batch)})
+	newMetadataBytes, err := json.Marshal(PoolsListUpdaterMetadata{Offsets: offsets})
 	if err != nil {
 		return nil, metadataBytes, err
 	}
 
 	l.Info().
 		Int("poolsLen", len(pools)).
-		Int("offset", offset).
-		Int("total", len(allPools)).
 		Int64("durationMs", time.Since(startTime).Milliseconds()).
 		Msg("Finished getting new pools")
 
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context) ([]common.Address, error) {
-	var pools []common.Address
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    rangeFactoryABI,
-		Target: u.config.FactoryAddress,
-		Method: factoryMethodGetPools,
-	}, []any{&pools})
-	if _, err := req.Call(); err != nil {
-		return nil, err
-	}
-	return pools, nil
-}
-
-func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
+func (u *PoolsListUpdater) getMetadata(metadataBytes []byte) (m PoolsListUpdaterMetadata, err error) {
 	if len(metadataBytes) == 0 {
-		return 0, nil
+		return m, nil
 	}
-	var m PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &m); err != nil {
-		return 0, err
+	if err = json.Unmarshal(metadataBytes, &m); err != nil {
+		return PoolsListUpdaterMetadata{}, err
 	}
-	return m.Offset, nil
+	if len(m.Offsets) == 0 && m.Offset > 0 {
+		m.Offsets = map[string]int{strings.ToLower(u.config.Factories[0]): m.Offset}
+	}
+	return m, nil
 }
 
 // initPools reads getRangePoolImmutableData for each pool (tokens, scaling factors,
 // normalized weights) and assembles the entity.Pool. Dynamic state (balances, fees,
 // virtual balances, liveness) is left for the tracker; reserves start at "0" so the
 // pool is treated as paused until first tracked.
-func (u *PoolsListUpdater) initPools(ctx context.Context, addrs []common.Address) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(ctx context.Context, addrs []common.Address, factoryOf []string) ([]entity.Pool, error) {
 	if len(addrs) == 0 {
 		return nil, nil
 	}
@@ -157,7 +150,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, addrs []common.Address
 			},
 			NormalizedWeights:     shared.FromBigs(imm.NormalizedWeights),
 			DecimalScalingFactors: shared.FromBigs(imm.DecimalScalingFactors),
-			FactoryAddress:        u.config.FactoryAddress,
+			FactoryAddress:        factoryOf[i],
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
