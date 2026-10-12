@@ -386,6 +386,7 @@ const (
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
+	ExchangeBTRProp                     = "btr-prop"
 	ExchangeBopAMM                      = "bop-amm"
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"
@@ -486,6 +487,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeSpireProp:          {},
 	ExchangeUSCoreProp:         {},
 	ExchangeNemoProp:           {},
+	ExchangeBTRProp:            {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
