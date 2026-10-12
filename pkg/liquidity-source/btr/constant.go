@@ -27,7 +27,8 @@ const (
 	WETH  = "0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242"
 	XAUT0 = "0x01bFF41798a0BcF287b996046Ca68b395DbC1071"
 
-	// SwapSelector is Pool.swap_qe, a suffix-mined dispatch (Pool.sol:270).
+	// SwapSelector is the Pool.swap_qe selector, a suffix-mined dispatch. A
+	// change to it is a contract-level event; TestSelector pins it.
 	SwapSelector = "0x01dc30b8"
 
 	// DefaultGas is a conservative gas figure for one swap_qe at Monad's
@@ -44,13 +45,18 @@ const (
 // Only the bits an open-path executor must gate on are listed.
 const (
 	SwapEnabledBit uint16 = 16   // SWAP_ENABLED_BIT
-	SwapGatedBit   uint16 = 1024 // SWAP_GATED_BIT (lane-0x400 allowlist)
-	HaltMask       uint16 = 5    // HALT_MASK (HALT_BIT | FEED_HALT_BIT)
+	SwapGatedBit   uint16 = 1024 // SWAP_GATED_BIT; also the AC lane (0x400)
 	HaltBit        uint16 = 1    // HALT_BIT
+	// HaltAnchorBit is the anchor-owned halt latch. It is never settable by
+	// setHalt, so a lane grant can never clear it.
+	HaltAnchorBit uint16 = 4
+	HaltMask      uint16 = HaltBit | HaltAnchorBit
 )
 
 // OpenPathMask is HALT_MASK | SWAP_ENABLED | SWAP_GATED. A normal (non-lane)
 // executor may route a leg only when flags & OpenPathMask == SwapEnabledBit.
 // The weaker `flags & 5 == 0 && flags & 16 != 0` is true on the live gated
-// word and is NOT sufficient (ORACLE_MARKS.md §2 finding 0).
+// word and is NOT sufficient: it admits a SWAP_GATED leg for a caller that
+// holds no lane. A lane-holding executor is handled by gate's laneGranted
+// argument, which still refuses HALT and a missing SWAP_ENABLED.
 const OpenPathMask = HaltMask | SwapEnabledBit | SwapGatedBit

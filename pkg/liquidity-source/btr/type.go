@@ -50,9 +50,9 @@ type Point struct {
 // a separate store, so a reserve-only model is wrong: the tracker probes the
 // on-chain `getSwapQuote` view over a grid per ordered pair and stores the
 // resulting ladder. `getSwapQuote` is side-effect-free and omits BTR's
-// execution guards, so flags are cached too and every leg is gated before a
-// ladder is used (M1/M5). The router's min-out floor still comes from a pinned
-// `swap_qe` simulation in the on-chain adapter, never from this ladder.
+// execution guards, so the per-token risk flags are cached too and every leg is
+// gated before a ladder is used. The ladder only ranks routes; the route's
+// min-return is enforced by the KyberSwap router at execution.
 type Extra struct {
 	BlockNumber uint64 `json:"blockNumber"`
 	// Flags[token] is the raw 16-bit word from Pool.getRiskFlags(token).
@@ -60,6 +60,11 @@ type Extra struct {
 	// Ladders["in|out"] is the sampled curve, ascending by In, for that
 	// ordered pair (lower-cased addresses).
 	Ladders map[string][]Point `json:"ladders"`
+	// LaneGranted mirrors Config.LaneGranted: the executor holds the
+	// SWAP_GATED lane, so a SWAP_GATED leg is tradeable. HALT and a missing
+	// SWAP_ENABLED are still refused. False unless BTR governance has granted
+	// the lane.
+	LaneGranted bool `json:"laneGranted"`
 }
 
 // PoolMeta is the GetMetaInfo payload. ApprovalAddress is the core pool: the
@@ -67,8 +72,9 @@ type Extra struct {
 type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
-	// Gated reports whether every cached leg is on the open path. While the
-	// live core is SWAP_GATED this is false and CalcAmountOut returns no route.
+	// Gated reports whether any cached leg is not on this executor's open path.
+	// While a cached leg is SWAP_GATED and the lane is not granted, or is
+	// halted/swapped off, this is true and CalcAmountOut returns no route.
 	Gated bool `json:"gated"`
 }
 

@@ -11,6 +11,12 @@ type Config struct {
 	Factory      string              `json:"factory"`
 	StartBlock   uint64              `json:"startBlock"`
 	SamplePoints int                 `json:"samplePoints"`
+	// LaneGranted reports that BTR governance has granted this source's
+	// executor the SWAP_GATED lane (0x400) on the configured cores. A gated
+	// leg stays refused while this is false, which is the safe default for
+	// every core that has not been granted the lane. Set true only after the
+	// on-chain grant; the tracker stamps it onto each pool's Extra.
+	LaneGranted bool `json:"laneGranted"`
 }
 
 // NewConfig returns the Monad defaults. SamplePoints is capped by

@@ -99,7 +99,7 @@ func TestQuoteDifferential(t *testing.T) {
 		if simErr != nil {
 			// The live core is SWAP_GATED, so the adapter refuses by design
 			// even though the side-effect-free service returns a number.
-			if gate(liveCoreFlags) != simErr {
+			if gate(liveCoreFlags, false) != simErr {
 				t.Fatalf("adapter refused a service-quoted leg: %v", simErr)
 			}
 			// Still check the sampled ladder against the service so the

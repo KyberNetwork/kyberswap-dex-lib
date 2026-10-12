@@ -175,7 +175,12 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 	flush()
 
-	extra := Extra{BlockNumber: p.BlockNumber, Flags: flags, Ladders: ladders}
+	extra := Extra{
+		BlockNumber: p.BlockNumber,
+		Flags:       flags,
+		Ladders:     ladders,
+		LaneGranted: t.config.LaneGranted,
+	}
 	if resp.BlockNumber != nil {
 		extra.BlockNumber = resp.BlockNumber.Uint64()
 	}

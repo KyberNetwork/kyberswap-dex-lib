@@ -83,14 +83,17 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	}, nil
 }
 
-// gate is pure so it can be unit-tested. It mirrors the BTR pool's open-path
-// predicate `(flags & OpenPathMask) == SwapEnabledBit`, but distinguishes a
-// lane-gated leg (SWAP_GATED) from a halted/disabled one for the route finder.
-func gate(flags uint16) error {
+// gate is pure so it can be unit-tested. It mirrors the BTR pool's on-chain
+// gate: HALT_MASK always refuses, SWAP_ENABLED must be set, and a SWAP_GATED
+// leg is admitted only when laneGranted is true (BTR governance granted this
+// executor the SWAP_GATED lane 0x400). A lane does not widen the halt or the
+// enable bit. It distinguishes the lane case from a halted/disabled one so the
+// route finder can tell "no route until the lane is granted" from "no route".
+func gate(flags uint16, laneGranted bool) error {
 	if flags&HaltMask != 0 || flags&SwapEnabledBit == 0 {
 		return ErrBTRGated
 	}
-	if flags&SwapGatedBit != 0 {
+	if flags&SwapGatedBit != 0 && !laneGranted {
 		return ErrBTRGatedLane
 	}
 	return nil
@@ -99,6 +102,11 @@ func gate(flags uint16) error {
 // openPathAllowed is the full predicate a normal (non-lane) executor needs on
 // both legs.
 func openPathAllowed(flags uint16) bool { return flags&OpenPathMask == SwapEnabledBit }
+
+// legOpen reports whether one leg is tradeable by an executor whose lane state
+// is laneGranted. With the lane granted a SWAP_GATED leg is open; HALT or a
+// missing SWAP_ENABLED is not.
+func legOpen(flags uint16, laneGranted bool) bool { return gate(flags, laneGranted) == nil }
 
 // legAllowed gates one leg using the cached per-token flags.
 func (s *PoolSimulator) legAllowed(token string) error {
@@ -109,12 +117,15 @@ func (s *PoolSimulator) legAllowed(token string) error {
 	if !ok {
 		return ErrBTRBadState
 	}
-	return gate(flags)
+	return gate(flags, s.extra.LaneGranted)
 }
 
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
-// ladder. It refuses a leg that is not on the open path, so while the live core
-// is SWAP_GATED it returns no route (the correct behaviour until the gate is lifted).
+// ladder. It refuses a leg that is not on this executor's open path, so while
+// the live core is SWAP_GATED and no lane is granted it returns no route (the
+// correct behaviour until BTR governance grants the lane or clears the gate).
+// With LaneGranted set a SWAP_GATED leg quotes, but HALT and a missing
+// SWAP_ENABLED still refuse.
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrBTRInvalidAmount
@@ -157,17 +168,20 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
 
 // UpdateBalance is a no-op. A BTR fill does not move the cached mark; the next
-// tracker refresh re-probes the curve at the new block. Route finders that
-// apply several swaps to one pool within a route will over-report depth for the
-// later leg, which the M1 simulate-at-execution check catches.
+// tracker refresh re-probes the curve at the new block. A route that uses the
+// BTR core on two legs (for example X->USDC then USDC->Y in a split route)
+// therefore prices the second leg off an independent ladder and over-reports
+// its depth. dex-lib offers no per-route signal a simulator can reject on, so
+// this is documented, not enforced: the KyberSwap router's min-return check
+// reverts the whole route when the over-quote is not delivered on chain.
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-// GetMetaInfo returns the approval target (the core pool) and whether every
-// cached leg is on the open path.
+// GetMetaInfo returns the approval target (the core pool) and whether any
+// cached leg is not on this executor's open path.
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	gated := false
 	for _, flags := range s.extra.Flags {
-		if !openPathAllowed(flags) {
+		if !legOpen(flags, s.extra.LaneGranted) {
 			gated = true
 			break
 		}
