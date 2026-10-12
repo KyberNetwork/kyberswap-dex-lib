@@ -138,7 +138,10 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 	})
 
 	for _, log := range logs {
-		if log.BlockNumber < pool.blockNumber {
+		// pool.blockNumber means the state already includes every log up to and including that block: state
+		// fetched over RPC at block N (on pool creation or fallback) already contains block N's events, and
+		// PositionUpdated deltas are not idempotent, so re-applying them would double count liquidity.
+		if log.BlockNumber <= pool.blockNumber {
 			continue
 		}
 
@@ -188,7 +191,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 	}
 
-	pool.blockNumber = logs[len(logs)-1].BlockNumber
+	pool.blockNumber = max(pool.blockNumber, logs[len(logs)-1].BlockNumber)
 
 	pool.NewBlock()
 
