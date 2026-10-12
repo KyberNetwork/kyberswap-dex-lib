@@ -215,10 +215,11 @@ func TestGasPerExtension(t *testing.T) {
 	require.NoError(t, err)
 
 	const weth, usdc = "0x4200000000000000000000000000000000000006", "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
-	gas := func(exts int) int64 {
+	gas := func(typ string, exts int) int64 {
 		extra.Extensions = exts
 		sim := &PoolSimulator{
 			Pool: pool.Pool{Info: pool.PoolInfo{
+				Type:     typ,
 				Tokens:   []string{weth, usdc},
 				Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
 			}},
@@ -234,6 +235,8 @@ func TestGasPerExtension(t *testing.T) {
 		return res.Gas
 	}
 
-	require.Equal(t, int64(175000), gas(0))
-	require.Equal(t, int64(20000*3), gas(3)-gas(0)) // literal on purpose: a changed constant must be a conscious edit
+	// literals on purpose: a changed constant must be a conscious edit
+	require.Equal(t, int64(159433), gas("metric-propamm", 0))
+	require.Equal(t, int64(18650*3), gas("metric-propamm", 3)-gas("metric-propamm", 0))
+	require.Equal(t, int64(175000), gas("axima", 3)) // legacy axima ignores extensions
 }
