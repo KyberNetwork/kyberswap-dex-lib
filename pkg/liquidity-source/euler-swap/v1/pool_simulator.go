@@ -2,6 +2,7 @@ package v1
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -255,6 +256,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	}))
 
 	cloned.collateralValue = p.collateralValue.Clone()
+	cloned.Collaterals = slices.Clone(p.Collaterals)
 
 	cloned.Vaults = [3]*shared.VaultState(lo.Map(p.Vaults[:], func(v *shared.VaultState, _ int) *shared.VaultState {
 		if v == nil {
