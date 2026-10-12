@@ -2,6 +2,7 @@ package ammalgam
 
 import (
 	"errors"
+	"math/rand"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -104,6 +105,84 @@ func TestExactOutputIsMinimumInput(t *testing.T) {
 					t.Fatalf("quote(in-1) = %s, target %s: %v", previous.Dec(), target, err)
 				}
 			})
+		}
+	}
+}
+
+func TestTaggedExactOutputRoundTripAndDomainChecks(t *testing.T) {
+	// Parameters are the second fixture from core-v1 v1.1.0's
+	// ComputeExpectedInAmountFuzzTest.fixtureRoundtripCase(). That Solidity test
+	// checks exact-output round trips and minimality rather than fixed outputs.
+	ri := mathInt("182813970261590293")
+	ref := mathInt("510079171498268351")
+	ro := mathInt("8419899061741814363365")
+	mi := mathInt("57293463935898495")
+	mo := mathInt("444316374309153650")
+	input := mathInt("18058708849222522100325")
+	out, err := quoteExactIn(input, ri, ref, ro, mi, mo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := quoteExactOut(&out, ri, ref, ro, mi, mo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	quoted, err := quoteExactIn(&got, ri, ref, ro, mi, mo)
+	if err != nil || !quoted.Eq(&out) {
+		t.Fatalf("tagged round trip output = %s, want %s: %v", quoted.Dec(), out.Dec(), err)
+	}
+	if got.Sign() > 0 {
+		var oneLess uint256.Int
+		oneLess.SubUint64(&got, 1)
+		previous, err := quoteExactIn(&oneLess, ri, ref, ro, mi, mo)
+		if err != nil || !previous.Lt(&out) {
+			t.Fatalf("tagged round trip was not minimal: previous output %s target %s: %v", previous.Dec(), out.Dec(), err)
+		}
+	}
+
+	if _, err := quoteExactOut(mathInt("1"), ri, ref, ro, ri, mo); !errors.Is(err, errMissingGteActual) {
+		t.Fatalf("exact-out must propagate invalid missing input: %v", err)
+	}
+}
+
+func TestExactOutputRespectsUint112PostSwapReserveCap(t *testing.T) {
+	maxReserve := uint256.MustFromHex("0xffffffffffffffffffffffffffff")
+	reserveIn := new(uint256.Int).Sub(maxReserve, uint256.NewInt(1))
+	if _, err := quoteExactOut(mathInt("2"), reserveIn, reserveIn, maxReserve, mathInt("0"), mathInt("0")); !errors.Is(err, errMathOverflow) {
+		t.Fatalf("exact-out requiring input beyond uint112 reserve cap: %v", err)
+	}
+}
+
+func TestExactOutputRandomizedMinimality(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	for i := 0; i < 1_000; i++ {
+		reserveIn := uint256.NewInt(uint64(rng.Int63n(1_000_000_000_000) + 100))
+		reserveOut := uint256.NewInt(uint64(rng.Int63n(1_000_000_000_000) + 100))
+		reference := uint256.NewInt(uint64(rng.Int63n(2_000_000_000_000) + 1))
+		missingIn := uint256.NewInt(uint64(rng.Int63n(int64(reserveIn.Uint64() * 98 / 100))))
+		missingOut := uint256.NewInt(uint64(rng.Int63n(int64(reserveOut.Uint64() * 98 / 100))))
+		input := uint256.NewInt(uint64(rng.Int63n(2_000_000_000_000) + 1))
+
+		target, err := quoteExactIn(input, reserveIn, reference, reserveOut, missingIn, missingOut)
+		if err != nil || target.IsZero() {
+			continue
+		}
+		got, err := quoteExactOut(&target, reserveIn, reference, reserveOut, missingIn, missingOut)
+		if err != nil {
+			t.Fatalf("case %d: exact-out failed: %v", i, err)
+		}
+		out, err := quoteExactIn(&got, reserveIn, reference, reserveOut, missingIn, missingOut)
+		if err != nil || out.Lt(&target) {
+			t.Fatalf("case %d: output %s below target %s: %v", i, out.Dec(), target.Dec(), err)
+		}
+		if !got.IsZero() {
+			var previousInput uint256.Int
+			previousInput.SubUint64(&got, 1)
+			previous, err := quoteExactIn(&previousInput, reserveIn, reference, reserveOut, missingIn, missingOut)
+			if err != nil || !previous.Lt(&target) {
+				t.Fatalf("case %d: input %s is not minimal; previous output %s, target %s: %v",
+					i, got.Dec(), previous.Dec(), target.Dec(), err)
+			}
 		}
 	}
 }
