@@ -94,7 +94,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  params.TokenOut,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: defaultGas,
+		Gas: defaultGas + int64(s.extra.Extensions)*gasPerExtension,
 	}, nil
 }
 

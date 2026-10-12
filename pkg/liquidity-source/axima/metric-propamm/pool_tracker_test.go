@@ -4,16 +4,16 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
-
 	"github.com/stretchr/testify/require"
-
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 // A pool whose price feed is down must never be priced: Metric answers 200 with empty depth,
@@ -50,6 +50,46 @@ func TestTrackerMarksFeedDownPoolUnquotable(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Each extension adds swap gas, so the tracker must publish the pool's extension count from /metadata
+// (matched case-insensitively), and keep the last count when /metadata fails.
+func TestTrackerPublishesExtensionCount(t *testing.T) {
+	const level = `{"binIdx":0,"price":"1","cumulativeVolume":"1","priceImpactE6":"0"}`
+	const bidAsk = `{"bidAdj":"1","askAdj":"2","totalToken0Available":"5","totalToken1Available":"6","depth":{"asks":[` + level + `],"bids":[]},"priceProviderStatus":"ok"}`
+	metadataOK := true
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/metadata") && !metadataOK:
+			w.WriteHeader(http.StatusInternalServerError)
+		case strings.HasSuffix(r.URL.Path, "/metadata"):
+			_, _ = w.Write([]byte(`{"data":[{"poolAddress":"0xABcd","extensions":["0x1","0x2","0x3"]},{"poolAddress":"0xother","extensions":["0x1"]}]}`))
+		default:
+			_, _ = w.Write([]byte(bidAsk))
+		}
+	}))
+	defer srv.Close()
+
+	cfg := &axima.Config{DexID: DexType, ChainID: 8453, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL}}
+	tracker := NewPoolTracker(cfg, nil)
+	extensions := func(p entity.Pool) int {
+		var extra axima.Extra
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+		return extra.Extensions
+	}
+
+	p, err := tracker.GetNewPoolState(context.Background(),
+		entity.Pool{Address: "0xabCD", StaticExtra: `{}`}, poolpkg.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Equal(t, 3, extensions(p))
+
+	// Cache expired and /metadata down: the previous count survives.
+	metadataOK = false
+	tracker.extExpires = time.Time{}
+	p, err = tracker.GetNewPoolState(context.Background(), p, poolpkg.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Equal(t, 3, extensions(p))
 }
 
 func TestQuoteTimestamp(t *testing.T) {

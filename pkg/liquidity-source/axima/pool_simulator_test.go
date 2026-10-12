@@ -204,3 +204,36 @@ func TestCloneState(t *testing.T) {
 		TokenOut: USDC,
 	}, nil)
 }
+
+// Each Metric extension adds swap gas: dropping the per-extension term makes quoted gas too low.
+func TestGasPerExtension(t *testing.T) {
+	file, err := os.ReadFile("./pool_state_test.json")
+	require.NoError(t, err)
+	var state PairData
+	require.NoError(t, json.Unmarshal(file, &state))
+	extra, reserves, err := convertAximaPoolState(state, &Config{MaxAge: 60, IsV2: true})
+	require.NoError(t, err)
+
+	const weth, usdc = "0x4200000000000000000000000000000000000006", "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+	gas := func(exts int) int64 {
+		extra.Extensions = exts
+		sim := &PoolSimulator{
+			Pool: pool.Pool{Info: pool.PoolInfo{
+				Tokens:   []string{weth, usdc},
+				Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
+			}},
+			poolTimestamp: time.Now().Unix(),
+			extra:         extra,
+			decimalsDiff:  12,
+		}
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: bignumber.NewBig("10000000000000000")},
+			TokenOut:      usdc,
+		})
+		require.NoError(t, err)
+		return res.Gas
+	}
+
+	require.Equal(t, int64(175000), gas(0))
+	require.Equal(t, int64(20000*3), gas(3)-gas(0)) // literal on purpose: a changed constant must be a conscious edit
+}

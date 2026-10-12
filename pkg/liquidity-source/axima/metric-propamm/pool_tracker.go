@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -44,6 +45,32 @@ type PoolTracker struct {
 	config       *axima.Config
 	client       *resty.Client
 	ethrpcClient *ethrpc.Client
+
+	extMu      sync.Mutex
+	extCounts  map[string]int // lowercase pool address -> extension count
+	extExpires time.Time
+}
+
+// extensionCount returns the pool's extension count from the venue-wide /metadata, fetched once per
+// extensionsTTL for all pools. ok is false when the fetch failed or the pool is missing.
+func (t *PoolTracker) extensionCount(ctx context.Context, poolAddr string) (n int, ok bool) {
+	t.extMu.Lock()
+	defer t.extMu.Unlock()
+	if now := time.Now(); now.After(t.extExpires) {
+		all, err := fetchAllPairMetadata(ctx, t.client, t.config.ChainID)
+		if err != nil {
+			logger.WithFields(logger.Fields{"dexType": DexType}).Warnf("failed to fetch extensions: %v", err)
+			t.extExpires = now.Add(extensionsRetry)
+		} else {
+			t.extCounts = make(map[string]int, len(all))
+			for _, pm := range all {
+				t.extCounts[strings.ToLower(pm.PoolAddress)] = len(pm.Extensions)
+			}
+			t.extExpires = now.Add(extensionsTTL)
+		}
+	}
+	n, ok = t.extCounts[poolAddr]
+	return n, ok
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -66,6 +93,14 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(
 
 func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	poolAddr := strings.ToLower(p.Address)
+
+	// Keep the previous count when /metadata is unavailable.
+	var prev axima.Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	extensions, ok := t.extensionCount(ctx, poolAddr)
+	if !ok {
+		extensions = prev.Extensions
+	}
 
 	unswappable := false
 	var staticExtra axima.StaticExtra
@@ -109,7 +144,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 			logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr}).
 				Warnf("failed to fetch bid/ask: %v", fetchErr)
 		}
-		unavailable, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true})
+		unavailable, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true, Extensions: extensions})
 		p.Extra = string(unavailable)
 		p.Reserves = []string{"0", "0"}
 		return p, nil
@@ -121,6 +156,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 		QuoteAvailable: true,
 		MaxAge:         t.config.MaxAge,
 		IsV2:           true,
+		Extensions:     extensions,
 		Bids:           axima.ConvertBins(ba.Depth.Bids),
 		Asks:           axima.ConvertBins(ba.Depth.Asks),
 	})
