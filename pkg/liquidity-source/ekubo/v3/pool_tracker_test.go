@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -319,4 +320,108 @@ func TestPoolTrackerTestSuite(t *testing.T) {
 	test.SkipCI(t)
 
 	suite.Run(t, new(PoolTrackerTestSuite))
+}
+
+// Replays an Ethereum incident on full range pool 0xcd214dce…1a17: block 26036223 initializes the pool and adds
+// liquidity L in one tx, block 26036511 removes all of it. pool-service creates the pool from an RPC fetch at block
+// 26036223 (the state already includes +L), then hands the tracker that same block's PositionUpdated(+L). Applying
+// it again left liquidity L after the full withdrawal, so the drained pool kept quoting reserves it no longer had.
+func TestPoolTracker_SkipsLogsAlreadyIncludedInState(t *testing.T) {
+	t.Parallel()
+
+	const (
+		createdBlock   = 26036223
+		withdrawnBlock = 26036511
+	)
+
+	poolKey := anyPoolKey(
+		valueobject.ZeroAddress,
+		"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
+		"0x948b9c2c99718034954110cb61a6e08e107745f9",
+		9223372036854775,
+		pools.NewFullRangePoolTypeConfig(),
+	)
+	poolAddress, err := poolKey.ToPoolAddress()
+	require.NoError(t, err)
+	require.Equal(t, "0xcd214dceb5fd68a6c4cc931946f3e1a2bd85e42bbff6839013b30af733561a17", poolAddress)
+
+	positionUpdated := func(blockNumber uint64, data string) types.Log {
+		return types.Log{
+			Address:     MainnetConfig.Core,
+			Topics:      []common.Hash{abis.PositionUpdatedEvent.ID},
+			Data:        common.FromHex(data),
+			BlockNumber: blockNumber,
+		}
+	}
+	// https://etherscan.io/tx/0x26a00e60d08436c2f55d7798982a057bd6098752144c894e539164f12ebcb55b, liquidityDelta +L
+	addLiquidity := positionUpdated(createdBlock, "0x00000000000000000000000002d9876a21af7545f8632c3af76ec90b5ad4b66dcd214dceb5fd68a6c4cc931946f3e1a2bd85e42bbff6839013b30af733561a1708925ac08f40a8fba639449e7ea7519e926687cd08482aa2fab6326d0549cd930000000000000000000000000000000000000000000000007721285763e3760b000000000000000001e9aebbcaa9bbab000000000000001cfb520bb767ef77228000000f91e26cec29913069007e166300000000000000007721285763e3760b")
+	// https://etherscan.io/tx/0x521dcfd7ba10d290cc95655edc21078dce0eced8955d48c6c50e663325f64c72, liquidityDelta -L
+	removeLiquidity := positionUpdated(withdrawnBlock, "0x00000000000000000000000002d9876a21af7545f8632c3af76ec90b5ad4b66dcd214dceb5fd68a6c4cc931946f3e1a2bd85e42bbff6839013b30af733561a1708925ac08f40a8fba639449e7ea7519e926687cd08482aa2fab6326d0549cd93ffffffffffffffffffffffffffffffffffffffffffffffff88ded7a89c1c89f5fffffffffffffffffe16514435564456ffffffffffffffe304adf448981088df8000000f91e26cec29913069007e166300000000000000000000000000000000")
+
+	sqrtRatio := math.FloatSqrtRatioToFixed(uint256.MustFromHex("0x8000000f91e26cec29913069"))
+	liquidityL := uint256.MustFromHex("0x7721285763e3760b")
+
+	staticExtraJson, err := json.Marshal(&StaticExtra{
+		Core:          MainnetConfig.Core,
+		ExtensionType: ExtensionTypeNoSwapCallPoints,
+		PoolKey:       poolKey,
+	})
+	require.NoError(t, err)
+
+	newEntityPool := func(t *testing.T, liquidity *uint256.Int, blockNumber uint64) entity.Pool {
+		extraJson, err := json.Marshal(pools.NewFullRangePoolState(
+			pools.NewFullRangePoolSwapState(sqrtRatio.Clone()), liquidity.Clone()))
+		require.NoError(t, err)
+
+		return entity.Pool{
+			Address:     poolAddress,
+			Extra:       string(extraJson),
+			StaticExtra: string(staticExtraJson),
+			BlockNumber: blockNumber,
+		}
+	}
+
+	tracker := NewPoolTracker(MainnetConfig, nil)
+	update := func(t *testing.T, p entity.Pool, logs ...types.Log) entity.Pool {
+		p, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{Logs: logs})
+		require.NoError(t, err)
+		return p
+	}
+
+	liquidityOf := func(t *testing.T, p entity.Pool) string {
+		var state pools.FullRangePoolState
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &state))
+		return state.Liquidity.Dec()
+	}
+
+	t.Run("creation block log already in the RPC-fetched state is not applied again", func(t *testing.T) {
+		p := update(t, newEntityPool(t, liquidityL, createdBlock), addLiquidity)
+
+		require.Equal(t, liquidityL.Dec(), liquidityOf(t, p))
+		require.EqualValues(t, createdBlock, p.BlockNumber)
+	})
+
+	t.Run("full withdrawal after creation leaves no liquidity and no reserves", func(t *testing.T) {
+		p := update(t, newEntityPool(t, liquidityL, createdBlock), addLiquidity)
+		p = update(t, p, removeLiquidity)
+
+		require.Equal(t, "0", liquidityOf(t, p))
+		require.Equal(t, []string{"0", "0"}, []string(p.Reserves))
+		require.EqualValues(t, withdrawnBlock, p.BlockNumber)
+	})
+
+	t.Run("logs from blocks after the state are still applied", func(t *testing.T) {
+		p := update(t, newEntityPool(t, new(uint256.Int), createdBlock-1), addLiquidity)
+
+		require.Equal(t, liquidityL.Dec(), liquidityOf(t, p))
+		require.EqualValues(t, createdBlock, p.BlockNumber)
+	})
+
+	t.Run("late logs older than the state do not move its block number back", func(t *testing.T) {
+		// A block number moved back would let a later task re-apply logs the state already includes.
+		p := update(t, newEntityPool(t, new(uint256.Int), withdrawnBlock), addLiquidity)
+
+		require.Equal(t, "0", liquidityOf(t, p))
+		require.EqualValues(t, withdrawnBlock, p.BlockNumber)
+	})
 }
