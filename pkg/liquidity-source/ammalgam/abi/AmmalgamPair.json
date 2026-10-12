@@ -1,0 +1,3 @@
+[
+  {"type":"function","name":"underlyingTokens","stateMutability":"view","inputs":[],"outputs":[{"name":"tokenX","type":"address"},{"name":"tokenY","type":"address"}]}
+]
