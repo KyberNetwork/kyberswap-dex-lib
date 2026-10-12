@@ -3,12 +3,14 @@ package metricpropamm
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
@@ -24,6 +26,20 @@ import (
 // byte is the pause level (0 = active).
 var poolABI, _ = abi.JSON(strings.NewReader(
 	`[{"inputs":[{"type":"bytes32"}],"name":"extsload","outputs":[{"type":"bytes32"}],"stateMutability":"view","type":"function"}]`))
+
+// priceProviderABI exposes the feed read that the pool's quoter extension performs
+// inside a swap. Only updatedAt is used; the leading outputs are decoded
+// positionally to reach it and their names are not authoritative.
+var priceProviderABI, _ = abi.JSON(strings.NewReader(
+	`[{"inputs":[{"type":"bytes32","name":"key"},{"type":"address","name":"pool"}],"name":"price","outputs":[{"type":"uint256","name":"price"},{"type":"uint256","name":"round"},{"type":"uint256","name":"spread"},{"type":"uint256","name":"updatedAt"}],"stateMutability":"view","type":"function"}]`))
+
+// priceFeed is priceProvider.price(key, pool) decoded positionally.
+type priceFeed struct {
+	Price     *big.Int
+	Round     *big.Int
+	Spread    *big.Int
+	UpdatedAt *big.Int
+}
 
 type bidAsk struct {
 	Bid                  string      `json:"bidAdj"`
@@ -73,16 +89,44 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 		unswappable = true
 	} else if t.ethrpcClient != nil {
 		var slot0 [32]byte
-		if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		var feed priceFeed
+		req := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: p.Address,
 			Method: "extsload",
 			Params: []any{[32]byte{}}, // storage slot 0; low byte = pause level (0 = active)
-		}, []any{&slot0}).Aggregate(); err != nil {
+		}, []any{&slot0})
+
+		// The quoter extension reads this feed during the swap and reverts
+		// FeedStalled() when it is stale, which fails the whole swap even though
+		// bid_ask still answers with a usable quote. Pools listed before the
+		// provider address was persisted carry none, so the read is skipped.
+		checkFeed := t.config.FeedMaxAge > 0 && staticExtra.PriceProviderAddress != ""
+		if checkFeed {
+			req.AddCall(&ethrpc.Call{
+				ABI:    priceProviderABI,
+				Target: staticExtra.PriceProviderAddress,
+				Method: priceProviderMethodPrice,
+				Params: []any{priceFeedKey, common.HexToAddress(p.Address)},
+			}, []any{&feed})
+		}
+
+		// TryAggregate: a reverting feed read must not mask the pause check.
+		resp, err := req.TryAggregate()
+		if err != nil {
 			logger.WithFields(logger.Fields{"dexType": DexType, "pool": p.Address}).
-				Warnf("failed to read on-chain pause state: %v", err)
-		} else if slot0[31] != 0 {
-			unswappable = true
+				Warnf("failed to read on-chain pool state: %v", err)
+		} else {
+			if len(resp.Result) > 0 && resp.Result[0] && slot0[31] != 0 {
+				unswappable = true
+			}
+			if checkFeed && len(resp.Result) > 1 && resp.Result[1] &&
+				feedStalled(feed.UpdatedAt, t.config.FeedMaxAge, time.Now().Unix()) {
+				logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr,
+					"provider": staticExtra.PriceProviderAddress, "updatedAt": feed.UpdatedAt}).
+					Warnf("on-chain price feed is stale: quoter extension would revert")
+				unswappable = true
+			}
 		}
 	}
 
@@ -132,6 +176,21 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 	p.Extra = string(extra)
 	p.Timestamp = quoteTimestamp(ba.ServerTs, time.Now().Unix())
 	return p, nil
+}
+
+// feedStalled reports whether the on-chain price feed is too old for the quoter
+// extension to answer. It is deliberately fail-open: an absent, zero or
+// future-dated updatedAt means the read told us nothing usable, and must not
+// take an otherwise healthy pool out of routing.
+func feedStalled(updatedAt *big.Int, maxAge, now int64) bool {
+	if maxAge <= 0 || updatedAt == nil || !updatedAt.IsInt64() {
+		return false
+	}
+	ts := updatedAt.Int64()
+	if ts <= 0 || ts > now {
+		return false
+	}
+	return ts+maxAge < now
 }
 
 func quoteTimestamp(serverTs, now int64) int64 {

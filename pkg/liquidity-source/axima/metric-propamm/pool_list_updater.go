@@ -34,6 +34,7 @@ type PairMetadata struct {
 	Token0Decimals          uint8  `json:"token0Decimals"`
 	Token1Decimals          uint8  `json:"token1Decimals"`
 	PoolFactoryAddress      string `json:"poolFactoryAddress"`
+	PriceProviderAddress    string `json:"priceProviderAddress"`
 	SwapWhitelistingEnabled bool   `json:"swapWhitelistingEnabled"`
 }
 
@@ -70,6 +71,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	pools := lo.Map(pairMetadata, func(pm PairMetadata, _ int) entity.Pool {
 		staticExtra, _ := json.Marshal(axima.StaticExtra{
 			Pair:                    pm.Pair,
+			PriceProviderAddress:    strings.ToLower(pm.PriceProviderAddress),
 			SwapWhitelistingEnabled: pm.SwapWhitelistingEnabled,
 		})
 

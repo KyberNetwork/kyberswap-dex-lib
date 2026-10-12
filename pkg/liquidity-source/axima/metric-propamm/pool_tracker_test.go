@@ -2,6 +2,7 @@ package metricpropamm
 
 import (
 	"context"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,6 +65,36 @@ func TestQuoteTimestamp(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			require.Equal(t, tc.want, quoteTimestamp(tc.serverTs, now))
+		})
+	}
+}
+
+// The incident this guards: Metric's off-chain bid_ask answered with a usable quote
+// and real depth while the on-chain feed its quoter extension reads had gone stale,
+// so every routed swap reverted FeedStalled() inside the extension. Staleness has to
+// take the pool out of routing. The fail-open cases matter just as much: a feed read
+// that tells us nothing (absent, zero, future-dated, unconfigured) must leave a
+// healthy pool routable, because treating "unknown" as stale would drop every
+// Metric pool at once.
+func TestFeedStalled(t *testing.T) {
+	const now, maxAge = 1_000_000, 60
+	for name, tc := range map[string]struct {
+		updatedAt *big.Int
+		maxAge    int64
+		stalled   bool
+	}{
+		"fresh feed stays routable":     {big.NewInt(now - 10), maxAge, false},
+		"exactly at the limit is fresh": {big.NewInt(now - maxAge), maxAge, false},
+		"past the limit is stale":       {big.NewInt(now - maxAge - 1), maxAge, true},
+		"long-dead feed is stale":       {big.NewInt(now - 86_400), maxAge, true},
+		"check disabled by zero maxAge": {big.NewInt(now - 86_400), 0, false},
+		"absent reading is not stale":   {nil, maxAge, false},
+		"zero reading is not stale":     {big.NewInt(0), maxAge, false},
+		"future reading is not stale":   {big.NewInt(now + 60), maxAge, false},
+		"unrepresentable is not stale":  {new(big.Int).Lsh(big.NewInt(1), 200), maxAge, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.stalled, feedStalled(tc.updatedAt, tc.maxAge, now))
 		})
 	}
 }
