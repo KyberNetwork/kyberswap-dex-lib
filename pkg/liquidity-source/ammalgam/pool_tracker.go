@@ -67,7 +67,7 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, 
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ pool.GetNewPoolStateParams,
+	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	if t == nil || t.config == nil || t.ethrpcClient == nil ||
 		!validPairAddress(t.config.FactoryAddress) || !validPairAddress(p.Address) {
@@ -119,7 +119,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	return updatePoolFromSnapshot(p, t.config, staticExtra, snapshot, time.Now().Unix())
+	return updatePoolFromSnapshot(p, t.config, staticExtra, snapshot, time.Now().Unix(), len(params.Logs) > 0)
 }
 
 func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
@@ -131,7 +131,12 @@ func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
 	if seconds <= 0 {
 		seconds = int64(defaultRefreshInterval / time.Second)
 	}
-	return p.Timestamp + seconds
+	lastRefresh := p.Timestamp
+	var extra Extra
+	if json.Unmarshal([]byte(p.Extra), &extra) == nil && extra.LastRefreshTimestamp > 0 {
+		lastRefresh = extra.LastRefreshTimestamp
+	}
+	return lastRefresh + seconds
 }
 
 func reconcileTrackerMetadata(
@@ -186,6 +191,7 @@ func updatePoolFromSnapshot(
 	staticExtra StaticExtra,
 	snapshot trackerSnapshot,
 	now int64,
+	hasLogs bool,
 ) (entity.Pool, error) {
 	if p.BlockNumber > snapshot.BlockNumber {
 		return p, nil
@@ -222,7 +228,10 @@ func updatePoolFromSnapshot(
 		return p, ErrInvalidPool
 	}
 
-	extra := Extra{LastUpdateTimestamp: snapshot.Reserves.LastUpdateTimestamp}
+	extra := Extra{
+		LastUpdateTimestamp:  snapshot.Reserves.LastUpdateTimestamp,
+		LastRefreshTimestamp: now,
+	}
 	extra.ReferenceReserves[0] = *uint256.MustFromBig(snapshot.References.ReferenceReserveX)
 	extra.ReferenceReserves[1] = *uint256.MustFromBig(snapshot.References.ReferenceReserveY)
 	extra.MissingAssets[0] = *uint256.MustFromBig(missingX)
@@ -240,7 +249,9 @@ func updatePoolFromSnapshot(
 	p.Extra = string(extraBytes)
 	p.StaticExtra = string(staticExtraBytes)
 	p.BlockNumber = snapshot.BlockNumber
-	p.Timestamp = now
+	if hasLogs {
+		p.Timestamp = now
+	}
 	return p, nil
 }
 

@@ -41,7 +41,7 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 		},
 	}
 	p := entity.Pool{BlockNumber: 9, Timestamp: 1, Reserves: entity.PoolReserves{"1", "2"}}
-	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot, 1_700_000_000)
+	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot, 1_700_000_000, true)
 	require.NoError(t, err)
 	require.Equal(t, entity.PoolReserves{"1000", "2000"}, got.Reserves)
 	require.Equal(t, uint64(10), got.BlockNumber)
@@ -54,6 +54,7 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	require.Equal(t, "30", extra.MissingAssets[0].String())
 	require.True(t, extra.MissingAssets[1].IsZero())
 	require.Equal(t, uint32(77), extra.LastUpdateTimestamp)
+	require.Equal(t, int64(1_700_000_000), extra.LastRefreshTimestamp)
 
 	var staticExtra StaticExtra
 	require.NoError(t, json.Unmarshal([]byte(got.StaticExtra), &staticExtra))
@@ -71,9 +72,31 @@ func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
 		BlockNumber:    10,
 		Beacon:         beacon,
 		Implementation: implementation,
-	}, 100)
+	}, 100, false)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
+}
+
+func TestUpdatePoolFromSnapshotScheduledRefreshPreservesActivityTimestamp(t *testing.T) {
+	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
+	snapshot := trackerSnapshot{
+		BlockNumber: 10, Beacon: beacon, Implementation: implementation,
+		Reserves: reservesRPC{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000)},
+		References: referenceReservesRPC{
+			ReferenceReserveX: big.NewInt(900), ReferenceReserveY: big.NewInt(1_800),
+		},
+		Totals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(10), big.NewInt(8),
+			big.NewInt(0), big.NewInt(40), big.NewInt(5),
+		}},
+	}
+	p := entity.Pool{BlockNumber: 9, Timestamp: 123, Reserves: entity.PoolReserves{"1", "2"}}
+	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot, 1_000, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(123), got.Timestamp)
+	require.Equal(t, int64(1_300), (&PoolTracker{}).NextUpdateAt(got))
 }
 
 func TestReconcileTrackerMetadataLearnsBlankValuesAndRejectsMismatch(t *testing.T) {

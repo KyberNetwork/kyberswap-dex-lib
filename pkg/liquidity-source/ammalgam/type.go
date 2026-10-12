@@ -4,9 +4,10 @@ import "github.com/holiman/uint256"
 
 // Extra is the mutable state captured by the tracker at one block.
 type Extra struct {
-	ReferenceReserves   [2]uint256.Int `json:"referenceReserves"`
-	MissingAssets       [2]uint256.Int `json:"missingAssets"`
-	LastUpdateTimestamp uint32         `json:"lastUpdateTimestamp"`
+	ReferenceReserves    [2]uint256.Int `json:"referenceReserves"`
+	MissingAssets        [2]uint256.Int `json:"missingAssets"`
+	LastUpdateTimestamp  uint32         `json:"lastUpdateTimestamp"`
+	LastRefreshTimestamp int64          `json:"lastRefreshTimestamp,omitempty"`
 }
 
 // StaticExtra holds metadata that does not change with a quote.
