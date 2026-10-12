@@ -99,16 +99,14 @@ func (d *PoolsListUpdater) newPool(ctx context.Context, psmStr string, psmCfg PS
 		innerPsmStr = hexutil.Encode(innerPsm[:])
 	}
 
-	psm := common.HexToAddress(psmStr)
 	if _, err = d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    LitePSMABI,
 		Target: innerPsmStr,
 		Method: litePSMMethodGemJoin,
 	}, []any{&gemJoin}).Call(); err != nil {
 		return entity.Pool{}, err
-	} else if psm != gemJoin {
-		staticExtra.GemJoin = &gemJoin
 	}
+	staticExtra.setJoin(common.HexToAddress(psmStr), common.HexToAddress(innerPsmStr), gemJoin)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    LitePSMABI,
@@ -142,4 +140,15 @@ func (d *PoolsListUpdater) newPool(ctx context.Context, psmStr string, psmCfg PS
 		Timestamp:   time.Now().Unix(),
 		StaticExtra: string(staticExtraBytes),
 	}, nil
+}
+
+// setJoin records the separate gemJoin and, for a wrapper, the inner psm. gemJoin was read from
+// innerPsm, so compare against it, not the (possibly wrapper) psm: a lite psm joins itself.
+func (s *StaticExtra) setJoin(psm, innerPsm, gemJoin common.Address) {
+	if gemJoin != innerPsm {
+		s.GemJoin = &gemJoin
+	}
+	if innerPsm != psm {
+		s.InnerPsm = &innerPsm
+	}
 }
