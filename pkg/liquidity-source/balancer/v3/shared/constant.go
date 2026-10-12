@@ -71,7 +71,6 @@ const (
 	VaultMethodGetBufferAsset             = "getBufferAsset"
 	VaultMethodGetHooksConfig             = "getHooksConfig"
 	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
-	VaultMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
 	VaultMethodGetPoolData                = "getPoolData"
 
 	VaultMethodIsVaultPaused        = "isVaultPaused"

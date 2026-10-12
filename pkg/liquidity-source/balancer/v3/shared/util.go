@@ -49,13 +49,9 @@ var (
 
 const aggregateSwapFeeOffset = 42 // PoolConfigConst.AGGREGATE_SWAP_FEE_OFFSET
 
-// AggregateSwapFee returns the explorer's aggregate swap fee, or decodes it from poolConfigBits when the
-// explorer call failed (no VaultExplorer deployed, so the Vault is used as the explorer).
+// AggregateSwapFee decodes the aggregate swap fee from poolConfigBits, the same source the Vault's
+// getPoolConfig (and VaultExplorer.getAggregateFeePercentages) reads.
 func (r *RpcResult) AggregateSwapFee() *uint256.Int {
-	if r.AggregateSwapFeePercentage != nil {
-		v, _ := uint256.FromBig(r.AggregateSwapFeePercentage)
-		return v
-	}
 	v := new(uint256.Int).SetBytes32(r.PoolData.PoolConfigBits[:])
 	v.Rsh(v, aggregateSwapFeeOffset)
 	v.And(v, feeMask)

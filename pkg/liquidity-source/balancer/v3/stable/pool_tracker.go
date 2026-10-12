@@ -147,11 +147,6 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 	}, []any{&rpcRes.StaticSwapFeePercentage}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
-		Method: shared.VaultMethodGetAggregateFeePercentages,
-		Params: paramsPool,
-	}, []any{&rpcRes.AggregateFeePercentageRPC}).AddCall(&ethrpc.Call{
-		ABI:    shared.VaultExplorerABI,
-		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetPoolData,
 		Params: paramsPool,
 	}, []any{&rpcRes.PoolDataRPC}).AddCall(&ethrpc.Call{

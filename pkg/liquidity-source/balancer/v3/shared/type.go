@@ -26,7 +26,6 @@ type Extra struct {
 type RpcResult struct {
 	HooksConfigRPC
 	StaticSwapFeePercentage *big.Int
-	AggregateFeePercentageRPC
 	PoolDataRPC
 	Buffers        func() []*ExtraBuffer
 	IsPoolDisabled bool
@@ -93,11 +92,6 @@ type PoolMetaInfo struct {
 	BufferSwap      string `json:"buffSwap,omitempty"`
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
 	BlockNumber     uint64 `json:"blockNumber"`
-}
-
-type AggregateFeePercentageRPC struct {
-	AggregateSwapFeePercentage  *big.Int
-	AggregateYieldFeePercentage *big.Int
 }
 
 type VaultSwapParams struct {

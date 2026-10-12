@@ -128,12 +128,6 @@ func addRPCCalls(
 	addFn(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: vaultExplorer,
-		Method: shared.VaultMethodGetAggregateFeePercentages,
-		Params: paramsPool,
-	}, []any{&rpcRes.AggregateFeePercentageRPC})
-	addFn(&ethrpc.Call{
-		ABI:    shared.VaultExplorerABI,
-		Target: vaultExplorer,
 		Method: shared.VaultMethodGetPoolData,
 		Params: paramsPool,
 	}, []any{&rpcRes.PoolDataRPC})
