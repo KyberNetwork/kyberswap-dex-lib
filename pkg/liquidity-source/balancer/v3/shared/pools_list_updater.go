@@ -27,8 +27,8 @@ type (
 	Metadata struct {
 		LastBlockTimestamp int64 `json:"lastBlockTimestamp"`
 		Skip               int   `json:"skip"`
-		// Offsets is the count of pools already emitted per factory (on-chain discovery).
-		Offsets []int `json:"offsets,omitempty"`
+		// Offsets is the count of pools already emitted per lowercased factory address (on-chain discovery).
+		Offsets map[string]int `json:"offsets,omitempty"`
 	}
 )
 
@@ -54,7 +54,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}()
 
 	var metadata Metadata
-	if len(metadataBytes) > 0 && u.count%RelistInterval > 0 {
+	// Relist (cursor reset) only for the subgraph; an on-chain factory's pool list is append-only.
+	if len(metadataBytes) > 0 && (len(u.config.Factories) > 0 || u.count%RelistInterval > 0) {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, nil, err
 		}
