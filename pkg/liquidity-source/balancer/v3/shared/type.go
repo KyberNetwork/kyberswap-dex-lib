@@ -82,8 +82,8 @@ type HooksConfigRPC struct {
 type SwapInfo struct {
 	Buffers                []*ExtraBuffer
 	AggregateFee           *big.Int
-	AmountInBeforeConvert  *big.Int // for CalcAmountOut
-	AmountOutBeforeConvert *big.Int // for CalcAmountIn
+	AmountInBeforeConvert  *big.Int // vault amount in (pool-token units), set by CalcAmountIn
+	AmountOutBeforeConvert *big.Int // vault amount out (pool-token units), set by CalcAmountOut
 }
 
 type PoolMetaInfo struct {
