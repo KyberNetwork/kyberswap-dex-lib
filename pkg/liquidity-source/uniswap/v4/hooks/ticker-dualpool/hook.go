@@ -57,10 +57,17 @@ type Hook struct {
 
 var _ uniswapv4.Hook = (*Hook)(nil)
 
-// NewHook is explicitly registered by local fixtures. No production Ticker
-// address is registered until the deployment and bytecode have been verified.
+var productionHookAddress = common.HexToAddress("0x047ea2f55148b7601fdde0d28588b55c09192ac4")
+
+var _ = uniswapv4.RegisterHooksFactory(NewHook, productionHookAddress)
+
+// NewHook loads the tracked snapshot; Track validates the proxy implementation.
 func NewHook(p *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{address: p.HookAddress}
+	if p.HookAddress == productionHookAddress && (p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
+		h.invalidate(ErrInvalidState)
+		return h
+	}
 	if len(p.HookExtra) > 0 {
 		var snapshot Snapshot
 		if err := p.HookExtra.Unmarshal(&snapshot); err != nil {

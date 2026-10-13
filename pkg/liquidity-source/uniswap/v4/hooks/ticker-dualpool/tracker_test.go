@@ -90,14 +90,17 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": hexutil.Encode(out)})
 	}))
 	defer server.Close()
-	address := common.HexToAddress("0x12ac4")
+	address := productionHookAddress
 	static, err := json.Marshal(uniswapv4.StaticExtra{Fee: 2000, TickSpacing: 10, HooksAddress: address})
 	require.NoError(t, err)
 	p := &uniswapv4.HookParam{HookAddress: address, BlockNumber: big.NewInt(123),
-		Cfg:       &uniswapv4.Config{StateViewAddress: "0x0000000000000000000000000000000000000003"},
+		Cfg:       &uniswapv4.Config{ChainID: valueobject.ChainIDMonad, StateViewAddress: "0x0000000000000000000000000000000000000003"},
 		RpcClient: ethrpc.New(server.URL).SetMulticallContract(common.HexToAddress("0x4567")),
 		Pool:      &entity.Pool{Address: common.HexToHash("0x1").Hex(), StaticExtra: string(static), Tokens: []*entity.PoolToken{{Address: "0x1"}, {Address: "0x2"}}}}
-	h := NewHook(p).(*Hook)
+	registered, ok := uniswapv4.GetHook(address, p)
+	require.True(t, ok)
+	h, ok := registered.(*Hook)
+	require.True(t, ok)
 	raw, err := h.trackBase(context.Background(), p)
 	require.NoError(t, err)
 	require.Equal(t, 2, calls)
@@ -132,15 +135,6 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &next))
 	require.Equal(t, p.Pool.BlockNumber, next.BlockNumber)
 
-	oldFactory, exists := uniswapv4.HookFactories[address]
-	uniswapv4.RegisterHooksFactory(NewHook, address)
-	t.Cleanup(func() {
-		if exists {
-			uniswapv4.HookFactories[address] = oldFactory
-		} else {
-			delete(uniswapv4.HookFactories, address)
-		}
-	})
 	fetch := uniswapv4.FetchRPCResult{Liquidity: big.NewInt(0), TickSpacing: 10,
 		Slot0: uniswapv4.Slot0Data{SqrtPriceX96: s.Pool.SqrtPriceX96.ToBig(), Tick: big.NewInt(0), LpFee: 2000}, HookExtra: raw}
 	extra, err := json.Marshal(fetch.ToExtra([]uniswapv4.Tick{}))
