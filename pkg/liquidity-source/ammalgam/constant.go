@@ -8,9 +8,9 @@ const (
 )
 
 var (
-	ErrInvalidPool     = errors.New("invalid Ammalgam pool")
-	ErrInvalidToken    = errors.New("invalid Ammalgam token")
-	ErrInvalidAmount   = errors.New("invalid Ammalgam amount")
-	ErrZeroOutput      = errors.New("zero Ammalgam output")
-	ErrReserveLimit    = errors.New("Ammalgam reserve exceeds uint112")
+	ErrInvalidPool   = errors.New("invalid Ammalgam pool")
+	ErrInvalidToken  = errors.New("invalid Ammalgam token")
+	ErrInvalidAmount = errors.New("invalid Ammalgam amount")
+	ErrZeroOutput    = errors.New("zero Ammalgam output")
+	ErrReserveLimit  = errors.New("Ammalgam reserve exceeds uint112")
 )

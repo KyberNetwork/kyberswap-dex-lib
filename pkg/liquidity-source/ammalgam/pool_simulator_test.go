@@ -223,3 +223,55 @@ func TestPoolSimulatorReserveCapAndStrictOutputBound(t *testing.T) {
 	})
 	require.Error(t, err, "amountOut must be strictly less than reserveOut minus missingOut")
 }
+
+// Pool states and quotes taken at Ethereum block 26181046. Each output was replayed on a mainnet fork against
+// the real pair.swap: out passes the K check, out+1 reverts, and the exact-out input is the minimum that works.
+// The USDC/USDT pair was past the 1-day lending checkpoint, so its reserves include accrued LP interest.
+func TestQuotesMatchOnChainSwapAtBlock26181046(t *testing.T) {
+	tests := []struct {
+		name                          string
+		reserves, references, missing [2]string
+		in, out, outIn                [2]string // per direction: X->Y, Y->X
+	}{
+		{
+			name:       "USDC/WETH depleted-side missing assets",
+			reserves:   [2]string{"84732207639", "33786949378155639618"},
+			references: [2]string{"84870087911", "33666176041955854980"},
+			missing:    [2]string{"47666742598", "24054088558545824156"},
+			in:         [2]string{"84732207", "33786949378155639"},
+			out:        [2]string{"33752858463128903", "84509242"},
+			outIn:      [2]string{"84732207", "33786949069799458"},
+		},
+		{
+			name:       "USDC/USDT accrued lending checkpoint",
+			reserves:   [2]string{"30088143792", "30061657241"},
+			references: [2]string{"30073607076", "30014869562"},
+			missing:    [2]string{"21063181895", "22036751344"},
+			in:         [2]string{"300881437", "300616572"},
+			out:        [2]string{"296993505", "297127656"},
+			outIn:      [2]string{"300881437", "300616572"},
+		},
+	}
+	for _, tc := range tests {
+		s, err := NewPoolSimulator(pool.FactoryParams{
+			EntityPool: simulatorFixture(t, tc.reserves, tc.references, tc.missing),
+		})
+		require.NoError(t, err, tc.name)
+		tokens := [2]string{testTokenX, testTokenY}
+		for i := range 2 {
+			in, _ := new(big.Int).SetString(tc.in[i], 10)
+			res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tokens[i], Amount: in}, TokenOut: tokens[1-i],
+			})
+			require.NoError(t, err, tc.name)
+			require.Equal(t, tc.out[i], res.TokenAmountOut.Amount.String(), tc.name)
+
+			out, _ := new(big.Int).SetString(tc.out[i], 10)
+			resIn, err := s.CalcAmountIn(pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{Token: tokens[1-i], Amount: out}, TokenIn: tokens[i],
+			})
+			require.NoError(t, err, tc.name)
+			require.Equal(t, tc.outIn[i], resIn.TokenAmountIn.Amount.String(), tc.name)
+		}
+	}
+}
