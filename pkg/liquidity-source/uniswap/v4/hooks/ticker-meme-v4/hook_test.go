@@ -63,7 +63,7 @@ func TestFactoryStateAndSerialization(t *testing.T) {
 	require.True(t, ok)
 	h := hook.(*Hook)
 	require.NoError(t, h.validate())
-	require.Equal(t, DexType, h.GetExchange())
+	require.Equal(t, "uniswap-v4-ticker-meme", h.GetExchange())
 	require.True(t, h.CanAfterSwap(HookAddress))
 	require.True(t, h.CanBeforeSwap(HookAddress))
 	encoded, err := msgpack.Marshal(h)
@@ -103,7 +103,7 @@ func TestV4ForwardQuote(t *testing.T) {
 	result, err := p.CalcAmountOut(param)
 	require.NoError(t, err)
 	require.Equal(t, "974747", result.TokenAmountOut.Amount.String())
-	require.Equal(t, DexType, p.GetExchange())
+	require.Equal(t, "uniswap-v4-ticker-meme", p.GetExchange())
 	require.EqualValues(t, snapshotBlock, p.GetMetaInfo(param.TokenAmountIn.Token, param.TokenOut).(uniswapv4.PoolMetaInfo).BlockNumber)
 }
 
