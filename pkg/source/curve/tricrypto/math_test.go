@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -42,13 +43,16 @@ func TestNewtonY(t *testing.T) {
 	for k := range 2 {
 		xp[k+1] = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(xp[k+1], priceScale[k]), precisions[k+1]), precision)
 	}
-	var ret, err = newtonY(ann, gamma, xp, D, 2)
+	u := func(b *big.Int) uint256.Int { return *uint256.MustFromBig(b) }
+	xpU := [nCoins]uint256.Int{u(xp[0]), u(xp[1]), u(xp[2])}
+
+	var ret, err = newtonY(u(ann), u(gamma), xpU, u(D), 2)
 	assert.Nil(t, err)
-	assert.Equal(t, ret.String(), "221721964731657747695742644")
-	ret, err = newtonY(ann, gamma, xp, D, 1)
+	assert.Equal(t, ret.Dec(), "221721964731657747695742644")
+	ret, err = newtonY(u(ann), u(gamma), xpU, u(D), 1)
 	assert.Nil(t, err)
-	assert.Equal(t, ret.String(), "217165474602433869159283104")
-	ret, err = newtonY(ann, gamma, xp, D, 0)
+	assert.Equal(t, ret.Dec(), "217165474602433869159283104")
+	ret, err = newtonY(u(ann), u(gamma), xpU, u(D), 0)
 	assert.Nil(t, err)
-	assert.Equal(t, ret.String(), "220406131330584000207811144")
+	assert.Equal(t, ret.Dec(), "220406131330584000207811144")
 }
