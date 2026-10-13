@@ -8,6 +8,7 @@ import (
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	altfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/alt-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ammalgam"
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
@@ -408,6 +409,7 @@ type Types struct {
 	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
+	DLEX                       string
 	SfrxETH                    string
 	SfrxETHConvertor           string
 	EtherfiVampire             string
@@ -668,6 +670,7 @@ var (
 		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
+		DLEX:                       ammalgam.DexType,
 		SfrxETH:                    sfrxeth.DexType,
 		SfrxETHConvertor:           sfrxethconvertor.DexType,
 		EtherfiVampire:             etherfivampire.DexType,

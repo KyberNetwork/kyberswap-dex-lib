@@ -3,6 +3,7 @@ package eth
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -80,4 +81,41 @@ func TestBatchEthCall_Overrides(t *testing.T) {
 	assert.Empty(t, acc.State)
 
 	assert.Len(t, (*params)[1], 2, "a call without overrides must stay a plain two-parameter eth_call")
+}
+
+func TestBatchGetStorageAtAtBlockPinsBlockNumber(t *testing.T) {
+	var params [][]json.RawMessage
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var reqs []struct {
+			ID     json.RawMessage   `json:"id"`
+			Params []json.RawMessage `json:"params"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&reqs))
+		resp := make([]map[string]any, len(reqs))
+		for i, req := range reqs {
+			params = append(params, req.Params)
+			resp[i] = map[string]any{
+				"jsonrpc": "2.0", "id": req.ID,
+				"result": common.BigToHash(big.NewInt(1)).Hex(),
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
+	}))
+	t.Cleanup(srv.Close)
+	client, err := rpc.Dial(srv.URL)
+	require.NoError(t, err)
+	t.Cleanup(client.Close)
+
+	address := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	reads := []StorageRead{{Slot: common.BigToHash(big.NewInt(16))}}
+
+	err = BatchGetStorageAtAtBlock(
+		context.Background(), client, address, reads, big.NewInt(1234), DefaultBatchRetry,
+	)
+	require.NoError(t, err)
+	require.Len(t, params, 1)
+	require.Len(t, params[0], 3)
+	assert.JSONEq(t, `"0x4d2"`, string(params[0][2]))
+	assert.Equal(t, common.BigToHash(big.NewInt(1)), reads[0].Result)
 }
