@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -117,7 +118,7 @@ func (t *PoolTracker) GetNewPoolState(
 	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 
-	// Phase 1: flags, balances and the rate probes, all in one multicall.
+	// Phase 1: flags, balances, the lane registry and the rate probes, all in one multicall.
 	flags := make([]uint16, n)
 	balances := make([]*big.Int, n)
 	req := t.client.NewRequest().SetContext(ctx)
@@ -129,6 +130,8 @@ func (t *PoolTracker) GetNewPoolState(
 			ABI: utilabi.Erc20ABI, Target: p.Tokens[i].Address, Method: "balanceOf", Params: []any{poolAddr},
 		}, []any{&balances[i]})
 	}
+	var registry common.Address
+	req.AddCall(&ethrpc.Call{ABI: registryABI, Target: p.Address, Method: "registry"}, []any{&registry})
 	probes := make([]*pairProbe, 0, n*(n-1))
 	for i := range addrs {
 		for j := range addrs {
@@ -154,14 +157,24 @@ func (t *PoolTracker) GetNewPoolState(
 			flags[i] = 0 // unreadable flags read as swap disabled
 		}
 	}
-	probeOK := resp.Result[2*n:]
+	probeOK := resp.Result[2*n+1:]
+	registryOK := resp.Result[2*n]
 	for _, pp := range probes {
 		pp.ok, probeOK = probeOK[:len(pp.ins)], probeOK[len(pp.ins):]
 	}
 
-	// Phase 2: the grid, pinned to the block of phase 1.
+	// Phase 2: the executor's lane (it depends on the registry address) and the
+	// grid, pinned to the block of phase 1.
 	grids := make([]*pairProbe, 0, len(probes))
 	req = t.client.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	var perms *big.Int
+	hasLane := registryOK && registry != (common.Address{}) && common.IsHexAddress(t.config.Executor)
+	if hasLane {
+		req.AddCall(&ethrpc.Call{
+			ABI: registryABI, Target: hexutil.Encode(registry[:]), Method: "perms",
+			Params: []any{common.HexToAddress(t.config.Executor)},
+		}, []any{&perms})
+	}
 	for _, pp := range probes {
 		if balances[pp.to] == nil {
 			continue
@@ -178,17 +191,27 @@ func (t *PoolTracker) GetNewPoolState(
 		g.addQuoteCalls(req, p.Address, addrs[pp.from], addrs[pp.to])
 		grids = append(grids, g)
 	}
-	extra := Extra{Flags: flags}
-	if len(grids) > 0 {
+	extra := Extra{Flags: flags, Ladders: make([][]Ladder, n)}
+	for i := range extra.Ladders {
+		extra.Ladders[i] = make([]Ladder, n)
+		for j := range extra.Ladders[i] {
+			extra.Ladders[i][j] = Ladder{}
+		}
+	}
+	if hasLane || len(grids) > 0 {
 		gridResp, err := req.TryBlockAndAggregate()
 		if err != nil {
 			return p, err
 		}
 		okAll := gridResp.Result
+		if hasLane {
+			extra.LaneOK = okAll[0] && perms != nil && perms.Bit(LaneSwapBit) == 1
+			okAll = okAll[1:]
+		}
 		for _, g := range grids {
 			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
 			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
-				extra.Ladders = append(extra.Ladders, Ladder{From: g.from, To: g.to, Points: pts})
+				extra.Ladders[g.from][g.to] = newLadder(pts)
 			}
 		}
 	}

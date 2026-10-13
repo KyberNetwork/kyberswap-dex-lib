@@ -33,7 +33,13 @@ func pts(v ...uint64) []Point {
 // newSim builds a USDC/WMON simulator with one USDC->WMON ladder.
 func newSim(t *testing.T, flags uint16, ladder []Point) *PoolSimulator {
 	t.Helper()
-	extra, err := json.Marshal(Extra{Flags: []uint16{flags, flags}, Ladders: []Ladder{{From: 0, To: 1, Points: ladder}}})
+	return newSimLane(t, flags, false, ladder)
+}
+
+// newSimLane is newSim with the executor's lane-0x400 state set.
+func newSimLane(t *testing.T, flags uint16, laneOK bool, ladder []Point) *PoolSimulator {
+	t.Helper()
+	extra, err := json.Marshal(Extra{Flags: []uint16{flags, flags}, LaneOK: laneOK, Ladders: [][]Ladder{{{}, newLadder(ladder)}, {{}, {}}}})
 	require.NoError(t, err)
 	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
 		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(extra),
@@ -56,19 +62,25 @@ func calc(sim *PoolSimulator, in int64) (*big.Int, error) {
 
 func TestGate(t *testing.T) {
 	cases := []struct {
-		name  string
-		flags uint16
-		want  error
+		name   string
+		flags  uint16
+		laneOK bool
+		want   error
 	}{
-		{"live core is SWAP_GATED", liveCoreFlags, ErrBTRGatedLane},
-		{"clean", SwapEnabledBit, nil},
-		{"halted", SwapEnabledBit | HaltBit, ErrBTRGated},
-		{"swap disabled", 0, ErrBTRGated},
-		{"gated only", SwapEnabledBit | SwapGatedBit, ErrBTRGatedLane},
-		{"feed halt", SwapEnabledBit | 4, ErrBTRGated},
+		{"live core, no lane", liveCoreFlags, false, ErrBTRGatedLane},
+		{"live core, lane", liveCoreFlags, true, nil},
+		{"clean", SwapEnabledBit, false, nil},
+		{"halted", SwapEnabledBit | HaltBit, false, ErrBTRGated},
+		{"swap disabled", 0, false, ErrBTRGated},
+		{"gated only, no lane", SwapEnabledBit | SwapGatedBit, false, ErrBTRGatedLane},
+		{"gated only, lane", SwapEnabledBit | SwapGatedBit, true, nil},
+		{"feed halt", SwapEnabledBit | 4, false, ErrBTRGated},
+		// The lane opens SWAP_GATED only: halt and swap-disabled still revert.
+		{"halted, lane", liveCoreFlags | HaltBit, true, ErrBTRGated},
+		{"swap disabled, lane", SwapGatedBit, true, ErrBTRGated},
 	}
 	for _, c := range cases {
-		require.Equal(t, c.want, gate(c.flags), c.name)
+		require.Equal(t, c.want, gate(c.flags, c.laneOK), c.name)
 	}
 }
 
@@ -121,6 +133,15 @@ func TestCalcAmountOutGated(t *testing.T) {
 	_, err := calc(sim, 100)
 	require.Equal(t, ErrBTRGatedLane, err)
 	require.True(t, sim.GetMetaInfo("", "").(PoolMeta).Gated)
+}
+
+// A SWAP_GATED core still quotes when the executor holds lane 0x400.
+func TestCalcAmountOutGatedWithLane(t *testing.T) {
+	sim := newSimLane(t, liveCoreFlags, true, pts(1000, 999))
+	out, err := calc(sim, 100)
+	require.NoError(t, err)
+	require.Equal(t, "99", out.String())
+	require.False(t, sim.GetMetaInfo("", "").(PoolMeta).Gated)
 }
 
 func TestCalcAmountOutBounds(t *testing.T) {
@@ -210,9 +231,10 @@ func TestUpdateBalanceSharesOutputToken(t *testing.T) {
 	const c = "0x0555e30da8f98308edb960aa94c0db47230d2b9c"
 	extra, err := json.Marshal(Extra{
 		Flags: []uint16{SwapEnabledBit, SwapEnabledBit, SwapEnabledBit},
-		Ladders: []Ladder{
-			{From: 0, To: 2, Points: pts(1000, 990, 2000, 1900)},
-			{From: 1, To: 2, Points: pts(500, 1000, 1000, 1900)},
+		Ladders: [][]Ladder{
+			{{}, {}, newLadder(pts(1000, 990, 2000, 1900))},
+			{{}, {}, newLadder(pts(500, 1000, 1000, 1900))},
+			{{}, {}, {}},
 		},
 	})
 	require.NoError(t, err)
@@ -259,4 +281,31 @@ func TestInvertRoundsAgainstTrader(t *testing.T) {
 	var x uint256.Int
 	invert(pts(500, 1000, 1000, 1900, 2000, 3000), uint256.NewInt(3000), &x)
 	require.Equal(t, uint64(2000), x.Uint64(), "at or above the last sample returns the last input")
+}
+
+// Extra is stored per pool in redis and ladders dominate its size, so the wire
+// shape is pinned: short keys, ladders[from][to] as bare [in, out] string pairs.
+func TestExtraWireShape(t *testing.T) {
+	raw, err := json.Marshal(Extra{
+		Flags: []uint16{SwapEnabledBit, SwapEnabledBit}, LaneOK: true,
+		Ladders: [][]Ladder{{{}, newLadder(pts(1000, 990, 2000, 1900))}, {{}, {}}},
+	})
+	require.NoError(t, err)
+	require.JSONEq(t, `{"f":[16,16],"k":true,"l":[[[],[["1000","990"],["2000","1900"]]],[[],[]]]}`, string(raw))
+	var back Extra
+	require.NoError(t, json.Unmarshal(raw, &back))
+	require.Equal(t, pts(1000, 990, 2000, 1900), back.ladder(0, 1))
+	require.Empty(t, back.ladder(1, 0))
+}
+
+// An Extra written before the compact format (keys "flags"/"ladders") must not
+// quote: it fails closed until the next track rewrites it (every 2-5s).
+func TestOldExtraFailsClosed(t *testing.T) {
+	old := `{"flags":[16,16],"laneOK":true,"ladders":[{"from":0,"to":1,"points":[{"in":"1000","out":"990"}]}]}`
+	_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: old,
+		Tokens:   []*entity.PoolToken{{Address: usdc}, {Address: wmon}},
+		Reserves: entity.PoolReserves{"1", "1"},
+	}})
+	require.ErrorIs(t, err, ErrBTRBadState)
 }
