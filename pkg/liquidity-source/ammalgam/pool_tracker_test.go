@@ -22,16 +22,18 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 		BlockNumber:    10,
 		Beacon:         beacon,
 		Implementation: implementation,
-		Reserves: reservesRPC{
-			ReserveX:            big.NewInt(1_000),
-			ReserveY:            big.NewInt(2_000),
-			LastUpdateTimestamp: 77,
+		BlockTimestamp: 1_000,
+		Storage: pairStorage{
+			ReserveX:             big.NewInt(1_000),
+			ReserveY:             big.NewInt(2_000),
+			LastUpdateTimestamp:  77,
+			LastLendingTimestamp: 900,
 		},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900),
 			ReferenceReserveY: big.NewInt(1_800),
 		},
-		Totals: totalAssetsAndSharesRPC{
+		RawTotals: totalAssetsAndSharesRPC{
 			AllAssets: [6]*big.Int{
 				big.NewInt(0), big.NewInt(10), big.NewInt(8),
 				big.NewInt(0), big.NewInt(40), big.NewInt(5),
@@ -41,6 +43,10 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 				big.NewInt(0), big.NewInt(0), big.NewInt(0),
 			},
 		},
+		AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(10), big.NewInt(8),
+			big.NewInt(0), big.NewInt(40), big.NewInt(5),
+		}},
 	}
 	p := entity.Pool{BlockNumber: 9, Timestamp: 1, Reserves: entity.PoolReserves{"1", "2"}}
 	got, err := updatePoolFromSnapshot(p, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, snapshot,
@@ -66,6 +72,74 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	require.Equal(t, "0x3333333333333333333333333333333333333333", staticExtra.PairImplementation)
 }
 
+func TestResolveSwapStateUsesRawStateBeforeLendingCheckpoint(t *testing.T) {
+	snapshot := trackerSnapshot{
+		BlockTimestamp: 1_000 + interestPeriodForSwap - 1,
+		Storage: pairStorage{
+			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 1_000,
+		},
+		RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(100), big.NewInt(200),
+			big.NewInt(0), big.NewInt(200), big.NewInt(150),
+		}},
+		AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(107), big.NewInt(203),
+			big.NewInt(0), big.NewInt(212), big.NewInt(154),
+		}},
+	}
+
+	reserves, totals, err := resolveSwapState(snapshot)
+	require.NoError(t, err)
+	require.Equal(t, int64(1_000), reserves[0].Int64())
+	require.Equal(t, int64(2_000), reserves[1].Int64())
+	require.Same(t, snapshot.RawTotals.AllAssets[borrowXIndex], totals.AllAssets[borrowXIndex])
+}
+
+func TestResolveSwapStateAccruesAtLendingCheckpoint(t *testing.T) {
+	snapshot := trackerSnapshot{
+		BlockTimestamp: 1_000 + interestPeriodForSwap,
+		Storage: pairStorage{
+			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 1_000,
+		},
+		RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(100), big.NewInt(200),
+			big.NewInt(0), big.NewInt(200), big.NewInt(150),
+		}},
+		AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(107), big.NewInt(203),
+			big.NewInt(0), big.NewInt(212), big.NewInt(154),
+		}},
+	}
+
+	reserves, totals, err := resolveSwapState(snapshot)
+	require.NoError(t, err)
+	// X LP interest = (212 - 200) - (107 - 100) = 5.
+	// Y LP interest = (154 - 150) - (203 - 200) = 1.
+	require.Equal(t, int64(1_005), reserves[0].Int64())
+	require.Equal(t, int64(2_001), reserves[1].Int64())
+	require.Same(t, snapshot.AccruedTotals.AllAssets[borrowXIndex], totals.AllAssets[borrowXIndex])
+}
+
+func TestDecodePairStorageV110(t *testing.T) {
+	pack := func(low, middle *big.Int, high uint32) common.Hash {
+		word := new(big.Int).Set(low)
+		word.Or(word, new(big.Int).Lsh(new(big.Int).Set(middle), 112))
+		word.Or(word, new(big.Int).Lsh(new(big.Int).SetUint64(uint64(high)), 224))
+		return common.BigToHash(word)
+	}
+
+	storage := decodePairStorageV110(
+		pack(big.NewInt(11), big.NewInt(22), 33),
+		pack(big.NewInt(44), big.NewInt(55), 66),
+	)
+	require.Equal(t, int64(11), storage.ReserveX.Int64())
+	require.Equal(t, int64(22), storage.ReserveY.Int64())
+	require.Equal(t, uint32(33), storage.LastUpdateTimestamp)
+	require.Equal(t, int64(44), storage.ReferenceReserveX.Int64())
+	require.Equal(t, int64(55), storage.ReferenceReserveY.Int64())
+	require.Equal(t, uint32(66), storage.LastLendingTimestamp)
+}
+
 func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
@@ -86,11 +160,16 @@ func TestUpdatePoolFromSnapshotScheduledRefreshPreservesActivityTimestamp(t *tes
 	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	snapshot := trackerSnapshot{
 		BlockNumber: 10, Beacon: beacon, Implementation: implementation,
-		Reserves: reservesRPC{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000)},
+		BlockTimestamp: 1_000,
+		Storage:        pairStorage{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 900},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900), ReferenceReserveY: big.NewInt(1_800),
 		},
-		Totals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+		RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+			big.NewInt(0), big.NewInt(10), big.NewInt(8),
+			big.NewInt(0), big.NewInt(40), big.NewInt(5),
+		}},
+		AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
 			big.NewInt(0), big.NewInt(10), big.NewInt(8),
 			big.NewInt(0), big.NewInt(40), big.NewInt(5),
 		}},
@@ -155,6 +234,17 @@ func TestReconcileTrackerMetadataLearnsBlankValuesAndRejectsMismatch(t *testing.
 	}
 }
 
+func TestNewPoolTrackerRequiresPinnedImplementationForStorageLayout(t *testing.T) {
+	_, err := NewPoolTracker(&Config{}, nil)
+	require.Error(t, err)
+
+	tracker, err := NewPoolTracker(&Config{
+		PairImplementation: "0x3333333333333333333333333333333333333333",
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, tracker)
+}
+
 func TestPoolTrackerNextUpdateAt(t *testing.T) {
 	p := entity.Pool{Timestamp: 1_000}
 	require.Equal(t, int64(1_090), (&PoolTracker{config: &Config{RefreshInterval: 90 * time.Second}}).NextUpdateAt(p))
@@ -163,17 +253,8 @@ func TestPoolTrackerNextUpdateAt(t *testing.T) {
 }
 
 func TestTrackerABIMultiReturnDecodeShape(t *testing.T) {
-	require.Contains(t, pairABI.Methods, "getReserves")
 	require.Contains(t, pairABI.Methods, "referenceReserves")
 	require.Contains(t, pairABI.Methods, "totalAssetsAndShares")
-
-	reservesData, err := pairABI.Methods["getReserves"].Outputs.Pack(big.NewInt(11), big.NewInt(22), uint32(33))
-	require.NoError(t, err)
-	var reserves reservesRPC
-	require.NoError(t, pairABI.UnpackIntoInterface(&reserves, "getReserves", reservesData))
-	require.Equal(t, int64(11), reserves.ReserveX.Int64())
-	require.Equal(t, int64(22), reserves.ReserveY.Int64())
-	require.Equal(t, uint32(33), reserves.LastUpdateTimestamp)
 
 	referencesData, err := pairABI.Methods["referenceReserves"].Outputs.Pack(big.NewInt(44), big.NewInt(55))
 	require.NoError(t, err)

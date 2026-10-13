@@ -101,15 +101,28 @@ func BatchGetStorageAt(
 	ctx context.Context, client *rpc.Client, address common.Address,
 	reads []StorageRead, retry BatchRetry,
 ) error {
+	return BatchGetStorageAtAtBlock(ctx, client, address, reads, nil, retry)
+}
+
+// BatchGetStorageAtAtBlock is BatchGetStorageAt pinned to blockNumber. A nil
+// blockNumber reads latest for backward compatibility with BatchGetStorageAt.
+func BatchGetStorageAtAtBlock(
+	ctx context.Context, client *rpc.Client, address common.Address,
+	reads []StorageRead, blockNumber *big.Int, retry BatchRetry,
+) error {
 	if len(reads) == 0 {
 		return nil
+	}
+	blockArg := "latest"
+	if blockNumber != nil {
+		blockArg = hexutil.EncodeBig(blockNumber)
 	}
 
 	batch := make([]rpc.BatchElem, len(reads))
 	for i := range reads {
 		batch[i] = rpc.BatchElem{
 			Method: "eth_getStorageAt",
-			Args:   []any{address, reads[i].Slot, "latest"},
+			Args:   []any{address, reads[i].Slot, blockArg},
 			Result: &reads[i].Result,
 		}
 	}
