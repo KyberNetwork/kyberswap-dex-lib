@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,16 +15,28 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 )
 
+// buyCapEnabled reads the owner-settable clankerMaxBuyBps directly, so the tests compare
+// Track's BuyCapEnabled against live state instead of a value frozen on one date.
+func buyCapEnabled(t *testing.T, c *ethrpc.Client, hook common.Address) bool {
+	var maxBuyBps uint16
+	_, err := c.NewRequest().SetContext(context.Background()).
+		AddCall(&ethrpc.Call{ABI: ArcadeHookABI, Target: hexutil.Encode(hook[:]), Method: "clankerMaxBuyBps"}, []any{&maxBuyBps}).
+		Aggregate()
+	require.NoError(t, err)
+	return maxBuyBps != 0
+}
+
 // TestTrack_Live decodes the hook getters against a real CLANKER launch on Arc mainnet,
 // confirming the ABI field order and types match the deployed contract.
-// Values cross-checked against direct eth_calls on 2026-09-15.
+// Values cross-checked against direct eth_calls on 2026-09-15; the Arc RPC is rpc.mainnet.arc.io
+// (rpc.arc-scan.org sits behind a Cloudflare tunnel that is often down).
 func TestTrack_Live(t *testing.T) {
 	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://rpc.arc-scan.org").
+	rpcClient := ethrpc.New("https://rpc.mainnet.arc.io").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	h := &Hook{Hook: &uniswapv4.BaseHook{}}
@@ -47,7 +60,7 @@ func TestTrack_Live(t *testing.T) {
 	assert.True(t, h.QuoteIsCurrency0)
 	assert.False(t, h.ObsInit)
 	assert.Equal(t, int64(1789446515), h.LaunchedAt)
-	assert.True(t, h.BuyCapEnabled)
+	assert.Equal(t, buyCapEnabled(t, rpcClient, HookAddresses[0]), h.BuyCapEnabled)
 }
 
 // TestTrack_LiveV2 runs Track against the deployed v2 hook on Arc mainnet. No launch
@@ -61,7 +74,7 @@ func TestTrack_LiveV2(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://rpc.arc-scan.org").
+	rpcClient := ethrpc.New("https://rpc.mainnet.arc.io").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	h := &Hook{Hook: &uniswapv4.BaseHook{}}
@@ -84,5 +97,5 @@ func TestTrack_LiveV2(t *testing.T) {
 	assert.True(t, h.UsdcIsCurrency0)
 	assert.True(t, h.QuoteIsCurrency0)
 	assert.False(t, h.ObsInit)
-	assert.True(t, h.BuyCapEnabled)
+	assert.Equal(t, buyCapEnabled(t, rpcClient, HookV2), h.BuyCapEnabled)
 }
