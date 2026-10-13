@@ -356,7 +356,7 @@ const (
 	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
 	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
-	ExchangeTickerMemeV4                = "ticker-meme-v4"
+	ExchangeUniswapV4TickerMeme         = "uniswap-v4-ticker-meme"
 	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"

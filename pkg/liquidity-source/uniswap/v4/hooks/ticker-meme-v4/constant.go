@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DexType        = valueobject.ExchangeTickerMemeV4
+	DexType        = valueobject.ExchangeUniswapV4TickerMeme
 	basisPoints    = 10_000
 	maxHookFeeBps  = 1_000
 	maxTradeFeeBps = 2_000
