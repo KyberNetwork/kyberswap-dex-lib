@@ -24,7 +24,7 @@ const liveBaseURL = "https://limit-order.kyberswap.com"
 // TestGetOpSignatures_LiveAPI tests against the actual limit-order.kyberswap.com API.
 func TestGetOpSignatures_LiveAPI(t *testing.T) {
 	test.SkipCI(t)
-	c := NewHTTPClient(liveBaseURL)
+	c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: liveBaseURL})
 
 	t.Run("valid chain with nonexistent orders returns empty list without error", func(t *testing.T) {
 		sigs, err := c.GetOpSignatures(t.Context(), 1, []int64{999999999})
@@ -51,7 +51,7 @@ func TestGetOpSignatures_ErrorWrapping(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		c := NewHTTPClient(srv.URL)
+		c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: srv.URL})
 		_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrGetOpSignaturesFailed), "got: %v", err)
@@ -63,14 +63,14 @@ func TestGetOpSignatures_ErrorWrapping(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		c := NewHTTPClient(srv.URL)
+		c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: srv.URL})
 		_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrGetOpSignaturesFailed), "got: %v", err)
 	})
 
 	t.Run("transport/network error wraps ErrGetOpSignaturesFailed", func(t *testing.T) {
-		c := NewHTTPClient("http://127.0.0.1:1")
+		c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: "http://127.0.0.1:1"})
 		_, err := c.GetOpSignatures(t.Context(), 1, []int64{123})
 		require.Error(t, err)
 		assert.True(t, errors.Is(err, ErrGetOpSignaturesFailed), "got: %v", err)
@@ -280,4 +280,32 @@ func TestGetOpSignatures_Cache(t *testing.T) {
 		}
 		wg.Wait()
 	})
+}
+
+// The backend rejects more than maxOpSignatureOrderIds orderIds per request (4002), so a swap
+// with more filled orders must be fetched in chunks.
+func TestGetOpSignatures_ChunksAtBackendCap(t *testing.T) {
+	srv := newOpSigServer(t, time.Minute)
+	c := NewHTTPClientWithConfig(&Config{LimitOrderHTTPUrl: srv.URL})
+	orderIds := make([]int64, 2*maxOpSignatureOrderIds+50)
+	for i := range orderIds {
+		orderIds[i] = int64(i + 1)
+	}
+
+	sigs, err := c.GetOpSignatures(t.Context(), ChainID(1), orderIds)
+	require.NoError(t, err)
+
+	requests := srv.recorded()
+	require.Len(t, requests, 3)
+	var requested []string
+	for _, ids := range requests {
+		assert.LessOrEqual(t, len(ids), maxOpSignatureOrderIds)
+		requested = append(requested, ids...)
+	}
+	assert.Len(t, requested, len(orderIds))
+	got := make([]int64, 0, len(sigs))
+	for _, sig := range sigs {
+		got = append(got, sig.ID)
+	}
+	assert.ElementsMatch(t, orderIds, got)
 }

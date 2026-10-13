@@ -68,15 +68,15 @@ func TestPool_CalcAmountIn(t *testing.T) {
 							t,
 							1,
 							tokenUSDT, big.NewInt(200), big.NewInt(200),
-							tokenUSDC, big.NewInt(400), big.NewInt(400),
-							big.NewInt(0), 0,
+							tokenUSDC, big.NewInt(400), big.NewInt(400), big.NewInt(400),
+							big.NewInt(0), 0, false,
 						),
 						newExampleFilledOrderInfo(
 							t,
 							2,
 							tokenUSDT, big.NewInt(300), big.NewInt(100),
-							tokenUSDC, big.NewInt(300), big.NewInt(100),
-							big.NewInt(0), 0,
+							tokenUSDC, big.NewInt(300), big.NewInt(100), big.NewInt(300),
+							big.NewInt(0), 0, true,
 						),
 					},
 				},
@@ -117,15 +117,15 @@ func TestPool_CalcAmountIn(t *testing.T) {
 							t,
 							1,
 							tokenUSDC, big.NewInt(992_000), big.NewInt(992_000),
-							tokenUSDT, big.NewInt(1_000_000), big.NewInt(1_000_000),
-							big.NewInt(0), 0,
+							tokenUSDT, big.NewInt(1_000_000), big.NewInt(1_000_000), big.NewInt(1_000_000),
+							big.NewInt(0), 0, false,
 						),
 						newExampleFilledOrderInfo(
 							t,
 							2,
 							tokenUSDC, big.NewInt(1_010_000), big.NewInt(218_000),
-							tokenUSDT, big.NewInt(1_000_000), big.NewInt(215_841),
-							big.NewInt(0), 0,
+							tokenUSDT, big.NewInt(1_000_000), big.NewInt(215_841), big.NewInt(1_000_000),
+							big.NewInt(0), 0, false,
 						),
 					},
 				},
@@ -165,14 +165,14 @@ func TestPool_CalcAmountIn(t *testing.T) {
 						newExampleFilledOrderInfo(t,
 							1383,
 							tokenUSDT, big.NewInt(200), big.NewInt(200),
-							tokenUSDC, big.NewInt(400), big.NewInt(400),
-							big.NewInt(0), 100,
+							tokenUSDC, big.NewInt(400), big.NewInt(400), big.NewInt(400),
+							big.NewInt(0), 100, true,
 						),
 						newExampleFilledOrderInfo(t,
 							1382,
 							tokenUSDT, big.NewInt(300), big.NewInt(100),
-							tokenUSDC, big.NewInt(300), big.NewInt(100),
-							big.NewInt(0), 0,
+							tokenUSDC, big.NewInt(300), big.NewInt(100), big.NewInt(300),
+							big.NewInt(0), 0, true,
 						),
 					},
 				},
@@ -214,8 +214,8 @@ func TestPool_CalcAmountIn(t *testing.T) {
 						newExampleFilledOrderInfo(t,
 							1383,
 							tokenUSDC, big.NewInt(700), big.NewInt(700),
-							tokenUSDT, big.NewInt(1400), big.NewInt(1400),
-							big.NewInt(0), 0,
+							tokenUSDT, big.NewInt(1400), big.NewInt(1400), big.NewInt(1400),
+							big.NewInt(0), 0, false,
 						),
 						newExampleFallBackOrderInfo(t,
 							1382,
@@ -469,8 +469,8 @@ func newExampleFallBackOrderInfo(
 	o := newExampleFilledOrderInfo(
 		t, orderID,
 		takerAsset, takingAmount, big.NewInt(0),
-		makerAsset, makingAmount, big.NewInt(0),
-		big.NewInt(0), makerTokenFeePercent,
+		makerAsset, makingAmount, big.NewInt(0), makingAmount,
+		big.NewInt(0), makerTokenFeePercent, false,
 	)
 	o.IsFallBack = true
 	return o
@@ -480,8 +480,8 @@ func newExampleFilledOrderInfo(
 	t *testing.T,
 	orderID int64,
 	takerAsset string, takingAmount, filledTakingAmount *big.Int,
-	makerAsset string, makingAmount, filledMakingAmount *big.Int,
-	feeAmount *big.Int, makerTokenFeePercent uint32,
+	makerAsset string, makingAmount, filledMakingAmount, remainingMakingAmount *big.Int,
+	feeAmount *big.Int, makerTokenFeePercent uint32, isTakerAssetFee bool,
 ) *FilledOrderInfo {
 	t.Helper()
 
@@ -509,6 +509,9 @@ func newExampleFilledOrderInfo(
 		Interaction:          "",
 		Signature:            "signature" + strconv.Itoa(int(orderID)),
 		FeeAmount:            feeAmount.String(),
+
+		RemainingMakingAmount: remainingMakingAmount.String(),
+		IsTakerAssetFee:       isTakerAssetFee,
 	}
 }
 

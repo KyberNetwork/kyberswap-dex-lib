@@ -5,7 +5,10 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -212,23 +215,51 @@ func toOrder(ordersData []*orderData) ([]*order, error) {
 	return result, nil
 }
 
-func (o *order) RemainingAmount(limit pool.SwapLimit, filledMakingAmountByMaker map[string]*big.Int) (makingAmount, takingAmount *big.Int) {
-	if o.AvailableMakingAmount == nil {
-		makingAmount = new(big.Int).Sub(o.MakingAmount, o.FilledMakingAmount)
-		takingAmount = new(big.Int).Sub(o.TakingAmount, o.FilledTakingAmount)
-	} else {
-		makingAmount = o.AvailableMakingAmount
-		// the actual available balance might be less than `AvailableMakingAmount`
-		// for example if we have used another order for this same maker and makerAsset (but with different takerAsset) before
-		makerRemainingBalance := getMakerRemainingBalance(limit, filledMakingAmountByMaker, o.Maker, o.MakerAsset)
-		if makerRemainingBalance != nil && makingAmount.Cmp(makerRemainingBalance) > 0 {
-			makingAmount = makerRemainingBalance
-		}
-		takingAmount = new(big.Int).Div(
-			new(big.Int).Mul(makingAmount, o.TakingAmount),
-			o.MakingAmount,
-		) // remainingTakingAmount = remainingMakingAmount * order.TakingAmount / order.MakingAmount
-	}
+// remainingAmount loads o's terms into t, sets own to the making o itself can still fill and
+// making/taking to what it can fill within its maker's balance, and reports whether both are
+// positive.
+func (o *order) remainingAmount(t *orderTerms, own, making, taking *uint256.Int, limit pool.SwapLimit,
+	usedByMaker map[string]uint256.Int) bool {
+	setAmount(&t.making, o.MakingAmount)
+	setAmount(&t.taking, o.TakingAmount)
+	t.feePct.SetUint64(uint64(o.MakerTokenFeePercent))
+	t.takerAssetFee = o.IsTakerAssetFee
 
-	return makingAmount, takingAmount
+	if o.AvailableMakingAmount == nil {
+		var filled uint256.Int
+		if !setAmount(&filled, o.FilledMakingAmount) {
+			return false
+		} else if _, underflow := own.SubOverflow(&t.making, &filled); underflow {
+			return false
+		}
+		making.Set(own)
+	} else if !setAmount(own, o.AvailableMakingAmount) {
+		return false
+	} else if making.Set(own); limit != nil && !o.capByMakerBalance(making, limit, usedByMaker) {
+		return false
+	}
+	// the executor sends floor(remaining making * order.TakingAmount / order.MakingAmount)
+	big256.MulDivDown(taking, making, &t.taking, &t.making)
+
+	return !making.IsZero() && !taking.IsZero()
+}
+
+// capByMakerBalance caps making at what o's maker has left: its balance in limit less what this
+// quote already used of it (another order of the maker, same makerAsset, other takerAsset,
+// may have used it). A maker missing from the limit has no balance left. Callers skip this
+// without a limit, as for a pool stored before maker balances were tracked.
+func (o *order) capByMakerBalance(making *uint256.Int, limit pool.SwapLimit,
+	usedByMaker map[string]uint256.Int) bool {
+	var balance uint256.Int
+	if !setAmount(&balance, limit.GetLimit(NewMakerAndAsset(o.Maker, o.MakerAsset))) {
+		return false
+	}
+	used := usedByMaker[o.Maker]
+	if _, underflow := balance.SubOverflow(&balance, &used); underflow {
+		return false
+	}
+	if making.Gt(&balance) {
+		making.Set(&balance)
+	}
+	return true
 }
