@@ -208,7 +208,9 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 		result.DeltaSpecified = q.Swap.AmountIn.ToBig()
 		result.DeltaUnspecified = new(big.Int).Neg(q.NetOutput.ToBig())
 	} else {
-		result.DeltaSpecified = new(big.Int).Neg(p.AmountSpecified)
+		// CalcAmountIn reverses exact-in: add the output needed before fees.
+		// DualPool still supplies the input price for its temporary liquidity.
+		result.DeltaSpecified = new(big.Int).Sub(q.Swap.AmountOut.ToBig(), p.AmountSpecified)
 		result.DeltaUnspecified = q.Swap.AmountIn.ToBig()
 	}
 	return result, nil

@@ -14,6 +14,29 @@ var (
 	ErrInvalidState  = errors.New("invalid Ticker pool state")
 )
 
+// registerPool caps the hook fee at 10% and both output fees together at 20%.
+const maxTickerHookFeeBps = 1000
+const maxTickerTradeFeeBps = 2000
+
+func outputFeeRates(s State) (hook, tax uint64, err error) {
+	if !s.Registered {
+		return 0, 0, nil
+	}
+	hook, tax = uint64(s.HookFeeBps), uint64(s.CreatorTaxBps)
+	if hook > maxTickerHookFeeBps || hook+tax > maxTickerTradeFeeBps {
+		return 0, 0, ErrInvalidState
+	}
+	return hook, tax, nil
+}
+
+func outputFees(gross *uint256.Int, hook, tax uint64) (fee, creatorTax, net uint256.Int) {
+	// Swap output and fee-inversion candidates fit 128 bits, so these products fit uint256.
+	fee.Mul(gross, uint256.NewInt(hook)).Div(&fee, uint256.NewInt(totalWeightBps))
+	creatorTax.Mul(gross, uint256.NewInt(tax)).Div(&creatorTax, uint256.NewInt(totalWeightBps))
+	net.Sub(gross, &fee).Sub(&net, &creatorTax)
+	return
+}
+
 // State contains a settled snapshot. Unbacked claims created during a simulated
 // unlock must be supplied explicitly; a snapshot from an RPC cannot predict them.
 type State struct {
@@ -44,23 +67,19 @@ func QuoteExactInput(s State, zeroForOne bool, amountIn *uint256.Int) (Quote, er
 	if err != nil {
 		return Quote{}, err
 	}
-	fee, tax := new(uint256.Int), new(uint256.Int)
-	if s.Registered {
-		if uint32(s.HookFeeBps)+uint32(s.CreatorTaxBps) >= 10000 {
-			return Quote{}, ErrInvalidState
-		}
-		// Gross output is bounded to int128 by the liquidity calculation, so these
-		// products fit uint256. Do not combine the rates: that changes rounding.
-		denom := uint256.NewInt(10000)
-		fee.Mul(swap.AmountOut, uint256.NewInt(uint64(s.HookFeeBps))).Div(fee, denom)
-		tax.Mul(swap.AmountOut, uint256.NewInt(uint64(s.CreatorTaxBps))).Div(tax, denom)
+	return quoteWithOutputFees(s, swap)
+}
+
+func quoteWithOutputFees(s State, swap SwapInfo) (Quote, error) {
+	hookRate, taxRate, err := outputFeeRates(s)
+	if err != nil {
+		return Quote{}, err
 	}
-	net := new(uint256.Int).Sub(swap.AmountOut, fee)
-	net.Sub(net, tax)
+	fee, tax, net := outputFees(swap.AmountOut, hookRate, taxRate)
 	if net.IsZero() {
 		return Quote{}, dualpool.ErrZeroOutput
 	}
-	return Quote{Swap: swap, NetOutput: net, HookFee: fee, CreatorTax: tax}, nil
+	return Quote{Swap: swap, NetOutput: &net, HookFee: &fee, CreatorTax: &tax}, nil
 }
 
 // Check the full backing before either forward pricing or reverse search. A

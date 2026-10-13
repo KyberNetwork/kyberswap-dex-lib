@@ -11,50 +11,56 @@ import (
 
 var ErrInvalidQuoteState = errors.New("invalid DualPool quote state")
 
-// quoteTemporaryLiquidity prices the temporary positions using v4 bitmap-word stepping.
-// It does not mutate state and does not apply a derived hook's output fees.
-// Derived integrations must check their own withdrawal limits before calling it.
-func quoteTemporaryLiquidity(state dualpool.Extra, tickSpacing int, zeroForOne bool, amountIn *uint256.Int) (SwapInfo, error) {
-	if state.SqrtPriceX96 == nil || state.Balance0 == nil || state.Balance1 == nil || amountIn == nil {
-		return SwapInfo{}, dualpool.ErrStateNotSet
+// temporaryLiquidity reuses the same allocation while reverse pricing probes inputs.
+type temporaryLiquidity struct {
+	state         dualpool.Extra
+	positions     []position
+	tickSpacing   int
+	zeroForOne    bool
+	fee, protocol uint64
+}
+
+func prepareTemporaryLiquidity(state dualpool.Extra, tickSpacing int, zeroForOne bool) (*temporaryLiquidity, error) {
+	if state.SqrtPriceX96 == nil || state.Balance0 == nil || state.Balance1 == nil {
+		return nil, dualpool.ErrStateNotSet
 	}
 	if !state.Live {
-		return SwapInfo{}, dualpool.ErrPoolNotLive
+		return nil, dualpool.ErrPoolNotLive
 	}
-	if tickSpacing <= 0 || tickSpacing > 32767 || amountIn.IsZero() || amountIn.BitLen() > 127 {
-		return SwapInfo{}, ErrInvalidQuoteState
+	if tickSpacing <= 0 || tickSpacing > 32767 {
+		return nil, ErrInvalidQuoteState
 	}
 	if len(state.Buckets) == 0 {
-		return SwapInfo{}, dualpool.ErrNoDistribution
+		return nil, dualpool.ErrNoDistribution
 	}
 	if len(state.Buckets) > 8 {
-		return SwapInfo{}, ErrInvalidQuoteState
+		return nil, ErrInvalidQuoteState
 	}
 	if state.ProtocolFee&0xfff > 1000 || state.ProtocolFee>>12 > 1000 {
-		return SwapInfo{}, ErrInvalidQuoteState
+		return nil, ErrInvalidQuoteState
 	}
 	var weight uint64
 	for _, b := range state.Buckets {
 		if b.WeightBps == 0 || b.TickLower < -887272 || b.TickUpper > 887272 || b.TickLower >= b.TickUpper || int(b.TickLower)%tickSpacing != 0 || int(b.TickUpper)%tickSpacing != 0 {
-			return SwapInfo{}, ErrInvalidQuoteState
+			return nil, ErrInvalidQuoteState
 		}
 		weight += uint64(b.WeightBps)
 		// Solidity computes balance * weight before division using checked arithmetic.
 		var product uint256.Int
 		w := uint256.NewInt(uint64(b.WeightBps))
 		if _, overflow := product.MulOverflow(state.Balance0, w); overflow {
-			return SwapInfo{}, ErrInvalidQuoteState
+			return nil, ErrInvalidQuoteState
 		}
 		if _, overflow := product.MulOverflow(state.Balance1, w); overflow {
-			return SwapInfo{}, ErrInvalidQuoteState
+			return nil, ErrInvalidQuoteState
 		}
 	}
 	if weight != totalWeightBps {
-		return SwapInfo{}, ErrInvalidQuoteState
+		return nil, ErrInvalidQuoteState
 	}
 	positions, err := dualpool.AllocatePositions(state.Buckets, state.SqrtPriceX96, state.Balance0, state.Balance1)
 	if err != nil {
-		return SwapInfo{}, err
+		return nil, err
 	}
 	// PoolManager limits gross liquidity at each initialized tick. Overlapping
 	// buckets share that limit even when their positions use different salts.
@@ -73,25 +79,56 @@ func quoteTemporaryLiquidity(state dualpool.Extra, tickSpacing int, zeroForOne b
 				grossAtTick[tick] = gross
 			}
 			if _, overflow := gross.AddOverflow(gross, position.Liquidity); overflow || gross.Cmp(maxPerTick) > 0 {
-				return SwapInfo{}, ErrInvalidQuoteState
+				return nil, ErrInvalidQuoteState
 			}
 		}
 	}
 	fee := dualpool.EffectiveSwapFee(state.LpFee, state.ProtocolFee, zeroForOne)
 	if fee >= maxSwapFee {
-		return SwapInfo{}, ErrInvalidQuoteState
+		return nil, ErrInvalidQuoteState
 	}
 	protocol := uint64(state.ProtocolFee & 0xfff)
 	if !zeroForOne {
 		protocol = uint64(state.ProtocolFee >> 12)
 	}
-	result, err := swapExactInWithSpacing(positions, state.SqrtPriceX96, int(state.Tick), zeroForOne, amountIn, fee, tickSpacing, protocol)
+	return &temporaryLiquidity{state: state, positions: positions, tickSpacing: tickSpacing, zeroForOne: zeroForOne, fee: fee, protocol: protocol}, nil
+}
+
+func (p *temporaryLiquidity) swap(amountIn *uint256.Int) (*swapResult, error) {
+	if amountIn == nil || amountIn.IsZero() || amountIn.BitLen() > 127 {
+		return nil, ErrInvalidQuoteState
+	}
+	result, err := swapExactInWithSpacing(p.positions, p.state.SqrtPriceX96, int(p.state.Tick), p.zeroForOne, amountIn, p.fee, p.tickSpacing, p.protocol)
+	if err != nil {
+		return nil, err
+	}
+	if result.amountOut.BitLen() > 127 {
+		return nil, ErrInvalidQuoteState
+	}
+	return result, nil
+}
+
+// quoteTemporaryLiquidity prices and settles temporary positions without mutating state.
+// Derived hooks must check their own withdrawal limits before calling it.
+func quoteTemporaryLiquidity(state dualpool.Extra, tickSpacing int, zeroForOne bool, amountIn *uint256.Int) (SwapInfo, error) {
+	if amountIn == nil {
+		return SwapInfo{}, dualpool.ErrStateNotSet
+	}
+	prepared, err := prepareTemporaryLiquidity(state, tickSpacing, zeroForOne)
 	if err != nil {
 		return SwapInfo{}, err
 	}
-	if result.amountOut.BitLen() > 127 {
-		return SwapInfo{}, ErrInvalidQuoteState
+	result, err := prepared.swap(amountIn)
+	if err != nil {
+		return SwapInfo{}, err
 	}
+	return prepared.finish(result)
+}
+
+// finish reconstructs teardown balances only for the selected swap, not every search probe.
+func (p *temporaryLiquidity) finish(result *swapResult) (SwapInfo, error) {
+	state, zeroForOne := p.state, p.zeroForOne
+	positions := p.positions
 	minted := [2]*uint256.Int{new(uint256.Int), new(uint256.Int)}
 	returned := [2]*uint256.Int{new(uint256.Int), new(uint256.Int)}
 	balances := [2]*uint256.Int{state.Balance0.Clone(), state.Balance1.Clone()}
