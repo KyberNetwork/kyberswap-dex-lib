@@ -28,6 +28,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+// LaunchFees contains the swap-fee terms decoded through the existing Pons ABI.
+type LaunchFees struct {
+	Registered    bool
+	HookFeeBps    uint16
+	CreatorTaxBps uint16
+}
+
 type Extra struct {
 	Registered bool  `json:"r,omitempty"`
 	FeeBps     int64 `json:"f,omitempty"`
@@ -61,6 +68,20 @@ func (e *Extra) Track(ctx context.Context, param *uniswapv4.HookParam) error {
 		return nil
 	}
 
+	fees, err := ReadLaunchFees(ctx, param)
+	if err != nil {
+		return err
+	}
+
+	*e = Extra{
+		Registered: fees.Registered,
+		FeeBps:     int64(fees.HookFeeBps) + int64(fees.CreatorTaxBps),
+	}
+	return nil
+}
+
+// ReadLaunchFees preserves both rates for adapters that round each charge separately.
+func ReadLaunchFees(ctx context.Context, param *uniswapv4.HookParam) (LaunchFees, error) {
 	var raw launchRaw
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
@@ -69,14 +90,10 @@ func (e *Extra) Track(ctx context.Context, param *uniswapv4.HookParam) error {
 		Method: "launches",
 		Params: []any{common.HexToHash(param.Pool.Address)},
 	}, []any{&raw}).Call(); err != nil {
-		return err
+		return LaunchFees{}, err
 	}
 
-	*e = Extra{
-		Registered: raw.Registered,
-		FeeBps:     int64(raw.HookFeeBps) + int64(raw.CreatorTaxBps),
-	}
-	return nil
+	return LaunchFees{Registered: raw.Registered, HookFeeBps: raw.HookFeeBps, CreatorTaxBps: raw.CreatorTaxBps}, nil
 }
 
 // Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook interface

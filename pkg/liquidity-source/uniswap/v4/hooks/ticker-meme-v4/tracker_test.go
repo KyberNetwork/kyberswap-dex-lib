@@ -92,7 +92,7 @@ func TestTrackPinnedStateAndUpgradeRejection(t *testing.T) {
 	require.NoError(t, err)
 	var extra Extra
 	require.NoError(t, json.Unmarshal(data, &extra))
-	require.Equal(t, terms(233), extra)
+	require.Equal(t, terms(100, 133), extra)
 	require.Equal(t, extra, h.Extra)
 	require.EqualValues(t, snapshotBlock, param.Pool.BlockNumber, "published pool block must match validated RPC state")
 	_, err = h.Track(context.Background(), param)

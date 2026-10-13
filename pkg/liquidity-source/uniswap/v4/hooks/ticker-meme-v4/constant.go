@@ -10,6 +10,7 @@ import (
 
 const (
 	DexType        = valueobject.ExchangeTickerMemeV4
+	basisPoints    = 10_000
 	maxTradeFeeBps = 2_000
 	// Conservative allowance for afterSwap's take and three fee ledgers. Calibrate
 	// against production swaps once the launch factory is wired on Monad.

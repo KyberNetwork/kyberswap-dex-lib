@@ -1,13 +1,11 @@
 package tickermemev4
 
-import (
-	"github.com/ethereum/go-ethereum/common"
-
-	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
-)
+import "github.com/ethereum/go-ethereum/common"
 
 type Extra struct {
-	ponsv2.Extra
-	// A new key forces snapshots with separate f/t rates to be tracked again.
-	ImplementationHash common.Hash `json:"implementation"`
+	// Old snapshots contain a combined rate; require a refresh before using two rates.
+	ImplementationHash common.Hash `json:"implementationV2"`
+	Registered         bool        `json:"r"`
+	HookFeeBps         uint16      `json:"f"`
+	CreatorTaxBps      uint16      `json:"t"`
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -59,10 +60,15 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	}
 	next := *h
 	next.decodeErr = nil
-	next.Extra = Extra{ImplementationHash: ImplementationCodeHash}
-	// Start unregistered so the shared tracker refreshes terms after each proxy check.
-	if err := next.Extra.Extra.Track(ctx, param); err != nil {
+	fees, err := ponsv2.ReadLaunchFees(ctx, param)
+	if err != nil {
 		return nil, err
+	}
+	next.Extra = Extra{
+		ImplementationHash: ImplementationCodeHash,
+		Registered:         fees.Registered,
+		HookFeeBps:         fees.HookFeeBps,
+		CreatorTaxBps:      fees.CreatorTaxBps,
 	}
 	if err := next.validate(); err != nil {
 		return nil, err
