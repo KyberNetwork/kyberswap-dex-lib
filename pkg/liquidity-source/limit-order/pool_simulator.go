@@ -185,12 +185,11 @@ func (p *PoolSimulator) calcAmountOut(
 	}, nil
 }
 
-// addFilledMakingAmount adds filledMakingAmount to maker's running total.
-func addFilledMakingAmount(filledMakingAmountByMaker map[string]uint256.Int, maker string,
-	filledMakingAmount *uint256.Int) {
-	total := filledMakingAmountByMaker[maker]
-	total.Add(&total, filledMakingAmount)
-	filledMakingAmountByMaker[maker] = total
+// addUsedMaking adds making to maker's running total of used balance.
+func addUsedMaking(usedByMaker map[string]uint256.Int, maker string, making *uint256.Int) {
+	total := usedByMaker[maker]
+	total.Add(&total, making)
+	usedByMaker[maker] = total
 }
 
 // setAmount sets z to b and reports whether b is a usable amount: non-nil, non-negative and
@@ -254,14 +253,15 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 	// - when simulating filling each order here: we cannot do the same as in kyber-pmm (simulating first then check inventory limit at the end)
 	//				because in LO we have multiple makers, and also because we still need to allow orders that have part of the balance available
 	//		the problem is that in this func we cannot update the limit,
-	//		so we'll use this map to track filled amount for each maker, then subtract from the original balance, to have the remaining balance available
-	filledMakingAmountByMaker := make(map[string]uint256.Int, len(p.allMakersBalanceAllowance))
+	//		so we'll use this map to track how much of each maker's balance is used, then subtract from the original balance, to have the remaining balance available
+	usedByMaker := make(map[string]uint256.Int, len(p.allMakersBalanceAllowance))
+	balances := makerBalances{limit: limit}
 
 	var (
-		totalAmountOut, totalFeeAmount, totalMakingAmount  uint256.Int
-		remainingMaking, remainingTaking, amountInAfterFee uint256.Int
-		terms                                              orderTerms
-		fill                                               orderFill
+		totalAmountOut, totalFeeAmount, totalMakingAmount             uint256.Int
+		ownMaking, remainingMaking, remainingTaking, amountInAfterFee uint256.Int
+		terms                                                         orderTerms
+		fill                                                          orderFill
 	)
 	for i, orderID := range orderIDs {
 		order, ok := p.ordersMapping[orderID]
@@ -270,7 +270,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		}
 
 		// Get remaining making amount, taking amount
-		if !order.remainingAmount(&terms, &remainingMaking, &remainingTaking, limit, filledMakingAmountByMaker) {
+		if !order.remainingAmount(&terms, &ownMaking, &remainingMaking, &remainingTaking, limit, usedByMaker) {
 			continue
 		}
 
@@ -291,17 +291,16 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		totalAmountOut.Sub(&totalAmountOut, &fill.makerFee)
 
 		filledTakingStr, filledMakingStr := fill.taking.Dec(), fill.making.Dec()
-		// a used-up order's remaining taking is its fill, and usually its remaining making too
-		remainingTakingStr, remainingMakingStr := filledTakingStr, filledMakingStr
-		if done {
-			remainingTakingStr = remainingTaking.Dec()
+		// a used-up order not capped by its maker's balance has its own remaining making as fill
+		ownMakingStr := filledMakingStr
+		if !ownMaking.Eq(&fill.making) {
+			ownMakingStr = ownMaking.Dec()
 		}
-		if done || !fill.making.Eq(&remainingMaking) {
-			remainingMakingStr = remainingMaking.Dec()
-		}
-		swapInfo.FilledOrders = append(swapInfo.FilledOrders, newFilledOrderInfo(order,
-			filledTakingStr, filledMakingStr, fill.makerFee.Dec(), remainingMakingStr, remainingTakingStr))
-		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, &fill.making)
+		info := newFilledOrderInfo(order, filledTakingStr, filledMakingStr, fill.makerFee.Dec(), ownMakingStr)
+		info.MakerBalance = balances.of(order)
+		swapInfo.FilledOrders = append(swapInfo.FilledOrders, info)
+		// like the executor, set the order's whole capped making aside, not just its fill
+		addUsedMaking(usedByMaker, order.Maker, &remainingMaking)
 		if !done {
 			amountIn.Sub(&amountIn, &fill.spent)
 			continue
@@ -321,13 +320,14 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 			if !ok {
 				continue
 			}
-			if !order.remainingAmount(&terms, &remainingMaking, &remainingTaking, limit, filledMakingAmountByMaker) {
+			if !order.remainingAmount(&terms, &ownMaking, &remainingMaking, &remainingTaking, limit, usedByMaker) {
 				continue
 			}
 
 			totalMakingAmount.Add(&totalMakingAmount, &remainingMaking)
-			swapInfo.FilledOrders = append(swapInfo.FilledOrders, newFallbackOrderInfo(order,
-				remainingMaking.Dec(), remainingTaking.Dec()))
+			info := newFallbackOrderInfo(order, ownMaking.Dec())
+			info.MakerBalance = balances.of(order)
+			swapInfo.FilledOrders = append(swapInfo.FilledOrders, info)
 		}
 		break
 	}
@@ -479,10 +479,35 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{ApprovalAddress: p.contractAddress, BlockNumber: p.Info.BlockNumber}
 }
 
-func newFallbackOrderInfo(order *order, remainingMakingAmount, remainingTakingAmount string) *FilledOrderInfo {
-	orderInfo := newFilledOrderInfo(order, "", "", "", remainingMakingAmount, remainingTakingAmount)
+func newFallbackOrderInfo(order *order, remainingMakingAmount string) *FilledOrderInfo {
+	orderInfo := newFilledOrderInfo(order, "", "", "", remainingMakingAmount)
 	orderInfo.markFallback()
 	return orderInfo
+}
+
+// makerBalances formats each maker's balance in the swap limit once per quote, for
+// FilledOrderInfo.MakerBalance; empty without a limit.
+type makerBalances struct {
+	limit   pool.SwapLimit
+	byMaker map[string]string
+}
+
+func (m *makerBalances) of(o *order) string {
+	if m.limit == nil {
+		return ""
+	}
+	if s, ok := m.byMaker[o.Maker]; ok {
+		return s
+	}
+	if m.byMaker == nil {
+		m.byMaker = make(map[string]string, 4)
+	}
+	var s string
+	if b := m.limit.GetLimit(NewMakerAndAsset(o.Maker, o.MakerAsset)); b != nil {
+		s = amountString(b)
+	}
+	m.byMaker[o.Maker] = s
+	return s
 }
 
 // markFallback clears f's fill and marks it a fallback, which the executor fills only with what
@@ -492,7 +517,7 @@ func (f *FilledOrderInfo) markFallback() {
 }
 
 func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount, feeAmount,
-	remainingMakingAmount, remainingTakingAmount string) *FilledOrderInfo {
+	remainingMakingAmount string) *FilledOrderInfo {
 	feeConfig := ""
 	if order.FeeConfig != nil {
 		feeConfig = amountString(order.FeeConfig)
@@ -524,7 +549,6 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount, fe
 		FeeAmount:            feeAmount,
 
 		RemainingMakingAmount: remainingMakingAmount,
-		RemainingTakingAmount: remainingTakingAmount,
 		IsTakerAssetFee:       order.IsTakerAssetFee,
 	}
 }

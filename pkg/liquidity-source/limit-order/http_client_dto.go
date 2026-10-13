@@ -215,10 +215,11 @@ func toOrder(ordersData []*orderData) ([]*order, error) {
 	return result, nil
 }
 
-// remainingAmount loads o's terms into t, sets making/taking to what o can still fill, and
-// reports whether both are positive.
-func (o *order) remainingAmount(t *orderTerms, making, taking *uint256.Int, limit pool.SwapLimit,
-	filledMakingAmountByMaker map[string]uint256.Int) bool {
+// remainingAmount loads o's terms into t, sets own to the making o itself can still fill and
+// making/taking to what it can fill within its maker's balance, and reports whether both are
+// positive.
+func (o *order) remainingAmount(t *orderTerms, own, making, taking *uint256.Int, limit pool.SwapLimit,
+	usedByMaker map[string]uint256.Int) bool {
 	setAmount(&t.making, o.MakingAmount)
 	setAmount(&t.taking, o.TakingAmount)
 	t.feePct.SetUint64(uint64(o.MakerTokenFeePercent))
@@ -228,12 +229,13 @@ func (o *order) remainingAmount(t *orderTerms, making, taking *uint256.Int, limi
 		var filled uint256.Int
 		if !setAmount(&filled, o.FilledMakingAmount) {
 			return false
-		} else if _, underflow := making.SubOverflow(&t.making, &filled); underflow {
+		} else if _, underflow := own.SubOverflow(&t.making, &filled); underflow {
 			return false
 		}
-	} else if !setAmount(making, o.AvailableMakingAmount) {
+		making.Set(own)
+	} else if !setAmount(own, o.AvailableMakingAmount) {
 		return false
-	} else if limit != nil && !o.capByMakerBalance(making, limit, filledMakingAmountByMaker) {
+	} else if making.Set(own); limit != nil && !o.capByMakerBalance(making, limit, usedByMaker) {
 		return false
 	}
 	// the executor sends floor(remaining making * order.TakingAmount / order.MakingAmount)
@@ -243,17 +245,17 @@ func (o *order) remainingAmount(t *orderTerms, making, taking *uint256.Int, limi
 }
 
 // capByMakerBalance caps making at what o's maker has left: its balance in limit less what this
-// quote already filled from it (another order of the maker, same makerAsset, other takerAsset,
+// quote already used of it (another order of the maker, same makerAsset, other takerAsset,
 // may have used it). A maker missing from the limit has no balance left. Callers skip this
 // without a limit, as for a pool stored before maker balances were tracked.
 func (o *order) capByMakerBalance(making *uint256.Int, limit pool.SwapLimit,
-	filledMakingAmountByMaker map[string]uint256.Int) bool {
+	usedByMaker map[string]uint256.Int) bool {
 	var balance uint256.Int
 	if !setAmount(&balance, limit.GetLimit(NewMakerAndAsset(o.Maker, o.MakerAsset))) {
 		return false
 	}
-	filled := filledMakingAmountByMaker[o.Maker]
-	if _, underflow := balance.SubOverflow(&balance, &filled); underflow {
+	used := usedByMaker[o.Maker]
+	if _, underflow := balance.SubOverflow(&balance, &used); underflow {
 		return false
 	}
 	if making.Gt(&balance) {

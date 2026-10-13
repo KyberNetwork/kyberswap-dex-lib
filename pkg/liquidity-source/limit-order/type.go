@@ -52,11 +52,14 @@ type FilledOrderInfo struct {
 	Signature            string `json:"signature"`
 	IsFallBack           bool   `json:"isFallback"`
 
-	// Quote-time amounts left in the order and its fee side, so the RFQ handler can re-spread
-	// amountIn over the signed orders when a required order loses its operator signature.
+	// Quote-time making left in the order itself (before its maker's balance caps it) and its
+	// fee side, so the RFQ handler can re-spread amountIn over the signed orders when a required
+	// order loses its operator signature.
 	RemainingMakingAmount string `json:"remainingMakingAmount,omitempty"`
-	RemainingTakingAmount string `json:"remainingTakingAmount,omitempty"`
 	IsTakerAssetFee       bool   `json:"isTakerAssetFee,omitempty"`
+	// MakerBalance is the maker's balance in the swap limit when the quote capped fills by it;
+	// empty when the quote had no limit.
+	MakerBalance string `json:"makerBalance,omitempty"`
 }
 
 type OpSignatureExtra struct {

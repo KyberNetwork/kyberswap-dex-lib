@@ -65,9 +65,9 @@ func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.In
 		cost, minAmountIn uint256.Int
 	}
 	var fullFills []fullFill
-	filledMakingAmountByMaker := make(map[string]uint256.Int, len(p.allMakersBalanceAllowance))
+	usedByMaker := make(map[string]uint256.Int, len(p.allMakersBalanceAllowance))
 
-	var need, remainingMaking, remainingTaking, filledMaking, filledTaking, makerFee, makerFeeDenom, takerFeeNum,
+	var need, ownMaking, remainingMaking, remainingTaking, filledMaking, filledTaking, makerFee, makerFeeDenom, takerFeeNum,
 		amountIn uint256.Int
 	var terms orderTerms
 	need.Set(amountOut)
@@ -78,7 +78,7 @@ func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.In
 			return nil, fmt.Errorf("order %d is not existed in pool", orderID)
 		}
 
-		if !order.remainingAmount(&terms, &remainingMaking, &remainingTaking, limit, filledMakingAmountByMaker) {
+		if !order.remainingAmount(&terms, &ownMaking, &remainingMaking, &remainingTaking, limit, usedByMaker) {
 			continue
 		}
 		makerFeePct, takerFeePct := terms.feePcts()
@@ -111,7 +111,8 @@ func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.In
 		big256.MulDivUp(&f.minAmountIn, &f.minAmountIn, &takerFeeNum, big256.UBasisPoint)
 		fullFills = append(fullFills, f)
 
-		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, &filledMaking)
+		// as CalcAmountOut does: the order's whole capped making, not just its fill
+		addUsedMaking(usedByMaker, order.Maker, &remainingMaking)
 		filledMaking.Sub(&filledMaking, terms.makerFee(&makerFee, &filledMaking))
 		if need.Gt(&filledMaking) {
 			need.Sub(&need, &filledMaking)

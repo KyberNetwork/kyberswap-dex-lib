@@ -67,14 +67,14 @@ func TestPool_CalcAmountIn(t *testing.T) {
 						newExampleFilledOrderInfo(
 							t,
 							1,
-							tokenUSDT, big.NewInt(200), big.NewInt(200), big.NewInt(200),
+							tokenUSDT, big.NewInt(200), big.NewInt(200),
 							tokenUSDC, big.NewInt(400), big.NewInt(400), big.NewInt(400),
 							big.NewInt(0), 0, false,
 						),
 						newExampleFilledOrderInfo(
 							t,
 							2,
-							tokenUSDT, big.NewInt(300), big.NewInt(100), big.NewInt(300),
+							tokenUSDT, big.NewInt(300), big.NewInt(100),
 							tokenUSDC, big.NewInt(300), big.NewInt(100), big.NewInt(300),
 							big.NewInt(0), 0, true,
 						),
@@ -116,14 +116,14 @@ func TestPool_CalcAmountIn(t *testing.T) {
 						newExampleFilledOrderInfo(
 							t,
 							1,
-							tokenUSDC, big.NewInt(992_000), big.NewInt(992_000), big.NewInt(992_000),
+							tokenUSDC, big.NewInt(992_000), big.NewInt(992_000),
 							tokenUSDT, big.NewInt(1_000_000), big.NewInt(1_000_000), big.NewInt(1_000_000),
 							big.NewInt(0), 0, false,
 						),
 						newExampleFilledOrderInfo(
 							t,
 							2,
-							tokenUSDC, big.NewInt(1_010_000), big.NewInt(218_000), big.NewInt(1_010_000),
+							tokenUSDC, big.NewInt(1_010_000), big.NewInt(218_000),
 							tokenUSDT, big.NewInt(1_000_000), big.NewInt(215_841), big.NewInt(1_000_000),
 							big.NewInt(0), 0, false,
 						),
@@ -164,13 +164,13 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					FilledOrders: []*FilledOrderInfo{
 						newExampleFilledOrderInfo(t,
 							1383,
-							tokenUSDT, big.NewInt(200), big.NewInt(200), big.NewInt(200),
+							tokenUSDT, big.NewInt(200), big.NewInt(200),
 							tokenUSDC, big.NewInt(400), big.NewInt(400), big.NewInt(400),
 							big.NewInt(0), 100, true,
 						),
 						newExampleFilledOrderInfo(t,
 							1382,
-							tokenUSDT, big.NewInt(300), big.NewInt(100), big.NewInt(300),
+							tokenUSDT, big.NewInt(300), big.NewInt(100),
 							tokenUSDC, big.NewInt(300), big.NewInt(100), big.NewInt(300),
 							big.NewInt(0), 0, true,
 						),
@@ -213,7 +213,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					FilledOrders: []*FilledOrderInfo{
 						newExampleFilledOrderInfo(t,
 							1383,
-							tokenUSDC, big.NewInt(700), big.NewInt(700), big.NewInt(700),
+							tokenUSDC, big.NewInt(700), big.NewInt(700),
 							tokenUSDT, big.NewInt(1400), big.NewInt(1400), big.NewInt(1400),
 							big.NewInt(0), 0, false,
 						),
@@ -468,7 +468,7 @@ func newExampleFallBackOrderInfo(
 	t.Helper()
 	o := newExampleFilledOrderInfo(
 		t, orderID,
-		takerAsset, takingAmount, big.NewInt(0), takingAmount,
+		takerAsset, takingAmount, big.NewInt(0),
 		makerAsset, makingAmount, big.NewInt(0), makingAmount,
 		big.NewInt(0), makerTokenFeePercent, false,
 	)
@@ -479,7 +479,7 @@ func newExampleFallBackOrderInfo(
 func newExampleFilledOrderInfo(
 	t *testing.T,
 	orderID int64,
-	takerAsset string, takingAmount, filledTakingAmount, remainingTakingAmount *big.Int,
+	takerAsset string, takingAmount, filledTakingAmount *big.Int,
 	makerAsset string, makingAmount, filledMakingAmount, remainingMakingAmount *big.Int,
 	feeAmount *big.Int, makerTokenFeePercent uint32, isTakerAssetFee bool,
 ) *FilledOrderInfo {
@@ -511,7 +511,6 @@ func newExampleFilledOrderInfo(
 		FeeAmount:            feeAmount.String(),
 
 		RemainingMakingAmount: remainingMakingAmount.String(),
-		RemainingTakingAmount: remainingTakingAmount.String(),
 		IsTakerAssetFee:       isTakerAssetFee,
 	}
 }

@@ -146,7 +146,7 @@ func freshOrder(id int64, isFallback bool, maker, making, taking, filledMaking, 
 	o := filledOrder(id, isFallback)
 	o.Maker, o.Receiver = maker, maker
 	o.MakingAmount, o.TakingAmount = making, taking
-	o.RemainingMakingAmount, o.RemainingTakingAmount = making, taking
+	o.RemainingMakingAmount = making
 	o.FilledMakingAmount, o.FilledTakingAmount, o.FeeAmount = filledMaking, filledTaking, "0"
 
 	return o
@@ -198,16 +198,81 @@ func TestRFQ_RefillsDroppedRequiredOrder(t *testing.T) {
 		require.ErrorIs(t, err, ErrMissingOperatorSignature)
 	})
 
-	// Order 3's room is what maker m2 had left after order 2's planned 400. Order 2 now fills
-	// 700, so the extra 300 also comes off order 3.
-	t.Run("same maker's later order loses the room the earlier one took", func(t *testing.T) {
-		_, err := rfqWith(t, signed, []*FilledOrderInfo{
+	// Orders 2 and 3 share maker m2. Order 2 now fills its whole 700, which leaves order 3
+	// whatever of m2's balance is still free.
+	sameMaker := func(balance string) []*FilledOrderInfo {
+		orders := []*FilledOrderInfo{
 			freshOrder(1, false, m1, "600", "600", "600", "600"),
 			freshOrder(2, false, m2, "700", "700", "400", "400"),
 			freshOrder(3, true, m2, "300", "600", "0", "0"),
-		})
+		}
+		orders[1].MakerBalance, orders[2].MakerBalance = balance, balance
+		return orders
+	}
+	t.Run("a maker's later order gets only the balance its earlier one left", func(t *testing.T) {
+		_, err := rfqWith(t, signed, sameMaker("700"))
 		require.ErrorIs(t, err, ErrMissingOperatorSignature)
 	})
+	t.Run("a maker with spare balance keeps its later order", func(t *testing.T) {
+		res, err := rfqWith(t, signed, sameMaker("10000"))
+		require.NoError(t, err)
+		assert.Equal(t, "850", res.NewAmountOut.String())
+	})
+}
+
+// A dropped order may have been filled on-chain after the quote, taking up to its whole own
+// remaining making from its maker. Order 2 (m1) had 800 left but filled only 500 in the quote;
+// fallback order 3 (m1) was capped to the 500 of m1's 1000 balance that order 2 left.
+func TestRFQ_RefillAssumesDroppedOrderDrainedItsMaker(t *testing.T) {
+	const (
+		m1 = "0xa000000000000000000000000000000000000001"
+		m2 = "0xa000000000000000000000000000000000000002"
+	)
+	orders := func(m1Balance string) []*FilledOrderInfo {
+		o := []*FilledOrderInfo{
+			freshOrder(1, false, m2, "500", "500", "500", "500"),
+			freshOrder(2, false, m1, "800", "800", "500", "500"),
+			freshOrder(3, true, m1, "500", "500", "0", "0"),
+		}
+		o[1].MakerBalance, o[2].MakerBalance = m1Balance, m1Balance
+		return o
+	}
+	signed := map[int64]bool{1: true, 3: true}
+
+	t.Run("not enough left after the dropped order's whole remaining", func(t *testing.T) {
+		// m1 may have only 1000 - 800 = 200 left, short of the 500 order 3 needs to supply
+		_, err := rfqWith(t, signed, orders("1000"))
+		require.ErrorIs(t, err, ErrMissingOperatorSignature)
+	})
+	t.Run("enough left even if the dropped order filled entirely", func(t *testing.T) {
+		res, err := rfqWith(t, signed, orders("2000"))
+		require.NoError(t, err)
+		assert.Equal(t, "1000", res.NewAmountOut.String())
+		assert.Equal(t, map[int64]fill{1: {"500", "500"}, 3: {"500", "500"}},
+			fillsOf(res.Extra.(OpSignatureExtra).FilledOrders))
+	})
+}
+
+// A cancelled dropped order leaves its maker's balance to the maker's worse order, which then
+// crowds out a better order after it; a filled one would not. The refill reports the lower.
+func TestRFQ_RefillKeepsLowerOfCancelledAndFilledDroppedOrder(t *testing.T) {
+	const (
+		m1 = "0xa000000000000000000000000000000000000001"
+		m2 = "0xa000000000000000000000000000000000000002"
+	)
+	o := []*FilledOrderInfo{
+		freshOrder(1, false, m1, "500", "500", "500", "500"),
+		freshOrder(2, false, m1, "500", "1000", "250", "500"),
+		freshOrder(3, true, m2, "2000", "1000", "0", "0"),
+	}
+	o[0].MakerBalance, o[1].MakerBalance = "700", "700"
+
+	// cancelled: order 2 gets m1's 700 and takes all of amountIn for 500; filled: m1 has 200
+	// left, order 2 takes 400 for 200 and order 3 the other 600 for 1200
+	res, err := rfqWith(t, map[int64]bool{2: true, 3: true}, o)
+	require.NoError(t, err)
+	assert.Equal(t, "500", res.NewAmountOut.String())
+	assert.Equal(t, map[int64]fill{2: {"1000", "500"}}, fillsOf(res.Extra.(OpSignatureExtra).FilledOrders))
 }
 
 // Dropping a required order must give the fill the simulator finds on the pool without it, as

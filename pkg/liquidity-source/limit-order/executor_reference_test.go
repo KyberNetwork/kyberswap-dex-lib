@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -182,4 +183,213 @@ func TestCalcAmountOut_MatchesExecutor(t *testing.T) {
 	}
 	t.Logf("simulator == executor: %d, below by taker-fee dust: %d (max %s wei)", same, simLower, maxLower)
 	require.Positive(t, same)
+}
+
+type refMakerOrder struct {
+	refOrder
+	maker string
+}
+
+// refExecutorFillShared is refExecutorFill with makers shared across orders: the executor caps
+// a maker's later order by what the maker's previous order in the list left, and the maker's
+// real balance drops by each fill. (The deployed helper seeds from the maker's earliest order
+// instead; that executor bug is out of scope here.)
+func refExecutorFillShared(orders []refMakerOrder, balances map[string]*big.Int, amountIn *big.Int) *big.Int {
+	actual := make(map[string]*big.Int, len(balances))
+	for m, b := range balances {
+		actual[m] = new(big.Int).Set(b)
+	}
+	seen := make(map[string]*big.Int, len(balances)) // executor's record of each maker's balance
+	amountIn = new(big.Int).Set(amountIn)
+	amountOut := new(big.Int)
+	fu := big.NewInt(refFeeUnits)
+	for _, o := range orders {
+		record, ok := seen[o.maker]
+		if !ok {
+			record = new(big.Int).Set(actual[o.maker])
+			seen[o.maker] = record
+		}
+		making := bigMin(o.remaining, record)
+		record.Sub(record, making)
+		taking := new(big.Int).Quo(new(big.Int).Mul(o.taking, making), o.making)
+		pct := big.NewInt(o.feePct)
+		takerFee := o.feePct != 0 && o.takerAssetFee
+		if takerFee {
+			fee := ceilDiv(new(big.Int).Mul(pct, taking), fu)
+			if new(big.Int).Add(taking, fee).Cmp(amountIn) > 0 {
+				taking = new(big.Int).Quo(new(big.Int).Mul(amountIn, fu), new(big.Int).Add(fu, pct))
+			}
+		} else {
+			taking = bigMin(taking, amountIn)
+		}
+		if taking.Sign() == 0 || new(big.Int).Mul(o.making, taking).Cmp(o.taking) < 0 {
+			continue
+		}
+		cMaking := new(big.Int).Quo(new(big.Int).Mul(taking, o.making), o.taking)
+		if cMaking.Cmp(o.remaining) > 0 {
+			cMaking.Set(o.remaining)
+			taking = ceilDiv(new(big.Int).Mul(cMaking, o.taking), o.making)
+		}
+		if cMaking.Sign() == 0 || cMaking.Cmp(actual[o.maker]) > 0 {
+			continue // the maker transfer reverts; the executor catches it
+		}
+		var fee, actualTaking *big.Int
+		switch {
+		case takerFee:
+			fee = ceilDiv(new(big.Int).Mul(taking, pct), fu)
+			actualTaking = new(big.Int).Add(taking, fee)
+		case o.feePct != 0:
+			fee = ceilDiv(new(big.Int).Mul(cMaking, pct), fu)
+			actualTaking = taking
+		default:
+			fee, actualTaking = new(big.Int), taking
+		}
+		if actualTaking.Cmp(amountIn) > 0 {
+			continue
+		}
+		actual[o.maker].Sub(actual[o.maker], cMaking)
+		amountIn.Sub(amountIn, actualTaking)
+		if takerFee {
+			amountOut.Add(amountOut, cMaking)
+		} else {
+			amountOut.Add(amountOut, new(big.Int).Sub(cMaking, fee))
+		}
+		if amountIn.Sign() == 0 {
+			break
+		}
+	}
+	return amountOut
+}
+
+// refEffectiveRate is the maker asset a taker gets per taker asset paid, fees included.
+func refEffectiveRate(o *order) *big.Rat {
+	pct := int64(o.MakerTokenFeePercent)
+	making, taking := new(big.Int).Set(o.MakingAmount), new(big.Int).Set(o.TakingAmount)
+	if o.IsTakerAssetFee {
+		taking.Mul(taking, big.NewInt(10_000+pct))
+		making.Mul(making, big.NewInt(10_000))
+	} else {
+		making.Mul(making, big.NewInt(10_000-pct))
+		taking.Mul(taking, big.NewInt(10_000))
+	}
+	return new(big.Rat).SetFrac(making, taking)
+}
+
+// A required order drops out at RFQ because it was cancelled or a third party filled part or all
+// of it on-chain, taking that from its maker's balance. The refill over the remaining orders must
+// never quote more than the executor then delivers on that state: for any fill when the book is
+// best price first, and for no fill or a full one in any order. (A partial fill on a book where
+// a maker's order is worse than a later one can land between the two refills, below both.)
+func TestRefill_NeverAboveExecutorAfterDroppedOrderFills(t *testing.T) {
+	t.Run("best price first, any fill", func(t *testing.T) { testRefillNeverAboveExecutor(t, true) })
+	t.Run("any order, no or full fill", func(t *testing.T) { testRefillNeverAboveExecutor(t, false) })
+}
+
+func testRefillNeverAboveExecutor(t *testing.T, sorted bool) {
+	rng := rand.New(rand.NewPCG(11, 0))
+	var refilled, same int
+	for c := range 20000 {
+		nMakers, n := 1+rng.IntN(3), 3+rng.IntN(6)
+		balances := make(map[string]*big.Int, nMakers)
+		for m := range nMakers {
+			balances[fmt.Sprintf("0xm%d", m)] = refRandAmount(rng)
+		}
+		refs := make(map[int64]refMakerOrder, n)
+		orders := make([]*order, n)
+		for i := range orders {
+			maker := fmt.Sprintf("0xm%d", rng.IntN(nMakers))
+			making := refRandAmount(rng)
+			// a similar price band, so one maker's orders interleave with the others'
+			taking := new(big.Int).Quo(new(big.Int).Mul(making, big.NewInt(int64(900+rng.IntN(200)))), big.NewInt(1000))
+			if taking.Sign() == 0 {
+				taking.SetInt64(1)
+			}
+			remaining := making
+			if rng.IntN(2) == 0 {
+				remaining = refFrac(rng, making)
+			}
+			p := []int64{0, 5, 30}[rng.IntN(3)]
+			r := refMakerOrder{refOrder{making: making, taking: taking, remaining: remaining,
+				feePct: p * 10, takerAssetFee: rng.IntN(2) == 0}, maker}
+			id := int64(i + 1)
+			refs[id] = r
+			filledMaking := new(big.Int).Sub(making, remaining)
+			orders[i] = &order{
+				ID: id, Maker: maker, MakerAsset: "m", TakerAsset: "t",
+				MakingAmount: making, TakingAmount: taking,
+				FilledMakingAmount:    filledMaking,
+				FilledTakingAmount:    new(big.Int).Quo(new(big.Int).Mul(filledMaking, taking), making),
+				AvailableMakingAmount: remaining,
+				MakerBalanceAllowance: balances[maker],
+				MakerTokenFeePercent:  uint32(p), IsTakerAssetFee: r.takerAssetFee,
+			}
+		}
+		if sorted {
+			slices.SortStableFunc(orders, func(a, b *order) int { return refEffectiveRate(b).Cmp(refEffectiveRate(a)) })
+		}
+		extra, _ := json.Marshal(Extra{BuyOrders: orders})
+		sim, err := NewPoolSimulator(entity.Pool{Tokens: []*entity.PoolToken{{Address: "a"}, {Address: "b"}},
+			Reserves: entity.PoolReserves{"0", "0"}, StaticExtra: `{"ContractAddress":""}`, Extra: string(extra)})
+		require.NoError(t, err)
+		amountIn := refRandAmount(rng)
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: "a", Amount: amountIn},
+			TokenOut: "b", Limit: swaplimit.NewInventory("", sim.CalculateLimit())})
+		if err != nil {
+			continue
+		}
+		quoted := res.SwapInfo.(SwapInfo)
+		quotedList := make([]refMakerOrder, len(quoted.FilledOrders))
+		for i, o := range quoted.FilledOrders {
+			quotedList[i] = refs[o.OrderID]
+		}
+		require.True(t, refExecutorFillShared(quotedList, balances, amountIn).Cmp(res.TokenAmountOut.Amount) >= 0,
+			"case %d: quote above the executor", c)
+		var required []int
+		for i, o := range quoted.FilledOrders {
+			if !o.IsFallBack {
+				required = append(required, i)
+			}
+		}
+		d := quoted.FilledOrders[required[rng.IntN(len(required))]]
+
+		// the third party fills d by up to its remaining, within its maker's balance
+		dRef := refs[d.OrderID]
+		after := make(map[string]*big.Int, len(balances))
+		for m, b := range balances {
+			after[m] = new(big.Int).Set(b)
+		}
+		external := bigMin(dRef.remaining, after[dRef.maker])
+		if sorted {
+			external = refFrac(rng, external)
+		} else if rng.IntN(2) == 0 {
+			external = new(big.Int) // cancelled
+		}
+		after[dRef.maker].Sub(after[dRef.maker], external)
+
+		swap := SwapInfo{AmountIn: quoted.AmountIn, SwapSide: quoted.SwapSide}
+		for _, o := range quoted.FilledOrders {
+			if o.OrderID != d.OrderID {
+				cp := *o
+				swap.FilledOrders = append(swap.FilledOrders, &cp)
+			}
+		}
+		dropped := *d
+		newAmountOut, err := refillSignedOrders(&swap, []*FilledOrderInfo{&dropped})
+		if err != nil {
+			continue
+		}
+		refilled++
+		list := make([]refMakerOrder, len(swap.FilledOrders))
+		for i, o := range swap.FilledOrders {
+			list[i] = refs[o.OrderID]
+		}
+		got := refExecutorFillShared(list, after, amountIn)
+		require.True(t, got.Cmp(newAmountOut) >= 0,
+			"case %d: refill quotes %s, executor delivers %s", c, newAmountOut, got)
+		if got.Cmp(newAmountOut) == 0 {
+			same++
+		}
+	}
+	t.Logf("refilled %d books: executor == refill %d, executor above refill %d", refilled, same, refilled-same)
+	require.Positive(t, refilled)
 }

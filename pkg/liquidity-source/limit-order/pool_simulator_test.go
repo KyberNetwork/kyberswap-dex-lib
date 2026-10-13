@@ -165,7 +165,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:            "0",
 
 							RemainingMakingAmount: "400",
-							RemainingTakingAmount: "200",
 						},
 						{
 							OrderID:            1382,
@@ -192,7 +191,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:          "0",
 
 							RemainingMakingAmount: "300",
-							RemainingTakingAmount: "300",
 						},
 					},
 				},
@@ -330,7 +328,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:            "0",
 
 							RemainingMakingAmount: "1000000",
-							RemainingTakingAmount: "992000",
 						},
 						{
 							OrderID:            1382,
@@ -356,7 +353,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:          "0",
 
 							RemainingMakingAmount: "1000000",
-							RemainingTakingAmount: "1010000",
 						},
 					},
 				},
@@ -494,7 +490,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:            "4",
 
 							RemainingMakingAmount: "400",
-							RemainingTakingAmount: "200",
 						},
 						{
 							OrderID:            1382,
@@ -520,7 +515,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:          "0",
 
 							RemainingMakingAmount: "300",
-							RemainingTakingAmount: "300",
 						},
 					},
 				},
@@ -708,7 +702,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:            "0",
 
 							RemainingMakingAmount: "1400",
-							RemainingTakingAmount: "700",
 						},
 						{
 							OrderID:            1382,
@@ -735,7 +728,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							IsFallBack:         true,
 
 							RemainingMakingAmount: "250",
-							RemainingTakingAmount: "240",
 						},
 						{
 							OrderID:              1385,
@@ -763,7 +755,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							FeeAmount:            "0",
 
 							RemainingMakingAmount: "300",
-							RemainingTakingAmount: "200",
 						},
 					},
 				},

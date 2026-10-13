@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -73,11 +74,17 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	// filled, cancelled or expired since the pool snapshot was taken. Drop it: the executor
 	// fills the list in order, so the signed orders after it (fallbacks included) take its share.
 	kept := swapInfo.FilledOrders[:0]
-	var droppedRequired []int64
+	var (
+		dropped         []*FilledOrderInfo
+		droppedRequired []int64
+	)
 	for _, o := range swapInfo.FilledOrders {
 		if _, signed := signaturesById[o.OrderID]; signed {
 			kept = append(kept, o)
-		} else if !o.IsFallBack {
+			continue
+		}
+		dropped = append(dropped, o)
+		if !o.IsFallBack {
 			droppedRequired = append(droppedRequired, o.OrderID)
 		}
 	}
@@ -87,7 +94,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	// the caller's RFQ slippage check decides whether the route still holds.
 	var newAmountOut *big.Int
 	if len(droppedRequired) > 0 {
-		if newAmountOut, err = refillSignedOrders(&swapInfo); err != nil {
+		if newAmountOut, err = refillSignedOrders(&swapInfo, dropped); err != nil {
 			logger.WithFields(logger.Fields{
 				"params":   params,
 				"orderIds": droppedRequired,
@@ -117,37 +124,87 @@ func (h *RFQHandler) BatchRFQ(context.Context, []pool.RFQParams) ([]*pool.RFQRes
 // refillSignedOrders re-runs calcAmountOutWithSwapInfo's exact-in fill (fillOrder) over
 // swapInfo.FilledOrders using the remaining amounts recorded at quote time, rewriting each
 // order's fill. Orders past the one that completes amountIn go back to being fallbacks.
-// Returns the new amount out.
-func refillSignedOrders(swapInfo *SwapInfo) (*big.Int, error) {
+//
+// A dropped order may have been cancelled, leaving its maker's balance intact, or filled
+// on-chain, taking up to its whole remaining making from it. Either can be the worse case for
+// the orders after it, so both are refilled and the lower amount out is kept and returned.
+func refillSignedOrders(swapInfo *SwapInfo, dropped []*FilledOrderInfo) (*big.Int, error) {
+	if !sharesMaker(swapInfo.FilledOrders, dropped) {
+		return refillOrders(swapInfo, nil, true)
+	}
+	intact, err := refillOrders(swapInfo, nil, false)
+	if err != nil {
+		return nil, err
+	}
+	drained, err := refillOrders(swapInfo, dropped, false)
+	if err != nil {
+		return nil, err
+	}
+	if intact.Cmp(drained) <= 0 {
+		dropped = nil
+	}
+	return refillOrders(swapInfo, dropped, true)
+}
+
+// sharesMaker reports whether an order in dropped has the maker of a balance-capped kept order.
+func sharesMaker(kept, dropped []*FilledOrderInfo) bool {
+	for _, d := range dropped {
+		if slices.ContainsFunc(kept, func(o *FilledOrderInfo) bool { return o.MakerBalance != "" && o.Maker == d.Maker }) {
+			return true
+		}
+	}
+	return false
+}
+
+// refillOrders is one refill pass, with each dropped order's remaining making taken from its
+// maker's quote-time balance, and rewrites the orders' fills if write is set. Like the
+// executor, each order sets its capped making aside from its maker's balance even if it then
+// fills less or nothing; with nothing dropped this reproduces the quote's fill.
+func refillOrders(swapInfo *SwapInfo, dropped []*FilledOrderInfo, write bool) (*big.Int, error) {
 	var amountIn uint256.Int
 	if amountIn.SetFromDecimal(swapInfo.AmountIn) != nil {
 		return nil, ErrInvalidSwapInfo
 	}
 
 	var (
-		amountOut, remainingMaking, remainingTaking, amountInAfterFee, planned uint256.Int
-		terms                                                                  orderTerms
-		fill                                                                   orderFill
+		amountOut, remainingMaking, remainingTaking, amountInAfterFee, room uint256.Int
+		terms                                                               orderTerms
+		fill                                                                orderFill
 	)
-	// A later order of the same maker may have been capped by that maker's balance at quote
-	// time, so making filled beyond the original plan comes off its remaining amount.
-	overfilledByMaker := make(map[string]uint256.Int)
+	usedByMaker := make(map[string]uint256.Int, len(dropped)+len(swapInfo.FilledOrders))
+	for _, o := range dropped {
+		if remainingMaking.SetFromDecimal(o.RemainingMakingAmount) != nil {
+			return nil, fmt.Errorf("%w: order %d has no refill amounts", ErrInvalidSwapInfo, o.OrderID)
+		}
+		addUsedMaking(usedByMaker, o.Maker, &remainingMaking)
+	}
+
 	fulfilled := false
 	for _, info := range swapInfo.FilledOrders {
-		plannedMaking := info.FilledMakingAmount
-		info.markFallback()
+		if write {
+			info.markFallback()
+		}
 		if fulfilled {
 			continue
 		}
-		if err := info.loadTerms(&terms, &remainingMaking, &remainingTaking); err != nil {
+		if err := info.loadTerms(&terms, &remainingMaking); err != nil {
 			return nil, err
 		}
-		if extra, ok := overfilledByMaker[info.Maker]; ok {
-			if _, underflow := remainingMaking.SubOverflow(&remainingMaking, &extra); underflow {
+		if info.MakerBalance != "" {
+			if room.SetFromDecimal(info.MakerBalance) != nil {
+				return nil, fmt.Errorf("%w: order %d maker balance %q", ErrInvalidSwapInfo, info.OrderID, info.MakerBalance)
+			}
+			used := usedByMaker[info.Maker]
+			if _, underflow := room.SubOverflow(&room, &used); underflow {
 				continue
 			}
-			big256.MulDivDown(&remainingTaking, &remainingMaking, &terms.taking, &terms.making)
+			if remainingMaking.Gt(&room) {
+				remainingMaking.Set(&room)
+			}
+			addUsedMaking(usedByMaker, info.Maker, &remainingMaking)
 		}
+		// the executor sends floor(remaining making * order.TakingAmount / order.MakingAmount)
+		big256.MulDivDown(&remainingTaking, &remainingMaking, &terms.taking, &terms.making)
 		if remainingMaking.IsZero() || remainingTaking.IsZero() {
 			continue
 		}
@@ -161,12 +218,9 @@ func refillSignedOrders(swapInfo *SwapInfo) (*big.Int, error) {
 
 		amountOut.Add(&amountOut, &fill.making)
 		amountOut.Sub(&amountOut, &fill.makerFee)
-		info.FilledTakingAmount, info.FilledMakingAmount, info.FeeAmount, info.IsFallBack =
-			fill.taking.Dec(), fill.making.Dec(), fill.makerFee.Dec(), false
-		if planned.SetFromDecimal(plannedMaking) != nil {
-			return nil, fmt.Errorf("%w: order %d filled making %q", ErrInvalidSwapInfo, info.OrderID, plannedMaking)
-		} else if fill.making.Gt(&planned) {
-			addFilledMakingAmount(overfilledByMaker, info.Maker, planned.Sub(&fill.making, &planned))
+		if write {
+			info.FilledTakingAmount, info.FilledMakingAmount, info.FeeAmount, info.IsFallBack =
+				fill.taking.Dec(), fill.making.Dec(), fill.makerFee.Dec(), false
 		}
 		if done {
 			fulfilled = true
@@ -181,13 +235,12 @@ func refillSignedOrders(swapInfo *SwapInfo) (*big.Int, error) {
 	return amountToBig(&amountOut), nil
 }
 
-// loadTerms loads f's terms into t and its remaining amounts recorded at quote time into
-// remainingMaking and remainingTaking. Routes quoted before RemainingMakingAmount existed have
-// none and can't be refilled.
-func (f *FilledOrderInfo) loadTerms(t *orderTerms, remainingMaking, remainingTaking *uint256.Int) error {
+// loadTerms loads f's terms into t and the making it had left at quote time into
+// remainingMaking. Routes quoted before RemainingMakingAmount existed have none and can't be
+// refilled.
+func (f *FilledOrderInfo) loadTerms(t *orderTerms, remainingMaking *uint256.Int) error {
 	if t.making.SetFromDecimal(f.MakingAmount) != nil || t.taking.SetFromDecimal(f.TakingAmount) != nil ||
-		remainingMaking.SetFromDecimal(f.RemainingMakingAmount) != nil ||
-		remainingTaking.SetFromDecimal(f.RemainingTakingAmount) != nil {
+		remainingMaking.SetFromDecimal(f.RemainingMakingAmount) != nil {
 		return fmt.Errorf("%w: order %d has no refill amounts", ErrInvalidSwapInfo, f.OrderID)
 	}
 	if t.making.IsZero() || t.taking.IsZero() {
