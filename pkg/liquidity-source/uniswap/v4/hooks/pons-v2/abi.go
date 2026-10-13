@@ -15,6 +15,3 @@ func init() {
 		panic(err)
 	}
 }
-
-// HookABI returns the launches getter ABI for compatible hook adapters.
-func HookABI() abi.ABI { return hookABI }
