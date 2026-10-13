@@ -56,7 +56,7 @@ func (s *trackingRPC) Call(_ context.Context, call map[string]json.RawMessage, b
 	}
 	var input hexutil.Bytes
 	require.NoError(s.t, json.Unmarshal(data, &input))
-	require.Equal(s.t, hookABI.Methods["launches"].ID, []byte(input[:4]))
+	require.Equal(s.t, crypto.Keccak256([]byte("launches(bytes32)"))[:4], []byte(input[:4]))
 	require.Len(s.t, input, 36)
 	if s.expectOverrides {
 		require.NotNil(s.t, overrides)
@@ -73,8 +73,10 @@ func trackContext(t *testing.T) (*Hook, *uniswapv4.HookParam, *trackingRPC) {
 	originalHash := ImplementationCodeHash
 	ImplementationCodeHash = crypto.Keccak256Hash(code)
 	t.Cleanup(func() { ImplementationCodeHash = originalHash })
-	output, err := hookABI.Methods["launches"].Outputs.Pack(true, false, common.HexToAddress("0xf000000000000000000000000000000000000000"), common.Address{}, common.Address{}, common.Address{}, common.Address{}, uint16(133), uint16(3000), uint16(5000), uint16(100), uint16(300), true)
-	require.NoError(t, err)
+	output := make([]byte, 13*32)
+	for index, value := range map[int]int64{0: 1, 7: 133, 8: 3000, 9: 5000, 10: 100, 11: 300, 12: 1} {
+		copy(output[index*32:(index+1)*32], common.BigToHash(big.NewInt(value)).Bytes())
+	}
 	service := &trackingRPC{t: t, implementation: ImplementationAddress, code: code, output: output}
 	server := rpc.NewServer()
 	require.NoError(t, server.RegisterName("eth", service))
@@ -90,7 +92,7 @@ func TestTrackPinnedStateAndUpgradeRejection(t *testing.T) {
 	require.NoError(t, err)
 	var extra Extra
 	require.NoError(t, json.Unmarshal(data, &extra))
-	require.Equal(t, terms(100, 133), extra)
+	require.Equal(t, terms(233), extra)
 	require.Equal(t, extra, h.Extra)
 	require.EqualValues(t, snapshotBlock, param.Pool.BlockNumber, "published pool block must match validated RPC state")
 	_, err = h.Track(context.Background(), param)

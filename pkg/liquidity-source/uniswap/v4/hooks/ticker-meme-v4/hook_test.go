@@ -5,142 +5,108 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/msgpack/v5"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-func terms(fee, tax uint16) Extra {
-	return Extra{ImplementationHash: ImplementationCodeHash, Registered: true, HookFeeBps: fee, CreatorTaxBps: tax}
+func terms(fee int64) Extra {
+	return Extra{Extra: ponsv2.Extra{Registered: true, FeeBps: fee}, ImplementationHash: ImplementationCodeHash}
 }
 
-func TestAfterSwapSeparateFloors(t *testing.T) {
-	for _, tc := range []struct{ gross, fee int64 }{{1, 0}, {99, 0}, {100, 2}, {199, 2}, {200, 4}, {10001, 200}} {
-		for _, direction := range []bool{false, true} {
-			h := &Hook{Extra: terms(100, 100)}
-			gross := big.NewInt(tc.gross)
-			result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
-				BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: direction},
-				AmountIn:         big.NewInt(999999), AmountOut: gross,
-			})
-			require.NoError(t, err)
-			require.Equal(t, tc.fee, result.HookFee.Int64())
-			require.Equal(t, tc.gross, gross.Int64(), "quote changed its input")
-			if tc.fee > 0 {
-				require.EqualValues(t, afterSwapGas, result.Gas)
-			} else {
-				require.Zero(t, result.Gas)
+func TestAfterSwapReusesPons(t *testing.T) {
+	for _, extra := range []Extra{terms(0), terms(200), terms(233), {ImplementationHash: ImplementationCodeHash}} {
+		for _, calcOut := range []bool{true, false} {
+			for _, amount := range []int64{99, 199, 200, 1000000} {
+				h := &Hook{Extra: extra}
+				param := &uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: calcOut}, AmountIn: big.NewInt(amount), AmountOut: big.NewInt(amount)}
+				want, err := extra.Extra.AfterSwap(param)
+				require.NoError(t, err)
+				got, err := h.AfterSwap(param)
+				require.NoError(t, err)
+				require.Equal(t, want.HookFee, got.HookFee)
+				if got.HookFee.Sign() > 0 {
+					require.EqualValues(t, afterSwapGas, got.Gas)
+				} else {
+					require.Zero(t, got.Gas)
+				}
+				require.EqualValues(t, amount, param.AmountIn.Int64())
+				require.EqualValues(t, amount, param.AmountOut.Int64())
 			}
 		}
 	}
 }
 
-func TestAfterSwapRejectsInvalidState(t *testing.T) {
-	param := &uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountOut: big.NewInt(10000)}
-	for _, extra := range []Extra{{}, terms(1001, 0), terms(1000, 1001)} {
-		_, err := (&Hook{Extra: extra}).AfterSwap(param)
-		require.Error(t, err)
-	}
-	h := &Hook{Extra: terms(1000, 1000)}
-	_, err := h.AfterSwap(param)
-	require.NoError(t, err, "20 percent is permitted")
-	for _, amount := range []*big.Int{nil, big.NewInt(0), big.NewInt(-1), new(big.Int).Lsh(big.NewInt(1), 127)} {
-		param.AmountOut = amount
-		_, err = h.AfterSwap(param)
-		require.Error(t, err)
-	}
-	param.AmountOut = big.NewInt(10000)
-	param.CalcOut = false
-	_, err = h.AfterSwap(param)
-	require.Error(t, err, "reverse quotes must use the exact-input path")
-}
-
-func TestUnregisteredAndClone(t *testing.T) {
-	h := &Hook{Extra: terms(100, 133)}
-	h.Registered = false
-	fee, err := h.fee(big.NewInt(10000))
+func TestFactoryStateAndSerialization(t *testing.T) {
+	extra := terms(233)
+	raw, err := json.Marshal(extra)
 	require.NoError(t, err)
-	require.Zero(t, fee.Sign())
+	param := &uniswapv4.HookParam{Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookAddress: HookAddress, HookExtra: raw}
+	hook, ok := uniswapv4.GetHook(HookAddress, param)
+	require.True(t, ok)
+	h := hook.(*Hook)
+	require.NoError(t, h.validate())
+	require.Equal(t, DexType, h.GetExchange())
+	require.True(t, h.CanAfterSwap(HookAddress))
+	require.False(t, h.CanBeforeSwap(HookAddress))
+	encoded, err := msgpack.Marshal(h)
+	require.NoError(t, err)
+	var restored Hook
+	require.NoError(t, msgpack.Unmarshal(encoded, &restored))
+	require.NoError(t, restored.validate())
+	require.Equal(t, extra, restored.Extra)
 	clone := h.CloneState().(*Hook)
-	clone.HookFeeBps = 1000
-	require.EqualValues(t, 100, h.HookFeeBps)
-}
+	clone.FeeBps = 1000
+	require.EqualValues(t, 233, h.FeeBps)
 
-func TestFactoryRejectsWrongChainAndMalformedExtra(t *testing.T) {
-	for _, param := range []*uniswapv4.HookParam{
-		{Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDBase}, HookAddress: HookAddress},
-		{Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookAddress: common.Address{}},
-		{Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookAddress: HookAddress, HookExtra: uniswapv4.HookExtra(`{"r":`)},
+	// The old f/t schema must be refreshed, never read as an already-combined fee.
+	for _, invalid := range []string{
+		`{}`, `{"impl":"` + ImplementationCodeHash.Hex() + `","r":true,"f":100,"t":133}`,
+		`{"implementation":"` + ImplementationCodeHash.Hex() + `","r":true,"f":"bad"}`,
+		`{"implementation":"` + ImplementationCodeHash.Hex() + `","r":true,"f":-1}`,
+		`{"implementation":"` + ImplementationCodeHash.Hex() + `","r":true,"f":2001}`,
 	} {
-		require.Error(t, NewHook(param).(*Hook).validate())
-	}
-}
-
-func TestMalformedExtraRemainsRejectedAfterMsgpack(t *testing.T) {
-	for _, suffix := range []string{`"f":65536}`, `"f":"bad"}`, `"f":100,"t":65536}`} {
-		raw := `{"impl":"` + ImplementationCodeHash.Hex() + `","r":true,` + suffix
-		h := NewHook(&uniswapv4.HookParam{
-			Cfg:         &uniswapv4.Config{ChainID: valueobject.ChainIDMonad},
-			HookAddress: HookAddress,
-			HookExtra:   uniswapv4.HookExtra(raw),
-		}).(*Hook)
-		require.Error(t, h.validate())
-		encoded, err := msgpack.Marshal(h)
+		param.HookExtra = uniswapv4.HookExtra(invalid)
+		rejected := NewHook(param).(*Hook)
+		require.Error(t, rejected.validate())
+		encoded, err := msgpack.Marshal(rejected)
 		require.NoError(t, err)
-		var restored Hook
-		require.NoError(t, msgpack.Unmarshal(encoded, &restored))
-		_, err = restored.AfterSwap(&uniswapv4.AfterSwapParams{
-			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-			AmountOut:        big.NewInt(10000),
-		})
-		require.Error(t, err, "serialization must not make partially decoded fees quotable")
+		var roundTrip Hook
+		require.NoError(t, msgpack.Unmarshal(encoded, &roundTrip))
+		require.Error(t, roundTrip.validate())
 	}
+	param.Cfg.ChainID = valueobject.ChainIDBase
+	require.Error(t, NewHook(param).(*Hook).validate())
 }
 
-func TestV4QuotesAndUpdates(t *testing.T) {
+func TestV4ForwardQuote(t *testing.T) {
 	for _, native := range []bool{false, true} {
-		for _, tokenInIndex := range []int{0, 1} {
-			hooked := newPool(t, terms(100, 133), native)
-			plain := newPool(t, terms(0, 0), native)
-			tokens := hooked.Info.Tokens
-			meta := hooked.GetMetaInfo(tokens[0], tokens[1]).(uniswapv4.PoolMetaInfo)
-			require.EqualValues(t, snapshotBlock, meta.BlockNumber)
-			require.Equal(t, HookAddress, meta.HookAddress)
-			require.Equal(t, native, hooked.SwapReceiveNativeIn(tokens[0], tokens[1], valueobject.ChainIDMonad))
-			require.Equal(t, native, hooked.SwapReturnNativeOut(tokens[1], tokens[0], valueobject.ChainIDMonad))
-			quote := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tokens[tokenInIndex], Amount: big.NewInt(1000000)}, TokenOut: tokens[1-tokenInIndex]}
-			gross, err := plain.CalcAmountOut(quote)
+		for _, index := range []int{0, 1} {
+			p := newPool(t, terms(233), native)
+			param := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: p.Info.Tokens[index], Amount: big.NewInt(1000000)}, TokenOut: p.Info.Tokens[1-index]}
+			first, err := p.CalcAmountOut(param)
 			require.NoError(t, err)
-			result, err := hooked.CalcAmountOut(quote)
+			// This captured swap delivered 974747 on-chain; the shared Pons rounding
+			// conservatively quotes one raw unit less. This PR preserves that model.
+			require.Equal(t, "974746", first.TokenAmountOut.Amount.String())
+			again, err := p.CalcAmountOut(param)
 			require.NoError(t, err)
-			// Independent arithmetic oracle; do not use the hook's fee helper.
-			expected := new(big.Int).Set(gross.TokenAmountOut.Amount)
-			for _, rate := range []int64{100, 133} {
-				part := new(big.Int).Mul(gross.TokenAmountOut.Amount, big.NewInt(rate))
-				expected.Sub(expected, part.Quo(part, big.NewInt(10000)))
-			}
-			require.Equal(t, expected, result.TokenAmountOut.Amount)
-			require.Equal(t, DexType, hooked.GetExchange())
-			second, err := hooked.CalcAmountOut(quote)
+			require.Equal(t, first, again)
+			require.Equal(t, DexType, p.GetExchange())
+			require.EqualValues(t, snapshotBlock, p.GetMetaInfo(param.TokenAmountIn.Token, param.TokenOut).(uniswapv4.PoolMetaInfo).BlockNumber)
+			clone := p.CloneState().(*uniswapv4.PoolSimulator)
+			clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: param.TokenAmountIn, TokenAmountOut: *first.TokenAmountOut, SwapInfo: first.SwapInfo})
+			changed, err := clone.CalcAmountOut(param)
 			require.NoError(t, err)
-			require.Equal(t, result.TokenAmountOut.Amount, second.TokenAmountOut.Amount)
-			clone := hooked.CloneState().(*uniswapv4.PoolSimulator)
-			clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: quote.TokenAmountIn, TokenAmountOut: *result.TokenAmountOut, SwapInfo: result.SwapInfo})
-			changed, err := clone.CalcAmountOut(quote)
+			require.Less(t, changed.TokenAmountOut.Amount.Cmp(first.TokenAmountOut.Amount), 0)
+			original, err := p.CalcAmountOut(param)
 			require.NoError(t, err)
-			require.Less(t, changed.TokenAmountOut.Amount.Cmp(result.TokenAmountOut.Amount), 0)
-			unchanged, err := hooked.CalcAmountOut(quote)
-			require.NoError(t, err)
-			require.Equal(t, result.TokenAmountOut.Amount, unchanged.TokenAmountOut.Amount)
-			// Only the core swap changes tick/liquidity state; pending hook fees
-			// are separate balances and conversion happens in a later sweep.
-			plain.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: quote.TokenAmountIn, TokenAmountOut: *gross.TokenAmountOut, SwapInfo: gross.SwapInfo})
-			require.Equal(t, plain.V3Pool.SqrtRatioX96, clone.V3Pool.SqrtRatioX96)
+			require.Equal(t, first, original)
 		}
 	}
 }

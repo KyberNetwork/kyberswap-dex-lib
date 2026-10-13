@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -58,18 +57,13 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if crypto.Keccak256Hash(code) != ImplementationCodeHash {
 		return nil, ErrUnsupportedDeployment
 	}
-	var raw launchInfo
-	_, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
-		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
-		ABI: hookABI, Target: hexutil.Encode(HookAddress[:]), Method: "launches",
-		Params: []any{common.BytesToHash(poolID)},
-	}, []any{&raw}).Call()
-	if err != nil {
-		return nil, err
-	}
 	next := *h
 	next.decodeErr = nil
-	next.Extra = Extra{ImplementationHash: ImplementationCodeHash, Registered: raw.Registered, HookFeeBps: raw.HookFeeBps, CreatorTaxBps: raw.CreatorTaxBps}
+	next.Extra = Extra{ImplementationHash: ImplementationCodeHash}
+	// Start unregistered so the shared tracker refreshes terms after each proxy check.
+	if err := next.Extra.Extra.Track(ctx, param); err != nil {
+		return nil, err
+	}
 	if err := next.validate(); err != nil {
 		return nil, err
 	}
