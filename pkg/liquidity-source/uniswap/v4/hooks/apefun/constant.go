@@ -44,13 +44,14 @@ const clockMarginSeconds = 1
 // snipeBps is the anti-snipe rate on a buy by elapsed seconds since launch: 99%, 6.18%, 0.19%, then 0.
 var snipeBps = [...]int64{9_900, 618, 19}
 
-// Hook gas from callTracer on mainnet swaps routed by a KyberSwap executor (Robinhood and Arc, October 2026). A buy
-// pays its whole fee in beforeSwap (pending write, credits, PoolManager.mint), a sell splits it with afterSwap.
-// Pools with a buyback vault also record a price observation in afterSwap.
+// Hook gas from Tenderly traces of KyberSwap executor swaps on Robinhood and Arc (October 2026): beforeSwap and
+// afterSwap frames of 8 swaps. Each is the integer average over the pools without a buyback vault
+// (gasBeforeSwapBuy spans tax 0 and 1%). gasObservation is what a buyback vault adds across both frames, averaged
+// over a buy (45,000) and a sell (44,989).
 const (
-	gasBeforeSwapBuy  = 216_000
-	gasBeforeSwapSell = 117_000
-	gasAfterSwapBuy   = 5_000
-	gasAfterSwapSell  = 86_000
-	gasObservation    = 33_000
+	gasBeforeSwapBuy  = 213_992
+	gasBeforeSwapSell = 117_263
+	gasAfterSwapBuy   = 4_757
+	gasAfterSwapSell  = 40_901
+	gasObservation    = 44_994
 )
