@@ -1,13 +1,13 @@
 package limitorder
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand/v2"
 	"slices"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

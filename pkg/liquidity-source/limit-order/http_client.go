@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
@@ -67,7 +68,9 @@ func NewHTTPClientWithConfig(cfg *Config) *httpClient {
 	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(httpCli))).
 		SetBaseURL(cfg.LimitOrderHTTPUrl).
 		SetTimeout(timeout).
-		SetRetryCount(retryCount)
+		SetRetryCount(retryCount).
+		SetJSONMarshaler(json.Marshal).
+		SetJSONUnmarshaler(json.Unmarshal)
 
 	return &httpClient{
 		client:     client,
