@@ -25,9 +25,8 @@ type Hook struct {
 
 	MaxStaleness uint64 `json:"ms"`
 
-	// Reserves are persisted in entity.Pool.Reserves, not HookExtra.
-	Reserve0 *uint256.Int `json:"-"`
-	Reserve1 *uint256.Int `json:"-"`
+	Reserve0 *uint256.Int `json:"r0"`
+	Reserve1 *uint256.Int `json:"r1"`
 
 	TrackedAt uint64 `json:"t"`
 }
@@ -58,9 +57,6 @@ func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (ent
 
 	var reserve0, reserve1 *big.Int
 	req := param.RpcClient.NewRequest().SetContext(ctx)
-	if param.BlockNumber != nil {
-		req.SetBlockNumber(param.BlockNumber)
-	}
 	req.AddCall(&ethrpc.Call{
 		ABI:    propAMMHookABI,
 		Target: hookAddr,

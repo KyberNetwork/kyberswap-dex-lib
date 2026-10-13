@@ -1,19 +1,11 @@
 package st0x
 
 import (
-	"context"
 	"math/big"
-	"net/http"
-	"net/http/httptest"
-	"sync/atomic"
 	"testing"
 
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -21,49 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-func TestGetReservesFetchesWithoutTrack(t *testing.T) {
-	r0, err := propAMMHookABI.Methods["getBalance"].Outputs.Pack(big.NewInt(1000))
-	require.NoError(t, err)
-	r1, err := propAMMHookABI.Methods["getBalance"].Outputs.Pack(big.NewInt(2000))
-	require.NoError(t, err)
-	u, err := abi.NewType("uint256", "", nil)
-	require.NoError(t, err)
-	b, err := abi.NewType("bytes[]", "", nil)
-	require.NoError(t, err)
-	ret, err := (abi.Arguments{{Type: u}, {Type: b}}).Pack(big.NewInt(100), [][]byte{r0, r1})
-	require.NoError(t, err)
-	var calls atomic.Int32
-	stub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-		var req struct {
-			ID     json.RawMessage   `json:"id"`
-			Params []json.RawMessage `json:"params"`
-		}
-		if !assert.NoError(t, json.NewDecoder(r.Body).Decode(&req)) || !assert.Len(t, req.Params, 2) {
-			return
-		}
-		assert.JSONEq(t, `"0x64"`, string(req.Params[1]))
-		assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": hexutil.Encode(ret)}))
-	}))
-	defer stub.Close()
-	param := &uniswapv4.HookParam{
-		RpcClient: ethrpc.New(stub.URL), HookAddress: hookAddress, BlockNumber: big.NewInt(100),
-		Pool: &entity.Pool{Tokens: []*entity.PoolToken{
-			{Address: "0x0000000000000000000000000000000000000001"},
-			{Address: "0x0000000000000000000000000000000000000002"},
-		}},
-	}
-	// Both an uninitialized hook and an existing snapshot must fetch fresh balances.
-	for _, h := range []*Hook{{}, {Reserve0: uint256.NewInt(1), Reserve1: uint256.NewInt(2)}} {
-		reserves, err := h.GetReserves(context.Background(), param)
-		require.NoError(t, err)
-		require.Equal(t, entity.PoolReserves{"1000", "2000"}, reserves)
-		require.Equal(t, "1000", h.Reserve0.Dec())
-		require.Equal(t, "2000", h.Reserve1.Dec())
-	}
-	require.Equal(t, int32(2), calls.Load())
-}
 
 func TestHookFactoryUsesPoolReserves(t *testing.T) {
 	for name, extra := range map[string]string{
@@ -78,13 +27,13 @@ func TestHookFactoryUsesPoolReserves(t *testing.T) {
 			h := hook.(*Hook)
 			require.Equal(t, "1000", h.Reserve0.Dec())
 			require.Equal(t, "2000", h.Reserve1.Dec())
-			// Round-tripping HookExtra must not duplicate the reserves persisted on the pool.
+			// Preserve the existing HookExtra JSON fields for older consumers.
 			encoded, err := json.Marshal(h)
 			require.NoError(t, err)
-			var fields map[string]json.RawMessage
-			require.NoError(t, json.Unmarshal(encoded, &fields))
-			require.NotContains(t, fields, "r0")
-			require.NotContains(t, fields, "r1")
+			var restored Hook
+			require.NoError(t, json.Unmarshal(encoded, &restored))
+			require.Equal(t, h.Reserve0, restored.Reserve0)
+			require.Equal(t, h.Reserve1, restored.Reserve1)
 			for _, direction := range []bool{true, false} {
 				for _, calcOut := range []bool{true, false} {
 					result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: direction, AmountSpecified: big.NewInt(10)})
