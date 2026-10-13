@@ -13,7 +13,6 @@ const (
 
 var (
 	ErrMissingReserves = errors.New("st0x: missing hook reserves")
-	ErrInvalidReserves = errors.New("st0x: hook reserves overflow uint256")
 	ErrNoPriceSet      = errors.New("st0x: oracle has no price for pool")
 	ErrStalePrice      = errors.New("st0x: oracle price is stale")
 	ErrInvalidSpread   = errors.New("st0x: spread exceeds denominator")
