@@ -191,7 +191,13 @@ func (t *PoolTracker) GetNewPoolState(
 		g.addQuoteCalls(req, p.Address, addrs[pp.from], addrs[pp.to])
 		grids = append(grids, g)
 	}
-	extra := Extra{Flags: flags}
+	extra := Extra{Flags: flags, Ladders: make([][]Ladder, n)}
+	for i := range extra.Ladders {
+		extra.Ladders[i] = make([]Ladder, n)
+		for j := range extra.Ladders[i] {
+			extra.Ladders[i][j] = Ladder{}
+		}
+	}
 	if hasLane || len(grids) > 0 {
 		gridResp, err := req.TryBlockAndAggregate()
 		if err != nil {
@@ -205,7 +211,7 @@ func (t *PoolTracker) GetNewPoolState(
 		for _, g := range grids {
 			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
 			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
-				extra.Ladders = append(extra.Ladders, Ladder{From: g.from, To: g.to, Points: pts})
+				extra.Ladders[g.from][g.to] = newLadder(pts)
 			}
 		}
 	}

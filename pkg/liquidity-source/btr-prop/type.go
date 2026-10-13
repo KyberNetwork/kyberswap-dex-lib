@@ -31,16 +31,31 @@ const DexType = "btr-prop"
 
 // Point is one on-chain-probed sample of the curve: quoting In returns Out.
 type Point struct {
-	In  uint256.Int `json:"in"`
-	Out uint256.Int `json:"out"`
+	In  uint256.Int
+	Out uint256.Int
 }
 
-// Ladder is the sampled curve for the ordered pair Tokens[From] -> Tokens[To],
-// ascending and strictly increasing in both In and Out.
-type Ladder struct {
-	From   int     `json:"from"`
-	To     int     `json:"to"`
-	Points []Point `json:"points"`
+// Ladder is the sampled curve for one ordered pair, as [in, out] pairs ascending
+// and strictly increasing in both. It marshals to bare arrays, as there are
+// hundreds of samples per pool and keys would dominate the Extra size.
+type Ladder [][2]uint256.Int
+
+// newLadder packs pts into a non-nil Ladder, so a pair without samples marshals to [].
+func newLadder(pts []Point) Ladder {
+	l := make(Ladder, len(pts))
+	for k := range pts {
+		l[k] = [2]uint256.Int{pts[k].In, pts[k].Out}
+	}
+	return l
+}
+
+// points unpacks the samples into Points.
+func (l Ladder) points() []Point {
+	pts := make([]Point, len(l))
+	for k := range l {
+		pts[k].In, pts[k].Out = l[k][0], l[k][1]
+	}
+	return pts
 }
 
 // Extra is the mutable per-block state. BTR prices from keeper-pushed marks in
@@ -51,21 +66,21 @@ type Ladder struct {
 type Extra struct {
 	// Flags[i] is the raw 16-bit word from Pool.getRiskFlags(Tokens[i]); 0 when
 	// the read failed (treated as swap disabled).
-	Flags []uint16 `json:"flags"`
+	Flags []uint16 `json:"f"`
 	// LaneOK is true when registry.perms(executor) includes lane 0x400, which
 	// opens SWAP_GATED legs to the executor. False when unreadable.
-	LaneOK  bool     `json:"laneOK"`
-	Ladders []Ladder `json:"ladders"`
+	LaneOK bool `json:"k,omitempty"`
+	// Ladders[from][to] is the curve for Tokens[from] -> Tokens[to]; the diagonal
+	// and pairs without a sample are empty.
+	Ladders [][]Ladder `json:"l"`
 }
 
 // ladder returns the points for Tokens[from] -> Tokens[to], or nil.
 func (e *Extra) ladder(from, to int) []Point {
-	for k := range e.Ladders {
-		if e.Ladders[k].From == from && e.Ladders[k].To == to {
-			return e.Ladders[k].Points
-		}
+	if from < 0 || from >= len(e.Ladders) || to < 0 || to >= len(e.Ladders[from]) {
+		return nil
 	}
-	return nil
+	return e.Ladders[from][to].points()
 }
 
 // PoolMeta is the GetMetaInfo payload. ApprovalAddress is the core pool: the
