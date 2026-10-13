@@ -17,13 +17,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/dualpool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-// The router only builds route-level SwapLimit inventories for registered exchanges.
-// Without this, beforeSwapWithLimit never runs and pools share no cash across a route.
-var _ = pool.RegisterUseSwapLimit(valueobject.ExchangeUniswapV4TickerDualPool)
 
 //go:embed abis/Ticker.json
 var tickerABIJSON string

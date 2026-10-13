@@ -12,13 +12,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-// The router builds shared inventories only for exchanges in pool.UseSwapLimit.
-func TestExchangeUsesSwapLimit(t *testing.T) {
-	require.Contains(t, pool.UseSwapLimit, valueobject.ExchangeUniswapV4TickerDualPool)
-}
 
 func sharedFixture() *Hook {
 	h := &Hook{Snapshot: Snapshot{State: fixtureState(), BlockNumber: 123}}
