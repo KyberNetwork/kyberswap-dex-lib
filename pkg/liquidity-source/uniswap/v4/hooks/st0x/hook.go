@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -46,37 +47,17 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 
 func (h *Hook) AllowEmptyTicks() bool { return true }
 
-func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	hookAddr := param.HookAddress.Hex()
-	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
-	token1 := common.HexToAddress(param.Pool.Tokens[1].Address)
-
-	var reserve0, reserve1 *big.Int
-	req := param.RpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    propAMMHookABI,
-		Target: hookAddr,
-		Method: "getBalance",
-		Params: []any{token0},
-	}, []any{&reserve0}).AddCall(&ethrpc.Call{
-		ABI:    propAMMHookABI,
-		Target: hookAddr,
-		Method: "getBalance",
-		Params: []any{token1},
-	}, []any{&reserve1})
-	if _, err := req.Aggregate(); err != nil {
-		return nil, fmt.Errorf("failed to fetch st0x reserves: %w", err)
+func (h *Hook) GetReserves(_ context.Context, _ *uniswapv4.HookParam) (entity.PoolReserves, error) {
+	// Track fetches balances before serializing HookExtra.
+	if h.Reserve0 == nil || h.Reserve1 == nil {
+		return nil, ErrMissingReserves
 	}
-
-	h.Reserve0, _ = uint256.FromBig(reserve0)
-	h.Reserve1, _ = uint256.FromBig(reserve1)
-
 	return entity.PoolReserves{h.Reserve0.Dec(), h.Reserve1.Dec()}, nil
 }
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	poolId := common.HexToHash(param.Pool.Address)
-	hookAddr := param.HookAddress
+	hookAddr := hexutil.Encode(param.HookAddress[:])
 	oracle := oracleAddress
 
 	var (
@@ -85,7 +66,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 				Price, UpdatedAt, SpreadBps *big.Int
 			}
 		}
-		maxStaleness *big.Int
+		maxStaleness       *big.Int
+		reserve0, reserve1 *big.Int
 	)
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
@@ -95,18 +77,36 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    priceOracleABI,
-		Target: oracle.Hex(),
+		Target: hexutil.Encode(oracle[:]),
 		Method: "getPrice",
 		Params: []any{poolId},
 	}, []any{&price}).AddCall(&ethrpc.Call{
 		ABI:    propAMMHookABI,
-		Target: hookAddr.Hex(),
+		Target: hookAddr,
 		Method: "maxStaleness",
 	}, []any{&maxStaleness})
+
+	req.AddCall(&ethrpc.Call{
+		ABI: propAMMHookABI, Target: hookAddr, Method: "getBalance",
+		Params: []any{common.HexToAddress(param.Pool.Tokens[0].Address)},
+	}, []any{&reserve0}).AddCall(&ethrpc.Call{
+		ABI: propAMMHookABI, Target: hookAddr, Method: "getBalance",
+		Params: []any{common.HexToAddress(param.Pool.Tokens[1].Address)},
+	}, []any{&reserve1})
 
 	if _, err := req.Aggregate(); err != nil {
 		return nil, fmt.Errorf("failed to track st0x hook: %w", err)
 	}
+
+	if reserve0 == nil || reserve1 == nil {
+		return nil, ErrMissingReserves
+	}
+	r0, overflow0 := uint256.FromBig(reserve0)
+	r1, overflow1 := uint256.FromBig(reserve1)
+	if overflow0 || overflow1 {
+		return nil, ErrInvalidReserves
+	}
+	h.Reserve0, h.Reserve1 = r0, r1
 
 	h.Price = price.Data.Price.Uint64()
 	h.UpdatedAt = price.Data.UpdatedAt.Uint64()
@@ -134,6 +134,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			DeltaUnspecified: bignumber.ZeroBI,
 			Gas:              gasBeforeSwap,
 		}, nil
+	}
+
+	if h.Reserve0 == nil || h.Reserve1 == nil {
+		return nil, ErrMissingReserves
 	}
 
 	amtU, overflow := uint256.FromBig(amt)
