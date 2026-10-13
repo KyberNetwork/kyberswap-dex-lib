@@ -170,7 +170,7 @@ func (e *Extra) fees(gross *big.Int, buy bool, now int64) *big.Int {
 // grossFor returns the smallest gross with gross - fees(gross) >= net. Each floor rounds a fee down, so the
 // unfloored gross-up bounds it from above.
 func (e *Extra) grossFor(net *big.Int, buy bool, now int64) (*big.Int, error) {
-	var takeBps int64 = baseFeeBps + e.TaxBps
+	takeBps := baseFeeBps + e.TaxBps
 	if buy {
 		takeBps += e.snipeRate(now)
 	}
