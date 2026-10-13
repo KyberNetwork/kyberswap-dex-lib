@@ -75,6 +75,7 @@ func trackContext(t *testing.T) (*Hook, *uniswapv4.HookParam, *trackingRPC) {
 	t.Cleanup(func() { ImplementationCodeHash = originalHash })
 	output, err := hookABI.Methods["launches"].Outputs.Pack(true, false, common.HexToAddress("0xf000000000000000000000000000000000000000"), common.Address{}, common.Address{}, common.Address{}, common.Address{}, uint16(133), uint16(3000), uint16(5000), uint16(100), uint16(300), true)
 	require.NoError(t, err)
+	implementationVerified.Store(false)
 	service := &trackingRPC{t: t, implementation: ImplementationAddress, code: code, output: output}
 	server := rpc.NewServer()
 	require.NoError(t, server.RegisterName("eth", service))
@@ -101,6 +102,20 @@ func TestTrackPinnedStateAndUpgradeRejection(t *testing.T) {
 	require.ErrorIs(t, err, ErrUnsupportedDeployment)
 	require.Equal(t, extra, h.Extra, "failed tracking changed the last good state")
 	require.EqualValues(t, snapshotBlock, param.Pool.BlockNumber, "failed tracking changed the published block")
+}
+
+// The pinned implementation address has immutable code: the second refresh must
+// not fetch it again, while an overridden code is always hashed.
+func TestTrackHashesImplementationCodeOnce(t *testing.T) {
+	h, param, service := trackContext(t)
+	_, err := h.Track(context.Background(), param)
+	require.NoError(t, err)
+	service.code = []byte{0}
+	_, err = h.Track(context.Background(), param)
+	require.NoError(t, err, "verified implementation code must not be fetched again")
+	param.Overrides = map[common.Address]gethclient.OverrideAccount{ImplementationAddress: {Code: []byte{0}}}
+	_, err = h.Track(context.Background(), param)
+	require.ErrorIs(t, err, ErrUnsupportedDeployment, "overridden code must always be hashed")
 }
 
 func TestTrackOverridesAndInvalidSnapshots(t *testing.T) {

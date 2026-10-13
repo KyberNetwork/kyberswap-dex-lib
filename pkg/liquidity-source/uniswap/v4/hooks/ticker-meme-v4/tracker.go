@@ -3,6 +3,7 @@ package tickermemev4
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,6 +14,8 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
+
+var implementationVerified atomic.Bool
 
 // Track rechecks the proxy implementation on every refresh, including registered
 // pools: a timelock upgrade can change their pricing despite frozen fee terms.
@@ -47,16 +50,23 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if implementation != ImplementationAddress {
 		return nil, ErrUnsupportedDeployment
 	}
+	// Deployed code at the pinned implementation address is immutable, so hash it once.
+	// Overridden code is never cached.
 	code := param.Overrides[implementation].Code
-	if code == nil {
-		var err error
-		code, err = param.RpcClient.GetETHClient().CodeAt(ctx, implementation, param.BlockNumber)
-		if err != nil {
-			return nil, err
+	if code != nil || !implementationVerified.Load() {
+		if code == nil {
+			var err error
+			code, err = param.RpcClient.GetETHClient().CodeAt(ctx, implementation, param.BlockNumber)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
-	if crypto.Keccak256Hash(code) != ImplementationCodeHash {
-		return nil, ErrUnsupportedDeployment
+		if crypto.Keccak256Hash(code) != ImplementationCodeHash {
+			return nil, ErrUnsupportedDeployment
+		}
+		if param.Overrides[implementation].Code == nil {
+			implementationVerified.Store(true)
+		}
 	}
 	var raw launchInfo
 	_, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
