@@ -150,6 +150,7 @@ func TestTrackLiveDeployment(t *testing.T) {
 	if url == "" {
 		t.Skip("set TICKER_MEME_RPC to verify the pinned Monad deployment")
 	}
+	implementationVerified.Store(false) // force the live CodeAt + hash check
 	param := &uniswapv4.HookParam{Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookAddress: HookAddress, RpcClient: ethrpc.New(url), BlockNumber: big.NewInt(snapshotBlock), Pool: &entity.Pool{Address: common.Hash{}.Hex()}}
 	h := NewHook(param).(*Hook)
 	_, err := h.Track(context.Background(), param)
