@@ -26,7 +26,6 @@ const snapshotBlock = 112361144
 type trackingRPC struct {
 	t               *testing.T
 	implementation  common.Address
-	code            []byte
 	output          []byte
 	calls           int
 	expectOverrides bool
@@ -39,10 +38,9 @@ func (s *trackingRPC) GetStorageAt(_ context.Context, address common.Address, sl
 	return common.BytesToHash(s.implementation.Bytes()).Bytes(), nil
 }
 
-func (s *trackingRPC) GetCode(_ context.Context, address common.Address, block string) (hexutil.Bytes, error) {
-	require.Equal(s.t, ImplementationAddress, address)
-	require.Equal(s.t, hexutil.EncodeUint64(snapshotBlock), block)
-	return s.code, nil
+func (s *trackingRPC) GetCode(_ context.Context, _ common.Address, _ string) (hexutil.Bytes, error) {
+	s.t.Error("Track must not fetch implementation bytecode")
+	return nil, nil
 }
 
 func (s *trackingRPC) Call(_ context.Context, call map[string]json.RawMessage, block string, overrides *map[string]json.RawMessage) (hexutil.Bytes, error) {
@@ -67,17 +65,11 @@ func (s *trackingRPC) Call(_ context.Context, call map[string]json.RawMessage, b
 
 func trackContext(t *testing.T) (*Hook, *uniswapv4.HookParam, *trackingRPC) {
 	t.Helper()
-	// Use a tiny mock runtime for serial RPC tests; the live test checks the real
-	// deployment hash without requiring a checked-in bytecode dump.
-	code := []byte{0x60, 0x00, 0x60, 0x00, 0xf3}
-	originalHash := ImplementationCodeHash
-	ImplementationCodeHash = crypto.Keccak256Hash(code)
-	t.Cleanup(func() { ImplementationCodeHash = originalHash })
 	output := make([]byte, 13*32)
 	for index, value := range map[int]int64{0: 1, 7: 133, 8: 3000, 9: 5000, 10: 100, 11: 300, 12: 1} {
 		copy(output[index*32:(index+1)*32], common.BigToHash(big.NewInt(value)).Bytes())
 	}
-	service := &trackingRPC{t: t, implementation: ImplementationAddress, code: code, output: output}
+	service := &trackingRPC{t: t, implementation: ImplementationAddress, output: output}
 	server := rpc.NewServer()
 	require.NoError(t, server.RegisterName("eth", service))
 	httpServer := httptest.NewServer(server)
@@ -92,7 +84,7 @@ func TestTrackPinnedStateAndUpgradeRejection(t *testing.T) {
 	require.NoError(t, err)
 	var extra Extra
 	require.NoError(t, json.Unmarshal(data, &extra))
-	require.Equal(t, terms(233), extra)
+	require.Equal(t, terms(100, 133), extra)
 	require.Equal(t, extra, h.Extra)
 	require.EqualValues(t, snapshotBlock, param.Pool.BlockNumber, "published pool block must match validated RPC state")
 	_, err = h.Track(context.Background(), param)
@@ -107,9 +99,13 @@ func TestTrackPinnedStateAndUpgradeRejection(t *testing.T) {
 
 func TestTrackOverridesAndInvalidSnapshots(t *testing.T) {
 	h, param, service := trackContext(t)
+	code := []byte{0x60, 0x00, 0x60, 0x00, 0xf3}
+	originalHash := ImplementationCodeHash
+	ImplementationCodeHash = crypto.Keccak256Hash(code)
+	t.Cleanup(func() { ImplementationCodeHash = originalHash })
 	param.Overrides = map[common.Address]gethclient.OverrideAccount{
 		HookAddress:           {StateDiff: map[common.Hash]common.Hash{implementationSlot: common.BytesToHash(ImplementationAddress.Bytes())}},
-		ImplementationAddress: {Code: service.code},
+		ImplementationAddress: {Code: code},
 	}
 	service.expectOverrides = true
 	_, err := h.Track(context.Background(), param)
@@ -124,9 +120,6 @@ func TestTrackOverridesAndInvalidSnapshots(t *testing.T) {
 	_, err = h.Track(context.Background(), param)
 	require.ErrorIs(t, err, ErrUnsupportedDeployment)
 	param.Overrides = nil
-	service.code = []byte{0}
-	_, err = h.Track(context.Background(), param)
-	require.ErrorIs(t, err, ErrUnsupportedDeployment)
 	param.BlockNumber = nil
 	_, err = h.Track(context.Background(), param)
 	require.Error(t, err)
