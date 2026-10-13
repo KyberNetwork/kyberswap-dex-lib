@@ -41,6 +41,10 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4ST0x},
 	}
 	_ = param.HookExtra.Unmarshal(hook)
+	if param.Pool != nil && len(param.Pool.Reserves) == 2 {
+		hook.Reserve0, _ = uint256.FromDecimal(param.Pool.Reserves[0])
+		hook.Reserve1, _ = uint256.FromDecimal(param.Pool.Reserves[1])
+	}
 	return hook
 }, HookAddresses...)
 
@@ -134,6 +138,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			DeltaUnspecified: bignumber.ZeroBI,
 			Gas:              gasBeforeSwap,
 		}, nil
+	}
+
+	if h.Reserve0 == nil || h.Reserve1 == nil {
+		return nil, ErrMissingReserves
 	}
 
 	amtU, overflow := uint256.FromBig(amt)
