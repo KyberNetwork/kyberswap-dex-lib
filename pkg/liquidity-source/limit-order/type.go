@@ -51,6 +51,12 @@ type FilledOrderInfo struct {
 	Interaction          string `json:"interaction"`
 	Signature            string `json:"signature"`
 	IsFallBack           bool   `json:"isFallback"`
+
+	// Quote-time amounts left in the order and its fee side, so the RFQ handler can re-spread
+	// amountIn over the signed orders when a required order loses its operator signature.
+	RemainingMakingAmount string `json:"remainingMakingAmount,omitempty"`
+	RemainingTakingAmount string `json:"remainingTakingAmount,omitempty"`
+	IsTakerAssetFee       bool   `json:"isTakerAssetFee,omitempty"`
 }
 
 type OpSignatureExtra struct {

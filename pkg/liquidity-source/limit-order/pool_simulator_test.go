@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -162,6 +163,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Interaction:          "",
 							Signature:            "signature1",
 							FeeAmount:            "0",
+
+							RemainingMakingAmount: "400",
+							RemainingTakingAmount: "200",
 						},
 						{
 							OrderID:            1382,
@@ -186,6 +190,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Permit:             "",
 							Interaction:        "",
 							FeeAmount:          "0",
+
+							RemainingMakingAmount: "300",
+							RemainingTakingAmount: "300",
 						},
 					},
 				},
@@ -321,6 +328,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Interaction:          "",
 							Signature:            "signature1",
 							FeeAmount:            "0",
+
+							RemainingMakingAmount: "1000000",
+							RemainingTakingAmount: "992000",
 						},
 						{
 							OrderID:            1382,
@@ -344,6 +354,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Permit:             "",
 							Interaction:        "",
 							FeeAmount:          "0",
+
+							RemainingMakingAmount: "1000000",
+							RemainingTakingAmount: "1010000",
 						},
 					},
 				},
@@ -479,6 +492,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Interaction:          "",
 							Signature:            "signature1",
 							FeeAmount:            "4",
+
+							RemainingMakingAmount: "400",
+							RemainingTakingAmount: "200",
 						},
 						{
 							OrderID:            1382,
@@ -502,6 +518,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Permit:             "",
 							Interaction:        "",
 							FeeAmount:          "0",
+
+							RemainingMakingAmount: "300",
+							RemainingTakingAmount: "300",
 						},
 					},
 				},
@@ -687,6 +706,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Interaction:          "",
 							Signature:            "signature1",
 							FeeAmount:            "0",
+
+							RemainingMakingAmount: "1400",
+							RemainingTakingAmount: "700",
 						},
 						{
 							OrderID:            1382,
@@ -711,6 +733,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Interaction:        "",
 							FeeAmount:          "0",
 							IsFallBack:         true,
+
+							RemainingMakingAmount: "250",
+							RemainingTakingAmount: "240",
 						},
 						{
 							OrderID:              1385,
@@ -736,6 +761,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Interaction:          "",
 							IsFallBack:           true,
 							FeeAmount:            "0",
+
+							RemainingMakingAmount: "300",
+							RemainingTakingAmount: "200",
 						},
 					},
 				},
@@ -1457,4 +1485,31 @@ func TestPool_FilterAllowedSenders(t *testing.T) {
 		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
 	})
 	assert.Equal(t, "300", res.TokenAmountOut.Amount.String())
+}
+
+// The fallback loop used to stop once big.Float(totalMaking) >= big.Float(amountOut) * 1.3; the
+// uint256 port compares against fallbackThreshold, which must agree on every integer around it.
+// 1.3 is slightly above 13/10 in binary, so e.g. amountOut 10 needs 14, not 13.
+func TestFallbackThreshold_MatchesBigFloatCompare(t *testing.T) {
+	outs := []*big.Int{big.NewInt(0), big.NewInt(1), big.NewInt(7), big.NewInt(10), big.NewInt(100),
+		big.NewInt(123456789), bignumber.NewBig10("1000000000000000003"), new(big.Int).Lsh(big.NewInt(3), 200)}
+	for _, out := range outs {
+		var out256 uint256.Int
+		require.False(t, out256.SetFromBig(out))
+		threshold := fallbackThreshold(&out256)
+		bigThreshold := new(big.Float).Mul(new(big.Float).SetInt(out), FallbackPercentageOfTotalMakingAmount)
+		for d := int64(-3); d <= 3; d++ {
+			x := new(big.Int).Add(threshold.ToBig(), big.NewInt(d))
+			if x.Sign() < 0 {
+				continue
+			}
+			var x256 uint256.Int
+			x256.SetFromBig(x)
+			assert.Equal(t, new(big.Float).SetInt(x).Cmp(bigThreshold) >= 0, !x256.Lt(&threshold),
+				"amountOut %s, totalMaking %s", out, x)
+		}
+	}
+	ten := uint256.NewInt(10)
+	threshold := fallbackThreshold(ten)
+	assert.Equal(t, uint64(14), threshold.Uint64())
 }

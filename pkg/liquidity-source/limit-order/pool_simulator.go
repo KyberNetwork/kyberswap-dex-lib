@@ -8,11 +8,13 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -183,39 +185,47 @@ func (p *PoolSimulator) calcAmountOut(
 	}, nil
 }
 
-func addFilledMakingAmount(
-	filledMakingAmountByMaker map[string]*big.Int,
-	maker string,
-	filledMakingAmount *big.Int,
-) {
-	if totalFilled, ok := filledMakingAmountByMaker[maker]; ok {
-		filledMakingAmountByMaker[maker] = new(big.Int).Add(totalFilled, filledMakingAmount)
-	} else {
-		filledMakingAmountByMaker[maker] = new(big.Int).Set(filledMakingAmount)
-	}
+// addFilledMakingAmount adds filledMakingAmount to maker's running total.
+func addFilledMakingAmount(filledMakingAmountByMaker map[string]uint256.Int, maker string,
+	filledMakingAmount *uint256.Int) {
+	total := filledMakingAmountByMaker[maker]
+	total.Add(&total, filledMakingAmount)
+	filledMakingAmountByMaker[maker] = total
 }
 
-func getMakerRemainingBalance(
-	limit pool.SwapLimit,
-	filledMakingAmountByMaker map[string]*big.Int,
-	maker, makerAsset string,
-) *big.Int {
-	if limit == nil {
-		// can happen if this change get deployed to router-service before pool-service, just ignore
-		return nil
+// setAmount sets z to b and reports whether b is a usable amount: non-nil, non-negative and
+// below 2^256. z is 0 otherwise.
+func setAmount(z *uint256.Int, b *big.Int) bool {
+	if b == nil || b.Sign() < 0 || z.SetFromBig(b) {
+		z.Clear()
+		return false
 	}
+	return true
+}
 
-	makerBalanceAllowance := limit.GetLimit(NewMakerAndAsset(maker, makerAsset))
-	if makerBalanceAllowance == nil {
-		// should not happen, but anw just return 0 as if this maker has no balance left
-		return big.NewInt(0)
-	}
+// backedBigInt is a result big.Int with its own word storage, so it costs one allocation.
+type backedBigInt struct {
+	b big.Int
+	w [4]big.Word
+}
 
-	if totalFilled := filledMakingAmountByMaker[maker]; totalFilled != nil {
-		return new(big.Int).Sub(makerBalanceAllowance, totalFilled)
-	} else {
-		return makerBalanceAllowance
+// amountToBig converts z, keeping zero as big.Int's canonical zero (nil abs) like big.NewInt(0),
+// which a word-backed conversion does not, so results stay reflect.DeepEqual to big.Int ones.
+func amountToBig(z *uint256.Int) *big.Int {
+	if z.IsZero() {
+		return new(big.Int)
 	}
+	r := new(backedBigInt)
+	return big256.ToBigBacked(&r.b, &r.w, z)
+}
+
+// amountString formats a stored amount; uint256 does it in one allocation, big.Int in two.
+func amountString(b *big.Int) string {
+	var z uint256.Int
+	if setAmount(&z, b) {
+		return z.Dec()
+	}
+	return b.String()
 }
 
 func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
@@ -227,17 +237,17 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 	if len(orderIDs) == 0 {
 		return big.NewInt(0), SwapInfo{}, nil, nil
 	}
-
-	totalAmountOutWei := big.NewInt(0)
-	totalAmountIn := new(big.Int).Set(tokenAmountIn.Amount)
+	var amountIn uint256.Int
+	if !setAmount(&amountIn, tokenAmountIn.Amount) {
+		return nil, SwapInfo{}, nil, ErrCannotFulfillAmountIn
+	}
 
 	swapInfo := SwapInfo{
 		FilledOrders: []*FilledOrderInfo{},
 		SwapSide:     swapSide,
-		AmountIn:     tokenAmountIn.Amount.String(),
+		AmountIn:     amountIn.Dec(),
 	}
 	isFulfillAmountIn := false
-	totalFeeAmountWei := new(big.Int)
 
 	// we need to update maker's remaining balance in 2 places:
 	// - in UpdateBalance: mainly to deal with case where maker has orders with same makerAsset but different takerAsset
@@ -245,9 +255,14 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 	//				because in LO we have multiple makers, and also because we still need to allow orders that have part of the balance available
 	//		the problem is that in this func we cannot update the limit,
 	//		so we'll use this map to track filled amount for each maker, then subtract from the original balance, to have the remaining balance available
-	filledMakingAmountByMaker := make(map[string]*big.Int, len(p.allMakersBalanceAllowance))
+	filledMakingAmountByMaker := make(map[string]uint256.Int, len(p.allMakersBalanceAllowance))
 
-	totalMakingAmountWei := new(big.Int)
+	var (
+		totalAmountOut, totalFeeAmount, totalMakingAmount  uint256.Int
+		remainingMaking, remainingTaking, amountInAfterFee uint256.Int
+		terms                                              orderTerms
+		fill                                               orderFill
+	)
 	for i, orderID := range orderIDs {
 		order, ok := p.ordersMapping[orderID]
 		if !ok {
@@ -255,141 +270,158 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		}
 
 		// Get remaining making amount, taking amount
-		remainingMakingAmountWei, remainingTakingAmountWei := order.RemainingAmount(limit, filledMakingAmountByMaker)
-		if remainingMakingAmountWei.Sign() <= 0 || remainingTakingAmountWei.Sign() <= 0 {
+		if !order.remainingAmount(&terms, &remainingMaking, &remainingTaking, limit, filledMakingAmountByMaker) {
 			continue
 		}
 
 		// ideally we should return totalFeeAmountWei in takerAsset here
 		// but for now it's not used, and we might get mixed up with makerAsset fee, so will ignore for now
-		totalAmountInAfterFee, _ := p.calcTakerAssetFeeAmountExactIn(order, totalAmountIn)
-		if totalAmountInAfterFee.Sign() <= 0 {
+		if terms.amountAfterTakerFee(&amountInAfterFee, &amountIn).IsZero() {
 			continue
 		}
 
-		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
+		totalMakingAmount.Add(&totalMakingAmount, &remainingMaking)
 
-		if remainingTakingAmountWei.Cmp(totalAmountInAfterFee) >= 0 {
-			filledTakingAmountWei := totalAmountInAfterFee
-			filledMakingAmountWei := new(big.Int).Div(
-				new(big.Int).Mul(filledTakingAmountWei, order.MakingAmount),
-				order.TakingAmount,
-			) // filledMakingAmountWei = filledTakingAmountWei * order.MakingAmount / order.TakingAmount
+		done := fillOrder(&fill, &terms, &remainingTaking, &amountInAfterFee)
+		if fill.making.IsZero() { // order too small
+			continue
+		}
+		totalFeeAmount.Add(&totalFeeAmount, &fill.makerFee)
+		totalAmountOut.Add(&totalAmountOut, &fill.making)
+		totalAmountOut.Sub(&totalAmountOut, &fill.makerFee)
 
-			// order too small
-			if filledMakingAmountWei.Sign() <= 0 {
+		filledTakingStr, filledMakingStr := fill.taking.Dec(), fill.making.Dec()
+		// a used-up order's remaining taking is its fill, and usually its remaining making too
+		remainingTakingStr, remainingMakingStr := filledTakingStr, filledMakingStr
+		if done {
+			remainingTakingStr = remainingTaking.Dec()
+		}
+		if done || !fill.making.Eq(&remainingMaking) {
+			remainingMakingStr = remainingMaking.Dec()
+		}
+		swapInfo.FilledOrders = append(swapInfo.FilledOrders, newFilledOrderInfo(order,
+			filledTakingStr, filledMakingStr, fill.makerFee.Dec(), remainingMakingStr, remainingTakingStr))
+		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, &fill.making)
+		if !done {
+			amountIn.Sub(&amountIn, &fill.spent)
+			continue
+		}
+		isFulfillAmountIn = true
+
+		// Currently, when Aggregator finds route and returns some orders and sends them to the smart contract to execute.
+		// We will often meet edge cases that these orders can be fulfilled by a trading bot or taker on Aggregator.
+		// From that, the estimated amount out and filled orders are not correct. So we need to add more orders when sending to SC to the executor.
+		// In this case, we will some orders util total MakingAmount(remainMakingAmount)/estimated amountOut >= 1.3 (130%)
+		threshold := fallbackThreshold(&totalAmountOut)
+		for _, fallbackID := range orderIDs[i+1:] {
+			if !totalMakingAmount.Lt(&threshold) {
+				break
+			}
+			order, ok := p.ordersMapping[fallbackID]
+			if !ok {
+				continue
+			}
+			if !order.remainingAmount(&terms, &remainingMaking, &remainingTaking, limit, filledMakingAmountByMaker) {
 				continue
 			}
 
-			feeAmountWeiByOrder := p.calcMakerAssetFeeAmount(order, filledMakingAmountWei)
-			totalFeeAmountWei.Add(totalFeeAmountWei, feeAmountWeiByOrder)
-			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
-			totalAmountOutWei.Add(totalAmountOutWei, actualAmountOut)
-			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei.String(), filledMakingAmountWei.String(), feeAmountWeiByOrder.String())
-			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
-			isFulfillAmountIn = true
-			addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, filledMakingAmountWei)
-
-			// Currently, when Aggregator finds route and returns some orders and sends them to the smart contract to execute.
-			// We will often meet edge cases that these orders can be fulfilled by a trading bot or taker on Aggregator.
-			// From that, the estimated amount out and filled orders are not correct. So we need to add more orders when sending to SC to the executor.
-			// In this case, we will some orders util total MakingAmount(remainMakingAmount)/estimated amountOut >= 1.3 (130%)
-			totalAmountOutWeiBigFloat := new(big.Float).SetInt(totalAmountOutWei)
-			// threshold = totalAmountOutWei * FallbackPercentageOfTotalMakingAmount
-			threshold := new(big.Float).Mul(totalAmountOutWeiBigFloat, FallbackPercentageOfTotalMakingAmount)
-			for j := i + 1; j < len(orderIDs); j++ {
-				if new(big.Float).SetInt(totalMakingAmountWei).Cmp(threshold) >= 0 {
-					break
-				}
-				order, ok := p.ordersMapping[orderIDs[j]]
-				if !ok {
-					continue
-				}
-				remainingMakingAmountWei, remainingTakingAmountWei := order.RemainingAmount(limit, filledMakingAmountByMaker)
-				if remainingMakingAmountWei.Sign() <= 0 || remainingTakingAmountWei.Sign() <= 0 {
-					continue
-				}
-
-				totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
-				filledOrderInfo := newFallbackOrderInfo(order)
-				swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
-			}
-			break
+			totalMakingAmount.Add(&totalMakingAmount, &remainingMaking)
+			swapInfo.FilledOrders = append(swapInfo.FilledOrders, newFallbackOrderInfo(order,
+				remainingMaking.Dec(), remainingTaking.Dec()))
 		}
-		_, takerAssetFee := p.calcTakerAssetFeeAmountExactOut(order, remainingTakingAmountWei)
-		totalAmountIn.Sub(totalAmountIn, takerAssetFee)
-		totalAmountIn.Sub(totalAmountIn, remainingTakingAmountWei)
-		feeAmountWeiByOrder := p.calcMakerAssetFeeAmount(order, remainingMakingAmountWei)
-		actualAmountOut := new(big.Int).Sub(remainingMakingAmountWei, feeAmountWeiByOrder)
-		totalAmountOutWei.Add(totalAmountOutWei, actualAmountOut)
-		totalFeeAmountWei.Add(totalFeeAmountWei, feeAmountWeiByOrder)
-		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), feeAmountWeiByOrder.String())
-		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
-		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, remainingMakingAmountWei)
+		break
 	}
 	if !isFulfillAmountIn {
 		return nil, SwapInfo{}, nil, ErrCannotFulfillAmountIn
 	}
-	return totalAmountOutWei, swapInfo, totalFeeAmountWei, nil
+	return amountToBig(&totalAmountOut), swapInfo, amountToBig(&totalFeeAmount), nil
 }
 
-// feeAmount = (params.makingAmount * params.order.makerTokenFeePercent + BPS - 1) / BPS
-func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount *big.Int) *big.Int {
-	if order.IsTakerAssetFee {
-		return big.NewInt(0)
+// fallbackThreshold is ceil(amountOut * FallbackPercentageOfTotalMakingAmount): fallback orders
+// are added until the remaining making amount reaches it. Computed with the same big.Float
+// rounding as before, then compared exactly as an integer.
+func fallbackThreshold(amountOut *uint256.Int) uint256.Int {
+	f := new(big.Float).SetInt(amountOut.ToBig())
+	f.Mul(f, FallbackPercentageOfTotalMakingAmount)
+	t, accuracy := f.Int(nil)
+	if accuracy == big.Below {
+		t.Add(t, bignumber.One)
 	}
-	if order.MakerTokenFeePercent == 0 {
-		return big.NewInt(0)
+	var threshold uint256.Int
+	if t.Sign() > 0 && threshold.SetFromBig(t) {
+		threshold.SetAllOne() // beyond 256 bits: never reached
 	}
-	amount := new(big.Int).Mul(filledMakingAmount, big.NewInt(int64(order.MakerTokenFeePercent)))
-	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, bignumber.BasisPoint), bignumber.One), bignumber.BasisPoint)
+	return threshold
 }
 
-// given total takingAmount, calculate fee and takingAmountAfterFee
-func (p *PoolSimulator) calcTakerAssetFeeAmountExactIn(order *order, takingAmount *big.Int) (takingAmountAfterFee *big.Int, fee *big.Int) {
-	if !order.IsTakerAssetFee {
-		return new(big.Int).Set(takingAmount), big.NewInt(0)
-	}
-
-	feePct := order.MakerTokenFeePercent // reuse same field
-	if feePct == 0 {
-		return new(big.Int).Set(takingAmount), big.NewInt(0)
-	}
-
-	// fee = ceiling(takingAmountAfterFee * feePct / BasisPoint)
-	// takingAmountAfterFee + fee = takingAmount
-	// => takingAmountAfterFee + ceiling(takingAmountAfterFee * feePct / BasisPoint) = takingAmount
-
-	takingAmountAfterFee = new(big.Int).Div(
-		new(big.Int).Mul(takingAmount, bignumber.BasisPoint),
-		new(big.Int).Add(
-			big.NewInt(int64(feePct)),
-			bignumber.BasisPoint,
-		),
-	)
-	fee = new(big.Int).Sub(takingAmount, takingAmountAfterFee)
-	return
+// orderTerms holds an order's price and fee terms for the fill math.
+type orderTerms struct {
+	making, taking uint256.Int // the order's total amounts
+	feePct         uint256.Int // MakerTokenFeePercent, on the taker asset when takerAssetFee
+	takerAssetFee  bool
 }
 
-// given filled takingAmountAfterFee, calculate fee and total takingAmount
-func (p *PoolSimulator) calcTakerAssetFeeAmountExactOut(order *order, takingAmountAfterFee *big.Int) (takingAmount *big.Int, fee *big.Int) {
-	if !order.IsTakerAssetFee {
-		return new(big.Int).Set(takingAmountAfterFee), big.NewInt(0)
+// feePcts returns the maker-asset and the taker-asset fee pct; at most one is non-zero.
+func (t *orderTerms) feePcts() (maker, taker uint64) {
+	if t.takerAssetFee {
+		return 0, t.feePct.Uint64()
 	}
+	return t.feePct.Uint64(), 0
+}
 
-	feePct := order.MakerTokenFeePercent // reuse same field
-	if feePct == 0 {
-		return new(big.Int).Set(takingAmountAfterFee), big.NewInt(0)
+// makerFee sets z to ceil(making * feePct / BPS) for a maker-asset fee, else 0.
+func (t *orderTerms) makerFee(z, making *uint256.Int) *uint256.Int {
+	if t.takerAssetFee || t.feePct.IsZero() {
+		return z.Clear()
 	}
+	return big256.MulDivUp(z, making, &t.feePct, big256.UBasisPoint)
+}
 
-	amount := new(big.Int).Mul(takingAmountAfterFee, big.NewInt(int64(feePct)))
-	fee = new(big.Int).Div(
-		new(big.Int).Add(amount, bignumber.BasisPointM1),
-		bignumber.BasisPoint,
-	)
+// amountAfterTakerFee sets z to the most taking that, plus its taker-asset fee
+// ceil(taking * feePct / BPS), fits in amountIn: amountIn * BPS / (BPS + feePct).
+func (t *orderTerms) amountAfterTakerFee(z, amountIn *uint256.Int) *uint256.Int {
+	if !t.takerAssetFee || t.feePct.IsZero() {
+		return z.Set(amountIn)
+	}
+	var denominator uint256.Int
+	denominator.Add(big256.UBasisPoint, &t.feePct)
+	return big256.MulDivDown(z, amountIn, big256.UBasisPoint, &denominator)
+}
 
-	takingAmount = new(big.Int).Add(takingAmountAfterFee, fee)
-	return
+// amountWithTakerFee sets z to taking plus its taker-asset fee ceil(taking * feePct / BPS).
+func (t *orderTerms) amountWithTakerFee(z, taking *uint256.Int) {
+	if !t.takerAssetFee || t.feePct.IsZero() {
+		z.Set(taking)
+		return
+	}
+	var fee uint256.Int
+	big256.MulDivUp(&fee, taking, &t.feePct, big256.UBasisPoint)
+	z.Add(taking, &fee)
+}
+
+// orderFill is one order's share of an exact-in fill.
+type orderFill struct {
+	taking, making, makerFee uint256.Int
+	spent                    uint256.Int // what a used-up order took from amountIn, taker-asset fee included
+}
+
+// fillOrder places amountInAfterFee into the order with terms t and remTaking left, as the
+// executor does: it sends min(remTaking, amountInAfterFee) and the LO contract gives
+// floor(taking * M / T) of the maker asset. done reports the order takes
+// all of amountInAfterFee (making is 0 when that buys no maker wei); otherwise the order is used up
+// and the next gets amountIn less spent. Shared by calcAmountOutWithSwapInfo and refillSignedOrders.
+func fillOrder(f *orderFill, t *orderTerms, remTaking, amountInAfterFee *uint256.Int) (done bool) {
+	if !remTaking.Lt(amountInAfterFee) {
+		f.taking.Set(amountInAfterFee)
+		done = true
+	} else {
+		f.taking.Set(remTaking)
+		t.amountWithTakerFee(&f.spent, remTaking)
+	}
+	big256.MulDivDown(&f.making, &f.taking, &t.making, &t.taking)
+	t.makerFee(&f.makerFee, &f.making)
+
+	return done
 }
 
 func (p *PoolSimulator) estimateGas(numberOfFilledOrders int) int64 {
@@ -447,24 +479,31 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{ApprovalAddress: p.contractAddress, BlockNumber: p.Info.BlockNumber}
 }
 
-func newFallbackOrderInfo(order *order) *FilledOrderInfo {
-	orderInfo := newFilledOrderInfo(order, "0", "0", "0")
-	orderInfo.IsFallBack = true
+func newFallbackOrderInfo(order *order, remainingMakingAmount, remainingTakingAmount string) *FilledOrderInfo {
+	orderInfo := newFilledOrderInfo(order, "", "", "", remainingMakingAmount, remainingTakingAmount)
+	orderInfo.markFallback()
 	return orderInfo
 }
 
-func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount string, feeAmount string) *FilledOrderInfo {
+// markFallback clears f's fill and marks it a fallback, which the executor fills only with what
+// the orders before it leave of amountIn.
+func (f *FilledOrderInfo) markFallback() {
+	f.FilledTakingAmount, f.FilledMakingAmount, f.FeeAmount, f.IsFallBack = "0", "0", "0", true
+}
+
+func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount, feeAmount,
+	remainingMakingAmount, remainingTakingAmount string) *FilledOrderInfo {
 	feeConfig := ""
 	if order.FeeConfig != nil {
-		feeConfig = order.FeeConfig.String()
+		feeConfig = amountString(order.FeeConfig)
 	}
 	return &FilledOrderInfo{
 		OrderID:              order.ID,
 		OrderHash:            order.OrderHash,
 		FilledTakingAmount:   filledTakingAmount,
 		FilledMakingAmount:   filledMakingAmount,
-		TakingAmount:         order.TakingAmount.String(),
-		MakingAmount:         order.MakingAmount.String(),
+		TakingAmount:         amountString(order.TakingAmount),
+		MakingAmount:         amountString(order.MakingAmount),
 		Salt:                 order.Salt,
 		MakerAsset:           order.MakerAsset,
 		TakerAsset:           order.TakerAsset,
@@ -483,6 +522,10 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 		Interaction:          order.Interaction,
 		Signature:            order.Signature,
 		FeeAmount:            feeAmount,
+
+		RemainingMakingAmount: remainingMakingAmount,
+		RemainingTakingAmount: remainingTakingAmount,
+		IsTakerAssetFee:       order.IsTakerAssetFee,
 	}
 }
 
@@ -491,7 +534,7 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 type makerAndAsset = string
 
 func NewMakerAndAsset(maker, makerAsset string) makerAndAsset {
-	return fmt.Sprintf("%v:%v", maker, makerAsset)
+	return maker + ":" + makerAsset
 }
 
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
