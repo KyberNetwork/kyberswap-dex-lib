@@ -345,6 +345,7 @@ const (
 	ExchangeUniswapV4FairFlow           = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch            = "uniswap-v4-flaunch"
 	ExchangeUniswapV4GlueHook           = "uniswap-v4-gluehook"
+	ExchangeUniswapV4HyFiProp           = "uniswap-v4-hyfiprop"
 	ExchangeUniswapV4Inverse            = "uniswap-v4-inverse"
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
@@ -489,6 +490,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeUSCoreProp:         {},
 	ExchangeNemoProp:           {},
 	ExchangeBTRProp:            {},
+	ExchangeUniswapV4HyFiProp:  {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
