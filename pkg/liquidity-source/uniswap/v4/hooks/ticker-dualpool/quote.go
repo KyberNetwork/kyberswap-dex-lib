@@ -3,7 +3,6 @@ package tickerdualpool
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/holiman/uint256"
 
@@ -27,7 +26,6 @@ type State struct {
 }
 
 type Quote struct {
-	SharedBefore, SharedAfter                                            map[string]*big.Int
 	RawAfter, ClaimsAfter, ManagerCashBeforeSettlement, ManagerCashAfter [2]*uint256.Int
 	ReservesAfter                                                        [2]*AaveReserve
 	VaultsAfter                                                          [2]*AaveInventory
