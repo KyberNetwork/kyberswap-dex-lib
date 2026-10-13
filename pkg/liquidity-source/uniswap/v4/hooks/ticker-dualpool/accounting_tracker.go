@@ -16,6 +16,7 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 //go:embed abis/Accounting.json
@@ -66,6 +67,9 @@ func codeAt(ctx context.Context, p *uniswapv4.HookParam, address common.Address)
 }
 
 func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessage, error) {
+	if h.address == productionHookAddress && (p == nil || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
+		return nil, ErrInvalidState
+	}
 	// Failed reads must leave the previous snapshot intact.
 	candidate := *h
 	if _, err := candidate.trackBase(ctx, p); err != nil {
