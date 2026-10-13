@@ -229,7 +229,7 @@ func (h *Hook) UpdateBalance(info any) {
 
 // UpdateBalanceWithoutSettlement is for execution-aware harnesses that issue
 // another swap before paying PoolManager. Kyber's normal UpdateBalance models
-// a settled leg; production adapter settlement still needs independent proof.
+// a settled leg, including its input payment and output payout.
 func (h *Hook) UpdateBalanceWithoutSettlement(info any) { h.updateBalance(info, false) }
 
 func (h *Hook) updateBalance(info any, settled bool) {
