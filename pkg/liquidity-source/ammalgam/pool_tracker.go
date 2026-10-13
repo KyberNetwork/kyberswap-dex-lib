@@ -220,9 +220,9 @@ func resolveSwapState(snapshot trackerSnapshot) ([2]*big.Int, totalAssetsAndShar
 		if borrowGrowth.Cmp(depositGrowth) < 0 {
 			return reserves, totalAssetsAndSharesRPC{}, ErrInvalidPool
 		}
-		// totalAssetsAndShares(true) adds protocol fees to both the deposit
-		// and borrow totals, while the LP portion is withheld from deposits:
-		// LP interest = borrow growth - deposit growth.
+		// Borrow growth is the full interest. totalAssetsAndShares(true) adds the
+		// protocol fee to the deposit total only, so deposit growth = lender
+		// share + protocol fee and LP interest = borrow growth - deposit growth.
 		lpInterest := new(big.Int).Sub(borrowGrowth, depositGrowth)
 		reserves[i] = new(big.Int).Add(reserves[i], lpInterest)
 	}
