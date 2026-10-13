@@ -31,6 +31,22 @@ func TestSwapQuoteUnpack(t *testing.T) {
 	require.Len(t, out.Quote.RouteHops, 2)
 }
 
+// TestRegistryABI pins the pool's registry getter selector (0xbcf0196b, no known
+// name) and perms(address), and the decode of the lane word.
+func TestRegistryABI(t *testing.T) {
+	reg, err := registryABI.Pack("registry")
+	require.NoError(t, err)
+	require.Equal(t, []byte{0xbc, 0xf0, 0x19, 0x6b}, reg)
+	perms, err := registryABI.Pack("perms", common.HexToAddress(usdc))
+	require.NoError(t, err)
+	require.Equal(t, []byte{0xb4, 0x09, 0xea, 0x4e}, perms[:4])
+
+	raw := common.LeftPadBytes(big.NewInt(0x400).Bytes(), 32)
+	out, err := registryABI.Unpack("perms", raw)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, out[0].(*big.Int).Bit(LaneSwapBit))
+}
+
 func probe(ins []uint64, outs []int64) *pairProbe {
 	pp := &pairProbe{}
 	for k := range ins {

@@ -51,7 +51,10 @@ type Ladder struct {
 type Extra struct {
 	// Flags[i] is the raw 16-bit word from Pool.getRiskFlags(Tokens[i]); 0 when
 	// the read failed (treated as swap disabled).
-	Flags   []uint16 `json:"flags"`
+	Flags []uint16 `json:"flags"`
+	// LaneOK is true when registry.perms(executor) includes lane 0x400, which
+	// opens SWAP_GATED legs to the executor. False when unreadable.
+	LaneOK  bool     `json:"laneOK"`
 	Ladders []Ladder `json:"ladders"`
 }
 
@@ -70,7 +73,7 @@ func (e *Extra) ladder(from, to int) []Point {
 type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
-	// Gated reports whether any cached leg is off the open path. While the
-	// live core is SWAP_GATED this is true and CalcAmountOut returns no route.
+	// Gated reports whether any cached leg is closed to the executor (halted,
+	// swap disabled, or SWAP_GATED without the executor's lane).
 	Gated bool `json:"gated"`
 }

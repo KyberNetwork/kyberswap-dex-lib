@@ -81,7 +81,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		}},
 		extra:   extra,
 		ladders: ladders,
-		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f) != nil }),
+		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.LaneOK) != nil }),
 	}, nil
 }
 
@@ -99,13 +99,13 @@ func validPoints(pts []Point) bool {
 	return true
 }
 
-// gate mirrors the BTR open-path predicate `(flags & (HALT_MASK|SWAP_ENABLED|SWAP_GATED)) == SWAP_ENABLED`,
-// but tells a lane-gated leg (SWAP_GATED) apart from a halted/disabled one.
-func gate(flags uint16) error {
+// gate mirrors swap_qe's checks: halted or swap-disabled legs revert, and a
+// SWAP_GATED leg reverts unless the executor holds lane 0x400 (laneOK).
+func gate(flags uint16, laneOK bool) error {
 	if flags&HaltMask != 0 || flags&SwapEnabledBit == 0 {
 		return ErrBTRGated
 	}
-	if flags&SwapGatedBit != 0 {
+	if flags&SwapGatedBit != 0 && !laneOK {
 		return ErrBTRGatedLane
 	}
 	return nil
@@ -207,8 +207,8 @@ func invert(pts []Point, y, res *uint256.Int) {
 }
 
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
-// ladder. It refuses a leg that is not on the open path, so while the live core
-// is SWAP_GATED it returns no route.
+// ladder. It refuses a leg the executor cannot swap: halted, disabled, or
+// SWAP_GATED without the executor's lane.
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
 	i, j := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
@@ -219,10 +219,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if amt := params.TokenAmountIn.Amount; amt == nil || amt.Sign() <= 0 || amountIn.SetFromBig(amt) {
 		return nil, ErrBTRInvalidAmount
 	}
-	if err := gate(s.extra.Flags[i]); err != nil {
+	if err := gate(s.extra.Flags[i], s.extra.LaneOK); err != nil {
 		return nil, err
 	}
-	if err := gate(s.extra.Flags[j]); err != nil {
+	if err := gate(s.extra.Flags[j], s.extra.LaneOK); err != nil {
 		return nil, err
 	}
 
