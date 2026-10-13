@@ -3,7 +3,7 @@ package ammalgam
 import "errors"
 
 const (
-	DexType    = "dlex"
+	DexType    = "ammalgam"
 	defaultGas = int64(180_000)
 )
 

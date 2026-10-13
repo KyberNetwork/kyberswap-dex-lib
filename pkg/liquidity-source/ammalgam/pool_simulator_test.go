@@ -163,7 +163,7 @@ func TestPoolSimulatorMetaAndApproval(t *testing.T) {
 	s := newTestSimulator(t)
 	require.Equal(t, pool.RouterMetaInfo{Router: testPair, BlockNumber: 1234}, s.GetMetaInfo(testTokenX, testTokenY))
 	require.Empty(t, s.GetApprovalAddress(testTokenX, testTokenY))
-	require.Equal(t, DexType, "dlex")
+	require.Equal(t, DexType, "ammalgam")
 }
 
 func TestPoolSimulatorRejectsInvalidInputsAndStates(t *testing.T) {

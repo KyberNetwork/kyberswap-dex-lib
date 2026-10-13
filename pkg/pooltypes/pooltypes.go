@@ -409,7 +409,7 @@ type Types struct {
 	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
-	DLEX                       string
+	Ammalgam                   string
 	SfrxETH                    string
 	SfrxETHConvertor           string
 	EtherfiVampire             string
@@ -670,7 +670,7 @@ var (
 		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
-		DLEX:                       ammalgam.DexType,
+		Ammalgam:                   ammalgam.DexType,
 		SfrxETH:                    sfrxeth.DexType,
 		SfrxETHConvertor:           sfrxethconvertor.DexType,
 		EtherfiVampire:             etherfivampire.DexType,
