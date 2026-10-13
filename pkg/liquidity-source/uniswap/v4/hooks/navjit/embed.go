@@ -11,4 +11,8 @@ var (
 	erc20ABIJson []byte
 	//go:embed abis/V4Quoter.json
 	quoterABIJson []byte
+	//go:embed abis/UniswapInterfaceMulticall.json
+	cappedMulticallABIJson []byte
+	//go:embed abis/UniswapInterfaceMulticall.hex
+	cappedMulticallCodeHex string
 )
