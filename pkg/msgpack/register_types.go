@@ -6,6 +6,7 @@ import (
 	uniswapv3uint256_entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	uniswapv3_entities "github.com/daoleno/uniswapv3-sdk/entities"
 
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	few "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few"
 	pkg_source_gmx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	pkg_source_gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
@@ -23,6 +24,8 @@ func mustNotError(err error) {
 }
 
 func init() {
+	// Interface-embedded hooks must retain BaseHook's concrete type when decoded.
+	mustNotError(msgpack.RegisterConcreteType(&uniswapv4.BaseHook{}))
 	// V4 stores these concrete values behind ITokenWrapper, including for native
 	// ETH pools that do not themselves use a Few wrapper.
 	mustNotError(msgpack.RegisterConcreteType(few.TokenWrapper{}))
