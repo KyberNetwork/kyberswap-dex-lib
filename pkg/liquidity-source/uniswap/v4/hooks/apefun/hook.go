@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -33,6 +34,8 @@ var (
 
 // NowFn is the clock the anti-snipe window reads; a variable so tests can pin it.
 var NowFn = func() int64 { return time.Now().Unix() }
+
+var uBps = uint256.NewInt(bps)
 
 var maxInt128 = new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 127), bignumber.One)
 
@@ -138,21 +141,30 @@ func (e *Extra) snipeRate(now int64) int64 {
 	return min(snipeBps[elapsed], maxTakeBps-e.TaxBps)
 }
 
-// fees mirrors LaunchFeeProtectionHook._fees: snipe, base fee and tax each floored separately on gross (the input
-// of a buy, the pool's quote output of a sell). It returns fee + tax, what the hook keeps.
-func (e *Extra) fees(gross *big.Int, buy bool, now int64) *big.Int {
-	var total, part big.Int
-	addFloor := func(rateBps int64) {
-		if rateBps > 0 {
-			total.Add(&total, part.Quo(part.Mul(gross, big.NewInt(rateBps)), bignumber.BasisPoint))
+// feesU256 mirrors LaunchFeeProtectionHook._fees: snipe, base fee and tax each floored separately on gross (the
+// input of a buy, the pool's quote output of a sell). It returns fee + tax, what the hook keeps. gross is an int128
+// amount, so gross * rate (rate <= 10000) fits 256 bits and a plain Mul then Div on the stack is exact.
+func (e *Extra) feesU256(gross *uint256.Int, buy bool, now int64) (total uint256.Int) {
+	var part uint256.Int
+	rates := [3]uint64{baseFeeBps, uint64(e.TaxBps), 0}
+	if buy {
+		rates[2] = uint64(e.snipeRate(now))
+	}
+	for _, rate := range rates {
+		if rate > 0 {
+			part.Mul(gross, part.SetUint64(rate))
+			total.Add(&total, part.Div(&part, uBps))
 		}
 	}
-	if buy {
-		addFloor(e.snipeRate(now))
-	}
-	addFloor(baseFeeBps)
-	addFloor(e.TaxBps)
-	return &total
+	return total
+}
+
+// fees is feesU256 on big.Int, for the hook interface.
+func (e *Extra) fees(gross *big.Int, buy bool, now int64) *big.Int {
+	var g uint256.Int
+	g.SetFromBig(gross)
+	total := e.feesU256(&g, buy, now)
+	return total.ToBig()
 }
 
 // grossFor returns the smallest gross with gross - fees(gross) >= net. Each floor rounds a fee down, so the

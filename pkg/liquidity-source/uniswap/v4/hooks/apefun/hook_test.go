@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -373,4 +374,29 @@ func otherChain(c valueobject.ChainID) valueobject.ChainID {
 		return valueobject.ChainIDRobinhood
 	}
 	return valueobject.ChainIDArc
+}
+
+func BenchmarkAfterSwapSell(b *testing.B) {
+	h := hookAt(100, true)
+	p := &uniswapv4.AfterSwapParams{
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false},
+		AmountOut:        bignumber.TenPowInt(18),
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := h.AfterSwap(p); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// The fee math itself must not touch the heap; only the *big.Int handed to the hook interface does.
+func TestFeesU256NoAlloc(t *testing.T) {
+	x := Extra{Live: true, QuoteIsCurrency0: true, TaxBps: 100, Launched: launched}
+	var gross uint256.Int
+	gross.SetUint64(1_000_000_007)
+	var sink uint256.Int
+	allocs := testing.AllocsPerRun(100, func() { sink = x.feesU256(&gross, true, launched+1) })
+	assert.Zero(t, allocs)
+	assert.False(t, sink.IsZero())
 }
