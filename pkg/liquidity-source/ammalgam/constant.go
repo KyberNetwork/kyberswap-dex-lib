@@ -3,8 +3,10 @@ package ammalgam
 import "errors"
 
 const (
-	DexType    = "ammalgam"
-	defaultGas = int64(180_000)
+	DexType = "ammalgam"
+	// Average of 30 cold fork measurements of tokenIn transfer + pair.swap on mainnet
+	// block 26181046 (no daily lending checkpoint). Executor overhead is not included.
+	defaultGas = int64(167_534)
 )
 
 var (
