@@ -11,6 +11,7 @@ import (
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -55,7 +56,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	var fees launchInfo
 	_, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		SetOverrides(param.Overrides).AddCall(&ethrpc.Call{
-		ABI: hookABI, Target: hexutil.Encode(HookAddress[:]), Method: "launches",
+		ABI: ponsv2.HookABI(), Target: hexutil.Encode(HookAddress[:]), Method: "launches",
 		Params: []any{common.BytesToHash(poolID)},
 	}, []any{&fees}).Call()
 	if err != nil {
