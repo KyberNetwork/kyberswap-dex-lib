@@ -90,6 +90,13 @@ func TestTrackUsesPonsAndRejectsUpgrade(t *testing.T) {
 	param.Overrides = map[common.Address]gethclient.OverrideAccount{HookAddress: {StateDiff: map[common.Hash]common.Hash{implementationSlot: common.BytesToHash(ImplementationAddress.Bytes())}}}
 	_, err = h.Track(context.Background(), param)
 	require.NoError(t, err)
+	param.Overrides[ImplementationAddress] = gethclient.OverrideAccount{Code: []byte{0}}
+	_, err = h.Track(context.Background(), param)
+	require.ErrorIs(t, err, ErrUnsupportedDeployment)
+	delete(param.Overrides, ImplementationAddress)
+	param.Overrides[HookAddress] = gethclient.OverrideAccount{Code: []byte{0}}
+	_, err = h.Track(context.Background(), param)
+	require.ErrorIs(t, err, ErrUnsupportedDeployment)
 	param.Overrides = map[common.Address]gethclient.OverrideAccount{HookAddress: {State: map[common.Hash]common.Hash{}}}
 	_, err = h.Track(context.Background(), param)
 	require.ErrorIs(t, err, ErrUnsupportedDeployment)
