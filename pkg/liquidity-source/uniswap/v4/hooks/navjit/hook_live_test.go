@@ -84,18 +84,22 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 			for _, r := range d.ladder {
 				hi := r.In.ToBig()
 				span := new(big.Int).Sub(hi, prev)
+				var amts []*big.Int
 				for _, f := range sweepFracs {
 					amt, _ := new(big.Float).Mul(big.NewFloat(f), new(big.Float).SetInt(span)).Int(nil)
 					amt.Add(amt, prev)
-					if amt.Sign() <= 0 {
-						continue
+					if amt.Sign() > 0 {
+						amts = append(amts, amt)
 					}
+				}
+				refs := v4Quotes(ctx, t, rpc, block, v, d.zeroForOne, amts...)
+				for i, amt := range amts {
 					res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 						TokenAmountIn: pool.TokenAmount{Token: d.tokenIn, Amount: new(big.Int).Set(amt)},
 						TokenOut:      d.tokenOut,
 					})
-					ref, ok := v4Quote(ctx, rpc, block, v, d.zeroForOne, amt)
-					if !ok {
+					ref := refs[i]
+					if ref == nil {
 						log.Printf("%s %s in=%s quoter=REVERT plugin_err=%v", v.Name, d.name, amt, err)
 						assert.Error(t, err, "plugin must refuse what the quoter refuses")
 						continue
@@ -122,7 +126,7 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 			over := new(big.Int).Add(hx.Float.ToBig(), bignumber.TenPowInt(18))
 			_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: lot, Amount: over}, TokenOut: usdg})
-			_, ok := v4Quote(ctx, rpc, block, v, false, over)
+			ok := v4Quotes(ctx, t, rpc, block, v, false, over)[0] != nil
 			log.Printf("%s sell-over-float in=%s quoter_ok=%v plugin_err=%v", v.Name, over, ok, err)
 			assert.Error(t, err)
 			assert.False(t, ok)
