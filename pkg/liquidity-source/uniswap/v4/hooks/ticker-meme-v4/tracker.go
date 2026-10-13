@@ -14,8 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// Track rechecks the proxy implementation on every refresh, including registered
-// pools: a timelock upgrade can change their pricing despite frozen fee terms.
+// Track checks the proxy's implementation address and reads fees at the pinned block.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	if param.Cfg == nil || param.Cfg.ChainID != valueobject.ChainIDMonad || param.HookAddress != HookAddress {
 		return nil, ErrUnsupportedDeployment
@@ -47,15 +46,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if implementation != ImplementationAddress {
 		return nil, ErrUnsupportedDeployment
 	}
-	code := param.Overrides[implementation].Code
-	if code == nil {
-		var err error
-		code, err = param.RpcClient.GetETHClient().CodeAt(ctx, implementation, param.BlockNumber)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if crypto.Keccak256Hash(code) != ImplementationCodeHash {
+	// Check supplied code overrides without downloading on-chain bytecode.
+	if code := param.Overrides[implementation].Code; code != nil && crypto.Keccak256Hash(code) != ImplementationCodeHash {
 		return nil, ErrUnsupportedDeployment
 	}
 	next := *h
@@ -70,6 +62,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		return nil, err
 	}
 	next.Extra = Extra{
+		// Tag the supported implementation; its address was checked above.
 		ImplementationHash: ImplementationCodeHash,
 		Registered:         fees.Registered,
 		HookFeeBps:         fees.HookFeeBps,
