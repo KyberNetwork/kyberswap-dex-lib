@@ -1,6 +1,8 @@
 package tricrypto
 
 import (
+	"slices"
+
 	"github.com/holiman/uint256"
 )
 
@@ -478,8 +480,20 @@ func (t *PoolSimulator) getDy(i, j int, dx uint256.Int) (dy, fee uint256.Int, er
 }
 
 // exchange is CurveCryptoSwap.exchange: it updates the pool state (balances, D, price oracle, price scale, ...)
-// as the contract would and returns dy. now is the block timestamp.
+// as the contract would and returns dy. now is the block timestamp. Like a reverted transaction, a failed
+// exchange leaves the pool unchanged.
 func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
+	next := *t // all state is held by value, except the reserves slice
+	next.Info.Reserves = slices.Clone(t.Info.Reserves)
+	dy, err := next.applyExchange(i, j, dx, now)
+	if err != nil {
+		return zero, err
+	}
+	*t = next
+	return dy, nil
+}
+
+func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
 	if i == j {
 		return zero, errSameCoin
 	}

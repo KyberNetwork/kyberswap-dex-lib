@@ -461,3 +461,23 @@ func TestTweakPriceVirtualPriceBelowHalf(t *testing.T) {
 	_, err = newTiny(true).Exchange(0, 2, big.NewInt(1_000_000_000))
 	require.NoError(t, err)
 }
+
+// A reverted exchange must not leave a half-applied swap (input added, output not removed, oracle moved).
+func TestFailedExchangeLeavesPoolUnchanged(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+	require.NoError(t, err)
+	p.VirtualPrice.SetUint64(2e18) // the swap lowers virtual_price below this: "Loss" after balances/D/oracle changed
+	before := p.CloneState().(*PoolSimulator)
+
+	_, err = p.Exchange(0, 2, big.NewInt(2134233857))
+	require.ErrorIs(t, err, errLoss)
+	require.Equal(t, before, p)
+
+	p.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tri2USDT, Amount: big.NewInt(2134233857)},
+		TokenAmountOut: pool.TokenAmount{Token: tri2WETH, Amount: big.NewInt(1)},
+	})
+	require.Equal(t, before, p)
+}
