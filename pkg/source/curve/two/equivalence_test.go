@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -479,4 +480,43 @@ func TestRejectsInvalidInput(t *testing.T) {
 	require.ErrorIs(t, err, ErrOverflow)
 	_, _, err = p.GetDy(0, 2, big.NewInt(1))
 	require.ErrorIs(t, err, errTokenIndexOutOfRange)
+}
+
+// virtual_price * 2 - 10**18 is a checked subtraction in tweak_price: it reverts when virtual_price < 0.5e18,
+// but only while not_adjusted is false (the contract short-circuits `not needs_adjustment and ...`).
+func TestTweakPriceVirtualPriceBelowHalf(t *testing.T) {
+	now := cvxETH.timestamp
+	pinClock(t, &now)
+	newTiny := func(notAdjusted bool) *PoolSimulator {
+		p, err := NewPoolSimulator(cvxETH.entityPool())
+		require.NoError(t, err)
+		p.LpSupply = *uint256.MustFromDecimal("1000000000000000000000000000000") // 1e30: virtual_price ~ 1e9
+		p.VirtualPrice.SetUint64(1)
+		p.NotAdjusted = notAdjusted
+		return p
+	}
+	_, err := newTiny(false).Exchange(0, 1, big.NewInt(1e18))
+	require.ErrorIs(t, err, ErrUnderflow)
+	_, err = newTiny(true).Exchange(0, 1, big.NewInt(1e18))
+	require.NoError(t, err)
+}
+
+// A reverted exchange must not leave a half-applied swap (input added, output not removed, oracle moved).
+func TestFailedExchangeLeavesPoolUnchanged(t *testing.T) {
+	now := cvxETH.timestamp + 12
+	pinClock(t, &now)
+	p, err := NewPoolSimulator(cvxETH.entityPool())
+	require.NoError(t, err)
+	p.VirtualPrice.SetUint64(2e18) // the swap lowers virtual_price below this: "Loss" after balances/D/oracle changed
+	before := p.CloneState().(*PoolSimulator)
+
+	_, err = p.Exchange(0, 1, big.NewInt(1e18))
+	require.ErrorIs(t, err, errLoss)
+	require.Equal(t, before, p)
+
+	p.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: cvxETH.coins[0], Amount: big.NewInt(1e18)},
+		TokenAmountOut: pool.TokenAmount{Token: cvxETH.coins[1], Amount: big.NewInt(1)},
+	})
+	require.Equal(t, before, p)
 }
