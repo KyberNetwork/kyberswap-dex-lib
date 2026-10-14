@@ -442,3 +442,22 @@ func TestExchangeRejectsPriceAtMask(t *testing.T) {
 		}
 	}
 }
+
+// virtual_price * 2 - 10**18 is a checked subtraction in tweak_price: it reverts when virtual_price < 0.5e18,
+// but only while not_adjusted is false (the contract short-circuits `not needs_adjustment and ...`).
+func TestTweakPriceVirtualPriceBelowHalf(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	newTiny := func(notAdjusted bool) *PoolSimulator {
+		p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+		require.NoError(t, err)
+		p.LpSupply = *uint256.MustFromDecimal("100000000000000000000000000") // 1e26: virtual_price ~ 0.04e18
+		p.VirtualPrice.SetUint64(1)
+		p.NotAdjusted = notAdjusted
+		return p
+	}
+	_, err := newTiny(false).Exchange(0, 2, big.NewInt(1_000_000_000))
+	require.ErrorIs(t, err, ErrUnderflow)
+	_, err = newTiny(true).Exchange(0, 2, big.NewInt(1_000_000_000))
+	require.NoError(t, err)
+}

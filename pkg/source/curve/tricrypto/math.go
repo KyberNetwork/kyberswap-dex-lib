@@ -701,9 +701,10 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 	t.XcpProfit = xcpProfit
 
 	needsAdjustment := t.NotAdjusted
-	// virtual_price * 2 - 10**18 > xcp_profit + 2 * allowed_extra_profit; the left side is negative (so the
-	// condition is false) when virtual_price * 2 < 10**18.
-	if vp2 := a.mul(virtualPrice, two); !vp2.Lt(&bone) {
+	if !needsAdjustment {
+		// virtual_price * 2 - 10**18 > xcp_profit + 2 * allowed_extra_profit. The subtraction is checked: the
+		// contract reverts when virtual_price * 2 < 10**18.
+		vp2 := a.mul(virtualPrice, two)
 		lhs := a.sub(vp2, bone)
 		rhs := a.add(xcpProfit, a.mul(two, t.AllowedExtraProfit))
 		if a.err != nil {
