@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 )
 
 // defaultHTTPTimeout exists only to bound a hung backend, so it is deliberately far
@@ -65,7 +68,9 @@ func NewHTTPClientWithConfig(cfg *Config) *httpClient {
 	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(httpCli))).
 		SetBaseURL(cfg.LimitOrderHTTPUrl).
 		SetTimeout(timeout).
-		SetRetryCount(retryCount)
+		SetRetryCount(retryCount).
+		SetJSONMarshaler(json.Marshal).
+		SetJSONUnmarshaler(json.Unmarshal)
 
 	return &httpClient{
 		client:     client,
@@ -161,7 +166,7 @@ func (c *httpClient) GetOpSignatures(
 		return cached, nil
 	}
 
-	fetched, err := c.fetchOpSignatures(ctx, chainId, uncached)
+	fetched, err := c.fetchOpSignaturesChunked(ctx, chainId, uncached)
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +176,36 @@ func (c *httpClient) GetOpSignatures(
 		return fetched, nil
 	}
 	return append(cached, fetched...), nil
+}
+
+// maxOpSignatureOrderIds is the operator-signature API's cap on orderIds per request; a larger
+// request fails with code 4002.
+const maxOpSignatureOrderIds = 100
+
+// fetchOpSignaturesChunked fetches in parallel chunks of at most maxOpSignatureOrderIds, so a
+// swap filling more orders (fallbacks included) still gets its signatures.
+func (c *httpClient) fetchOpSignaturesChunked(
+	ctx context.Context,
+	chainId ChainID,
+	orderIds []int64,
+) ([]*operatorSignatures, error) {
+	if len(orderIds) <= maxOpSignatureOrderIds {
+		return c.fetchOpSignatures(ctx, chainId, orderIds)
+	}
+
+	chunks := lo.Chunk(orderIds, maxOpSignatureOrderIds)
+	fetched := make([][]*operatorSignatures, len(chunks))
+	g, gCtx := errgroup.WithContext(ctx)
+	for i, chunk := range chunks {
+		g.Go(func() (err error) {
+			fetched[i], err = c.fetchOpSignatures(gCtx, chainId, chunk)
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	return slices.Concat(fetched...), nil
 }
 
 func (c *httpClient) fetchOpSignatures(

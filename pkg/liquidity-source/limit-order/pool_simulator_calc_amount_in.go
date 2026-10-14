@@ -65,10 +65,11 @@ func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.In
 		cost, minAmountIn uint256.Int
 	}
 	var fullFills []fullFill
-	filledMakingAmountByMaker := make(map[string]*big.Int, len(p.allMakersBalanceAllowance))
+	usedByMaker := make(map[string]uint256.Int, len(p.allMakersBalanceAllowance))
 
-	var need, making, taking, remMaking, remTaking, filledMaking, filledTaking, makerFeeDenom, takerFeeNum,
+	var need, ownMaking, remainingMaking, remainingTaking, filledMaking, filledTaking, makerFee, makerFeeDenom, takerFeeNum,
 		amountIn uint256.Int
+	var terms orderTerms
 	need.Set(amountOut)
 	found := false
 	for _, orderID := range orderIDs {
@@ -77,19 +78,10 @@ func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.In
 			return nil, fmt.Errorf("order %d is not existed in pool", orderID)
 		}
 
-		remMakingBig, remTakingBig := order.RemainingAmount(limit, filledMakingAmountByMaker)
-		if remMakingBig.Sign() <= 0 || remTakingBig.Sign() <= 0 {
+		if !order.remainingAmount(&terms, &ownMaking, &remainingMaking, &remainingTaking, limit, usedByMaker) {
 			continue
 		}
-		remMaking.SetFromBig(remMakingBig)
-		remTaking.SetFromBig(remTakingBig)
-		making.SetFromBig(order.MakingAmount)
-		taking.SetFromBig(order.TakingAmount)
-
-		makerFeePct, takerFeePct := uint64(order.MakerTokenFeePercent), uint64(0)
-		if order.IsTakerAssetFee {
-			makerFeePct, takerFeePct = 0, makerFeePct
-		}
+		makerFeePct, takerFeePct := terms.feePcts()
 		makerFeeDenom.SetUint64(basisPoint - makerFeePct)
 		takerFeeNum.SetUint64(basisPoint + takerFeePct)
 
@@ -99,34 +91,34 @@ func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.In
 			filledMaking.SetOne()
 		}
 		// min filledTaking with floor(filledTaking*making/taking) >= filledMaking
-		big256.MulDivUp(&filledTaking, &filledMaking, &taking, &making)
-		if !filledTaking.Gt(&remTaking) {
+		big256.MulDivUp(&filledTaking, &filledMaking, &terms.taking, &terms.making)
+		if !filledTaking.Gt(&remainingTaking) {
 			// min amountIn with floor(amountIn*BPS/(BPS+takerFee)) >= filledTaking
 			big256.MulDivUp(&amountIn, &filledTaking, &takerFeeNum, big256.UBasisPoint)
 			found = true
 			break
 		}
 
-		// fully fill this order: cost = remTaking + ceil(remTaking*takerFee/BPS)
+		// fully fill this order as fillOrder does: remainingTaking buys floor(remainingTaking*making/taking)
+		big256.MulDivDown(&filledMaking, &remainingTaking, &terms.making, &terms.taking)
+		if filledMaking.IsZero() {
+			continue // exact-in skips an order that gives no maker wei
+		}
 		var f fullFill
-		f.cost.SetUint64(takerFeePct)
-		big256.MulDivUp(&f.cost, &remTaking, &f.cost, big256.UBasisPoint)
-		f.cost.Add(&f.cost, &remTaking)
-		// min amountIn with floor(amountIn*BPS/(BPS+takerFee)) > remTaking
-		f.minAmountIn.AddUint64(&remTaking, 1)
+		terms.amountWithTakerFee(&f.cost, &remainingTaking)
+		// min amountIn with floor(amountIn*BPS/(BPS+takerFee)) > remainingTaking
+		f.minAmountIn.AddUint64(&remainingTaking, 1)
 		big256.MulDivUp(&f.minAmountIn, &f.minAmountIn, &takerFeeNum, big256.UBasisPoint)
 		fullFills = append(fullFills, f)
 
-		// out = remMaking - ceil(remMaking*makerFee/BPS)
-		filledMaking.SetUint64(makerFeePct)
-		big256.MulDivUp(&filledMaking, &remMaking, &filledMaking, big256.UBasisPoint)
-		filledMaking.Sub(&remMaking, &filledMaking)
+		// as CalcAmountOut does: the order's whole capped making, not just its fill
+		addUsedMaking(usedByMaker, order.Maker, &remainingMaking)
+		filledMaking.Sub(&filledMaking, terms.makerFee(&makerFee, &filledMaking))
 		if need.Gt(&filledMaking) {
 			need.Sub(&need, &filledMaking)
 		} else {
 			need.Clear()
 		}
-		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, remMakingBig)
 	}
 	if !found {
 		return nil, ErrCannotFulfillAmountOut
