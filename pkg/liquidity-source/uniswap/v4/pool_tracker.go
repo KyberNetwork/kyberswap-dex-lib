@@ -148,9 +148,10 @@ func snapshotState(p *entity.Pool) poolState {
 }
 
 // buildExtra marshals the pool's new Extra and reports whether the pool state changed against
-// prev. A HookWithLiveness hook then gets "lv" restamped when the state changed or its interval
-// passed; the change test runs before the restamp so lv alone never counts as a change.
-func buildExtra(hook Hook, res *FetchRPCResult, ticks []Tick, prev poolState) ([]byte, bool, error) {
+// prev. A HookWithLiveness hook then gets "lv" restamped to now when the state changed or its
+// interval passed; the change test runs before the restamp so lv alone never counts as a change.
+// now is read before the RPC reads start, so lv's age includes the time Track took.
+func buildExtra(hook Hook, res *FetchRPCResult, ticks []Tick, prev poolState, now int64) ([]byte, bool, error) {
 	extraBytes, err := json.Marshal(res.ToExtra(ticks))
 	if err != nil {
 		return nil, false, err
@@ -158,7 +159,7 @@ func buildExtra(hook Hook, res *FetchRPCResult, ticks []Tick, prev poolState) ([
 	changed := string(extraBytes) != prev.extra || float64(res.SwapFee) != prev.swapFee ||
 		!slices.Equal(res.Reserves, prev.reserves)
 	if lh, ok := hook.(HookWithLiveness); ok {
-		if now := NowFn(); changed || now-res.TrackedAt >= int64(lh.LivenessInterval()/time.Second) {
+		if changed || now-res.TrackedAt >= int64(lh.LivenessInterval()/time.Second) {
 			res.TrackedAt = now
 			extraBytes, err = json.Marshal(res.ToExtra(ticks))
 		}
@@ -256,6 +257,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		hookParam *HookParam
 		poolTicks []ticklens.TickResp
 		prev      = snapshotState(&p)
+		now       = NowFn()
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -320,7 +322,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
-	extraBytes, changed, err := buildExtra(hook, rpcData, ticks, prev)
+	extraBytes, changed, err := buildExtra(hook, rpcData, ticks, prev, now)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -896,7 +898,7 @@ func (t *PoolTracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	prev := snapshotState(&p)
+	prev, now := snapshotState(&p), NowFn()
 
 	// Always fetch scalar state at latest, never at this batch's own block: see the
 	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
@@ -918,7 +920,7 @@ func (t *PoolTracker) updateState(
 		return p, err
 	}
 
-	extraBytes, changed, err := buildExtra(hook, rpcState, entityPoolTicks, prev)
+	extraBytes, changed, err := buildExtra(hook, rpcState, entityPoolTicks, prev, now)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,

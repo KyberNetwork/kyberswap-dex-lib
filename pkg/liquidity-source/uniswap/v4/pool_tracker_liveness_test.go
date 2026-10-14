@@ -1,6 +1,7 @@
 package uniswapv4
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const testInterval = 20 * time.Second
@@ -69,6 +71,40 @@ func TestLiveness_QuietPoolStampsOncePerInterval(t *testing.T) {
 	assert.Equal(t, m1, m2, "only lv differs")
 	assert.Equal(t, p1.Timestamp, p2.Timestamp, "an lv-only restamp is not activity")
 	assert.Equal(t, p1.BlockNumber, p2.BlockNumber)
+}
+
+// slowHook's Track takes 30 s: it moves the clock forward while it runs.
+type slowHook struct{ liveHook }
+
+func (h *slowHook) Track(ctx context.Context, p *HookParam) (json.RawMessage, error) {
+	NowFn = func() int64 { return 1_030 }
+	return h.liveHook.Track(ctx, p)
+}
+
+var slowHookAddr = common.HexToAddress("0x00000000000000000000000000000000000d0033")
+var _ = RegisterHooks(&slowHook{liveHook{plainHook{&BaseHook{}}}}, slowHookAddr)
+
+// lv is the time the refresh started, not when Track returned: a slow Track must not make the
+// state look fresher than it is to the StaleCheck gate.
+func TestLiveness_StampsRefreshStart(t *testing.T) {
+	for name, run := range map[string]func(*PoolTracker, entity.Pool) entity.Pool{
+		"update": func(tr *PoolTracker, p entity.Pool) entity.Pool {
+			return tr.refresh(t, p, 1_000, `{"a":1}`, nil, nil, nil)
+		},
+		"bootstrap": func(tr *PoolTracker, p entity.Pool) entity.Pool {
+			NowFn = func() int64 { return 1_000 }
+			got, err := tr.BootstrapPoolState(context.Background(), p, poolpkg.GetNewPoolStateParams{})
+			require.NoError(t, err)
+			return got
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tr := newActivityTracker(t)
+			got := run(tr, schedulePool(t, slowHookAddr, 0))
+			_, lv := extraSansLv(t, got.Extra)
+			assert.Equal(t, int64(1_000), lv)
+		})
+	}
 }
 
 // A state change restamps lv at once and, for an opted-in hook, bumps Timestamp to the same time.
