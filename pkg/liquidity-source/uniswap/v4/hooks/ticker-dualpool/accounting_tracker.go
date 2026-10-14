@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -66,6 +67,36 @@ func codeAt(ctx context.Context, p *uniswapv4.HookParam, address common.Address)
 	return p.RpcClient.GetETHClient().CodeAt(ctx, address, p.BlockNumber)
 }
 
+// verifiedCode holds addresses whose runtime code already matched. Deployed code
+// does not change on Monad, so later Tracks skip the bytecode download. Code from
+// a state override is never cached.
+var verifiedCode sync.Map
+
+type codeKey struct {
+	address common.Address
+	label   string
+}
+
+// requireCode errors with label unless the code at address passes match.
+func requireCode(ctx context.Context, p *uniswapv4.HookParam, address common.Address, label string, match func([]byte) bool) error {
+	overridden := p.Overrides[address].Code != nil
+	key := codeKey{address, label}
+	if _, ok := verifiedCode.Load(key); ok && !overridden {
+		return nil
+	}
+	code, err := codeAt(ctx, p, address)
+	if err != nil {
+		return err
+	}
+	if !match(code) {
+		return fmt.Errorf("%s: %w", label, ErrInvalidState)
+	}
+	if !overridden {
+		verifiedCode.Store(key, struct{}{})
+	}
+	return nil
+}
+
 func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessage, error) {
 	if h.address == productionHookAddress && (p == nil || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
 		return nil, ErrInvalidState
@@ -75,12 +106,8 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 	if _, err := candidate.trackBase(ctx, p); err != nil {
 		return nil, err
 	}
-	proxyCode, err := codeAt(ctx, p, h.address)
-	if err != nil {
+	if err := requireCode(ctx, p, h.address, "hook proxy bytecode", tickerProxyFingerprint.matches); err != nil {
 		return nil, err
-	}
-	if !tickerProxyFingerprint.matches(proxyCode) {
-		return nil, fmt.Errorf("hook proxy bytecode: %w", ErrInvalidState)
 	}
 	var poolManager common.Address
 	managerRequest := p.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(p.BlockNumber).SetOverrides(p.Overrides)
@@ -95,12 +122,8 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 	if err != nil {
 		return nil, err
 	}
-	code, err := codeAt(ctx, p, common.BytesToAddress(slot[:]))
-	if err != nil {
+	if err := requireCode(ctx, p, common.BytesToAddress(slot[:]), "hook implementation", matchesTickerHook); err != nil {
 		return nil, err
-	}
-	if !matchesTickerHook(code) {
-		return nil, fmt.Errorf("hook implementation: %w", ErrInvalidState)
 	}
 	var config uniswapv4.StaticExtra
 	if err := json.Unmarshal([]byte(p.Pool.StaticExtra), &config); err != nil {
@@ -156,12 +179,8 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 		if vault == (common.Address{}) {
 			continue
 		}
-		code, err := codeAt(ctx, p, vault)
-		if err != nil {
+		if err := requireCode(ctx, p, vault, "vault implementation", tickerVaultFingerprint.matches); err != nil {
 			return nil, err
-		}
-		if !tickerVaultFingerprint.matches(code) {
-			return nil, fmt.Errorf("vault implementation: %w", ErrInvalidState)
 		}
 		shareWord, err := storageAt(ctx, p, h.address, mapSlot(4))
 		if err != nil {
@@ -186,23 +205,15 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 		if !ok {
 			return nil, fmt.Errorf("unrecognized strategy: %w", ErrInvalidState)
 		}
-		code, err = codeAt(ctx, p, strategy)
-		if err != nil {
+		if err = requireCode(ctx, p, strategy, "strategy proxy bytecode", func(code []byte) bool { return crypto.Keccak256Hash(code) == expected }); err != nil {
 			return nil, err
-		}
-		if crypto.Keccak256Hash(code) != expected {
-			return nil, fmt.Errorf("strategy proxy bytecode: %w", ErrInvalidState)
 		}
 		implementation, err := storageAt(ctx, p, strategy, implementationSlot)
 		if err != nil {
 			return nil, err
 		}
-		code, err = codeAt(ctx, p, common.BytesToAddress(implementation[:]))
-		if err != nil {
+		if err = requireCode(ctx, p, common.BytesToAddress(implementation[:]), "strategy implementation", func(code []byte) bool { return crypto.Keccak256Hash(code) == stataImplementationHash }); err != nil {
 			return nil, err
-		}
-		if crypto.Keccak256Hash(code) != stataImplementationHash {
-			return nil, fmt.Errorf("strategy implementation: %w", ErrInvalidState)
 		}
 		var held, rate, maxDeposit, maxWithdraw *big.Int
 		request = p.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(p.BlockNumber).SetOverrides(p.Overrides)
