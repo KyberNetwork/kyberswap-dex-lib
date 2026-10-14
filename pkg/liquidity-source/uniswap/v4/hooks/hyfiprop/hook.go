@@ -62,6 +62,10 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
+// TracksActivity: hX holds only chain state, so a changed hX bumps Timestamp/BlockNumber and the
+// pool stays active while the book moves, even with no log on the pool.
+func (h *Hook) TracksActivity() {}
+
 // AllowEmptyTicks: the pool has no v4 liquidity; the whole input is consumed in BeforeSwap.
 func (h *Hook) AllowEmptyTicks() bool { return true }
 

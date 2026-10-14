@@ -34,6 +34,9 @@ import (
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
 
+// NowFn is the wall clock (unix seconds) behind the activity Timestamp; a variable so tests can pin it.
+var NowFn = func() int64 { return time.Now().Unix() }
+
 type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
@@ -129,6 +132,33 @@ func (t *PoolTracker) fetchOnchainState(
 	return result, hook, hookParam, nil
 }
 
+// poolState is the part of a pool that markActivity compares, the same fields as pool-service's
+// hasNoStateChange. resolveHookState rewrites the pool in place, so snapshot it before the fetch.
+type poolState struct {
+	extra    string
+	swapFee  float64
+	reserves entity.PoolReserves
+}
+
+func snapshotState(p *entity.Pool) poolState {
+	return poolState{extra: p.Extra, swapFee: p.SwapFee, reserves: slices.Clone(p.Reserves)}
+}
+
+// markActivity bumps Timestamp (wall clock) and BlockNumber (the fetched block) when an opted-in
+// hook's refresh changed the pool state. p must already hold the new state.
+func markActivity(hook Hook, hookParam *HookParam, prev poolState, p *entity.Pool) {
+	if _, ok := hook.(HookTracksActivity); !ok {
+		return
+	}
+	if p.Extra == prev.extra && p.SwapFee == prev.swapFee && slices.Equal(p.Reserves, prev.reserves) {
+		return
+	}
+	p.Timestamp = max(p.Timestamp, NowFn())
+	if hookParam.BlockNumber != nil {
+		p.BlockNumber = max(p.BlockNumber, hookParam.BlockNumber.Uint64())
+	}
+}
+
 // resolveHookState refreshes hookParam.Pool's Reserves and Extra to this round's
 // state and runs hook.Track.
 //
@@ -206,6 +236,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		hook      Hook
 		hookParam *HookParam
 		poolTicks []ticklens.TickResp
+		prev      = snapshotState(&p)
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -283,6 +314,7 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.Reserves = rpcData.Reserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	markActivity(hook, hookParam, prev, &p)
 
 	l.Infof("Finish updating state of pool")
 	return p, nil
@@ -843,6 +875,8 @@ func (t *PoolTracker) updateState(
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
+	prev := snapshotState(&p)
+
 	// Always fetch scalar state at latest, never at this batch's own block: see the
 	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
 	rpcState, hook, hookParam, err := t.fetchOnchainState(ctx, &p, 0, overrides)
@@ -876,6 +910,7 @@ func (t *PoolTracker) updateState(
 	p.Reserves = rpcState.Reserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	markActivity(hook, hookParam, prev, &p)
 
 	return p, nil
 }

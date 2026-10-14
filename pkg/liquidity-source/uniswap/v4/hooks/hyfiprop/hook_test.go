@@ -172,3 +172,7 @@ func TestPoolSimulator_QuotesAndGas(t *testing.T) {
 	assert.Equal(t, h.Cfg, back.Cfg)
 	assert.Equal(t, h.Inventory, back.Inventory)
 }
+
+// hyfiprop's hX holds only chain state, so it must opt in to the tracker's activity bump; without
+// it a task-only refresh never moves Timestamp and the pool is archived while the book is live.
+var _ uniswapv4.HookTracksActivity = (*Hook)(nil)
