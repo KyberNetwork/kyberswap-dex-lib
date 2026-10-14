@@ -32,13 +32,14 @@ type Extra struct {
 	FeeBps     int64 `json:"f,omitempty"`
 }
 
+// Hook embeds BaseHook by value, not the Hook interface, so a simulator survives the msgpack round trip.
 type Hook struct {
-	uniswapv4.Hook `json:"-"`
+	uniswapv4.BaseHook `json:"-"`
 	Extra
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4PonsV2}}
+	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4PonsV2}}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
 }, HookAddresses...)
@@ -78,7 +79,7 @@ func (e *Extra) Track(ctx context.Context, param *uniswapv4.HookParam) error {
 	return nil
 }
 
-// Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook interface
+// Delegate rather than rely on promotion: Hook embeds both BaseHook
 // and Extra at the same depth, both with BeforeSwap/AfterSwap, so an unqualified call
 // would otherwise be an ambiguous selector.
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
