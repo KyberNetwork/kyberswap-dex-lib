@@ -90,3 +90,49 @@ func TestBeforeSwapMissingReserves(t *testing.T) {
 		}
 	}
 }
+
+// The contract reverts when block.timestamp > updatedAt + maxStaleness (seconds), so the gate must
+// compare wall-clock seconds, with a margin for the quote-to-execution gap. The old gate compared
+// a block number with unix seconds and never refused.
+func TestBeforeSwapStalenessGate(t *testing.T) {
+	const updatedAt, maxStaleness = uint64(1_800_000_000), uint64(60)
+	orig := NowFn
+	t.Cleanup(func() { NowFn = orig })
+
+	for name, tc := range map[string]struct {
+		now     int64
+		maxStal uint64
+		stale   bool
+	}{
+		"fresh":                       {int64(updatedAt) + 10, maxStaleness, false},
+		"just before margin":          {int64(updatedAt+maxStaleness) - stalenessMarginSec, maxStaleness, false},
+		"inside margin":               {int64(updatedAt+maxStaleness) - stalenessMarginSec + 1, maxStaleness, true},
+		"past deadline":               {int64(updatedAt+maxStaleness) + 1, maxStaleness, true},
+		"tracker dead for a day":      {int64(updatedAt) + 86_400, maxStaleness, true},
+		"no staleness limit on-chain": {int64(updatedAt) + 86_400, 0, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			NowFn = func() int64 { return tc.now }
+			h := &Hook{
+				Price: 1e18, UpdatedAt: updatedAt, MaxStaleness: tc.maxStal,
+				Reserve0: uint256.NewInt(1000), Reserve1: uint256.NewInt(1000),
+			}
+			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(10)})
+			if tc.stale {
+				require.ErrorIs(t, err, ErrStalePrice)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// hX must stay pure chain state: no tracker clock, or the tracker's activity bump would fire on
+// every refresh.
+func TestHookExtraHasNoTrackerClock(t *testing.T) {
+	b, err := json.Marshal(&Hook{Price: 1, UpdatedAt: 2, MaxStaleness: 3})
+	require.NoError(t, err)
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(b, &m))
+	require.NotContains(t, m, "t")
+}
