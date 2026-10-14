@@ -113,6 +113,28 @@ var (
 			{1, 0, "492951655702422582292980", "1034160752208749027"},
 			{0, 1, "10282023891537203655", "4511190232289908067892044"},
 			{1, 0, "4929516557024225822929802", "9435841165831345125"},
+			// Amounts where the previous newton_y starting point ended on a neighbouring value; get_dy at the same block.
+			{0, 1, "1000000000", "469122811662672"},
+			{0, 1, "70000000000", "32838598918517710"},
+			{0, 1, "100000000000", "46912284181962420"},
+			{0, 1, "3000000000000", "1407368502650609123"},
+			{0, 1, "10000000000000", "4691228154948407449"},
+			{0, 1, "300000000000000", "140736612314227840998"},
+			{0, 1, "10000000000000000", "4690962538554858523737"},
+			{0, 1, "100000000000000000", "46886797382624598165667"},
+			{0, 1, "3000000000000000000", "1396119735885405735912325"},
+			{0, 1, "10000000000000000000", "4398440197276812672219554"},
+			{1, 0, "1000000000", "2070"},
+			{1, 0, "100000000000", "211672"},
+			{1, 0, "3000000000000", "6351965"},
+			{1, 0, "300000000000000", "635198585"},
+			{1, 0, "1000000000000000", "2117328636"},
+			{1, 0, "70000000000000000", "148213008685"},
+			{1, 0, "3000000000000000000", "6351985806762"},
+			{1, 0, "30000000000000000000", "63519832143945"},
+			{1, 0, "700000000000000000000", "1482114397726355"},
+			{1, 0, "1000000000000000000000", "2117296669209361"},
+			{1, 0, "10000000000000000000000", "21170065503911990"},
 		},
 	}
 	// USDC/EURS, 6 and 2 decimals: 0x98a7f18d4e56cfe84e3d081b40001b3d5bd3eb8b
@@ -248,16 +270,14 @@ func randomAmount(rng *rand.Rand, reserve *big.Int, maxFrac float64) *big.Int {
 	return amt
 }
 
-// TestMatchesOnchainGetDy pins the simulator to the contracts' get_dy at the same block. The older pools (CVX/ETH,
-// USDC/EURS) match to the wei. The factory pool (T/ETH) runs a newer contract with 2-coin specific newton_y /
-// geometric_mean rounding; the simulator keeps the previous implementation's generic N-coin math there, which is
-// within 1e-11 of the chain, and must stay identical to the previous implementation.
+// TestMatchesOnchainGetDy pins the simulator to the contracts' get_dy at the same block: every quote must match to the
+// wei, and equal the reference implementation. T/ETH includes amounts where the previous newton_y starting point
+// ended on a neighbouring value and missed get_dy.
 func TestMatchesOnchainGetDy(t *testing.T) {
 	now := int64(cvxETH.timestamp)
 	pinClock(t, &now)
 	for name, s := range allStates {
 		old, nw := newPair(t, s.entityPool())
-		exact := 0
 		for _, q := range s.getDy {
 			dx, _ := new(big.Int).SetString(q.dx, 10)
 			res, err := nw.CalcAmountOut(pool.CalcAmountOutParams{
@@ -268,18 +288,8 @@ func TestMatchesOnchainGetDy(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, legacyDy.String(), got.String(), "%s %d->%d dx=%s: new vs previous implementation", name,
 				q.i, q.j, q.dx)
-			want, _ := new(big.Int).SetString(q.dy, 10)
-			if name != "tETH" {
-				require.Equal(t, q.dy, got.String(), "%s %d->%d dx=%s: on-chain get_dy", name, q.i, q.j, q.dx)
-			}
-			diff := new(big.Int).Abs(new(big.Int).Sub(got, want))
-			require.LessOrEqual(t, new(big.Int).Mul(diff, big.NewInt(1e11)).Cmp(want), 0,
-				"%s %d->%d dx=%s: on-chain %s, simulated %s", name, q.i, q.j, q.dx, q.dy, got)
-			if diff.Sign() == 0 {
-				exact++
-			}
+			require.Equal(t, q.dy, got.String(), "%s %d->%d dx=%s: on-chain get_dy", name, q.i, q.j, q.dx)
 		}
-		t.Logf("%s: %d/%d quotes equal on-chain get_dy", name, exact, len(s.getDy))
 	}
 }
 

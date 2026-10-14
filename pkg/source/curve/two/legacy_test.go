@@ -2,8 +2,11 @@ package two
 
 // Code in this file is the pre-uint256 (math/big) implementation of the legacy curve-two simulator, copied from
 // pool_simulator.go, math.go, constant.go and error.go at commit 0df5a2bc. Top-level identifiers are prefixed with
-// "legacy" and time.Now().Unix() is replaced by nowUnix() so tests can pin the clock. It is the reference
-// ("oracle") for the equivalence tests and the baseline for the benchmarks; it is not compiled into production code.
+// "legacy" and time.Now().Unix() is replaced by nowUnix() so tests can pin the clock. One deliberate change:
+// legacyNewtonY starts from D**2 / (x_j * N_COINS**2) like the deployed contracts and the new implementation (the
+// original start rounded differently and made some quotes miss get_dy), so the equivalence tests keep comparing
+// everything else bit for bit. It is the reference ("oracle") for the equivalence tests and the baseline for the
+// benchmarks; it is not compiled into production code.
 
 import (
 	"errors"
@@ -429,7 +432,7 @@ func legacyNewtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int
 
 	var nCoins = len(x)
 	var nCoinBi = big.NewInt(int64(nCoins))
-	var y = new(big.Int).Div(D, nCoinBi)
+	var y *big.Int
 	var K0i = bignumber.BONE
 	var Si = bignumber.ZeroBI
 
@@ -454,9 +457,10 @@ func legacyNewtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int
 		if _x.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, errLegacyDenominatorZero
 		}
-		y = new(big.Int).Div(new(big.Int).Mul(y, D), new(big.Int).Mul(_x, nCoinBi))
 		Si = new(big.Int).Add(Si, _x)
 	}
+	// Patched (see the file comment): y: uint256 = D**2 / (x_j * N_COINS**2).
+	y = new(big.Int).Div(new(big.Int).Mul(D, D), new(big.Int).Mul(xSorted[0], big.NewInt(int64(nCoins*nCoins))))
 	for j := 0; j < nCoins-1; j += 1 {
 		K0i = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(K0i, xSorted[j]), nCoinBi), D)
 	}
