@@ -65,9 +65,9 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 		var hx Extra
 		require.NoError(t, uniswapv4.HookExtra(ex.HookExtra).Unmarshal(&hx))
 		require.True(t, hx.Tracked)
-		block := new(big.Int).SetUint64(hx.Block)
+		block := new(big.Int).SetUint64(p.BlockNumber)
 		log.Printf("## %s pool %s block %d nav18 %v float %v buyRungs %d sellRungs %d reserves %v",
-			v.Name, v.ID[:10], hx.Block, hx.Nav, hx.Float, len(hx.Buy), len(hx.Sell), p.Reserves)
+			v.Name, v.ID[:10], p.BlockNumber, hx.Nav, hx.Float, len(hx.Buy), len(hx.Sell), p.Reserves)
 		require.NotEmpty(t, hx.Buy)
 		require.NotEmpty(t, hx.Sell)
 
@@ -118,7 +118,7 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 				prev = hi
 			}
 			log.Printf("SUMMARY %s %s block=%d sizes=%d worst_over_bps=%+.4f worst_under_bps=%+.4f",
-				v.Name, d.name, hx.Block, n, worstOver, worstUnder)
+				v.Name, d.name, p.BlockNumber, n, worstOver, worstUnder)
 		}
 
 		// Beyond the float: the hook reverts SellExceedsFloat, the plugin must refuse.

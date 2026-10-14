@@ -46,7 +46,7 @@ var sellLadder = []Rung{
 func trackedHook() *Hook {
 	return &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit},
 		Extra: Extra{Tracked: true, UsdgIs0: true, Nav: u("1001792378992843260"), Float: u("49265362021832501903"),
-			BandBps: 200, UsdgDecimals: 6, Buy: buyLadder, Sell: sellLadder, Block: 77346769}}
+			BandBps: 200, UsdgDecimals: 6, Buy: buyLadder, Sell: sellLadder}}
 }
 
 func exactIn(zeroForOne bool, amt string) *uniswapv4.BeforeSwapParams {
@@ -406,6 +406,47 @@ func TestBeforeSwap_StaleCheck(t *testing.T) {
 	h.TrackedAt = time.Now().Unix()
 	_, err = h.BeforeSwap(exactIn(true, "1000000"))
 	assert.NoError(t, err, "a fresh ladder quotes under StaleCheck")
+}
+
+// The tracker's Extra lv, not the extra's own clock, is the StaleCheck age baseline once a pool has
+// one; the legacy ts decides only while lv is 0.
+func TestBeforeSwap_StaleCheckUsesLiveness(t *testing.T) {
+	now := time.Now().Unix()
+	for name, tc := range map[string]struct {
+		lv, legacy int64
+		stale      bool
+	}{
+		"lv fresh":                     {now - 5, 0, false},
+		"lv old":                       {now - 100, 0, true},
+		"lv fresh beats old legacy ts": {now - 5, now - 1000, false},
+		"lv old beats fresh legacy ts": {now - 100, now, true},
+		"no lv: fresh legacy ts":       {0, now, false},
+		"no lv: old legacy ts":         {0, now - 100, true},
+		"neither":                      {0, 0, true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			x := trackedHook().Extra
+			x.TrackedAt = tc.legacy
+			raw, err := json.Marshal(x)
+			require.NoError(t, err)
+			h, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
+				HookExtra: raw, TrackedAt: tc.lv, StaleCheck: true})
+			require.True(t, ok)
+			_, err = h.BeforeSwap(exactIn(true, "1000000"))
+			if tc.stale {
+				assert.ErrorIs(t, err, ErrStale)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestLivenessInterval(t *testing.T) {
+	var _ uniswapv4.HookWithLiveness = (*Hook)(nil)
+	var _ uniswapv4.HookTracksActivity = (*Hook)(nil)
+	assert.Equal(t, 20*time.Second, (&Hook{}).LivenessInterval())
+	assert.Less(t, int64((&Hook{}).LivenessInterval()/time.Second), int64(maxAgeSec), "restamp well inside the max age")
 }
 
 // The flag must reach the hook through the registered v4 factory (pool.FactoryOpts).

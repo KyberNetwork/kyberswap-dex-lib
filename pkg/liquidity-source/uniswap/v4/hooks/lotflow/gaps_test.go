@@ -102,7 +102,7 @@ func TestCheckedNavCancelledPublishesNothing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	h := &Hook{}
-	raw, err := h.trackMarket(ctx, param, tr, ctxTwapFault{l, cancel}, lot, time.Now())
+	raw, err := h.trackMarket(ctx, param, tr, ctxTwapFault{l, cancel}, lot)
 	require.True(t, isTransport(err), "%v", err)
 	require.Nil(t, raw)
 	require.False(t, h.Tracked)

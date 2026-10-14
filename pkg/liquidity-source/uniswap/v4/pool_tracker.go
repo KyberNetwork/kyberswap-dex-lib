@@ -76,7 +76,7 @@ func (t *PoolTracker) newHook(p *entity.Pool, overrides map[common.Address]gethc
 
 	hookParam := &HookParam{
 		Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, Overrides: overrides,
-		HookExtra: HookExtra(extra.HookExtra),
+		HookExtra: HookExtra(extra.HookExtra), TrackedAt: extra.TrackedAt,
 	}
 	hook, _ := GetHook(hookAddress, hookParam)
 	return hook, hookParam, staticExtra
@@ -101,6 +101,9 @@ func (t *PoolTracker) fetchOnchainState(
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
+	}
+	if _, ok := hook.(HookWithLiveness); ok {
+		result.TrackedAt = hookParam.TrackedAt // buildExtra restamps it
 	}
 	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if blockNumber > 0 {
@@ -144,13 +147,29 @@ func snapshotState(p *entity.Pool) poolState {
 	return poolState{extra: p.Extra, swapFee: p.SwapFee, reserves: slices.Clone(p.Reserves)}
 }
 
-// markActivity bumps Timestamp (wall clock) and BlockNumber (the fetched block) when an opted-in
-// hook's refresh changed the pool state. p must already hold the new state.
-func markActivity(hook Hook, hookParam *HookParam, prev poolState, p *entity.Pool) {
-	if _, ok := hook.(HookTracksActivity); !ok {
-		return
+// buildExtra marshals the pool's new Extra and reports whether the pool state changed against
+// prev. A HookWithLiveness hook then gets "lv" restamped when the state changed or its interval
+// passed; the change test runs before the restamp so lv alone never counts as a change.
+func buildExtra(hook Hook, res *FetchRPCResult, ticks []Tick, prev poolState) ([]byte, bool, error) {
+	extraBytes, err := json.Marshal(res.ToExtra(ticks))
+	if err != nil {
+		return nil, false, err
 	}
-	if p.Extra == prev.extra && p.SwapFee == prev.swapFee && slices.Equal(p.Reserves, prev.reserves) {
+	changed := string(extraBytes) != prev.extra || float64(res.SwapFee) != prev.swapFee ||
+		!slices.Equal(res.Reserves, prev.reserves)
+	if lh, ok := hook.(HookWithLiveness); ok {
+		if now := NowFn(); changed || now-res.TrackedAt >= int64(lh.LivenessInterval()/time.Second) {
+			res.TrackedAt = now
+			extraBytes, err = json.Marshal(res.ToExtra(ticks))
+		}
+	}
+	return extraBytes, changed, err
+}
+
+// markActivity bumps Timestamp (wall clock) and BlockNumber (the fetched block) of an opted-in
+// hook's pool whose refresh changed the state. p must already hold the new state.
+func markActivity(hook Hook, hookParam *HookParam, p *entity.Pool) {
+	if _, ok := hook.(HookTracksActivity); !ok {
 		return
 	}
 	p.Timestamp = max(p.Timestamp, NowFn())
@@ -301,7 +320,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(rpcData.ToExtra(ticks))
+	extraBytes, changed, err := buildExtra(hook, rpcData, ticks, prev)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -314,7 +333,9 @@ func (t *PoolTracker) BootstrapPoolState(
 	p.Reserves = rpcData.Reserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
-	markActivity(hook, hookParam, prev, &p)
+	if changed {
+		markActivity(hook, hookParam, &p)
+	}
 
 	l.Infof("Finish updating state of pool")
 	return p, nil
@@ -897,7 +918,7 @@ func (t *PoolTracker) updateState(
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(rpcState.ToExtra(entityPoolTicks))
+	extraBytes, changed, err := buildExtra(hook, rpcState, entityPoolTicks, prev)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -910,7 +931,9 @@ func (t *PoolTracker) updateState(
 	p.Reserves = rpcState.Reserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
-	markActivity(hook, hookParam, prev, &p)
+	if changed {
+		markActivity(hook, hookParam, &p)
+	}
 
 	return p, nil
 }
