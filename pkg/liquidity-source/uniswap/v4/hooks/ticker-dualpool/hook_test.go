@@ -43,7 +43,7 @@ func localSimulator(t *testing.T, snapshots ...Snapshot) *uniswapv4.PoolSimulato
 	require.NoError(t, err)
 	p := entity.Pool{Address: "0x0000000000000000000000000000000000000000000000000000000000000001", Type: uniswapv4.DexType,
 		Tokens:   []*entity.PoolToken{{Address: "0x0000000000000000000000000000000000000001", Decimals: 18, Swappable: true}, {Address: "0x0000000000000000000000000000000000000002", Decimals: 18, Swappable: true}},
-		Reserves: entity.PoolReserves{state.Pool.Balance0.Dec(), state.Pool.Balance1.Dec()}, Extra: string(extra), StaticExtra: string(static), BlockNumber: 1}
+		Reserves: entity.PoolReserves{state.Pool.Balance0.Dec(), state.Pool.Balance1.Dec()}, Extra: string(extra), StaticExtra: string(static), BlockNumber: seed.BlockNumber}
 	sim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDMonad)
 	require.NoError(t, err)
 	return sim

@@ -31,6 +31,7 @@ var tickerABI = func() abi.ABI {
 }()
 var ErrRefreshRequired = errors.New("Ticker vault state must be refreshed after simulated JIT teardown")
 
+// Snapshot holds one pool's tracked state and local vault/reserve accounting.
 type Snapshot struct {
 	Currencies               [2]common.Address
 	Reserves                 [2]*AaveReserve
@@ -56,10 +57,17 @@ type Hook struct {
 
 var _ uniswapv4.Hook = (*Hook)(nil)
 
-// NewHook is explicitly registered by local fixtures. No production Ticker
-// address is registered until the deployment and bytecode have been verified.
+var productionHookAddress = common.HexToAddress("0x047ea2f55148b7601fdde0d28588b55c09192ac4")
+
+var _ = uniswapv4.RegisterHooksFactory(NewHook, productionHookAddress)
+
+// NewHook loads the tracked snapshot; Track validates the proxy implementation.
 func NewHook(p *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{address: p.HookAddress}
+	if p.HookAddress == productionHookAddress && (p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
+		h.invalidate(ErrInvalidState)
+		return h
+	}
 	if len(p.HookExtra) > 0 {
 		var snapshot Snapshot
 		if err := p.HookExtra.Unmarshal(&snapshot); err != nil {
@@ -89,9 +97,6 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	}
 	if h.RefreshRequired {
 		return nil, ErrRefreshRequired
-	}
-	if p.Limit != nil {
-		return h.beforeSwapWithLimit(p)
 	}
 	if p.AmountSpecified == nil || p.AmountSpecified.Sign() <= 0 {
 		return nil, ErrInvalidState
@@ -210,7 +215,9 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 		result.DeltaSpecified = q.Swap.AmountIn.ToBig()
 		result.DeltaUnspecified = new(big.Int).Neg(q.NetOutput.ToBig())
 	} else {
-		result.DeltaSpecified = new(big.Int).Neg(p.AmountSpecified)
+		// CalcAmountIn reverses exact-in: add the output needed before fees.
+		// DualPool still supplies the input price for its temporary liquidity.
+		result.DeltaSpecified = new(big.Int).Sub(q.Swap.AmountOut.ToBig(), p.AmountSpecified)
 		result.DeltaUnspecified = q.Swap.AmountIn.ToBig()
 	}
 	return result, nil
@@ -222,7 +229,7 @@ func (h *Hook) UpdateBalance(info any) {
 
 // UpdateBalanceWithoutSettlement is for execution-aware harnesses that issue
 // another swap before paying PoolManager. Kyber's normal UpdateBalance models
-// a settled leg; production adapter settlement still needs independent proof.
+// a settled leg, including its input payment and output payout.
 func (h *Hook) UpdateBalanceWithoutSettlement(info any) { h.updateBalance(info, false) }
 
 func (h *Hook) updateBalance(info any, settled bool) {

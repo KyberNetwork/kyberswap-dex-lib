@@ -6,72 +6,107 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// QuoteRequiredInput reverses an exact-input swap. Ticker rounds two fees
-// separately, so net output can FALL by one unit when both fees increment at
-// once. Binary-searching net output would therefore assume something false.
-// Instead search the monotone gross swap output, then check the exact two fees.
+// Separate fee floors differ from the combined floor by at most one unit.
+// GrossBeforeFee(desired-1) is a lower bound. With fees capped at 20%, the
+// safe GrossBeforeFee(desired) bound is at most two gross units above it.
+func grossBeforeOutputFees(desired *uint256.Int, hook, tax uint64) (*uint256.Int, error) {
+	lowerNet := new(big.Int).Sub(desired.ToBig(), bignumber.One)
+	g := uniswapv4.GrossBeforeFee(lowerNet, new(big.Int).SetUint64(hook+tax), big.NewInt(totalWeightBps))
+	gross, overflow := uint256.FromBig(g)
+	if overflow {
+		return nil, ErrInvalidState
+	}
+	if gross.IsZero() {
+		gross.SetOne()
+	}
+	for checks := 0; checks < 3; checks++ {
+		_, _, net := outputFees(gross, hook, tax)
+		if net.Cmp(desired) >= 0 {
+			return gross, nil
+		}
+		gross.AddUint64(gross, 1)
+	}
+	return nil, ErrInvalidState
+}
+
+// QuoteRequiredInput inverts output fees before pricing temporary liquidity.
+// Every probe reuses one allocation; teardown is calculated only for the result.
 func QuoteRequiredInput(s State, zeroForOne bool, desired *uint256.Int) (Quote, error) {
 	if desired == nil || desired.IsZero() || desired.BitLen() > 127 {
 		return Quote{}, ErrInvalidState
 	}
-	if _, err := realizablePool(s); err != nil {
+	state, err := realizablePool(s)
+	if err != nil {
 		return Quote{}, err
 	}
-	hook, tax := uint64(0), uint64(0)
-	if s.Registered {
-		hook = uint64(s.HookFeeBps)
-		tax = uint64(s.CreatorTaxBps)
+	hook, tax, err := outputFeeRates(s)
+	if err != nil {
+		return Quote{}, err
 	}
-	if hook+tax >= 10000 {
-		return Quote{}, ErrInvalidState
+	gross, err := grossBeforeOutputFees(desired, hook, tax)
+	if err != nil {
+		return Quote{}, err
 	}
-	// net(g) is strictly less than g*(1-fees)+2. This is the first
-	// integer gross output that could possibly deliver the desired net amount.
-	target := desired.ToBig()
-	candidate := new(big.Int).Sub(target, big.NewInt(2))
-	if candidate.Sign() < 0 {
-		candidate.SetInt64(0)
+	prepared, err := prepareTemporaryLiquidity(state, s.TickSpacing, zeroForOne)
+	if err != nil {
+		return Quote{}, err
 	}
-	candidate.Mul(candidate, big.NewInt(10000)).Div(candidate, new(big.Int).SetUint64(10000-hook-tax)).Add(candidate, big.NewInt(1))
+	if state.SqrtPriceX96.IsZero() {
+		return Quote{}, ErrInvalidQuoteState
+	}
 	grossQuote := func(input *big.Int) (*big.Int, error) {
-		amount, overflow := uint256.FromBig(input)
-		if overflow {
+		var amount uint256.Int
+		if amount.SetFromBig(input) {
 			return nil, ErrInvalidState
 		}
-		q, err := QuoteExactInput(s, zeroForOne, amount)
+		result, err := prepared.swap(&amount)
 		if err != nil {
 			return nil, err
 		}
-		return q.Swap.AmountOut.ToBig(), nil
+		return result.amountOut.ToBig(), nil
 	}
-	for attempts := 0; attempts <= 20000; attempts++ {
-		g := uint256.MustFromBig(candidate)
-		fee := new(uint256.Int).Mul(g, uint256.NewInt(hook))
-		fee.Div(fee, uint256.NewInt(10000))
-		taxAmount := new(uint256.Int).Mul(g, uint256.NewInt(tax))
-		taxAmount.Div(taxAmount, uint256.NewInt(10000))
-		net := new(uint256.Int).Sub(g, fee)
-		net.Sub(net, taxAmount)
-		if net.Cmp(desired) < 0 {
-			candidate.Add(candidate, big.NewInt(1))
-			continue
+	// Reuse DualPool's spot-price guess rather than equating output and input
+	// units when the currencies can differ by many orders of magnitude.
+	var price, guess big.Int
+	price.Mul(state.SqrtPriceX96.ToBig(), state.SqrtPriceX96.ToBig())
+	q192 := new(big.Int).Lsh(big.NewInt(1), 192)
+	if zeroForOne {
+		bignumber.MulDivUp(&guess, gross.ToBig(), q192, &price)
+	} else {
+		bignumber.MulDivUp(&guess, gross.ToBig(), &price, q192)
+	}
+	for searches := 0; searches < 2; searches++ {
+		if gross.BitLen() > 127 {
+			return Quote{}, uniswapv4.ErrAmountOutUnreachable
 		}
-		input, err := uniswapv4.MinAmountIn(candidate, nil, grossQuote)
+		input, err := uniswapv4.MinAmountIn(gross.ToBig(), &guess, grossQuote)
 		if err != nil {
 			return Quote{}, err
 		}
-		q, err := QuoteExactInput(s, zeroForOne, uint256.MustFromBig(input))
+		var amount uint256.Int
+		if amount.SetFromBig(input) {
+			return Quote{}, ErrInvalidState
+		}
+		result, err := prepared.swap(&amount)
 		if err != nil {
 			return Quote{}, err
 		}
-		if q.NetOutput.Cmp(desired) >= 0 {
-			return q, nil
+		_, _, net := outputFees(result.amountOut, hook, tax)
+		if net.Cmp(desired) >= 0 {
+			swap, err := prepared.finish(result)
+			if err != nil {
+				return Quote{}, err
+			}
+			return quoteWithOutputFees(s, swap)
 		}
-		// The gross quote skipped our candidate and landed on a fee boundary.
-		// All smaller inputs already fell below the first qualifying candidate.
-		candidate.Add(q.Swap.AmountOut.ToBig(), big.NewInt(1))
+		// A price step skipped the qualifying gross and hit a one-unit fee dip.
+		// Only the middle of the three-unit window can do this; the next gross
+		// reaches the safe combined-fee bound. One additional search suffices.
+		gross.AddUint64(result.amountOut, 1)
+		guess.Set(input)
 	}
 	return Quote{}, uniswapv4.ErrAmountOutUnreachable
 }
