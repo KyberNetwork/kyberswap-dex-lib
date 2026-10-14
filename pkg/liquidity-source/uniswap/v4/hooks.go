@@ -127,6 +127,11 @@ type Hook interface {
 // again even with no event, or 0 for none.
 type HookWithSchedule interface{ NextTrackAt(*HookParam) int64 }
 
+// HookTracksActivity is an optional Hook marker: the hook's hX holds only chain state (no tracker
+// clock or block), so when the tracker refresh changes Extra, SwapFee or Reserves the tracker bumps
+// Pool.Timestamp and BlockNumber. Without it, a task-only refresh never counts as pool activity.
+type HookTracksActivity interface{ TracksActivity() }
+
 type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
