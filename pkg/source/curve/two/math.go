@@ -1,14 +1,17 @@
 package two
 
 import (
+	"slices"
+
 	"github.com/holiman/uint256"
 )
 
 // Math for the legacy Curve v2 two-coin pools (CurveCryptoSwap2), ported from the previous math/big implementation.
 // Every expression keeps the original operation order, so results are bit-identical to the math/big version for
 // all inputs where no intermediate value exceeds 2**256 or goes below 0 (the contract reverts in those cases; here
-// they are reported as an error instead of producing a value). Prices are assumed to be below 2**128, as the
-// contract stores them.
+// they are reported as an error instead of producing a value). Where the deployed contracts assert or revert and the
+// math/big version did not (A and input bounds in newton_D/newton_y, a checked subtraction in tweak_price, a failed
+// exchange), this version returns an error too.
 
 // arith records the first overflow / underflow / division by zero so formulas can be written in the same
 // shape as the Vyper source and checked once.
@@ -115,6 +118,9 @@ func sqrtInt(x uint256.Int) (uint256.Int, error) {
 }
 
 func newtonD(ANN, gamma uint256.Int, xUnsorted [nCoins]uint256.Int) (uint256.Int, error) {
+	if ANN.Lt(MinA) || ANN.Gt(MaxA) {
+		return zero, errUnsafeA
+	}
 	if gamma.Lt(MinGamma) || gamma.Gt(MaxGamma) {
 		return zero, errUnsafeGamma
 	}
@@ -128,7 +134,7 @@ func newtonD(ANN, gamma uint256.Int, xUnsorted [nCoins]uint256.Int) (uint256.Int
 		if a.err != nil {
 			return zero, a.err
 		}
-		if frac.Lt(&tenPow11) {
+		if frac.Lt(&tenPow14) { // assert x[1] * 10**18 / x[0] > 10**14-1
 			return zero, errUnsafeX
 		}
 	}
@@ -240,6 +246,13 @@ func newtonY(ann, gamma uint256.Int, x [nCoins]uint256.Int, D uint256.Int, i int
 	}
 	for j := 0; j < nCoins-1; j++ {
 		K0i = a.div(a.mul(a.mul(K0i, xs[j]), nCoinsU), D)
+	}
+	if a.err != nil {
+		return zero, a.err
+	}
+	// assert (K0_i > 10**16*N_COINS - 1) and (K0_i < 10**20*N_COINS + 1)
+	if K0i.Lt(&k0iMin) || K0i.Gt(&k0iMax) {
+		return zero, errUnsafeX
 	}
 
 	// Loop invariants of the original per-iteration expressions.
@@ -473,8 +486,20 @@ func (t *PoolSimulator) getDy(i, j int, dx uint256.Int, now int64) (dy, fee uint
 }
 
 // exchange is CurveCryptoSwap2.exchange: it updates the pool state (balances, D, price oracle, price scale, ...)
-// as the contract would and returns dy. now is the block timestamp.
+// as the contract would and returns dy. now is the block timestamp. Like a reverted transaction, a failed
+// exchange leaves the pool unchanged.
 func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
+	next := *t // all state is held by value, except the reserves slice
+	next.Info.Reserves = slices.Clone(t.Info.Reserves)
+	dy, err := next.applyExchange(i, j, dx, now)
+	if err != nil {
+		return zero, err
+	}
+	*t = next
+	return dy, nil
+}
+
+func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
 	if i == j {
 		return zero, errSameCoin
 	}
@@ -669,9 +694,10 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 	t.XcpProfit = xcpProfit
 
 	needsAdjustment := t.NotAdjusted
-	// virtual_price * 2 - 10**18 > xcp_profit + 2 * allowed_extra_profit; the left side is negative (so the
-	// condition is false) when virtual_price * 2 < 10**18.
-	if vp2 := a.mul(virtualPrice, two); !vp2.Lt(&bone) {
+	if !needsAdjustment {
+		// virtual_price * 2 - 10**18 > xcp_profit + 2 * allowed_extra_profit. The subtraction is checked: the
+		// contract reverts when virtual_price * 2 < 10**18.
+		vp2 := a.mul(virtualPrice, two)
 		lhs := a.sub(vp2, bone)
 		rhs := a.add(xcpProfit, a.mul(two, t.AllowedExtraProfit))
 		if a.err != nil {

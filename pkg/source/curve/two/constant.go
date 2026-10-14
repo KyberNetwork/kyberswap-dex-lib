@@ -33,10 +33,12 @@ var (
 	tenPow6  = *uint256.NewInt(1e6)
 	tenPow9  = *uint256.NewInt(1e9)
 	tenPow10 = *uint256.NewInt(1e10)
-	tenPow11 = *uint256.NewInt(1e11)
 	tenPow14 = *uint256.NewInt(1e14)
 	tenPow16 = *uint256.NewInt(1e16)
 	tenPow17 = *uint256.NewInt(1e17)
 	tenPow20 = *uint256.MustFromDecimal("100000000000000000000")
 	tenPow33 = *uint256.MustFromDecimal("1000000000000000000000000000000000")
+
+	k0iMin = *uint256.NewInt(2e16)                             // 10**16 * N_COINS
+	k0iMax = *uint256.MustFromDecimal("200000000000000000000") // 10**20 * N_COINS
 )
