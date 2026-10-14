@@ -5,6 +5,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -138,4 +139,20 @@ func TestEventParserDecodeVoteWeightApplied(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, []string{poolID.Hex()}, poolAddresses)
+}
+
+func TestEventParserDecodeOrderUpdated(t *testing.T) {
+	t.Parallel()
+
+	cfg := MainnetConfig
+	parser := &EventParser{config: cfg}
+
+	poolAddresses, err := parser.DecodePoolAddressesFromFactoryLog(t.Context(), types.Log{
+		Address: cfg.Twamm.V1.Address,
+		Topics:  []common.Hash{abis.OrderUpdatedEvent.ID},
+		Data:    hexutil.MustDecode("0x000000000000000000000000ff6cf0ca6d7a30a60539acd4bb20b3df84ea06446cbf660e483fcc91dd75759028743f5241f4a384fc2b1413b9b0e4cb01c39e6a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800c49ba5e353f7ce0100000000000000000000000000000000000000695c0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc6dbb0"),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"0x8d04fa3b0df99076064daf0511006a8a06b0f988922db81c1e596ddfd1f3da12"}, poolAddresses)
 }
