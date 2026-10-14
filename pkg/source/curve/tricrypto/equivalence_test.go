@@ -87,11 +87,13 @@ func (s tri2State) entityPool() entity.Pool {
 	}
 }
 
-// pinClock fixes the timestamp used by UpdateBalance for the rest of the (sequential) test.
-func pinClock(t testing.TB, now int64) {
+// pinClock makes UpdateBalance use *now as the block timestamp for the rest of the (sequential) test, which
+// advances time by updating *now.
+func pinClock(t testing.TB, now *int64) {
 	t.Helper()
-	fixedNow.Store(now)
-	t.Cleanup(func() { fixedNow.Store(0) })
+	prev := nowUnix
+	nowUnix = func() int64 { return *now }
+	t.Cleanup(func() { nowUnix = prev })
 }
 
 func newPair(t testing.TB, ep entity.Pool) (*legacyPoolSimulator, *PoolSimulator) {
@@ -192,7 +194,8 @@ func TestMatchesOnchainGetDy(t *testing.T) {
 // expects exactly the on-chain storage of block 26181453: balances, D, price oracle, last prices, xcp profit and
 // virtual price all come out of exchange() + tweak_price().
 func TestExchangeReproducesNextBlock(t *testing.T) {
-	pinClock(t, tri2Block53Timestamp)
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
 	old, nw := newPair(t, tri2AtBlock26181452.entityPool())
 	dx := big.NewInt(2134233857)
 
@@ -271,7 +274,7 @@ func TestEquivalence_CalcAmountOut(t *testing.T) {
 // pool state after every swap. It asserts that the state-changing branches of tweak_price were all exercised.
 func TestEquivalence_SwapSequences(t *testing.T) {
 	now := int64(tri2Block53Timestamp)
-	pinClock(t, now)
+	pinClock(t, &now)
 	tokens := []string{tri2USDT, tri2WBTC, tri2WETH}
 	var swaps, priceScaleMoves, notAdjustedSet, noPriceSwaps, sameTimestamp int
 	for seed := range uint64(20) {
@@ -283,7 +286,6 @@ func TestEquivalence_SwapSequences(t *testing.T) {
 				sameTimestamp++
 			}
 			now += dt
-			fixedNow.Store(now)
 
 			i := rng.IntN(nCoins)
 			j := (i + 1 + rng.IntN(nCoins-1)) % nCoins
@@ -327,7 +329,8 @@ func TestEquivalence_SwapSequences(t *testing.T) {
 // exchange() recomputes D with the interpolated A/gamma and future_A_gamma_time goes 1 -> 0.
 func TestEquivalence_AGammaRamp(t *testing.T) {
 	start := int64(tri2Block53Timestamp)
-	pinClock(t, start)
+	now := start
+	pinClock(t, &now)
 	state := tri2AtBlock26181453
 	// Ramp from A=1_000_000, gamma=2e13 (started 30 minutes ago) to the pool's current A/gamma (in 30 minutes).
 	initial := new(big.Int).Or(new(big.Int).Lsh(big.NewInt(1_000_000), 128), big.NewInt(20_000_000_000_000))
@@ -339,12 +342,10 @@ func TestEquivalence_AGammaRamp(t *testing.T) {
 	var duringRamp, afterRamp int
 	for seed := range uint64(5) {
 		rng := rand.New(rand.NewPCG(seed, 11))
-		now := start
-		fixedNow.Store(now)
+		now = start
 		old, nw := newPair(t, state.entityPool())
 		for step := range 300 {
 			now += 12
-			fixedNow.Store(now)
 			i := rng.IntN(nCoins)
 			j := (i + 1 + rng.IntN(nCoins-1)) % nCoins
 			amt := randomAmount(rng, nw.Info.Reserves[i], 0.1)
@@ -370,4 +371,48 @@ func TestEquivalence_AGammaRamp(t *testing.T) {
 	}
 	require.Positive(t, duringRamp)
 	require.Positive(t, afterRamp)
+}
+
+// Before a scheduled A/gamma ramp starts, the contract's _A_gamma() underflows (block.timestamp - t0) and the swap
+// reverts, so the simulator must fail the swap instead of extrapolating A/gamma backwards.
+func TestExchangeBeforeRampStartFails(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	state := tri2AtBlock26181453
+	state.initialAGammaTime = now + 60
+	state.futureAGammaTime = now + 3600
+	p, err := NewPoolSimulator(state.entityPool())
+	require.NoError(t, err)
+
+	_, err = p.Exchange(0, 2, big.NewInt(1_000_000_000))
+	require.ErrorIs(t, err, ErrUnderflow)
+
+	now = state.initialAGammaTime // once the ramp has started, the same swap succeeds
+	_, err = p.Exchange(0, 2, big.NewInt(1_000_000_000))
+	require.NoError(t, err)
+}
+
+// Malformed pools and amounts are rejected with a specific error rather than simulated.
+func TestRejectsInvalidInput(t *testing.T) {
+	t.Parallel()
+	ep := tri2AtBlock26181452.entityPool()
+
+	twoCoins := ep
+	twoCoins.Tokens = ep.Tokens[:2]
+	_, err := NewPoolSimulator(twoCoins)
+	require.ErrorIs(t, err, errNotThreeCoins)
+
+	missingReserve := ep
+	missingReserve.Reserves = ep.Reserves[:2]
+	_, err = NewPoolSimulator(missingReserve)
+	require.ErrorIs(t, err, errMissingPoolData)
+
+	p, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tri2WETH, Amount: big.NewInt(-1)}, TokenOut: tri2USDT})
+	require.ErrorIs(t, err, errNegativeAmount)
+	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tri2WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 256)}, TokenOut: tri2USDT})
+	require.ErrorIs(t, err, ErrOverflow)
 }

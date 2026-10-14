@@ -19,5 +19,7 @@ var (
 	errSameCoin            = errors.New("i = j")
 	errCoinIndexOutOfRange = errors.New("coin index out of range")
 	errZeroAmount          = errors.New("do not exchange 0 coins")
+	errNegativeAmount      = errors.New("negative amount")
 	errNotThreeCoins       = errors.New("curve-tricrypto pool must have 3 coins")
+	errMissingPoolData     = errors.New("curve-tricrypto pool is missing reserves, precisions or prices")
 )

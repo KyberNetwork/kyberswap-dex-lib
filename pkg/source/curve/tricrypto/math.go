@@ -1,8 +1,6 @@
 package tricrypto
 
 import (
-	"math/big"
-
 	"github.com/holiman/uint256"
 )
 
@@ -397,27 +395,24 @@ func (t *PoolSimulator) aGamma(now int64) ([2]uint256.Int, error) {
 	gamma1.And(&t.FutureAGamma, PriceMask)
 	A1.Rsh(&t.FutureAGamma, 128)
 	if t1 := t.FutureAGammaTime; now < t1 {
-		// A/gamma ramps are rare: keep the original math/big arithmetic so the interpolation (which can involve
-		// negative intermediates for odd timestamps) stays bit-identical.
-		AGamma0 := t.InitialAGamma.ToBig()
 		t0 := t.InitialAGammaTime
-		t1 -= t0
-		t0 = now - t0
-		t2 := t1 - t0
-		if t1 == 0 {
-			return [2]uint256.Int{}, ErrDenominatorZero
+		// t0 = block.timestamp - t0 underflows (the contract reverts) if the ramp has not started yet. Otherwise
+		// t0 <= now < t1, so every time difference below is positive.
+		if now < t0 {
+			return [2]uint256.Int{}, ErrUnderflow
 		}
-		mask := PriceMask.ToBig()
-		a := new(big.Int).Div(new(big.Int).Add(
-			new(big.Int).Mul(new(big.Int).Rsh(AGamma0, 128), big.NewInt(t2)),
-			new(big.Int).Mul(A1.ToBig(), big.NewInt(t0)),
-		), big.NewInt(t1))
-		g := new(big.Int).Div(new(big.Int).Add(
-			new(big.Int).Mul(new(big.Int).And(AGamma0, mask), big.NewInt(t2)),
-			new(big.Int).Mul(gamma1.ToBig(), big.NewInt(t0)),
-		), big.NewInt(t1))
-		if a.Sign() < 0 || g.Sign() < 0 || A1.SetFromBig(a) || gamma1.SetFromBig(g) {
-			return [2]uint256.Int{}, ErrOverflow
+		var dt1, dt0, dt2 uint256.Int
+		dt1.SetUint64(uint64(t1 - t0))  // t1 -= t0
+		dt0.SetUint64(uint64(now - t0)) // t0 = block.timestamp - t0
+		dt2.SetUint64(uint64(t1 - now)) // t2 = t1 - t0 = (t1 - t0) - (block.timestamp - t0)
+		var A0, gamma0 uint256.Int
+		A0.Rsh(&t.InitialAGamma, 128)
+		gamma0.And(&t.InitialAGamma, PriceMask)
+		var a arith
+		A1 = a.div(a.add(a.mul(A0, dt2), a.mul(A1, dt0)), dt1)
+		gamma1 = a.div(a.add(a.mul(gamma0, dt2), a.mul(gamma1, dt0)), dt1)
+		if a.err != nil {
+			return [2]uint256.Int{}, a.err
 		}
 	}
 	return [2]uint256.Int{A1, gamma1}, nil
@@ -436,8 +431,8 @@ func (t *PoolSimulator) feeCalc(xp [nCoins]uint256.Int) (uint256.Int, error) {
 // balances returns the pool balances (Info.Reserves) as uint256.
 func (t *PoolSimulator) balances() (b [nCoins]uint256.Int, err error) {
 	for k := range nCoins {
-		if r := t.Info.Reserves[k]; r.Sign() < 0 || b[k].SetFromBig(r) {
-			return b, ErrOverflow
+		if b[k], err = toU256(t.Info.Reserves[k]); err != nil {
+			return b, err
 		}
 	}
 	return b, nil

@@ -63,7 +63,8 @@ func BenchmarkCloneState(b *testing.B) {
 // BenchmarkUpdateBalance measures CloneState + UpdateBalance (exchange + tweak_price), which is what route
 // refreshes do for every path through the pool.
 func BenchmarkUpdateBalance(b *testing.B) {
-	pinClock(b, tri2Block53Timestamp)
+	now := int64(tri2Block53Timestamp)
+	pinClock(b, &now)
 	for _, s := range benchSwaps {
 		for _, impl := range benchImpls(b) {
 			res, err := impl.p.CalcAmountOut(pool.CalcAmountOutParams{
@@ -86,7 +87,8 @@ func BenchmarkUpdateBalance(b *testing.B) {
 
 // BenchmarkRouteStep mimics one path refresh in the hill climber: clone, quote, apply the swap, quote again.
 func BenchmarkRouteStep(b *testing.B) {
-	pinClock(b, tri2Block53Timestamp)
+	now := int64(tri2Block53Timestamp)
+	pinClock(b, &now)
 	for _, s := range benchSwaps {
 		params := pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: s.in, Amount: big.NewInt(s.amount)}, TokenOut: s.out}

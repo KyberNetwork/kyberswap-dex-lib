@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"slices"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -54,14 +53,18 @@ type Gas struct {
 
 var _ = pool.RegisterFactory0(curve.PoolTypeTricrypto, NewPoolSimulator)
 
-// fixedNow pins the block timestamp used by UpdateBalance in tests; 0 means wall-clock time.
-var fixedNow atomic.Int64
+// nowUnix is the block timestamp used by UpdateBalance and Exchange; tests replace it.
+var nowUnix = func() int64 { return time.Now().Unix() }
 
-func nowUnix() int64 {
-	if now := fixedNow.Load(); now != 0 {
-		return now
+// toU256 converts an amount or balance to uint256, rejecting negative and too large values.
+func toU256(b *big.Int) (z uint256.Int, err error) {
+	if b.Sign() < 0 {
+		return z, errNegativeAmount
 	}
-	return time.Now().Unix()
+	if z.SetFromBig(b) {
+		return z, ErrOverflow
+	}
+	return z, nil
 }
 
 // parseU256 parses a decimal string; an empty string is treated as 0.
@@ -84,10 +87,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	if len(entityPool.Tokens) != nCoins || len(entityPool.Reserves) < nCoins ||
-		len(staticExtra.PrecisionMultipliers) < nCoins || len(extraStr.PriceScale) < nCoins-1 ||
-		len(extraStr.LastPrices) < nCoins-1 || len(extraStr.PriceOracle) < nCoins-1 {
+	if len(entityPool.Tokens) != nCoins {
 		return nil, errNotThreeCoins
+	}
+	if len(entityPool.Reserves) < nCoins || len(staticExtra.PrecisionMultipliers) < nCoins ||
+		len(extraStr.PriceScale) < nCoins-1 || len(extraStr.LastPrices) < nCoins-1 ||
+		len(extraStr.PriceOracle) < nCoins-1 {
+		return nil, errMissingPoolData
 	}
 
 	sim := &PoolSimulator{
@@ -162,9 +168,9 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		var dx uint256.Int
-		if tokenAmountIn.Amount.Sign() < 0 || dx.SetFromBig(tokenAmountIn.Amount) {
-			return nil, ErrOverflow
+		dx, err := toU256(tokenAmountIn.Amount)
+		if err != nil {
+			return nil, err
 		}
 		amountOut, fee, err := t.getDy(tokenIndexFrom, tokenIndexTo, dx)
 		if err != nil {
@@ -189,8 +195,8 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var dx uint256.Int
-	if input.Amount.Sign() < 0 || dx.SetFromBig(input.Amount) {
+	dx, err := toU256(input.Amount)
+	if err != nil {
 		return
 	}
 	_, _ = t.exchange(t.GetTokenIndex(input.Token), t.GetTokenIndex(output.Token), dx, nowUnix())
@@ -198,9 +204,9 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 // GetDy returns the amount out (after fee) and the fee for swapping dx of coin i to coin j.
 func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
-	var u uint256.Int
-	if dx.Sign() < 0 || u.SetFromBig(dx) {
-		return nil, nil, ErrOverflow
+	u, err := toU256(dx)
+	if err != nil {
+		return nil, nil, err
 	}
 	dy, fee, err := t.getDy(i, j, u)
 	if err != nil {
@@ -211,9 +217,9 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, er
 
 // Exchange applies a swap of dx of coin i to coin j to the pool state and returns the amount out.
 func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
-	var u uint256.Int
-	if dx.Sign() < 0 || u.SetFromBig(dx) {
-		return nil, ErrOverflow
+	u, err := toU256(dx)
+	if err != nil {
+		return nil, err
 	}
 	dy, err := t.exchange(i, j, u, nowUnix())
 	if err != nil {
