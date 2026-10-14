@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -208,6 +209,22 @@ func (s *oogStub) serveCapped(t *testing.T, w http.ResponseWriter, id any, param
 	_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": id, "result": hexutil.Encode(packed)})
 }
 
+// The extra is pure chain state: two Tracks of the same chain state at different times give
+// byte-identical output, so a quiet pool's Extra does not change and pool-service skips the save.
+func TestTrack_ExtraHasNoClock(t *testing.T) {
+	newStub := func() *oogStub {
+		return &oogStub{buyLimit: big.NewInt(100e6), sellLimit: new(big.Int).Mul(big.NewInt(100), big.NewInt(1e18))}
+	}
+	first, err := json.Marshal(trackWithStub(t, newStub()))
+	require.NoError(t, err)
+	time.Sleep(1100 * time.Millisecond) // a Unix-second clock in the extra would differ now
+	second, err := json.Marshal(trackWithStub(t, newStub()))
+	require.NoError(t, err)
+	assert.Equal(t, string(first), string(second))
+	assert.NotContains(t, string(first), `"ts"`)
+	assert.NotContains(t, string(first), `"bn"`)
+}
+
 func trackWithStub(t *testing.T, s *oogStub) Extra {
 	s.poolID = common.HexToHash("0x85d90dac41ad4205b80b4c4e14f4831805fc7fe3e84068a59c7a2618e4db1817")
 	s.usdg = common.HexToAddress(usdgAddr)
@@ -237,7 +254,7 @@ func TestTrack_ThinConstituentPoolDoesNotRunOutOfGas(t *testing.T) {
 	require.True(t, got.Tracked)
 	assert.Len(t, got.Buy, 3, "buy rungs $1, $10 and $100 fill; $500 and up do not")
 	assert.Len(t, got.Sell, 3, "sell rungs 1, 10 and 100 LOT fill")
-	assert.Equal(t, uint64(86_000_000), got.Block)
+	assert.Zero(t, got.TrackedAt, "Track writes no clock; the tracker stamps Extra lv")
 	assert.False(t, s.badOverlay.Load())
 	assert.EqualValues(t, 3, s.calls.Load(), "hook surface, nav+float+buy ladder, sell ladder: no per-rung fallback")
 	assert.EqualValues(t, quoteGasCap, s.maxSubGas.Load())

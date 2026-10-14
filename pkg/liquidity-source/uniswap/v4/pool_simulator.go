@@ -48,6 +48,7 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		Cfg:        &Config{ChainID: chainID},
 		Pool:       &entityPool,
 		HookExtra:  HookExtra(extra.HookExtra),
+		TrackedAt:  extra.TrackedAt,
 		StaleCheck: staleCheck,
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {

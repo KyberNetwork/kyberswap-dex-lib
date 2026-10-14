@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -132,6 +133,13 @@ type HookWithSchedule interface{ NextTrackAt(*HookParam) int64 }
 // Pool.Timestamp and BlockNumber. Without it, a task-only refresh never counts as pool activity.
 type HookTracksActivity interface{ TracksActivity() }
 
+// HookWithLiveness is an optional Hook method for hooks whose simulator refuses a quote once the
+// tracked state is too old (StaleCheck). The tracker stamps Extra "lv" with the time it last saw the
+// state, at most once per interval while the state is unchanged. A quiet pool then keeps identical
+// Extra bytes between stamps, so pool-service skips the save, and the hook needs no clock in hX.
+// The interval must stay well below the hook's own max age.
+type HookWithLiveness interface{ LivenessInterval() time.Duration }
+
 type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
@@ -139,6 +147,9 @@ type HookParam struct {
 	HookExtra   HookExtra
 	HookAddress common.Address
 	BlockNumber *big.Int
+	// TrackedAt is Extra "lv" (unix seconds) of the stored pool: the last stamp the tracker
+	// wrote, or the one the simulator is built from. 0 while the pool has none.
+	TrackedAt int64
 	// Overrides carries eth_call state overrides (e.g. post-victim-tx prestate) so a hook's
 	// Track/GetReserves RPC reads can be re-priced against pending-block state rather than the
 	// latest on-chain state. Threaded through by PoolTracker.GetNewPoolStateWithOverrides; nil

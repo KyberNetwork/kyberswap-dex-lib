@@ -123,3 +123,14 @@ func TestSwapGasCoversMeasured(t *testing.T) {
 		require.Less(t, SwapGas(n, false), int64(32_000_000), "under the per-tx cap")
 	}
 }
+
+// lotflow's hX holds the pinned block timestamp, so it changes on every refresh. The hook must keep
+// liveness (stale gate) but not opt in to the activity bump, or its Timestamp moves every refresh and
+// the pool never archives.
+func TestHookLivenessWithoutActivityOptIn(t *testing.T) {
+	var h uniswapv4.Hook = &Hook{}
+	_, live := h.(uniswapv4.HookWithLiveness)
+	_, active := h.(uniswapv4.HookTracksActivity)
+	require.True(t, live)
+	require.False(t, active)
+}
