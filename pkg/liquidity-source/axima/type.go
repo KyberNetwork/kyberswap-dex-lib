@@ -49,6 +49,9 @@ type Extra struct {
 
 	IsV2 bool `json:"isV2"`
 
+	// Extensions is the number of pool extensions (metric-propamm), each adding swap gas.
+	Extensions int `json:"ext,omitempty"`
+
 	Asks []Bin `json:"asks"`
 	Bids []Bin `json:"bids"`
 }

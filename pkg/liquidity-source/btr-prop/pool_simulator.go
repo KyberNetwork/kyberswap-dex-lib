@@ -21,8 +21,8 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	extra Extra
-	// ladders[from*n+to] points into extra.Ladders; nil when the pair has no ladder.
-	ladders []*Ladder
+	// ladders[from*n+to] holds the pair's samples; nil when the pair has no ladder.
+	ladders [][]Point
 	// inUsed[i] and outTaken[j] are the totals UpdateBalance has moved in and out
 	// of each token, over every pair. The core prices from per-token inventory, so
 	// a route that splits one swap across pairs sharing a token (USDC>WMON plus
@@ -51,14 +51,15 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		return nil, ErrBTRBadState
 	}
 
-	ladders := make([]*Ladder, n*n)
-	for k := range extra.Ladders {
-		l := &extra.Ladders[k]
-		if l.From < 0 || l.From >= n || l.To < 0 || l.To >= n || l.From == l.To || !validPoints(l.Points) {
-			continue
+	ladders := make([][]Point, n*n)
+	for from := 0; from < min(n, len(extra.Ladders)); from++ {
+		for to := 0; to < min(n, len(extra.Ladders[from])); to++ {
+			if pts := extra.Ladders[from][to].points(); from != to && validPoints(pts) {
+				ladders[from*n+to] = pts
+			}
 		}
-		ladders[l.From*n+l.To] = l
 	}
+	extra.Ladders = nil // the simulator reads ladders only
 
 	reserves := make([]*big.Int, n)
 	for k := range reserves {
@@ -81,7 +82,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		}},
 		extra:   extra,
 		ladders: ladders,
-		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f) != nil }),
+		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.LaneOK) != nil }),
 	}, nil
 }
 
@@ -99,13 +100,13 @@ func validPoints(pts []Point) bool {
 	return true
 }
 
-// gate mirrors the BTR open-path predicate `(flags & (HALT_MASK|SWAP_ENABLED|SWAP_GATED)) == SWAP_ENABLED`,
-// but tells a lane-gated leg (SWAP_GATED) apart from a halted/disabled one.
-func gate(flags uint16) error {
+// gate mirrors swap_qe's checks: halted or swap-disabled legs revert, and a
+// SWAP_GATED leg reverts unless the executor holds lane 0x400 (laneOK).
+func gate(flags uint16, laneOK bool) error {
 	if flags&HaltMask != 0 || flags&SwapEnabledBit == 0 {
 		return ErrBTRGated
 	}
-	if flags&SwapGatedBit != 0 {
+	if flags&SwapGatedBit != 0 && !laneOK {
 		return ErrBTRGatedLane
 	}
 	return nil
@@ -207,8 +208,8 @@ func invert(pts []Point, y, res *uint256.Int) {
 }
 
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
-// ladder. It refuses a leg that is not on the open path, so while the live core
-// is SWAP_GATED it returns no route.
+// ladder. It refuses a leg the executor cannot swap: halted, disabled, or
+// SWAP_GATED without the executor's lane.
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
 	i, j := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
@@ -219,10 +220,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if amt := params.TokenAmountIn.Amount; amt == nil || amt.Sign() <= 0 || amountIn.SetFromBig(amt) {
 		return nil, ErrBTRInvalidAmount
 	}
-	if err := gate(s.extra.Flags[i]); err != nil {
+	if err := gate(s.extra.Flags[i], s.extra.LaneOK); err != nil {
 		return nil, err
 	}
-	if err := gate(s.extra.Flags[j]); err != nil {
+	if err := gate(s.extra.Flags[j], s.extra.LaneOK); err != nil {
 		return nil, err
 	}
 
@@ -235,9 +236,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	// Output for this swap = f(x0+in) - f(x0), where x0 is the point on the
 	// pair's curve already consumed by earlier swaps.
 	var amountOut, x0 uint256.Int
-	s.startPoint(ladder.Points, i, j, &x0)
+	s.startPoint(ladder, i, j, &x0)
 	if x0.IsZero() {
-		if err := interpolate(ladder.Points, &amountIn, &amountOut); err != nil {
+		if err := interpolate(ladder, &amountIn, &amountOut); err != nil {
 			return nil, err
 		}
 	} else {
@@ -245,10 +246,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if _, overflow := x.AddOverflow(&amountIn, &x0); overflow {
 			return nil, ErrBTRAmountTooLarge
 		}
-		if err := interpolate(ladder.Points, &x, &amountOut); err != nil {
+		if err := interpolate(ladder, &x, &amountOut); err != nil {
 			return nil, err
 		}
-		if err := interpolate(ladder.Points, &x0, &base); err != nil {
+		if err := interpolate(ladder, &x0, &base); err != nil {
 			return nil, err
 		}
 		amountOut.Sub(&amountOut, &base)

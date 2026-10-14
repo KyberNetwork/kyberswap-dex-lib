@@ -20,10 +20,10 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	const a, b = "0x754704bc059f8c67012fed69bc8a327a5aafb603", "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
 	extra, err := json.Marshal(btrprop.Extra{
 		Flags: []uint16{btrprop.SwapEnabledBit, btrprop.SwapEnabledBit},
-		Ladders: []btrprop.Ladder{{From: 0, To: 1, Points: []btrprop.Point{
-			{In: *uint256.NewInt(1000), Out: *uint256.NewInt(990)},
-			{In: *uint256.NewInt(2000), Out: *uint256.NewInt(1900)},
-		}}},
+		Ladders: [][]btrprop.Ladder{
+			{{}, {{*uint256.NewInt(1000), *uint256.NewInt(990)}, {*uint256.NewInt(2000), *uint256.NewInt(1900)}}},
+			{{}, {}},
+		},
 	})
 	require.NoError(t, err)
 	sim, err := btrprop.NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{

@@ -7,7 +7,8 @@ import "time"
 // The BTR Router holds no swap lane, so an aggregator must NOT route through
 // Router.swap: the call reaches Pool.swap_qe with msg.sender = Router, which
 // has no lane and reverts NotAuthorized. The executor calls Pool.swap_qe
-// directly and needs lane 0x400, or SWAP_GATED must be cleared by BTR governance.
+// directly. While a token is SWAP_GATED, swap_qe requires registry.perms(caller)
+// to include lane 0x400, so the executor must hold that lane.
 const (
 	ChainIDMonad = 143
 
@@ -26,10 +27,13 @@ const (
 	RPCTimeout = 15 * time.Second
 )
 
+// LaneSwapBit is the registry.perms bit (0x400) that lets a caller swap a SWAP_GATED token.
+const LaneSwapBit = 10
+
 // Risk-flag bits (BTR Solidity constants).
 const (
 	SwapEnabledBit uint16 = 16   // SWAP_ENABLED_BIT
-	SwapGatedBit   uint16 = 1024 // SWAP_GATED_BIT (lane-0x400 allowlist)
+	SwapGatedBit   uint16 = 1024 // SWAP_GATED_BIT (swaps restricted to lane-0x400 callers)
 	HaltMask       uint16 = 5    // HALT_MASK (HALT_BIT | FEED_HALT_BIT)
 	HaltBit        uint16 = 1    // HALT_BIT
 )

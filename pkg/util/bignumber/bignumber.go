@@ -122,13 +122,15 @@ func ToStrings(vals []*big.Int) []string {
 	})
 }
 
+// Sum returns a new big.Int holding the sum of the non-nil vals.
 func Sum(vals []*big.Int) *big.Int {
-	return lo.Reduce(vals, func(sum *big.Int, v *big.Int, _ int) *big.Int {
+	sum := new(big.Int)
+	for _, v := range vals {
 		if v != nil {
-			return new(big.Int).Add(sum, v)
+			sum.Add(sum, v)
 		}
-		return sum
-	}, new(big.Int))
+	}
+	return sum
 }
 
 // MulDivDown multiplies x and y, then divides by denominator, rounding down, and stores the result in res.
