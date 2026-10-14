@@ -13,6 +13,7 @@ package coocoo
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -41,8 +42,16 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 }
 
 // Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook interface
-// and ponsv2.Extra at the same depth, both with AfterSwap, so an unqualified call would
-// otherwise be an ambiguous selector.
+// and ponsv2.Extra at the same depth, both with BeforeSwap/AfterSwap, so an unqualified
+// call would otherwise be an ambiguous selector.
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return h.Extra.AfterSwap(params)
+}
+
+// CanBeforeSwap is true although the on-chain hook has no beforeSwap: only the simulator
+// calls it, to gross the output up in CalcAmountIn (see ponsv2.Extra.BeforeSwap).
+func (h *Hook) CanBeforeSwap(common.Address) bool { return true }
+
+func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	return h.Extra.BeforeSwap(params)
 }
