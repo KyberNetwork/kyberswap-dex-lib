@@ -49,11 +49,11 @@ type State struct {
 }
 
 type Quote struct {
-	RawAfter, ClaimsAfter, ManagerCashBeforeSettlement, ManagerCashAfter [2]*uint256.Int
-	ReservesAfter                                                        [2]*AaveReserve
-	VaultsAfter                                                          [2]*AaveInventory
-	Swap                                                                 SwapInfo
-	NetOutput, HookFee, CreatorTax                                       *uint256.Int
+	RawAfter, ClaimsAfter, ManagerCashAfter [2]*uint256.Int
+	ReservesAfter                           [2]*AaveReserve
+	VaultsAfter                             [2]*AaveInventory
+	Swap                                    SwapInfo
+	NetOutput, HookFee, CreatorTax          *uint256.Int
 }
 
 // QuoteExactInput checks liquidity before applying the same bucket swap and two

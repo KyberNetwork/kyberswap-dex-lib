@@ -196,7 +196,6 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 			}
 			cash.Sub(cash, fees)
 		}
-		q.ManagerCashBeforeSettlement[side] = cash.Clone()
 		if isInput {
 			cash, err = addChecked(cash, q.Swap.AmountIn)
 			if err != nil {
@@ -223,16 +222,8 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	return result, nil
 }
 
+// UpdateBalance models a settled leg, including its input payment and output payout.
 func (h *Hook) UpdateBalance(info any) {
-	h.updateBalance(info, true)
-}
-
-// UpdateBalanceWithoutSettlement is for execution-aware harnesses that issue
-// another swap before paying PoolManager. Kyber's normal UpdateBalance models
-// a settled leg, including its input payment and output payout.
-func (h *Hook) UpdateBalanceWithoutSettlement(info any) { h.updateBalance(info, false) }
-
-func (h *Hook) updateBalance(info any, settled bool) {
 	q, ok := info.(Quote)
 	if !ok || q.Swap.Balance0 == nil || q.Swap.Balance1 == nil {
 		return
@@ -250,9 +241,6 @@ func (h *Hook) updateBalance(info any, settled bool) {
 		if q.RawAfter[side] != nil && q.ClaimsAfter[side] != nil && q.ManagerCashAfter[side] != nil {
 			h.Raw[side], h.Claims[side] = q.RawAfter[side].Clone(), q.ClaimsAfter[side].Clone()
 			cash := q.ManagerCashAfter[side]
-			if !settled {
-				cash = q.ManagerCashBeforeSettlement[side]
-			}
 			h.ManagerCash[side] = cash.Clone()
 			unbacked := unbackedClaims(h.Claims[side], cash)
 			if side == 0 {
