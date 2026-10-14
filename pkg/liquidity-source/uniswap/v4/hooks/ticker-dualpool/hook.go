@@ -292,10 +292,10 @@ func (h *Hook) CloneState() uniswapv4.Hook {
 	clone.Total1 = copyInt(h.Total1)
 	clone.Unbacked0 = copyInt(h.Unbacked0)
 	clone.Unbacked1 = copyInt(h.Unbacked1)
-	clone.State.Pool.Balance0 = copyInt(h.Pool.Balance0)
-	clone.State.Pool.Balance1 = copyInt(h.Pool.Balance1)
-	clone.State.Pool.SqrtPriceX96 = copyInt(h.Pool.SqrtPriceX96)
-	clone.State.Pool.Buckets = append([]dualpool.Bucket(nil), h.Pool.Buckets...)
+	clone.Pool.Balance0 = copyInt(h.Pool.Balance0)
+	clone.Pool.Balance1 = copyInt(h.Pool.Balance1)
+	clone.Pool.SqrtPriceX96 = copyInt(h.Pool.SqrtPriceX96)
+	clone.Pool.Buckets = append([]dualpool.Bucket(nil), h.Pool.Buckets...)
 	return &clone
 }
 func (h *Hook) GetReserves(context.Context, *uniswapv4.HookParam) (entity.PoolReserves, error) {
