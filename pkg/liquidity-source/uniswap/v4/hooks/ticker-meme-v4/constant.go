@@ -8,15 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-const (
-	DexType        = valueobject.ExchangeUniswapV4TickerMeme
-	basisPoints    = 10_000
-	maxHookFeeBps  = 1_000
-	maxTradeFeeBps = 2_000
-	// Conservative allowance for afterSwap's take and three fee ledgers. Calibrate
-	// against production swaps once the launch factory is wired on Monad.
-	afterSwapGas = 100_000
-)
+const DexType = valueobject.ExchangeUniswapV4TickerMeme
 
 var (
 	HookAddress              = common.HexToAddress("0x223F8B1b43AEEc86d2659cCe36169f72f7FC2044")
@@ -25,6 +17,4 @@ var (
 	implementationSlot       = common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
 	proxyCodeHash            = common.HexToHash("0x824a513357c89e28b2b23a5d727a23bdb3b69db732883d999165af4e064e3120")
 	ErrUnsupportedDeployment = errors.New("ticker-meme-v4: unsupported deployment or implementation")
-	ErrUntracked             = errors.New("ticker-meme-v4: missing verified hook state")
-	ErrInvalidTerms          = errors.New("ticker-meme-v4: invalid launch fees")
 )
