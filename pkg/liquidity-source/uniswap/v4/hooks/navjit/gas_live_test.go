@@ -103,7 +103,7 @@ func TestLive_ThinVenueTracks(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &ex))
 	var hx Extra
 	require.NoError(t, uniswapv4.HookExtra(ex.HookExtra).Unmarshal(&hx))
-	t.Logf("tracked=%v block=%d buy=%d sell=%d", hx.Tracked, hx.Block, len(hx.Buy), len(hx.Sell))
+	t.Logf("tracked=%v block=%d buy=%d sell=%d", hx.Tracked, p.BlockNumber, len(hx.Buy), len(hx.Sell))
 	require.True(t, hx.Tracked)
 	require.NotEmpty(t, hx.Buy)
 	require.NotEmpty(t, hx.Sell)

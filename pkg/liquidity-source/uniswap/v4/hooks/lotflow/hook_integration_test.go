@@ -98,7 +98,7 @@ func integrationPool(t *testing.T, h *Hook) entity.Pool {
 	}
 	return entity.Pool{Address: "0x0000000000000000000000000000000000000000000000000000000000000017",
 		Exchange: Exchange, Type: uniswapv4.DexType, Tokens: tokens, Reserves: reserves,
-		Extra: string(extra), StaticExtra: string(static), BlockNumber: h.Block}
+		Extra: string(extra), StaticExtra: string(static)}
 }
 
 // FixturePoolForTest exposes the test-only fixture builder to the external serialization test.
@@ -253,7 +253,7 @@ func TestHookIntegrationTrackRefreshesReserves(t *testing.T) {
 		c, err := LoadCase(path)
 		require.NoError(t, err)
 		param := &uniswapv4.HookParam{BlockNumber: big.NewInt(123)}
-		raw, err := h.trackMarket(context.Background(), param, trackerOf(c), &fixtureLoader{c}, c.Pre.Lot.Address, time.Now())
+		raw, err := h.trackMarket(context.Background(), param, trackerOf(c), &fixtureLoader{c}, c.Pre.Lot.Address)
 		require.NoError(t, err)
 		// The outer v4 tracker calls GetReserves on this same instance after Track.
 		got, err := h.GetReserves(context.Background(), param)
@@ -272,7 +272,7 @@ func TestHookIntegrationInvalidNavClearsOldQuotes(t *testing.T) {
 	h, c := integrationHook(t, "testdata/fixtures/navjit2-buy-1kusd.json")
 	c.Pre.Constituents[0].Nav.FeedAnswer.SetInt64(0)
 	param := &uniswapv4.HookParam{BlockNumber: big.NewInt(123)}
-	raw, err := h.trackMarket(context.Background(), param, trackerOf(c), &fixtureLoader{c}, c.Pre.Lot.Address, time.Now())
+	raw, err := h.trackMarket(context.Background(), param, trackerOf(c), &fixtureLoader{c}, c.Pre.Lot.Address)
 	require.NoError(t, err)
 	for _, instance := range []*Hook{h, {}} {
 		if instance != h {
@@ -394,6 +394,38 @@ func TestHookIntegrationStaleCheck(t *testing.T) {
 	}
 }
 
+// The tracker's Extra lv, not the hX clock, is the StaleCheck age baseline once a pool has one; the
+// legacy hX clock still decides while lv is 0 (TestHookIntegrationStaleCheck).
+func TestHookIntegrationStaleCheckUsesLiveness(t *testing.T) {
+	h, _ := integrationHook(t, "testdata/fixtures/navjit2-buy-1kusd.json")
+	h.TrackedAt = time.Now().Unix() - 10*MaxAgeSec // an old legacy clock must not matter
+	for name, tc := range map[string]struct {
+		lvAge int64
+		stale bool
+	}{"lv within MaxAgeSec": {5, false}, "lv older than MaxAgeSec": {MaxAgeSec + 40, true}} {
+		t.Run(name, func(t *testing.T) {
+			p := integrationPool(t, h)
+			var extra uniswapv4.Extra
+			require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+			extra.TrackedAt = time.Now().Unix() - tc.lvAge
+			raw, err := json.Marshal(extra)
+			require.NoError(t, err)
+			p.Extra = string(raw)
+
+			sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: p,
+				ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: true}})
+			require.NoError(t, err)
+			_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, TokenOut: h.Lot})
+			if tc.stale {
+				require.ErrorIs(t, err, ErrStale)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 // F-N4: Track validates what it publishes, so the Track instance and an instance the factory builds
 // from the published extra always agree. Every fixture loaded through Track publishes an extra the
 // factory accepts with the same market. The three metal-*-gldHookedOnly fixtures (the keeper left GLD
@@ -405,7 +437,7 @@ func TestTrackPublishesOnlyValidExtras(t *testing.T) {
 	for _, c := range cases {
 		h := &Hook{}
 		param := &uniswapv4.HookParam{BlockNumber: big.NewInt(123)}
-		raw, err := h.trackMarket(context.Background(), param, trackerOf(c), &fixtureLoader{c}, c.Pre.Lot.Address, time.Now())
+		raw, err := h.trackMarket(context.Background(), param, trackerOf(c), &fixtureLoader{c}, c.Pre.Lot.Address)
 		require.NoError(t, err, c.ID)
 		require.NoError(t, validateExtra(&h.Extra), c.ID)
 		f := hookFromJSON(raw)
