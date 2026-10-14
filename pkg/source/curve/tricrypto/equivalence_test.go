@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -415,4 +416,83 @@ func TestRejectsInvalidInput(t *testing.T) {
 	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tri2WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 256)}, TokenOut: tri2USDT})
 	require.ErrorIs(t, err, ErrOverflow)
+}
+
+// tweak_price asserts every price it packs into storage is < PRICE_MASK (2**128-1) and reverts otherwise.
+func TestExchangeRejectsPriceAtMask(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	dx := big.NewInt(1e18) // WETH -> USDT leaves last_prices[0] unchanged
+
+	for _, tc := range []struct {
+		lastPrice uint256.Int
+		wantErr   error
+	}{
+		{*new(uint256.Int).SubUint64(PriceMask, 1), nil},
+		{*PriceMask, errPriceTooLarge},
+	} {
+		p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+		require.NoError(t, err)
+		p.LastPrices[0] = tc.lastPrice
+		_, err = p.Exchange(2, 0, dx)
+		if tc.wantErr == nil {
+			require.NoError(t, err)
+		} else {
+			require.ErrorIs(t, err, tc.wantErr)
+		}
+	}
+}
+
+// virtual_price * 2 - 10**18 is a checked subtraction in tweak_price: it reverts when virtual_price < 0.5e18,
+// but only while not_adjusted is false (the contract short-circuits `not needs_adjustment and ...`).
+func TestTweakPriceVirtualPriceBelowHalf(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	newTiny := func(notAdjusted bool) *PoolSimulator {
+		p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+		require.NoError(t, err)
+		p.LpSupply = *uint256.MustFromDecimal("100000000000000000000000000") // 1e26: virtual_price ~ 0.04e18
+		p.VirtualPrice.SetUint64(1)
+		p.NotAdjusted = notAdjusted
+		return p
+	}
+	_, err := newTiny(false).Exchange(0, 2, big.NewInt(1_000_000_000))
+	require.ErrorIs(t, err, ErrUnderflow)
+	_, err = newTiny(true).Exchange(0, 2, big.NewInt(1_000_000_000))
+	require.NoError(t, err)
+}
+
+// A reverted exchange must not leave a half-applied swap (input added, output not removed, oracle moved).
+func TestFailedExchangeLeavesPoolUnchanged(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+	require.NoError(t, err)
+	p.VirtualPrice.SetUint64(2e18) // the swap lowers virtual_price below this: "Loss" after balances/D/oracle changed
+	before := p.CloneState().(*PoolSimulator)
+
+	_, err = p.Exchange(0, 2, big.NewInt(2134233857))
+	require.ErrorIs(t, err, errLoss)
+	require.Equal(t, before, p)
+
+	p.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tri2USDT, Amount: big.NewInt(2134233857)},
+		TokenAmountOut: pool.TokenAmount{Token: tri2WETH, Amount: big.NewInt(1)},
+	})
+	require.Equal(t, before, p)
+}
+
+// get_dy asserts i != j, both indexes < 3 and dx > 0, like exchange.
+func TestGetDyRejectsInvalidSwap(t *testing.T) {
+	t.Parallel()
+	p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+	require.NoError(t, err)
+	_, _, err = p.GetDy(1, 1, big.NewInt(1e6))
+	require.ErrorIs(t, err, errSameCoin)
+	_, _, err = p.GetDy(0, 3, big.NewInt(1e6))
+	require.ErrorIs(t, err, errCoinIndexOutOfRange)
+	_, _, err = p.GetDy(-1, 0, big.NewInt(1e6))
+	require.ErrorIs(t, err, errCoinIndexOutOfRange)
+	_, _, err = p.GetDy(0, 2, big.NewInt(0))
+	require.ErrorIs(t, err, errZeroAmount)
 }

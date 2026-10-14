@@ -1,6 +1,8 @@
 package tricrypto
 
 import (
+	"slices"
+
 	"github.com/holiman/uint256"
 )
 
@@ -120,7 +122,9 @@ func sqrtInt(x uint256.Int) (uint256.Int, error) {
 }
 
 func newtonD(ANN, gamma uint256.Int, xUnsorted [nCoins]uint256.Int) (uint256.Int, error) {
-	// todo: MinA, MaxA (not checked by the original implementation either)
+	if ANN.Lt(MinA) || ANN.Gt(MaxA) {
+		return zero, errUnsafeA
+	}
 	if gamma.Lt(MinGamma) || gamma.Gt(MaxGamma) {
 		return zero, errUnsafeGamma
 	}
@@ -438,8 +442,25 @@ func (t *PoolSimulator) balances() (b [nCoins]uint256.Int, err error) {
 	return b, nil
 }
 
+// checkSwap holds the input asserts shared by exchange and get_dy.
+func checkSwap(i, j int, dx uint256.Int) error {
+	if i == j {
+		return errSameCoin
+	}
+	if i >= nCoins || j >= nCoins || i < 0 || j < 0 {
+		return errCoinIndexOutOfRange
+	}
+	if dx.IsZero() {
+		return errZeroAmount
+	}
+	return nil
+}
+
 // getDy is CurveCryptoSwap.get_dy: amount out (after fee) and the fee, for dx of coin i swapped to coin j.
 func (t *PoolSimulator) getDy(i, j int, dx uint256.Int) (dy, fee uint256.Int, err error) {
+	if err = checkSwap(i, j, dx); err != nil {
+		return zero, zero, err
+	}
 	xp, err := t.balances()
 	if err != nil {
 		return zero, zero, err
@@ -476,16 +497,22 @@ func (t *PoolSimulator) getDy(i, j int, dx uint256.Int) (dy, fee uint256.Int, er
 }
 
 // exchange is CurveCryptoSwap.exchange: it updates the pool state (balances, D, price oracle, price scale, ...)
-// as the contract would and returns dy. now is the block timestamp.
+// as the contract would and returns dy. now is the block timestamp. Like a reverted transaction, a failed
+// exchange leaves the pool unchanged.
 func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
-	if i == j {
-		return zero, errSameCoin
+	next := *t // all state is held by value, except the reserves slice
+	next.Info.Reserves = slices.Clone(t.Info.Reserves)
+	dy, err := next.applyExchange(i, j, dx, now)
+	if err != nil {
+		return zero, err
 	}
-	if i >= nCoins || j >= nCoins || i < 0 || j < 0 {
-		return zero, errCoinIndexOutOfRange
-	}
-	if dx.IsZero() {
-		return zero, errZeroAmount
+	*t = next
+	return dy, nil
+}
+
+func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
+	if err := checkSwap(i, j, dx); err != nil {
+		return zero, err
 	}
 
 	AGamma, err := t.aGamma(now)
@@ -587,6 +614,16 @@ func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.I
 	return dy, t.tweakPrice(AGamma, xp, ix, p, zero, now)
 }
 
+// checkPackable mirrors the contract's `assert p < PRICE_MASK` when it packs prices into storage.
+func checkPackable(prices *[nCoins - 1]uint256.Int) error {
+	for k := range prices {
+		if !prices[k].Lt(PriceMask) {
+			return errPriceTooLarge
+		}
+	}
+	return nil
+}
+
 func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.Int, i int, pI, newD uint256.Int,
 	now int64) error {
 	var a arith
@@ -608,6 +645,9 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 		}
 		if a.err != nil {
 			return a.err
+		}
+		if err := checkPackable(&priceOracle); err != nil {
+			return err
 		}
 		t.PriceOracle = priceOracle
 		t.LastPricesTimestamp = now
@@ -644,6 +684,9 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 	}
 	if a.err != nil {
 		return a.err
+	}
+	if err := checkPackable(&lastPrices); err != nil {
+		return err
 	}
 	t.LastPrices = lastPrices
 
@@ -683,9 +726,10 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 	t.XcpProfit = xcpProfit
 
 	needsAdjustment := t.NotAdjusted
-	// virtual_price * 2 - 10**18 > xcp_profit + 2 * allowed_extra_profit; the left side is negative (so the
-	// condition is false) when virtual_price * 2 < 10**18.
-	if vp2 := a.mul(virtualPrice, two); !vp2.Lt(&bone) {
+	if !needsAdjustment {
+		// virtual_price * 2 - 10**18 > xcp_profit + 2 * allowed_extra_profit. The subtraction is checked: the
+		// contract reverts when virtual_price * 2 < 10**18.
+		vp2 := a.mul(virtualPrice, two)
 		lhs := a.sub(vp2, bone)
 		rhs := a.add(xcpProfit, a.mul(two, t.AllowedExtraProfit))
 		if a.err != nil {
@@ -750,6 +794,9 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 			}
 			if oldVirtualPrice.Gt(&bone) {
 				if lhs := a.sub(a.mul(two, oldVirtualPrice), bone); a.err == nil && lhs.Gt(&xcpProfit) {
+					if err := checkPackable(&pNew); err != nil {
+						return err
+					}
 					t.PriceScale = pNew
 					t.D = D
 					t.VirtualPrice = oldVirtualPrice
