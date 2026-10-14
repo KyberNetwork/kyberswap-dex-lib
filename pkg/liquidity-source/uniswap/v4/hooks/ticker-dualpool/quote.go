@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrVaultIlliquid = errors.New("Ticker vault cannot deliver the pool's full backing")
+	ErrVaultIlliquid = errors.New("ticker vault cannot deliver the pool's full backing")
 	ErrInvalidState  = errors.New("invalid Ticker pool state")
 )
 

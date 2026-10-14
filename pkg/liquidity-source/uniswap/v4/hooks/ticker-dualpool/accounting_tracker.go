@@ -255,7 +255,7 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 			return nil, err
 		}
 		if depositLimit.ToBig().Cmp(maxDeposit) != 0 || withdrawalLimit.ToBig().Cmp(maxWithdraw) != 0 {
-			return nil, fmt.Errorf("Aave native limits: %w", ErrInvalidState)
+			return nil, fmt.Errorf("aave native limits: %w", ErrInvalidState)
 		}
 		candidate.Reserves[side] = reserve
 		candidate.Aave[side] = inventory

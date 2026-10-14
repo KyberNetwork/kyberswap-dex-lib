@@ -9,7 +9,7 @@ func (h *Hook) quoteGas(q Quote) int64 {
 	if h.SwapGas > 0 {
 		return h.SwapGas
 	}
-	ranges := len(h.State.Pool.Buckets)
+	ranges := len(h.Pool.Buckets)
 	if ranges < 1 {
 		ranges = 1
 	}
@@ -22,7 +22,7 @@ func (h *Hook) quoteGas(q Quote) int64 {
 			}
 			return compressed >> 8
 		}
-		crossed := word(q.Swap.Tick) - word(h.State.Pool.Tick)
+		crossed := word(q.Swap.Tick) - word(h.Pool.Tick)
 		if crossed < 0 {
 			crossed = -crossed
 		}

@@ -29,7 +29,7 @@ var tickerABI = func() abi.ABI {
 	}
 	return a
 }()
-var ErrRefreshRequired = errors.New("Ticker vault state must be refreshed after simulated JIT teardown")
+var ErrRefreshRequired = errors.New("ticker vault state must be refreshed after simulated JIT teardown")
 
 // Snapshot holds one pool's tracked state and local vault/reserve accounting.
 type Snapshot struct {
@@ -209,7 +209,7 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 		}
 		q.ManagerCashAfter[side] = cash
 	}
-	result := &uniswapv4.BeforeSwapResult{SwapFee: uniswapv4.FeeAmount(h.State.Pool.LpFee), Gas: h.quoteGas(q), SwapInfo: q}
+	result := &uniswapv4.BeforeSwapResult{SwapFee: uniswapv4.FeeAmount(h.Pool.LpFee), Gas: h.quoteGas(q), SwapInfo: q}
 	if p.CalcOut {
 		result.DeltaSpecified = q.Swap.AmountIn.ToBig()
 		result.DeltaUnspecified = new(big.Int).Neg(q.NetOutput.ToBig())
