@@ -74,14 +74,14 @@ func TestHookCloneAndVaultRefresh(t *testing.T) {
 	q, err := QuoteExactInput(h.State, true, uint256.NewInt(1001))
 	require.NoError(t, err)
 	clone := h.CloneState().(*Hook)
-	clone.State.Pool.Buckets[0].WeightBps = 1
-	require.Equal(t, uint16(10000), h.State.Pool.Buckets[0].WeightBps)
+	clone.Pool.Buckets[0].WeightBps = 1
+	require.Equal(t, uint16(10000), h.Pool.Buckets[0].WeightBps)
 	h.UpdateBalance(q)
 	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)})
 	require.ErrorIs(t, err, ErrRefreshRequired)
 	require.False(t, clone.RefreshRequired)
 	q.Swap.Balance0.Clear()
-	require.False(t, h.State.Pool.Balance0.IsZero(), "UpdateBalance must not retain mutable quote pointers")
+	require.False(t, h.Pool.Balance0.IsZero(), "UpdateBalance must not retain mutable quote pointers")
 }
 
 func TestCloneAccountingDoesNotSharePointers(t *testing.T) {

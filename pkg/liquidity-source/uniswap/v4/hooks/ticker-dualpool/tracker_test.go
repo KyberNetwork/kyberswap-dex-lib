@@ -111,7 +111,7 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 	require.Equal(t, uint16(50), next.CreatorTaxBps)
 	require.Equal(t, vault, next.Vaults[1])
 	require.Equal(t, s.Total1.Dec(), next.Total1.Dec())
-	require.Equal(t, s.Pool.Balance0.Dec(), next.State.Pool.Balance0.Dec())
+	require.Equal(t, s.Pool.Balance0.Dec(), next.Pool.Balance0.Dec())
 	// Exercise the full refresh with direct token balances and test-only bytecode.
 	oldProxy, oldHook := tickerProxyFingerprint, tickerHookFingerprint
 	tickerProxyFingerprint = runtimeFingerprint{Size: 1, Hash: crypto.Keccak256Hash([]byte{0x60})}

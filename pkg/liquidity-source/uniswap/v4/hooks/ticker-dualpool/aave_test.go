@@ -85,8 +85,8 @@ func TestAaveSequentialHookUpdatesMatchFork(t *testing.T) {
 		require.Equal(t, inventories[i].After["poolShares"], h.Aave[0].PoolShares.Dec())
 		require.Equal(t, inventories[i].After["strategyShares"], h.Aave[0].StrategyShares.Dec())
 		if i+1 < len(quotes) {
-			require.Equal(t, quotes[i+1]["before0"], h.State.Pool.Balance0.Dec())
-			require.Equal(t, quotes[i+1]["before1"], h.State.Pool.Balance1.Dec())
+			require.Equal(t, quotes[i+1]["before0"], h.Pool.Balance0.Dec())
+			require.Equal(t, quotes[i+1]["before1"], h.Pool.Balance1.Dec())
 		}
 	}
 }

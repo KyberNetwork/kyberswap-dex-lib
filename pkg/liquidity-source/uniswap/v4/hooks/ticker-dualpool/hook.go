@@ -339,7 +339,7 @@ func (h *Hook) trackBase(ctx context.Context, p *uniswapv4.HookParam) (json.RawM
 		return nil, err
 	}
 	next := Snapshot{BlockNumber: p.BlockNumber.Uint64(), SwapGas: h.SwapGas}
-	if err = json.Unmarshal(raw, &next.State.Pool); err != nil {
+	if err = json.Unmarshal(raw, &next.Pool); err != nil {
 		return nil, err
 	}
 	var total struct{ Amount0, Amount1 *big.Int }
