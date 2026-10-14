@@ -2,10 +2,12 @@ package uniswapv4
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -177,4 +179,24 @@ func TestExtraLvCompat(t *testing.T) {
 	out, err := json.Marshal(Extra{})
 	require.NoError(t, err)
 	assert.NotContains(t, string(out), "lv", "lv is omitted when 0")
+}
+
+// A liveness hook without the activity opt-in (lotflow's shape: hX carries the pinned block
+// timestamp, so it changes on every refresh). Task-only refreshes restamp lv each interval but
+// never move Timestamp/BlockNumber, so the pool can still archive; real logs still move Timestamp.
+func TestLiveness_ChangingHXWithoutOptInKeepsTimestamp(t *testing.T) {
+	tr := newActivityTracker(t)
+	p := tr.refresh(t, schedulePool(t, liveHookAddr, 7), 1_000, `{"ts":1000}`, nil, nil, nil)
+	for _, now := range []int64{1_020, 1_040, 1_060} {
+		p = tr.refresh(t, p, now, fmt.Sprintf(`{"ts":%d}`, now), nil, nil, nil)
+		_, lv := extraSansLv(t, p.Extra)
+		assert.Equal(t, now, lv, "lv restamped on the change")
+		assert.Equal(t, int64(7), p.Timestamp)
+		assert.Zero(t, p.BlockNumber)
+	}
+
+	logs := []ethtypes.Log{{Address: common.HexToAddress("0x1"), BlockNumber: stubBlock}}
+	headers := map[uint64]entity.BlockHeader{stubBlock: {Timestamp: 2_000}}
+	p = tr.refresh(t, p, 1_080, `{"ts":9}`, nil, logs, headers)
+	assert.Equal(t, int64(2_000), p.Timestamp, "a real log still moves Timestamp")
 }

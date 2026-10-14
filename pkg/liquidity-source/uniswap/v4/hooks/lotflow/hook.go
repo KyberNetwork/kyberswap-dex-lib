@@ -86,9 +86,6 @@ const livenessInterval = 20 * time.Second
 
 func (h *Hook) LivenessInterval() time.Duration { return livenessInterval }
 
-// TracksActivity: the extra holds only chain state, so a change bumps Timestamp/BlockNumber.
-func (h *Hook) TracksActivity() {}
-
 // trackedAt is the age baseline: the tracker's lv, else the legacy extra clock.
 func (h *Hook) trackedAt() int64 {
 	if h.liveAt > 0 {
