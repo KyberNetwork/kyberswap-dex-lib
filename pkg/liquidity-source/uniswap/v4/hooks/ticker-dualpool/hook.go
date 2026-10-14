@@ -228,12 +228,12 @@ func (h *Hook) UpdateBalance(info any) {
 	if !ok || q.Swap.Balance0 == nil || q.Swap.Balance1 == nil {
 		return
 	}
-	h.State.Pool.Balance0 = q.Swap.Balance0.Clone()
-	h.State.Pool.Balance1 = q.Swap.Balance1.Clone()
+	h.Pool.Balance0 = q.Swap.Balance0.Clone()
+	h.Pool.Balance1 = q.Swap.Balance1.Clone()
 	h.Total0 = q.Swap.Balance0.Clone()
 	h.Total1 = q.Swap.Balance1.Clone()
-	h.State.Pool.SqrtPriceX96 = q.Swap.SqrtPriceX96.Clone()
-	h.State.Pool.Tick = q.Swap.Tick
+	h.Pool.SqrtPriceX96 = q.Swap.SqrtPriceX96.Clone()
+	h.Pool.Tick = q.Swap.Tick
 	// JIT arithmetic alone does not model an ERC-4626 withdrawal/redeposit.
 	// Keep this unfinished path explicit rather than publish inaccurate quotes.
 	h.RefreshRequired = false
@@ -292,17 +292,17 @@ func (h *Hook) CloneState() uniswapv4.Hook {
 	clone.Total1 = copyInt(h.Total1)
 	clone.Unbacked0 = copyInt(h.Unbacked0)
 	clone.Unbacked1 = copyInt(h.Unbacked1)
-	clone.State.Pool.Balance0 = copyInt(h.State.Pool.Balance0)
-	clone.State.Pool.Balance1 = copyInt(h.State.Pool.Balance1)
-	clone.State.Pool.SqrtPriceX96 = copyInt(h.State.Pool.SqrtPriceX96)
-	clone.State.Pool.Buckets = append([]dualpool.Bucket(nil), h.State.Pool.Buckets...)
+	clone.State.Pool.Balance0 = copyInt(h.Pool.Balance0)
+	clone.State.Pool.Balance1 = copyInt(h.Pool.Balance1)
+	clone.State.Pool.SqrtPriceX96 = copyInt(h.Pool.SqrtPriceX96)
+	clone.State.Pool.Buckets = append([]dualpool.Bucket(nil), h.Pool.Buckets...)
 	return &clone
 }
 func (h *Hook) GetReserves(context.Context, *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	if h.State.Pool.Balance0 == nil || h.State.Pool.Balance1 == nil {
+	if h.Pool.Balance0 == nil || h.Pool.Balance1 == nil {
 		return nil, ErrInvalidState
 	}
-	return entity.PoolReserves{h.State.Pool.Balance0.Dec(), h.State.Pool.Balance1.Dec()}, nil
+	return entity.PoolReserves{h.Pool.Balance0.Dec(), h.Pool.Balance1.Dec()}, nil
 }
 
 type launchResponse struct {
@@ -373,5 +373,5 @@ func (h *Hook) trackBase(ctx context.Context, p *uniswapv4.HookParam) (json.RawM
 // JIT positions are removed after every swap. Publish the hook's exact backing
 // and price to the parent simulator instead of its generic reserve deltas.
 func (h *Hook) PoolState() uniswapv4.HookPoolState {
-	return uniswapv4.HookPoolState{Reserves: [2]*big.Int{h.Total0.ToBig(), h.Total1.ToBig()}, SqrtPriceX96: *h.State.Pool.SqrtPriceX96, Tick: int(h.State.Pool.Tick)}
+	return uniswapv4.HookPoolState{Reserves: [2]*big.Int{h.Total0.ToBig(), h.Total1.ToBig()}, SqrtPriceX96: *h.Pool.SqrtPriceX96, Tick: int(h.Pool.Tick)}
 }
