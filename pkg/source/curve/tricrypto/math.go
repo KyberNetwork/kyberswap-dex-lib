@@ -120,7 +120,9 @@ func sqrtInt(x uint256.Int) (uint256.Int, error) {
 }
 
 func newtonD(ANN, gamma uint256.Int, xUnsorted [nCoins]uint256.Int) (uint256.Int, error) {
-	// todo: MinA, MaxA (not checked by the original implementation either)
+	if ANN.Lt(MinA) || ANN.Gt(MaxA) {
+		return zero, errUnsafeA
+	}
 	if gamma.Lt(MinGamma) || gamma.Gt(MaxGamma) {
 		return zero, errUnsafeGamma
 	}

@@ -56,3 +56,20 @@ func TestNewtonY(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, ret.Dec(), "220406131330584000207811144")
 }
+
+// newton_D asserts MIN_A <= ANN <= MAX_A (the contract reverts "unsafe values A").
+func TestNewtonDRejectsUnsafeA(t *testing.T) {
+	t.Parallel()
+	x1 := *uint256.MustFromDecimal("1000000000000000000000000") // 1e24
+	x := [nCoins]uint256.Int{x1, x1, x1}
+	gamma := *uint256.NewInt(11809167828997)
+
+	D, err := newtonD(*uint256.NewInt(1707629), gamma, x)
+	assert.NoError(t, err)
+	assert.Equal(t, "3000000000000000000000000", D.Dec())
+
+	for _, ann := range []*uint256.Int{new(uint256.Int).SubUint64(MinA, 1), new(uint256.Int).AddUint64(MaxA, 1)} {
+		_, err = newtonD(*ann, gamma, x)
+		assert.ErrorIs(t, err, errUnsafeA, ann.Dec())
+	}
+}
