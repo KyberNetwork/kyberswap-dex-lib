@@ -221,7 +221,6 @@ func newtonY(ann, gamma uint256.Int, x [nCoins]uint256.Int, D uint256.Int, i int
 		return zero, errUnsafeD
 	}
 	var a arith
-	y := a.div(D, nCoinsU)
 	K0i := bone
 	var Si uint256.Int
 
@@ -241,9 +240,12 @@ func newtonY(ann, gamma uint256.Int, x [nCoins]uint256.Int, D uint256.Int, i int
 		if _x.IsZero() {
 			return zero, ErrDenominatorZero
 		}
-		y = a.div(a.mul(y, D), a.mul(_x, nCoinsU))
 		Si = a.add(Si, _x)
 	}
+	// y: uint256 = D**2 / (x_j * N_COINS**2), the deployed contracts' starting point (xs[0] is x_j). The previous
+	// implementation started from D / N * D / (x_j * N), which rounds differently; Newton then sometimes stopped on a
+	// neighbouring value and quotes were off from get_dy in the last digits.
+	y := a.div(a.mul(D, D), a.mul(xs[0], a.mul(nCoinsU, nCoinsU)))
 	for j := 0; j < nCoins-1; j++ {
 		K0i = a.div(a.mul(a.mul(K0i, xs[j]), nCoinsU), D)
 	}
