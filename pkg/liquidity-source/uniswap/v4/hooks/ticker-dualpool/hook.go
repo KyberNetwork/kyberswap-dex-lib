@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -260,6 +261,21 @@ func (h *Hook) UpdateBalance(info any) {
 			h.RefreshRequired = true
 		}
 	}
+}
+
+var _ uniswapv4.HookWithSchedule = (*Hook)(nil)
+
+// aaveRefreshSecs is how often a pool with an Aave leg is re-tracked with no event, because
+// Aave reserve changes (cash, caps, rates) emit nothing the pool tracker listens to. Every
+// refresh re-reads the full Aave state, so 5 min keeps RPC load low.
+const aaveRefreshSecs = 300
+
+// NextTrackAt schedules the next refresh for pools backed by Aave, else 0. It makes no RPC.
+func (h *Hook) NextTrackAt(*uniswapv4.HookParam) int64 {
+	if h.Reserves[0] != nil || h.Reserves[1] != nil {
+		return time.Now().Unix() + aaveRefreshSecs
+	}
+	return 0
 }
 
 func (h *Hook) CloneState() uniswapv4.Hook {
