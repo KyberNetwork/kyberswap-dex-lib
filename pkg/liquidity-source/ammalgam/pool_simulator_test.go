@@ -56,6 +56,7 @@ func TestPoolSimulatorQuotesBothDirectionsAndExactOutMinimality(t *testing.T) {
 			require.NoError(t, err)
 			require.Positive(t, out.TokenAmountOut.Amount.Sign())
 			require.Positive(t, out.Fee.Amount.Sign())
+			require.Equal(t, "200000000000000", out.Fee.Amount.String())
 			require.Equal(t, direction[0], out.Fee.Token)
 			require.Equal(t, "1000000000000000000000", s.Info.Reserves[0].String(), "quoting must not mutate state")
 

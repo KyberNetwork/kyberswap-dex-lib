@@ -40,6 +40,10 @@ func TestPairCreatedDecoder(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &meta))
 	require.Equal(t, "0x1111111111111111111111111111111111111111", meta.FactoryAddress)
 	require.Equal(t, int64(200000), meta.Gas)
+	var wire map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &wire))
+	require.Contains(t, wire, "g")
+	require.NotContains(t, wire, "gas")
 	addrs, err := f.DecodePoolAddressesFromFactoryLog(context.Background(), log)
 	require.NoError(t, err)
 	require.Equal(t, []string{p.Address}, addrs)

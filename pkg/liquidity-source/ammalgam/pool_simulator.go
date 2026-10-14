@@ -100,16 +100,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if err != nil {
 		return nil, err
 	}
-	amountOut, err := quoteExactIn(&amountIn, &s.reserves[i], &s.extra.ReferenceReserves[i],
+	amountOut, fee, err := quoteExactInWithFee(&amountIn, &s.reserves[i], &s.extra.ReferenceReserves[i],
 		&s.reserves[j], &s.extra.MissingAssets[i], &s.extra.MissingAssets[j])
 	if err != nil {
 		return nil, err
 	}
 	info, err := s.postSwap(i, &amountIn, &amountOut)
-	if err != nil {
-		return nil, err
-	}
-	fee, err := s.inputFee(i, &amountIn)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +138,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	// The adapter executes exact-input with the resolved amountIn. Its actual
 	// output can exceed the requested exact-out target because of integer
 	// granularity, so state must use the forward quote that executes on-chain.
-	executedAmountOut, err := quoteExactIn(&amountIn, &s.reserves[i], &s.extra.ReferenceReserves[i],
+	executedAmountOut, fee, err := quoteExactInWithFee(&amountIn, &s.reserves[i], &s.extra.ReferenceReserves[i],
 		&s.reserves[j], &s.extra.MissingAssets[i], &s.extra.MissingAssets[j])
 	if err != nil {
 		return nil, err
@@ -151,10 +147,6 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrInvalidAmount
 	}
 	info, err := s.postSwap(i, &amountIn, &executedAmountOut)
-	if err != nil {
-		return nil, err
-	}
-	fee, err := s.inputFee(i, &amountIn)
 	if err != nil {
 		return nil, err
 	}
@@ -186,19 +178,6 @@ func (s *PoolSimulator) postSwap(inputIndex int, amountIn, amountOut *uint256.In
 	info.Reserves[inputIndex], info.Reserves[outputIndex] = newInput, newOutput
 	info.InputIndex, info.AmountIn, info.AmountOut = inputIndex, *amountIn, *amountOut
 	return info, nil
-}
-
-func (s *PoolSimulator) inputFee(inputIndex int, amountIn *uint256.Int) (uint256.Int, error) {
-	feeBipsQ64, err := calculateSwapFeeBipsQ64(amountIn, &s.reserves[inputIndex],
-		&s.extra.ReferenceReserves[inputIndex])
-	if err != nil {
-		return uint256.Int{}, err
-	}
-	product, err := mulChecked(amountIn, &feeBipsQ64)
-	if err != nil {
-		return uint256.Int{}, err
-	}
-	return divChecked(&product, bipsQ64)
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

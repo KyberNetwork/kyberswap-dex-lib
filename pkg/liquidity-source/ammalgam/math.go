@@ -246,78 +246,120 @@ func adjustedToActual(adjusted, missing *uint256.Int) (uint256.Int, error) {
 	return addChecked(&base, missing)
 }
 
-func calculateBalanceAfterFees(amountIn, balance, reserve, referenceReserve, missing *uint256.Int) (uint256.Int, error) {
+func calculateBalanceAfterFees(
+	amountIn, balance, reserve, referenceReserve, missing *uint256.Int,
+) (uint256.Int, uint256.Int, error) {
 	var zero uint256.Int
-	fee, err := calculateSwapFeeBipsQ64(amountIn, reserve, referenceReserve)
+	feeBipsQ64, err := calculateSwapFeeBipsQ64(amountIn, reserve, referenceReserve)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	left, err := mulChecked(balance, buffer)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	right, err := mulChecked(missing, bufferNumerator)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	base := *balance
 	depleted := left.Lt(&right)
 	if depleted {
 		base, err = subChecked(&base, missing)
 		if err != nil {
-			return zero, err
+			return zero, zero, err
 		}
 	}
 	base, err = mulChecked(&base, bipsQ64)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
-	feeAmount, err := mulChecked(amountIn, &fee)
+	feeAmountQ64, err := mulChecked(amountIn, &feeBipsQ64)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
-	base, err = subChecked(&base, &feeAmount)
+	base, err = subChecked(&base, &feeAmountQ64)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	if depleted {
 		base, err = mulChecked(&base, bufferNumerator)
 		if err != nil {
-			return zero, err
+			return zero, zero, err
 		}
 	}
-	return divChecked(&base, bipsQ64)
+	calculatedBalance, err := divChecked(&base, bipsQ64)
+	if err != nil {
+		return zero, zero, err
+	}
+	return calculatedBalance, feeBipsQ64, nil
 }
 
 func quoteExactIn(amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut *uint256.Int) (uint256.Int, error) {
+	amountOut, _, err := quoteExactInWithFeeBipsQ64(
+		amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut,
+	)
+	return amountOut, err
+}
+
+func quoteExactInWithFeeBipsQ64(
+	amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut *uint256.Int,
+) (uint256.Int, uint256.Int, error) {
 	var zero uint256.Int
 	balance, err := addChecked(reserveIn, amountIn)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
-	adjustedInput, err := calculateBalanceAfterFees(amountIn, &balance, reserveIn, referenceReserveIn, missingIn)
+	adjustedInput, feeBipsQ64, err := calculateBalanceAfterFees(
+		amountIn, &balance, reserveIn, referenceReserveIn, missingIn,
+	)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	adjustedReserveIn, err := actualToAdjusted(reserveIn, missingIn)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	adjustedReserveOut, err := actualToAdjusted(reserveOut, missingOut)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	k, err := mulChecked(&adjustedReserveIn, &adjustedReserveOut)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	firstAdjusted, err := ceilDiv(&k, &adjustedInput)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
 	newReserveOut, err := adjustedToActual(&firstAdjusted, missingOut)
 	if err != nil {
-		return zero, err
+		return zero, zero, err
 	}
-	return subChecked(reserveOut, &newReserveOut)
+	amountOut, err := subChecked(reserveOut, &newReserveOut)
+	if err != nil {
+		return zero, zero, err
+	}
+	return amountOut, feeBipsQ64, nil
+}
+
+func quoteExactInWithFee(
+	amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut *uint256.Int,
+) (uint256.Int, uint256.Int, error) {
+	var zero uint256.Int
+	amountOut, feeBipsQ64, err := quoteExactInWithFeeBipsQ64(
+		amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut,
+	)
+	if err != nil {
+		return zero, zero, err
+	}
+	feeAmountQ64, err := mulChecked(amountIn, &feeBipsQ64)
+	if err != nil {
+		return zero, zero, err
+	}
+	feeAmount, err := divChecked(&feeAmountQ64, bipsQ64)
+	if err != nil {
+		return zero, zero, err
+	}
+	return amountOut, feeAmount, nil
 }
