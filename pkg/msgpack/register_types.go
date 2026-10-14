@@ -24,8 +24,7 @@ func mustNotError(err error) {
 }
 
 func init() {
-	// Interface-embedded hooks must retain BaseHook's concrete type when decoded. The generator
-	// only registers PoolSimulator and Hook structs, one per package, so BaseHook stays manual.
+	// Interface-embedded hooks must retain BaseHook's concrete type when decoded.
 	mustNotError(msgpack.RegisterConcreteType(&uniswapv4.BaseHook{}))
 	// V4 stores these concrete values behind ITokenWrapper, including for native
 	// ETH pools that do not themselves use a Few wrapper.
