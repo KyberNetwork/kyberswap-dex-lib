@@ -75,7 +75,7 @@ func trackDirect(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessa
 	}
 	tr := &Tracker{Cfg: cfg, Hook: hook, PoolManager: l.PM, NavGuard: l.NavGuard, Registry: l.Registry,
 		VenueBook: l.VenueBook}
-	return (&Hook{}).trackMarket(ctx, param, tr, l, lot, time.Now())
+	return (&Hook{}).trackMarket(ctx, param, tr, l, lot)
 }
 
 // comparable strips the per-run timestamp: everything else in the extra must be byte-identical.
