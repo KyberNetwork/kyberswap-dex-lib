@@ -589,6 +589,16 @@ func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.I
 	return dy, t.tweakPrice(AGamma, xp, ix, p, zero, now)
 }
 
+// checkPackable mirrors the contract's `assert p < PRICE_MASK` when it packs prices into storage.
+func checkPackable(prices *[nCoins - 1]uint256.Int) error {
+	for k := range prices {
+		if !prices[k].Lt(PriceMask) {
+			return errPriceTooLarge
+		}
+	}
+	return nil
+}
+
 func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.Int, i int, pI, newD uint256.Int,
 	now int64) error {
 	var a arith
@@ -610,6 +620,9 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 		}
 		if a.err != nil {
 			return a.err
+		}
+		if err := checkPackable(&priceOracle); err != nil {
+			return err
 		}
 		t.PriceOracle = priceOracle
 		t.LastPricesTimestamp = now
@@ -646,6 +659,9 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 	}
 	if a.err != nil {
 		return a.err
+	}
+	if err := checkPackable(&lastPrices); err != nil {
+		return err
 	}
 	t.LastPrices = lastPrices
 
@@ -752,6 +768,9 @@ func (t *PoolSimulator) tweakPrice(AGamma [2]uint256.Int, _xp [nCoins]uint256.In
 			}
 			if oldVirtualPrice.Gt(&bone) {
 				if lhs := a.sub(a.mul(two, oldVirtualPrice), bone); a.err == nil && lhs.Gt(&xcpProfit) {
+					if err := checkPackable(&pNew); err != nil {
+						return err
+					}
 					t.PriceScale = pNew
 					t.D = D
 					t.VirtualPrice = oldVirtualPrice

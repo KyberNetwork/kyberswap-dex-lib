@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -415,4 +416,29 @@ func TestRejectsInvalidInput(t *testing.T) {
 	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tri2WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 256)}, TokenOut: tri2USDT})
 	require.ErrorIs(t, err, ErrOverflow)
+}
+
+// tweak_price asserts every price it packs into storage is < PRICE_MASK (2**128-1) and reverts otherwise.
+func TestExchangeRejectsPriceAtMask(t *testing.T) {
+	now := int64(tri2Block53Timestamp)
+	pinClock(t, &now)
+	dx := big.NewInt(1e18) // WETH -> USDT leaves last_prices[0] unchanged
+
+	for _, tc := range []struct {
+		lastPrice uint256.Int
+		wantErr   error
+	}{
+		{*new(uint256.Int).SubUint64(PriceMask, 1), nil},
+		{*PriceMask, errPriceTooLarge},
+	} {
+		p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+		require.NoError(t, err)
+		p.LastPrices[0] = tc.lastPrice
+		_, err = p.Exchange(2, 0, dx)
+		if tc.wantErr == nil {
+			require.NoError(t, err)
+		} else {
+			require.ErrorIs(t, err, tc.wantErr)
+		}
+	}
 }

@@ -15,6 +15,7 @@ var (
 	errUnsafeY        = errors.New("unsafe value for y")
 	errDidNotConverge = errors.New("did not converge")
 	errLoss           = errors.New("loss")
+	errPriceTooLarge  = errors.New("price does not fit in 128 bits")
 
 	errSameCoin            = errors.New("i = j")
 	errCoinIndexOutOfRange = errors.New("coin index out of range")
