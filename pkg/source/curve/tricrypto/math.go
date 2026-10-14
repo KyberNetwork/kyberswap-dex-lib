@@ -442,8 +442,25 @@ func (t *PoolSimulator) balances() (b [nCoins]uint256.Int, err error) {
 	return b, nil
 }
 
+// checkSwap holds the input asserts shared by exchange and get_dy.
+func checkSwap(i, j int, dx uint256.Int) error {
+	if i == j {
+		return errSameCoin
+	}
+	if i >= nCoins || j >= nCoins || i < 0 || j < 0 {
+		return errCoinIndexOutOfRange
+	}
+	if dx.IsZero() {
+		return errZeroAmount
+	}
+	return nil
+}
+
 // getDy is CurveCryptoSwap.get_dy: amount out (after fee) and the fee, for dx of coin i swapped to coin j.
 func (t *PoolSimulator) getDy(i, j int, dx uint256.Int) (dy, fee uint256.Int, err error) {
+	if err = checkSwap(i, j, dx); err != nil {
+		return zero, zero, err
+	}
 	xp, err := t.balances()
 	if err != nil {
 		return zero, zero, err
@@ -494,14 +511,8 @@ func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.I
 }
 
 func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
-	if i == j {
-		return zero, errSameCoin
-	}
-	if i >= nCoins || j >= nCoins || i < 0 || j < 0 {
-		return zero, errCoinIndexOutOfRange
-	}
-	if dx.IsZero() {
-		return zero, errZeroAmount
+	if err := checkSwap(i, j, dx); err != nil {
+		return zero, err
 	}
 
 	AGamma, err := t.aGamma(now)

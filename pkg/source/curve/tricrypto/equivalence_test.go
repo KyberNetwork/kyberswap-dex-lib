@@ -481,3 +481,18 @@ func TestFailedExchangeLeavesPoolUnchanged(t *testing.T) {
 	})
 	require.Equal(t, before, p)
 }
+
+// get_dy asserts i != j, both indexes < 3 and dx > 0, like exchange.
+func TestGetDyRejectsInvalidSwap(t *testing.T) {
+	t.Parallel()
+	p, err := NewPoolSimulator(tri2AtBlock26181452.entityPool())
+	require.NoError(t, err)
+	_, _, err = p.GetDy(1, 1, big.NewInt(1e6))
+	require.ErrorIs(t, err, errSameCoin)
+	_, _, err = p.GetDy(0, 3, big.NewInt(1e6))
+	require.ErrorIs(t, err, errCoinIndexOutOfRange)
+	_, _, err = p.GetDy(-1, 0, big.NewInt(1e6))
+	require.ErrorIs(t, err, errCoinIndexOutOfRange)
+	_, _, err = p.GetDy(0, 2, big.NewInt(0))
+	require.ErrorIs(t, err, errZeroAmount)
+}
