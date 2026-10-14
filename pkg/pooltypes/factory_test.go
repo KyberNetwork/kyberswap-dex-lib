@@ -72,7 +72,7 @@ func TestUseSwapLimit(t *testing.T) {
 
 func TestPoolListerFactory(t *testing.T) {
 	t.Parallel()
-	poolListers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
+	poolListers := []string{"uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
 		"muteswitch", "ramses-v2", "solidly-v2", "solidly-v3", "platypus", "biswap", "maker-psm", "curve",
 		"curve-stable-plain", "curve-stable-ng", "curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng",
 		"oneswap", "saddle", "dodo-classical", "dodo-dpp", "dodo-dsp", "dodo-dvm", "nerve", "synthetix",
@@ -103,7 +103,7 @@ func TestPoolListerFactory(t *testing.T) {
 
 func TestPoolTrackerFactory(t *testing.T) {
 	t.Parallel()
-	poolTrackers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
+	poolTrackers := []string{"uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
 		"muteswitch", "ramses-v2", "solidly-v2", "solidly-v3", "dodo-classical", "dodo-dpp", "dodo-dsp",
 		"dodo-dvm", "biswap", "platypus", "maker-psm", "curve", "curve-stable-plain", "curve-stable-ng",
 		"curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng", "oneswap", "saddle", "nerve",

@@ -106,7 +106,7 @@ func (f *dataFetchers) fetchPools(
 				}),
 				minTickSpacingsPerPool,
 			},
-		}, []any{&batchQuoteData}).Call()
+		}, []any{&batchQuoteData}).Aggregate()
 		if err != nil {
 			logger.Errorf("failed to retrieve quote data from basic data fetcher: %v", err)
 			return nil, err

@@ -45,7 +45,7 @@ type (
 	TwammOrderKeyAbi = struct {
 		Token0 common.Address `json:"token0"`
 		Token1 common.Address `json:"token1"`
-		Config common.Hash    `json:"config"`
+		Config [32]byte       `json:"config"`
 	}
 
 	TwammOrderKey struct {
