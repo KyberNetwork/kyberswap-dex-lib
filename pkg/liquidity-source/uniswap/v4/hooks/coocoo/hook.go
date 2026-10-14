@@ -22,13 +22,14 @@ import (
 )
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4CooCoo}}
+	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4CooCoo}}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
 }, HookAddresses...)
 
+// Hook embeds BaseHook by value, not the Hook interface, so a simulator survives the msgpack round trip.
 type Hook struct {
-	uniswapv4.Hook `json:"-"`
+	uniswapv4.BaseHook `json:"-"`
 	ponsv2.Extra
 }
 
@@ -41,7 +42,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	return json.Marshal(h)
 }
 
-// Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook interface
+// Delegate rather than rely on promotion: Hook embeds both BaseHook
 // and ponsv2.Extra at the same depth, both with BeforeSwap/AfterSwap, so an unqualified
 // call would otherwise be an ambiguous selector.
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
