@@ -1,24 +1,104 @@
 [
   {
+    "name": "feeConfig",
     "type": "function",
-    "name": "getFee",
     "inputs": [
       {
-        "name": "key",
-        "type": "tuple",
-        "internalType": "struct PoolKey",
-        "components": [
-          {"name": "currency0", "type": "address", "internalType": "Currency"},
-          {"name": "currency1", "type": "address", "internalType": "Currency"},
-          {"name": "fee", "type": "uint24", "internalType": "uint24"},
-          {"name": "tickSpacing", "type": "int24", "internalType": "int24"},
-          {"name": "hooks", "type": "address", "internalType": "contract IHooks"}
-        ]
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
       }
     ],
     "outputs": [
-      {"name": "feeE6ZeroForOne", "type": "uint24", "internalType": "uint24"},
-      {"name": "feeE6OneForZero", "type": "uint24", "internalType": "uint24"}
+      {
+        "name": "restingSpreadE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "backrunCaptureFractionE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "midFadeRateE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "maxMidFadeE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "skewRateE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "maxSkewStepE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "maxSkewE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "backrunThresholdE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "restoreFractionE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "restoreThresholdE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "feeState",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "blockNumber",
+        "type": "uint40",
+        "internalType": "uint40"
+      },
+      {
+        "name": "sqrtPriceTopX96",
+        "type": "uint160",
+        "internalType": "uint160"
+      },
+      {
+        "name": "askPermFeeE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "tempFeeE6",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "tempOnBid",
+        "type": "bool",
+        "internalType": "bool"
+      }
     ],
     "stateMutability": "view"
   }

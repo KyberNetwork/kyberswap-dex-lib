@@ -9,20 +9,26 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+// Extra is the hook's tracked state, read at one block together with the pool's slot0.
 type Extra struct {
-	Tracked       bool                `json:"t,omitempty"`
-	FeeZeroForOne uniswapv4.FeeAmount `json:"f0,omitempty"`
-	FeeOneForZero uniswapv4.FeeAmount `json:"f1,omitempty"`
+	Config FeeConfig `json:"c"`
+	State  FeeState  `json:"s"`
 }
 
 type Hook struct {
 	uniswapv4.Hook `json:"-"`
 	Extra
+	// advanced: State already holds this block's top-of-block advance (a swap of this sim ran).
+	advanced bool
+}
+
+// SwapInfo carries the advanced fee state a first swap leaves behind, like the hook's on-chain write.
+type SwapInfo struct {
+	State FeeState
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -32,76 +38,91 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, HookAddress)
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	staticExtra := new(uniswapv4.StaticExtra)
-	if err := json.Unmarshal([]byte(param.Pool.StaticExtra), staticExtra); err != nil {
-		return nil, err
+	poolID := common.HexToHash(param.Pool.Address)
+	target := hexutil.Encode(param.HookAddress[:])
+	// ethrpc needs one struct target (abi tags) for a multi-output call; uintN decodes to *big.Int.
+	var state struct {
+		BlockNumber  *big.Int `abi:"blockNumber"` // unused: a sim swap always runs in a later block
+		SqrtPriceTop *big.Int `abi:"sqrtPriceTopX96"`
+		AskPermFee   *big.Int `abi:"askPermFeeE6"`
+		TempFee      *big.Int `abi:"tempFeeE6"`
+		TempOnBid    bool     `abi:"tempOnBid"`
 	}
-
-	poolKey := newPoolKey(param.Pool, staticExtra, param.HookAddress)
-	// ethrpc needs one struct target (abi tags) for a multi-output call.
-	var fees struct {
-		FeeZeroForOne *big.Int `abi:"feeE6ZeroForOne"` // uint24 decodes to *big.Int
-		FeeOneForZero *big.Int `abi:"feeE6OneForZero"`
+	var cfg struct {
+		RestingSpread          *big.Int `abi:"restingSpreadE6"`
+		BackrunCaptureFraction *big.Int `abi:"backrunCaptureFractionE6"`
+		MidFadeRate            *big.Int `abi:"midFadeRateE6"`
+		MaxMidFade             *big.Int `abi:"maxMidFadeE6"`
+		SkewRate               *big.Int `abi:"skewRateE6"`
+		MaxSkewStep            *big.Int `abi:"maxSkewStepE6"`
+		MaxSkew                *big.Int `abi:"maxSkewE6"`
+		BackrunThreshold       *big.Int `abi:"backrunThresholdE6"`
+		RestoreFraction        *big.Int `abi:"restoreFractionE6"`
+		RestoreThreshold       *big.Int `abi:"restoreThresholdE6"`
 	}
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		SetOverrides(param.Overrides).
-		AddCall(&ethrpc.Call{
-			ABI:    volatilePairHookABI,
-			Target: hexutil.Encode(param.HookAddress[:]),
-			Method: "getFee",
-			Params: []any{poolKey},
-		}, []any{&fees}).Aggregate(); err != nil {
+		AddCall(&ethrpc.Call{ABI: volatilePairHookABI, Target: target, Method: "feeState",
+			Params: []any{poolID}}, []any{&state}).
+		AddCall(&ethrpc.Call{ABI: volatilePairHookABI, Target: target, Method: "feeConfig",
+			Params: []any{poolID}}, []any{&cfg}).
+		Aggregate(); err != nil {
 		return nil, err
 	}
-	if fees.FeeZeroForOne == nil || fees.FeeOneForZero == nil ||
-		fees.FeeZeroForOne.Uint64() >= uint64(uniswapv4.FeeMax) || fees.FeeOneForZero.Uint64() >= uint64(uniswapv4.FeeMax) {
-		return nil, ErrInvalidSwapFee
+
+	c := FeeConfig{
+		RestingSpread: uint32(cfg.RestingSpread.Uint64()), BackrunCaptureFraction: uint32(cfg.BackrunCaptureFraction.Uint64()),
+		MidFadeRate: uint32(cfg.MidFadeRate.Uint64()), MaxMidFade: uint32(cfg.MaxMidFade.Uint64()),
+		SkewRate: uint32(cfg.SkewRate.Uint64()), MaxSkewStep: uint32(cfg.MaxSkewStep.Uint64()),
+		MaxSkew: uint32(cfg.MaxSkew.Uint64()), BackrunThreshold: uint32(cfg.BackrunThreshold.Uint64()),
+		RestoreFraction: uint32(cfg.RestoreFraction.Uint64()), RestoreThreshold: uint32(cfg.RestoreThreshold.Uint64()),
+	}
+	s := FeeState{AskPermFee: uint32(state.AskPermFee.Uint64()), TempFee: uint32(state.TempFee.Uint64()), TempOnBid: state.TempOnBid}
+	s.SqrtPriceTop.SetFromBig(state.SqrtPriceTop)
+	// The contract reverts getFee on an unset config; askPermFee <= restingSpread guards the unsigned subtractions.
+	if c.RestingSpread == 0 || s.AskPermFee > c.RestingSpread {
+		return nil, ErrInvalidFeeState
 	}
 
-	h.Extra = Extra{
-		Tracked:       true,
-		FeeZeroForOne: uniswapv4.FeeAmount(fees.FeeZeroForOne.Uint64()),
-		FeeOneForZero: uniswapv4.FeeAmount(fees.FeeOneForZero.Uint64()),
-	}
+	h.Extra = Extra{Config: c, State: s}
 	return json.Marshal(h)
 }
 
+// BeforeSwap mirrors VolatilePairHook._beforeSwap. A sim swap runs in a later block than the tracked state,
+// so the first one advances the state as the first swap of a new block does; later legs of the route
+// (advanced) see that state and the post-swap price. The fee never depends on the swap size.
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if !h.Tracked {
+	if h.Config.RestingSpread == 0 {
 		return nil, ErrPoolIsNotTracked
 	}
-
-	fee := h.FeeOneForZero
-	if params.ZeroForOne {
-		fee = h.FeeZeroForOne
+	cur := params.SqrtPriceX96
+	if cur == nil || cur.IsZero() {
+		return nil, ErrInvalidSqrtPrice
 	}
 
-	return &uniswapv4.BeforeSwapResult{
+	res := &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   bignumber.ZeroBI,
 		DeltaUnspecified: bignumber.ZeroBI,
-		SwapFee:          fee,
 		Gas:              HookGas,
-	}, nil
+	}
+	state := h.State
+	if !h.advanced {
+		h.Config.advance(&state, cur)
+		res.SwapInfo = &SwapInfo{State: state}
+	}
+	res.SwapFee = uniswapv4.FeeAmount(h.Config.fee(&state, cur, params.ZeroForOne))
+	return res, nil
 }
 
+func (h *Hook) UpdateBalance(swapInfo any) {
+	if info, ok := swapInfo.(*SwapInfo); ok && info != nil {
+		h.State = info.State
+		h.advanced = true
+	}
+}
+
+// CloneState deep-copies: every field is a value, so a struct copy is enough.
 func (h *Hook) CloneState() uniswapv4.Hook {
 	cloned := *h
 	return &cloned
-}
-
-func newPoolKey(pool *entity.Pool, staticExtra *uniswapv4.StaticExtra, hook common.Address) uniswapv4.PoolKey {
-	return uniswapv4.PoolKey{
-		Currency0:   currency(staticExtra.IsNative[0], pool.Tokens[0].Address),
-		Currency1:   currency(staticExtra.IsNative[1], pool.Tokens[1].Address),
-		Fee:         big.NewInt(int64(staticExtra.Fee)),
-		TickSpacing: big.NewInt(int64(staticExtra.TickSpacing)),
-		Hooks:       hook,
-	}
-}
-
-func currency(isNative bool, token string) common.Address {
-	if isNative {
-		return common.Address{}
-	}
-	return common.HexToAddress(token)
 }

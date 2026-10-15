@@ -19,5 +19,6 @@ var (
 	HookAddress = common.HexToAddress("0x000022Ec4eBD6b12294396E852E4C3876b253Cc0")
 
 	ErrPoolIsNotTracked = errors.New("volatile: pool is not tracked")
-	ErrInvalidSwapFee   = errors.New("volatile: invalid swap fee")
+	ErrInvalidFeeState  = errors.New("volatile: invalid fee state")
+	ErrInvalidSqrtPrice = errors.New("volatile: invalid sqrt price")
 )
