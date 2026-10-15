@@ -7,12 +7,10 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Extra struct {
@@ -33,13 +31,6 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, HookAddress)
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	if param.Cfg == nil || param.Cfg.ChainID != valueobject.ChainIDEthereum || param.HookAddress != HookAddress {
-		return nil, ErrUnsupportedDeployment
-	}
-	if err := validateImplementation(ctx, param); err != nil {
-		return nil, err
-	}
-
 	staticExtra := new(uniswapv4.StaticExtra)
 	if err := json.Unmarshal([]byte(param.Pool.StaticExtra), staticExtra); err != nil {
 		return nil, err
@@ -96,30 +87,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 func (h *Hook) CloneState() uniswapv4.Hook {
 	cloned := *h
 	return &cloned
-}
-
-func validateImplementation(ctx context.Context, param *uniswapv4.HookParam) error {
-	account := param.Overrides[HookAddress]
-	if account.Code != nil && crypto.Keccak256Hash(account.Code) != proxyCodeHash {
-		return ErrUnsupportedDeployment
-	}
-
-	var slot []byte
-	if account.State != nil {
-		slot = account.State[implementationSlot].Bytes()
-	} else if value, ok := account.StateDiff[implementationSlot]; ok {
-		slot = value.Bytes()
-	} else {
-		var err error
-		slot, err = param.RpcClient.GetETHClient().StorageAt(ctx, HookAddress, implementationSlot, param.BlockNumber)
-		if err != nil {
-			return err
-		}
-	}
-	if common.BytesToAddress(slot) != ImplementationAddress {
-		return ErrUnsupportedDeployment
-	}
-	return nil
 }
 
 func currency(isNative bool, token string) common.Address {
