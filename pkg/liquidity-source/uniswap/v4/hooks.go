@@ -24,6 +24,8 @@ type BeforeSwapParams struct {
 	CalcOut         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut
+	// SqrtPriceX96 is the pool's current sqrt price, before this swap. Read-only; copy it to keep it.
+	SqrtPriceX96 *uint256.Int
 }
 
 type BeforeSwapResult struct {

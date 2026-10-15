@@ -178,6 +178,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			CalcOut:         true,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountIn,
+			SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 		}); err != nil {
 			return nil, fmt.Errorf("[BeforeSwap] %w", err)
 		} else if err = ValidateBeforeSwapResult(beforeSwapResult); err != nil {
@@ -216,6 +217,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 				CalcOut:         true,
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountIn,
+				SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 			},
 			AmountIn:         amountIn,
 			AmountOut:        swapResult.TokenAmountOut.Amount,
@@ -322,6 +324,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			CalcOut:         false,
 			ZeroForOne:      zeroForOne,
 			AmountSpecified: amountOut,
+			SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 		}); err != nil {
 			return nil, fmt.Errorf("[BeforeSwap] %w", err)
 		} else if err = ValidateBeforeSwapResult(beforeSwapResult); err != nil {
@@ -360,6 +363,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 				CalcOut:         false,
 				ZeroForOne:      zeroForOne,
 				AmountSpecified: amountOut,
+				SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 			},
 			AmountIn:         swapResult.TokenAmountIn.Amount,
 			AmountOut:        amountOut,
