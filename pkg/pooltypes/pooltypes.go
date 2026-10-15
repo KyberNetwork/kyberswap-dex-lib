@@ -168,6 +168,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/saturn"
 	slyngfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slyng-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
