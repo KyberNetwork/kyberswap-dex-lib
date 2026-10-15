@@ -3,7 +3,7 @@ package saturn
 import "errors"
 
 const (
-	DexType = "saturn"
+	DexType = "saturn-usdat"
 
 	defaultReserves = "1000000000000000000000000"
 

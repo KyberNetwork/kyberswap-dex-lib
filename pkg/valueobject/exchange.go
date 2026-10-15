@@ -275,7 +275,7 @@ const (
 	ExchangeRocketPoolRETH              = "rocketpool-reth"
 	ExchangeSafeSwap                    = "safeswap"
 	ExchangeSavingsUSDS                 = "savings-usds"
-	ExchangeSaturn                      = "saturn"
+	ExchangeSaturn                      = "saturn-usdat"
 	ExchangeSboom                       = "sboom"
 	ExchangeSfrxETH                     = "sfrxeth"
 	ExchangeSfrxETHConvertor            = "sfrxeth-convertor"
