@@ -14,9 +14,9 @@ import (
 )
 
 type Extra struct {
-	Tracked        bool                `json:"t,omitempty"`
-	FeeZeroForOne  uniswapv4.FeeAmount `json:"f0,omitempty"`
-	FeeOneForZero  uniswapv4.FeeAmount `json:"f1,omitempty"`
+	Tracked       bool                `json:"t,omitempty"`
+	FeeZeroForOne uniswapv4.FeeAmount `json:"f0,omitempty"`
+	FeeOneForZero uniswapv4.FeeAmount `json:"f1,omitempty"`
 }
 
 type Hook struct {
