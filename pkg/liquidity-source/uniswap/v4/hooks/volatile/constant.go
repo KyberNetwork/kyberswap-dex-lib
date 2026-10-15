@@ -10,6 +10,10 @@ import (
 
 const DexType = valueobject.ExchangeUniswapV4Volatile
 
+// HookGas is the mean gas of the beforeSwap + afterSwap calls into the hook over 60 first-in-block
+// swaps on the ETH/USDC pool (blocks 26192646..26193390): beforeSwap ~21227, afterSwap ~1439.
+const HookGas int64 = 22666
+
 var (
 	HookAddress = common.HexToAddress("0x000022Ec4eBD6b12294396E852E4C3876b253Cc0")
 

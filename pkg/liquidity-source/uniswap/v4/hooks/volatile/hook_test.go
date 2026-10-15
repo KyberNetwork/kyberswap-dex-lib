@@ -21,6 +21,7 @@ func TestBeforeSwap_UsesDirectionalFee(t *testing.T) {
 	res0, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{ZeroForOne: true, AmountSpecified: big.NewInt(1), CalcOut: true})
 	require.NoError(t, err)
 	require.Equal(t, uniswapv4.FeeAmount(900), res0.SwapFee)
+	require.Equal(t, HookGas, res0.Gas)
 	require.Zero(t, res0.DeltaSpecified.Sign())
 	require.Zero(t, res0.DeltaUnspecified.Sign())
 

@@ -81,6 +81,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		DeltaSpecified:   bignumber.ZeroBI,
 		DeltaUnspecified: bignumber.ZeroBI,
 		SwapFee:          fee,
+		Gas:              HookGas,
 	}, nil
 }
 
