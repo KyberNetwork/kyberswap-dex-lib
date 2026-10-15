@@ -47,13 +47,26 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	}{{"sell_eth", weth, usdc, big.NewInt(1e18)}, {"buy_eth", usdc, weth, big.NewInt(2_000_000_000)}} {
 		params := pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: bc.in, Amount: bc.amt}, TokenOut: bc.out}
-		b.Run(bc.name, func(b *testing.B) {
-			b.ReportAllocs()
-			for b.Loop() {
-				if _, err := sim.CalcAmountOut(params); err != nil {
-					b.Fatal(err)
+		// second leg: the route already swapped through the pool, so the state is advanced (no advance cost)
+		leg1, err := sim.CalcAmountOut(params)
+		if err != nil {
+			b.Fatal(err)
+		}
+		cloned := sim.CloneState().(*uniswapv4.PoolSimulator)
+		cloned.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn,
+			TokenAmountOut: *leg1.TokenAmountOut, Fee: *leg1.Fee, SwapInfo: leg1.SwapInfo})
+		for _, c := range []struct {
+			leg string
+			sim *uniswapv4.PoolSimulator
+		}{{"first", sim}, {"second", cloned}} {
+			b.Run(bc.name+"_"+c.leg, func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					if _, err := c.sim.CalcAmountOut(params); err != nil {
+						b.Fatal(err)
+					}
 				}
-			}
-		})
+			})
+		}
 	}
 }

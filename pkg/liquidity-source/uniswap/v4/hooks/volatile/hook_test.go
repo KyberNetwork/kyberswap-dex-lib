@@ -44,8 +44,9 @@ type fixtureFile struct {
 var liveConfig = FeeConfig{RestingSpread: 800, BackrunCaptureFraction: 500000, MidFadeRate: 4000000, MaxMidFade: 200,
 	SkewRate: 1000000, MaxSkewStep: 300, MaxSkew: 800, BackrunThreshold: 500, RestoreFraction: 1000000, RestoreThreshold: 500}
 
+// benchHookExtra is the state tracked live in e2e: top price ~0.2% off the pool's, so the advance runs every term.
 const benchHookExtra = `{"c":{"rs":800,"bc":500000,"mr":4000000,"mm":200,"sr":1000000,"ss":300,"ms":800,"bt":500,"rf":1000000,"rt":500},` +
-	`"s":{"p":"3845578974581658764126876","a":300}}`
+	`"s":{"p":"3853236953652880176195922","a":800,"b":true}}`
 
 func (s fixtureState) feeState(t testing.TB) FeeState {
 	var fs FeeState
@@ -186,13 +187,19 @@ func TestBeforeSwap_Errors(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidSqrtPrice)
 }
 
-// Prod holds hX in the old flat shape ({"t","f0","f1"}) until the tracker rewrites it: that must not quote.
-func TestHookFactory_LegacyExtraIsUntracked(t *testing.T) {
-	hook, ok := uniswapv4.GetHook(HookAddress, &uniswapv4.HookParam{
-		HookExtra: uniswapv4.HookExtra(`{"t":true,"f0":800,"f1":263}`)})
-	require.True(t, ok)
-	_, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{SqrtPriceX96: uint256.NewInt(1)})
-	require.ErrorIs(t, err, ErrPoolIsNotTracked)
+// Until the tracker rewrites it, prod's hX for this pool is the uniswap-v4-fee shape (the pool is routed as
+// that exchange today); the first flat shape ({"t","f0","f1"}) only lived in earlier local runs. Neither
+// carries a fee config, so both must refuse to quote rather than quote near-zero fees.
+func TestHookFactory_ForeignExtraIsUntracked(t *testing.T) {
+	for _, extra := range []string{
+		`{"f":[{"i":1251},{"i":211}],"g":[46841,805346],"u":1792048165}`,
+		`{"t":true,"f0":800,"f1":263}`,
+	} {
+		hook, ok := uniswapv4.GetHook(HookAddress, &uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(extra)})
+		require.True(t, ok)
+		_, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{SqrtPriceX96: uint256.NewInt(1)})
+		require.ErrorIs(t, err, ErrPoolIsNotTracked, extra)
+	}
 }
 
 func TestHookExtra_JSONRoundTrip(t *testing.T) {
