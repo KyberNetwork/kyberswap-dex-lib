@@ -149,7 +149,7 @@ func TestCloneState_IsolatesAdvance(t *testing.T) {
 // Backrun side pays baseline + ceil(capture * move); the continuing side pays baseline + maxMidFade.
 func TestBeforeSwap_DisplacementBackrunAndContinuing(t *testing.T) {
 	state := FeeState{AskPermFee: 300}
-	state.SqrtPriceTop.SetFromDecimal("3900000000000000000000000")
+	require.NoError(t, state.SqrtPriceTop.SetFromDecimal("3900000000000000000000000"))
 	for _, tc := range []struct {
 		name       string
 		price      string
