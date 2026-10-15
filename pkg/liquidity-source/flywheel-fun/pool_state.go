@@ -131,7 +131,10 @@ func (t *PoolTracker) canonical(ctx context.Context, token string, c CurveRPC, b
 	}
 	key := wrapped.Key
 	computed, err := keyID(key)
-	if err != nil || computed != id.Hex() || !((key.Currency0 == common.HexToAddress(token) && key.Currency1 == c.QuoteAsset) || (key.Currency1 == common.HexToAddress(token) && key.Currency0 == c.QuoteAsset)) {
+	tokenAddr := common.HexToAddress(token)
+	if err != nil || computed != id.Hex() ||
+		(key.Currency0 != tokenAddr || key.Currency1 != c.QuoteAsset) &&
+			(key.Currency1 != tokenAddr || key.Currency0 != c.QuoteAsset) {
 		return entity.Pool{}, [2]uint32{}, ErrState
 	}
 	return t.trackV4(ctx, key, block)

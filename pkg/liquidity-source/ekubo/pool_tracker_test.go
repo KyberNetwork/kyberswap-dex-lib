@@ -1,19 +1,28 @@
 package ekubo
 
 import (
+	"bytes"
 	"context"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -262,4 +271,113 @@ func TestPoolListTrackerTestSuite(t *testing.T) {
 	test.SkipCI(t)
 
 	suite.Run(t, new(PoolListTrackerTestSuite))
+}
+
+type testBasicQuoteTick struct {
+	Number         int32
+	LiquidityDelta *big.Int
+}
+
+type testBasicQuoteData struct {
+	Tick      int32
+	SqrtRatio *big.Int
+	Liquidity *big.Int
+	MinTick   int32
+	MaxTick   int32
+	Ticks     []testBasicQuoteTick
+}
+
+func TestFetchPoolsBasicBatchReturnsMulticallBlockNumber(t *testing.T) {
+	t.Parallel()
+
+	const wantBlockNumber = 12345
+
+	quoteMethod := abis.BasicDataFetcherABI.Methods[basicDataFetcherMethod]
+	quoteBytes, err := quoteMethod.Outputs.Pack([]testBasicQuoteData{{
+		Tick:      0,
+		SqrtRatio: new(big.Int).Lsh(big.NewInt(1), 95),
+		Liquidity: big.NewInt(1_000_000),
+		MinTick:   -887272,
+		MaxTick:   887272,
+		Ticks:     []testBasicQuoteTick{},
+	}})
+	require.NoError(t, err)
+
+	uint256Type, err := abi.NewType("uint256", "", nil)
+	require.NoError(t, err)
+	bytesArrType, err := abi.NewType("bytes[]", "", nil)
+	require.NoError(t, err)
+	aggregateBytes, err := abi.Arguments{
+		{Name: "blockNumber", Type: uint256Type},
+		{Name: "returnData", Type: bytesArrType},
+	}.Pack(big.NewInt(wantBlockNumber), [][]byte{quoteBytes})
+	require.NoError(t, err)
+
+	aggregateSelector := crypto.Keccak256([]byte("aggregate((address,bytes)[])"))[:4]
+	aggregateResult := hexutil.Encode(aggregateBytes)
+	quoteResult := hexutil.Encode(quoteBytes)
+
+	var aggregateCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID     json.RawMessage   `json:"id"`
+			Method string            `json:"method"`
+			Params []json.RawMessage `json:"params"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var result any = "0x1"
+		if req.Method == "eth_call" {
+			var call struct {
+				Input string `json:"input"`
+				Data  string `json:"data"`
+			}
+			if err := json.Unmarshal(req.Params[0], &call); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			input := call.Input
+			if input == "" {
+				input = call.Data
+			}
+			data, err := hexutil.Decode(input)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			switch {
+			case bytes.HasPrefix(data, aggregateSelector):
+				aggregateCalls.Add(1)
+				result = aggregateResult
+			case bytes.HasPrefix(data, quoteMethod.ID):
+				result = quoteResult
+			default:
+				http.Error(w, "unexpected call data", http.StatusBadRequest)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": result})
+	}))
+	t.Cleanup(srv.Close)
+
+	client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x4444444444444444444444444444444444444444"))
+	cfg := MainnetConfig
+	fetcher := NewDataFetchers(client, &cfg)
+
+	key := pools.NewPoolKey(
+		common.HexToAddress("0x0000000000000000000000000000000000000001"),
+		common.HexToAddress("0x0000000000000000000000000000000000000002"),
+		pools.PoolConfig{Fee: 3000, TickSpacing: 60},
+	)
+
+	states, err := fetcher.fetchPools(context.Background(), []*pools.PoolKey{key}, nil)
+	require.NoError(t, err)
+	require.Len(t, states, 1)
+	require.Equal(t, int32(1), aggregateCalls.Load())
+	require.Equal(t, uint64(wantBlockNumber), states[0].blockNumber)
 }

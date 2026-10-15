@@ -88,7 +88,7 @@ func TestTrack_Live(t *testing.T) {
 
 	for _, d := range deployments {
 		rpcClient := ethrpc.New(d.rpc).SetMulticallContract(common.HexToAddress(multicall3))
-		h := &Hook{Hook: &uniswapv4.BaseHook{}}
+		h := &Hook{}
 		raw, err := h.Track(context.Background(), &uniswapv4.HookParam{
 			RpcClient:   rpcClient,
 			HookAddress: d.hook,

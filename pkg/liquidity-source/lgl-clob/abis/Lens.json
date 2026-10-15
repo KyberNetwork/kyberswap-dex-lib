@@ -1,0 +1,12 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {"name": "pool", "type": "address", "internalType": "address"},
+      {"name": "helper", "type": "address", "internalType": "address"},
+      {"name": "maxPriceLevels", "type": "uint24", "internalType": "uint24"},
+      {"name": "measure", "type": "bool", "internalType": "bool"}
+    ],
+    "stateMutability": "payable"
+  }
+]

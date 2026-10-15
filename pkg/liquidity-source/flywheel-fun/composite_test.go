@@ -18,14 +18,37 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-func snapshots(t *testing.T) []entity.Pool {
+// These are real replacement-contract snapshots. External bases were captured
+// at the same block; router-service supplies those independently indexed pools.
+func snapshots(t testing.TB) []entity.Pool {
 	t.Helper()
-	b, e := os.ReadFile("testdata/fork-markets.json")
+	b, e := os.ReadFile("testdata/replacement-fork-markets.json")
 	require.NoError(t, e)
-	var out []entity.Pool
-	require.NoError(t, json.Unmarshal(b, &out))
-	require.GreaterOrEqual(t, len(out), 5)
+	var captured []entity.Pool
+	require.NoError(t, json.Unmarshal(b, &captured))
+	require.Len(t, captured, 9)
+	out := make([]entity.Pool, 0, len(captured))
+	for _, i := range []int{0, 1, 3, 2, 4, 5, 6, 7, 8} {
+		out = append(out, withIndexedBases(t, captured[i]))
+	}
 	return out
+}
+func withIndexedBases(t testing.TB, p entity.Pool) entity.Pool {
+	t.Helper()
+	var st StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &st))
+	var ex struct {
+		RoutePools []entity.Pool `json:"routePools"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &ex))
+	st.BasePools = nil
+	for _, ep := range ex.RoutePools {
+		st.BasePools = append(st.BasePools, ep.Address)
+	}
+	b, e := json.Marshal(st)
+	require.NoError(t, e)
+	p.StaticExtra = string(b)
+	return p
 }
 
 func baseSim(t testing.TB, ep entity.Pool) pool.IPoolSimulator {
@@ -42,30 +65,25 @@ func baseSim(t testing.TB, ep entity.Pool) pool.IPoolSimulator {
 }
 
 // baseMap stands in for router-service's basePoolMap of indexed uniswap pools.
-func baseMap(t testing.TB) map[string]pool.IPoolSimulator {
+func baseMap(t testing.TB, p entity.Pool) map[string]pool.IPoolSimulator {
 	t.Helper()
-	b, err := os.ReadFile("testdata/fork-bases.json")
-	require.NoError(t, err)
-	var eps []entity.Pool
-	require.NoError(t, json.Unmarshal(b, &eps))
-	out := make(map[string]pool.IPoolSimulator, len(eps))
-	for _, ep := range eps {
+	var ex struct {
+		RoutePools []entity.Pool `json:"routePools"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &ex))
+	out := make(map[string]pool.IPoolSimulator, len(ex.RoutePools))
+	for _, ep := range ex.RoutePools {
+		require.Equal(t, p.BlockNumber, ep.BlockNumber)
 		out[ep.Address] = baseSim(t, ep)
 	}
 	return out
 }
+
 func newSim(t testing.TB, p entity.Pool) *PoolSimulator {
 	t.Helper()
-	s, err := NewPoolSimulatorWithBases(p, baseMap(t))
+	s, err := NewPoolSimulatorWithBases(p, baseMap(t, p))
 	require.NoError(t, err)
 	return s
-}
-func fingerprint(p pool.IPoolSimulator) string {
-	if p == nil {
-		return ""
-	}
-	c, _ := core(p)
-	return c.V3Pool.SqrtRatioX96.Dec() + "/" + c.V3Pool.Liquidity.Dec()
 }
 func quoteBuy(t *testing.T, s *PoolSimulator, amount int64) *pool.CalcAmountOutResult {
 	t.Helper()
@@ -80,13 +98,13 @@ func TestBasePoolsFromBaseMap(t *testing.T) {
 	p := snapshots(t)[2]
 	_, err := NewPoolSimulator(p)
 	require.ErrorIs(t, err, ErrBasePool, "a routed launch is unquotable without its indexed base pool")
-	bases := baseMap(t)
+	bases := baseMap(t, p)
 	s, err := NewPoolSimulatorWithBases(p, bases)
 	require.NoError(t, err)
 	base := s.GetBasePools()[0]
 	require.Same(t, bases[base.GetAddress()], base, "uses the indexed pool's simulator, not a snapshot")
 	price := fingerprint(base)
-	q := quoteBuy(t, s, 1000000000000)
+	q := quoteBuy(t, s, 1000000000)
 	require.Equal(t, price, fingerprint(base), "quotes do not mutate the base")
 
 	clone := s.CloneState().(*PoolSimulator)
@@ -94,12 +112,12 @@ func TestBasePoolsFromBaseMap(t *testing.T) {
 	require.True(t, clone.Valid)
 	require.Equal(t, price, fingerprint(base), "clones own their bases")
 	direct := func(b pool.IPoolSimulator) *big.Int {
-		r, e := b.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(1000000000000)}, TokenOut: s.Static.Quote})
+		r, e := b.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(1000000000)}, TokenOut: s.Static.Quote})
 		require.NoError(t, e)
 		return r.TokenAmountOut.Amount
 	}
 	require.Negative(t, direct(clone.Base).Cmp(direct(base)), "the route leg consumed the clone's base liquidity")
-	require.Negative(t, quoteBuy(t, clone, 1000000000000).TokenAmountOut.Amount.Cmp(q.TokenAmountOut.Amount))
+	require.Negative(t, quoteBuy(t, clone, 1000000000).TokenAmountOut.Amount.Cmp(q.TokenAmountOut.Amount))
 
 	clone.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: q.SwapInfo})
 	require.False(t, clone.Valid, "a stale quote is rejected")
@@ -131,7 +149,7 @@ func TestCompositeSnapshotsPurityAndProtection(t *testing.T) {
 		require.True(t, common.IsHexAddress(a), a)
 	}
 }
-func TestDirectionalProtocolFeeAndCalldata(t *testing.T) {
+func TestDirectionalProtocolFee(t *testing.T) {
 	p := snapshots(t)[0]
 	var e Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &e))
@@ -149,17 +167,9 @@ func TestDirectionalProtocolFeeAndCalldata(t *testing.T) {
 	split, err := BuyQuote(gross, rate)
 	require.NoError(t, err)
 	isolated := s.MarketPool.CloneState().(*v3.PoolSimulator)
-	out, _, _, err := swapCL(isolated, &split.Net, WETH, s.Info.Address, rate)
+	out, _, _, err := swapCL(isolated, &split.Net, WETH, s.Info.Address, rate, -1)
 	require.NoError(t, err)
 	require.Equal(t, out.ToBig(), q.TokenAmountOut.Amount)
-	data, err := EncodeTradeData(info, 75, 100, 400)
-	require.NoError(t, err)
-	decoded, err := tradeArguments.Unpack(data)
-	require.NoError(t, err)
-	trade := abi.ConvertType(decoded[0], new(AdapterTrade)).(*AdapterTrade)
-	require.Equal(t, new(big.Int).Div(new(big.Int).Mul(gross.ToBig(), big.NewInt(9925)), big.NewInt(10000)), trade.MinQuote)
-	require.Zero(t, trade.MinRefundETH.Sign())
-	require.Empty(t, trade.Route)
 	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
 	sell, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *q.TokenAmountOut, TokenOut: WETH})
 	require.NoError(t, err)
@@ -244,4 +254,28 @@ func TestRouteFromBasePool(t *testing.T) {
 		_, err := NewPoolSimulatorWithBases(p, c.bases)
 		require.ErrorIs(t, err, c.err, name)
 	}
+}
+
+// The settlement reverts buyWithRefund on a full fill and buy on a partial one, so the
+// encoder reads SwapInfo.Refunds (via the route-summary JSON) to pick the entry point.
+func TestRefundsFlagReachesEncoder(t *testing.T) {
+	for _, p := range snapshots(t) {
+		s := newSim(t, p)
+		if s.Static.Quote != WETH || s.Curve.Graduated {
+			continue
+		}
+		small := quoteBuy(t, s, 1000000000).SwapInfo.(SwapInfo)
+		require.False(t, small.Refunds)
+		large, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 100)}, TokenOut: s.Info.Address})
+		if err != nil {
+			continue
+		}
+		raw, err := json.Marshal(large.SwapInfo)
+		require.NoError(t, err)
+		var m map[string]any
+		require.NoError(t, json.Unmarshal(raw, &m))
+		require.Equal(t, true, m["refunds"])
+		return
+	}
+	t.Skip("no curve snapshot crosses graduation")
 }

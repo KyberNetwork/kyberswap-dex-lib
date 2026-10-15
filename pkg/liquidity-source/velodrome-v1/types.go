@@ -11,6 +11,7 @@ import (
 type PoolStaticExtra struct {
 	FeePrecision uint64 `json:"feePrecision"`
 	Stable       bool   `json:"stable,omitempty"`
+	Gas          int64  `json:"g,omitempty"`
 }
 
 type PoolExtra struct {

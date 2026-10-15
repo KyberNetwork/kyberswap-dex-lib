@@ -2,14 +2,13 @@ package lglclob
 
 import (
 	"context"
-	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -41,45 +40,26 @@ func (t *PoolTracker) GetNewPoolState(
 	})
 	l.Info("Start getting new state")
 
-	var orderBookRPC OrderBookRPC
-	poolAddr := common.HexToAddress(p.Address)
-	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
-		ABI:    onchainClobHelperABI,
-		Target: t.config.HelperAddress,
-		Method: "assembleOrderbookFromOrders",
-		Params: []any{poolAddr, false, bMaxPriceLevels},
-	}, []any{&orderBookRPC.Bids}).AddCall(&ethrpc.Call{
-		ABI:    onchainClobHelperABI,
-		Target: t.config.HelperAddress,
-		Method: "assembleOrderbookFromOrders",
-		Params: []any{poolAddr, true, bMaxPriceLevels},
-	}, []any{&orderBookRPC.Asks}).TryBlockAndAggregate()
+	var last Extra
+	_ = json.Unmarshal([]byte(p.Extra), &last)
+	now := time.Now()
+	measure := measureDue(last, now)
+	state, err := readState(ctx, t.ethrpcClient, common.HexToAddress(p.Address),
+		common.HexToAddress(t.config.HelperAddress), measure)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to aggregate RPC requests")
+		}).Error("failed to read the pool's state")
 		return entity.Pool{}, err
 	}
 
-	orderBook := OrderBook{
-		Bids: OrderBookLevels{
-			ArrayPrices: lo.Map(orderBookRPC.Bids.ArrayPrices, func(price *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(price)
-			}),
-			ArrayShares: lo.Map(orderBookRPC.Bids.ArrayShares, func(share *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(share)
-			}),
-		},
-		Asks: OrderBookLevels{
-			ArrayPrices: lo.Map(orderBookRPC.Asks.ArrayPrices, func(price *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(price)
-			}),
-			ArrayShares: lo.Map(orderBookRPC.Asks.ArrayShares, func(share *big.Int, _ int) *uint256.Int {
-				return uint256.MustFromBig(share)
-			}),
-		},
+	// The market maker's quote is measured now and then, and kept in between.
+	extra := Extra{OrderBook: state.book, MakerQuoteGas: last.MakerQuoteGas, MeasuredAt: last.MeasuredAt}
+	if measure {
+		extra.MakerQuoteGas, extra.MeasuredAt = state.makerQuoteGas(), now.Unix()
 	}
-	extraBytes, err := json.Marshal(orderBook)
+
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -90,18 +70,18 @@ func (t *PoolTracker) GetNewPoolState(
 	var staticExtra StaticExtra
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	var reserveX, reserveY uint256.Int
-	for i, share := range orderBook.Bids.ArrayShares {
-		reserveY.Add(&reserveY, reserveX.Mul(share, orderBook.Bids.ArrayPrices[i]))
+	for i, share := range state.book.Bids.ArrayShares {
+		reserveY.Add(&reserveY, reserveX.Mul(share, state.book.Bids.ArrayPrices[i]))
 	}
 	reserveX.Clear()
-	for _, share := range orderBook.Asks.ArrayShares {
+	for _, share := range state.book.Asks.ArrayShares {
 		reserveX.Add(&reserveX, share)
 	}
 
 	p.Reserves = entity.PoolReserves{reserveX.Mul(&reserveX, staticExtra.ScalingFactorX).String(),
 		reserveY.Mul(&reserveY, staticExtra.ScalingFactorY).String()}
 	p.Extra = string(extraBytes)
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	p.BlockNumber = state.block
 
 	l.Info("Finish updating state of pool")
 	return p, nil

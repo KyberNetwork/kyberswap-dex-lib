@@ -1,0 +1,7 @@
+go test fuzz v1
+byte('\x03')
+uint32(14)
+byte('P')
+[]byte("A000000000000000000")
+uint64(1000062)
+bool(false)

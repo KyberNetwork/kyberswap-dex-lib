@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,9 +28,13 @@ type Hook struct {
 
 	Reserve0 *uint256.Int `json:"r0"`
 	Reserve1 *uint256.Int `json:"r1"`
-
-	TrackedAt uint64 `json:"t"`
 }
+
+// NowFn is the clock the staleness gate reads; a variable so tests can pin it.
+var NowFn = func() int64 { return time.Now().Unix() }
+
+// stalenessMarginSec covers the gap between quote and on-chain execution.
+const stalenessMarginSec = 5
 
 type SwapInfo struct {
 	NewReserve0 *uint256.Int
@@ -41,6 +46,10 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4ST0x},
 	}
 	_ = param.HookExtra.Unmarshal(hook)
+	if param.Pool != nil && len(param.Pool.Reserves) == 2 {
+		hook.Reserve0, _ = uint256.FromDecimal(param.Pool.Reserves[0])
+		hook.Reserve1, _ = uint256.FromDecimal(param.Pool.Reserves[1])
+	}
 	return hook
 }, HookAddresses...)
 
@@ -112,18 +121,20 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	h.UpdatedAt = price.Data.UpdatedAt.Uint64()
 	h.SpreadBps = price.Data.SpreadBps.Uint64()
 	h.MaxStaleness = maxStaleness.Uint64()
-	if param.BlockNumber != nil {
-		h.TrackedAt = param.BlockNumber.Uint64()
-	}
 
 	return json.Marshal(h)
 }
+
+// TracksActivity opts in to the tracker bumping Timestamp/BlockNumber when hX changes:
+// hX holds only chain state (no tracker clock), so a change means the pool moved.
+func (h *Hook) TracksActivity() {}
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.Price == 0 {
 		return nil, ErrNoPriceSet
 	}
-	if h.MaxStaleness > 0 && h.TrackedAt > h.UpdatedAt+h.MaxStaleness {
+	// PropAMMHook.sol reverts when block.timestamp > updatedAt + maxStaleness (seconds).
+	if h.MaxStaleness > 0 && uint64(NowFn()+stalenessMarginSec) > h.UpdatedAt+h.MaxStaleness {
 		return nil, ErrStalePrice
 	}
 
@@ -134,6 +145,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			DeltaUnspecified: bignumber.ZeroBI,
 			Gas:              gasBeforeSwap,
 		}, nil
+	}
+
+	if h.Reserve0 == nil || h.Reserve1 == nil {
+		return nil, ErrMissingReserves
 	}
 
 	amtU, overflow := uint256.FromBig(amt)

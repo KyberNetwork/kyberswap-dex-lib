@@ -7,10 +7,9 @@ import (
 )
 
 var (
-	rangePoolABI    abi.ABI
-	rangeFactoryABI abi.ABI
-	rangeVaultABI   abi.ABI
-	rangeRouterABI  abi.ABI
+	rangePoolABI   abi.ABI
+	rangeVaultABI  abi.ABI
+	rangeRouterABI abi.ABI
 )
 
 func init() {
@@ -19,7 +18,6 @@ func init() {
 		data []byte
 	}{
 		{&rangePoolABI, rangePoolJson},
-		{&rangeFactoryABI, rangePoolFactoryJson},
 		{&rangeVaultABI, rangeVaultJson},
 		{&rangeRouterABI, rangeRouterJson},
 	} {

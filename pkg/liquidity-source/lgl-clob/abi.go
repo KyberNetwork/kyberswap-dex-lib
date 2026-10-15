@@ -1,30 +1,15 @@
 package lglclob
 
 import (
-	"bytes"
+	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	abiutil "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 var (
-	onchainClobHelperABI abi.ABI
-	onchainClobABI       abi.ABI
+	onchainClobABI = abiutil.MustParseABI(OnchainClobABIJson)
+	lensABI        = abiutil.MustParseABI(lensABIJson)
+	lensBytecode   = hexutil.MustDecode(strings.TrimSpace(lensBytecodeHex))
 )
-
-func init() {
-	builder := []struct {
-		ABI  *abi.ABI
-		data []byte
-	}{
-		{&onchainClobHelperABI, onchainClobHelperABIJson},
-		{&onchainClobABI, OnchainClobABIJson},
-	}
-
-	for _, b := range builder {
-		var err error
-		*b.ABI, err = abi.JSON(bytes.NewReader(b.data))
-		if err != nil {
-			panic(err)
-		}
-	}
-}

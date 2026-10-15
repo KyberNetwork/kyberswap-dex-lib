@@ -139,7 +139,7 @@ func (t *PoolTracker) fetchRPCData(
 			ABI:    abi.Erc20ABI,
 			Target: innerDai,
 			Method: abi.Erc20BalanceOfMethod,
-			Params: []any{*lo.CoalesceOrEmpty(staticExtra.GemJoin, &psm)},
+			Params: []any{*lo.CoalesceOrEmpty(staticExtra.GemJoin, staticExtra.InnerPsm, &psm)},
 		}, []any{&reserves[0]})
 	}
 	resp, err := req.Aggregate()

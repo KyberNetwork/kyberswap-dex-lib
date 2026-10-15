@@ -6,53 +6,59 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Pair is one element of getSupportedPairs()'s (address,address)[] return.
+// Pair is one element of getSupportedPairs()'s return. The order inside a
+// pair has no meaning.
 type Pair struct {
-	Token0 common.Address
-	Token1 common.Address
+	TokenA common.Address
+	TokenB common.Address
 }
 
-// Order is one resting order in a getOrderBook() side: an (amountIn, amountOut)
-// quote, not a cumulative tier -- see order-book package's Level type, which
-// this gets converted into.
-type Order struct {
-	AmountIn  *big.Int
-	AmountOut *big.Int
+// QuoteParams prices a book for the exact transaction described.
+type QuoteParams struct {
+	MsgSender common.Address
+	TxOrigin  common.Address
+	GasPrice  *big.Int
+	PathType  uint8 // 0 = swap, 1 = swapWithCallback
 }
 
-// Side is one of getOrderBook()'s two returned order lists. S1-S4 are present
-// on-chain but unused here (see prism-prop discovery notes: no on-chain fee
-// getter was found, and these scalars aren't needed to build the ladder).
-type Side struct {
-	Orders []Order
-	S1     *big.Int
-	S2     *big.Int
-	S3     *big.Int
-	S4     *big.Int
+// BookLevel is a marginal (not cumulative) level; both amounts are in native
+// decimals, baseAmount in baseToken and quoteAmount in quoteToken.
+type BookLevel struct {
+	BaseAmount  *big.Int
+	QuoteAmount *big.Int
 }
 
-// OrderBook mirrors getOrderBook(address,address)'s single dynamic-tuple
-// return value.
+// BookSide lists levels best price first, already cut to vault inventory and
+// trade-size caps.
+type BookSide struct {
+	Levels             []BookLevel
+	OutputVaultBalance *big.Int
+	MinTradeSize       *big.Int
+	MaxTradeSize       *big.Int
+	Tif                uint64
+}
+
+// OrderBook mirrors getOrderBookWithParams' PairOrderBook. Bids: the taker
+// sells base and receives quote. Asks: the taker buys base and pays quote.
 type OrderBook struct {
-	Token0      common.Address
-	Token1      common.Address
-	BlockNumber *big.Int
-	Side0       Side
-	Side1       Side
+	BaseToken     common.Address
+	QuoteToken    common.Address
+	SnapshotBlock uint64
+	Bids          BookSide
+	Asks          BookSide
 }
 
 // getOrderBookResult wraps OrderBook because go-ethereum's abi.Copy, when a
 // method has exactly one return value, assigns the whole unpacked value into
 // the FIRST FIELD of the destination struct (Arguments.copyAtomic) rather
-// than into the destination struct itself. Passing *OrderBook directly here
-// would silently assign the entire order book into OrderBook.Token0.
+// than into the destination struct itself.
 type getOrderBookResult struct {
 	Book OrderBook
 }
 
 // StaticExtra is stored in entity.Pool.StaticExtra and never changes: the
 // single router contract every prism-prop pool quotes and swaps through
-// (there's one router per chain, unlike titan-prop's per-venue contracts).
+// (there's one router per chain).
 type StaticExtra struct {
 	RouterAddress string `json:"router"`
 }

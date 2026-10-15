@@ -67,6 +67,9 @@ const (
 	ExchangeBurrBearComposableStable    = "burrbear-composable-stable"
 	ExchangeBurrBearStable              = "burrbear-stable"
 	ExchangeBurrBearWeighted            = "burrbear-weighted"
+	ExchangeBushV3ReCLAMM               = "bush-v3-reclamm"
+	ExchangeBushV3Stable                = "bush-v3-stable"
+	ExchangeBushV3Weighted              = "bush-v3-weighted"
 	ExchangeCaliberProp                 = "caliber-prop"
 	ExchangeCanonic                     = "canonic"
 	ExchangeCapricornPamm               = "capricorn-pamm"
@@ -81,6 +84,7 @@ const (
 	ExchangeCometh                      = "cometh"
 	ExchangeCompoundV2                  = "compound-v2"
 	ExchangeCronaSwap                   = "cronaswap"
+	ExchangeCrystalOB                   = "crystal-ob"
 	ExchangeCurve                       = "curve"
 	ExchangeCurveLending                = "curve-lending"
 	ExchangeCurveLlamma                 = "curve-llamma"
@@ -152,6 +156,7 @@ const (
 	ExchangeGhost                       = "ghost"
 	ExchangeInfinifi                    = "infinifi-gateway"
 	ExchangeInfinityPools               = "infinitypools"
+	ExchangeIlyrisLB                    = "ilyris-lb"
 	ExchangeIntegral                    = "integral"
 	ExchangeJetSwap                     = "jetswap"
 	ExchangeKanseiV2                    = "kansei-v2"
@@ -171,6 +176,7 @@ const (
 	ExchangeKyberSwapLimitOrder         = "kyberswap-limit-order"
 	ExchangeKyberSwapLimitOrderDS       = "kyberswap-limit-order-v2"
 	ExchangeLiquidCore                  = "liquidcore"
+	ExchangeUSCoreProp                  = "uscore-prop"
 	ExchangeLiquidityParty              = "liquidity-party"
 	ExchangeListaStable                 = "lista-stable"
 	ExchangeListaStake                  = "lista-stake"
@@ -191,6 +197,7 @@ const (
 	ExchangeMapleSyrup                  = "maple-syrup"
 	ExchangeMaverickV2                  = "maverick-v2"
 	ExchangeMemeBox                     = "memebox"
+	ExchangeMento                       = "mento"
 	ExchangeMeshSwap                    = "meshswap"
 	ExchangeMetronomeSwap               = "metronome-swap"
 	ExchangeMetropolis                  = "metropolis"
@@ -205,6 +212,7 @@ const (
 	ExchangeNabla                       = "nabla"
 	ExchangeNadFun                      = "nad-fun"
 	ExchangeNadSwap                     = "nadswap"
+	ExchangeNemoProp                    = "nemo-prop"
 	ExchangeNativeV1                    = "native-v1"
 	ExchangeNativeV2                    = "native-v2"
 	ExchangeNativeV3                    = "native-v3"
@@ -316,6 +324,7 @@ const (
 	ExchangeUniswapV4Alphix             = "uniswap-v4-alphix"
 	ExchangeUniswapV4Angstrom           = "uniswap-v4-angstrom"
 	ExchangeUniswapV4AngstromL2         = "uniswap-v4-angstrom-l2"
+	ExchangeUniswapV4ApeFun             = "uniswap-v4-apefun"
 	ExchangeUniswapV4Arcade             = "uniswap-v4-arcade"
 	ExchangeUniswapV4Arena              = "uniswap-v4-arena"
 	ExchangeUniswapV4Arrakis            = "uniswap-v4-arrakis"
@@ -325,20 +334,25 @@ const (
 	ExchangeUniswapV4Clanker            = "uniswap-v4-clanker"
 	ExchangeUniswapV4CooCoo             = "uniswap-v4-coocoo"
 	ExchangeUniswapV4Cult               = "uniswap-v4-cult"
+	ExchangeUniswapV4DaosWorld          = "uniswap-v4-daosworld"
 	ExchangeUniswapV4Deli               = "uniswap-v4-deli"
 	ExchangeUniswapV4Doppler            = "uniswap-v4-doppler"
 	ExchangeUniswapV4DualPool           = "uniswap-v4-dualpool"
 	ExchangeUniswapV4Euler              = "uniswap-v4-euler"
 	ExchangeUniswapV4EulerV2            = "uniswap-v4-euler-v2"
 	ExchangeUniswapV4EVPLUSAI           = "uniswap-v4-evplusai"
+	ExchangeUniswapV4FableCurve         = "uniswap-v4-fablecurve"
 	ExchangeUniswapV4Fables             = "uniswap-v4-fables"
 	ExchangeUniswapV4FairFlow           = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch            = "uniswap-v4-flaunch"
 	ExchangeUniswapV4GlueHook           = "uniswap-v4-gluehook"
+	ExchangeUniswapV4HyFiProp           = "uniswap-v4-hyfiprop"
 	ExchangeUniswapV4Inverse            = "uniswap-v4-inverse"
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
+	ExchangeUniswapV4LotFlow            = "uniswap-v4-lotflow"
 	ExchangeUniswapV4Mofo               = "uniswap-v4-mofo"
+	ExchangeUniswapV4NavJit             = "uniswap-v4-navjit"
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4O1                 = "uniswap-v4-o1"
 	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
@@ -349,6 +363,9 @@ const (
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
 	ExchangeUniswapV4StablesFast        = "uniswap-v4-stables-fast"
+	ExchangeUniswapV4TickerDualPool     = "uniswap-v4-ticker-dualpool"
+	ExchangeUniswapV4TickerMeme         = "uniswap-v4-ticker-meme"
+	ExchangeUniswapV4Volatile           = "uniswap-v4-volatile"
 	ExchangeUniswapV4Zora               = "uniswap-v4-zora"
 	ExchangeUsd0PP                      = "usd0pp"
 	ExchangeUsdAi                       = "usd-ai"
@@ -375,6 +392,7 @@ const (
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
+	ExchangeBTRProp                     = "btr-prop"
 	ExchangeBopAMM                      = "bop-amm"
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"
@@ -432,6 +450,7 @@ var needFallbackSourceSet = map[Exchange]struct{}{
 	ExchangeWooFiV3:       {},
 	ExchangeBrownfiV2:     {},
 	ExchangeBrownfiV3:     {},
+	ExchangeMento:         {},
 }
 
 func NeedsFallbackSource[T ~string](exchange T) bool {
@@ -472,6 +491,10 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeTideFiProp:         {},
 	ExchangeThogProp:           {},
 	ExchangeSpireProp:          {},
+	ExchangeUSCoreProp:         {},
+	ExchangeNemoProp:           {},
+	ExchangeBTRProp:            {},
+	ExchangeUniswapV4HyFiProp:  {},
 	ExchangeBiconomyProp:       {},
 }
 

@@ -1,0 +1,35 @@
+[
+  {
+    "inputs": [{ "internalType": "PoolId", "name": "", "type": "bytes32" }],
+    "name": "pairConfig",
+    "outputs": [
+      { "internalType": "uint128", "name": "tickWidth", "type": "uint128" },
+      { "internalType": "uint88", "name": "baseLiqUnit", "type": "uint88" },
+      { "internalType": "uint24", "name": "feePerSecond", "type": "uint24" },
+      { "internalType": "bool", "name": "baseIsCurrency0", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "PoolId", "name": "poolId", "type": "bytes32" },
+      { "internalType": "bool", "name": "isSellingBase", "type": "bool" }
+    ],
+    "name": "getBookSideRaw",
+    "outputs": [
+      { "internalType": "uint256", "name": "slot0", "type": "uint256" },
+      { "internalType": "uint256", "name": "wordA", "type": "uint256" },
+      { "internalType": "uint256", "name": "wordB", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+    "name": "balanceOf",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

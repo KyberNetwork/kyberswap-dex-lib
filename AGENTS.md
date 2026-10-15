@@ -102,7 +102,7 @@ Suffixes:
 - Successful quotes must return positive output amounts; zero-output swap should return an error.
 - If a swap does not consume the full input amount, the remaining amount must be returned.
 - Gas estimation should reflect the actual swap execution cost.
-- Prefer `uint256.Int`/`int256.Int` over `big.Int` for math and state, and reuse helpers in `pkg/util` (`big256`, `int256`, ...) instead of reimplementing.
+- Use `uint256.Int`/`int256.Int` for all simulator math and pool state. New `big.Int` code there is not accepted: the router calls `CalcAmountOut` thousands of times per route, and `big.Int` is 100x+ slower with far more allocations. `big.Int` is fine only at the edges (ABI/RPC decoding in trackers); convert before storing. Reuse helpers in `pkg/util` (`big256`, `int256`, ...) instead of reimplementing.
 - Test integration correctness, including pricing, limits, and protocol constraints. Port all relevant on-chain or documented math test cases.
 
 **Optional capabilities**: 
@@ -147,9 +147,14 @@ These ops read all inputs before writing the result, so z==x or z==y is safe:
 - Use 128-bit split: split x,y into 128-bit halves, compute cross-terms, track 256-bit overflow carries with `AddOverflow`, add each carry as `u256.U2Pow128` to hi. See `pkg/liquidity-source/carbon/match.go:mul512` for the full implementation.
 - `AddOverflow(x, y)` returns `(*Int, bool)`; ignore the `*Int` with `_` when you just need the carry bool.
 
-### MulDivUp/Down are zero-alloc
+### MulDiv vs Mul then Div
 - `big256.MulDivUp/Down` use a stack-allocated `[8]uint64` internally — no heap. Safe to call in hot loops.
-- Prefer over `MulMod`-based remainder checks.
+  Prefer over `MulMod`-based remainder checks.
+- Use MulDiv when `x*y` can exceed 256 bits (or you can't prove it can't), or the contract uses a full-precision mulDiv.
+- When the product provably fits (bounded inputs; note the bound in a comment), a plain `Mul` then `Div` on a
+  stack temp is also zero-alloc and ~20% faster.
+- Mirroring Solidity checked `a*b/c`: use `MulOverflow` and return an error on overflow (the chain reverts).
+- Mirroring two sequential on-chain divisions (`x / a / b`): keep both floors; don't fuse.
 
 ### common.Address: always use hexutil.Encode(address[:]) instead of strings.ToLower(address.String/Hex())
 

@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -94,8 +95,16 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  params.TokenOut,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: defaultGas,
+		Gas: s.swapGas(),
 	}, nil
+}
+
+// swapGas keeps defaultGas for legacy axima pools, which have no extension info.
+func (s *PoolSimulator) swapGas() int64 {
+	if s.Info.Type == valueobject.ExchangeMetricPropAMM {
+		return metricBaseGas + int64(s.extra.Extensions)*gasPerExtension
+	}
+	return defaultGas
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

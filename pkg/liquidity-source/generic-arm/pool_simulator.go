@@ -222,6 +222,7 @@ func scaleDecimals(out, amount *uint256.Int, fromDecimals, toDecimals uint8) *ui
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	cloned.BaseAssets = slices.Clone(p.BaseAssets)
 	return &cloned
 }
 
@@ -231,8 +232,48 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
+	// On-chain swaps consume the per-base-asset liquidity cap in addition to moving reserves
+	// (AbstractARM._validateAndConsumeSwapLiquidity): buy side decrements buyLiquidityRemaining by
+	// the liquidity-asset output, sell side decrements sellLiquidityRemaining by the base-asset
+	// output. Without this, sequential quotes in the same block over-quote once cumulative swaps
+	// exceed the cap and the real swap reverts with InsufficientLiquidity.
+	// Caps are updated copy-on-write (whole struct reassigned, *uint256.Int values never mutated
+	// in place), so CloneState only needs to clone the slice itself.
+	if p.armType == Pricable4626 {
+		baseIdx := indexIn - 1
+		if indexIn == 0 {
+			baseIdx = indexOut - 1
+		}
+		if baseIdx >= 0 && baseIdx < len(p.BaseAssets) {
+			if output, overflow := uint256.FromBig(params.TokenAmountOut.Amount); !overflow {
+				cfg := p.BaseAssets[baseIdx]
+				if indexIn == 0 {
+					cfg.SellLiquidityRemaining = consumeLiquidityRemaining(cfg.SellLiquidityRemaining, output)
+				} else {
+					cfg.BuyLiquidityRemaining = consumeLiquidityRemaining(cfg.BuyLiquidityRemaining, output)
+				}
+				p.BaseAssets[baseIdx] = cfg
+			}
+		}
+	}
+
 	p.Info.Reserves[indexIn] = new(big.Int).Add(p.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+}
+
+// consumeLiquidityRemaining mirrors the on-chain decrement (remaining -= amountOut) copy-on-write:
+// it returns the new counter value without mutating the input. The saturating guard only protects
+// against uint256 wrap when UpdateBalance is fed amounts that were never quoted (a CalcAmountOut-
+// derived output always passed the Gt check against this same counter).
+func consumeLiquidityRemaining(remaining, output *uint256.Int) *uint256.Int {
+	if remaining == nil {
+		return nil
+	}
+	updated := new(uint256.Int)
+	if output.Cmp(remaining) >= 0 {
+		return updated
+	}
+	return updated.Sub(remaining, output)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {

@@ -27,14 +27,15 @@ type MetadataResponse struct {
 }
 
 type PairMetadata struct {
-	Pair                    string `json:"pair"`
-	PoolAddress             string `json:"poolAddress"`
-	Token0                  string `json:"token0"`
-	Token1                  string `json:"token1"`
-	Token0Decimals          uint8  `json:"token0Decimals"`
-	Token1Decimals          uint8  `json:"token1Decimals"`
-	PoolFactoryAddress      string `json:"poolFactoryAddress"`
-	SwapWhitelistingEnabled bool   `json:"swapWhitelistingEnabled"`
+	Pair                    string   `json:"pair"`
+	PoolAddress             string   `json:"poolAddress"`
+	Token0                  string   `json:"token0"`
+	Token1                  string   `json:"token1"`
+	Token0Decimals          uint8    `json:"token0Decimals"`
+	Token1Decimals          uint8    `json:"token1Decimals"`
+	PoolFactoryAddress      string   `json:"poolFactoryAddress"`
+	SwapWhitelistingEnabled bool     `json:"swapWhitelistingEnabled"`
+	Extensions              []string `json:"extensions"`
 }
 
 type PoolsListUpdater struct {
@@ -45,15 +46,24 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryC(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *axima.Config) *PoolsListUpdater {
-	client := resty.NewWithClient(http.DefaultClient).
+	return &PoolsListUpdater{config: config, client: newClient(config)}
+}
+
+// newClient sends the API key on every request: without it Metric returns only the
+// public view (e.g. /metadata answers "Unknown chainId" for key-gated chains).
+func newClient(config *axima.Config) *resty.Client {
+	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)
-	return &PoolsListUpdater{config: config, client: client}
+	if config.HTTPConfig.APIKey != "" {
+		client.SetAuthToken(config.HTTPConfig.APIKey)
+	}
+	return client
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	pairMetadata, err := u.fetchAllPairMetadata(ctx)
+	pairMetadata, err := fetchAllPairMetadata(ctx, u.client, u.config.ChainID)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -82,21 +92,21 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) fetchAllPairMetadata(ctx context.Context) ([]PairMetadata, error) {
+func fetchAllPairMetadata(ctx context.Context, client *resty.Client, chainID int64) ([]PairMetadata, error) {
 	var (
 		all    []PairMetadata
 		offset int64
 	)
 	for {
 		var resp MetadataResponse
-		res, err := u.client.R().
+		res, err := client.R().
 			SetContext(ctx).
 			SetQueryParams(map[string]string{
 				"count":  strconv.Itoa(metadataPageSize),
 				"offset": strconv.FormatInt(offset, 10),
 			}).
 			SetResult(&resp).
-			Get(fmt.Sprintf("/public/v1/evm/%d/metadata", u.config.ChainID))
+			Get(fmt.Sprintf("/public/v1/evm/%d/metadata", chainID))
 		if err != nil {
 			return nil, err
 		} else if res.IsError() {

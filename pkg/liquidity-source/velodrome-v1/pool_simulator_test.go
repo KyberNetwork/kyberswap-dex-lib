@@ -36,6 +36,13 @@ func TestNewPoolSimulator(t *testing.T) {
 		assert.True(t, poolSimulator.isPaused)
 		assert.False(t, poolSimulator.stable)
 		assert.EqualValues(t, uint64(5), poolSimulator.fee.Uint64())
+		assert.EqualValues(t, defaultGas, poolSimulator.gas)
+
+		// yaml `gas` (StaticExtra g) overrides the default, e.g. veplus-v2's measured hop cost
+		entityPool.StaticExtra = `{"feePrecision":10000,"g":204078}`
+		poolSimulator, err = NewPoolSimulator(entityPool)
+		assert.Nil(t, err)
+		assert.EqualValues(t, 204078, poolSimulator.gas)
 	})
 }
 

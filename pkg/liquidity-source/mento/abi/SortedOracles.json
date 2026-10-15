@@ -1,0 +1,5 @@
+[
+  {"type":"function","name":"medianRate","stateMutability":"view","inputs":[{"name":"token","type":"address"}],"outputs":[{"name":"numerator","type":"uint256"},{"name":"denominator","type":"uint256"}]},
+  {"type":"function","name":"medianTimestamp","stateMutability":"view","inputs":[{"name":"token","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"getTokenReportExpirySeconds","stateMutability":"view","inputs":[{"name":"token","type":"address"}],"outputs":[{"name":"","type":"uint256"}]}
+]

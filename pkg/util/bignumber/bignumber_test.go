@@ -31,3 +31,12 @@ func TestTenPowDecimals(t *testing.T) {
 	}
 
 }
+
+func TestSum(t *testing.T) {
+	a, b := big.NewInt(3), big.NewInt(4)
+	sum := Sum([]*big.Int{a, nil, b, NewBig10("100000000000000000000000000000000000000000")})
+	assert.Equal(t, "100000000000000000000000000000000000000007", sum.String())
+	assert.Equal(t, "3", a.String(), "inputs untouched")
+	assert.Equal(t, "0", Sum(nil).String())
+	assert.NotSame(t, a, Sum([]*big.Int{a}), "always a new big.Int")
+}

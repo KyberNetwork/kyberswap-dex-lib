@@ -3,9 +3,6 @@ package weighted
 import "errors"
 
 const (
-	// Factory getter for on-chain pool discovery (Range has no subgraph).
-	factoryMethodGetPools = "getPools"
-
 	// RangePool getters: one struct each carrying (almost) all pool state.
 	poolMethodGetDynamicData   = "getRangePoolDynamicData"
 	poolMethodGetImmutableData = "getRangePoolImmutableData"

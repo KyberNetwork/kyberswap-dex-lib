@@ -3,8 +3,8 @@ package metricpropamm
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -33,25 +33,50 @@ type bidAsk struct {
 	TotalToken1Available string      `json:"totalToken1Available"`
 	ServerTs             int64       `json:"serverTs"`
 	Depth                axima.Depth `json:"depth"`
+	PriceProviderStatus  string      `json:"priceProviderStatus"`
+}
+
+// quotable is false while Metric's price feed is down, when depth is empty and the quote is unusable.
+func (b *bidAsk) quotable() bool {
+	return b.PriceProviderStatus != statusFeedDown && (len(b.Depth.Asks) > 0 || len(b.Depth.Bids) > 0)
 }
 
 type PoolTracker struct {
 	config       *axima.Config
 	client       *resty.Client
 	ethrpcClient *ethrpc.Client
+
+	extMu      sync.Mutex
+	extCounts  map[string]int // lowercase pool address -> extension count
+	extExpires time.Time
+}
+
+// extensionCount returns the pool's extension count from the venue-wide /metadata, fetched once per
+// extensionsTTL for all pools. ok is false when the fetch failed or the pool is missing.
+func (t *PoolTracker) extensionCount(ctx context.Context, poolAddr string) (n int, ok bool) {
+	t.extMu.Lock()
+	defer t.extMu.Unlock()
+	if now := time.Now(); now.After(t.extExpires) {
+		all, err := fetchAllPairMetadata(ctx, t.client, t.config.ChainID)
+		if err != nil {
+			logger.WithFields(logger.Fields{"dexType": DexType}).Warnf("failed to fetch extensions: %v", err)
+			t.extExpires = now.Add(extensionsRetry)
+		} else {
+			t.extCounts = make(map[string]int, len(all))
+			for _, pm := range all {
+				t.extCounts[strings.ToLower(pm.PoolAddress)] = len(pm.Extensions)
+			}
+			t.extExpires = now.Add(extensionsTTL)
+		}
+	}
+	n, ok = t.extCounts[poolAddr]
+	return n, ok
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *axima.Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	client := resty.NewWithClient(http.DefaultClient).
-		SetBaseURL(config.HTTPConfig.BaseURL).
-		SetTimeout(config.HTTPConfig.Timeout.Duration).
-		SetRetryCount(config.HTTPConfig.RetryCount)
-	if config.HTTPConfig.APIKey != "" {
-		client = client.SetAuthToken(config.HTTPConfig.APIKey)
-	}
-	return &PoolTracker{config: config, client: client, ethrpcClient: ethrpcClient}
+	return &PoolTracker{config: config, client: newClient(config), ethrpcClient: ethrpcClient}
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -68,6 +93,14 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(
 
 func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	poolAddr := strings.ToLower(p.Address)
+
+	// Keep the previous count when /metadata is unavailable.
+	var prev axima.Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	extensions, ok := t.extensionCount(ctx, poolAddr)
+	if !ok {
+		extensions = prev.Extensions
+	}
 
 	unswappable := false
 	var staticExtra axima.StaticExtra
@@ -101,13 +134,19 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 			fetchErr = fmt.Errorf("bid_ask API error: %s", res.String())
 		}
 	}
+	if !unswappable && fetchErr == nil && !ba.quotable() {
+		logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr, "status": ba.PriceProviderStatus}).
+			Warnf("no usable quote: feed down or empty depth")
+		unswappable = true
+	}
 	if unswappable || fetchErr != nil {
 		if fetchErr != nil {
 			logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr}).
 				Warnf("failed to fetch bid/ask: %v", fetchErr)
 		}
-		unavailable, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true})
+		unavailable, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true, Extensions: extensions})
 		p.Extra = string(unavailable)
+		p.Reserves = []string{"0", "0"}
 		return p, nil
 	}
 
@@ -117,6 +156,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 		QuoteAvailable: true,
 		MaxAge:         t.config.MaxAge,
 		IsV2:           true,
+		Extensions:     extensions,
 		Bids:           axima.ConvertBins(ba.Depth.Bids),
 		Asks:           axima.ConvertBins(ba.Depth.Asks),
 	})
@@ -126,6 +166,13 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	p.Reserves = []string{ba.TotalToken0Available, ba.TotalToken1Available}
 	p.Extra = string(extra)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = quoteTimestamp(ba.ServerTs, time.Now().Unix())
 	return p, nil
+}
+
+func quoteTimestamp(serverTs, now int64) int64 {
+	if serverTs <= 0 || serverTs > now {
+		return now
+	}
+	return serverTs
 }

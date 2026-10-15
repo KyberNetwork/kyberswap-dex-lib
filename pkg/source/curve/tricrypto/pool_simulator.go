@@ -5,8 +5,10 @@ import (
 	"math/big"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -16,30 +18,31 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	Precisions        []*big.Int
-	A                 *big.Int
-	Gamma             *big.Int
-	D                 *big.Int
-	FeeGamma          *big.Int
-	MidFee            *big.Int
-	OutFee            *big.Int
+	Precisions        [nCoins]uint256.Int
+	A                 uint256.Int
+	Gamma             uint256.Int
+	D                 uint256.Int
+	FeeGamma          uint256.Int
+	MidFee            uint256.Int
+	OutFee            uint256.Int
 	FutureAGammaTime  int64
-	FutureAGamma      *big.Int
+	FutureAGamma      uint256.Int
 	InitialAGammaTime int64
-	InitialAGamma     *big.Int
+	InitialAGamma     uint256.Int
 
+	// Unpacked price_scale / price_oracle / last_prices (the contract packs them into one uint256 each).
 	LastPricesTimestamp int64
-	PriceScalePacked    *big.Int
-	PriceOraclePacked   *big.Int
-	LastPricesPacked    *big.Int
+	PriceScale          [nCoins - 1]uint256.Int
+	PriceOracle         [nCoins - 1]uint256.Int
+	LastPrices          [nCoins - 1]uint256.Int
 
 	LpToken            string
-	LpSupply           *big.Int
-	XcpProfit          *big.Int
-	VirtualPrice       *big.Int
-	AllowedExtraProfit *big.Int
-	AdjustmentStep     *big.Int
-	MaHalfTime         *big.Int
+	LpSupply           uint256.Int
+	XcpProfit          uint256.Int
+	VirtualPrice       uint256.Int
+	AllowedExtraProfit uint256.Int
+	AdjustmentStep     uint256.Int
+	MaHalfTime         uint256.Int
 	NotAdjusted        bool
 	gas                Gas
 }
@@ -49,6 +52,29 @@ type Gas struct {
 }
 
 var _ = pool.RegisterFactory0(curve.PoolTypeTricrypto, NewPoolSimulator)
+
+// nowUnix is the block timestamp used by UpdateBalance and Exchange; tests replace it.
+var nowUnix = func() int64 { return time.Now().Unix() }
+
+// toU256 converts an amount or balance to uint256, rejecting negative and too large values.
+func toU256(b *big.Int) (z uint256.Int, err error) {
+	if b.Sign() < 0 {
+		return z, errNegativeAmount
+	}
+	if z.SetFromBig(b) {
+		return z, ErrOverflow
+	}
+	return z, nil
+}
+
+// parseU256 parses a decimal string; an empty string is treated as 0.
+func parseU256(s string) (z uint256.Int, err error) {
+	if s == "" {
+		return z, nil
+	}
+	err = z.SetFromDecimal(s)
+	return z, err
+}
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra curve.PoolTricryptoStaticExtra
@@ -61,72 +87,76 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	numTokens := len(entityPool.Tokens)
-	tokens := make([]string, numTokens)
-	reserves := make([]*big.Int, numTokens)
-	precisions := make([]*big.Int, numTokens)
-	for i := range numTokens {
-		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		precisions[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
+	if len(entityPool.Tokens) != nCoins {
+		return nil, errNotThreeCoins
+	}
+	if len(entityPool.Reserves) < nCoins || len(staticExtra.PrecisionMultipliers) < nCoins ||
+		len(extraStr.PriceScale) < nCoins-1 || len(extraStr.LastPrices) < nCoins-1 ||
+		len(extraStr.PriceOracle) < nCoins-1 {
+		return nil, errMissingPoolData
 	}
 
-	packedPrice := bignumber.ZeroBI
-	lastPricesPacked := bignumber.ZeroBI
-	priceOraclePacked := bignumber.ZeroBI
-	for i := numTokens - 2; i >= 0; i -= 1 {
-		var priceScale = bignumber.NewBig10(extraStr.PriceScale[i])
-		packedPrice = new(big.Int).Or(new(big.Int).Lsh(packedPrice, PriceSize), priceScale)
-		var lastPrice = bignumber.NewBig10(extraStr.LastPrices[i])
-		lastPricesPacked = new(big.Int).Or(new(big.Int).Lsh(lastPricesPacked, PriceSize), lastPrice)
-		var priceOracle = bignumber.NewBig10(extraStr.PriceOracle[i])
-		priceOraclePacked = new(big.Int).Or(new(big.Int).Lsh(priceOraclePacked, PriceSize), priceOracle)
-	}
-
-	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     bignumber.ZeroBI,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
-		},
-		Precisions: precisions,
-		A:          bignumber.NewBig10(extraStr.A),
-		D:          bignumber.NewBig10(extraStr.D),
-		Gamma:      bignumber.NewBig10(extraStr.Gamma),
-		FeeGamma:   bignumber.NewBig10(extraStr.FeeGamma),
-		MidFee:     bignumber.NewBig10(extraStr.MidFee),
-		OutFee:     bignumber.NewBig10(extraStr.OutFee),
-
-		PriceScalePacked:  packedPrice,
-		LastPricesPacked:  lastPricesPacked,
-		PriceOraclePacked: priceOraclePacked,
-
-		FutureAGammaTime:  extraStr.FutureAGammaTime,
-		FutureAGamma:      bignumber.NewBig10(extraStr.FutureAGamma),
-		InitialAGammaTime: extraStr.InitialAGammaTime,
-		InitialAGamma:     bignumber.NewBig10(extraStr.InitialAGamma),
-
+	sim := &PoolSimulator{
+		FutureAGammaTime:    extraStr.FutureAGammaTime,
+		InitialAGammaTime:   extraStr.InitialAGammaTime,
 		LastPricesTimestamp: extraStr.LastPricesTimestamp,
 		LpToken:             staticExtra.LpToken,
-		LpSupply:            bignumber.NewBig10(extraStr.LpSupply),
-		XcpProfit:           bignumber.NewBig10(extraStr.XcpProfit),
-		VirtualPrice:        bignumber.NewBig10(extraStr.VirtualPrice),
-		AllowedExtraProfit:  bignumber.NewBig10(extraStr.AllowedExtraProfit),
-		AdjustmentStep:      bignumber.NewBig10(extraStr.AdjustmentStep),
-		MaHalfTime:          bignumber.NewBig10(extraStr.MaHalfTime),
 		NotAdjusted:         false,
 		gas:                 DefaultGas,
-	}, nil
+	}
+
+	tokens := make([]string, nCoins)
+	reserves := make([]*big.Int, nCoins)
+	for i := range nCoins {
+		tokens[i] = entityPool.Tokens[i].Address
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		if reserves[i] == nil || reserves[i].Sign() < 0 {
+			return nil, fmt.Errorf("invalid reserve %q", entityPool.Reserves[i])
+		}
+	}
+	sim.Pool = pool.Pool{
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     bignumber.ZeroBI,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
+		},
+	}
+
+	type field struct {
+		dst *uint256.Int
+		src string
+	}
+	fields := []field{
+		{&sim.A, extraStr.A}, {&sim.D, extraStr.D}, {&sim.Gamma, extraStr.Gamma},
+		{&sim.FeeGamma, extraStr.FeeGamma}, {&sim.MidFee, extraStr.MidFee}, {&sim.OutFee, extraStr.OutFee},
+		{&sim.FutureAGamma, extraStr.FutureAGamma}, {&sim.InitialAGamma, extraStr.InitialAGamma},
+		{&sim.LpSupply, extraStr.LpSupply}, {&sim.XcpProfit, extraStr.XcpProfit},
+		{&sim.VirtualPrice, extraStr.VirtualPrice}, {&sim.AllowedExtraProfit, extraStr.AllowedExtraProfit},
+		{&sim.AdjustmentStep, extraStr.AdjustmentStep}, {&sim.MaHalfTime, extraStr.MaHalfTime},
+	}
+	for i := range nCoins {
+		fields = append(fields, field{&sim.Precisions[i], staticExtra.PrecisionMultipliers[i]})
+	}
+	for k := range nCoins - 1 {
+		fields = append(fields, field{&sim.PriceScale[k], extraStr.PriceScale[k]},
+			field{&sim.LastPrices[k], extraStr.LastPrices[k]}, field{&sim.PriceOracle[k], extraStr.PriceOracle[k]})
+	}
+	for _, f := range fields {
+		v, err := parseU256(f.src)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value %q: %w", f.src, err)
+		}
+		*f.dst = v
+	}
+	return sim, nil
 }
 
 func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
-	cloned := *t
+	cloned := *t // all state is held by value, except reserves which exchange replaces (never mutates)
 	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
 	return &cloned
 }
@@ -138,27 +168,26 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		amountOut, fee, err := t.GetDy(
-			tokenIndexFrom,
-			tokenIndexTo,
-			tokenAmountIn.Amount,
-		)
+		dx, err := toU256(tokenAmountIn.Amount)
 		if err != nil {
 			return nil, err
 		}
-		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
+		amountOut, fee, err := t.getDy(tokenIndexFrom, tokenIndexTo, dx)
+		if err != nil {
+			return nil, err
+		}
+		if !amountOut.IsZero() {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: amountOut,
+					Amount: amountOut.ToBig(),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: fee,
+					Amount: fee.ToBig(),
 				},
 				Gas: t.gas.Exchange,
 			}, nil
-
 		}
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
@@ -166,10 +195,37 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	var inputIndex = t.GetTokenIndex(input.Token)
-	var outputIndex = t.GetTokenIndex(output.Token)
-	_, _ = t.Exchange(inputIndex, outputIndex, inputAmount)
+	dx, err := toU256(input.Amount)
+	if err != nil {
+		return
+	}
+	_, _ = t.exchange(t.GetTokenIndex(input.Token), t.GetTokenIndex(output.Token), dx, nowUnix())
+}
+
+// GetDy returns the amount out (after fee) and the fee for swapping dx of coin i to coin j.
+func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
+	u, err := toU256(dx)
+	if err != nil {
+		return nil, nil, err
+	}
+	dy, fee, err := t.getDy(i, j, u)
+	if err != nil {
+		return nil, nil, err
+	}
+	return dy.ToBig(), fee.ToBig(), nil
+}
+
+// Exchange applies a swap of dx of coin i to coin j to the pool state and returns the amount out.
+func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
+	u, err := toU256(dx)
+	if err != nil {
+		return nil, err
+	}
+	dy, err := t.exchange(i, j, u, nowUnix())
+	if err != nil {
+		return nil, err
+	}
+	return dy.ToBig(), nil
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

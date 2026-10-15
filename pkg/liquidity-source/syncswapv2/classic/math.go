@@ -34,7 +34,7 @@ func getExactQuote(
 	}
 
 	amountInWithFee = calAmountAfterFee(amountIn, swapFee)
-	feeIn = new(uint256.Int).Mul(amountIn, new(uint256.Int).Div(swapFee, MaxFee))
+	feeIn = new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, swapFee), MaxFee)
 
 	// amountOut = (amountInWithFee * reserveOut) / (reserveIn * MAX_FEE + amountInWithFee);
 	amountOut = new(uint256.Int).Div(

@@ -22,14 +22,15 @@ type PoolSimulator struct {
 	swapFee *uint256.Int
 	*OrderBook
 	*StaticExtra
-	cumAmtOutF float64
+	makerQuoteGas *MakerQuoteGas
+	cumAmtOutF    float64
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var orderBook OrderBook
-	if err := json.Unmarshal([]byte(entityPool.Extra), &orderBook); err != nil {
+	var extra Extra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
@@ -48,9 +49,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				bignumber.NewBig10(entityPool.Reserves[1])},
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		swapFee:     uint256.NewInt(uint64(entityPool.SwapFee * 1e18)),
-		OrderBook:   &orderBook,
-		StaticExtra: &staticExtra,
+		swapFee:       uint256.NewInt(uint64(entityPool.SwapFee * 1e18)),
+		OrderBook:     &extra.OrderBook,
+		StaticExtra:   &staticExtra,
+		makerQuoteGas: extra.MakerQuoteGas,
 	}, nil
 }
 
@@ -128,9 +130,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			break
 		}
 	}
-	// 1:190576 2:236653 3:267273 4:269108 5:272492 6:244971 8:241112 9:227946 10:237471
-	// 1:494222 2:497402 after latest update
-	gas := int64(197346*math.Log(float64(executedLevels+1)/2) + 494222)
+	gas := p.estimateGas(isBuy, executedLevels)
 	if executedShares.Eq(levels.ArrayShares[executedLevels-1]) {
 		executedShares.Clear()
 		executedLevels++
@@ -275,7 +275,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		}
 	}
 
-	gas := int64(197346*math.Log(float64(executedLevels+1)/2) + 494222)
+	gas := p.estimateGas(isBuy, executedLevels)
 	if executedShares.Eq(levels.ArrayShares[executedLevels-1]) {
 		executedShares.Clear()
 		executedLevels++
@@ -371,4 +371,26 @@ func round(num *uint256.Int, sigs uint, up bool) *uint256.Int {
 		num.SubUint64(num, 1).Div(num, shift).AddUint64(num, 1).Mul(num, shift)
 	}
 	return num.Div(num, shift).Mul(num, shift)
+}
+
+// estimateGas is the gas of an order filling levels price levels of a side. A
+// pool with a market maker pays for its quote, as the tracker measured it or
+// unmeasuredMakerQuote when it could not, and for the rest of the order. A pool
+// without one, or not measured yet, keeps plainBookGas.
+func (p *PoolSimulator) estimateGas(isBuy bool, levels int) int64 {
+	if p.makerQuoteGas == nil {
+		return plainBookGas(levels)
+	}
+	quote := unmeasuredMakerQuote
+	if side := lo.Ternary(isBuy, p.makerQuoteGas.Asks, p.makerQuoteGas.Bids); side != nil {
+		quote = *side
+	}
+	more := int64(levels - 1)
+	return quote.First + quote.Next*more + orderGas + orderGasPerLevel*more
+}
+
+// plainBookGas is the gas of an order filling levels price levels of a pool
+// without a market maker, which fills from the book alone.
+func plainBookGas(levels int) int64 {
+	return int64(197346*math.Log(float64(levels+1)/2) + 494222)
 }

@@ -102,7 +102,15 @@ func (m *mockChain) execute(data []byte) ([]byte, error) {
 		return method.Outputs.Pack([][32]byte{common.BigToHash(new(big.Int).Lsh(big.NewInt(1), 97))})
 	case "curves":
 		zero := common.Address{}
-		return method.Outputs.Pack(zero, m.quote, big.NewInt(100000), big.NewInt(100000000), big.NewInt(50000), big.NewInt(1000000), big.NewInt(1), big.NewInt(0), uint16(0), uint16(295), uint16(95), uint16(0), m.graduated, zero, zero, zero, big.NewInt(0))
+		args, e := method.Inputs.Unpack(data[4:])
+		if e != nil {
+			return nil, e
+		}
+		if args[0].(common.Address) != common.HexToAddress(testEntity().Address) {
+			z := big.NewInt(0)
+			return method.Outputs.Pack(zero, zero, z, z, z, z, z, z, uint16(0), uint16(0), uint16(0), uint16(0), false, zero, zero, zero, z, z, z)
+		}
+		return method.Outputs.Pack(zero, m.quote, big.NewInt(100000), big.NewInt(100000000), big.NewInt(50000), big.NewInt(1000000), big.NewInt(1), big.NewInt(0), uint16(0), uint16(295), uint16(95), uint16(0), m.graduated, zero, zero, zero, big.NewInt(0), big.NewInt(0), big.NewInt(10000000000000))
 	}
 	return nil, errors.New("unexpected method " + method.Name)
 }

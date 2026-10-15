@@ -125,6 +125,16 @@
         "internalType": "uint256",
         "name": "positionTokenId",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "virtualTokenOffset",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "curveInvariant",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

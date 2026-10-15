@@ -113,3 +113,14 @@ func TestDeploylessCall_RevertWithoutData(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, data)
 }
+
+func TestDeploylessCallWithGas_SendsGas(t *testing.T) {
+	client, params := fakeNode(t, map[string]any{
+		"error": map[string]any{"code": 3, "message": "execution reverted", "data": "0x01"},
+	})
+	_, err := DeploylessCallWithGas(context.Background(), client, []byte{0x00}, 30_000_000, nil, nil)
+	require.NoError(t, err)
+	var call map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal((*params)[0], &call))
+	assert.JSONEq(t, `"0x1c9c380"`, string(call["gas"]))
+}

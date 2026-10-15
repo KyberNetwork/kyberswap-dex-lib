@@ -145,10 +145,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var tokenInIndex = p.GetTokenIndex(input.Token)
 	var tokenOutIndex = p.GetTokenIndex(output.Token)
 
-	var inputAmount = calAmountAfterFee(uint256.MustFromBig(input.Amount), p.swapFees[tokenInIndex])
+	// On-chain reserves track full vault/ERC20 balances: the whole input stays
+	// in reserves, the fee only reduces the quoted output via amountInWithFee.
+	// See SyncSwapClassicPool.swap -> _updateReserves(balances).
+	var inputAmount = input.Amount
 	var outputAmount = output.Amount
 
-	p.Info.Reserves[tokenInIndex] = new(big.Int).Add(p.Info.Reserves[tokenInIndex], inputAmount.ToBig())
+	p.Info.Reserves[tokenInIndex] = new(big.Int).Add(p.Info.Reserves[tokenInIndex], inputAmount)
 	p.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(p.Info.Reserves[tokenOutIndex], outputAmount)
 }
 

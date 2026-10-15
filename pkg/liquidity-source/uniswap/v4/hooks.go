@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -23,6 +24,8 @@ type BeforeSwapParams struct {
 	CalcOut         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut
+	// SqrtPriceX96 is the pool's current sqrt price, before this swap. Read-only; copy it to keep it.
+	SqrtPriceX96 *uint256.Int
 }
 
 type BeforeSwapResult struct {
@@ -123,6 +126,22 @@ type Hook interface {
 	GetHookData() []byte
 }
 
+// HookWithSchedule is an optional Hook method: the unix time the pool should be tracked
+// again even with no event, or 0 for none.
+type HookWithSchedule interface{ NextTrackAt(*HookParam) int64 }
+
+// HookTracksActivity is an optional Hook marker: the hook's hX holds only chain state (no tracker
+// clock or block), so when the tracker refresh changes Extra, SwapFee or Reserves the tracker bumps
+// Pool.Timestamp and BlockNumber. Without it, a task-only refresh never counts as pool activity.
+type HookTracksActivity interface{ TracksActivity() }
+
+// HookWithLiveness is an optional Hook method for hooks whose simulator refuses a quote once the
+// tracked state is too old (StaleCheck). The tracker stamps Extra "lv" with the time it last saw the
+// state, at most once per interval while the state is unchanged. A quiet pool then keeps identical
+// Extra bytes between stamps, so pool-service skips the save, and the hook needs no clock in hX.
+// The interval must stay well below the hook's own max age.
+type HookWithLiveness interface{ LivenessInterval() time.Duration }
+
 type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
@@ -130,11 +149,17 @@ type HookParam struct {
 	HookExtra   HookExtra
 	HookAddress common.Address
 	BlockNumber *big.Int
+	// TrackedAt is Extra "lv" (unix seconds) of the stored pool: the last stamp the tracker
+	// wrote, or the one the simulator is built from. 0 while the pool has none.
+	TrackedAt int64
 	// Overrides carries eth_call state overrides (e.g. post-victim-tx prestate) so a hook's
 	// Track/GetReserves RPC reads can be re-priced against pending-block state rather than the
 	// latest on-chain state. Threaded through by PoolTracker.GetNewPoolStateWithOverrides; nil
 	// in the normal-flow (GetNewPoolState) path.
 	Overrides map[common.Address]gethclient.OverrideAccount
+	// StaleCheck is pool.FactoryOpts.StaleCheck (set by route finding, not indexing): hooks that
+	// price off a tracked quote may refuse to quote once that quote is too old.
+	StaleCheck bool
 }
 
 type HookExtra json.RawMessage
@@ -254,6 +279,13 @@ var EmptyBytes = make([]byte, 0)
 
 func (h *BaseHook) GetHookData() []byte {
 	return EmptyBytes
+}
+
+// HookPriceLimitProvider supplies a hook's own sqrtPriceLimitX96 for a swap in the given direction,
+// replacing the tick-derived one (e.g. a hook filling through liquidity it places in-swap, outside
+// the tracked ticks). A nil result keeps the default.
+type HookPriceLimitProvider interface {
+	SqrtPriceLimit(zeroForOne bool) *uint256.Int
 }
 
 // HookPoolStateProvider supplies the complete post-swap state for hooks whose

@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 )
 
@@ -12,19 +13,35 @@ type OrderBookLevels struct {
 	ArrayShares []*uint256.Int `json:"s"`
 }
 
-type OrderBookLevelsRPC struct {
-	ArrayPrices []*big.Int
-	ArrayShares []*big.Int
-}
-
 type OrderBook struct {
 	Bids OrderBookLevels `json:"b"`
 	Asks OrderBookLevels `json:"a"`
 }
 
-type OrderBookRPC struct {
-	Bids OrderBookLevelsRPC
-	Asks OrderBookLevelsRPC
+// Extra is a pool's state, its order book and what its market maker's quote
+// costs.
+type Extra struct {
+	OrderBook
+	// MakerQuoteGas is nil for a pool without a market maker, or whose market
+	// maker was never measured.
+	MakerQuoteGas *MakerQuoteGas `json:"g,omitempty"`
+	// MeasuredAt is when MakerQuoteGas was last measured, in unix seconds.
+	MeasuredAt int64 `json:"t,omitempty"`
+}
+
+// MakerQuoteGas is the gas of the quote a pool's market maker gives for each
+// order, pricing the levels it posts for the order to fill, for a sell filling
+// the bids and a buy filling the asks. A side is nil when it was not measured.
+type MakerQuoteGas struct {
+	Bids *LevelGas `json:"b,omitempty"`
+	Asks *LevelGas `json:"a,omitempty"`
+}
+
+// LevelGas is the gas of a market maker's quote filling one level, and what
+// each level more adds.
+type LevelGas struct {
+	First int64 `json:"f"`
+	Next  int64 `json:"n"`
 }
 
 type StaticExtra struct {
@@ -62,10 +79,10 @@ type TokenInfo struct {
 }
 
 type MarketInfo struct {
-	OrderbookAddress string    `json:"orderbookAddress"`
-	BaseToken        TokenInfo `json:"baseToken"`
-	QuoteToken       TokenInfo `json:"quoteToken"`
-	AggressiveFee    float64   `json:"aggressiveFee"`
+	OrderbookAddress string      `json:"orderbookAddress"`
+	BaseToken        TokenInfo   `json:"baseToken"`
+	QuoteToken       TokenInfo   `json:"quoteToken"`
+	AggressiveFee    json.Number `json:"aggressiveFee"`
 }
 
 type SwapInfo struct {

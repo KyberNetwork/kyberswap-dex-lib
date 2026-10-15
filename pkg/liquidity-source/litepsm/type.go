@@ -11,10 +11,11 @@ type PSMConfig struct {
 }
 
 type StaticExtra struct {
-	IsMint  bool            `json:"mint,omitempty"`
-	Pocket  *common.Address `json:"poc,omitempty"` // gem holder, if exist
-	GemJoin *common.Address `json:"gJ,omitempty"`  // gemJoin, if different from this psm
-	Dai     *common.Address `json:"dai,omitempty"` // inner psm's dai, if different from this dai
+	IsMint   bool            `json:"mint,omitempty"`
+	Pocket   *common.Address `json:"poc,omitempty"` // gem holder, if exist
+	GemJoin  *common.Address `json:"gJ,omitempty"`  // gemJoin, if different from the (inner) psm
+	InnerPsm *common.Address `json:"iP,omitempty"`  // wrapped lite psm, which holds the dai
+	Dai      *common.Address `json:"dai,omitempty"` // inner psm's dai, if different from this dai
 }
 
 type Extra struct {

@@ -21,7 +21,21 @@ func DeploylessCall(
 	ctx context.Context, client *rpc.Client, initCode []byte,
 	overrides map[common.Address]gethclient.OverrideAccount, blockOverrides *gethclient.BlockOverrides,
 ) ([]byte, error) {
-	args := []any{map[string]any{"data": hexutil.Bytes(initCode)}, "latest"}
+	return DeploylessCallWithGas(ctx, client, initCode, 0, overrides, blockOverrides)
+}
+
+// DeploylessCallWithGas is DeploylessCall with an explicit gas limit (0 leaves it to the node).
+// Set it when the helper needs more than a node's default: some default to the block gas limit,
+// and an out-of-gas sub-call then surfaces as a revert without data.
+func DeploylessCallWithGas(
+	ctx context.Context, client *rpc.Client, initCode []byte, gas uint64,
+	overrides map[common.Address]gethclient.OverrideAccount, blockOverrides *gethclient.BlockOverrides,
+) ([]byte, error) {
+	call := map[string]any{"data": hexutil.Bytes(initCode)}
+	if gas > 0 {
+		call["gas"] = hexutil.Uint64(gas)
+	}
+	args := []any{call, "latest"}
 	if len(overrides) > 0 || blockOverrides != nil {
 		if overrides == nil {
 			overrides = map[common.Address]gethclient.OverrideAccount{}
