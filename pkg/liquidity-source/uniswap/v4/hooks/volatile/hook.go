@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -36,13 +37,11 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		return nil, err
 	}
 
-	var feeZeroForOne, feeOneForZero uint32
-	poolKey := uniswapv4.PoolKey{
-		Currency0:   currency(staticExtra.IsNative[0], param.Pool.Tokens[0].Address),
-		Currency1:   currency(staticExtra.IsNative[1], param.Pool.Tokens[1].Address),
-		Fee:         big.NewInt(int64(staticExtra.Fee)),
-		TickSpacing: big.NewInt(int64(staticExtra.TickSpacing)),
-		Hooks:       param.HookAddress,
+	poolKey := newPoolKey(param.Pool, staticExtra, param.HookAddress)
+	// ethrpc needs one struct target (abi tags) for a multi-output call.
+	var fees struct {
+		FeeZeroForOne *big.Int `abi:"feeE6ZeroForOne"` // uint24 decodes to *big.Int
+		FeeOneForZero *big.Int `abi:"feeE6OneForZero"`
 	}
 	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		SetOverrides(param.Overrides).
@@ -51,18 +50,18 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 			Target: hexutil.Encode(param.HookAddress[:]),
 			Method: "getFee",
 			Params: []any{poolKey},
-		}, []any{&feeZeroForOne, &feeOneForZero}).Aggregate(); err != nil {
+		}, []any{&fees}).Aggregate(); err != nil {
 		return nil, err
 	}
-
-	if feeZeroForOne >= uint32(uniswapv4.FeeMax) || feeOneForZero >= uint32(uniswapv4.FeeMax) {
+	if fees.FeeZeroForOne == nil || fees.FeeOneForZero == nil ||
+		fees.FeeZeroForOne.Uint64() >= uint64(uniswapv4.FeeMax) || fees.FeeOneForZero.Uint64() >= uint64(uniswapv4.FeeMax) {
 		return nil, ErrInvalidSwapFee
 	}
 
 	h.Extra = Extra{
 		Tracked:       true,
-		FeeZeroForOne: uniswapv4.FeeAmount(feeZeroForOne),
-		FeeOneForZero: uniswapv4.FeeAmount(feeOneForZero),
+		FeeZeroForOne: uniswapv4.FeeAmount(fees.FeeZeroForOne.Uint64()),
+		FeeOneForZero: uniswapv4.FeeAmount(fees.FeeOneForZero.Uint64()),
 	}
 	return json.Marshal(h)
 }
@@ -88,6 +87,16 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 func (h *Hook) CloneState() uniswapv4.Hook {
 	cloned := *h
 	return &cloned
+}
+
+func newPoolKey(pool *entity.Pool, staticExtra *uniswapv4.StaticExtra, hook common.Address) uniswapv4.PoolKey {
+	return uniswapv4.PoolKey{
+		Currency0:   currency(staticExtra.IsNative[0], pool.Tokens[0].Address),
+		Currency1:   currency(staticExtra.IsNative[1], pool.Tokens[1].Address),
+		Fee:         big.NewInt(int64(staticExtra.Fee)),
+		TickSpacing: big.NewInt(int64(staticExtra.TickSpacing)),
+		Hooks:       hook,
+	}
 }
 
 func currency(isNative bool, token string) common.Address {
