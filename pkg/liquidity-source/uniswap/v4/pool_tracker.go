@@ -105,10 +105,18 @@ func (t *PoolTracker) fetchOnchainState(
 	if _, ok := hook.(HookWithLiveness); ok {
 		result.TrackedAt = hookParam.TrackedAt // buildExtra restamps it
 	}
-	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	if blockNumber > 0 {
-		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
+	// Multicall.aggregate returns EVM BLOCKNUMBER, which is a parent-chain
+	// height on Arbitrum-family chains such as Robinhood. Resolve the RPC
+	// height first and pin base state and all dependent hook reads to it.
+	if blockNumber == 0 {
+		var err error
+		blockNumber, err = t.ethrpcClient.GetBlockNumber(ctx)
+		if err != nil {
+			return result, hook, hookParam, err
+		}
 	}
+	rpcBlock := new(big.Int).SetUint64(blockNumber)
+	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(rpcBlock)
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
@@ -122,11 +130,11 @@ func (t *PoolTracker) fetchOnchainState(
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
-	res, err := rpcRequests.Aggregate()
+	_, err := rpcRequests.Aggregate()
 	if err != nil {
 		return result, hook, hookParam, err
 	}
-	hookParam.BlockNumber = res.BlockNumber
+	hookParam.BlockNumber = rpcBlock
 
 	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
 	// https://github.com/Uniswap/v4-core/blob/main/src/libraries/ProtocolFeeLibrary.sol#L38
