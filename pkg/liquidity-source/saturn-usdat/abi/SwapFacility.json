@@ -1,0 +1,4 @@
+[
+  {"type":"function","name":"paused","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"bool"}]},
+  {"type":"function","name":"isApprovedExtension","stateMutability":"view","inputs":[{"name":"extension","type":"address"}],"outputs":[{"name":"","type":"bool"}]}
+]

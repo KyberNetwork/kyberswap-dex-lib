@@ -168,6 +168,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	saturnusdat "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/saturn-usdat"
 	slyngfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/slyng-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smoothy"
@@ -384,6 +385,7 @@ type Types struct {
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
+	SaturnUsdat                string
 	DeepstateOb                string
 	UsdAi                      string
 	Ambient                    string
@@ -647,6 +649,7 @@ var (
 		EtherVista:                 ethervista.DexType,
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
+		SaturnUsdat:                saturnusdat.DexType,
 		UsdAi:                      usd_ai.DexType,
 		Ambient:                    ambient.DexType,
 		MaverickV2:                 maverickv2.DexType,
