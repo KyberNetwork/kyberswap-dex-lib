@@ -40,6 +40,7 @@ const (
 	ExchangeBancorV3                    = "bancor-v3"
 	ExchangeBancorV21                   = "bancor-v21"
 	ExchangeBebop                       = "bebop"
+	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeBedrockUniBTC               = "bedrock-unibtc"
 	ExchangeBedrockUniETH               = "bedrock-unieth"
 	ExchangeBeefySonic                  = "beefy-sonic"
@@ -494,6 +495,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeNemoProp:           {},
 	ExchangeBTRProp:            {},
 	ExchangeUniswapV4HyFiProp:  {},
+	ExchangeBiconomyProp:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
