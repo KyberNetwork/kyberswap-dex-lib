@@ -54,9 +54,15 @@ func aggregateStub(t *testing.T, calls *atomic.Int32) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		var req struct {
-			ID json.RawMessage `json:"id"`
+			ID     json.RawMessage `json:"id"`
+			Method string          `json:"method"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Method == "eth_blockNumber" {
+			resp, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": hexutil.EncodeUint64(stubBlock)})
+			_, _ = w.Write(resp)
+			return
+		}
 		resp, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": hexutil.Encode(ret)})
 		_, _ = w.Write(resp)
 	}))
