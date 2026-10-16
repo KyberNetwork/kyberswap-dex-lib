@@ -165,8 +165,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		e.Protocol = protocol
 	}
 	var previous Extra
+	// The caller registers the set after saving the refresh that produced it and never writes the
+	// flag back, so an unchanged set means it is already registered (same as wombat and nabla).
 	if json.Unmarshal([]byte(p.Extra), &previous) == nil && slices.Equal(previous.Dependencies, e.Dependencies) {
-		e.DependenciesStored = previous.DependenciesStored
+		e.DependenciesStored = true
 	}
 	extra, err := json.Marshal(e)
 	if err != nil {
