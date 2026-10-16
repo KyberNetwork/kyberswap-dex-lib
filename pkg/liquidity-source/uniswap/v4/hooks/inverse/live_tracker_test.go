@@ -30,6 +30,20 @@ func TestRobinhoodCurrentTracker(t *testing.T) {
 	if os.Getenv("INVERSE_LIVE_TRACKER") != "true" || rpcURL == "" {
 		t.Skip("set INVERSE_LIVE_TRACKER=true and INVERSE_LIVE_RPC for current-pool verification")
 	}
+	for _, tc := range []struct{ name, address string }{
+		{"Multicall3", "0xca11bde05977b3631167028862be2a173976ca11"},
+		// Other upstream live tests identify this as pool-service's Robinhood
+		// multicall. It already reports the RPC height through ArbSys.
+		{"ArbMulticall2", "0x2cac2d899ecc914d704feaae33ac1bf36277dad1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			testRobinhoodCurrentTracker(t, rpcURL, common.HexToAddress(tc.address))
+		})
+	}
+}
+
+func testRobinhoodCurrentTracker(t *testing.T, rpcURL string, trackerMulticall common.Address) {
+	t.Helper()
 	manifest := os.Getenv("INVERSE_LIVE_MANIFEST")
 	if manifest == "" {
 		manifest = "testdata/deployment.json"
@@ -47,7 +61,7 @@ func TestRobinhoodCurrentTracker(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	multicall := common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11")
-	rpcClient := ethrpc.New(rpcURL).SetMulticallContract(multicall)
+	rpcClient := ethrpc.New(rpcURL).SetMulticallContract(trackerMulticall)
 	client := rpcClient.GetETHClient()
 	defer client.Close()
 	chain, err := client.ChainID(ctx)

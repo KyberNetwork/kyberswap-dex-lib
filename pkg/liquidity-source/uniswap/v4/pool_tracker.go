@@ -105,9 +105,9 @@ func (t *PoolTracker) fetchOnchainState(
 	if _, ok := hook.(HookWithLiveness); ok {
 		result.TrackedAt = hookParam.TrackedAt // buildExtra restamps it
 	}
-	// Multicall.aggregate returns EVM BLOCKNUMBER, which is a parent-chain
-	// height on Arbitrum-family chains such as Robinhood. Resolve the RPC
-	// height first and pin base state and all dependent hook reads to it.
+	// Standard Multicall.aggregate returns EVM BLOCKNUMBER, which can be a
+	// parent-chain height on rollups. Resolve the RPC height independently
+	// of the multicall implementation and pin base and hook reads to it.
 	if blockNumber == 0 {
 		var err error
 		blockNumber, err = t.ethrpcClient.GetBlockNumber(ctx)

@@ -26,15 +26,18 @@ import (
 func TestFetchOnchainState_UsesRPCBlockHeight(t *testing.T) {
 	const rpcHead, evmBlock = uint64(90327817), uint64(26207189)
 	for _, tc := range []struct {
-		name          string
-		requested     uint64
-		want          uint64
-		wantHeadCalls int32
-		withOverrides bool
+		name           string
+		requested      uint64
+		multicallBlock uint64
+		want           uint64
+		wantHeadCalls  int32
+		withOverrides  bool
 	}{
-		{"latest resolves RPC height", 0, rpcHead, 1, false},
-		{"explicit RPC height retained", rpcHead - 10, rpcHead - 10, 0, false},
-		{"overrides retain RPC height", 0, rpcHead, 1, true},
+		{"latest resolves RPC height", 0, evmBlock, rpcHead, 1, false},
+		{"explicit RPC height retained", rpcHead - 10, evmBlock, rpcHead - 10, 0, false},
+		{"overrides retain RPC height", 0, evmBlock, rpcHead, 1, true},
+		// Ethereum and Arbitrum-aware multicalls already report the RPC height.
+		{"RPC reporting multicall retained", 0, rpcHead, rpcHead, 1, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			uintT, err := abi.NewType("uint256", "", nil)
@@ -46,7 +49,7 @@ func TestFetchOnchainState_UsesRPCBlockHeight(t *testing.T) {
 			sqrt := new(big.Int).Lsh(big.NewInt(1), 96)
 			slot, err := stateViewABI.Methods["getSlot0"].Outputs.Pack(sqrt, big.NewInt(0), uint32(0), uint32(3000))
 			require.NoError(t, err)
-			output, err := (abi.Arguments{{Type: uintT}, {Type: bytesT}}).Pack(new(big.Int).SetUint64(evmBlock), [][]byte{liquidity, slot})
+			output, err := (abi.Arguments{{Type: uintT}, {Type: bytesT}}).Pack(new(big.Int).SetUint64(tc.multicallBlock), [][]byte{liquidity, slot})
 			require.NoError(t, err)
 			var headCalls atomic.Int32
 			var callBlock atomic.Value
