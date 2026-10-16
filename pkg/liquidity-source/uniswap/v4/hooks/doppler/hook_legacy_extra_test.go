@@ -133,3 +133,13 @@ func tryAggregateResult(t *testing.T, token0, token1 common.Address) []byte {
 	require.NoError(t, err)
 	return out
 }
+
+func TestBaseRehypeDopplerHookChargesItsFeeOverOneMillion(t *testing.T) {
+	newHook := DHooks[common.HexToAddress("0xe2aebc987592593b667ec29178d0a83929db78b6")]
+	require.NotNil(t, newHook)
+
+	hook := newHook(json.RawMessage(`{"s":15000}`))
+	res, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{}, AmountIn: big.NewInt(1_000_000)}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, big.NewInt(15_000), res.HookFee)
+}
