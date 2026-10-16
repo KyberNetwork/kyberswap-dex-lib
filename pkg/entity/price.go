@@ -19,8 +19,9 @@ type Price struct {
 	PreferPriceSource PriceSource `json:"preferPriceSource"`
 }
 
-// GetPreferredPrice returns the preferred price + if the value is market price or not
-// Default is price from Coingecko price source
+// GetPreferredPrice returns the preferred price and whether it is a market price.
+// When MarketPrice is zero and Price does not exceed UpperLimitPrice, it uses the pool price;
+// otherwise, the default preferred source is the market price from CoinGecko.
 func (p Price) GetPreferredPrice() (float64, bool) {
 	// We don't always have market price, so it's better to have this fallback
 	if p.MarketPrice == 0 && p.Price <= UpperLimitPrice {

@@ -28,8 +28,8 @@ func NewInventory(exchange string, balance map[string]*big.Int) *Inventory {
 	}
 }
 
-// Clone clones Inventory. Only guarantees that UpdateLimit of the original does not affect the clone.
-// The balances are copied on UpdateBalance, and so is shadow-cloned here.
+// Clone clones Inventory. The balance map is shallow-copied; UpdateLimit replaces balance entries
+// with new big.Int values, so updates to the original do not affect the clone.
 func (i *Inventory) Clone() pool.SwapLimit {
 	return &Inventory{
 		exchange: i.exchange,
