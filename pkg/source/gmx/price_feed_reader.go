@@ -67,7 +67,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 		latestAnswer    = bignumber.ZeroBI
 	)
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	switch r.PriceFeedType {
 	case PriceFeedTypeLatestRoundData:
@@ -78,7 +78,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 			Params: nil,
 		}, []any{&latestRoundData})
 
-		if _, err := rpcRequest.Call(); err != nil {
+		if _, err := callWithBlockRetry(ctx, rpcRequest.Call); err != nil {
 			return err
 		}
 
@@ -100,7 +100,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 			Params: nil,
 		}, []any{&latestAnswer})
 
-		if _, err := rpcRequest.Aggregate(); err != nil {
+		if _, err := callWithBlockRetry(ctx, rpcRequest.Aggregate); err != nil {
 			return err
 		}
 
@@ -121,7 +121,7 @@ func (r *PriceFeedReader) getHistoryRoundData(ctx context.Context, address strin
 		return nil
 	}
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 	roundDataList := make([]RoundData, roundCount-1)
 	for i := 1; i < roundCount; i++ {
 		roundID := new(big.Int).Sub(priceFeed.RoundID, big.NewInt(int64(i)))
@@ -134,7 +134,7 @@ func (r *PriceFeedReader) getHistoryRoundData(ctx context.Context, address strin
 		}, []any{&roundDataList[i-1]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		return err
 	}
 
