@@ -99,31 +99,43 @@ type StorageRead struct {
 // revert, so an element error means transport or node trouble.
 func BatchGetStorageAt(
 	ctx context.Context, client *rpc.Client, address common.Address,
-	reads []StorageRead, retry BatchRetry,
+	reads []StorageRead, retry BatchRetry, blockTag ...string,
 ) error {
 	if len(reads) == 0 {
 		return nil
 	}
 
-	batch := make([]rpc.BatchElem, len(reads))
-	for i := range reads {
-		batch[i] = rpc.BatchElem{
-			Method: "eth_getStorageAt",
-			Args:   []any{address, reads[i].Slot, "latest"},
-			Result: &reads[i].Result,
-		}
+	tag := "latest"
+	if len(blockTag) > 0 {
+		tag = blockTag[0]
 	}
+	call := func() (struct{}, error) {
+		batch := make([]rpc.BatchElem, len(reads))
+		for i := range reads {
+			batch[i] = rpc.BatchElem{
+				Method: "eth_getStorageAt",
+				Args:   []any{address, reads[i].Slot, tag},
+				Result: &reads[i].Result,
+			}
+		}
 
-	if err := BatchCallWithRetry(ctx, client, batch, retry); err != nil {
+		if err := BatchCallWithRetry(ctx, client, batch, retry); err != nil {
+			return struct{}{}, err
+		}
+
+		for _, elem := range batch {
+			if elem.Error != nil {
+				return struct{}{}, elem.Error
+			}
+		}
+		return struct{}{}, nil
+	}
+	if tag == "latest" {
+		_, err := call()
 		return err
 	}
-
-	for _, elem := range batch {
-		if elem.Error != nil {
-			return elem.Error
-		}
-	}
-	return nil
+	_, err := CallWithBlockRetry(ctx, call)
+	return err
 }
 
 // BatchRetry configures batch retry. Delay doubles after each failed attempt.
