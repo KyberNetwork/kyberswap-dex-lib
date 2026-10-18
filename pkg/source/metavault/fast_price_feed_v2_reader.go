@@ -59,7 +59,7 @@ func (r *FastPriceFeedV2Reader) Read(
 // - SpreadBasisPointsIfInactive
 func (r *FastPriceFeedV2Reader) readData(ctx context.Context, address string, fastPriceFeed *FastPriceFeedV2) error {
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2DisableFastPriceVoteCount, nil), []any{&fastPriceFeed.DisableFastPriceVoteCount})
 	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2IsSpreadEnabled, nil), []any{&fastPriceFeed.IsSpreadEnabled})
@@ -71,7 +71,7 @@ func (r *FastPriceFeedV2Reader) readData(ctx context.Context, address string, fa
 	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2SpreadBasisPointsIfChainError, nil), []any{&fastPriceFeed.SpreadBasisPointsIfChainError})
 	rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2SpreadBasisPointsIfInactive, nil), []any{&fastPriceFeed.SpreadBasisPointsIfInactive})
 
-	_, err := rpcRequest.TryAggregate()
+	_, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate)
 	return err
 }
 
@@ -89,14 +89,14 @@ func (r *FastPriceFeedV2Reader) readTokenData(
 	maxCumulativeDeltaDiffs := make([]*big.Int, tokensLen)
 	priceData := make([]PriceDataItem, tokensLen)
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 	for i, token := range tokens {
 		rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2Prices, []any{common.HexToAddress(token)}), []any{&prices[i]})
 		rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2MaxCumulativeDeltaDiffs, []any{common.HexToAddress(token)}), []any{&maxCumulativeDeltaDiffs[i]})
 		rpcRequest.AddCall(callParamsFactory(FastPriceFeedMethodV2GetPriceData, []any{common.HexToAddress(token)}), []any{&priceData[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}

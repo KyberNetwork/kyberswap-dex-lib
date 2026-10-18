@@ -58,14 +58,14 @@ func (r *VaultPriceFeedReader) readData(
 	vaultPriceFeed *VaultPriceFeed,
 ) error {
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(VaultPriceFeedMethodIsSecondaryPriceEnabled, nil), []any{&vaultPriceFeed.IsSecondaryPriceEnabled})
 	rpcRequest.AddCall(callParamsFactory(VaultPriceFeedMethodMaxStrictPriceDeviation, nil), []any{&vaultPriceFeed.MaxStrictPriceDeviation})
 	rpcRequest.AddCall(callParamsFactory(VaultPriceFeedMethodPriceSampleSpace, nil), []any{&vaultPriceFeed.PriceSampleSpace})
 	rpcRequest.AddCall(callParamsFactory(VaultPriceFeedMethodSecondaryPriceFeed, nil), []any{&vaultPriceFeed.SecondaryPriceFeedAddress})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}
@@ -97,7 +97,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 	strictStableTokens := make([]bool, tokensLen)
 	isAdjustmentAdditive := make([]bool, tokensLen)
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)
 
@@ -109,7 +109,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 		rpcRequest.AddCall(callParamsFactory(VaultPriceFeedMethodIsAdjustmentAdditive, []any{tokenAddress}), []any{&isAdjustmentAdditive[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}
