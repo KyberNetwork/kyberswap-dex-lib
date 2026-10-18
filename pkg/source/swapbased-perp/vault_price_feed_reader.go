@@ -72,7 +72,7 @@ func (r *VaultPriceFeedReader) readData(
 	var bnb, btc, eth common.Address
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodFavorPrimaryPrice, nil), []any{&vaultPriceFeed.FavorPrimaryPrice})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsSecondaryPriceEnabled, nil), []any{&vaultPriceFeed.IsSecondaryPriceEnabled})
@@ -81,7 +81,7 @@ func (r *VaultPriceFeedReader) readData(
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSecondaryPriceFeed, nil), []any{&vaultPriceFeed.SecondaryPriceFeedAddress})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSpreadThresholdBasisPoints, nil), []any{&vaultPriceFeed.SpreadThresholdBasisPoints})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}
@@ -116,7 +116,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 	isAdjustmentAdditive := make([]bool, tokensLen)
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)
@@ -129,7 +129,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsAdjustmentAdditive, []any{tokenAddress}), []any{&isAdjustmentAdditive[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}
