@@ -12,13 +12,14 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	ethutil "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 // listPairAddresses lists address of pairs from offset
 // return: poolAddresses, lpAddresses, error
-func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string, allPairLength int) ([]common.Address, []common.Address, error) {
+func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string, allPairLength int, blockNumber *big.Int) ([]common.Address, []common.Address, error) {
 	anchors := make([]common.Address, allPairLength)
-	listAnchorAddressesRequest := ethrpcClient.NewRequest().SetContext(ctx)
+	listAnchorAddressesRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
 	listAnchorAddressesRequest.AddCall(&ethrpc.Call{
 		ABI:    converterRegistryABI,
@@ -26,39 +27,43 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 		Method: registryGetAnchors,
 	}, []any{&anchors})
 
-	_, err := listAnchorAddressesRequest.TryAggregate()
+	_, err := ethutil.CallWithBlockRetry(ctx, listAnchorAddressesRequest.TryAggregate)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// get pool address (converters) from anchorResults (lp address)
 	poolAddresses := make([]common.Address, allPairLength)
-	if _, err := ethrpcClient.NewRequest().SetContext(ctx).AddCall(
+	request := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	request.AddCall(
 		&ethrpc.Call{
 			ABI:    converterRegistryABI,
 			Target: converterRegistry,
 			Method: getConvertersByAnchors,
 			Params: []any{anchors},
-		}, []any{&poolAddresses}).Call(); err != nil {
+		}, []any{&poolAddresses})
+	if _, err := ethutil.CallWithBlockRetry(ctx, request.Call); err != nil {
 		return nil, nil, err
 	}
 
 	return poolAddresses, anchors, nil
 }
 
-func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string) (map[string][]string, error) {
+func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string, blockNumber *big.Int) (map[string][]string, error) {
 	convertibleTokens := make([]common.Address, 0)
-	if _, err := ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	request := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	request.AddCall(&ethrpc.Call{
 		ABI:    converterRegistryABI,
 		Target: converterRegistry,
 		Method: getConvertibleTokens,
 		Params: nil,
-	}, []any{&convertibleTokens}).Call(); err != nil {
+	}, []any{&convertibleTokens})
+	if _, err := ethutil.CallWithBlockRetry(ctx, request.Call); err != nil {
 		return nil, err
 	}
 
 	anchorsByConvertibleTokens := make(map[string][]string)
-	anchorsRequest := ethrpcClient.NewRequest().SetContext(ctx)
+	anchorsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	anchors := make([][]common.Address, len(convertibleTokens))
 
 	for i, convertibleToken := range convertibleTokens {
@@ -71,7 +76,7 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 		}, []any{&anchors[i]})
 	}
 
-	if _, err := anchorsRequest.Aggregate(); err != nil {
+	if _, err := ethutil.CallWithBlockRetry(ctx, anchorsRequest.Aggregate); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +92,7 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 }
 
 // getAllPairsLength gets number of pairs from the factory contracts
-func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string) (int, error) {
+func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string) (int, *big.Int, error) {
 	var allPairsLength *big.Int
 	//
 	getAllPairsLengthRequest := ethrpcClient.NewRequest().SetContext(ctx)
@@ -99,26 +104,29 @@ func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 		Params: nil,
 	}, []any{&allPairsLength})
 
-	if _, err := getAllPairsLengthRequest.Call(); err != nil {
-		return 0, err
+	response, err := getAllPairsLengthRequest.Aggregate()
+	if err != nil {
+		return 0, nil, err
 	}
 
-	return int(allPairsLength.Int64()), nil
+	return int(allPairsLength.Int64()), response.BlockNumber, nil
 }
 
 // listPairTokens receives list of pair addresses and returns their tokens
-func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddresses []common.Address) ([][]common.Address, error) {
-	listTokensRequest := ethrpcClient.NewRequest().SetContext(ctx)
+func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddresses []common.Address, blockNumber *big.Int) ([][]common.Address, error) {
+	listTokensRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	tokens := make([][]common.Address, len(pairAddresses))
 
 	for index, pairAddress := range pairAddresses {
 		var numToken uint16
-		if _, err := ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		countRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+		countRequest.AddCall(&ethrpc.Call{
 			ABI:    converterABI,
 			Target: pairAddress.Hex(),
 			Method: converterGetTokenCount,
 			Params: nil,
-		}, []any{&numToken}).Call(); err != nil {
+		}, []any{&numToken})
+		if _, err := ethutil.CallWithBlockRetry(ctx, countRequest.Call); err != nil {
 			return nil, err
 		}
 		nTokens := int(numToken)
@@ -134,7 +142,7 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 		}
 	}
 
-	if _, err := listTokensRequest.Aggregate(); err != nil {
+	if _, err := ethutil.CallWithBlockRetry(ctx, listTokensRequest.Aggregate); err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": "bancor-v21"}).
 			Error("Get tokens list for pool failed")
@@ -145,8 +153,8 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 }
 
 // initInnerPools fetches token data and initializes pools
-func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddresses, anchors []common.Address) ([]entity.Pool, map[string][]string, error) {
-	tokens, err := listPairTokens(ctx, ethrpcClient, pairAddresses)
+func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddresses, anchors []common.Address, blockNumber *big.Int) ([]entity.Pool, map[string][]string, error) {
+	tokens, err := listPairTokens(ctx, ethrpcClient, pairAddresses, blockNumber)
 	if err != nil {
 		return nil, nil, err
 	}

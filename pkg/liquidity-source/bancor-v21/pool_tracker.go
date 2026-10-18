@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	ethutil "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type (
@@ -45,21 +46,21 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
 	// 1. update anchors map and convertible tokens anchor state
-	allPairsLength, err := getAllPairsLength(ctx, d.ethrpcClient, d.config.ConverterRegistry)
+	allPairsLength, blockNumber, err := getAllPairsLength(ctx, d.ethrpcClient, d.config.ConverterRegistry)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": d.config.DexID}).
 			Error("getAllPairsLength failed")
 		return p, err
 	}
-	latestPoolAddresses, latestAnchors, err := listPairAddresses(ctx, d.ethrpcClient, d.config.ConverterRegistry, allPairsLength)
+	latestPoolAddresses, latestAnchors, err := listPairAddresses(ctx, d.ethrpcClient, d.config.ConverterRegistry, allPairsLength, blockNumber)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": d.config.DexID, "err": err}).
 			Error("listPairAddresses failed")
 		return p, err
 	}
-	innerPools, tokensByAnchor, err := initInnerPools(ctx, d.ethrpcClient, latestPoolAddresses, latestAnchors)
+	innerPools, tokensByAnchor, err := initInnerPools(ctx, d.ethrpcClient, latestPoolAddresses, latestAnchors, blockNumber)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": d.config.DexID, "err": err}).
@@ -67,7 +68,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	reservesData, blockNumber, err := d.getReservesFromRPCNode(ctx, innerPools)
+	reservesData, err := d.getReservesFromRPCNode(ctx, innerPools, blockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -85,7 +86,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, nil
 	}
 
-	fees, err := d.getFee(ctx, innerPools)
+	fees, err := d.getFee(ctx, innerPools, blockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -162,7 +163,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	for i, anchor := range anchors {
 		entityPoolByAnchor[hexutil.Encode(anchor[:])] = &newInnerPools[i]
 	}
-	convertibleTokenAnchors, err := getConvertibleTokensAnchorState(ctx, d.ethrpcClient, d.config.ConverterRegistry)
+	convertibleTokenAnchors, err := getConvertibleTokensAnchorState(ctx, d.ethrpcClient, d.config.ConverterRegistry, blockNumber)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": d.config.DexID, "err": err}).
@@ -189,9 +190,9 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	return pool, nil
 }
 
-func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool) ([]uint64, error) {
+func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool, blockNumber *big.Int) ([]uint64, error) {
 	fees := make([]uint32, len(pools))
-	getFeeRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	getFeeRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	for i, pool := range pools {
 		getFeeRequest.AddCall(&ethrpc.Call{
 			ABI:    converterABI,
@@ -201,7 +202,7 @@ func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool) ([]uint64
 		}, []any{&fees[i]})
 	}
 
-	_, err := getFeeRequest.TryBlockAndAggregate()
+	_, err := ethutil.CallWithBlockRetry(ctx, getFeeRequest.TryBlockAndAggregate)
 	if err != nil {
 		return nil, err
 	}
@@ -213,9 +214,9 @@ func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool) ([]uint64
 	return results, nil
 }
 
-func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, pools []entity.Pool) ([][]*big.Int, *big.Int, error) {
+func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, pools []entity.Pool, blockNumber *big.Int) ([][]*big.Int, error) {
 	reserves := make([][]*big.Int, len(pools))
-	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
 	for i, pool := range pools {
 		reserves[i] = make([]*big.Int, len(pool.Tokens))
@@ -229,10 +230,10 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, pools []entity
 		}
 	}
 
-	resp, err := getReservesRequest.TryBlockAndAggregate()
+	_, err := ethutil.CallWithBlockRetry(ctx, getReservesRequest.TryBlockAndAggregate)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return reserves, resp.BlockNumber, nil
+	return reserves, nil
 }
