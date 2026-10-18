@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type (
@@ -177,7 +178,7 @@ func (d *PoolTracker) getRPCState(
 		usdcToETHSellTotalFee *big.Int
 	)
 
-	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 	if overrides != nil {
 		rpcRequest.SetOverrides(overrides)
 	}
@@ -195,7 +196,7 @@ func (d *PoolTracker) getRPCState(
 		Params: []any{big.NewInt(int64(sellTotalFee))},
 	}, []any{&usdcToETHSellTotalFee})
 
-	_, err = rpcRequest.TryBlockAndAggregate()
+	_, err = utilEth.CallWithBlockRetry(ctx, rpcRequest.TryBlockAndAggregate)
 	if err != nil {
 		return RPCStateData{}, nil, err
 	}
