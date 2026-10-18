@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -76,7 +77,7 @@ func (t *PoolTracker) getNewPoolState(
 	var isBasketModeEnabledRedeem bool
 	var forcedBasketMode bool
 	var polFeeCollectorFeeRate *big.Int
-	if _, err = calls.AddCall(&ethrpc.Call{
+	firstResp, err := calls.AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "numRegisteredAssets",
@@ -98,9 +99,11 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "polFeeCollectorFeeRate",
-	}, []any{&polFeeCollectorFeeRate}).Aggregate(); err != nil {
+	}, []any{&polFeeCollectorFeeRate}).Aggregate()
+	if err != nil {
 		return p, err
 	}
+	calls.SetBlockNumber(firstResp.BlockNumber)
 
 	noAssets := int(numRegisteredAssets.Int64())
 	registeredAssets := lo.Map(extra.RegisteredAssets,
@@ -112,7 +115,7 @@ func (t *PoolTracker) getNewPoolState(
 	if hasNewAssets { // new registered assets
 		registeredAssets = make([]common.Address, noAssets)
 		vaults = make([]common.Address, noAssets)
-		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+		calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(firstResp.BlockNumber)
 		for i := range noAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    honeyABI,
@@ -121,13 +124,13 @@ func (t *PoolTracker) getNewPoolState(
 				Params: []any{big.NewInt(int64(i))},
 			}, []any{&registeredAssets[i]})
 		}
-		if _, err = calls.Aggregate(); err != nil {
+		if _, err = utilEth.CallWithBlockRetry(ctx, calls.Aggregate); err != nil {
 			return p, err
 		}
 
 		assetsDecimals = make([]uint8, noAssets)
 		vaultsDecimals = make([]uint8, noAssets)
-		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+		calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(firstResp.BlockNumber)
 		for i := range noAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    honeyABI,
@@ -141,7 +144,7 @@ func (t *PoolTracker) getNewPoolState(
 				Params: []any{},
 			}, []any{&assetsDecimals[i]})
 		}
-		if _, err = calls.Aggregate(); err != nil {
+		if _, err = utilEth.CallWithBlockRetry(ctx, calls.Aggregate); err != nil {
 			return p, err
 		}
 	}
@@ -187,7 +190,7 @@ func (t *PoolTracker) getNewPoolState(
 			Params: []any{poolAddress},
 		}, []any{&vaultsMaxRedeems[i]})
 	}
-	resp, err := calls.Aggregate()
+	resp, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate)
 	if err != nil {
 		return p, err
 	}
