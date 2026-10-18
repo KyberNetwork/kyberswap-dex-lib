@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -126,14 +127,14 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	if len(enabledBuckets) != len(currentBuckets) || !lo.Every(enabledBuckets, currentBuckets) {
 		newBucketIndexes, _ := lo.Difference(enabledBuckets, currentBuckets)
 		newLiusdBuckets := lo.Map(newBucketIndexes, func(index uint32, _ int) bucket { return bucket{Index: index} })
-		req := ethrpcClient.NewRequest().SetContext(ctx)
+		req := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 		ReqLiusdBuckets(req, cfg, newLiusdBuckets)
-		if _, err := req.Aggregate(); err != nil {
+		if _, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate); err != nil {
 			return entity.Pool{}, err
 		}
-		req = ethrpcClient.NewRequest().SetContext(ctx)
+		req = ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 		ReqLiusdSupplies(req, cfg, newLiusdBuckets)
-		if _, err := req.Aggregate(); err != nil {
+		if _, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate); err != nil {
 			return entity.Pool{}, err
 		}
 		p.Tokens = append(p.Tokens, lo.Map(newLiusdBuckets, func(bucket bucket, _ int) *entity.PoolToken {
