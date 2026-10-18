@@ -18,6 +18,7 @@ import (
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -108,7 +109,7 @@ func (t *PoolTracker) getNewPoolState(
 	priceInUsd := make([]*big.Int, nTokens)
 
 	const callsPerToken = 4
-	req2 := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	req2 := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp1.BlockNumber).SetOverrides(overrides)
 	for i, token := range p.Tokens {
 		req2.AddCall(&ethrpc.Call{
 			ABI: syntheticTokenABI, Target: token.Address, Method: syntheticTokenMethodIsActive,
@@ -142,7 +143,7 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	resp2, err := req2.TryAggregate()
+	resp2, err := utilEth.CallWithBlockRetry(ctx, req2.TryAggregate)
 	if err != nil {
 		logger.WithFields(logger.Fields{"exchange": p.Exchange, "error": err}).
 			Error("metronome-swap: round-2 rpc call error")
@@ -203,9 +204,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Reserves = reserves
 	p.Timestamp = time.Now().Unix()
-	if resp2.BlockNumber != nil {
-		p.BlockNumber = resp2.BlockNumber.Uint64()
-	} else if resp1.BlockNumber != nil {
+	if resp1.BlockNumber != nil {
 		p.BlockNumber = resp1.BlockNumber.Uint64()
 	}
 
