@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -73,7 +74,7 @@ func (d *PoolTracker) fetchOraclePrices(
 
 	extra.PriceDiffThreshold = [2]*big.Int{}
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(p.BlockNumber))
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -96,7 +97,7 @@ func (d *PoolTracker) fetchOraclePrices(
 		Params: nil,
 	}, []any{&extra.PriceDiffThreshold[1]})
 
-	resp, err := req.Aggregate()
+	resp, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate)
 	if err != nil {
 		return entity.Pool{}, err
 	}
