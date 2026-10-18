@@ -1,13 +1,22 @@
 package fxdx
 
 import (
+	"context"
+	"math/big"
+	"os"
+	"reflect"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -86,4 +95,91 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			_ = result
 		})
 	}
+}
+
+func setBlockPinFixtureValue(value any, address common.Address) any {
+	v := reflect.New(reflect.TypeOf(value)).Elem()
+	v.Set(reflect.ValueOf(value))
+	var fill func(reflect.Value)
+	fill = func(v reflect.Value) {
+		if !v.CanSet() {
+			return
+		}
+		if v.Type() == reflect.TypeOf(common.Address{}) {
+			v.Set(reflect.ValueOf(address))
+			return
+		}
+		switch v.Kind() {
+		case reflect.Bool:
+			v.SetBool(true)
+		case reflect.Struct:
+			for i := 0; i < v.NumField(); i++ {
+				fill(v.Field(i))
+			}
+		case reflect.Array, reflect.Slice:
+			for i := 0; i < v.Len(); i++ {
+				fill(v.Index(i))
+			}
+		}
+	}
+	fill(v)
+	return v.Interface()
+}
+
+func TestGetNewPoolStatePinsAllCallsToFirstBlock(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		addr := "0x1111111111111111111111111111111111111111"
+		resolver := func(_ common.Address, method abi.Method, inputs []any) ([]any, error) {
+			if method.Name == "getStates" && len(method.Outputs) == 3 {
+				count := 2
+				if len(inputs) > 0 {
+					if tokens, ok := inputs[0].([]common.Address); ok {
+						count = len(tokens)
+					}
+				}
+				addresses := make([]common.Address, count)
+				for i := range addresses {
+					addresses[i] = common.HexToAddress(addr)
+				}
+				ints := make([]*big.Int, 3+count*3)
+				for i := range ints {
+					ints[i] = big.NewInt(1)
+				}
+				return []any{addresses, ints, make([]bool, 2)}, nil
+			}
+			if method.Name == "priceSampleSpace" {
+				values := make([]any, len(method.Outputs))
+				for i, output := range method.Outputs {
+					values[i] = ethrpcmock.Value(output.Type)
+					v := reflect.ValueOf(values[i])
+					if v.Kind() == reflect.Ptr {
+						values[i] = big.NewInt(2)
+					} else {
+						v = reflect.New(v.Type()).Elem()
+						v.SetUint(2)
+						values[i] = v.Interface()
+					}
+				}
+				return values, nil
+			}
+			values := make([]any, len(method.Outputs))
+			for i, output := range method.Outputs {
+				values[i] = setBlockPinFixtureValue(ethrpcmock.Value(output.Type), common.HexToAddress(addr))
+			}
+			return values, nil
+		}
+		srv, recorder := ethrpcmock.NewWithResolver(t, resolver, vaultABI, erc20ABI, vaultPriceFeedABI, chainlinkABI, pancakePairABI, fastPriceFeedABI, priceFeedABI, feeUtilsABI)
+		client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x5555555555555555555555555555555555555555"))
+		tracker, err := NewPoolTracker(&Config{DexID: DexTypeFxdx, VaultAddress: addr}, client)
+		require.NoError(t, err)
+		got, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: addr}, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		if os.Getenv("BLOCKPIN_BASELINE") != "1" {
+			require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
+		}
+		require.NotEmpty(t, got.Reserves)
+		ethrpcmock.CheckPool(t, "fxdx_TestGetNewPoolStatePinsAllCallsToFirstBlock", got)
+		ethrpcmock.CheckRequests(t, "fxdx_TestGetNewPoolStatePinsAllCallsToFirstBlock", recorder)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+	})
 }

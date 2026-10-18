@@ -49,7 +49,7 @@ func (r *FastPriceFeedReader) Read(
 
 func (r *FastPriceFeedReader) readData(ctx context.Context, address string, fastPriceFeed *FastPriceFeed) error {
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodDisableFastPriceVoteCount, nil), []any{&fastPriceFeed.DisableFastPriceVoteCount})
 	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodIsSpreadEnabled, nil), []any{&fastPriceFeed.IsSpreadEnabled})
@@ -61,7 +61,7 @@ func (r *FastPriceFeedReader) readData(ctx context.Context, address string, fast
 	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodSpreadBasisPointsIfChainError, nil), []any{&fastPriceFeed.SpreadBasisPointsIfChainError})
 	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodSpreadBasisPointsIfInactive, nil), []any{&fastPriceFeed.SpreadBasisPointsIfInactive})
 
-	_, err := rpcRequest.TryAggregate()
+	_, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate)
 	return err
 
 }
@@ -78,7 +78,7 @@ func (r *FastPriceFeedReader) readTokenData(
 	maxCumulativeDeltaDiffs := make([]*big.Int, tokensLen)
 	priceData := make([][4]*big.Int, tokensLen)
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i, token := range tokens {
 		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodPrices, []any{common.HexToAddress(token)}), []any{&prices[i]})
@@ -86,7 +86,7 @@ func (r *FastPriceFeedReader) readTokenData(
 		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodGetPriceData, []any{common.HexToAddress(token)}), []any{&priceData[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)
 		return err
 	}

@@ -28,7 +28,7 @@ func NewUSDFReader(ethrpcClient *ethrpc.Client) *USDFReader {
 
 func (r *USDFReader) Read(ctx context.Context, address string) (*USDF, error) {
 	var totalSupply *big.Int
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
@@ -37,7 +37,7 @@ func (r *USDFReader) Read(ctx context.Context, address string) (*USDF, error) {
 		Params: nil,
 	}, []any{&totalSupply})
 
-	if _, err := rpcRequest.Call(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.Call); err != nil {
 		r.log.Errorf("error when call rpc request %v", err)
 		return nil, err
 	}
