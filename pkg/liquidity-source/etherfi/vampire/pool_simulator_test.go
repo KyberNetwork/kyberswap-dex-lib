@@ -1,16 +1,71 @@
 package etherfivampire
 
 import (
+	"context"
 	"math/big"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	gethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 )
+
+func TestGetNewPoolStatePinsCurveReadsToMainBlock(t *testing.T) {
+	for _, withOverrides := range []bool{false, true} {
+		name := "without-overrides"
+		if withOverrides {
+			name = "with-overrides"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				resolver := func(_ gethcommon.Address, method abi.Method, _ []any) ([]any, error) {
+					values := make([]any, len(method.Outputs))
+					for i, output := range method.Outputs {
+						values[i] = ethrpcmock.Value(output.Type)
+					}
+					return values, nil
+				}
+				srv, recorder := ethrpcmock.NewWithResolver(t, resolver, curvePlainABI, eETHABI, liquidityPoolABI, stETHABI, vampireABI)
+				tracker := NewPoolTracker(ethrpc.New(srv.URL))
+				p := entity.Pool{
+					Address: vampire,
+					Type:    DexType,
+					Extra:   `{"CurveStETHToETH":{"Reserves":["1","1","0"],"Extra":"{}","StaticExtra":"{}"}}`,
+				}
+				var updated entity.Pool
+				var err error
+				if withOverrides {
+					overrides := map[gethcommon.Address]gethclient.OverrideAccount{
+						gethcommon.HexToAddress("0x0000000000000000000000000000000000000001"): {Balance: big.NewInt(99)},
+					}
+					updated, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p,
+						pool.GetNewPoolStateWithOverridesParams{Overrides: overrides})
+				} else {
+					updated, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				}
+				require.NoError(t, err)
+				require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+				var extra PoolExtra
+				require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+				require.Equal(t, []string{"1", "1", "0"}, extra.CurveStETHToETH.Reserves)
+				require.Equal(t, `{"APrecision":"100","LpToken":"0x06325440D014e39736583c165C2963BA99fAf14E","IsNativeCoin":[true,false]}`, extra.CurveStETHToETH.StaticExtra)
+				ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+				ethrpcmock.CheckPool(t, "etherfi-vampire-tracker-pin-"+name, updated)
+				ethrpcmock.CheckRequests(t, "etherfi-vampire-tracker-pin-"+name, recorder)
+			})
+		})
+	}
+}
 
 func TestPoolSimulator(t *testing.T) {
 	t.Parallel()

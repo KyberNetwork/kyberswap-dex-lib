@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -155,7 +156,7 @@ func getPoolExtra(
 	poolExtra.StETHTokenInfo.TotalCapInEther = tokenInfo.TotalCapInEther
 
 	// Get and update CurvePoolInfo
-	curvePoolInfo, err := getCurvePoolInfo(ctx, ethrpcClient, overrides)
+	curvePoolInfo, err := getCurvePoolInfo(ctx, ethrpcClient, overrides, resp.BlockNumber)
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -168,13 +169,14 @@ func getCurvePoolInfo(
 	ctx context.Context,
 	ethrpcClient *ethrpc.Client,
 	overrides map[gethcommon.Address]gethclient.OverrideAccount,
+	blockNumber *big.Int,
 ) (CurvePoolInfo, error) {
 	var (
 		curvePlainExtra CurvePlainExtra
 		curvePoolInfo   CurvePoolInfo
 	)
 
-	r := ethrpcClient.NewRequest().SetContext(ctx)
+	r := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 	if overrides != nil {
 		r.SetOverrides(overrides)
 	}
@@ -233,7 +235,7 @@ func getCurvePoolInfo(
 		}, []any{&balances[i]})
 	}
 
-	if _, err := r.TryAggregate(); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, r.TryAggregate); err != nil {
 		return CurvePoolInfo{}, err
 	}
 
