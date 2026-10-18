@@ -1,15 +1,23 @@
 package genericarm
 
 import (
+	"context"
 	"math/big"
+	"strings"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -18,6 +26,151 @@ func getPool() *PoolSimulator {
 	_ = json.Unmarshal([]byte("{\"address\":\"0x85b78aca6deae198fbf201c82daf6ca21942acc6\",\"exchange\":\"lidoarm\",\"type\":\"lidoarm\",\"timestamp\":1749541899,\"reserves\":[\"3240609312343444932413\",\"104337404939163039097\"],\"tokens\":[{\"address\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"symbol\":\"WETH\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xae7ab96520de3a18e5e111b5eaab095312d7fe84\",\"symbol\":\"stETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"r0\\\":\\\"1000001576063044561835090408175422814\\\",\\\"r1\\\":\\\"999898426597041524878150000000000000\\\",\\\"ps\\\":\\\"1000000000000000000000000000000000000\\\",\\\"wq\\\":\\\"8824843694584167917191\\\",\\\"wc\\\":\\\"8816768469433561587106\\\",\\\"la\\\":\\\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\\\",\\\"swapType\\\":3,\\\"armType\\\":1,\\\"hasWithdrawalQueue\\\":true}\"}"), &poolE)
 	pool, _ := NewPoolSimulator(poolE)
 	return pool
+}
+
+func TestGetNewPoolStatePinsLaterRounds(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		const armAddress = "0x0000000000000000000000000000000000000001"
+		token0 := common.HexToAddress("0x0000000000000000000000000000000000000002")
+		token1 := common.HexToAddress("0x0000000000000000000000000000000000000003")
+		testABI, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"token0","inputs":[],"outputs":[{"type":"address"}]},{"type":"function","name":"token1","inputs":[],"outputs":[{"type":"address"}]},{"type":"function","name":"balanceOf","inputs":[{"type":"address"}],"outputs":[{"type":"uint256"}]}]`))
+		require.NoError(t, err)
+		resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+			values := make([]any, len(method.Outputs))
+			for i, output := range method.Outputs {
+				values[i] = ethrpcmock.Value(output.Type)
+			}
+			switch method.Name {
+			case "token0":
+				values[0] = token0
+			case "token1":
+				values[0] = token1
+			case "balanceOf":
+				values[0] = big.NewInt(100)
+			}
+			return values, nil
+		}
+		srv, recorder := ethrpcmock.NewWithResolver(t, resolver, testABI)
+		client := ethrpc.New(srv.URL)
+		cfg := &Config{DexID: DexType, Arms: map[string]ArmCfg{armAddress: {ArmType: Pegged}}}
+		tracker := NewPoolTracker(cfg, client)
+		updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: armAddress}, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, "generic-arm-tracker-pin", updated)
+		ethrpcmock.CheckRequests(t, "generic-arm-tracker-pin", recorder)
+	})
+}
+
+func TestGetNewPoolStatePinsPricableState(t *testing.T) {
+	testGenericARMPins(t, "generic-arm-pricable", ArmCfg{ArmType: Pricable}, false)
+}
+
+func TestGetNewPoolStatePinsPricable4626Rates(t *testing.T) {
+	testGenericARMPins(t, "generic-arm-pricable4626", ArmCfg{ArmType: Pricable4626}, false)
+}
+
+func TestGetNewPoolStatePinsWithdrawalQueueDirect(t *testing.T) {
+	testGenericARMPins(t, "generic-arm-withdrawal-direct", ArmCfg{ArmType: Pricable, HasWithdrawalQueue: true}, false)
+}
+
+func TestGetNewPoolStatePinsWithdrawalQueueShares(t *testing.T) {
+	testGenericARMPins(t, "generic-arm-withdrawal-shares", ArmCfg{ArmType: Pricable, HasWithdrawalQueue: true}, true)
+}
+
+func testGenericARMPins(t *testing.T, golden string, armCfg ArmCfg, sharesFallback bool) {
+	t.Helper()
+	synctest.Test(t, func(t *testing.T) {
+		const armAddress = "0x0000000000000000000000000000000000000001"
+		liquidityAsset := common.HexToAddress("0x0000000000000000000000000000000000000002")
+		token1 := common.HexToAddress("0x0000000000000000000000000000000000000003")
+		adapter := common.HexToAddress("0x0000000000000000000000000000000000000004")
+		resolver := func(target common.Address, method abi.Method, inputs []any) ([]any, error) {
+			values := make([]any, len(method.Outputs))
+			for i, output := range method.Outputs {
+				values[i] = ethrpcmock.Value(output.Type)
+			}
+			switch method.RawName {
+			case "token0", "liquidityAsset":
+				values[0] = liquidityAsset
+			case "token1":
+				values[0] = token1
+			case "traderate0", "traderate1", "PRICE_SCALE":
+				values[0] = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+			case "withdrawsQueued":
+				if sharesFallback {
+					return nil, ethrpcmock.ErrRevert
+				}
+				values[0] = big.NewInt(20)
+			case "withdrawsClaimed":
+				if sharesFallback {
+					return nil, ethrpcmock.ErrRevert
+				}
+				values[0] = big.NewInt(10)
+			case "withdrawsQueuedShares":
+				values[0] = big.NewInt(2)
+			case "withdrawsClaimedShares":
+				values[0] = big.NewInt(3)
+			case "convertToAssets":
+				if target == adapter {
+					values[0] = big.NewInt(7)
+				} else {
+					values[0] = new(big.Int).Mul(inputs[0].(*big.Int), big.NewInt(10))
+				}
+			case "getBaseAssets":
+				values[0] = []common.Address{token1}
+			case "baseAssetConfigs":
+				values[0] = big.NewInt(100)
+				values[1] = big.NewInt(101)
+				values[2] = big.NewInt(102)
+				values[3] = big.NewInt(103)
+				values[6] = false
+				if len(values) == 9 {
+					values[7] = uint8(18)
+					values[8] = adapter
+				} else {
+					values[7] = adapter
+				}
+			case "balanceOf":
+				values[0] = big.NewInt(1000)
+			case "decimals":
+				values[0] = uint8(18)
+			case "convertToShares":
+				values[0] = big.NewInt(8)
+			}
+			return values, nil
+		}
+		srv, recorder := ethrpcmock.NewWithResolver(t, resolver, lidoArmABI, baseAssetConfigsV2ABI)
+		tracker := NewPoolTracker(&Config{DexID: DexType, Arms: map[string]ArmCfg{armAddress: armCfg}}, ethrpc.New(srv.URL))
+		updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: armAddress}, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+		require.Equal(t, common.HexToAddress(armAddress).Hex(), updated.Address)
+		require.NotEmpty(t, updated.Reserves)
+		if armCfg.HasWithdrawalQueue {
+			var extra Extra
+			require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+			if sharesFallback {
+				require.Equal(t, "20", extra.WithdrawsQueued.String())
+				require.Equal(t, "30", extra.WithdrawsClaimed.String())
+			} else {
+				require.Equal(t, "20", extra.WithdrawsQueued.String())
+				require.Equal(t, "10", extra.WithdrawsClaimed.String())
+			}
+		}
+		if armCfg.ArmType == Pricable4626 {
+			var extra Extra
+			require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+			require.Len(t, extra.BaseAssets, 1)
+			require.Equal(t, "7", extra.BaseAssets[0].ConvertRateAssetsPerShare.String())
+			require.Equal(t, "8", extra.BaseAssets[0].ConvertRateSharesPerAsset.String())
+			require.Len(t, recorder.Snapshot(), 3)
+		}
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, golden, updated)
+		ethrpcmock.CheckRequests(t, golden, recorder)
+	})
 }
 
 func TestPoolSimulator01(t *testing.T) {
