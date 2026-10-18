@@ -1,15 +1,39 @@
 package gohm
 
 import (
+	"context"
 	"math/big"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
+	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
+
+func TestGetNewPoolStatePinsReserveReads(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.New(t, olympusStakingABI, utilabi.Erc20ABI)
+		client := ethrpc.New(srv.URL)
+		cfg := &Config{DexId: DexType, StakingAddress: testOlympusStakingAddress}
+		tracker, err := NewPoolTracker(cfg, client)
+		require.NoError(t, err)
+		p := entity.Pool{Address: testOlympusStakingAddress, Tokens: []*entity.PoolToken{{Address: testOHMAddress}, {Address: testSOHMAddress}}}
+		updated, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+		require.Equal(t, entity.PoolReserves{"1", "1", defaultReserve}, updated.Reserves)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, "gohm-tracker-pin", updated)
+		ethrpcmock.CheckRequests(t, "gohm-tracker-pin", recorder)
+	})
+}
 
 // indexAt25147546 is the observed on-chain index at block 25147546.
 // sOHM.index() = 269238508004 (raw, 9-decimal fixed-point)

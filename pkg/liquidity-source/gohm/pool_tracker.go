@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -118,7 +119,7 @@ func fetchDynamic(
 		ohmReserveBig  *big.Int
 		sohmReserveBig *big.Int
 	)
-	req2 := ethrpcClient.NewRequest().SetContext(ctx)
+	req2 := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp1.BlockNumber)
 	if overrides != nil {
 		req2.SetOverrides(overrides)
 	}
@@ -133,7 +134,7 @@ func fetchDynamic(
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
 	}, []any{&sohmReserveBig})
-	if _, err = req2.Aggregate(); err != nil {
+	if _, err = utilEth.CallWithBlockRetry(ctx, req2.Aggregate); err != nil {
 		return PoolExtra{}, 0, err
 	}
 
