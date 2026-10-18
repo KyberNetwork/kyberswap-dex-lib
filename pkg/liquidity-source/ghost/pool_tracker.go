@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	ethutil "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 // WILDCARD_RECIPIENT = bytes32(type(uint256).max) = 0xfff…fff
@@ -117,7 +118,7 @@ func (t *PoolTracker) fetchDirectionState(
 	outputToken string,
 	pinBlock *uint64,
 ) (DirectionExtra, uint64, error) {
-	feeContract, err := t.resolveFeeContract(ctx, se)
+	feeContract, blockNumber, err := t.resolveFeeContract(ctx, se, pinBlock)
 	if err != nil {
 		return DirectionExtra{}, 0, err
 	}
@@ -133,9 +134,7 @@ func (t *PoolTracker) fetchDirectionState(
 	feeTarget := hexutil.Encode(feeContract[:])
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if pinBlock != nil {
-		req = req.SetBlockNumber(new(big.Int).SetUint64(*pinBlock))
-	}
+	req = req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    feeABI,
@@ -163,14 +162,9 @@ func (t *PoolTracker) fetchDirectionState(
 		Params: []any{targetRouterAddr},
 	}, []any{&reserve})
 
-	resp, err := req.Aggregate()
+	_, err = ethutil.CallWithBlockRetry(ctx, req.Aggregate)
 	if err != nil {
 		return DirectionExtra{}, 0, err
-	}
-
-	blockNumber := uint64(0)
-	if resp.BlockNumber != nil {
-		blockNumber = resp.BlockNumber.Uint64()
 	}
 
 	effectiveMaxFee := immutableMaxFee
@@ -191,29 +185,42 @@ func (t *PoolTracker) fetchDirectionState(
 	}, blockNumber, nil
 }
 
-func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic) (common.Address, error) {
+func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic, pinBlock *uint64) (common.Address, uint64, error) {
 	var feeRecipient common.Address
-	_, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    routerABI,
 		Target: strings.ToLower(se.SourceRouter),
 		Method: "feeRecipient",
-	}, []any{&feeRecipient}).Call()
+	}, []any{&feeRecipient})
+	var blockNumber uint64
+	var err error
+	if pinBlock == nil {
+		var response *ethrpc.Response
+		response, err = req.Aggregate()
+		if err == nil && response.BlockNumber != nil {
+			blockNumber = response.BlockNumber.Uint64()
+		}
+	} else {
+		blockNumber = *pinBlock
+		req = req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
+		_, err = ethutil.CallWithBlockRetry(ctx, req.Call)
+	}
 	if err != nil {
-		return common.Address{}, fmt.Errorf("ghost: feeRecipient() call failed: %w", err)
+		return common.Address{}, 0, fmt.Errorf("ghost: feeRecipient() call failed: %w", err)
 	}
 
 	if feeRecipient == (common.Address{}) {
-		return common.Address{}, ErrNoFeeContract
+		return common.Address{}, 0, ErrNoFeeContract
 	}
 
 	var recipientFeeType uint8
-	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	err = t.callResolver(ctx, blockNumber, &ethrpc.Call{
 		ABI:    routingFeeABI,
 		Target: hexutil.Encode(feeRecipient[:]),
 		Method: "feeType",
-	}, []any{&recipientFeeType}).Call()
+	}, []any{&recipientFeeType})
 	if err != nil {
-		return common.Address{}, fmt.Errorf("ghost: feeType() on feeRecipient failed: %w", err)
+		return common.Address{}, 0, fmt.Errorf("ghost: feeType() on feeRecipient failed: %w", err)
 	}
 
 	var (
@@ -224,25 +231,25 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 
 	switch recipientFeeType {
 	case feeTypeCrossCollateralRouting:
-		_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		err = t.callResolver(ctx, blockNumber, &ethrpc.Call{
 			ABI:    routingFeeABI,
 			Target: hexutil.Encode(feeRecipient[:]),
 			Method: "feeContracts",
 			Params: []any{se.LocalDomain, targetRouterBytes32},
-		}, []any{&resolved}).Call()
+		}, []any{&resolved})
 		if err != nil {
-			return common.Address{}, fmt.Errorf("ghost: feeContracts() call failed: %w", err)
+			return common.Address{}, 0, fmt.Errorf("ghost: feeContracts() call failed: %w", err)
 		}
 
 		if resolved == (common.Address{}) {
-			_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+			err = t.callResolver(ctx, blockNumber, &ethrpc.Call{
 				ABI:    routingFeeABI,
 				Target: hexutil.Encode(feeRecipient[:]),
 				Method: "feeContracts",
 				Params: []any{se.LocalDomain, defaultRouterKey},
-			}, []any{&resolved}).Call()
+			}, []any{&resolved})
 			if err != nil {
-				return common.Address{}, fmt.Errorf("ghost: feeContracts() fallback call failed: %w", err)
+				return common.Address{}, 0, fmt.Errorf("ghost: feeContracts() fallback call failed: %w", err)
 			}
 		}
 
@@ -250,26 +257,32 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 		resolved = feeRecipient
 
 	default:
-		return common.Address{}, fmt.Errorf("%w: feeRecipient has feeType %d", ErrUnsupportedFeeType, recipientFeeType)
+		return common.Address{}, 0, fmt.Errorf("%w: feeRecipient has feeType %d", ErrUnsupportedFeeType, recipientFeeType)
 	}
 
 	if resolved == (common.Address{}) {
-		return common.Address{}, ErrNoFeeContract
+		return common.Address{}, 0, ErrNoFeeContract
 	}
 
 	var resolvedFeeType uint8
-	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	err = t.callResolver(ctx, blockNumber, &ethrpc.Call{
 		ABI:    feeABI,
 		Target: hexutil.Encode(resolved[:]),
 		Method: "feeType",
-	}, []any{&resolvedFeeType}).Call()
+	}, []any{&resolvedFeeType})
 	if err != nil {
-		return common.Address{}, fmt.Errorf("ghost: feeType() on resolved fee contract failed: %w", err)
+		return common.Address{}, 0, fmt.Errorf("ghost: feeType() on resolved fee contract failed: %w", err)
 	}
 
 	if resolvedFeeType != feeTypeOffchainQuotedLinear {
-		return common.Address{}, fmt.Errorf("%w: got %d", ErrUnsupportedFeeType, resolvedFeeType)
+		return common.Address{}, 0, fmt.Errorf("%w: got %d", ErrUnsupportedFeeType, resolvedFeeType)
 	}
 
-	return resolved, nil
+	return resolved, blockNumber, nil
+}
+
+func (t *PoolTracker) callResolver(ctx context.Context, blockNumber uint64, call *ethrpc.Call, output []any) error {
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(blockNumber)).AddCall(call, output)
+	_, err := ethutil.CallWithBlockRetry(ctx, req.Call)
+	return err
 }
