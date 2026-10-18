@@ -2,12 +2,15 @@ package makerpsm
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type VatReader struct {
@@ -22,12 +25,16 @@ func NewVatReader(ethrpcClient *ethrpc.Client) *VatReader {
 	}
 }
 
-func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, overrides map[common.Address]gethclient.OverrideAccount) (*Vat, error) {
+func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, overrides map[common.Address]gethclient.OverrideAccount, blockNumber ...*big.Int) (*Vat, error) {
 	var vat Vat
 
 	req := r.ethrpcClient.
 		NewRequest().
-		SetContext(ctx).
+		SetContext(ctx)
+	if len(blockNumber) > 0 {
+		req.SetBlockNumber(blockNumber[0])
+	}
+	req.
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
@@ -46,7 +53,13 @@ func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, over
 			Method: vatMethodIlks,
 			Params: []any{ilk},
 		}, []any{&vat.ILK}).SetOverrides(overrides)
-	resp, err := req.Aggregate()
+	var resp *ethrpc.Response
+	var err error
+	if len(blockNumber) > 0 && blockNumber[0] != nil {
+		resp, err = utilEth.CallWithBlockRetry(ctx, req.Aggregate)
+	} else {
+		resp, err = req.Aggregate()
+	}
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": DexTypeMakerPSM,

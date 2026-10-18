@@ -1,21 +1,44 @@
 package makerpsm
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 var USDX_WAD = bignumber.TenPowInt(6)
 var TOLL_ONE_PCT = bignumber.TenPowInt(16)
+
+func TestGetNewPoolStatePinsVatRead(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.New(t, makerPSMPSM, makerPSMVat)
+		client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x4444444444444444444444444444444444444444"))
+		tracker := NewPoolTracker(&Config{DexID: DexTypeMakerPSM}, client)
+		p := entity.Pool{Address: "0x7777777777777777777777777777777777777777"}
+		overrides := map[common.Address]gethclient.OverrideAccount{common.HexToAddress("0x8888888888888888888888888888888888888888"): {}}
+		got, err := tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{Overrides: overrides})
+		require.NoError(t, err)
+		require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
+		require.Len(t, got.Reserves, 2)
+		ethrpcmock.CheckPool(t, "makerpsm_TestGetNewPoolStatePinsVatRead", got)
+		ethrpcmock.CheckRequests(t, "makerpsm_TestGetNewPoolStatePinsVatRead", recorder)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+	})
+}
 
 func newPool(t *testing.T, eth *big.Int, tIn *big.Int, tOut *big.Int) *PoolSimulator {
 	eth = new(big.Int).Mul(eth, bignumber.BONE)

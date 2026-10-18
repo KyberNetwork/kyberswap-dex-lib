@@ -75,10 +75,6 @@ func (d *PoolTracker) getNewPoolState(
 	if psm.HasBlockNumber {
 		pool.BlockNumber = psm.BlockNumber
 	}
-	if psm.Vat != nil && psm.Vat.HasBlockNumber && psm.Vat.BlockNumber > pool.BlockNumber {
-		pool.BlockNumber = psm.Vat.BlockNumber
-	}
-
 	extra := struct {
 		PSM *PSM `json:"psm"`
 	}{
@@ -123,7 +119,7 @@ func (d *PoolTracker) getPSM(
 		return nil, err
 	}
 
-	vat, err := d.vatReader.Read(ctx, psm.VatAddress.String(), psm.ILK, overrides)
+	vat, err := d.vatReader.Read(ctx, psm.VatAddress.String(), psm.ILK, overrides, new(big.Int).SetUint64(psm.BlockNumber))
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
