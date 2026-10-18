@@ -1,22 +1,49 @@
 package poe
 
 import (
+	"context"
 	"math/big"
 	"testing"
+	"testing/synctest"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 )
 
 const (
 	poeTokenX = "0x0000000000000000000000000000000000000001"
 	poeTokenY = "0x0000000000000000000000000000000000000002"
 )
+
+func TestGetNewPoolStatePinsOracleToPoolBlock(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.New(t, poolABI, oracleABI)
+		client := ethrpc.New(srv.URL)
+		updated, err := NewPoolTracker(&Config{DexId: string(DexType)}, client).GetNewPoolState(
+			context.Background(), entity.Pool{
+				Address: "0x0000000000000000000000000000000000000003",
+				Tokens:  []*entity.PoolToken{{Address: poeTokenX}, {Address: poeTokenY}},
+			}, pool.GetNewPoolStateParams{},
+		)
+		require.NoError(t, err)
+		require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+		require.Equal(t, entity.PoolReserves{"1", "1"}, updated.Reserves)
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+		require.Equal(t, common.Address{}.Hex(), extra.Oracle)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, "lfj-poe-tracker-pin", updated)
+		ethrpcmock.CheckRequests(t, "lfj-poe-tracker-pin", recorder)
+	})
+}
 
 func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 	t.Helper()
