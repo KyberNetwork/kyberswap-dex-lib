@@ -2,14 +2,185 @@ package maverickv2
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"os"
+	"reflect"
+	"sync/atomic"
 	"testing"
+	"testing/synctest"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 )
+
+func TestGetNewPoolStatePinsLensRead(t *testing.T) {
+	for _, overrides := range []bool{false, true} {
+		name := "regular"
+		if overrides {
+			name = "overrides"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				srv, recorder := ethrpcmock.NewWithResolver(t, maverickV2Resolver(false), maverickV2PoolABI, maverickV2PoolLensABI)
+				tracker, p := newMaverickV2Fixture(t, srv.URL)
+				var got entity.Pool
+				var err error
+				if overrides {
+					account := common.HexToAddress("0x4444444444444444444444444444444444444444")
+					got, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{Overrides: map[common.Address]gethclient.OverrideAccount{account: {Balance: big.NewInt(9)}}})
+				} else {
+					got, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				}
+				require.NoError(t, err)
+				require.EqualValues(t, ethrpcmock.Block, got.BlockNumber)
+				var extra Extra
+				require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
+				require.NotEmpty(t, extra.Bins)
+				require.NotEmpty(t, extra.Ticks)
+				ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+				ethrpcmock.CheckPool(t, "maverick-v2-"+name, got)
+				ethrpcmock.CheckRequests(t, "maverick-v2-"+name, recorder)
+			})
+		})
+	}
+}
+
+func TestGetNewPoolStateLensFailureKeepsEmptyBins(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.NewWithResolver(t, maverickV2Resolver(true), maverickV2PoolABI, maverickV2PoolLensABI)
+		tracker, p := newMaverickV2Fixture(t, srv.URL)
+		got, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.EqualValues(t, ethrpcmock.Block, got.BlockNumber)
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
+		require.Empty(t, extra.Bins)
+		require.Empty(t, extra.Ticks)
+		ethrpcmock.CheckPool(t, "maverick-v2-lens-failure", got)
+		ethrpcmock.CheckRequests(t, "maverick-v2-lens-failure", recorder)
+	})
+}
+
+func TestGetNewPoolStateCancelsPinnedLensRetry(t *testing.T) {
+	var lensCalls atomic.Int32
+	lensCallSeen := make(chan struct{}, 1)
+	resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+		if method.Name == poolLensMethodGetFullPoolState {
+			lensCalls.Add(1)
+			select {
+			case lensCallSeen <- struct{}{}:
+			default:
+			}
+			return nil, fmt.Errorf("unknown block 0x3039")
+		}
+		outputs := make([]any, len(method.Outputs))
+		for i, output := range method.Outputs {
+			outputs[i] = maverickTestValue(output.Type)
+		}
+		if method.Name == poolMethodGetState {
+			v := reflect.New(reflect.TypeOf(outputs[0]))
+			v.Elem().Set(reflect.ValueOf(outputs[0]))
+			v.Elem().FieldByName("BinCounter").Set(reflect.ValueOf(uint32(1)))
+			outputs[0] = v.Elem().Interface()
+		}
+		return outputs, nil
+	}
+	srv, _ := ethrpcmock.NewWithResolver(t, resolver, maverickV2PoolABI, maverickV2PoolLensABI)
+	tracker, p := newMaverickV2Fixture(t, srv.URL)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	type result struct {
+		pool entity.Pool
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		updated, err := tracker.GetNewPoolState(ctx, p, pool.GetNewPoolStateParams{})
+		done <- result{pool: updated, err: err}
+	}()
+	<-lensCallSeen
+	cancel()
+	got := <-done
+	require.NoError(t, got.err)
+	require.EqualValues(t, ethrpcmock.Block, got.pool.BlockNumber)
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(got.pool.Extra), &extra))
+	require.Empty(t, extra.Bins)
+	require.Empty(t, extra.Ticks)
+	require.EqualValues(t, 1, lensCalls.Load())
+}
+
+func newMaverickV2Fixture(t *testing.T, url string) (*PoolTracker, entity.Pool) {
+	t.Helper()
+	client := ethrpc.New(url).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	tracker, err := NewPoolTracker(&Config{PoolLensAddress: "0x2222222222222222222222222222222222222222"}, client)
+	require.NoError(t, err)
+	return tracker, entity.Pool{Address: "0x1111111111111111111111111111111111111111", StaticExtra: "{}", Tokens: []*entity.PoolToken{{Address: "0x3333333333333333333333333333333333333333"}, {Address: "0x4444444444444444444444444444444444444444"}}}
+}
+
+func maverickV2Resolver(failLens bool) ethrpcmock.Resolver {
+	return func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+		if failLens && method.Name == poolLensMethodGetFullPoolState {
+			return nil, fmt.Errorf("lens unavailable")
+		}
+		outputs := make([]any, len(method.Outputs))
+		for i, output := range method.Outputs {
+			outputs[i] = maverickTestValue(output.Type)
+		}
+		if method.Name == poolMethodGetState {
+			v := reflect.New(reflect.TypeOf(outputs[0]))
+			v.Elem().Set(reflect.ValueOf(outputs[0]))
+			v.Elem().FieldByName("BinCounter").Set(reflect.ValueOf(uint32(1)))
+			outputs[0] = v.Elem().Interface()
+		}
+		return outputs, nil
+	}
+}
+
+func maverickTestValue(t abi.Type) any {
+	typ := t.GetType()
+	if typ == reflect.TypeOf((*big.Int)(nil)) {
+		return big.NewInt(1)
+	}
+	switch t.T {
+	case abi.TupleTy:
+		v := reflect.New(typ).Elem()
+		for i, elem := range t.TupleElems {
+			v.Field(i).Set(reflect.ValueOf(maverickTestValue(*elem)))
+		}
+		return v.Interface()
+	case abi.SliceTy, abi.ArrayTy:
+		var v reflect.Value
+		if t.T == abi.SliceTy {
+			v = reflect.MakeSlice(typ, 2, 2)
+		} else {
+			v = reflect.New(typ).Elem()
+		}
+		for i := 0; i < v.Len(); i++ {
+			v.Index(i).Set(reflect.ValueOf(maverickTestValue(*t.Elem)))
+		}
+		return v.Interface()
+	default:
+		v := reflect.New(typ).Elem()
+		switch v.Kind() {
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+			v.SetUint(1)
+		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+			v.SetInt(1)
+		}
+		return v.Interface()
+	}
+}
 
 func TestGetFullPoolState(t *testing.T) {
 	if os.Getenv("CI") != "" {
@@ -30,7 +201,7 @@ func TestGetFullPoolState(t *testing.T) {
 	binCounter := uint32(615)
 
 	// Get full pool state
-	bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter, nil)
+	bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter, nil, nil)
 	assert.NoError(t, err)
 	// print binId ascending
 	for binId, bin := range bins {
@@ -199,7 +370,7 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 			DefaultBinBatchSize = tc.batchSize
 
 			// Get full pool state
-			bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter, nil)
+			bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter, nil, nil)
 			assert.NoError(t, err)
 
 			// Store results for comparison

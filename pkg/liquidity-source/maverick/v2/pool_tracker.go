@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type (
@@ -110,7 +111,7 @@ func (t *PoolTracker) getNewPoolState(
 		},
 	).Info("Finished getting new pool state")
 
-	return t.updatePool(p, state, blockNumber, overrides)
+	return t.updatePool(ctx, p, state, blockNumber, overrides)
 }
 
 func (t *PoolTracker) getState(
@@ -173,6 +174,7 @@ func (t *PoolTracker) getFullPoolState(
 	ctx context.Context,
 	poolAddress string,
 	binCounter uint32,
+	blockNumber *big.Int,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (map[uint32]Bin, map[int32]Tick, error) {
 	// Calculate number of batches needed (5000 items per batch)
@@ -199,7 +201,7 @@ func (t *PoolTracker) getFullPoolState(
 	}
 
 	// Execute all calls in aggregate
-	request := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true)
+	request := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetBlockNumber(blockNumber)
 	if overrides != nil {
 		request.SetOverrides(overrides)
 	}
@@ -207,7 +209,12 @@ func (t *PoolTracker) getFullPoolState(
 	for i, call := range allCalls {
 		request.AddCall(call, []any{&callResults[i]})
 	}
-	_, err := request.TryBlockAndAggregate()
+	var err error
+	if blockNumber == nil {
+		_, err = request.TryBlockAndAggregate()
+	} else {
+		_, err = utilEth.CallWithBlockRetry(ctx, request.TryBlockAndAggregate)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -251,6 +258,7 @@ func (t *PoolTracker) getFullPoolState(
 }
 
 func (t *PoolTracker) updatePool(
+	ctx context.Context,
 	pool entity.Pool,
 	state State,
 	blockNumber *big.Int,
@@ -272,7 +280,7 @@ func (t *PoolTracker) updatePool(
 	}
 
 	// Fetch full pool state with bins and ticks data
-	bins, ticks, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter, overrides)
+	bins, ticks, err := t.getFullPoolState(ctx, pool.Address, state.BinCounter, blockNumber, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool_address": pool.Address,
