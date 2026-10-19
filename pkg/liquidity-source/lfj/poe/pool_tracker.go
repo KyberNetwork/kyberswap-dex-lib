@@ -74,14 +74,14 @@ func (t *PoolTracker) GetNewPoolState(
 		Expiry  *big.Int
 	}
 
-	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(firstResp.BlockNumber).
+	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(firstResp.BlockNumber)).
 		AddCall(&ethrpc.Call{
 			ABI:    oracleABI,
 			Target: oracle.String(),
 			Method: "getData",
 			Params: []any{key},
 		}, []any{&oracleData})
-	_, err = utilEth.CallWithBlockRetry(ctx, req.Aggregate)
+	_, err = utilEth.CallWithBlockRetry(ctx, req.Aggregate, firstResp.BlockNumber)
 	if err != nil {
 		return p, err
 	}

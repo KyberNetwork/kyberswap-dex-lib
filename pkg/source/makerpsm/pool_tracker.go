@@ -119,7 +119,11 @@ func (d *PoolTracker) getPSM(
 		return nil, err
 	}
 
-	vat, err := d.vatReader.Read(ctx, psm.VatAddress.String(), psm.ILK, overrides, new(big.Int).SetUint64(psm.BlockNumber))
+	var blockNumber *big.Int
+	if psm.HasBlockNumber && psm.BlockNumber > 0 {
+		blockNumber = new(big.Int).SetUint64(psm.BlockNumber)
+	}
+	vat, err := d.vatReader.Read(ctx, psm.VatAddress.String(), psm.ILK, overrides, blockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,

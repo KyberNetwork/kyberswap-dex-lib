@@ -2,6 +2,7 @@ package maverickv2
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"time"
 
@@ -201,7 +202,7 @@ func (t *PoolTracker) getFullPoolState(
 	}
 
 	// Execute all calls in aggregate
-	request := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetBlockNumber(blockNumber)
+	request := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 	if overrides != nil {
 		request.SetOverrides(overrides)
 	}
@@ -213,7 +214,7 @@ func (t *PoolTracker) getFullPoolState(
 	if blockNumber == nil {
 		_, err = request.TryBlockAndAggregate()
 	} else {
-		_, err = utilEth.CallWithBlockRetry(ctx, request.TryBlockAndAggregate)
+		_, err = utilEth.CallWithBlockRetry(ctx, request.TryBlockAndAggregate, blockNumber)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -282,6 +283,13 @@ func (t *PoolTracker) updatePool(
 	// Fetch full pool state with bins and ticks data
 	bins, ticks, err := t.getFullPoolState(ctx, pool.Address, state.BinCounter, blockNumber, overrides)
 	if err != nil {
+		if ctx.Err() != nil {
+			return pool, ctx.Err()
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return pool, err
+		}
+
 		logger.WithFields(logger.Fields{
 			"pool_address": pool.Address,
 			"error":        err,

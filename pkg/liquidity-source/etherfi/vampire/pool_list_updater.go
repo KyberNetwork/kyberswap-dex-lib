@@ -176,7 +176,7 @@ func getCurvePoolInfo(
 		curvePoolInfo   CurvePoolInfo
 	)
 
-	r := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	r := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 	if overrides != nil {
 		r.SetOverrides(overrides)
 	}
@@ -235,7 +235,7 @@ func getCurvePoolInfo(
 		}, []any{&balances[i]})
 	}
 
-	if _, err := utilEth.CallWithBlockRetry(ctx, r.TryAggregate); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, r.TryAggregate, blockNumber); err != nil {
 		return CurvePoolInfo{}, err
 	}
 

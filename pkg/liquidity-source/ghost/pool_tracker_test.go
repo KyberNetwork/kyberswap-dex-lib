@@ -3,7 +3,6 @@ package ghost
 import (
 	"context"
 	"math/big"
-	"os"
 	"testing"
 	"testing/synctest"
 
@@ -111,12 +110,12 @@ func TestGetNewPoolStateSnapshotEquivalent(t *testing.T) {
 					Tokens: []*entity.PoolToken{{Address: tokenZero}, {Address: tokenOne}}, Reserves: entity.PoolReserves{"0", "0"},
 				}, pool.GetNewPoolStateParams{})
 				require.NoError(t, err)
-				if os.Getenv("BLOCKPIN_BASELINE") != "1" {
-					require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
-				}
+
+				require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+
 				require.Equal(t, entity.PoolReserves{"222", "111"}, updated.Reserves)
 				ethrpcmock.CheckPool(t, "ghost_"+resolution, updated)
-				ethrpcmock.CheckRequests(t, "ghost_"+resolution, recorder)
+				ethrpcmock.CheckRequests(t, "ghost_"+resolution, recorder, [2]string{"call", "aggregate"})
 				ethrpcmock.RequireRequestsPinned(t, recorder, 2)
 			})
 		})

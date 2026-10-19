@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"os"
 	"reflect"
 	"testing"
 	"testing/synctest"
@@ -197,12 +196,12 @@ func TestGetNewPoolStatePinsAllCallsToFirstBlock(t *testing.T) {
 		require.NoError(t, err)
 		got, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: addr}, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		if os.Getenv("BLOCKPIN_BASELINE") != "1" {
-			require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
-		}
+
+		require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
+
 		require.NotEmpty(t, got.Reserves)
 		ethrpcmock.CheckPool(t, "madmex_TestGetNewPoolStatePinsAllCallsToFirstBlock", got)
-		ethrpcmock.CheckRequests(t, "madmex_TestGetNewPoolStatePinsAllCallsToFirstBlock", recorder)
+		ethrpcmock.CheckRequests(t, "madmex_TestGetNewPoolStatePinsAllCallsToFirstBlock", recorder, [2]string{"tryAggregate", "tryBlockAndAggregate"})
 		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
 	})
 }
@@ -255,12 +254,12 @@ func TestGetNewPoolStatePinsAllCallsToFirstBlockV1(t *testing.T) {
 		require.NoError(t, err)
 		got, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: addr}, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		if os.Getenv("BLOCKPIN_BASELINE") != "1" {
-			require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
-		}
+
+		require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
+
 		require.NotEmpty(t, got.Reserves)
 		ethrpcmock.CheckPool(t, "madmex_TestGetNewPoolStatePinsAllCallsToFirstBlockV1", got)
-		ethrpcmock.CheckRequests(t, "madmex_TestGetNewPoolStatePinsAllCallsToFirstBlockV1", recorder)
+		ethrpcmock.CheckRequests(t, "madmex_TestGetNewPoolStatePinsAllCallsToFirstBlockV1", recorder, [2]string{"tryAggregate", "tryBlockAndAggregate"})
 		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
 	})
 }

@@ -134,7 +134,7 @@ func (t *PoolTracker) fetchDirectionState(
 	feeTarget := hexutil.Encode(feeContract[:])
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
+	req = req.SetBlockNumber(ethutil.BlockNumberOrLatest(new(big.Int).SetUint64(blockNumber)))
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    feeABI,
@@ -162,7 +162,7 @@ func (t *PoolTracker) fetchDirectionState(
 		Params: []any{targetRouterAddr},
 	}, []any{&reserve})
 
-	_, err = ethutil.CallWithBlockRetry(ctx, req.Aggregate)
+	_, err = ethutil.CallWithBlockRetry(ctx, req.Aggregate, new(big.Int).SetUint64(blockNumber))
 	if err != nil {
 		return DirectionExtra{}, 0, err
 	}
@@ -202,8 +202,8 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 		}
 	} else {
 		blockNumber = *pinBlock
-		req = req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
-		_, err = ethutil.CallWithBlockRetry(ctx, req.Call)
+		req = req.SetBlockNumber(ethutil.BlockNumberOrLatest(new(big.Int).SetUint64(blockNumber)))
+		_, err = ethutil.CallWithBlockRetry(ctx, req.Call, new(big.Int).SetUint64(blockNumber))
 	}
 	if err != nil {
 		return common.Address{}, 0, fmt.Errorf("ghost: feeRecipient() call failed: %w", err)
@@ -282,7 +282,7 @@ func (t *PoolTracker) resolveFeeContract(ctx context.Context, se DirectionStatic
 }
 
 func (t *PoolTracker) callResolver(ctx context.Context, blockNumber uint64, call *ethrpc.Call, output []any) error {
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(blockNumber)).AddCall(call, output)
-	_, err := ethutil.CallWithBlockRetry(ctx, req.Call)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(new(big.Int).SetUint64(blockNumber))).AddCall(call, output)
+	_, err := ethutil.CallWithBlockRetry(ctx, req.Call, new(big.Int).SetUint64(blockNumber))
 	return err
 }

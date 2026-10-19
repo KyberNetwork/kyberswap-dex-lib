@@ -79,7 +79,11 @@ func TestGetNewPoolStatePinsWithdrawalQueueShares(t *testing.T) {
 	testGenericARMPins(t, "generic-arm-withdrawal-shares", ArmCfg{ArmType: Pricable, HasWithdrawalQueue: true}, true)
 }
 
-func testGenericARMPins(t *testing.T, golden string, armCfg ArmCfg, sharesFallback bool) {
+func testGenericARMPins(t *testing.T, golden string, armCfg ArmCfg, sharesFallback bool, block ...uint64) {
+	snapshotBlock := ethrpcmock.Block
+	if len(block) > 0 {
+		snapshotBlock = block[0]
+	}
 	t.Helper()
 	synctest.Test(t, func(t *testing.T) {
 		const armAddress = "0x0000000000000000000000000000000000000001"
@@ -141,11 +145,11 @@ func testGenericARMPins(t *testing.T, golden string, armCfg ArmCfg, sharesFallba
 			}
 			return values, nil
 		}
-		srv, recorder := ethrpcmock.NewWithResolver(t, resolver, lidoArmABI, baseAssetConfigsV2ABI)
+		srv, recorder := ethrpcmock.NewWithResolverAtBlock(t, resolver, snapshotBlock, lidoArmABI, baseAssetConfigsV2ABI)
 		tracker := NewPoolTracker(&Config{DexID: DexType, Arms: map[string]ArmCfg{armAddress: armCfg}}, ethrpc.New(srv.URL))
 		updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: armAddress}, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+		require.Equal(t, snapshotBlock, updated.BlockNumber)
 		require.Equal(t, common.HexToAddress(armAddress).Hex(), updated.Address)
 		require.NotEmpty(t, updated.Reserves)
 		if armCfg.HasWithdrawalQueue {
@@ -167,9 +171,16 @@ func testGenericARMPins(t *testing.T, golden string, armCfg ArmCfg, sharesFallba
 			require.Equal(t, "8", extra.BaseAssets[0].ConvertRateSharesPerAsset.String())
 			require.Len(t, recorder.Snapshot(), 3)
 		}
-		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
-		ethrpcmock.CheckPool(t, golden, updated)
-		ethrpcmock.CheckRequests(t, golden, recorder)
+		if snapshotBlock == 0 {
+			require.GreaterOrEqual(t, len(recorder.Snapshot()), 2)
+			for _, req := range recorder.Snapshot() {
+				require.Equal(t, "latest", req.BlockTag)
+			}
+		} else {
+			ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+			ethrpcmock.CheckPool(t, golden, updated)
+			ethrpcmock.CheckRequests(t, golden, recorder)
+		}
 	})
 }
 
@@ -483,4 +494,35 @@ func TestEthenaARMCloneIsolatesLiquidityCaps(t *testing.T) {
 	assert.Equal(t, "25000000000000000000000", p.BaseAssets[0].BuyLiquidityRemaining.String())
 	assert.Equal(t, "45256181038753054998564", p.Info.Reserves[0].String())
 	assert.Equal(t, "0", p.Info.Reserves[1].String())
+}
+
+func TestGetNewPoolStateUnknownBlockKeepsLatest(t *testing.T) {
+	const address = "0x0000000000000000000000000000000000000001"
+	testABI, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"token0","inputs":[],"outputs":[{"type":"address"}]},{"type":"function","name":"token1","inputs":[],"outputs":[{"type":"address"}]},{"type":"function","name":"balanceOf","inputs":[{"type":"address"}],"outputs":[{"type":"uint256"}]}]`))
+	require.NoError(t, err)
+	resolver := func(_ common.Address, m abi.Method, _ []any) ([]any, error) {
+		if m.Name == "token0" {
+			return []any{common.HexToAddress("0x0000000000000000000000000000000000000002")}, nil
+		}
+		if m.Name == "token1" {
+			return []any{common.HexToAddress("0x0000000000000000000000000000000000000003")}, nil
+		}
+		return []any{big.NewInt(100)}, nil
+	}
+	srv, recorder := ethrpcmock.NewWithResolverAtBlock(t, resolver, 0, testABI)
+	tracker := NewPoolTracker(&Config{DexID: DexType, Arms: map[string]ArmCfg{address: {ArmType: Pegged}}}, ethrpc.New(srv.URL))
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: address}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Zero(t, updated.BlockNumber)
+	require.Len(t, recorder.Snapshot(), 2)
+	for _, req := range recorder.Snapshot() {
+		require.Equal(t, "latest", req.BlockTag)
+	}
+}
+
+func TestGetNewPoolStateUnknownBlockKeepsAllLaterRoundsLatest(t *testing.T) {
+	t.Run("rates", func(t *testing.T) { testGenericARMPins(t, "", ArmCfg{ArmType: Pricable4626}, false, 0) })
+	t.Run("withdrawals", func(t *testing.T) {
+		testGenericARMPins(t, "", ArmCfg{ArmType: Pricable, HasWithdrawalQueue: true}, true, 0)
+	})
 }

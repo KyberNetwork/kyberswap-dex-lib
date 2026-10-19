@@ -167,7 +167,7 @@ func (d *PoolTracker) getTax(
 ) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	var buyTax, sellTax, kLast, antiSniperBuyTaxStartValue, taxStartTime, startTime *big.Int
 
-	req := d.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber)
+	req := d.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.Factory,
@@ -193,7 +193,7 @@ func (d *PoolTracker) getTax(
 		Target: poolAddress,
 		Method: "startTime",
 	}, []any{&startTime})
-	if _, err := utilEth.CallWithBlockRetry(ctx, req.TryAggregate); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, req.TryAggregate, blockNumber); err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 

@@ -135,7 +135,7 @@ func fetchDynamic(
 	)
 	req2 := ethrpcClient.NewRequest().SetContext(ctx)
 	if hasWrap {
-		req2.SetBlockNumber(indexBlock)
+		req2.SetBlockNumber(utilEth.BlockNumberOrLatest(indexBlock))
 	}
 	if overrides != nil {
 		req2.SetOverrides(overrides)
@@ -162,7 +162,7 @@ func fetchDynamic(
 	var resp2 *ethrpc.Response
 	var err error
 	if hasWrap {
-		resp2, err = utilEth.CallWithBlockRetry(ctx, req2.Aggregate)
+		resp2, err = utilEth.CallWithBlockRetry(ctx, req2.Aggregate, indexBlock)
 	} else {
 		resp2, err = req2.Aggregate()
 	}

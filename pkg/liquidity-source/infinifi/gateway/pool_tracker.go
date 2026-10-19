@@ -127,14 +127,14 @@ func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config,
 	if len(enabledBuckets) != len(currentBuckets) || !lo.Every(enabledBuckets, currentBuckets) {
 		newBucketIndexes, _ := lo.Difference(enabledBuckets, currentBuckets)
 		newLiusdBuckets := lo.Map(newBucketIndexes, func(index uint32, _ int) bucket { return bucket{Index: index} })
-		req := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+		req := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 		ReqLiusdBuckets(req, cfg, newLiusdBuckets)
-		if _, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate); err != nil {
+		if _, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate, resp.BlockNumber); err != nil {
 			return entity.Pool{}, err
 		}
-		req = ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+		req = ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 		ReqLiusdSupplies(req, cfg, newLiusdBuckets)
-		if _, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate); err != nil {
+		if _, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate, resp.BlockNumber); err != nil {
 			return entity.Pool{}, err
 		}
 		p.Tokens = append(p.Tokens, lo.Map(newLiusdBuckets, func(bucket bucket, _ int) *entity.PoolToken {

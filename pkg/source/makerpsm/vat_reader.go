@@ -32,7 +32,7 @@ func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, over
 		NewRequest().
 		SetContext(ctx)
 	if len(blockNumber) > 0 {
-		req.SetBlockNumber(blockNumber[0])
+		req.SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber[0]))
 	}
 	req.
 		AddCall(&ethrpc.Call{
@@ -56,7 +56,7 @@ func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, over
 	var resp *ethrpc.Response
 	var err error
 	if len(blockNumber) > 0 && blockNumber[0] != nil {
-		resp, err = utilEth.CallWithBlockRetry(ctx, req.Aggregate)
+		resp, err = utilEth.CallWithBlockRetry(ctx, req.Aggregate, blockNumber[0])
 	} else {
 		resp, err = req.Aggregate()
 	}

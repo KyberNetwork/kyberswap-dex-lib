@@ -93,3 +93,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		},
 	})
 }
+
+func TestGetNewPoolStateUnknownBlockKeepsLatest(t *testing.T) {
+	srv, recorder := ethrpcmock.NewAtBlock(t, 0, pairABI, erc20ABI)
+	tracker := NewPoolTracker(&Config{PriceTolerance: 10}, ethrpc.New(srv.URL))
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: "0x1111111111111111111111111111111111111111", Tokens: []*entity.PoolToken{{Address: "0x2222222222222222222222222222222222222222"}, {Address: "0x3333333333333333333333333333333333333333"}}, Extra: `{"isNative":[false,false]}`}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Zero(t, updated.BlockNumber)
+	require.Len(t, recorder.Snapshot(), 2)
+	for _, req := range recorder.Snapshot() {
+		require.Equal(t, "latest", req.BlockTag)
+	}
+}

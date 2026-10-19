@@ -158,3 +158,16 @@ func TestGetAmountOut_swapBothWithFee(t *testing.T) {
 	assert.Equal(t, new(big.Int).Mul(big.NewInt(40), USDX_WAD), out.TokenAmountOut.Amount)
 	assert.Equal(t, "USDX", out.TokenAmountOut.Token)
 }
+
+func TestGetNewPoolStateUnknownBlockKeepsLatest(t *testing.T) {
+	srv, recorder := ethrpcmock.NewAtBlock(t, 0, makerPSMPSM, makerPSMVat)
+	client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x4444444444444444444444444444444444444444"))
+	tracker := NewPoolTracker(&Config{DexID: DexTypeMakerPSM}, client)
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: "0x7777777777777777777777777777777777777777"}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Zero(t, updated.BlockNumber)
+	require.Len(t, recorder.Snapshot(), 2)
+	for _, req := range recorder.Snapshot() {
+		require.Equal(t, "latest", req.BlockTag)
+	}
+}

@@ -109,7 +109,7 @@ func (t *PoolTracker) getNewPoolState(
 	priceInUsd := make([]*big.Int, nTokens)
 
 	const callsPerToken = 4
-	req2 := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp1.BlockNumber).SetOverrides(overrides)
+	req2 := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp1.BlockNumber)).SetOverrides(overrides)
 	for i, token := range p.Tokens {
 		req2.AddCall(&ethrpc.Call{
 			ABI: syntheticTokenABI, Target: token.Address, Method: syntheticTokenMethodIsActive,
@@ -143,7 +143,7 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	resp2, err := utilEth.CallWithBlockRetry(ctx, req2.TryAggregate)
+	resp2, err := utilEth.CallWithBlockRetry(ctx, req2.TryAggregate, resp1.BlockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{"exchange": p.Exchange, "error": err}).
 			Error("metronome-swap: round-2 rpc call error")

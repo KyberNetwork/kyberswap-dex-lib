@@ -2,13 +2,17 @@ package eth
 
 import (
 	"context"
+	"math/big"
 	"strings"
 	"time"
 )
 
-func CallWithBlockRetry[T any](ctx context.Context, call func() (T, error)) (T, error) {
+func CallWithBlockRetry[T any](ctx context.Context, call func() (T, error), blockNumber ...*big.Int) (T, error) {
+	if len(blockNumber) > 0 && BlockNumberOrLatest(blockNumber[0]) == nil {
+		return call()
+	}
 	var zero T
-	for attempt := 0; attempt < 3; attempt++ {
+	for attempt := 0; ; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return zero, err
 		}
@@ -27,10 +31,16 @@ func CallWithBlockRetry[T any](ctx context.Context, call func() (T, error)) (T, 
 			return result, err
 		}
 	}
-	return zero, nil
 }
 
 func isRetryableBlockError(err error) bool {
 	message := strings.ToLower(err.Error())
 	return strings.Contains(message, "unknown block") || strings.Contains(message, "header not found")
+}
+
+func BlockNumberOrLatest(blockNumber *big.Int) *big.Int {
+	if blockNumber == nil || blockNumber.Sign() <= 0 {
+		return nil
+	}
+	return blockNumber
 }

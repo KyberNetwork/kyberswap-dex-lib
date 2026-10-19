@@ -154,7 +154,7 @@ func getExtra(
 		tokenDecimals       = make([]uint8, len(assets))
 	)
 
-	getAssetStateRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(stateResp.BlockNumber)
+	getAssetStateRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(stateResp.BlockNumber))
 	if overrides != nil {
 		getAssetStateRequest.SetOverrides(overrides)
 	}
@@ -193,7 +193,7 @@ func getExtra(
 		}, []any{&tokenDecimals[i]})
 	}
 
-	resp, err := utilEth.CallWithBlockRetry(ctx, getAssetStateRequest.TryBlockAndAggregate)
+	resp, err := utilEth.CallWithBlockRetry(ctx, getAssetStateRequest.TryBlockAndAggregate, stateResp.BlockNumber)
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

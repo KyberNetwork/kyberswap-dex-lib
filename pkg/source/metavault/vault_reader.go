@@ -160,7 +160,9 @@ func (r *VaultReader) readTokensData(
 	if err != nil {
 		return err
 	}
-	vault.BlockNumber = response.BlockNumber
+	if !validBlockNumber(vault.BlockNumber) {
+		vault.BlockNumber = response.BlockNumber
+	}
 
 	for i, token := range vault.WhitelistedTokens {
 		vault.PoolAmounts[token] = poolAmounts[i]

@@ -19,7 +19,7 @@ import (
 // return: poolAddresses, lpAddresses, error
 func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string, allPairLength int, blockNumber *big.Int) ([]common.Address, []common.Address, error) {
 	anchors := make([]common.Address, allPairLength)
-	listAnchorAddressesRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	listAnchorAddressesRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 
 	listAnchorAddressesRequest.AddCall(&ethrpc.Call{
 		ABI:    converterRegistryABI,
@@ -27,14 +27,14 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 		Method: registryGetAnchors,
 	}, []any{&anchors})
 
-	_, err := ethutil.CallWithBlockRetry(ctx, listAnchorAddressesRequest.TryAggregate)
+	_, err := ethutil.CallWithBlockRetry(ctx, listAnchorAddressesRequest.TryAggregate, blockNumber)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// get pool address (converters) from anchorResults (lp address)
 	poolAddresses := make([]common.Address, allPairLength)
-	request := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	request := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 	request.AddCall(
 		&ethrpc.Call{
 			ABI:    converterRegistryABI,
@@ -42,7 +42,7 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 			Method: getConvertersByAnchors,
 			Params: []any{anchors},
 		}, []any{&poolAddresses})
-	if _, err := ethutil.CallWithBlockRetry(ctx, request.Call); err != nil {
+	if _, err := ethutil.CallWithBlockRetry(ctx, request.Call, blockNumber); err != nil {
 		return nil, nil, err
 	}
 
@@ -51,19 +51,19 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 
 func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.Client, converterRegistry string, blockNumber *big.Int) (map[string][]string, error) {
 	convertibleTokens := make([]common.Address, 0)
-	request := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	request := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 	request.AddCall(&ethrpc.Call{
 		ABI:    converterRegistryABI,
 		Target: converterRegistry,
 		Method: getConvertibleTokens,
 		Params: nil,
 	}, []any{&convertibleTokens})
-	if _, err := ethutil.CallWithBlockRetry(ctx, request.Call); err != nil {
+	if _, err := ethutil.CallWithBlockRetry(ctx, request.Call, blockNumber); err != nil {
 		return nil, err
 	}
 
 	anchorsByConvertibleTokens := make(map[string][]string)
-	anchorsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	anchorsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 	anchors := make([][]common.Address, len(convertibleTokens))
 
 	for i, convertibleToken := range convertibleTokens {
@@ -76,7 +76,7 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 		}, []any{&anchors[i]})
 	}
 
-	if _, err := ethutil.CallWithBlockRetry(ctx, anchorsRequest.Aggregate); err != nil {
+	if _, err := ethutil.CallWithBlockRetry(ctx, anchorsRequest.Aggregate, blockNumber); err != nil {
 		return nil, err
 	}
 
@@ -114,19 +114,19 @@ func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 
 // listPairTokens receives list of pair addresses and returns their tokens
 func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddresses []common.Address, blockNumber *big.Int) ([][]common.Address, error) {
-	listTokensRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	listTokensRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 	tokens := make([][]common.Address, len(pairAddresses))
 
 	for index, pairAddress := range pairAddresses {
 		var numToken uint16
-		countRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+		countRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 		countRequest.AddCall(&ethrpc.Call{
 			ABI:    converterABI,
 			Target: pairAddress.Hex(),
 			Method: converterGetTokenCount,
 			Params: nil,
 		}, []any{&numToken})
-		if _, err := ethutil.CallWithBlockRetry(ctx, countRequest.Call); err != nil {
+		if _, err := ethutil.CallWithBlockRetry(ctx, countRequest.Call, blockNumber); err != nil {
 			return nil, err
 		}
 		nTokens := int(numToken)
@@ -142,7 +142,7 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 		}
 	}
 
-	if _, err := ethutil.CallWithBlockRetry(ctx, listTokensRequest.Aggregate); err != nil {
+	if _, err := ethutil.CallWithBlockRetry(ctx, listTokensRequest.Aggregate, blockNumber); err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": "bancor-v21"}).
 			Error("Get tokens list for pool failed")

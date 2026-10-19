@@ -120,3 +120,15 @@ func TestConfig_MethodZeroValueOmitted(t *testing.T) {
 	assert.Equal(t, defaultBaseTokenMethod, baseMethod)
 	assert.Equal(t, defaultStakedTokenMethod, stakedMethod)
 }
+
+func TestGetNewPoolStateUnknownBlockKeepsLatest(t *testing.T) {
+	srv, recorder := ethrpcmock.NewAtBlock(t, 0, utilabi.Erc20ABI, stakedNETABI)
+	tracker := &PoolTracker{config: &Config{StakingAddress: "0x5555555555555555555555555555555555555555", WrapAddress: "0x4444444444444444444444444444444444444444"}, ethrpcClient: ethrpc.New(srv.URL)}
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: "pool", StaticExtra: "{}", Tokens: []*entity.PoolToken{{Address: "0x1111111111111111111111111111111111111111"}, {Address: "0x2222222222222222222222222222222222222222"}}}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Zero(t, updated.BlockNumber)
+	require.Len(t, recorder.Snapshot(), 2)
+	for _, req := range recorder.Snapshot() {
+		require.Equal(t, "latest", req.BlockTag)
+	}
+}

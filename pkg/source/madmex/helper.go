@@ -15,16 +15,17 @@ type blockNumberContextKey struct{}
 func newRequest(client *ethrpc.Client, ctx context.Context) *ethrpc.Request {
 	request := client.NewRequest().SetContext(ctx)
 	if blockNumber, ok := ctx.Value(blockNumberContextKey{}).(*big.Int); ok {
-		request.SetBlockNumber(blockNumber)
+		request.SetBlockNumber(ethutil.BlockNumberOrLatest(blockNumber))
 	}
 	return request
 }
 
 func callWithBlockRetry[T any](ctx context.Context, call func() (T, error)) (T, error) {
-	if _, ok := ctx.Value(blockNumberContextKey{}).(*big.Int); !ok {
+	blockNumber, ok := ctx.Value(blockNumberContextKey{}).(*big.Int)
+	if !ok || !validBlockNumber(blockNumber) {
 		return call()
 	}
-	return ethutil.CallWithBlockRetry(ctx, call)
+	return ethutil.CallWithBlockRetry(ctx, call, blockNumber)
 }
 
 func withBlockNumber(ctx context.Context, blockNumber *big.Int) context.Context {
@@ -32,7 +33,7 @@ func withBlockNumber(ctx context.Context, blockNumber *big.Int) context.Context 
 }
 
 func validBlockNumber(blockNumber *big.Int) bool {
-	return blockNumber != nil && blockNumber.Sign() >= 0 && blockNumber.IsUint64()
+	return blockNumber != nil && blockNumber.Sign() > 0 && blockNumber.IsUint64()
 }
 
 func CallParamsFactory(abi abi.ABI, address string) func(callMethod string, params []any) *ethrpc.Call {

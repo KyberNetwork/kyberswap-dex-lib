@@ -74,7 +74,7 @@ func (d *PoolTracker) fetchOraclePrices(
 
 	extra.PriceDiffThreshold = [2]*big.Int{}
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(p.BlockNumber))
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(new(big.Int).SetUint64(p.BlockNumber)))
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -97,7 +97,7 @@ func (d *PoolTracker) fetchOraclePrices(
 		Params: nil,
 	}, []any{&extra.PriceDiffThreshold[1]})
 
-	resp, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate)
+	resp, err := utilEth.CallWithBlockRetry(ctx, req.Aggregate, new(big.Int).SetUint64(p.BlockNumber))
 	if err != nil {
 		return entity.Pool{}, err
 	}

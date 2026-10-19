@@ -107,9 +107,9 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(result.BlockNumber).SetOverrides(overrides)
+	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(result.BlockNumber)).SetOverrides(overrides)
 
-	blockTimestamp, err := utilEth.CallWithBlockRetry(ctx, req.GetCurrentBlockTimestamp)
+	blockTimestamp, err := utilEth.CallWithBlockRetry(ctx, req.GetCurrentBlockTimestamp, result.BlockNumber)
 	if err != nil {
 		return p, err
 	}

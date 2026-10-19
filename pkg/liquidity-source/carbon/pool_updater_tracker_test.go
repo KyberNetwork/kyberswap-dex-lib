@@ -121,7 +121,7 @@ func TestGetNewPoolStatePinsPaginationAndIncrementalPaths(t *testing.T) {
 					require.ErrorContains(t, err, "cannot unmarshal struct")
 					ethrpcmock.RequireRequestsPinned(t, recorder, 3)
 					ethrpcmock.CheckPool(t, "carbon-tracker-"+tc.mode, updated)
-					ethrpcmock.CheckRequests(t, "carbon-tracker-"+tc.mode, recorder)
+					ethrpcmock.CheckRequests(t, "carbon-tracker-"+tc.mode, recorder, [2]string{"tryAggregate", "tryBlockAndAggregate"})
 					return
 				}
 				require.NoError(t, err)
@@ -157,17 +157,13 @@ func TestGetNewPoolStatePinsPaginationAndIncrementalPaths(t *testing.T) {
 					require.Equal(t, "0x3039", recorder.Snapshot()[2].BlockTag)
 				case "fee-global":
 					require.Len(t, recorder.Snapshot(), 2)
-					if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-						require.Equal(t, "latest", recorder.Snapshot()[1].BlockTag)
-					} else {
-						require.Equal(t, "0x3039", recorder.Snapshot()[1].BlockTag)
-					}
+					require.Equal(t, "0x3039", recorder.Snapshot()[1].BlockTag)
 				}
 				if tc.mode != "fee-error" {
 					ethrpcmock.RequireRequestsPinned(t, recorder, 2)
 				}
 				ethrpcmock.CheckPool(t, "carbon-tracker-"+tc.mode, updated)
-				ethrpcmock.CheckRequests(t, "carbon-tracker-"+tc.mode, recorder)
+				ethrpcmock.CheckRequests(t, "carbon-tracker-"+tc.mode, recorder, [2]string{"tryAggregate", "tryBlockAndAggregate"})
 			})
 		})
 	}

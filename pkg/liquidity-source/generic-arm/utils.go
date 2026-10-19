@@ -238,7 +238,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 			poolState.WithdrawsClaimed = withdrawsClaimed
 		case res.Result[idxWithdrawsQueuedShares] && res.Result[idxWithdrawsClaimedShares]:
 			convertCall := func() (*ethrpc.Response, error) {
-				convertCalls := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
+				convertCalls := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(res.BlockNumber))
 				convertCalls.AddCall(&ethrpc.Call{
 					ABI:    lidoArmABI,
 					Target: armAddr,
@@ -253,7 +253,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 				}, []any{&poolState.WithdrawsClaimed})
 				return convertCalls.Aggregate()
 			}
-			convertResp, err := utilEth.CallWithBlockRetry(ctx, convertCall)
+			convertResp, err := utilEth.CallWithBlockRetry(ctx, convertCall, res.BlockNumber)
 			if err != nil {
 				logger.WithFields(logger.Fields{
 					"error": err,
@@ -274,7 +274,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 	// aggregated together. baseAssetConfigs() tries two tuple shapes (see baseAssetConfigsV2ABI), which
 	// requires TryAggregate; a genuine on-chain revert on any other (very standard, already-confirmed-live
 	// target) call here is still treated as a hard failure via requiredCalls.
-	balanceCalls := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
+	balanceCalls := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(res.BlockNumber))
 	requiredCalls = requiredCalls[:0]
 	balanceIdx := func() int { return len(balanceCalls.Calls) }
 	addBalanceRequired := func(method string) { requiredCalls = append(requiredCalls, requiredCall{balanceIdx(), method}) }
@@ -331,7 +331,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 			}, []any{&baseAssetConfigs[i], &baseAssetConfigs[i]})
 		}
 	}
-	balanceRes, err := utilEth.CallWithBlockRetry(ctx, balanceCalls.TryBlockAndAggregate)
+	balanceRes, err := utilEth.CallWithBlockRetry(ctx, balanceCalls.TryBlockAndAggregate, res.BlockNumber)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -377,7 +377,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 	// view functions (IAssetAdapter), regardless of the underlying mechanism (ERC4626 vault ratio for
 	// sUSDe, Lido share math for stETH-family adapters, wstETH's own rate, etc), so this works uniformly
 	// without protocol-specific logic on our side.
-	rateCalls := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
+	rateCalls := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(res.BlockNumber))
 	var hasRateCalls bool
 	for i := range poolState.BaseAssets {
 		ba := &poolState.BaseAssets[i]
@@ -401,7 +401,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		}, []any{&ba.ConvertRateSharesPerAsset})
 	}
 	if hasRateCalls {
-		rateResp, err := utilEth.CallWithBlockRetry(ctx, rateCalls.Aggregate)
+		rateResp, err := utilEth.CallWithBlockRetry(ctx, rateCalls.Aggregate, res.BlockNumber)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,

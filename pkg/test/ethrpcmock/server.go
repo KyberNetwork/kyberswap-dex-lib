@@ -85,6 +85,14 @@ func New(t *testing.T, abis ...abi.ABI) (*httptest.Server, *Recorder) {
 }
 
 func NewWithResolver(t *testing.T, resolver Resolver, abis ...abi.ABI) (*httptest.Server, *Recorder) {
+	return NewWithResolverAtBlock(t, resolver, Block, abis...)
+}
+
+func NewAtBlock(t *testing.T, block uint64, abis ...abi.ABI) (*httptest.Server, *Recorder) {
+	return NewWithResolverAtBlock(t, nil, block, abis...)
+}
+
+func NewWithResolverAtBlock(t *testing.T, resolver Resolver, snapshotBlock uint64, abis ...abi.ABI) (*httptest.Server, *Recorder) {
 	t.Helper()
 	selectors := map[[4]byte]abi.Method{}
 	for _, a := range abis {
@@ -217,7 +225,7 @@ func NewWithResolver(t *testing.T, resolver Resolver, abis ...abi.ABI) (*httptes
 						return
 					}
 				}
-				block := new(big.Int).SetUint64(Block)
+				block := new(big.Int).SetUint64(snapshotBlock)
 				recorder.mu.Lock()
 				recorder.Requests = append(recorder.Requests, entry)
 				recorder.mu.Unlock()
@@ -373,9 +381,6 @@ func Value(t abi.Type) any {
 
 func RequirePinned(t *testing.T, tags []string, callsMin int) {
 	t.Helper()
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		return
-	}
 	require.GreaterOrEqual(t, len(tags), callsMin)
 	require.Equal(t, "latest", tags[0])
 	for _, tag := range tags[1:] {
@@ -385,9 +390,6 @@ func RequirePinned(t *testing.T, tags []string, callsMin int) {
 
 func RequireRequestsPinned(t *testing.T, recorder *Recorder, callsMin int) {
 	t.Helper()
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		return
-	}
 	requests := recorder.Snapshot()
 	require.GreaterOrEqual(t, len(requests), callsMin)
 	require.Equal(t, "latest", requests[0].BlockTag)
@@ -399,18 +401,7 @@ func RequireRequestsPinned(t *testing.T, recorder *Recorder, callsMin int) {
 func CheckPool(t *testing.T, key string, pool entity.Pool) {
 	t.Helper()
 	dir := filepath.Join("testdata")
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		dir = os.Getenv("BLOCKPIN_EQ_DIR")
-		require.NotEmpty(t, dir, "BLOCKPIN_EQ_DIR must point to the baseline pool directory")
-	}
 	path := filepath.Join(dir, key+".json")
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		data, err := json.Marshal(pool)
-		require.NoError(t, err)
-		require.NoError(t, os.MkdirAll(dir, 0o755))
-		require.NoError(t, os.WriteFile(path, data, 0o600))
-		return
-	}
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var baseline entity.Pool
@@ -419,13 +410,9 @@ func CheckPool(t *testing.T, key string, pool entity.Pool) {
 	require.Equal(t, baseline, pool)
 }
 
-func CheckRequests(t *testing.T, key string, recorder *Recorder) {
+func CheckRequests(t *testing.T, key string, recorder *Recorder, firstWrapperChange ...[2]string) {
 	t.Helper()
 	dir := filepath.Join("testdata")
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		dir = os.Getenv("BLOCKPIN_EQ_DIR")
-		require.NotEmpty(t, dir, "BLOCKPIN_EQ_DIR must point to the baseline pool directory")
-	}
 	path := filepath.Join(dir, key+".rpc.json")
 	requests := recorder.Snapshot()
 	for i := range requests {
@@ -433,22 +420,20 @@ func CheckRequests(t *testing.T, key string, recorder *Recorder) {
 	}
 	data, err := json.Marshal(requests)
 	require.NoError(t, err)
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		require.NoError(t, os.MkdirAll(dir, 0o755))
-		require.NoError(t, os.WriteFile(path, data, 0o600))
-		return
-	}
 	baseline, err := os.ReadFile(path)
 	require.NoError(t, err)
 	var expected []RPCRequest
 	var actual []RPCRequest
 	require.NoError(t, json.Unmarshal(baseline, &expected))
 	require.NoError(t, json.Unmarshal(data, &actual))
-	if len(expected) > 0 && len(actual) > 0 && ((expected[0].OuterMethod == "tryAggregate" && actual[0].OuterMethod == "tryBlockAndAggregate") || (expected[0].OuterMethod == "tryBlockAndAggregate" && actual[0].OuterMethod == "tryAggregate")) {
-		actual[0].OuterMethod = expected[0].OuterMethod
-	}
-	if len(expected) > 0 && len(actual) > 0 && expected[0].OuterMethod == "call" && actual[0].OuterMethod == "aggregate" {
-		actual[0].OuterMethod = "call"
+	require.LessOrEqual(t, len(firstWrapperChange), 1)
+	if len(firstWrapperChange) == 1 {
+		require.NotEmpty(t, expected)
+		require.NotEmpty(t, actual)
+		change := firstWrapperChange[0]
+		require.Equal(t, change[0], expected[0].OuterMethod)
+		require.Equal(t, change[1], actual[0].OuterMethod)
+		actual[0].OuterMethod = change[0]
 	}
 	expectedJSON, err := json.Marshal(expected)
 	require.NoError(t, err)

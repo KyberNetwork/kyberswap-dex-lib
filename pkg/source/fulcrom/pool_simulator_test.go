@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -301,7 +300,7 @@ func TestGetNewPoolStatePinsAllCallsToFirstBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if os.Getenv("BLOCKPIN_BASELINE") != "1" && updated.BlockNumber != snapshotBlock {
+	if updated.BlockNumber != snapshotBlock {
 		t.Fatalf("BlockNumber = %d, want %d", updated.BlockNumber, snapshotBlock)
 	}
 	if firstRequireSuccess || !firstCallFailed {
@@ -310,9 +309,7 @@ func TestGetNewPoolStatePinsAllCallsToFirstBlock(t *testing.T) {
 	if len(updated.Tokens) != 1 || len(updated.Reserves) != 1 || updated.Tokens[0].Address != tokenAddress || updated.Reserves[0] != "1" {
 		t.Fatalf("unexpected pool state: tokens=%+v reserves=%v", updated.Tokens, updated.Reserves)
 	}
-	if os.Getenv("BLOCKPIN_BASELINE") == "1" {
-		return
-	}
+
 	if len(tags) < 5 || tags[0] != "latest" {
 		t.Fatalf("unexpected eth_call block tags: %v", tags)
 	}
@@ -352,14 +349,14 @@ func TestGetNewPoolStateSnapshotEquivalent(t *testing.T) {
 		require.NoError(t, err)
 		updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: vaultAddress.Hex(), Exchange: DexTypeFulcrom, Type: DexTypeFulcrom, Extra: "{}"}, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		if os.Getenv("BLOCKPIN_BASELINE") != "1" {
-			require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
-		}
+
+		require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
+
 		require.Len(t, updated.Tokens, 1)
 		require.Equal(t, hexutil.Encode(tokenAddress[:]), updated.Tokens[0].Address)
 		require.Equal(t, entity.PoolReserves{"1"}, updated.Reserves)
 		ethrpcmock.CheckPool(t, "fulcrom_TestGetNewPoolStateSnapshotEquivalent", updated)
-		ethrpcmock.CheckRequests(t, "fulcrom_TestGetNewPoolStateSnapshotEquivalent", recorder)
+		ethrpcmock.CheckRequests(t, "fulcrom_TestGetNewPoolStateSnapshotEquivalent", recorder, [2]string{"tryAggregate", "tryBlockAndAggregate"})
 		ethrpcmock.RequireRequestsPinned(t, recorder, 3)
 	})
 }

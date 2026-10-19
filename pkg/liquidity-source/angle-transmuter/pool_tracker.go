@@ -214,8 +214,8 @@ func (t *PoolTracker) getNewPoolState(
 		Method: "getTotalIssued",
 	}, []any{&totalStablecoinIssued})
 
-	calls.SetBlockNumber(firstResponse.BlockNumber)
-	if _, err := utilEth.CallWithBlockRetry(ctx, calls.TryAggregate); err != nil {
+	calls.SetBlockNumber(utilEth.BlockNumberOrLatest(firstResponse.BlockNumber))
+	if _, err := utilEth.CallWithBlockRetry(ctx, calls.TryAggregate, firstResponse.BlockNumber); err != nil {
 		return p, err
 	}
 
@@ -250,7 +250,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-	calls.SetBlockNumber(firstResponse.BlockNumber)
+	calls.SetBlockNumber(utilEth.BlockNumberOrLatest(firstResponse.BlockNumber))
 	for i, collat := range oracleConfigs {
 		configs := []struct {
 			typ  OracleReadType
@@ -345,7 +345,7 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	res, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate)
+	res, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate, firstResponse.BlockNumber)
 	if err != nil {
 		return p, err
 	}

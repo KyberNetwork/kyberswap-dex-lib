@@ -214,3 +214,22 @@ func TestCallWithBlockRetryCancellation(t *testing.T) {
 		}
 	})
 }
+
+func TestUnknownBlockKeepsLatestWithoutRetry(t *testing.T) {
+	for _, block := range []*big.Int{nil, big.NewInt(0), big.NewInt(-1)} {
+		req := ethrpc.New("http://unused").NewRequest().SetBlockNumber(eth.BlockNumberOrLatest(block))
+		if req.BlockNumber != nil {
+			t.Fatalf("unexpected pinned block %v", req.BlockNumber)
+		}
+		attempts := 0
+		expected := errors.New("unknown block")
+		result, err := eth.CallWithBlockRetry(context.Background(), func() (int, error) { attempts++; return 7, expected }, block)
+		if result != 7 || !errors.Is(err, expected) || attempts != 1 {
+			t.Fatalf("result=%d err=%v attempts=%d", result, err, attempts)
+		}
+	}
+	block := big.NewInt(12345)
+	if eth.BlockNumberOrLatest(block) != block {
+		t.Fatal("known block was not preserved")
+	}
+}

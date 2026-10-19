@@ -249,7 +249,7 @@ func (t *PoolTracker) getStrategyCount(ctx context.Context, token0, token1 commo
 	call := func() (*ethrpc.Response, error) {
 		req := t.ethrpcClient.R().SetContext(ctx)
 		if blockNumber != nil {
-			req.SetBlockNumber(blockNumber)
+			req.SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 		}
 		return req.AddCall(&ethrpc.Call{
 			ABI:    controllerABI,
@@ -260,7 +260,7 @@ func (t *PoolTracker) getStrategyCount(ctx context.Context, token0, token1 commo
 	var resp *ethrpc.Response
 	var err error
 	if blockNumber != nil {
-		resp, err = utilEth.CallWithBlockRetry(ctx, call)
+		resp, err = utilEth.CallWithBlockRetry(ctx, call, blockNumber)
 	} else {
 		resp, err = call()
 	}
@@ -280,7 +280,7 @@ func (t *PoolTracker) fetchStrategiesBatch(
 ) ([]Strategy, error) {
 	var rawStrategies []StrategyByPairResp
 	call := func() (*ethrpc.Response, error) {
-		req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber)
+		req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 		return req.AddCall(&ethrpc.Call{
 			ABI:    controllerABI,
 			Target: t.config.Controller.String(),
@@ -289,7 +289,7 @@ func (t *PoolTracker) fetchStrategiesBatch(
 		}, []any{&rawStrategies}).
 			Aggregate()
 	}
-	if _, err := utilEth.CallWithBlockRetry(ctx, call); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, call, blockNumber); err != nil {
 		return nil, err
 	}
 
@@ -316,7 +316,7 @@ func (t *PoolTracker) fetchStrategiesByIDs(
 
 		raws := make([]StrategyByPairResp, len(chunk))
 		call := func() (*ethrpc.Response, error) {
-			req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber)
+			req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 			for i, id := range chunk {
 				req.AddCall(&ethrpc.Call{
 					ABI:    controllerABI,
@@ -327,7 +327,7 @@ func (t *PoolTracker) fetchStrategiesByIDs(
 			}
 			return req.Aggregate()
 		}
-		if _, err := utilEth.CallWithBlockRetry(ctx, call); err != nil {
+		if _, err := utilEth.CallWithBlockRetry(ctx, call, blockNumber); err != nil {
 			return nil, err
 		}
 

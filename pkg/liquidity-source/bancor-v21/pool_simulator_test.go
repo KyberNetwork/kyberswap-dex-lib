@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -42,10 +41,10 @@ func TestGetNewPoolStatePinsRegistrySnapshot(t *testing.T) {
 			initial := entity.Pool{Address: "0x7000000000000000000000000000000000000007", Exchange: DexType, Type: DexType, Extra: "{}"}
 			updated, err := tracker.GetNewPoolState(context.Background(), initial, pool.GetNewPoolStateParams{})
 			require.NoError(t, err)
-			if os.Getenv("BLOCKPIN_BASELINE") != "1" {
-				require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
-				require.Equal(t, "aggregate", recorder.Snapshot()[0].OuterMethod)
-			}
+
+			require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
+			require.Equal(t, "aggregate", recorder.Snapshot()[0].OuterMethod)
+
 			require.Len(t, updated.Tokens, 0)
 			var extra Extra
 			require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
@@ -60,7 +59,7 @@ func TestGetNewPoolStatePinsRegistrySnapshot(t *testing.T) {
 			require.Equal(t, []string{hexutil.Encode(anchor[:])}, extra.AnchorsByConvertibleToken[hexutil.Encode(tokenA[:])])
 			require.Equal(t, []string{hexutil.Encode(tokenA[:]), hexutil.Encode(tokenB[:])}, extra.TokensByLpAddress[hexutil.Encode(anchor[:])])
 			ethrpcmock.CheckPool(t, "bancor-v21_registry_nonempty", updated)
-			ethrpcmock.CheckRequests(t, "bancor-v21_registry_nonempty", recorder)
+			ethrpcmock.CheckRequests(t, "bancor-v21_registry_nonempty", recorder, [2]string{"call", "aggregate"})
 			ethrpcmock.RequireRequestsPinned(t, recorder, 8)
 		}()
 		func() {
@@ -73,9 +72,9 @@ func TestGetNewPoolStatePinsRegistrySnapshot(t *testing.T) {
 			var extra Extra
 			require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
 			require.Empty(t, extra.InnerPools)
-			if os.Getenv("BLOCKPIN_BASELINE") != "1" {
-				require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
-			}
+
+			require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
+
 			ethrpcmock.RequireRequestsPinned(t, recorder, 5)
 		}()
 		func() {

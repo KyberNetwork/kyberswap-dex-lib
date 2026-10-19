@@ -91,3 +91,15 @@ func TestPoolSimulator(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "948595782312992511", res.TokenAmountOut.Amount.String())
 }
+
+func TestGetNewPoolStateUnknownBlockKeepsLatest(t *testing.T) {
+	srv, recorder := ethrpcmock.NewAtBlock(t, 0, curvePlainABI, eETHABI, liquidityPoolABI, stETHABI, vampireABI)
+	tracker := NewPoolTracker(ethrpc.New(srv.URL))
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: vampire, Type: DexType, Extra: `{"CurveStETHToETH":{"Reserves":["1","1","0"],"Extra":"{}","StaticExtra":"{}"}}`}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Zero(t, updated.BlockNumber)
+	require.Len(t, recorder.Snapshot(), 2)
+	for _, req := range recorder.Snapshot() {
+		require.Equal(t, "latest", req.BlockTag)
+	}
+}

@@ -212,7 +212,7 @@ func (t *PoolTracker) getBands(
 		bandsY = make([]*big.Int, bandCount)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides).SetBlockNumber(blockNumber)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 	for i := range bandCount {
 		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
@@ -227,7 +227,7 @@ func (t *PoolTracker) getBands(
 			Params: []any{bandIndex},
 		}, []any{&bandsY[i]})
 	}
-	if _, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate, blockNumber); err != nil {
 		return nil, err
 	}
 

@@ -147,7 +147,7 @@ func (d *PoolTracker) getNewPoolState(
 		endBin := min(startBin+chunk-1, binLength)
 		g.Go(func(context.Context) error {
 			return func(startBin, endBin int) error {
-				binCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+				binCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 				if overrides != nil {
 					binCalls.SetOverrides(overrides)
 				}
@@ -159,7 +159,7 @@ func (d *PoolTracker) getNewPoolState(
 						Params: []any{big.NewInt(int64(j))},
 					}, []any{&binRaws[j]})
 				}
-				if _, err := utilEth.CallWithBlockRetry(ctx, binCalls.Aggregate); err != nil {
+				if _, err := utilEth.CallWithBlockRetry(ctx, binCalls.Aggregate, resp.BlockNumber); err != nil {
 					logger.WithFields(logger.Fields{
 						"poolAddress": p.Address,
 						"error":       err,

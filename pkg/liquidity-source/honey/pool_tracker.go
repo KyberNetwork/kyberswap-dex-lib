@@ -103,7 +103,7 @@ func (t *PoolTracker) getNewPoolState(
 	if err != nil {
 		return p, err
 	}
-	calls.SetBlockNumber(firstResp.BlockNumber)
+	calls.SetBlockNumber(utilEth.BlockNumberOrLatest(firstResp.BlockNumber))
 
 	noAssets := int(numRegisteredAssets.Int64())
 	registeredAssets := lo.Map(extra.RegisteredAssets,
@@ -115,7 +115,7 @@ func (t *PoolTracker) getNewPoolState(
 	if hasNewAssets { // new registered assets
 		registeredAssets = make([]common.Address, noAssets)
 		vaults = make([]common.Address, noAssets)
-		calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(firstResp.BlockNumber)
+		calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(firstResp.BlockNumber))
 		for i := range noAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    honeyABI,
@@ -124,13 +124,13 @@ func (t *PoolTracker) getNewPoolState(
 				Params: []any{big.NewInt(int64(i))},
 			}, []any{&registeredAssets[i]})
 		}
-		if _, err = utilEth.CallWithBlockRetry(ctx, calls.Aggregate); err != nil {
+		if _, err = utilEth.CallWithBlockRetry(ctx, calls.Aggregate, firstResp.BlockNumber); err != nil {
 			return p, err
 		}
 
 		assetsDecimals = make([]uint8, noAssets)
 		vaultsDecimals = make([]uint8, noAssets)
-		calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(firstResp.BlockNumber)
+		calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(firstResp.BlockNumber))
 		for i := range noAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    honeyABI,
@@ -144,7 +144,7 @@ func (t *PoolTracker) getNewPoolState(
 				Params: []any{},
 			}, []any{&assetsDecimals[i]})
 		}
-		if _, err = utilEth.CallWithBlockRetry(ctx, calls.Aggregate); err != nil {
+		if _, err = utilEth.CallWithBlockRetry(ctx, calls.Aggregate, firstResp.BlockNumber); err != nil {
 			return p, err
 		}
 	}
@@ -190,7 +190,7 @@ func (t *PoolTracker) getNewPoolState(
 			Params: []any{poolAddress},
 		}, []any{&vaultsMaxRedeems[i]})
 	}
-	resp, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate)
+	resp, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate, firstResp.BlockNumber)
 	if err != nil {
 		return p, err
 	}

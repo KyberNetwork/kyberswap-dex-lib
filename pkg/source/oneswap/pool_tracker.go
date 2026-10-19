@@ -94,7 +94,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var totalSupply *big.Int
-	calls = d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	calls = d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
@@ -103,7 +103,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&totalSupply})
 
-	if _, err := utilEth.CallWithBlockRetry(ctx, calls.TryAggregate); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, calls.TryAggregate, resp.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,

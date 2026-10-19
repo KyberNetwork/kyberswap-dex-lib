@@ -119,7 +119,7 @@ func fetchDynamic(
 		ohmReserveBig  *big.Int
 		sohmReserveBig *big.Int
 	)
-	req2 := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp1.BlockNumber)
+	req2 := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp1.BlockNumber))
 	if overrides != nil {
 		req2.SetOverrides(overrides)
 	}
@@ -134,7 +134,7 @@ func fetchDynamic(
 		Method: utilabi.Erc20BalanceOfMethod,
 		Params: []any{gethcommon.HexToAddress(stakingAddress)},
 	}, []any{&sohmReserveBig})
-	if _, err = utilEth.CallWithBlockRetry(ctx, req2.Aggregate); err != nil {
+	if _, err = utilEth.CallWithBlockRetry(ctx, req2.Aggregate, resp1.BlockNumber); err != nil {
 		return PoolExtra{}, 0, err
 	}
 

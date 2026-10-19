@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -111,12 +112,8 @@ func TestGetNewPoolStateCancelsPinnedLensRetry(t *testing.T) {
 	<-lensCallSeen
 	cancel()
 	got := <-done
-	require.NoError(t, got.err)
-	require.EqualValues(t, ethrpcmock.Block, got.pool.BlockNumber)
-	var extra Extra
-	require.NoError(t, json.Unmarshal([]byte(got.pool.Extra), &extra))
-	require.Empty(t, extra.Bins)
-	require.Empty(t, extra.Ticks)
+	require.ErrorIs(t, got.err, context.Canceled)
+	require.Equal(t, p.Extra, got.pool.Extra)
 	require.EqualValues(t, 1, lensCalls.Load())
 }
 
@@ -448,4 +445,14 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestGetNewPoolStateDeadlineDoesNotBuildSnapshot(t *testing.T) {
+	srv, _ := ethrpcmock.New(t, maverickV2PoolABI, maverickV2PoolLensABI)
+	tracker, p := newMaverickV2Fixture(t, srv.URL)
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+	got, err := tracker.updatePool(ctx, p, State{ReserveA: big.NewInt(1), ReserveB: big.NewInt(1), BinCounter: 1}, big.NewInt(int64(ethrpcmock.Block)), nil)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	require.Equal(t, p.Extra, got.Extra)
 }

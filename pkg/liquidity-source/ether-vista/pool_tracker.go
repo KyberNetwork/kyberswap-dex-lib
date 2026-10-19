@@ -178,7 +178,7 @@ func (d *PoolTracker) getRPCState(
 		usdcToETHSellTotalFee *big.Int
 	)
 
-	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 	if overrides != nil {
 		rpcRequest.SetOverrides(overrides)
 	}
@@ -196,7 +196,7 @@ func (d *PoolTracker) getRPCState(
 		Params: []any{big.NewInt(int64(sellTotalFee))},
 	}, []any{&usdcToETHSellTotalFee})
 
-	_, err = utilEth.CallWithBlockRetry(ctx, rpcRequest.TryBlockAndAggregate)
+	_, err = utilEth.CallWithBlockRetry(ctx, rpcRequest.TryBlockAndAggregate, resp.BlockNumber)
 	if err != nil {
 		return RPCStateData{}, nil, err
 	}
