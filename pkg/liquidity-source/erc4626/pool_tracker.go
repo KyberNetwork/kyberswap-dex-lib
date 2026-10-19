@@ -94,6 +94,10 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
+	var mintHeadroom *uint256.Int
+	if state.MintHeadroom != nil {
+		mintHeadroom = uint256.MustFromBig(state.MintHeadroom)
+	}
 	extraBytes, err := json.Marshal(Extra{
 		Gas:          Gas(vaultCfg.Gas),
 		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
@@ -102,6 +106,10 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		TotalAssets:  uint256.MustFromBig(state.TotalAssets),
+
+		DepositsPaused: state.Paused,
+		MintHeadroom:   mintHeadroom,
+		MaxAge:         vaultCfg.MaxAge,
 	})
 	if err != nil {
 		return errors.WithMessage(err, "json.Marshal extra")
@@ -145,6 +153,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Target: vaultAddr,
 			Method: Erc4626MethodTotalAssets,
 		}, []any{&poolState.TotalAssets})
+		AddLimitCalls(func(c *ethrpc.Call, out []any) { req.AddCall(c, out) }, vaultAddr, vaultAddr, vaultCfg, &poolState)
 		if vaultCfg.MinDepositMethod != "" {
 			req.AddCall(&ethrpc.Call{
 				ABI:    Uint256GetterABI(vaultCfg.MinDepositMethod),
@@ -168,11 +177,14 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Target: vaultAddr,
 			Method: Erc4626MethodMaxRedeem,
 			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxRedeem}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: Erc4626MethodTotalSupply,
-		}, []any{&poolState.TotalSupply})
+		}, []any{&poolState.MaxRedeem})
+		if !vaultCfg.SupplyReadByLimits() { // else AddLimitCalls already read it
+			req.AddCall(&ethrpc.Call{
+				ABI:    ABI,
+				Target: vaultAddr,
+				Method: Erc4626MethodTotalSupply,
+			}, []any{&poolState.TotalSupply})
+		}
 
 		for i, amt := range PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
@@ -186,6 +198,9 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
+		return assetToken, nil, err
+	}
+	if err = poolState.ResolveLimits(vaultCfg); err != nil {
 		return assetToken, nil, err
 	}
 

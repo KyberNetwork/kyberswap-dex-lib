@@ -29,6 +29,12 @@ type (
 		DepositRates []*uint256.Int `json:"dR,omitempty"`
 		RedeemRates  []*uint256.Int `json:"rR,omitempty"`
 		TotalAssets  *uint256.Int   `json:"tA,omitempty"`
+		// DepositsPaused is set only for vaults with DepositsPausedMethod.
+		DepositsPaused bool `json:"p,omitempty"`
+		// MintHeadroom is maxSupply - totalSupply, the shares still mintable; nil = no cap tracked.
+		MintHeadroom *uint256.Int `json:"mH,omitempty"`
+		// MaxAge is VaultCfg.MaxAge, 0 = no staleness check.
+		MaxAge int64 `json:"mA,omitempty"`
 	}
 
 	StaticExtra struct {
@@ -42,11 +48,16 @@ type (
 	}
 
 	PoolState struct {
-		MaxDeposit   *big.Int
-		MaxRedeem    *big.Int
-		MinDeposit   *big.Int
-		TotalAssets  *big.Int
-		TotalSupply  *big.Int
+		MaxDeposit  *big.Int
+		MaxRedeem   *big.Int
+		MinDeposit  *big.Int
+		TotalAssets *big.Int
+		TotalSupply *big.Int
+		// Raw limit reads, see AddLimitCalls. Paused is 0/1, nil if the read failed or is not configured.
+		RawPaused, MaxSupply *big.Int
+		// Resolved by ResolveLimits.
+		Paused       bool
+		MintHeadroom *big.Int
 		DepositRates []*big.Int
 		RedeemRates  []*big.Int
 
