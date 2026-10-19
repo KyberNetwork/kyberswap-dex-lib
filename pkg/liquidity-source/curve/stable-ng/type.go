@@ -1,8 +1,19 @@
 package stableng
 
-import "github.com/holiman/uint256"
+import (
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
+)
 
 type (
+	// PoolsListUpdaterMetadata extends the shared metadata with the pools already listed,
+	// so each run only probes pools that appeared since.
+	PoolsListUpdaterMetadata struct {
+		shared.PoolListUpdaterMetadata
+		ListedPools []string `json:",omitempty"`
+	}
+
 	StaticExtra struct {
 		APrecision *uint256.Int
 		// which coins are originally native (before being converted to wrapped)

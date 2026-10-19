@@ -12,6 +12,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
@@ -49,15 +50,41 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		u.logger.Infof("Finish updating pools list.")
 	}()
 
+	var metadata PoolsListUpdaterMetadata
+	if len(metadataBytes) > 0 {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	includedTypes := mapset.NewSet(shared.CURVE_POOL_TYPE_STABLE_NG_PLAIN)
 	curvePools, newMetadataBytes, err := u.sharedUpdater.GetNewPools(ctx, metadataBytes, includedTypes)
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := json.Unmarshal(newMetadataBytes, &metadata.PoolListUpdaterMetadata); err != nil {
+		return nil, nil, err
+	}
 
-	pools, err := u.initPools(ctx, curvePools)
-	if err != nil {
-		u.logger.Error(err.Error())
+	// only probe pools not listed by a previous run, the API returns all pools every time
+	listed := mapset.NewThreadUnsafeSet(metadata.ListedPools...)
+	curvePools = lo.Filter(curvePools, func(p shared.CurvePoolWithType, _ int) bool {
+		return !listed.Contains(p.Address)
+	})
+
+	var pools []entity.Pool
+	if len(curvePools) > 0 {
+		if pools, err = u.initPools(ctx, curvePools); err != nil {
+			u.logger.Error(err.Error())
+			return nil, nil, err
+		}
+	}
+
+	// pools skipped by initPools are not recorded, so they are retried next run
+	for _, p := range pools {
+		metadata.ListedPools = append(metadata.ListedPools, p.Address)
+	}
+	if newMetadataBytes, err = json.Marshal(metadata); err != nil {
 		return nil, nil, err
 	}
 
