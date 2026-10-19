@@ -2,6 +2,7 @@ package erc4626
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -18,6 +19,7 @@ type PoolSimulator struct {
 	pool.Pool
 	Extra
 	StaticExtra
+	poolTimestamp int64
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -44,8 +46,9 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(r string, _ int) *big.Int { return bignum.NewBig(r) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		Extra:       extra,
-		StaticExtra: staticExtra,
+		Extra:         extra,
+		poolTimestamp: p.Timestamp,
+		StaticExtra:   staticExtra,
 	}, nil
 }
 
@@ -62,7 +65,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var amountOut *uint256.Int
 	if isDeposit {
-		if s.DepositsPaused {
+		if s.stale() {
+			return nil, ErrERC4626StalePoolData
+		} else if s.DepositsPaused {
 			return nil, ErrERC4626DepositsPaused
 		} else if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
@@ -112,7 +117,9 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	var amountIn *uint256.Int
 	if isDeposit {
 		amountIn, err = GetClosestRate(s.DepositRates, amountOut, true)
-		if s.DepositsPaused {
+		if s.stale() {
+			return nil, ErrERC4626StalePoolData
+		} else if s.DepositsPaused {
 			return nil, ErrERC4626DepositsPaused
 		} else if err != nil {
 			return nil, ErrInvalidDepositRate
@@ -143,6 +150,11 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		},
 		Gas: int64(lo.Ternary(isDeposit, s.Gas.Deposit, s.Gas.Redeem)),
 	}, nil
+}
+
+// stale: the limits were last read more than MaxAge ago (off when MaxAge is 0).
+func (s *PoolSimulator) stale() bool {
+	return s.MaxAge > 0 && s.poolTimestamp+s.MaxAge < time.Now().Unix()
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

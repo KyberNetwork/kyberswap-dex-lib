@@ -3,6 +3,7 @@ package erc4626
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -136,4 +137,53 @@ func TestCloneStateCopiesMintHeadroom(t *testing.T) {
 
 	// untracked headroom stays untracked in the clone
 	assert.Nil(t, depositPool(t, func(*Extra) {}).CloneState().(*PoolSimulator).MintHeadroom)
+}
+
+// A failed pause/cap read saves nothing, so the pool ages; MaxAge must then stop deposit quotes.
+func TestMaxAgeStale(t *testing.T) {
+	t.Parallel()
+	now := time.Now().Unix()
+	for _, tc := range []struct {
+		name        string
+		maxAge, age int64
+		wantStale   bool
+	}{
+		{"fresh", 60, 10, false},
+		{"stale", 60, 120, true},
+		{"off when zero", 0, 100000, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sim := depositPool(t, func(e *Extra) { e.MaxAge = tc.maxAge })
+			sim.poolTimestamp = now - tc.age
+
+			_, err := deposit(sim, 1e9)
+			inParams := pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{Token: "0xvault", Amount: big.NewInt(1e9)}, TokenIn: "0xasset",
+			}
+			_, errIn := sim.CalcAmountIn(inParams)
+			if tc.wantStale {
+				assert.ErrorIs(t, err, ErrERC4626StalePoolData)
+				assert.ErrorIs(t, errIn, ErrERC4626StalePoolData)
+			} else {
+				assert.NoError(t, err)
+				assert.NoError(t, errIn)
+			}
+			// CloneState must carry both fields.
+			clone := sim.CloneState().(*PoolSimulator)
+			assert.Equal(t, sim.MaxAge, clone.MaxAge)
+			assert.Equal(t, sim.poolTimestamp, clone.poolTimestamp)
+		})
+	}
+}
+
+// The yaml maxAge must reach Extra, or the simulator check never arms.
+func TestUpdateEntityStateWritesMaxAge(t *testing.T) {
+	t.Parallel()
+	z := big.NewInt(0)
+	state := &PoolState{MaxDeposit: z, MaxRedeem: z, MinDeposit: z, TotalAssets: z, TotalSupply: z}
+	p := entity.Pool{}
+	require.NoError(t, UpdateEntityState(&p, VaultCfg{MaxAge: 60}, state))
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+	assert.EqualValues(t, 60, extra.MaxAge)
 }

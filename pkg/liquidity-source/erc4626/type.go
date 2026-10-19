@@ -33,6 +33,8 @@ type (
 		DepositsPaused bool `json:"p,omitempty"`
 		// MintHeadroom is maxSupply - totalSupply, the shares still mintable; nil = no cap tracked.
 		MintHeadroom *uint256.Int `json:"mH,omitempty"`
+		// MaxAge is VaultCfg.MaxAge, 0 = no staleness check.
+		MaxAge int64 `json:"mA,omitempty"`
 	}
 
 	StaticExtra struct {

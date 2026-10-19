@@ -19,6 +19,9 @@ type VaultCfg struct {
 	// MaxSupplyMethod is an optional no-arg view returning the share supply cap, e.g. "maxSupply". Deposits that
 	// mint shares beyond maxSupply - totalSupply revert, though maxDeposit/maxMint don't show it.
 	MaxSupplyMethod string `json:"maxSupplyMethod,omitempty"`
+	// MaxAge (seconds, 0 = off) makes the simulator reject deposits once the pool is older than this, so a
+	// failed pause/cap read (nothing saved) stops quoting. Needs a pool-service heartbeat below it.
+	MaxAge int64 `json:"maxAge,omitempty"`
 }
 
 type GasCfg struct {

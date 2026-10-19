@@ -109,6 +109,7 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 
 		DepositsPaused: state.Paused,
 		MintHeadroom:   mintHeadroom,
+		MaxAge:         vaultCfg.MaxAge,
 	})
 	if err != nil {
 		return errors.WithMessage(err, "json.Marshal extra")

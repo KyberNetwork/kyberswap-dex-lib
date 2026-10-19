@@ -38,6 +38,7 @@ var (
 	ErrUnsupportedSwap           = errors.New("unsupported swap")
 	ErrERC4626DepositMoreThanMax = errors.New("ERC4626: deposit more than max")
 	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
+	ErrERC4626StalePoolData      = errors.New("ERC4626: stale pool data")
 	ErrERC4626DepositsPaused     = errors.New("ERC4626: deposits paused")
 	ErrERC4626MintMoreThanMax    = errors.New("ERC4626: mint more than max supply")
 	ErrERC4626DepositLessThanMin = errors.WithMessage(pool.ErrSwapAmountBelowMin, "ERC4626: deposit less than min")
