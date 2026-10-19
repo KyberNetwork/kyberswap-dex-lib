@@ -89,6 +89,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, nil, err
 		}
 		rawPools = lo.Filter(rawPools, func(p CurvePool, _ int) bool { return !listed.Contains(p.Address) })
+		if len(rawPools) == 0 {
+			continue // classifying no pools would still send an (empty) multicall for `main`
+		}
 
 		typeMap, err := u.ClassifyPools(ctx, dataSource, rawPools)
 		if err != nil {
