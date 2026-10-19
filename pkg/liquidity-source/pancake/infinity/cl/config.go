@@ -12,6 +12,10 @@ type Config struct {
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
 
+	// Used when SubgraphAPI is empty: pools come from the manager's Initialize logs.
+	StartBlock    uint64 `json:"startBlock"`
+	LogBlockRange uint64 `json:"logBlockRange"`
+
 	FetchTickFromRPC bool // instead of fetching from subgraph
 
 	StableHookFactories []string `json:"stableHookFactories,omitempty"`
