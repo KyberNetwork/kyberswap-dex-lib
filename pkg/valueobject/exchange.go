@@ -367,6 +367,7 @@ const (
 	ExchangeUniswapV4TickerMeme         = "uniswap-v4-ticker-meme"
 	ExchangeUniswapV4Volatile           = "uniswap-v4-volatile"
 	ExchangeUniswapV4Zora               = "uniswap-v4-zora"
+	ExchangeUpshiftVaultV2              = "upshift-vaultv2"
 	ExchangeUsd0PP                      = "usd0pp"
 	ExchangeUsdAi                       = "usd-ai"
 	ExchangeUsdsLitePsm                 = "usds-lite-psm"
