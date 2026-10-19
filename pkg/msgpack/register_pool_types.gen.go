@@ -245,6 +245,7 @@ import (
 	pkg_liquiditysource_uniswap_v4_hooks_tickermemev4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-meme-v4"
 	pkg_liquiditysource_uniswap_v4_hooks_volatile "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/volatile"
 	pkg_liquiditysource_uniswap_v4_hooks_zora "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/zora"
+	pkg_liquiditysource_upshiftusdf "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/upshift-usdf"
 	pkg_liquiditysource_upshiftvaultv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/upshift-vaultv2"
 	pkg_liquiditysource_uscoreprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore-prop"
 	pkg_liquiditysource_usdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
@@ -546,6 +547,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_tickermemev4.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_volatile.Hook{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_zora.Hook{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_upshiftusdf.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_upshiftvaultv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uscoreprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_usdai.PoolSimulator{})
