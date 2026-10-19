@@ -169,11 +169,10 @@ func (t *PoolTracker) BootstrapPoolState(
 	l.Info("Start getting new state of pancake-infinity-cl pool")
 
 	var (
-		rpcData    *FetchRPCResult
-		hook       Hook
-		hookParam  *HookParam
-		poolTicks  []ticklens.TickResp
-		ticksBlock uint64 // log mode: the block the ticks were read at
+		rpcData   *FetchRPCResult
+		hook      Hook
+		hookParam *HookParam
+		poolTicks []ticklens.TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -192,10 +191,6 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	g.Go(func(context.Context) error {
 		var err error
-		if t.config.SubgraphAPI == "" {
-			poolTicks, ticksBlock, err = t.getPoolTicksFromLogs(ctx, &p)
-			return err
-		}
 		if t.config.FetchTickFromRPC {
 			poolTicks, err = t.getPoolTicksFromRPC(ctx, p, param)
 			if err != nil {
@@ -221,10 +216,6 @@ func (t *PoolTracker) BootstrapPoolState(
 			"error": err,
 		}).Error("failed to fetch pool state")
 		return entity.Pool{}, err
-	}
-
-	if ticksBlock > 0 {
-		p.BlockNumber = ticksBlock // FetchPoolTicks re-reads ticks at p.BlockNumber, not at Initialize
 	}
 
 	var ticks = make([]Tick, 0, len(poolTicks))
@@ -335,49 +326,6 @@ type rpcTick struct {
 		FeeGrowthOutside0X128 *big.Int
 		FeeGrowthOutside1X128 *big.Int
 	}
-}
-
-// getPoolTicksFromLogs lists the ticks touched by the pool's ModifyLiquidity logs (from the pool's
-// Initialize block) and reads them from the manager. For managers without a subgraph.
-func (t *PoolTracker) getPoolTicksFromLogs(ctx context.Context, p *entity.Pool) ([]ticklens.TickResp, uint64, error) {
-	head, err := t.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	logs, err := shared.FilterLogs(ctx, t.ethrpcClient, common.HexToAddress(t.config.CLPoolManagerAddress),
-		[][]common.Hash{
-			{shared.CLPoolManagerABI.Events["ModifyLiquidity"].ID},
-			{common.HexToHash(p.Address)},
-		}, max(p.BlockNumber, t.config.StartBlock), head, t.config.LogBlockRange)
-	if err != nil {
-		return nil, 0, err
-	}
-	tickIdxs, err := t.getTickIndexesFromLogs(logs)
-	if err != nil {
-		return nil, 0, err
-	}
-	ticks, err := t.queryRPCTicksByIndexes(ctx, p.Address, tickIdxs, head)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	resp := make([]ticklens.TickResp, 0, len(ticks))
-	for _, tick := range ticks {
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-		resp = append(resp, ticklens.TickResp{
-			TickIdx:        strconv.Itoa(tick.TickIdx),
-			LiquidityGross: tick.LiquidityGross.String(),
-			LiquidityNet:   tick.LiquidityNet.String(),
-		})
-	}
-	sort.Slice(resp, func(i, j int) bool {
-		a, _ := strconv.Atoi(resp[i].TickIdx)
-		b, _ := strconv.Atoi(resp[j].TickIdx)
-		return a < b
-	})
-	return resp, head, nil
 }
 
 func (t *PoolTracker) getPoolTicksFromRPC(

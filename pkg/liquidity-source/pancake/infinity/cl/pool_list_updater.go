@@ -1,7 +1,6 @@
 package cl
 
 import (
-	"cmp"
 	"context"
 	"strconv"
 	"strings"
@@ -31,7 +30,6 @@ type (
 	Metadata struct {
 		LastCreatedAtTimestamp int    `json:"lastCreatedAtTimestamp"`
 		LastProcessedPoolId    string `json:"lastProcessedPoolID"`
-		LastBlock              uint64 `json:"lastBlock,omitempty"` // log discovery cursor
 	}
 )
 
@@ -56,10 +54,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		if err != nil {
 			return nil, metadataBytes, err
 		}
-	}
-
-	if u.config.SubgraphAPI == "" {
-		return u.getNewPoolsFromLogs(ctx, metadata)
 	}
 
 	subgraphPools, err := u.getPoolsList(ctx, metadata.LastCreatedAtTimestamp, u.config.NewPoolLimit)
@@ -168,40 +162,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}).Info("finished getting new pools")
 
 	return pools, metadataBytes, nil
-}
-
-// getNewPoolsFromLogs discovers pools from the manager's Initialize logs, for managers without a subgraph.
-func (u *PoolsListUpdater) getNewPoolsFromLogs(ctx context.Context, metadata Metadata) ([]entity.Pool, []byte, error) {
-	head, err := u.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	decoder := NewPoolFactory(u.config, u.ethrpcClient)
-	from := max(metadata.LastBlock+1, u.config.StartBlock)
-	blockRange := cmp.Or(u.config.LogBlockRange, shared.DefaultLogBlockRange)
-	var pools []entity.Pool
-	for from <= head && len(pools) < u.config.NewPoolLimit {
-		to := min(from+blockRange-1, head)
-		logs, err := shared.FilterLogs(ctx, u.ethrpcClient, common.HexToAddress(u.config.CLPoolManagerAddress),
-			[][]common.Hash{{shared.CLPoolManagerABI.Events["Initialize"].ID}}, from, to, blockRange)
-		if err != nil {
-			return nil, nil, err
-		}
-		for _, l := range logs {
-			p, err := decoder.DecodePoolCreated(l)
-			if err != nil {
-				return nil, nil, err
-			}
-			pools = append(pools, *p)
-		}
-		from = to + 1
-	}
-	metadata.LastBlock = from - 1
-
-	metadataBytes, err := json.Marshal(metadata)
-	logger.WithFields(logger.Fields{"dexId": u.config.DexID, "pools": len(pools)}).Info("finished getting new pools")
-	return pools, metadataBytes, err
 }
 
 func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]SubgraphPool,

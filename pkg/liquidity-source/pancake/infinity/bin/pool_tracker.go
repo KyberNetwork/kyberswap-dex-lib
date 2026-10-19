@@ -135,9 +135,6 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	g.Go(func(context.Context) error {
 		var err error
-		if t.config.SubgraphAPI == "" {
-			return nil // bins come from chain logs below, once the RPC block is known
-		}
 
 		bins, newPoolReserves, err = t.getBinsFromSubgraph(ctx, p.Address)
 		if err != nil {
@@ -154,15 +151,6 @@ func (t *PoolTracker) BootstrapPoolState(
 			"error": err,
 		}).Error("failed to fetch pool state")
 		return entity.Pool{}, err
-	}
-
-	if t.config.SubgraphAPI == "" {
-		var err error
-		if bins, err = t.getBinsFromLogs(ctx, &p, rpcData.BlockNumber); err != nil {
-			l.WithFields(logger.Fields{"error": err}).Error("failed to read bins from logs")
-			return entity.Pool{}, err
-		}
-		newPoolReserves = calculateReservesFromBins(bins)
 	}
 
 	extra := Extra{
@@ -287,28 +275,6 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 	})
 
 	return bins, newPoolReserves, nil
-}
-
-// getBinsFromLogs lists the bins touched by the pool's Mint/Burn logs (from the pool's Initialize
-// block) and reads their reserves at `block`. Swaps never create bins.
-func (t *PoolTracker) getBinsFromLogs(ctx context.Context, p *entity.Pool, block uint64) ([]Bin, error) {
-	logs, err := shared.FilterLogs(ctx, t.ethrpcClient, common.HexToAddress(t.config.BinPoolManagerAddress),
-		[][]common.Hash{
-			{shared.BinPoolManagerABI.Events["Mint"].ID, shared.BinPoolManagerABI.Events["Burn"].ID},
-			{common.HexToHash(p.Address)},
-		}, max(p.BlockNumber, t.config.StartBlock), block, t.config.LogBlockRange)
-	if err != nil {
-		return nil, err
-	}
-	binIDs, err := t.binIDsFromLogs(0, nil, logs)
-	if err != nil {
-		return nil, err
-	}
-	bins, err := t.queryRPCBins(ctx, p.Address, binIDs, block)
-	if err != nil {
-		return nil, err
-	}
-	return filterEmptyAndSortBins(bins), nil
 }
 
 func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address, lpFee uint32) uint32 {
