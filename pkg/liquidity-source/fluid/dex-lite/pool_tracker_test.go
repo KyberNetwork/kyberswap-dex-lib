@@ -440,6 +440,9 @@ func TestPoolTrackerCenterPrice(t *testing.T) {
 						}
 					}
 					result, err = method.Outputs.Pack(new(big.Int).SetUint64(tc.block), common.Hash{}, outputs)
+					if !assert.NoError(t, err) {
+						return
+					}
 				} else {
 					assert.Equal(t, 2, n)
 					assert.Equal(t, crypto.CreateAddress(config.DeployerAddress, tc.sourceNonce), call.To)
@@ -455,9 +458,9 @@ func TestPoolTrackerCenterPrice(t *testing.T) {
 						return
 					}
 					result, err = method.Outputs.Pack(price)
-				}
-				if !assert.NoError(t, err) {
-					return
+					if !assert.NoError(t, err) {
+						return
+					}
 				}
 				assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": hexutil.Encode(result)}))
 			}))
