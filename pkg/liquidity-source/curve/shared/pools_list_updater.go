@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -79,12 +80,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 	metadata.LastRun = now
 
+	listed := mapset.NewThreadUnsafeSet(metadata.ListedPools...)
 	typeCount := map[CurvePoolType]int{}
 
 	for _, dataSource := range u.config.DataSources {
 		rawPools, err := u.GetNewPoolsFromDataSource(ctx, dataSource)
 		if err != nil {
 			return nil, nil, err
+		}
+		rawPools = lo.Filter(rawPools, func(p CurvePool, _ int) bool { return !listed.Contains(p.Address) })
+		if len(rawPools) == 0 {
+			continue // classifying no pools would still send an (empty) multicall for `main`
 		}
 
 		typeMap, err := u.ClassifyPools(ctx, dataSource, rawPools)
@@ -114,6 +120,19 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	u.logger.Infof("fetched %d pools, raw type count: %v", len(pools), typeCount)
 
 	return pools, metadata.ToBytes(), nil
+}
+
+// AddListedPools records pools in metadataBytes returned by GetNewPools, so later runs skip them.
+// Pools left out (e.g. ones that failed to initialize) are returned again by the next run.
+func AddListedPools(metadataBytes []byte, pools []entity.Pool) ([]byte, error) {
+	var metadata PoolListUpdaterMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return nil, err
+	}
+	for _, p := range pools {
+		metadata.ListedPools = append(metadata.ListedPools, p.Address)
+	}
+	return metadata.ToBytes(), nil
 }
 
 func (u *PoolsListUpdater) GetNewPoolsFromDataSource(ctx context.Context, dataSource CurveDataSource) ([]CurvePool, error) {

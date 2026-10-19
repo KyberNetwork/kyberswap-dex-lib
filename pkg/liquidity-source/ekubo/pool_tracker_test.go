@@ -259,8 +259,9 @@ func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) (uint
 }
 
 func (ts *PoolListTrackerTestSuite) SetupSuite() {
+	cfg := MainnetConfig
 	ts.tracker = NewPoolTracker(
-		&MainnetConfig,
+		&cfg,
 		ethrpc.New("https://ethereum.drpc.org").
 			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	)
