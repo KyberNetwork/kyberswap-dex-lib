@@ -1,14 +1,13 @@
 package metricpropamm
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
-
-	"context"
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
