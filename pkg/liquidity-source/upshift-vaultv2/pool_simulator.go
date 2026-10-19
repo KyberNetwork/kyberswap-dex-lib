@@ -84,7 +84,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Supply = new(uint256.Int).Add(s.Supply, info.Shares)
 	s.Valuation = new(uint256.Int).Add(s.Valuation, amount)
 	s.TotalAssets = new(uint256.Int).Add(s.TotalAssets, amount)
-	a, l := s.Extra.Reserves()
+	a, l := s.Reserves()
 	s.Info.Reserves = []*big.Int{a.ToBig(), l.ToBig()}
 }
 
