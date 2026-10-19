@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -104,13 +102,7 @@ func checkMaverickChunkRequests(t *testing.T, key string, requests []ethrpcmock.
 	sort.Slice(requests[1:], func(i, j int) bool {
 		return requests[1+i].Calls[0].Inputs[0].(*big.Int).Cmp(requests[1+j].Calls[0].Inputs[0].(*big.Int)) < 0
 	})
-	b, err := json.Marshal(requests)
-	require.NoError(t, err)
-	path := filepath.Join("testdata", key+".rpc.json")
-
-	want, err := os.ReadFile(path)
-	require.NoError(t, err)
-	require.JSONEq(t, string(want), string(b))
+	ethrpcmock.CheckRequestList(t, key, requests)
 }
 
 var (
