@@ -47,6 +47,8 @@ type (
 
 	PoolListUpdaterMetadata struct {
 		LastRun time.Time
+		// pools returned by earlier runs, skipped by GetNewPools; only filled by listers calling AddListedPools
+		ListedPools []string `json:",omitempty"`
 	}
 
 	CurvePoolType   string
