@@ -291,6 +291,8 @@ const (
 	ExchangeSlyngFun                    = "slyng-fun"
 	ExchangeSpireProp                   = "spire-prop"
 	ExchangeSpookySwap                  = "spookyswap"
+	ExchangeSquadSwapBin                = "squadswap-bin"
+	ExchangeSquadSwapCL                 = "squadswap-cl"
 	ExchangeStaderETHx                  = "staderethx"
 	ExchangeStonkbrokersFunV2           = "stonkbrokers-fun-v2"
 	ExchangeSuperlendV3                 = "superlend-v3"

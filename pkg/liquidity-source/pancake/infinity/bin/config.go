@@ -11,6 +11,10 @@ type Config struct {
 	BinPoolManagerAddress  string `json:"binPoolManagerAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
+
+	// Used when SubgraphAPI is empty: pools come from the manager's Initialize logs.
+	StartBlock    uint64 `json:"startBlock"`
+	LogBlockRange uint64 `json:"logBlockRange"`
 }
 
 func (c *Config) IsAllowSubgraphError() bool {

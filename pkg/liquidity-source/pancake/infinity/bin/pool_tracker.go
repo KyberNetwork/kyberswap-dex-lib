@@ -73,6 +73,11 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
+	hook, _ := GetHook(staticExtra.HooksAddress)
+	if h, ok := hook.(SwapFeeHook); ok {
+		rpcRequests.AddCall(h.SwapFeeCall(staticExtra.HooksAddress, p.Address), []any{&result.HookSwapFee})
+	}
+
 	resp, err := rpcRequests.Aggregate()
 	if err != nil {
 		return nil, err
@@ -81,7 +86,12 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	lpFee := staticExtra.Fee
 	if shared.IsDynamicFee(staticExtra.Fee) {
-		lpFee = t.GetDynamicFee(ctx, staticExtra.HooksAddress, lpFee)
+		if staticExtra.HasSwapPermissions {
+			lpFee = t.GetDynamicFee(ctx, staticExtra.HooksAddress, result.Slot0.LpFee)
+		} else {
+			// no swap callbacks: the manager charges the dynamic fee stored in slot0
+			lpFee = result.Slot0.LpFee
+		}
 	}
 
 	// swap fee includes protocolFee (charged first) and lpFee
@@ -125,6 +135,9 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	g.Go(func(context.Context) error {
 		var err error
+		if t.config.SubgraphAPI == "" {
+			return nil // bins come from chain logs below, once the RPC block is known
+		}
 
 		bins, newPoolReserves, err = t.getBinsFromSubgraph(ctx, p.Address)
 		if err != nil {
@@ -143,9 +156,19 @@ func (t *PoolTracker) BootstrapPoolState(
 		return entity.Pool{}, err
 	}
 
+	if t.config.SubgraphAPI == "" {
+		var err error
+		if bins, err = t.getBinsFromLogs(ctx, &p, rpcData.BlockNumber); err != nil {
+			l.WithFields(logger.Fields{"error": err}).Error("failed to read bins from logs")
+			return entity.Pool{}, err
+		}
+		newPoolReserves = calculateReservesFromBins(bins)
+	}
+
 	extra := Extra{
 		ProtocolFee: rpcData.Slot0.ProtocolFee,
 		ActiveBinID: rpcData.Slot0.ActiveId,
+		HookSwapFee: rpcData.HookSwapFee,
 		Bins:        bins,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -266,6 +289,28 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 	return bins, newPoolReserves, nil
 }
 
+// getBinsFromLogs lists the bins touched by the pool's Mint/Burn logs (from the pool's Initialize
+// block) and reads their reserves at `block`. Swaps never create bins.
+func (t *PoolTracker) getBinsFromLogs(ctx context.Context, p *entity.Pool, block uint64) ([]Bin, error) {
+	logs, err := shared.FilterLogs(ctx, t.ethrpcClient, common.HexToAddress(t.config.BinPoolManagerAddress),
+		[][]common.Hash{
+			{shared.BinPoolManagerABI.Events["Mint"].ID, shared.BinPoolManagerABI.Events["Burn"].ID},
+			{common.HexToHash(p.Address)},
+		}, max(p.BlockNumber, t.config.StartBlock), block, t.config.LogBlockRange)
+	if err != nil {
+		return nil, err
+	}
+	binIDs, err := t.binIDsFromLogs(0, nil, logs)
+	if err != nil {
+		return nil, err
+	}
+	bins, err := t.queryRPCBins(ctx, p.Address, binIDs, block)
+	if err != nil {
+		return nil, err
+	}
+	return filterEmptyAndSortBins(bins), nil
+}
+
 func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address, lpFee uint32) uint32 {
 	hook, _ := GetHook(hookAddress)
 	return hook.GetDynamicFee(ctx, t.ethrpcClient, t.config.BinPoolManagerAddress, hookAddress, lpFee)
@@ -378,6 +423,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 
 	extra.ActiveBinID = rpcState.Slot0.ActiveId
 	extra.ProtocolFee = rpcState.Slot0.ProtocolFee
+	extra.HookSwapFee = rpcState.HookSwapFee
 	p.BlockNumber = rpcState.BlockNumber
 
 	extraBytes, err := json.Marshal(extra)
