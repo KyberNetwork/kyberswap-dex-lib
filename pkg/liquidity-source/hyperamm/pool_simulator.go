@@ -2,6 +2,7 @@ package hyperamm
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -33,9 +34,14 @@ type PoolSimulator struct {
 	precision *uint256.Int
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	ep := params.EntityPool
+	if params.Opts.StaleCheck && time.Since(time.Unix(ep.Timestamp, 0)) > MaxAge {
+		return nil, ErrStale
+	}
+
 	var extra Extra
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err

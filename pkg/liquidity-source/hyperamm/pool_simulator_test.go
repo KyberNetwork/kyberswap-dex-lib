@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -64,7 +65,7 @@ func newTestSimulator(
 		StaticExtra: string(staticExtraB),
 	}
 
-	sim, err := NewPoolSimulator(ep)
+	sim, err := NewPoolSimulator(poolpkg.FactoryParams{EntityPool: ep})
 	if err != nil {
 		panic(err)
 	}
@@ -144,8 +145,52 @@ func TestPoolSimulator_CalcAmountOut_Paused(t *testing.T) {
 		Extra:       string(extraB),
 		StaticExtra: string(staticExtraB),
 	}
-	_, err := NewPoolSimulator(ep)
+	_, err := NewPoolSimulator(poolpkg.FactoryParams{EntityPool: ep})
 	assert.EqualError(t, err, ErrPoolPaused.Error())
+}
+
+// A pool whose state hasn't been refreshed within MaxAge must not be quoted during route finding:
+// its tracker keeps failing (e.g. the fee module's oracle reverts with Pyth StalePrice, so every
+// swap reverts too) and only the last priced snapshot is left. Indexing still builds it.
+func TestNewPoolSimulator_StaleCheck(t *testing.T) {
+	t.Parallel()
+	extraB, _ := json.Marshal(Extra{
+		FairPriceFrom: [2]*uint256.Int{
+			uint256.MustFromDecimal("500000000000000000000000000"),
+			uint256.MustFromDecimal("500000000000000000000000000"),
+		},
+		RefFeeFrom: [2]uint64{30, 30},
+	})
+	now := time.Now()
+	for name, tc := range map[string]struct {
+		staleCheck bool
+		updatedAt  time.Time
+		err        error
+	}{
+		"route finding, fresh": {staleCheck: true, updatedAt: now},
+		"route finding, stale": {staleCheck: true, updatedAt: now.Add(-MaxAge - time.Second), err: ErrStale},
+		"indexing, stale":      {staleCheck: false, updatedAt: now.Add(-MaxAge - time.Second)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := NewPoolSimulator(poolpkg.FactoryParams{
+				EntityPool: entity.Pool{
+					Address:  "0x0000000000000000000000000000000000000004",
+					Exchange: DexType,
+					Type:     DexType,
+					Reserves: []string{"10000000000000000000000", "20000000000000"},
+					Tokens: []*entity.PoolToken{
+						{Address: "0x0000000000000000000000000000000000000001", Swappable: true},
+						{Address: "0x0000000000000000000000000000000000000002", Swappable: true},
+					},
+					Extra:       string(extraB),
+					StaticExtra: `{"s":"0x0000000000000000000000000000000000000003"}`,
+					Timestamp:   tc.updatedAt.Unix(),
+				},
+				Opts: poolpkg.FactoryOpts{StaleCheck: tc.staleCheck},
+			})
+			require.ErrorIs(t, err, tc.err)
+		})
+	}
 }
 
 func TestPoolSimulator_CalcAmountOut_ZeroFairPrice(t *testing.T) {
@@ -339,7 +384,7 @@ func TestSimulation_OnChain(t *testing.T) {
 			p.Tokens = newState.Tokens
 			p.BlockNumber = newState.BlockNumber
 
-			sim, err := NewPoolSimulator(p)
+			sim, err := NewPoolSimulator(poolpkg.FactoryParams{EntityPool: p})
 			if err != nil {
 				t.Logf("skip %s: NewPoolSimulator error: %v", p.Address, err)
 				return
