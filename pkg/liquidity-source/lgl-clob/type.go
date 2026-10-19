@@ -18,15 +18,20 @@ type OrderBook struct {
 	Asks OrderBookLevels `json:"a"`
 }
 
-// Extra is a pool's state, its order book and what its market maker's quote
-// costs.
+// Extra is a pool's state, its order book, its market maker and what the
+// market maker's quote costs.
 type Extra struct {
 	OrderBook
 	// MakerQuoteGas is nil for a pool without a market maker, or whose market
 	// maker was never measured.
 	MakerQuoteGas *MakerQuoteGas `json:"g,omitempty"`
-	// MeasuredAt is when MakerQuoteGas was last measured, in unix seconds.
+	// MeasuredAt is when MakerQuoteGas and Maker were last measured, in unix
+	// seconds.
 	MeasuredAt int64 `json:"t,omitempty"`
+	// Maker is the pool's market maker, empty for a pool without one or whose
+	// market maker was never measured. One market maker can quote many pools
+	// from the same balance, and posts all of it on each pool's book.
+	Maker string `json:"m,omitempty"`
 }
 
 // MakerQuoteGas is the gas of the quote a pool's market maker gives for each
