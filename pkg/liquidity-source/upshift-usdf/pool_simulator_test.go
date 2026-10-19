@@ -57,7 +57,7 @@ func quote(sim *PoolSimulator, amount string) (*pool.CalcAmountOutResult, error)
 }
 
 // Expected values are USDF minted by real Vault.deposit on an anvil fork of block 26204144
-// at the given block timestamp (see NOTES.md).
+// at the given block timestamp.
 func TestCalcAmountOutMatchesChain(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
