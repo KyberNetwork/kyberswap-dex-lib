@@ -368,6 +368,7 @@ const (
 	ExchangeUniswapV4Volatile           = "uniswap-v4-volatile"
 	ExchangeUniswapV4Zora               = "uniswap-v4-zora"
 	ExchangeUpshiftUsdf                 = "upshift-usdf"
+	ExchangeUpshiftVaultV2              = "upshift-vaultv2"
 	ExchangeUsd0PP                      = "usd0pp"
 	ExchangeUsdAi                       = "usd-ai"
 	ExchangeUsdsLitePsm                 = "usds-lite-psm"

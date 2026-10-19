@@ -202,6 +202,7 @@ import (
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-meme-v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/volatile"
 	upshiftusdf "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/upshift-usdf"
+	upshiftvaultv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/upshift-vaultv2"
 	uscoreprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uscore-prop"
 	usd_ai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd-ai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
@@ -394,6 +395,7 @@ type Types struct {
 	LitePSM                    string
 	Usd0PP                     string
 	UpshiftUsdf                string
+	UpshiftVaultV2             string
 	Bebop                      string
 	Dexalot                    string
 	GenericSimpleRate          string
@@ -658,6 +660,7 @@ var (
 		LitePSM:                    litepsm.DexTypeLitePSM,
 		Usd0PP:                     usd0pp.DexType,
 		UpshiftUsdf:                upshiftusdf.DexType,
+		UpshiftVaultV2:             upshiftvaultv2.DexType,
 		GenericSimpleRate:          genericsimplerate.DexType,
 		ListaStake:                 listastake.DexType,
 		RingSwap:                   ringswap.DexType,
