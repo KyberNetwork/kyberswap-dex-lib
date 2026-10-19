@@ -3,16 +3,23 @@ package dexLite
 import (
 	"context"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -181,7 +188,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 		logger.Debugf("   Salt %d: %s -> DexId: %x", i, common.BytesToHash(testDexKey.Salt[:]).Hex(), testDexId)
 
 		// Try to read this pool state
-		testPoolState, _, err := poolTracker.getPoolStateByDexId(context.Background(), testDexId, nil)
+		testPoolState, _, err := poolTracker.getPoolStateByDexId(context.Background(), testDexId, testDexKey, nil)
 		if err != nil {
 			logger.Debugf("     ❌ Error reading pool state: %v", err)
 		} else if testPoolState.DexVariables.Sign() != 0 {
@@ -198,7 +205,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 	logger.Debugf("\n🔬 DIRECT POOL STATE READING:")
 	ctx := context.Background()
 
-	poolState, blockNumber, err := poolTracker.getPoolStateByDexId(ctx, dexId, nil)
+	poolState, blockNumber, err := poolTracker.getPoolStateByDexId(ctx, dexId, dexKey, nil)
 	if err != nil {
 		logger.Debugf("❌ Failed to read pool state directly: %v", err)
 	} else {
@@ -288,4 +295,205 @@ func TestRealOnChainPoolState(t *testing.T) {
 	logger.Debugf("\n" + strings.Repeat("=", 80))
 	logger.Debugf("🎯 REAL ON-CHAIN POOL STATE TEST COMPLETED")
 	logger.Debugf(strings.Repeat("=", 80))
+}
+
+func TestPoolTrackerCenterPrice(t *testing.T) {
+	multicallABI, err := abi.JSON(strings.NewReader(`[{"name":"tryBlockAndAggregate","type":"function","inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}]`))
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name          string
+		withOverrides bool
+		sourceNonce   uint64
+		block         uint64
+		priceError    bool
+	}{
+		{name: "external price", sourceNonce: 7, block: 12345},
+		{name: "external price with overrides", sourceNonce: 7, block: 12345, withOverrides: true},
+		{name: "external price failure preserves the pool", sourceNonce: 7, block: 12345, priceError: true},
+		{name: "no external source", block: 12345},
+		{name: "unknown block keeps latest", sourceNonce: 7},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := Config{
+				DexLiteAddress:  "0xbbcb91440523216e2b87052a99f69c604a7b6e00",
+				DeployerAddress: common.HexToAddress("0x4ec7b668baf70d4a4b0fc7941a7708a07b6d45be"),
+			}
+			static := StaticExtra{
+				DexLiteAddress: config.DexLiteAddress,
+				DexId:          DexId{1, 2, 3, 4, 5, 6, 7, 8},
+				DexKey: DexKey{
+					Token0: common.HexToAddress("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+					Token1: common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+				},
+			}
+			staticBytes, err := json.Marshal(static)
+			require.NoError(t, err)
+			original := entity.Pool{
+				Address: "fluid_pool", StaticExtra: string(staticBytes), Extra: "previous state", BlockNumber: 100,
+				Tokens: []*entity.PoolToken{
+					{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 18},
+					{Address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Decimals: 6},
+				},
+				Reserves: entity.PoolReserves{"123", "456"},
+			}
+			dexVariables := new(big.Int).Lsh(new(big.Int).SetUint64(tc.sourceNonce), BitPosCenterPriceContractAddress)
+			if tc.sourceNonce != 0 {
+				dexVariables.SetBit(dexVariables, BitPosCenterPriceShiftActive, 1)
+			}
+			dexVariables.Or(dexVariables, new(big.Int).Lsh(big.NewInt(100), BitPosToken0TotalSupplyAdjusted))
+			dexVariables.Or(dexVariables, new(big.Int).Lsh(big.NewInt(200), BitPosToken1TotalSupplyAdjusted))
+			slots := []common.Hash{StorageSlotDexVariables, StorageSlotCenterPriceShift, StorageSlotRangeShift}
+			values := []*big.Int{dexVariables, big.NewInt(123), big.NewInt(456)}
+			price := new(big.Int).Exp(big.NewInt(10), big.NewInt(27), nil)
+			multicall := common.HexToAddress("0x0000000000000000000000000000000000000010")
+			var overrides map[common.Address]gethclient.OverrideAccount
+			if tc.withOverrides {
+				overrides = map[common.Address]gethclient.OverrideAccount{
+					static.DexKey.Token1: {Code: []byte{0x60, 0x00}},
+				}
+			}
+			var mu sync.Mutex
+			requestCount := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var request struct {
+					ID     json.RawMessage   `json:"id"`
+					Method string            `json:"method"`
+					Params []json.RawMessage `json:"params"`
+				}
+				if !assert.NoError(t, json.NewDecoder(r.Body).Decode(&request)) || !assert.GreaterOrEqual(t, len(request.Params), 2) {
+					return
+				}
+				mu.Lock()
+				requestCount++
+				n := requestCount
+				mu.Unlock()
+				assert.Equal(t, "eth_call", request.Method)
+				var call struct {
+					To    common.Address
+					Data  string
+					Input string
+				}
+				if !assert.NoError(t, json.Unmarshal(request.Params[0], &call)) {
+					return
+				}
+				input := call.Data
+				if input == "" {
+					input = call.Input
+				}
+				data, err := hexutil.Decode(input)
+				if !assert.NoError(t, err) || !assert.GreaterOrEqual(t, len(data), 4) {
+					return
+				}
+				wantTag := "latest"
+				if n > 1 && tc.block > 0 {
+					wantTag = hexutil.EncodeUint64(tc.block)
+				}
+				assert.JSONEq(t, `"`+wantTag+`"`, string(request.Params[1]))
+				if tc.withOverrides {
+					if !assert.Len(t, request.Params, 3) {
+						return
+					}
+					want, err := json.Marshal(overrides)
+					if !assert.NoError(t, err) {
+						return
+					}
+					assert.JSONEq(t, string(want), string(request.Params[2]))
+				} else {
+					assert.Len(t, request.Params, 2)
+				}
+				var result []byte
+				if n == 1 {
+					assert.Equal(t, multicall, call.To)
+					method := multicallABI.Methods["tryBlockAndAggregate"]
+					assert.Equal(t, method.ID, data[:4])
+					args, err := method.Inputs.Unpack(data[4:])
+					if !assert.NoError(t, err) {
+						return
+					}
+					assert.Equal(t, true, args[0])
+					calls := *abi.ConvertType(args[1], new([]struct {
+						Target   common.Address
+						CallData []byte
+					})).(*[]struct {
+						Target   common.Address
+						CallData []byte
+					})
+					if !assert.Len(t, calls, 3) {
+						return
+					}
+					outputs := make([]struct {
+						Success    bool
+						ReturnData []byte
+					}, len(calls))
+					read := fluidDexLiteABI.Methods[SRMethodReadFromStorage]
+					for i, inner := range calls {
+						assert.Equal(t, common.HexToAddress(config.DexLiteAddress), inner.Target)
+						expected, err := read.Inputs.Pack(calculatePoolStateSlot(static.DexId, slots[i]))
+						if !assert.NoError(t, err) {
+							return
+						}
+						assert.Equal(t, append(read.ID, expected...), inner.CallData)
+						outputs[i].Success = true
+						outputs[i].ReturnData, err = read.Outputs.Pack(values[i])
+						if !assert.NoError(t, err) {
+							return
+						}
+					}
+					result, err = method.Outputs.Pack(new(big.Int).SetUint64(tc.block), common.Hash{}, outputs)
+				} else {
+					assert.Equal(t, 2, n)
+					assert.Equal(t, crypto.CreateAddress(config.DeployerAddress, tc.sourceNonce), call.To)
+					method := centerPriceABI.Methods[CenterPriceMethodCenterPrice]
+					assert.Equal(t, method.ID, data[:4])
+					args, err := method.Inputs.Unpack(data[4:])
+					if !assert.NoError(t, err) {
+						return
+					}
+					assert.Equal(t, []any{static.DexKey.Token0, static.DexKey.Token1}, args)
+					if tc.priceError {
+						assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32000, "message": "execution reverted: price unavailable"}}))
+						return
+					}
+					result, err = method.Outputs.Pack(price)
+				}
+				if !assert.NoError(t, err) {
+					return
+				}
+				assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": hexutil.Encode(result)}))
+			}))
+			defer server.Close()
+			tracker := NewPoolTracker(&config, ethrpc.New(server.URL).SetMulticallContract(multicall))
+			var updated entity.Pool
+			if tc.withOverrides {
+				updated, err = tracker.GetNewPoolStateWithOverrides(context.Background(), original, pool.GetNewPoolStateWithOverridesParams{Overrides: overrides})
+			} else {
+				updated, err = tracker.GetNewPoolState(context.Background(), original, pool.GetNewPoolStateParams{})
+			}
+			if tc.priceError {
+				require.ErrorContains(t, err, "price unavailable")
+				require.Equal(t, original, updated)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.block, updated.BlockNumber)
+				var extra PoolExtra
+				require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+				require.Equal(t, uint256.MustFromBig(dexVariables), extra.PoolState.DexVariables)
+				require.Equal(t, uint256.NewInt(123), extra.PoolState.CenterPriceShift)
+				require.Equal(t, uint256.NewInt(456), extra.PoolState.RangeShift)
+				require.Equal(t, entity.PoolReserves{"100000000000", "0"}, updated.Reserves)
+				if tc.sourceNonce == 0 {
+					require.True(t, extra.PoolState.NewCenterPrice.IsZero())
+				} else {
+					require.Equal(t, uint256.MustFromBig(price), extra.PoolState.NewCenterPrice)
+				}
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			wantCount := 2
+			if tc.sourceNonce == 0 {
+				wantCount = 1
+			}
+			require.Equal(t, wantCount, requestCount)
+		})
+	}
 }
