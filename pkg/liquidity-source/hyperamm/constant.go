@@ -24,4 +24,5 @@ var (
 	ErrZeroAmountOut       = errors.New("hyperamm: zero amount out")
 	ErrInsufficientReserve = errors.New("hyperamm: insufficient reserve")
 	ErrZeroFairPrice       = errors.New("hyperamm: zero fair price")
+	ErrReadPoolState       = errors.New("hyperamm: failed to read pool state")
 )
