@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -49,6 +50,8 @@ type PoolTracker struct {
 	extMu      sync.Mutex
 	extCounts  map[string]int // lowercase pool address -> extension count
 	extExpires time.Time
+
+	blockedUntil atomic.Int64 // unix nanos; no batch request before this (429 Retry-After)
 }
 
 // extensionCount returns the pool's extension count from the venue-wide /metadata, fetched once per
@@ -134,6 +137,14 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 			fetchErr = fmt.Errorf("bid_ask API error: %s", res.String())
 		}
 	}
+	return t.buildPool(p, extensions, unswappable, &ba, fetchErr)
+}
+
+// buildPool turns a fetched quote (or the reason there is none) into the pool state.
+func (t *PoolTracker) buildPool(
+	p entity.Pool, extensions int, unswappable bool, ba *bidAsk, fetchErr error,
+) (entity.Pool, error) {
+	poolAddr := strings.ToLower(p.Address)
 	if !unswappable && fetchErr == nil && !ba.quotable() {
 		logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr, "status": ba.PriceProviderStatus}).
 			Warnf("no usable quote: feed down or empty depth")

@@ -57,6 +57,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(curvePools) == 0 {
+		return nil, newMetadataBytes, nil
+	}
 
 	pools, err := u.initPools(ctx, curvePools)
 	if err != nil {
@@ -64,9 +67,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	// some of these curve-stable-plain pools might already exist in Redis as curve-base pools
+	if newMetadataBytes, err = shared.AddListedPools(newMetadataBytes, pools); err != nil {
+		return nil, nil, err
+	}
+
+	// some of these curve-stable-plain pools might already exist as curve-base pools
 	// after deploying, these old curve-base pools will continue to work as curve-base (pool-service won't overwrite that)
-	// after deleting old curve-base pools in Redis, they will be classified again as curve-stable-plain
+	// they are recorded as listed all the same, so after deleting an old curve-base pool, also reset this dex's
+	// list-updater metadata for it to be classified again as curve-stable-plain
 
 	// TODO: check if all old hardcoded pools are in `main`/`factory`
 

@@ -12,7 +12,6 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
@@ -55,17 +54,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// ADHOC: curve-stable-ng has too many pools and is overloading the RPC. Temporarily
-	// restrict to a single pool being debugged until the RPC load issue is resolved.
-	// TODO: remove this filter.
-	curvePools = lo.Filter(curvePools, func(p shared.CurvePoolWithType, _ int) bool {
-		return strings.EqualFold(p.Address, "0x394a6f32264acee63af9a702e29fa4e58d16ef7f")
-	})
+	if len(curvePools) == 0 {
+		return nil, newMetadataBytes, nil
+	}
 
 	pools, err := u.initPools(ctx, curvePools)
 	if err != nil {
 		u.logger.Error(err.Error())
+		return nil, nil, err
+	}
+
+	if newMetadataBytes, err = shared.AddListedPools(newMetadataBytes, pools); err != nil {
 		return nil, nil, err
 	}
 
