@@ -98,26 +98,9 @@ func (t *PoolTracker) getNewPoolState(
 			Target: swapFeeModuleAddr,
 			Method: "baseFeeBps",
 		}, []any{&baseFeeBpsRaw}).
-		TryBlockAndAggregate()
+		Aggregate()
 	if err != nil {
 		return p, err
-	} else if !resp.Result[0] || !resp.Result[3] {
-		return p, ErrReadPoolState
-	}
-
-	// The fee module reverts when its oracle cannot price the pool (e.g. Pyth StalePrice), and so
-	// does every swap. Publish the pool without fair prices so the simulator rejects it, instead of
-	// returning an error and leaving the last priced state routable.
-	if !resp.Result[1] || !resp.Result[2] {
-		logger.Warnf("hyperamm: pool %s fair price reverted, marking unquotable", p.Address)
-		extraBytes, err := json.Marshal(Extra{IsPaused: isPaused})
-		if err != nil {
-			return p, err
-		}
-		p.Extra = string(extraBytes)
-		p.Timestamp = time.Now().Unix()
-		p.BlockNumber = resp.BlockNumber.Uint64()
-		return p, nil
 	}
 
 	// ── Phase 2: read reserves and reference fees at the same block ──────────
