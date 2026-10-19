@@ -142,8 +142,10 @@ func (h *BaseHook) GetExchange() string {
 	return valueobject.ExchangePancakeInfinityCL
 }
 
-func (h *BaseHook) GetDynamicFee(_ context.Context, _ *HookParam, _ uint32) uint32 {
-	return 0
+// GetDynamicFee returns the pool's slot0.lpFee: CLPool.swap uses it unless beforeSwap returns an
+// override fee, and a hook that never overrides leaves it in place.
+func (h *BaseHook) GetDynamicFee(_ context.Context, _ *HookParam, lpFee uint32) uint32 {
+	return lpFee
 }
 
 func (h *BaseHook) GetReserves(context.Context, *HookParam) (entity.PoolReserves, error) {
