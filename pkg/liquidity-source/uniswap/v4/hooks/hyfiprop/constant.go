@@ -30,10 +30,11 @@ var (
 	ErrUnexpectedResponse    = errors.New("hyfi: unexpected RPC response")
 )
 
-// HookAddresses are the HyFi contracts: Base and Robinhood (4663).
+// HookAddresses are the HyFi contracts: Base, Robinhood (4663) and Arbitrum.
 var HookAddresses = []common.Address{
 	common.HexToAddress("0xB23F731949145E158E656e1Abe128c5e617A6888"), // base
 	common.HexToAddress("0x2AC29f18B22a12917D4653406B0D2Fe7B592A888"), // robinhood
+	common.HexToAddress("0xc4f2bE5a31697DCBc7c7FAA0d6BDFaf2b57D2888"), // arbitrum
 }
 
 var (
