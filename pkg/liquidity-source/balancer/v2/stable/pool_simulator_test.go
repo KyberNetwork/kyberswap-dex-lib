@@ -402,7 +402,12 @@ func TestCanSwapTo(t *testing.T) {
 		{
 			name:     "Token exists in base pool 1",
 			input:    "ETH",
-			expected: []string{"pool1", "pool2", "BTC", "USDT", "USDC"},
+			expected: []string{"pool2", "BTC", "USDT", "USDC"},
+		},
+		{
+			name:     "BPT of base pool 1",
+			input:    "pool1",
+			expected: []string{"pool2", "USDC", "BTC", "USDT"},
 		},
 		{
 			name:     "Token exists in multiple pools",
