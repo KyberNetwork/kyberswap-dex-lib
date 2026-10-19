@@ -75,10 +75,14 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	staticExtraBytes, _ := json.Marshal(staticExtra)
 
 	hook, _ := GetHook(staticExtra.HooksAddress)
+	exchange := hook.GetExchange()
+	if f.config.DexID != "" { // forks (omni-bin, squadswap-bin) use their own dex id
+		exchange = strings.Replace(exchange, DexType, f.config.DexID, 1)
+	}
 	return &entity.Pool{
 		Address:   hexutil.Encode(p.Id[:]),
 		SwapFee:   swapFee,
-		Exchange:  hook.GetExchange(),
+		Exchange:  exchange,
 		Type:      DexType,
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{"0", "0"},
