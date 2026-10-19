@@ -18,7 +18,7 @@ import (
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-var _ = poolpkg.RegisterFactory0(DexType, axima.NewPoolSimulator)
+var _ = poolpkg.RegisterFactory(DexType, axima.NewPoolSimulatorFromParams)
 
 type MetadataResponse struct {
 	Data       []PairMetadata `json:"data"`

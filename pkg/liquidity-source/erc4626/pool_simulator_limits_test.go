@@ -187,3 +187,30 @@ func TestUpdateEntityStateWritesMaxAge(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	assert.EqualValues(t, 60, extra.MaxAge)
 }
+
+// The indexer builds simulators with Opts.StaleCheck=false and must still quote deposits from an aged pool;
+// route finding (true) must reject them.
+func TestFactoryStaleCheck(t *testing.T) {
+	t.Parallel()
+	for _, staleCheck := range []bool{false, true} {
+		old := depositPool(t, func(e *Extra) { e.MaxAge = 60 })
+		ep := entity.Pool{
+			Address: "0xvault", Exchange: DexType, Type: DexType, Reserves: entity.PoolReserves{"0", "0"},
+			Tokens:    []*entity.PoolToken{{Address: "0xvault", Swappable: true}, {Address: "0xasset", Swappable: true}},
+			Timestamp: time.Now().Unix() - 3600,
+		}
+		b, err := json.Marshal(old.Extra)
+		require.NoError(t, err)
+		ep.Extra = string(b)
+
+		iface, err := pool.Factory(DexType)(pool.FactoryParams{EntityPool: ep, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
+		require.NoError(t, err)
+		sim := iface.CloneState().(*PoolSimulator)
+		_, err = deposit(sim, 1e9)
+		if staleCheck {
+			assert.ErrorIs(t, err, ErrERC4626StalePoolData)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}
