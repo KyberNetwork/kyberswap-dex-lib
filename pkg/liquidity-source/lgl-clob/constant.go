@@ -36,6 +36,9 @@ var (
 	// the most a measured one took.
 	unmeasuredMakerQuote = LevelGas{First: 700_000, Next: 105_000}
 
+	// makerSelector is the getter of a pool's market maker, which Lens calls too.
+	makerSelector = []byte{0x93, 0x8c, 0x51, 0x32}
+
 	bMaxPriceLevels       = big.NewInt(maxPriceLevels)
 	uPriceLimitMultiplier = new(uint256.Int).AddUint64(big256.UBasisPoint, 12)
 
@@ -46,4 +49,5 @@ var (
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 	ErrUnexpectedLensRevert  = errors.New("unexpected lens revert")
 	ErrBookUnread            = errors.New("lens could not read the book")
+	ErrUnexpectedMaker       = errors.New("unexpected market maker answer")
 )

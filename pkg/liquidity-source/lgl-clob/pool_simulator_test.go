@@ -1,6 +1,7 @@
 package lglclob
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -688,4 +691,72 @@ func TestPoolSimulator_CalcAmountOut_GasByLevels(t *testing.T) {
 			assert.Equal(t, tt.two, gasFor(t, sim, twoLevels))
 		})
 	}
+}
+
+// TestPoolSimulator_SharedMakerLimit checks that the pools of one market maker
+// share what it can pay. It posts its whole balance on each pool's book, so
+// without a shared limit an order through two of its pools is quoted up to
+// twice what it holds, and the later pool under-fills on chain.
+func TestPoolSimulator_SharedMakerLimit(t *testing.T) {
+	t.Parallel()
+
+	const maker = "0x125f12a1938b97f11fdc35b1a5fb4d5217cda50b"
+	newSim := func(address, maker string) *PoolSimulator {
+		var ep entity.Pool
+		require.NoError(t, json.Unmarshal([]byte(wxtzWethPoolJSON), &ep))
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(ep.Extra), &extra))
+		extra.Maker = maker
+		extraBytes, err := json.Marshal(extra)
+		require.NoError(t, err)
+		ep.Address, ep.Extra = address, string(extraBytes)
+		sim, err := NewPoolSimulator(ep)
+		require.NoError(t, err)
+		return sim
+	}
+	first, second, plain := newSim("0x01", maker), newSim("0x02", maker), newSim("0x03", "")
+
+	// An order's limits are merged from every pool's, keeping the most each key shows.
+	limits := map[string]*big.Int{}
+	for _, sim := range []*PoolSimulator{first, second, plain} {
+		for key, limit := range sim.CalculateLimit() {
+			if old, ok := limits[key]; !ok || old.Cmp(limit) < 0 {
+				limits[key] = limit
+			}
+		}
+	}
+	require.Len(t, limits, 2, "the pools of one market maker share its keys, and a pool without one has none")
+	limit := swaplimit.NewInventory(valueobject.ExchangeHanji, limits)
+
+	wxtz, weth := first.Info.Tokens[0], first.Info.Tokens[1]
+	quote := func(sim *PoolSimulator, amount string, limit pool.SwapLimit) (pool.TokenAmount,
+		*pool.CalcAmountOutResult, error) {
+		tokenAmountIn := pool.TokenAmount{Token: wxtz, Amount: bignumber.NewBig10(amount)}
+		result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: tokenAmountIn, TokenOut: weth,
+			Limit: limit})
+		return tokenAmountIn, result, err
+	}
+	sell := func(sim *PoolSimulator, amount string) error {
+		tokenAmountIn, result, err := quote(sim, amount, limit)
+		if err == nil {
+			sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: tokenAmountIn,
+				TokenAmountOut: *result.TokenAmountOut, Fee: *result.Fee, SwapInfo: result.SwapInfo, SwapLimit: limit})
+		}
+		return err
+	}
+
+	// 12000 WXTZ takes about 60% of the WETH a book shows, within one pool's safety buffer.
+	require.NoError(t, sell(first, "12000000000000000000000"))
+
+	// The second pool would pay it from what the first already took.
+	_, _, err := quote(second, "12000000000000000000000", limit)
+	assert.ErrorIs(t, err, pool.ErrNotEnoughInventory)
+	_, _, err = quote(second, "12000000000000000000000", nil)
+	assert.NoError(t, err, "its own book alone allows it")
+
+	// What is left of the market maker's safety buffer still goes through it.
+	assert.NoError(t, sell(second, "1000000000000000000000"))
+
+	// A pool without a market maker is not limited by one.
+	assert.NoError(t, sell(plain, "12000000000000000000000"))
 }

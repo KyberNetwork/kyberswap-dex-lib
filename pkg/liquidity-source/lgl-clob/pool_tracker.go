@@ -2,10 +2,12 @@ package lglclob
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -53,10 +55,21 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	// The market maker's quote is measured now and then, and kept in between.
-	extra := Extra{OrderBook: state.book, MakerQuoteGas: last.MakerQuoteGas, MeasuredAt: last.MeasuredAt}
+	// The market maker and its quote are measured now and then, and kept in between.
+	extra := Extra{OrderBook: state.book, MakerQuoteGas: last.MakerQuoteGas, MeasuredAt: last.MeasuredAt,
+		Maker: last.Maker}
 	if measure {
-		extra.MakerQuoteGas, extra.MeasuredAt = state.makerQuoteGas(), now.Unix()
+		extra.MakerQuoteGas, extra.MeasuredAt, extra.Maker = state.makerQuoteGas(), now.Unix(), ""
+		if state.hasMaker {
+			maker, err := readMaker(ctx, t.ethrpcClient, common.HexToAddress(p.Address))
+			if err != nil {
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to read the pool's market maker")
+				return entity.Pool{}, err
+			}
+			extra.Maker = strings.ToLower(maker.Hex())
+		}
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -85,4 +98,16 @@ func (t *PoolTracker) GetNewPoolState(
 
 	l.Info("Finish updating state of pool")
 	return p, nil
+}
+
+// readMaker reads pool's market maker.
+func readMaker(ctx context.Context, client *ethrpc.Client, pool common.Address) (common.Address, error) {
+	data, err := client.GetETHClient().CallContract(ctx, ethereum.CallMsg{To: &pool, Data: makerSelector}, nil)
+	if err != nil {
+		return common.Address{}, err
+	}
+	if len(data) != common.HashLength {
+		return common.Address{}, ErrUnexpectedMaker
+	}
+	return common.BytesToAddress(data), nil
 }
