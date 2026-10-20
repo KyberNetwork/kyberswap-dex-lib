@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -35,12 +34,12 @@ func TestTrackerMarksFeedDownPoolUnquotable(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			cfg := &axima.Config{DexID: DexType, ChainID: 8453, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL}}
+			cfg := &Config{DexID: DexType, ChainID: 8453, HTTPConfig: HTTPConfig{BaseURL: srv.URL}}
 			p, err := NewPoolTracker(cfg, nil).GetNewPoolState(context.Background(),
 				entity.Pool{Address: "0xab", Reserves: []string{"9", "9"}, StaticExtra: `{}`}, poolpkg.GetNewPoolStateParams{})
 			require.NoError(t, err)
 
-			var extra axima.Extra
+			var extra Extra
 			require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 			require.Equal(t, tc.quotable, extra.QuoteAvailable)
 			if tc.quotable {
@@ -71,10 +70,10 @@ func TestTrackerPublishesExtensionCount(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := &axima.Config{DexID: DexType, ChainID: 8453, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL}}
+	cfg := &Config{DexID: DexType, ChainID: 8453, HTTPConfig: HTTPConfig{BaseURL: srv.URL}}
 	tracker := NewPoolTracker(cfg, nil)
 	extensions := func(p entity.Pool) int {
-		var extra axima.Extra
+		var extra Extra
 		require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 		return extra.Extensions
 	}

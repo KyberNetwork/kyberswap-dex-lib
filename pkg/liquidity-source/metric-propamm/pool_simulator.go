@@ -1,4 +1,4 @@
-package axima
+package metricpropamm
 
 import (
 	"math/big"
@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -30,8 +29,6 @@ var (
 	ErrUnavailableQuote      = errors.New("quote not available")
 	ErrStalePoolData         = errors.New("stale pool data")
 )
-
-var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFromParams)
 
 // NewPoolSimulatorFromParams is the registered factory. Indexing (Opts.StaleCheck=false) skips the age check.
 func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, error) {
@@ -105,16 +102,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  params.TokenOut,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: s.swapGas(),
+		Gas: baseGas + int64(s.extra.Extensions)*gasPerExtension,
 	}, nil
-}
-
-// swapGas keeps defaultGas for legacy axima pools, which have no extension info.
-func (s *PoolSimulator) swapGas() int64 {
-	if s.Info.Type == valueobject.ExchangeMetricPropAMM {
-		return metricBaseGas + int64(s.extra.Extensions)*gasPerExtension
-	}
-	return defaultGas
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

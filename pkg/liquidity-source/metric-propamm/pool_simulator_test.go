@@ -1,4 +1,4 @@
-package axima
+package metricpropamm
 
 import (
 	"math/big"
@@ -20,12 +20,12 @@ func TestPoolSimulator(t *testing.T) {
 	file, err := os.ReadFile("./pool_state_test.json")
 	assert.NoError(t, err)
 
-	var aximaPoolState PairData
+	var poolState PairData
 
-	err = json.Unmarshal(file, &aximaPoolState)
+	err = json.Unmarshal(file, &poolState)
 	assert.NoError(t, err)
 
-	extra, reserves, err := convertAximaPoolState(aximaPoolState, &Config{MaxAge: 60, IsV2: true})
+	extra, reserves, err := convertPoolState(poolState, &Config{MaxAge: 60, IsV2: true})
 	assert.NoError(t, err)
 
 	WETH := "0x4200000000000000000000000000000000000006"
@@ -34,8 +34,8 @@ func TestPoolSimulator(t *testing.T) {
 	poolSimulator := &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  "0xa07938ea73e9d8eb23535816d073c2731ea24946",
-			Exchange: "axima",
-			Type:     "axima",
+			Exchange: DexType,
+			Type:     DexType,
 			Tokens:   []string{WETH, USDC},
 			Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
 		}},
@@ -178,7 +178,7 @@ func TestCloneState(t *testing.T) {
 	var pairData PairData
 	require.NoError(t, json.Unmarshal(file, &pairData))
 
-	extra, reserves, err := convertAximaPoolState(pairData, &Config{MaxAge: 3600, IsV2: true})
+	extra, reserves, err := convertPoolState(pairData, &Config{MaxAge: 3600, IsV2: true})
 	require.NoError(t, err)
 
 	WETH := "0x4200000000000000000000000000000000000006"
@@ -187,8 +187,8 @@ func TestCloneState(t *testing.T) {
 	p := &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  "0xa07938ea73e9d8eb23535816d073c2731ea24946",
-			Exchange: "axima",
-			Type:     "axima",
+			Exchange: DexType,
+			Type:     DexType,
 			Tokens:   []string{WETH, USDC},
 			Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
 		}},
@@ -212,7 +212,7 @@ func TestGasPerExtension(t *testing.T) {
 	require.NoError(t, err)
 	var state PairData
 	require.NoError(t, json.Unmarshal(file, &state))
-	extra, reserves, err := convertAximaPoolState(state, &Config{MaxAge: 60, IsV2: true})
+	extra, reserves, err := convertPoolState(state, &Config{MaxAge: 60, IsV2: true})
 	require.NoError(t, err)
 
 	const weth, usdc = "0x4200000000000000000000000000000000000006", "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
@@ -237,9 +237,8 @@ func TestGasPerExtension(t *testing.T) {
 	}
 
 	// literals on purpose: a changed constant must be a conscious edit
-	require.Equal(t, int64(159433), gas("metric-propamm", 0))
-	require.Equal(t, int64(18650*3), gas("metric-propamm", 3)-gas("metric-propamm", 0))
-	require.Equal(t, int64(175000), gas("axima", 3)) // legacy axima ignores extensions
+	require.Equal(t, int64(159433), gas(DexType, 0))
+	require.Equal(t, int64(18650*3), gas(DexType, 3)-gas(DexType, 0))
 }
 
 // Indexing builds simulators with Opts.StaleCheck=false and must still quote from an aged pool.
@@ -248,7 +247,7 @@ func TestFactoryStaleCheck(t *testing.T) {
 	require.NoError(t, err)
 	var state PairData
 	require.NoError(t, json.Unmarshal(file, &state))
-	extra, reserves, err := convertAximaPoolState(state, &Config{MaxAge: 60, IsV2: true})
+	extra, reserves, err := convertPoolState(state, &Config{MaxAge: 60, IsV2: true})
 	require.NoError(t, err)
 	extraJSON, err := json.Marshal(extra)
 	require.NoError(t, err)
@@ -272,4 +271,11 @@ func TestFactoryStaleCheck(t *testing.T) {
 			assert.NoError(t, err)
 		}
 	}
+}
+
+func convertPoolState(d PairData, c *Config) (Extra, []string, error) {
+	return Extra{
+		InitBid: bignumber.NewBig(d.Bid), InitAsk: bignumber.NewBig(d.Ask), QuoteAvailable: d.QuoteAvailable,
+		MaxAge: c.MaxAge, IsV2: c.IsV2, Bids: ConvertBins(d.Depth.Bids), Asks: ConvertBins(d.Depth.Asks),
+	}, []string{d.TotalToken0Available, d.TotalToken1Available}, nil
 }

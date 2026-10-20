@@ -1,15 +1,6 @@
-package axima
+package metricpropamm
 
 import "math/big"
-
-type PairMetadata struct {
-	Pair                 string `json:"pair"`
-	PoolAddress          string `json:"poolAddress"`
-	PriceProviderAddress string `json:"priceProviderAddress"`
-	QuoterAddress        string `json:"quoterAddress"`
-	Token0               string `json:"token0"`
-	Token1               string `json:"token1"`
-}
 
 type PairData struct {
 	Bid                  string `json:"bidAdj"`
@@ -22,11 +13,11 @@ type PairData struct {
 }
 
 type Depth struct {
-	Asks []AximaBin `json:"asks"`
-	Bids []AximaBin `json:"bids"`
+	Asks []PairBin `json:"asks"`
+	Bids []PairBin `json:"bids"`
 }
 
-type AximaBin struct {
+type PairBin struct {
 	BinIdx           int64  `json:"binIdx"`
 	Price            string `json:"price"`
 	CummlativeVolume string `json:"cumulativeVolume"`

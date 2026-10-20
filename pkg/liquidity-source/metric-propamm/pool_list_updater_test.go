@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 )
 
 // Metric serves key-gated chains only to authenticated callers, so pool discovery
@@ -24,7 +22,7 @@ func TestGetNewPoolsSendsAPIKey(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	cfg := &axima.Config{DexID: DexType, ChainID: 143, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL, APIKey: "k"}}
+	cfg := &Config{DexID: DexType, ChainID: 143, HTTPConfig: HTTPConfig{BaseURL: srv.URL, APIKey: "k"}}
 	pools, _, err := NewPoolsListUpdater(cfg).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)

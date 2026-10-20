@@ -13,12 +13,11 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-var _ = poolpkg.RegisterFactory(DexType, axima.NewPoolSimulatorFromParams)
+var _ = poolpkg.RegisterFactory(DexType, NewPoolSimulatorFromParams)
 
 type MetadataResponse struct {
 	Data       []PairMetadata `json:"data"`
@@ -39,19 +38,19 @@ type PairMetadata struct {
 }
 
 type PoolsListUpdater struct {
-	config *axima.Config
+	config *Config
 	client *resty.Client
 }
 
 var _ = poollist.RegisterFactoryC(DexType, NewPoolsListUpdater)
 
-func NewPoolsListUpdater(config *axima.Config) *PoolsListUpdater {
+func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
 	return &PoolsListUpdater{config: config, client: newClient(config)}
 }
 
 // newClient sends the API key on every request: without it Metric returns only the
 // public view (e.g. /metadata answers "Unknown chainId" for key-gated chains).
-func newClient(config *axima.Config) *resty.Client {
+func newClient(config *Config) *resty.Client {
 	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
@@ -69,12 +68,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pools := lo.Map(pairMetadata, func(pm PairMetadata, _ int) entity.Pool {
-		staticExtra, _ := json.Marshal(axima.StaticExtra{
+		staticExtra, _ := json.Marshal(StaticExtra{
 			Pair:                    pm.Pair,
 			SwapWhitelistingEnabled: pm.SwapWhitelistingEnabled,
 		})
 
-		extra, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: u.config.MaxAge, IsV2: true})
+		extra, _ := json.Marshal(Extra{QuoteAvailable: false, MaxAge: u.config.MaxAge, IsV2: true})
 		return entity.Pool{
 			Address:  strings.ToLower(pm.PoolAddress),
 			Reserves: []string{"0", "0"},

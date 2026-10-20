@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -31,7 +30,7 @@ func TestGetNewPoolStateGoldenUnchangedBySplit(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	cfg := &axima.Config{DexID: DexType, ChainID: 8453, MaxAge: 30, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL}}
+	cfg := &Config{DexID: DexType, ChainID: 8453, MaxAge: 30, HTTPConfig: HTTPConfig{BaseURL: srv.URL}}
 	tr := NewPoolTracker(cfg, nil)
 	get := func(addr string) entity.Pool {
 		p, err := tr.GetNewPoolState(context.Background(),

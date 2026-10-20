@@ -1,10 +1,22 @@
 package metricpropamm
 
-import "time"
+import (
+	"math/big"
+	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 const (
 	DexType          = "metric-propamm"
 	metadataPageSize = 50
+
+	// baseGas is the swap gas of a pool before extensions. Mean of 27 Tenderly pool-call
+	// frames (base+bsc, both directions, POD included) of frame gas - extensions*gasPerExtension.
+	baseGas = 159433
+	// gasPerExtension is the swap gas of one extension. Mean of 23 Tenderly hook frames
+	// (base+bsc: priceVelocity, stopLoss, third extension).
+	gasPerExtension = 18650
 
 	// extensionsTTL is how long a fetched extension count is reused; retry delay after a failed fetch.
 	extensionsTTL   = 10 * time.Minute
@@ -18,3 +30,5 @@ const (
 	// statusFeedDown is bid_ask.priceProviderStatus while Metric has no price feed (quotes are empty).
 	statusFeedDown = "feed_down"
 )
+
+var Q64BI = new(big.Int).Lsh(bignumber.One, 64)

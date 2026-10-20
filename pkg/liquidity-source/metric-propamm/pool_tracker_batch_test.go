@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 )
 
 const batchQuote = `{"bidAdj":"1","askAdj":"2","totalToken0Available":"5","totalToken1Available":"6","depth":{"asks":[{"binIdx":0,"price":"1","cumulativeVolume":"1","priceImpactE6":"0"}],"bids":[]},"priceProviderStatus":"ok"}`
@@ -27,12 +26,12 @@ func batchPools(addrs ...string) []entity.Pool {
 }
 
 func newBatchTracker(srv *httptest.Server) *PoolTracker {
-	cfg := &axima.Config{DexID: DexType, ChainID: 8453, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL}}
+	cfg := &Config{DexID: DexType, ChainID: 8453, HTTPConfig: HTTPConfig{BaseURL: srv.URL}}
 	return NewPoolTracker(cfg, nil)
 }
 
 func quoteAvailable(t *testing.T, p entity.Pool) bool {
-	var e axima.Extra
+	var e Extra
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &e))
 	return e.QuoteAvailable
 }

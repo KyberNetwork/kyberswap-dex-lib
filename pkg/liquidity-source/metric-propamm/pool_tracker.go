@@ -15,7 +15,6 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -28,13 +27,13 @@ var poolABI, _ = abi.JSON(strings.NewReader(
 	`[{"inputs":[{"type":"bytes32"}],"name":"extsload","outputs":[{"type":"bytes32"}],"stateMutability":"view","type":"function"}]`))
 
 type bidAsk struct {
-	Bid                  string      `json:"bidAdj"`
-	Ask                  string      `json:"askAdj"`
-	TotalToken0Available string      `json:"totalToken0Available"`
-	TotalToken1Available string      `json:"totalToken1Available"`
-	ServerTs             int64       `json:"serverTs"`
-	Depth                axima.Depth `json:"depth"`
-	PriceProviderStatus  string      `json:"priceProviderStatus"`
+	Bid                  string `json:"bidAdj"`
+	Ask                  string `json:"askAdj"`
+	TotalToken0Available string `json:"totalToken0Available"`
+	TotalToken1Available string `json:"totalToken1Available"`
+	ServerTs             int64  `json:"serverTs"`
+	Depth                Depth  `json:"depth"`
+	PriceProviderStatus  string `json:"priceProviderStatus"`
 }
 
 // quotable is false while Metric's price feed is down, when depth is empty and the quote is unusable.
@@ -43,7 +42,7 @@ func (b *bidAsk) quotable() bool {
 }
 
 type PoolTracker struct {
-	config       *axima.Config
+	config       *Config
 	client       *resty.Client
 	ethrpcClient *ethrpc.Client
 
@@ -78,7 +77,7 @@ func (t *PoolTracker) extensionCount(ctx context.Context, poolAddr string) (n in
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
-func NewPoolTracker(config *axima.Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{config: config, client: newClient(config), ethrpcClient: ethrpcClient}
 }
 
@@ -98,7 +97,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 	poolAddr := strings.ToLower(p.Address)
 
 	// Keep the previous count when /metadata is unavailable.
-	var prev axima.Extra
+	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 	extensions, ok := t.extensionCount(ctx, poolAddr)
 	if !ok {
@@ -106,7 +105,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}
 
 	unswappable := false
-	var staticExtra axima.StaticExtra
+	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err == nil && staticExtra.SwapWhitelistingEnabled {
 		unswappable = true
 	} else if t.ethrpcClient != nil {
@@ -155,21 +154,21 @@ func (t *PoolTracker) buildPool(
 			logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr}).
 				Warnf("failed to fetch bid/ask: %v", fetchErr)
 		}
-		unavailable, _ := json.Marshal(axima.Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true, Extensions: extensions})
+		unavailable, _ := json.Marshal(Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true, Extensions: extensions})
 		p.Extra = string(unavailable)
 		p.Reserves = []string{"0", "0"}
 		return p, nil
 	}
 
-	extra, err := json.Marshal(axima.Extra{
+	extra, err := json.Marshal(Extra{
 		InitBid:        bignumber.NewBig(ba.Bid),
 		InitAsk:        bignumber.NewBig(ba.Ask),
 		QuoteAvailable: true,
 		MaxAge:         t.config.MaxAge,
 		IsV2:           true,
 		Extensions:     extensions,
-		Bids:           axima.ConvertBins(ba.Depth.Bids),
-		Asks:           axima.ConvertBins(ba.Depth.Asks),
+		Bids:           ConvertBins(ba.Depth.Bids),
+		Asks:           ConvertBins(ba.Depth.Asks),
 	})
 	if err != nil {
 		return entity.Pool{}, err

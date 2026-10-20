@@ -1,4 +1,4 @@
-package axima
+package metricpropamm
 
 import (
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
