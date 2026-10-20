@@ -2,6 +2,7 @@ package biconomyprop
 
 import (
 	"errors"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -19,6 +20,11 @@ const (
 	// Venue swap gas: one maker fill, plus each further maker the order reaches.
 	defaultGas   = 280_000
 	perMemberGas = 65_000
+
+	// defaultFeedMaxAge bounds how old a feed snapshot may be. The feed sends one per Base block
+	// (2s) while subscribed, so an older one means the feed is behind and the tracker reads
+	// the venue on-chain instead.
+	defaultFeedMaxAge = 5 * time.Second
 )
 
 var (
