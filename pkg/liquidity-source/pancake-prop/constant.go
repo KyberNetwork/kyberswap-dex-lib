@@ -9,9 +9,9 @@ import (
 const (
 	DexType = valueobject.ExchangePancakeProp
 
-	// defaultGas is the integer average of 10 measured PropAMMEntry.swapWithContractBalance calls
-	// on a BSC fork: both pairs and directions, flat and curve fills, convex and concave curves.
-	defaultGas int64 = 135052
+	// defaultGas is the integer average of 9 Tenderly-simulated executeGeneric frames on BSC (both pairs
+	// and directions, flat and curve fills), excluding the one-time approve of the entry.
+	defaultGas int64 = 142928
 
 	methodPricing           = "pricing"
 	methodVault             = "vault"
