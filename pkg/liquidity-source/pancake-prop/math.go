@@ -15,7 +15,6 @@ var (
 	u1e17  = uint256.NewInt(100_000_000_000_000_000)
 	uBps   = uint256.NewInt(10_000)
 	u1e10  = uint256.NewInt(10_000_000_000)
-	u2p55  = new(uint256.Int).Lsh(uint256.NewInt(1), 55)
 )
 
 // price is the unpacked per-pair price word (bit layout recovered from the bytecode):
