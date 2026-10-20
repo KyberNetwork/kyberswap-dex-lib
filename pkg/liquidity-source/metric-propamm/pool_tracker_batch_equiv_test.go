@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -194,7 +193,7 @@ func TestGetNewPoolStatesDoesNotRetryOnStatusError(t *testing.T) {
 			}
 			w.WriteHeader(status)
 		}))
-		cfg := &axima.Config{DexID: DexType, ChainID: 8453, HTTPConfig: axima.HTTPConfig{BaseURL: srv.URL, RetryCount: 1}}
+		cfg := &Config{DexID: DexType, ChainID: 8453, HTTPConfig: HTTPConfig{BaseURL: srv.URL, RetryCount: 1}}
 		_, errs := NewPoolTracker(cfg, nil).GetNewPoolStates(context.Background(), batchPools("0xa1"))
 		require.Error(t, errs[0])
 		require.EqualValues(t, 1, hits.Load(), "status %d", status)

@@ -14,7 +14,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -69,7 +68,7 @@ func (t *PoolTracker) GetNewPoolStates(ctx context.Context, pools []entity.Pool)
 
 	for i, p := range pools {
 		poolAddr := strings.ToLower(p.Address)
-		var prev axima.Extra
+		var prev Extra
 		_ = json.Unmarshal([]byte(p.Extra), &prev)
 		extensions, ok := t.extensionCount(ctx, poolAddr)
 		if !ok {
@@ -137,7 +136,7 @@ func (t *PoolTracker) unswappablePools(ctx context.Context, pools []entity.Pool)
 }
 
 func whitelisted(p entity.Pool) bool {
-	var se axima.StaticExtra
+	var se StaticExtra
 	return json.Unmarshal([]byte(p.StaticExtra), &se) == nil && se.SwapWhitelistingEnabled
 }
 

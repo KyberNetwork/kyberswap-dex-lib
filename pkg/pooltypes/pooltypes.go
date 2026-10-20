@@ -13,8 +13,6 @@ import (
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arcadecurve "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arcade/curve"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima"
-	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/axima/metric-propamm"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/stable"
@@ -136,6 +134,7 @@ import (
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mento"
+	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metric-propamm"
 	metronomeswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metronome/swap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
@@ -494,7 +493,6 @@ type Types struct {
 	EtherfiLiquid              string
 	Smoothy                    string
 	Carbon                     string
-	Axima                      string
 	MetricPropAMM              string
 	KipseliProp                string
 	SomeswapV1                 string
@@ -761,7 +759,6 @@ var (
 		EtherfiLiquid:              liquid.DexType,
 		Smoothy:                    smoothy.DexType,
 		Carbon:                     carbon.DexType,
-		Axima:                      axima.DexType,
 		MetricPropAMM:              metricpropamm.DexType,
 		KipseliProp:                kipseliprop.DexType,
 		SomeswapV1:                 someswapv1.DexType,
