@@ -67,6 +67,10 @@ func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, erro
 		if err := sim.fresh(sim.now()); err != nil {
 			return nil, err
 		}
+	} else if t := pool.QuoteTime(false, params.EntityPool.Timestamp); !t.IsZero() {
+		// Indexing prices the snapshot: quote at its time, not the wall clock.
+		at := uint64(t.Unix())
+		sim.nowFn = func() uint64 { return at }
 	}
 	return sim, nil
 }

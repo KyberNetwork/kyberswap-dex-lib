@@ -104,6 +104,13 @@ func TestSimulatorFactoryStaleCheck(t *testing.T) {
 		Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.ErrorIs(t, err, ErrSnapshotStale) // route finding gets none
 
+	// Indexing with a row timestamp quotes as of that time, so an aged row still prices.
+	tracked.Timestamp = int64(sim.state.Timestamp)
+	sim, err = NewPoolSimulatorFromParams(pool.FactoryParams{EntityPool: tracked})
+	require.NoError(t, err)
+	_, err = sim.CalcAmountOut(amountIn(sim, true, 15_000))
+	require.NotErrorIs(t, err, ErrSnapshotStale)
+
 	var extra Extra
 	require.NoError(t, json.Unmarshal([]byte(tracked.Extra), &extra))
 	extra.Reads.Timestamp = uint64(time.Now().Unix())
