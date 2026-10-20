@@ -1,0 +1,3 @@
+[
+{"type":"function","name":"getTotalAssetsValuation","stateMutability":"view","inputs":[{"name":"externalAssets","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}]}
+]

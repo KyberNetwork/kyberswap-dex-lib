@@ -1,0 +1,5 @@
+[
+  {"type":"function","name":"paused","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"bool"}]},
+  {"type":"function","name":"getPairGlobalConfig","stateMutability":"view","inputs":[{"name":"pairId","type":"uint256"}],"outputs":[{"name":"v0","type":"uint256"},{"name":"v1","type":"uint256"}]},
+  {"type":"function","name":"getPairCumulatives","stateMutability":"view","inputs":[{"name":"pairId","type":"uint256"}],"outputs":[{"name":"v0","type":"uint256"},{"name":"v1","type":"uint256"}]}
+]

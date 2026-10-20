@@ -73,6 +73,11 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
+	hook, _ := GetHook(staticExtra.HooksAddress)
+	if h, ok := hook.(SwapFeeHook); ok {
+		rpcRequests.AddCall(h.SwapFeeCall(staticExtra.HooksAddress, p.Address), []any{&result.HookSwapFee})
+	}
+
 	resp, err := rpcRequests.Aggregate()
 	if err != nil {
 		return nil, err
@@ -81,7 +86,12 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	lpFee := staticExtra.Fee
 	if shared.IsDynamicFee(staticExtra.Fee) {
-		lpFee = t.GetDynamicFee(ctx, staticExtra.HooksAddress, lpFee)
+		if staticExtra.HasSwapPermissions {
+			lpFee = t.GetDynamicFee(ctx, staticExtra.HooksAddress, result.Slot0.LpFee)
+		} else {
+			// no swap callbacks: the manager charges the dynamic fee stored in slot0
+			lpFee = result.Slot0.LpFee
+		}
 	}
 
 	// swap fee includes protocolFee (charged first) and lpFee
@@ -146,6 +156,7 @@ func (t *PoolTracker) BootstrapPoolState(
 	extra := Extra{
 		ProtocolFee: rpcData.Slot0.ProtocolFee,
 		ActiveBinID: rpcData.Slot0.ActiveId,
+		HookSwapFee: rpcData.HookSwapFee,
 		Bins:        bins,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -378,6 +389,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 
 	extra.ActiveBinID = rpcState.Slot0.ActiveId
 	extra.ProtocolFee = rpcState.Slot0.ProtocolFee
+	extra.HookSwapFee = rpcState.HookSwapFee
 	p.BlockNumber = rpcState.BlockNumber
 
 	extraBytes, err := json.Marshal(extra)

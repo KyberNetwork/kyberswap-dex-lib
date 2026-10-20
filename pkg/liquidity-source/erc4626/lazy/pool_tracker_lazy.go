@@ -80,6 +80,9 @@ func Lazycall(
 	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, tokenAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
+		if err := poolState.ResolveLimits(vaultCfg); err != nil {
+			return *pool, err
+		}
 		normalizePoolState(&poolState)
 		if blockNumber != nil {
 			poolState.BlockNumber = blockNumber.Uint64()

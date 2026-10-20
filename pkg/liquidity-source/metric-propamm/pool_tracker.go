@@ -1,0 +1,188 @@
+package metricpropamm
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
+
+// poolABI exposes the Uniswap-V4-style external storage read used to check the
+// pool's pause state on-chain. _setPause is packed in storage slot 0; its low
+// byte is the pause level (0 = active).
+var poolABI, _ = abi.JSON(strings.NewReader(
+	`[{"inputs":[{"type":"bytes32"}],"name":"extsload","outputs":[{"type":"bytes32"}],"stateMutability":"view","type":"function"}]`))
+
+type bidAsk struct {
+	Bid                  string `json:"bidAdj"`
+	Ask                  string `json:"askAdj"`
+	TotalToken0Available string `json:"totalToken0Available"`
+	TotalToken1Available string `json:"totalToken1Available"`
+	ServerTs             int64  `json:"serverTs"`
+	Depth                Depth  `json:"depth"`
+	PriceProviderStatus  string `json:"priceProviderStatus"`
+}
+
+// quotable is false while Metric's price feed is down, when depth is empty and the quote is unusable.
+func (b *bidAsk) quotable() bool {
+	return b.PriceProviderStatus != statusFeedDown && (len(b.Depth.Asks) > 0 || len(b.Depth.Bids) > 0)
+}
+
+type PoolTracker struct {
+	config       *Config
+	client       *resty.Client
+	ethrpcClient *ethrpc.Client
+
+	extMu      sync.Mutex
+	extCounts  map[string]int // lowercase pool address -> extension count
+	extExpires time.Time
+
+	blockedUntil atomic.Int64 // unix nanos; no batch request before this (429 Retry-After)
+}
+
+// extensionCount returns the pool's extension count from the venue-wide /metadata, fetched once per
+// extensionsTTL for all pools. ok is false when the fetch failed or the pool is missing.
+func (t *PoolTracker) extensionCount(ctx context.Context, poolAddr string) (n int, ok bool) {
+	t.extMu.Lock()
+	defer t.extMu.Unlock()
+	if now := time.Now(); now.After(t.extExpires) {
+		all, err := fetchAllPairMetadata(ctx, t.client, t.config.ChainID)
+		if err != nil {
+			logger.WithFields(logger.Fields{"dexType": DexType}).Warnf("failed to fetch extensions: %v", err)
+			t.extExpires = now.Add(extensionsRetry)
+		} else {
+			t.extCounts = make(map[string]int, len(all))
+			for _, pm := range all {
+				t.extCounts[strings.ToLower(pm.PoolAddress)] = len(pm.Extensions)
+			}
+			t.extExpires = now.Add(extensionsTTL)
+		}
+	}
+	n, ok = t.extCounts[poolAddr]
+	return n, ok
+}
+
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+
+func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	return &PoolTracker{config: config, client: newClient(config), ethrpcClient: ethrpcClient}
+}
+
+func (t *PoolTracker) GetNewPoolState(
+	ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context, p entity.Pool, _ poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p)
+}
+
+func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	poolAddr := strings.ToLower(p.Address)
+
+	// Keep the previous count when /metadata is unavailable.
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	extensions, ok := t.extensionCount(ctx, poolAddr)
+	if !ok {
+		extensions = prev.Extensions
+	}
+
+	unswappable := false
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err == nil && staticExtra.SwapWhitelistingEnabled {
+		unswappable = true
+	} else if t.ethrpcClient != nil {
+		var slot0 [32]byte
+		if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: p.Address,
+			Method: "extsload",
+			Params: []any{[32]byte{}}, // storage slot 0; low byte = pause level (0 = active)
+		}, []any{&slot0}).Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{"dexType": DexType, "pool": p.Address}).
+				Warnf("failed to read on-chain pause state: %v", err)
+		} else if slot0[31] != 0 {
+			unswappable = true
+		}
+	}
+
+	var ba bidAsk
+	var fetchErr error
+	if !unswappable {
+		res, err := t.client.R().
+			SetContext(ctx).
+			SetResult(&ba).
+			Get(fmt.Sprintf("/public/v1/evm/%d/%s/bid_ask", t.config.ChainID, poolAddr))
+		if err != nil {
+			fetchErr = err
+		} else if res.IsError() {
+			fetchErr = fmt.Errorf("bid_ask API error: %s", res.String())
+		}
+	}
+	return t.buildPool(p, extensions, unswappable, &ba, fetchErr)
+}
+
+// buildPool turns a fetched quote (or the reason there is none) into the pool state.
+func (t *PoolTracker) buildPool(
+	p entity.Pool, extensions int, unswappable bool, ba *bidAsk, fetchErr error,
+) (entity.Pool, error) {
+	poolAddr := strings.ToLower(p.Address)
+	if !unswappable && fetchErr == nil && !ba.quotable() {
+		logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr, "status": ba.PriceProviderStatus}).
+			Warnf("no usable quote: feed down or empty depth")
+		unswappable = true
+	}
+	if unswappable || fetchErr != nil {
+		if fetchErr != nil {
+			logger.WithFields(logger.Fields{"dexType": DexType, "pool": poolAddr}).
+				Warnf("failed to fetch bid/ask: %v", fetchErr)
+		}
+		unavailable, _ := json.Marshal(Extra{QuoteAvailable: false, MaxAge: t.config.MaxAge, IsV2: true, Extensions: extensions})
+		p.Extra = string(unavailable)
+		p.Reserves = []string{"0", "0"}
+		return p, nil
+	}
+
+	extra, err := json.Marshal(Extra{
+		InitBid:        bignumber.NewBig(ba.Bid),
+		InitAsk:        bignumber.NewBig(ba.Ask),
+		QuoteAvailable: true,
+		MaxAge:         t.config.MaxAge,
+		IsV2:           true,
+		Extensions:     extensions,
+		Bids:           ConvertBins(ba.Depth.Bids),
+		Asks:           ConvertBins(ba.Depth.Asks),
+	})
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	p.Reserves = []string{ba.TotalToken0Available, ba.TotalToken1Available}
+	p.Extra = string(extra)
+	p.Timestamp = quoteTimestamp(ba.ServerTs, time.Now().Unix())
+	return p, nil
+}
+
+func quoteTimestamp(serverTs, now int64) int64 {
+	if serverTs <= 0 || serverTs > now {
+		return now
+	}
+	return serverTs
+}

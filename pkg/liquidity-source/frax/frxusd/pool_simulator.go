@@ -5,4 +5,4 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-var _ = pool.RegisterFactory0(DexType, erc4626.NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, erc4626.NewPoolSimulatorFromParams)

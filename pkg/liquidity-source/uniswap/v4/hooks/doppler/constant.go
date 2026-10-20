@@ -44,6 +44,7 @@ var (
 		h("0xBD54a9E1d2249185A27Af097ABAA930631ec45c5"): NewRehypeDHookV2, // ethereum RehypeDopplerHook v2 (MAX_SWAP_FEE = 1e6)
 		h("0x5F9eB5f6726Fe88D5e39867967F5b833d2fA3215"): NewRehypeDHookV2, // ethereum RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
 		h("0xA7465b9d101cf3B2381D6CD42f2C5E72f9453984"): NewRehypeDHookV2, // bsc/arc RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
+		h("0xE2aEbC987592593b667EC29178d0A83929DB78b6"): NewRehypeDHookV2,
 	}
 
 	ErrCannotSwapBeforeStartingTime = errors.New("cannot swap before starting time")
