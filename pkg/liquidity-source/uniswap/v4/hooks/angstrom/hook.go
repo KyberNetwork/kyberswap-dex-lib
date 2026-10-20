@@ -28,6 +28,7 @@ type Hook struct {
 	extra HookExtra
 
 	attestationController *AttestationController
+	staleCheck            bool
 }
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
@@ -35,7 +36,7 @@ var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom},
-		hook: param.HookAddress,
+		hook: param.HookAddress, staleCheck: param.StaleCheck,
 	}
 
 	if param.Pool != nil {
@@ -104,7 +105,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 }
 
 func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if time.Since(time.Unix(h.extra.LatestAttestationsTime, 0)) > time.Minute {
+	if h.staleCheck && time.Since(time.Unix(h.extra.LatestAttestationsTime, 0)) > time.Minute {
 		return nil, ErrOutdatedAttestations
 	}
 

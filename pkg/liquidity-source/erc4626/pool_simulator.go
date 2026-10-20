@@ -22,7 +22,17 @@ type PoolSimulator struct {
 	poolTimestamp int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFromParams)
+
+// NewPoolSimulatorFromParams is the registered factory. Without Opts.StaleCheck (indexing) MaxAge is zeroed,
+// so deposits never fail on pool age.
+func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, error) {
+	s, err := NewPoolSimulator(params.EntityPool)
+	if err == nil && !params.Opts.StaleCheck {
+		s.MaxAge = 0
+	}
+	return s, err
+}
 
 func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	var extra Extra

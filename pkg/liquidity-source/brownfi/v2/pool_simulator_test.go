@@ -2,9 +2,11 @@ package brownfiv2
 
 import (
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -42,4 +44,16 @@ func TestCalcAmountOut(t *testing.T) {
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
+}
+
+// Indexing (StaleCheck=false) must build pools with old prices; route finding (true) must reject them.
+func TestFactoryStaleCheck(t *testing.T) {
+	t.Parallel()
+	aged := entityPool
+	aged.Timestamp = time.Now().Add(-time.Hour).Unix()
+	_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: aged, ChainID: valueobject.ChainIDBase})
+	assert.NoError(t, err)
+	_, err = NewPoolSimulator(pool.FactoryParams{EntityPool: aged, ChainID: valueobject.ChainIDBase,
+		Opts: pool.FactoryOpts{StaleCheck: true}})
+	assert.ErrorIs(t, err, ErrInvalidPrices)
 }

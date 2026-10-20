@@ -18,6 +18,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	poolTimestamp int64
+	noStaleCheck  bool // set by the factory when Opts.StaleCheck is false (indexing)
 	extra         Extra
 	staticExtra   StaticExtra
 	decimalsDiff  int
@@ -30,7 +31,16 @@ var (
 	ErrStalePoolData         = errors.New("stale pool data")
 )
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFromParams)
+
+// NewPoolSimulatorFromParams is the registered factory. Indexing (Opts.StaleCheck=false) skips the age check.
+func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, error) {
+	s, err := NewPoolSimulator(params.EntityPool)
+	if err == nil {
+		s.noStaleCheck = !params.Opts.StaleCheck
+	}
+	return s, err
+}
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -66,7 +76,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrUnavailableQuote
 	}
 
-	if s.poolTimestamp+s.extra.MaxAge < time.Now().Unix() {
+	if !s.noStaleCheck && s.poolTimestamp+s.extra.MaxAge < time.Now().Unix() {
 		return nil, ErrStalePoolData
 	}
 

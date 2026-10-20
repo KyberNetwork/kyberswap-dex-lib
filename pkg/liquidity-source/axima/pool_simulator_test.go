@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -239,4 +240,36 @@ func TestGasPerExtension(t *testing.T) {
 	require.Equal(t, int64(159433), gas("metric-propamm", 0))
 	require.Equal(t, int64(18650*3), gas("metric-propamm", 3)-gas("metric-propamm", 0))
 	require.Equal(t, int64(175000), gas("axima", 3)) // legacy axima ignores extensions
+}
+
+// Indexing builds simulators with Opts.StaleCheck=false and must still quote from an aged pool.
+func TestFactoryStaleCheck(t *testing.T) {
+	file, err := os.ReadFile("./pool_state_test.json")
+	require.NoError(t, err)
+	var state PairData
+	require.NoError(t, json.Unmarshal(file, &state))
+	extra, reserves, err := convertAximaPoolState(state, &Config{MaxAge: 60, IsV2: true})
+	require.NoError(t, err)
+	extraJSON, err := json.Marshal(extra)
+	require.NoError(t, err)
+
+	weth, usdc := "0x4200000000000000000000000000000000000006", "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+	ep := entity.Pool{
+		Address: "0xa07938ea73e9d8eb23535816d073c2731ea24946", Exchange: DexType, Type: DexType,
+		Reserves: entity.PoolReserves{reserves[0], reserves[1]}, Extra: string(extraJSON), StaticExtra: "{}",
+		Tokens:    []*entity.PoolToken{{Address: weth, Decimals: 18, Swappable: true}, {Address: usdc, Decimals: 6, Swappable: true}},
+		Timestamp: time.Now().Unix() - 3600,
+	}
+	for _, staleCheck := range []bool{false, true} {
+		sim, err := pool.Factory(DexType)(pool.FactoryParams{EntityPool: ep, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
+		require.NoError(t, err)
+		_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: bignumber.NewBig("10000000000000000")}, TokenOut: usdc,
+		})
+		if staleCheck {
+			assert.ErrorIs(t, err, ErrStalePoolData)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
 }
