@@ -515,3 +515,55 @@ func TestCalcAmountIn(t *testing.T) {
 		})
 	}
 }
+
+// TestPoolSimulator_AeroV2OnChain pins the sim to getAmountOut of the new-generation Aero v2 pools
+// (factories 0xaEd253F1.../0x9bc8b3F6..., fee in bps from getBaseFee). Pools were created on an Optimism
+// fork; expected values are the pool's on-chain getAmountOut at the same reserves. The mevTaxModule only
+// raises the fee for txs paying a priority fee above its threshold, so the base fee is the quote fee.
+func TestPoolSimulator_AeroV2OnChain(t *testing.T) {
+	t.Parallel()
+	tokens := func(a, b string, da, db uint8) []*entity.PoolToken {
+		return []*entity.PoolToken{{Address: a, Decimals: da, Swappable: true}, {Address: b, Decimals: db, Swappable: true}}
+	}
+	const (
+		usd6 = "0x1f1278221205d3085e12a356ee866cff98160bd0"
+		tkA  = "0xbc738e692a807040ba51076253914c1755933964"
+		tkB  = "0x433ffa94ed8f00ce4266adc5f73b8104a5a457f9"
+	)
+	stable := entity.Pool{Address: "0x9d5dde6eb1a6ecf5c9233e6c57fa5e89a8360fed", Exchange: "aero-v2-stable", Type: DexType,
+		Reserves: []string{"5698650000000", "856066212694682583714240"}, Tokens: tokens(usd6, tkA, 6, 18),
+		Extra: `{"fee":5}`, StaticExtra: `{"feePrecision":10000,"stable":true}`}
+	volatile := entity.Pool{Address: "0x323fdb8e6e11c8125393cd15c924292d3a95e1bd", Exchange: "aero-v2-volatile", Type: DexType,
+		Reserves: []string{"1700000000000", "500000000000000000000000"}, Tokens: tokens(usd6, tkB, 6, 18),
+		Extra: `{"fee":30}`, StaticExtra: `{"feePrecision":10000}`}
+
+	cases := []struct {
+		pool      entity.Pool
+		in, out   string
+		amountIn  string
+		expectOut string
+	}{
+		{stable, usd6, tkA, "1000000", "425054384880895219"},
+		{stable, usd6, tkA, "25000000000", "10547467792929107738338"},
+		{stable, usd6, tkA, "900000000000", "296150787558897018905890"},
+		{stable, usd6, tkA, "3000000000000", "610008686639850301491959"},
+		{stable, tkA, usd6, "1000000000000", "2"},
+		{stable, tkA, usd6, "25000000000000000000000", "57750851792"},
+		{stable, tkA, usd6, "900000000000000000000000", "1406950373987"},
+		{volatile, usd6, tkB, "1000000", "293235122143872483"},
+		{volatile, usd6, tkB, "50000000000", "14244078063834042917964"},
+		{volatile, usd6, tkB, "1200000000000", "206532246927219997237950"},
+		{volatile, tkB, usd6, "1000000000000", "3"},
+		{volatile, tkB, usd6, "30000000000000000000000", "95954029929"},
+		{volatile, tkB, usd6, "400000000000000000000000", "754294615042"},
+	}
+	for _, tc := range cases {
+		sim, err := NewPoolSimulator(tc.pool)
+		assert.NoError(t, err)
+		res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.amountIn)}, TokenOut: tc.out})
+		if assert.NoError(t, err, tc.pool.Exchange+" "+tc.amountIn) {
+			assert.Equal(t, tc.expectOut, res.TokenAmountOut.Amount.String(), tc.pool.Exchange+" "+tc.amountIn)
+		}
+	}
+}
