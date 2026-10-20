@@ -151,6 +151,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
+	pancakeprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-prop"
 	pancakeinfinitybin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin"
 	pancakeinfinitycl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	pancakestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/stable"
@@ -316,6 +317,7 @@ type Types struct {
 	PancakeInfinityCL          string
 	PancakeInfinityBin         string
 	PancakeStable              string
+	PancakeProp                string
 	MaverickV1                 string
 	AlgebraV1                  string
 	IZiSwap                    string
@@ -582,6 +584,7 @@ var (
 		PancakeInfinityCL:          pancakeinfinitycl.DexType,
 		PancakeInfinityBin:         pancakeinfinitybin.DexType,
 		PancakeStable:              pancakestable.DexType,
+		PancakeProp:                pancakeprop.DexType,
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
