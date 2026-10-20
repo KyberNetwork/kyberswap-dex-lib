@@ -44,12 +44,19 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
+	// Indexing prices at the snapshot time; route finding keeps the wall clock (QuoteAt 0).
+	var quoteAt int64
+	if t := pool.QuoteTime(staleCheck, entityPool.Timestamp); !t.IsZero() {
+		quoteAt = t.Unix()
+	}
+
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
 		Cfg:        &Config{ChainID: chainID},
 		Pool:       &entityPool,
 		HookExtra:  HookExtra(extra.HookExtra),
 		TrackedAt:  extra.TrackedAt,
 		StaleCheck: staleCheck,
+		QuoteAt:    quoteAt,
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook

@@ -40,9 +40,21 @@ type PoolSimulator struct {
 	isPaused   bool
 
 	gas Gas
+
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexTypeWooFiV21, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexTypeWooFiV21, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -77,6 +89,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		gas: DefaultGas,
 	}, nil
+}
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() int64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return time.Now().Unix()
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -489,7 +509,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 	// Calculate the stale time
 	staleTime := s.wooracle.Timestamp + s.wooracle.StaleDuration
 
-	woFeasible := woPrice.Sign() != 0 && time.Now().Unix() <= staleTime
+	woFeasible := woPrice.Sign() != 0 && s.now() <= staleTime
 
 	bound := uint256.NewInt(s.wooracle.Bound)
 	priceLowerBound := new(uint256.Int)

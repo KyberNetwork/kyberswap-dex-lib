@@ -23,9 +23,21 @@ type PoolSimulator struct {
 	feeHbps  *uint256.Int
 	alpha    *uint256.Int
 	expiry   uint64
+
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -213,6 +225,14 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
 	}
 }
 
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() int64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return time.Now().Unix()
+}
+
 func (s *PoolSimulator) validate() error {
 	if s.alpha.Cmp(uBps) <= 0 {
 		return ErrInvalidAlpha
@@ -222,7 +242,7 @@ func (s *PoolSimulator) validate() error {
 		return ErrZeroReserve
 	}
 
-	now := uint64(time.Now().Unix())
+	now := uint64(s.now())
 	if now > s.expiry {
 		return ErrExpiredOracle
 	}

@@ -31,9 +31,21 @@ type PoolSimulator struct {
 	enforceMarketHours        bool
 	unquoteable               bool
 	limits                    [2]TradingLimit
+
+	// quoteAt is the indexing clock (snapshot time); 0 means nowFunc.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 {
@@ -114,6 +126,14 @@ func fillNilLimits(tl *TradingLimit) {
 	}
 }
 
+// now is the quote clock: the indexing snapshot time when set, else nowFunc.
+func (s *PoolSimulator) now() uint64 {
+	if s.quoteAt > 0 {
+		return uint64(s.quoteAt)
+	}
+	return nowFunc()
+}
+
 // CalcAmountOut ports FPMM.getAmountOut plus every guard FPMM.swap applies
 // afterwards, in on-chain order: oracle validity (OracleAdapter.
 // getFXRateIfValid), the conversion, amountOut < reserveOut, and the
@@ -132,7 +152,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrOverflow
 	}
 
-	now := nowFunc()
+	now := s.now()
 	if err := s.validate(now); err != nil {
 		return nil, err
 	}
