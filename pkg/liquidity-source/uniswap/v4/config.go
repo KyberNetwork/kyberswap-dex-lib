@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -26,6 +27,16 @@ type Config struct {
 	TimeThresholdByPool map[string]time.Duration `json:"timeThreshold"` // blocks swap after any event
 
 	FetchTickFromStateView bool // instead of fetching from subgraph
+
+	// UseLens reads pools through V4Lens: their price, liquidity and every
+	// tick from one block in one eth_call, or a few when the ticks do not fit. A bootstrap then asks
+	// no subgraph, and ticks accumulated from logs that turn out invalid are replaced by the lens'
+	// set, which finds a tick the stored set lacked, rather than refetched index by index.
+	UseLens bool `json:"useLens,omitempty"`
+	// LensGas is the gas each lens call may use; 0 leaves it to the node's eth_call cap.
+	LensGas uint64 `json:"lensGas,omitempty"`
+	// LensGuard bounds the lens reads made while updating pools, which never wait for it.
+	LensGuard ephemeral.GuardConfig `json:"lensGuard,omitempty"`
 
 	HookConfigs map[common.Address]any `json:"hookConfigs" mapstructure:"hookConfigs"`
 }

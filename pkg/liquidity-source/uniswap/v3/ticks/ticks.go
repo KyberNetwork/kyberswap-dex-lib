@@ -4,6 +4,7 @@ import (
 	"errors"
 	"maps"
 	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/int256"
@@ -25,6 +26,7 @@ type ExtraTickU256 struct {
 	TickSpacing  uint64       `json:"tickSpacing"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
+	LensBlock    uint64       `json:"lensBlock,omitempty"`
 }
 
 type Tick struct {
@@ -44,6 +46,89 @@ type TicksBasedPool struct {
 	Ticks       map[int]Tick `json:"ticks"`
 	BlockNumber uint64       `json:"blockNumber"`
 	Exchange    string       `json:"exchange"`
+	// LensBlock is the block the ticks were last read whole at through a lens, 0 if never: every
+	// log at or below it is already in them.
+	LensBlock uint64 `json:"lensBlock,omitempty"`
+}
+
+// LensDue is the block a lens snapshot of a pool still without state must reach: the newest block
+// of the logs the pool has seen without state, which a snapshot below it would not hold. 0 if none.
+func LensDue(p entity.Pool) uint64 {
+	var extra struct {
+		LensDue uint64 `json:"lensDue"`
+	}
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+	return extra.LensDue
+}
+
+// WithLensDue records in p's Extra that a snapshot must reach due, the newest block of logs, and
+// keeps the rest of the Extra, such as what a pool factory filled in, as it is.
+func WithLensDue(p entity.Pool, logs []ethtypes.Log) entity.Pool {
+	return editExtra(p, func(extra map[string]json.RawMessage) {
+		extra["lensDue"] = json.RawMessage(strconv.FormatUint(lensDueOf(p, logs), 10))
+	})
+}
+
+// WithoutState drops the state of p its logs built, its liquidity, ticks and lens block, keeping
+// the rest of the Extra as it is, and records that a lens snapshot must reach due: p is then a
+// pool without state, which a tracker with useLens reads whole on its next update.
+func WithoutState(p entity.Pool, due uint64) entity.Pool {
+	return editExtra(p, func(extra map[string]json.RawMessage) {
+		delete(extra, "liquidity")
+		delete(extra, "ticks")
+		delete(extra, "lensBlock")
+		extra["lensDue"] = json.RawMessage(strconv.FormatUint(max(LensDue(p), due), 10))
+	})
+}
+
+// lensDueOf is the block a lens snapshot of p must reach once it has seen logs: the newer of the
+// one recorded and the newest of logs, removed ones aside.
+func lensDueOf(p entity.Pool, logs []ethtypes.Log) uint64 {
+	due := LensDue(p)
+	for _, l := range logs {
+		if !l.Removed {
+			due = max(due, l.BlockNumber)
+		}
+	}
+	return due
+}
+
+// editExtra applies edit to p's Extra as raw values, so the fields it leaves, such as a price
+// wider than a float64, are kept to the digit.
+func editExtra(p entity.Pool, edit func(map[string]json.RawMessage)) entity.Pool {
+	extra := map[string]json.RawMessage{}
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+	edit(extra)
+	if b, err := json.Marshal(extra); err == nil {
+		p.Extra = string(b)
+	}
+	return p
+}
+
+// Unapplied drops the logs the lens snapshot at LensBlock already holds. Such logs keep arriving
+// after the snapshot, from a backfill that replays older blocks or a replay after a crash, and
+// applying them again would count their liquidity twice. A removed log and a log carrying no block,
+// the empty one that triggers an update, are always kept.
+//
+// A reorg that reverts a block at or below LensBlock means the snapshot was read on the abandoned
+// fork from that block on: LensBlock drops to the block before, and the replacing blocks' logs are
+// kept.
+func (t *TicksBasedPool) Unapplied(logs []ethtypes.Log) []ethtypes.Log {
+	for _, l := range logs {
+		if l.Removed && l.BlockNumber > 0 && l.BlockNumber <= t.LensBlock {
+			t.LensBlock = l.BlockNumber - 1
+		}
+	}
+	if t.LensBlock == 0 {
+		return logs
+	}
+	kept := logs[:0:0]
+	for _, l := range logs {
+		if l.Removed || l.BlockNumber == 0 || l.BlockNumber > t.LensBlock {
+			kept = append(kept, l)
+		}
+	}
+	return kept
 }
 
 func NewTicksBasedPool(pool entity.Pool) (TicksBasedPool, error) {
@@ -65,9 +150,10 @@ func NewTicksBasedPool(pool entity.Pool) (TicksBasedPool, error) {
 	}
 
 	return TicksBasedPool{
-		Address:  pool.Address,
-		Exchange: pool.Exchange,
-		Ticks:    ticks,
+		Address:   pool.Address,
+		Exchange:  pool.Exchange,
+		Ticks:     ticks,
+		LensBlock: extra.LensBlock,
 	}, nil
 }
 

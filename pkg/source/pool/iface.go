@@ -46,6 +46,16 @@ type IPoolTrackerWithDependencies interface {
 	SetDependenciesStored(p *entity.Pool, isStored bool) error
 }
 
+// IPoolTrackerWithReset is implemented by trackers that can read a pool's state whole from the
+// chain, needing none of the logs it was built from: a pool whose logs cannot be applied can then
+// drop them and its state, rather than keep a state that misses them.
+type IPoolTrackerWithReset interface {
+	// ResetPoolState drops the state p's logs built, for its next update to read whole, holding
+	// every log up to block at least. It reports false, and returns p as it is, when the tracker
+	// cannot read the state whole.
+	ResetPoolState(p entity.Pool, block uint64) (entity.Pool, bool)
+}
+
 // IPoolTrackerWithSchedule is implemented by trackers that want a pool updated again at a
 // unix time even with no event. 0 = no scheduled update.
 type IPoolTrackerWithSchedule interface{ NextUpdateAt(p entity.Pool) int64 }

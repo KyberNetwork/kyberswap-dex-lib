@@ -1,13 +1,22 @@
 package uniswapv3
 
 import (
+	"context"
 	"math/big"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 // word encodes v as a left-padded 32-byte big-endian word, the same shape both indexed
@@ -194,4 +203,100 @@ func TestResolveSlot0(t *testing.T) {
 		_, err := resolveSlot0(slot0RawKatana{}, slot0RawStandard{}, slot0RawSlipstream{}, slot0RawSolidly{})
 		assert.Error(t, err)
 	})
+}
+
+// TestStatelessPoolsAreScheduled: a pool created from its factory log whose lens read the guard
+// declined is due again as soon as the guard would take it, at once if not tried, after the
+// cooldown if tried; any other pool needs no scheduled update.
+func TestStatelessPoolsAreScheduled(t *testing.T) {
+	t.Parallel()
+
+	tr, err := NewTracker(&Config{UseLens: true, LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
+	require.NoError(t, err)
+	before := time.Now().Unix()
+	at := tr.NextUpdateAt(entity.Pool{Extra: `{}`})
+	assert.GreaterOrEqual(t, at, before)
+	assert.LessOrEqual(t, at, time.Now().Unix(), "a pool not tried yet is due at once")
+
+	_, _ = tr.lensGuard.Try(t.Context(), "", func(context.Context) error { return nil })
+	at = tr.NextUpdateAt(entity.Pool{Extra: `{}`})
+	assert.GreaterOrEqual(t, at, before+30)
+	assert.LessOrEqual(t, at, time.Now().Unix()+30, "a pool just tried waits out its cooldown")
+	assert.Zero(t, tr.NextUpdateAt(entity.Pool{Extra: `{"liquidity":0,"sqrtPriceX96":1}`}))
+
+	plain, err := NewTracker(&Config{}, nil, nil)
+	require.NoError(t, err)
+	assert.Zero(t, plain.NextUpdateAt(entity.Pool{Extra: `{}`}))
+}
+
+// TestLogsAtOrBelowTheLensBlockAreNotAppliedAgain: a Mint the lens snapshot already holds, arriving
+// after it from a backfill or a replay, would count its liquidity twice without changing the sum
+// of liquidityNet, so nothing else would notice; one after the snapshot still applies.
+func TestLogsAtOrBelowTheLensBlockAreNotAppliedAgain(t *testing.T) {
+	t.Parallel()
+
+	pool := common.HexToAddress("0x3333333333333333333333333333333333333333")
+	mint := func(block uint64, amount int64) ethtypes.Log {
+		return ethtypes.Log{
+			Address:     pool,
+			BlockNumber: block,
+			Topics:      []common.Hash{mintEventID, addrWord(pool), word(-100), word(200)},
+			Data: append(append(append(addrWord(pool).Bytes(), word(amount).Bytes()...),
+				word(0).Bytes()...), word(0).Bytes()...),
+		}
+	}
+	extra, err := json.Marshal(Extra{
+		Ticks: []Tick{
+			{Index: -100, LiquidityGross: big.NewInt(555), LiquidityNet: big.NewInt(555)},
+			{Index: 200, LiquidityGross: big.NewInt(555), LiquidityNet: big.NewInt(-555)},
+		},
+		LensBlock: 100,
+	})
+	require.NoError(t, err)
+	p := entity.Pool{Address: strings.ToLower(pool.Hex()), Extra: string(extra)}
+
+	tr := &Tracker{config: &Config{}}
+	got, err := tr.newTicksBasedPool(context.Background(), p, []ethtypes.Log{mint(90, 555), mint(110, 1)},
+		logger.WithFields(logger.Fields{}))
+	require.NoError(t, err)
+	assert.Equal(t, uint64(100), got.LensBlock)
+	assert.Equal(t, int64(556), got.Ticks[-100].LiquidityNet.Int64(), "the Mint at block 90 counted twice")
+	assert.Equal(t, int64(-556), got.Ticks[200].LiquidityNet.Int64())
+}
+
+// TestLateLogs: a log at or below the pool's block, already applied or a retry's, is read as the
+// absolute values of the ticks it touches; one above it, the removed one of a reorg, and the empty
+// one that triggers an update, are not late.
+func TestLateLogs(t *testing.T) {
+	t.Parallel()
+
+	pool := common.HexToAddress("0x3333333333333333333333333333333333333333")
+	at := func(block uint64) ethtypes.Log { return ethtypes.Log{Address: pool, BlockNumber: block} }
+
+	assert.True(t, hasLateLog([]ethtypes.Log{at(101), at(100)}, 100))
+	assert.True(t, hasLateLog([]ethtypes.Log{at(90)}, 100))
+	assert.False(t, hasLateLog([]ethtypes.Log{at(101)}, 100))
+	assert.False(t, hasLateLog([]ethtypes.Log{{Address: pool, BlockNumber: 90, Removed: true}}, 100))
+	assert.False(t, hasLateLog([]ethtypes.Log{{}, at(101)}, 100))
+	assert.False(t, hasLateLog([]ethtypes.Log{at(90)}, 0), "a pool with no block has seen no log")
+}
+
+// TestResetPoolState: with the lens a reset pool is one without state, read whole on its next
+// update; without it the pool is kept, as nothing could read it whole.
+func TestResetPoolState(t *testing.T) {
+	t.Parallel()
+
+	p := entity.Pool{Extra: `{"liquidity":7,"sqrtPriceX96":1,"ticks":[]}`}
+	lens, err := NewTracker(&Config{UseLens: true}, nil, nil)
+	require.NoError(t, err)
+	got, ok := lens.ResetPoolState(p, 100)
+	assert.True(t, ok)
+	assert.False(t, tickspkg.HasState(got))
+	assert.NotZero(t, lens.NextUpdateAt(got), "it is due for its lens read")
+
+	plain, err := NewTracker(&Config{}, nil, nil)
+	require.NoError(t, err)
+	got, ok = plain.ResetPoolState(p, 100)
+	assert.False(t, ok)
+	assert.Equal(t, p, got)
 }
