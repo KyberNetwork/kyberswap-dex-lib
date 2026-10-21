@@ -51,12 +51,18 @@ type Spline struct {
 }
 
 // NewSpline builds the spline from points sorted ascending by AmountIn.
+// Points whose x isn't strictly greater than the last kept one are dropped:
+// a ladder probed past a pool's fill cap repeats its last point verbatim,
+// and a zero-width segment turns that segment's secant into 0/0 (NaN).
 func NewSpline(points []Point) *Spline {
-	n := len(points)
-	x := make([]float64, n+1)
-	y := make([]float64, n+1)
-	for i, p := range points {
-		x[i+1], y[i+1] = p[0], p[1]
+	x := make([]float64, 1, len(points)+1)
+	y := make([]float64, 1, len(points)+1)
+	for _, p := range points {
+		if p[0] <= 0 || p[0] <= x[len(x)-1] {
+			continue
+		}
+		x = append(x, p[0])
+		y = append(y, p[1])
 	}
 
 	s := &Spline{x: x, y: y}
