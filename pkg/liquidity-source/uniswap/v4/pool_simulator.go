@@ -24,6 +24,12 @@ type PoolSimulator struct {
 	hook          Hook
 	chainID       valueobject.ChainID
 	tokenWrappers []ITokenWrapper
+
+	// tokens and canSwapTo cache GetTokens and CanSwapTo (keyed by each token of GetTokens): both
+	// depend only on the pool's tokens and the token wrappers, and the route finder calls them far
+	// more often than CalcAmountOut. Not serialized; a decoded simulator computes them per call.
+	tokens    []string            `msgpack:"-"`
+	canSwapTo map[string][]string `msgpack:"-"`
 }
 
 var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
@@ -85,7 +91,7 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 	}
 	v3PoolSimulator.Gas = DefaultGas
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
@@ -93,7 +99,13 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		// few_v2 is listed before few_v1 so, for a token pair with pools in both
 		// generations (e.g. WBTC/fwWBTC), the current/active generation wins.
 		tokenWrappers: []ITokenWrapper{few_v2.NewTokenWrapper(), few_v1.NewTokenWrapper()},
-	}, nil
+	}
+	p.tokens = p.computeTokens()
+	p.canSwapTo = make(map[string][]string, len(p.tokens))
+	for _, token := range p.tokens {
+		p.canSwapTo[token] = p.computeCanSwapTo(token)
+	}
+	return p, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
@@ -389,7 +401,15 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
 }
 
+// CanSwapTo returns a slice shared with the simulator and its clones: callers must not modify it.
 func (p *PoolSimulator) CanSwapTo(address string) []string {
+	if tokens, ok := p.canSwapTo[address]; ok {
+		return tokens
+	}
+	return p.computeCanSwapTo(address)
+}
+
+func (p *PoolSimulator) computeCanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
 
 	result := map[string]struct{}{}
@@ -432,7 +452,15 @@ func (p *PoolSimulator) GetExchange() string {
 	return p.hook.GetExchange()
 }
 
+// GetTokens returns a slice shared with the simulator and its clones: callers must not modify it.
 func (p *PoolSimulator) GetTokens() []string {
+	if p.tokens != nil {
+		return p.tokens
+	}
+	return p.computeTokens()
+}
+
+func (p *PoolSimulator) computeTokens() []string {
 	seen := make(map[string]struct{})
 	tokens := make([]string, 0, len(p.Info.Tokens))
 
