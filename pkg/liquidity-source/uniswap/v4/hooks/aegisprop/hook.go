@@ -85,6 +85,8 @@ type Hook struct {
 	TrackedAt uint64 `json:"t,omitempty"`
 
 	liveAt int64 // Extra "lv": when the tracker last confirmed this state; the staleness-ramp age baseline
+	// quoteAt is the indexing clock (HookParam.QuoteAt); 0 means the wall clock.
+	quoteAt int64
 }
 
 // livenessInterval is how often the tracker restamps a quiet pool; far below the 3600 s fresh threshold.
@@ -103,6 +105,14 @@ func (h *Hook) trackedAt() uint64 {
 	return h.TrackedAt
 }
 
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (h *Hook) now() uint64 {
+	if h.quoteAt > 0 {
+		return uint64(h.quoteAt)
+	}
+	return uint64(time.Now().Unix())
+}
+
 type SwapInfo struct {
 	ZeroForOne bool
 	NewLevels  []Level
@@ -114,6 +124,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	}
 	_ = param.HookExtra.Unmarshal(hook)
 	hook.liveAt = param.TrackedAt
+	hook.quoteAt = param.QuoteAt
 	return hook
 }, HookAddresses...)
 
@@ -205,7 +216,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}, nil
 	}
 
-	now := uint64(time.Now().Unix())
+	now := h.now()
 	if h.Expiration != 0 && now >= h.Expiration {
 		return nil, ErrStaleLadder
 	}

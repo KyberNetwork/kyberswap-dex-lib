@@ -42,9 +42,21 @@ type PoolSimulator struct {
 	tokenOracleLookup map[string]Oracle
 
 	collateralTokenTvlLimits map[string]*big.Int
+
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -73,6 +85,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokenOracleLookup:            extra.TokenOracleLookup,
 		collateralTokenTvlLimits:     extra.CollateralTokenTvlLimits,
 	}, nil
+}
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() int64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return time.Now().Unix()
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -222,7 +242,7 @@ func (s *PoolSimulator) lookupTokenValue(
 
 	price, timestamp := oracle.LatestRoundData()
 
-	if timestamp.Int64() < time.Now().Unix()-MAX_TIME_WINDOW {
+	if timestamp.Int64() < s.now()-MAX_TIME_WINDOW {
 		return nil, ErrOracleExpired
 	}
 

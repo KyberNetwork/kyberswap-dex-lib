@@ -20,6 +20,14 @@ import (
 // through the hook registered at hookAddress, tracked as hookExtra.
 func NewPoolSimulator(t testing.TB, hookAddress common.Address, hookExtra any) *uniswapv4.PoolSimulator {
 	t.Helper()
+	return NewPoolSimulatorAt(t, hookAddress, hookExtra, 0)
+}
+
+// NewPoolSimulatorAt is NewPoolSimulator with a pool Timestamp, so an indexing build prices at
+// that snapshot instead of the wall clock.
+func NewPoolSimulatorAt(t testing.TB, hookAddress common.Address, hookExtra any,
+	timestamp int64) *uniswapv4.PoolSimulator {
+	t.Helper()
 	hX, err := json.Marshal(hookExtra)
 	require.NoError(t, err)
 	extra, err := json.Marshal(map[string]any{
@@ -42,11 +50,12 @@ func NewPoolSimulator(t testing.TB, hookAddress common.Address, hookExtra any) *
 	require.NoError(t, err)
 
 	pSim, err := uniswapv4.NewPoolSimulator(entity.Pool{
-		Address:  "0xabb949ef8d1e86c37e2620de318da773273460a843a623c3c05d2b85dc893e77",
-		SwapFee:  3000,
-		Exchange: "uniswap-v4",
-		Type:     "uniswap-v4",
-		Reserves: []string{"83499061346031704444327158001", "4265567673400257806"},
+		Address:   "0xabb949ef8d1e86c37e2620de318da773273460a843a623c3c05d2b85dc893e77",
+		Timestamp: timestamp,
+		SwapFee:   3000,
+		Exchange:  "uniswap-v4",
+		Type:      "uniswap-v4",
+		Reserves:  []string{"83499061346031704444327158001", "4265567673400257806"},
 		Tokens: []*entity.PoolToken{
 			{Address: "0x109ddc73b46b2f8141880a5573d2b0d2acf10b07", Decimals: 18, Swappable: true},
 			{Address: "0x4200000000000000000000000000000000000006", Decimals: 18, Swappable: true},

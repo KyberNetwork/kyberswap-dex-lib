@@ -30,9 +30,21 @@ type PoolSimulator struct {
 	extra       Extra
 
 	baseScale, quoteScale *uint256.Int
+
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if len(ep.Tokens) != 2 {
@@ -79,6 +91,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		baseScale:   baseScale,
 		quoteScale:  quoteScale,
 	}, nil
+}
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() int64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return time.Now().Unix()
 }
 
 // CalcAmountOut ports PmmPool.sol's _quote(): paused/zero-amount are checked
@@ -139,7 +159,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		Mid:                      s.extra.OracleMid,
 		Ask:                      s.extra.OracleAsk,
 		PriceUpdatedAt:           s.extra.OracleUpdatedAt,
-		NowTimestamp:             uint64(time.Now().Unix()),
+		NowTimestamp:             uint64(s.now()),
 		MaxStaleness:             s.extra.MaxStaleness,
 		MaxSpreadBps:             s.extra.MaxSpreadBps,
 		FeeBps:                   s.extra.FeeBps,

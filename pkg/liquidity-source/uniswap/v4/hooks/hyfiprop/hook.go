@@ -29,6 +29,9 @@ type Hook struct {
 	Cfg       PairConfig     `json:"c"`
 	Book      [2]Side        `json:"k"` // bid, ask
 	Inventory [2]uint256.Int `json:"i"` // contract balance of currency0/1
+
+	// quoteAt is the indexing clock (HookParam.QuoteAt); 0 means the wall clock.
+	quoteAt uint64
 }
 
 // SwapInfo is what UpdateBalance needs to advance the walked side and move the inventory.
@@ -59,6 +62,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4HyFiProp},
 	}
 	_ = param.HookExtra.Unmarshal(hook)
+	hook.quoteAt = uint64(param.QuoteAt)
 	return hook
 }, HookAddresses...)
 
@@ -134,7 +138,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if overflow := amt.SetFromBig(params.AmountSpecified); overflow {
 		return nil, ErrInvalidAmount
 	}
-	now := unixNow()
+	now := h.now()
 
 	// quote prices an exact-in trade; the contract transfers the output from its balance.
 	quote := func(amountIn *uint256.Int) (*SwapInfo, error) {
@@ -196,10 +200,13 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 // the direct swap's.
 var gasBeforeSwap = gasDirect - uniswapv4.DefaultGas.BaseGas
 
-// unixNow is the quote clock; tests replace it.
-var unixNow = defaultUnixNow
-
-func defaultUnixNow() uint64 { return uint64(time.Now().Unix()) }
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (h *Hook) now() uint64 {
+	if h.quoteAt > 0 {
+		return h.quoteAt
+	}
+	return uint64(time.Now().Unix())
+}
 
 // outIndex is the index of the currency the taker receives.
 func outIndex(zeroForOne bool) int {

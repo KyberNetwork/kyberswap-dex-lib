@@ -119,3 +119,19 @@ func TestTrackWritesNoClock(t *testing.T) {
 	require.NoError(t, json.Unmarshal(first, &m))
 	assert.NotContains(t, m, "t")
 }
+
+// Indexing prices at the snapshot (QuoteAt); routing (QuoteAt 0) keeps the wall clock and refuses
+// the same aged ladder.
+func TestIndexingQuotesAgedLadder(t *testing.T) {
+	now := time.Now().Unix()
+	trackedAt := now - 100_000
+	swap := func(quoteAt int64) error {
+		h, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
+			HookExtra: ladderHookExtra(t, 0), TrackedAt: trackedAt, QuoteAt: quoteAt})
+		require.True(t, ok)
+		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e15)})
+		return err
+	}
+	assert.NoError(t, swap(trackedAt+100))
+	assert.ErrorIs(t, swap(0), ErrStaleLadder)
+}

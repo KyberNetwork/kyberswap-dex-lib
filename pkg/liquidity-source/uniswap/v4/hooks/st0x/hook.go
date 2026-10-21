@@ -28,10 +28,18 @@ type Hook struct {
 
 	Reserve0 *uint256.Int `json:"r0"`
 	Reserve1 *uint256.Int `json:"r1"`
+
+	// quoteAt is the indexing clock (HookParam.QuoteAt); 0 means the wall clock.
+	quoteAt int64
 }
 
-// NowFn is the clock the staleness gate reads; a variable so tests can pin it.
-var NowFn = func() int64 { return time.Now().Unix() }
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (h *Hook) now() int64 {
+	if h.quoteAt > 0 {
+		return h.quoteAt
+	}
+	return time.Now().Unix()
+}
 
 // stalenessMarginSec covers the gap between quote and on-chain execution.
 const stalenessMarginSec = 5
@@ -50,6 +58,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		hook.Reserve0, _ = uint256.FromDecimal(param.Pool.Reserves[0])
 		hook.Reserve1, _ = uint256.FromDecimal(param.Pool.Reserves[1])
 	}
+	hook.quoteAt = param.QuoteAt
 	return hook
 }, HookAddresses...)
 
@@ -134,7 +143,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrNoPriceSet
 	}
 	// PropAMMHook.sol reverts when block.timestamp > updatedAt + maxStaleness (seconds).
-	if h.MaxStaleness > 0 && uint64(NowFn()+stalenessMarginSec) > h.UpdatedAt+h.MaxStaleness {
+	if h.MaxStaleness > 0 && uint64(h.now()+stalenessMarginSec) > h.UpdatedAt+h.MaxStaleness {
 		return nil, ErrStalePrice
 	}
 
