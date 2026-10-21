@@ -3,28 +3,32 @@ package saddle
 import (
 	"errors"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+var errNoOutput = errors.New("i'm dead here")
 
 type PoolSimulator struct {
 	pool.Pool
-	Multipliers []*big.Int
+	reserves    []uint256.Int // pool.Info.Reserves as uint256
+	swapFee     uint256.Int   // pool.Info.SwapFee as uint256
+	Multipliers []uint256.Int
 	// extra fields
-	InitialA           *big.Int
-	FutureA            *big.Int
+	InitialA           uint256.Int
+	FutureA            uint256.Int
 	InitialATime       int64
 	FutureATime        int64
-	AdminFee           *big.Int
-	DefaultWithdrawFee *big.Int
+	AdminFee           uint256.Int
+	DefaultWithdrawFee uint256.Int
 	LpToken            string
-	LpSupply           *big.Int
+	LpSupply           uint256.Int
 	Paused             bool
 	gas                Gas
 }
@@ -43,47 +47,58 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	numTokens := len(entityPool.Tokens)
+	if len(entityPool.Reserves) <= numTokens || len(staticExtra.PrecisionMultipliers) < numTokens {
+		return nil, errInvalidAmount
+	}
+	s := &PoolSimulator{
+		reserves:     make([]uint256.Int, numTokens),
+		Multipliers:  make([]uint256.Int, numTokens),
+		InitialATime: extra.InitialATime,
+		FutureATime:  extra.FutureATime,
+		LpToken:      staticExtra.LpToken,
+		Paused:       extra.Paused,
+		gas:          DefaultGas,
+	}
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
-	multipliers := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
+		if err := s.reserves[i].SetFromDecimal(entityPool.Reserves[i]); err != nil {
+			return nil, err
+		}
+		reserves[i] = s.reserves[i].ToBig()
+		if err := s.Multipliers[i].SetFromDecimal(staticExtra.PrecisionMultipliers[i]); err != nil {
+			return nil, err
+		}
 	}
-
-	swapFee := bignumber.NewBig10(extra.SwapFee)
-
+	for _, f := range []struct {
+		dst *uint256.Int
+		src string
+	}{
+		{&s.swapFee, extra.SwapFee}, {&s.InitialA, extra.InitialA}, {&s.FutureA, extra.FutureA},
+		{&s.AdminFee, extra.AdminFee}, {&s.LpSupply, entityPool.Reserves[numTokens]},
+	} {
+		if err := f.dst.SetFromDecimal(f.src); err != nil {
+			return nil, err
+		}
+	}
 	// only have withdrawFee in saddle v1, default to 0
-	defaultWithdrawFee := bignumber.NewBig10(extra.DefaultWithdrawFee)
-	if defaultWithdrawFee == nil {
-		defaultWithdrawFee = bignumber.ZeroBI
+	if err := s.DefaultWithdrawFee.SetFromDecimal(extra.DefaultWithdrawFee); err != nil {
+		s.DefaultWithdrawFee.Clear()
 	}
 
-	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     swapFee,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+	s.Pool = pool.Pool{
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     s.swapFee.ToBig(),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
-		Multipliers:        multipliers,
-		InitialA:           bignumber.NewBig10(extra.InitialA),
-		FutureA:            bignumber.NewBig10(extra.FutureA),
-		InitialATime:       extra.InitialATime,
-		FutureATime:        extra.FutureATime,
-		AdminFee:           bignumber.NewBig10(extra.AdminFee),
-		DefaultWithdrawFee: defaultWithdrawFee,
-		LpToken:            staticExtra.LpToken,
-		LpSupply:           bignumber.NewBig10(entityPool.Reserves[numTokens]),
-		Paused:             extra.Paused,
-		gas:                DefaultGas,
-	}, nil
+	}
+	return s, nil
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -93,159 +108,103 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
-	var balances = t.Info.Reserves
-	var tokenPrecisionMultipliers = t.Multipliers
+	var amountIn uint256.Int
+	if err := toU256(&amountIn, tokenAmountIn.Amount); err != nil {
+		return nil, err
+	}
+	a, err := getAPrecise(t.FutureATime, &t.FutureA, t.InitialATime, &t.InitialA)
+	if err != nil {
+		return nil, err
+	}
+	var amountOut, fee uint256.Int
+	var gas int64
 	if tokenAmountIn.Token == t.LpToken {
 		// withdraw
 		var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
-		if tokenIndexTo >= 0 {
-			amountOut, fee, err := CalculateRemoveLiquidityOneToken(
-				balances,
-				tokenPrecisionMultipliers,
-				t.FutureATime,
-				t.FutureA,
-				t.InitialATime,
-				t.InitialA,
-				t.Info.SwapFee,
-				t.DefaultWithdrawFee,
-				t.LpSupply,
-				tokenIndexTo,
-				tokenAmountIn.Amount,
-			)
-			if err != nil {
-				return nil, err
-			}
-			if amountOut.Cmp(bignumber.ZeroBI) > 0 {
-				return &pool.CalcAmountOutResult{
-					TokenAmountOut: &pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: amountOut,
-					},
-					Fee: &pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: fee,
-					},
-					Gas: t.gas.RemoveLiquidity,
-				}, nil
-			}
+		if tokenIndexTo < 0 {
+			return nil, errNoOutput
 		}
+		if err := calculateWithdrawOneToken(t.reserves, t.Multipliers, &a, &t.swapFee, &t.DefaultWithdrawFee,
+			&t.LpSupply, tokenIndexTo, &amountIn, &amountOut, &fee); err != nil {
+			return nil, err
+		}
+		gas = t.gas.RemoveLiquidity
 	} else if tokenOut == t.LpToken {
 		// deposit
 		var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
-		if tokenIndexFrom >= 0 {
-			amountOut, fee, err := CalculateAddLiquidityOneToken(
-				balances,
-				tokenPrecisionMultipliers,
-				t.FutureATime,
-				t.FutureA,
-				t.InitialATime,
-				t.InitialA,
-				t.DefaultWithdrawFee,
-				t.LpSupply,
-				tokenIndexFrom,
-				tokenAmountIn.Amount,
-			)
-			if err != nil {
-				return nil, err
-			}
-			if amountOut.Cmp(bignumber.ZeroBI) > 0 {
-				return &pool.CalcAmountOutResult{
-					TokenAmountOut: &pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: amountOut,
-					},
-					Fee: &pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: fee,
-					},
-					Gas: t.gas.AddLiquidity,
-				}, nil
-			}
+		if tokenIndexFrom < 0 {
+			return nil, errNoOutput
 		}
+		var amountsArr [maxTokens]uint256.Int
+		if len(t.reserves) > maxTokens {
+			return nil, errTooManyTokens
+		}
+		amounts := amountsArr[:len(t.reserves)]
+		amounts[tokenIndexFrom] = amountIn
+		if err := calculateTokenAmount(t.reserves, t.Multipliers, &a, &t.DefaultWithdrawFee, &t.LpSupply, amounts,
+			true, &amountOut); err != nil {
+			return nil, err
+		}
+		gas = t.gas.AddLiquidity
 	} else {
 		// swap from token to token
 		var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 		var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
-		if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-			amountOut, fee, err := CalculateSwap(
-				balances,
-				tokenPrecisionMultipliers,
-				t.FutureATime,
-				t.FutureA,
-				t.InitialATime,
-				t.InitialA,
-				t.Info.SwapFee,
-				tokenIndexFrom,
-				tokenIndexTo,
-				tokenAmountIn.Amount,
-			)
-			if err != nil {
-				return nil, err
-			}
-			if amountOut.Cmp(bignumber.ZeroBI) > 0 {
-				return &pool.CalcAmountOutResult{
-					TokenAmountOut: &pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: amountOut,
-					},
-					Fee: &pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: fee,
-					},
-					Gas: t.gas.Swap,
-				}, nil
-			}
+		if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+			return nil, errNoOutput
 		}
+		if err := calculateSwap(t.reserves, t.Multipliers, &a, &t.swapFee, tokenIndexFrom, tokenIndexTo, &amountIn,
+			&amountOut, &fee); err != nil {
+			return nil, err
+		}
+		gas = t.gas.Swap
 	}
-	return nil, errors.New("i'm dead here")
+	if amountOut.IsZero() {
+		return nil, errNoOutput
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: tokenOut, Amount: fee.ToBig()},
+		Gas:            gas,
+	}, nil
 }
 
 func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *t
-	cloned.LpSupply = new(big.Int).Set(t.LpSupply)
-	cloned.Info.Reserves = lo.Map(t.Info.Reserves, func(v *big.Int, i int) *big.Int {
-		return new(big.Int).Set(v)
-	})
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.reserves = slices.Clone(t.reserves)
 	return &cloned
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
-	var inputAmount = input.Amount
-	var outputAmount = output.Amount
+	var inputAmount, outputAmount, adminShare uint256.Int
+	inputAmount.SetFromBig(input.Amount)
+	outputAmount.SetFromBig(output.Amount)
 	if input.Token == t.LpToken {
-		// withdraw
-		outputAmount = new(big.Int).Add(
-			outputAmount,
-			new(big.Int).Div(
-				new(big.Int).Mul(fee.Amount, t.AdminFee),
-				FeeDenominator,
-			),
-		)
-		t.LpSupply = new(big.Int).Sub(t.LpSupply, inputAmount)
+		// withdraw: output = output + fee * adminFee
+		adminShare.SetFromBig(fee.Amount)
+		adminShare.MulDivOverflow(&adminShare, &t.AdminFee, feeDenominator)
+		outputAmount.Add(&outputAmount, &adminShare)
+		t.LpSupply.Sub(&t.LpSupply, &inputAmount)
 	} else if output.Token == t.LpToken {
 		// deposit
-		t.LpSupply = new(big.Int).Add(t.LpSupply, outputAmount)
+		t.LpSupply.Add(&t.LpSupply, &outputAmount)
 	} else {
 		// swap fee
 		// output = output + output * swapFee * adminFee
-		outputAmount = new(big.Int).Add(
-			outputAmount,
-			new(big.Int).Div(
-				new(big.Int).Mul(
-					new(big.Int).Div(new(big.Int).Mul(outputAmount, t.Info.SwapFee), FeeDenominator),
-					t.AdminFee,
-				),
-				FeeDenominator,
-			),
-		)
+		adminShare.MulDivOverflow(&outputAmount, &t.swapFee, feeDenominator)
+		adminShare.MulDivOverflow(&adminShare, &t.AdminFee, feeDenominator)
+		outputAmount.Add(&outputAmount, &adminShare)
 	}
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
+			t.reserves[i].Add(&t.reserves[i], &inputAmount)
+			t.Info.Reserves[i] = t.reserves[i].ToBig()
 		}
 		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+			t.reserves[i].Sub(&t.reserves[i], &outputAmount)
+			t.Info.Reserves[i] = t.reserves[i].ToBig()
 		}
 	}
 }

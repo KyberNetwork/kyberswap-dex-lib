@@ -36,7 +36,7 @@ func TestCalculateSwap(t *testing.T) {
 	initialATime := int64(0)
 	futureATime := int64(0)
 	swapFee := big.NewInt(4000000)
-	var amountOut, fee, _ = _calculateSwap(
+	var amountOut, fee, _ = CalculateSwap(
 		balances,
 		precisions,
 		futureATime,
@@ -77,7 +77,7 @@ func TestCalculateSwap2(t *testing.T) {
 	initialATime := int64(0)
 	futureATime := int64(0)
 	swapFee := big.NewInt(4000000)
-	var amountOut, fee, _ = _calculateSwap(
+	var amountOut, fee, _ = CalculateSwap(
 		balances,
 		precisions,
 		futureATime,
@@ -116,7 +116,7 @@ func TestCalculateWithdrawOneToken(t *testing.T) {
 	logrus.Info(withdrawFee.String())
 	amount := bignumber.NewBig10("10000000000000000000000")
 
-	dy, dySwapFee, err := calculateWithdrawOneToken(
+	dy, dySwapFee, err := CalculateRemoveLiquidityOneToken(
 		balances,
 		tokenPrecisionMultipliers,
 		futureATime,
@@ -152,7 +152,7 @@ func TestCalculateTokenAmount(t *testing.T) {
 		bignumber.NewBig10("1000000000000"),
 		bignumber.NewBig10("1000000000000"),
 	}
-	dy, err := calculateTokenAmount(
+	dy, _, err := CalculateAddLiquidityOneToken(
 		balances,
 		tokenPrecisionMultipliers,
 		0,
@@ -161,12 +161,8 @@ func TestCalculateTokenAmount(t *testing.T) {
 		big.NewInt(80000),
 		bignumber.NewBig10("5000000"),
 		bignumber.NewBig10("8580021119487881426822908"),
-		[]*big.Int{
-			bignumber.NewBig10("0"),
-			bignumber.NewBig10("0"),
-			bignumber.NewBig10("1000000"),
-		},
-		true,
+		2,
+		bignumber.NewBig10("1000000"),
 	)
 
 	if err != nil {
