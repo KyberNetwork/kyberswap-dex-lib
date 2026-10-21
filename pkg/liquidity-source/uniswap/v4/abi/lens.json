@@ -1,0 +1,137 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "stateView",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "poolId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "int24",
+          "name": "tickSpacing",
+          "type": "int24"
+        },
+        {
+          "internalType": "int16",
+          "name": "wordPosLower",
+          "type": "int16"
+        },
+        {
+          "internalType": "int16",
+          "name": "wordPosUpper",
+          "type": "int16"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "stateView",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "poolId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "int24",
+          "name": "tickSpacing",
+          "type": "int24"
+        },
+        {
+          "internalType": "int16",
+          "name": "wordPosLower",
+          "type": "int16"
+        },
+        {
+          "internalType": "int16",
+          "name": "wordPosUpper",
+          "type": "int16"
+        }
+      ],
+      "name": "getSnapshot",
+      "outputs": [
+        {
+          "internalType": "uint160",
+          "name": "sqrtPriceX96",
+          "type": "uint160"
+        },
+        {
+          "internalType": "int24",
+          "name": "tick",
+          "type": "int24"
+        },
+        {
+          "internalType": "uint128",
+          "name": "liquidity",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "int16",
+          "name": "nextWordPos",
+          "type": "int16"
+        },
+        {
+          "internalType": "bool",
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "int24",
+              "name": "tick",
+              "type": "int24"
+            },
+            {
+              "internalType": "int128",
+              "name": "liquidityNet",
+              "type": "int128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "liquidityGross",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct V4Lens.PopulatedTick[]",
+          "name": "ticks",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidTickSpacing",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidWordRange",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "UnexpectedStateViewResponse",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080601f6104e138819003918201601f19168301916001600160401b038311848410176102525780849260a09460405283398101031261024e5780516001600160a01b038116810361024e576020820151906040830151908160020b9283830361024e5761007b608061007460608801610266565b9601610266565b938460010b8660010b1361023f575f121561023057604051633205590760e21b81528160048201525f602482015260405f602483865afa1561022857503d915f5194604060205194106102195760405163fa6793d560e01b81528360048201525f602482015260205f602483865afa1561022857505f519260203d10610219579691604095919551956101208701806040525f9361011d816001948098610274565b9c9160019591950b975b8d158061020c575b156101f6576101428886868c878c610337565b969096156101bc57505050505050505061012094959650915f9160010b905b606084029461010086018852602088019860018060a01b0316895260020b604088015260018060801b0316606087015243608087015260010b60a0860152151560c085015260e0808501526101008401528201016040525190fd5b91939597509193959760018060ff1b0381146101e2576001019795939194929094610127565b634e487b7160e01b5f52601160045260245ffd5b9698955096505050505061012095969750610161565b508560010b89131561012f565b634a39999160e01b5f5260045ffd5b3d5f823e3d90fd5b63013840ad60e51b5f5260045ffd5b6351a3148560e01b5f5260045ffd5b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b51908160010b820361024e57565b90929160020b80156103155780620d89e719058082620d89e7190715158061030d575b6102f7575b5060081d90620d89e80560081d9160010b908082135f146102ef5750925b60010b90808212156102e75750915b8281136102dc5760010b9160010b905f90565b505f91508190600190565b9050916102c9565b9050926102ba565b9050600160ff1b81146101e2575f19015f61029c565b506001610297565b634e487b7160e01b5f52601260045260245ffd5b5f1981146101e25760010190565b9093919361ea605a106104d55760405163071f32d360e21b81528160048201528560010b602482015260205f604483865afa1561022857505f519360203d1061021957600294939291940b935f958060081b90808205610100149015171595600160ff1b8114965f8312928315915b888b1c6103bd575050505050505050505050905f90565b909192939495969798999a60018c1b8a16156104cb57816101e2578b8301908c821280158816908616176101e257858202918c5f8212166101e2578083058714901517156101e257620d89e719821280156104bf575b6104b45761ea605a106104a1576040516332bb6ad560e21b81528860048201528260020b602482015260405f6044838d5afa1561022857503d905f519160406020519110610219576104929361048c936060928e84860201928352600f0b602083015260018060801b0316604082015201604052610329565b9b610329565b999897969594939291906103a6565b9b50505050505050505050505090600190565b9b6104929150610329565b50620d89e88213610413565b9a61049290610329565b50505050509060019056fe"
+}
