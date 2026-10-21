@@ -69,10 +69,34 @@ func (d *PoolTracker) getNewPoolState(
 		"handler":     "EulerSwapV2.PoolTracker",
 	})
 
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	staticExtra, vaults, err := poolVaults(p)
+	if err != nil {
 		l.Error("failed to unmarshal staticExtra")
 		return p, err
+	}
+
+	rpcData, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.EulerAccount,
+		staticExtra.EVC, vaults, overrides, nil, rpcRoundExec)
+	if err != nil {
+		l.Error("failed to getPoolData")
+		return p, err
+	}
+
+	newPool, err := d.updatePool(ctx, p, rpcData, blockNumber)
+	if err != nil {
+		l.Error("failed to updatePool")
+		return p, err
+	}
+
+	return newPool, nil
+}
+
+// poolVaults reads the pool's static extra and lists the vaults its state is read from: both
+// supply vaults, then any borrow vault that is set and is not the supply vault already listed.
+func poolVaults(p entity.Pool) (StaticExtra, []shared.VaultInfo, error) {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return staticExtra, nil, err
 	}
 
 	vaults := []shared.VaultInfo{
@@ -102,22 +126,38 @@ func (d *PoolTracker) getNewPoolState(
 		})
 	}
 
-	rpcData, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.EulerAccount,
-		staticExtra.EVC, vaults, overrides)
-	if err != nil {
-		l.Error("failed to getPoolData")
-		return p, err
-	}
-
-	newPool, err := d.updatePool(ctx, p, rpcData, blockNumber)
-	if err != nil {
-		l.Error("failed to updatePool")
-		return p, err
-	}
-
-	return newPool, nil
+	return staticExtra, vaults, nil
 }
 
+// uniqueVaults is the vault list getPoolData reads, deduplicated case-insensitively in order.
+func uniqueVaults(vaultList []shared.VaultInfo) []shared.VaultInfo {
+	return lo.UniqBy(vaultList, func(v shared.VaultInfo) string {
+		return strings.ToLower(v.VaultAddress)
+	})
+}
+
+// roundExec runs one round of getPoolData's reads into the round's call outputs. Round 0 returns
+// the block it read at; later rounds are pinned to that block and return nil.
+//
+// rpcRoundExec makes each round a multicall. A lens-backed executor instead fills the same outputs
+// from results the lens recorded, so both decode, and post-process, through the code below.
+type roundExec func(req *ethrpc.Request, round int) (*big.Int, error)
+
+func rpcRoundExec(req *ethrpc.Request, round int) (*big.Int, error) {
+	if round <= 1 {
+		resp, err := req.TryBlockAndAggregate()
+		if err != nil {
+			return nil, err
+		}
+		return resp.BlockNumber, nil
+	}
+
+	_, err := req.TryAggregate()
+	return nil, err
+}
+
+// getPoolData reads a pool in up to four rounds, each built from the last one's results. pin, when
+// set, fixes the first round's block; the later rounds always follow the first.
 func (d *PoolTracker) getPoolData(
 	ctx context.Context,
 	poolAddress,
@@ -125,10 +165,10 @@ func (d *PoolTracker) getPoolData(
 	evcAddr string,
 	vaultList []shared.VaultInfo,
 	overrides map[common.Address]gethclient.OverrideAccount,
+	pin *big.Int,
+	exec roundExec,
 ) (*TrackerData, uint64, error) {
-	uniqueVaultAddresses := lo.Map(lo.UniqBy(vaultList, func(v shared.VaultInfo) string {
-		return strings.ToLower(v.VaultAddress)
-	}), func(v shared.VaultInfo, _ int) string {
+	uniqueVaultAddresses := lo.Map(uniqueVaults(vaultList), func(v shared.VaultInfo, _ int) string {
 		return v.VaultAddress
 	})
 
@@ -219,7 +259,10 @@ func (d *PoolTracker) getPoolData(
 		}, []any{&vaults[i].IsControllerEnabled})
 	}
 
-	resp, err := req.TryBlockAndAggregate()
+	if pin != nil {
+		req.SetBlockNumber(pin)
+	}
+	blockNumber, err := exec(req, 0)
 	if err != nil {
 		return nil, 0, errors.WithMessage(err, "1st rt")
 	}
@@ -251,7 +294,7 @@ func (d *PoolTracker) getPoolData(
 			uniqueVaultAddresses = append(uniqueVaultAddresses, data.Controller)
 
 			idx := len(vaults) - 1
-			req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
+			req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(blockNumber)
 			req.AddCall(&ethrpc.Call{
 				ABI:    vaultABI,
 				Target: data.Controller,
@@ -275,7 +318,7 @@ func (d *PoolTracker) getPoolData(
 				Method: shared.VaultMethodUnitOfAccount,
 			}, []any{&unitOfAccounts[idx]})
 
-			if resp, err = req.TryBlockAndAggregate(); err != nil {
+			if _, err = exec(req, 1); err != nil {
 				return nil, 0, err
 			}
 			vaults[idx].EulerAccountBalance = big.NewInt(0)
@@ -308,7 +351,7 @@ func (d *PoolTracker) getPoolData(
 		fullVaultAddrMap[addr] = idx
 	}
 
-	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
+	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(blockNumber)
 	for i, collateral := range collaterals {
 		if _, ok := fullVaultAddrMap[collateral]; ok {
 			continue
@@ -339,15 +382,21 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	if len(req.Calls) > 0 {
-		if _, err = req.TryAggregate(); err != nil {
+		if _, err = exec(req, 2); err != nil {
 			return nil, 0, errors.WithMessage(err, "2nd rt")
 		}
 	}
 
-	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
+	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(blockNumber)
 	collatQuoteAmts := make([]*big.Int, len(collaterals))
-	data.CollatPrices = make([][][2]*big.Int, len(collaterals))
-	data.CollatLtvs = make([][]uint16, len(collaterals))
+	// One entry per vault, controller included, whether or not the vault has an oracle: the
+	// post-processing below visits every vault.
+	data.CollatPrices = lo.Times(len(collaterals), func(_ int) [][2]*big.Int {
+		return make([][2]*big.Int, len(uniqueVaultAddresses))
+	})
+	data.CollatLtvs = lo.Times(len(collaterals), func(_ int) []uint16 {
+		return make([]uint16, len(uniqueVaultAddresses))
+	})
 
 	data.VaultPrices = lo.Times(len(fullVaultList), func(_ int) [][2]*big.Int {
 		return make([][2]*big.Int, len(uniqueVaultAddresses))
@@ -380,17 +429,6 @@ func (d *PoolTracker) getPoolData(
 			}
 		}
 		for j, collateral := range collaterals {
-			if len(data.CollatPrices[j]) <= i {
-				for len(data.CollatPrices[j]) <= i {
-					data.CollatPrices[j] = append(data.CollatPrices[j], [2]*big.Int{})
-				}
-			}
-			if len(data.CollatLtvs[j]) <= i {
-				for len(data.CollatLtvs[j]) <= i {
-					data.CollatLtvs[j] = append(data.CollatLtvs[j], 0)
-				}
-			}
-
 			if idx, ok := fullVaultAddrMap[collateral]; ok {
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				data.CollatLtvs[j][i] = data.VaultLtvs[idx][i]
@@ -411,7 +449,7 @@ func (d *PoolTracker) getPoolData(
 		}
 	}
 
-	if _, err = req.TryAggregate(); err != nil {
+	if _, err = exec(req, 3); err != nil {
 		return nil, 0, errors.WithMessage(err, "3rd rt")
 	}
 
@@ -452,7 +490,7 @@ func (d *PoolTracker) getPoolData(
 		}
 	}
 
-	return &data, resp.BlockNumber.Uint64(), nil
+	return &data, blockNumber.Uint64(), nil
 }
 
 func (d *PoolTracker) updatePool(
