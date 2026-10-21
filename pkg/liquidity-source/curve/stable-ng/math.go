@@ -67,6 +67,51 @@ func (t *PoolSimulator) _A() *uint256.Int {
 	return a1
 }
 
+// dCache holds D for xp at amp, or the error solving for it. Every quote solves for D first, and D
+// only changes with the reserves (or rates, or A), so it is solved once per pool state instead of
+// once per quote. Caching the error matters as much: many pools are drained and fail every quote.
+type dCache struct {
+	ok  bool
+	xp  [shared.MaxTokenCount]uint256.Int
+	amp uint256.Int
+	d   uint256.Int
+	err error
+}
+
+// cacheD caches D for the current reserves. Call it whenever they change. It caches nothing while A
+// is ramping, since A then changes with time.
+func (t *PoolSimulator) cacheD() {
+	c := &t.dCache
+	c.ok = false
+	if t.Extra.FutureA == nil || t.Extra.FutureATime > time.Now().Unix() {
+		return
+	}
+	xp := XpMem(t.Extra.RateMultipliers, t.Reserves)
+	c.err = t.getD(xp, t.Extra.FutureA, &c.d)
+	copy(c.xp[:], xp)
+	c.amp.Set(t.Extra.FutureA)
+	c.ok = true
+}
+
+// cachedD returns D of xp at the current A, or the error solving for it, when cached, and (nil, nil)
+// when not. It checks xp rather than trusting every reserve change to call cacheD: stable-meta-ng
+// writes the reserves directly.
+func (t *PoolSimulator) cachedD(xp []uint256.Int) (*uint256.Int, error) {
+	c := &t.dCache
+	if !c.ok || t.Extra.FutureA == nil || t.Extra.FutureATime > time.Now().Unix() || !c.amp.Eq(t.Extra.FutureA) {
+		return nil, nil
+	}
+	for i := range xp {
+		if !c.xp[i].Eq(&xp[i]) {
+			return nil, nil
+		}
+	}
+	if c.err != nil {
+		return nil, c.err
+	}
+	return &c.d, nil
+}
+
 // D invariant calculation in non-overflowing integer operations iteratively
 // - `D`: output
 func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int) error {
@@ -243,6 +288,12 @@ func (t *PoolSimulator) GetDy(
 	// x: uint256 = xp[i] + (dx * rates[i] / PRECISION)
 	var x = number.SafeAdd(&xp[i], number.Div(number.SafeMul(dx, &t.Extra.RateMultipliers[i]), Precision))
 
+	if dCached == nil {
+		var err error
+		if dCached, err = t.cachedD(xp); err != nil && i != j {
+			return err // GetY fails solving for D, after its index checks
+		}
+	}
 	return t.GetDyByX(i, j, x, xp, dCached, dy, adminFee)
 }
 
@@ -357,6 +408,12 @@ func (t *PoolSimulator) GetDx(
 	// y == 0 ⇒ targets a post-state where on-chain `_get_p` reverts.
 	if y.IsZero() {
 		return ErrPoolDrained
+	}
+
+	if dCached == nil {
+		if dCached, err = t.cachedD(xp); err != nil && i != j {
+			return err // GetY fails solving for D, after its index checks
+		}
 	}
 
 	// x: uint256 = self.get_y(j, i, y, xp, amp, D, N_COINS)
@@ -638,6 +695,7 @@ func (t *PoolSimulator) ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, 
 		&t.Reserves[i])
 	number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
 	t.LpSupply.Sub(&t.LpSupply, tokenAmount)
+	t.cacheD()
 	return nil
 }
 
@@ -649,6 +707,7 @@ func (t *PoolSimulator) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, min
 	}
 
 	t.LpSupply.Add(&t.LpSupply, mintAmount)
+	t.cacheD()
 
 	return nil
 }
