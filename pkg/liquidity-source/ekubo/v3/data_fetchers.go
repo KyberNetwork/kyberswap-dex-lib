@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/samber/lo"
 
@@ -24,6 +25,8 @@ const (
 	twammDataFetcherMethod              = "getPoolState"
 	boostedFeesDataFetcherMethod        = "getPoolState"
 	ve33DataFetcherMethod               = "getVe33QuoteData"
+	mevCaptureV21GetConfigMethod        = "getConfig"
+	mevCaptureV21GetAnchorMethod        = "getAnchor"
 )
 
 type (
@@ -68,6 +71,27 @@ type (
 		DonateRateDeltas []boostedTimeDonateRateInfo `json:"donateRateDeltas"`
 	}
 
+	mevCaptureV21ConfigData struct {
+		HalfLife               uint32 `json:"halfLife"`
+		SlopeK                 uint8  `json:"slopeK"`
+		SegmentExp             uint8  `json:"segmentExp"`
+		SegmentWidthMultiplier uint32 `json:"segmentWidthMultiplier"`
+		JLin                   uint8  `json:"jLin"`
+		MaxFee                 uint64 `json:"maxFee"`
+		ClampTicks             uint32 `json:"clampTicks"`
+		MGate                  uint8  `json:"mGate"`
+	}
+
+	mevCaptureV21AnchorData struct {
+		LastUpdateTime uint32 `json:"lastUpdateTime"`
+		LRefTime       uint32 `json:"lRefTime"`
+		LastPosTime    uint32 `json:"lastPosTime"`
+		LRefBits       uint8  `json:"lRefBits"`
+		SnapBits       uint8  `json:"snapBits"`
+		LRefRaiseTime  uint32 `json:"lRefRaiseTime"`
+		AnchorX16      int64  `json:"anchorX16"`
+	}
+
 	ve33QuoteData struct {
 		QuoteData quoteData `json:"quoteData"`
 		SwapFee   uint64    `json:"swapFee"`
@@ -99,6 +123,7 @@ func (f *dataFetchers) fetchPools(
 	}
 
 	twammPoolKeys, boostedFeeConcentratedPoolKeys, ve33PoolKeys, basicPoolKeys := make([]pools.AnyPoolKey, 0), make([]pools.AnyPoolKey, 0), make([]pools.AnyPoolKey, 0), make([]poolKeyWithExtType, 0)
+	mevCaptureV21PoolKeys := make([]pools.AnyPoolKey, 0)
 
 	for _, key := range poolKeys {
 		extType := f.config.ExtensionType(key.Extension())
@@ -115,6 +140,8 @@ func (f *dataFetchers) fetchPools(
 			boostedFeeConcentratedPoolKeys = append(boostedFeeConcentratedPoolKeys, key)
 		case ExtensionTypeVe33:
 			ve33PoolKeys = append(ve33PoolKeys, key)
+		case ExtensionTypeMevCaptureV21:
+			mevCaptureV21PoolKeys = append(mevCaptureV21PoolKeys, key)
 		default:
 			logger.Errorf("unknown extension %v", key.Extension())
 		}
@@ -361,6 +388,106 @@ func (f *dataFetchers) fetchPools(
 		}
 	}
 
+	for _, poolKeyBatch := range lo.Chunk(mevCaptureV21PoolKeys, maxBatchSize) {
+		batch, err := f.fetchMevCaptureV21Pools(ctx, poolKeyBatch, overrides)
+		if err != nil {
+			return nil, err
+		}
+		fetchedPools = append(fetchedPools, batch...)
+	}
+
+	return fetchedPools, nil
+}
+
+// fetchMevCaptureV21Pools fetches the Core state and initialized ticks, the extension's configuration and each pool's
+// anchor state in one multicall, so that all of them are read at the same block.
+func (f *dataFetchers) fetchMevCaptureV21Pools(
+	ctx context.Context,
+	poolKeys []pools.AnyPoolKey,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) ([]fetchedPool, error) {
+	req := f.ethrpcClient.R().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
+	batchQuoteData := make([]quoteData, len(poolKeys))
+	req.AddCall(&ethrpc.Call{
+		ABI:    abis.QuoteDataFetcherABI,
+		Target: f.config.QuoteDataFetcher,
+		Method: quoteDataFetcherMethod,
+		Params: []any{
+			lo.Map(poolKeys, func(poolKey pools.AnyPoolKey, _ int) pools.AbiPoolKey {
+				return poolKey.ToAbi()
+			}),
+			minTickSpacingsPerPool,
+		},
+	}, []any{&batchQuoteData})
+
+	extensions := lo.Uniq(lo.Map(poolKeys, func(poolKey pools.AnyPoolKey, _ int) common.Address {
+		return poolKey.Extension()
+	}))
+	configs := make([]struct{ mevCaptureV21ConfigData }, len(extensions))
+	for i, extension := range extensions {
+		req.AddCall(&ethrpc.Call{
+			ABI:    abis.MevCaptureV21ABI,
+			Target: hexutil.Encode(extension[:]),
+			Method: mevCaptureV21GetConfigMethod,
+		}, []any{&configs[i]})
+	}
+
+	anchors := make([]mevCaptureV21AnchorData, len(poolKeys))
+	for i, poolKey := range poolKeys {
+		poolId, err := poolKey.NumId()
+		if err != nil {
+			return nil, err
+		}
+		req.AddCall(&ethrpc.Call{
+			ABI:    abis.MevCaptureV21ABI,
+			Target: hexutil.Encode(poolKey.Config.Extension[:]),
+			Method: mevCaptureV21GetAnchorMethod,
+			Params: []any{common.BytesToHash(poolId)},
+		}, []any{&anchors[i]})
+	}
+
+	resp, err := req.Aggregate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve quote data for MEVCapture v2.1 pools: %w", err)
+	}
+
+	var blockNumber uint64
+	if resp.BlockNumber != nil {
+		blockNumber = resp.BlockNumber.Uint64()
+	}
+
+	fetchedPools := make([]fetchedPool, 0, len(poolKeys))
+	for i, poolKey := range poolKeys {
+		concentratedConfig, ok := poolKey.Config.TypeConfig.(pools.ConcentratedPoolTypeConfig)
+		if !ok {
+			logger.Errorf("expected concentrated pool type config for MEVCapture v2.1 pool, received %T",
+				poolKey.Config.TypeConfig)
+			continue
+		}
+
+		config := configs[lo.IndexOf(extensions, poolKey.Extension())].mevCaptureV21ConfigData
+		pool, err := pools.NewMevCaptureV21Pool(
+			poolKey.ToConcentrated(concentratedConfig),
+			newMevCaptureV21PoolState(&batchQuoteData[i], &config, &anchors[i]),
+		)
+		if err != nil {
+			logger.Errorf("invalid MEVCapture v2.1 pool state for %v: %v", poolKey.ToAbi(), err)
+			continue
+		}
+
+		fetchedPools = append(fetchedPools, fetchedPool{
+			PoolWithBlockNumber{
+				Pool:        pool,
+				blockNumber: blockNumber,
+			},
+			poolKey,
+		})
+	}
+
 	return fetchedPools, nil
 }
 
@@ -392,6 +519,45 @@ func newConcentratedPoolState(data *quoteData) *pools.ConcentratedPoolState {
 	state.ActiveTickIndex = pools.NearestInitializedTickIndex(state.SortedTicks, state.ActiveTick)
 
 	return state
+}
+
+func newMevCaptureV21PoolState(
+	data *quoteData,
+	config *mevCaptureV21ConfigData,
+	anchor *mevCaptureV21AnchorData,
+) *pools.MevCaptureV21PoolState {
+	return pools.NewMevCaptureV21PoolState(
+		&pools.MevCaptureV21PoolSwapState{
+			SqrtRatio: math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatioFloat)),
+			Liquidity: big256.FromBig(data.Liquidity),
+			Tick:      data.Tick,
+			Anchor: pools.MevCaptureV21Anchor{
+				LastUpdateTime: anchor.LastUpdateTime,
+				LRefTime:       anchor.LRefTime,
+				LastPosTime:    anchor.LastPosTime,
+				LRefBits:       anchor.LRefBits,
+				SnapBits:       anchor.SnapBits,
+				LRefRaiseTime:  anchor.LRefRaiseTime,
+				AnchorX16:      anchor.AnchorX16,
+			},
+		},
+		pools.MevCaptureV21Config{
+			HalfLife:   config.HalfLife,
+			SlopeK:     config.SlopeK,
+			SegmentExp: config.SegmentExp,
+			JLin:       config.JLin,
+			MaxFee:     config.MaxFee,
+			ClampTicks: config.ClampTicks,
+			MGate:      config.MGate,
+		},
+		lo.Map(data.Ticks, func(tick pools.TickRPC, _ int) pools.Tick {
+			return pools.Tick{
+				Number:         tick.Number,
+				LiquidityDelta: big256.SFromBig(tick.LiquidityDelta),
+			}
+		}),
+		[2]int32{data.MinTick, data.MaxTick},
+	)
 }
 
 func newFullRangePoolState(data *quoteData) *pools.FullRangePoolState {

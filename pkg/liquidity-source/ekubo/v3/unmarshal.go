@@ -115,6 +115,16 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, err
 			}
 
 			pool = pools.NewBoostedFeesPool(poolKey, state)
+		case ExtensionTypeMevCaptureV21:
+			state, err := unmarshalExtra[pools.MevCaptureV21PoolState](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing MEVCapture v2.1 pool state: %w", err)
+			}
+
+			pool, err = pools.NewMevCaptureV21Pool(poolKey, state)
+			if err != nil {
+				return nil, fmt.Errorf("MEVCapture v2.1 pool state: %w", err)
+			}
 		case ExtensionTypeVe33:
 			state, err := unmarshalExtra[pools.Ve33PoolState[*pools.ConcentratedPoolState]](extraBytes)
 			if err != nil {

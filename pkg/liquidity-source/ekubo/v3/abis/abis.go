@@ -16,12 +16,14 @@ var (
 	BoostedFeesDataFetcherABI abi.ABI
 	Ve33ABI                   abi.ABI
 	Ve33DataFetcherABI        abi.ABI
+	MevCaptureV21ABI          abi.ABI
 
 	OrderUpdatedEvent      abi.Event
 	PositionUpdatedEvent   abi.Event
 	PoolBoostedEvent       abi.Event
 	PoolInitializedEvent   abi.Event
 	VoteWeightAppliedEvent abi.Event
+	AnchorGateFailedEvent  abi.Event
 )
 
 func init() {
@@ -38,6 +40,7 @@ func init() {
 		{&BoostedFeesDataFetcherABI, boostedFeesDataFetcherJson},
 		{&Ve33ABI, ve33Json},
 		{&Ve33DataFetcherABI, ve33DataFetcherJson},
+		{&MevCaptureV21ABI, mevCaptureV21Json},
 	}
 
 	for _, b := range builder {
@@ -53,4 +56,5 @@ func init() {
 	PoolBoostedEvent = BoostedFeesABI.Events["PoolBoosted"]
 	PoolInitializedEvent = CoreABI.Events["PoolInitialized"]
 	VoteWeightAppliedEvent = Ve33ABI.Events["VoteWeightApplied"]
+	AnchorGateFailedEvent = MevCaptureV21ABI.Events["AnchorGateFailed"]
 }

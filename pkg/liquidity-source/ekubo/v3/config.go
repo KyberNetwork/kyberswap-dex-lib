@@ -19,6 +19,7 @@ type Config struct {
 	BoostedFeesDataFetcher  string               `json:"boostedFeesDataFetcher"`
 	Ve33                    common.Address       `json:"ve33"`
 	Ve33DataFetcher         string               `json:"ve33DataFetcher"`
+	MevCaptureV21           common.Address       `json:"mevCaptureV21"`
 
 	supportedExtensions map[common.Address]ExtensionType
 }
@@ -80,6 +81,9 @@ func (c *Config) ExtensionType(extension common.Address) ExtensionType {
 		}
 		if c.Ve33 != (common.Address{}) {
 			c.supportedExtensions[c.Ve33] = ExtensionTypeVe33
+		}
+		if c.MevCaptureV21 != (common.Address{}) {
+			c.supportedExtensions[c.MevCaptureV21] = ExtensionTypeMevCaptureV21
 		}
 	}
 

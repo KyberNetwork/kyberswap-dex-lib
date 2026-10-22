@@ -29,4 +29,7 @@ var (
 
 	//go:embed Ve33DataFetcher.json
 	ve33DataFetcherJson []byte
+
+	//go:embed MEVCaptureV21.json
+	mevCaptureV21Json []byte
 )
