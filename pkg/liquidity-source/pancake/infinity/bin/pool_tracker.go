@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -25,6 +26,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
@@ -39,6 +41,7 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+	lensGuard     *ephemeral.Guard
 }
 
 func NewPoolTracker(
@@ -50,6 +53,7 @@ func NewPoolTracker(
 		config:        config,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
+		lensGuard:     ephemeral.NewGuard(config.LensGuard),
 	}
 }
 
@@ -113,6 +117,11 @@ func (t *PoolTracker) BootstrapPoolState(
 
 	l.Info("Start getting new state of pancake-infinity-bin pool")
 
+	if t.config.UseLens {
+		p, _, err := t.bootstrapFromLens(ctx, p, nil)
+		return p, err
+	}
+
 	var (
 		rpcData         *FetchRPCResult
 		newPoolReserves entity.PoolReserves
@@ -157,7 +166,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		ProtocolFee: rpcData.Slot0.ProtocolFee,
 		ActiveBinID: rpcData.Slot0.ActiveId,
 		HookSwapFee: rpcData.HookSwapFee,
-		Bins:        bins,
+		Bins:        withActiveBin(bins, rpcData.Slot0.ActiveId),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -332,11 +341,24 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		"exchange": p.Exchange,
 	})
 
-	var blockNumber = eth.GetLatestBlockNumberFromLogs(param.Logs)
+	if t.config.UseLens && !hasState(p) {
+		return tickspkg.StateFromLens(ctx, t.lensGuard, p, param,
+			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
+				return t.bootstrapFromLens(ctx, p, block)
+			},
+			// The snapshot StateFromLens keeps holds every log of the batch, and a log only names
+			// bins to read again: reading them at its own, older block would undo the snapshot.
+			func(_ context.Context, p entity.Pool) (entity.Pool, error) {
+				p.Timestamp = time.Now().Unix()
+				return p, nil
+			}, l), nil
+	}
 
+	blockNumber := tickspkg.ReadBlock(param.Logs, p.BlockNumber)
 	rpcState, err := t.FetchRPCData(ctx, &p, blockNumber)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			blockNumber = 0
 			rpcState, err = t.FetchRPCData(ctx, &p, 0)
 			if err != nil {
 				l.WithFields(logger.Fields{
@@ -368,13 +390,23 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		currentActiveBinID = rpcState.Slot0.ActiveId
 	}
 
+	// The block asked for when there was one: a multicall's own block is not the chain's number on
+	// every chain (Etherlink reports the next one). The pool's block never goes back.
+	if blockNumber == 0 {
+		blockNumber = rpcState.BlockNumber
+	}
+	activeID := rpcState.Slot0.ActiveId
+
 	if len(param.Logs) > 0 {
-		binIDsFromLogs, err := t.binIDsFromLogs(currentActiveBinID, extra.Bins, param.Logs)
+		binIDsFromLogs, minted, err := t.binIDsFromLogs(currentActiveBinID, extra.Bins, param.Logs)
 		if err != nil {
 			return p, err
 		}
+		// The active bin too, whatever the logs name: a swap ends in it, and it tells whether the
+		// stored set was missing a bin.
+		binIDsFromLogs = append(binIDsFromLogs, activeID)
 
-		binsFromLogs, err := t.queryRPCBins(ctx, p.Address, binIDsFromLogs, blockNumber)
+		binsFromLogs, err := t.queryRPCBins(ctx, p.Address, lo.Uniq(binIDsFromLogs), blockNumber)
 		if err != nil {
 			return p, err
 		}
@@ -384,13 +416,18 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			return p, err
 		}
 
+		if lacksBin(extra.Bins, binsFromLogs, minted, activeID) {
+			bins = t.readAllBins(ctx, p.Address, blockNumber, activeID, bins)
+		}
+
 		extra.Bins = bins
 	}
 
-	extra.ActiveBinID = rpcState.Slot0.ActiveId
+	extra.Bins = withActiveBin(filterEmptyAndSortBins(extra.Bins), activeID)
+	extra.ActiveBinID = activeID
 	extra.ProtocolFee = rpcState.Slot0.ProtocolFee
 	extra.HookSwapFee = rpcState.HookSwapFee
-	p.BlockNumber = rpcState.BlockNumber
+	p.BlockNumber = max(p.BlockNumber, blockNumber)
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -408,6 +445,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	// The lens read the bins at the block it read the state, which is what reading them again is for.
+	if t.config.UseLens {
+		return p, nil
+	}
+
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
@@ -429,9 +471,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		l.Error(err.Error())
 		return p, err
 	}
-	bins = filterEmptyAndSortBins(bins)
-
-	extra.Bins = bins
+	extra.Bins = withActiveBin(filterEmptyAndSortBins(bins), extra.ActiveBinID)
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.Error(err.Error())
@@ -524,8 +564,12 @@ func (t *PoolTracker) mergePoolBins(currentBins, binsFromLogs []Bin) ([]Bin, err
 	return filterEmptyAndSortBins(bins), nil
 }
 
-func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bin, logs []ethtypes.Log) ([]uint32, error) {
+// binIDsFromLogs returns the bins logs change, and among them those a Mint names, which may be new
+// to the pool's set.
+func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bin,
+	logs []ethtypes.Log) ([]uint32, map[uint32]struct{}, error) {
 	binSet := map[uint32]struct{}{}
+	minted := map[uint32]struct{}{}
 
 	for _, event := range logs {
 		if len(event.Topics) == 0 || eth.IsZeroAddress(event.Address) {
@@ -545,7 +589,7 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 				l.WithFields(logger.Fields{
 					"error": err,
 				}).Error("failed to parse Swap event")
-				return nil, err
+				return nil, nil, err
 			}
 
 			newActiveBinId := uint32(swap.ActiveId.Uint64())
@@ -575,12 +619,13 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 				l.WithFields(logger.Fields{
 					"error": err,
 				}).Error("failed to parse Mint event")
-				return nil, err
+				return nil, nil, err
 			}
 
 			for _, binId := range mint.Ids {
 				if binId != nil {
 					binSet[uint32(binId.Int64())] = struct{}{}
+					minted[uint32(binId.Int64())] = struct{}{}
 				}
 			}
 
@@ -590,7 +635,7 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 				l.WithFields(logger.Fields{
 					"error": err,
 				}).Error("failed to parse Burn event")
-				return nil, err
+				return nil, nil, err
 			}
 
 			for _, binId := range burn.Ids {
@@ -609,7 +654,7 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 		binIDs = append(binIDs, binID)
 	}
 
-	return binIDs, nil
+	return binIDs, minted, nil
 }
 
 func filterEmptyAndSortBins(bins []Bin) []Bin {
@@ -654,4 +699,121 @@ func calculateReservesFromBins(bins []Bin) entity.PoolReserves {
 	}
 
 	return entity.PoolReserves{reserveX.String(), reserveY.String()}
+}
+
+// bootstrapFromLens reads the pool's bins through the lens at block (nil for the latest), then its
+// slot0 and fees, which the lens does not return, at the same block. It returns the pool with the
+// block the lens read it at.
+func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, block *big.Int) (entity.Pool, uint64,
+	error) {
+	snap, err := t.snapshot(ctx, p.Address, block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+
+	rpcData, err := t.FetchRPCData(ctx, &p, snap.block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+	if rpcData.Slot0.ActiveId != snap.activeID {
+		return entity.Pool{}, 0, fmt.Errorf("pool %s at block %d: RPC and lens disagree on the active bin",
+			p.Address, snap.block)
+	}
+
+	extraBytes, err := json.Marshal(Extra{
+		ProtocolFee: rpcData.Slot0.ProtocolFee,
+		ActiveBinID: snap.activeID,
+		HookSwapFee: rpcData.HookSwapFee,
+		Bins:        withActiveBin(snap.bins, snap.activeID),
+	})
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+
+	p.SwapFee = float64(rpcData.SwapFee)
+	p.Extra = string(extraBytes)
+	p.Reserves = calculateReservesFromBins(snap.bins)
+	p.Reserves = rescaleNativeReserves(valueobject.ChainID(t.config.ChainID), &p)
+	p.BlockNumber = max(p.BlockNumber, snap.block)
+	return p, snap.block, nil
+}
+
+// lacksBin reports whether the stored set was missing a bin: the active bin, read now, holds
+// reserves the stored set had no bin for, and no Mint of the batch put them there. A swap only
+// moves through bins that hold liquidity, so it can only have ended in one the set lacked.
+func lacksBin(stored, read []Bin, minted map[uint32]struct{}, activeID uint32) bool {
+	if _, ok := minted[activeID]; ok {
+		return false
+	}
+	if _, err := GetBinById(filterEmptyAndSortBins(read), activeID); err != nil {
+		return false // empty, or not read
+	}
+	_, err := GetBinById(filterEmptyAndSortBins(stored), activeID)
+	return err != nil
+}
+
+// readAllBins reads the pool's bins again once the stored set is found to lack one. Without the
+// lens nothing can find a bin the set never had, and merged stays; the lens reads every non-empty
+// bin at block, and its set replaces the stored one.
+//
+// The lens read goes through the guard, so it never makes the update wait: when the guard declines
+// it, or it fails, merged stays.
+func (t *PoolTracker) readAllBins(ctx context.Context, poolID string, block uint64, activeID uint32,
+	merged []Bin) []Bin {
+	l := logger.WithFields(logger.Fields{"address": poolID, "block": block})
+	if !t.config.UseLens {
+		l.Warn("stored bins lack a bin; without the lens they are kept as they are")
+		return merged
+	}
+
+	var bins []Bin
+	ran, err := t.lensGuard.Try(ctx, poolID, func(ctx context.Context) error {
+		snap, err := t.snapshot(ctx, poolID, new(big.Int).SetUint64(block))
+		if err != nil {
+			return err
+		}
+		if snap.activeID != activeID {
+			return fmt.Errorf("lens read active bin %d at block %d, RPC %d", snap.activeID, snap.block, activeID)
+		}
+		bins = snap.bins
+		return nil
+	})
+	if ran && err == nil {
+		return bins
+	}
+	l.WithFields(logger.Fields{"ran": ran, "error": err}).
+		Warn("bins not read through the lens; keeping the stored ones")
+	return merged
+}
+
+var _ poolpkg.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+
+// NextUpdateAt asks for a pool still without bins, its lens read declined by the guard, to be
+// updated again as soon as the guard would take it: it may see no log for a long time, and only an
+// update gives it its bins. Every other pool needs no update without an event.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	if t.config.UseLens && !hasState(p) {
+		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
+	}
+	return 0
+}
+
+var _ poolpkg.IPoolTrackerWithReset = (*PoolTracker)(nil)
+
+// ResetPoolState drops the pool's bins for its next update to read them whole through the lens, at a
+// block no lower than block. Without the lens nothing can read them whole, and the pool is kept.
+func (t *PoolTracker) ResetPoolState(p entity.Pool, block uint64) (entity.Pool, bool) {
+	if !t.config.UseLens {
+		return p, false
+	}
+	extra := map[string]json.RawMessage{}
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+	delete(extra, "bins")
+	extra["lensDue"] = json.RawMessage(strconv.FormatUint(max(tickspkg.LensDue(p), block), 10))
+	b, err := json.Marshal(extra)
+	if err != nil {
+		return p, false
+	}
+	p.Extra = string(b)
+	return p, true
 }
