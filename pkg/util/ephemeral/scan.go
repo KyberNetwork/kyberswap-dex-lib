@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"reflect"
+	"slices"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -123,4 +127,84 @@ func Scan[C comparable](ctx context.Context, start C, pin Pinned,
 		}
 		cursor = page.Next
 	}
+}
+
+// WordsParallel is how many calls ScanWords has in flight for one read. It bounds the calls one
+// pool's read makes at once, which a lens guard counts as one read.
+const WordsParallel = 4
+
+// ScanWords reads the words [lower, upper] of a bitmap lens, every call at pin's block, and returns
+// that block and the items of every call in word order.
+//
+// A call reads from its lower word as far as its gas allows. Each time one stops short, the words
+// it left are cut in two, and the upper half goes to another call when fewer than parallel are in
+// flight: the ticks of a pool sit in few words, which a plain cut of the range would leave in one
+// window read call after call, while halving whatever is left splits wherever the ticks are. fetch
+// reads words [lower, upper] in one call; it is called concurrently.
+func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned, parallel int,
+	fetch func(ctx context.Context, lower, upper int16, block *big.Int) (Page[int16], []T, error)) (uint64,
+	[]T, error) {
+	first, items, err := fetch(ctx, lower, upper, pin.Block)
+	if err != nil {
+		return 0, nil, err
+	}
+	if pin.Block == nil {
+		pin.Block = new(big.Int).SetUint64(first.Block)
+	} else if !pin.ranAt(first.Block) {
+		return 0, nil, fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, first.Block)
+	}
+	if first.Done {
+		return pin.Block.Uint64(), items, nil
+	}
+	if first.Next <= lower {
+		return 0, nil, ErrNoProgress
+	}
+
+	// Each call's items, by the word it started at: the calls start at distinct words, and those
+	// words order them.
+	var mu sync.Mutex
+	parts := map[int16][]T{lower: items}
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(max(parallel, 1))
+	var read func(lower, upper int16) error
+	read = func(lower, upper int16) error {
+		for {
+			page, got, err := fetch(gctx, lower, upper, pin.Block)
+			if err != nil {
+				return err
+			}
+			if !pin.ranAt(page.Block) {
+				return fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, page.Block)
+			}
+			mu.Lock()
+			parts[lower] = got
+			mu.Unlock()
+			if page.Done {
+				return nil
+			}
+			if page.Next <= lower {
+				return ErrNoProgress
+			}
+			lower = page.Next
+			// Never waits for a free call: a goroutine that did would hold one, and with every one
+			// held the read would stop. Without one, this goroutine reads both halves in turn.
+			if mid := int16((int(lower) + int(upper)) / 2); mid < upper {
+				hi := upper
+				if g.TryGo(func() error { return read(mid+1, hi) }) {
+					upper = mid
+				}
+			}
+		}
+	}
+	g.Go(func() error { return read(first.Next, upper) })
+	if err := g.Wait(); err != nil {
+		return 0, nil, err
+	}
+
+	starts := slices.Sorted(maps.Keys(parts))
+	items = nil
+	for _, start := range starts {
+		items = append(items, parts[start]...)
+	}
+	return pin.Block.Uint64(), items, nil
 }

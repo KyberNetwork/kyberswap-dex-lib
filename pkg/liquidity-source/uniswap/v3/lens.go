@@ -58,36 +58,38 @@ func (t *Tracker) snapshot(ctx context.Context, address string, block *big.Int) 
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", address, err)
 	}
-	read, err := ephemeral.Scan(ctx, lensWordLower, pin,
-		func(ctx context.Context, lower int16, block *big.Int) (ephemeral.Page[int16], error) {
+	read, ticks, err := ephemeral.ScanWords(ctx, lensWordLower, lensWordUpper, pin, ephemeral.WordsParallel,
+		func(ctx context.Context, lower, upper int16, block *big.Int) (ephemeral.Page[int16], []Tick, error) {
 			var out snapshot
 			err := ephemeral.Call(ctx, t.ethrpcClient.GetETHClient(), lens, &out, t.config.LensGas, block,
-				pool, lower, lensWordUpper)
+				pool, lower, upper)
 			if err != nil {
-				return ephemeral.Page[int16]{}, err
+				return ephemeral.Page[int16]{}, nil, err
 			}
 			if s.liquidity == nil { // the first page
 				s.tick = int(out.Tick.Int64())
 				s.liquidity = out.Liquidity
 			}
+			var got []Tick
 			for _, pt := range out.Ticks {
 				// Some forks (monday-v3) leave a tick's bitmap bit set once its liquidity is gone;
 				// such a tick holds nothing, and a swap would only pay to cross it.
 				if pt.LiquidityGross.Sign() == 0 {
 					continue
 				}
-				s.ticks = append(s.ticks, Tick{
+				got = append(got, Tick{
 					Index:          int(pt.Tick.Int64()),
 					LiquidityNet:   pt.LiquidityNet,
 					LiquidityGross: pt.LiquidityGross,
 				})
 			}
-			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, nil
+			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, got, nil
 		})
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", address, err)
 	}
 	s.block = read
+	s.ticks = ticks
 
 	checked := make([]ephemeral.Tick, len(s.ticks))
 	for i, tk := range s.ticks {

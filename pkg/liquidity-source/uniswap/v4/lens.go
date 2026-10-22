@@ -68,32 +68,34 @@ func (t *PoolTracker) snapshot(ctx context.Context, p entity.Pool, block *big.In
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", p.Address, err)
 	}
-	read, err := ephemeral.Scan(ctx, lensWordLower, pin,
-		func(ctx context.Context, lower int16, block *big.Int) (ephemeral.Page[int16], error) {
+	read, ticks, err := ephemeral.ScanWords(ctx, lensWordLower, lensWordUpper, pin, ephemeral.WordsParallel,
+		func(ctx context.Context, lower, upper int16, block *big.Int) (ephemeral.Page[int16], []Tick, error) {
 			var out snapshot
 			err := ephemeral.Call(ctx, t.ethrpcClient.GetETHClient(), lens, &out, t.config.LensGas, block,
-				stateView, id, spacing, lower, lensWordUpper)
+				stateView, id, spacing, lower, upper)
 			if err != nil {
-				return ephemeral.Page[int16]{}, err
+				return ephemeral.Page[int16]{}, nil, err
 			}
 			if s.sqrtPriceX96 == nil {
 				s.sqrtPriceX96 = out.SqrtPriceX96
 				s.tick = int(out.Tick.Int64())
 				s.liquidity = out.Liquidity
 			}
+			var got []Tick
 			for _, pt := range out.Ticks {
-				s.ticks = append(s.ticks, Tick{
+				got = append(got, Tick{
 					Index:          int(pt.Tick.Int64()),
 					LiquidityNet:   pt.LiquidityNet,
 					LiquidityGross: pt.LiquidityGross,
 				})
 			}
-			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, nil
+			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, got, nil
 		})
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", p.Address, err)
 	}
 	s.block = read
+	s.ticks = ticks
 
 	checked := make([]ephemeral.Tick, len(s.ticks))
 	for i, tk := range s.ticks {
