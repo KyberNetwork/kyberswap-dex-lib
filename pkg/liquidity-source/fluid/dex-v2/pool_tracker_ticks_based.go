@@ -62,7 +62,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool,
 		return p, nil
 	}
 
-	refetchedTicks, err := t.queryTicksFromRPC(ctx, p.Address, ticksToRefetch, p.BlockNumber)
+	refetchedTicks, err := t.readTicks(ctx, p.Address, ticksToRefetch, p.BlockNumber)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -153,7 +153,31 @@ func (t *PoolTracker) newTicksBasedPool(
 		return t.fetchTicksFromLogs(ctx, ticksBasedPool, logs, l)
 	}
 
+	// Ticks are refetched at the batch's block, never at one older than the pool's own: logs that
+	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch
+	// back to their values at that older block.
+	if blockNumber != 0 {
+		ticksBasedPool.BlockNumber = max(blockNumber, p.BlockNumber)
+	}
+
+	// A log at or below the pool's block may be in its ticks already, replayed after a crash or by
+	// a backfill of a gap, or may never have been, a retry's. Adding its delta could count it
+	// twice, so the ticks the batch touches are read whole instead, at the pool's block, which
+	// holds the log either way.
+	if hasLateLog(logs, p.BlockNumber) {
+		return t.fetchTicksFromLogs(ctx, ticksBasedPool, logs, l)
+	}
+
 	return t.computeTicksFromLogs(ctx, ticksBasedPool, logs, l)
+}
+
+// hasLateLog reports whether a log, the empty one that triggers an update aside, is at or below
+// block, the newest block whose logs a pool's state holds. A live batch's logs are all above it,
+// as a batch carries whole blocks.
+func hasLateLog(logs []ethtypes.Log, block uint64) bool {
+	return block > 0 && lo.ContainsBy(logs, func(l ethtypes.Log) bool {
+		return !l.Removed && !eth.IsZeroAddress(l.Address) && l.BlockNumber != 0 && l.BlockNumber <= block
+	})
 }
 
 func (t *PoolTracker) fetchTicksFromLogs(
@@ -179,7 +203,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 		"blockNumber":   tickBasedPool.BlockNumber,
 	}).Info("fetching affected ticks from RPC for reverted blocks")
 
-	affectedTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
+	affectedTicks, err := t.readTicks(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -197,7 +221,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 		"blockNumber":   tickBasedPool.BlockNumber,
 	}).Warn("invalid pool ticks data after fetching ticks from logs")
 
-	allTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, lo.Keys(tickBasedPool.Ticks), tickBasedPool.BlockNumber)
+	allTicks, err := t.readTicks(ctx, tickBasedPool.Address, lo.Keys(tickBasedPool.Ticks), tickBasedPool.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -280,7 +304,7 @@ func (t *PoolTracker) computeTicksFromLogs(
 		}
 		l.WithFields(logFields).Warn("tick state accumulated from logs invalid, fetching affected ticks from RPC")
 
-		affectedTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
+		affectedTicks, err := t.readTicks(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -299,7 +323,7 @@ func (t *PoolTracker) computeTicksFromLogs(
 			"blockNumber":   tickBasedPool.BlockNumber,
 		}).Warn("invalid pool ticks data after fetching ticks from logs")
 
-		allTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, lo.Keys(tickBasedPool.Ticks), tickBasedPool.BlockNumber)
+		allTicks, err := t.readTicks(ctx, tickBasedPool.Address, lo.Keys(tickBasedPool.Ticks), tickBasedPool.BlockNumber)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,

@@ -5,12 +5,16 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -90,4 +94,70 @@ func TestUpdateStateOfAFactoryPool(t *testing.T) {
 	require.NotNil(t, got.DexVariables2)
 	assert.NotEqual(t, entity.PoolReserves{"0", "0"}, p.Reserves)
 	assert.Positive(t, bignumber.NewBig10(p.Reserves[0]).Sign())
+}
+
+// depositLog is a LogDeposit adding liquidity to [lower, upper] of the test pool at block, with its
+// dexType, dexId and user in the topics, as the dex emits it.
+func depositLog(t *testing.T, block uint64, lower, upper int64, liquidity int64) ethtypes.Log {
+	t.Helper()
+	ev := abis.DexV2ABI.Events["LogDeposit"]
+	dexID, dexType := parseFluidDexV2PoolAddress(testPoolAddress)
+	data, err := ev.Inputs.NonIndexed().Pack(big.NewInt(lower), big.NewInt(upper), [32]byte{}, big.NewInt(1),
+		big.NewInt(1), big.NewInt(0), big.NewInt(0), big.NewInt(liquidity))
+	require.NoError(t, err)
+	topics := []common.Hash{ev.ID, common.BigToHash(big.NewInt(int64(dexType))), common.HexToHash(dexID),
+		common.BytesToHash(common.Address{1}.Bytes())}
+	return ethtypes.Log{Address: common.HexToAddress(liveConfig.Dex), Topics: topics, Data: data, BlockNumber: block}
+}
+
+// pinnedTicks stands in for the chain's tick reads, answering testTicks at any block and recording
+// the reads.
+type pinnedTicks struct{ reads []uint64 }
+
+func (c *pinnedTicks) read(_ context.Context, _ string, indexes []int, block uint64) ([]tickspkg.Tick, error) {
+	c.reads = append(c.reads, block)
+	byIndex := lo.KeyBy(testTicks(), func(tk Tick) int { return tk.Index })
+	return lo.Map(indexes, func(i int, _ int) tickspkg.Tick {
+		tk := byIndex[i]
+		return tickspkg.Tick{TickIdx: i, LiquidityGross: tk.LiquidityGross, LiquidityNet: tk.LiquidityNet}
+	}), nil
+}
+
+// TestLateLogsAreReadWhole: a log at or below the pool's block, which its ticks may hold already,
+// has the ticks it touches read whole at the pool's block rather than its delta added again; a log
+// above it is added.
+func TestLateLogsAreReadWhole(t *testing.T) {
+	// The pool at block 100 holds testTicks, a deposit of 1000 to [-10, 20] made at block 100.
+	start := mustExtra(t, readsAround[1])
+	start.Ticks = testTicks()
+	pool, err := withState(entity.Pool{Address: testPoolAddress}, start)
+	require.NoError(t, err)
+	pool.BlockNumber = 100
+
+	for _, tc := range []struct {
+		name      string
+		block     uint64
+		wantGross int64
+		wantReads []uint64
+	}{
+		{"replayed", 100, 1000, []uint64{100}},
+		{"late", 90, 1000, []uint64{100}},
+		{"live", 101, 2000, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			chain := &pinnedTicks{}
+			tracker := &PoolTracker{config: &liveConfig, readTicks: chain.read}
+			tracker.readState = func(context.Context, *entity.Pool, uint64) (Extra, error) {
+				return mustExtra(t, readsAround[1]), nil
+			}
+			p, err := tracker.GetNewPoolState(t.Context(), pool,
+				poolpkg.GetNewPoolStateParams{Logs: []ethtypes.Log{depositLog(t, tc.block, -10, 20, 1000)}})
+			require.NoError(t, err)
+
+			got := mustExtra(t, p.Extra)
+			require.Len(t, got.Ticks, 2)
+			assert.Equal(t, tc.wantGross, got.Ticks[0].LiquidityGross.Int64())
+			assert.Equal(t, tc.wantReads, chain.reads)
+		})
+	}
 }
