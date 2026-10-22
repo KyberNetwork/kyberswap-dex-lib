@@ -57,13 +57,14 @@ type Batcher struct {
 type batch struct {
 	block    *big.Int
 	reads    []*batchRead
+	codes    map[*Contract]int
 	initCode int
 	timer    *time.Timer
 }
 
 type batchRead struct {
-	initCode []byte
 	contract *Contract
+	args     []byte
 	gas      uint64
 	done     chan batchResult
 }
@@ -121,12 +122,12 @@ func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out an
 	if b == nil || block == nil {
 		return Call(ctx, c, contract, out, gas, block, args...)
 	}
-	initCode, err := contract.PackCall(args...)
+	packed, err := contract.packArgs(args...)
 	if err != nil {
 		return err
 	}
 
-	read := &batchRead{initCode: initCode, contract: contract, gas: gas, done: make(chan batchResult, 1)}
+	read := &batchRead{contract: contract, args: packed, gas: gas, done: make(chan batchResult, 1)}
 	b.add(block, read)
 
 	var res batchResult
@@ -159,7 +160,7 @@ func (b *Batcher) add(block *big.Int, read *batchRead) {
 		cur = nil
 	}
 	if cur == nil {
-		cur = &batch{block: new(big.Int).Set(block), initCode: len(lensBatch.bytecode)}
+		cur = &batch{block: new(big.Int).Set(block), codes: map[*Contract]int{}, initCode: len(lensBatch.bytecode)}
 		b.pending[key] = cur
 		window := defaultBatchWindow
 		if b.cfg.WindowMs > 0 {
@@ -179,6 +180,9 @@ func (b *Batcher) add(block *big.Int, read *batchRead) {
 	}
 
 	cur.initCode += cur.cost(read)
+	if _, ok := cur.codes[read.contract]; !ok {
+		cur.codes[read.contract] = len(cur.codes)
+	}
 	cur.reads = append(cur.reads, read)
 	if len(cur.reads) >= b.cfg.MaxItems {
 		b.detach(key, cur)
@@ -191,15 +195,21 @@ func (b *Batcher) detach(key uint64, cur *batch) {
 	delete(b.pending, key)
 }
 
-// cost is what read adds to the batch's call data: its init code and the ABI words around it.
+// cost is what read adds to the batch's call data: its arguments and the ABI words around them,
+// and its lens's code the first time the batch sees it.
 func (cur *batch) cost(read *batchRead) int {
-	return len(read.initCode) + 5*32
+	n := len(read.args) + 6*32
+	if _, ok := cur.codes[read.contract]; !ok {
+		n += len(read.contract.bytecode) + 2*32
+	}
+	return n
 }
 
 // lensBatchItem is LensBatch.Item.
 type lensBatchItem struct {
-	InitCode []byte
-	Gas      *big.Int
+	Code *big.Int
+	Args []byte
+	Gas  *big.Int
 }
 
 // lensBatchResults is what LensBatch returns.
@@ -215,16 +225,24 @@ type lensBatchResults struct {
 // flush runs the batch and hands each read its result; a batch that failed hands every read the
 // error, and each is made alone.
 func (b *Batcher) flush(cur *batch) {
+	codes := make([][]byte, len(cur.codes))
+	for contract, i := range cur.codes {
+		codes[i] = contract.bytecode
+	}
 	items := make([]lensBatchItem, len(cur.reads))
 	for i, read := range cur.reads {
-		items[i] = lensBatchItem{InitCode: read.initCode, Gas: new(big.Int).SetUint64(read.gas)}
+		items[i] = lensBatchItem{
+			Code: big.NewInt(int64(cur.codes[read.contract])),
+			Args: read.args,
+			Gas:  new(big.Int).SetUint64(read.gas),
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), batchTimeout)
 	defer cancel()
 	b.batches.Add(1)
 	var out lensBatchResults
-	err := Call(ctx, b.caller, lensBatch, &out, b.cfg.Gas, cur.block, items,
+	err := Call(ctx, b.caller, lensBatch, &out, b.cfg.Gas, cur.block, codes, items,
 		new(big.Int).SetUint64(b.cfg.MinItemGas))
 	if err == nil && len(out.Results) != len(cur.reads) {
 		err = fmt.Errorf("ephemeral: a batch of %d reads returned %d results", len(cur.reads), len(out.Results))
