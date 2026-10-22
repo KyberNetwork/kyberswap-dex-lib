@@ -3,6 +3,7 @@ package ephemeral
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -370,4 +371,52 @@ func TestBatcherBoundsTheBatchesInFlight(t *testing.T) {
 	assert.EqualValues(t, 9, node.batches.Load())
 	assert.EqualValues(t, 3, node.peak.Load(), "three batches at once, never more")
 	assert.Less(t, time.Since(start), 9*50*time.Millisecond, "and not one at a time")
+}
+
+// TestBatcherCountsItsCalls: the rate counts batch calls, not the reads in them.
+func TestBatcherCountsItsCalls(t *testing.T) {
+	node := &batchNode{}
+	b := NewBatcher(node, BatchConfig{WindowMs: 20, Gas: 1_000_000_000, Rate: 5, Burst: 1})
+
+	start := time.Now()
+	readAll(t, b, node, 60, 61, 62, 63, 64, 65, 66, 67)
+	assert.EqualValues(t, 1, node.batches.Load(), "eight reads, one call")
+	assert.Less(t, time.Since(start), 150*time.Millisecond, "one call is within the burst")
+
+	b = NewBatcher(node, BatchConfig{MaxItems: 1, Gas: 1_000_000_000, Rate: 5, Burst: 1})
+	start = time.Now()
+	readAll(t, b, node, 70, 71, 72)
+	assert.GreaterOrEqual(t, time.Since(start), 350*time.Millisecond, "three calls at five a second")
+}
+
+// TestLensGuardWithABatchKeepsTheCooldownOnly: with batched reads, a guard lets every pool read at
+// once, the Batcher bounding the calls, and still holds a pool back for its cooldown.
+func TestLensGuardWithABatchKeepsTheCooldownOnly(t *testing.T) {
+	g := NewLensGuard(GuardConfig{}, &BatchConfig{})
+	release := make(chan struct{})
+	var ran atomic.Int64
+	var wg sync.WaitGroup
+	for i := range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ok, err := g.Try(context.Background(), fmt.Sprint("pool", i), func(context.Context) error {
+				ran.Add(1)
+				<-release
+				return nil
+			})
+			assert.True(t, ok)
+			assert.NoError(t, err)
+		}()
+	}
+	require.Eventually(t, func() bool { return ran.Load() == 10 }, time.Second, time.Millisecond,
+		"ten pools at once, where a guard counting pools lets two")
+	close(release)
+	wg.Wait()
+
+	ok, err := g.Try(t.Context(), "pool0", func(context.Context) error { return nil })
+	require.NoError(t, err)
+	assert.False(t, ok, "a pool read moments ago waits for its cooldown")
+
+	assert.NotNil(t, NewLensGuard(GuardConfig{}, nil).limiter, "without a batch, the guard is NewGuard's")
 }

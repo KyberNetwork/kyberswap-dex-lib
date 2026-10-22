@@ -54,7 +54,7 @@ func NewPoolTracker(
 		EthrpcClient:  ethrpcClient,
 		config:        cfg,
 		graphqlClient: graphqlClient,
-		lensGuard:     ephemeral.NewGuard(cfg.LensGuard),
+		lensGuard:     ephemeral.NewLensGuard(cfg.LensGuard, cfg.LensBatch),
 	}
 	t.readLens = t.readLensPages
 	t.readTicks = t.queryRPCTicksByIndexes
