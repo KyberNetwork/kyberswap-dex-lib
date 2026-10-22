@@ -50,8 +50,9 @@ func (e *RevertError) Error() string {
 	return fmt.Sprintf("ephemeral: reverted with %v", e.Err)
 }
 
-// Call runs contract with args at block (nil for the latest) under gas (0 for the node's own cap),
-// and decodes the result into out, as Contract.UnpackCall does.
+// Call runs contract with args at block (nil for the latest) under gas, and decodes the result
+// into out, as Contract.UnpackCall does. Gas 0 is the node's cap up to CallGasCeiling (see
+// GasCap).
 //
 // An error the node returns without revert data, such as a rate limit or a pruned block, is
 // returned as it is: the call never ran.
@@ -60,7 +61,7 @@ func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64
 	if err != nil {
 		return err
 	}
-	_, err = c.CallContract(ctx, ethereum.CallMsg{Data: data, Gas: gas}, block)
+	_, err = c.CallContract(ctx, ethereum.CallMsg{Data: data, Gas: callGas(ctx, c, gas)}, block)
 	if err == nil {
 		return ErrNotReverted
 	}
