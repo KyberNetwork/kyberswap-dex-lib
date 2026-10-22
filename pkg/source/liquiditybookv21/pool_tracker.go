@@ -377,14 +377,11 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
-	var blockNumber uint64
-	if len(logs) > 0 {
-		blockNumber = logs[len(logs)-1].BlockNumber
-	}
-
+	blockNumber := readBlock(*p, logs)
 	rpcState, err := t.FetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			blockNumber = 0
 			rpcState, err = t.FetchRPCData(ctx, p, 0)
 			if err != nil {
 				l.Err(err).Msg("failed to FetchRPCData")
@@ -400,7 +397,12 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		rpcState.Reserves.ReserveX.String(),
 		rpcState.Reserves.ReserveY.String(),
 	}
-	p.BlockNumber = rpcState.BlockNumber
+	// The block asked for when there was one: a multicall's own block is not the chain's number on
+	// every chain (Etherlink reports the next one). The pair's block never goes back.
+	if blockNumber == 0 {
+		blockNumber = rpcState.BlockNumber
+	}
+	p.BlockNumber = max(p.BlockNumber, blockNumber)
 
 	var extra Extra
 	if p.Extra != "" {
@@ -427,12 +429,24 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	return nil
 }
 
+// readBlock is the block an update reads the pair at: that of its newest log, or the pair's own
+// when newer, as it is for a log retried or replayed after newer ones were applied; the latest
+// without logs. Reading such a log's block would put the pair back to its state there.
+func readBlock(p entity.Pool, logs []ethtypes.Log) uint64 {
+	if len(logs) == 0 {
+		return 0
+	}
+	return max(eth.GetBlockNumberFromLogs(logs), p.BlockNumber)
+}
+
 func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
 	if len(logs) == 0 {
 		return nil
 	}
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
+	// At the block the reserves were just read at, so the bins add up to them: a late log's own
+	// block would put its bins back to their values there, behind the rest of the pair.
+	blockNumber := p.BlockNumber
 
 	binIDsFromLogs, err := t.binIDsFromLogs(l, logs)
 	if err != nil {

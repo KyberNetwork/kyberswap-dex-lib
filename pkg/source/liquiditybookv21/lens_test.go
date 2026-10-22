@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -167,4 +168,13 @@ func TestResetPoolState(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, p, got)
 	assert.Zero(t, plain.NextUpdateAt(entity.Pool{}))
+}
+
+// TestReadBlockNeverGoesBack: an update reads at its newest log's block, but never below the
+// pair's own, and at the latest without logs.
+func TestReadBlockNeverGoesBack(t *testing.T) {
+	p := entity.Pool{BlockNumber: 200}
+	assert.EqualValues(t, 0, readBlock(p, nil))
+	assert.EqualValues(t, 250, readBlock(p, []ethtypes.Log{{BlockNumber: 240}, {BlockNumber: 250}}))
+	assert.EqualValues(t, 200, readBlock(p, []ethtypes.Log{{BlockNumber: 150}}), "a late log")
 }
