@@ -49,6 +49,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
+	// A pool the factory built, or one reset to be read whole, has no state until its next update.
+	if extra.Liquidity == nil || extra.SqrtPriceX96 == nil || extra.Tick == nil || extra.DexVariables2 == nil {
+		return nil, ErrV3TicksEmpty
+	}
 
 	extraTickU256 := uniswapv3.ExtraTickU256{
 		Liquidity:    new(uint256.Int),

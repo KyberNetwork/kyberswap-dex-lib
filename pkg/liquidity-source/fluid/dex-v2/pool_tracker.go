@@ -3,6 +3,7 @@ package dexv2
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -18,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -26,6 +28,7 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+	lensGuard     *ephemeral.Guard
 
 	// readState and readTicks are the pool's state and tick reads, FetchRPCData and
 	// queryTicksFromRPC unless a test stands in for the chain.
@@ -45,6 +48,7 @@ func NewPoolTracker(
 		config:        config,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
+		lensGuard:     ephemeral.NewGuard(config.LensGuard),
 	}
 	t.readState = t.FetchRPCData
 	t.readTicks = t.queryTicksFromRPC
@@ -56,7 +60,45 @@ func (t *PoolTracker) BootstrapPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	if t.config.UseLens {
+		p, _, err := t.bootstrapFromLens(ctx, p, params, nil)
+		return p, err
+	}
 	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+// bootstrapFromLens reads the pool's state and ticks through the lens at block (nil for the
+// latest), then the rest of its state, which the lens does not return, at the same block. It
+// returns the pool with the block the lens read it at.
+func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams,
+	block *big.Int) (entity.Pool, uint64, error) {
+	snap, err := t.snapshot(ctx, p.Address, block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+
+	extra, err := t.readState(ctx, &p, snap.block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return entity.Pool{}, 0, err
+	}
+	if extra.Liquidity.Cmp(snap.liquidity) != 0 || extra.Tick.Int64() != int64(snap.tick) ||
+		extra.SqrtPriceX96.Cmp(snap.sqrtPriceX96) != 0 || int(staticExtra.TickSpacing) != snap.tickSpacing {
+		return entity.Pool{}, 0, fmt.Errorf("pool %s at block %d: the state read and the lens disagree",
+			p.Address, snap.block)
+	}
+
+	extra.Ticks = snap.ticks
+	extra.LensBlock = snap.block
+	if p, err = withState(p, extra); err != nil {
+		return entity.Pool{}, 0, err
+	}
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, snap.block, lo.LastOrEmpty(params.Logs).BlockNumber)
+	return p, snap.block, nil
 }
 
 func (t *PoolTracker) GetNewPoolStateWithOverrides(

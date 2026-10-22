@@ -161,3 +161,47 @@ func TestLateLogsAreReadWhole(t *testing.T) {
 		})
 	}
 }
+
+// TestPoolWithoutStateIsNotSimulated: a pool the factory built, or one reset for the lens to read
+// whole, is refused by the simulator rather than read as zeros.
+func TestPoolWithoutStateIsNotSimulated(t *testing.T) {
+	start := mustExtra(t, readsAround[1])
+	start.Ticks = testTicks()
+	p, err := withState(entity.Pool{Address: testPoolAddress, StaticExtra: `{"tickSpacing":1}`,
+		Tokens: []*entity.PoolToken{{Address: "0x1"}, {Address: "0x2"}}}, start)
+	require.NoError(t, err)
+	reset, ok := (&PoolTracker{config: &Config{UseLens: true}}).ResetPoolState(p, 7)
+	require.True(t, ok)
+
+	for _, extra := range []string{"{}", reset.Extra} {
+		p.Extra = extra
+		_, err := NewPoolSimulator(p, 137)
+		assert.ErrorIs(t, err, ErrV3TicksEmpty, extra)
+	}
+}
+
+// TestResetPoolState: a reset drops the state logs built and keeps the rest, for the lens to read
+// the pool whole at block 7 or later; without the lens nothing can, and the pool is kept.
+func TestResetPoolState(t *testing.T) {
+	start := mustExtra(t, readsAround[1])
+	start.Ticks = testTicks()
+	start.LensBlock = 5
+	p, err := withState(entity.Pool{Address: testPoolAddress}, start)
+	require.NoError(t, err)
+
+	kept, ok := (&PoolTracker{config: &Config{}}).ResetPoolState(p, 7)
+	assert.False(t, ok)
+	assert.Equal(t, p, kept)
+
+	tracker := NewPoolTracker(&Config{UseLens: true}, nil, nil)
+	reset, ok := tracker.ResetPoolState(p, 7)
+	require.True(t, ok)
+	assert.False(t, tickspkg.HasState(reset))
+	assert.Equal(t, uint64(7), tickspkg.LensDue(reset))
+	got := mustExtra(t, reset.Extra)
+	assert.Empty(t, got.Ticks)
+	assert.Zero(t, got.LensBlock)
+	assert.Zero(t, got.TokenReserves.Cmp(start.TokenReserves), "the rest of the state is kept")
+	assert.NotZero(t, tracker.NextUpdateAt(reset), "a pool without state is updated again")
+	assert.Zero(t, tracker.NextUpdateAt(p))
+}
