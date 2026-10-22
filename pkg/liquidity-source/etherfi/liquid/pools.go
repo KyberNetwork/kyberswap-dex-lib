@@ -3,6 +3,7 @@ package liquid
 import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 
 type PoolInfo struct {
+	Exchange string // empty means etherfi-liquid
 	// SimpleTeller: teller exposes isSupported(asset) instead of assetData(asset) and is
 	// called directly (no LiquidRefer); the vault pulls tokens, so the vault is the spender.
 	SimpleTeller           bool
@@ -18,9 +19,13 @@ var poolsByChain = map[valueobject.ChainID]map[string]PoolInfo{
 var hyperevmPools = map[string]PoolInfo{
 	// LHYPE
 	"0x5748ae796ae46a4f1348a1693de4b50560485562": {
-		SupportedDepositAssets: []string{"0x5555555555555555555555555555555555555555"}, // WHYPE
-		TellerContract:         "0xfd83c1ca0c04e096d129275126fade1dc45bf4f0",
-		SimpleTeller:           true,
+		Exchange: valueobject.ExchangeLoopLiquid,
+		SupportedDepositAssets: []string{
+			"0x5555555555555555555555555555555555555555", // WHYPE
+			"0xffaa4a3d97fe9107cef8a3f48c069f577ff76cc1", // stHYPE, pegged 1:1 to the base rate
+		},
+		TellerContract: "0xfd83c1ca0c04e096d129275126fade1dc45bf4f0",
+		SimpleTeller:   true,
 	},
 }
 

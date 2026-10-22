@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	lhype = "0x5748ae796ae46a4f1348a1693de4b50560485562"
-	whype = "0x5555555555555555555555555555555555555555"
+	lhype  = "0x5748ae796ae46a4f1348a1693de4b50560485562"
+	whype  = "0x5555555555555555555555555555555555555555"
+	sthype = "0xffaa4a3d97fe9107cef8a3f48c069f577ff76cc1"
 	// accountant.getRateInQuoteSafe(WHYPE) on hyperevm at block 49190448.
 	lhypeRate = "1030663339500000000"
 )
@@ -90,7 +91,6 @@ func TestSimpleTellerRouting(t *testing.T) {
 	require.Equal(t, hexAddr(lhype), meta.ApprovalAddress)
 	require.Equal(t, hexAddr("0xfd83c1ca0c04e096d129275126fade1dc45bf4f0"), meta.Teller)
 	require.Equal(t, hexAddr("0x0"), meta.LiquidRefer)
-	require.True(t, meta.TellerDirect)
 }
 
 func hexAddr(s string) common.Address { return common.HexToAddress(s) }

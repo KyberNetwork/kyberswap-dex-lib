@@ -38,7 +38,5 @@ type MetaInfo struct {
 	LiquidRefer     common.Address `json:"liquidRefer"`
 	Teller          common.Address `json:"teller"`
 	ApprovalAddress common.Address `json:"approvalAddress"`
-	// TellerDirect: deposit on the teller itself, approving ApprovalAddress (the vault).
-	TellerDirect bool   `json:"tellerDirect,omitempty"`
-	BlockNumber  uint64 `json:"blockNumber"`
+	BlockNumber     uint64         `json:"blockNumber"`
 }

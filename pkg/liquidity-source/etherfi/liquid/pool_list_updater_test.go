@@ -20,13 +20,16 @@ func TestGetNewPools_ByChain(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &se))
 		require.Equal(t, liquidReferAddress, se.LiquidRefer)
 		require.False(t, se.SimpleTeller)
+		require.Equal(t, valueobject.ExchangeEtherfiLiquid, p.Exchange)
 	}
 
 	hl, _, err := NewPoolListUpdater(&Config{ChainID: valueobject.ChainIDHyperEVM}, nil).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, hl, 1)
 	require.Equal(t, lhype, hl[0].Address)
+	require.Equal(t, valueobject.ExchangeLoopLiquid, hl[0].Exchange)
 	require.Equal(t, whype, hl[0].Tokens[1].Address)
+	require.Equal(t, sthype, hl[0].Tokens[2].Address)
 	var se StaticExtra
 	require.NoError(t, json.Unmarshal([]byte(hl[0].StaticExtra), &se))
 	require.True(t, se.SimpleTeller)

@@ -139,7 +139,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 		LiquidRefer:     s.staticExtra.LiquidRefer,
 		Teller:          s.staticExtra.Teller,
 		ApprovalAddress: approval,
-		TellerDirect:    s.staticExtra.SimpleTeller,
 		BlockNumber:     s.Info.BlockNumber,
 	}
 }

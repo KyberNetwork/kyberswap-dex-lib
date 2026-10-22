@@ -56,7 +56,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 		return entity.Pool{
 			Address:     poolAddress,
-			Exchange:    string(valueobject.ExchangeEtherfiLiquid),
+			Exchange:    lo.Ternary(poolInfo.Exchange != "", poolInfo.Exchange, valueobject.ExchangeEtherfiLiquid),
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{unlimitedReserve, unlimitedReserve},
