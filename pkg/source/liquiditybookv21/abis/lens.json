@@ -1,0 +1,97 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pair",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pair",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "name": "getSnapshot",
+      "outputs": [
+        {
+          "internalType": "uint24",
+          "name": "activeId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "uint128",
+          "name": "reserveX",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint128",
+          "name": "reserveY",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint24",
+          "name": "nextId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "bool",
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint24",
+              "name": "id",
+              "type": "uint24"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveX",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveY",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct LiquidityBookV21Lens.PopulatedBin[]",
+          "name": "bins",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "UnexpectedPairResponse",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080601f6102aa38819003918201601f19168301916001600160401b03831184841017610295578084926040948552833981010312610291578051906001600160a01b0382168203610291576020015162ffffff81168103610291576040516336f997b760e21b81525f60048201525f602482015260205f600483865afa1561022257505f519060203d1061021357604051630240bc6b60e21b81525f60048201525f602482015260405f600483875afa1561022257505f516020519160403d10610213576040519261012084016040525f915f905b61ea605a1061027f5762ffffff811690604051630157d2d160e31b81528260048201525f602482015260405f6024838d5afa1561022257503d5f5160406020519210610213576001600160801b0390811691168115801590610276575b61022a575b505060405163a41a01fb60e01b81525f600482015282602482015260205f6044838d5afa1561022257505f5160203d106102135762ffffff169182111561017e57506100d5565b90506101209596975062ffffff91506001925b63a3b1b31d60e01b5f5260205f60048160645afa60203d1416905f51911561020b575b606086029661010088018a528460208b019b168b5260018060801b031660408a015260018060801b0316606089015260808801521660a0860152151560c085015260e0808501526101008401528201016040525190fd5b4391506101b4565b63276b14a360e21b5f5260045ffd5b3d5f823e3d90fd5b90610180916060889498028a019185610120840152610140830152610160820152016040525f19811461026257600101935f80610137565b634e487b7160e01b5f52601160045260245ffd5b50801515610132565b6101209596975062ffffff9192610191565b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe"
+}
