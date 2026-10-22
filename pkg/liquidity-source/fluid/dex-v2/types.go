@@ -77,6 +77,10 @@ type Extra struct {
 	Token1ExchangePricesAndConfig *big.Int `json:"token1ExchangePricesAndConfig"`
 
 	TokenReserves *big.Int `json:"tokenReserves"`
+
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never: every
+	// log at or below it is already in them.
+	LensBlock uint64 `json:"lensBlock,omitempty"`
 }
 
 type DexKey struct {
