@@ -67,7 +67,12 @@ func (d *PoolTracker) getNewPoolStates(ctx context.Context, pools []entity.Pool,
 		return out, errs
 	}
 
-	pinned := new(big.Int).SetUint64(blockNumber)
+	// The block the lens read at; none when no pool's read ran, each too large alone, and those are
+	// read the usual way at the block asked.
+	pinned := block
+	if blockNumber != 0 {
+		pinned = new(big.Int).SetUint64(blockNumber)
+	}
 	for k, pl := range plans {
 		p := pools[pl.idx]
 		newPool, err := d.fromLens(ctx, p, pl.staticExtra, pl.vaults, pinned, reads[k])

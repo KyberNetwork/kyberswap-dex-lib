@@ -229,7 +229,7 @@ func (b *Batcher) learn(read *batchRead, gas uint64) {
 // the latest block names no block for the batch to share.
 func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int,
 	args ...any) error {
-	if b == nil || block == nil {
+	if b == nil {
 		return Call(ctx, c, contract, out, gas, block, args...)
 	}
 	packed, err := contract.packArgs(args...)
@@ -272,7 +272,10 @@ func (b *Batcher) add(block *big.Int, read *batchRead, budget uint64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	key := block.Uint64()
+	key := latestBatch
+	if block != nil {
+		key = block.Uint64()
+	}
 	cur := b.pending[key]
 	if cur != nil && (cur.initCode+cur.cost(read) > maxBatchInitCode ||
 		batchOverhead+cur.expected+read.expected > budget) {
@@ -281,7 +284,7 @@ func (b *Batcher) add(block *big.Int, read *batchRead, budget uint64) {
 		cur = nil
 	}
 	if cur == nil {
-		cur = &batch{block: new(big.Int).Set(block), codes: map[*Contract]int{}, initCode: len(lensBatch.bytecode)}
+		cur = &batch{block: block, codes: map[*Contract]int{}, initCode: len(lensBatch.bytecode)}
 		b.pending[key] = cur
 		window := defaultBatchWindow
 		if b.cfg.WindowMs > 0 {
@@ -311,6 +314,10 @@ func (b *Batcher) add(block *big.Int, read *batchRead, budget uint64) {
 		go b.flush(cur)
 	}
 }
+
+// latestBatch keys the batch of reads at the latest block: one call runs all its reads at one
+// block, whichever the node is at, and each read takes the block its lens reports.
+const latestBatch = ^uint64(0)
 
 func (b *Batcher) detach(key uint64, cur *batch) {
 	cur.timer.Stop()

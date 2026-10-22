@@ -51,7 +51,11 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 	}
 	time.Sleep(n.delay)
 	n.mu.Lock()
-	n.blocks = append(n.blocks, block.Uint64())
+	var at uint64 // 0 for a call at the latest block
+	if block != nil {
+		at = block.Uint64()
+	}
+	n.blocks = append(n.blocks, at)
 	n.sizes = append(n.sizes, len(msg.Data))
 	n.mu.Unlock()
 	if n.failBatches {
@@ -86,7 +90,12 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 		}
 		results[i] = result{Ran: true, Gas: new(big.Int).SetUint64(gas), Data: testRead(x)}
 	}
-	payload, err := lensBatch.result.Pack(block, big.NewInt(int64(count)), results)
+	// A call at the latest runs at the node's head, here 1000.
+	ran := block
+	if ran == nil {
+		ran = big.NewInt(1000)
+	}
+	payload, err := lensBatch.result.Pack(ran, big.NewInt(int64(count)), results)
 	if err != nil {
 		return nil, err
 	}
@@ -227,19 +236,42 @@ func TestBatcherFallsBackWhenTheBatchFails(t *testing.T) {
 	assert.EqualValues(t, 1, node.alone.Load())
 }
 
-// TestBatcherWithoutABatchOrABlock: a nil Batcher, and a read at the latest block, are Call.
-func TestBatcherWithoutABatchOrABlock(t *testing.T) {
+// TestBatcherWithoutABatch: a nil Batcher is Call.
+func TestBatcherWithoutABatch(t *testing.T) {
 	node := &batchNode{}
 	var none *Batcher
 	got, err := read(t, none, node, 3, 100)
 	require.NoError(t, err)
 	assert.EqualValues(t, 3, got.Value.Int64())
-
-	b := NewBatcher(node, BatchConfig{})
-	require.NoError(t, b.Call(context.Background(), node, testContract, &got, 0, nil, big.NewInt(4)))
-	assert.EqualValues(t, 4, got.Value.Int64())
 	assert.EqualValues(t, 0, node.batches.Load())
-	assert.EqualValues(t, 2, node.alone.Load())
+	assert.EqualValues(t, 1, node.alone.Load())
+}
+
+// TestBatcherGathersReadsAtTheLatest: reads at the latest block share a batch too, its one call
+// running them all at one block, kept apart from those pinned to a block.
+func TestBatcherGathersReadsAtTheLatest(t *testing.T) {
+	node := &batchNode{}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
+
+	var wg sync.WaitGroup
+	for x := int64(1); x <= 6; x++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var block *big.Int
+			if x > 3 {
+				block = big.NewInt(100)
+			}
+			var got testResult
+			assert.NoError(t, b.Call(context.Background(), node, testContract, &got, 0, block, big.NewInt(x)))
+			assert.EqualValues(t, x, got.Value.Int64())
+		}()
+	}
+	wg.Wait()
+
+	assert.EqualValues(t, 2, node.batches.Load(), "one batch at the latest, one at block 100")
+	assert.EqualValues(t, 0, node.alone.Load())
+	assert.ElementsMatch(t, []uint64{0, 100}, node.blocks)
 }
 
 // TestBatcherFirstPageResumesAlone: a scan whose first page comes from a batch, cut short there,
@@ -422,14 +454,12 @@ func TestLensGuardWithABatchKeepsTheCooldownOnly(t *testing.T) {
 	assert.NotNil(t, NewLensGuard(GuardConfig{}, nil).limiter, "without a batch, the guard is NewGuard's")
 }
 
-// countingHead is a Head that counts the chain ids it is asked.
-type countingHead struct {
+// countingChain is a Chain that counts the chain ids it is asked.
+type countingChain struct {
 	asked atomic.Int64
 }
 
-func (h *countingHead) BlockNumber(context.Context) (uint64, error) { return 100, nil }
-
-func (h *countingHead) ChainID(context.Context) (*big.Int, error) {
+func (h *countingChain) ChainID(context.Context) (*big.Int, error) {
 	h.asked.Add(1)
 	time.Sleep(20 * time.Millisecond)
 	return big.NewInt(1), nil
@@ -437,7 +467,7 @@ func (h *countingHead) ChainID(context.Context) (*big.Int, error) {
 
 // TestPinAsksTheChainOnce: reads that start together share one chain id question.
 func TestPinAsksTheChainOnce(t *testing.T) {
-	h := &countingHead{}
+	h := &countingChain{}
 	var wg sync.WaitGroup
 	for range 50 {
 		wg.Add(1)
