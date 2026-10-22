@@ -49,7 +49,7 @@ func TestLiveBatchMatchesSinglePool(t *testing.T) {
 
 	// Every pool the factory lists. GetNewPools only looks at the tail of that list, relying on
 	// earlier runs for the rest, so the pools are listed and initialized directly here.
-	cfg := shared.Config{FactoryAddress: "0x5fccb84363f020c0cade052c9c654aabf932814a"}
+	cfg := shared.Config{FactoryAddress: "0x5fccb84363f020c0cade052c9c654aabf932814a", UseLens: true}
 	updater := NewPoolsListUpdater(&cfg, client)
 	length, err := updater.getPoolsLength(ctx)
 	require.NoError(t, err)

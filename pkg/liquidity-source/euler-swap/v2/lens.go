@@ -56,27 +56,44 @@ type poolStates struct {
 // builds for it: the two disagree about the pool, and the lens's reads cannot be trusted for it.
 var errLensReadsMismatch = errors.New("euler-swap-v2: lens reads do not match the tracker's rounds")
 
+// lensRead is one pool's four rounds as the lens read them, or why the lens could not read the
+// pool.
+type lensRead struct {
+	reads poolReads
+	err   error
+}
+
 // readLens reads every pool's four rounds through the lens, in as few calls as the node
 // takes under gas (0 for the node's own cap), all at one block: block, or the latest when nil. The
 // reads are in input order.
+//
+// A pool the lens cannot read even alone gets its error, and the rest are read without it: one
+// pool whose read always reverts empty would otherwise take the whole batch with it.
 func (d *PoolTracker) readLens(ctx context.Context, inputs []poolInput, block *big.Int,
-	gas uint64) (uint64, []poolReads, error) {
+	gas uint64) (uint64, []lensRead, error) {
 	pin, err := ephemeral.Pin(ctx, d.ethrpcClient.GetETHClient(), block)
 	if err != nil {
 		return 0, nil, err
 	}
 	return ephemeral.Split(ctx, inputs, pin, lensTooLarge,
 		func(ctx context.Context, part []poolInput, block *big.Int) (
-			uint64, []poolReads, error) {
+			uint64, []lensRead, error) {
 			var out poolStates
 			err := ephemeral.Call(ctx, d.ethrpcClient.GetETHClient(), lens, &out, gas, block, part)
 			if err != nil {
+				if len(part) == 1 && lensTooLarge(err) {
+					return block.Uint64(), []lensRead{{err: err}}, nil
+				}
 				return 0, nil, err
 			}
 			if !out.BlockNumber.IsUint64() {
 				return 0, nil, fmt.Errorf("euler-swap-v2: lens read block %s", out.BlockNumber)
 			}
-			return out.BlockNumber.Uint64(), out.Reads, nil
+			reads := make([]lensRead, len(out.Reads))
+			for i, r := range out.Reads {
+				reads[i].reads = r
+			}
+			return out.BlockNumber.Uint64(), reads, nil
 		})
 }
 
