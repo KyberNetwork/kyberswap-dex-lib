@@ -1,11 +1,41 @@
 package liquid
 
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+
 type PoolInfo struct {
+	Exchange string // empty means etherfi-liquid
+	// SimpleTeller: teller exposes isSupported(asset) instead of assetData(asset). Deposits go
+	// through Depositor (spender) with CommunityCode, as the whlp source does.
+	SimpleTeller           bool
+	Depositor              string
+	Accountant             string
+	CommunityCode          string
 	SupportedDepositAssets []string
 	TellerContract         string
 }
 
-var pools = map[string]PoolInfo{
+var poolsByChain = map[valueobject.ChainID]map[string]PoolInfo{
+	valueobject.ChainIDEthereum: ethereumPools,
+	valueobject.ChainIDHyperEVM: hyperevmPools,
+}
+
+var hyperevmPools = map[string]PoolInfo{
+	// LHYPE
+	"0x5748ae796ae46a4f1348a1693de4b50560485562": {
+		Exchange: valueobject.ExchangeLoopLiquid,
+		SupportedDepositAssets: []string{
+			"0x5555555555555555555555555555555555555555", // WHYPE
+			"0xffaa4a3d97fe9107cef8a3f48c069f577ff76cc1", // stHYPE, pegged 1:1 to the base rate
+		},
+		TellerContract: "0xfd83c1ca0c04e096d129275126fade1dc45bf4f0",
+		SimpleTeller:   true,
+		Depositor:      "0x6e358dd1204c3fb1d24e569df0899f48fabe5337",
+		Accountant:     "0xce621a3ca6f72706678cff0572ae8d15e5f001c3",
+		CommunityCode:  "kyberswap",
+	},
+}
+
+var ethereumPools = map[string]PoolInfo{
 	// LiquidETH
 	"0xf0bb20865277abd641a307ece5ee04e79073416c": {
 		SupportedDepositAssets: []string{
