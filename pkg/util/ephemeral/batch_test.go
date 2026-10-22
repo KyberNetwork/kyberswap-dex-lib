@@ -420,3 +420,32 @@ func TestLensGuardWithABatchKeepsTheCooldownOnly(t *testing.T) {
 
 	assert.NotNil(t, NewLensGuard(GuardConfig{}, nil).limiter, "without a batch, the guard is NewGuard's")
 }
+
+// countingHead is a Head that counts the chain ids it is asked.
+type countingHead struct {
+	asked atomic.Int64
+}
+
+func (h *countingHead) BlockNumber(context.Context) (uint64, error) { return 100, nil }
+
+func (h *countingHead) ChainID(context.Context) (*big.Int, error) {
+	h.asked.Add(1)
+	time.Sleep(20 * time.Millisecond)
+	return big.NewInt(1), nil
+}
+
+// TestPinAsksTheChainOnce: reads that start together share one chain id question.
+func TestPinAsksTheChainOnce(t *testing.T) {
+	h := &countingHead{}
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := Pin(context.Background(), h, big.NewInt(7))
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+	assert.EqualValues(t, 1, h.asked.Load())
+}

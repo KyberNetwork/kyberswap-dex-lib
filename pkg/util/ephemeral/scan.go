@@ -47,8 +47,15 @@ type Pinned struct {
 var lateChains = map[uint64]bool{uint64(valueobject.ChainIDEtherlink): true}
 
 // lateHeads caches, per Head, whether its chain is one of lateChains: the chain of a client never
-// changes, and asking costs a round trip.
+// changes, and asking costs a round trip. The reads that start together, as a backfill's pools do,
+// share one question rather than each asking before any answer is kept.
 var lateHeads sync.Map
+
+type lateHead struct {
+	once sync.Once
+	late bool
+	err  error
+}
 
 // Pin returns block, or the chain's head when block is nil. A read of several calls names its
 // block before the first, because the block a call reports is not always one the next call can be
@@ -71,21 +78,25 @@ func Pin(ctx context.Context, h Head, block *big.Int) (Pinned, error) {
 
 func runsLate(ctx context.Context, h Head) (bool, error) {
 	// A Head that cannot be a map key is asked every time.
-	cacheable := reflect.TypeOf(h).Comparable()
-	if cacheable {
-		if v, ok := lateHeads.Load(h); ok {
-			return v.(bool), nil
-		}
+	if !reflect.TypeOf(h).Comparable() {
+		return askLate(ctx, h)
 	}
+	v, _ := lateHeads.LoadOrStore(h, &lateHead{})
+	l := v.(*lateHead)
+	l.once.Do(func() { l.late, l.err = askLate(ctx, h) })
+	if l.err != nil {
+		// A failed question is not kept: the next read asks again.
+		lateHeads.CompareAndDelete(h, l)
+	}
+	return l.late, l.err
+}
+
+func askLate(ctx context.Context, h Head) (bool, error) {
 	id, err := h.ChainID(ctx)
 	if err != nil {
 		return false, fmt.Errorf("ephemeral: chain id: %w", err)
 	}
-	isLate := id.IsUint64() && lateChains[id.Uint64()]
-	if cacheable {
-		lateHeads.Store(h, isLate)
-	}
-	return isLate, nil
+	return id.IsUint64() && lateChains[id.Uint64()], nil
 }
 
 // ErrUnpinned means a call pinned to a block reported running at another: the node does not run
