@@ -454,7 +454,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	// Always fetch scalar state at latest, never at this batch's own block: see the
 	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
-	rpcState, err := t.FetchRPCData(ctx, &p, 0)
+	rpcState, err := t.readState(ctx, &p, 0)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -481,49 +481,17 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return p, err
-	}
-
-	extra.Liquidity = rpcState.Liquidity
-	extra.SqrtPriceX96 = rpcState.SqrtPriceX96
-	extra.Tick = rpcState.Tick
-
-	extra.Token0ExchangePricesAndConfig = rpcState.Token0ExchangePricesAndConfig
-	extra.Token1ExchangePricesAndConfig = rpcState.Token1ExchangePricesAndConfig
-
-	extra.Ticks = entityPoolTicks
-
-	extraBytes, err := json.Marshal(extra)
-
-	if err != nil {
+	rpcState.Ticks = entityPoolTicks
+	if p, err = withState(p, rpcState); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to marshal extra data")
-		return p, err
+		}).Error("failed to write pool state")
+		return entity.Pool{}, err
 	}
-
-	p.Extra = string(extraBytes)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
-	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
-	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
-	if err != nil {
-		return entity.Pool{}, err
-	}
-
-	_, dexType := parseFluidDexV2PoolAddress(p.Address)
-	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
-		lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
-	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
-		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
-
-	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-	p.Reserves = []string{reserve0.String(), reserve1.String()}
-
-	return p, err
+	return p, nil
 }
 
 // queryRPCTicksByChunk returns univ3 Ticks data.
