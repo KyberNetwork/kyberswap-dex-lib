@@ -31,6 +31,10 @@ type (
 		Wooracle   Wooracle             `json:"wooracle"`
 		Cloracle   map[string]Cloracle  `json:"cloracle"`
 		IsPaused   bool                 `json:"isPaused"`
+		// OraclePaused: Wooracle.paused(); its state()/price() revert while set.
+		OraclePaused bool `json:"oraclePaused,omitempty"`
+		// TokensRefreshedAt: unix time of the last token list re-read.
+		TokensRefreshedAt int64 `json:"tokensRefreshedAt,omitempty"`
 	}
 
 	Wooracle struct {
