@@ -45,7 +45,7 @@ type Guard struct {
 // a batch would never hold more; the Batcher counts the calls it makes, one per batch.
 func NewLensGuard(cfg GuardConfig, batch *BatchConfig) *Guard {
 	g := NewGuard(cfg)
-	if batch != nil {
+	if batch.On() {
 		g.limiter, g.slots = nil, nil
 	}
 	return g

@@ -1,8 +1,10 @@
 package ephemeral
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync"
@@ -39,6 +41,29 @@ type BatchConfig struct {
 	// step, a full bitmap word, ~4.7M on the forks whose tick getter loads the most, makes no
 	// progress at all.
 	MinItemGas uint64 `json:"minItemGas,omitempty"`
+
+	// off is a config written as false: present, but asking for no batching.
+	off bool
+}
+
+// UnmarshalJSON takes the settings as an object, or true for the defaults and false for none, as
+// a config file writes a switch.
+func (c *BatchConfig) UnmarshalJSON(data []byte) error {
+	switch string(bytes.TrimSpace(data)) {
+	case "true":
+		*c = BatchConfig{}
+		return nil
+	case "false":
+		*c = BatchConfig{off: true}
+		return nil
+	}
+	type settings BatchConfig
+	return json.Unmarshal(data, (*settings)(c))
+}
+
+// On reports whether c asks for batching: given, and not false.
+func (c *BatchConfig) On() bool {
+	return c != nil && !c.off
 }
 
 const (
@@ -138,9 +163,9 @@ var sharedBatchers sync.Map
 
 // SharedBatcher is the Batcher of reads made through c, one per Caller, so that the trackers of
 // every exchange reading through one node fill the same batches. cfg is that of the first to ask;
-// nil asks for none.
+// nil or false asks for none.
 func SharedBatcher(c Caller, cfg *BatchConfig) *Batcher {
-	if cfg == nil || c == nil {
+	if !cfg.On() || c == nil {
 		return nil
 	}
 	if b, ok := sharedBatchers.Load(c); ok {
@@ -378,7 +403,7 @@ func (b *Batcher) callAlone(ctx context.Context, c Caller, contract *Contract, o
 // calls. A nil cfg reads every page alone, as Call.
 func CallPage[C comparable](ctx context.Context, cfg *BatchConfig, c Caller, cursor, start C, contract *Contract,
 	out any, gas uint64, block *big.Int, args ...any) error {
-	if cfg == nil {
+	if !cfg.On() {
 		return Call(ctx, c, contract, out, gas, block, args...)
 	}
 	b := SharedBatcher(c, cfg)
