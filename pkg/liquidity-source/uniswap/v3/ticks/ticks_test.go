@@ -87,3 +87,13 @@ func TestWithoutState(t *testing.T) {
 	assert.Equal(t, uint64(120), LensDue(got), "an older block does not lower it")
 	assert.Equal(t, uint64(130), LensDue(WithoutState(p, 130)))
 }
+
+// TestReadBlock: a batch's ticks are read at its newest block, never below the pool's, except in
+// a reorg, which reads at its own block.
+func TestReadBlock(t *testing.T) {
+	assert.EqualValues(t, 0, ReadBlock(nil, 200))
+	assert.EqualValues(t, 250, ReadBlock([]ethtypes.Log{{BlockNumber: 240}, {BlockNumber: 250}}, 200))
+	assert.EqualValues(t, 200, ReadBlock([]ethtypes.Log{{BlockNumber: 150}}, 200), "a late log")
+	assert.EqualValues(t, 150, ReadBlock([]ethtypes.Log{{BlockNumber: 150, Removed: true}, {BlockNumber: 150}}, 200),
+		"a reorg")
+}

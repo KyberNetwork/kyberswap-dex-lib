@@ -25,7 +25,6 @@ import (
 	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -41,6 +40,9 @@ type PoolTracker struct {
 	// tickTable is how the exchange's pools index their tick table, once a lens read learnt it.
 	tickTable atomic.Int32
 	readLens  readLens
+	// readTicks reads ticks by index at a block, queryRPCTicksByIndexes but for tests.
+	readTicks func(ctx context.Context, address string, tickIndexes []int, blockNumber uint64) ([]tickspkg.Tick,
+		error)
 }
 
 func NewPoolTracker(
@@ -55,6 +57,7 @@ func NewPoolTracker(
 		lensGuard:     ephemeral.NewGuard(cfg.LensGuard),
 	}
 	t.readLens = t.readLensPages
+	t.readTicks = t.queryRPCTicksByIndexes
 	return t
 }
 
@@ -695,16 +698,16 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 		return ticksBasedPool, err
 	}
 
-	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs)
+	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
+	ticksBasedPool.BlockNumber = blockNumber
+
+	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, blockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to FetchTicksFromLogs")
 		return ticksBasedPool, err
 	}
-
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
-	ticksBasedPool.BlockNumber = blockNumber
 
 	if len(ticks) == 0 {
 		return ticksBasedPool, nil
@@ -807,8 +810,9 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	return p, nil
 }
 
+// fetchTicksFromLogs reads the ticks logs touch at blockNumber (see tickspkg.ReadBlock).
 func (t *PoolTracker) fetchTicksFromLogs(
-	ctx context.Context, address string, logs []ethtypes.Log,
+	ctx context.Context, address string, logs []ethtypes.Log, blockNumber uint64,
 ) ([]tickspkg.Tick, error) {
 	l := logger.WithFields(logger.Fields{
 		"address": address,
@@ -829,9 +833,8 @@ func (t *PoolTracker) fetchTicksFromLogs(
 	if len(tickIndexes) == 0 {
 		return nil, nil
 	}
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber)
+	return t.readTicks(ctx, address, tickIndexes, blockNumber)
 }
 
 // ticksFromLens replaces the pool's ticks with the lens's set once those accumulated from logs no
@@ -881,7 +884,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 		}
 	}
 
-	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber)
+	ticksFromPool, err := t.readTicks(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber)
 	if err != nil {
 		return nil, err
 	}
