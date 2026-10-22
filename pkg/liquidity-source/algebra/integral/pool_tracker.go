@@ -189,7 +189,7 @@ func (d *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, logs
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to read pool through the lens")
+		}).Warn("failed to read pool through the lens")
 		return entity.Pool{}, 0, err
 	}
 
