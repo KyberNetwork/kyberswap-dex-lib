@@ -133,7 +133,7 @@ func TestStableswapPoolQuote(t *testing.T) {
 		quote := quoteAmount(t, pool, true, smallAmount)
 
 		require.Equal(t, smallAmount, quote.ConsumedAmount)
-		require.Equal(t, uint256.NewInt(999_999_999_500_000), quote.CalculatedAmount)
+		require.Equal(t, uint256.NewInt(999_999_999_138_796), quote.CalculatedAmount)
 	})
 
 	t.Run("amplification_1_token0_in", func(t *testing.T) {

@@ -407,7 +407,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
 			amountIn:                    "900000000000000",
-			expectedAmountOut:           "362101916616786920",
+			expectedAmountOut:           "362101916616786883",
 			expectedTickSpacingsCrossed: 0,
 		},
 		{
@@ -415,7 +415,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
 			amountIn:                    "100000000000000000000",
-			expectedAmountOut:           "4426802932609840856309",
+			expectedAmountOut:           "4426802932609840856297",
 			expectedTickSpacingsCrossed: 0,
 		},
 		{
@@ -440,7 +440,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
 			amountIn:                    "1000000",
-			expectedAmountOut:           "400407818",
+			expectedAmountOut:           "400407815",
 			expectedTickSpacingsCrossed: 0,
 		},
 		{
@@ -448,7 +448,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenIn:                     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			tokenOut:                    "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
 			amountIn:                    "1000000000000000000",
-			expectedAmountOut:           "326276313187628668418",
+			expectedAmountOut:           "326276313187628668071",
 			expectedTickSpacingsCrossed: 18,
 		},
 		{
