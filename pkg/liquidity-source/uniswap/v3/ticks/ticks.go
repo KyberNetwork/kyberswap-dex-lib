@@ -131,6 +131,19 @@ func (t *TicksBasedPool) Unapplied(logs []ethtypes.Log) []ethtypes.Log {
 	return kept
 }
 
+// ReadBlock is the block at which an update reads again the ticks its logs touch: the newest of
+// the logs' blocks, or the pool's own when that is newer, as it is for logs retried or replayed
+// after newer ones were applied, whose own block would put those ticks back to their values there.
+// A reorg reads at its logs' block, since the pool's may be one of the abandoned fork, past the new
+// head. 0 when the logs carry no block.
+func ReadBlock(logs []ethtypes.Log, poolBlock uint64) uint64 {
+	block := eth.GetBlockNumberFromLogs(logs)
+	if block == 0 || eth.HasRevertedLog(logs) {
+		return block
+	}
+	return max(block, poolBlock)
+}
+
 func NewTicksBasedPool(pool entity.Pool) (TicksBasedPool, error) {
 	var extra ExtraTickU256
 	if len(pool.Extra) > 0 {
