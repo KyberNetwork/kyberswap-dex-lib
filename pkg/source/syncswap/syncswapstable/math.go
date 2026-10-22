@@ -116,7 +116,7 @@ func computeDFromAdjustedBalances(xp0, xp1 *big.Int) *big.Int {
 	var prevD *big.Int
 	var d = s
 
-	for i := 0; i < 256; i++ {
+	for range 256 {
 		//uint dP = (((d * d) / xp0) * d) / xp1 / 4;
 		var dp = new(big.Int).Div(
 			new(big.Int).Div(
@@ -165,7 +165,7 @@ func getY(x, d *big.Int) *big.Int {
 	var yPrev *big.Int
 	var y = d
 
-	for i := 0; i < 256; i++ {
+	for range 256 {
 		yPrev = y
 		//y = (y * y + c) / (y * 2 + b - d);
 		y = new(big.Int).Div(

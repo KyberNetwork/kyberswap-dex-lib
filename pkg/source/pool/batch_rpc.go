@@ -29,7 +29,7 @@ type LazyRequest struct {
 	CallMsgs []ethereum.CallMsg
 }
 
-func (r *LazyRequest) AddCall(c *ethrpc.Call, output []interface{}) *LazyRequest {
+func (r *LazyRequest) AddCall(c *ethrpc.Call, output []any) *LazyRequest {
 	r.Request.AddCall(c, output)
 	target := common.HexToAddress(c.Target)
 	data, _ := c.ABI.Pack(c.Method, c.Params...)

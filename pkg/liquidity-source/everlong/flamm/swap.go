@@ -230,7 +230,7 @@ func (s *flammState) swapPlan(pool *gatePool, b *gateBook, idx uint8, poolAssetI
 	}
 	liquid := &b.Legs[idx].Liquid
 	collateralIn := *amountIn
-	for pass := 0; pass < swapMaxFundingPasses; pass++ {
+	for range swapMaxFundingPasses {
 		p.passes++
 		funding, err := s.swapFunding(b, idx, &collateralIn, &p.PriceWad, now)
 		if err != nil {

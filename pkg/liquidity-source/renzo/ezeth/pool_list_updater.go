@@ -70,7 +70,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}
 	tokens = append(tokens, extra.collaterals...)
 	reserves := make([]string, len(extra.collaterals)+2)
-	for i := 0; i < len(reserves); i++ {
+	for i := range reserves {
 		reserves[i] = defaultReserves
 	}
 
@@ -219,7 +219,7 @@ func getExtra(
 			Params: []any{big.NewInt(int64(i))},
 		}, []any{&operatorDelegators[i]})
 	}
-	for i := 0; i < len(collaterals); i++ {
+	for i := range collaterals {
 		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
 			ABI:    RenzoOracleABI,
 			Target: renzoOracle.Hex(),
@@ -271,7 +271,7 @@ func getExtra(
 		}
 	}
 
-	for i := 0; i < len(tokenOracleAddresses); i++ {
+	for i := range tokenOracleAddresses {
 		operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
 			ABI:    TokenOracleABI,
 			Target: tokenOracleAddresses[i].String(),
@@ -301,7 +301,7 @@ func getExtra(
 		tokenOracleLookup           = make(map[string]Oracle, len(collaterals))
 		collateralTokenTvlLimitsMap = make(map[string]*big.Int, len(collaterals))
 	)
-	for i := 0; i < len(collaterals); i++ {
+	for i := range collaterals {
 		address := hexutil.Encode(collaterals[i][:])
 		collateralTokenIndex[address] = i
 		tokenOracleLookup[address] = oracleInfo[i]

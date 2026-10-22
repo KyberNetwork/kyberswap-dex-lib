@@ -431,7 +431,7 @@ func (e *forkEnv) venuesSeq(t *testing.T, rep *forkReport, area string, sim *Poo
 	rng := rand.New(rand.NewSource(seed))
 	ts := s.Timestamp
 	adopted, refused := 0, 0
-	for i := 0; i < steps; i++ {
+	for i := range steps {
 		venue := rng.Intn(3) - 1
 		sell := rng.Intn(2) == 0
 		gap := uint64(2 + rng.Intn(20))
@@ -529,7 +529,7 @@ func TestForkSameBlock(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x5AB1))
 	const rounds = 10
 	nextAddr := uint64(0x1000)
-	for round := 0; round < rounds; round++ {
+	for round := range rounds {
 		sim, _, err := e.tryTrack(t, Policy{LeverRouting: true})
 		require.NoError(t, err)
 		ts := e.f.head().Time + 3
@@ -537,7 +537,7 @@ func TestForkSameBlock(t *testing.T) {
 		n := 3 + rng.Intn(10)
 		plan := make([]*plannedFill, n)
 		cur := sim
-		for i := 0; i < n; i++ {
+		for i := range n {
 			p := &plannedFill{venue: rng.Intn(3) - 1, sell: rng.Intn(2) == 0}
 			lo, hi := 500.0, 400_000.0
 			if !p.sell {
@@ -590,7 +590,7 @@ func TestForkSameBlock(t *testing.T) {
 		diverged := false
 		for i, p := range plan {
 			var rcpt *types.Receipt
-			for k := 0; k < 400; k++ {
+			for range 400 {
 				if rcpt, err = f.geth.TransactionReceipt(context.Background(), p.hash); err == nil {
 					break
 				}

@@ -97,7 +97,7 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) int {
 func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset, limit int) ([]common.Address, error) {
 	out := make([]common.Address, limit)
 	req := u.ethrpcClient.R().SetContext(ctx)
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		req.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,

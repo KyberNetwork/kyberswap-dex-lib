@@ -183,7 +183,7 @@ func (t *PoolTracker) getFullPoolState(
 	var allCalls []*ethrpc.Call
 	var callResults []FullPoolStateWrapper
 
-	for i := 0; i < numBatches; i++ {
+	for i := range numBatches {
 		startIndex := i * batchSize
 		endIndex := (i + 1) * batchSize
 

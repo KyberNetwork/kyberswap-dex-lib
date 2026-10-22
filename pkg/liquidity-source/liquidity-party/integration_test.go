@@ -128,7 +128,7 @@ func buildSimulatorFromChain(t *testing.T, client *ethrpc.Client) (*PoolSimulato
 
 	tokens := make([]*entity.PoolToken, n)
 	reserves := make(entity.PoolReserves, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		tokens[i] = &entity.PoolToken{Address: fmt.Sprintf("0x%040x", i+1), Swappable: true}
 		reserves[i] = snapshot.CachedBalances[i].String()
 	}
@@ -206,9 +206,9 @@ func TestIntegration_Simulator_ExactIn_WeiExact(t *testing.T) {
 	fracsPpm := []int64{1, 10, 100, 1_000, 10_000, 100_000, 500_000, 1_000_000, 2_000_000}
 
 	checked := 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		reserveI := snapshot.CachedBalances[i]
-		for j := 0; j < n; j++ {
+		for j := range n {
 			if i == j {
 				continue
 			}
@@ -268,8 +268,8 @@ func TestIntegration_Simulator_ExactOut_WeiExact(t *testing.T) {
 	fracsPpm := []int64{10, 100, 1_000, 10_000, 100_000, 300_000}
 
 	checked := 0
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
+	for i := range n {
+		for j := range n {
 			if i == j {
 				continue
 			}

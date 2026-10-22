@@ -16,7 +16,7 @@ type Hook struct {
 var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddress)
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: DexType}}
+	h := &Hook{Exchange: DexType}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
 }

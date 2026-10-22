@@ -163,7 +163,7 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 			q.Swap.Balance1 = assets
 		}
 	}
-	for side := 0; side < 2; side++ {
+	for side := range 2 {
 		if h.Raw[side] == nil || h.Claims[side] == nil || h.ManagerCash[side] == nil {
 			continue
 		}

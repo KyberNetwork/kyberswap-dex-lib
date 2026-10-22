@@ -42,20 +42,20 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	reserves := lo.Map(p.Reserves, func(e string, _ int) *big.Int { return bignumber.NewBig(e) })
 
 	sim := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: p.BlockNumber,
-		}},
+		},
 		Extra:       extra,
 		StaticExtra: staticExtra,
 	}
 
 	// Runtime cumulative cap is sample-based for wasabi (no on-chain MaxIn metadata).
-	for dir := 0; dir < 2; dir++ {
+	for dir := range 2 {
 		if dir < len(sim.Samples) && len(sim.Samples[dir]) > 0 {
 			lastIn := sim.Samples[dir][len(sim.Samples[dir])-1][0]
 			if lastIn != nil {

@@ -95,14 +95,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	reserves := []*big.Int{reserve0.ToBig(), reserve1.ToBig()}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		reserve0:              reserve0,
 		reserve1:              reserve1,
 		vr0In:                 vr0In,

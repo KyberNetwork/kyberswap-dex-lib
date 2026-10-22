@@ -58,7 +58,7 @@ func TestChainClientInterceptor(t *testing.T) {
 		},
 		func(ctx context.Context, req *Request, resp any, fn RunFunc) error {
 			var err error
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				logs = append(logs, "Before interceptor 2")
 				err = fn(ctx, req, resp)
 				logs = append(logs, "After interceptor 2")

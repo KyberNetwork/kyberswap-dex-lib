@@ -129,7 +129,7 @@ func (t *PoolTracker) forkTrackV4(ctx context.Context, h forkBaseHop, block *big
 		indices = nil
 		for j, b := range bitmaps {
 			bits := b.Big()
-			for bit := 0; bit < 256; bit++ {
+			for bit := range 256 {
 				if bits.Bit(bit) != 0 {
 					ix := ((lo+j)*256 + bit) * int(h.Key.TickSpacing.Int64())
 					if ix < -887272 || ix > 887272 {
@@ -216,7 +216,7 @@ func (t *PoolTracker) forkTrackV3(ctx context.Context, h forkBaseHop, block *big
 		if bits == nil {
 			return entity.Pool{}, h, ErrState
 		}
-		for bit := 0; bit < 256; bit++ {
+		for bit := range 256 {
 			if bits.Bit(bit) != 0 {
 				ix := ((lo+j)*256 + bit) * int(spacing.Int64())
 				if ix < -887272 || ix > 887272 {

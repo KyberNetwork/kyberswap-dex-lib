@@ -18,18 +18,16 @@ func Test_CalcAmountOut(t *testing.T) {
 	t.Run("1. should return OK", func(t *testing.T) {
 		// input
 		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Tokens: []string{
-						"0xac3E018457B222d93114458476f3E3416Abbe38F",
-						"0xae78736Cd615f374D3085123A210448E74Fc6393",
-						"0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
-					},
-					Reserves: []*big.Int{
-						big.NewInt(331125),
-						big.NewInt(320633),
-						big.NewInt(348846),
-					},
+			Info: poolpkg.PoolInfo{
+				Tokens: []string{
+					"0xac3E018457B222d93114458476f3E3416Abbe38F",
+					"0xae78736Cd615f374D3085123A210448E74Fc6393",
+					"0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+				},
+				Reserves: []*big.Int{
+					big.NewInt(331125),
+					big.NewInt(320633),
+					big.NewInt(348846),
 				},
 			},
 
@@ -81,16 +79,14 @@ func Test_CalcAmountOut(t *testing.T) {
 		reserve1, _ := new(big.Int).SetString("1112301324508754708737", 10)
 
 		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Tokens: []string{
-						"0x5a8F45b943A7E6a4BEA463A98de68940A153c78a",
-						"0xbE666bB32a8e4B6b2f2D0fb053d965bdfA277223",
-					},
-					Reserves: []*big.Int{
-						reserve0,
-						reserve1,
-					},
+			Info: poolpkg.PoolInfo{
+				Tokens: []string{
+					"0x5a8F45b943A7E6a4BEA463A98de68940A153c78a",
+					"0xbE666bB32a8e4B6b2f2D0fb053d965bdfA277223",
+				},
+				Reserves: []*big.Int{
+					reserve0,
+					reserve1,
 				},
 			},
 
@@ -140,16 +136,14 @@ func Test_CalcAmountOut(t *testing.T) {
 		reserve1, _ := new(big.Int).SetString("1112301324508754708737", 10)
 
 		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Tokens: []string{
-						"0x5a8F45b943A7E6a4BEA463A98de68940A153c78a",
-						"0xbE666bB32a8e4B6b2f2D0fb053d965bdfA277223",
-					},
-					Reserves: []*big.Int{
-						reserve0,
-						reserve1,
-					},
+			Info: poolpkg.PoolInfo{
+				Tokens: []string{
+					"0x5a8F45b943A7E6a4BEA463A98de68940A153c78a",
+					"0xbE666bB32a8e4B6b2f2D0fb053d965bdfA277223",
+				},
+				Reserves: []*big.Int{
+					reserve0,
+					reserve1,
 				},
 			},
 

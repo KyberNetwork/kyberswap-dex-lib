@@ -181,10 +181,7 @@ func (e *Extra) PumpFeeBps() int64 {
 
 // PerTxMaxBuyTokens mirrors ArcadeHook._perTxMaxBuyTokens. Returns nil when uncapped.
 func (e *Extra) PerTxMaxBuyTokens(now int64) *big.Int {
-	elapsed := now - e.LaunchedAt
-	if elapsed < 0 {
-		elapsed = 0
-	}
+	elapsed := max(now-e.LaunchedAt, 0)
 	if elapsed >= buyCapWindowSeconds {
 		return nil
 	}

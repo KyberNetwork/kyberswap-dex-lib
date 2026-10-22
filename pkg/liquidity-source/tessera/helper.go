@@ -1,6 +1,8 @@
 package tessera
 
 import (
+	"slices"
+
 	"github.com/holiman/uint256"
 )
 
@@ -18,15 +20,15 @@ func GetClosestRate(amountIn *uint256.Int, prefetches []PrefetchRate) (*uint256.
 	}
 
 	lowerIdx := -1
-	for i := len(prefetches) - 1; i >= 0; i-- {
-		if prefetches[i].Rate != nil && prefetches[i].AmountIn.Cmp(amountIn) <= 0 {
+	for i, prefetche := range slices.Backward(prefetches) {
+		if prefetche.Rate != nil && prefetche.AmountIn.Cmp(amountIn) <= 0 {
 			lowerIdx = i
 			break
 		}
 	}
 
 	upperIdx := -1
-	for i := 0; i < len(prefetches); i++ {
+	for i := range prefetches {
 		if prefetches[i].Rate != nil && prefetches[i].AmountIn.Cmp(amountIn) >= 0 {
 			upperIdx = i
 			break

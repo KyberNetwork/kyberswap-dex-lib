@@ -145,7 +145,7 @@ func getEndOfDivRoundDown(
 
 	inverse := new(big.Int).Mul(new(big.Int).Mul(denominator, denominator), big.NewInt(9))
 
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		inverse.Mul(
 			inverse,
 			new(big.Int).Sub(bignumber.Two, new(big.Int).Mul(denominator, inverse)),

@@ -77,7 +77,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                         pool.Pool{Info: info},
+		Info:                         info,
 		chainID:                      extra.ChainID,
 		poolTokenNumber:              staticExtra.PoolTokenNumber,
 		weights:                      staticExtra.Weights,
@@ -649,7 +649,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		return nil, err
 	}
 
-	for i := 0; i < len(w); i++ {
+	for i := range w {
 		if r[i].Cmp(unknownBI) != 0 {
 			continue
 		}

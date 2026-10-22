@@ -19,7 +19,7 @@ import (
 // AfterSwap must mirror PonsV2MemeHook._afterSwap: feeAmount + taxAmount = floor(unspecified
 // * (hookFeeBps + creatorTaxBps) / BASIS_POINTS), taken from the realized output on exact-in.
 func TestAfterSwap_ExactIn_ChargesFeeOnOutput(t *testing.T) {
-	h := &Hook{Extra: Extra{Registered: true, FeeBps: 100 + 50}} // hookFeeBps=100, creatorTaxBps=50
+	h := &Hook{Registered: true, FeeBps: 100 + 50} // hookFeeBps=100, creatorTaxBps=50
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
@@ -33,7 +33,7 @@ func TestAfterSwap_ExactIn_ChargesFeeOnOutput(t *testing.T) {
 // CalcAmountIn reverses an exact-in swap, and the hook takes its fee from the realized
 // output, so AfterSwap must not add a fee to the input (BeforeSwap grosses the output up).
 func TestAfterSwap_CalcIn_NoInputFee(t *testing.T) {
-	h := &Hook{Extra: Extra{Registered: true, FeeBps: 150}}
+	h := &Hook{Registered: true, FeeBps: 150}
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: false},
@@ -46,7 +46,7 @@ func TestAfterSwap_CalcIn_NoInputFee(t *testing.T) {
 // The pool must output `net` + fee so that the output fee leaves `net`: the smallest gross
 // with gross - floor(gross * 150 / 10_000) >= net.
 func TestBeforeSwap_CalcIn_GrossesOutputUp(t *testing.T) {
-	h := &Hook{Extra: Extra{Registered: true, FeeBps: 150}}
+	h := &Hook{Registered: true, FeeBps: 150}
 
 	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(985_000)})
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestBeforeSwap_CalcIn_GrossesOutputUp(t *testing.T) {
 }
 
 func TestBeforeSwap_NoFee_NoOp(t *testing.T) {
-	for _, h := range []*Hook{{}, {Extra: Extra{Registered: true}}} {
+	for _, h := range []*Hook{{}, {Registered: true}} {
 		result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(985_000)})
 		require.NoError(t, err)
 		assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
@@ -127,7 +127,7 @@ func TestAfterSwap_Unregistered_NoFee(t *testing.T) {
 }
 
 func TestAfterSwap_ZeroFee_NoOp(t *testing.T) {
-	h := &Hook{Extra: Extra{Registered: true, FeeBps: 0}}
+	h := &Hook{Registered: true, FeeBps: 0}
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},

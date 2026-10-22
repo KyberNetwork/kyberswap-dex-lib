@@ -102,16 +102,14 @@ func newLegacyPoolSimulator(entityPool entity.Pool) (*legacyPoolSimulator, error
 	}
 
 	return &legacyPoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     bignumber.ZeroBI,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     bignumber.ZeroBI,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		Precisions: precisions,
 		A:          bignumber.NewBig10(extraStr.A),

@@ -89,7 +89,7 @@ func TestLiveParity(t *testing.T) {
 		}
 		var jobs []job
 		for _, buy := range []bool{true, false} {
-			for k := 0; k < 100; k++ {
+			for range 100 {
 				// log-uniform: buys $1 .. $300k of USDG; sells 1 .. 300k LOT
 				x := math.Pow(10, rng.Float64()*math.Log10(3e5))
 				amt := new(big.Float).Mul(big.NewFloat(x), big.NewFloat(1e6))
@@ -196,8 +196,7 @@ func parityOne(ctx context.Context, rc *rpc.Client, d *parityDeploy, venue, lot,
 	q, qrev, qerr := quoteV4(ctx, rc, d.Quoter, lot, hook, usdgIs0, zfo, amt, nil)
 	fill := func(r *SwapResult, err error) string {
 		if err != nil {
-			var n NamedError
-			if errors.As(err, &n) {
+			if n, ok := errors.AsType[NamedError](err); ok {
 				return "revert:" + n.ErrorName()
 			}
 			return "revert:" + err.Error()
@@ -270,8 +269,7 @@ func quoteV4(ctx context.Context, rc *rpc.Client, quoter, lot, hook string, usdg
 		args = append(args, override)
 	}
 	if err := retryLimited(ctx, func() error { return rc.CallContext(ctx, &out, "eth_call", args...) }); err != nil {
-		var de rpc.DataError
-		if errors.As(err, &de) {
+		if de, ok := errors.AsType[rpc.DataError](err); ok {
 			if s, ok := de.ErrorData().(string); ok {
 				return nil, common.FromHex(s), err
 			}
@@ -377,7 +375,7 @@ func findSlotUncached(ctx context.Context, rc *rpc.Client, token string, call []
 	}
 	marker := big.NewInt(0x1234567)
 	var bases []common.Hash
-	for b := int64(0); b < 12; b++ {
+	for b := range int64(12) {
 		bases = append(bases, common.BigToHash(big.NewInt(b)))
 	}
 	bases = append(bases, erc7201ERC20, slotPlus(erc7201ERC20, 2))
@@ -395,7 +393,7 @@ func findSlotUncached(ctx context.Context, rc *rpc.Client, token string, call []
 func lotBalanceSlot(t *testing.T, ctx context.Context, rc *rpc.Client, token, who string) common.Hash {
 	t.Helper()
 	marker := big.NewInt(0x1234567)
-	for base := int64(0); base < 12; base++ {
+	for base := range int64(12) {
 		slot := crypto.Keccak256Hash(encAddr(who), encWord(big.NewInt(base)))
 		var out hexutil.Bytes
 		msg := map[string]any{"to": token, "data": hexutil.Bytes(append(sel("balanceOf(address)"), encAddr(who)...))}

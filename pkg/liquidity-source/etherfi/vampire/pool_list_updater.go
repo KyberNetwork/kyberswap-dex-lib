@@ -224,7 +224,7 @@ func getCurvePoolInfo(
 	nCoins := 2
 	balances := make([]*big.Int, nCoins)
 
-	for i := 0; i < nCoins; i++ {
+	for i := range nCoins {
 		r.AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
 			Target: curveStETHToETHPool,
@@ -238,7 +238,7 @@ func getCurvePoolInfo(
 	}
 
 	curvePoolInfo.Reserves = make([]string, nCoins+1)
-	for i := 0; i < nCoins; i++ {
+	for i := range nCoins {
 		curvePoolInfo.Reserves[i] = balances[i].String()
 	}
 	// The last reserve is from the balanceV1 pool,

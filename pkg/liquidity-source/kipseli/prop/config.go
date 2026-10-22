@@ -23,7 +23,7 @@ type Config struct {
 
 	// Titan is set only for the pAMM variant, whose quoter prices off a
 	// Titan-pushed registry state that must be overridden into each call.
-	Titan titan.Config `json:"titan,omitempty"`
+	Titan titan.Config `json:"titan"`
 }
 
 func (c *Config) usesTitan() bool {

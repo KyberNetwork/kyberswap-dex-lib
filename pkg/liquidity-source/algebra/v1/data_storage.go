@@ -226,7 +226,7 @@ func (s *TimepointStorage) binarySearch(
 	current := (left + right) >> 1 // "middle" point between the boundaries
 
 	// limit number of loop to make sure we won't loop forever because of a bug somewhere
-	for i := 0; i < maxBinarySearchLoop; i += 1 {
+	for range maxBinarySearchLoop {
 		beforeOrAt := s.Get(uint16(current)) // checking the "middle" point between the boundaries
 		initializedBefore, timestampBefore := beforeOrAt.Initialized, beforeOrAt.BlockTimestamp
 		if initializedBefore {

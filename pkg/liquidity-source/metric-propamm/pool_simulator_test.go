@@ -32,13 +32,13 @@ func TestPoolSimulator(t *testing.T) {
 	USDC := "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 
 	poolSimulator := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  "0xa07938ea73e9d8eb23535816d073c2731ea24946",
 			Exchange: DexType,
 			Type:     DexType,
 			Tokens:   []string{WETH, USDC},
 			Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
-		}},
+		},
 		poolTimestamp: time.Now().Unix(),
 		extra:         extra,
 		decimalsDiff:  12,
@@ -185,13 +185,13 @@ func TestCloneState(t *testing.T) {
 	USDC := "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 
 	p := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  "0xa07938ea73e9d8eb23535816d073c2731ea24946",
 			Exchange: DexType,
 			Type:     DexType,
 			Tokens:   []string{WETH, USDC},
 			Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
-		}},
+		},
 		poolTimestamp: time.Now().Unix(),
 		extra:         extra,
 		decimalsDiff:  12,
@@ -219,11 +219,11 @@ func TestGasPerExtension(t *testing.T) {
 	gas := func(typ string, exts int) int64 {
 		extra.Extensions = exts
 		sim := &PoolSimulator{
-			Pool: pool.Pool{Info: pool.PoolInfo{
+			Info: pool.PoolInfo{
 				Type:     typ,
 				Tokens:   []string{weth, usdc},
 				Reserves: []*big.Int{bignumber.NewBig(reserves[0]), bignumber.NewBig(reserves[1])},
-			}},
+			},
 			poolTimestamp: time.Now().Unix(),
 			extra:         extra,
 			decimalsDiff:  12,

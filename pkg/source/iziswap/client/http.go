@@ -24,7 +24,7 @@ const (
 )
 
 func NewHTTPClient(config *HTTPConfig) *httpClient {
-	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
+	client := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)

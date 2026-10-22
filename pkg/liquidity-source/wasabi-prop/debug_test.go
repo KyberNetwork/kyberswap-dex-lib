@@ -101,7 +101,7 @@ func TestWasabiPropDebug(t *testing.T) {
 	src := rand.New(rand.NewSource(time.Now().Unix()))
 	amounts := make([]*big.Int, 0, 9)
 	for _, exp := range []int{6, 12, 18} {
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			n := src.Int63n(9_000_000) + 1_000_000
 			base := new(big.Int).Mul(
 				big.NewInt(n),

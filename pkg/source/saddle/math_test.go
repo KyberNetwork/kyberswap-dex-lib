@@ -25,7 +25,7 @@ func TestCalculateSwap(t *testing.T) {
 
 	balances := make([]*big.Int, 0)
 	precisions := make([]*big.Int, 0)
-	for i := 0; i < nTokens; i++ {
+	for i := range nTokens {
 		balances = append(balances, tokenBalances[i])
 		precisions = append(precisions, tokenPrecisions[i])
 	}
@@ -66,7 +66,7 @@ func TestCalculateSwap2(t *testing.T) {
 
 	balances := make([]*big.Int, 0)
 	precisions := make([]*big.Int, 0)
-	for i := 0; i < nTokens; i++ {
+	for i := range nTokens {
 		balances = append(balances, tokenBalances[i])
 		precisions = append(precisions, tokenPrecisions[i])
 	}

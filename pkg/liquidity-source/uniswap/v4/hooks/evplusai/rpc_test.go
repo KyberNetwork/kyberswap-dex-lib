@@ -62,7 +62,7 @@ func compareQuote(t *testing.T, f fixture, q quoteCase) {
 	amount, ok := new(big.Int).SetString(q.Amount, 10)
 	require.True(t, ok)
 	// Repeated quotes and cloned state must give the same result.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		if i == 1 {
 			sim = sim.CloneState().(*uniswapv4.PoolSimulator)
 		}
@@ -120,7 +120,7 @@ func TestRPCQuotes(t *testing.T) {
 		_, err = req.Aggregate()
 		require.NoError(t, err)
 		for i, bits := range words {
-			for bit := 0; bit < 256; bit++ {
+			for bit := range 256 {
 				if bits.Bit(bit) != 0 {
 					ticks = append(ticks, uniswapv3.Tick{Index: ((start+i)*256 + bit) * 10})
 				}

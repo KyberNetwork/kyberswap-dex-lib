@@ -75,7 +75,7 @@ func getY(x, d, A *uint256.Int) *uint256.Int {
 	var yPrev *uint256.Int
 	var y = d
 
-	for i := 0; i < MAX_LOOP_LIMIT; i++ {
+	for range MAX_LOOP_LIMIT {
 		yPrev = y
 		//y = (y * y + c) / (y * 2 + b - d);
 		num := new(uint256.Int).Add(new(uint256.Int).Mul(y, y), c)
@@ -110,7 +110,7 @@ func computeDFromAdjustedBalances(xp0, xp1, A *uint256.Int) *uint256.Int {
 	var prevD *uint256.Int
 	var d = s
 
-	for i := 0; i < MAX_LOOP_LIMIT; i++ {
+	for range MAX_LOOP_LIMIT {
 		var dp = new(uint256.Int).Div(
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(

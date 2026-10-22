@@ -33,7 +33,7 @@ type httpClient struct {
 
 func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
 	if config.Client == nil {
-		config.Client = resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient)))
+		config.Client = resty.NewWithClient(new(lo.FromPtr(http.DefaultClient)))
 	}
 	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).

@@ -45,7 +45,7 @@ func newSimulatorWithReserves(
 ) *PoolSimulator {
 	t.Helper()
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  testStakingAddress,
 			Exchange: DexType,
 			Type:     DexType,
@@ -55,7 +55,7 @@ func newSimulatorWithReserves(
 				sNetStakingReserve.ToBig(),
 				big.NewInt(0),
 			},
-		}},
+		},
 		hasWrap:            true,
 		index:              index,
 		netReserve:         new(uint256.Int).Set(netReserve),
@@ -306,13 +306,13 @@ var (
 func newNoWrapSimulator(t *testing.T) *PoolSimulator {
 	t.Helper()
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  testNukeStakingAddress,
 			Exchange: DexType,
 			Type:     DexType,
 			Tokens:   []string{testNukeAddress, testSNukeAddress},
 			Reserves: []*big.Int{testNukeReserve.ToBig(), testSNukeReserve.ToBig()},
-		}},
+		},
 		hasWrap:            false,
 		netReserve:         new(uint256.Int).Set(testNukeReserve),
 		sNetStakingReserve: new(uint256.Int).Set(testSNukeReserve),

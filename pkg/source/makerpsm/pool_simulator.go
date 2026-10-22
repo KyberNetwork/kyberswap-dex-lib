@@ -52,11 +52,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	)
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: poolInfo,
-		},
-		PSM: psm,
-		gas: DefaultGas,
+		Info: poolInfo,
+		PSM:  psm,
+		gas:  DefaultGas,
 	}, nil
 }
 

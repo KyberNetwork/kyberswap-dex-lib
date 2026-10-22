@@ -122,7 +122,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, poolAddress := range poolAddresses {
-		for j := 0; j < 2; j++ {
+		for j := range 2 {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    cryptoSwap2PoolABI,
 				Target: poolAddress.Hex(),
@@ -138,7 +138,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	calls = d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, poolAddress := range poolAddresses {
-		for j := 0; j < 2; j++ {
+		for j := range 2 {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    erc20ABI,
 				Target: coins[i][j].Hex(),

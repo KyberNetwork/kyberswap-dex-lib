@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"maps"
 	"math/big"
 	"sort"
 	"testing"
@@ -182,9 +183,7 @@ func TestLunarbaseWireRejectsMalformedWithoutMutatingTarget(t *testing.T) {
 	require.NoError(t, wireReadRaw(wireRaw(t, original), &fields))
 	cloneFields := func() map[string]msgpack.RawMessage {
 		next := make(map[string]msgpack.RawMessage, len(fields))
-		for k, v := range fields {
-			next[k] = v
-		}
+		maps.Copy(next, fields)
 		return next
 	}
 	mutate := func(key string, value any) []byte {

@@ -75,7 +75,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	sim := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
@@ -83,7 +83,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig10(r) }),
 			SwapFee:     big.NewInt(int64(extra.Fee)),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		poolType:     staticExtra.PoolType,
 		sqrtPriceX96: *extra.SqrtPriceX96,
 		liquidity:    *extra.Liquidity,

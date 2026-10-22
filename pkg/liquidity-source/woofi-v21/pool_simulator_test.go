@@ -489,14 +489,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			pool := &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:  "poolAddress",
-						Exchange: string(valueobject.ExchangeWooFiV3),
-						Type:     DexTypeWooFiV21,
-						Tokens: []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-							"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
-					},
+				Info: poolpkg.PoolInfo{
+					Address:  "poolAddress",
+					Exchange: string(valueobject.ExchangeWooFiV3),
+					Type:     DexTypeWooFiV21,
+					Tokens: []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+						"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
 				},
 				quoteToken: tc.quoteToken,
 				tokenInfos: tc.tokenInfos,
@@ -725,14 +723,12 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			pool := &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:  "poolAddress",
-						Exchange: string(valueobject.ExchangeWooFiV3),
-						Type:     DexTypeWooFiV21,
-						Tokens: []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-							"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
-					},
+				Info: poolpkg.PoolInfo{
+					Address:  "poolAddress",
+					Exchange: string(valueobject.ExchangeWooFiV3),
+					Type:     DexTypeWooFiV21,
+					Tokens: []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+						"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
 				},
 				quoteToken: tc.quoteToken,
 				tokenInfos: tc.tokenInfos,

@@ -15,8 +15,8 @@ type Extra struct {
 }
 
 type ECLPParams struct {
-	Params math.ECLParams        `json:"p,omitempty"`
-	D      math.ECLDerivedParams `json:"d,omitempty"`
+	Params math.ECLParams        `json:"p"`
+	D      math.ECLDerivedParams `json:"d"`
 }
 
 type RpcResult struct {

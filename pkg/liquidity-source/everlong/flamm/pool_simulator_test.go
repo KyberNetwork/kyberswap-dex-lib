@@ -134,7 +134,7 @@ func TestSimulatorPurity(t *testing.T) {
 		a    uint64
 	}{{true, 15000}, {false, 20_000_000}, {true, 10_000_000}, {false, 1}, {true, 5000}, {false, 5_000_000}} {
 		first, err1 := sim.CalcAmountOut(amountIn(sim, c.sell, c.a))
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			again, err2 := sim.CalcAmountOut(amountIn(sim, c.sell, c.a))
 			require.Equal(t, fmt.Sprint(err1), fmt.Sprint(err2))
 			if err1 == nil {

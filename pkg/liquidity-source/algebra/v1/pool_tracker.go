@@ -43,7 +43,7 @@ func NewPoolTracker(
 	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
 	return &PoolTracker{
-		PoolTracker:   algebra.PoolTracker[Timepoint, TimepointRPC]{EthrpcClient: ethrpcClient},
+		EthrpcClient:  ethrpcClient,
 		config:        cfg,
 		graphqlClient: graphqlClient,
 	}

@@ -6,7 +6,7 @@ import (
 
 type HTTPConfig struct {
 	BaseURL    string                `mapstructure:"base_url" json:"base_url,omitempty"`
-	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
+	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout"`
 	RetryCount int                   `mapstructure:"retry_count" json:"retry_count,omitempty"`
 }
 

@@ -233,7 +233,7 @@ func coreEdgeDiff(got, want *flammState, skip map[string]bool) []string {
 		}
 		switch a.Kind() {
 		case reflect.Struct:
-			if a.Type() == reflect.TypeOf(uint256.Int{}) {
+			if a.Type() == reflect.TypeFor[uint256.Int]() {
 				x, y := a.Interface().(uint256.Int), b.Interface().(uint256.Int)
 				if !x.Eq(&y) {
 					d = append(d, fmt.Sprintf("%s: go %s chain %s", path, x.Dec(), y.Dec()))

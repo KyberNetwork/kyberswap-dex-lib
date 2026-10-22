@@ -69,7 +69,7 @@ func TestAaveSequentialHookUpdatesMatchFork(t *testing.T) {
 	require.NoError(t, err)
 	state.Pool.Tick = int32(tick)
 	state.Pool.Buckets = []dualpool.Bucket{{TickLower: 312380, TickUpper: 332380, WeightBps: 10000}}
-	h := &Hook{Snapshot: Snapshot{State: state}}
+	h := &Hook{State: state}
 	h.Vaults[0] = common.HexToAddress("0x1234")
 	h.Aave[0] = &AaveInventory{uint256.MustFromDecimal(b["raw"]), uint256.MustFromDecimal(b["claims"]), uint256.MustFromDecimal(b["poolShares"]), uint256.MustFromDecimal(b["supply"]), uint256.MustFromDecimal(b["idle"]), uint256.MustFromDecimal(b["strategyShares"]), uint256.MustFromDecimal(b["rate"]), uint256.MustFromDecimal(b["pendingYield"])}
 	for i, f := range quotes {

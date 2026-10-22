@@ -615,7 +615,7 @@ func readSnapshot(ctx context.Context, rpc *mcRPC, pool common.Address, se *Stat
 		})
 
 	// ---- the hooks, each by its kind, in role order (addressed to the listed set; drift checks it against hooks())
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		if e := hooks.Entries[role]; e != nil {
 			spec := hookKindSpecOf(e.Kind)
 			if spec == nil {
@@ -868,7 +868,7 @@ func readSnapshot(ctx context.Context, rpc *mcRPC, pool common.Address, se *Stat
 	}
 	record := routerRecordSlot(pool)
 	slot(se.Router, new(big.Int))
-	for off := int64(0); off < 8; off++ {
+	for off := range int64(8) {
 		slot(se.Router, new(big.Int).Add(record, big.NewInt(off)))
 	}
 	orders := []*[]uint16{&rt.BorrowOrder, &rt.SupplyOrder, &rt.WithdrawOrder, &rt.RepayOrder}
@@ -878,13 +878,13 @@ func readSnapshot(ctx context.Context, rpc *mcRPC, pool common.Address, se *Stat
 		}
 	}
 	loan := routerLoanSlot(pool, 0)
-	for off := int64(0); off < 3; off++ {
+	for off := range int64(3) {
 		slot(se.Router, new(big.Int).Add(loan, big.NewInt(off)))
 	}
 	venuesAt := len(reads)
 	for i := range venues {
 		base := routerVenueSlot(pool, i)
-		for off := int64(0); off < 6; off++ {
+		for off := range int64(6) {
 			slot(se.Router, new(big.Int).Add(base, big.NewInt(off)))
 		}
 	}

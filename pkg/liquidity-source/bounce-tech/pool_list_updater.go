@@ -69,10 +69,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if batchSize <= 0 {
 		batchSize = 50
 	}
-	end := metadata.Offset + batchSize
-	if end > len(allLTs) {
-		end = len(allLTs)
-	}
+	end := min(metadata.Offset+batchSize, len(allLTs))
 	batch := allLTs[metadata.Offset:end]
 
 	pools := make([]entity.Pool, 0, len(batch))

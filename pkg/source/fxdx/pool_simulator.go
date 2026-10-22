@@ -61,9 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	feeUtils.Vault = vault
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: info,
-		},
+		Info:     info,
 		vault:    vault,
 		feeUtils: feeUtils,
 		gas:      DefaultGas,

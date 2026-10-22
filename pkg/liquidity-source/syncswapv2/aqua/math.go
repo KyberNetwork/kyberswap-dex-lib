@@ -20,13 +20,13 @@ var (
 func sortArray(A0 []*uint256.Int) []*uint256.Int {
 	var nCoins = len(A0)
 	var ret = make([]*uint256.Int, nCoins)
-	for i := 0; i < nCoins; i += 1 {
+	for i := range nCoins {
 		ret[i] = A0[i]
 	}
 	for i := 1; i < nCoins; i += 1 {
 		var x = ret[i]
 		var cur = i
-		for j := 0; j < nCoins; j += 1 {
+		for range nCoins {
 			var y = ret[cur-1]
 			if y.Cmp(x) > 0 {
 				break
@@ -65,7 +65,7 @@ func sqrtInt(x *uint256.Int) (*uint256.Int, error) {
 	z.Div(&z, big256.U2)
 	var y uint256.Int
 	y.Set(x)
-	for i := 0; i < 256; i += 1 {
+	for range 256 {
 		if z.Cmp(&y) == 0 {
 			return &y, nil
 		}
@@ -163,7 +163,7 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 	for _, xI := range x {
 		S.Add(&S, xI)
 	}
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		var DPrev uint256.Int
 		DPrev.Set(&D)
 		var K0 uint256.Int
@@ -265,7 +265,7 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 	var Si uint256.Int
 
 	var xSorted = make([]*uint256.Int, nCoins)
-	for j := 0; j < nCoins; j += 1 {
+	for j := range nCoins {
 		xSorted[j] = x[j]
 	}
 	xSorted[i] = big256.U0
@@ -301,7 +301,7 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 		tmp.Mul(&tmp, &nCoinBi)
 		K0i.Div(&tmp, D)
 	}
-	for j := 0; j < 255; j += 1 {
+	for range 255 {
 		var yPrev uint256.Int
 		yPrev.Set(&y)
 		var K0 uint256.Int
@@ -460,7 +460,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 	}
 
 	var xp = make([]*uint256.Int, nCoins)
-	for k := 0; k < nCoins; k += 1 {
+	for k := range nCoins {
 		xp[k] = uint256.MustFromBig(t.Info.Reserves[k])
 	}
 	var ix = j
@@ -633,7 +633,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 		}
 	} else {
 		var __xp = make([]*uint256.Int, nCoins)
-		for k := 0; k < nCoins; k += 1 {
+		for k := range nCoins {
 			var copied uint256.Int
 			copied.Set(_xp[k])
 			__xp[k] = &copied
@@ -751,7 +751,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 				updated.Div(&updated, &norm)
 				pNew[k] = &updated
 			}
-			for k := 0; k < nCoins; k += 1 {
+			for k := range nCoins {
 				var copied uint256.Int
 				copied.Set(_xp[k])
 				xp[k] = &copied
