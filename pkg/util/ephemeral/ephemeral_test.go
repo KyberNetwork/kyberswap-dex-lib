@@ -176,11 +176,35 @@ func TestScanPinsTheFirstBlock(t *testing.T) {
 		})
 	assert.ErrorIs(t, err, ErrNoProgress)
 
+	// A chain that runs a call in the block after the one it is pinned to reports that block; the
+	// read is still the pinned block's state. Any other block is a node that ignored the pin.
+	block, err = Scan(context.Background(), 0, big.NewInt(100),
+		func(_ context.Context, cursor int, _ *big.Int) (Page[int], error) {
+			return Page[int]{Block: 101, Next: cursor + 1, Done: cursor == 1}, nil
+		})
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, block)
 	_, err = Scan(context.Background(), 0, big.NewInt(100),
 		func(_ context.Context, cursor int, _ *big.Int) (Page[int], error) {
-			return Page[int]{Block: 101, Done: true}, nil
+			return Page[int]{Block: 107, Done: true}, nil
 		})
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrUnpinned)
+}
+
+type head uint64
+
+func (h head) BlockNumber(context.Context) (uint64, error) { return uint64(h), nil }
+
+// TestPinNamesTheBlockFirst: a read with no block is pinned to the head before its first call, and
+// one with a block keeps it.
+func TestPinNamesTheBlockFirst(t *testing.T) {
+	block, err := Pin(context.Background(), head(500), nil)
+	require.NoError(t, err)
+	assert.EqualValues(t, 500, block.Uint64())
+
+	block, err = Pin(context.Background(), head(500), big.NewInt(7))
+	require.NoError(t, err)
+	assert.EqualValues(t, 7, block.Uint64())
 }
 
 func TestCheckTicks(t *testing.T) {
@@ -243,9 +267,9 @@ func TestSplitHalvesAndPinsTheBlock(t *testing.T) {
 			if len(part) > 1 {
 				return 0, nil, tooLarge
 			}
-			return uint64(100 + part[0]), part, nil
+			return uint64(100 + 5*part[0]), part, nil
 		})
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrUnpinned)
 }
 
 // TestGuardNeverWaits: past its burst, its concurrency or a key's cooldown, the guard declines at

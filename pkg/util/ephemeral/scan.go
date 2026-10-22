@@ -19,10 +19,42 @@ type Page[C comparable] struct {
 // given, and calling again would loop.
 var ErrNoProgress = errors.New("ephemeral: a call made no progress; raise the gas")
 
-// Scan calls fetch from cursor start until a page is Done, and returns the block every page read.
+// Head reports the chain's newest block. *ethclient.Client is one.
+type Head interface {
+	BlockNumber(ctx context.Context) (uint64, error)
+}
+
+// Pin returns block, or the chain's head when block is nil. A read of several calls names its
+// block before the first, because the block a call reports is not always one the next call can be
+// pinned to: Etherlink runs a call pinned to block N in the block after it and reports N+1, whose
+// state its nodes do not have yet.
+func Pin(ctx context.Context, h Head, block *big.Int) (*big.Int, error) {
+	if block != nil {
+		return block, nil
+	}
+	head, err := h.BlockNumber(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ephemeral: head: %w", err)
+	}
+	return new(big.Int).SetUint64(head), nil
+}
+
+// ErrUnpinned means a call pinned to a block reported running at another: the node does not run
+// calls at the block they name, as HyperEVM's runs them at its head whatever the pin, and what it
+// returned is not the state of that block.
+var ErrUnpinned = errors.New("ephemeral: the node ran a call at another block than the one pinned")
+
+// ranAt reports whether a call pinned to block that reported read ran there: the block itself, or
+// the one after it on a chain that runs a call in the block after the one it names.
+func ranAt(block *big.Int, read uint64) bool {
+	return read == block.Uint64() || read == block.Uint64()+1
+}
+
+// Scan calls fetch from cursor start until a page is Done, every call at block, and returns block.
 //
-// The first call runs at block (nil for the latest), and every later one at the block the first
-// read, so the pages add up to the state of one block. fetch keeps the data each page carries.
+// Pin block first. Given nil, the first call runs at the latest block and the rest at the block it
+// reported, which holds only where a call reports the block it was pinned to. fetch keeps the data
+// each page carries.
 func Scan[C comparable](ctx context.Context, start C, block *big.Int,
 	fetch func(ctx context.Context, cursor C, block *big.Int) (Page[C], error)) (uint64, error) {
 	cursor := start
@@ -33,11 +65,11 @@ func Scan[C comparable](ctx context.Context, start C, block *big.Int,
 		}
 		if block == nil {
 			block = new(big.Int).SetUint64(page.Block)
-		} else if page.Block != block.Uint64() {
-			return 0, fmt.Errorf("ephemeral: a page read block %d, not %d", page.Block, block)
+		} else if !ranAt(block, page.Block) {
+			return 0, fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, block, page.Block)
 		}
 		if page.Done {
-			return page.Block, nil
+			return block.Uint64(), nil
 		}
 		if page.Next == cursor {
 			return 0, ErrNoProgress

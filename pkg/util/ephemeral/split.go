@@ -10,9 +10,9 @@ import (
 // one call. fetch reads a part in one call and returns the block it read and one result per item;
 // a part whose error tooLarge accepts is halved, and both halves are read again.
 //
-// The first call runs at block (nil for the latest), and every call after the first that succeeds
-// at the block that one read, so the parts add up to the state of one block. The results are in
-// item order. A single item that is still too large returns its error.
+// Every call runs at block, and the parts add up to its state; pin it first (see Pin). Given nil,
+// the first call runs at the latest block and every later one at the block the first that succeeds
+// reported. The results are in item order. A single item that is still too large returns its error.
 func Split[T, R any](ctx context.Context, items []T, block *big.Int, tooLarge func(error) bool,
 	fetch func(ctx context.Context, part []T, block *big.Int) (uint64, []R, error)) (uint64, []R, error) {
 	if len(items) == 0 {
@@ -38,8 +38,8 @@ func Split[T, R any](ctx context.Context, items []T, block *big.Int, tooLarge fu
 		}
 		if block == nil {
 			block = new(big.Int).SetUint64(got)
-		} else if got != block.Uint64() {
-			return fmt.Errorf("ephemeral: a part read block %d, not %d", got, block)
+		} else if !ranAt(block, got) {
+			return fmt.Errorf("%w: part pinned to block %d ran at %d", ErrUnpinned, block, got)
 		}
 		out = append(out, results...)
 		return nil
