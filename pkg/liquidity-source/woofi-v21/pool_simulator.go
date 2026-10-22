@@ -28,6 +28,7 @@ var (
 	ErrArithmeticOverflowUnderflow = errors.New("arithmetic overflow / underflow")
 	ErrCapExceeds                  = errors.New("WooPPV2: CAP_EXCEEDS")
 	ErrPoolIsPaused                = errors.New("pool is paused")
+	ErrOracleIsPaused              = errors.New("wooracle is paused")
 )
 
 type PoolSimulator struct {
@@ -38,6 +39,8 @@ type PoolSimulator struct {
 	wooracle   Wooracle
 	cloracle   map[string]Cloracle
 	isPaused   bool
+	// oraclePaused: Wooracle.state() reverts, so every swap reverts on-chain.
+	oraclePaused bool
 
 	gas Gas
 
@@ -80,12 +83,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				BlockNumber: entityPool.BlockNumber,
 			},
 		},
-		quoteToken: extra.QuoteToken,
-		tokenInfos: extra.TokenInfos,
-		decimals:   decimals,
-		wooracle:   extra.Wooracle,
-		cloracle:   extra.Cloracle,
-		isPaused:   extra.IsPaused,
+		quoteToken:   extra.QuoteToken,
+		tokenInfos:   extra.TokenInfos,
+		decimals:     decimals,
+		wooracle:     extra.Wooracle,
+		cloracle:     extra.Cloracle,
+		isPaused:     extra.IsPaused,
+		oraclePaused: extra.OraclePaused,
 
 		gas: DefaultGas,
 	}, nil
@@ -102,6 +106,9 @@ func (s *PoolSimulator) now() int64 {
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.isPaused {
 		return nil, ErrPoolIsPaused
+	}
+	if s.oraclePaused {
+		return nil, ErrOracleIsPaused
 	}
 
 	tokenAmountIn := params.TokenAmountIn
