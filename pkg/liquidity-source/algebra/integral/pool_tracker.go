@@ -41,6 +41,9 @@ type PoolTracker struct {
 	config        *Config
 	graphqlClient *graphqlpkg.Client
 	lensGuard     *ephemeral.Guard
+	// pluginLensCall runs AlgebraIntegralPluginLens, callPluginLens but for tests.
+	pluginLensCall func(ctx context.Context, block *big.Int, plugin common.Address, calls [][]byte,
+		walk pluginWalk) (pluginSnapshot, error)
 	// readTicks reads ticks by index at a block, queryRPCTicksByIndexes but for tests.
 	readTicks func(ctx context.Context, address string, tickIndexes []int, blockNumber uint64,
 		overrides map[common.Address]gethclient.OverrideAccount) ([]tickspkg.Tick, error)
@@ -57,6 +60,7 @@ func NewPoolTracker(
 		graphqlClient: graphqlClient,
 		lensGuard:     ephemeral.NewLensGuard(cfg.LensGuard, cfg.LensBatch),
 	}
+	t.pluginLensCall = t.callPluginLens
 	t.readTicks = t.queryRPCTicksByIndexes
 	return t
 }
@@ -367,7 +371,34 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginA
 		"dexID":       d.config.DexID,
 	})
 
-	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).SetOverrides(overrides)
+	// The lens reads the plugin in one call, but a state override applies only to a multicall.
+	if d.config.UseLens && overrides == nil {
+		timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.readPluginData(p, plugin,
+			newPluginLensRead(ctx, d, pluginAddr, blockNumber))
+		if err == nil {
+			return timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, nil
+		}
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Warn("failed to read the plugin through the lens, reading it by multicall")
+	}
+
+	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.readPluginData(p, plugin,
+		rpcPluginRead{d: d, ctx: ctx, plugin: plugin, block: blockNumber, overrides: overrides})
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch plugin data")
+		return nil, nil, nil, nil, err
+	}
+	return timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, nil
+}
+
+// readPluginData reads the plugin's settings, then, when it has a volatility oracle, its timepoints
+// from those p holds, making the reads through read.
+func (d *PoolTracker) readPluginData(p *entity.Pool, plugin string, read pluginRead) (map[uint16]Timepoint,
+	*VolatilityOraclePlugin, *DynamicFeeConfig, *SlidingFeeConfig, error) {
+	req := d.EthrpcClient.NewRequest()
 
 	volatilityOracleData, volPost := d.getVolatilityOracleData(req, plugin)
 	dynamicFeeData, dynPost := d.getDynamicFeeData(req, plugin)
@@ -377,11 +408,11 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginA
 		slidingFeeData, sliPost = d.getSlidingFeeData(req, plugin)
 	}
 
-	resp, err := req.TryAggregate()
+	var extra ExtraTimepoint
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+
+	resp, err := read.settings(req, extra.Timepoints)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch plugin data")
 		return nil, nil, nil, nil, err
 	}
 	if volPost(resp) != nil {
@@ -396,14 +427,9 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginA
 
 	var timepoints map[uint16]Timepoint
 	if volatilityOracleData != nil {
-		var extra ExtraTimepoint
-		_ = json.Unmarshal([]byte(p.Extra), &extra)
-		if timepoints, err = d.getTimepoints(ctx, plugin, blockNumber, volatilityOracleData.TimepointIndex,
-			volatilityOracleData.LastTimepointTimestamp, extra.Timepoints, overrides); err != nil {
-			l.WithFields(logger.Fields{
-				"error": err,
-			}).Error("failed to fetch timepoints data from plugin")
-			return nil, nil, nil, nil, err
+		if timepoints, err = read.timepoints(extra.Timepoints, volatilityOracleData.TimepointIndex,
+			volatilityOracleData.LastTimepointTimestamp); err != nil {
+			return nil, nil, nil, nil, fmt.Errorf("timepoints: %w", err)
 		}
 	}
 

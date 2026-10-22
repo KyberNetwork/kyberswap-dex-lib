@@ -3,6 +3,7 @@ package integral
 import (
 	"cmp"
 	"context"
+	"errors"
 	"math"
 	"math/big"
 	"slices"
@@ -27,7 +28,10 @@ import (
 
 const multicallAggregateABI = `[{"name":"aggregate","type":"function","stateMutability":"view",
 "inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
-"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]}]`
+"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]},
+{"name":"tryAggregate","type":"function","stateMutability":"view",
+"inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
+"outputs":[{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}]`
 
 const (
 	tpNow     = uint32(1737563754)
@@ -42,6 +46,8 @@ type fakeChain struct {
 	index     uint16
 	override  map[uint16]Timepoint // exact on-chain values for some slots, instead of derived ones
 	requested []uint16
+	// multicalls and lensCalls count the calls made of the chain, by multicall and through the lens.
+	multicalls, lensCalls int
 }
 
 // newFakeChain creates a chain whose slots all hold previous-cycle data, except for the last n slots ending at index
@@ -91,54 +97,95 @@ func (e *ethAPI) Call(args struct {
 }, _ rpc.BlockNumberOrHash, _ *map[common.Address]any) (hexutil.Bytes, error) {
 	multicallABI := lo.Must(abi.JSON(strings.NewReader(multicallAggregateABI)))
 	data := cmp.Or(args.Input, args.Data)
+	m, err := multicallABI.MethodById((*data)[:4])
+	if err != nil {
+		return nil, err
+	}
 	var in struct {
 		Calls []struct {
 			Target   common.Address
 			CallData []byte
 		}
+		RequireSuccess bool
 	}
-	vals, err := multicallABI.Methods["aggregate"].Inputs.Unpack((*data)[4:])
+	vals, err := m.Inputs.Unpack((*data)[4:])
 	if err != nil {
 		return nil, err
 	}
-	if err = multicallABI.Methods["aggregate"].Inputs.Copy(&in, vals); err != nil {
+	if err = m.Inputs.Copy(&in, vals); err != nil {
 		return nil, err
 	}
 
 	e.chain.mu.Lock()
 	defer e.chain.mu.Unlock()
+	e.chain.multicalls++
 	rets := make([][]byte, 0, len(in.Calls))
+	results := make([]callResult, 0, len(in.Calls))
 	for _, call := range in.Calls {
-		m, err := basePluginV2ABI.MethodById(call.CallData[:4])
+		ok, out, err := e.chain.reply(call.CallData)
 		if err != nil {
 			return nil, err
 		}
-		params, err := m.Inputs.Unpack(call.CallData[4:])
-		if err != nil {
-			return nil, err
-		}
-		idx := uint16(params[0].(*big.Int).Uint64())
-		e.chain.requested = append(e.chain.requested, idx)
-		ts := e.chain.slots[idx]
-		// a distinct tick per timestamp makes any mix-up between cycles visible in the result
-		tp := TimepointRPC{Initialized: ts != 0, BlockTimestamp: ts, TickCumulative: big.NewInt(int64(ts)),
-			VolatilityCumulative: big.NewInt(int64(ts) + 1), Tick: big.NewInt(int64(ts % 100)),
-			AverageTick: big.NewInt(int64(ts % 100))}
-		if o, ok := e.chain.override[idx]; ok {
-			tp = TimepointRPC{Initialized: o.Initialized, BlockTimestamp: o.BlockTimestamp,
-				TickCumulative: big.NewInt(o.TickCumulative), VolatilityCumulative: o.VolatilityCumulative.ToBig(),
-				Tick: big.NewInt(int64(o.Tick)), AverageTick: big.NewInt(int64(o.AverageTick)),
-				WindowStartIndex: o.WindowStartIndex}
-		}
-		out, err := m.Outputs.Pack(tp.Initialized, tp.BlockTimestamp, tp.TickCumulative, tp.VolatilityCumulative,
-			tp.Tick, tp.AverageTick, tp.WindowStartIndex)
-		if err != nil {
-			return nil, err
+		if !ok && m.Name == "aggregate" {
+			return nil, errors.New("execution reverted")
 		}
 		rets = append(rets, out)
+		results = append(results, callResult{Success: ok, ReturnData: out})
 	}
-	out, err := multicallABI.Methods["aggregate"].Outputs.Pack(big.NewInt(1), rets)
-	return out, err
+	if m.Name == "aggregate" {
+		return m.Outputs.Pack(big.NewInt(1), rets)
+	}
+	return m.Outputs.Pack(results)
+}
+
+// reply is the plugin's answer to a call: whether it succeeds, and what it returns. It has a
+// volatility oracle and the adaptive fee, and no directional fees.
+func (c *fakeChain) reply(data []byte) (bool, []byte, error) {
+	m, err := basePluginV2ABI.MethodById(data[:4])
+	if err != nil {
+		return false, nil, err
+	}
+	var out []byte
+	switch m.Name {
+	case votalityOraclePluginTimepointsMethod:
+		params, err := m.Inputs.Unpack(data[4:])
+		if err != nil {
+			return false, nil, err
+		}
+		idx := uint16(params[0].(*big.Int).Uint64())
+		c.requested = append(c.requested, idx)
+		out, err = c.packTimepoint(idx)
+		return err == nil, out, err
+	case votalityOraclePluginIsInitializedMethod:
+		out, err = m.Outputs.Pack(true)
+	case votalityOraclePluginLastTimepointTimestampMethod:
+		out, err = m.Outputs.Pack(c.headTs())
+	case votalityOraclePluginTimepointIndexMethod:
+		out, err = m.Outputs.Pack(c.index)
+	case dynamicFeeManagerPluginFeeConfigMethod:
+		out, err = m.Outputs.Pack(uint16(2900), uint16(12000), uint32(360), uint32(60000), uint16(59), uint16(8500),
+			uint16(100))
+	default:
+		return false, nil, nil
+	}
+	return err == nil, out, err
+}
+
+// packTimepoint is timepoints(idx)'s reply.
+func (c *fakeChain) packTimepoint(idx uint16) ([]byte, error) {
+	ts := c.slots[idx]
+	// a distinct tick per timestamp makes any mix-up between cycles visible in the result
+	tp := TimepointRPC{Initialized: ts != 0, BlockTimestamp: ts, TickCumulative: big.NewInt(int64(ts)),
+		VolatilityCumulative: big.NewInt(int64(ts) + 1), Tick: big.NewInt(int64(ts % 100)),
+		AverageTick: big.NewInt(int64(ts % 100))}
+	if o, ok := c.override[idx]; ok {
+		tp = TimepointRPC{Initialized: o.Initialized, BlockTimestamp: o.BlockTimestamp,
+			TickCumulative: big.NewInt(o.TickCumulative), VolatilityCumulative: o.VolatilityCumulative.ToBig(),
+			Tick: big.NewInt(int64(o.Tick)), AverageTick: big.NewInt(int64(o.AverageTick)),
+			WindowStartIndex: o.WindowStartIndex}
+	}
+	return basePluginV2ABI.Methods[votalityOraclePluginTimepointsMethod].Outputs.Pack(tp.Initialized,
+		tp.BlockTimestamp, tp.TickCumulative, tp.VolatilityCumulative, tp.Tick, tp.AverageTick, tp.WindowStartIndex)
 }
 
 func newTrackerOnChain(t *testing.T, chain *fakeChain) *PoolTracker {
