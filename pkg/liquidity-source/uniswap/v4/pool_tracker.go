@@ -757,10 +757,11 @@ func (t *PoolTracker) newTicksBasedPool(
 
 	// Ticks are read whole at the batch's block, never at one older than the pool's own: logs that
 	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch back
-	// to their values at that older block. A simulation under overrides reads where it asks.
+	// to their values at that older block; a reorg is read at its own blocks (see tickspkg.ReadBlock).
+	// A simulation under overrides reads where it asks.
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
-	if blockNumber != 0 && overrides == nil {
-		blockNumber = max(blockNumber, p.BlockNumber)
+	if overrides == nil {
+		blockNumber = tickspkg.ReadBlock(logs, p.BlockNumber)
 	}
 	ticksBasedPool.BlockNumber = blockNumber
 

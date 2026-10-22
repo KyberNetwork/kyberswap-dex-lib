@@ -556,11 +556,9 @@ func (t *PoolTracker) newTicksBasedPool(
 
 	// Ticks are read whole at the batch's block, never at one older than the pool's own: logs that
 	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch back
-	// to their values at that older block, below a lens snapshot that already holds newer ones.
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
-	if blockNumber != 0 {
-		blockNumber = max(blockNumber, p.BlockNumber)
-	}
+	// to their values at that older block, below a lens snapshot that already holds newer ones. A
+	// reorg is read at its own blocks (see tickspkg.ReadBlock).
+	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
 	ticksBasedPool.BlockNumber = blockNumber
 
 	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, blockNumber)
