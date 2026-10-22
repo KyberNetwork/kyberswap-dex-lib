@@ -882,7 +882,8 @@ func (t *Tracker) bootstrapFromLens(ctx context.Context, p entity.Pool, param po
 		}).Error("failed to fetch data from RPC")
 		return entity.Pool{}, 0, err
 	}
-	if rpcData.Liquidity.Cmp(snap.liquidity) != 0 || rpcData.Slot0.Tick.Int64() != int64(snap.tick) {
+	if rpcData.Liquidity == nil || rpcData.Slot0.Tick == nil || rpcData.Liquidity.Cmp(snap.liquidity) != 0 ||
+		rpcData.Slot0.Tick.Int64() != int64(snap.tick) {
 		return entity.Pool{}, 0, fmt.Errorf("pool %s at block %d: RPC and lens disagree on liquidity or tick",
 			p.Address, snap.block)
 	}
