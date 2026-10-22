@@ -47,7 +47,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	fee := big.NewInt(int64(entityPool.SwapFee * FeePercentPrecision))
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -57,7 +57,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     fee,
-		}},
+		},
 		CollateralReserves:       extra.CollateralReserves,
 		DebtReserves:             extra.DebtReserves,
 		DexLimits:                extra.DexLimits,

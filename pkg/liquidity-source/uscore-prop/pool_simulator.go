@@ -37,14 +37,14 @@ func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator,
 	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 {
 		return nil, ErrInvalidState
 	}
-	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{
+	s := &PoolSimulator{Info: pool.PoolInfo{
 		Address:     ep.Address,
 		Exchange:    ep.Exchange,
 		Type:        ep.Type,
 		Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
 		Reserves:    make([]*big.Int, 2),
 		BlockNumber: ep.BlockNumber,
-	}}}
+	}}
 	var extra Extra
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err

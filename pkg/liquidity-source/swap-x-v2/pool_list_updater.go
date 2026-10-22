@@ -162,7 +162,7 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 
 	listPoolAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		index := big.NewInt(int64(offset + i))
 
 		listPoolAddressesRequest.AddCall(&ethrpc.Call{

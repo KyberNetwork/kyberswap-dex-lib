@@ -615,7 +615,7 @@ func requireListed(t *testing.T, got map[common.Address]entity.Pool, pools ...*m
 // requireRefused requires the lister to have logged pool's refusal with reason.
 func requireRefused(t *testing.T, logs string, p *mpPool, reason string) {
 	t.Helper()
-	for _, line := range strings.Split(logs, "\n") {
+	for line := range strings.SplitSeq(logs, "\n") {
 		if strings.Contains(line, lowerHex(p.pool)) && strings.Contains(line, "does not match the registry") {
 			require.Contains(t, line, reason, p.name)
 			return

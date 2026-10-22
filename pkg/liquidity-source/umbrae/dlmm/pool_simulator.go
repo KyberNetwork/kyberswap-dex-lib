@@ -30,11 +30,11 @@ type PoolSimulator struct {
 	// Raw volatility state (V2 anchored-displacement model). The working volatility and window
 	// anchor are derived per swap exactly as PairSwapLib.performSwap does, using the tracked
 	// timestamp as the clock.
-	volAcc       uint64
-	volRef       uint32 // anchor bin id; < 2^22 means unset
-	lastVolUpd   uint64
-	trackedAt    uint64
-	router       string // DLMM Router: the token spender / approval target
+	volAcc     uint64
+	volRef     uint32 // anchor bin id; < 2^22 means unset
+	lastVolUpd uint64
+	trackedAt  uint64
+	router     string // DLMM Router: the token spender / approval target
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -58,14 +58,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 
 	scaleY := pow10(18 - static.DecimalsY)
 	s := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
 			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		binStep:          static.BinStep,
 		scaleX:           pow10(18 - static.DecimalsX),
 		scaleY:           scaleY,

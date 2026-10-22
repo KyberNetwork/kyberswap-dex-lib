@@ -222,7 +222,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 
 	limit1 := swaplimit.NewInventory("tessera", sim1.CalculateLimit())
 	totalOut1 := big.NewInt(0)
-	for i := 0; i < numSwaps; i++ {
+	for range numSwaps {
 		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: amountPerSwap},
 			TokenOut:      p.Tokens[1].Address,

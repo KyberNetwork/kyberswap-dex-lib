@@ -137,7 +137,7 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 	rpcRequest := u.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	for i := 0; i < poolsLength; i++ {
+	for i := range poolsLength {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: poolAddresses[i].Hex(),

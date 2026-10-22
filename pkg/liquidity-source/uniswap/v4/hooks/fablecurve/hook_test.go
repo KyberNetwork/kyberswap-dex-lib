@@ -47,7 +47,7 @@ func TestCurrentFeePips_LaunchWindow(t *testing.T) {
 // A literal port of the Solidity expression, over every fee the hook accepts and the whole window.
 func TestCurrentFeePips_MatchesSolidityExpression(t *testing.T) {
 	for fee := uint32(1); fee <= maxFeePips; fee++ {
-		for elapsed := int64(0); elapsed < 5; elapsed++ {
+		for elapsed := range int64(5) {
 			want := fee
 			if elapsed < sniperSeconds {
 				// uint24(SNIPER_START_PIPS - (uint256(SNIPER_START_PIPS - fee) * elapsed) / SNIPER_SECONDS)
@@ -67,7 +67,7 @@ func TestBeforeSwap_ReturnsOverrideFeeAndCheckpointGas(t *testing.T) {
 	defer func() { NowFn = orig }()
 
 	for _, fee := range poolFees {
-		h := &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{FeePips: fee, LaunchedAt: launchedAt}}
+		h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: fee, LaunchedAt: launchedAt}
 
 		NowFn = func() int64 { return launchedAt + 3600 }
 		res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(18)})
@@ -99,7 +99,7 @@ func TestBeforeSwap_UntrackedPoolRefusesToQuote(t *testing.T) {
 
 // afterSwap takes no hook fee: the base hook's zero result applies (launch and mesh pools alike).
 func TestAfterSwap_NoHookFee(t *testing.T) {
-	h := &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{FeePips: 10_000, LaunchedAt: launchedAt}}
+	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 10_000, LaunchedAt: launchedAt}
 	res, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
 		AmountIn:         bignumber.TenPowInt(18),

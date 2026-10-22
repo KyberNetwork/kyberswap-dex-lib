@@ -79,14 +79,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		reserves[i] = amount
 	}
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(item *entity.PoolToken, _ int) string { return item.Address }),
 			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		routerAddress:  staticExtra.RouterAddress,
 		curveAddress:   staticExtra.CurveAddress,
 		graduationDesk: graduationDesk,

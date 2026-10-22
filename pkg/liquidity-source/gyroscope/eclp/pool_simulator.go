@@ -85,7 +85,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:              pool.Pool{Info: poolInfo},
+		Info:              poolInfo,
 		paused:            extra.Paused,
 		_paramsAlpha:      extra.ParamsAlpha,
 		_paramsBeta:       extra.ParamsBeta,

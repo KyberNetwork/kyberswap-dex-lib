@@ -151,7 +151,7 @@ func swapExactInWithSpacing(positions []position, sqrtP *uint256.Int, tick int, 
 		// its first removal collects fees on their combined liquidity, rounded once.
 		collected[i] = new(uint256.Int)
 		first := true
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if positions[j].TickLower == p.TickLower && positions[j].TickUpper == p.TickUpper {
 				first = false
 				break

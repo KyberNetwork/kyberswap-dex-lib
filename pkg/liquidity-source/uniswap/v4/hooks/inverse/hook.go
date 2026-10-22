@@ -24,7 +24,7 @@ var HookAddresses = []common.Address{common.HexToAddress("0x9bb08b8473d09eb23503
 var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Inverse}}
+	h := &Hook{Exchange: valueobject.ExchangeUniswapV4Inverse}
 	if param == nil {
 		return h
 	}

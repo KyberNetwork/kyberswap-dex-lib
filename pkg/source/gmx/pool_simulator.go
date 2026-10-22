@@ -52,9 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: info,
-		},
+		Info:       info,
 		vault:      extra.Vault,
 		vaultUtils: NewVaultUtils(extra.Vault),
 	}, nil

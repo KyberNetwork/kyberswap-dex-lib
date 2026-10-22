@@ -59,10 +59,7 @@ func (f *TickFetcher) ReadSlotsBatch(
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(BatchConcurrency)
 	for start := 0; start < len(slots); start += MaxBatchSize {
-		end := start + MaxBatchSize
-		if end > len(slots) {
-			end = len(slots)
-		}
+		end := min(start+MaxBatchSize, len(slots))
 		chunkSlots := slots[start:end]
 		chunkOut := out[start:end]
 		g.Go(func() error {
@@ -130,7 +127,7 @@ func batchCallWithRetry(ctx context.Context, client *rpc.Client, batch []rpc.Bat
 	const maxAttempts = 5
 	delay := 500 * time.Millisecond
 	var err error
-	for attempt := 0; attempt < maxAttempts; attempt++ {
+	for range maxAttempts {
 		err = client.BatchCallContext(ctx, batch)
 		if err == nil {
 			return nil

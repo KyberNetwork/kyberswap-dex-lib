@@ -49,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                      pool.Pool{Info: info},
+		Info:                      info,
 		swapFee:                   extra.SwapFee,
 		tokenPrecisionMultipliers: []*uint256.Int{extra.Token0PrecisionMultiplier, extra.Token1PrecisionMultiplier},
 		A:                         extra.A,

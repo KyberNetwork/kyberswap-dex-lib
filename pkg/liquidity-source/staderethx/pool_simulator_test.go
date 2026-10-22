@@ -23,10 +23,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, ETHx},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, ETHx},
 				},
 				paused:          false,
 				minDeposit:      uint256.MustFromDecimal("100000000000000"),
@@ -47,10 +45,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, ETHx},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, ETHx},
 				},
 				paused:          false,
 				minDeposit:      uint256.MustFromDecimal("100000000000000"),
@@ -71,10 +67,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return ErrInvalidDepositAmount when amountIn > maxDeposit",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, ETHx},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, ETHx},
 				},
 				paused:          false,
 				minDeposit:      uint256.MustFromDecimal("100000000000000"),
@@ -95,10 +89,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return ErrInvalidDepositAmount when amountIn < minDeposit",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, ETHx},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, ETHx},
 				},
 				paused:          false,
 				minDeposit:      uint256.MustFromDecimal("100000000000000"),
@@ -119,10 +111,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return ErrInvalidTokenIn",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, ETHx},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, ETHx},
 				},
 				paused:          false,
 				minDeposit:      uint256.MustFromDecimal("100000000000000"),
@@ -143,10 +133,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return ErrInvalidTokenOut",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, ETHx},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, ETHx},
 				},
 				paused:          false,
 				minDeposit:      uint256.MustFromDecimal("100000000000000"),

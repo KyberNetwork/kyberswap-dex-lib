@@ -371,7 +371,7 @@ func mmCheckLens(t *testing.T, name string, s *mmFxSnap) {
 	for i, lv := range s.Lens.Venues {
 		vp, err := r.venuePosition(uint16(i), now)
 		require.NoError(t, err)
-		for k := 0; k < 5; k++ {
+		for k := range 5 {
 			mmEq(t, &lv[k], &vp[k], "%s lens venue %d [%d]", name, i, k)
 		}
 		fl := r.Venues[i].Morpho.freeLiquidity()

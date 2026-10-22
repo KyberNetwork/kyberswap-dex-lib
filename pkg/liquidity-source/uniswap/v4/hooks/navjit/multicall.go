@@ -3,6 +3,7 @@ package navjit
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -56,9 +57,7 @@ func (r cappedResult) unpack(a abi.ABI, method string, out any) bool {
 func cappedMulticall(ctx context.Context, rc *ethrpc.Client, overrides map[common.Address]gethclient.OverrideAccount,
 	block *big.Int, calls []cappedCall) ([]cappedResult, error) {
 	ov := make(map[common.Address]gethclient.OverrideAccount, len(overrides)+1)
-	for a, o := range overrides {
-		ov[a] = o
-	}
+	maps.Copy(ov, overrides)
 	ov[cappedMulticallAddr] = gethclient.OverrideAccount{Code: cappedMulticallCode}
 
 	var out struct {

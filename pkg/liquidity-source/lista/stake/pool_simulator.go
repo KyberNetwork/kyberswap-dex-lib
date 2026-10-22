@@ -61,15 +61,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    []*big.Int{reserves[0].ToBig(), reserves[1].ToBig()},
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    []*big.Int{reserves[0].ToBig(), reserves[1].ToBig()},
+			BlockNumber: entityPool.BlockNumber,
 		},
 		paused:                  extra.Paused,
 		depositRate:             extra.DepositRate,

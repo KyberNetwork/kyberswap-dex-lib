@@ -10,7 +10,6 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
@@ -72,7 +71,7 @@ func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error
 
 	// tickSpacing comes straight off the event, so the tracker's first tick sweep needs no extra
 	// RPC to learn it.
-	extra, err := json.Marshal(Extra{Extra: uniswapv3.Extra{TickSpacing: created.TickSpacing.Uint64()}})
+	extra, err := json.Marshal(Extra{TickSpacing: created.TickSpacing.Uint64()})
 	if err != nil {
 		return nil, err
 	}

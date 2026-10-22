@@ -45,8 +45,8 @@ var sellLadder = []Rung{
 
 func trackedHook() *Hook {
 	return &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit},
-		Extra: Extra{Tracked: true, UsdgIs0: true, Nav: u("1001792378992843260"), Float: u("49265362021832501903"),
-			BandBps: 200, UsdgDecimals: 6, Buy: buyLadder, Sell: sellLadder}}
+		Tracked: true, UsdgIs0: true, Nav: u("1001792378992843260"), Float: u("49265362021832501903"),
+		BandBps: 200, UsdgDecimals: 6, Buy: buyLadder, Sell: sellLadder}
 }
 
 func exactIn(zeroForOne bool, amt string) *uniswapv4.BeforeSwapParams {

@@ -23,12 +23,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0x1509967c8aa688eb70d1c8d73a8cb71221e4f6b0a0648c7f2a7fd22062548236
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{
-							"0xa1290d69c65a6fe4df752f95823fae25cb99e5a7", // rsETH
-							"0xa35b1b31ce002fbf2058d22f30f95d405200a15b", // ETHx
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{
+						"0xa1290d69c65a6fe4df752f95823fae25cb99e5a7", // rsETH
+						"0xa35b1b31ce002fbf2058d22f30f95d405200a15b", // ETHx
 					},
 				},
 

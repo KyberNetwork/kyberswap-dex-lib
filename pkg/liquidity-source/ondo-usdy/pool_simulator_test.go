@@ -30,10 +30,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "should return success when wrap",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+				Info: poolpkg.PoolInfo{
 					Address: "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3",
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
-				}},
+				},
 				paused:      false,
 				totalShares: uint256.MustFromDecimal("100000000000000000000000000000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),
@@ -50,10 +50,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "should return success when unwrap",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+				Info: poolpkg.PoolInfo{
 					Address: "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3",
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
-				}},
+				},
 				paused:      false,
 				totalShares: uint256.MustFromDecimal("100000000000000000000000000000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),
@@ -70,10 +70,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "should return an error when unwrap exceeds total shares",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+				Info: poolpkg.PoolInfo{
 					Address: "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3",
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
-				}},
+				},
 				paused:      false,
 				totalShares: uint256.MustFromDecimal("100000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),

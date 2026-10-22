@@ -133,7 +133,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	}
 
 	p := &PoolSimulator{
-		Pool:                      pool.Pool{Info: poolInfo},
+		Info:                      poolInfo,
 		basePools:                 basePools,
 		paused:                    extra.Paused,
 		swapFeePercentage:         extra.SwapFeePercentage,

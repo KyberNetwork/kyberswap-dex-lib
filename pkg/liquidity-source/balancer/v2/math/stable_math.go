@@ -146,7 +146,7 @@ func (l *stableMath) CalculateInvariantV1(
 	var ampTimesTotal uint256.Int
 	ampTimesTotal.Mul(amp, &numTokens)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		var pD uint256.Int
 		pD.Mul(balances[0], &numTokens)
 		P_D := &pD
@@ -268,9 +268,9 @@ func (l *stableMath) CalculateInvariantV2(
 	var ampTimesTotal uint256.Int
 	ampTimesTotal.Mul(amp, &numTokens)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		D_P := invariantPtr
-		for j := 0; j < len(balances); j++ {
+		for j := range balances {
 			u, err := Math.Mul(D_P, invariantPtr)
 			if err != nil {
 				return nil, err
@@ -469,7 +469,7 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 	prev, next := &bufA, &bufB
 	var u, v uint256.Int
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		if _, overflow := u.MulOverflow(prev, prev); overflow {
 			return nil, ErrMulOverflow
 		}
@@ -528,7 +528,7 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	var invariantRatioWithFee uint256.Int
 	invariantRatioWithFeePtr := &invariantRatioWithFee
 
-	for i := 0; i < len(balances); i++ {
+	for i := range balances {
 		currentWeight, err := FixedPoint.DivDown(balances[i], sumBalancesPtr)
 		if err != nil {
 			return nil, err
@@ -554,7 +554,7 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	}
 
 	newBalances := make([]*uint256.Int, len(balances))
-	for i := 0; i < len(balances); i++ {
+	for i := range balances {
 		var amountInWithoutFee *uint256.Int
 		if balanceRatiosWithFee[i].Gt(invariantRatioWithFeePtr) {
 			var nonTaxableAmount *uint256.Int
@@ -736,7 +736,7 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 	var invariantRatioWithoutFees uint256.Int
 	invariantRatioWithoutFeesPtr := &invariantRatioWithoutFees
 
-	for i := 0; i < len(balances); i++ {
+	for i := range balances {
 		currentWeight, err := FixedPoint.DivUp(balances[i], sumBalancesPtr)
 		if err != nil {
 			return nil, err
@@ -764,7 +764,7 @@ func (l *stableMath) CalcBptInGivenExactTokensOut(
 
 	// Second loop calculates new amounts in, taking into account the fee on the percentage excess
 	newBalances := make([]*uint256.Int, len(balances))
-	for i := 0; i < len(balances); i++ {
+	for i := range balances {
 		// Swap fees are typically charged on 'token in', but there is no 'token in' here, so we apply it to
 		// 'token out'. This results in slightly larger price impact.
 

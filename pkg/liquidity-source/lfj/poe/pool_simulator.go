@@ -46,15 +46,13 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     ep.Address,
-				Exchange:    ep.Exchange,
-				Type:        ep.Type,
-				Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
-				Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
-				BlockNumber: ep.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     ep.Address,
+			Exchange:    ep.Exchange,
+			Type:        ep.Type,
+			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
+			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
+			BlockNumber: ep.BlockNumber,
 		},
 		reserveX: uint256.MustFromDecimal(ep.Reserves[0]),
 		reserveY: uint256.MustFromDecimal(ep.Reserves[1]),
@@ -156,7 +154,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrInsufficientLiquidity
 	}
 
-	for i := 0; i < 256; i++ {
+	for range 256 {
 		diff := new(big.Int).Sub(hiAmt, loAmt)
 		if diff.Cmp(big.NewInt(1)) <= 0 {
 			break

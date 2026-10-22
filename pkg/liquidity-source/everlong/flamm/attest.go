@@ -444,7 +444,7 @@ func edge(grid []uint64, ok func(*uint256.Int) bool) (lo, hi *uint256.Int, found
 		return nil, nil, false
 	}
 	hi = new(uint256.Int).Set(lo)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		hi.Mul(hi, uint256.NewInt(4))
 		if !ok(hi) {
 			break

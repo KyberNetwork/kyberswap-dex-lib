@@ -40,7 +40,7 @@ func legacyXp(
 	if numTokens != len(precisionMultipliers) {
 		return nil, errors.New("balances must match multipliers")
 	}
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		xp = append(xp, new(big.Int).Mul(balances[i], precisionMultipliers[i]))
 	}
 	return xp, nil
@@ -102,7 +102,7 @@ func legacyGetAPrecise(
 func legacyGetD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int).SetInt64(0)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		s = new(big.Int).Add(s, xp[i])
 	}
 	if s.Sign() == 0 {
@@ -112,9 +112,9 @@ func legacyGetD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var prevD *big.Int
 	var d = new(big.Int).Set(s)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		var dP = new(big.Int).Set(d)
-		for j := 0; j < numTokens; j++ {
+		for j := range numTokens {
 			dP = new(big.Int).Div(
 				new(big.Int).Mul(dP, d),
 				new(big.Int).Mul(xp[j], numTokensBI),
@@ -181,7 +181,7 @@ func legacyGetY(
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
 	var _x *big.Int
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i == tokenIndexFrom {
 			_x = new(big.Int).Set(x)
 		} else if i != tokenIndexTo {
@@ -211,7 +211,7 @@ func legacyGetY(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
 		y = new(big.Int).Div(
 			new(big.Int).Add(new(big.Int).Mul(y, y), c),
@@ -325,7 +325,7 @@ func legacyGetYD(
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
 	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
@@ -353,7 +353,7 @@ func legacyGetYD(
 	)
 	var yPrev *big.Int
 	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
+	for range MaxLoopLimit {
 		yPrev = new(big.Int).Set(y)
 		y = new(big.Int).Div(
 			new(big.Int).Add(
@@ -445,7 +445,7 @@ func legacyCalculateWithdrawOneTokenDy(
 	}
 	var feePerToken = legacyFeePerToken(swapFee, numTokens)
 	var xpReduced = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		var norm *big.Int
 		if i == tokenIndex {
 			norm = new(big.Int).Sub(new(big.Int).Div(new(big.Int).Mul(xp[i], d1), d0), newY)
@@ -590,7 +590,7 @@ func legacyCalculateTokenAmount(
 		return nil, err
 	}
 	var balances1 = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		if deposit {
 			balances1[i] = new(big.Int).Add(balances[i], amounts[i])
 		} else {
@@ -639,7 +639,7 @@ func legacyCalculateAddLiquidityOneToken(
 ) (*big.Int, *big.Int, error) {
 	var numTokens = len(balances)
 	var amounts = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		amounts[i] = big.NewInt(0)
 	}
 	amounts[tokenIndex] = new(big.Int).Set(tokenAmount)
@@ -763,7 +763,7 @@ func newLegacyPoolSimulator(entityPool entity.Pool) (*legacyPoolSimulator, error
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
 	multipliers := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
@@ -778,16 +778,14 @@ func newLegacyPoolSimulator(entityPool entity.Pool) (*legacyPoolSimulator, error
 	}
 
 	return &legacyPoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     swapFee,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     swapFee,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		Multipliers:        multipliers,
 		InitialA:           bignumber.NewBig10(extra.InitialA),

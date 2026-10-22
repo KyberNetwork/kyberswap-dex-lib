@@ -22,16 +22,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x40D9b8417E6E1DcD358f04E3328bCEd061018A82",
-						Exchange:    "fluid-vault-t1",
-						Type:        "fluid-vault-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
-						Reserves:    []*big.Int{bignumber.NewBig("86232802856618560"), bignumber.NewBig("97976286699627227")},
-						BlockNumber: 20812089,
-						SwapFee:     big.NewInt(0), // no swap fee on liquidations
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x40D9b8417E6E1DcD358f04E3328bCEd061018A82",
+					Exchange:    "fluid-vault-t1",
+					Type:        "fluid-vault-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
+					Reserves:    []*big.Int{bignumber.NewBig("86232802856618560"), bignumber.NewBig("97976286699627227")},
+					BlockNumber: 20812089,
+					SwapFee:     big.NewInt(0), // no swap fee on liquidations
 				},
 				Ratio: bignumber.NewBig("1136183487651849280183370224"),
 			},
@@ -47,16 +45,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when amount out exceeds reserves",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x40D9b8417E6E1DcD358f04E3328bCEd061018A82",
-						Exchange:    "fluid-vault-t1",
-						Type:        "fluid-vault-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
-						Reserves:    []*big.Int{bignumber.NewBig("86232802856618560"), bignumber.NewBig("97976286699627227")},
-						BlockNumber: 20812089,
-						SwapFee:     big.NewInt(0), // no swap fee on liquidations
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x40D9b8417E6E1DcD358f04E3328bCEd061018A82",
+					Exchange:    "fluid-vault-t1",
+					Type:        "fluid-vault-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
+					Reserves:    []*big.Int{bignumber.NewBig("86232802856618560"), bignumber.NewBig("97976286699627227")},
+					BlockNumber: 20812089,
+					SwapFee:     big.NewInt(0), // no swap fee on liquidations
 				},
 				Ratio: bignumber.NewBig("1136183487651849280183370224"),
 			},

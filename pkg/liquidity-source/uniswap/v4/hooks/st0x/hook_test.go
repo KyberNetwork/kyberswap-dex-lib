@@ -72,7 +72,7 @@ func TestPoolSimulatorWithMissingHookExtraReserves(t *testing.T) {
 	sim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainID(8453))
 	require.NoError(t, err)
 	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: token0, Amount: big.NewInt(10)}, TokenOut: token1}
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		result, err := sim.CalcAmountOut(params)
 		require.NoError(t, err)
 		require.Equal(t, big.NewInt(10), result.TokenAmountOut.Amount)

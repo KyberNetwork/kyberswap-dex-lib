@@ -695,12 +695,10 @@ func TestPerformanceSnapshotConcurrentPoolsAndClients(t *testing.T) {
 	cases := []scenario{{tracker1, verifiedEntity(), "1230000000"}, {tracker1, other, "777000000"}, {tracker2, verifiedEntity(), "999000000"}}
 	var wg sync.WaitGroup
 	errs := make(chan error, 24)
-	for i := 0; i < 24; i++ {
+	for i := range 24 {
 		tc := cases[i%len(cases)]
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for n := 0; n < 5; n++ {
+		wg.Go(func() {
+			for range 5 {
 				got, err := tc.tracker.GetNewPoolState(context.Background(), tc.p, pool.GetNewPoolStateParams{})
 				if err != nil {
 					errs <- err
@@ -711,7 +709,7 @@ func TestPerformanceSnapshotConcurrentPoolsAndClients(t *testing.T) {
 					return
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	close(errs)
@@ -724,7 +722,7 @@ func TestPerformanceSnapshotCacheBoundedByEviction(t *testing.T) {
 	f := newPerformanceFixture(t)
 	tracker := publicTracker(f.client(t))
 	firstHint := performanceHint(f.headHeader())
-	for i := uint64(0); i < 70; i++ {
+	for i := range uint64(70) {
 		h := f.setHead(900+i, 1, int64(1230000000+i))
 		if _, err := tracker.GetNewPoolState(context.Background(), verifiedEntity(), performanceHint(h)); err != nil {
 			t.Fatal(err)
@@ -753,7 +751,7 @@ func TestPerformanceSnapshotCacheClonesMutableIntegers(t *testing.T) {
 	first.reserveX.SetInt64(0)
 	first.reserveY.SetInt64(1)
 	first.extra.SqrtPriceX96.Clear()
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		got, err := fetchRPCStateWithCache(context.Background(), verifiedPoolAddress, valueobject.ChainIDBSC, client, cache)
 		if err != nil {
 			t.Fatal(err)

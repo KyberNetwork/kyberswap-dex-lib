@@ -52,7 +52,7 @@ func sqrt(_a *int256.Int) *int256.Int {
 	log2Val := log2(a)
 	result := new(int256.Int).Lsh(i256.One, log2Val>>1)
 
-	for i := 0; i < 7; i++ {
+	for range 7 {
 		quotient := new(int256.Int).Quo(a, result)
 		sum := new(int256.Int).Add(result, quotient)
 		result = new(int256.Int).Rsh(sum, 1)

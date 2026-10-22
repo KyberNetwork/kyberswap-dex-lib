@@ -104,7 +104,7 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 		Method: yearnTokenVaultMethodTotalIdle,
 		Params: nil,
 	}, []any{&yearnTokenVault.TotalIdle})
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    yearnTokenVaultABI,
 			Target: address,

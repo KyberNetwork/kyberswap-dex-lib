@@ -22,13 +22,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{USD0, USD0PP},
-						Reserves: []*big.Int{
-							bignumber.NewBig("406545179820271452478787"),
-							bignumber.NewBig("406545179820271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{USD0, USD0PP},
+					Reserves: []*big.Int{
+						bignumber.NewBig("406545179820271452478787"),
+						bignumber.NewBig("406545179820271452478787"),
 					},
 				},
 				paused:    false,
@@ -47,13 +45,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when bond not started",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{USD0, USD0PP},
-						Reserves: []*big.Int{
-							bignumber.NewBig("40654517980271452478787"),
-							bignumber.NewBig("40654517980271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{USD0, USD0PP},
+					Reserves: []*big.Int{
+						bignumber.NewBig("40654517980271452478787"),
+						bignumber.NewBig("40654517980271452478787"),
 					},
 				},
 				paused:    false,
@@ -72,13 +68,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when pool is paused",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{USD0, USD0PP},
-						Reserves: []*big.Int{
-							bignumber.NewBig("40654517980271452478787"),
-							bignumber.NewBig("40654517980271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{USD0, USD0PP},
+					Reserves: []*big.Int{
+						bignumber.NewBig("40654517980271452478787"),
+						bignumber.NewBig("40654517980271452478787"),
 					},
 				},
 				paused:    false,
@@ -97,13 +91,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when tokenIn is invalid",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{USD0, USD0PP},
-						Reserves: []*big.Int{
-							bignumber.NewBig("40654517980271452478787"),
-							bignumber.NewBig("40654517980271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{USD0, USD0PP},
+					Reserves: []*big.Int{
+						bignumber.NewBig("40654517980271452478787"),
+						bignumber.NewBig("40654517980271452478787"),
 					},
 				},
 				paused:    false,
@@ -122,13 +114,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when tokenIn amount is invalid",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{USD0, USD0PP},
-						Reserves: []*big.Int{
-							bignumber.NewBig("40654517980271452478787"),
-							bignumber.NewBig("40654517980271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{USD0, USD0PP},
+					Reserves: []*big.Int{
+						bignumber.NewBig("40654517980271452478787"),
+						bignumber.NewBig("40654517980271452478787"),
 					},
 				},
 				paused:    false,
@@ -147,13 +137,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when tokenIn is invalid",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{USD0, USD0PP},
-						Reserves: []*big.Int{
-							bignumber.NewBig("40654517980271452478787"),
-							bignumber.NewBig("40654517980271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{USD0, USD0PP},
+					Reserves: []*big.Int{
+						bignumber.NewBig("40654517980271452478787"),
+						bignumber.NewBig("40654517980271452478787"),
 					},
 				},
 				paused:    false,

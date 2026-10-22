@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"strings"
 	"time"
@@ -368,9 +369,7 @@ func cloneMarket(m *Market) *Market {
 	c.Constituents = make([]MarketConstituent, len(m.Constituents))
 	for i, mc := range m.Constituents {
 		mc.Pools = make(map[string]*LegPool, len(m.Constituents[i].Pools))
-		for id, p := range m.Constituents[i].Pools {
-			mc.Pools[id] = p
-		}
+		maps.Copy(mc.Pools, m.Constituents[i].Pools)
 		c.Constituents[i] = mc
 	}
 	return &c

@@ -114,7 +114,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 	)
 
 	getPoolState := u.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < lastIndex; i++ {
+	for i := range lastIndex {
 		getPoolState.AddCall(
 			&ethrpc.Call{
 				ABI:    poolABI,

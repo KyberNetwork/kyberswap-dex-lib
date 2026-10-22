@@ -158,9 +158,7 @@ func TestGetNewPoolStatesConcurrentSharedTracker(t *testing.T) {
 	var wg sync.WaitGroup
 	var paused, ok atomic.Int32
 	for range 32 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range 5 {
 				_, errs := tr.GetNewPoolStates(context.Background(), batchPools("0xaa", "0xbb"))
 				if errs[0] != nil || errs[1] != nil {
@@ -171,7 +169,7 @@ func TestGetNewPoolStatesConcurrentSharedTracker(t *testing.T) {
 					ok.Add(1)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	require.NotZero(t, paused.Load(), "the 429 must pause later calls on this tracker")

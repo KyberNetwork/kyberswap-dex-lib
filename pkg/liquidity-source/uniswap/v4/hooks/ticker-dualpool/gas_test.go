@@ -19,7 +19,7 @@ func TestGasEstimateCoversMeasuredFixtureCases(t *testing.T) {
 		if name == "eightBuckets" {
 			count = 8
 		}
-		h := &Hook{Snapshot: Snapshot{State: fixtureState()}}
+		h := &Hook{State: fixtureState()}
 		h.Pool.Buckets = make([]dualpool.Bucket, count)
 		q := Quote{Swap: SwapInfo{Tick: h.Pool.Tick}}
 		estimate := h.quoteGas(q) + uniswapv4.DefaultGas.BaseGas

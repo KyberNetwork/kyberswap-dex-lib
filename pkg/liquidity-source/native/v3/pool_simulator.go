@@ -141,7 +141,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	return &PoolSimulator{
-		Pool:     pool.Pool{Info: info},
+		Info:     info,
 		V3Pool:   v3Pool,
 		Gas:      defaultGas,
 		unlocked: extra.Unlocked,

@@ -85,15 +85,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		status:                   extra.Status,
 		curve:                    extra.Curve,
@@ -292,7 +290,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	// the direct inversion can occasionally undershoot by a wei-scale amount. Re-run the forward
 	// direction and nudge amountIn up until it clears the target, bounded to avoid any pathological loop.
 	const maxCorrections = 5
-	for i := 0; i < maxCorrections; i++ {
+	for range maxCorrections {
 		out, err := s.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 			TokenOut:      params.TokenAmountOut.Token,

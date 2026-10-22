@@ -47,12 +47,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 		{
 			name: "[volatile][0to1] it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
-						Tokens:   []string{"0x7F5c764cBc14f9669B88837ca1490cCa17c31607", "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db"},
-						Reserves: []*big.Int{bignumber.NewBig10("2458244583526"), bignumber.NewBig10("48437610421475879640774762")},
-					},
+				Info: poolpkg.PoolInfo{
+					Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
+					Tokens:   []string{"0x7F5c764cBc14f9669B88837ca1490cCa17c31607", "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db"},
+					Reserves: []*big.Int{bignumber.NewBig10("2458244583526"), bignumber.NewBig10("48437610421475879640774762")},
 				},
 				isPaused:     false,
 				stable:       false,
@@ -69,12 +67,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 		{
 			name: "[volatile][1to0] it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
-						Tokens:   []string{"0x7F5c764cBc14f9669B88837ca1490cCa17c31607", "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db"},
-						Reserves: []*big.Int{bignumber.NewBig10("2458244583526"), bignumber.NewBig10("48437697487082485250805965")},
-					},
+				Info: poolpkg.PoolInfo{
+					Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
+					Tokens:   []string{"0x7F5c764cBc14f9669B88837ca1490cCa17c31607", "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db"},
+					Reserves: []*big.Int{bignumber.NewBig10("2458244583526"), bignumber.NewBig10("48437697487082485250805965")},
 				},
 				isPaused:     false,
 				stable:       false,
@@ -91,12 +87,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 		{
 			name: "[stable][1to0] it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
-						Tokens:   []string{"0x3e29d3a9316dab217754d13b28646b76607c5f04", "0x6806411765af15bddd26f8f544a34cc40cb9838b"},
-						Reserves: []*big.Int{bignumber.NewBig10("165363502891169888414"), bignumber.NewBig10("70707320014274856246")},
-					},
+				Info: poolpkg.PoolInfo{
+					Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
+					Tokens:   []string{"0x3e29d3a9316dab217754d13b28646b76607c5f04", "0x6806411765af15bddd26f8f544a34cc40cb9838b"},
+					Reserves: []*big.Int{bignumber.NewBig10("165363502891169888414"), bignumber.NewBig10("70707320014274856246")},
 				},
 				isPaused:     false,
 				stable:       true,
@@ -113,12 +107,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 		{
 			name: "[stable][0to1] it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
-						Tokens:   []string{"0x3e29d3a9316dab217754d13b28646b76607c5f04", "0x6806411765af15bddd26f8f544a34cc40cb9838b"},
-						Reserves: []*big.Int{bignumber.NewBig10("165363502891169888414"), bignumber.NewBig10("70707320014274856246")},
-					},
+				Info: poolpkg.PoolInfo{
+					Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
+					Tokens:   []string{"0x3e29d3a9316dab217754d13b28646b76607c5f04", "0x6806411765af15bddd26f8f544a34cc40cb9838b"},
+					Reserves: []*big.Int{bignumber.NewBig10("165363502891169888414"), bignumber.NewBig10("70707320014274856246")},
 				},
 				isPaused:     false,
 				stable:       true,

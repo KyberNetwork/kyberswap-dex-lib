@@ -212,7 +212,7 @@ func (r *flammReads) state(hooks *poolHookSet) (*flammState, error) {
 			Liquid: l.Liquid}
 	}
 
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		e := hooks.Entries[role]
 		if e == nil {
 			if role == roleSwap {

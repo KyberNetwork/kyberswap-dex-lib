@@ -55,12 +55,12 @@ type TokenListResponse struct {
 }
 
 type TokenListEntry struct {
-	ChainId    int                    `json:"chainId"`
-	Address    string                 `json:"address"`
-	Name       string                 `json:"name"`
-	Symbol     string                 `json:"symbol"`
-	Decimals   int                    `json:"decimals"`
-	Extensions map[string]interface{} `json:"extensions"`
+	ChainId    int            `json:"chainId"`
+	Address    string         `json:"address"`
+	Name       string         `json:"name"`
+	Symbol     string         `json:"symbol"`
+	Decimals   int            `json:"decimals"`
+	Extensions map[string]any `json:"extensions"`
 }
 
 type TokenListVersion struct {

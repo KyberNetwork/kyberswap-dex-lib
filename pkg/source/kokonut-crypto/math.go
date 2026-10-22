@@ -33,7 +33,7 @@ func geometricMean(unsortedX []*big.Int, sort bool) (*big.Int, error) {
 	}
 	var D = new(big.Int).Set(x[0])
 	var diff = bignumber.ZeroBI
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		var DPrev = new(big.Int).Set(D)
 		D = new(big.Int).Div(
 			new(big.Int).Add(
@@ -81,7 +81,7 @@ func newtonD(mA *big.Int, mGamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 	var D = new(big.Int).Mul(nCoinsBi, mean)
 	var S = new(big.Int).Add(x[0], x[1])
 
-	for i := 0; i < 255; i += 1 {
+	for range 255 {
 		var DPrev = D
 		K0 := new(big.Int).Div(
 			new(big.Int).Mul(
@@ -235,7 +235,7 @@ func newtonY(mA *big.Int, mGamma *big.Int, xj *big.Int, D *big.Int) (*big.Int, e
 		convergenceLimit = big.NewInt(100)
 	}
 
-	for j := 0; j < 255; j += 1 {
+	for range 255 {
 		var K0 = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(k0i, y), nCoinBi), D)
 
 		var g1k0 = new(big.Int).Add(mGamma, bignumber.BONE)

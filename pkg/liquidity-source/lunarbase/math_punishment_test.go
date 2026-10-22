@@ -96,7 +96,7 @@ func TestPunishmentSplitYieldsMoreOutput(t *testing.T) {
 
 	chunk := uint256.MustFromDecimal("100000000000000000000000")
 	splitTotalOut := new(uint256.Int)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		r := quoteXToY(split, chunk)
 		splitTotalOut.Add(splitTotalOut, r.AmountOut)
 		split.ReserveX.Add(split.ReserveX, chunk)

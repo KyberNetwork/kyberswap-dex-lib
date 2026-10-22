@@ -374,7 +374,7 @@ func currentTickLiquidity(activeTick int32,
 	active := getKindsAtTick(state.BinMap, activeTick)
 	reserveA, reserveB = new(uint256.Int), new(uint256.Int)
 
-	for i := uint8(0); i < Kinds; i++ {
+	for i := range uint8(Kinds) {
 		if active.Word&(1<<i) != 0 {
 			if binID, ok := state.BinPositions[activeTick][i]; ok {
 				bin := state.Bins[binID]
@@ -694,7 +694,7 @@ func nextActive(binMap map[int16]*uint256.Int, tick int32, isRight bool, minBinM
 
 	var nextWord uint256.Int
 	var found bool
-	for i := 0; i < 4000; i++ {
+	for range 4000 {
 		if bin := binMap[mapIndex]; bin != nil {
 			if isRight {
 				nextWord.Rsh(bin, shift)
@@ -758,7 +758,7 @@ func getMapPointer(tick int32) (mapIndex int16, offset uint) {
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L54
 func lsb(x *uint256.Int) uint {
-	for i := 0; i < len(x); i++ {
+	for i := range len(x) {
 		if w := x[i]; w != 0 {
 			return uint(i*64 + bits.TrailingZeros64(w))
 		}
@@ -861,7 +861,7 @@ func sqrt(x *uint256.Int) *uint256.Int {
 		result.Lsh(result, 1)
 	}
 
-	for i := 0; i < 7; i++ { // Seven iterations should be enough
+	for range 7 { // Seven iterations should be enough
 		xAux.Div(x, result)
 		result.Add(result, &xAux)
 		result.Rsh(result, 1)

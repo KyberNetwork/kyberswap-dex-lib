@@ -29,14 +29,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(pt *entity.PoolToken, _ int) string { return pt.Address }),
 			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		Extra: extra,
 	}, nil
 }
@@ -178,7 +178,7 @@ func (p *PoolSimulator) redeemFindOne(tidOutBalance, totalBalance, tidInBalance,
 	temp := u256.MulDiv(tidOutBalance, u256.U999, u256.U1000)
 	redeemAmountNormalized := u256.Min(sTokenAmount, temp).Clone()
 
-	for i := 0; i < 256; i++ {
+	for range 256 {
 		penalty, err := p.redeemPenaltyFor(
 			totalBalance,
 			tidInBalance,

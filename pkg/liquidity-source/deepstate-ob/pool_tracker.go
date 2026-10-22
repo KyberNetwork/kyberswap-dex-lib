@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -69,11 +70,9 @@ func (t *PoolTracker) GetNewPoolState(
 
 	dec0, dec1 := p.Tokens[0].Decimals, p.Tokens[1].Decimals
 	extra := Extra{
-		Extra: orderbook.Extra{
-			LevelsFrom: [2][]orderbook.Level{
-				buildLevels(bidLeaves, dec0, dec1, false), // swap FROM token0 -> matches resting bids
-				buildLevels(askLeaves, dec0, dec1, true),  // swap FROM token1 -> matches resting asks
-			},
+		LevelsFrom: [2][]orderbook.Level{
+			buildLevels(bidLeaves, dec0, dec1, false), // swap FROM token0 -> matches resting bids
+			buildLevels(askLeaves, dec0, dec1, true),  // swap FROM token1 -> matches resting asks
 		},
 		Epoch: epoch.String(),
 	}
@@ -271,7 +270,7 @@ func buildLevels(leaves []decodedNode, dec0, dec1 uint8, invert bool) []orderboo
 		ticks = append(ticks, tick)
 	}
 	if invert {
-		sort.Slice(ticks, func(i, j int) bool { return ticks[i] < ticks[j] }) // best ask = lowest price first
+		slices.Sort(ticks) // best ask = lowest price first
 	} else {
 		sort.Slice(ticks, func(i, j int) bool { return ticks[i] > ticks[j] }) // best bid = highest price first
 	}

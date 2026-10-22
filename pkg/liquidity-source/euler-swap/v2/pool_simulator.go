@@ -58,7 +58,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -67,7 +67,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		StaticExtra:     staticExtra,
 		DynamicParams:   extra.DynamicParams,
 		Pause:           extra.Pause,
@@ -760,7 +760,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.ControllerVault = lo.Ternary(swapInfo.DebtVaultIdx == 0, p.BorrowVault0, p.BorrowVault1)
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if p.BorrowVault[i] != nil {
 			if i == swapInfo.DebtVaultIdx {
 				p.BorrowVault[i].Debt = new(uint256.Int).Set(swapInfo.Debt)
