@@ -21,6 +21,9 @@ type Config struct {
 	// every tick from one block, walking the pool's tick list. A bootstrap then asks no subgraph, a
 	// pool created without state gets its whole state, and ticks gathered from logs that turn out
 	// invalid are replaced by the pool's own set, which re-reading the stored indexes cannot do.
+	// Its plugin is read through AlgebraIntegralPluginLens: the settings and the
+	// oracle's timepoints in one call, where multicalls take one for the settings and one for each
+	// page of timepoints, falling back to them on any lens error.
 	UseLens bool `json:"useLens,omitempty"`
 	// LensGas is the gas each lens call may use; 0 takes the node's eth_call cap, up to
 	// ephemeral.CallGasCeiling.
