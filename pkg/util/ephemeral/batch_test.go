@@ -24,6 +24,9 @@ type batchNode struct {
 	failBatches    bool
 	// gasOf is what reading x costs in a batch; nil is 1000 gas a read.
 	gasOf func(x int64) uint64
+	// delay is how long a batch call takes; inFlight and peak count those running at once.
+	delay          time.Duration
+	inFlight, peak atomic.Int64
 
 	mu     sync.Mutex
 	blocks []uint64
@@ -40,6 +43,11 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 		return nil, dataError{hexutil.Encode(testRead(x))}
 	}
 	n.batches.Add(1)
+	now := n.inFlight.Add(1)
+	defer n.inFlight.Add(-1)
+	for peak := n.peak.Load(); now > peak && !n.peak.CompareAndSwap(peak, now); peak = n.peak.Load() {
+	}
+	time.Sleep(n.delay)
 	n.mu.Lock()
 	n.blocks = append(n.blocks, block.Uint64())
 	n.sizes = append(n.sizes, len(msg.Data))
@@ -348,4 +356,18 @@ func TestBatcherLearnsALensFromItsPools(t *testing.T) {
 	packed, err := testContract.packArgs(big.NewInt(41))
 	require.NoError(t, err)
 	assert.EqualValues(t, 8_000_000, b.expected(testContract, packed))
+}
+
+// TestBatcherBoundsTheBatchesInFlight: full batches go out together up to the bound, and no
+// further.
+func TestBatcherBoundsTheBatchesInFlight(t *testing.T) {
+	node := &batchNode{delay: 50 * time.Millisecond}
+	b := NewBatcher(node, BatchConfig{MaxItems: 1, Concurrency: 3, Gas: 1_000_000_000})
+
+	start := time.Now()
+	readAll(t, b, node, 50, 51, 52, 53, 54, 55, 56, 57, 58)
+
+	assert.EqualValues(t, 9, node.batches.Load())
+	assert.EqualValues(t, 3, node.peak.Load(), "three batches at once, never more")
+	assert.Less(t, time.Since(start), 9*50*time.Millisecond, "and not one at a time")
 }
