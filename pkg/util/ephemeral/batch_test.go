@@ -25,6 +25,7 @@ type batchNode struct {
 
 	mu     sync.Mutex
 	blocks []uint64
+	sizes  []int
 }
 
 func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block *big.Int) ([]byte, error) {
@@ -39,6 +40,7 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 	n.batches.Add(1)
 	n.mu.Lock()
 	n.blocks = append(n.blocks, block.Uint64())
+	n.sizes = append(n.sizes, len(msg.Data))
 	n.mu.Unlock()
 	if n.failBatches {
 		return nil, failing{"429 too many requests"}
@@ -48,7 +50,7 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 	if err != nil {
 		return nil, err
 	}
-	items := *abi.ConvertType(values[0], new([]lensBatchItem)).(*[]lensBatchItem)
+	items := *abi.ConvertType(values[1], new([]lensBatchItem)).(*[]lensBatchItem)
 
 	type result struct {
 		Ran  bool
@@ -57,7 +59,7 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 	results := make([]result, len(items))
 	count := 0
 	for i, item := range items {
-		x := new(big.Int).SetBytes(item.InitCode[len(testContract.bytecode):]).Int64()
+		x := new(big.Int).SetBytes(item.Args).Int64()
 		if x == 13 {
 			continue
 		}
@@ -254,4 +256,26 @@ func TestSharedBatcherIsOnePerCaller(t *testing.T) {
 	a := SharedBatcher(node, &BatchConfig{})
 	assert.Same(t, a, SharedBatcher(node, &BatchConfig{MaxItems: 5}))
 	assert.NotSame(t, a, SharedBatcher(other, &BatchConfig{}))
+}
+
+// TestBatcherSendsALensCodeOnce: the reads of one lens share its code in the batch, so the call
+// grows by their arguments alone.
+func TestBatcherSendsALensCodeOnce(t *testing.T) {
+	node := &batchNode{}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50})
+
+	var wg sync.WaitGroup
+	for x := int64(100); x < 140; x++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := read(t, b, node, x, 100)
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	require.Len(t, node.sizes, 1)
+	perRead := (node.sizes[0] - len(lensBatch.bytecode) - len(testContract.bytecode)) / 40
+	assert.LessOrEqual(t, perRead, 6*32+32, "a read adds its arguments and their ABI words, not the code")
 }

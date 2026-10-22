@@ -67,11 +67,20 @@ func MustLoad(name string, raw []byte) *Contract {
 // constructor arguments. Send it with no to address; the node returns the result as the revert
 // data, for UnpackCall.
 func (c *Contract) PackCall(args ...any) ([]byte, error) {
+	packed, err := c.packArgs(args...)
+	if err != nil {
+		return nil, err
+	}
+	return append(common.CopyBytes(c.bytecode), packed...), nil
+}
+
+// packArgs is the constructor arguments of PackCall, without the creation code.
+func (c *Contract) packArgs(args ...any) ([]byte, error) {
 	packed, err := c.abi.Pack("", args...)
 	if err != nil {
 		return nil, fmt.Errorf("ephemeral: packing %s's arguments: %w", c.Name, err)
 	}
-	return append(common.CopyBytes(c.bytecode), packed...), nil
+	return packed, nil
 }
 
 // UnpackCall decodes a revert payload into out, a pointer to a struct with a field per result
