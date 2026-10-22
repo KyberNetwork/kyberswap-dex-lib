@@ -37,26 +37,50 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 	blockNumber *big.Int, yesterday uint32, currentIndex uint16, currentTimestamp uint32,
 	timepoints map[uint16]Timepoint, overrides map[common.Address]gethclient.OverrideAccount) (map[uint16]Timepoint,
 	error) {
-	if timepoints == nil {
-		timepoints = make(map[uint16]Timepoint, maxTimepointPageSize)
-	} else {
-		dropOverwrittenTimepoints(timepoints, currentIndex, currentTimestamp)
-	}
-
 	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
 		req.SetBlockNumber(blockNumber)
 	}
 
+	return ReadTimepoints(timepoints, yesterday, currentIndex, currentTimestamp,
+		func(indices []uint16, page []TimepointRPC) error {
+			req.Calls = make([]*ethrpc.Call, 0, len(indices))
+			for i, tpIdx := range indices {
+				call := *callPrototype
+				call.Params = []any{big.NewInt(int64(tpIdx))}
+				req.AddCall(&call, []any{&page[i]})
+			}
+			_, err := req.Aggregate()
+			return err
+		})
+}
+
+// MaxTimepointReads is the most timepoints ReadTimepoints fetches walking back from the newest: its
+// pages of 75, 150, then 300, sixteen of them.
+const MaxTimepointReads = int(maxTimepointPageSize/4+maxTimepointPageSize/2) +
+	(maxTimepointPages-2)*int(maxTimepointPageSize)
+
+// ReadTimepoints is GetTimepoints with the timepoints fetched by fetch, which writes those at indices
+// into page, one for one: GetTimepoints fetches them from the plugin by multicall, page by page, and
+// a lens reads them all at once.
+func ReadTimepoints[T Timepoint, R TimepointRPC[T]](timepoints map[uint16]T,
+	yesterday uint32, currentIndex uint16, currentTimestamp uint32,
+	fetch func(indices []uint16, page []R) error) (map[uint16]T, error) {
+	if timepoints == nil {
+		timepoints = make(map[uint16]T, maxTimepointPageSize)
+	} else {
+		dropOverwrittenTimepoints(timepoints, currentIndex, currentTimestamp)
+	}
+
 	timepointPageSize := maxTimepointPageSize / 4 // optimistically fetch fewer the first time
-	req.Calls = make([]*ethrpc.Call, 0, timepointPageSize)
+	indices := make([]uint16, 0, timepointPageSize)
 	end := currentIndex + 1 // current last tp index of the page (exclusive)
 	var enoughAtIdx uint16
 	for range maxTimepointPages { // page backwards missing timepoints until we reach uninitialized or older than 1 day
 		tpIdx := end // current start tp index of the page (inclusive). can underflow (wrap back to end of buffer)
 		var enough bool
-		req.Calls = req.Calls[:0]
-		page := make([]TimepointRPC, timepointPageSize)
+		indices = indices[:0]
+		page := make([]R, timepointPageSize)
 		tpIdxToPageIdxMap := make(map[uint16]uint16, timepointPageSize)
 		for i := range timepointPageSize {
 			for tpIdx--; ; tpIdx-- { // skip refetching for existing timepoints
@@ -70,13 +94,11 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 			if enough {
 				break
 			}
-			call := *callPrototype
-			call.Params = []any{big.NewInt(int64(tpIdx))}
-			req.AddCall(&call, []any{&page[i]})
+			indices = append(indices, tpIdx)
 			tpIdxToPageIdxMap[tpIdx] = i
 		}
-		if len(req.Calls) > 0 {
-			if _, err := req.Aggregate(); err != nil {
+		if len(indices) > 0 {
+			if err := fetch(indices, page[:len(indices)]); err != nil {
 				return nil, err
 			}
 		}
@@ -101,22 +123,26 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 			}
 		}
 		logger.Debugf("fetched %v timepoints from %v to %v, enough=%v, enoughAtIdx=%v, ts=%v, ytd=%v",
-			len(req.Calls), tpIdx, end, enough, enoughAtIdx, timepoints[enoughAtIdx].GetBlockTimestamp(), yesterday)
+			len(indices), tpIdx, end, enough, enoughAtIdx, timepoints[enoughAtIdx].GetBlockTimestamp(), yesterday)
 
 		if enough { // fetch some additional timepoints
-			req.Calls = req.Calls[:0]
+			indices = indices[:0]
 			additionalIndices := []uint16{0, currentIndex + 1, currentIndex + 2, enoughAtIdx, currentIndex - 1}
-			tps := make([]TimepointRPC, len(additionalIndices))
+			tps := make([]R, len(additionalIndices))
+			fetchedAt := make([]int, 0, len(additionalIndices))
 			for i, x := range additionalIndices {
 				if !timepoints[x].GetInitialized() {
-					call := *callPrototype
-					call.Params = []any{big.NewInt(int64(x))}
-					req.AddCall(&call, []any{&tps[i]})
+					indices = append(indices, x)
+					fetchedAt = append(fetchedAt, i)
 				}
 			}
-			if len(req.Calls) > 0 {
-				if _, err := req.Aggregate(); err != nil {
+			if len(indices) > 0 {
+				fetched := make([]R, len(indices))
+				if err := fetch(indices, fetched); err != nil {
 					return nil, err
+				}
+				for j, i := range fetchedAt {
+					tps[i] = fetched[j]
 				}
 				for i, x := range additionalIndices {
 					if !timepoints[x].GetInitialized() {
