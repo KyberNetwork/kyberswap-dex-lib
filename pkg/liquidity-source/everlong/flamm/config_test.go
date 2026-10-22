@@ -109,6 +109,3 @@ func TestConfigThroughFactories(t *testing.T) {
 		})
 	}
 }
-
-//go:fix inline
-func ptrU64(v uint64) *uint64 { return new(v) }
