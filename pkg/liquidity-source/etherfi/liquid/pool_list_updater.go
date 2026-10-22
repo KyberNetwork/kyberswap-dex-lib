@@ -15,17 +15,20 @@ import (
 )
 
 type PoolListUpdater struct {
+	config       *Config
 	ethrpcClient *ethrpc.Client
 
 	hasInitialized bool
 }
 
-var _ = poollist.RegisterFactoryE(DexType, NewPoolListUpdater)
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(
+	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolListUpdater {
 	return &PoolListUpdater{
+		config:       config,
 		ethrpcClient: ethrpcClient,
 	}
 }
@@ -37,7 +40,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	u.hasInitialized = true
 
-	return lo.MapToSlice(pools, func(poolAddress string, poolInfo PoolInfo) entity.Pool {
+	return lo.MapToSlice(poolsByChain[lo.Ternary(u.config.ChainID == 0, valueobject.ChainIDEthereum, u.config.ChainID)], func(poolAddress string, poolInfo PoolInfo) entity.Pool {
 		tokens := make([]*entity.PoolToken, 0, len(poolInfo.SupportedDepositAssets)+1)
 
 		tokens = append(tokens, &entity.PoolToken{Address: poolAddress})
@@ -46,13 +49,17 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 
 		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			LiquidRefer: liquidReferAddress,
-			Teller:      common.HexToAddress(poolInfo.TellerContract),
+			LiquidRefer:   lo.Ternary(poolInfo.SimpleTeller, common.Address{}, liquidReferAddress),
+			Teller:        common.HexToAddress(poolInfo.TellerContract),
+			SimpleTeller:  poolInfo.SimpleTeller,
+			Depositor:     common.HexToAddress(poolInfo.Depositor),
+			Accountant:    common.HexToAddress(poolInfo.Accountant),
+			CommunityCode: poolInfo.CommunityCode,
 		})
 
 		return entity.Pool{
 			Address:     poolAddress,
-			Exchange:    string(valueobject.ExchangeEtherfiLiquid),
+			Exchange:    lo.Ternary(poolInfo.Exchange != "", poolInfo.Exchange, valueobject.ExchangeEtherfiLiquid),
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{unlimitedReserve, unlimitedReserve},

@@ -180,6 +180,7 @@ const (
 	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
 	ExchangeLO1inch                     = "lo1inch"
+	ExchangeLoopLiquid                  = "loop-liquid"
 	ExchangeLunarBase                   = "lunarbase"
 	ExchangeLunya                       = "lunya"
 	ExchangeLunyaFun                    = "lunya-fun"
