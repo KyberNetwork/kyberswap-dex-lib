@@ -3,6 +3,7 @@ package ephemeral
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync"
@@ -448,4 +449,26 @@ func TestPinAsksTheChainOnce(t *testing.T) {
 	}
 	wg.Wait()
 	assert.EqualValues(t, 1, h.asked.Load())
+}
+
+// TestBatchConfigSwitch: a config file may switch batching on with true or off with false, as well
+// as give its settings.
+func TestBatchConfigSwitch(t *testing.T) {
+	var cfg struct {
+		LensBatch *BatchConfig `json:"lensBatch"`
+	}
+	for raw, want := range map[string]bool{
+		`{}`:                             false,
+		`{"lensBatch": true}`:            true,
+		`{"lensBatch": false}`:           false,
+		`{"lensBatch": {}}`:              true,
+		`{"lensBatch": {"maxItems": 8}}`: true,
+	} {
+		cfg.LensBatch = nil
+		require.NoError(t, json.Unmarshal([]byte(raw), &cfg), raw)
+		assert.Equal(t, want, cfg.LensBatch.On(), raw)
+	}
+	require.NoError(t, json.Unmarshal([]byte(`{"lensBatch": {"maxItems": 8}}`), &cfg))
+	assert.Equal(t, 8, cfg.LensBatch.MaxItems)
+	assert.Error(t, json.Unmarshal([]byte(`{"lensBatch": "yes"}`), &cfg))
 }
