@@ -29,6 +29,16 @@ const (
 	ExtraBaseGasCostOfOneMevCaptureSwap = 15_840
 	GasCostOfOneMevCaptureStateUpdate   = 16_418
 
+	// MEVCapture v2.1: Ekubo's calibration of the forwarded swap measured against the same swaps on pools without
+	// extension (per forwarded swap 8,250 plus a cold extension access 2,500, per Core call 12,350, ...), applied on
+	// top of the concentrated pool base cost above in place of the 12,400 base of a plain swap in that calibration.
+	BaseGasCostOfOneMevCaptureV21Swap        = BaseGasCostOfOneConcentratedLiquiditySwap - 12_400 + 8_250 + 2_500
+	GasCostOfOneMevCaptureV21CoreCall        = 12_350
+	GasCostOfOneMevCaptureV21ExtraCoreStep   = 2_850
+	GasCostOfOneMevCaptureV21TickCrossed     = 13_150
+	GasCostOfOneMevCaptureV21FeeAccumulation = 7_950
+	GasCostOfMevCaptureV21AnchorUpdate       = 4_650
+
 	// BoostedFees
 	ExtraBaseGasCostOfOneBoostedFeesSwap   = 2_743
 	GasCostOfExecutingVirtualDonations     = 6_814
