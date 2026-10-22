@@ -69,7 +69,7 @@ func TestKyberSimulatorAppliesTickerFees(t *testing.T) {
 }
 
 func TestHookCloneAndVaultRefresh(t *testing.T) {
-	h := &Hook{Snapshot: Snapshot{State: fixtureState()}}
+	h := &Hook{State: fixtureState()}
 	h.Vaults[1] = common.HexToAddress("0x1234")
 	q, err := QuoteExactInput(h.State, true, uint256.NewInt(1001))
 	require.NoError(t, err)
@@ -85,15 +85,15 @@ func TestHookCloneAndVaultRefresh(t *testing.T) {
 }
 
 func TestCloneAccountingDoesNotSharePointers(t *testing.T) {
-	h := &Hook{Snapshot: Snapshot{State: fixtureState()}}
-	for i := 0; i < 2; i++ {
+	h := &Hook{State: fixtureState()}
+	for i := range 2 {
 		h.Raw[i] = uint256.NewInt(1)
 		h.Claims[i] = uint256.NewInt(2)
 		h.ManagerCash[i] = uint256.NewInt(3)
 		h.Limits[i] = &AaveLimits{uint256.NewInt(4), uint256.NewInt(5)}
 	}
 	clone := h.CloneState().(*Hook)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		clone.Raw[i].Clear()
 		clone.Claims[i].Clear()
 		clone.ManagerCash[i].Clear()
@@ -126,7 +126,7 @@ func TestMalformedSnapshotRemainsRejectedAfterMsgpack(t *testing.T) {
 	}
 }
 func TestRefreshRequiredRemainsRejectedAfterMsgpack(t *testing.T) {
-	h := &Hook{Snapshot: Snapshot{State: fixtureState()}}
+	h := &Hook{State: fixtureState()}
 	h.Vaults[1] = common.HexToAddress("0x1234")
 	q, err := QuoteExactInput(h.State, true, uint256.NewInt(1001))
 	require.NoError(t, err)

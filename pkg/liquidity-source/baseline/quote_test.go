@@ -112,7 +112,7 @@ func quoteBuyExactInWithDust(
 		}
 	}
 
-	for offset := int64(0); offset < 10_000; offset++ {
+	for offset := range int64(10_000) {
 		amountIn := addBI(amountInCandidates[len(amountInCandidates)-1], big.NewInt(offset))
 		result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: testReserveToken, Amount: amountIn},

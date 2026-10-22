@@ -21,7 +21,7 @@ type Config struct {
 
 type HTTPConfig struct {
 	BaseURL    string                `mapstructure:"baseUrl" json:"baseUrl,omitempty"`
-	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
+	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout"`
 	RetryCount int                   `mapstructure:"retryCount" json:"retryCount,omitempty"`
 	APIKey     string                `mapstructure:"apiKey" json:"apiKey"`
 }

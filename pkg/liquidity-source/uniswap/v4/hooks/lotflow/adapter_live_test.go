@@ -80,7 +80,7 @@ func TestAdapterLive(t *testing.T) {
 		for _, buy := range []bool{true, false} {
 			side := map[bool]string{true: "buy", false: "sell"}[buy]
 			st := stats[side]
-			for k := 0; k < 30; k++ {
+			for range 30 {
 				x := math.Pow(10, rng.Float64()*math.Log10(2e4)) // $1..$20k / 1..20k LOT
 				unit := big.NewFloat(1e6)
 				if !buy {

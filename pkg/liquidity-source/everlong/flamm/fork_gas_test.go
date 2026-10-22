@@ -118,7 +118,7 @@ func TestForkGas(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(0x6A5))
 	const steps = 40
-	for i := 0; i < steps; i++ {
+	for i := range steps {
 		sim := e.track(t, Policy{LeverRouting: true})
 		now := sim.state.Timestamp + 2
 		sim.nowFn = func() uint64 { return now }

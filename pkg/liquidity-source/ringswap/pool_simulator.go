@@ -39,7 +39,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -48,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		fee:              uint256.NewInt(staticExtra.Fee),
 		feePrecision:     uint256.NewInt(staticExtra.FeePrecision),
 		originalReserves: originalReserves,
@@ -236,14 +236,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return uniswapv2.PoolMeta{
-		Extra: uniswapv2.Extra{
-			Fee:          s.fee.Uint64(),
-			FeePrecision: s.feePrecision.Uint64(),
-		},
-		PoolMetaGeneric: uniswapv2.PoolMetaGeneric{
-			ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
-			BlockNumber:     s.Info.BlockNumber,
-		},
+		Fee:             s.fee.Uint64(),
+		FeePrecision:    s.feePrecision.Uint64(),
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		BlockNumber:     s.Info.BlockNumber,
 	}
 }
 

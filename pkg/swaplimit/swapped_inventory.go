@@ -15,12 +15,10 @@ type SwappedInventory struct {
 
 func NewSwappedInventory(exchange string, balance map[string]*big.Int) *SwappedInventory {
 	return &SwappedInventory{
-		Inventory: Inventory{
-			exchange: exchange,
-			lock:     &sync.RWMutex{},
-			balance:  balance,
-		},
-		swapped: make(map[string]*big.Int),
+		exchange: exchange,
+		lock:     &sync.RWMutex{},
+		balance:  balance,
+		swapped:  make(map[string]*big.Int),
 	}
 }
 
@@ -59,11 +57,9 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 
 func (k *SwappedInventory) Clone() pool.SwapLimit {
 	return &SwappedInventory{
-		Inventory: Inventory{
-			exchange: k.exchange,
-			lock:     &sync.RWMutex{},
-			balance:  maps.Clone(k.balance),
-		},
-		swapped: maps.Clone(k.swapped),
+		exchange: k.exchange,
+		lock:     &sync.RWMutex{},
+		balance:  maps.Clone(k.balance),
+		swapped:  maps.Clone(k.swapped),
 	}
 }

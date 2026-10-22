@@ -23,10 +23,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0xf559588e97560b7ef8644b5c3c2fe4c95d9654659b6cc502fb43353dfaf4b168
 			name: "it should return correct amount (wrap)",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{"0x35fa164735182de50811e8e2e824cfb9b6118ac2", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{"0x35fa164735182de50811e8e2e824cfb9b6118ac2", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
 				},
 				totalPooledEther: bignumber.NewBig("479746451523543911039175"),
 				totalShares:      bignumber.NewBig("464768412137509601320862"),
@@ -44,10 +42,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0x86b280508b052ea51a421a10265f24135918179dbd685e3bda2a98d849ed4b48
 			name: "it should return correct amount (unwrap)",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{"0x35fa164735182de50811e8e2e824cfb9b6118ac2", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{"0x35fa164735182de50811e8e2e824cfb9b6118ac2", "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee"},
 				},
 				totalPooledEther: bignumber.NewBig("482437159360194010684174"),
 				totalShares:      bignumber.NewBig("467375114083494601305331"),

@@ -22,7 +22,7 @@ func grossBeforeOutputFees(desired *uint256.Int, hook, tax uint64) (*uint256.Int
 	if gross.IsZero() {
 		gross.SetOne()
 	}
-	for checks := 0; checks < 3; checks++ {
+	for range 3 {
 		_, _, net := outputFees(gross, hook, tax)
 		if net.Cmp(desired) >= 0 {
 			return gross, nil
@@ -78,7 +78,7 @@ func QuoteRequiredInput(s State, zeroForOne bool, desired *uint256.Int) (Quote, 
 	} else {
 		bignumber.MulDivUp(&guess, gross.ToBig(), &price, q192)
 	}
-	for searches := 0; searches < 2; searches++ {
+	for range 2 {
 		if gross.BitLen() > 127 {
 			return Quote{}, uniswapv4.ErrAmountOutUnreachable
 		}

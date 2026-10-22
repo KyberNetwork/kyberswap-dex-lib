@@ -307,10 +307,7 @@ func buildEntityPool(p *entity.Pool, state *rpcState) (*entity.Pool, error) {
 	// Report the larger of the two directional fees as the entity's nominal
 	// SwapFee — routers use it for coarse cost estimation; the simulator
 	// applies the precise per-direction value at quote time.
-	maxFee := state.extra.FeeAskX24
-	if state.extra.FeeBidX24 > maxFee {
-		maxFee = state.extra.FeeBidX24
-	}
+	maxFee := max(state.extra.FeeBidX24, state.extra.FeeAskX24)
 	p.SwapFee = float64(maxFee) / fQ24
 	p.BlockNumber = state.blockNumber
 	p.Timestamp = time.Now().Unix()

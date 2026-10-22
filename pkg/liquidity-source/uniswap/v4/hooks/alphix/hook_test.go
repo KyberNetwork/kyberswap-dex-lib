@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -103,10 +102,8 @@ func TestBeforeSwap_JitSimulation(t *testing.T) {
 	sqrtPriceAtTick0 := new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 
 	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		ExtraTickU256: uniswapv3.ExtraTickU256{
-			SqrtPriceX96: sqrtPriceAtTick0,
-		},
+		Hook:             &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		SqrtPriceX96:     sqrtPriceAtTick0,
 		SwapFee:          3000, // 30 bps
 		TickLower:        -8,   // ±8 ticks JIT range
 		TickUpper:        8,
@@ -141,10 +138,8 @@ func TestBeforeSwap_NoJitWhenNoReserves(t *testing.T) {
 	// Hook with tick range but zero reserves — should return fee only, no delta
 	sqrtPrice := new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		ExtraTickU256: uniswapv3.ExtraTickU256{
-			SqrtPriceX96: sqrtPrice,
-		},
+		Hook:             &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		SqrtPriceX96:     sqrtPrice,
 		SwapFee:          5000,
 		TickLower:        -8,
 		TickUpper:        8,
@@ -171,10 +166,8 @@ func TestCloneState_DeepCopy(t *testing.T) {
 	t.Parallel()
 
 	original := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
-		ExtraTickU256: uniswapv3.ExtraTickU256{
-			SqrtPriceX96: uint256.NewInt(1000),
-		},
+		Hook:             &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Alphix},
+		SqrtPriceX96:     uint256.NewInt(1000),
 		SwapFee:          3000,
 		TickLower:        -8,
 		TickUpper:        8,

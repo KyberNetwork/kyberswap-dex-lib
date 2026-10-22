@@ -616,7 +616,7 @@ func gateAssertEntryGate(p *gatePool, r gateRouterReads, now uint64, u0 []gateIn
 	if quarantined {
 		fDebt = make([]uint256.Int, n)
 		var fColl uint256.Int
-		for i := 0; i < n; i++ {
+		for i := range n {
 			qr, err := r.quarantine(uint8(i), now)
 			if err != nil {
 				return err
@@ -644,7 +644,7 @@ func gateAssertEntryGate(p *gatePool, r gateRouterReads, now uint64, u0 []gateIn
 	if !u.Gt(&bound) {
 		return nil
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		u1, err := gateNetL18(&b.Legs[i])
 		if err != nil {
 			return err

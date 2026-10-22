@@ -307,7 +307,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 }
 
 func BenchmarkBeforeSwap(b *testing.B) {
-	h := &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{FeePips: 10_000, LaunchedAt: launchedAt}}
+	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 10_000, LaunchedAt: launchedAt}
 	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(18)}
 	b.ReportAllocs()
 	for b.Loop() {

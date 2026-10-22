@@ -44,7 +44,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -52,7 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
 				bignumber.NewBig10(entityPool.Reserves[1])},
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		swapFee:       uint256.NewInt(uint64(entityPool.SwapFee * 1e18)),
 		OrderBook:     &extra.OrderBook,
 		StaticExtra:   &staticExtra,
@@ -335,7 +335,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.OrderBook = lo.ToPtr(*p.OrderBook)
+	cloned.OrderBook = new(*p.OrderBook)
 	return &cloned
 }
 

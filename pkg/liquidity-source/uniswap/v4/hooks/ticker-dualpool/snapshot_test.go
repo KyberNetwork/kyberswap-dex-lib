@@ -15,10 +15,10 @@ import (
 )
 
 func poolSnapshotFixture() *Hook {
-	h := &Hook{Snapshot: Snapshot{State: fixtureState(), BlockNumber: 123}}
+	h := &Hook{State: fixtureState(), BlockNumber: 123}
 	h.Currencies = [2]common.Address{common.HexToAddress("0x1"), common.HexToAddress("0x2")}
 	h.Vaults[0] = common.HexToAddress("0x3")
-	for side := 0; side < 2; side++ {
+	for side := range 2 {
 		h.Raw[side] = new(uint256.Int)
 		h.Claims[side] = new(uint256.Int)
 		h.ManagerCash[side] = uint256.MustFromDecimal("100000000000000000000000000")

@@ -144,7 +144,7 @@ func TestTrackerFactory(t *testing.T) {
 	factory := pooltrack.Factory(DexType)
 	require.NotNil(t, factory)
 	tracker, err := factory(DexType, pooltrack.FactoryParams{
-		Dependencies: pooltrack.Dependencies{EthrpcClient: newEVMRPC(t, testPools["deep"]).client}})
+		EthrpcClient: newEVMRPC(t, testPools["deep"]).client})
 	require.NoError(t, err)
 	_, err = tracker.GetNewPoolState(t.Context(), testEntity(), pool.GetNewPoolStateParams{})
 	require.NoError(t, err)

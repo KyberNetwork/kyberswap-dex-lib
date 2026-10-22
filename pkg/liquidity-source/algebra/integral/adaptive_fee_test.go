@@ -50,9 +50,7 @@ func TestGetFee_NoSharedStateMutation(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for range 8 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for _, tc := range feeTests {
 				for round := range 3 { // repeated calls must give the same result
 					for _, c := range tc.cases {
@@ -62,7 +60,7 @@ func TestGetFee_NoSharedStateMutation(t *testing.T) {
 					}
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	for i, c := range consts {

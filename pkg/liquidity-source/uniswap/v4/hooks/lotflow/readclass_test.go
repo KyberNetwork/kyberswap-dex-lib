@@ -301,7 +301,7 @@ func TestTrackRounds(t *testing.T) {
 // BeforeSwap on a tracked instance without a venue refuses instead of dereferencing it (the factory
 // never builds one; a Hook value can).
 func TestBeforeSwapWithoutVenue(t *testing.T) {
-	h := &Hook{BaseHook: &uniswapv4.BaseHook{Exchange: Exchange}, Extra: Extra{Tracked: true, Market: &Market{}}}
+	h := &Hook{BaseHook: &uniswapv4.BaseHook{Exchange: Exchange}, Tracked: true, Market: &Market{}}
 	var err error
 	require.NotPanics(t, func() {
 		_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e6)})
@@ -365,7 +365,7 @@ func TestPrefetchTwapSmallRingOneRound(t *testing.T) {
 	pool := "0x00000000000000000000000000000000000000Bb"
 	const card, newest = 8, 3
 	tape := &rpcTape{Block: "0x1", Calls: map[string]tapeEntry{}}
-	for i := 0; i < card; i++ {
+	for i := range card {
 		age := (newest - i + card) % card // 0 = newest
 		obs := concat([][]byte{encWord(big.NewInt(int64(10_000 - 100*age))), encWord(big.NewInt(0)),
 			encWord(big.NewInt(0)), encWord(big.NewInt(1))})

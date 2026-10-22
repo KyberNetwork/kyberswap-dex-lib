@@ -65,14 +65,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		paused:                       extra.Paused,
 		strategyManagerPaused:        extra.StrategyManagerPaused,
 		collateralTokenIndex:         extra.CollateralTokenIndex,
@@ -189,7 +189,7 @@ func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.I
 		odLength := len(s.operatorDelegatorTVLs)
 
 		var currentTokenTVL big.Int
-		for i := 0; i < odLength; i++ {
+		for i := range odLength {
 			currentTokenTVL.Add(&currentTokenTVL, s.operatorDelegatorTokenTVLs[i][tokenIndex])
 		}
 

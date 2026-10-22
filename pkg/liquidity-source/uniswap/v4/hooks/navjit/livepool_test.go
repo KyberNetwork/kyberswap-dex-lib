@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -162,7 +162,7 @@ func scanTicks(ctx context.Context, t *testing.T, rpc *ethrpc.Client, spec poolS
 	var idx []int64
 	for i, bm := range bitmaps {
 		w := wordList[i]
-		for b := 0; b < 256; b++ {
+		for b := range 256 {
 			if bm != nil && bm.Bit(b) == 1 {
 				idx = append(idx, (w*256+int64(b))*ts)
 			}
@@ -171,7 +171,7 @@ func scanTicks(ctx context.Context, t *testing.T, rpc *ethrpc.Client, spec poolS
 	if len(idx) == 0 {
 		return nil
 	}
-	sort.Slice(idx, func(i, j int) bool { return idx[i] < idx[j] })
+	slices.Sort(idx)
 	type tickInfo struct {
 		LiquidityGross        *big.Int
 		LiquidityNet          *big.Int

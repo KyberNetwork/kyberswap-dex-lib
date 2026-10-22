@@ -94,7 +94,7 @@ func (t *PoolTracker) GetNewPoolState(
 	tokenStats := make([]TokenStats, numTokens)
 	packedInfos := make([]*big.Int, numTokens)
 	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    smoothyV1ABI,
 			Target: p.Address,
@@ -117,7 +117,7 @@ func (t *PoolTracker) GetNewPoolState(
 	reserves := make(entity.PoolReserves, numTokens)
 	tokens := make([]*entity.PoolToken, numTokens)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		stats := tokenStats[i]
 		decimals := uint8(stats.Decimals.Uint64())
 		decimalMultiplier := getDecimalMultiplier(packedInfos[i])

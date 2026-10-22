@@ -85,7 +85,7 @@ func TestRegisteredLister(t *testing.T) {
 	require.NotNil(t, factory)
 	lister, err := factory(DexType, poollist.FactoryParams{
 		Properties:   poollist.Properties{"pools": []string{testPool}},
-		Dependencies: poollist.Dependencies{EthrpcClient: listerRPC(t, false, nil)},
+		EthrpcClient: listerRPC(t, false, nil),
 	})
 	require.NoError(t, err)
 	pools, _, err := lister.GetNewPools(t.Context(), nil)

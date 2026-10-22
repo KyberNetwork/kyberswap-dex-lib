@@ -32,7 +32,7 @@ func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolTracker {
-	httpClient := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
+	httpClient := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(config.HTTPConfig.BaseURL).
 		SetTimeout(config.HTTPConfig.Timeout.Duration).
 		SetRetryCount(config.HTTPConfig.RetryCount)

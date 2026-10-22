@@ -58,7 +58,7 @@ func mulDiv(x, y, denominator *uint256.Int) (*uint256.Int, error) {
 	prod0.Or(prod0, new(uint256.Int).Mul(prod1, twos))
 
 	inverse := new(uint256.Int).Xor(new(uint256.Int).Mul(uint256.NewInt(3), denominator), uint256.NewInt(2))
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		inverse.Mul(inverse, new(uint256.Int).Sub(uint256.NewInt(2), new(uint256.Int).Mul(denominator, inverse)))
 	}
 

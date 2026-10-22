@@ -95,7 +95,7 @@ func (r *VaultReader) readWhitelistedTokens(
 	whitelistedTokens := make([]common.Address, tokensLen)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < tokensLen; i++ {
+	for i := range tokensLen {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,

@@ -125,7 +125,7 @@ func DecodeExtension(encodedExtension string) (Extension, error) {
 
 	data := [totalOffsetSlots][]byte{}
 	prevLength := 0
-	for i := 0; i < totalOffsetSlots; i++ {
+	for i := range totalOffsetSlots {
 		length := int(new(big.Int).And(
 			new(big.Int).Rsh(
 				offset, uint(i*offsetSlotSizeInBits), // nolint:gosec

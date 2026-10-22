@@ -55,17 +55,15 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 
 	firstLevelFrom0, firstLevelFrom1 := lo.FirstOrEmpty(extra.LevelsFrom[0]), lo.FirstOrEmpty(extra.LevelsFrom[1])
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens: lo.Map(entityPool.Tokens,
-					func(item *entity.PoolToken, index int) string { return item.Address }),
-				Reserves: lo.Map(entityPool.Reserves,
-					func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:  strings.ToLower(entityPool.Address),
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			BlockNumber: entityPool.BlockNumber,
 		},
 		Gas:         lo.ValueOr(gasByDex, entityPool.Exchange, defaultGas),
 		levelsFroms: extra.LevelsFrom,

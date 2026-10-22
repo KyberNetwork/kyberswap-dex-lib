@@ -3,6 +3,7 @@ package bin
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math/big"
 	"os"
 	"strings"
@@ -161,8 +162,6 @@ func regressFeeOutputs(t *testing.T) map[string]string {
 
 func TestRegress(t *testing.T) {
 	got := regressSimOutputs(t)
-	for k, v := range regressFeeOutputs(t) {
-		got[k] = v
-	}
+	maps.Copy(got, regressFeeOutputs(t))
 	regressCheck(t, got)
 }

@@ -281,9 +281,9 @@ func TestChainGate(t *testing.T) {
 // F-N3: a caller deadline that lands during the 429 back-off is a transport failure (Track returns it
 // and publishes nothing), never an unclassified error that Track would publish as an empty market.
 func TestCtxDeadlineDuring429BackoffIsTransport(t *testing.T) {
-	var n int64
+	var n atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&n, 1)
+		n.Add(1)
 		w.WriteHeader(http.StatusTooManyRequests)
 		_, _ = w.Write([]byte("Rate Limit"))
 	}))
@@ -294,7 +294,7 @@ func TestCtxDeadlineDuring429BackoffIsTransport(t *testing.T) {
 	_, err := m.get(ctx, "0x0000000000000000000000000000000000000001", sel("foo()"))
 	require.Error(t, err)
 	require.ErrorIs(t, err, context.DeadlineExceeded)
-	require.True(t, isTransport(err), "%v (%T) after %d requests", err, err, atomic.LoadInt64(&n))
+	require.True(t, isTransport(err), "%v (%T) after %d requests", err, err, n.Load())
 	require.NotErrorIs(t, err, ErrReverted)
 }
 

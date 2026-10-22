@@ -259,18 +259,12 @@ func punishmentX24(params *PoolParams, amountIn *uint256.Int, xToY bool) uint32 
 func applyPunishment(feeAskX24, feeBidX24 *uint32, desiredX24 uint32, xToY bool) uint32 {
 	if xToY {
 		available := maxU24 - *feeBidX24
-		applied := desiredX24
-		if applied > available {
-			applied = available
-		}
+		applied := min(desiredX24, available)
 		*feeBidX24 += applied
 		return *feeBidX24
 	}
 	available := maxU24 - *feeAskX24
-	applied := desiredX24
-	if applied > available {
-		applied = available
-	}
+	applied := min(desiredX24, available)
 	*feeAskX24 += applied
 	return *feeAskX24
 }

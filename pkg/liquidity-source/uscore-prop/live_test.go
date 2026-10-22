@@ -51,7 +51,7 @@ func livePoolEntities(t *testing.T, client *ethrpc.Client) []entity.Pool {
 func TestLiveUSCore(t *testing.T) {
 	client := liveClient(t)
 	for _, p := range livePoolEntities(t, client) {
-		for cycle := 0; cycle < 3; cycle++ {
+		for cycle := range 3 {
 			var err error
 			p, err = NewPoolTracker(nil, client).GetNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{})
 			require.NoError(t, err)

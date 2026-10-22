@@ -68,16 +68,14 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens: lo.Map(entityPool.Tokens,
-					func(item *entity.PoolToken, _ int) string { return item.Address }),
-				Reserves:    reserveInfo,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, _ int) string { return item.Address }),
+			Reserves:    reserveInfo,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		chainID:            chainID,
 		requiresRPCRefresh: !extra.SnapshotComplete && !extra.ConcentrationModel && extra.ConcentrationK == 0 && extra.MaxPunishmentX24 == 0 && extra.BlockHash == "",
@@ -163,8 +161,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.Extra = lo.ToPtr(*s.Extra)
-	cloned.StaticExtra = lo.ToPtr(*s.StaticExtra)
+	cloned.Extra = new(*s.Extra)
+	cloned.StaticExtra = new(*s.StaticExtra)
 	return &cloned
 }
 
@@ -186,7 +184,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// A punishment-model pool ratchets up the swapped direction's fee on
 	// every swap; persist it so subsequent hops/splits through the same
 	// pool within one route price against the post-swap fee.
-	s.Extra = lo.ToPtr(*s.Extra)
+	s.Extra = new(*s.Extra)
 	s.FeeAskX24 = swapInfo.feeAskX24
 	s.FeeBidX24 = swapInfo.feeBidX24
 }

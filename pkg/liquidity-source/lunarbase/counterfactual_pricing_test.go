@@ -23,7 +23,7 @@ func TestCounterfactualReserveFaultCanLeaveQuotesUnchanged(t *testing.T) {
 	sizes := []string{"0.000001", "0.01", "0.1", "1", "10", "50", "100", "300", "1000", "10000"}
 	rows := []map[string]any{}
 	up, down := 0, 0
-	for side := 0; side < 2; side++ {
+	for side := range 2 {
 		for _, size := range sizes {
 			amount, _ := new(big.Rat).SetString(size)
 			amount.Mul(amount, new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
@@ -55,7 +55,7 @@ func TestCounterfactualReserveFaultCanLeaveQuotesUnchanged(t *testing.T) {
 	anchor := cfSimulator(t, p).SqrtPriceX96.ToBig()
 	square := new(big.Int).Mul(anchor, anchor)
 	scale := new(big.Int).Lsh(big.NewInt(1), 192)
-	for side := 0; side < 2; side++ {
+	for side := range 2 {
 		outIndex := 1 - side
 		goodReserve, _ := new(big.Int).SetString(p.Reserves[outIndex], 10)
 		badReserve, _ := new(big.Int).SetString(bad.Reserves[outIndex], 10)

@@ -28,7 +28,7 @@ func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, err
 		wg      sync.WaitGroup
 		outputs = make([]lo.Tuple2[R, error], concurrentFactor)
 	)
-	for i := 0; i < concurrentFactor; i++ {
+	for i := range concurrentFactor {
 		wg.Go(func() {
 			value, err := f()
 			outputs[i] = lo.T2(value, err)

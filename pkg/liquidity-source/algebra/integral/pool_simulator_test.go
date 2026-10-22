@@ -135,21 +135,19 @@ func TestCalcAmountOut(t *testing.T) {
 		{
 			name: "valid swap - token 0 to token 1",
 			simulator: &PoolSimulator{
-				Pool: pool.Pool{
-					Info: pool.PoolInfo{
-						Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
-						Exchange: "scribe",
-						Type:     DexType,
-						Reserves: []*big.Int{
-							big.NewInt(817408052),
-							big.NewInt(1425700551),
-						},
-						Tokens: []string{
-							"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
-							"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
-						},
-						BlockNumber: 11587102,
+				Info: pool.PoolInfo{
+					Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
+					Exchange: "scribe",
+					Type:     DexType,
+					Reserves: []*big.Int{
+						big.NewInt(817408052),
+						big.NewInt(1425700551),
 					},
+					Tokens: []string{
+						"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
+						"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
+					},
+					BlockNumber: 11587102,
 				},
 				globalState: GlobalState{
 					Price:        uint256.MustFromBig(mockPrice),
@@ -211,21 +209,19 @@ func TestCalcAmountOut(t *testing.T) {
 		{
 			name: "valid swap - token 1 to token 0",
 			simulator: &PoolSimulator{
-				Pool: pool.Pool{
-					Info: pool.PoolInfo{
-						Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
-						Exchange: "scribe",
-						Type:     DexType,
-						Reserves: []*big.Int{
-							big.NewInt(817408052),
-							big.NewInt(1425700551),
-						},
-						Tokens: []string{
-							"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
-							"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
-						},
-						BlockNumber: 11587102,
+				Info: pool.PoolInfo{
+					Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
+					Exchange: "scribe",
+					Type:     DexType,
+					Reserves: []*big.Int{
+						big.NewInt(817408052),
+						big.NewInt(1425700551),
 					},
+					Tokens: []string{
+						"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
+						"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
+					},
+					BlockNumber: 11587102,
 				},
 				globalState: GlobalState{
 					Price:        uint256.MustFromBig(mockPrice),
@@ -287,21 +283,19 @@ func TestCalcAmountOut(t *testing.T) {
 		{
 			name: "swap token 0 to token 1 with large amount in",
 			simulator: &PoolSimulator{
-				Pool: pool.Pool{
-					Info: pool.PoolInfo{
-						Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
-						Exchange: "scribe",
-						Type:     DexType,
-						Reserves: []*big.Int{
-							big.NewInt(817408052),
-							big.NewInt(1425700551),
-						},
-						Tokens: []string{
-							"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
-							"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
-						},
-						BlockNumber: 11587102,
+				Info: pool.PoolInfo{
+					Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
+					Exchange: "scribe",
+					Type:     DexType,
+					Reserves: []*big.Int{
+						big.NewInt(817408052),
+						big.NewInt(1425700551),
 					},
+					Tokens: []string{
+						"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
+						"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
+					},
+					BlockNumber: 11587102,
 				},
 				globalState: GlobalState{
 					Price:        uint256.MustFromBig(mockPrice),
@@ -363,21 +357,19 @@ func TestCalcAmountOut(t *testing.T) {
 		{
 			name: "swap token 1 to token 0 with large amount in",
 			simulator: &PoolSimulator{
-				Pool: pool.Pool{
-					Info: pool.PoolInfo{
-						Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
-						Exchange: "scribe",
-						Type:     DexType,
-						Reserves: []*big.Int{
-							big.NewInt(817408052),
-							big.NewInt(1425700551),
-						},
-						Tokens: []string{
-							"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
-							"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
-						},
-						BlockNumber: 11587102,
+				Info: pool.PoolInfo{
+					Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
+					Exchange: "scribe",
+					Type:     DexType,
+					Reserves: []*big.Int{
+						big.NewInt(817408052),
+						big.NewInt(1425700551),
 					},
+					Tokens: []string{
+						"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
+						"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
+					},
+					BlockNumber: 11587102,
 				},
 				globalState: GlobalState{
 					Price:        uint256.MustFromBig(mockPrice),

@@ -22,7 +22,7 @@ type Config struct {
 	// is [currentPrice/1.2, currentPrice * 1.2)
 	PointRange int `mapstructure:"point_range" json:"point_range,omitempty"`
 
-	HTTP iziswapclient.HTTPConfig `mapstructure:"http" json:"http,omitempty"`
+	HTTP iziswapclient.HTTPConfig `mapstructure:"http" json:"http"`
 
 	// //todo: we may use it in the future for speed up
 	// preGenesisPoolAddrs []string

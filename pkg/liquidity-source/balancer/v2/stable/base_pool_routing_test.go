@@ -16,7 +16,7 @@ import (
 // through the main pool used to emit a BPT -> BPT hop that reverts with BAL#509.
 func newNestedPools(withSecondBasePool bool) *PoolSimulator {
 	newPool := func(address string, tokens ...string) *PoolSimulator {
-		return &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: address, Tokens: tokens}}}
+		return &PoolSimulator{Info: pool.PoolInfo{Address: address, Tokens: tokens}}
 	}
 
 	basePools := map[string]shared.IBasePool{
@@ -62,7 +62,7 @@ func TestBasePoolBptSwapUsesOtherBasePool(t *testing.T) {
 
 	s := newNestedPools(true)
 
-	for i := 0; i < 20; i++ { // basePools is a map; exclusion must not depend on iteration order
+	for range 20 { // basePools is a map; exclusion must not depend on iteration order
 		basePool, err := s.getBasePool("usdc", "bpt")
 		require.NoError(t, err)
 		assert.Equal(t, "bpt2", basePool.GetAddress())

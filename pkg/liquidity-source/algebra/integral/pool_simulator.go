@@ -79,14 +79,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     strings.ToLower(entityPool.Address),
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		globalState:        extra.GlobalState,
 		liquidity:          extra.Liquidity,
 		ticks:              ticks,
@@ -434,7 +434,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	var ticksCrossed int64
 	// swap until there is remaining input or output tokens, or we reach the price limit.
 	// limit by maxSwapLoop to make sure we won't loop infinitely because of a bug somewhere
-	for i := 0; i < maxSwapLoop; i++ {
+	for range maxSwapLoop {
 		// Algebra crosses straight to the next tick in the list; the SDK's word-by-word search reached the
 		// same tick, with the same errors past either end of the list. Every list tick counts as
 		// initialized, as it did there.

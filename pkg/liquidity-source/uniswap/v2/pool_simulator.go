@@ -50,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -59,7 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		StaticExtra:  staticExtra,
 		reserves:     reserves,
 		fee:          uint256.NewInt(extra.Fee),
@@ -193,16 +193,12 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	exchange := s.GetExchange()
 	return PoolMeta{
-		Extra: Extra{
-			Fee:          s.fee.Uint64(),
-			FeePrecision: s.feePrecision.Uint64(),
-		},
-		PoolMetaGeneric: PoolMetaGeneric{
-			ApprovalAddress: lo.CoalesceOrEmpty(s.Router, routerAddressByExchange[exchange]),
-			RouterSelector:  s.Selector,
-			NoFOT:           noFOTByExchange[exchange],
-			BlockNumber:     s.Info.BlockNumber,
-		},
+		Fee:             s.fee.Uint64(),
+		FeePrecision:    s.feePrecision.Uint64(),
+		ApprovalAddress: lo.CoalesceOrEmpty(s.Router, routerAddressByExchange[exchange]),
+		RouterSelector:  s.Selector,
+		NoFOT:           noFOTByExchange[exchange],
+		BlockNumber:     s.Info.BlockNumber,
 	}
 }
 

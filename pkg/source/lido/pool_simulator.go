@@ -38,7 +38,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
@@ -50,16 +50,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     bignumber.ZeroBI,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     bignumber.ZeroBI,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		StEthPerToken:  extraStr.StEthPerToken,
 		TokensPerStEth: extraStr.TokensPerStEth,

@@ -157,7 +157,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 
 	// Let me also try different salts to see if there are other pools
 	logger.Debugf("\n🔍 TESTING DIFFERENT SALT VALUES:")
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		testDexKey := DexKey{
 			Token0: common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), // USDC
 			Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT

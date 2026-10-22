@@ -9,10 +9,7 @@ func (h *Hook) quoteGas(q Quote) int64 {
 	if h.SwapGas > 0 {
 		return h.SwapGas
 	}
-	ranges := len(h.Pool.Buckets)
-	if ranges < 1 {
-		ranges = 1
-	}
+	ranges := max(len(h.Pool.Buckets), 1)
 	gas := int64(1450000 + 175000*(ranges-1))
 	if h.TickSpacing > 0 {
 		word := func(tick int32) int64 {

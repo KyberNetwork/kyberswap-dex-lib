@@ -28,7 +28,7 @@ type PoolListUpdater struct {
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolListUpdater {
-	httpClient := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
+	httpClient := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(cfg.HTTPConfig.BaseURL).
 		SetTimeout(cfg.HTTPConfig.Timeout.Duration).
 		SetRetryCount(cfg.HTTPConfig.RetryCount)

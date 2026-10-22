@@ -298,7 +298,7 @@ func resolveHooksIn(registry []hookEntry, chainID valueobject.ChainID, factory, 
 	case (hooks[roleSlot[roleLeverage]] == zero) != (hooks[roleSlot[roleSpread]] == zero):
 		return out, fmt.Errorf("%w: leverage and spread hooks are set as a pair", ErrInvalidProfile)
 	}
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		a := hooks[roleSlot[role]]
 		if a == zero {
 			if role == roleSwap {

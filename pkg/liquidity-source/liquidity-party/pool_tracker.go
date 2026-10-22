@@ -224,7 +224,7 @@ func validateSnapshot(s *PoolStateSnapshotRPC, nTokens int) error {
 		return fmt.Errorf("%w: array length != %d tokens (q=%d bases=%d fees=%d bal=%d)",
 			ErrInvalidExtra, nTokens, len(s.QInternal), len(s.Bases), len(s.FeesPpm), len(s.CachedBalances))
 	}
-	for i := 0; i < nTokens; i++ {
+	for i := range nTokens {
 		if s.QInternal[i] == nil || s.Bases[i] == nil || s.FeesPpm[i] == nil || s.CachedBalances[i] == nil {
 			return fmt.Errorf("%w: nil array element at %d", ErrInvalidExtra, i)
 		}

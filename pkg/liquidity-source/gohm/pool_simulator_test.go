@@ -43,7 +43,7 @@ func newSimulatorWithReserves(
 ) *PoolSimulator {
 	t.Helper()
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  testOlympusStakingAddress,
 			Exchange: DexType,
 			Type:     DexType,
@@ -53,7 +53,7 @@ func newSimulatorWithReserves(
 				sohmReserve.ToBig(),
 				big.NewInt(0),
 			},
-		}},
+		},
 		index:        index,
 		warmupPeriod: warmupPeriod,
 		ohmReserve:   new(uint256.Int).Set(ohmReserve),

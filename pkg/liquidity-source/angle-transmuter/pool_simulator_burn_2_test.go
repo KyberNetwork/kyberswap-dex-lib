@@ -180,9 +180,9 @@ func TestCalcAmountOut_burn_zero_issuance_rejected(t *testing.T) {
 		usda = "0x0000206329b97db379d5e1bf586bbdb969c63274"
 	)
 	p := PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Tokens: []string{usdc, usda},
-		}},
+		},
 		Decimals: []uint8{6, 18},
 		Transmuter: TransmuterState{
 			// Values mirror the router-api snapshot of pool 0xd253b62108d1831aed298fc2434a5a8e4e418053

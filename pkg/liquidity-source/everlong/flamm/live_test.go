@@ -331,7 +331,7 @@ func revertData(err error) ([]byte, bool) {
 // liveGrid is n log-spaced amounts from lo to hi.
 func liveGrid(lo, hi uint64, n int) []uint64 {
 	out := make([]uint64, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		out = append(out, uint64(float64(lo)*math.Pow(float64(hi)/float64(lo), float64(i)/float64(n-1))))
 	}
 	return out

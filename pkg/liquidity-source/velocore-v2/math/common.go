@@ -115,7 +115,7 @@ func (*common) MulDiv(x, y, denominator *uint256.Int) (*uint256.Int, error) {
 	)
 
 	inverse := new(uint256.Int).Exp(new(uint256.Int).Mul(number.Number_3, denominator), number.Number_2)
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		inverse = new(uint256.Int).Mul(
 			inverse,
 			new(uint256.Int).Sub(
@@ -235,13 +235,13 @@ func (*common) Exp2(x *uint256.Int) *uint256.Int {
 		},
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		vi := uint256.MustFromHex(v[i])
 		if !new(uint256.Int).And(x, vi).Gt(number.Zero) {
 			continue
 		}
 
-		for j := 0; j < n; j++ {
+		for j := range n {
 			xj := uint256.MustFromHex(pairs[i][j].X)
 			if !new(uint256.Int).And(x, xj).Gt(number.Zero) {
 				continue
@@ -378,7 +378,7 @@ func (*common) Sqrt(x *uint256.Int) *uint256.Int {
 		Common.Log2(x)>>1,
 	)
 
-	for i := 0; i < 7; i++ {
+	for range 7 {
 		result = new(uint256.Int).Rsh(
 			new(uint256.Int).Add(
 				result,

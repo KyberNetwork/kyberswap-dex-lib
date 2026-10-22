@@ -84,7 +84,7 @@ func (ts *IntegrationSuite) SetupSuite() {
 func (ts *IntegrationSuite) discoverAll() map[string]entity.Pool {
 	all := make(map[string]entity.Pool)
 	var meta []byte
-	for round := 0; round < 20; round++ {
+	for range 20 {
 		pools, next, err := ts.lister.GetNewPools(context.Background(), meta)
 		ts.Require().NoError(err)
 		for _, p := range pools {
@@ -150,7 +150,7 @@ func (ts *IntegrationSuite) assertTrackedMatchesChain(poolAddr string, wantToken
 	// Direct read pinned to the tracked block — the ground truth.
 	onchain := ts.readDynamicDataAt(poolAddr, tracked.BlockNumber)
 
-	for i := 0; i < wantTokens; i++ {
+	for i := range wantTokens {
 		ts.Require().Equalf(onchain.VirtualBalances[i].String(), extra.VirtualBalances[i].String(),
 			"virtualBalances[%d] mismatch", i)
 		ts.Require().Equalf(onchain.BalancesLiveScaled18[i].String(), extra.BalancesLiveScaled18[i].String(),

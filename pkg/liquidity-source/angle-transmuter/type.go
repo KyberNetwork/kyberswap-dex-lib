@@ -52,10 +52,10 @@ type (
 		IsBurnLive                bool         `json:"isBurnLive"`
 		Balance                   *uint256.Int `json:"balance"`
 		NormalizedStables         *uint256.Int `json:"normalizedStables"`
-		Fees                      Fees         `json:"fees,omitempty"`
+		Fees                      Fees         `json:"fees"`
 		StablecoinsFromCollateral *uint256.Int `json:"stablecoinsFromCollateral,omitempty"`
 		StablecoinsIssued         *uint256.Int `json:"stablecoinsIssued,omitempty"`
-		Config                    Oracle       `json:"config,omitempty"`
+		Config                    Oracle       `json:"config"`
 		StablecoinCap             *uint256.Int `json:"stablecoinCap,omitempty"`
 	}
 
@@ -70,9 +70,9 @@ type (
 		OracleType      OracleReadType  `json:"oracleType,omitempty"`
 		TargetType      OracleReadType  `json:"targetType,omitempty"`
 		ExternalOracle  common.Address  `json:"externalOracle,omitempty"`
-		OracleFeed      OracleFeed      `json:"oracleFeed,omitempty"`
-		TargetFeed      OracleFeed      `json:"targetFeed,omitempty"`
-		Hyperparameters Hyperparameters `json:"hyperparameters,omitempty"`
+		OracleFeed      OracleFeed      `json:"oracleFeed"`
+		TargetFeed      OracleFeed      `json:"targetFeed"`
+		Hyperparameters Hyperparameters `json:"hyperparameters"`
 	}
 	Hyperparameters struct {
 		UserDeviation      *uint256.Int

@@ -261,7 +261,7 @@ func newtonY(ann, gamma uint256.Int, x [nCoins]uint256.Int, D uint256.Int, i int
 		y = a.div(a.mul(y, D), a.mul(_x, nCoinsU))
 		Si = a.add(Si, _x)
 	}
-	for j := 0; j < nCoins-1; j++ {
+	for j := range nCoins - 1 {
 		K0i = a.div(a.mul(a.mul(K0i, xs[j]), nCoinsU), D)
 	}
 

@@ -26,10 +26,8 @@ func NewPoolsListUpdater(
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		PoolsListUpdater: syncswapv2shared.PoolsListUpdater{
-			Config:       config,
-			EthrpcClient: ethrpcClient,
-		},
+		Config:       config,
+		EthrpcClient: ethrpcClient,
 	}
 }
 
@@ -44,7 +42,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	)
 
 	calls := d.PoolsListUpdater.EthrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < len(poolAddresses); i++ {
+	for i := range poolAddresses {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    stablePoolABI,
 			Target: poolAddresses[i].Hex(),
@@ -68,7 +66,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	}
 
 	var pools = make([]entity.Pool, 0, len(poolAddresses))
-	for i := 0; i < len(poolAddresses); i++ {
+	for i := range poolAddresses {
 		poolAddress := hexutil.Encode(poolAddresses[i][:])
 		token0Address := hexutil.Encode(assets[i][0][:])
 		token1Address := hexutil.Encode(assets[i][1][:])

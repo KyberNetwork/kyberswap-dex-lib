@@ -21,7 +21,7 @@ func FromBigs(v []*big.Int) []*uint256.Int {
 }
 
 func BatchRouter(chainID valueobject.ChainID, exchange string) (common.Address, bool) {
-	prefix := strings.SplitN(exchange, "-", 2)[0]
+	prefix, _, _ := strings.Cut(exchange, "-")
 	router, ok := BatchRouterMap[prefix]
 	if !ok {
 		router = BatchRouterMap[""]
@@ -31,7 +31,7 @@ func BatchRouter(chainID valueobject.ChainID, exchange string) (common.Address, 
 }
 
 func Vault(chainID valueobject.ChainID, exchange string) common.Address {
-	prefix := strings.SplitN(exchange, "-", 2)[0]
+	prefix, _, _ := strings.Cut(exchange, "-")
 	if override, ok := VaultOverrideMap[prefix][chainID]; ok {
 		return override
 	}

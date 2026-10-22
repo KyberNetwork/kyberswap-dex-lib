@@ -103,7 +103,7 @@ func Exp2(x *int256.Int) (int256.Int, error) {
 	result.Set(twoPow127)
 
 	xb := asU(x) // raw two's-complement bits; only the low 64 fractional bits are tested
-	for idx := 0; idx < 64; idx++ {
+	for idx := range 64 {
 		bit := uint(63 - idx)
 		if (xb[0]>>bit)&1 == 1 {
 			var prod, shifted uint256.Int
