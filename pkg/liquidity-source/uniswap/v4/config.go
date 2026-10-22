@@ -38,6 +38,9 @@ type Config struct {
 	LensGas uint64 `json:"lensGas,omitempty"`
 	// LensGuard bounds the lens reads made while updating pools, which never wait for it.
 	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
+	// LensBatch gathers the first lens read of pools read at the same block into one call, with
+	// every exchange that reads through the same node; nil reads each pool alone.
+	LensBatch *ephemeral.BatchConfig `json:"lensBatch,omitempty"`
 
 	HookConfigs map[common.Address]any `json:"hookConfigs" mapstructure:"hookConfigs"`
 }

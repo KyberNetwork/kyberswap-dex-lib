@@ -149,7 +149,7 @@ func (t *PoolTracker) readLensPages(ctx context.Context, address string, block *
 	read, ticks, err := ephemeral.ScanWords(ctx, lensWordLower, lensWordUpper, pin, ephemeral.WordsParallel,
 		func(ctx context.Context, lower, upper int16, block *big.Int) (ephemeral.Page[int16], []tickspkg.Tick, error) {
 			var out snapshot
-			err := ephemeral.Call(ctx, t.EthrpcClient.GetETHClient(), lens, &out, t.config.LensGas, block,
+			err := ephemeral.CallPage(ctx, t.config.LensBatch, t.EthrpcClient.GetETHClient(), lower, lensWordLower, lens, &out, t.config.LensGas, block,
 				pool, raw, lower, upper)
 			if err != nil {
 				return ephemeral.Page[int16]{}, nil, err
