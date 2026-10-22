@@ -58,11 +58,11 @@ func (t *PoolTracker) snapshot(ctx context.Context, poolID string, block *big.In
 	id := common.HexToHash(poolID)
 	var s lensSnapshot
 
-	block, err := ephemeral.Pin(ctx, t.ethrpcClient.GetETHClient(), block)
+	pin, err := ephemeral.Pin(ctx, t.ethrpcClient.GetETHClient(), block)
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", poolID, err)
 	}
-	read, err := ephemeral.Scan(ctx, lensWordLower, block,
+	read, err := ephemeral.Scan(ctx, lensWordLower, pin,
 		func(ctx context.Context, lower int16, block *big.Int) (ephemeral.Page[int16], error) {
 			var out snapshot
 			err := ephemeral.Call(ctx, t.ethrpcClient.GetETHClient(), lens, &out, t.config.LensGas, block,
