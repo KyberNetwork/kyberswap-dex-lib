@@ -72,7 +72,11 @@ func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64
 	if len(payload) == 0 {
 		return fmt.Errorf("%w: %v", ErrNoRevertData, err)
 	}
+	return decodeResult(contract, payload, out)
+}
 
+// decodeResult decodes what contract reverted with: its result into out, or the error it is.
+func decodeResult(contract *Contract, payload []byte, out any) error {
 	unpackErr := contract.UnpackCall(payload, out)
 	if unpackErr == nil {
 		return nil
