@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 )
 
 func lensFixture(t *testing.T, name string) []byte {
@@ -181,11 +182,11 @@ func TestFetchPoolTicksWithLensKeepsThePair(t *testing.T) {
 	assert.Equal(t, p, got)
 }
 
-// TestReadBlockNeverGoesBack: an update reads at its newest log's block, but never below the
-// pair's own, and at the latest without logs.
-func TestReadBlockNeverGoesBack(t *testing.T) {
-	p := entity.Pool{BlockNumber: 200}
-	assert.EqualValues(t, 0, readBlock(p, nil))
-	assert.EqualValues(t, 250, readBlock(p, []ethtypes.Log{{BlockNumber: 240}, {BlockNumber: 250}}))
-	assert.EqualValues(t, 200, readBlock(p, []ethtypes.Log{{BlockNumber: 150}}), "a late log")
+// TestUpdatesNeverReadBelowThePair: an update reads at its newest log's block, but never below the
+// pair's own, and at the latest for a trigger without logs or a log without a block.
+func TestUpdatesNeverReadBelowThePair(t *testing.T) {
+	assert.EqualValues(t, 0, tickspkg.ReadBlock(nil, 200))
+	assert.EqualValues(t, 0, tickspkg.ReadBlock([]ethtypes.Log{{}}, 200), "the empty trigger log")
+	assert.EqualValues(t, 250, tickspkg.ReadBlock([]ethtypes.Log{{BlockNumber: 240}, {BlockNumber: 250}}, 200))
+	assert.EqualValues(t, 200, tickspkg.ReadBlock([]ethtypes.Log{{BlockNumber: 150}}, 200), "a late log")
 }
