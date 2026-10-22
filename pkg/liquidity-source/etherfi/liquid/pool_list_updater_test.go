@@ -33,5 +33,7 @@ func TestGetNewPools_ByChain(t *testing.T) {
 	var se StaticExtra
 	require.NoError(t, json.Unmarshal([]byte(hl[0].StaticExtra), &se))
 	require.True(t, se.SimpleTeller)
+	require.Equal(t, hexAddr(lhypeDepositor), se.Depositor)
+	require.Equal(t, "kyberswap", se.CommunityCode)
 	require.Equal(t, hexAddr("0xfd83c1ca0c04e096d129275126fade1dc45bf4f0"), se.Teller)
 }

@@ -12,7 +12,10 @@ type StaticExtra struct {
 	LiquidRefer common.Address `json:"liquidRefer"`
 	Teller      common.Address `json:"teller"`
 	// SimpleTeller: see PoolInfo.
-	SimpleTeller bool `json:"simpleTeller,omitempty"`
+	SimpleTeller  bool           `json:"simpleTeller,omitempty"`
+	Depositor     common.Address `json:"depositor,omitempty"`
+	Accountant    common.Address `json:"accountant,omitempty"`
+	CommunityCode string         `json:"communityCode,omitempty"`
 }
 
 type Config struct {
@@ -38,5 +41,8 @@ type MetaInfo struct {
 	LiquidRefer     common.Address `json:"liquidRefer"`
 	Teller          common.Address `json:"teller"`
 	ApprovalAddress common.Address `json:"approvalAddress"`
+	Depositor       common.Address `json:"depositor"`
+	Accountant      common.Address `json:"accountant"`
+	CommunityCode   string         `json:"communityCode"`
 	BlockNumber     uint64         `json:"blockNumber"`
 }

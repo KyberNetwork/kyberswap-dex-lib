@@ -4,9 +4,12 @@ import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 
 type PoolInfo struct {
 	Exchange string // empty means etherfi-liquid
-	// SimpleTeller: teller exposes isSupported(asset) instead of assetData(asset) and is
-	// called directly (no LiquidRefer); the vault pulls tokens, so the vault is the spender.
+	// SimpleTeller: teller exposes isSupported(asset) instead of assetData(asset). Deposits go
+	// through Depositor (spender) with CommunityCode, as the whlp source does.
 	SimpleTeller           bool
+	Depositor              string
+	Accountant             string
+	CommunityCode          string
 	SupportedDepositAssets []string
 	TellerContract         string
 }
@@ -26,6 +29,9 @@ var hyperevmPools = map[string]PoolInfo{
 		},
 		TellerContract: "0xfd83c1ca0c04e096d129275126fade1dc45bf4f0",
 		SimpleTeller:   true,
+		Depositor:      "0x6e358dd1204c3fb1d24e569df0899f48fabe5337",
+		Accountant:     "0xce621a3ca6f72706678cff0572ae8d15e5f001c3",
+		CommunityCode:  "kyberswap",
 	},
 }
 

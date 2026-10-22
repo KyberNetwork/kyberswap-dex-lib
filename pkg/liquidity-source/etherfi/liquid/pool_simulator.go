@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -124,7 +123,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: &shares},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: bignumber.ZeroBI},
-		Gas:            lo.Ternary(s.staticExtra.SimpleTeller, tellerDirectGas, defaultGas),
+		Gas:            lo.Ternary(s.staticExtra.SimpleTeller, simpleTellerGas, defaultGas),
 	}, nil
 }
 
@@ -133,12 +132,15 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {}
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	approval := s.staticExtra.LiquidRefer
 	if s.staticExtra.SimpleTeller {
-		approval = common.HexToAddress(s.Info.Address) // the vault pulls tokens in enter()
+		approval = s.staticExtra.Depositor // pulls tokens from the executor
 	}
 	return MetaInfo{
 		LiquidRefer:     s.staticExtra.LiquidRefer,
 		Teller:          s.staticExtra.Teller,
 		ApprovalAddress: approval,
+		Depositor:       s.staticExtra.Depositor,
+		Accountant:      s.staticExtra.Accountant,
+		CommunityCode:   s.staticExtra.CommunityCode,
 		BlockNumber:     s.Info.BlockNumber,
 	}
 }

@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	lhype  = "0x5748ae796ae46a4f1348a1693de4b50560485562"
-	whype  = "0x5555555555555555555555555555555555555555"
-	sthype = "0xffaa4a3d97fe9107cef8a3f48c069f577ff76cc1"
+	lhype          = "0x5748ae796ae46a4f1348a1693de4b50560485562"
+	whype          = "0x5555555555555555555555555555555555555555"
+	lhypeDepositor = "0x6e358dd1204c3fb1d24e569df0899f48fabe5337"
+	sthype         = "0xffaa4a3d97fe9107cef8a3f48c069f577ff76cc1"
 	// accountant.getRateInQuoteSafe(WHYPE) on hyperevm at block 49190448.
 	lhypeRate = "1030663339500000000"
 )
@@ -28,8 +29,11 @@ func newLHypeSim(t *testing.T, mutate func(*Extra)) *PoolSimulator {
 	}
 	extraBytes, _ := json.Marshal(extra)
 	staticBytes, _ := json.Marshal(StaticExtra{
-		Teller:       hexAddr("0xfd83c1ca0c04e096d129275126fade1dc45bf4f0"),
-		SimpleTeller: true,
+		Teller:        hexAddr("0xfd83c1ca0c04e096d129275126fade1dc45bf4f0"),
+		SimpleTeller:  true,
+		Depositor:     hexAddr(lhypeDepositor),
+		Accountant:    hexAddr("0xce621a3ca6f72706678cff0572ae8d15e5f001c3"),
+		CommunityCode: "kyberswap",
 	})
 	sim, err := NewPoolSimulator(entity.Pool{
 		Address:     lhype,
@@ -63,7 +67,7 @@ func TestCalcAmountOut_MatchesOnChainTeller(t *testing.T) {
 		res, err := calc(sim, in)
 		require.NoError(t, err)
 		require.Equal(t, want, res.TokenAmountOut.Amount.String(), "in=%s", in)
-		require.Equal(t, tellerDirectGas, res.Gas)
+		require.Equal(t, simpleTellerGas, res.Gas)
 	}
 }
 
@@ -86,9 +90,11 @@ func TestSimpleTellerRouting(t *testing.T) {
 	require.Equal(t, []string{whype}, sim.CanSwapTo(lhype))
 	require.Equal(t, []string{lhype}, sim.CanSwapFrom(whype))
 	require.Nil(t, sim.CanSwapFrom(lhype))
-	// The vault pulls WHYPE in enter(), so the executor must approve the vault, not the teller.
+	// The executor calls Depositor.deposit, which pulls the asset, so the Depositor is approved.
 	meta := sim.GetMetaInfo(whype, lhype).(MetaInfo)
-	require.Equal(t, hexAddr(lhype), meta.ApprovalAddress)
+	require.Equal(t, hexAddr(lhypeDepositor), meta.ApprovalAddress)
+	require.Equal(t, hexAddr(lhypeDepositor), meta.Depositor)
+	require.Equal(t, "kyberswap", meta.CommunityCode)
 	require.Equal(t, hexAddr("0xfd83c1ca0c04e096d129275126fade1dc45bf4f0"), meta.Teller)
 	require.Equal(t, hexAddr("0x0"), meta.LiquidRefer)
 }

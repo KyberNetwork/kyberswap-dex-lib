@@ -49,9 +49,12 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 
 		staticExtraBytes, _ := json.Marshal(StaticExtra{
-			LiquidRefer:  lo.Ternary(poolInfo.SimpleTeller, common.Address{}, liquidReferAddress),
-			Teller:       common.HexToAddress(poolInfo.TellerContract),
-			SimpleTeller: poolInfo.SimpleTeller,
+			LiquidRefer:   lo.Ternary(poolInfo.SimpleTeller, common.Address{}, liquidReferAddress),
+			Teller:        common.HexToAddress(poolInfo.TellerContract),
+			SimpleTeller:  poolInfo.SimpleTeller,
+			Depositor:     common.HexToAddress(poolInfo.Depositor),
+			Accountant:    common.HexToAddress(poolInfo.Accountant),
+			CommunityCode: poolInfo.CommunityCode,
 		})
 
 		return entity.Pool{
