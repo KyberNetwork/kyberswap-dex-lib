@@ -71,6 +71,11 @@ func (t *Tracker) snapshot(ctx context.Context, address string, block *big.Int) 
 				s.liquidity = out.Liquidity
 			}
 			for _, pt := range out.Ticks {
+				// Some forks (monday-v3) leave a tick's bitmap bit set once its liquidity is gone;
+				// such a tick holds nothing, and a swap would only pay to cross it.
+				if pt.LiquidityGross.Sign() == 0 {
+					continue
+				}
 				s.ticks = append(s.ticks, Tick{
 					Index:          int(pt.Tick.Int64()),
 					LiquidityNet:   pt.LiquidityNet,
