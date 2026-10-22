@@ -18,7 +18,8 @@ var lensBatch = MustLoad("LensBatch", batchJSON)
 
 // BatchConfig sets how a Batcher gathers lens reads into one call.
 type BatchConfig struct {
-	// MaxItems flushes a batch once it holds this many reads; 0 is 64.
+	// MaxItems flushes a batch once it holds this many reads; 0 is 64. The batch's gas, by what each
+	// read is expected to cost, flushes it first when its reads are heavy.
 	MaxItems int `json:"maxItems,omitempty"`
 	// WindowMs is how long the first read of a batch waits for others; 0 is 20ms.
 	WindowMs int `json:"windowMs,omitempty"`
@@ -34,6 +35,13 @@ const (
 	defaultBatchItems      = 64
 	defaultBatchWindow     = 20 * time.Millisecond
 	defaultBatchMinItemGas = 6_000_000
+	// defaultReadGas is what a read is expected to cost before its pool or its lens has been read:
+	// a typical pool, well under the ~25M of one whose bitmap read covers every word.
+	defaultReadGas = 5_000_000
+	// defaultBatchBudget is a batch's gas when the node's cap cannot be probed.
+	defaultBatchBudget = 50_000_000
+	// batchOverhead is a batch's own gas: creating its runner, and the copies of its results.
+	batchOverhead = 1_000_000
 	// maxBatchInitCode keeps a batch's call data under the 49152 bytes a node takes as init code
 	// (EIP-3860), with room for LensBatch itself.
 	maxBatchInitCode = 45_000
@@ -51,7 +59,17 @@ type Batcher struct {
 	mu      sync.Mutex
 	pending map[uint64]*batch
 
-	batches, batched, alone atomic.Int64
+	// costs is the gas each pool's read cost when last in a batch, by lens and arguments; kinds,
+	// per lens, a running average of them, for a pool not read yet.
+	costs sync.Map
+	kinds sync.Map
+
+	batches, batched, alone, heavy atomic.Int64
+}
+
+type costKey struct {
+	contract *Contract
+	args     string
 }
 
 type batch struct {
@@ -59,6 +77,8 @@ type batch struct {
 	reads    []*batchRead
 	codes    map[*Contract]int
 	initCode int
+	// expected is what its reads are expected to cost, together.
+	expected uint64
 	timer    *time.Timer
 }
 
@@ -66,6 +86,7 @@ type batchRead struct {
 	contract *Contract
 	args     []byte
 	gas      uint64
+	expected uint64
 	done     chan batchResult
 }
 
@@ -102,17 +123,54 @@ func SharedBatcher(c Caller, cfg *BatchConfig) *Batcher {
 	return b.(*Batcher)
 }
 
-// BatchStats counts what a Batcher did: batch calls made, reads they answered, and reads made
-// alone because a batch did not run them.
+// BatchStats counts what a Batcher did: batch calls made, reads they answered, reads made alone
+// because a batch did not run them, and reads made alone because they would fill half a batch.
 type BatchStats struct {
-	Batches, Batched, Alone int64
+	Batches, Batched, Alone, Heavy int64
 }
 
 func (b *Batcher) Stats() BatchStats {
 	if b == nil {
 		return BatchStats{}
 	}
-	return BatchStats{Batches: b.batches.Load(), Batched: b.batched.Load(), Alone: b.alone.Load()}
+	return BatchStats{Batches: b.batches.Load(), Batched: b.batched.Load(), Alone: b.alone.Load(),
+		Heavy: b.heavy.Load()}
+}
+
+// budget is the gas of one batch call: the gas a call is sent (see callGas), or defaultBatchBudget
+// when the node's cap cannot be learnt.
+func (b *Batcher) budget(ctx context.Context) uint64 {
+	if gas := callGas(ctx, b.caller, b.cfg.Gas); gas != 0 {
+		return gas
+	}
+	return defaultBatchBudget
+}
+
+// expected is what reading args through contract is expected to cost: what that pool cost last
+// time, else the running average of the lens's reads, else defaultReadGas.
+func (b *Batcher) expected(contract *Contract, args []byte) uint64 {
+	if gas, ok := b.costs.Load(costKey{contract, string(args)}); ok {
+		return gas.(uint64)
+	}
+	if kind, ok := b.kinds.Load(contract); ok {
+		return kind.(*atomic.Uint64).Load()
+	}
+	return defaultReadGas
+}
+
+// learn records what a read cost in a batch.
+func (b *Batcher) learn(read *batchRead, gas uint64) {
+	b.costs.Store(costKey{read.contract, string(read.args)}, gas)
+	kind, loaded := b.kinds.LoadOrStore(read.contract, new(atomic.Uint64))
+	avg := kind.(*atomic.Uint64)
+	if !loaded {
+		avg.Store(gas)
+		return
+	}
+	// A quarter of the newest read: pools of one lens vary, and an average that followed each one
+	// would size every batch by the last pool.
+	old := avg.Load()
+	avg.Store(old - old/4 + gas/4)
 }
 
 // Call is Call, through the batch of block when there is a Batcher and block is pinned: a read at
@@ -127,8 +185,18 @@ func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out an
 		return err
 	}
 
-	read := &batchRead{contract: contract, args: packed, gas: gas, done: make(chan batchResult, 1)}
-	b.add(block, read)
+	budget := b.budget(ctx)
+	expected := b.expected(contract, packed)
+	if expected > budget/2 {
+		// A pool known to fill half a batch gains little from one and would push the others out of
+		// it: reading every bitmap word of a spacing-1 pool costs ~25M.
+		b.heavy.Add(1)
+		return Call(ctx, c, contract, out, gas, block, args...)
+	}
+
+	read := &batchRead{contract: contract, args: packed, gas: gas, expected: expected,
+		done: make(chan batchResult, 1)}
+	b.add(block, read, budget)
 
 	var res batchResult
 	select {
@@ -146,15 +214,16 @@ func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out an
 	return decodeResult(contract, res.payload, out)
 }
 
-// add queues read in the batch of block, and flushes the batch when it is full or would grow past
-// what a node takes as init code.
-func (b *Batcher) add(block *big.Int, read *batchRead) {
+// add queues read in the batch of block, and flushes the batch when it is full, or would grow past
+// what a node takes as init code or past the gas its reads are expected to need.
+func (b *Batcher) add(block *big.Int, read *batchRead, budget uint64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	key := block.Uint64()
 	cur := b.pending[key]
-	if cur != nil && cur.initCode+cur.cost(read) > maxBatchInitCode {
+	if cur != nil && (cur.initCode+cur.cost(read) > maxBatchInitCode ||
+		batchOverhead+cur.expected+read.expected > budget) {
 		b.detach(key, cur)
 		go b.flush(cur)
 		cur = nil
@@ -180,6 +249,7 @@ func (b *Batcher) add(block *big.Int, read *batchRead) {
 	}
 
 	cur.initCode += cur.cost(read)
+	cur.expected += read.expected
 	if _, ok := cur.codes[read.contract]; !ok {
 		cur.codes[read.contract] = len(cur.codes)
 	}
@@ -218,6 +288,7 @@ type lensBatchResults struct {
 	Count       *big.Int
 	Results     []struct {
 		Ran  bool
+		Gas  *big.Int
 		Data []byte
 	}
 }
@@ -252,7 +323,11 @@ func (b *Batcher) flush(cur *batch) {
 			read.done <- batchResult{err: err}
 			continue
 		}
-		read.done <- batchResult{ran: out.Results[i].Ran, payload: out.Results[i].Data}
+		result := out.Results[i]
+		if result.Ran && result.Gas.IsUint64() {
+			b.learn(read, result.Gas.Uint64())
+		}
+		read.done <- batchResult{ran: result.Ran, payload: result.Data}
 	}
 }
 
