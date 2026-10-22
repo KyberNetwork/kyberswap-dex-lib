@@ -198,40 +198,66 @@ func TestScanPinsTheFirstBlock(t *testing.T) {
 	assert.ErrorIs(t, err, ErrUnpinned)
 }
 
-// head is a node at block head of chain chain, counting the times it is asked its chain id.
-type head struct {
-	head  uint64
-	chain uint64
+// chain is a node of chain id, counting the times it is asked it.
+type chain struct {
+	id    uint64
 	asked *int
 }
 
-func (h head) BlockNumber(context.Context) (uint64, error) { return h.head, nil }
-
-func (h head) ChainID(context.Context) (*big.Int, error) {
-	if h.asked != nil {
-		*h.asked++
+func (c chain) ChainID(context.Context) (*big.Int, error) {
+	if c.asked != nil {
+		*c.asked++
 	}
-	return new(big.Int).SetUint64(h.chain), nil
+	return new(big.Int).SetUint64(c.id), nil
 }
 
-// TestPinNamesTheBlockFirst: a read with no block is pinned to the head before its first call, and
-// one with a block keeps it.
-func TestPinNamesTheBlockFirst(t *testing.T) {
-	pin, err := Pin(context.Background(), head{head: 500, chain: 1}, nil)
+// TestPinAsksNoHead: a read with no block runs its first call at the latest and takes the block
+// that call reports, asking the node for no head; one with a block keeps it.
+func TestPinAsksNoHead(t *testing.T) {
+	pin, err := Pin(t.Context(), chain{id: 1}, nil)
 	require.NoError(t, err)
-	assert.EqualValues(t, 500, pin.Block.Uint64())
+	assert.Nil(t, pin.Block)
 
-	pin, err = Pin(context.Background(), head{head: 500, chain: 1}, big.NewInt(7))
+	var blocks []*big.Int
+	read, err := Scan(t.Context(), 0, pin,
+		func(_ context.Context, cursor int, block *big.Int) (Page[int], error) {
+			blocks = append(blocks, block)
+			return Page[int]{Block: 500, Next: cursor + 1, Done: cursor == 1}, nil
+		})
+	require.NoError(t, err)
+	assert.EqualValues(t, 500, read)
+	require.Len(t, blocks, 2)
+	assert.Nil(t, blocks[0], "the first call runs at the latest")
+	assert.EqualValues(t, 500, blocks[1].Uint64(), "the next is pinned to the block the first ran at")
+
+	pin, err = Pin(t.Context(), chain{id: 1}, big.NewInt(7))
 	require.NoError(t, err)
 	assert.EqualValues(t, 7, pin.Block.Uint64())
 }
 
 // TestPinTakesTheNextBlockOnlyOnEtherlink: only on a chain whose node runs a call in the block
-// after the pinned one is a report of that block the pinned block's state, and a client's chain is
-// asked once.
+// after the one whose state it reads is a report of N+1 the state of N, at the latest and pinned
+// alike, and a client's chain is asked once.
 func TestPinTakesTheNextBlockOnlyOnEtherlink(t *testing.T) {
-	ranAtNext := func(h Head) error {
-		pin, err := Pin(context.Background(), h, nil)
+	asked := 0
+	etherlink := chain{id: uint64(valueobject.ChainIDEtherlink), asked: &asked}
+
+	// At the latest: the node at 500 runs the call in 501 and reports it; the read is 500's, and
+	// its next call is pinned to 500, which the node reports as 501 again.
+	pin, err := Pin(t.Context(), etherlink, nil)
+	require.NoError(t, err)
+	var blocks []*big.Int
+	read, err := Scan(t.Context(), 0, pin,
+		func(_ context.Context, cursor int, block *big.Int) (Page[int], error) {
+			blocks = append(blocks, block)
+			return Page[int]{Block: 501, Next: cursor + 1, Done: cursor == 1}, nil
+		})
+	require.NoError(t, err)
+	assert.EqualValues(t, 500, read)
+	assert.EqualValues(t, 500, blocks[1].Uint64())
+
+	pinnedNext := func(c chain) error {
+		pin, err := Pin(context.Background(), c, big.NewInt(500))
 		require.NoError(t, err)
 		_, err = Scan(context.Background(), 0, pin,
 			func(_ context.Context, _ int, block *big.Int) (Page[int], error) {
@@ -239,14 +265,9 @@ func TestPinTakesTheNextBlockOnlyOnEtherlink(t *testing.T) {
 			})
 		return err
 	}
-
-	asked := 0
-	etherlink := head{head: 500, chain: uint64(valueobject.ChainIDEtherlink), asked: &asked}
-	assert.NoError(t, ranAtNext(etherlink))
-	assert.NoError(t, ranAtNext(etherlink))
+	assert.NoError(t, pinnedNext(etherlink))
 	assert.Equal(t, 1, asked, "the chain id is asked once per client")
-
-	assert.ErrorIs(t, ranAtNext(head{head: 500, chain: uint64(valueobject.ChainIDHyperEVM)}), ErrUnpinned)
+	assert.ErrorIs(t, pinnedNext(chain{id: uint64(valueobject.ChainIDHyperEVM)}), ErrUnpinned)
 }
 
 func TestCheckTicks(t *testing.T) {

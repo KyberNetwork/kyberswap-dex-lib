@@ -82,7 +82,12 @@ func (d *PoolTracker) readLens(ctx context.Context, inputs []poolInput, block *b
 			err := ephemeral.Call(ctx, d.ethrpcClient.GetETHClient(), lens, &out, gas, block, part)
 			if err != nil {
 				if len(part) == 1 && lensTooLarge(err) {
-					return block.Uint64(), []lensRead{{err: err}}, nil
+					// A read at the latest block that made no call has no block of its own.
+					var at uint64
+					if block != nil {
+						at = block.Uint64()
+					}
+					return at, []lensRead{{err: err}}, nil
 				}
 				return 0, nil, err
 			}

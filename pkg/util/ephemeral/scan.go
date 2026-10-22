@@ -27,18 +27,18 @@ type Page[C comparable] struct {
 // given, and calling again would loop.
 var ErrNoProgress = errors.New("ephemeral: a call made no progress; raise the gas")
 
-// Head reports the chain's newest block and its id. *ethclient.Client is one.
-type Head interface {
-	BlockNumber(ctx context.Context) (uint64, error)
+// Chain reports the id of the chain a node serves. *ethclient.Client is one.
+type Chain interface {
 	ChainID(ctx context.Context) (*big.Int, error)
 }
 
-// Pinned is the block a read of several calls is pinned to, nil for the latest, and how the
-// chain's node reports a call pinned there. Pin makes one.
+// Pinned is the block a read of several calls is pinned to, nil until its first call reports one,
+// and how the chain's node reports a call. Pin makes one.
 type Pinned struct {
 	Block *big.Int
-	// late: the node runs a call pinned to block N in the block after it and reports N+1, with
-	// N's state. Elsewhere a report of N+1 is a node that ignored the pin.
+	// late: the node runs a call in the block after the one whose state it reads, pinned to block
+	// N or at the latest N alike, and reports N+1. Elsewhere a report of N+1 is a node that ignored
+	// the pin.
 	late bool
 }
 
@@ -46,52 +46,55 @@ type Pinned struct {
 // Etherlink's.
 var lateChains = map[uint64]bool{uint64(valueobject.ChainIDEtherlink): true}
 
-// lateHeads caches, per Head, whether its chain is one of lateChains: the chain of a client never
+// lateClients caches, per Chain, whether its chain is one of lateChains: the chain of a client never
 // changes, and asking costs a round trip. The reads that start together, as a backfill's pools do,
 // share one question rather than each asking before any answer is kept.
-var lateHeads sync.Map
+var lateClients sync.Map
 
-type lateHead struct {
+type lateClient struct {
 	once sync.Once
 	late bool
 	err  error
 }
 
-// Pin returns block, or the chain's head when block is nil. A read of several calls names its
-// block before the first, because the block a call reports is not always one the next call can be
-// pinned to: Etherlink runs a call pinned to block N in the block after it and reports N+1, whose
-// state its nodes do not have yet. Only there does the read take a report of N+1 as N.
-func Pin(ctx context.Context, h Head, block *big.Int) (Pinned, error) {
-	isLate, err := runsLate(ctx, h)
+// Pin pins a read to block, or, when block is nil, to the block its first call runs at: that call
+// goes to the latest block, and the block the lens reports is the read's, which the calls after it
+// are pinned to. Most reads take one call, so a read at the latest asks the node nothing else. The
+// block a lens reports is the chain's own on every chain checked but Etherlink, which runs a call
+// in the block after the one whose state it reads and reports N+1 for N's state; there the read
+// takes the report less one.
+func Pin(ctx context.Context, c Chain, block *big.Int) (Pinned, error) {
+	isLate, err := runsLate(ctx, c)
 	if err != nil {
 		return Pinned{}, err
 	}
-	if block != nil {
-		return Pinned{Block: block, late: isLate}, nil
-	}
-	head, err := h.BlockNumber(ctx)
-	if err != nil {
-		return Pinned{}, fmt.Errorf("ephemeral: head: %w", err)
-	}
-	return Pinned{Block: new(big.Int).SetUint64(head), late: isLate}, nil
+	return Pinned{Block: block, late: isLate}, nil
 }
 
-func runsLate(ctx context.Context, h Head) (bool, error) {
-	// A Head that cannot be a map key is asked every time.
-	if !reflect.TypeOf(h).Comparable() {
-		return askLate(ctx, h)
+// take pins pin to the block of state a first call that reported read ran at.
+func (pin *Pinned) take(read uint64) {
+	if pin.late && read > 0 {
+		read--
 	}
-	v, _ := lateHeads.LoadOrStore(h, &lateHead{})
-	l := v.(*lateHead)
-	l.once.Do(func() { l.late, l.err = askLate(ctx, h) })
+	pin.Block = new(big.Int).SetUint64(read)
+}
+
+func runsLate(ctx context.Context, c Chain) (bool, error) {
+	// A Chain that cannot be a map key is asked every time.
+	if !reflect.TypeOf(c).Comparable() {
+		return askLate(ctx, c)
+	}
+	v, _ := lateClients.LoadOrStore(c, &lateClient{})
+	l := v.(*lateClient)
+	l.once.Do(func() { l.late, l.err = askLate(ctx, c) })
 	if l.err != nil {
 		// A failed question is not kept: the next read asks again.
-		lateHeads.CompareAndDelete(h, l)
+		lateClients.CompareAndDelete(c, l)
 	}
 	return l.late, l.err
 }
 
-func askLate(ctx context.Context, h Head) (bool, error) {
+func askLate(ctx context.Context, h Chain) (bool, error) {
 	id, err := h.ChainID(ctx)
 	if err != nil {
 		return false, fmt.Errorf("ephemeral: chain id: %w", err)
@@ -112,11 +115,8 @@ func (pin Pinned) ranAt(read uint64) bool {
 }
 
 // Scan calls fetch from cursor start until a page is Done, every call at pin's block, and returns
-// that block.
-//
-// Pin the block first. Given none, the first call runs at the latest block and the rest at the
-// block it reported, which holds only where a call reports the block it was pinned to. fetch keeps
-// the data each page carries.
+// that block. A read pinned to none runs its first call at the latest block and the rest at the
+// block that call ran at (see Pin). fetch keeps the data each page carries.
 func Scan[C comparable](ctx context.Context, start C, pin Pinned,
 	fetch func(ctx context.Context, cursor C, block *big.Int) (Page[C], error)) (uint64, error) {
 	cursor := start
@@ -126,7 +126,7 @@ func Scan[C comparable](ctx context.Context, start C, pin Pinned,
 			return 0, err
 		}
 		if pin.Block == nil {
-			pin.Block = new(big.Int).SetUint64(page.Block)
+			pin.take(page.Block)
 		} else if !pin.ranAt(page.Block) {
 			return 0, fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, page.Block)
 		}
@@ -160,7 +160,7 @@ func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned, paral
 		return 0, nil, err
 	}
 	if pin.Block == nil {
-		pin.Block = new(big.Int).SetUint64(first.Block)
+		pin.take(first.Block)
 	} else if !pin.ranAt(first.Block) {
 		return 0, nil, fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, first.Block)
 	}
