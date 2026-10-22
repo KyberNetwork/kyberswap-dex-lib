@@ -46,14 +46,18 @@ type LensBootstrap func(ctx context.Context, block *big.Int) (entity.Pool, uint6
 // applies the batch's later logs on top. When the guard declines the read, or it fails, the pool is
 // left without state, recording the newest of its logs a snapshot must hold, and its next update
 // tries again; the batch never waits for it.
+//
+// Either read must hold every log the pool has seen and its own block: a batch's head can be older
+// than both, as a backfill chunk handled with a newer pool's pending task is, and a snapshot there
+// would miss the logs in between, which nothing sends again.
 func StateFromLens(ctx context.Context, guard *ephemeral.Guard, p entity.Pool, param pool.GetNewPoolStateParams,
 	bootstrap LensBootstrap, update func(ctx context.Context, p entity.Pool) (entity.Pool, error),
 	l logger.Logger) entity.Pool {
-	head, due := BatchHead(param.BlockHeaders), lensDueOf(p, param.Logs)
+	head, due := BatchHead(param.BlockHeaders), max(lensDueOf(p, param.Logs), p.BlockNumber)
 	var newPool entity.Pool
 	ran, err := guard.Try(ctx, p.Address, func(ctx context.Context) error {
 		var err error
-		if head != nil {
+		if head != nil && head.Uint64() >= due {
 			if newPool, _, err = bootstrap(ctx, head); err == nil {
 				return nil
 			}
