@@ -1,0 +1,102 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pair",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pair",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "name": "getSnapshot",
+      "outputs": [
+        {
+          "internalType": "uint24",
+          "name": "activeId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "uint128",
+          "name": "reserveX",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint128",
+          "name": "reserveY",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint24",
+          "name": "nextId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "bool",
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint24",
+              "name": "id",
+              "type": "uint24"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveX",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveY",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct LiquidityBookV20Lens.PopulatedBin[]",
+          "name": "bins",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ReserveOverflow",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "UnexpectedPairResponse",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080601f61031238819003918201601f19168301916001600160401b0383118484101761028d578084926040948552833981010312610289578051906001600160a01b0382168203610289576020015162ffffff8116810361028957604051630d82dc1f60e11b8152606081600481865afa1561028157805160208201516040909201519260603d1061024a578160801c1580610276575b15610230576040519261012084016040525f915f905b61ea605a1061026457630157d2d160e31b5f5262ffffff8116908160045260405f6024818c5afa15610259573d5f516040602051921061024a578060801c158061023f575b15610230576001600160801b0390811691168115801590610227575b6101db575b505061011f818a6102a1565b929092159081156101cb575b5061013657506100ad565b90506101209596975062ffffff91506001925b63a3b1b31d60e01b5f5260205f60048160645afa60203d1416905f5191156101c3575b606086029661010088018a528460208b019b168b5260018060801b031660408a015260018060801b0316606089015260808801521660a0860152151560c085015260e0808501526101008401528201016040525190fd5b43915061016c565b905062ffffff831611155f61012b565b90610180916060889498028a019185610120840152610140830152610160820152016040525f19811461021357600101935f80610113565b634e487b7160e01b5f52601160045260245ffd5b5080151561010e565b63446c8cc960e01b5f5260045ffd5b508160801c156100f2565b63276b14a360e21b5f5260045ffd5b6040513d5f823e3d90fd5b6101209596975062ffffff9192610149565b508260801c15610097565b3d5f823e3d90fd5b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b5f604462ffffff93602093604051958692638f919a8360e01b84521660048301528360248301525afa90811590816102f5575b503d5f51916102ec5760201161024a5762ffffff1691565b5050505f905f90565b3d5f823e6310d64861815160e01c1460043d14166102d4573d90fdfe"
+}
