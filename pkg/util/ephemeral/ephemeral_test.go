@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // dataError is how go-ethereum's rpc client reports an error carrying data, a revert's included.
@@ -159,7 +161,7 @@ func TestUnpackCallTakesCanonicalResultsOnly(t *testing.T) {
 // that does not move is an error rather than a loop.
 func TestScanPinsTheFirstBlock(t *testing.T) {
 	var blocks []*big.Int
-	block, err := Scan(context.Background(), 0, nil,
+	block, err := Scan(t.Context(), 0, Pinned{},
 		func(_ context.Context, cursor int, block *big.Int) (Page[int], error) {
 			blocks = append(blocks, block)
 			return Page[int]{Block: 100, Next: cursor + 1, Done: cursor == 2}, nil
@@ -170,7 +172,7 @@ func TestScanPinsTheFirstBlock(t *testing.T) {
 	assert.Nil(t, blocks[0])
 	assert.EqualValues(t, 100, blocks[1].Uint64())
 
-	_, err = Scan(context.Background(), 0, nil,
+	_, err = Scan(t.Context(), 0, Pinned{},
 		func(_ context.Context, cursor int, _ *big.Int) (Page[int], error) {
 			return Page[int]{Block: 100, Next: cursor}, nil
 		})
@@ -178,33 +180,73 @@ func TestScanPinsTheFirstBlock(t *testing.T) {
 
 	// A chain that runs a call in the block after the one it is pinned to reports that block; the
 	// read is still the pinned block's state. Any other block is a node that ignored the pin.
-	block, err = Scan(context.Background(), 0, big.NewInt(100),
-		func(_ context.Context, cursor int, _ *big.Int) (Page[int], error) {
-			return Page[int]{Block: 101, Next: cursor + 1, Done: cursor == 1}, nil
-		})
+	next := func(_ context.Context, cursor int, _ *big.Int) (Page[int], error) {
+		return Page[int]{Block: 101, Next: cursor + 1, Done: cursor == 1}, nil
+	}
+	block, err = Scan(t.Context(), 0, Pinned{Block: big.NewInt(100), late: true}, next)
 	require.NoError(t, err)
 	assert.EqualValues(t, 100, block)
-	_, err = Scan(context.Background(), 0, big.NewInt(100),
+	_, err = Scan(t.Context(), 0, Pinned{Block: big.NewInt(100), late: true},
 		func(_ context.Context, cursor int, _ *big.Int) (Page[int], error) {
 			return Page[int]{Block: 107, Done: true}, nil
 		})
 	assert.ErrorIs(t, err, ErrUnpinned)
+
+	// Elsewhere the block after is a head that moved on between Pin and the call: its state is not
+	// the pinned block's, and taken for it, the logs of the block after would be applied twice.
+	_, err = Scan(t.Context(), 0, Pinned{Block: big.NewInt(100)}, next)
+	assert.ErrorIs(t, err, ErrUnpinned)
 }
 
-type head uint64
+// head is a node at block head of chain chain, counting the times it is asked its chain id.
+type head struct {
+	head  uint64
+	chain uint64
+	asked *int
+}
 
-func (h head) BlockNumber(context.Context) (uint64, error) { return uint64(h), nil }
+func (h head) BlockNumber(context.Context) (uint64, error) { return h.head, nil }
+
+func (h head) ChainID(context.Context) (*big.Int, error) {
+	if h.asked != nil {
+		*h.asked++
+	}
+	return new(big.Int).SetUint64(h.chain), nil
+}
 
 // TestPinNamesTheBlockFirst: a read with no block is pinned to the head before its first call, and
 // one with a block keeps it.
 func TestPinNamesTheBlockFirst(t *testing.T) {
-	block, err := Pin(context.Background(), head(500), nil)
+	pin, err := Pin(context.Background(), head{head: 500, chain: 1}, nil)
 	require.NoError(t, err)
-	assert.EqualValues(t, 500, block.Uint64())
+	assert.EqualValues(t, 500, pin.Block.Uint64())
 
-	block, err = Pin(context.Background(), head(500), big.NewInt(7))
+	pin, err = Pin(context.Background(), head{head: 500, chain: 1}, big.NewInt(7))
 	require.NoError(t, err)
-	assert.EqualValues(t, 7, block.Uint64())
+	assert.EqualValues(t, 7, pin.Block.Uint64())
+}
+
+// TestPinTakesTheNextBlockOnlyOnEtherlink: only on a chain whose node runs a call in the block
+// after the pinned one is a report of that block the pinned block's state, and a client's chain is
+// asked once.
+func TestPinTakesTheNextBlockOnlyOnEtherlink(t *testing.T) {
+	ranAtNext := func(h Head) error {
+		pin, err := Pin(context.Background(), h, nil)
+		require.NoError(t, err)
+		_, err = Scan(context.Background(), 0, pin,
+			func(_ context.Context, _ int, block *big.Int) (Page[int], error) {
+				return Page[int]{Block: block.Uint64() + 1, Done: true}, nil
+			})
+		return err
+	}
+
+	asked := 0
+	etherlink := head{head: 500, chain: uint64(valueobject.ChainIDEtherlink), asked: &asked}
+	assert.NoError(t, ranAtNext(etherlink))
+	assert.NoError(t, ranAtNext(etherlink))
+	assert.Equal(t, 1, asked, "the chain id is asked once per client")
+
+	assert.ErrorIs(t, ranAtNext(head{head: 500, chain: uint64(valueobject.ChainIDHyperEVM)}), ErrUnpinned)
 }
 
 func TestCheckTicks(t *testing.T) {
@@ -230,7 +272,7 @@ func common32(v uint64) []byte {
 func TestSplitHalvesAndPinsTheBlock(t *testing.T) {
 	tooLarge := errors.New("too large")
 	var blocks []*big.Int
-	block, got, err := Split(context.Background(), []int{1, 2, 3, 4, 5}, nil,
+	block, got, err := Split(t.Context(), []int{1, 2, 3, 4, 5}, Pinned{},
 		func(err error) bool { return errors.Is(err, tooLarge) },
 		func(_ context.Context, part []int, block *big.Int) (uint64, []int, error) {
 			if len(part) > 2 {
@@ -248,20 +290,20 @@ func TestSplitHalvesAndPinsTheBlock(t *testing.T) {
 	assert.EqualValues(t, 100, blocks[2].Uint64())
 
 	// One item still too large, and an error that is not about size, end the read.
-	_, _, err = Split(context.Background(), []int{1}, nil,
+	_, _, err = Split(t.Context(), []int{1}, Pinned{},
 		func(err error) bool { return errors.Is(err, tooLarge) },
 		func(context.Context, []int, *big.Int) (uint64, []int, error) { return 0, nil, tooLarge })
 	assert.ErrorIs(t, err, tooLarge)
 	calls := 0
 	limited := errors.New("429 too many requests")
-	_, _, err = Split(context.Background(), []int{1, 2, 3, 4}, nil,
+	_, _, err = Split(t.Context(), []int{1, 2, 3, 4}, Pinned{},
 		func(err error) bool { return errors.Is(err, tooLarge) },
 		func(context.Context, []int, *big.Int) (uint64, []int, error) { calls++; return 0, nil, limited })
 	assert.ErrorIs(t, err, limited)
 	assert.Equal(t, 1, calls, "a rate limit is not answered with more calls")
 
 	// A later part on another block would mix two states.
-	_, _, err = Split(context.Background(), []int{1, 2}, nil,
+	_, _, err = Split(t.Context(), []int{1, 2}, Pinned{},
 		func(error) bool { return true },
 		func(_ context.Context, part []int, _ *big.Int) (uint64, []int, error) {
 			if len(part) > 1 {

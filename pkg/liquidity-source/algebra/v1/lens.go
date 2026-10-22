@@ -130,11 +130,11 @@ func (t *PoolTracker) readLensPages(ctx context.Context, address string, block *
 	pool := common.HexToAddress(address)
 	var s lensSnapshot
 
-	block, err := ephemeral.Pin(ctx, t.EthrpcClient.GetETHClient(), block)
+	pin, err := ephemeral.Pin(ctx, t.EthrpcClient.GetETHClient(), block)
 	if err != nil {
 		return nil, err
 	}
-	read, err := ephemeral.Scan(ctx, lensWordLower, block,
+	read, err := ephemeral.Scan(ctx, lensWordLower, pin,
 		func(ctx context.Context, lower int16, block *big.Int) (ephemeral.Page[int16], error) {
 			var out snapshot
 			err := ephemeral.Call(ctx, t.EthrpcClient.GetETHClient(), lens, &out, t.config.LensGas, block,

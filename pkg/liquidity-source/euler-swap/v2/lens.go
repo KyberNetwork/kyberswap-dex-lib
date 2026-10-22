@@ -61,11 +61,11 @@ var errLensReadsMismatch = errors.New("euler-swap-v2: lens reads do not match th
 // reads are in input order.
 func (d *PoolTracker) readLens(ctx context.Context, inputs []poolInput, block *big.Int,
 	gas uint64) (uint64, []poolReads, error) {
-	block, err := ephemeral.Pin(ctx, d.ethrpcClient.GetETHClient(), block)
+	pin, err := ephemeral.Pin(ctx, d.ethrpcClient.GetETHClient(), block)
 	if err != nil {
 		return 0, nil, err
 	}
-	return ephemeral.Split(ctx, inputs, block, lensTooLarge,
+	return ephemeral.Split(ctx, inputs, pin, lensTooLarge,
 		func(ctx context.Context, part []poolInput, block *big.Int) (
 			uint64, []poolReads, error) {
 			var out poolStates
