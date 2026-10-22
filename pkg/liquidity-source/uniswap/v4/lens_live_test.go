@@ -93,7 +93,7 @@ func TestLiveLens(t *testing.T) {
 	whole, err := tracker.snapshot(ctx, p, block)
 	require.NoError(t, err)
 	wholeCalls := counter.n.Load() - before
-	cfg.LensGas = 3_000_000
+	cfg.LensGas = 1_000_000
 	before = counter.n.Load()
 	paged, err := tracker.snapshot(ctx, p, block)
 	require.NoError(t, err)
