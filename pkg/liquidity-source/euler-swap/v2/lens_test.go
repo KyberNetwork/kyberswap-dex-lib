@@ -74,6 +74,7 @@ func newLensChain(t *testing.T, bad common.Address) *lensChain {
 				To    *common.Address `json:"to"`
 				Input hexutil.Bytes   `json:"input"`
 				Data  hexutil.Bytes   `json:"data"`
+				Gas   hexutil.Uint64  `json:"gas"`
 			}
 			require.NoError(t, json.Unmarshal(req.Params[0], &msg))
 			if msg.To != nil {
@@ -81,8 +82,14 @@ func newLensChain(t *testing.T, bad common.Address) *lensChain {
 				reply("error", map[string]any{"code": -32000, "message": "no multicall here"})
 				return
 			}
-			c.lensCalls.Add(1)
 			data := append(msg.Data, msg.Input...)
+			if bytes.Equal(data, []byte{0x5a, 0x60, 0x00, 0x52, 0x60, 0x20, 0x60, 0x00, 0xf3}) {
+				// gas cap probe: run with what it asked, capped at 50M
+				g := min(uint64(msg.Gas), 50_000_000) - 53_124
+				reply("result", hexutil.Bytes(common.BigToHash(new(big.Int).SetUint64(g)).Bytes()))
+				return
+			}
+			c.lensCalls.Add(1)
 			args, err := parsed.Constructor.Inputs.Unpack(data[len(doc.Bytecode):])
 			require.NoError(t, err)
 			part := *abi.ConvertType(args[0], new([]poolInput)).(*[]poolInput)
