@@ -27,7 +27,6 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -377,7 +376,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
-	blockNumber := readBlock(*p, logs)
+	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
 	rpcState, err := t.FetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
@@ -427,16 +426,6 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	p.Extra = string(extraBytes)
 
 	return nil
-}
-
-// readBlock is the block an update reads the pair at: that of its newest log, or the pair's own
-// when newer, as it is for a log retried or replayed after newer ones were applied; the latest
-// without logs. Reading such a log's block would put the pair back to its state there.
-func readBlock(p entity.Pool, logs []ethtypes.Log) uint64 {
-	if len(logs) == 0 {
-		return 0
-	}
-	return max(eth.GetBlockNumberFromLogs(logs), p.BlockNumber)
 }
 
 func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
