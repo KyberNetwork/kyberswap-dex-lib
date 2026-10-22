@@ -386,14 +386,11 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		"exchange": p.Exchange,
 	})
 
-	var blockNumber uint64
-	if len(logs) > 0 {
-		blockNumber = logs[len(logs)-1].BlockNumber
-	}
-
+	blockNumber := readBlock(*p, logs)
 	rpcState, err := t.FetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			blockNumber = 0
 			rpcState, err = t.FetchRPCData(ctx, p, 0)
 			if err != nil {
 				l.WithFields(logger.Fields{
@@ -414,7 +411,12 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		rpcState.ReservesAndID.ReserveX.String(),
 		rpcState.ReservesAndID.ReserveY.String(),
 	}
-	p.BlockNumber = rpcState.BlockNumber
+	// The block asked for when there was one: a multicall's own block is not the chain's number on
+	// every chain (Etherlink reports the next one). The pair's block never goes back.
+	if blockNumber == 0 {
+		blockNumber = rpcState.BlockNumber
+	}
+	p.BlockNumber = max(p.BlockNumber, blockNumber)
 
 	var extra Extra
 	if p.Extra != "" {
@@ -439,6 +441,16 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	return nil
 }
 
+// readBlock is the block an update reads the pair at: that of its newest log, or the pair's own
+// when newer, as it is for a log retried or replayed after newer ones were applied; the latest
+// without logs. Reading such a log's block would put the pair back to its state there.
+func readBlock(p entity.Pool, logs []ethtypes.Log) uint64 {
+	if len(logs) == 0 {
+		return 0
+	}
+	return max(eth.GetBlockNumberFromLogs(logs), p.BlockNumber)
+}
+
 func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
@@ -448,7 +460,9 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 	if len(logs) == 0 {
 		return nil
 	}
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
+	// At the block the reserves were just read at, so the bins add up to them: a late log's own
+	// block would put its bins back to their values there, behind the rest of the pair.
+	blockNumber := p.BlockNumber
 
 	binIDsFromLogs, err := t.binIDsFromLogs(logs)
 	if err != nil {
