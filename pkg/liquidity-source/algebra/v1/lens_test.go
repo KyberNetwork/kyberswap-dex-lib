@@ -150,14 +150,15 @@ func TestSnapshotChecksTheTicks(t *testing.T) {
 }
 
 // TestTicksFromLensReplacesTheSet: the lens's set replaces the stored one, dropping a tick the pool
-// no longer has, and is read no lower than the pool's own block.
+// no longer has, and is read at the block the logs' ticks were (the ticks-based pool's), the
+// latest when that is none.
 func TestTicksFromLensReplacesTheSet(t *testing.T) {
 	f := &fakeTable{spacing: 60, ticks: ticks(-120, 5, 600, -5)}
 	tr := newLensTracker(f)
-	p := tickspkg.TicksBasedPool{Address: "0xpool", BlockNumber: 90, Ticks: map[int]tickspkg.Tick{
+	p := tickspkg.TicksBasedPool{Address: "0xpool", BlockNumber: 95, Ticks: map[int]tickspkg.Tick{
 		-120: ticks(-120, 3)[0], 60: ticks(60, 9)[0]}}
 
-	if !tr.ticksFromLens(context.Background(), &p, 95) {
+	if !tr.ticksFromLens(t.Context(), &p) {
 		t.Fatal("lens read not used")
 	}
 	if len(p.Ticks) != 2 || p.Ticks[-120].LiquidityNet.Int64() != 5 || p.Ticks[600].LiquidityNet.Int64() != -5 {
@@ -167,7 +168,13 @@ func TestTicksFromLensReplacesTheSet(t *testing.T) {
 		t.Errorf("read at %v, want 95", got)
 	}
 
-	if NewPoolTracker(&Config{}, nil, nil).ticksFromLens(context.Background(), &p, 0) {
+	// Another pool: the guard holds one pool back for a cooldown after its read.
+	p.Address, p.BlockNumber = "0xother", 0
+	if !tr.ticksFromLens(t.Context(), &p) || f.readBlocks[len(f.readBlocks)-1] != nil {
+		t.Error("ticks named no block, yet the lens read was pinned")
+	}
+
+	if NewPoolTracker(&Config{}, nil, nil).ticksFromLens(t.Context(), &p) {
 		t.Error("a tracker without the lens read through it")
 	}
 }

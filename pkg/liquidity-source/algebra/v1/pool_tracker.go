@@ -719,7 +719,7 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 			"error":    err,
 		}).Warn("invalid pool ticks data after fetching ticks from logs")
 
-		if t.ticksFromLens(ctx, &ticksBasedPool, p.BlockNumber) {
+		if t.ticksFromLens(ctx, &ticksBasedPool) {
 			return ticksBasedPool, nil
 		}
 
@@ -839,17 +839,21 @@ func (t *PoolTracker) fetchTicksFromLogs(
 
 // ticksFromLens replaces the pool's ticks with the lens's set once those accumulated from logs no
 // longer sum to zero, and reports whether it did. Refetching the stored ticks cannot find one the
-// stored set never had; the lens reads every initialized tick. It reads at the newer of the logs'
-// block and the pool's own, never going back on ticks already newer than the logs.
+// stored set never had; the lens reads every initialized tick. It reads at the block the logs'
+// ticks were read at (see tickspkg.ReadBlock), the latest when they named none.
 //
 // The read goes through the guard, so it never makes the update wait: when the guard declines it,
 // or it fails, the stored ticks are refetched as without the lens.
-func (t *PoolTracker) ticksFromLens(ctx context.Context, p *tickspkg.TicksBasedPool, poolBlock uint64) bool {
+func (t *PoolTracker) ticksFromLens(ctx context.Context, p *tickspkg.TicksBasedPool) bool {
 	if !t.config.UseLens {
 		return false
 	}
 	ran, err := t.lensGuard.Try(ctx, p.Address, func(ctx context.Context) error {
-		snap, err := t.snapshot(ctx, p.Address, new(big.Int).SetUint64(max(p.BlockNumber, poolBlock)))
+		var block *big.Int
+		if p.BlockNumber != 0 {
+			block = new(big.Int).SetUint64(p.BlockNumber)
+		}
+		snap, err := t.snapshot(ctx, p.Address, block)
 		if err != nil {
 			return err
 		}
