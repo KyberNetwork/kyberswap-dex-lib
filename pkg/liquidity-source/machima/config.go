@@ -19,6 +19,9 @@ type Config struct {
 	UseLens   bool                  `json:"useLens,omitempty"`
 	LensGas   uint64                `json:"lensGas,omitempty"`
 	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
+	// LensBatch gathers the first lens read of pools read at the same block into one call, with
+	// every exchange that reads through the same node; nil reads each pool alone.
+	LensBatch *ephemeral.BatchConfig `json:"lensBatch,omitempty"`
 	// RouterAddress is the MachimaAggregatorRouter the executor approves and calls.
 	RouterAddress string `json:"routerAddress"`
 

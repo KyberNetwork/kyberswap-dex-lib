@@ -62,7 +62,7 @@ func (t *PoolTracker) snapshot(ctx context.Context, address string, block *big.I
 	read, err := ephemeral.Scan(ctx, uint32(0), pin,
 		func(ctx context.Context, start uint32, block *big.Int) (ephemeral.Page[uint32], error) {
 			var out snapshot
-			err := ephemeral.Call(ctx, t.ethrpcClient.GetETHClient(), lens, &out, t.cfg.LensGas, block,
+			err := ephemeral.CallPage(ctx, t.cfg.LensBatch, t.ethrpcClient.GetETHClient(), start, uint32(0), lens, &out, t.cfg.LensGas, block,
 				pair, new(big.Int).SetUint64(uint64(start)))
 			if err != nil {
 				return ephemeral.Page[uint32]{}, err
