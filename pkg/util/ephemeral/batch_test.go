@@ -22,6 +22,8 @@ import (
 type batchNode struct {
 	batches, alone atomic.Int64
 	failBatches    bool
+	// gasOf is what reading x costs in a batch; nil is 1000 gas a read.
+	gasOf func(x int64) uint64
 
 	mu     sync.Mutex
 	blocks []uint64
@@ -54,9 +56,13 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 
 	type result struct {
 		Ran  bool
+		Gas  *big.Int
 		Data []byte
 	}
 	results := make([]result, len(items))
+	for i := range results {
+		results[i].Gas = new(big.Int)
+	}
 	count := 0
 	for i, item := range items {
 		x := new(big.Int).SetBytes(item.Args).Int64()
@@ -64,7 +70,11 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 			continue
 		}
 		count = i + 1
-		results[i] = result{Ran: true, Data: testRead(x)}
+		gas := uint64(1000)
+		if n.gasOf != nil {
+			gas = n.gasOf(x)
+		}
+		results[i] = result{Ran: true, Gas: new(big.Int).SetUint64(gas), Data: testRead(x)}
 	}
 	payload, err := lensBatch.result.Pack(block, big.NewInt(int64(count)), results)
 	if err != nil {
@@ -93,7 +103,7 @@ func read(t *testing.T, b *Batcher, node *batchNode, x int64, block int64) (test
 // what it would have alone.
 func TestBatcherGathersConcurrentReads(t *testing.T) {
 	node := &batchNode{}
-	b := NewBatcher(node, BatchConfig{WindowMs: 50})
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
 
 	var wg sync.WaitGroup
 	for x := int64(1); x <= 10; x++ {
@@ -116,7 +126,7 @@ func TestBatcherGathersConcurrentReads(t *testing.T) {
 // TestBatcherFlushesOnSize: a full batch goes at once, and the rest wait for the next.
 func TestBatcherFlushesOnSize(t *testing.T) {
 	node := &batchNode{}
-	b := NewBatcher(node, BatchConfig{MaxItems: 3, WindowMs: 1000})
+	b := NewBatcher(node, BatchConfig{MaxItems: 3, WindowMs: 1000, Gas: 1_000_000_000})
 
 	start := time.Now()
 	var wg sync.WaitGroup
@@ -150,7 +160,7 @@ func TestBatcherFlushesOnTime(t *testing.T) {
 // TestBatcherKeepsBlocksApart: reads at different blocks never share a call.
 func TestBatcherKeepsBlocksApart(t *testing.T) {
 	node := &batchNode{}
-	b := NewBatcher(node, BatchConfig{WindowMs: 50})
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
 
 	var wg sync.WaitGroup
 	for i := int64(0); i < 4; i++ {
@@ -171,7 +181,7 @@ func TestBatcherKeepsBlocksApart(t *testing.T) {
 // run is made alone, and neither touches the others.
 func TestBatcherHandsEachReadItsOwnOutcome(t *testing.T) {
 	node := &batchNode{}
-	b := NewBatcher(node, BatchConfig{WindowMs: 50})
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
 
 	errs := make([]error, 3)
 	got := make([]testResult, 3)
@@ -262,7 +272,7 @@ func TestSharedBatcherIsOnePerCaller(t *testing.T) {
 // grows by their arguments alone.
 func TestBatcherSendsALensCodeOnce(t *testing.T) {
 	node := &batchNode{}
-	b := NewBatcher(node, BatchConfig{WindowMs: 50})
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
 
 	var wg sync.WaitGroup
 	for x := int64(100); x < 140; x++ {
@@ -278,4 +288,64 @@ func TestBatcherSendsALensCodeOnce(t *testing.T) {
 	require.Len(t, node.sizes, 1)
 	perRead := (node.sizes[0] - len(lensBatch.bytecode) - len(testContract.bytecode)) / 40
 	assert.LessOrEqual(t, perRead, 6*32+32, "a read adds its arguments and their ABI words, not the code")
+}
+
+// readAll reads xs at once at block 100 and waits for them.
+func readAll(t *testing.T, b *Batcher, node *batchNode, xs ...int64) {
+	t.Helper()
+	var wg sync.WaitGroup
+	for _, x := range xs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got, err := read(t, b, node, x, 100)
+			assert.NoError(t, err)
+			assert.EqualValues(t, x, got.Value.Int64())
+		}()
+	}
+	wg.Wait()
+}
+
+// TestBatcherPacksByGas: once the reads' costs are known, a batch takes as many as its gas holds,
+// not as many as its count allows.
+func TestBatcherPacksByGas(t *testing.T) {
+	node := &batchNode{gasOf: func(int64) uint64 { return 20_000_000 }}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 50_000_000})
+
+	readAll(t, b, node, 20, 21, 22, 23)
+	require.EqualValues(t, 1, node.batches.Load(), "unknown reads are expected to be light")
+
+	readAll(t, b, node, 20, 21, 22, 23)
+	assert.EqualValues(t, 3, node.batches.Load(), "two reads of 20M fill a 50M batch")
+}
+
+// TestBatcherReadsAHeavyPoolAlone: a read known to fill half a batch is made alone, and the others
+// keep their batch.
+func TestBatcherReadsAHeavyPoolAlone(t *testing.T) {
+	node := &batchNode{gasOf: func(x int64) uint64 {
+		if x == 30 {
+			return 30_000_000
+		}
+		return 1_000_000
+	}}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 50_000_000})
+
+	readAll(t, b, node, 30, 31, 32)
+	readAll(t, b, node, 30, 31, 32)
+
+	assert.EqualValues(t, 2, node.batches.Load())
+	assert.EqualValues(t, 1, node.alone.Load(), "the heavy pool, read alone the second time")
+	assert.EqualValues(t, 1, b.Stats().Heavy)
+}
+
+// TestBatcherLearnsALensFromItsPools: a pool not read yet is expected to cost what its lens'sss
+// pools have cost.
+func TestBatcherLearnsALensFromItsPools(t *testing.T) {
+	node := &batchNode{gasOf: func(int64) uint64 { return 8_000_000 }}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 50_000_000})
+
+	readAll(t, b, node, 40)
+	packed, err := testContract.packArgs(big.NewInt(41))
+	require.NoError(t, err)
+	assert.EqualValues(t, 8_000_000, b.expected(testContract, packed))
 }
