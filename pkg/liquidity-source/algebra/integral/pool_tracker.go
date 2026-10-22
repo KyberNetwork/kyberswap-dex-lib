@@ -41,6 +41,9 @@ type PoolTracker struct {
 	config        *Config
 	graphqlClient *graphqlpkg.Client
 	lensGuard     *ephemeral.Guard
+	// readTicks reads ticks by index at a block, queryRPCTicksByIndexes but for tests.
+	readTicks func(ctx context.Context, address string, tickIndexes []int, blockNumber uint64,
+		overrides map[common.Address]gethclient.OverrideAccount) ([]tickspkg.Tick, error)
 }
 
 func NewPoolTracker(
@@ -48,12 +51,14 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
-	return &PoolTracker{
+	t := &PoolTracker{
 		EthrpcClient:  ethrpcClient,
 		config:        cfg,
 		graphqlClient: graphqlClient,
 		lensGuard:     ephemeral.NewGuard(cfg.LensGuard),
 	}
+	t.readTicks = t.queryRPCTicksByIndexes
+	return t
 }
 
 func (d *PoolTracker) BootstrapPoolState(
@@ -715,16 +720,16 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 		return ticksBasedPool, err
 	}
 
-	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, overrides)
+	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
+	ticksBasedPool.BlockNumber = blockNumber
+
+	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, blockNumber, overrides)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to FetchTicksFromLogs")
 		return ticksBasedPool, err
 	}
-
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
-	ticksBasedPool.BlockNumber = blockNumber
 
 	if len(ticks) == 0 {
 		return ticksBasedPool, nil
@@ -836,8 +841,9 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	return p, nil
 }
 
+// fetchTicksFromLogs reads the ticks logs touch at blockNumber (see tickspkg.ReadBlock).
 func (t *PoolTracker) fetchTicksFromLogs(
-	ctx context.Context, address string, logs []ethtypes.Log,
+	ctx context.Context, address string, logs []ethtypes.Log, blockNumber uint64,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]tickspkg.Tick, error) {
 	if len(logs) == 0 {
@@ -859,9 +865,8 @@ func (t *PoolTracker) fetchTicksFromLogs(
 	if len(tickIndexes) == 0 {
 		return nil, nil
 	}
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber, overrides)
+	return t.readTicks(ctx, address, tickIndexes, blockNumber, overrides)
 }
 
 // readAllTicks replaces p's ticks with the pool's whole set, read through the lens at p's block, and
@@ -909,7 +914,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 		}
 	}
 
-	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber, overrides)
+	ticksFromPool, err := t.readTicks(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber, overrides)
 	if err != nil {
 		return nil, err
 	}
