@@ -735,6 +735,7 @@ func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, bloc
 	p.Reserves = calculateReservesFromBins(snap.bins)
 	p.Reserves = rescaleNativeReserves(valueobject.ChainID(t.config.ChainID), &p)
 	p.BlockNumber = max(p.BlockNumber, snap.block)
+	p.Timestamp = time.Now().Unix()
 	return p, snap.block, nil
 }
 
