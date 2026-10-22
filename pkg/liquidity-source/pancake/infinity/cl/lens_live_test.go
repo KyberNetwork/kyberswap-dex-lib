@@ -156,7 +156,7 @@ func checkLivePool(t *testing.T, chain liveChain, rpcURL, id string) {
 	whole, err := tracker.snapshot(ctx, id, block)
 	require.NoError(t, err)
 	wholeCalls := counter.n.Load() - before
-	cfg.LensGas = 3_000_000
+	cfg.LensGas = 1_000_000
 	before = counter.n.Load()
 	paged, err := tracker.snapshot(ctx, id, block)
 	require.NoError(t, err)
@@ -206,7 +206,7 @@ func checkLivePool(t *testing.T, chain liveChain, rpcURL, id string) {
 		assert.Equal(t, freshExtra.LensBlock, againExtra.LensBlock)
 	}
 
-	t.Logf("%s: spacing %d, %d ticks at block %d; %d call(s) whole, %d under a 3M cap",
+	t.Logf("%s: spacing %d, %d ticks at block %d; %d call(s) whole, %d under a 1M cap",
 		id, whole.tickSpacing, len(whole.ticks), whole.block, wholeCalls, pagedCalls)
 }
 
