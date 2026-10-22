@@ -14,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -26,8 +27,11 @@ type PoolTracker struct {
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
 
-	// readState is the pool's state read, FetchRPCData unless a test stands in for the chain.
+	// readState and readTicks are the pool's state and tick reads, FetchRPCData and
+	// queryTicksFromRPC unless a test stands in for the chain.
 	readState func(ctx context.Context, p *entity.Pool, blockNumber uint64) (Extra, error)
+	readTicks func(ctx context.Context, address string, tickIndexes []int, blockNumber uint64) ([]tickspkg.Tick,
+		error)
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -43,6 +47,7 @@ func NewPoolTracker(
 		graphqlClient: graphqlClient,
 	}
 	t.readState = t.FetchRPCData
+	t.readTicks = t.queryTicksFromRPC
 	return t
 }
 
