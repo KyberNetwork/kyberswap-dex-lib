@@ -146,31 +146,33 @@ func (t *PoolTracker) readLensPages(ctx context.Context, address string, block *
 	if err != nil {
 		return nil, err
 	}
-	read, err := ephemeral.Scan(ctx, lensWordLower, pin,
-		func(ctx context.Context, lower int16, block *big.Int) (ephemeral.Page[int16], error) {
+	read, ticks, err := ephemeral.ScanWords(ctx, lensWordLower, lensWordUpper, pin, ephemeral.WordsParallel,
+		func(ctx context.Context, lower, upper int16, block *big.Int) (ephemeral.Page[int16], []tickspkg.Tick, error) {
 			var out snapshot
 			err := ephemeral.Call(ctx, t.EthrpcClient.GetETHClient(), lens, &out, t.config.LensGas, block,
-				pool, raw, lower, lensWordUpper)
+				pool, raw, lower, upper)
 			if err != nil {
-				return ephemeral.Page[int16]{}, err
+				return ephemeral.Page[int16]{}, nil, err
 			}
 			if s.liquidity == nil { // the first page
 				s.tickSpacing = int(out.TickSpacing.Int64())
 				s.tick = int(out.Tick.Int64())
 				s.liquidity = out.Liquidity
 			}
+			var got []tickspkg.Tick
 			for _, pt := range out.Ticks {
-				s.ticks = append(s.ticks, tickspkg.Tick{
+				got = append(got, tickspkg.Tick{
 					TickIdx:        int(pt.Tick.Int64()),
 					LiquidityGross: pt.LiquidityGross,
 					LiquidityNet:   pt.LiquidityNet,
 				})
 			}
-			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, nil
+			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, got, nil
 		})
 	if err != nil {
 		return nil, err
 	}
 	s.block = read
+	s.ticks = ticks
 	return &s, nil
 }
