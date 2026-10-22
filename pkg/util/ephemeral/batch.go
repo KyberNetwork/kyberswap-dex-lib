@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 //go:embed batch.json
@@ -28,6 +30,11 @@ type BatchConfig struct {
 	// Concurrency is how many batch calls are in flight at once; 0 is 4. Batches past it wait their
 	// turn, so a backfill's reads go out several calls at a time without a call per pool.
 	Concurrency int `json:"concurrency,omitempty"`
+	// Rate and Burst bound the lens calls made through the node, per second: every batch is one, as
+	// is every read made alone. 0 is 10 a second with bursts of 20. They take the place of the
+	// lens guards' rate, which would count pools.
+	Rate  float64 `json:"rate,omitempty"`
+	Burst int     `json:"burst,omitempty"`
 	// MinItemGas is the least gas a read is started with; 0 is 6M. A lens given less than its largest
 	// step, a full bitmap word, ~4.7M on the forks whose tick getter loads the most, makes no
 	// progress at all.
@@ -39,6 +46,8 @@ const (
 	defaultBatchWindow      = 20 * time.Millisecond
 	defaultBatchMinItemGas  = 6_000_000
 	defaultBatchConcurrency = 4
+	defaultBatchRate        = 10
+	defaultBatchBurst       = 20
 	// defaultReadGas is what a read is expected to cost before its pool or its lens has been read:
 	// a typical pool, well under the ~25M of one whose bitmap read covers every word.
 	defaultReadGas = 5_000_000
@@ -64,6 +73,8 @@ type Batcher struct {
 	pending map[uint64]*batch
 	// inFlight holds a slot per batch call being made.
 	inFlight chan struct{}
+	// calls bounds the lens calls made through the node, batches and reads alone alike.
+	calls *rate.Limiter
 
 	// costs is the gas each pool's read cost when last in a batch, by lens and arguments; kinds,
 	// per lens, a running average of them, for a pool not read yet.
@@ -113,7 +124,14 @@ func NewBatcher(c Caller, cfg BatchConfig) *Batcher {
 	if cfg.Concurrency <= 0 {
 		cfg.Concurrency = defaultBatchConcurrency
 	}
-	return &Batcher{caller: c, cfg: cfg, pending: map[uint64]*batch{}, inFlight: make(chan struct{}, cfg.Concurrency)}
+	if cfg.Rate <= 0 {
+		cfg.Rate = defaultBatchRate
+	}
+	if cfg.Burst <= 0 {
+		cfg.Burst = defaultBatchBurst
+	}
+	return &Batcher{caller: c, cfg: cfg, pending: map[uint64]*batch{}, inFlight: make(chan struct{}, cfg.Concurrency),
+		calls: rate.NewLimiter(rate.Limit(cfg.Rate), cfg.Burst)}
 }
 
 var sharedBatchers sync.Map
@@ -200,7 +218,7 @@ func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out an
 		// A pool known to fill half a batch gains little from one and would push the others out of
 		// it: reading every bitmap word of a spacing-1 pool costs ~25M.
 		b.heavy.Add(1)
-		return Call(ctx, c, contract, out, gas, block, args...)
+		return b.callAlone(ctx, c, contract, out, gas, block, args...)
 	}
 
 	read := &batchRead{contract: contract, args: packed, gas: gas, expected: expected,
@@ -217,7 +235,7 @@ func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out an
 	// made alone.
 	if res.err != nil || !res.ran || len(res.payload) == 0 {
 		b.alone.Add(1)
-		return Call(ctx, c, contract, out, gas, block, args...)
+		return b.callAlone(ctx, c, contract, out, gas, block, args...)
 	}
 	b.batched.Add(1)
 	return decodeResult(contract, res.payload, out)
@@ -324,8 +342,11 @@ func (b *Batcher) flush(cur *batch) {
 	defer cancel()
 	b.batches.Add(1)
 	var out lensBatchResults
-	err := Call(ctx, b.caller, lensBatch, &out, b.cfg.Gas, cur.block, codes, items,
-		new(big.Int).SetUint64(b.cfg.MinItemGas))
+	err := b.calls.Wait(ctx)
+	if err == nil {
+		err = Call(ctx, b.caller, lensBatch, &out, b.cfg.Gas, cur.block, codes, items,
+			new(big.Int).SetUint64(b.cfg.MinItemGas))
+	}
 	if err == nil && len(out.Results) != len(cur.reads) {
 		err = fmt.Errorf("ephemeral: a batch of %d reads returned %d results", len(cur.reads), len(out.Results))
 	}
@@ -342,13 +363,27 @@ func (b *Batcher) flush(cur *batch) {
 	}
 }
 
+// callAlone is Call, counted against the calls the Batcher allows.
+func (b *Batcher) callAlone(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int,
+	args ...any) error {
+	if err := b.calls.Wait(ctx); err != nil {
+		return err
+	}
+	return Call(ctx, c, contract, out, gas, block, args...)
+}
+
 // CallPage is Call for the page of a scan at cursor: the first, at start, goes through the
 // Batcher cfg asks for, shared by every tracker reading through c, so the reads of many pools at
-// one block go in one call; the pages after it are read alone. A nil cfg reads every page alone.
+// one block go in one call; the pages after it are read alone, counted against the Batcher's
+// calls. A nil cfg reads every page alone, as Call.
 func CallPage[C comparable](ctx context.Context, cfg *BatchConfig, c Caller, cursor, start C, contract *Contract,
 	out any, gas uint64, block *big.Int, args ...any) error {
-	if cfg == nil || cursor != start {
+	if cfg == nil {
 		return Call(ctx, c, contract, out, gas, block, args...)
 	}
-	return SharedBatcher(c, cfg).Call(ctx, c, contract, out, gas, block, args...)
+	b := SharedBatcher(c, cfg)
+	if cursor != start {
+		return b.callAlone(ctx, c, contract, out, gas, block, args...)
+	}
+	return b.Call(ctx, c, contract, out, gas, block, args...)
 }

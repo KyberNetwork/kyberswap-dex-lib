@@ -39,6 +39,18 @@ type Guard struct {
 	last map[string]time.Time
 }
 
+// NewLensGuard is the guard of a tracker's lens reads: NewGuard's, or, with batch set, one that
+// keeps each pool's cooldown and the attempt timeout and leaves the rate and the concurrency to the
+// node's Batcher. A guard that counted pools would let two of them read at once, two a second, and
+// a batch would never hold more; the Batcher counts the calls it makes, one per batch.
+func NewLensGuard(cfg GuardConfig, batch *BatchConfig) *Guard {
+	g := NewGuard(cfg)
+	if batch != nil {
+		g.limiter, g.slots = nil, nil
+	}
+	return g
+}
+
 func NewGuard(cfg GuardConfig) *Guard {
 	return &Guard{
 		limiter:  rate.NewLimiter(rate.Limit(cmp.Or(cfg.Rate, 2)), cmp.Or(cfg.Burst, 5)),
@@ -55,10 +67,12 @@ func (g *Guard) Try(ctx context.Context, key string, fn func(ctx context.Context
 	if g == nil {
 		return true, fn(ctx)
 	}
-	if !g.slots.TryAcquire(1) {
-		return false, nil
+	if g.slots != nil {
+		if !g.slots.TryAcquire(1) {
+			return false, nil
+		}
+		defer g.slots.Release(1)
 	}
-	defer g.slots.Release(1)
 	if !g.admit(key, time.Now()) {
 		return false, nil
 	}
@@ -85,7 +99,7 @@ func (g *Guard) ReadyAt(key string, now time.Time) time.Time {
 func (g *Guard) admit(key string, now time.Time) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if now.Sub(g.last[key]) < g.cooldown || !g.limiter.AllowN(now, 1) {
+	if now.Sub(g.last[key]) < g.cooldown || g.limiter != nil && !g.limiter.AllowN(now, 1) {
 		return false
 	}
 	// Forget keys past their cooldown once there are many, so the map stays the size of a burst.
