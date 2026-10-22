@@ -3,13 +3,13 @@ package orderbook
 import (
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
-	"golang.org/x/exp/slices"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
