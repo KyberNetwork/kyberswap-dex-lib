@@ -77,7 +77,9 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		}
 	}
 	for _, value := range []*big.Int{auto0, auto1} {
-		if !bounded(value, 2*feePrecision) {
+		// RWA opening peaks can exceed the final cap (e.g. closedSpike=3e6).
+		// Contract peaks plus directional premium fit uint32; cap only in resolveFee.
+		if !bounded(value, 1<<32-1) {
 			return nil, ErrInvalidState
 		}
 	}

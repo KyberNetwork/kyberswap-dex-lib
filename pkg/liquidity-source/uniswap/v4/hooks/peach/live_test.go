@@ -2,6 +2,7 @@ package peach
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -61,8 +63,12 @@ func TestLiveFixedBlockQuoter(t *testing.T) {
 					if q.InsufficientLiquidity {
 						// The canonical Quoter insists on filling the entire input. The parent v4
 						// simulator may instead expose its partial fill through RemainingTokenAmountIn.
-						if err == nil {
+						if err != nil {
+							require.True(t, errors.Is(err, uniswapv3.ErrInsufficientBalance) || errors.Is(err, uniswapv3.ErrAtOrAboveLargest) || errors.Is(err, uniswapv3.ErrBelowSmallest) || errors.Is(err, uniswapv3.ErrZeroAmount), "unexpected liquidity error: %v", err)
+						} else {
+							require.Positive(t, result.TokenAmountOut.Amount.Sign())
 							require.NotNil(t, result.RemainingTokenAmountIn)
+							require.Negative(t, result.RemainingTokenAmountIn.Amount.Cmp(amount))
 							require.Positive(t, result.RemainingTokenAmountIn.Amount.Sign())
 						}
 						return
@@ -70,7 +76,7 @@ func TestLiveFixedBlockQuoter(t *testing.T) {
 					want, ok := new(big.Int).SetString(q.AmountOut, 10)
 					require.True(t, ok)
 					if want.Sign() == 0 {
-						require.Error(t, err)
+						require.ErrorIs(t, err, uniswapv3.ErrZeroAmount)
 						return
 					}
 					require.NoError(t, err)

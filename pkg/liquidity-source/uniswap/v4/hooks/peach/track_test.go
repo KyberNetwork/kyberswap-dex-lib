@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -52,6 +53,7 @@ func TestTrackPinnedSnapshotOverridesAndReset(t *testing.T) {
 		require.NoError(t, err)
 		// Every state getter and the timestamp live in one aggregate at block 42.
 		require.Len(t, unpacked, 1)
+		require.Equal(t, 13, reflect.ValueOf(unpacked[0]).Len())
 		values := []struct {
 			name string
 			args []any
@@ -100,7 +102,7 @@ func TestTrackPinnedSnapshotOverridesAndReset(t *testing.T) {
 	require.EqualValues(t, 1500, quote(t, h, "1000", true).SwapFee)
 	require.EqualValues(t, 1002, h.NextTrackAt(param))
 	// Autonomous fee may exceed one million before the pool cap is applied.
-	auto, fee = 1_900_000, 6000
+	auto, fee = 3_000_000, 6000
 	_, err = h.Track(context.Background(), param)
 	require.NoError(t, err)
 	require.EqualValues(t, 6000, quote(t, h, "1000", true).SwapFee)
