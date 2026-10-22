@@ -137,7 +137,8 @@ func uniqueVaults(vaultList []shared.VaultInfo) []shared.VaultInfo {
 }
 
 // roundExec runs one round of getPoolData's reads into the round's call outputs. Round 0 returns
-// the block it read at; later rounds are pinned to that block and return nil.
+// the block it read at; later rounds are pinned to that block, or to the pin when there is one,
+// and return nil.
 //
 // rpcRoundExec makes each round a multicall. A lens-backed executor instead fills the same outputs
 // from results the lens recorded, so both decode, and post-process, through the code below.
@@ -265,6 +266,11 @@ func (d *PoolTracker) getPoolData(
 	blockNumber, err := exec(req, 0)
 	if err != nil {
 		return nil, 0, errors.WithMessage(err, "1st rt")
+	}
+	if pin != nil {
+		// A multicall's own block is not the one it is pinned to on every chain: Etherlink's
+		// reports the next, which its nodes do not have yet for the later rounds.
+		blockNumber = pin
 	}
 
 	var (
