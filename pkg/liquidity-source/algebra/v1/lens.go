@@ -104,6 +104,18 @@ func (t *PoolTracker) readTable(ctx context.Context, address string, block *big.
 		return s, err
 	case err != nil:
 		return nil, err
+	case known == tickTableCompressed && s.tickSpacing > 1 && len(s.ticks) == 0:
+		// A pool indexed by tick read over the spacing comes back without ticks rather than
+		// reverting when they all lie past the words that read covers: taken as it is, the pool
+		// would keep no ticks, or fail the check against its liquidity on every read.
+		raw, err := t.readLens(ctx, address, new(big.Int).SetUint64(s.block), true)
+		switch {
+		case ephemeral.IsContractError(err, "TickTableMismatch"):
+			return s, nil
+		case err != nil:
+			return nil, err
+		}
+		return raw, nil
 	case known != tickTableUnknown:
 		return s, nil
 	case s.tickSpacing <= 1:
