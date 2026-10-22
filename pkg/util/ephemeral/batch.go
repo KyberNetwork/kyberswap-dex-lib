@@ -25,6 +25,9 @@ type BatchConfig struct {
 	WindowMs int `json:"windowMs,omitempty"`
 	// Gas is the gas of one batch call; 0 is the node's cap up to CallGasCeiling, as for Call.
 	Gas uint64 `json:"gas,omitempty"`
+	// Concurrency is how many batch calls are in flight at once; 0 is 4. Batches past it wait their
+	// turn, so a backfill's reads go out several calls at a time without a call per pool.
+	Concurrency int `json:"concurrency,omitempty"`
 	// MinItemGas is the least gas a read is started with; 0 is 6M. A lens given less than its largest
 	// step, a full bitmap word, ~4.7M on the forks whose tick getter loads the most, makes no
 	// progress at all.
@@ -32,9 +35,10 @@ type BatchConfig struct {
 }
 
 const (
-	defaultBatchItems      = 64
-	defaultBatchWindow     = 20 * time.Millisecond
-	defaultBatchMinItemGas = 6_000_000
+	defaultBatchItems       = 64
+	defaultBatchWindow      = 20 * time.Millisecond
+	defaultBatchMinItemGas  = 6_000_000
+	defaultBatchConcurrency = 4
 	// defaultReadGas is what a read is expected to cost before its pool or its lens has been read:
 	// a typical pool, well under the ~25M of one whose bitmap read covers every word.
 	defaultReadGas = 5_000_000
@@ -58,6 +62,8 @@ type Batcher struct {
 
 	mu      sync.Mutex
 	pending map[uint64]*batch
+	// inFlight holds a slot per batch call being made.
+	inFlight chan struct{}
 
 	// costs is the gas each pool's read cost when last in a batch, by lens and arguments; kinds,
 	// per lens, a running average of them, for a pool not read yet.
@@ -104,7 +110,10 @@ func NewBatcher(c Caller, cfg BatchConfig) *Batcher {
 	if cfg.MinItemGas == 0 {
 		cfg.MinItemGas = defaultBatchMinItemGas
 	}
-	return &Batcher{caller: c, cfg: cfg, pending: map[uint64]*batch{}}
+	if cfg.Concurrency <= 0 {
+		cfg.Concurrency = defaultBatchConcurrency
+	}
+	return &Batcher{caller: c, cfg: cfg, pending: map[uint64]*batch{}, inFlight: make(chan struct{}, cfg.Concurrency)}
 }
 
 var sharedBatchers sync.Map
@@ -309,6 +318,8 @@ func (b *Batcher) flush(cur *batch) {
 		}
 	}
 
+	b.inFlight <- struct{}{}
+	defer func() { <-b.inFlight }()
 	ctx, cancel := context.WithTimeout(context.Background(), batchTimeout)
 	defer cancel()
 	b.batches.Add(1)
