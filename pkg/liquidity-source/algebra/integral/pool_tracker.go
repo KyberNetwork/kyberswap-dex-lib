@@ -78,6 +78,18 @@ func (d *PoolTracker) BootstrapPoolState(
 		return p, err
 	}
 
+	// The state is read at a block named first, which the pool is dated by: the caller reads the
+	// ticks of a bootstrapped pool again at its block, and the pool's older one, its creation block
+	// for a pool its factory made, drops every tick created since. A multicall's own block is not
+	// the chain's number on every chain, so it is not the one taken.
+	head, err := d.EthrpcClient.GetBlockNumber(ctx)
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to get the head block")
+		return entity.Pool{}, err
+	}
+
 	var (
 		rpcData   *FetchRPCResult
 		poolTicks []TickResp
@@ -86,7 +98,7 @@ func (d *PoolTracker) BootstrapPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.FetchRPCData(ctx, &p, 0, nil)
+		rpcData, err = d.FetchRPCData(ctx, &p, head, nil)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -142,7 +154,7 @@ func (d *PoolTracker) BootstrapPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	return withState(p, rpcData, ticks, param.Logs, 0, l)
+	return withState(p, rpcData, ticks, param.Logs, head, l)
 }
 
 var _ sourcePool.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
@@ -198,10 +210,9 @@ func (d *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, logs
 	return p, snap.block, err
 }
 
-// withState writes the fetched state into p. lensBlock is the block the lens read the state and
-// ticks whole at, 0 when they came another way.
+// withState writes the fetched state into p, read at block.
 func withState(p entity.Pool, rpcData *FetchRPCResult, ticks []v3Entities.Tick, logs []ethtypes.Log,
-	lensBlock uint64, l logger.Logger) (entity.Pool, error) {
+	block uint64, l logger.Logger) (entity.Pool, error) {
 	extraBytes, err := json.Marshal(&Extra{
 		Liquidity:        uint256.MustFromBig(rpcData.Liquidity),
 		GlobalState:      rpcData.State,
@@ -225,7 +236,7 @@ func withState(p entity.Pool, rpcData *FetchRPCResult, ticks []v3Entities.Tick, 
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lensBlock, lo.LastOrEmpty(logs).BlockNumber)
+	p.BlockNumber = max(p.BlockNumber, block, lo.LastOrEmpty(logs).BlockNumber)
 
 	l.WithFields(logger.Fields{
 		"lastFee": rpcData.State.LastFee,
