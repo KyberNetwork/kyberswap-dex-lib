@@ -64,6 +64,10 @@ func (t *PoolTracker) snapshot(ctx context.Context, p entity.Pool, block *big.In
 	spacing := big.NewInt(int64(staticExtra.TickSpacing))
 	var s lensSnapshot
 
+	block, err := ephemeral.Pin(ctx, t.ethrpcClient.GetETHClient(), block)
+	if err != nil {
+		return nil, fmt.Errorf("lens snapshot of %s: %w", p.Address, err)
+	}
 	read, err := ephemeral.Scan(ctx, lensWordLower, block,
 		func(ctx context.Context, lower int16, block *big.Int) (ephemeral.Page[int16], error) {
 			var out snapshot
