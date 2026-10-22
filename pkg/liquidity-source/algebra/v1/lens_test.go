@@ -141,6 +141,37 @@ func TestSnapshotKeepsTheLearntTable(t *testing.T) {
 	}
 }
 
+// TestSnapshotReadsByTickWhenOverTheSpacingFindsNone: in an exchange learnt as indexed by tick over
+// the spacing, a pool indexed by tick whose ticks all lie past the words that read covers finds
+// none without a mismatch; it is read by tick, at the same block, before being taken as empty.
+func TestSnapshotReadsByTickWhenOverTheSpacingFindsNone(t *testing.T) {
+	f := &fakeTable{raw: true, spacing: 60, beyond: true, ticks: ticks(-198240, 7, -198000, -7)}
+	tr := newLensTracker(f)
+	tr.tickTable.Store(tickTableCompressed)
+	s, err := tr.snapshot(t.Context(), "0xpool", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.ticks) != 2 {
+		t.Errorf("%d ticks, want 2", len(s.ticks))
+	}
+	if len(f.reads) != 2 || f.reads[0] || !f.reads[1] {
+		t.Errorf("reads %v, want over the spacing then by tick", f.reads)
+	}
+	if len(f.readBlocks) == 2 && (f.readBlocks[1] == nil || f.readBlocks[1].Uint64() != 100) {
+		t.Errorf("read by tick at %v, want 100", f.readBlocks[1])
+	}
+	if got := tr.tickTable.Load(); got != tickTableCompressed {
+		t.Errorf("table %d, want it still over the spacing", got)
+	}
+
+	empty := &fakeTable{spacing: 60}
+	tr.readLens = empty.read
+	if s, err = tr.snapshot(t.Context(), "0xempty", nil); err != nil || len(s.ticks) != 0 {
+		t.Errorf("empty pool: %d ticks, %v", len(s.ticks), err)
+	}
+}
+
 // TestSnapshotChecksTheTicks: a set that does not add up to the pool's liquidity is refused.
 func TestSnapshotChecksTheTicks(t *testing.T) {
 	f := &fakeTable{spacing: 60, ticks: ticks(-120, 5, 600, -4)}
