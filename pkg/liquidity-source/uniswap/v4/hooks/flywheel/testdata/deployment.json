@@ -1,0 +1,43 @@
+{
+  "addresses": {
+    "factory": "0xF05A26e92E27b8F0385f6895F5507Db26A2F4b8d",
+    "hook": "0x992118dE23b4eBE9F527dacbbb7D8D4bBbf8E044",
+    "feeRouter": "0x3BB49DB5A7Ee80c9C132b9f7376058F11B0d9c7B",
+    "tokenDeployer": "0x7b9AedF3257CfEbf288009b1be6deF2C19f68e58",
+    "distributor": "0x64C69108052C05844a459E618b168A8d4AeCa96F"
+  },
+  "canonical": {
+    "manager": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+    "positions": "0x58daec3116aae6d93017baaea7749052e8a04fa7",
+    "router": "0x8876789976decbfcbbbe364623c63652db8c0904",
+    "quoter": "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
+    "view": "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
+    "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    "weth": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+    "v3Router": "0xCaf681a66D020601342297493863E78C959E5cb2",
+    "v3Quoter": "0x33e885eD0Ec9bF04EcfB19341582aADCb4c8A9E7",
+    "v3Factory": "0x1f7d7550b1b028f7571e69a784071f0205fd2efa",
+    "create2": "0xD2Bb384F77846031DD711D8fD451573f5c1b4Caf"
+  },
+  "owner": "0xF9B9B1a0B12F8Aa50cBaA32628fCC07F7C0C64AB",
+  "runtimeHashes": {
+    "factory": "0xf13c03e7e89d4e81938fcdc1e326f267a07e134e1acb42edb1a149a6c4cc5ef9",
+    "hook": "0x245c12989e00f00130f20121e29ff62989cfcdd2cf503446ae7652efe730abdb",
+    "feeRouter": "0x54846280f1f3357006663086c7095fc5d627f97fcf951eefcb422d2b92f1f44f",
+    "tokenDeployer": "0x8e496ed807ce489dbef0efdb713db517b52defd9cd3949f8e518329ef8d254a8",
+    "distributor": "0x3f0907c4699371e62ca90978b864d93a730de064c1964ffccf54978ab2a62b58"
+  },
+  "dependencyRuntimeHashes": {
+    "manager": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+    "positions": "0xc873e135dc9aaec88489cfbad146b4cb49d6a32e0d80326377784b7ba17670b2",
+    "router": "0x2ce6aaaf9f4151f5e1cbf774668772f17f532ae11b15e9284fd0a072a8b0fbde",
+    "quoter": "0xd707b1da8cb165e5ea35a3b4450d971eb562ec171e23492aa117036b78a868f6",
+    "view": "0x7d9c591e0956fd89d98feb4ffcfe8bf1f7a62bd485edd979fa21d104b49878a6",
+    "permit2": "0x5208783f52488f7d3493e5e38311ab707c1d75457fe472a19b0b4d57d66a7fca",
+    "weth": "0x5706be52f64875fee65a2cec0d80e47a23d8793cbe85d214b48445e2d05f5353",
+    "v3Router": "0x6f36c378e272c6324c48f045182bcb54bd8ad654cf9ebd42e8893d52c4cb25dc",
+    "v3Quoter": "0x3db0868d945e9304c9bc6a8b2181948109ea617647142f3c4083e14393496a28",
+    "v3Factory": "0xec72b1abd1f2faee020cfea9c646bd8994f9fb389054f6e574f103a895091739",
+    "create2": "0x6b89b668eda09a74db4a2952ba4b33bd6ee6952e686c4f90d15195e47f764d9f"
+  }
+}
