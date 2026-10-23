@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -103,9 +104,12 @@ func (d *PoolTracker) readLens(ctx context.Context, inputs []poolInput, block *b
 }
 
 // lensTooLarge reports a call that needs fewer pools: the lens ran short of gas for its next read,
-// or the call reverted with nothing, which is how nodes report running out of gas.
+// the call reverted with nothing, which is how nodes report running out of gas, or its call data
+// passed the 49152 bytes a node takes as init code (EIP-3860), which it refuses before running it,
+// as it does a batch of more than ~83 pools of two vaults.
 func lensTooLarge(err error) bool {
-	return errors.Is(err, ephemeral.ErrNoRevertData) || ephemeral.IsContractError(err, "GasExhausted")
+	return errors.Is(err, ephemeral.ErrNoRevertData) || ephemeral.IsContractError(err, "GasExhausted") ||
+		strings.Contains(strings.ToLower(err.Error()), "initcode size")
 }
 
 // lensInput is what the lens needs to make a pool's calls: the pool, its account and EVC, and the
