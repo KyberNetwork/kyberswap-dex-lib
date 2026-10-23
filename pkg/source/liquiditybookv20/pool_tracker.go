@@ -287,7 +287,7 @@ func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, bloc
 		RpcBlockTimestamp: rpcData.BlockTimestamp,
 		FeeParameters:     rpcData.FeeParameters,
 		ActiveBinID:       snap.activeID,
-		Bins:              snap.bins,
+		Bins:              withActiveBin(snap.bins, snap.activeID),
 	})
 	if err != nil {
 		return entity.Pool{}, 0, err
