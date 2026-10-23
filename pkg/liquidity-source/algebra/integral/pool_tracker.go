@@ -605,14 +605,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			"address":  p.Address,
 			"exchange": p.Exchange,
 		})
-		// Every log of the batch is at or below the block the snapshot is read at, so there is
-		// nothing to apply on top of it: re-reading the ticks they touch at their own, older block
-		// would only take those ticks back.
 		return tickspkg.StateFromLens(ctx, t.lensGuard, p, param,
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, param.Logs, block, l)
 			},
-			func(_ context.Context, p entity.Pool) (entity.Pool, error) { return p, nil },
 			l), nil
 	}
 

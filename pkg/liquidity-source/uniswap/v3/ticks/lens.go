@@ -42,17 +42,18 @@ type LensBootstrap func(ctx context.Context, block *big.Int) (entity.Pool, uint6
 // batch is at or below that block, so they are not applied: the snapshot already holds them.
 //
 // A node behind the batch does not have that block yet, and a batch without headers names none. The
-// node's own newest block then does instead, if it holds every log the pool has seen, and update
-// applies the batch's later logs on top. When the guard declines the read, or it fails, the pool is
-// left without state, recording the newest of its logs a snapshot must hold, and its next update
-// tries again; the batch never waits for it.
+// node's own newest block then does instead, if it holds every log the pool has seen: every log of
+// the batch is then at or below it too, so nothing is applied on top. Reading again the ticks or
+// bins a log touches would read them at its own, older block, and take them back from the snapshot,
+// as a removed log's would. When the guard declines the read, or it fails, the pool is left without
+// state, recording the newest of its logs a snapshot must hold, and its next update tries again; the
+// batch never waits for it.
 //
 // Either read must hold every log the pool has seen and its own block: a batch's head can be older
 // than both, as a backfill chunk handled with a newer pool's pending task is, and a snapshot there
 // would miss the logs in between, which nothing sends again.
 func StateFromLens(ctx context.Context, guard *ephemeral.Guard, p entity.Pool, param pool.GetNewPoolStateParams,
-	bootstrap LensBootstrap, update func(ctx context.Context, p entity.Pool) (entity.Pool, error),
-	l logger.Logger) entity.Pool {
+	bootstrap LensBootstrap, l logger.Logger) entity.Pool {
 	head, due := BatchHead(param.BlockHeaders), max(lensDueOf(p, param.Logs), p.BlockNumber)
 	var newPool entity.Pool
 	ran, err := guard.Try(ctx, p.Address, func(ctx context.Context) error {
@@ -69,8 +70,7 @@ func StateFromLens(ctx context.Context, guard *ephemeral.Guard, p entity.Pool, p
 		if read < due {
 			return fmt.Errorf("node at block %d, behind block %d of the pool's logs", read, due)
 		}
-		newPool, err = update(ctx, newPool)
-		return err
+		return nil
 	})
 	if !ran || err != nil {
 		l.WithFields(logger.Fields{"ran": ran, "error": err}).

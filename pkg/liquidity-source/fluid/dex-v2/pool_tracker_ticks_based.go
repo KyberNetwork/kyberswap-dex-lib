@@ -127,7 +127,6 @@ func (t *PoolTracker) GetNewPoolState(
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, param, block)
 			},
-			func(ctx context.Context, p entity.Pool) (entity.Pool, error) { return t.GetNewPoolState(ctx, p, param) },
 			l), nil
 	}
 

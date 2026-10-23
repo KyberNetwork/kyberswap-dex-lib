@@ -311,9 +311,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, block)
 			},
-			// The snapshot StateFromLens keeps holds every log of the batch, and a log only names
-			// bins to read again: reading them at its own, older block would undo the snapshot.
-			func(_ context.Context, p entity.Pool) (entity.Pool, error) { return p, nil },
 			l), nil
 	}
 
