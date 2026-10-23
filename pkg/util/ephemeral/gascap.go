@@ -130,7 +130,10 @@ func callGas(ctx context.Context, c Caller, gas uint64) uint64 {
 	gasCap, err := GasCap(ctx, c)
 	if gas != 0 {
 		if err == nil && !gasCap.Unlimited && gas > gasCap.Gas {
-			if _, warned := warnedCaps.LoadOrStore(c, true); !warned {
+			// A Caller that cannot be a map key is warned of every time.
+			if !reflect.TypeOf(c).Comparable() {
+				logger.Warnf("ephemeral: lens gas %d exceeds the node's eth_call cap %d", gas, gasCap.Gas)
+			} else if _, warned := warnedCaps.LoadOrStore(c, true); !warned {
 				logger.Warnf("ephemeral: lens gas %d exceeds the node's eth_call cap %d", gas, gasCap.Gas)
 			}
 		}

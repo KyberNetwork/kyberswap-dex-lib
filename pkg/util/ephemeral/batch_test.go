@@ -539,3 +539,13 @@ func TestLensGuardWithABatchAdmitsManyPoolsQuickly(t *testing.T) {
 	}
 	assert.Less(t, time.Since(start), 5*time.Second, "100,000 pools, where walking every key each time takes minutes")
 }
+
+// TestUncomparableCallerIsNotKeyed: a Caller that cannot be a map key, such as a func, gets no
+// shared Batcher and is warned of its gas every time, rather than panicking as a sync.Map key.
+func TestUncomparableCallerIsNotKeyed(t *testing.T) {
+	c := callerFunc(func(ethereum.CallMsg, *big.Int) ([]byte, error) {
+		return common32(10_000_000 - probeIntrinsic), nil
+	})
+	assert.NotPanics(t, func() { assert.Nil(t, SharedBatcher(c, &BatchConfig{})) })
+	assert.NotPanics(t, func() { callGas(t.Context(), c, 50_000_000) })
+}
