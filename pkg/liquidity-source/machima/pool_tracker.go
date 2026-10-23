@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"math/big"
+	"reflect"
 	"strings"
 	"time"
 
@@ -318,7 +319,8 @@ func unmarshalExtra(raw string) (Extra, error) {
 // setExtra writes extra over p's Extra, keeping the keys extra does not model. The UniV3 layer
 // writes some of its own into Extra outside its Extra type, such as lensDue, the block a lens read
 // of a pool without state must reach; dropping one would let that read land below logs the pool
-// has already seen.
+// has already seen. A key extra models but leaves out, as it omits a price floor gone back to nil,
+// is cleared.
 func setExtra(p *entity.Pool, extra Extra) error {
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -334,10 +336,40 @@ func setExtra(p *entity.Pool, extra Extra) error {
 	if err = json.Unmarshal(extraBytes, &written); err != nil {
 		return errors.WithMessage(err, "remarshal extra")
 	}
+	for _, key := range modeledKeys {
+		delete(kept, key)
+	}
 	maps.Copy(kept, written)
 	if extraBytes, err = json.Marshal(kept); err != nil {
 		return errors.WithMessage(err, "marshal extra")
 	}
 	p.Extra = string(extraBytes)
 	return nil
+}
+
+// modeledKeys are the keys Extra writes into a pool's Extra, those it may omit included.
+var modeledKeys = jsonKeys(reflect.TypeFor[Extra]())
+
+// jsonKeys are the JSON keys of struct type t's fields, those of embedded structs it inlines
+// included.
+func jsonKeys(t reflect.Type) []string {
+	var keys []string
+	for i := range t.NumField() {
+		field := t.Field(i)
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		switch {
+		case name == "-":
+		case field.Anonymous && name == "":
+			embedded := field.Type
+			if embedded.Kind() == reflect.Pointer {
+				embedded = embedded.Elem()
+			}
+			keys = append(keys, jsonKeys(embedded)...)
+		case name == "":
+			keys = append(keys, field.Name)
+		default:
+			keys = append(keys, name)
+		}
+	}
+	return keys
 }
