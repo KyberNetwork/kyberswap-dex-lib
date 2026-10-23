@@ -400,6 +400,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		// The active bin too, whatever the logs name: a swap ends in it, and it tells whether the
 		// stored set was missing a bin.
 		binIDsFromLogs = append(binIDsFromLogs, activeID)
+		if eth.HasRevertedLog(param.Logs) {
+			// A removed swap names only the bin it ended in, the stored active one: the bins it
+			// crossed, between there and the active bin read now, are read again too.
+			binIDsFromLogs = append(binIDsFromLogs, storedBinsBetween(extra.Bins, currentActiveBinID, activeID)...)
+		}
 
 		binsFromLogs, err := t.queryRPCBins(ctx, p.Address, lo.Uniq(binIDsFromLogs), blockNumber)
 		if err != nil {
@@ -593,18 +598,7 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 				continue
 			}
 
-			minUpdatedBinId := min(newActiveBinId, currentActiveBinID)
-			maxUpdatedBinId := max(newActiveBinId, currentActiveBinID)
-
-			start := sort.Search(len(currentBins), func(i int) bool {
-				return currentBins[i].ID >= minUpdatedBinId
-			})
-
-			for i := start; i < len(currentBins); i++ {
-				id := currentBins[i].ID
-				if id > maxUpdatedBinId {
-					break
-				}
+			for _, id := range storedBinsBetween(currentBins, currentActiveBinID, newActiveBinId) {
 				binSet[id] = struct{}{}
 			}
 
@@ -732,6 +726,17 @@ func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, bloc
 	p.BlockNumber = max(p.BlockNumber, snap.block)
 	p.Timestamp = time.Now().Unix()
 	return p, snap.block, nil
+}
+
+// storedBinsBetween returns the ids of the stored bins from a to b, both included, in either order:
+// those a swap between the two crossed. bins is sorted by id.
+func storedBinsBetween(bins []Bin, a, b uint32) []uint32 {
+	low, high := min(a, b), max(a, b)
+	var ids []uint32
+	for i := sort.Search(len(bins), func(i int) bool { return bins[i].ID >= low }); i < len(bins) && bins[i].ID <= high; i++ {
+		ids = append(ids, bins[i].ID)
+	}
+	return ids
 }
 
 // lacksBin reports whether the stored set was missing a bin: the active bin, read now, holds
