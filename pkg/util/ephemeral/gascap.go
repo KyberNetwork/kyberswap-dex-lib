@@ -73,6 +73,15 @@ func GasCap(ctx context.Context, c Caller) (Cap, error) {
 			gasCaps.CompareAndDelete(c, p)
 			continue
 		}
+		if errors.Is(p.err, context.Canceled) || errors.Is(p.err, context.DeadlineExceeded) {
+			// Cut short by its caller's context, the probe says nothing of the node: it is not kept,
+			// and a caller whose context is still live probes again.
+			gasCaps.CompareAndDelete(c, p)
+			if err := ctx.Err(); err != nil {
+				return Cap{}, err
+			}
+			continue
+		}
 		return p.cap, p.err
 	}
 }
