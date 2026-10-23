@@ -118,8 +118,14 @@ func (t *PoolTracker) BootstrapPoolState(
 	l.Info("Start getting new state of pancake-infinity-bin pool")
 
 	if t.config.UseLens {
-		p, _, err := t.bootstrapFromLens(ctx, p, nil)
-		return p, err
+		lensPool, _, err := t.bootstrapFromLens(ctx, p, nil)
+		if err == nil {
+			return lensPool, nil
+		}
+		// A lens read can fail where the old path does not, as one paging across blocks does on a
+		// node that ignores a pinned block, HyperEVM's: the pool is then bootstrapped without it
+		// rather than left unsaved.
+		l.WithFields(logger.Fields{"error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
 	}
 
 	var (
