@@ -551,13 +551,13 @@ func (t *PoolTracker) newTicksBasedPool(
 		}).Error("failed to transform entity pool to ticks based pool")
 		return ticksBasedPool, err
 	}
-	logs = ticksBasedPool.Unapplied(logs)
+	held := ticksBasedPool.Holds(logs, p.BlockNumber)
 
 	// Ticks are read whole at the batch's block, never at one older than the pool's own: logs that
 	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch back
 	// to their values at that older block, below a lens snapshot that already holds newer ones. A
 	// reorg is read at its own blocks (see tickspkg.ReadBlock).
-	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
+	blockNumber := tickspkg.ReadBlock(logs, held)
 	ticksBasedPool.BlockNumber = blockNumber
 
 	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, blockNumber)

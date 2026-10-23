@@ -64,8 +64,9 @@ func TestSetExtraKeepsKeysItDoesNotModel(t *testing.T) {
 	assert.Equal(t, uint64(200), got.TickSpacing)
 }
 
-// TestExtraRoundTripKeepsLensBlock: the UniV3 layer drops the logs a lens snapshot holds by the
-// lens block in Extra; losing it on the Machima rewrite would apply replayed logs twice.
+// TestExtraRoundTripKeepsLensBlock: the UniV3 layer reads the logs at or below the lens block in
+// Extra as late rather than adding them; losing it on the Machima rewrite would apply replayed logs
+// twice.
 func TestExtraRoundTripKeepsLensBlock(t *testing.T) {
 	p := trackedPool(t)
 	extra, err := unmarshalExtra(p.Extra)

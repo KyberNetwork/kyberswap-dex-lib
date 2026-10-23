@@ -32,30 +32,28 @@ func TestIsMissingTrieNodeError(t *testing.T) {
 	}
 }
 
-// TestUnapplied: logs at or below the lens block are dropped, but never a removed log, whose undo
-// the snapshot does not hold, nor the empty log that triggers an update.
-func TestUnapplied(t *testing.T) {
+// TestHolds: the state holds the logs up to the newer of the pool's block and the lens snapshot's,
+// whatever logs come, removed ones aside.
+func TestHolds(t *testing.T) {
 	logs := []ethtypes.Log{{BlockNumber: 90}, {BlockNumber: 100}, {BlockNumber: 101}, {}}
-	assert.Equal(t, logs, (&TicksBasedPool{}).Unapplied(logs))
+	assert.Equal(t, uint64(80), (&TicksBasedPool{}).Holds(logs, 80))
 
 	p := &TicksBasedPool{LensBlock: 100}
-	assert.Equal(t, []ethtypes.Log{{BlockNumber: 101}, {}}, p.Unapplied(logs))
+	assert.Equal(t, uint64(100), p.Holds(logs, 80), "a snapshot newer than the pool's block")
+	assert.Equal(t, uint64(120), p.Holds(logs, 120))
 	assert.Equal(t, uint64(100), p.LensBlock)
-	assert.Len(t, logs, 4, "the caller's slice is left as it was")
 }
 
-// TestUnappliedAfterAReorg: a reorg reverting block 95 under a snapshot at 100 means the snapshot
-// holds the abandoned fork from 95 on, so the replacing block's logs must apply: dropping them as
-// already held would leave the ticks they touch at the abandoned fork's values.
-func TestUnappliedAfterAReorg(t *testing.T) {
+// TestHoldsAfterAReorg: a reorg reverting block 95 under a snapshot at 100 means the snapshot holds
+// the abandoned fork from 95 on, and only the canonical chain up to 94.
+func TestHoldsAfterAReorg(t *testing.T) {
 	p := &TicksBasedPool{LensBlock: 100}
 	logs := []ethtypes.Log{{BlockNumber: 90}, {BlockNumber: 95, Removed: true}, {BlockNumber: 95}, {BlockNumber: 96}}
-	assert.Equal(t, []ethtypes.Log{{BlockNumber: 95, Removed: true}, {BlockNumber: 95}, {BlockNumber: 96}},
-		p.Unapplied(logs))
+	assert.Equal(t, uint64(94), p.Holds(logs, 0))
 	assert.Equal(t, uint64(94), p.LensBlock, "the snapshot holds the canonical chain up to 94 only")
 
 	p = &TicksBasedPool{LensBlock: 100}
-	p.Unapplied([]ethtypes.Log{{BlockNumber: 101, Removed: true}})
+	p.Holds([]ethtypes.Log{{BlockNumber: 101, Removed: true}}, 0)
 	assert.Equal(t, uint64(100), p.LensBlock, "a reorg above the snapshot leaves it whole")
 }
 
