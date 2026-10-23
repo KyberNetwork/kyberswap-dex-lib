@@ -1,74 +1,251 @@
 [
   {
     "type": "function",
-    "name": "makerSnapshot",
-    "stateMutability": "view",
-    "inputs": [],
+    "name": "getPoolData",
+    "inputs": [
+      {
+        "name": "startTokenIndex",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "stopTokenIndex",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
     "outputs": [
       {
         "name": "",
         "type": "tuple",
+        "internalType": "struct IPropAMMRegistry.PoolData",
         "components": [
-          { "name": "blockNumber", "type": "uint256" },
-          { "name": "v1", "type": "uint256" },
-          { "name": "v2", "type": "uint256" },
-          { "name": "r1", "type": "uint256" },
-          { "name": "r2", "type": "uint256" },
-          { "name": "i1", "type": "uint256" },
-          { "name": "globallyPaused", "type": "bool" },
-          { "name": "tokens", "type": "address[]" },
-          { "name": "balances", "type": "uint256[]" },
-          { "name": "v3", "type": "uint256" },
-          { "name": "r3", "type": "uint256" },
-          { "name": "i2", "type": "uint256" },
-          { "name": "riskV3Ready", "type": "bool" },
-          { "name": "p1", "type": "uint256" },
-          { "name": "p2", "type": "uint256" },
-          { "name": "pairRiskReady", "type": "bool" }
+          {
+            "name": "schemaVersion",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "blockNumber",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "baseFeePerGas",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "parentBlockHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "tokenCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "categoryCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "startTokenIndex",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "tokens",
+            "type": "tuple[]",
+            "internalType": "struct IPropAMMRegistry.TokenMetadata[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "decimals",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "category",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "price",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "priceTail",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "tokenBidSpread",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "tokenAskSpread",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "volumeRate",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "categorySpread",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "inventory",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "sides",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "postedBlock",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "sequence",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "pairStart",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "inventoryCap",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          {
+            "name": "categories",
+            "type": "tuple[]",
+            "internalType": "struct IPropAMMRegistry.CategoryMetadata[]",
+            "components": [
+              {
+                "name": "anchorTokenIndex",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "price",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "priceTail",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "inventory",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "spread",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "postedBlock",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "inventoryCap",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "words",
+            "type": "tuple[]",
+            "internalType": "struct IPropAMMRegistry.StorageWord[]",
+            "components": [
+              {
+                "name": "slot",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "value",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "nativeBalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "portfolioBalances",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          }
         ]
       }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "makerQuoteExactInput",
-    "stateMutability": "view",
-    "inputs": [
-      { "name": "tokenIn", "type": "address" },
-      { "name": "tokenOut", "type": "address" },
-      { "name": "amountIn", "type": "uint256" }
     ],
-    "outputs": [
-      { "name": "amountOut", "type": "uint256" },
-      { "name": "lastPostedBlock", "type": "uint256" }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "makerSwapExactInput",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      { "name": "tokenIn", "type": "address" },
-      { "name": "tokenOut", "type": "address" },
-      { "name": "amountIn", "type": "uint256" },
-      { "name": "minAmountOut", "type": "uint256" },
-      { "name": "recipient", "type": "address" },
-      { "name": "deadlineBlock", "type": "uint256" }
-    ],
-    "outputs": [{ "name": "amountOut", "type": "uint256" }]
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getPoolIds",
-    "stateMutability": "pure",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "bytes32[]" }]
+    "outputs": [
+      {
+        "name": "poolIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "pure"
   },
   {
     "type": "function",
     "name": "getTokens",
-    "stateMutability": "pure",
-    "inputs": [{ "name": "poolId", "type": "bytes32" }],
-    "outputs": [{ "name": "", "type": "address[]" }]
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
   }
 ]

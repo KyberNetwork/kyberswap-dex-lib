@@ -1,30 +1,44 @@
 package thogprop
 
-// StaticExtra is immutable per-pool metadata set once at discovery time.
+import "github.com/holiman/uint256"
+
 type StaticExtra struct {
 	PoolId string `json:"poolId"`
 }
-
-// Extra is rewritten end-to-end on each tracker refresh -- the ten packed
-// state words plus the readiness/pause flags exactQuote() reads. Balances
-// are indexed in the same order as Pool.Info.Tokens (tokenTable order).
-type Extra struct {
-	V1 string `json:"v1"`
-	V2 string `json:"v2"`
-	V3 string `json:"v3"`
-	R1 string `json:"r1"`
-	R2 string `json:"r2"`
-	R3 string `json:"r3"`
-	I1 string `json:"i1"`
-	I2 string `json:"i2"`
-	P1 string `json:"p1"`
-	P2 string `json:"p2"`
-
-	GloballyPaused bool `json:"globallyPaused"`
-	RiskV3Ready    bool `json:"riskV3Ready"`
-	PairRiskReady  bool `json:"pairRiskReady"`
-
-	// SnapshotBlock is the block makerSnapshot() was pinned at -- the basis
-	// for the age = executionBlock - postedBlock computation in math.go.
-	SnapshotBlock uint64 `json:"snapshotBlock"`
+type Token struct {
+	Address  string `json:"address"`
+	Decimals uint8  `json:"decimals"`
+	Category uint8  `json:"category"`
 }
+
+// State owns the complete schema-7 portfolio. Fixed arrays copy by value.
+// Only active token metadata is a slice; it is immutable after construction.
+type State struct {
+	Tokens        []Token          `json:"tokens"`
+	CategoryCount int              `json:"categoryCount"`
+	Words         [128]uint256.Int `json:"words"`
+	Balances      [32]uint256.Int  `json:"balances"`
+	NativeBalance uint256.Int      `json:"nativeBalance"`
+	BlockNumber   uint64           `json:"blockNumber"`
+	BaseFee       uint256.Int      `json:"baseFee"`
+}
+type Extra struct {
+	State State `json:"state"`
+}
+
+// ExecutionContext is explicit: no fixed future block or assumed account warmth.
+// The regular router quote uses the snapshot's read-only contract surface.
+type ExecutionContext struct {
+	BlockNumber        uint64
+	BaseFee, GasPrice  uint256.Int
+	AuctionHandlerWarm bool
+}
+type Quote struct {
+	AmountIn, AmountOut, Notional, Penalty, VolumeCost uint256.Int
+	PostedBlock                                        uint64
+}
+type SwapInfo struct {
+	InputIndex, OutputIndex     int
+	InputBalance, OutputBalance uint256.Int
+}
+type Fraction struct{ Numerator, Denominator uint256.Int }
