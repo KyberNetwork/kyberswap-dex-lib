@@ -106,14 +106,11 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 //     at latest. This is the path that keeps the tax config and XMA floor fresh.
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	params poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
-	var (
-		blockNumber uint64
-		err         error
-	)
+	var err error
+	hadState := ticks.HasState(p)
 
 	switch {
 	case len(params.Logs) > 0:
-		blockNumber = eth.GetBlockNumberFromLogs(params.Logs)
 		if p, err = t.v3.GetNewPoolState(ctx, p, params); err != nil {
 			return entity.Pool{}, err
 		}
@@ -132,7 +129,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		}
 	}
 
-	return t.applyMachimaState(ctx, p, blockNumber)
+	return t.applyMachimaState(ctx, p, taxBlock(hadState, p, params.Logs))
+}
+
+// taxBlock is the block the tax is read at: that of the lens snapshot the UniV3 layer just gave a
+// pool without state, which dates the pool, past its logs; else the logs' own, 0 for the latest.
+func taxBlock(hadState bool, p entity.Pool, logs []ethtypes.Log) uint64 {
+	if !hadState && ticks.HasState(p) {
+		return p.BlockNumber
+	}
+	return eth.GetBlockNumberFromLogs(logs)
 }
 
 var (
