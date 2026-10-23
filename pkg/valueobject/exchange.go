@@ -49,6 +49,7 @@ const (
 	ExchangeBeethovenXV3Stable          = "beethovenx-v3-stable"
 	ExchangeBeethovenXV3Weighted        = "beethovenx-v3-weighted"
 	ExchangeBeethovenXWeighted          = "beethovenx-weighted"
+	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"
@@ -498,6 +499,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeBTRProp:            {},
 	ExchangeUniswapV4HyFiProp:  {},
 	ExchangePancakeProp:        {},
+	ExchangeBiconomyProp:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

@@ -31,6 +31,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	biconomyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/biconomy-prop"
 	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	btrprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/btr-prop"
@@ -513,6 +514,7 @@ type Types struct {
 	AltFun                     string
 	FlywheelFun                string
 	Prop1010                   string
+	BiconomyProp               string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -780,6 +782,7 @@ var (
 		AltFun:                     altfun.DexType,
 		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
+		BiconomyProp:               biconomyprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
