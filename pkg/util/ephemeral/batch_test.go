@@ -526,3 +526,16 @@ func TestBatchConfigSwitch(t *testing.T) {
 	assert.Equal(t, 8, cfg.LensBatch.MaxItems)
 	assert.Error(t, json.Unmarshal([]byte(`{"lensBatch": "yes"}`), &cfg))
 }
+
+// TestLensGuardWithABatchAdmitsManyPoolsQuickly: with batched reads no rate holds keys back, so a
+// backfill's pools all stay within their cooldown; admitting them does not walk every key each time.
+func TestLensGuardWithABatchAdmitsManyPoolsQuickly(t *testing.T) {
+	g := NewLensGuard(GuardConfig{}, &BatchConfig{})
+	start := time.Now()
+	for i := range 100_000 {
+		ok, err := g.Try(t.Context(), fmt.Sprint("pool", i), func(context.Context) error { return nil })
+		require.NoError(t, err)
+		require.True(t, ok)
+	}
+	assert.Less(t, time.Since(start), 5*time.Second, "100,000 pools, where walking every key each time takes minutes")
+}
