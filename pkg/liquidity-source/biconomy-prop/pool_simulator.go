@@ -29,10 +29,20 @@ type PoolSimulator struct {
 	// advanced by UpdateBalance. Boards are never mutated, so clones copy only the cursors.
 	cursors [][2]uint256.Int
 
-	now uint64
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock at quote time.
+	quoteAt uint64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = uint64(t.Unix())
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 {
@@ -74,7 +84,6 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		members:     extra.Members,
 		feeBps:      extra.FeeBps,
 		cursors:     cursors,
-		now:         uint64(time.Now().Unix()),
 	}, nil
 }
 
@@ -83,6 +92,14 @@ func (m *MemberExtra) board(dirIndex int) *Board {
 		return &m.Dir0
 	}
 	return &m.Dir1
+}
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() uint64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return uint64(time.Now().Unix())
 }
 
 // fill is the result of one allocation pass over the book.
@@ -98,7 +115,7 @@ type fill struct {
 func (s *PoolSimulator) merge(dirIndex int, amountIn *uint256.Int, f *fill) {
 	var excluded [maxMakers]bool
 	for i := range s.members {
-		excluded[i] = !boardLive(s.members[i].board(dirIndex), s.now)
+		excluded[i] = !boardLive(s.members[i].board(dirIndex), s.now())
 	}
 	s.allocate(dirIndex, amountIn, &excluded, f)
 	for i := range s.members {

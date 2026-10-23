@@ -504,3 +504,13 @@ func TestAfterProtocolFee_Overflow(t *testing.T) {
 	assert.Equal(t, "3000", fee.Dec())
 	assert.Equal(t, "997000", net.Dec())
 }
+
+// A cached simulator must judge board expiry at quote time, not build time; indexing pins it to the snapshot.
+func TestPoolSimulator_QuoteClock(t *testing.T) {
+	var live PoolSimulator
+	before := uint64(time.Now().Unix())
+	assert.GreaterOrEqual(t, live.now(), before)
+
+	pinned := PoolSimulator{quoteAt: 1000}
+	assert.Equal(t, uint64(1000), pinned.now())
+}
