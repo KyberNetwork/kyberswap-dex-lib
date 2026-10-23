@@ -83,6 +83,11 @@ func ComputeStep(
 
 	sqrtRatioNext, err := lo.Ternary(isToken1, nextSqrtRatioFromAmount1, nextSqrtRatioFromAmount0)(
 		sqrtRatio, liquidity, priceImpactAmount)
+	// Core stores the next sqrt ratio rounded to its compact representation: towards the starting price for the
+	// input and away from it for the output, i.e. up for token0 amounts and down for token1 amounts.
+	if err == nil {
+		sqrtRatioNext = RoundSqrtRatio(sqrtRatioNext, !isToken1)
+	}
 	if err == nil {
 		if sqrtRatioNext.Gt(sqrtRatioLimit) != increasing {
 			if sqrtRatioNext.Eq(sqrtRatio) {

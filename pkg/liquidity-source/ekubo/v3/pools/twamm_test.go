@@ -342,6 +342,6 @@ func TestTwammPoolQuote(t *testing.T) {
 		quote, err := pool.quoteWithTimestampFn(tenPow18.Mul(tenPow18, uint256.NewInt(10_000)), false, fixedTimestampFn(2_040))
 		require.NoError(t, err)
 
-		require.Equal(t, big256.New("19993991114278789946056"), quote.CalculatedAmount)
+		require.Equal(t, big256.New("19993991114278775119579"), quote.CalculatedAmount)
 	})
 }

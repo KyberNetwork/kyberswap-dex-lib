@@ -275,6 +275,11 @@ type maskAndFactor struct {
 	factor *uint256.Int
 }
 
+// Exp2 returns 2^x for a 64.64 fixed point x below 2^70, as a 64.64 fixed point number, or nil if x is too large.
+func Exp2(x *uint256.Int) *uint256.Int {
+	return exp2(x)
+}
+
 func exp2(x *uint256.Int) *uint256.Int {
 	if !x.Lt(exponentLimit) {
 		return nil
