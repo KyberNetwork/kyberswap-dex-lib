@@ -314,7 +314,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			l), nil
 	}
 
-	if err := t.updateStateByDexLib(ctx, &p, param.Logs); err != nil {
+	read, err := t.updateStateByDexLib(ctx, &p, param.Logs)
+	if err != nil {
 		l.WithFields(logger.Fields{
 			"msg": err.Error(),
 		}).Error(ErrUpdateStateByDexLibFailed.Error())
@@ -322,7 +323,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		return p, errors.Wrap(ErrUpdateStateByDexLibFailed, err.Error())
 	}
 
-	if err := t.updateBinsData(ctx, &p, param.Logs); err != nil {
+	if err := t.updateBinsData(ctx, &p, param.Logs, read); err != nil {
 		l.WithFields(logger.Fields{
 			"msg": err.Error(),
 		}).Error(ErrUpdateBinsDataFailed.Error())
@@ -376,7 +377,9 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	return p, nil
 }
 
-func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
+// updateStateByDexLib reads the pair's reserves, active bin and fee parameters, and returns the block
+// it read them at.
+func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) (uint64, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
@@ -392,14 +395,14 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 				l.WithFields(logger.Fields{
 					"error": err,
 				}).Error("failed to fetch latest state from RPC")
-				return err
+				return 0, err
 			}
 		} else {
 			l.WithFields(logger.Fields{
 				"error":       err,
 				"blockNumber": blockNumber,
 			}).Error("failed to fetch state from RPC")
-			return err
+			return 0, err
 		}
 	}
 
@@ -418,7 +421,7 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 			l.Error(err.Error())
-			return err
+			return 0, err
 		}
 	}
 
@@ -429,15 +432,15 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.Error(err.Error())
-		return err
+		return 0, err
 	}
 
 	p.Extra = string(extraBytes)
 
-	return nil
+	return blockNumber, nil
 }
 
-func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
+func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log, read uint64) error {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
@@ -447,8 +450,9 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 		return nil
 	}
 	// At the block the reserves were just read at, so the bins add up to them: a late log's own
-	// block would put its bins back to their values there, behind the rest of the pair.
-	blockNumber := p.BlockNumber
+	// block would put its bins back to their values there, behind the rest of the pair, and a
+	// reorg's, read at its logs' block, below the pair's, would read them ahead of it.
+	blockNumber := read
 
 	binIDsFromLogs, err := t.binIDsFromLogs(logs)
 	if err != nil {
