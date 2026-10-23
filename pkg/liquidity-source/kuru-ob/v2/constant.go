@@ -18,9 +18,11 @@ const (
 	// Keeps quote*10^decimals far from 2^256 in the walk.
 	maxQuoteDecimals = 30
 
-	// ponytail: V1 gas until a V2 executor helper (deposit+swap+withdraw) exists to measure.
-	gasBase  = 221703
-	gasLevel = 84155
+	// KuruV2Helper executeKuruV2 (deposit, swap, withdraw), forge fork test on Monad block 115874578,
+	// warm account. gasLevel = int average of (gas - avg 1-level gas) / (levels - 1) over 16
+	// multi-level swaps; gasBase = avg 1-level gas (166017, 26 swaps) - gasLevel.
+	gasBase  = 100679
+	gasLevel = 65338
 )
 
 var feeDenominator = uint256.NewInt(10_000_000) // takerFeePps is in PPS

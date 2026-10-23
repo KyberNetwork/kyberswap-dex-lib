@@ -50,6 +50,31 @@ var testMarkets = []testMarket{{
 	sells: [][2]int64{{1e6, 998255}, {30e6, 29941967}},
 }}
 
+// Monad mainnet (143) books at block 115874578 (OrderBook.getL2Book / estimateSwap(isBuy, amountIn),
+// default taker fee 2000 pps). WETH's last bid is a resting $1 order.
+func init() {
+	testMarkets = append(testMarkets, testMarket{
+		name: "mainnet WETH/USDC 0x8121ee960066e4344a213f9ac7502395502aee7a",
+		staticExtra: StaticExtra{PricePrecision: 10000, SizePrecision: uint256.NewInt(1e10),
+			BaseSizeMultiplier: uint256.NewInt(1e8), QuoteDecimals: 6},
+		extra: Extra{TakerFeePps: 2000,
+			Bids: levels([]uint32{23965400, 23953400, 23941400, 23929400, 23905400, 10000},
+				4172682283, 8349545367, 12530595537, 16715839093, 20915776351, 100628161200)},
+		sells: [][2]int64{{1e15, 2396020}, {2e18, 4789325043}, {9e18, 14999730453}},
+	}, testMarket{
+		name: "mainnet xStock/USDC 0xbb180c8b6d3ee0b4316b224c53b80dc4e354d24f",
+		staticExtra: StaticExtra{PricePrecision: 10000, SizePrecision: uint256.NewInt(1e10),
+			BaseSizeMultiplier: uint256.NewInt(1e8), QuoteDecimals: 6},
+		extra: Extra{TakerFeePps: 2000,
+			Bids: levels([]uint32{7627500, 7626000, 7624400, 7622900, 7621400, 7613700},
+				13110455588, 19669551534, 26231572320, 32795917564, 32802372267, 32835546449),
+			Asks: levels([]uint32{7630600, 7632200, 7633700, 7635200, 7636700},
+				13105129347, 19653573019, 26199614865, 32743084660, 32736653266)},
+		buys:  [][2]int64{{1e6, 1310250800000000}, {3e9, 3930074775800000000}},
+		sells: [][2]int64{{1e15, 762547}, {2e18, 1525091420}, {9e18, 6860843556}},
+	})
+}
+
 func newTestSim(t *testing.T, m testMarket) *PoolSimulator {
 	sim, err := NewPoolSimulator(entity.Pool{
 		Address: "market", Exchange: DexType, Type: DexType, Reserves: entity.PoolReserves{"1", "1"},
