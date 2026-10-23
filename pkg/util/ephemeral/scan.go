@@ -107,6 +107,14 @@ func askLate(ctx context.Context, h Chain) (bool, error) {
 // returned is not the state of that block.
 var ErrUnpinned = errors.New("ephemeral: the node ran a call at another block than the one pinned")
 
+// Unreadable reports a lens read the node cannot serve however often it is tried: it ran a page at
+// another block than the one pinned, as a node that ignores pinned blocks does, or a call made no
+// progress, its gas cap under the pool's densest word. A caller with another way to read the pool
+// takes it then, rather than try the lens again.
+func Unreadable(err error) bool {
+	return errors.Is(err, ErrUnpinned) || errors.Is(err, ErrNoProgress)
+}
+
 // ranAt reports whether a call pinned to pin.Block that reported read ran there: the block itself,
 // or the one after it on a chain that runs a call in the block after the one it names. Accepted
 // elsewhere, a head that moved on between Pin and the call would pass for the pinned block.

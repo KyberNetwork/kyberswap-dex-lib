@@ -122,9 +122,12 @@ func (t *PoolTracker) BootstrapPoolState(
 		if err == nil {
 			return lensPool, nil
 		}
-		// A lens read can fail where the old path does not, as one paging across blocks does on a
-		// node that ignores a pinned block, HyperEVM's: the pool is then bootstrapped without it
-		// rather than left unsaved.
+		// A node that cannot serve a lens read at all, as one ignoring a pinned block (HyperEVM's)
+		// does for a read across blocks, has the pool bootstrapped without the lens rather than left
+		// unsaved; any other failure is the bootstrap's own, to be tried again.
+		if !ephemeral.Unreadable(err) {
+			return lensPool, err
+		}
 		l.WithFields(logger.Fields{"error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
 	}
 
