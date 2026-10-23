@@ -346,8 +346,14 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Unlocked:     rpcState.Unlocked,
 	}
 
+	// At the block asked for when there was one: a multicall's own is not the chain's number on every
+	// chain (Etherlink reports the next one).
+	pluginBlock := result.BlockNumber
+	if blockNumber > 0 {
+		pluginBlock = new(big.Int).SetUint64(blockNumber)
+	}
 	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p, plugin,
-		result.BlockNumber, overrides)
+		pluginBlock, overrides)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
