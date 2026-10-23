@@ -752,7 +752,7 @@ func (t *PoolTracker) newTicksBasedPool(
 		}).Error("failed to transform entity pool to ticks based pool")
 		return ticksBasedPool, err
 	}
-	logs = ticksBasedPool.Unapplied(logs)
+	held := ticksBasedPool.Holds(logs, p.BlockNumber)
 
 	// Ticks are read whole at the batch's block, never at one older than the pool's own: logs that
 	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch back
@@ -760,7 +760,7 @@ func (t *PoolTracker) newTicksBasedPool(
 	// A simulation under overrides reads where it asks.
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 	if overrides == nil {
-		blockNumber = tickspkg.ReadBlock(logs, p.BlockNumber)
+		blockNumber = tickspkg.ReadBlock(logs, held)
 	}
 	ticksBasedPool.BlockNumber = blockNumber
 

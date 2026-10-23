@@ -46,8 +46,8 @@ type TicksBasedPool struct {
 	Ticks       map[int]Tick `json:"ticks"`
 	BlockNumber uint64       `json:"blockNumber"`
 	Exchange    string       `json:"exchange"`
-	// LensBlock is the block the ticks were last read whole at through a lens, 0 if never: every
-	// log at or below it is already in them.
+	// LensBlock is the block the ticks were last read whole at through a lens, 0 if never: a log
+	// at or below it is late (see Holds).
 	LensBlock uint64 `json:"lensBlock,omitempty"`
 }
 
@@ -105,30 +105,22 @@ func editExtra(p entity.Pool, edit func(map[string]json.RawMessage)) entity.Pool
 	return p
 }
 
-// Unapplied drops the logs the lens snapshot at LensBlock already holds. Such logs keep arriving
-// after the snapshot, from a backfill that replays older blocks or a replay after a crash, and
-// applying them again would count their liquidity twice. A removed log and a log carrying no block,
-// the empty one that triggers an update, are always kept.
+// Holds is the newest block whose logs the pool's state already holds: the pool's own block, or
+// the lens snapshot's when newer. A log at or below it is late: it may be in the state already,
+// replayed by a backfill or after a crash, or may never have been, as a log a reorg brought in
+// below a snapshot read on the abandoned fork, which no removed log of this pool announces when it
+// had none in the reverted blocks. Its delta could count twice or never, so the trackers read the
+// ticks it touches whole at this block instead, which holds it either way.
 //
-// A reorg that reverts a block at or below LensBlock means the snapshot was read on the abandoned
-// fork from that block on: LensBlock drops to the block before, and the replacing blocks' logs are
-// kept.
-func (t *TicksBasedPool) Unapplied(logs []ethtypes.Log) []ethtypes.Log {
+// A removed log at or below the snapshot's block means the snapshot was read on the abandoned fork
+// from that block on: LensBlock drops to the block before.
+func (t *TicksBasedPool) Holds(logs []ethtypes.Log, poolBlock uint64) uint64 {
 	for _, l := range logs {
 		if l.Removed && l.BlockNumber > 0 && l.BlockNumber <= t.LensBlock {
 			t.LensBlock = l.BlockNumber - 1
 		}
 	}
-	if t.LensBlock == 0 {
-		return logs
-	}
-	kept := logs[:0:0]
-	for _, l := range logs {
-		if l.Removed || l.BlockNumber == 0 || l.BlockNumber > t.LensBlock {
-			kept = append(kept, l)
-		}
-	}
-	return kept
+	return max(poolBlock, t.LensBlock)
 }
 
 // ReadBlock is the block at which an update reads again the ticks its logs touch: the newest of

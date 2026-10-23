@@ -157,7 +157,7 @@ func (t *PoolTracker) newTicksBasedPool(
 		return tickspkg.TicksBasedPool{}, err
 	}
 
-	logs = ticksBasedPool.Unapplied(logs)
+	held := ticksBasedPool.Holds(logs, p.BlockNumber)
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 	ticksBasedPool.BlockNumber = blockNumber
 
@@ -171,14 +171,14 @@ func (t *PoolTracker) newTicksBasedPool(
 	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch
 	// back to their values at that older block.
 	if blockNumber != 0 {
-		ticksBasedPool.BlockNumber = max(blockNumber, p.BlockNumber)
+		ticksBasedPool.BlockNumber = max(blockNumber, held)
 	}
 
-	// A log at or below the pool's block may be in its ticks already, replayed after a crash or by
-	// a backfill of a gap, or may never have been, a retry's. Adding its delta could count it
-	// twice, so the ticks the batch touches are read whole instead, at the pool's block, which
-	// holds the log either way.
-	if hasLateLog(logs, p.BlockNumber) {
+	// A log at or below the block the pool's state holds may be in its ticks already, replayed
+	// after a crash or by a backfill of a gap, or may never have been, a retry's or one a reorg
+	// brought in below a lens snapshot. Adding its delta could count it twice or never, so the
+	// ticks the batch touches are read whole instead, at that block, which holds the log either way.
+	if hasLateLog(logs, held) {
 		return t.fetchTicksFromLogs(ctx, ticksBasedPool, logs, l)
 	}
 

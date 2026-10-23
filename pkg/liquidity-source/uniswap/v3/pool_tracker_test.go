@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
@@ -229,39 +228,25 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 	assert.Zero(t, plain.NextUpdateAt(entity.Pool{Extra: `{}`}))
 }
 
-// TestLogsAtOrBelowTheLensBlockAreNotAppliedAgain: a Mint the lens snapshot already holds, arriving
-// after it from a backfill or a replay, would count its liquidity twice without changing the sum
-// of liquidityNet, so nothing else would notice; one after the snapshot still applies.
-func TestLogsAtOrBelowTheLensBlockAreNotAppliedAgain(t *testing.T) {
+// TestLogsAtOrBelowTheLensBlockAreLate: a Mint at or below the lens snapshot's block is late, read
+// as the absolute values of the ticks it touches rather than added. It may be one the snapshot holds,
+// replayed by a backfill, which adding would count twice without changing the sum of liquidityNet;
+// or one a reorg brought in below a snapshot read on the abandoned fork, with no log of this pool
+// reverted, which dropping would lose.
+func TestLogsAtOrBelowTheLensBlockAreLate(t *testing.T) {
 	t.Parallel()
 
 	pool := common.HexToAddress("0x3333333333333333333333333333333333333333")
-	mint := func(block uint64, amount int64) ethtypes.Log {
-		return ethtypes.Log{
-			Address:     pool,
-			BlockNumber: block,
-			Topics:      []common.Hash{mintEventID, addrWord(pool), word(-100), word(200)},
-			Data: append(append(append(addrWord(pool).Bytes(), word(amount).Bytes()...),
-				word(0).Bytes()...), word(0).Bytes()...),
-		}
-	}
-	extra, err := json.Marshal(Extra{
-		Ticks: []Tick{
-			{Index: -100, LiquidityGross: big.NewInt(555), LiquidityNet: big.NewInt(555)},
-			{Index: 200, LiquidityGross: big.NewInt(555), LiquidityNet: big.NewInt(-555)},
-		},
-		LensBlock: 100,
-	})
+	at := func(block uint64) ethtypes.Log { return ethtypes.Log{Address: pool, BlockNumber: block} }
+	extra, err := json.Marshal(Extra{LensBlock: 100})
 	require.NoError(t, err)
-	p := entity.Pool{Address: strings.ToLower(pool.Hex()), Extra: string(extra)}
+	p, err := tickspkg.NewTicksBasedPool(entity.Pool{Address: strings.ToLower(pool.Hex()), Extra: string(extra)})
+	require.NoError(t, err)
 
-	tr := &Tracker{config: &Config{}}
-	got, err := tr.newTicksBasedPool(context.Background(), p, []ethtypes.Log{mint(90, 555), mint(110, 1)},
-		logger.WithFields(logger.Fields{}))
-	require.NoError(t, err)
-	assert.Equal(t, uint64(100), got.LensBlock)
-	assert.Equal(t, int64(556), got.Ticks[-100].LiquidityNet.Int64(), "the Mint at block 90 counted twice")
-	assert.Equal(t, int64(-556), got.Ticks[200].LiquidityNet.Int64())
+	held := p.Holds([]ethtypes.Log{at(99), at(110)}, 0)
+	assert.Equal(t, uint64(100), held, "the snapshot is newer than the pool's block")
+	assert.True(t, hasLateLog([]ethtypes.Log{at(99), at(110)}, held), "the reorged-in or replayed log at 99")
+	assert.False(t, hasLateLog([]ethtypes.Log{at(110)}, held), "one after the snapshot applies")
 }
 
 // TestLateLogs: a log at or below the pool's block, already applied or a retry's, is read as the
