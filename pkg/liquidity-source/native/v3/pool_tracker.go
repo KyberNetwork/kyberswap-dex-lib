@@ -347,18 +347,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, param, block, l)
 			},
-			func(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-				// The snapshot holds every log at or below its block, and reading the ticks those
-				// logs touch at their own, older blocks would only take them back in time.
-				later := lo.Filter(param.Logs, func(log ethtypes.Log, _ int) bool {
-					return log.BlockNumber > p.BlockNumber
-				})
-				if len(later) == 0 {
-					return p, nil
-				}
-				param.Logs = later
-				return t.GetNewPoolState(ctx, p, param)
-			},
 			l), nil
 	}
 
