@@ -37,6 +37,9 @@ type Guard struct {
 
 	mu   sync.Mutex
 	last map[string]time.Time
+	// kept is how many keys the last forgetting left: the next waits for twice as many, so a map
+	// whose keys are all still cooling down is not walked on every admission.
+	kept int
 }
 
 // NewLensGuard is the guard of a tracker's lens reads: NewGuard's, or, with batch set, one that
@@ -103,8 +106,9 @@ func (g *Guard) admit(key string, now time.Time) bool {
 		return false
 	}
 	// Forget keys past their cooldown once there are many, so the map stays the size of a burst.
-	if len(g.last) >= 1024 {
+	if len(g.last) >= max(1024, 2*g.kept) {
 		maps.DeleteFunc(g.last, func(_ string, at time.Time) bool { return now.Sub(at) >= g.cooldown })
+		g.kept = len(g.last)
 	}
 	g.last[key] = now
 	return true
