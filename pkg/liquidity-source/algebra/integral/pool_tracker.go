@@ -78,8 +78,14 @@ func (d *PoolTracker) BootstrapPoolState(
 	l.Info("Start getting new state of pool")
 
 	if d.config.UseLens {
-		p, _, err := d.bootstrapFromLens(ctx, p, param.Logs, nil, l)
-		return p, err
+		lensPool, _, err := d.bootstrapFromLens(ctx, p, param.Logs, nil, l)
+		if err == nil {
+			return lensPool, nil
+		}
+		// A lens read can fail where the old path does not, as one paging across blocks does on a
+		// node that ignores a pinned block, HyperEVM's: the pool is then bootstrapped without it
+		// rather than left unsaved.
+		l.WithFields(logger.Fields{"error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
 	}
 
 	// The state is read at a block named first, which the pool is dated by: the caller reads the
