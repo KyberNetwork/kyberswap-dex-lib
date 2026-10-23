@@ -48,6 +48,31 @@ func (n *fakeNode) CallContract(_ context.Context, msg ethereum.CallMsg, _ *big.
 	return out, nil
 }
 
+// ctxNode is a fakeNode that fails a call whose context is done, as a client does.
+type ctxNode struct{ fakeNode }
+
+func (n *ctxNode) CallContract(ctx context.Context, msg ethereum.CallMsg, block *big.Int) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return n.fakeNode.CallContract(ctx, msg, block)
+}
+
+// TestGasCapProbeCutShortIsNotKept: a probe its caller's context cut short says nothing of the
+// node, and the next call probes again rather than going without the cap for probeRetry.
+func TestGasCapProbeCutShortIsNotKept(t *testing.T) {
+	node := &ctxNode{fakeNode: fakeNode{limit: 50_000_000}}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := GasCap(cancelled, node)
+	require.ErrorIs(t, err, context.Canceled)
+
+	got, err := GasCap(t.Context(), node)
+	require.NoError(t, err)
+	assert.Equal(t, Cap{Gas: 50_000_000}, got)
+	assert.EqualValues(t, 50_000_000, callGas(t.Context(), node, 0))
+}
+
 // TestGasCapPerKindOfNode: a node that caps reports its cap, one that refuses a call above its
 // limit reports the highest ask it ran, one without a limit says so, and each is probed once.
 func TestGasCapPerKindOfNode(t *testing.T) {
