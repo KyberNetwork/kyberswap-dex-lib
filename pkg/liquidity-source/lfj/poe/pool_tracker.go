@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -61,7 +62,7 @@ func (t *PoolTracker) GetNewPoolState(
 			Target: p.Address,
 			Method: poolMethodGetBalances,
 		}, []any{&reserves})
-	_, err := req.Aggregate()
+	firstResp, err := req.Aggregate()
 	if err != nil {
 		return p, err
 	}
@@ -73,14 +74,14 @@ func (t *PoolTracker) GetNewPoolState(
 		Expiry  *big.Int
 	}
 
-	req = t.ethrpcClient.R().SetContext(ctx).
+	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(firstResp.BlockNumber)).
 		AddCall(&ethrpc.Call{
 			ABI:    oracleABI,
 			Target: oracle.String(),
 			Method: "getData",
 			Params: []any{key},
 		}, []any{&oracleData})
-	resp, err := req.Aggregate()
+	_, err = utilEth.CallWithBlockRetry(ctx, req.Aggregate, firstResp.BlockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -102,7 +103,7 @@ func (t *PoolTracker) GetNewPoolState(
 		reserves.AmountX.String(),
 		reserves.AmountY.String(),
 	}
-	p.BlockNumber = resp.BlockNumber.Uint64()
+	p.BlockNumber = firstResp.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 
 	logger.Infof("finished getting pool state for %v", p.Address)

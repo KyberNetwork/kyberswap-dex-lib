@@ -61,7 +61,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 	minPrices := make([]*big.Int, tokensLen)
 
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)
@@ -70,7 +70,7 @@ func (r *VaultPriceFeedReader) readTokenData(
 		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []any{tokenAddress, false}), []any{&minPrices[i]})
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		r.log.Errorf("error when call aggregate request: %s", err)
 		return err
 	}

@@ -36,6 +36,9 @@ func (r *VaultReader) Read(ctx context.Context, address string) (*Vault, error) 
 		r.log.Errorf("error when read data: %s", err)
 		return nil, err
 	}
+	if validBlockNumber(vault.BlockNumber) {
+		ctx = withBlockNumber(ctx, vault.BlockNumber)
+	}
 
 	if err := r.readWhitelistedTokens(ctx, address, vault); err != nil {
 		r.log.Errorf("error when read white listed token: %s", err)
@@ -64,7 +67,7 @@ func (r *VaultReader) Read(ctx context.Context, address string) (*Vault, error) 
 //   - WhitelistedTokensCount
 func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault) error {
 	callParamsFactory := CallParamsFactory(r.abi, address)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(callParamsFactory(VaultMethodHasDynamicFees, nil), []any{&vault.HasDynamicFees})
 	rpcRequest.AddCall(callParamsFactory(VaultMethodIncludeAmmPrice, nil), []any{&vault.IncludeAmmPrice})
@@ -78,8 +81,10 @@ func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault
 	rpcRequest.AddCall(callParamsFactory(VaultMethodUSDG, nil), []any{&vault.USDGAddress})
 	rpcRequest.AddCall(callParamsFactory(VaultMethodWhitelistedTokenCount, nil), []any{&vault.WhitelistedTokensCount})
 
-	_, err := rpcRequest.TryAggregate()
-
+	response, err := callWithBlockRetry(ctx, rpcRequest.TryBlockAndAggregate)
+	if err == nil && response != nil && validBlockNumber(response.BlockNumber) {
+		vault.BlockNumber = response.BlockNumber
+	}
 	return err
 }
 
@@ -92,7 +97,7 @@ func (r *VaultReader) readWhitelistedTokens(
 	tokensLen := int(vault.WhitelistedTokensCount.Int64())
 
 	whitelistedTokens := make([]common.Address, tokensLen)
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	for i := range tokensLen {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -102,7 +107,7 @@ func (r *VaultReader) readWhitelistedTokens(
 			Params: []any{new(big.Int).SetInt64(int64(i))},
 		}, []any{&whitelistedTokens[i]})
 	}
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		return err
 	}
 
@@ -138,7 +143,7 @@ func (r *VaultReader) readTokensData(
 	maxUSDGAmounts := make([]*big.Int, tokensLen)
 	tokenWeights := make([]*big.Int, tokensLen)
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 	callParamsFactory := CallParamsFactory(r.abi, address)
 
 	for i, token := range vault.WhitelistedTokens {
@@ -154,11 +159,13 @@ func (r *VaultReader) readTokensData(
 		rpcRequest.AddCall(callParamsFactory(VaultMethodTokenWeights, []any{tokenAddress}), []any{&tokenWeights[i]})
 	}
 
-	response, err := rpcRequest.TryBlockAndAggregate()
+	response, err := callWithBlockRetry(ctx, rpcRequest.TryBlockAndAggregate)
 	if err != nil {
 		return err
 	}
-	vault.BlockNumber = response.BlockNumber
+	if !validBlockNumber(vault.BlockNumber) {
+		vault.BlockNumber = response.BlockNumber
+	}
 
 	for i, token := range vault.WhitelistedTokens {
 		vault.PoolAmounts[token] = poolAmounts[i]

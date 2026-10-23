@@ -1,14 +1,73 @@
 package rseth
 
 import (
+	"context"
 	"math/big"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func TestGetNewPoolStatePinsAssetReadsToPoolBlock(t *testing.T) {
+	for _, withOverrides := range []bool{false, true} {
+		name := "without-overrides"
+		if withOverrides {
+			name = "with-overrides"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				ethAsset := ethcommon.HexToAddress(common.ETH)
+				otherAsset := ethcommon.HexToAddress("0x0000000000000000000000000000000000000009")
+				resolver := func(_ ethcommon.Address, method abi.Method, _ []any) ([]any, error) {
+					values := make([]any, len(method.Outputs))
+					for i, output := range method.Outputs {
+						values[i] = ethrpcmock.Value(output.Type)
+					}
+					if method.Name == common.LRTConfigMethodGetSupportedAssetList {
+						values[0] = []ethcommon.Address{ethAsset, otherAsset}
+					}
+					return values, nil
+				}
+				srv, recorder := ethrpcmock.NewWithResolver(t, resolver,
+					common.LRTConfigABI, common.LRTDepositPoolABI, common.LRTOracleABI, common.Erc20ABI)
+				client := ethrpc.New(srv.URL)
+				tracker := NewPoolTracker(client)
+				p := entity.Pool{Address: common.LRTDepositPool}
+				var updated entity.Pool
+				var err error
+				if withOverrides {
+					overrides := map[ethcommon.Address]gethclient.OverrideAccount{
+						ethcommon.HexToAddress("0x000000000000000000000000000000000000000a"): {Balance: big.NewInt(99)},
+					}
+					updated, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p,
+						pool.GetNewPoolStateWithOverridesParams{Overrides: overrides})
+				} else {
+					updated, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				}
+				require.NoError(t, err)
+				require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+				require.Len(t, updated.Tokens, 3)
+				require.Equal(t, common.WETH, updated.Tokens[1].Address)
+				ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+				ethrpcmock.CheckPool(t, "kelp-rseth-tracker-pin-"+name, updated)
+				ethrpcmock.CheckRequests(t, "kelp-rseth-tracker-pin-"+name, recorder)
+			})
+		})
+	}
+}
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()

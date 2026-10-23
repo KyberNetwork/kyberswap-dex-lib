@@ -33,7 +33,7 @@ func (r *PancakePairReader) Read(ctx context.Context, address string) (*PancakeP
 		BlockTimestampLast uint32
 	}
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
@@ -42,7 +42,7 @@ func (r *PancakePairReader) Read(ctx context.Context, address string) (*PancakeP
 		Params: nil,
 	}, []any{&reserves})
 
-	if _, err := rpcRequest.Call(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.Call); err != nil {
 		r.log.Errorf("error when call rpc request %v", err)
 		return nil, err
 	}

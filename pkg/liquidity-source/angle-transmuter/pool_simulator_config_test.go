@@ -1,13 +1,115 @@
 package angletransmuter
 
 import (
+	"context"
 	"math/big"
+	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
+	dexabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
+
+func TestGetNewPoolStatePinsOracleReads(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		oracleType uint8
+		exchange   string
+	}{
+		{name: "chainlink", oracleType: uint8(CHAINLINK_FEEDS), exchange: "parallel-parallelizer"},
+		{name: "pyth", oracleType: uint8(PYTH)},
+		{name: "morpho", oracleType: 9, exchange: "parallel-parallelizer"},
+		{name: "max", oracleType: 8, exchange: "parallel-parallelizer"},
+	} {
+		for _, withOverrides := range []bool{false, true} {
+			name := tc.name
+			if withOverrides {
+				name += "-overrides"
+			} else {
+				name += "-regular"
+			}
+			t.Run(name, func(t *testing.T) {
+				synctest.Test(t, func(t *testing.T) {
+					collateral := common.HexToAddress("0x1111111111111111111111111111111111111111")
+					chainlink := common.HexToAddress("0x2222222222222222222222222222222222222222")
+					pyth := common.HexToAddress("0x3333333333333333333333333333333333333333")
+					morpho := common.HexToAddress("0x4444444444444444444444444444444444444444")
+					feedID := [32]byte{1}
+					var oracleData []byte
+					switch tc.name {
+					case "chainlink":
+						oracleData, _ = ChainlinkArgument.Pack([]common.Address{chainlink}, []uint32{60}, []uint8{1}, []uint8{8}, uint8(UNIT))
+					case "pyth":
+						oracleData, _ = PythArgument.Pack(pyth, [][32]byte{feedID}, []uint32{60}, []uint8{1}, uint8(UNIT))
+					case "morpho":
+						oracleData, _ = MorphoArgument.Pack(morpho, big.NewInt(1))
+					case "max":
+						oracleData, _ = MaxArgument.Pack(big.NewInt(100))
+					}
+					hyperparameters, _ := HyperparametersArgument.Pack(big.NewInt(0), big.NewInt(0))
+					resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+						switch method.RawName {
+						case "getCollateralList":
+							return []any{[]common.Address{collateral}}, nil
+						case "getOracle":
+							return []any{tc.oracleType, uint8(NO_ORACLE), oracleData, []byte{}, hyperparameters}, nil
+						default:
+							values := make([]any, len(method.Outputs))
+							for i, output := range method.Outputs {
+								values[i] = ethrpcmock.Value(output.Type)
+							}
+							return values, nil
+						}
+					}
+					srv, recorder := ethrpcmock.NewWithResolver(t, resolver, transmuterABI, pythABI, chainlinkABI, morphoABI, dexabi.Erc20ABI)
+					config := &Config{Transmuter: "0x5555555555555555555555555555555555555555"}
+					client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x0000000000000000000000000000000000000001"))
+					tracker := NewPoolTracker(config, client)
+					p := entity.Pool{Address: config.Transmuter, Type: DexType, Exchange: tc.exchange, Tokens: []*entity.PoolToken{{Address: "0x6666666666666666666666666666666666666666"}}}
+					var got entity.Pool
+					var err error
+					if withOverrides {
+						account := common.HexToAddress("0x7777777777777777777777777777777777777777")
+						got, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{Overrides: map[common.Address]gethclient.OverrideAccount{account: {Balance: big.NewInt(5)}}})
+					} else {
+						got, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+					}
+					require.NoError(t, err)
+					require.Equal(t, ethrpcmock.Block, got.BlockNumber)
+					requests := recorder.Snapshot()
+					require.GreaterOrEqual(t, len(requests), 3)
+					ethrpcmock.RequireRequestsPinned(t, recorder, 3)
+					var methods []string
+					for _, call := range requests[2].Calls {
+						methods = append(methods, call.Method)
+					}
+					switch tc.name {
+					case "chainlink":
+						require.Contains(t, methods, "latestRoundData")
+					case "pyth":
+						require.Contains(t, methods, "getPriceUnsafe")
+					case "morpho":
+						require.Contains(t, methods, "price")
+					case "max":
+						require.Empty(t, methods)
+					}
+					key := tc.name + "-" + name
+					ethrpcmock.CheckPool(t, key, got)
+					ethrpcmock.CheckRequests(t, key, recorder)
+				})
+			})
+		}
+	}
+}
 
 func getPool() PoolSimulator {
 	return PoolSimulator{

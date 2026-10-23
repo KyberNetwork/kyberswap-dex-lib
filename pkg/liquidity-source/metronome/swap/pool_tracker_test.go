@@ -4,9 +4,11 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"testing/synctest"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -15,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -27,6 +30,25 @@ type PoolTrackerTestSuite struct {
 
 	client  *ethrpc.Client
 	tracker *PoolTracker
+}
+
+func TestGetNewPoolStatePinsRoundTwo(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.New(t, poolABI, poolRegistryABI, syntheticTokenABI, masterOracleABI, feeProviderABI)
+		client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
+		cfg := &Config{DexID: DexType, ChainID: valueobject.ChainIDEthereum, PoolRegistry: "0x1111111111111111111111111111111111111111"}
+		tracker := NewPoolTracker(cfg, client)
+		staticExtra, err := json.Marshal(StaticExtra{PoolRegistry: cfg.PoolRegistry})
+		require.NoError(t, err)
+		p := entity.Pool{Address: "0x2222222222222222222222222222222222222222", Exchange: DexType, Type: DexType, StaticExtra: string(staticExtra), Tokens: []*entity.PoolToken{{Address: "0x3333333333333333333333333333333333333333", Decimals: 18}, {Address: "0x4444444444444444444444444444444444444444", Decimals: 18}}}
+		account := common.HexToAddress("0x5555555555555555555555555555555555555555")
+		got, err := tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{Overrides: map[common.Address]gethclient.OverrideAccount{account: {Balance: big.NewInt(7)}}})
+		require.NoError(t, err)
+		require.EqualValues(t, ethrpcmock.Block, got.BlockNumber)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, "metronome-swap-round-two", got)
+		ethrpcmock.CheckRequests(t, "metronome-swap-round-two", recorder)
+	})
 }
 
 func (ts *PoolTrackerTestSuite) SetupTest() {

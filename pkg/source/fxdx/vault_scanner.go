@@ -49,6 +49,9 @@ func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, *
 		vs.log.Errorf("error when vaultReader read: %s", err)
 		return nil, nil, err
 	}
+	if validBlockNumber(blockNumber) {
+		ctx = withBlockNumber(ctx, blockNumber)
+	}
 
 	usdf, err := vs.usdfReader.Read(ctx, vault.USDFAddress.String())
 	if err != nil {

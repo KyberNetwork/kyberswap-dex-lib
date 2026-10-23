@@ -2,6 +2,7 @@ package quickperps
 
 import (
 	"context"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,6 +47,9 @@ func (vs *VaultScanner) getVault(ctx context.Context, address string) (*Vault, e
 	if err != nil {
 		vs.log.Errorf("error when vaultReader read: %s", err)
 		return nil, err
+	}
+	if validBlockNumber(vault.BlockNumber) {
+		ctx = withBlockNumber(ctx, vault.BlockNumber)
 	}
 
 	usdq, err := vs.usdqReader.Read(ctx, vault.USDQAddress.String())

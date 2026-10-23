@@ -1,14 +1,23 @@
 package v2
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"testing"
+	"testing/synctest"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
+	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -17,6 +26,30 @@ type PoolListTrackerTestSuite struct {
 
 	updater *PoolsListUpdater
 	tracker *PoolTracker
+}
+
+func TestGetNewPoolStatePinsTaxReads(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var mockBondingABI abi.ABI
+		var err error
+		mockBondingJSON := bytes.ReplaceAll(bondingABIJson, []byte(`"name": "_name"`), []byte(`"name": "internalName"`))
+		mockBondingABI, err = abi.JSON(bytes.NewReader(mockBondingJSON))
+		require.NoError(t, err)
+		srv, recorder := ethrpcmock.New(t, factoryABI, mockBondingABI, pairABI, abipkg.Erc20ABI)
+		rpcClient := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x4444444444444444444444444444444444444444"))
+		cfg := &Config{Factory: "0x5555555555555555555555555555555555555555"}
+		tracker := NewPoolTracker(cfg, rpcClient)
+		staticExtra, err := json.Marshal(StaticExtra{Bonding: "0x6666666666666666666666666666666666666666"})
+		require.NoError(t, err)
+		p := entity.Pool{Address: "0x7777777777777777777777777777777777777777", Tokens: []*entity.PoolToken{{Address: "0x8888888888888888888888888888888888888888"}, {Address: "0x9999999999999999999999999999999999999999"}}, StaticExtra: string(staticExtra)}
+		got, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
+		require.NotEmpty(t, got.Reserves)
+		ethrpcmock.CheckPool(t, "virtual-fun-v2_TestGetNewPoolStatePinsTaxReads", got)
+		ethrpcmock.CheckRequests(t, "virtual-fun-v2_TestGetNewPoolStatePinsTaxReads", recorder)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+	})
 }
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {

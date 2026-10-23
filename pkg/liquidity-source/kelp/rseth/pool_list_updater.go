@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/common"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -139,7 +140,7 @@ func getExtra(
 		Params: []any{},
 	}, []any{&rsETHPrice})
 
-	_, err := getPoolStateRequest.TryBlockAndAggregate()
+	stateResp, err := getPoolStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -153,7 +154,7 @@ func getExtra(
 		tokenDecimals       = make([]uint8, len(assets))
 	)
 
-	getAssetStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
+	getAssetStateRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(stateResp.BlockNumber))
 	if overrides != nil {
 		getAssetStateRequest.SetOverrides(overrides)
 	}
@@ -192,7 +193,7 @@ func getExtra(
 		}, []any{&tokenDecimals[i]})
 	}
 
-	resp, err := getAssetStateRequest.TryBlockAndAggregate()
+	resp, err := utilEth.CallWithBlockRetry(ctx, getAssetStateRequest.TryBlockAndAggregate, stateResp.BlockNumber)
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -225,5 +226,5 @@ func getExtra(
 		}
 	}
 
-	return poolExtra, resp.BlockNumber.Uint64(), nil
+	return poolExtra, stateResp.BlockNumber.Uint64(), nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -106,9 +107,9 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	req = t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
+	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(result.BlockNumber)).SetOverrides(overrides)
 
-	blockTimestamp, err := req.GetCurrentBlockTimestamp()
+	blockTimestamp, err := utilEth.CallWithBlockRetry(ctx, req.GetCurrentBlockTimestamp, result.BlockNumber)
 	if err != nil {
 		return p, err
 	}

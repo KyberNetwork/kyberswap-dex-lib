@@ -1,10 +1,19 @@
 package maverickv1
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"reflect"
+	"sort"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
@@ -12,9 +21,89 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
+
+func TestGetNewPoolStatePinsBinChunks(t *testing.T) {
+	for _, withOverrides := range []bool{false, true} {
+		name := "regular"
+		if withOverrides {
+			name = "overrides"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+					outputs := make([]any, len(method.Outputs))
+					for i, output := range method.Outputs {
+						outputs[i] = ethrpcmock.Value(output.Type)
+					}
+					if method.Name == "getState" {
+						v := reflect.New(reflect.TypeOf(outputs[0]))
+						v.Elem().Set(reflect.ValueOf(outputs[0]))
+						v.Elem().FieldByName("BinCounter").Set(reflect.ValueOf(big.NewInt(2)))
+						outputs[0] = v.Elem().Interface()
+					}
+					if method.Name == "getBin" {
+						v := reflect.New(reflect.TypeOf(outputs[0]))
+						v.Elem().Set(reflect.ValueOf(outputs[0]))
+						v.Elem().FieldByName("ReserveA").Set(reflect.ValueOf(big.NewInt(100)))
+						v.Elem().FieldByName("ReserveB").Set(reflect.ValueOf(big.NewInt(100)))
+						v.Elem().FieldByName("MergeId").Set(reflect.ValueOf(big.NewInt(0)))
+						outputs[0] = v.Elem().Interface()
+					}
+					return outputs, nil
+				}
+				srv, recorder := ethrpcmock.NewWithResolver(t, resolver, poolABI)
+				client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
+				tracker := NewPoolTracker(&Config{GetBinChunk: 1}, client)
+				staticExtra, err := json.Marshal(StaticExtra{TickSpacing: 1})
+				require.NoError(t, err)
+				p := entity.Pool{Address: "0x1111111111111111111111111111111111111111", Type: DexTypeMaverickV1, Tokens: []*entity.PoolToken{{Address: "0x2222222222222222222222222222222222222222"}, {Address: "0x3333333333333333333333333333333333333333"}}, StaticExtra: string(staticExtra)}
+				var got entity.Pool
+				if withOverrides {
+					account := common.HexToAddress("0x4444444444444444444444444444444444444444")
+					got, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{Overrides: map[common.Address]gethclient.OverrideAccount{account: {Balance: big.NewInt(9)}}})
+				} else {
+					got, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				}
+				require.NoError(t, err)
+				require.EqualValues(t, ethrpcmock.Block, got.BlockNumber)
+				requests := recorder.Snapshot()
+				require.Len(t, requests, 4)
+				require.Equal(t, "latest", requests[0].BlockTag)
+				chunkIDs := make([]int64, 0, len(requests)-1)
+				for _, req := range requests[1:] {
+					require.Len(t, req.Calls, 1)
+					require.Equal(t, "getBin", req.Calls[0].Method)
+					chunkIDs = append(chunkIDs, req.Calls[0].Inputs[0].(*big.Int).Int64())
+				}
+				sort.Slice(chunkIDs, func(i, j int) bool { return chunkIDs[i] < chunkIDs[j] })
+				require.Equal(t, []int64{0, 1, 2}, chunkIDs)
+
+				for _, req := range requests[1:] {
+					require.Equal(t, "0x3039", req.BlockTag)
+				}
+
+				ethrpcmock.CheckPool(t, "maverick-v1-"+name, got)
+				checkMaverickChunkRequests(t, "maverick-v1-"+name, requests)
+			})
+		})
+	}
+}
+
+func checkMaverickChunkRequests(t *testing.T, key string, requests []ethrpcmock.RPCRequest) {
+	t.Helper()
+	requests = append([]ethrpcmock.RPCRequest(nil), requests...)
+	for i := range requests {
+		requests[i].BlockTag = ""
+	}
+	sort.Slice(requests[1:], func(i, j int) bool {
+		return requests[1+i].Calls[0].Inputs[0].(*big.Int).Cmp(requests[1+j].Calls[0].Inputs[0].(*big.Int)) < 0
+	})
+	ethrpcmock.CheckRequestList(t, key, requests)
+}
 
 var (
 	rawPool entity.Pool
@@ -448,6 +537,71 @@ func TestGas(t *testing.T) {
 
 			assert.Equal(t, tc.expNextTick, result.SwapInfo.(maverickSwapInfo).activeTick)
 			assert.Equal(t, tc.expGas, result.Gas)
+		})
+	}
+}
+
+func TestGetNewPoolStateUnknownBlockKeepsBinReadsLatest(t *testing.T) {
+	for _, withOverrides := range []bool{false} {
+		name := "regular"
+		if withOverrides {
+			name = "overrides"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+					outputs := make([]any, len(method.Outputs))
+					for i, output := range method.Outputs {
+						outputs[i] = ethrpcmock.Value(output.Type)
+					}
+					if method.Name == "getState" {
+						v := reflect.New(reflect.TypeOf(outputs[0]))
+						v.Elem().Set(reflect.ValueOf(outputs[0]))
+						v.Elem().FieldByName("BinCounter").Set(reflect.ValueOf(big.NewInt(2)))
+						outputs[0] = v.Elem().Interface()
+					}
+					if method.Name == "getBin" {
+						v := reflect.New(reflect.TypeOf(outputs[0]))
+						v.Elem().Set(reflect.ValueOf(outputs[0]))
+						v.Elem().FieldByName("ReserveA").Set(reflect.ValueOf(big.NewInt(100)))
+						v.Elem().FieldByName("ReserveB").Set(reflect.ValueOf(big.NewInt(100)))
+						v.Elem().FieldByName("MergeId").Set(reflect.ValueOf(big.NewInt(0)))
+						outputs[0] = v.Elem().Interface()
+					}
+					return outputs, nil
+				}
+				srv, recorder := ethrpcmock.NewWithResolverAtBlock(t, resolver, 0, poolABI)
+				client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
+				tracker := NewPoolTracker(&Config{GetBinChunk: 1}, client)
+				staticExtra, err := json.Marshal(StaticExtra{TickSpacing: 1})
+				require.NoError(t, err)
+				p := entity.Pool{Address: "0x1111111111111111111111111111111111111111", Type: DexTypeMaverickV1, Tokens: []*entity.PoolToken{{Address: "0x2222222222222222222222222222222222222222"}, {Address: "0x3333333333333333333333333333333333333333"}}, StaticExtra: string(staticExtra)}
+				var got entity.Pool
+				if withOverrides {
+					account := common.HexToAddress("0x4444444444444444444444444444444444444444")
+					got, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{Overrides: map[common.Address]gethclient.OverrideAccount{account: {Balance: big.NewInt(9)}}})
+				} else {
+					got, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				}
+				require.NoError(t, err)
+				require.Zero(t, got.BlockNumber)
+				requests := recorder.Snapshot()
+				require.Len(t, requests, 4)
+				require.Equal(t, "latest", requests[0].BlockTag)
+				chunkIDs := make([]int64, 0, len(requests)-1)
+				for _, req := range requests[1:] {
+					require.Len(t, req.Calls, 1)
+					require.Equal(t, "getBin", req.Calls[0].Method)
+					chunkIDs = append(chunkIDs, req.Calls[0].Inputs[0].(*big.Int).Int64())
+				}
+				sort.Slice(chunkIDs, func(i, j int) bool { return chunkIDs[i] < chunkIDs[j] })
+				require.Equal(t, []int64{0, 1, 2}, chunkIDs)
+
+				for _, req := range requests[1:] {
+					require.Equal(t, "latest", req.BlockTag)
+				}
+
+			})
 		})
 	}
 }

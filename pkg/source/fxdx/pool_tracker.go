@@ -58,6 +58,9 @@ func (d *PoolTracker) GetNewPoolState(
 		reserves = append(reserves, vault.PoolAmounts[token].String())
 	}
 
+	if validBlockNumber(blockNumber) {
+		ctx = withBlockNumber(ctx, blockNumber)
+	}
 	feeUtils, err := NewFeeUtilsV2Reader(d.ethrpcClient).Read(ctx, vault)
 	if err != nil {
 		log.Errorf("get fee utils failed: %v", err)

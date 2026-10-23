@@ -42,7 +42,7 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		tokens[i] = common.HexToAddress(token)
 	}
 
-	request := r.ethrpcClient.R()
+	request := newRequest(r.ethrpcClient, ctx)
 
 	request.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
@@ -57,7 +57,7 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		Params: []any{tokens},
 	}, []any{&getStateResponse})
 
-	if _, err := request.Aggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, request.Aggregate); err != nil {
 		return nil, err
 	}
 

@@ -17,6 +17,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -147,7 +148,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	bands, err := t.getBands(ctx, p.Address, activeBand.Int64(), minBand.Int64(), maxBand.Int64(), t.config.MaxBandLimit,
-		overrides)
+		overrides, resp.BlockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -195,6 +196,7 @@ func (t *PoolTracker) getBands(
 	ctx context.Context,
 	poolAddress string, activeBand, minBand, maxBand, bandLimit int64,
 	overrides map[common.Address]gethclient.OverrideAccount,
+	blockNumber *big.Int,
 ) ([]Band, error) {
 	if minBand > maxBand {
 		return nil, nil
@@ -210,7 +212,7 @@ func (t *PoolTracker) getBands(
 		bandsY = make([]*big.Int, bandCount)
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(shared.AddrDummy).SetOverrides(overrides).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 	for i := range bandCount {
 		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
@@ -225,7 +227,7 @@ func (t *PoolTracker) getBands(
 			Params: []any{bandIndex},
 		}, []any{&bandsY[i]})
 	}
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate, blockNumber); err != nil {
 		return nil, err
 	}
 

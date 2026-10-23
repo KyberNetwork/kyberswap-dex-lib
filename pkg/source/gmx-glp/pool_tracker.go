@@ -48,6 +48,9 @@ func (d *PoolTracker) GetNewPoolState(
 		log.Errorf("get vault failed: %v", err)
 		return entity.Pool{}, fmt.Errorf("get vault failed, pool: %s, err: %v", p.Address, err)
 	}
+	if validBlockNumber(vault.BlockNumber) {
+		ctx = withBlockNumber(ctx, vault.BlockNumber)
+	}
 	glpManager, err := NewGlpManagerScanner(d.config, d.ethrpcClient).getGlpManager(ctx, d.config.GlpManagerAddress)
 	if err != nil {
 		log.Errorf("get glpManager failed: %v", err)

@@ -1,14 +1,75 @@
 package wildcard
 
 import (
+	"context"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
+
+func TestTrackPoolsPinsSamplesForBatch(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.New(t, pairABI, erc20ABI)
+		client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x4444444444444444444444444444444444444444"))
+		extra, err := json.Marshal(Extra{IsNative: []bool{false, false}})
+		require.NoError(t, err)
+		pools := []entity.Pool{
+			{Address: "0x1111111111111111111111111111111111111111", Tokens: []*entity.PoolToken{{Address: "0x2222222222222222222222222222222222222222", Decimals: 0}, {Address: "0x3333333333333333333333333333333333333333", Decimals: 0}}, Extra: string(extra)},
+			{Address: "0x4444444444444444444444444444444444444445", Tokens: []*entity.PoolToken{{Address: "0x5555555555555555555555555555555555555555", Decimals: 0}, {Address: "0x6666666666666666666666666666666666666666", Decimals: 0}}, Extra: string(extra)},
+		}
+		got, err := TrackPools(context.Background(), pools, client, &Config{PriceTolerance: 10})
+		require.NoError(t, err)
+		require.Len(t, got, 2)
+		for _, p := range got {
+			require.Equal(t, uint64(ethrpcmock.Block), p.BlockNumber)
+			require.NotEmpty(t, p.Reserves)
+		}
+		ethrpcmock.CheckPool(t, "wildcard_TestTrackPoolsPinsSamplesForBatch_0", got[0])
+		ethrpcmock.CheckPool(t, "wildcard_TestTrackPoolsPinsSamplesForBatch_1", got[1])
+		ethrpcmock.CheckRequests(t, "wildcard_TestTrackPoolsPinsSamplesForBatch", recorder)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+	})
+}
+
+func TestGetNewPoolStatePinsNativeBalanceAndSamples(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		const poolAddress = "0x1111111111111111111111111111111111111111"
+		const multicallAddress = "0x4444444444444444444444444444444444444444"
+		srv, recorder := ethrpcmock.New(t, pairABI, erc20ABI, multicallABI)
+		client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress(multicallAddress))
+		tracker := NewPoolTracker(&Config{MulticallAddress: multicallAddress, PriceTolerance: 10}, client)
+		extra, err := json.Marshal(Extra{IsNative: []bool{true, false}})
+		require.NoError(t, err)
+		updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{
+			Address: poolAddress,
+			Tokens: []*entity.PoolToken{
+				{Address: "0x2222222222222222222222222222222222222222", Decimals: 6},
+				{Address: "0x3333333333333333333333333333333333333333", Decimals: 6},
+			},
+			Extra: string(extra),
+		}, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
+		require.Equal(t, entity.PoolReserves{"1", "1"}, updated.Reserves)
+		requests := recorder.Snapshot()
+		require.Len(t, requests, 2)
+		require.Equal(t, "getEthBalance", requests[0].Calls[0].Method)
+		require.Equal(t, "balanceOf", requests[0].Calls[1].Method)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, "wildcard-native-balance", updated)
+		ethrpcmock.CheckRequests(t, "wildcard-native-balance", recorder)
+	})
+}
 
 var (
 	entityPool entity.Pool
@@ -31,4 +92,16 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestGetNewPoolStateUnknownBlockKeepsLatest(t *testing.T) {
+	srv, recorder := ethrpcmock.NewAtBlock(t, 0, pairABI, erc20ABI)
+	tracker := NewPoolTracker(&Config{PriceTolerance: 10}, ethrpc.New(srv.URL))
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: "0x1111111111111111111111111111111111111111", Tokens: []*entity.PoolToken{{Address: "0x2222222222222222222222222222222222222222"}, {Address: "0x3333333333333333333333333333333333333333"}}, Extra: `{"isNative":[false,false]}`}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Zero(t, updated.BlockNumber)
+	require.Len(t, recorder.Snapshot(), 2)
+	for _, req := range recorder.Snapshot() {
+		require.Equal(t, "latest", req.BlockTag)
+	}
 }

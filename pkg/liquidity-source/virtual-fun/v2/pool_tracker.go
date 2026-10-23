@@ -11,11 +11,11 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -56,7 +56,7 @@ func (d *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	buyTax, sellTax, kLast, antiSniperBuyTaxStartValue, taxStartTime, startTime, err := d.getTax(ctx, p.Address)
+	buyTax, sellTax, kLast, antiSniperBuyTaxStartValue, taxStartTime, startTime, err := d.getTax(ctx, p.Address, blockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -163,10 +163,11 @@ func (d *PoolTracker) getBondingData(
 func (d *PoolTracker) getTax(
 	ctx context.Context,
 	poolAddress string,
+	blockNumber *big.Int,
 ) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	var buyTax, sellTax, kLast, antiSniperBuyTaxStartValue, taxStartTime, startTime *big.Int
 
-	req := d.ethrpcClient.R().SetContext(ctx)
+	req := d.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.Factory,
@@ -192,7 +193,7 @@ func (d *PoolTracker) getTax(
 		Target: poolAddress,
 		Method: "startTime",
 	}, []any{&startTime})
-	if _, err := req.TryAggregate(); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, req.TryAggregate, blockNumber); err != nil {
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
