@@ -3,6 +3,7 @@ package algebra
 import (
 	"cmp"
 	"context"
+	"maps"
 	"math/big"
 	"slices"
 	"sort"
@@ -191,6 +192,11 @@ func dropOverwrittenTimepoints[T Timepoint](timepoints map[uint16]T, currentInde
 	if currentTimestamp == 0 {
 		return
 	}
+	// A slot newer than the head was written after the block read: the cache of a later read, such as
+	// that of a pool reset and read again at an older batch head, holds nothing at this block.
+	maps.DeleteFunc(timepoints, func(_ uint16, tp T) bool {
+		return tp.GetInitialized() && tp.GetBlockTimestamp() > currentTimestamp
+	})
 	indices := make([]uint16, 0, len(timepoints))
 	for idx, tp := range timepoints {
 		if tp.GetInitialized() {
