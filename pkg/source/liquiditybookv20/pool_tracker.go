@@ -510,7 +510,13 @@ func (t *PoolTracker) refetchAllBins(ctx context.Context, p *entity.Pool, binsFr
 	if t.cfg.UseLens {
 		var bins []Bin
 		ran, err := t.lensGuard.Try(ctx, p.Address, func(ctx context.Context) error {
-			snap, err := t.snapshot(ctx, p.Address, new(big.Int).SetUint64(p.BlockNumber))
+			// At the block the reserves were read at, so the bins add up to them, as the stored ones
+			// read again do: the pair's own block is past them after a reorg.
+			var at *big.Int
+			if blockNumber > 0 {
+				at = new(big.Int).SetUint64(blockNumber)
+			}
+			snap, err := t.snapshot(ctx, p.Address, at)
 			if err != nil {
 				return err
 			}
