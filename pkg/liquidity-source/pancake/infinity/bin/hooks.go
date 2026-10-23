@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin/hooks/brevis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin/hooks/thanos"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -17,9 +18,17 @@ type Hook interface {
 		binPoolManager string, hookAddress common.Address, lpFee uint32) uint32
 }
 
+// SwapFeeHook is a hook whose beforeSwap takes a fee (pips) on the specified amount for itself.
+type SwapFeeHook interface {
+	SwapFeeCall(hookAddress common.Address, poolID string) *ethrpc.Call
+}
+
 var Hooks = map[common.Address]Hook{}
 
 var _ = RegisterHooks(brevis.NewHook(valueobject.ExchangePancakeInfinityBinBrevis), brevis.BinHookAddresses...)
+
+// Generic name; the pool factory/lister swaps in the dex id (squadswap-bin).
+var _ = RegisterHooks(thanos.NewHook(valueobject.ExchangePancakeInfinityBin), thanos.BinHookAddresses...)
 
 func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	for _, address := range addresses {

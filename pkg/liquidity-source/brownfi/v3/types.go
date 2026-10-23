@@ -90,13 +90,13 @@ type PoolMeta struct {
 type PythUpdateData struct {
 	Binary struct {
 		Data []string `json:"data,omitempty"`
-	} `json:"binary,omitempty"`
+	} `json:"binary"`
 	Parsed []struct {
 		Price struct {
 			Price       string `json:"price,omitempty"`
 			Conf        string `json:"conf,omitempty"`
 			Expo        int    `json:"expo,omitempty"`
 			PublishTime int64  `json:"publish_time,omitempty"`
-		} `json:"price,omitempty"`
+		} `json:"price"`
 	} `json:"parsed,omitempty"`
 }

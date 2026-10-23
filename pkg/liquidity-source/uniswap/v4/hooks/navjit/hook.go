@@ -79,9 +79,9 @@ type Extra struct {
 	// Buy: USDG in -> LOT out. Sell: LOT in -> USDG out. Ascending in both In and Out.
 	Buy  []Rung `json:"bl,omitempty"`
 	Sell []Rung `json:"sl,omitempty"`
-	// Block is the block every read of the last Track was pinned to; TrackedAt its unix time.
-	Block     uint64 `json:"bn,omitempty"`
-	TrackedAt int64  `json:"ts,omitempty"`
+	// TrackedAt is the legacy tracker clock. Track no longer writes it (nor the old pinned block
+	// "bn"); it is read only while the pool has no Extra "lv" (see trackedAt).
+	TrackedAt int64 `json:"ts,omitempty"`
 }
 
 type Hook struct {
@@ -94,6 +94,24 @@ type Hook struct {
 	// opposite direction is left alone, which errs toward under-quoting it. Out is pre-haircut.
 	consumedIn, consumedOut [2]uint256.Int
 	staleCheck              bool
+	liveAt                  int64 // Extra "lv": when the tracker last confirmed this state
+}
+
+// livenessInterval is how often the tracker restamps a quiet pool; the worst quote age is this plus
+// one tracker interval, under maxAgeSec.
+const livenessInterval = 20 * time.Second
+
+func (h *Hook) LivenessInterval() time.Duration { return livenessInterval }
+
+// TracksActivity: the extra holds only chain state, so a change bumps Timestamp/BlockNumber.
+func (h *Hook) TracksActivity() {}
+
+// trackedAt is the age baseline: the tracker's lv, else the legacy extra clock.
+func (h *Hook) trackedAt() int64 {
+	if h.liveAt > 0 {
+		return h.liveAt
+	}
+	return h.TrackedAt
 }
 
 const (
@@ -111,7 +129,7 @@ type SwapInfo struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NavJit},
-		staleCheck: param.StaleCheck}
+		staleCheck: param.StaleCheck, liveAt: param.TrackedAt}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
 }, HookAddresses...)
@@ -298,24 +316,32 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		buyIn[i] = new(big.Int).Mul(new(big.Int).SetUint64(usd), usdgUnit)
 	}
 	buyOut := make([]quoteResult, len(buyIn))
-	req = param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).SetBlockNumber(block).
-		AddCall(&ethrpc.Call{ABI: navGuardABI, Target: hexutil.Encode(navGuard[:]),
-			Method: "checkedNavPerUnit18", Params: []any{lot}}, []any{&nav}).
-		AddCall(&ethrpc.Call{ABI: erc20ABI, Target: hexutil.Encode(lot[:]),
-			Method: "balanceOf", Params: []any{pm}}, []any{&float})
-	addLadder(req, quoter, key, usdgIs0, buyIn, buyOut)
-	res2, err := req.TryAggregate()
+	navCall, err := newCappedCall(navGuardABI, navGuard, "checkedNavPerUnit18", lot)
 	if err != nil {
 		return nil, err
 	}
-	h.Extra = Extra{Tracked: true, UsdgIs0: usdgIs0, BandBps: params.P.BandBps, UsdgDecimals: usdgDecimals,
-		Block: block.Uint64(), TrackedAt: time.Now().Unix()}
+	floatCall, err := newCappedCall(erc20ABI, lot, "balanceOf", pm)
+	if err != nil {
+		return nil, err
+	}
+	calls := []cappedCall{navCall, floatCall}
+	if calls, err = appendLadder(calls, quoter, key, usdgIs0, buyIn); err != nil {
+		return nil, err
+	}
+	res2, err := cappedMulticall(ctx, param.RpcClient, param.Overrides, block, calls)
+	if err != nil {
+		return nil, err
+	}
+	navOk := res2[0].unpack(navGuardABI, "checkedNavPerUnit18", &nav)
+	floatOk := res2[1].unpack(erc20ABI, "balanceOf", &float)
+	buyOk := unpackLadder(res2[2:], buyOut)
+	h.Extra = Extra{Tracked: true, UsdgIs0: usdgIs0, BandBps: params.P.BandBps, UsdgDecimals: usdgDecimals}
 	// The hook's beforeSwap reads the same guard: if it reverts, so does every swap.
-	if !res2.Result[0] || nav == nil || nav.Sign() == 0 || !res2.Result[1] || float == nil {
+	if !navOk || nav == nil || nav.Sign() == 0 || !floatOk || float == nil {
 		return json.Marshal(h)
 	}
 	h.Nav, h.Float = uint256.MustFromBig(nav), uint256.MustFromBig(float)
-	h.Buy = toLadder(buyIn, buyOut, res2.Result[2:])
+	h.Buy = toLadder(buyIn, buyOut, buyOk)
 
 	// Round 3: the sell ladder (LOT in), sized at NAV, plus rungs just under the float.
 	sellIn := make([]*big.Int, 0, len(rungsUsd)+len(floatRungsBps))
@@ -333,26 +359,40 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		}
 	}
 	sellOut := make([]quoteResult, len(sellIn))
-	req = param.RpcClient.NewRequest().SetContext(ctx).SetOverrides(param.Overrides).SetBlockNumber(block)
-	addLadder(req, quoter, key, !usdgIs0, sellIn, sellOut)
-	res3, err := req.TryAggregate()
+	if calls, err = appendLadder(calls[:0], quoter, key, !usdgIs0, sellIn); err != nil {
+		return nil, err
+	}
+	res3, err := cappedMulticall(ctx, param.RpcClient, param.Overrides, block, calls)
 	if err != nil {
 		return nil, err
 	}
-	h.Sell = toLadder(sellIn, sellOut, res3.Result)
+	sellOk := unpackLadder(res3, sellOut)
+	h.Sell = toLadder(sellIn, sellOut, sellOk)
 	return json.Marshal(h)
 }
 
-func addLadder(req *ethrpc.Request, quoter common.Address, key quoteParams, zeroForOne bool,
-	amounts []*big.Int, out []quoteResult) {
-	target := hexutil.Encode(quoter[:])
-	for i, amt := range amounts {
+func appendLadder(calls []cappedCall, quoter common.Address, key quoteParams, zeroForOne bool,
+	amounts []*big.Int) ([]cappedCall, error) {
+	for _, amt := range amounts {
 		qp := key
 		qp.ZeroForOne = zeroForOne
 		qp.ExactAmount = amt
-		req.AddCall(&ethrpc.Call{ABI: quoterABI, Target: target, Method: "quoteExactInputSingle",
-			Params: []any{qp}}, []any{&out[i]})
+		c, err := newCappedCall(quoterABI, quoter, "quoteExactInputSingle", qp)
+		if err != nil {
+			return nil, err
+		}
+		calls = append(calls, c)
 	}
+	return calls, nil
+}
+
+// unpackLadder decodes the quote results into out; a rung that failed or did not decode is not ok.
+func unpackLadder(res []cappedResult, out []quoteResult) []bool {
+	ok := make([]bool, len(out))
+	for i := range out {
+		ok[i] = res[i].unpack(quoterABI, "quoteExactInputSingle", &out[i])
+	}
+	return ok
 }
 
 // toLadder keeps the contiguous run of successful, strictly increasing rungs from the bottom:
@@ -385,7 +425,7 @@ func toLadder(in []*big.Int, out []quoteResult, ok []bool) []Rung {
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if !h.Tracked {
 		return nil, ErrPoolIsNotTracked
-	} else if h.staleCheck && time.Now().Unix()-h.TrackedAt > maxAgeSec {
+	} else if h.staleCheck && time.Now().Unix()-h.trackedAt() > maxAgeSec {
 		return nil, ErrStale
 	}
 	dir, ladder := dirSell, h.Sell

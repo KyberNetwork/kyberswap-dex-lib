@@ -9,6 +9,7 @@ import (
 var (
 	VaultExplorerABI abi.ABI
 	ERC4626ABI       abi.ABI
+	PoolFactoryABI   abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&VaultExplorerABI, vaultExplorerJson},
 		{&ERC4626ABI, erc4626Json},
+		{&PoolFactoryABI, poolFactoryJson},
 	}
 
 	for _, b := range builder {

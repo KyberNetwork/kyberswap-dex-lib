@@ -98,7 +98,7 @@ func _k(x, y, decimals0, decimals1 *big.Int, stable bool) *big.Int {
 func _get_y(x0, xy, y *big.Int) *big.Int {
 	_y := new(big.Int).Set(y)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		y_prev := new(big.Int).Set(_y)
 
 		k := _f(x0, _y)

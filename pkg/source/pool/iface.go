@@ -46,6 +46,10 @@ type IPoolTrackerWithDependencies interface {
 	SetDependenciesStored(p *entity.Pool, isStored bool) error
 }
 
+// IPoolTrackerWithSchedule is implemented by trackers that want a pool updated again at a
+// unix time even with no event. 0 = no scheduled update.
+type IPoolTrackerWithSchedule interface{ NextUpdateAt(p entity.Pool) int64 }
+
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
 	// the required params is TokenAmountIn and TokenOut.

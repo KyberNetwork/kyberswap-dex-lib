@@ -93,7 +93,7 @@ func TestPump_SellTakesFeeOnOutput(t *testing.T) {
 func TestDirectLaunch_NoHookFee(t *testing.T) {
 	NowFn = func() int64 { return 2_000_000_000 }
 	for _, mode := range []uint8{ModeClanker, ModeRwa} {
-		h := &Hook{Extra: Extra{Tracked: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}}
+		h := &Hook{Tracked: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}
 		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e9)})
 		require.NoError(t, err)
 		assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
@@ -131,7 +131,7 @@ func TestPerTxMaxBuyTokens(t *testing.T) {
 }
 
 func TestDirectLaunch_BuyCap(t *testing.T) {
-	h := &Hook{Extra: Extra{Tracked: true, Mode: ModeClanker, Status: StatusGraduated, QuoteIsCurrency0: false, LaunchedAt: 1_000, BuyCapEnabled: true}}
+	h := &Hook{Tracked: true, Mode: ModeClanker, Status: StatusGraduated, QuoteIsCurrency0: false, LaunchedAt: 1_000, BuyCapEnabled: true}
 	// cap = 1% = 10M tokens; the quote is currency1, so a buy is oneForZero.
 	NowFn = func() int64 { return 1_000 + 30 }
 	buy := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false}
@@ -158,11 +158,11 @@ func TestRefusesUntradablePools(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNotTracked)
 
 	for _, status := range []uint8{StatusCurving, StatusGraduationStarted} {
-		_, err = (&Hook{Extra: Extra{Tracked: true, Mode: ModePump, Status: status}}).BeforeSwap(params)
+		_, err = (&Hook{Tracked: true, Mode: ModePump, Status: status}).BeforeSwap(params)
 		assert.ErrorIs(t, err, ErrNotGraduated)
 	}
 
-	_, err = (&Hook{Extra: Extra{Tracked: true, Mode: 2, Status: StatusGraduated}}).BeforeSwap(params)
+	_, err = (&Hook{Tracked: true, Mode: 2, Status: StatusGraduated}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrUnknownMode)
 }
 
@@ -251,7 +251,7 @@ func TestDirectLaunchV2_BuyCap(t *testing.T) {
 	NowFn = func() int64 { return 1_000 + 30 } // first minute: cap = 1% = 10M tokens
 
 	for _, mode := range []uint8{ModeClanker, ModeRwa} {
-		h := &Hook{Extra: Extra{Tracked: true, NoSwapDelta: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}}
+		h := &Hook{Tracked: true, NoSwapDelta: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}
 		for _, calcOut := range []bool{true, false} {
 			buy := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: true}
 			after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: tokens(10_000_000)})
@@ -273,15 +273,15 @@ func TestDirectLaunchV2_BuyCap(t *testing.T) {
 func TestV2_RefusalsAndExactOut(t *testing.T) {
 	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1_000)}
 
-	_, err := (&Hook{Extra: Extra{NoSwapDelta: true}}).BeforeSwap(params)
+	_, err := (&Hook{NoSwapDelta: true}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrNotTracked)
 
 	for _, status := range []uint8{StatusCurving, StatusGraduationStarted} {
-		_, err = (&Hook{Extra: Extra{Tracked: true, NoSwapDelta: true, Mode: ModePump, Status: status}}).BeforeSwap(params)
+		_, err = (&Hook{Tracked: true, NoSwapDelta: true, Mode: ModePump, Status: status}).BeforeSwap(params)
 		assert.ErrorIs(t, err, ErrNotGraduated)
 	}
 
-	_, err = (&Hook{Extra: Extra{Tracked: true, NoSwapDelta: true, Mode: 2, Status: StatusGraduated}}).BeforeSwap(params)
+	_, err = (&Hook{Tracked: true, NoSwapDelta: true, Mode: 2, Status: StatusGraduated}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrUnknownMode)
 
 	exactOut := &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: big.NewInt(1)}

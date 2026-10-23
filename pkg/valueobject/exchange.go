@@ -23,8 +23,6 @@ const (
 	ExchangeArenaBC                     = "arena-bc"
 	ExchangeAstroSwap                   = "astroswap"
 	ExchangeAxial                       = "axial"
-	ExchangeAxima                       = "axima"
-	ExchangeAximaV2                     = "axima-v2"
 	ExchangeMetricPropAMM               = "metric-propamm"
 	ExchangeBabyDogeSwap                = "babydogeswap"
 	ExchangeBakerySwap                  = "bakeryswap"
@@ -67,6 +65,9 @@ const (
 	ExchangeBurrBearComposableStable    = "burrbear-composable-stable"
 	ExchangeBurrBearStable              = "burrbear-stable"
 	ExchangeBurrBearWeighted            = "burrbear-weighted"
+	ExchangeBushV3ReCLAMM               = "bush-v3-reclamm"
+	ExchangeBushV3Stable                = "bush-v3-stable"
+	ExchangeBushV3Weighted              = "bush-v3-weighted"
 	ExchangeCaliberProp                 = "caliber-prop"
 	ExchangeCanonic                     = "canonic"
 	ExchangeCapricornPamm               = "capricorn-pamm"
@@ -144,6 +145,7 @@ const (
 	ExchangeGyroscope2CLP               = "gyroscope-2clp"
 	ExchangeGyroscope3CLP               = "gyroscope-3clp"
 	ExchangeGyroscopeECLP               = "gyroscope-eclp"
+	ExchangeHanji                       = "hanji"
 	ExchangeHashflowV3                  = "hashflow-v3"
 	ExchangeHiddenOcean                 = "hidden-ocean"
 	ExchangeHoney                       = "honey"
@@ -179,6 +181,7 @@ const (
 	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
 	ExchangeLO1inch                     = "lo1inch"
+	ExchangeLoopLiquid                  = "loop-liquid"
 	ExchangeLunarBase                   = "lunarbase"
 	ExchangeLunya                       = "lunya"
 	ExchangeLunyaFun                    = "lunya-fun"
@@ -237,6 +240,7 @@ const (
 	ExchangePancakeInfinityCLStable     = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax        = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy               = "pancake-legacy"
+	ExchangePancakeProp                 = "pancake-prop"
 	ExchangePancakeStable               = "pancake-stable"
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
@@ -273,6 +277,7 @@ const (
 	ExchangeRocketPoolRETH              = "rocketpool-reth"
 	ExchangeSafeSwap                    = "safeswap"
 	ExchangeSavingsUSDS                 = "savings-usds"
+	ExchangeSaturnUsdat                 = "saturn-usdat"
 	ExchangeSboom                       = "sboom"
 	ExchangeSfrxETH                     = "sfrxeth"
 	ExchangeSfrxETHConvertor            = "sfrxeth-convertor"
@@ -288,6 +293,8 @@ const (
 	ExchangeSlyngFun                    = "slyng-fun"
 	ExchangeSpireProp                   = "spire-prop"
 	ExchangeSpookySwap                  = "spookyswap"
+	ExchangeSquadSwapBin                = "squadswap-bin"
+	ExchangeSquadSwapCL                 = "squadswap-cl"
 	ExchangeStaderETHx                  = "staderethx"
 	ExchangeStonkbrokersFunV2           = "stonkbrokers-fun-v2"
 	ExchangeSuperlendV3                 = "superlend-v3"
@@ -321,6 +328,7 @@ const (
 	ExchangeUniswapV4Alphix             = "uniswap-v4-alphix"
 	ExchangeUniswapV4Angstrom           = "uniswap-v4-angstrom"
 	ExchangeUniswapV4AngstromL2         = "uniswap-v4-angstrom-l2"
+	ExchangeUniswapV4ApeFun             = "uniswap-v4-apefun"
 	ExchangeUniswapV4Arcade             = "uniswap-v4-arcade"
 	ExchangeUniswapV4Arena              = "uniswap-v4-arena"
 	ExchangeUniswapV4Arrakis            = "uniswap-v4-arrakis"
@@ -337,13 +345,16 @@ const (
 	ExchangeUniswapV4Euler              = "uniswap-v4-euler"
 	ExchangeUniswapV4EulerV2            = "uniswap-v4-euler-v2"
 	ExchangeUniswapV4EVPLUSAI           = "uniswap-v4-evplusai"
+	ExchangeUniswapV4FableCurve         = "uniswap-v4-fablecurve"
 	ExchangeUniswapV4Fables             = "uniswap-v4-fables"
 	ExchangeUniswapV4FairFlow           = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch            = "uniswap-v4-flaunch"
 	ExchangeUniswapV4GlueHook           = "uniswap-v4-gluehook"
+	ExchangeUniswapV4HyFiProp           = "uniswap-v4-hyfiprop"
 	ExchangeUniswapV4Inverse            = "uniswap-v4-inverse"
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
+	ExchangeUniswapV4LotFlow            = "uniswap-v4-lotflow"
 	ExchangeUniswapV4Mofo               = "uniswap-v4-mofo"
 	ExchangeUniswapV4NavJit             = "uniswap-v4-navjit"
 	ExchangeUniswapV4NftStrategy        = "uniswap-v4-nftstrat"
@@ -356,7 +367,12 @@ const (
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
 	ExchangeUniswapV4StablesFast        = "uniswap-v4-stables-fast"
+	ExchangeUniswapV4TickerDualPool     = "uniswap-v4-ticker-dualpool"
+	ExchangeUniswapV4TickerMeme         = "uniswap-v4-ticker-meme"
+	ExchangeUniswapV4Volatile           = "uniswap-v4-volatile"
 	ExchangeUniswapV4Zora               = "uniswap-v4-zora"
+	ExchangeUpshiftUsdf                 = "upshift-usdf"
+	ExchangeUpshiftVaultV2              = "upshift-vaultv2"
 	ExchangeUsd0PP                      = "usd0pp"
 	ExchangeUsdAi                       = "usd-ai"
 	ExchangeUsdsLitePsm                 = "usds-lite-psm"
@@ -382,6 +398,7 @@ const (
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
+	ExchangeBTRProp                     = "btr-prop"
 	ExchangeBopAMM                      = "bop-amm"
 	ExchangePonsFun                     = "pons-fun"
 	ExchangePonsV2                      = "pons-v2"
@@ -433,8 +450,6 @@ func IsRFQSource[T ~string](exchange T) bool {
 // needFallbackSourceSet is a set of exchanges that
 // need to have a fallback swap (in addition to RFQ sources).
 var needFallbackSourceSet = map[Exchange]struct{}{
-	ExchangeAxima:         {},
-	ExchangeAximaV2:       {},
 	ExchangeMetricPropAMM: {},
 	ExchangeWooFiV3:       {},
 	ExchangeBrownfiV2:     {},
@@ -457,7 +472,6 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeWildcard:           {},
 	ExchangeKipseliProp:        {},
 	ExchangeWasabiProp:         {},
-	ExchangeAximaV2:            {},
 	ExchangeObric:              {},
 	ExchangePoe:                {},
 	ExchangeFermi:              {},
@@ -482,6 +496,9 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeSpireProp:          {},
 	ExchangeUSCoreProp:         {},
 	ExchangeNemoProp:           {},
+	ExchangeBTRProp:            {},
+	ExchangeUniswapV4HyFiProp:  {},
+	ExchangePancakeProp:        {},
 	ExchangeBiconomyProp:       {},
 }
 

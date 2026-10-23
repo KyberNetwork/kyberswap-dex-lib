@@ -69,9 +69,9 @@ var (
 // levMul512 returns the high and low limbs of the full 512-bit product a*b (Mul512.mul512).
 func levMul512(a, b *uint256.Int) (hi, lo uint256.Int) {
 	var p [8]uint64
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		var carry uint64
-		for j := 0; j < 4; j++ {
+		for j := range 4 {
 			h, l := bits.Mul64(a[i], b[j])
 			var c uint64
 			l, c = bits.Add64(l, p[i+j], 0)

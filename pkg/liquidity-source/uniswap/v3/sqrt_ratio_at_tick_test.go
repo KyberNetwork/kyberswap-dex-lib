@@ -62,7 +62,7 @@ func TestGetSqrtRatioAtTickMatchesSolidity(t *testing.T) {
 	require.Equal(t, "79228162514264337593543950336", refSqrtRatioAtTick(0).String())
 
 	ticks := []int{MinTick, MinTick + 1, MaxTick - 1, MaxTick}
-	for k := 0; k < 20; k++ {
+	for k := range 20 {
 		for _, d := range []int{-1, 0, 1} {
 			if abs := 1<<k + d; abs <= MaxTick {
 				ticks = append(ticks, abs, -abs)

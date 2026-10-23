@@ -32,29 +32,25 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
-		SmardexPair: SmardexPair{
-			PairFee:        pair.PairFee,
-			FictiveReserve: pair.FictiveReserve,
-			PriceAverage:   pair.PriceAverage,
-			FeeToAmount:    pair.FeeToAmount,
-		},
-		gas: DefaultGas,
+		PairFee:        pair.PairFee,
+		FictiveReserve: pair.FictiveReserve,
+		PriceAverage:   pair.PriceAverage,
+		FeeToAmount:    pair.FeeToAmount,
+		gas:            DefaultGas,
 	}, nil
 }
 

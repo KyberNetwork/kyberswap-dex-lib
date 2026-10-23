@@ -42,15 +42,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	binMapIds := lo.Keys(binMap)
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
-				Reserves:    []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+			Reserves:    []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
+			BlockNumber: entityPool.BlockNumber,
 		},
 		decimals: []uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
 		state: &MaverickPoolState{

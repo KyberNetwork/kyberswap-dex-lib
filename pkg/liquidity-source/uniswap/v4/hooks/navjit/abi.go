@@ -11,6 +11,8 @@ var (
 	navGuardABI abi.ABI
 	erc20ABI    abi.ABI
 	quoterABI   abi.ABI
+
+	cappedMulticallABI abi.ABI
 )
 
 func init() {
@@ -22,6 +24,7 @@ func init() {
 		{&navGuardABI, navGuardABIJson},
 		{&erc20ABI, erc20ABIJson},
 		{&quoterABI, quoterABIJson},
+		{&cappedMulticallABI, cappedMulticallABIJson},
 	} {
 		var err error
 		if *item.abi, err = abi.JSON(bytes.NewReader(item.data)); err != nil {

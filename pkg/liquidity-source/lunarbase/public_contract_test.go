@@ -198,7 +198,7 @@ func TestPublicSnapshotConcurrentClientsAndPools(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			p := entities[i]
-			for n := 0; n < 10; n++ {
+			for range 10 {
 				got, err := trackers[i].GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 				if err != nil {
 					errs <- err

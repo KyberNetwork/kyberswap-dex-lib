@@ -69,7 +69,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	isNativeToken0 := false
 	isNativeToken1 := false
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		// convert to wrapped if is native token
 		if entityPool.Tokens[i].Address == valueobject.ZeroAddress {
 			tokens[i] = strings.ToLower(valueobject.WrappedNativeMap[chainID])
@@ -103,17 +103,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     integer.Zero(),
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-				// Checked:    false,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     integer.Zero(),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
+			// Checked:    false,
 		},
 		token0:                  tokens[0],
 		token1:                  tokens[1],

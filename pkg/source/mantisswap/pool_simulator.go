@@ -30,14 +30,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Type,
-				Type:        entityPool.Exchange,
-				Tokens:      tokens,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Type,
+			Type:        entityPool.Exchange,
+			Tokens:      tokens,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		state: &PoolState{
 			Paused:      extra.Paused,

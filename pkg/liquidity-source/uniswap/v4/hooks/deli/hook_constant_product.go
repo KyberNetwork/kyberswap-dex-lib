@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -79,7 +78,7 @@ func (h *ConstantProductHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*u
 }
 
 func (h *ConstantProductHook) CloneState() uniswapv4.Hook {
-	return lo.ToPtr(*h)
+	return new(*h)
 }
 
 func (h *ConstantProductHook) UpdateBalance(swapInfoAny any) {

@@ -41,8 +41,8 @@ const (
 )
 
 var (
-	// factoryAddress is the mainnet RangePoolFactory (pool discovery via getPools()).
-	// Live per-chain factory addresses come from Config.FactoryAddress (config-driven).
+	// factoryAddress is the mainnet RangePoolFactory (pool discovery via getPoolsInRange).
+	// Live per-chain factory addresses come from Config.Factories (config-driven).
 	factoryAddress = common.HexToAddress("0x5D6D1dC0D045a8DE284C7Ab5FE83aCd7bdc5d4E0")
 
 	// routerAddress is sourced from shared.BatchRouterMap (keyed "range", like the
@@ -67,10 +67,10 @@ func (ts *IntegrationSuite) SetupSuite() {
 	ts.client = ethrpc.New(rpcURL).SetMulticallContract(common.HexToAddress(mainnetMulticall3))
 
 	cfg := &Config{
-		DexID:          DexType,
-		ChainID:        valueobject.ChainIDEthereum,
-		FactoryAddress: hexutil.Encode(factoryAddress[:]),
-		NewPoolLimit:   100,
+		DexID:        DexType,
+		ChainID:      valueobject.ChainIDEthereum,
+		Factories:    []string{hexutil.Encode(factoryAddress[:])},
+		NewPoolLimit: 100,
 	}
 	ts.lister = NewPoolsListUpdater(cfg, ts.client)
 
@@ -84,7 +84,7 @@ func (ts *IntegrationSuite) SetupSuite() {
 func (ts *IntegrationSuite) discoverAll() map[string]entity.Pool {
 	all := make(map[string]entity.Pool)
 	var meta []byte
-	for round := 0; round < 20; round++ {
+	for range 20 {
 		pools, next, err := ts.lister.GetNewPools(context.Background(), meta)
 		ts.Require().NoError(err)
 		for _, p := range pools {
@@ -150,7 +150,7 @@ func (ts *IntegrationSuite) assertTrackedMatchesChain(poolAddr string, wantToken
 	// Direct read pinned to the tracked block — the ground truth.
 	onchain := ts.readDynamicDataAt(poolAddr, tracked.BlockNumber)
 
-	for i := 0; i < wantTokens; i++ {
+	for i := range wantTokens {
 		ts.Require().Equalf(onchain.VirtualBalances[i].String(), extra.VirtualBalances[i].String(),
 			"virtualBalances[%d] mismatch", i)
 		ts.Require().Equalf(onchain.BalancesLiveScaled18[i].String(), extra.BalancesLiveScaled18[i].String(),

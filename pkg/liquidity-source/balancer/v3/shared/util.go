@@ -21,7 +21,7 @@ func FromBigs(v []*big.Int) []*uint256.Int {
 }
 
 func BatchRouter(chainID valueobject.ChainID, exchange string) (common.Address, bool) {
-	prefix := strings.SplitN(exchange, "-", 2)[0]
+	prefix, _, _ := strings.Cut(exchange, "-")
 	router, ok := BatchRouterMap[prefix]
 	if !ok {
 		router = BatchRouterMap[""]
@@ -31,7 +31,7 @@ func BatchRouter(chainID valueobject.ChainID, exchange string) (common.Address, 
 }
 
 func Vault(chainID valueobject.ChainID, exchange string) common.Address {
-	prefix := strings.SplitN(exchange, "-", 2)[0]
+	prefix, _, _ := strings.Cut(exchange, "-")
 	if override, ok := VaultOverrideMap[prefix][chainID]; ok {
 		return override
 	}
@@ -40,4 +40,20 @@ func Vault(chainID valueobject.ChainID, exchange string) common.Address {
 		vault = VaultMap[""]
 	}
 	return vault
+}
+
+var (
+	feeMask  = uint256.NewInt(1<<24 - 1)
+	feeScale = uint256.NewInt(1e11) // FEE_SCALING_FACTOR
+)
+
+const aggregateSwapFeeOffset = 42 // PoolConfigConst.AGGREGATE_SWAP_FEE_OFFSET
+
+// AggregateSwapFee decodes the aggregate swap fee from poolConfigBits, the same source the Vault's
+// getPoolConfig (and VaultExplorer.getAggregateFeePercentages) reads.
+func (r *RpcResult) AggregateSwapFee() *uint256.Int {
+	v := new(uint256.Int).SetBytes32(r.PoolData.PoolConfigBits[:])
+	v.Rsh(v, aggregateSwapFeeOffset)
+	v.And(v, feeMask)
+	return v.Mul(v, feeScale)
 }

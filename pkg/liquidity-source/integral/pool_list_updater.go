@@ -153,7 +153,7 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < poolsLength; i++ {
+	for i := range poolsLength {
 		poolAddressHex := poolAddresses[i].Hex()
 
 		rpcRequest.AddCall(&ethrpc.Call{

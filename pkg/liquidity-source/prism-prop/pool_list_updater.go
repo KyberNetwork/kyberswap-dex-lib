@@ -24,11 +24,10 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 	return &PoolsListUpdater{config: cfg, ethrpcClient: ethrpcClient}
 }
 
-// GetNewPools re-lists every pair on every run: getSupportedPairs is a single
-// cheap call, and prism-prop has no pair-added event to track a cursor from
-// (see titan-prop's KnownVenues cursor for the pattern this would follow if
-// that changes). The pool-service layer dedupes by address, so re-listing an
-// already-known pair is a no-op.
+// GetNewPools re-lists every pair on every run: getSupportedPairs is one cheap
+// call and the authoritative pair set. Tracking the Engine's PairAdded/
+// PairRemoved events would need a log cursor to rebuild the same list. The
+// pool-service layer dedupes by address, so re-listing a known pair is a no-op.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.Pool, []byte, error) {
 	var pairs []Pair
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
@@ -47,7 +46,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 	pools := make([]entity.Pool, 0, len(pairs))
 	for _, pair := range pairs {
-		token0, token1 := hexutil.Encode(pair.Token0[:]), hexutil.Encode(pair.Token1[:])
+		token0, token1 := hexutil.Encode(pair.TokenA[:]), hexutil.Encode(pair.TokenB[:])
+		if token0 > token1 { // pair order has no meaning: keep the pool address stable
+			token0, token1 = token1, token0
+		}
 		pools = append(pools, entity.Pool{
 			Address:  poolAddress(token0, token1),
 			Exchange: u.config.DexID,
@@ -65,11 +67,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	return pools, nil, nil
 }
 
-// poolAddress is synthetic: prism-prop has one router per chain quoting
-// every pair, so a fixed "prism" namespace plus the pair already
-// disambiguates every pool -- prefixing with the full router address isn't
-// needed for uniqueness within this exchange, only across exchanges, which
-// the "prism" literal already covers.
+// poolAddress is synthetic: one router per chain quotes every pair, so the
+// "prismprop_" namespace plus the pair is unique.
 func poolAddress(token0, token1 string) string {
 	return "prismprop_" + token0 + "_" + token1
 }

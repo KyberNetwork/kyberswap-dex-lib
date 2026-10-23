@@ -24,10 +24,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0x43dc3b135e5ac0d5f5b8a35b90e0f08c7ad01703caaffdec4b3778f1d3e72a2e
 			name: "[stETH] it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{PUFETH, STETH, WSTETH},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{PUFETH, STETH, WSTETH},
 				},
 				totalSupply: number.NewUint256("379989503452489947895013"),
 				totalAssets: number.NewUint256("382649667359278267721330"),
@@ -45,10 +43,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "[wstETH] it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{PUFETH, STETH, WSTETH},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{PUFETH, STETH, WSTETH},
 				},
 				totalSupply:      number.NewUint256("379677392580527064900714"),
 				totalAssets:      number.NewUint256("382335371516233372457736"),

@@ -5,7 +5,35 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
+)
+
+// maxTokens bounds the stack arrays; saddle pools have 2 to 4 tokens.
+const maxTokens = 8
+
+var (
+	feeDenominator = uint256.NewInt(10_000_000_000)
+	aPrecision     = uint256.NewInt(100)
+
+	errBalancesMultipliers  = errors.New("balances must match multipliers")
+	errDNotConverge         = errors.New("d does not converge")
+	errSameToken            = errors.New("can't compare token to itself")
+	errTokensNotInPool      = errors.New("tokens must be in pool")
+	errZero                 = errors.New("zero")
+	errYNotConverge         = errors.New("approximation did not converge")
+	errTokenNotFound        = errors.New("token not found")
+	errTokenIndexOutOfRange = errors.New("token index out of range")
+	errWithdrawExceeds      = errors.New("withdraw exceeds available")
+	errWithdrawMoreThanHeld = errors.New("cannot withdraw more than available")
+
+	// Where the big.Int implementation panicked or went on with a negative intermediate value,
+	// which the contracts revert on.
+	errTooManyTokens  = errors.New("too many tokens")
+	errOverflow       = errors.New("uint256 overflow")
+	errNegative       = errors.New("negative intermediate value")
+	errDivByZero      = errors.New("division by zero")
+	errRampNotStarted = errors.New("amplification ramp has not started")
+	errInvalidAmount  = errors.New("amount out of uint256 range")
 )
 
 /**
@@ -19,66 +47,46 @@ import (
  * the amounts in the balances array. When multiplied together they
  * should yield amounts at the pool's precision.
  *
- * @return an array of amounts "scaled" to the pool's precision
+ * @return an array of amounts "scaled" to the pool's precision (into xp)
  */
-func _xp(
-	balances []*big.Int,
-	precisionMultipliers []*big.Int,
-) ([]*big.Int, error) {
-	xp := make([]*big.Int, 0)
-	var numTokens = len(balances)
-	if numTokens != len(precisionMultipliers) {
-		return nil, errors.New("balances must match multipliers")
+func xpMem(balances, precisionMultipliers, xp []uint256.Int) error {
+	if len(balances) != len(precisionMultipliers) {
+		return errBalancesMultipliers
 	}
-	for i := 0; i < numTokens; i += 1 {
-		xp = append(xp, new(big.Int).Mul(balances[i], precisionMultipliers[i]))
+	for i := range balances {
+		if _, overflow := xp[i].MulOverflow(&balances[i], &precisionMultipliers[i]); overflow {
+			return errOverflow
+		}
 	}
-	return xp, nil
+	return nil
 }
 
 /**
  * @notice Calculates and returns A based on the ramp settings
  * @dev See the StableSwap paper for details
- * @param self Swap struct to read from
  * @return A parameter in its raw precision form
  */
-func _getAPrecise(
-	futureATime int64,
-	futureA *big.Int,
-	initialATime int64,
-	initialA *big.Int,
-) *big.Int {
-	var t1 = futureATime
-	var a1 = futureA
-	var now = time.Now().Unix()
-	if t1 > now {
-		var t0 = initialATime
-		var a0 = initialA
-		if a1.Cmp(a0) > 0 {
-			return new(big.Int).Add(
-				a0,
-				new(big.Int).Div(
-					new(big.Int).Mul(
-						new(big.Int).Sub(a1, a0),
-						new(big.Int).SetInt64(now-t0),
-					),
-					new(big.Int).SetInt64(t1-t0),
-				),
-			)
-		} else {
-			return new(big.Int).Sub(
-				a0,
-				new(big.Int).Div(
-					new(big.Int).Mul(
-						new(big.Int).Sub(a0, a1),
-						new(big.Int).SetInt64(now-t0),
-					),
-					new(big.Int).SetInt64(t1-t0),
-				),
-			)
-		}
+func getAPrecise(futureATime int64, futureA *uint256.Int, initialATime int64, initialA *uint256.Int) (uint256.Int, error) {
+	now := time.Now().Unix()
+	if futureATime <= now {
+		return *futureA, nil
 	}
-	return a1
+	// On chain block.timestamp.sub(initialATime) reverts before the ramp starts.
+	if now < initialATime {
+		return uint256.Int{}, errRampNotStarted
+	}
+	var a, delta uint256.Int
+	elapsed, duration := uint256.NewInt(uint64(now-initialATime)), uint256.NewInt(uint64(futureATime-initialATime))
+	if futureA.Gt(initialA) {
+		delta.Sub(futureA, initialA)
+		delta.Div(delta.Mul(&delta, elapsed), duration)
+		a.Add(initialA, &delta)
+	} else {
+		delta.Sub(initialA, futureA)
+		delta.Div(delta.Mul(&delta, elapsed), duration)
+		a.Sub(initialA, &delta)
+	}
+	return a, nil
 }
 
 /**
@@ -87,48 +95,77 @@ func _getAPrecise(
  * as the pool.
  * @param a the amplification coefficient * n * (n - 1) in A_PRECISION.
  * See the StableSwap paper for details
- * @return the invariant, at the precision of the pool
+ * @return the invariant, at the precision of the pool (into d)
  */
-func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
-	var numTokens = len(xp)
-	var s = new(big.Int).SetInt64(0)
-	for i := 0; i < numTokens; i++ {
-		s = new(big.Int).Add(s, xp[i])
-	}
-	if s.Sign() == 0 {
-		return s, nil
-	}
-	var numTokensBI = big.NewInt(int64(numTokens))
-	var prevD *big.Int
-	var d = new(big.Int).Set(s)
-	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < MaxLoopLimit; i++ {
-		var dP = new(big.Int).Set(d)
-		for j := 0; j < numTokens; j++ {
-			dP = new(big.Int).Div(
-				new(big.Int).Mul(dP, d),
-				new(big.Int).Mul(xp[j], numTokensBI),
-			)
-		}
-		prevD = d
-		d = new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Add(
-					new(big.Int).Div(new(big.Int).Mul(nA, s), APrecision),
-					new(big.Int).Mul(dP, numTokensBI),
-				),
-				d,
-			),
-			new(big.Int).Add(
-				new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(nA, APrecision), d), APrecision),
-				new(big.Int).Mul(dP, big.NewInt(int64(numTokens+1))),
-			),
-		)
-		if new(big.Int).Sub(d, prevD).CmpAbs(big.NewInt(1)) <= 0 {
-			return d, nil
+func getD(xp []uint256.Int, a, d *uint256.Int) error {
+	var s uint256.Int
+	for i := range xp {
+		if _, overflow := s.AddOverflow(&s, &xp[i]); overflow {
+			return errOverflow
 		}
 	}
-	return nil, errors.New("d does not converge")
+	if s.IsZero() {
+		d.Clear()
+		return nil
+	}
+
+	var nCoins, nPlus1, nA, nASDivAP, nASubAP, dP, prevD, num, den, tmp uint256.Int
+	nCoins.SetUint64(uint64(len(xp)))
+	nPlus1.SetUint64(uint64(len(xp) + 1))
+	if _, overflow := nA.MulOverflow(a, &nCoins); overflow {
+		return errOverflow
+	}
+	if _, overflow := nASDivAP.MulDivOverflow(&nA, &s, aPrecision); overflow {
+		return errOverflow
+	}
+	if nA.Lt(aPrecision) {
+		return errNegative
+	}
+	nASubAP.Sub(&nA, aPrecision)
+
+	d.Set(&s)
+	for range MaxLoopLimit {
+		// dP = dP * d / (x * n) for every x in xp
+		dP.Set(d)
+		for j := range xp {
+			if _, overflow := den.MulOverflow(&xp[j], &nCoins); overflow {
+				return errOverflow
+			} else if den.IsZero() {
+				return errDivByZero
+			}
+			if _, overflow := dP.MulDivOverflow(&dP, d, &den); overflow {
+				return errOverflow
+			}
+		}
+		prevD.Set(d)
+
+		// d = (nA * s / A_PRECISION + dP * n) * d / ((nA - A_PRECISION) * d / A_PRECISION + (n + 1) * dP)
+		if _, overflow := num.MulOverflow(&dP, &nCoins); overflow {
+			return errOverflow
+		}
+		if _, overflow := num.AddOverflow(&num, &nASDivAP); overflow {
+			return errOverflow
+		}
+		if _, overflow := tmp.MulDivOverflow(&nASubAP, d, aPrecision); overflow {
+			return errOverflow
+		}
+		if _, overflow := den.MulOverflow(&dP, &nPlus1); overflow {
+			return errOverflow
+		}
+		if _, overflow := den.AddOverflow(&den, &tmp); overflow {
+			return errOverflow
+		} else if den.IsZero() {
+			return errDivByZero
+		}
+		if _, overflow := d.MulDivOverflow(&num, d, &den); overflow {
+			return errOverflow
+		}
+
+		if withinOne(d, &prevD) {
+			return nil
+		}
+	}
+	return errDNotConverge
 }
 
 /**
@@ -137,150 +174,58 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
  * This function is used as a helper function to calculate how much TO token
  * the user should receive on swap.
  *
- * @param self Swap struct to read from
+ * @param a the amplification coefficient in A_PRECISION
  * @param tokenIndexFrom index of FROM token
  * @param tokenIndexTo index of TO token
  * @param x the new total amount of FROM token
  * @param xp balances of the tokens in the pool
- * @return the amount of TO token that should remain in the pool
+ * @return the amount of TO token that should remain in the pool (into y)
  */
-func getY(
-	futureATime int64,
-	futureA *big.Int,
-	initialATime int64,
-	initialA *big.Int,
-	tokenIndexFrom int,
-	tokenIndexTo int,
-	x *big.Int,
-	xp []*big.Int,
-) (*big.Int, error) {
-	var numTokens = len(xp)
+func getY(a *uint256.Int, tokenIndexFrom, tokenIndexTo int, x *uint256.Int, xp []uint256.Int, y *uint256.Int) error {
+	numTokens := len(xp)
 	if tokenIndexFrom == tokenIndexTo {
-		return nil, errors.New("can't compare token to itself")
+		return errSameToken
 	}
 	if tokenIndexFrom >= numTokens && tokenIndexTo >= numTokens {
-		return nil, errors.New("tokens must be in pool")
+		return errTokensNotInPool
 	}
-	var numTokensBI = big.NewInt(int64(numTokens))
-	var a = _getAPrecise(futureATime, futureA, initialATime, initialA)
-	var d, err = getD(xp, a)
-	if err != nil {
-		return nil, err
+	var d uint256.Int
+	if err := getD(xp, a, &d); err != nil {
+		return err
 	}
-	var c = new(big.Int).Set(d)
-	var s = big.NewInt(0)
-	var nA = new(big.Int).Mul(a, numTokensBI)
-	var _x *big.Int
-	for i := 0; i < numTokens; i++ {
+
+	var nCoins, c, s, nA, xi, den uint256.Int
+	nCoins.SetUint64(uint64(numTokens))
+	c.Set(&d)
+	if _, overflow := nA.MulOverflow(a, &nCoins); overflow {
+		return errOverflow
+	}
+	for i := range numTokens {
 		if i == tokenIndexFrom {
-			_x = new(big.Int).Set(x)
+			xi.Set(x)
 		} else if i != tokenIndexTo {
-			_x = new(big.Int).Set(xp[i])
+			xi.Set(&xp[i])
 		} else {
 			continue
 		}
-		if _x.Cmp(bignumber.ZeroBI) == 0 {
-			return nil, errors.New("zero")
+		if xi.IsZero() {
+			return errZero
 		}
-		s = new(big.Int).Add(s, _x)
-		c = new(big.Int).Div(
-			new(big.Int).Mul(c, d),
-			new(big.Int).Mul(_x, numTokensBI),
-		)
-	}
-	if nA.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, errors.New("zero")
-	}
-	c = new(big.Int).Div(
-		new(big.Int).Mul(new(big.Int).Mul(c, d), APrecision),
-		new(big.Int).Mul(nA, numTokensBI),
-	)
-	var b = new(big.Int).Add(
-		s,
-		new(big.Int).Div(new(big.Int).Mul(d, APrecision), nA),
-	)
-	var yPrev *big.Int
-	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
-		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(new(big.Int).Mul(y, y), c),
-			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
-			return y, nil
+		if _, overflow := s.AddOverflow(&s, &xi); overflow {
+			return errOverflow
+		}
+		// c = c * d / (x * n)
+		if _, overflow := den.MulOverflow(&xi, &nCoins); overflow {
+			return errOverflow
+		}
+		if _, overflow := c.MulDivOverflow(&c, &d, &den); overflow {
+			return errOverflow
 		}
 	}
-	return nil, errors.New("approximation did not converge")
-}
-
-/**
- * @notice Internally calculates a swap between two tokens.
- *
- * @dev The caller is expected to transfer the actual amounts (dx and dy)
- * using the token contracts.
- *
- * @param self Swap struct to read from
- * @param tokenIndexFrom the token to sell
- * @param tokenIndexTo the token to buy
- * @param dx the number of tokens to sell. If the token charges a fee on transfers,
- * use the amount that gets transferred after the fee.
- * @return dy the number of tokens the user will get
- * @return dyFee the associated fee
- */
-func _calculateSwap(
-	balances []*big.Int,
-	tokenPrecisionMultipliers []*big.Int,
-	futureATime int64,
-	futureA *big.Int,
-	initialATime int64,
-	initialA *big.Int,
-	swapFee *big.Int,
-	tokenIndexFrom int,
-	tokenIndexTo int,
-	dx *big.Int,
-) (*big.Int, *big.Int, error) {
-	xp, err := _xp(balances, tokenPrecisionMultipliers)
-	if err != nil {
-		return nil, nil, err
+	if nA.IsZero() {
+		return errZero
 	}
-	var x = new(big.Int).Add(new(big.Int).Mul(dx, tokenPrecisionMultipliers[tokenIndexFrom]), xp[tokenIndexFrom])
-	y, err := getY(futureATime, futureA, initialATime, initialA, tokenIndexFrom, tokenIndexTo, x, xp)
-	if err != nil {
-		return nil, nil, err
-	}
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[tokenIndexTo], y), bignumber.One)
-	var dyFee = new(big.Int).Div(new(big.Int).Mul(dy, swapFee), FeeDenominator)
-	dy = new(big.Int).Div(new(big.Int).Sub(dy, dyFee), tokenPrecisionMultipliers[tokenIndexTo])
-	return dy, dyFee, nil
-}
-
-// CalculateSwap /**
-func CalculateSwap(
-	balances []*big.Int,
-	tokenPrecisionMultipliers []*big.Int,
-	futureATime int64,
-	futureA *big.Int,
-	initialATime int64,
-	initialA *big.Int,
-	swapFee *big.Int,
-	tokenIndexFrom int,
-	tokenIndexTo int,
-	dx *big.Int,
-) (*big.Int, *big.Int, error) {
-	var dy, fee, err = _calculateSwap(
-		balances,
-		tokenPrecisionMultipliers,
-		futureATime,
-		futureA,
-		initialATime,
-		initialA,
-		swapFee,
-		tokenIndexFrom,
-		tokenIndexTo,
-		dx,
-	)
-	return dy, fee, err
+	return solveY(&c, &s, &d, &nA, &nCoins, y)
 }
 
 /**
@@ -299,181 +244,502 @@ func CalculateSwap(
  * @param xp a precision-adjusted set of pool balances. Array should be
  * the same cardinality as the pool.
  * @param d the stableswap invariant
- * @return the price of the token, in the same precision as in xp
+ * @return the price of the token, in the same precision as in xp (into y)
  */
-func getYD(
-	a *big.Int,
-	tokenIndex int,
-	xp []*big.Int,
-	d *big.Int,
-) (*big.Int, error) {
-	var numTokens = len(xp)
+func getYD(a *uint256.Int, tokenIndex int, xp []uint256.Int, d, y *uint256.Int) error {
+	numTokens := len(xp)
 	if tokenIndex >= numTokens {
-		return nil, errors.New("token not found")
+		return errTokenNotFound
 	}
-	var numTokensBI = big.NewInt(int64(numTokens))
-	var c = new(big.Int).Set(d)
-	var s = big.NewInt(0)
-	var nA = new(big.Int).Mul(a, numTokensBI)
-	for i := 0; i < numTokens; i++ {
-		if i != tokenIndex {
-			s = new(big.Int).Add(s, xp[i])
-			c = new(big.Int).Div(
-				new(big.Int).Mul(c, d),
-				new(big.Int).Mul(xp[i], numTokensBI),
-			)
-		}
+	var nCoins, c, s, nA, den uint256.Int
+	nCoins.SetUint64(uint64(numTokens))
+	c.Set(d)
+	if _, overflow := nA.MulOverflow(a, &nCoins); overflow {
+		return errOverflow
 	}
-	c = new(big.Int).Div(
-		new(big.Int).Mul(
-			new(big.Int).Mul(c, d),
-			APrecision,
-		),
-		new(big.Int).Mul(nA, numTokensBI),
-	)
-	if nA.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, errors.New("zero")
-	}
-	var b = new(big.Int).Add(
-		s,
-		new(big.Int).Div(
-			new(big.Int).Mul(d, APrecision),
-			nA,
-		),
-	)
-	var yPrev *big.Int
-	var y = new(big.Int).Set(d)
-	for i := 0; i < MaxLoopLimit; i++ {
-		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(
-				new(big.Int).Mul(y, y),
-				c,
-			),
-			new(big.Int).Sub(
-				new(big.Int).Add(
-					new(big.Int).Mul(y, bignumber.Two),
-					b,
-				),
-				d,
-			),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
-			return y, nil
-		}
-	}
-	return nil, errors.New("approximation did not converge")
-}
-
-/**
- * @notice internal helper function to calculate fee per token multiplier used in
- * swap fee calculations
- */
-func _feePerToken(
-	swapFee *big.Int,
-	numTokens int,
-) *big.Int {
-	var numTokensBI = big.NewInt(int64(numTokens))
-	return new(big.Int).Div(
-		new(big.Int).Mul(
-			swapFee,
-			numTokensBI,
-		),
-		new(big.Int).Mul(
-			new(big.Int).Sub(numTokensBI, bignumber.One),
-			bignumber.Four,
-		),
-	)
-}
-
-/**
- * @notice Calculate the dy of withdrawing in one token
- * @param tokenIndex which token will be withdrawn
- * @param tokenAmount the amount to withdraw in the pools precision
- * @return the d and the new y after withdrawing one token
- */
-func calculateWithdrawOneTokenDy(
-	balances []*big.Int,
-	tokenPrecisionMultipliers []*big.Int,
-	futureATime int64,
-	futureA *big.Int,
-	initialATime int64,
-	initialA *big.Int,
-	swapFee *big.Int,
-	lpSupply *big.Int,
-	tokenIndex int,
-	tokenAmount *big.Int,
-) (*big.Int, *big.Int, error) {
-	var numTokens = len(balances)
-	if tokenIndex >= numTokens {
-		return nil, nil, errors.New("token index out of range")
-	}
-	xp, err := _xp(balances, tokenPrecisionMultipliers)
-	if err != nil {
-		return nil, nil, err
-	}
-	var preciseA = _getAPrecise(futureATime, futureA, initialATime, initialA)
-	d0, err := getD(xp, preciseA)
-	if err != nil {
-		return nil, nil, err
-	}
-	var d1 = new(big.Int).Sub(
-		d0,
-		new(big.Int).Div(
-			new(big.Int).Mul(tokenAmount, d0),
-			lpSupply,
-		),
-	)
-
-	if tokenAmount.Cmp(xp[tokenIndex]) > 0 {
-		return nil, nil, errors.New("withdraw exceeds available")
-	}
-
-	newY, err := getYD(preciseA, tokenIndex, xp, d1)
-	if err != nil {
-		return nil, nil, err
-	}
-	var feePerToken = _feePerToken(swapFee, numTokens)
-	var xpReduced = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
-		var norm *big.Int
+	for i := range numTokens {
 		if i == tokenIndex {
-			norm = new(big.Int).Sub(new(big.Int).Div(new(big.Int).Mul(xp[i], d1), d0), newY)
-		} else {
-			norm = new(big.Int).Sub(xp[i], new(big.Int).Div(new(big.Int).Mul(xp[i], d1), d0))
+			continue
 		}
-		xpReduced[i] = new(big.Int).Sub(
-			xp[i],
-			new(big.Int).Div(
-				new(big.Int).Mul(
-					norm,
-					feePerToken,
-				),
-				FeeDenominator,
-			),
-		)
+		if _, overflow := s.AddOverflow(&s, &xp[i]); overflow {
+			return errOverflow
+		}
+		// c = c * d / (x * n)
+		if _, overflow := den.MulOverflow(&xp[i], &nCoins); overflow {
+			return errOverflow
+		} else if den.IsZero() {
+			return errDivByZero
+		}
+		if _, overflow := c.MulDivOverflow(&c, d, &den); overflow {
+			return errOverflow
+		}
 	}
-	yd, err := getYD(preciseA, tokenIndex, xpReduced, d1)
-	if err != nil {
-		return nil, nil, err
+	if nA.IsZero() {
+		return errDivByZero
 	}
-	var dy = new(big.Int).Sub(xpReduced[tokenIndex], yd)
-	dy = new(big.Int).Div(
-		new(big.Int).Sub(dy, bignumber.One),
-		tokenPrecisionMultipliers[tokenIndex],
-	)
-	return dy, newY, nil
+	return solveY(&c, &s, d, &nA, &nCoins, y)
+}
+
+// solveY finishes getY and getYD: c = c * d * A_PRECISION / (nA * n), b = s + d * A_PRECISION / nA,
+// then iterates y = (y*y + c) / (2*y + b - d) from y = d.
+func solveY(c, s, d, nA, nCoins, y *uint256.Int) error {
+	var den, b, yPrev, num uint256.Int
+	if _, overflow := c.MulOverflow(c, aPrecision); overflow {
+		return errOverflow
+	}
+	if _, overflow := den.MulOverflow(nA, nCoins); overflow {
+		return errOverflow
+	}
+	if _, overflow := c.MulDivOverflow(c, d, &den); overflow {
+		return errOverflow
+	}
+	if _, overflow := b.MulDivOverflow(d, aPrecision, nA); overflow {
+		return errOverflow
+	}
+	if _, overflow := b.AddOverflow(&b, s); overflow {
+		return errOverflow
+	}
+
+	y.Set(d)
+	for range MaxLoopLimit {
+		yPrev.Set(y)
+		den.Lsh(y, 1)
+		if _, overflow := den.AddOverflow(&den, &b); overflow {
+			return errOverflow
+		}
+		if !den.Gt(d) {
+			return errNegative
+		}
+		den.Sub(&den, d)
+		if _, overflow := num.MulOverflow(y, y); overflow {
+			return errOverflow
+		}
+		if _, overflow := num.AddOverflow(&num, c); overflow {
+			return errOverflow
+		}
+		y.Div(&num, &den)
+		if withinOne(y, &yPrev) {
+			return nil
+		}
+	}
+	return errYNotConverge
+}
+
+/**
+ * @notice Internally calculates a swap between two tokens.
+ *
+ * @param tokenIndexFrom the token to sell
+ * @param tokenIndexTo the token to buy
+ * @param dx the number of tokens to sell.
+ * @return dy the number of tokens the user will get, 0 when the swap gives nothing
+ * @return dyFee the associated fee, at the pool's precision
+ */
+func calculateSwap(
+	balances, tokenPrecisionMultipliers []uint256.Int,
+	a, swapFee *uint256.Int,
+	tokenIndexFrom, tokenIndexTo int,
+	dx, dy, dyFee *uint256.Int,
+) error {
+	if len(balances) > maxTokens {
+		return errTooManyTokens
+	}
+	var xpArr [maxTokens]uint256.Int
+	xp := xpArr[:len(balances)]
+	if err := xpMem(balances, tokenPrecisionMultipliers, xp); err != nil {
+		return err
+	}
+	// x = dx * multiplier[from] + xp[from]
+	var x, y uint256.Int
+	if _, overflow := x.MulOverflow(dx, &tokenPrecisionMultipliers[tokenIndexFrom]); overflow {
+		return errOverflow
+	}
+	if _, overflow := x.AddOverflow(&x, &xp[tokenIndexFrom]); overflow {
+		return errOverflow
+	}
+	if err := getY(a, tokenIndexFrom, tokenIndexTo, &x, xp, &y); err != nil {
+		return err
+	}
+	// dy = xp[to] - y - 1, less the fee, at token to's precision
+	if !xp[tokenIndexTo].Gt(&y) {
+		dy.Clear()
+		dyFee.Clear()
+		return nil
+	}
+	dy.Sub(&xp[tokenIndexTo], &y)
+	dy.SubUint64(dy, 1)
+	if _, overflow := dyFee.MulDivOverflow(dy, swapFee, feeDenominator); overflow {
+		return errOverflow
+	}
+	if tokenPrecisionMultipliers[tokenIndexTo].IsZero() {
+		return errDivByZero
+	}
+	dy.Sub(dy, dyFee)
+	dy.Div(dy, &tokenPrecisionMultipliers[tokenIndexTo])
+	return nil
 }
 
 /**
  * @notice Calculate the dy, the amount of selected token that user receives and
  * the fee of withdrawing in one token
- * @param account the address that is withdrawing
  * @param tokenAmount the amount to withdraw in the pool's precision
  * @param tokenIndex which token will be withdrawn
- * @return the amount of token user will receive and the associated swap fee
+ * @return the amount of token user will receive (0 when nothing) and the associated swap fee
  */
 func calculateWithdrawOneToken(
+	balances, tokenPrecisionMultipliers []uint256.Int,
+	a, swapFee, withdrawFee, lpSupply *uint256.Int,
+	tokenIndex int,
+	tokenAmount, dy, dySwapFee *uint256.Int,
+) error {
+	numTokens := len(balances)
+	if tokenIndex >= numTokens {
+		return errTokenIndexOutOfRange
+	}
+	if numTokens > maxTokens {
+		return errTooManyTokens
+	}
+	var xpArr, xpReducedArr [maxTokens]uint256.Int
+	xp, xpReduced := xpArr[:numTokens], xpReducedArr[:numTokens]
+	if err := xpMem(balances, tokenPrecisionMultipliers, xp); err != nil {
+		return err
+	}
+	var d0, d1, newY, yd uint256.Int
+	if err := getD(xp, a, &d0); err != nil {
+		return err
+	}
+	// d1 = d0 - tokenAmount * d0 / lpSupply
+	if lpSupply.IsZero() {
+		return errDivByZero
+	}
+	if _, overflow := d1.MulDivOverflow(tokenAmount, &d0, lpSupply); overflow {
+		return errOverflow
+	}
+	if tokenAmount.Gt(&xp[tokenIndex]) {
+		return errWithdrawExceeds
+	}
+	if d1.Gt(&d0) {
+		return errNegative
+	}
+	d1.Sub(&d0, &d1)
+	if err := getYD(a, tokenIndex, xp, &d1, &newY); err != nil {
+		return err
+	}
+
+	// feePerToken = swapFee * n / ((n - 1) * 4)
+	if numTokens < 2 || d0.IsZero() {
+		return errDivByZero
+	}
+	var feePerToken uint256.Int
+	if _, overflow := feePerToken.MulOverflow(swapFee, uint256.NewInt(uint64(numTokens))); overflow {
+		return errOverflow
+	}
+	feePerToken.Div(&feePerToken, uint256.NewInt(uint64(numTokens-1)*4))
+
+	var expected, norm, reduction uint256.Int
+	for i := range numTokens {
+		// xpReduced[i] = xp[i] - norm * feePerToken / FEE_DENOMINATOR, with norm the distance between
+		// xp[i] * d1 / d0 and the balance after the withdrawal. norm of the withdrawn token is negative
+		// when newY is above xp[i] * d1 / d0; big.Int division rounds that toward minus infinity.
+		if _, overflow := expected.MulDivOverflow(&xp[i], &d1, &d0); overflow {
+			return errOverflow
+		}
+		negative := false
+		if i == tokenIndex {
+			if negative = expected.Lt(&newY); negative {
+				norm.Sub(&newY, &expected)
+			} else {
+				norm.Sub(&expected, &newY)
+			}
+		} else {
+			norm.Sub(&xp[i], &expected)
+		}
+		if _, overflow := reduction.MulOverflow(&norm, &feePerToken); overflow {
+			return errOverflow
+		}
+		if negative {
+			reduction.AddUint64(&reduction, feeDenominator.Uint64()-1) // round up
+			reduction.Div(&reduction, feeDenominator)
+			if _, overflow := xpReduced[i].AddOverflow(&xp[i], &reduction); overflow {
+				return errOverflow
+			}
+			continue
+		}
+		reduction.Div(&reduction, feeDenominator)
+		if reduction.Gt(&xp[i]) {
+			return errNegative
+		}
+		xpReduced[i].Sub(&xp[i], &reduction)
+	}
+	if err := getYD(a, tokenIndex, xpReduced, &d1, &yd); err != nil {
+		return err
+	}
+
+	// dy = (xpReduced[i] - yd - 1) / multiplier[i]
+	if !xpReduced[tokenIndex].Gt(&yd) {
+		dy.Clear()
+		dySwapFee.Clear()
+		return nil
+	}
+	if tokenPrecisionMultipliers[tokenIndex].IsZero() {
+		return errDivByZero
+	}
+	dy.Sub(&xpReduced[tokenIndex], &yd)
+	dy.SubUint64(dy, 1)
+	dy.Div(dy, &tokenPrecisionMultipliers[tokenIndex])
+
+	// dySwapFee = (xp[i] - newY) / multiplier[i] - dy
+	if newY.Gt(&xp[tokenIndex]) {
+		return errNegative
+	}
+	dySwapFee.Sub(&xp[tokenIndex], &newY)
+	dySwapFee.Div(dySwapFee, &tokenPrecisionMultipliers[tokenIndex])
+	if dy.Gt(dySwapFee) {
+		return errNegative
+	}
+	dySwapFee.Sub(dySwapFee, dy)
+
+	// dy = dy * (FEE_DENOMINATOR - withdrawFee) / FEE_DENOMINATOR
+	if withdrawFee.Gt(feeDenominator) {
+		dy.Clear()
+		return nil
+	}
+	var keep uint256.Int
+	keep.Sub(feeDenominator, withdrawFee)
+	if _, overflow := dy.MulDivOverflow(dy, &keep, feeDenominator); overflow {
+		return errOverflow
+	}
+	return nil
+}
+
+/**
+ * @notice A simple method to calculate prices from deposits or
+ * withdrawals, excluding fees but including slippage.
+ *
+ * @param amounts an array of token amounts to deposit or withdrawal,
+ * corresponding to pooledTokens, in each pooled token's native precision.
+ * @param deposit whether this is a deposit or a withdrawal
+ * @return if deposit was true, total amount of lp token that will be minted (0 when nothing) and if
+ * deposit was false, total amount of lp token that will be burned
+ */
+func calculateTokenAmount(
+	balances, tokenPrecisionMultipliers []uint256.Int,
+	a, withdrawFee, lpSupply *uint256.Int,
+	amounts []uint256.Int,
+	deposit bool,
+	out *uint256.Int,
+) error {
+	numTokens := len(balances)
+	if numTokens > maxTokens {
+		return errTooManyTokens
+	}
+	var xpArr, balances1Arr [maxTokens]uint256.Int
+	xp, balances1 := xpArr[:numTokens], balances1Arr[:numTokens]
+	if err := xpMem(balances, tokenPrecisionMultipliers, xp); err != nil {
+		return err
+	}
+	var d0, d1 uint256.Int
+	if err := getD(xp, a, &d0); err != nil {
+		return err
+	}
+	for i := range numTokens {
+		if deposit {
+			if _, overflow := balances1[i].AddOverflow(&balances[i], &amounts[i]); overflow {
+				return errOverflow
+			}
+		} else {
+			if balances[i].Lt(&amounts[i]) {
+				return errWithdrawMoreThanHeld
+			}
+			balances1[i].Sub(&balances[i], &amounts[i])
+		}
+	}
+	if err := xpMem(balances1, tokenPrecisionMultipliers, xp); err != nil {
+		return err
+	}
+	if err := getD(xp, a, &d1); err != nil {
+		return err
+	}
+	if d0.IsZero() {
+		return errDivByZero
+	}
+	if deposit {
+		// (d1 - d0) * totalSupply / d0
+		if !d1.Gt(&d0) {
+			out.Clear()
+			return nil
+		}
+		out.Sub(&d1, &d0)
+		if _, overflow := out.MulDivOverflow(out, lpSupply, &d0); overflow {
+			return errOverflow
+		}
+		return nil
+	}
+	// (d0 - d1) * totalSupply / d0 * FEE_DENOMINATOR / (FEE_DENOMINATOR - withdrawFee)
+	if d1.Gt(&d0) {
+		return errNegative
+	}
+	if !feeDenominator.Gt(withdrawFee) {
+		return errDivByZero
+	}
+	var keep uint256.Int
+	keep.Sub(feeDenominator, withdrawFee)
+	out.Sub(&d0, &d1)
+	if _, overflow := out.MulDivOverflow(out, lpSupply, &d0); overflow {
+		return errOverflow
+	}
+	if _, overflow := out.MulDivOverflow(out, feeDenominator, &keep); overflow {
+		return errOverflow
+	}
+	return nil
+}
+
+func dynamicFee(xpi, xpj, fee, feeMul, out *uint256.Int) error {
+	if !feeMul.Gt(feeDenominator) {
+		out.Set(fee)
+		return nil
+	}
+	// feeMul * fee / ((feeMul - FEE_DENOMINATOR) * 4 * xpi * xpj / (xpi + xpj)**2 + FEE_DENOMINATOR)
+	var xps2, num, den uint256.Int
+	if _, overflow := xps2.AddOverflow(xpi, xpj); overflow {
+		return errOverflow
+	}
+	if _, overflow := xps2.MulOverflow(&xps2, &xps2); overflow {
+		return errOverflow
+	} else if xps2.IsZero() {
+		return errDivByZero
+	}
+	den.Sub(feeMul, feeDenominator)
+	if _, overflow := den.MulOverflow(&den, uint256.NewInt(4)); overflow {
+		return errOverflow
+	}
+	if _, overflow := den.MulOverflow(&den, xpi); overflow {
+		return errOverflow
+	}
+	if _, overflow := den.MulDivOverflow(&den, xpj, &xps2); overflow {
+		return errOverflow
+	}
+	if _, overflow := den.AddOverflow(&den, feeDenominator); overflow {
+		return errOverflow
+	}
+	if _, overflow := num.MulOverflow(feeMul, fee); overflow {
+		return errOverflow
+	}
+	out.Div(&num, &den)
+	return nil
+}
+
+func getDyUnderlying(
+	balances, tokenPrecisionMultipliers []uint256.Int,
+	a, swapFee, offPegFeeMultiplier *uint256.Int,
+	tokenIndexFrom, tokenIndexTo int,
+	dx, dy, fee *uint256.Int,
+) error {
+	if len(balances) > maxTokens {
+		return errTooManyTokens
+	}
+	var xpArr [maxTokens]uint256.Int
+	xp := xpArr[:len(balances)]
+	if err := xpMem(balances, tokenPrecisionMultipliers, xp); err != nil {
+		return err
+	}
+	var x, y, xAvg, yAvg, rate uint256.Int
+	if _, overflow := x.MulOverflow(dx, &tokenPrecisionMultipliers[tokenIndexFrom]); overflow {
+		return errOverflow
+	}
+	if _, overflow := x.AddOverflow(&x, &xp[tokenIndexFrom]); overflow {
+		return errOverflow
+	}
+	if err := getY(a, tokenIndexFrom, tokenIndexTo, &x, xp, &y); err != nil {
+		return err
+	}
+	// dy = (xp[to] - y) / multiplier[to]
+	if y.Gt(&xp[tokenIndexTo]) {
+		return errNegative
+	}
+	if tokenPrecisionMultipliers[tokenIndexTo].IsZero() {
+		return errDivByZero
+	}
+	dy.Sub(&xp[tokenIndexTo], &y)
+	dy.Div(dy, &tokenPrecisionMultipliers[tokenIndexTo])
+
+	if _, overflow := xAvg.AddOverflow(&xp[tokenIndexFrom], &x); overflow {
+		return errOverflow
+	}
+	if _, overflow := yAvg.AddOverflow(&xp[tokenIndexTo], &y); overflow {
+		return errOverflow
+	}
+	if err := dynamicFee(xAvg.Rsh(&xAvg, 1), yAvg.Rsh(&yAvg, 1), swapFee, offPegFeeMultiplier, &rate); err != nil {
+		return err
+	}
+	if _, overflow := fee.MulDivOverflow(&rate, dy, feeDenominator); overflow {
+		return errOverflow
+	}
+	if fee.Gt(dy) {
+		return errNegative
+	}
+	dy.Sub(dy, fee)
+	return nil
+}
+
+func withinOne(x, y *uint256.Int) bool {
+	var diff uint256.Int
+	if x.Gt(y) {
+		diff.Sub(x, y)
+	} else {
+		diff.Sub(y, x)
+	}
+	return diff.LtUint64(2)
+}
+
+// The exported functions keep their big.Int signatures. Where the big.Int implementation returned a
+// negative amount for a swap that gives nothing, they return 0.
+
+func toU256(dst *uint256.Int, src *big.Int) error {
+	if src == nil || src.Sign() < 0 || dst.SetFromBig(src) {
+		return errInvalidAmount
+	}
+	return nil
+}
+
+func toU256s(src []*big.Int) ([]uint256.Int, error) {
+	dst := make([]uint256.Int, len(src))
+	for i := range src {
+		if err := toU256(&dst[i], src[i]); err != nil {
+			return nil, err
+		}
+	}
+	return dst, nil
+}
+
+type bigParams struct {
+	balances, multipliers []uint256.Int
+	a                     uint256.Int
+}
+
+func newBigParams(balances, tokenPrecisionMultipliers []*big.Int, futureATime int64, futureA *big.Int,
+	initialATime int64, initialA *big.Int) (*bigParams, error) {
+	var p bigParams
+	var err error
+	if p.balances, err = toU256s(balances); err != nil {
+		return nil, err
+	}
+	if p.multipliers, err = toU256s(tokenPrecisionMultipliers); err != nil {
+		return nil, err
+	}
+	var fA, iA uint256.Int
+	if err = toU256(&fA, futureA); err != nil {
+		return nil, err
+	}
+	if err = toU256(&iA, initialA); err != nil {
+		return nil, err
+	}
+	p.a, err = getAPrecise(futureATime, &fA, initialATime, &iA)
+	return &p, err
+}
+
+// CalculateSwap returns the output of dx of token tokenIndexFrom in token tokenIndexTo, and the fee at
+// the pool's precision.
+func CalculateSwap(
 	balances []*big.Int,
 	tokenPrecisionMultipliers []*big.Int,
 	futureATime int64,
@@ -481,40 +747,30 @@ func calculateWithdrawOneToken(
 	initialATime int64,
 	initialA *big.Int,
 	swapFee *big.Int,
-	withdrawFee *big.Int,
-	lpSupply *big.Int,
-	tokenIndex int,
-	tokenAmount *big.Int,
+	tokenIndexFrom int,
+	tokenIndexTo int,
+	dx *big.Int,
 ) (*big.Int, *big.Int, error) {
-	var dy, newY, err = calculateWithdrawOneTokenDy(
-		balances,
-		tokenPrecisionMultipliers,
-		futureATime,
-		futureA,
-		initialATime,
-		initialA,
-		swapFee,
-		lpSupply,
-		tokenIndex,
-		tokenAmount,
-	)
+	p, err := newBigParams(balances, tokenPrecisionMultipliers, futureATime, futureA, initialATime, initialA)
 	if err != nil {
 		return nil, nil, err
 	}
-	xp, err := _xp(balances, tokenPrecisionMultipliers)
-	if err != nil {
+	var fee, amount, dy, dyFee uint256.Int
+	if err := toU256(&fee, swapFee); err != nil {
 		return nil, nil, err
 	}
-	var dySwapFee = new(big.Int).Sub(
-		new(big.Int).Div(new(big.Int).Sub(xp[tokenIndex], newY), tokenPrecisionMultipliers[tokenIndex]), dy)
-	dy = new(big.Int).Div(
-		new(big.Int).Mul(dy, new(big.Int).Sub(FeeDenominator, withdrawFee)),
-		FeeDenominator,
-	)
-	return dy, dySwapFee, nil
+	if err := toU256(&amount, dx); err != nil {
+		return nil, nil, err
+	}
+	if err := calculateSwap(p.balances, p.multipliers, &p.a, &fee, tokenIndexFrom, tokenIndexTo, &amount, &dy,
+		&dyFee); err != nil {
+		return nil, nil, err
+	}
+	return dy.ToBig(), dyFee.ToBig(), nil
 }
 
-// CalculateRemoveLiquidityOneToken /**
+// CalculateRemoveLiquidityOneToken returns the amount of token tokenIndex that withdrawing tokenAmount
+// of the LP token gives, and the swap fee.
 func CalculateRemoveLiquidityOneToken(
 	balances []*big.Int,
 	tokenPrecisionMultipliers []*big.Int,
@@ -528,93 +784,28 @@ func CalculateRemoveLiquidityOneToken(
 	tokenIndex int,
 	tokenAmount *big.Int,
 ) (*big.Int, *big.Int, error) {
-	amount, fee, err := calculateWithdrawOneToken(
-		balances,
-		tokenPrecisionMultipliers,
-		futureATime,
-		futureA,
-		initialATime,
-		initialA,
-		swapFee,
-		withdrawFee,
-		lpSupply,
-		tokenIndex,
-		tokenAmount)
-	return amount, fee, err
-}
-
-/**
- * @notice A simple method to calculate prices from deposits or
- * withdrawals, excluding fees but including slippage. This is
- * helpful as an input into the various "min" parameters on calls
- * to fight front-running
- *
- * @param amounts an array of token amounts to deposit or withdrawal,
- * corresponding to pooledTokens. The amount should be in each
- * pooled token's native precision. If a token charges a fee on transfers,
- * use the amount that gets transferred after the fee.
- * @param deposit whether this is a deposit or a withdrawal
- * @return if deposit was true, total amount of lp token that will be minted and if
- * deposit was false, total amount of lp token that will be burned
- */
-func calculateTokenAmount(
-	balances []*big.Int,
-	tokenPrecisionMultipliers []*big.Int,
-	futureATime int64,
-	futureA *big.Int,
-	initialATime int64,
-	initialA *big.Int,
-	withdrawFee *big.Int,
-	lpSupply *big.Int,
-	amounts []*big.Int,
-	deposit bool,
-) (*big.Int, error) {
-	var numTokens = len(balances)
-	var a = _getAPrecise(futureATime, futureA, initialATime, initialA)
-	xp, err := _xp(balances, tokenPrecisionMultipliers)
+	p, err := newBigParams(balances, tokenPrecisionMultipliers, futureATime, futureA, initialATime, initialA)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	d0, err := getD(xp, a)
-	if err != nil {
-		return nil, err
-	}
-	var balances1 = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
-		if deposit {
-			balances1[i] = new(big.Int).Add(balances[i], amounts[i])
-		} else {
-			if balances[i].Cmp(amounts[i]) < 0 {
-				return nil, errors.New("cannot withdraw more than available")
-			}
-			balances1[i] = new(big.Int).Sub(balances[i], amounts[i])
+	var fee, wFee, supply, amount, dy, dySwapFee uint256.Int
+	for _, v := range []struct {
+		dst *uint256.Int
+		src *big.Int
+	}{{&fee, swapFee}, {&wFee, withdrawFee}, {&supply, lpSupply}, {&amount, tokenAmount}} {
+		if err := toU256(v.dst, v.src); err != nil {
+			return nil, nil, err
 		}
 	}
-	xp1, err := _xp(balances1, tokenPrecisionMultipliers)
-	if err != nil {
-		return nil, err
+	if err := calculateWithdrawOneToken(p.balances, p.multipliers, &p.a, &fee, &wFee, &supply, tokenIndex, &amount,
+		&dy, &dySwapFee); err != nil {
+		return nil, nil, err
 	}
-	d1, err := getD(xp1, a)
-	if err != nil {
-		return nil, err
-	}
-	var totalSupply = new(big.Int).Set(lpSupply)
-	if deposit {
-		return new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Sub(d1, d0),
-				totalSupply,
-			),
-			d0,
-		), nil
-	} else {
-		return new(big.Int).Div(
-			new(big.Int).Mul(new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(d0, d1), totalSupply), d0), FeeDenominator),
-			new(big.Int).Sub(FeeDenominator, withdrawFee),
-		), nil
-	}
+	return dy.ToBig(), dySwapFee.ToBig(), nil
 }
 
+// CalculateAddLiquidityOneToken returns the LP tokens that depositing tokenAmount of token tokenIndex
+// mints, and a zero fee.
 func CalculateAddLiquidityOneToken(
 	balances []*big.Int,
 	tokenPrecisionMultipliers []*big.Int,
@@ -627,56 +818,32 @@ func CalculateAddLiquidityOneToken(
 	tokenIndex int,
 	tokenAmount *big.Int,
 ) (*big.Int, *big.Int, error) {
-	var numTokens = len(balances)
-	var amounts = make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i++ {
-		amounts[i] = big.NewInt(0)
+	p, err := newBigParams(balances, tokenPrecisionMultipliers, futureATime, futureA, initialATime, initialA)
+	if err != nil {
+		return nil, nil, err
 	}
-	amounts[tokenIndex] = new(big.Int).Set(tokenAmount)
-	amount, err := calculateTokenAmount(
-		balances,
-		tokenPrecisionMultipliers,
-		futureATime,
-		futureA,
-		initialATime,
-		initialA,
-		withdrawFee,
-		lpSupply,
-		amounts,
-		true)
-	return amount, bignumber.ZeroBI, err
+	if tokenIndex < 0 || tokenIndex >= len(p.balances) {
+		return nil, nil, errTokenIndexOutOfRange
+	}
+	var wFee, supply, out uint256.Int
+	if err := toU256(&wFee, withdrawFee); err != nil {
+		return nil, nil, err
+	}
+	if err := toU256(&supply, lpSupply); err != nil {
+		return nil, nil, err
+	}
+	amounts := make([]uint256.Int, len(p.balances))
+	if err := toU256(&amounts[tokenIndex], tokenAmount); err != nil {
+		return nil, nil, err
+	}
+	if err := calculateTokenAmount(p.balances, p.multipliers, &p.a, &wFee, &supply, amounts, true, &out); err != nil {
+		return nil, nil, err
+	}
+	return out.ToBig(), new(big.Int), nil
 }
 
-func _dynamicFee(
-	xpi *big.Int,
-	xpj *big.Int,
-	_fee *big.Int,
-	_feemul *big.Int,
-) *big.Int {
-	if _feemul.Cmp(FeeDenominator) <= 0 {
-		return _fee
-	} else {
-		var xps2 = new(big.Int).Add(xpi, xpj)
-		xps2 = new(big.Int).Mul(xps2, xps2)
-		return new(big.Int).Div(
-			new(big.Int).Mul(_feemul, _fee),
-			new(big.Int).Add(
-				new(big.Int).Div(
-					new(big.Int).Mul(
-						new(big.Int).Mul(
-							new(big.Int).Mul(
-								new(big.Int).Sub(_feemul, FeeDenominator),
-								bignumber.Four),
-							xpi),
-						xpj),
-					xps2,
-				),
-				FeeDenominator,
-			),
-		)
-	}
-}
-
+// GetDyUnderlying returns the output of dx of token tokenIndexFrom in token tokenIndexTo after the
+// dynamic (off-peg) fee, and that fee.
 func GetDyUnderlying(
 	balances []*big.Int,
 	tokenPrecisionMultipliers []*big.Int,
@@ -690,34 +857,22 @@ func GetDyUnderlying(
 	tokenIndexTo int,
 	dx *big.Int,
 ) (*big.Int, *big.Int, error) {
-	xp, err := _xp(balances, tokenPrecisionMultipliers)
+	p, err := newBigParams(balances, tokenPrecisionMultipliers, futureATime, futureA, initialATime, initialA)
 	if err != nil {
 		return nil, nil, err
 	}
-	var x = new(big.Int).Add(xp[tokenIndexFrom], new(big.Int).Mul(dx, tokenPrecisionMultipliers[tokenIndexFrom]))
-	y, err := getY(
-		futureATime,
-		futureA,
-		initialATime,
-		initialA,
-		tokenIndexFrom,
-		tokenIndexTo,
-		x,
-		xp,
-	)
-	if err != nil {
+	var fee, feeMul, amount, dy, dyFee uint256.Int
+	for _, v := range []struct {
+		dst *uint256.Int
+		src *big.Int
+	}{{&fee, swapFee}, {&feeMul, offPegFeeMultiplier}, {&amount, dx}} {
+		if err := toU256(v.dst, v.src); err != nil {
+			return nil, nil, err
+		}
+	}
+	if err := getDyUnderlying(p.balances, p.multipliers, &p.a, &fee, &feeMul, tokenIndexFrom, tokenIndexTo, &amount,
+		&dy, &dyFee); err != nil {
 		return nil, nil, err
 	}
-	dy := new(big.Int).Div(
-		new(big.Int).Sub(xp[tokenIndexTo], y),
-		tokenPrecisionMultipliers[tokenIndexTo],
-	)
-	var dynamicFee = _dynamicFee(
-		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexFrom], x), bignumber.Two),
-		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexTo], y), bignumber.Two),
-		swapFee,
-		offPegFeeMultiplier,
-	)
-	var _fee = new(big.Int).Div(new(big.Int).Mul(dynamicFee, dy), FeeDenominator)
-	return new(big.Int).Sub(dy, _fee), _fee, nil
+	return dy.ToBig(), dyFee.ToBig(), nil
 }

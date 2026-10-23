@@ -6,6 +6,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -22,6 +23,7 @@ type PoolSimulator struct {
 	feePrecision *uint256.Int
 	reserves     []*uint256.Int
 	decimals     []*uint256.Int
+	gas          int64
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -53,20 +55,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    bigReserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		isPaused:     extra.IsPaused,
 		stable:       staticExtra.Stable,
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(staticExtra.FeePrecision),
 		reserves:     reserves,
 		decimals:     decimals,
+		gas:          lo.CoalesceOrEmpty(staticExtra.Gas, defaultGas+extraGasByExchange[entityPool.Exchange]),
 	}, nil
 }
 
@@ -101,7 +104,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: feeAmount.ToBig()},
-		Gas:            defaultGas + extraGasByExchange[p.GetExchange()],
+		Gas:            p.gas,
 	}, nil
 }
 
@@ -133,7 +136,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
-		Gas: defaultGas + extraGasByExchange[p.GetExchange()],
+		Gas: p.gas,
 	}, nil
 }
 

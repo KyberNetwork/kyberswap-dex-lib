@@ -23,13 +23,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, METH},
-						Reserves: []*big.Int{
-							bignumber.NewBig("406545179820271452478787"),
-							bignumber.NewBig("406545179820271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, METH},
+					Reserves: []*big.Int{
+						bignumber.NewBig("406545179820271452478787"),
+						bignumber.NewBig("406545179820271452478787"),
 					},
 				},
 				isStakingPaused:        false,
@@ -51,13 +49,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when maximum METH supply exceeded",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, METH},
-						Reserves: []*big.Int{
-							bignumber.NewBig("406545179820271452478787"),
-							bignumber.NewBig("406545179820271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, METH},
+					Reserves: []*big.Int{
+						bignumber.NewBig("406545179820271452478787"),
+						bignumber.NewBig("406545179820271452478787"),
 					},
 				},
 				isStakingPaused:        false,
@@ -79,13 +75,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, METH},
-						Reserves: []*big.Int{
-							bignumber.NewBig("406545179820271452478787"),
-							bignumber.NewBig("406545179820271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, METH},
+					Reserves: []*big.Int{
+						bignumber.NewBig("406545179820271452478787"),
+						bignumber.NewBig("406545179820271452478787"),
 					},
 				},
 				isStakingPaused:        false,
@@ -107,13 +101,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when token in is invalid",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, METH},
-						Reserves: []*big.Int{
-							bignumber.NewBig("406545179820271452478787"),
-							bignumber.NewBig("406545179820271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, METH},
+					Reserves: []*big.Int{
+						bignumber.NewBig("406545179820271452478787"),
+						bignumber.NewBig("406545179820271452478787"),
 					},
 				},
 				isStakingPaused: false,
@@ -130,13 +122,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error when amount in is less than minimum stake bound",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, METH},
-						Reserves: []*big.Int{
-							bignumber.NewBig("406545179820271452478787"),
-							bignumber.NewBig("406545179820271452478787"),
-						},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, METH},
+					Reserves: []*big.Int{
+						bignumber.NewBig("406545179820271452478787"),
+						bignumber.NewBig("406545179820271452478787"),
 					},
 				},
 				isStakingPaused:        false,

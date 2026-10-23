@@ -19,11 +19,9 @@ func NewInventoryWithAllowedSenders(
 	allowedSenders string,
 ) *InventoryWithAllowedSenders {
 	return &InventoryWithAllowedSenders{
-		Inventory: Inventory{
-			exchange: exchange,
-			lock:     &sync.RWMutex{},
-			balance:  balance,
-		},
+		exchange:       exchange,
+		lock:           &sync.RWMutex{},
+		balance:        balance,
 		AllowedSenders: allowedSenders,
 	}
 }
@@ -41,11 +39,9 @@ func (i *InventoryWithAllowedSenders) UpdateLimit(
 
 func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimit {
 	return &InventoryWithAllowedSenders{
-		Inventory: Inventory{
-			exchange: i.exchange,
-			lock:     &sync.RWMutex{},
-			balance:  maps.Clone(i.balance),
-		},
+		exchange:       i.exchange,
+		lock:           &sync.RWMutex{},
+		balance:        maps.Clone(i.balance),
 		AllowedSenders: i.AllowedSenders,
 	}
 }

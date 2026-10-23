@@ -54,10 +54,10 @@ func (ts *ParitySuite) SetupSuite() {
 	ts.client = ethrpc.New(rpcURL).SetMulticallContract(common.HexToAddress(mainnetMulticall3))
 
 	cfg := &Config{
-		DexID:          DexType,
-		ChainID:        valueobject.ChainIDEthereum,
-		FactoryAddress: hexutil.Encode(factoryAddress[:]),
-		NewPoolLimit:   100,
+		DexID:        DexType,
+		ChainID:      valueobject.ChainIDEthereum,
+		Factories:    []string{hexutil.Encode(factoryAddress[:])},
+		NewPoolLimit: 100,
 	}
 	ts.lister = NewPoolsListUpdater(cfg, ts.client)
 
@@ -72,7 +72,7 @@ func (ts *ParitySuite) SetupSuite() {
 func (ts *ParitySuite) buildSimulator(poolAddr string) (*base.PoolSimulator, entity.Pool) {
 	all := make(map[string]entity.Pool)
 	var meta []byte
-	for round := 0; round < 20; round++ {
+	for range 20 {
 		pools, next, err := ts.lister.GetNewPools(context.Background(), meta)
 		ts.Require().NoError(err)
 		for _, p := range pools {

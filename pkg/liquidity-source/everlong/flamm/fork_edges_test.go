@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -342,7 +342,7 @@ func sortedAmounts(set map[uint64]bool) []uint64 {
 	for a := range set {
 		out = append(out, a)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	slices.Sort(out)
 	return out
 }
 
@@ -560,7 +560,7 @@ func TestForkSequence(t *testing.T) {
 	adopted, refusedMined, policy := map[string]int{}, 0, 0
 	gasMax := map[string]uint64{}
 	const steps = 90
-	for i := 0; i < steps; i++ {
+	for i := range steps {
 		st := forkSeqStep{venue: rng.Intn(3) - 1, sell: rng.Intn(2) == 0}
 		gap := uint64(2 + rng.Intn(20))
 		if rng.Intn(10) == 0 {

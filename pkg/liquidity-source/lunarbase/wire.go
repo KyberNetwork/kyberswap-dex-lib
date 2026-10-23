@@ -89,7 +89,7 @@ func (s *PoolSimulator) DecodeMsgpack(dec *msgpack.Decoder) error {
 		}
 		seen := make(map[string]bool, n)
 		var version uint64
-		for i := 0; i < n; i++ {
+		for range n {
 			name, err := dec.DecodeString()
 			if err != nil {
 				return err

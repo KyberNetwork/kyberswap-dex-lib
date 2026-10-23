@@ -29,14 +29,14 @@ func NewPoolSimulator(p entity.Pool, basePoolMap map[string]pool.IPoolSimulator)
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) string { return e.Address }),
 			Reserves:    lo.Map(p.Reserves, func(e string, _ int) *big.Int { return bignum.NewBig(e) }),
 			BlockNumber: p.BlockNumber,
-		}},
+		},
 		basePools: lo.Map(staticExtra.BasePools, func(basePool string, _ int) pool.IPoolSimulator {
 			return basePoolMap[basePool]
 		}),

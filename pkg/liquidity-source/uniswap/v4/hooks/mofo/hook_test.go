@@ -39,7 +39,7 @@ func TestBeforeSwap_ReturnsOverrideFeeOnly(t *testing.T) {
 	orig := NowFn
 	defer func() { NowFn = orig }()
 
-	h := &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{FeePips: 20_000, LaunchedAt: launchedAt}}
+	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 20_000, LaunchedAt: launchedAt}
 
 	NowFn = func() int64 { return launchedAt + 3600 }
 	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(18)})
@@ -69,7 +69,7 @@ func TestBeforeSwap_UntrackedPoolRefusesToQuote(t *testing.T) {
 
 // afterSwap takes no hook fee: the base hook's zero result applies.
 func TestAfterSwap_NoHookFee(t *testing.T) {
-	h := &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{FeePips: 20_000, LaunchedAt: launchedAt}}
+	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 20_000, LaunchedAt: launchedAt}
 	res, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
 		AmountIn:         bignumber.TenPowInt(18),

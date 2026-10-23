@@ -57,7 +57,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 	)
 
 	callLpList := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		callLpList.AddCall(&ethrpc.Call{
 			ABI:    MainPoolABI,
 			Target: d.config.MainPoolAddress,

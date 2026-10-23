@@ -18,6 +18,7 @@ jobs:
   ci:
     uses: KyberNetwork/service-framework/.github/workflows/ci.yaml@main
     with:
+      golangci-lint-version: v2.15.0
       runs-on: ubuntu-latest
     secrets: inherit
 

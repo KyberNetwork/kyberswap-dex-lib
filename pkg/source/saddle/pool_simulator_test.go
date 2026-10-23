@@ -265,7 +265,7 @@ func TestUpdateBalance_Saddle(t *testing.T) {
 			for i, balance := range p.Info.Reserves {
 				assert.Equal(t, bignumber.NewBig10(tc.expectedBalances[i]), balance)
 			}
-			assert.Equal(t, bignumber.NewBig10(tc.expectedBalances[len(p.Info.Reserves)]), p.LpSupply)
+			assert.Equal(t, bignumber.NewBig10(tc.expectedBalances[len(p.Info.Reserves)]), p.LpSupply.ToBig())
 
 			clonedRes, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: amountIn,

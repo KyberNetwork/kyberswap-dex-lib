@@ -1,6 +1,8 @@
 package pool
 
 import (
+	"time"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/pkg/errors"
 
@@ -95,4 +97,15 @@ func RegisterFactoryMeta[P IPoolSimulator](poolType string,
 // Factory returns the factory function for a pool type
 func Factory(poolType string) FactoryFn {
 	return factoryMap[poolType]
+}
+
+// QuoteTime is the snapshot time to price a quote at, or the zero time when there is none. Only
+// indexing (staleCheck false) uses it: a pool whose DB row is older than the tracked state still
+// quotes as of the snapshot. Route finding keeps the wall clock, so it gets the zero time and the
+// simulator's own clock applies.
+func QuoteTime(staleCheck bool, timestamp int64) time.Time {
+	if !staleCheck && timestamp > 0 {
+		return time.Unix(timestamp, 0)
+	}
+	return time.Time{}
 }

@@ -46,7 +46,7 @@ type Hook struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4EVPLUSAI}}
+	h := &Hook{Exchange: valueobject.ExchangeUniswapV4EVPLUSAI}
 	// Leave an invalid snapshot on decode failure, so quotes fail closed while
 	// Track can still construct a fresh snapshot for newly discovered pools.
 	var extra Extra

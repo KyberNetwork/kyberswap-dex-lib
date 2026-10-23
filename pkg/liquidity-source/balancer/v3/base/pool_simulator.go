@@ -74,14 +74,14 @@ func NewPoolSimulator(params pool.FactoryParams, extra *shared.Extra, staticExtr
 
 	return &PoolSimulator{
 		chainID: params.ChainID,
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 
 		vault: vault.New(hook, extra.HooksConfig, extra.DecimalScalingFactors, extra.TokenRates,
 			extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage),
@@ -372,15 +372,34 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	amountIn := lo.Ternary(swapInfo.AmountInBeforeConvert != nil,
-		swapInfo.AmountInBeforeConvert,
-		params.TokenAmountIn.Amount,
-	)
-	if isTokenInUnderlying {
-		// If token in is underlying we must use the converted shares amount for the balance update
-		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(
-			uint256.MustFromBig(amountIn), false)
-		amountIn = convertedAmount.ToBig()
+	// AmountInBeforeConvert is the vault's amount in, already in pool-token (wrapped) units
+	amountIn := swapInfo.AmountInBeforeConvert
+	if amountIn == nil {
+		amountIn = params.TokenAmountIn.Amount
+		if isTokenInUnderlying {
+			// If token in is underlying we must use the converted shares amount for the balance update
+			convertedAmount, err := p.buffers[indexIn].ConvertToShares(uint256.MustFromBig(amountIn), false)
+			if err != nil {
+				logger.Warnf("[%s] failed to UpdateBalance for pool %s", p.GetExchange(), p.Info.Address)
+				return
+			}
+			amountIn = convertedAmount.ToBig()
+		}
+	}
+
+	// AmountOutBeforeConvert is the vault's amount out, already in pool-token (wrapped) units
+	amountOut := swapInfo.AmountOutBeforeConvert
+	if amountOut == nil {
+		amountOut = params.TokenAmountOut.Amount
+		if isTokenOutUnderlying {
+			// If token out is underlying we must use the shares redeemed for it for the balance update
+			convertedAmount, err := p.buffers[indexOut].ConvertToAssets(uint256.MustFromBig(amountOut), true)
+			if err != nil {
+				logger.Warnf("[%s] failed to UpdateBalance for pool %s", p.GetExchange(), p.Info.Address)
+				return
+			}
+			amountOut = convertedAmount.ToBig()
+		}
 	}
 
 	updatedRawBalanceIn := new(big.Int)
@@ -394,17 +413,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for pool %s", p.GetExchange(), p.Info.Address)
 		return
-	}
-
-	amountOut := lo.Ternary(swapInfo.AmountOutBeforeConvert != nil,
-		swapInfo.AmountOutBeforeConvert,
-		params.TokenAmountOut.Amount,
-	)
-	if isTokenOutUnderlying {
-		// If token out is underlying we must use the converted assets amount for the balance update
-		convertedAmount, _ := p.buffers[indexOut].ConvertToAssets(
-			uint256.MustFromBig(amountOut), false)
-		amountOut = convertedAmount.ToBig()
 	}
 
 	updatedRawBalanceOut := new(big.Int)

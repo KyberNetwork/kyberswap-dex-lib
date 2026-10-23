@@ -2,6 +2,7 @@ package v1
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -39,7 +40,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -48,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		collateralValue: uint256.NewInt(0),
 		reserves:        [2]*uint256.Int{big256.New(entityPool.Reserves[0]), big256.New(entityPool.Reserves[1])},
 		StaticExtra:     staticExtra,
@@ -255,6 +256,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	}))
 
 	cloned.collateralValue = p.collateralValue.Clone()
+	cloned.Collaterals = slices.Clone(p.Collaterals)
 
 	cloned.Vaults = [3]*shared.VaultState(lo.Map(p.Vaults[:], func(v *shared.VaultState, _ int) *shared.VaultState {
 		if v == nil {

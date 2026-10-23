@@ -7,3 +7,6 @@ var vaultExplorerJson []byte
 
 //go:embed abis/ERC4626.json
 var erc4626Json []byte
+
+//go:embed abis/PoolFactory.json
+var poolFactoryJson []byte

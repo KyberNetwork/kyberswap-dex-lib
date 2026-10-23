@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
@@ -93,7 +92,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		// The tracker overwrites Extra on the first cycle; tickSpacing is seeded here so it can
 		// traverse ticks correctly on that very first pass.
-		extra, err := json.Marshal(Extra{Extra: uniswapv3.Extra{TickSpacing: tickSpacing}})
+		extra, err := json.Marshal(Extra{TickSpacing: tickSpacing})
 		if err != nil {
 			return nil, metadataBytes, err
 		}

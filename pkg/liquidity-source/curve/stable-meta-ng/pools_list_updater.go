@@ -55,10 +55,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(curvePools) == 0 {
+		return nil, newMetadataBytes, nil
+	}
 
 	pools, err := u.initPools(ctx, curvePools)
 	if err != nil {
 		u.logger.Error(err.Error())
+		return nil, nil, err
+	}
+
+	if newMetadataBytes, err = shared.AddListedPools(newMetadataBytes, pools); err != nil {
 		return nil, nil, err
 	}
 

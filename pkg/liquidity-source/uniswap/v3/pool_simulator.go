@@ -119,7 +119,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 	}
 
 	sim := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			SwapFee:     swapFee,
 			Exchange:    entityPool.Exchange,
@@ -127,7 +127,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		V3Pool:             v3Pool,
 		Gas:                defaultGas,
 		tickMin:            tickMin,

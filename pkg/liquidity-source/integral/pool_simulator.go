@@ -52,7 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
 
-	for i := 0; i < numTokens; i++ {
+	for i := range numTokens {
 		tokenAddr := entityPool.Tokens[i].Address
 		tokens[i] = tokenAddr
 		reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
@@ -72,15 +72,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		isEnabled:                extra.IsEnabled,
 		relayerAddress:           extra.RelayerAddress,

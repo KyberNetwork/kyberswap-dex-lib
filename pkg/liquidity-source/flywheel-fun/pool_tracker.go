@@ -150,7 +150,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return p, er
 	}
 	p.StaticExtra = string(static)
-	e := Extra{Curve: state, Parents: parents, Valid: leaf == WETH || len(s.BasePools) == 1, Dependencies: []string{Factory, MarketAdapter, Manager}}
+	// Every trade, graduated or not, emits a log from the launch token (the pool address), which
+	// already triggers this pool. Never depend on PoolManager: its logs cover all of Robinhood's V4.
+	e := Extra{Curve: state, Parents: parents, Valid: leaf == WETH || len(s.BasePools) == 1, Dependencies: []string{Factory}}
 	for _, parent := range parents {
 		e.Dependencies = append(e.Dependencies, parent.Token)
 	}
@@ -163,8 +165,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		e.Protocol = protocol
 	}
 	var previous Extra
+	// The caller registers the set after saving the refresh that produced it and never writes the
+	// flag back, so an unchanged set means it is already registered (same as wombat and nabla).
 	if json.Unmarshal([]byte(p.Extra), &previous) == nil && slices.Equal(previous.Dependencies, e.Dependencies) {
-		e.DependenciesStored = previous.DependenciesStored
+		e.DependenciesStored = true
 	}
 	extra, err := json.Marshal(e)
 	if err != nil {

@@ -64,6 +64,7 @@ func (t *PoolTracker) getNewPoolState(
 		accountant     common.Address
 		assetData      = make([]Asset, len(p.Tokens)-1)
 		isTellerPaused bool
+		shareLock      uint64
 	)
 
 	req.AddCall(&ethrpc.Call{
@@ -80,7 +81,25 @@ func (t *PoolTracker) getNewPoolState(
 		Params: []any{},
 	}, []any{&isTellerPaused})
 
+	if staticExtra.SimpleTeller {
+		req.AddCall(&ethrpc.Call{
+			ABI:    tellerABI,
+			Target: staticExtra.Teller.String(),
+			Method: "shareLockPeriod",
+		}, []any{&shareLock})
+	}
+
 	for i, token := range p.Tokens[1:] {
+		if staticExtra.SimpleTeller {
+			// No assetData on this teller; a supported asset is depositable, with no share premium.
+			req.AddCall(&ethrpc.Call{
+				ABI:    tellerABI,
+				Target: staticExtra.Teller.String(),
+				Method: "isSupported",
+				Params: []any{common.HexToAddress(token.Address)},
+			}, []any{&assetData[i].AllowDeposits})
+			continue
+		}
 		req.AddCall(&ethrpc.Call{
 			ABI:    tellerABI,
 			Target: staticExtra.Teller.String(),
@@ -121,9 +140,10 @@ func (t *PoolTracker) getNewPoolState(
 
 	// Update pool extra data
 	extra := Extra{
-		IsTellerPaused: isTellerPaused,
-		AssetData:      assetData,
-		RateInQuote:    rateInQuote,
+		IsTellerPaused:  isTellerPaused,
+		ShareLockPeriod: shareLock,
+		AssetData:       assetData,
+		RateInQuote:     rateInQuote,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

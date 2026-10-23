@@ -42,11 +42,11 @@ func robinhoodRPCURL() string {
 // trip count reflects exactly what production traffic would send.
 type countingTransport struct {
 	inner http.RoundTripper
-	count int64
+	count atomic.Int64
 }
 
 func (c *countingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	atomic.AddInt64(&c.count, 1)
+	c.count.Add(1)
 	return c.inner.RoundTrip(req)
 }
 
@@ -91,7 +91,7 @@ func TestGetNewPoolState_ViaLens_IsOneRoundTrip(t *testing.T) {
 	got, err := tracker.GetNewPoolState(context.Background(), pool, poolpkg.GetNewPoolStateParams{})
 	require.NoError(t, err)
 
-	require.Equal(t, int64(1), atomic.LoadInt64(&transport.count), "lens path must be exactly one HTTP round trip")
+	require.Equal(t, int64(1), transport.count.Load(), "lens path must be exactly one HTTP round trip")
 	require.InDelta(t, 0.001, got.SwapFee, 1e-9, "swapFee should reflect the live feeBps=10")
 	require.NotZero(t, got.BlockNumber)
 

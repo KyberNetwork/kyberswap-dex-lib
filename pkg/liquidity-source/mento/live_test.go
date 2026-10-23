@@ -47,7 +47,7 @@ func listAll(t *testing.T, u *PoolsListUpdater) []entity.Pool {
 		all      []entity.Pool
 		metadata []byte
 	)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		pools, next, err := u.GetNewPools(context.Background(), metadata)
 		require.NoError(t, err)
 		if len(pools) == 0 {
@@ -164,7 +164,6 @@ func TestQuoteParity_Live(t *testing.T) {
 		"100000000000000000000000"}
 
 	for _, seed := range pools {
-		seed := seed
 		t.Run(seed.Address, func(t *testing.T) {
 			p, err := tracker.GetNewPoolState(context.Background(), seed, pool.GetNewPoolStateParams{})
 			require.NoError(t, err)
@@ -172,7 +171,7 @@ func TestQuoteParity_Live(t *testing.T) {
 			require.NoError(t, err)
 
 			blockNumber := new(big.Int).SetUint64(p.BlockNumber)
-			for dir := 0; dir < 2; dir++ {
+			for dir := range 2 {
 				tokenIn, tokenOut := p.Tokens[dir].Address, p.Tokens[1-dir].Address
 				onchain := make([]*big.Int, len(sizes))
 				req := client.NewRequest().SetContext(context.Background()).SetBlockNumber(blockNumber)

@@ -2,6 +2,7 @@ package erc4626
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -18,9 +19,20 @@ type PoolSimulator struct {
 	pool.Pool
 	Extra
 	StaticExtra
+	poolTimestamp int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFromParams)
+
+// NewPoolSimulatorFromParams is the registered factory. Without Opts.StaleCheck (indexing) MaxAge is zeroed,
+// so deposits never fail on pool age.
+func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, error) {
+	s, err := NewPoolSimulator(params.EntityPool)
+	if err == nil && !params.Opts.StaleCheck {
+		s.MaxAge = 0
+	}
+	return s, err
+}
 
 func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -36,16 +48,17 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      lo.Map(p.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
 			Reserves:    lo.Map(p.Reserves, func(r string, _ int) *big.Int { return bignum.NewBig(r) }),
 			BlockNumber: p.BlockNumber,
-		}},
-		Extra:       extra,
-		StaticExtra: staticExtra,
+		},
+		Extra:         extra,
+		poolTimestamp: p.Timestamp,
+		StaticExtra:   staticExtra,
 	}, nil
 }
 
@@ -62,7 +75,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var amountOut *uint256.Int
 	if isDeposit {
-		if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
+		if s.stale() {
+			return nil, ErrERC4626StalePoolData
+		} else if s.DepositsPaused {
+			return nil, ErrERC4626DepositsPaused
+		} else if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		} else if s.MinDeposit != nil && amountIn.Lt(s.MinDeposit) {
 			return nil, ErrERC4626DepositLessThanMin
@@ -70,6 +87,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		amountOut, err = GetClosestRate(s.DepositRates, amountIn, false)
 		if err != nil {
 			return nil, ErrInvalidDepositRate
+		} else if s.MintHeadroom != nil && amountOut.Gt(s.MintHeadroom) {
+			return nil, ErrERC4626MintMoreThanMax
 		}
 	} else {
 		if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
@@ -108,8 +127,14 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	var amountIn *uint256.Int
 	if isDeposit {
 		amountIn, err = GetClosestRate(s.DepositRates, amountOut, true)
-		if err != nil {
+		if s.stale() {
+			return nil, ErrERC4626StalePoolData
+		} else if s.DepositsPaused {
+			return nil, ErrERC4626DepositsPaused
+		} else if err != nil {
 			return nil, ErrInvalidDepositRate
+		} else if s.MintHeadroom != nil && amountOut.Gt(s.MintHeadroom) {
+			return nil, ErrERC4626MintMoreThanMax
 		} else if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		} else if s.MinDeposit != nil && amountIn.Lt(s.MinDeposit) {
@@ -137,6 +162,11 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
+// stale: the limits were last read more than MaxAge ago (off when MaxAge is 0).
+func (s *PoolSimulator) stale() bool {
+	return s.MaxAge > 0 && s.poolTimestamp+s.MaxAge < time.Now().Unix()
+}
+
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	if s.MaxDeposit != nil {
@@ -144,6 +174,9 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	}
 	if s.MaxRedeem != nil {
 		cloned.MaxRedeem = new(uint256.Int).Set(s.MaxRedeem)
+	}
+	if s.MintHeadroom != nil {
+		cloned.MintHeadroom = new(uint256.Int).Set(s.MintHeadroom)
 	}
 	return &cloned
 }
@@ -158,6 +191,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if swapType == Deposit {
 		if s.MaxDeposit != nil {
 			s.MaxDeposit = new(uint256.Int).Sub(s.MaxDeposit, uint256.MustFromBig(tokenAmountIn.Amount))
+		}
+		if s.MintHeadroom != nil {
+			s.MintHeadroom = new(uint256.Int).Sub(s.MintHeadroom, uint256.MustFromBig(tokenAmountOut.Amount))
 		}
 	} else if s.MaxRedeem != nil {
 		s.MaxRedeem = new(uint256.Int).Sub(s.MaxRedeem, uint256.MustFromBig(tokenAmountIn.Amount))

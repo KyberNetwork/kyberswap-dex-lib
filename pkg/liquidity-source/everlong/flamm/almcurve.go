@@ -172,7 +172,7 @@ func almXAtPrice(targetPriceWad, aWad *uint256.Int) (uint256.Int, error) {
 		return hi, nil
 	}
 	var mid uint256.Int
-	for i := 0; i < 128; i++ {
+	for range 128 {
 		mid.Add(&lo, &hi)
 		mid.Rsh(&mid, 1)
 		if mid.Eq(&lo) {
@@ -341,7 +341,7 @@ func almStableIn(sup *almSupport, xWad, y, amountInWad *uint256.Int) (amountOut,
 		return amountOut, xAfter, inputUnused, err
 	}
 	var mid uint256.Int
-	for i := 0; i < 128; i++ {
+	for range 128 {
 		mid.Add(&lo, &hi)
 		mid.Rsh(&mid, 1)
 		if mid.Eq(&lo) {

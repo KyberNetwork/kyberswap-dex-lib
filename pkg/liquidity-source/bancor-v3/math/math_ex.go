@@ -62,7 +62,7 @@ func (m *mathEx) MulDivF(x, y, z *uint256.Int) (*uint256.Int, error) {
 
 func (m *mathEx) _inv256(d *uint256.Int) *uint256.Int {
 	x := number.Number_1
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		x = m._unsafeMul(x, m._unsafeSub(number.Number_2, m._unsafeMul(x, d)))
 	}
 	return x

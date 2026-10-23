@@ -32,6 +32,8 @@ type PoolSimulator struct {
 
 	Extra       Extra
 	StaticExtra StaticExtra
+
+	dCache dCache `msgpack:"-"`
 }
 
 type Gas struct {
@@ -101,6 +103,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	sim.NumTokens = numTokens
 	sim.NumTokensU256.SetUint64(uint64(numTokens))
+	sim.cacheD()
 	return sim, nil
 }
 
@@ -204,6 +207,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			t.Reserves[i].Sub(&t.Reserves[i], number.SetFromBig(outputAmount))
 		}
 	}
+	t.cacheD()
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

@@ -57,8 +57,21 @@ func (d *PoolTracker) GetNewPoolState(
 		WoFeasible bool     `json:"woFeasible"`
 	}
 
+	// Re-read the token list about hourly; on failure keep the old list and retry next track.
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev) // empty on the first track
+	tokensRefreshedAt := prev.TokensRefreshedAt
+	if now := time.Now(); now.Sub(time.Unix(tokensRefreshedAt, 0)) >= tokensRefreshInterval {
+		if tokens, err := loadTokens(ctx, d.ethrpcClient, d.config, p.Tokens); err != nil {
+			logger.WithFields(logger.Fields{"poolAddress": p.Address, "err": err}).
+				Warnf("[WooFiV2] failed to refresh token list")
+		} else {
+			p.Tokens, tokensRefreshedAt = tokens, now.Unix()
+		}
+	}
+
 	var (
-		isPaused                 bool
+		isPaused, oraclePaused   bool
 		quoteToken, wooracle     common.Address
 		timestamp, staleDuration *big.Int
 		bound                    uint64
@@ -114,7 +127,8 @@ func (d *PoolTracker) GetNewPoolState(
 
 	if isPaused {
 		extraBytes, err := json.Marshal(&Extra{
-			IsPaused: true,
+			IsPaused:          true,
+			TokensRefreshedAt: tokensRefreshedAt,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -125,7 +139,7 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 
 		p.Extra = string(extraBytes)
-		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
+		p.Reserves = lo.Map(p.Tokens, func(_ *entity.PoolToken, _ int) string { return "0" })
 		p.BlockNumber = callsResult.BlockNumber.Uint64()
 		p.Timestamp = time.Now().Unix()
 
@@ -135,6 +149,14 @@ func (d *PoolTracker) GetNewPoolState(
 	blockNumber := callsResult.BlockNumber
 
 	oracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	// Index 0. The pre-pause oracle has no paused() (selector 0x5c975abb absent from its
+	// bytecode), so its call reverts and counts as not paused. woState()/timestamp() don't
+	// revert while paused, but state()/price() (used by the pool's swaps) do.
+	oracleCalls.AddCall(&ethrpc.Call{
+		ABI:    WooracleV2ABI,
+		Target: wooracle.Hex(),
+		Method: wooracleMethodPaused,
+	}, []any{&oraclePaused})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
@@ -170,13 +192,15 @@ func (d *PoolTracker) GetNewPoolState(
 			Params: []any{common.HexToAddress(token.Address)},
 		}, []any{&clOracles[i]})
 	}
-	if _, err := oracleCalls.TryBlockAndAggregate(); err != nil {
+	oracleResult, err := oracleCalls.TryBlockAndAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
 		return p, err
 	}
+	oraclePaused = oraclePaused && oracleResult.Result[0]
 
 	// Call ChainLink Oracle to get latestRoundData
 	latestRoundData := make([]struct {
@@ -276,8 +300,10 @@ func (d *PoolTracker) GetNewPoolState(
 			StaleDuration: staleDuration.Int64(),
 			Bound:         bound,
 		},
-		Cloracle: poolCloracle,
-		IsPaused: false,
+		Cloracle:          poolCloracle,
+		IsPaused:          false,
+		OraclePaused:      oraclePaused,
+		TokensRefreshedAt: tokensRefreshedAt,
 	})
 
 	if err != nil {

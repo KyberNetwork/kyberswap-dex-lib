@@ -28,7 +28,7 @@ func TestTrack_Live(t *testing.T) {
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862be2a173976CA11"))
 	hookAddr := common.HexToAddress("0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044")
 
-	h := &Hook{Hook: &uniswapv4.BaseHook{}}
+	h := &Hook{}
 	_, err := h.Track(context.Background(), &uniswapv4.HookParam{
 		RpcClient:   rpcClient,
 		HookAddress: hookAddr,

@@ -1,6 +1,8 @@
 package everlongflamm
 
 import (
+	"maps"
+
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -80,9 +82,7 @@ func (p *mmRouter) clone() *mmRouter {
 	q.Venues = append([]mmVenue(nil), p.Venues...)
 	if p.TransientRepay != nil {
 		q.TransientRepay = make(map[uint16]mmRepaySnapshot, len(p.TransientRepay))
-		for k, v := range p.TransientRepay {
-			q.TransientRepay[k] = v
-		}
+		maps.Copy(q.TransientRepay, p.TransientRepay)
 	}
 	return &q
 }

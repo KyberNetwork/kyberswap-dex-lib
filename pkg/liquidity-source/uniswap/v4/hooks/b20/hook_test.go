@@ -60,7 +60,7 @@ func TestTotalFeeBps_CappedAtMax(t *testing.T) {
 	// registration time, but the Go clamp must hold defensively too -- use an
 	// out-of-policy value (10_000) so the surcharge math alone would exceed the cap and
 	// the assertion can actually fail if the `if total > MaxTotalFeeBps` clamp is removed.
-	h := &Hook{Extra: Extra{BaseFeeBps: 0, AntiSnipeStartTotalBps: 10_000, AntiSnipeWindowSeconds: 10, LaunchTime: 1}}
+	h := &Hook{BaseFeeBps: 0, AntiSnipeStartTotalBps: 10_000, AntiSnipeWindowSeconds: 10, LaunchTime: 1}
 	NowFn = func() int64 { return 1 } // elapsed=0 -> surcharge=10_000, would exceed the cap uncapped
 	assert.Equal(t, int64(MaxTotalFeeBps), h.TotalFeeBps())
 }
@@ -79,7 +79,7 @@ func TestQuoteIsSpecified(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			h := &Hook{Extra: Extra{TokenIsCurrency0: c.tokenIsCurrency0}}
+			h := &Hook{TokenIsCurrency0: c.tokenIsCurrency0}
 			assert.Equal(t, c.want, h.QuoteIsSpecified(c.zeroForOne))
 		})
 	}

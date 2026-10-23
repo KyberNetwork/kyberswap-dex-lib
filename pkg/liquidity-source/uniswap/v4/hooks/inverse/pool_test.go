@@ -58,7 +58,7 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 	require.NoError(t, err)
 	original := sim.CloneState().(*uniswapv4.PoolSimulator)
 	// Fixture ordering is lexical; follow by state, not array index.
-	for i := 0; i < 18; i++ {
+	for range 18 {
 		var v *vector
 		for j := range vs {
 			if vs[j].Before == s && vs[j].Success {

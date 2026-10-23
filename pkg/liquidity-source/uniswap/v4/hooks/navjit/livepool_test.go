@@ -4,15 +4,20 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
-	"sort"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
@@ -55,12 +60,45 @@ func skipInCI(t *testing.T) {
 	}
 }
 
+// pacedTransport spaces requests out and retries a 403/429/5xx with backoff: the public Robinhood
+// RPCs sit behind Cloudflare, which answers a burst of calls with a 403 challenge for a few seconds.
+type pacedTransport struct {
+	mu   sync.Mutex
+	next time.Time
+}
+
+func (p *pacedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	for attempt := 0; ; attempt++ {
+		p.mu.Lock()
+		time.Sleep(time.Until(p.next))
+		p.next = time.Now().Add(500 * time.Millisecond)
+		p.mu.Unlock()
+
+		r := req.Clone(req.Context())
+		if req.GetBody != nil {
+			r.Body, _ = req.GetBody()
+		}
+		resp, err := http.DefaultTransport.RoundTrip(r)
+		if attempt == 4 || (err == nil && resp.StatusCode != 403 && resp.StatusCode != 429 && resp.StatusCode < 500) {
+			return resp, err
+		}
+		if err == nil {
+			_ = resp.Body.Close()
+		}
+		time.Sleep(time.Duration(5<<attempt) * time.Second)
+	}
+}
+
 func liveRPC() *ethrpc.Client {
 	url := os.Getenv("NAVJIT_RPC")
 	if url == "" {
 		url = defaultRPC
 	}
-	return ethrpc.New(url).SetMulticallContract(common.HexToAddress(multicall3))
+	c, err := rpc.DialOptions(context.Background(), url, rpc.WithHTTPClient(&http.Client{Transport: &pacedTransport{}}))
+	if err != nil {
+		panic(err)
+	}
+	return ethrpc.NewWithClient(ethclient.NewClient(c)).SetMulticallContract(common.HexToAddress(multicall3))
 }
 
 // poolSpec is a v4 PoolKey plus its id; token decimals are looked up per currency.
@@ -124,7 +162,7 @@ func scanTicks(ctx context.Context, t *testing.T, rpc *ethrpc.Client, spec poolS
 	var idx []int64
 	for i, bm := range bitmaps {
 		w := wordList[i]
-		for b := 0; b < 256; b++ {
+		for b := range 256 {
 			if bm != nil && bm.Bit(b) == 1 {
 				idx = append(idx, (w*256+int64(b))*ts)
 			}
@@ -133,7 +171,7 @@ func scanTicks(ctx context.Context, t *testing.T, rpc *ethrpc.Client, spec poolS
 	if len(idx) == 0 {
 		return nil
 	}
-	sort.Slice(idx, func(i, j int) bool { return idx[i] < idx[j] })
+	slices.Sort(idx)
 	type tickInfo struct {
 		LiquidityGross        *big.Int
 		LiquidityNet          *big.Int
@@ -194,27 +232,38 @@ func trackPool(ctx context.Context, t *testing.T, rpc *ethrpc.Client, spec poolS
 	return p
 }
 
-// v4Quote is the stock V4Quoter's exact-in answer at `block`; ok=false when it reverts.
-func v4Quote(ctx context.Context, rpc *ethrpc.Client, block *big.Int, spec poolSpec, zeroForOne bool,
-	amt *big.Int) (*big.Int, bool) {
-	quoter := QuoterByChain[valueobject.ChainIDRobinhood]
-	qp := quoteParams{ZeroForOne: zeroForOne, ExactAmount: amt, HookData: []byte{}}
-	qp.PoolKey.Currency0 = common.HexToAddress(spec.Currency0)
-	qp.PoolKey.Currency1 = common.HexToAddress(spec.Currency1)
-	qp.PoolKey.Fee = big.NewInt(int64(spec.Fee))
-	qp.PoolKey.TickSpacing = big.NewInt(int64(spec.TickSpacing))
-	qp.PoolKey.Hooks = common.HexToAddress(spec.Hooks)
-	var out quoteResult
+// v4Quotes is the stock V4Quoter's exact-in answer at `block` for each amount, in one multicall;
+// a nil entry means that quote reverted. An RPC failure (rate limit, Cloudflare 403) is not a
+// revert: it fails the test once liveRPC's retries run out, so throttling cannot pass for a refusal.
+func v4Quotes(ctx context.Context, t *testing.T, rpc *ethrpc.Client, block *big.Int, spec poolSpec,
+	zeroForOne bool, amts ...*big.Int) []*big.Int {
+	t.Helper()
+	quoterAddr := QuoterByChain[valueobject.ChainIDRobinhood]
+	quoter := hexutil.Encode(quoterAddr[:])
+	outs := make([]quoteResult, len(amts))
 	req := rpc.NewRequest().SetContext(ctx)
 	if block != nil {
 		req.SetBlockNumber(block)
 	}
-	res, err := req.AddCall(&ethrpc.Call{ABI: quoterABI, Target: hexutil.Encode(quoter[:]),
-		Method: "quoteExactInputSingle", Params: []any{qp}}, []any{&out}).TryAggregate()
-	if err != nil || !res.Result[0] || out.AmountOut == nil {
-		return nil, false
+	for i, amt := range amts {
+		qp := quoteParams{ZeroForOne: zeroForOne, ExactAmount: amt, HookData: []byte{}}
+		qp.PoolKey.Currency0 = common.HexToAddress(spec.Currency0)
+		qp.PoolKey.Currency1 = common.HexToAddress(spec.Currency1)
+		qp.PoolKey.Fee = big.NewInt(int64(spec.Fee))
+		qp.PoolKey.TickSpacing = big.NewInt(int64(spec.TickSpacing))
+		qp.PoolKey.Hooks = common.HexToAddress(spec.Hooks)
+		req.AddCall(&ethrpc.Call{ABI: quoterABI, Target: quoter, Method: "quoteExactInputSingle",
+			Params: []any{qp}}, []any{&outs[i]})
 	}
-	return out.AmountOut, true
+	res, err := req.TryAggregate()
+	require.NoError(t, err, "V4Quoter multicall")
+	got := make([]*big.Int, len(amts))
+	for i := range amts {
+		if res.Result[i] && outs[i].AmountOut != nil {
+			got[i] = outs[i].AmountOut
+		}
+	}
+	return got
 }
 
 // errBps is (sim - ref) / ref in basis points, signed: negative means the simulator under-quotes.

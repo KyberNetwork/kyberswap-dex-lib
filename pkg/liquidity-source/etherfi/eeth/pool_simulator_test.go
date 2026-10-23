@@ -23,10 +23,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0xc54ef903cfd952d9e0e5ae1e3061f8456ca5588ef35dd8a88ab790f9a87fc5c0
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x35fa164735182de50811e8e2e824cfb9b6118ac2"},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x35fa164735182de50811e8e2e824cfb9b6118ac2"},
 				},
 				totalPooledEther: bignumber.NewBig("478349632983976798301885"),
 				totalShares:      bignumber.NewBig("463434527744908632824686"),
@@ -61,10 +59,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	t.Parallel()
 	t.Run("it should update balance correctly", func(t *testing.T) {
 		poolSimulator := &PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x35fa164735182de50811e8e2e824cfb9b6118ac2"},
-				},
+			Info: poolpkg.PoolInfo{
+				Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x35fa164735182de50811e8e2e824cfb9b6118ac2"},
 			},
 			totalPooledEther: bignumber.NewBig("478349632983976798301885"),
 			totalShares:      bignumber.NewBig("463434527744908632824686"),

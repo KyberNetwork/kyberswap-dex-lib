@@ -23,10 +23,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0x3e278a310bfa787d0c05a9ec7007b10c6f655a5273a9126bc8844512887fc3d3
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{WETH, UNIETH},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{WETH, UNIETH},
 				},
 				paused:         false,
 				totalSupply:    bignumber.NewBig("40654517980271452478787"),
@@ -62,10 +60,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	t.Parallel()
 	t.Run("it should update balance correctly", func(t *testing.T) {
 		poolSimulator := &PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Tokens: []string{WETH, UNIETH},
-				},
+			Info: poolpkg.PoolInfo{
+				Tokens: []string{WETH, UNIETH},
 			},
 			paused:         false,
 			totalSupply:    bignumber.NewBig("40654517980271452478787"),

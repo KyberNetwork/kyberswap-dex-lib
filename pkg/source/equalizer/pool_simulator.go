@@ -65,7 +65,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:     pool.Pool{Info: info},
+		Info:     info,
 		stable:   staticExtra.Stable,
 		swapFee:  swapFee,
 		reserves: reserves,

@@ -272,7 +272,7 @@ func TestPoolSimulator_ConsecutiveSwaps(t *testing.T) {
 	buyAmount := mustFromDecimal("100000000000000000") // 0.1 ETH
 	var prevTokensOut *big.Int
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: testBasePair, Amount: buyAmount.ToBig()},
 			TokenOut:      testToken,

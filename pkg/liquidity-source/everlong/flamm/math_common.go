@@ -64,7 +64,7 @@ const (
 
 // fnvWord folds one 64-bit word, low byte first.
 func fnvWord(h, w uint64) uint64 {
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		h = (h ^ (w & 0xff)) * fnvPrime64
 		w >>= 8
 	}
@@ -73,7 +73,7 @@ func fnvWord(h, w uint64) uint64 {
 
 // fnvWords folds a 256-bit word, limb by limb.
 func fnvWords(h uint64, v *uint256.Int) uint64 {
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		h = fnvWord(h, v[i])
 	}
 	return h

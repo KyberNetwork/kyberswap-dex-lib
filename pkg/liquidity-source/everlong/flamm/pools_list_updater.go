@@ -271,7 +271,7 @@ func (u *PoolsListUpdater) listPool(ctx context.Context, rpcc *mcRPC, d *flammDe
 	})
 	p.add("factory.implementation", d.Factory.Address, &factoryABI, "implementation", nil,
 		readAddr(&se.Implementation))
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		if e := hooks.Entries[role]; e != nil {
 			hookKindSpecOf(e.Kind).listingReads(p, e.Address, &bindings[role])
 		}
@@ -300,7 +300,7 @@ func (u *PoolsListUpdater) listPool(ctx context.Context, rpcc *mcRPC, d *flammDe
 	case se.Hooks != hooks.Addrs:
 		return nil, nil, "", fmt.Errorf("%w: hook set", ErrInvalidProfile)
 	}
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		if !hooks.bound(role, &bindings[role], pool) {
 			return nil, nil, "", fmt.Errorf("%w: %s binding", ErrInvalidProfile, roleName[role])
 		}
@@ -334,7 +334,7 @@ func (u *PoolsListUpdater) listPool(ctx context.Context, rpcc *mcRPC, d *flammDe
 	feed, _ := sharedIn(d.PriceFeeds, head.priceFeed)
 	codes := []codeCheck{{"pool", pool, d.PoolCodeHash}, {"factory", d.Factory.Address, d.Factory.CodeHash},
 		{"implementation", implementation.Address, implementation.CodeHash}}
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		if e := hooks.Entries[role]; e != nil {
 			codes = append(codes, codeCheck{roleCodeName[role], e.Address, e.CodeHash})
 		}
@@ -392,7 +392,7 @@ func (se *StaticExtra) venueScope(pool common.Address) venueScope {
 func readVenues(ctx context.Context, rpcc *mcRPC, scope venueScope, n int, block *big.Int) ([]StaticVenue, error) {
 	venues := make([]StaticVenue, n)
 	p := &readPlan{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p.add(fmt.Sprintf("router.venue(%d)", i), scope.Router, &routerABI, "venue", []any{scope.Pool, uint16(i)},
 			func(vals []any) error {
 				v, err := tupleOf[abiVenueView](vals[0])
@@ -404,7 +404,7 @@ func readVenues(ctx context.Context, rpcc *mcRPC, scope venueScope, n int, block
 		return nil, err
 	}
 	p = &readPlan{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v := &venues[i]
 		p.add(fmt.Sprintf("morpho.idToMarketParams(%d)", i), scope.Morpho, &morphoABI, "idToMarketParams",
 			[]any{v.MarketID}, func(vals []any) error {

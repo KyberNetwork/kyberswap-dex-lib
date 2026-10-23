@@ -169,7 +169,7 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 
 	listPairAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		index := int64(offset + i)
 
 		listPairAddressesRequest.AddCall(&ethrpc.Call{
@@ -228,6 +228,7 @@ func (u *PoolsListUpdater) initPools(
 		staticExtra, err := json.Marshal(PoolStaticExtra{
 			FeePrecision: u.config.FeePrecision,
 			Stable:       metadataList[i].St,
+			Gas:          u.config.Gas,
 		})
 		if err != nil {
 			logger.

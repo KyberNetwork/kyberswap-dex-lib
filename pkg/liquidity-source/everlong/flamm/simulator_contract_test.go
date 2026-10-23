@@ -98,7 +98,7 @@ func TestSimulatorPurityConcurrent(t *testing.T) {
 			t.Logf("sequential: venues %v", venues)
 			var wg sync.WaitGroup
 			errs := make(chan string, 64)
-			for g := 0; g < 12; g++ {
+			for g := range 12 {
 				wg.Add(1)
 				go func(g int) {
 					defer wg.Done()

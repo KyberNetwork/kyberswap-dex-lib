@@ -10,10 +10,6 @@ type Reserves struct {
 	BlockTimestampLast uint32
 }
 
-type Metadata struct {
-	Offset int `json:"offset"`
-}
-
 type Gas struct {
 	SwapBase    int64
 	SwapNonBase int64

@@ -34,6 +34,7 @@ type PoolSimulator struct {
 	isNative         [2]bool
 	chainID          valueobject.ChainID
 	fee, protocolFee uint32
+	hookSwapFee      uint32
 	swapFee          *uint256.Int
 
 	bins     []Bin
@@ -64,7 +65,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -73,7 +74,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		vault:          staticExtra.VaultAddress,
 		binPoolManager: staticExtra.PoolManagerAddress,
 		permit2:        staticExtra.Permit2Address,
@@ -82,6 +83,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		fee:            staticExtra.Fee,
 		swapFee:        uint256.NewInt(uint64(entityPool.SwapFee)),
 		protocolFee:    extra.ProtocolFee,
+		hookSwapFee:    extra.HookSwapFee,
 		bins:           extra.Bins,
 		hook:           hook,
 		exchange:       exchange,
@@ -107,6 +109,23 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 	amountsLeft, overflow := uint256.FromBig(amountIn)
 	if overflow {
 		return nil, shared.ErrInvalidAmountIn
+	}
+
+	if p.hookSwapFee > 0 {
+		// beforeSwap: fee = floor(amount * hookSwapFee / 1e6) of the specified amount, taken
+		// by the hook. Exact-in swaps amount - fee, exact-out swaps amount + fee.
+		// amount < 2^128 (int128 on-chain) and fee < 2^20, so the product fits in 256 bits.
+		var hookFee uint256.Int
+		hookFee.SetUint64(uint64(p.hookSwapFee))
+		hookFee.Mul(&hookFee, amountsLeft).Div(&hookFee, _PIPS)
+		if exactIn {
+			amountsLeft.Sub(amountsLeft, &hookFee)
+		} else if _, overflow = amountsLeft.AddOverflow(amountsLeft, &hookFee); overflow {
+			return nil, shared.ErrInvalidAmountIn
+		}
+		if amountsLeft.IsZero() {
+			return nil, ErrInsufficientAmountUnSpecified
+		}
 	}
 
 	id := p.activeId
@@ -194,6 +213,13 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 	}, nil
 }
 
+func (p *PoolSimulator) gas() int64 {
+	if p.hookSwapFee > 0 {
+		return defaultGas + hookSwapFeeGas
+	}
+	return defaultGas
+}
+
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn, tokenOut := params.TokenAmountIn, params.TokenOut
 	indexIn, indexOut := p.GetTokenIndex(tokenIn.Token), p.GetTokenIndex(tokenOut)
@@ -234,7 +260,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenIn.Token,
 			Amount: res.Fee.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas: p.gas(),
 		SwapInfo: SwapInfo{
 			NewActiveID:        res.NewActiveID,
 			BinsReserveChanges: res.BinsReserveChanges,
@@ -282,7 +308,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Token:  tokenIn,
 			Amount: res.Fee.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas: p.gas(),
 		SwapInfo: SwapInfo{
 			NewActiveID:        res.NewActiveID,
 			BinsReserveChanges: res.BinsReserveChanges,

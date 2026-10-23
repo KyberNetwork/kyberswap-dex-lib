@@ -120,7 +120,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	stablePoolABI, _ := NomiStablePoolMetaData.GetAbi()
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < len(poolAddresses); i++ {
+	for i := range poolAddresses {
 		// reservesData, err1 := stablePoolABI.Pack("getReserves", nil)
 		// calls.AddCall(&ethrpc.Call{CallData: reservesData}, []any{&reserves[i]})
 		calls.AddCall(&ethrpc.Call{
@@ -146,7 +146,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	}
 
 	var pools = make([]entity.Pool, 0, len(poolAddresses))
-	for i := 0; i < len(poolAddresses); i++ {
+	for i := range poolAddresses {
 		poolAddress := hexutil.Encode(poolAddresses[i][:])
 		token0Address := hexutil.Encode(tokens[i][0][:])
 		token1Address := hexutil.Encode(tokens[i][1][:])

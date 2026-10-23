@@ -100,7 +100,7 @@ func buildPoolState(p *entity.Pool, res *eclp.RpcResult, staticExtra shared.Stat
 	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap
 	extra.ShouldCallAfterSwap = res.HooksConfigData.ShouldCallAfterSwap
 	extra.StaticSwapFeePercentage, _ = uint256.FromBig(res.StaticSwapFeePercentage)
-	extra.AggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+	extra.AggregateSwapFeePercentage = res.AggregateSwapFee()
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
@@ -154,7 +154,6 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), vaultExplorer, poolAddress str
 	paramsPool := []any{common.HexToAddress(poolAddress)}
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetHooksConfig, Params: paramsPool}, []any{&rpcRes.HooksConfigRPC})
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetStaticSwapFeePercentage, Params: paramsPool}, []any{&rpcRes.StaticSwapFeePercentage})
-	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetAggregateFeePercentages, Params: paramsPool}, []any{&rpcRes.AggregateFeePercentageRPC})
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodGetPoolData, Params: paramsPool}, []any{&rpcRes.PoolDataRPC})
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsVaultPaused}, []any{isVaultPaused})
 	addFn(&ethrpc.Call{ABI: shared.VaultExplorerABI, Target: vaultExplorer, Method: shared.VaultMethodIsPoolPaused, Params: paramsPool}, []any{isPoolPaused})

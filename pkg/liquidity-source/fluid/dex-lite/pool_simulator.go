@@ -42,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	fee := big.NewInt(int64(entityPool.SwapFee * FeePercentPrecision))
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -52,7 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     fee,
-		}},
+		},
 		StaticExtra:    staticExtra,
 		TokenDecimals:  [2]uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
 		PoolState:      extra.PoolState,
@@ -153,7 +153,7 @@ func (s *PoolSimulator) calculateSwapInWithState(idxIn, idxOut int, amountIn *ui
 	}
 
 	// Calculate pricing and imaginary reserves with complete shifting logic
-	newDexVars := lo.ToPtr(*dexVars)
+	newDexVars := new(*dexVars)
 	centerPrice, imaginaryReserves, err := s.getPricesAndReservesWithState(newDexVars)
 	if err != nil {
 		return nil, nil, nil, err
@@ -217,7 +217,7 @@ func (s *PoolSimulator) calculateSwapOutWithState(idxIn, idxOut int, amountOut *
 	}
 
 	// Calculate pricing and imaginary reserves with complete shifting logic
-	newDexVars := lo.ToPtr(*dexVars)
+	newDexVars := new(*dexVars)
 	centerPrice, imaginaryReserves, err := s.getPricesAndReservesWithState(newDexVars)
 	if err != nil {
 		return nil, nil, nil, err
