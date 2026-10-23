@@ -88,6 +88,11 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 		if n.gasOf != nil {
 			gas = n.gasOf(x)
 		}
+		if x == 15 {
+			// Started, but its page too large for the batch to copy.
+			results[i] = result{Gas: new(big.Int).SetUint64(gas)}
+			continue
+		}
 		results[i] = result{Ran: true, Gas: new(big.Int).SetUint64(gas), Data: testRead(x)}
 	}
 	// A call at the latest runs at the node's head, here 1000.
@@ -377,6 +382,25 @@ func TestBatcherReadsAHeavyPoolAlone(t *testing.T) {
 
 	assert.EqualValues(t, 2, node.batches.Load())
 	assert.EqualValues(t, 1, node.alone.Load(), "the heavy pool, read alone the second time")
+	assert.EqualValues(t, 1, b.Stats().Heavy)
+}
+
+// TestBatcherLearnsAPageTooLargeForItsBatch: a read the batch started but could not copy back is
+// made alone, and once its cost fills half a batch it is read alone without one.
+func TestBatcherLearnsAPageTooLargeForItsBatch(t *testing.T) {
+	node := &batchNode{gasOf: func(int64) uint64 { return 30_000_000 }}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 50_000_000})
+
+	got, err := read(t, b, node, 15, 7)
+	require.NoError(t, err)
+	assert.EqualValues(t, 15, got.Value.Int64())
+	assert.EqualValues(t, 1, node.batches.Load())
+	assert.EqualValues(t, 1, node.alone.Load(), "made alone after the batch")
+
+	_, err = read(t, b, node, 15, 8)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, node.batches.Load(), "no second batch")
+	assert.EqualValues(t, 2, node.alone.Load())
 	assert.EqualValues(t, 1, b.Stats().Heavy)
 }
 

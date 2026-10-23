@@ -388,8 +388,14 @@ func (b *Batcher) flush(cur *batch) {
 			continue
 		}
 		result := out.Results[i]
-		if result.Ran && result.Gas.IsUint64() {
-			b.learn(read, result.Gas.Uint64())
+		if result.Gas.IsUint64() && result.Gas.Sign() > 0 {
+			if result.Ran {
+				b.learn(read, result.Gas.Uint64())
+			} else {
+				// Started and its gas spent, but its result too large for the batch to copy: it costs
+				// at least that, and is read alone once that fills half a batch.
+				b.costs.Store(costKey{read.contract, string(read.args)}, result.Gas.Uint64())
+			}
 		}
 		read.done <- batchResult{ran: result.Ran, payload: result.Data}
 	}
