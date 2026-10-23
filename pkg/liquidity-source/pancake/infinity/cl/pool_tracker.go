@@ -311,6 +311,8 @@ func (t *PoolTracker) withState(ctx context.Context, p entity.Pool, rpcData *Fet
 		}).Error("failed to resolve hook state")
 		return entity.Pool{}, err
 	}
+	// The hook names the pool's exchange on the pool hookParam points at, the caller's, not p.
+	p.Exchange = hookParam.Pool.Exchange
 
 	extraBytes, err := json.Marshal(Extra{
 		Extra: &uniswapv3.Extra{
