@@ -51,6 +51,8 @@ type probe struct {
 	cap  Cap
 	err  error
 	at   time.Time
+	// cut: the probe ended because its caller's context did, which says nothing of the node.
+	cut bool
 }
 
 // gasCaps caches, per Caller, its node's Cap: a client's node does not change.
@@ -67,15 +69,17 @@ func GasCap(ctx context.Context, c Caller) (Cap, error) {
 		p := v.(*probe)
 		p.once.Do(func() {
 			p.cap, p.err = probeGasCap(ctx, c)
+			p.cut = p.err != nil && ctx.Err() != nil
 			p.at = time.Now()
 		})
 		if p.err != nil && time.Since(p.at) > probeRetry {
 			gasCaps.CompareAndDelete(c, p)
 			continue
 		}
-		if errors.Is(p.err, context.Canceled) || errors.Is(p.err, context.DeadlineExceeded) {
+		if p.cut {
 			// Cut short by its caller's context, the probe says nothing of the node: it is not kept,
-			// and a caller whose context is still live probes again.
+			// and a caller whose context is still live probes again. A node's own timeout, which an
+			// HTTP client reports as a deadline too, is kept as any other failure.
 			gasCaps.CompareAndDelete(c, p)
 			if err := ctx.Err(); err != nil {
 				return Cap{}, err

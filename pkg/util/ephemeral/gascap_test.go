@@ -4,12 +4,18 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,6 +77,36 @@ func TestGasCapProbeCutShortIsNotKept(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, Cap{Gas: 50_000_000}, got)
 	assert.EqualValues(t, 50_000_000, callGas(t.Context(), node, 0))
+}
+
+// TestGasCapNodeTimeoutIsKept: a node that answers no probe within the HTTP client's timeout, which
+// the client reports as a deadline, failed the probe as a node, and the failure is kept for
+// probeRetry rather than probed again for as long as the caller's context lives.
+func TestGasCapNodeTimeoutIsKept(t *testing.T) {
+	var requests atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.ReadAll(r.Body)
+		requests.Add(1)
+		time.Sleep(300 * time.Millisecond)
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x"}`))
+	}))
+	defer srv.Close()
+	rc, err := rpc.DialOptions(t.Context(), srv.URL,
+		rpc.WithHTTPClient(&http.Client{Timeout: 50 * time.Millisecond}))
+	require.NoError(t, err)
+	node := ethclient.NewClient(rc)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	_, err = GasCap(ctx, node)
+	require.Error(t, err)
+	require.NoError(t, ctx.Err(), "the probe fails on the node's timeouts, well before the caller's")
+	assert.LessOrEqual(t, requests.Load(), int64(len(probeLadder)), "one ladder")
+
+	asked := requests.Load()
+	_, err = GasCap(t.Context(), node)
+	require.Error(t, err)
+	assert.Equal(t, asked, requests.Load(), "the failure is kept")
 }
 
 // TestGasCapPerKindOfNode: a node that caps reports its cap, one that refuses a call above its
