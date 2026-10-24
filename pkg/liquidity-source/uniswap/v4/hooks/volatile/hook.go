@@ -20,8 +20,10 @@ type Extra struct {
 	State  FeeState  `json:"s"`
 }
 
+// Hook embeds BaseHook by value, not the Hook interface, so a simulator survives the msgpack round trip
+// (as pons-v2 and coocoo, #1800).
 type Hook struct {
-	uniswapv4.Hook `json:"-"`
+	uniswapv4.BaseHook `json:"-"`
 	Extra
 	// MaxFee is the most this hook charges per side, in pips. The factory sets it from the hook address and it is never
 	// tracked or stored in hX. 0, as in a Hook built without the factory, means Uniswap's 999,998.
@@ -36,7 +38,7 @@ type SwapInfo struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: DexType}}
+	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: DexType}}
 	if slices.Contains(ChangingFeeHookAddresses, param.HookAddress) {
 		h.MaxFee = ChangingFeeMaxFee
 	}

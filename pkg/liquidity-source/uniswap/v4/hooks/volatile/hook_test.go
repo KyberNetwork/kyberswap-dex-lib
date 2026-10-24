@@ -66,7 +66,7 @@ func loadFixture(t testing.TB) []fixtureCase {
 }
 
 func newHook(state FeeState) *Hook {
-	return &Hook{Hook: &uniswapv4.BaseHook{Exchange: DexType}, Config: liveConfig, State: state}
+	return &Hook{BaseHook: uniswapv4.BaseHook{Exchange: DexType}, Extra: Extra{Config: liveConfig, State: state}}
 }
 
 func beforeSwap(t testing.TB, h *Hook, price *uint256.Int, zeroForOne bool) *uniswapv4.BeforeSwapResult {
