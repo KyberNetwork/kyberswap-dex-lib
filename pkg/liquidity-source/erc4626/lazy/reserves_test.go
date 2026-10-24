@@ -71,6 +71,27 @@ func TestUpdateEntityStateReservesUnits(t *testing.T) {
 				MaxDeposit: bigStr("1000000000000")},
 			want: entity.PoolReserves{"1000000000000000000000000", "0"},
 		},
+		{ // vault's own maxMint (shares) beats the ratio conversion
+			name: "native maxMint wins",
+			cfg:  both,
+			state: erc4626.PoolState{TotalAssets: bigStr("6200000000000"), TotalSupply: bigStr("6200000000000000000000000"),
+				MaxMint: bigStr("500000000000000000000000")},
+			want: entity.PoolReserves{"500000000000000000000000", "6200000000000"},
+		},
+		{ // maxWithdraw (a fee makes it 950e9 where the ratio gives 1e12) beats the maxRedeem conversion
+			name: "native maxWithdraw wins",
+			cfg:  both,
+			state: erc4626.PoolState{TotalAssets: bigStr("6200000000000"), TotalSupply: bigStr("6200000000000000000000000"),
+				MaxRedeem: bigStr("1000000000000000000000000"), MaxWithdraw: bigStr("950000000000")},
+			want: entity.PoolReserves{"6200000000000000000000000", "950000000000"},
+		},
+		{ // redeem unsupported stays "0" even if a maxWithdraw value is present
+			name: "redeem off ignores maxWithdraw",
+			cfg:  depositOnly,
+			state: erc4626.PoolState{TotalAssets: bigStr("6200000000000"), TotalSupply: bigStr("6200000000000000000000000"),
+				MaxWithdraw: bigStr("950000000000")},
+			want: entity.PoolReserves{"6200000000000000000000000", "0"},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var p entity.Pool

@@ -70,3 +70,25 @@ func TestDepositOnlyReadsSupplyKeepsRedeemOff(t *testing.T) {
 	normalizePoolState(cfg, st)
 	assert.Nil(t, st.MaxRedeem)
 }
+
+// maxMint/maxWithdraw ride the same aggregate as maxDeposit/maxRedeem, and normalization drops unusable values
+// (zero = no signal for the dummy owner, above MaxUint128 = unbounded) so they fall back to the ratio.
+func TestNativeCapsReadAndNormalized(t *testing.T) {
+	t.Parallel()
+	var methods []string
+	add := func(c *ethrpc.Call, _ []any) { methods = append(methods, c.Method) }
+	cfg := erc4626.VaultCfg{Gas: erc4626.GasCfg{Deposit: 1, Redeem: 1}}
+	addStateCalls(add, "0xvault", "", cfg, false, new(common.Address), newState())
+	assert.Contains(t, methods, erc4626.Erc4626MethodMaxMint)
+	assert.Contains(t, methods, erc4626.Erc4626MethodMaxWithdraw)
+
+	st := newState()
+	st.MaxMint, st.MaxWithdraw = big.NewInt(0), new(big.Int).Lsh(big.NewInt(1), 130)
+	normalizePoolState(cfg, st)
+	assert.Nil(t, st.MaxMint)
+	assert.Nil(t, st.MaxWithdraw)
+	st.MaxMint, st.MaxWithdraw = big.NewInt(5), big.NewInt(7)
+	normalizePoolState(cfg, st)
+	assert.Equal(t, int64(5), st.MaxMint.Int64())
+	assert.Equal(t, int64(7), st.MaxWithdraw.Int64())
+}
