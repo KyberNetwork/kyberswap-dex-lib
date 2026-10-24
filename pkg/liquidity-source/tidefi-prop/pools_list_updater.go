@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -32,15 +34,47 @@ type PoolsListUpdater struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 
-	// probe reports which pairs quote in at least one direction; a seam for tests.
-	probe func(ctx context.Context, pairs [][2]string) ([]bool, error)
+	// Seams for tests. probe reports which pairs quote in at least one
+	// direction; readDecimals returns 0 for a failed read; callQuotes reports
+	// whether each quote returned a non-zero amount.
+	probe        func(ctx context.Context, pairs [][2]string) ([]bool, error)
+	readDecimals func(ctx context.Context, tokens []string) ([]uint8, error)
+	callQuotes   func(ctx context.Context, calls []quoteCall) ([]bool, error)
+
+	// In-memory only: losing it on restart costs one extra probe round, never
+	// correctness (Seen, the only persisted state, decides what is listed).
+	mu       sync.Mutex
+	run      int                // list-run counter
+	decimals map[string]uint8   // token -> decimals; only successful non-zero reads
+	backoff  map[string]backoff // pair address -> retry schedule of a non-quoting pair
+	failed   map[string]int     // token -> non-quoting probes since it last quoted
+}
+
+// List runs tick every 10s (pool-service DefaultRunInterval, sequential), so a
+// run must stay well below that. A full 100-token sweep (4950 pairs) takes 25 runs.
+const (
+	probeChunk  = 50  // pairs per quote multicall (100 quote calls)
+	probeBudget = 200 // pairs probed per run (4 multicalls)
+
+	backoffBase = 30  // runs (~5 min) before a non-quoting pair is re-probed
+	backoffMax  = 360 // runs (~1 h) cap; the delay doubles up to here
+
+	deadAfter       = 10 // non-quoting probes after which a token with no listed pair is dead
+	deadSampleEvery = 60 // runs (~10 min): only then are pairs of a dead token probed
+)
+
+type backoff struct{ next, delay int }
+
+type quoteCall struct {
+	in, out string
+	dec     uint8
 }
 
 // Metadata persists the set of pool addresses already returned, so a
 // growing asset list (new TideFi listings) only yields newly-added pairs
 // on later calls instead of re-emitting everything each cycle. Pairs that
-// did not quote are not recorded: they are re-probed on every call, since
-// liquidity can appear later (e.g. RWA pairs when markets open).
+// did not quote are not recorded: they are re-probed with backoff (see
+// GetNewPools), since liquidity can appear later (e.g. RWA pairs when markets open).
 type Metadata struct {
 	Seen map[string]bool `json:"seen"`
 }
@@ -48,12 +82,19 @@ type Metadata struct {
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
-	u := &PoolsListUpdater{cfg: cfg, ethrpcClient: ethrpcClient}
+	u := &PoolsListUpdater{cfg: cfg, ethrpcClient: ethrpcClient,
+		decimals: map[string]uint8{}, backoff: map[string]backoff{}, failed: map[string]int{}}
 	u.probe = u.probeQuotes
+	u.readDecimals = u.readDecimalsRPC
+	u.callQuotes = u.callQuotesRPC
 	return u
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.run++
+
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
@@ -77,33 +118,36 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	var candidates [][2]string
-	for i := range tokens {
-		for j := i + 1; j < len(tokens); j++ {
-			t0, t1 := tokens[i], tokens[j]
-			if t0 > t1 {
-				t0, t1 = t1, t0
-			}
-			if !metadata.Seen[poolAddress(t0, t1)] {
-				candidates = append(candidates, [2]string{t0, t1})
-			}
-		}
-	}
+	candidates := u.pickCandidates(tokens, metadata.Seen)
 
-	var quotes []bool
-	if len(candidates) > 0 {
-		if quotes, err = u.probe(ctx, candidates); err != nil {
+	// Probe in chunks; state is updated only after every chunk succeeded.
+	quotes := make([]bool, 0, len(candidates))
+	for lo := 0; lo < len(candidates); lo += probeChunk {
+		q, err := u.probe(ctx, candidates[lo:min(lo+probeChunk, len(candidates))])
+		if err != nil {
 			return nil, metadataBytes, err
 		}
+		quotes = append(quotes, q...)
 	}
 
 	now := time.Now().Unix()
 	pools := make([]entity.Pool, 0, len(candidates))
 	for i, c := range candidates {
+		addr := poolAddress(c[0], c[1])
 		if !quotes[i] {
+			b := backoff{delay: backoffBase}
+			if old, ok := u.backoff[addr]; ok {
+				b.delay = min(old.delay*2, backoffMax)
+			}
+			b.next = u.run + b.delay
+			u.backoff[addr] = b
+			u.failed[c[0]]++
+			u.failed[c[1]]++
 			continue
 		}
-		addr := poolAddress(c[0], c[1])
+		delete(u.backoff, addr)
+		delete(u.failed, c[0])
+		delete(u.failed, c[1])
 		metadata.Seen[addr] = true
 
 		pools = append(pools, entity.Pool{
@@ -204,69 +248,146 @@ func poolAddress(token0, token1 string) string {
 	return "tidefiprop_" + token0 + "_" + token1
 }
 
-// probeQuotes quotes one whole token (10^decimals) of tokenIn for both
-// directions of every pair, and flags a pair if either direction returns a
-// non-zero amount. A reverted call or failed decimals() read counts as no quote.
-// A pair may quote one way only; the tracker zeroes the unquoted side.
-func (u *PoolsListUpdater) probeQuotes(ctx context.Context, pairs [][2]string) ([]bool, error) {
-	decimals := make(map[string]*uint8)
-	var tokens []string
-	decReq := u.ethrpcClient.NewRequest().SetContext(ctx)
-	for _, p := range pairs {
-		for _, tok := range p {
-			if _, ok := decimals[tok]; ok {
+// pickCandidates returns up to probeBudget unseen pairs to probe this run:
+// never-probed pairs first (new tokens get priority), then due backoff pairs,
+// oldest due first, which rotates through them. Pairs of a dead token (never
+// listed, failed against deadAfter partners) are skipped except on sample runs.
+func (u *PoolsListUpdater) pickCandidates(tokens []string, seen map[string]bool) [][2]string {
+	type cand struct {
+		pair [2]string
+		next int // 0 = never probed
+	}
+	var cands []cand
+	alive := make(map[string]bool)
+	for i := range tokens {
+		for j := i + 1; j < len(tokens); j++ {
+			t0, t1 := tokens[i], tokens[j]
+			if t0 > t1 {
+				t0, t1 = t1, t0
+			}
+			addr := poolAddress(t0, t1)
+			if seen[addr] {
+				alive[t0], alive[t1] = true, true
 				continue
 			}
-			var d uint8
-			decimals[tok] = &d
-			tokens = append(tokens, tok)
-			decReq.AddCall(&ethrpc.Call{ABI: erc20ABI, Target: tok, Method: "decimals"}, []any{&d})
+			b, ok := u.backoff[addr]
+			if ok && u.run < b.next {
+				continue
+			}
+			cands = append(cands, cand{[2]string{t0, t1}, b.next})
 		}
 	}
-	decResp, err := decReq.TryAggregate()
-	if err != nil {
-		return nil, fmt.Errorf("tidefi-prop: probe decimals: %w", err)
+	dead := func(t string) bool { return !alive[t] && u.failed[t] >= deadAfter }
+	sample := u.run%deadSampleEvery == 0
+	kept := cands[:0]
+	for _, c := range cands {
+		if sample || (!dead(c.pair[0]) && !dead(c.pair[1])) {
+			kept = append(kept, c)
+		}
 	}
-	failed := make(map[string]bool)
-	for i, tok := range tokens {
-		failed[tok] = !decResp.Result[i]
+	sort.SliceStable(kept, func(i, j int) bool { return kept[i].next < kept[j].next })
+	kept = kept[:min(len(kept), probeBudget)]
+	pairs := make([][2]string, len(kept))
+	for i, c := range kept {
+		pairs[i] = c.pair
+	}
+	return pairs
+}
+
+// probeQuotes quotes one whole token (10^decimals) of tokenIn for both
+// directions of every pair, and flags a pair if either direction returns a
+// non-zero amount. A failed or zero decimals() read counts as no quote and is
+// not cached; a reverted quote counts as no quote. A pair may quote one way
+// only; the tracker zeroes the unquoted side. Decimals never change, so they
+// are cached in memory per token (persisting them would only save one cheap
+// read per token after a restart).
+func (u *PoolsListUpdater) probeQuotes(ctx context.Context, pairs [][2]string) ([]bool, error) {
+	var missing []string
+	asked := make(map[string]bool)
+	for _, p := range pairs {
+		for _, tok := range p {
+			if _, ok := u.decimals[tok]; !ok && !asked[tok] {
+				asked[tok] = true
+				missing = append(missing, tok)
+			}
+		}
+	}
+	if len(missing) > 0 {
+		decs, err := u.readDecimals(ctx, missing)
+		if err != nil {
+			return nil, fmt.Errorf("tidefi-prop: probe decimals: %w", err)
+		}
+		for i, tok := range missing {
+			if decs[i] > 0 {
+				u.decimals[tok] = decs[i]
+			}
+		}
 	}
 
-	results := make([][2]quoteResult, len(pairs))
-	calls := 0
-	quoteReq := u.ethrpcClient.NewRequest().SetContext(ctx)
-	var amount big.Int
+	var calls []quoteCall
+	var owner []int // calls[k] belongs to pairs[owner[k]]
 	for i, p := range pairs {
 		for dir := range p {
 			tokIn, tokOut := p[dir], p[1-dir]
-			if failed[tokIn] || failed[tokOut] {
-				continue
+			decIn, okIn := u.decimals[tokIn]
+			_, okOut := u.decimals[tokOut]
+			if okIn && okOut {
+				calls = append(calls, quoteCall{tokIn, tokOut, decIn})
+				owner = append(owner, i)
 			}
-			amount.Exp(big.NewInt(10), big.NewInt(int64(*decimals[tokIn])), nil)
-			quoteReq.AddCall(&ethrpc.Call{
-				ABI:    swapperABI,
-				Target: u.cfg.Address,
-				Method: "quote",
-				Params: []any{common.HexToAddress(tokIn), common.HexToAddress(tokOut),
-					new(big.Int).Set(&amount), noLimitPrice, big.NewInt(swapFeePpm)},
-			}, []any{&results[i][dir]})
-			calls++
 		}
 	}
-	if calls == 0 {
-		return make([]bool, len(pairs)), nil
+	quotes := make([]bool, len(pairs))
+	if len(calls) == 0 {
+		return quotes, nil
 	}
-	if _, err := quoteReq.TryAggregate(); err != nil {
+	ok, err := u.callQuotes(ctx, calls)
+	if err != nil {
 		return nil, fmt.Errorf("tidefi-prop: probe quotes: %w", err)
 	}
+	for k, q := range ok {
+		quotes[owner[k]] = quotes[owner[k]] || q
+	}
+	return quotes, nil
+}
 
-	quotes := make([]bool, len(pairs))
-	for i := range results {
-		for _, r := range results[i] {
-			if r.AmountIn != nil && r.AmountOut != nil && r.AmountIn.Sign() > 0 && r.AmountOut.Sign() > 0 {
-				quotes[i] = true
-			}
+func (u *PoolsListUpdater) readDecimalsRPC(ctx context.Context, tokens []string) ([]uint8, error) {
+	decs := make([]uint8, len(tokens))
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	for i, tok := range tokens {
+		req.AddCall(&ethrpc.Call{ABI: erc20ABI, Target: tok, Method: "decimals"}, []any{&decs[i]})
+	}
+	resp, err := req.TryAggregate()
+	if err != nil {
+		return nil, err
+	}
+	for i := range decs {
+		if !resp.Result[i] {
+			decs[i] = 0
 		}
+	}
+	return decs, nil
+}
+
+func (u *PoolsListUpdater) callQuotesRPC(ctx context.Context, calls []quoteCall) ([]bool, error) {
+	results := make([]quoteResult, len(calls))
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	for i, c := range calls {
+		amount := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(c.dec)), nil)
+		req.AddCall(&ethrpc.Call{
+			ABI:    swapperABI,
+			Target: u.cfg.Address,
+			Method: "quote",
+			Params: []any{common.HexToAddress(c.in), common.HexToAddress(c.out),
+				amount, noLimitPrice, big.NewInt(swapFeePpm)},
+		}, []any{&results[i]})
+	}
+	if _, err := req.TryAggregate(); err != nil {
+		return nil, err
+	}
+	quotes := make([]bool, len(calls))
+	for i, r := range results {
+		quotes[i] = r.AmountIn != nil && r.AmountOut != nil && r.AmountIn.Sign() > 0 && r.AmountOut.Sign() > 0
 	}
 	return quotes, nil
 }
