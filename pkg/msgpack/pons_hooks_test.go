@@ -12,6 +12,7 @@ import (
 	v4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/coocoo"
 	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/reafund"
 	tickermeme "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-meme-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -24,6 +25,7 @@ func TestPonsFamilyHooksRoundTrip(t *testing.T) {
 		"pons-v2":     ponsv2.HookAddresses[0],
 		"coocoo":      coocoo.HookAddresses[0],
 		"ticker-meme": tickermeme.HookAddress,
+		"reafund":     reafund.HookAddresses[0],
 	} {
 		t.Run(name, func(t *testing.T) {
 			static, err := json.Marshal(map[string]any{"0x0": [2]bool{false, false}, "fee": 2000, "tS": 60, "hooks": addr})
