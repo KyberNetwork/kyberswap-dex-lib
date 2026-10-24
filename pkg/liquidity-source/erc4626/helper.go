@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // GetClosestRate converts amount using rates sampled at PrefetchAmounts (rates[i] = preview(PrefetchAmounts[i])).
@@ -70,21 +69,11 @@ func interpolateAmountIn(xLo, yLo, xHi, yHi, y *uint256.Int) *uint256.Int {
 	return result.Add(xLo, &result)
 }
 
-// NativeCap returns a vault-reported cap, or nil when it is unusable: not read or reverted (nil), zero (the
-// vault reports no usable limit for the dummy owner) or above MaxUint128 (unbounded).
-func NativeCap(v *big.Int) *big.Int {
-	if v == nil || v.Sign() == 0 || v.Cmp(bignumber.MaxUint128) > 0 {
-		return nil
-	}
-	return v
-}
-
 // Reserves returns the pool reserves [shares, assets]. Each slot is the most of that token you can receive,
 // in its own units: a deposit limit (assets) converts to shares and a redeem limit (shares) to assets with the
-// totalSupply/totalAssets ratio. A vault's own bounded maxMint (shares) / maxWithdraw (assets) wins over that
-// conversion since the vault accounts for offsets, fees and caps. A nil limit means unbounded (totalSupply /
-// totalAssets). A non-nil zero maxRedeem stays "0", and so does the redeem side of a vault with no redeem gas
-// (redeem unsupported). Without a usable ratio, a limit is kept as is.
+// totalSupply/totalAssets ratio. A nil limit means unbounded (totalSupply / totalAssets). A non-nil zero
+// maxRedeem stays "0", and so does the redeem side of a vault with no redeem gas (redeem unsupported).
+// Without a usable ratio, a limit is kept as is.
 func Reserves(cfg VaultCfg, s *PoolState) entity.PoolReserves {
 	var supply, assets, lim, out uint256.Int
 	if s.TotalSupply != nil {
@@ -105,8 +94,6 @@ func Reserves(cfg VaultCfg, s *PoolState) entity.PoolReserves {
 
 	var shares, assetOut string
 	switch {
-	case s.MaxMint != nil:
-		shares = s.MaxMint.String()
 	case s.MaxDeposit != nil && canConvert:
 		shares = convert(s.MaxDeposit, &supply, &assets)
 	case s.MaxDeposit != nil:
@@ -119,8 +106,6 @@ func Reserves(cfg VaultCfg, s *PoolState) entity.PoolReserves {
 	switch {
 	case cfg.Gas.Redeem == 0: // redeem unsupported
 		assetOut = "0"
-	case s.MaxWithdraw != nil:
-		assetOut = s.MaxWithdraw.String()
 	case s.MaxRedeem != nil && canConvert && !supply.IsZero():
 		assetOut = convert(s.MaxRedeem, &assets, &supply)
 	case s.MaxRedeem != nil:

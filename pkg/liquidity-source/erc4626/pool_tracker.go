@@ -151,12 +151,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			ABI:    ABI,
 			Target: vaultAddr,
 			Method: Erc4626MethodTotalAssets,
-		}, []any{&poolState.TotalAssets}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: Erc4626MethodMaxMint,
-			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxMint})
+		}, []any{&poolState.TotalAssets})
 		AddLimitCalls(func(c *ethrpc.Call, out []any) { req.AddCall(c, out) }, vaultAddr, vaultAddr, vaultCfg, &poolState)
 		if vaultCfg.MinDepositMethod != "" {
 			req.AddCall(&ethrpc.Call{
@@ -189,12 +184,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Target: vaultAddr,
 			Method: Erc4626MethodMaxRedeem,
 			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxRedeem}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: Erc4626MethodMaxWithdraw,
-			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxWithdraw})
+		}, []any{&poolState.MaxRedeem})
 		if !vaultCfg.SupplyReadByLimits() { // else AddLimitCalls already read it
 			req.AddCall(&ethrpc.Call{
 				ABI:    ABI,
@@ -228,8 +218,6 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if poolState.MinDeposit != nil && poolState.MinDeposit.Sign() == 0 {
 		poolState.MinDeposit = nil
 	}
-	poolState.MaxMint = NativeCap(poolState.MaxMint)
-	poolState.MaxWithdraw = NativeCap(poolState.MaxWithdraw)
 	if vaultCfg.Gas.Redeem == 0 { // redeem unsupported: totalSupply is read only for the deposit conversion
 		poolState.MaxRedeem = nil
 	} else if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {

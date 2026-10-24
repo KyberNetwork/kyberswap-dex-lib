@@ -170,7 +170,6 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 	if vaultCfg.Gas.Deposit > 0 {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxDeposit, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxDeposit})
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodTotalAssets}, []any{&state.TotalAssets})
-		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxMint, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxMint})
 		erc4626.AddLimitCalls(addFn, vaultAddr, totalSupplyTarget, vaultCfg, state)
 		if m := vaultCfg.MinDepositMethod; m != "" {
 			addFn(&ethrpc.Call{ABI: erc4626.Uint256GetterABI(m), Target: vaultAddr, Method: m}, []any{&state.MinDeposit})
@@ -185,7 +184,6 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 	}
 	if vaultCfg.Gas.Redeem > 0 {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxRedeem, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxRedeem})
-		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxWithdraw, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxWithdraw})
 		if !vaultCfg.SupplyReadByLimits() { // else AddLimitCalls already read it
 			addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: totalSupplyTarget, Method: erc4626.Erc4626MethodTotalSupply}, []any{&state.TotalSupply})
 		}
@@ -204,8 +202,6 @@ func normalizePoolState(cfg erc4626.VaultCfg, state *erc4626.PoolState) {
 	if state.MinDeposit != nil && state.MinDeposit.Sign() == 0 {
 		state.MinDeposit = nil
 	}
-	state.MaxMint = erc4626.NativeCap(state.MaxMint)
-	state.MaxWithdraw = erc4626.NativeCap(state.MaxWithdraw)
 	if cfg.Gas.Redeem == 0 { // redeem unsupported: totalSupply is read only for the deposit conversion
 		state.MaxRedeem = nil
 	} else if state.MaxRedeem == nil || state.MaxRedeem.Sign() == 0 {

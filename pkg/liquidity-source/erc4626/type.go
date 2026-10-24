@@ -48,12 +48,8 @@ type (
 	}
 
 	PoolState struct {
-		MaxDeposit *big.Int
-		MaxRedeem  *big.Int
-		// MaxWithdraw (assets) and MaxMint (shares) are the vault's own caps for the dummy owner, nil = not
-		// read, reverted, zero or unbounded. They need no totalSupply/totalAssets conversion.
-		MaxWithdraw *big.Int
-		MaxMint     *big.Int
+		MaxDeposit  *big.Int
+		MaxRedeem   *big.Int
 		MinDeposit  *big.Int
 		TotalAssets *big.Int
 		TotalSupply *big.Int
