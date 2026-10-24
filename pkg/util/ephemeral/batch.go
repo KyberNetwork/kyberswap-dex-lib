@@ -264,6 +264,9 @@ func (b *Batcher) Call(ctx context.Context, c Caller, contract *Contract, out an
 		return b.callAlone(ctx, c, contract, out, gas, block, args...)
 	}
 	b.batched.Add(1)
+	if first, ok := ctx.Value(firstPageKey{}).(*firstPage); ok {
+		first.batched = true
+	}
 	return decodeResult(contract, res.payload, out)
 }
 
@@ -421,8 +424,19 @@ func CallPage[C comparable](ctx context.Context, cfg *BatchConfig, c Caller, cur
 		return Call(ctx, c, contract, out, gas, block, args...)
 	}
 	b := SharedBatcher(c, cfg)
-	if cursor != start {
+	if cursor != start || ctx.Value(aloneKey{}) != nil {
 		return b.callAlone(ctx, c, contract, out, gas, block, args...)
 	}
 	return b.Call(ctx, c, contract, out, gas, block, args...)
 }
+
+// A batch starts a read with what it has left, MinItemGas at the least, which on a chain that prices
+// storage above Ethereum can be less than a pool's densest step: such a first page comes back with
+// no progress where a call of its own, with the node's whole cap, makes some. Scan and ScanWords
+// learn through firstPageKey that their first page came from a batch, and read it again alone,
+// through aloneKey, before they call the read stuck.
+type (
+	firstPageKey struct{}
+	aloneKey     struct{}
+	firstPage    struct{ batched bool }
+)
