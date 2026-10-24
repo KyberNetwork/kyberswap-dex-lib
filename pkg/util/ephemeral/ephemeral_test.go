@@ -31,6 +31,17 @@ type failing struct{ msg string }
 func (e failing) Error() string  { return e.msg }
 func (e failing) ErrorData() any { return nil }
 
+// jsonError is a JSON-RPC error with its code, as go-ethereum reports one.
+type jsonError struct {
+	code int
+	msg  string
+	data any
+}
+
+func (e jsonError) Error() string  { return e.msg }
+func (e jsonError) ErrorCode() int { return e.code }
+func (e jsonError) ErrorData() any { return e.data }
+
 type callerFunc func(msg ethereum.CallMsg, block *big.Int) ([]byte, error)
 
 func (f callerFunc) CallContract(_ context.Context, msg ethereum.CallMsg, block *big.Int) ([]byte, error) {
@@ -119,13 +130,13 @@ func TestCall(t *testing.T) {
 }
 
 // TestCallAsksASmallerPageOfARefusedResponse: a lens pages by gas, and the KyberSwap gateway
-// refuses 2 MB of revert data on Base with HTTP 502. A call so refused is made again with half the
-// gas, for a smaller page, down to the least gas a lens makes progress with.
+// refuses a large response, each chain in its own way. A call so refused is made again with half
+// the gas, for a smaller page, down to the least gas a lens makes progress with.
 func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
 	ctx := t.Context()
 	var sent []uint64
 	var refuseAbove uint64
-	status := http.StatusBadGateway
+	var refusal error
 	node := callerFunc(func(msg ethereum.CallMsg, _ *big.Int) ([]byte, error) {
 		if bytes.Equal(msg.Data, probeCode) {
 			return nil, failing{msg: "no probe"}
@@ -133,7 +144,7 @@ func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
 		sent = append(sent, msg.Gas)
 		// Gas 0 runs with the node's own default, here as much as any.
 		if msg.Gas == 0 || msg.Gas > refuseAbove {
-			return nil, rpc.HTTPError{StatusCode: status, Status: http.StatusText(status)}
+			return nil, refusal
 		}
 		return nil, dataError{result(7, -5)}
 	})
@@ -148,14 +159,22 @@ func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
 	}
 
 	refuseAbove = 30_000_000
-	require.NoError(t, call(50_000_000))
-	assert.Equal(t, []uint64{50_000_000, 25_000_000}, sent)
-
-	status = http.StatusRequestEntityTooLarge
-	require.NoError(t, call(100_000_000))
-	assert.Equal(t, []uint64{100_000_000, 50_000_000, 25_000_000}, sent)
+	for _, refusal = range []error{
+		// 2 MB of revert data on Base, and on most chains.
+		rpc.HTTPError{StatusCode: http.StatusBadGateway, Status: "502 Bad Gateway"},
+		// 1.5 MB on Unichain, from the gateway's upstream there.
+		rpc.HTTPError{StatusCode: http.StatusUnauthorized, Status: "401 Unauthorized",
+			Body: []byte(`{"error":"UNAUTHORIZED"}`)},
+		// A body past 1 MiB on HyperEVM, its data no revert data.
+		jsonError{code: -32008, msg: "Response is too big", data: "Exceeded max limit of 1048576"},
+		rpc.HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Status: "413 Payload Too Large"},
+	} {
+		require.NoError(t, call(50_000_000), "%v", refusal)
+		assert.Equal(t, []uint64{50_000_000, 25_000_000}, sent, "%v", refusal)
+	}
 
 	// Refused however small: the error, once half the gas is less than a lens makes progress with.
+	refusal = rpc.HTTPError{StatusCode: http.StatusBadGateway, Status: "502 Bad Gateway"}
 	refuseAbove = 0
 	var refused rpc.HTTPError
 	require.ErrorAs(t, call(50_000_000), &refused)
@@ -166,9 +185,13 @@ func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
 	assert.Equal(t, []uint64{0}, sent)
 
 	// Any other refusal says nothing of the size.
-	status = http.StatusTooManyRequests
-	require.ErrorAs(t, call(50_000_000), &refused)
-	assert.Equal(t, []uint64{50_000_000}, sent)
+	for _, refusal = range []error{
+		rpc.HTTPError{StatusCode: http.StatusTooManyRequests, Status: "429 Too Many Requests"},
+		jsonError{code: -32000, msg: "header not found"},
+	} {
+		assert.EqualError(t, call(50_000_000), refusal.Error())
+		assert.Equal(t, []uint64{50_000_000}, sent, "%v", refusal)
+	}
 }
 
 // TestLoadNeedsOneResult: the result is the ABI's one function, so a file with two is refused

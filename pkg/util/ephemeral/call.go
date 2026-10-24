@@ -88,13 +88,26 @@ func callSmaller(ctx context.Context, c Caller, limit *rate.Limiter, contract *C
 }
 
 // refusedForSize reports an error that a node, or a proxy in front of it, gives for a response too
-// large to pass on: HTTP 413, or 502, which the KyberSwap gateway gives for 2 MB of revert data on
-// Arc, Base and Berachain, and 3 MB on BSC. A 502 can also be a passing failure, which then costs a
-// few calls more.
+// large to pass on. Through the KyberSwap gateway it is HTTP 502, for 2 MB of revert data on most
+// chains and 3 MB on BSC; 401 from its upstream on Unichain, for 1.5 MB; and on HyperEVM the
+// JSON-RPC error -32008 "Response is too big", for a body past 1 MiB. 413 is the standard refusal.
+// A 502 can also be a passing failure, and a 401 a key the node refuses: each then costs a few
+// calls more.
 func refusedForSize(err error) bool {
 	var refused rpc.HTTPError
-	return errors.As(err, &refused) &&
-		(refused.StatusCode == http.StatusRequestEntityTooLarge || refused.StatusCode == http.StatusBadGateway)
+	if errors.As(err, &refused) {
+		switch refused.StatusCode {
+		case http.StatusRequestEntityTooLarge, http.StatusBadGateway, http.StatusUnauthorized:
+			return true
+		}
+		return false
+	}
+	rpcErr, ok := errors.AsType[rpc.Error](err)
+	if !ok {
+		return false
+	}
+	msg := strings.ToLower(rpcErr.Error())
+	return strings.Contains(msg, "response") && (strings.Contains(msg, "too big") || strings.Contains(msg, "too large"))
 }
 
 // callOnce runs contract with args at block in one call sent gas as it is, and decodes the result
@@ -110,13 +123,16 @@ func callOnce(ctx context.Context, c Caller, contract *Contract, out any, gas ui
 		return ErrNotReverted
 	}
 	payload, ok := revertData(err)
-	if !ok {
+	switch {
+	case len(payload) > 0:
+		return decodeResult(contract, payload, out)
+	case !ok || refusedForSize(err):
+		// A call the node never ran, or a response it would not pass on, whose data, if any, is the
+		// node's note: HyperEVM's says "Exceeded max limit of 1048576".
 		return err
-	}
-	if len(payload) == 0 {
+	default:
 		return fmt.Errorf("%w: %v", ErrNoRevertData, err)
 	}
-	return decodeResult(contract, payload, out)
 }
 
 // decodeResult decodes what contract reverted with: its result into out, or the error it is.
