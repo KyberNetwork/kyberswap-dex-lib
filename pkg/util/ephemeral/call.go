@@ -18,12 +18,14 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
+	"golang.org/x/time/rate"
 )
 
 // Caller runs an eth_call. *ethclient.Client is one.
@@ -54,14 +56,56 @@ func (e *RevertError) Error() string {
 // into out, as Contract.UnpackCall does. Gas 0 is the node's cap up to CallGasCeiling (see
 // GasCap).
 //
+// A call whose response the node refuses for its size (see refusedForSize) is made again with
+// half the gas, down to minPageGas: a lens pages by gas, and returns a smaller page.
+//
 // An error the node returns without revert data, such as a rate limit or a pruned block, is
 // returned as it is: the call never ran.
 func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int, args ...any) error {
+	return callSmaller(ctx, c, nil, contract, out, gas, block, args...)
+}
+
+// minPageGas is the least gas a call refused for its size is made again with: MinItemGas's
+// default, under which a lens can make no progress at all.
+const minPageGas = defaultBatchMinItemGas
+
+// callSmaller is Call, waiting on limit, when given, before each call it makes again.
+func callSmaller(ctx context.Context, c Caller, limit *rate.Limiter, contract *Contract, out any, gas uint64,
+	block *big.Int, args ...any) error {
+	gas = callGas(ctx, c, gas)
+	for {
+		err := callOnce(ctx, c, contract, out, gas, block, args...)
+		if !refusedForSize(err) || gas/2 < minPageGas {
+			return err
+		}
+		gas /= 2
+		if limit != nil {
+			if err := limit.Wait(ctx); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// refusedForSize reports an error that a node, or a proxy in front of it, gives for a response too
+// large to pass on: HTTP 413, or 502, which the KyberSwap gateway gives for 2 MB of revert data on
+// Arc, Base and Berachain, and 3 MB on BSC. A 502 can also be a passing failure, which then costs a
+// few calls more.
+func refusedForSize(err error) bool {
+	var refused rpc.HTTPError
+	return errors.As(err, &refused) &&
+		(refused.StatusCode == http.StatusRequestEntityTooLarge || refused.StatusCode == http.StatusBadGateway)
+}
+
+// callOnce runs contract with args at block in one call sent gas as it is, and decodes the result
+// into out.
+func callOnce(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int,
+	args ...any) error {
 	data, err := contract.PackCall(args...)
 	if err != nil {
 		return err
 	}
-	_, err = c.CallContract(ctx, ethereum.CallMsg{Data: data, Gas: callGas(ctx, c, gas)}, block)
+	_, err = c.CallContract(ctx, ethereum.CallMsg{Data: data, Gas: gas}, block)
 	if err == nil {
 		return ErrNotReverted
 	}
