@@ -24,6 +24,9 @@ import (
 type batchNode struct {
 	batches, alone atomic.Int64
 	failBatches    bool
+	// stuck makes every read a batch runs come back as x 0: a page that made no progress, as one
+	// the batch starts with less than its densest step does.
+	stuck bool
 	// gasOf is what reading x costs in a batch; nil is 1000 gas a read.
 	gasOf func(x int64) uint64
 	// delay is how long a batch call takes; inFlight and peak count those running at once.
@@ -92,6 +95,9 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 			// Started, but its page too large for the batch to copy.
 			results[i] = result{Gas: new(big.Int).SetUint64(gas)}
 			continue
+		}
+		if n.stuck {
+			x = 0
 		}
 		results[i] = result{Ran: true, Gas: new(big.Int).SetUint64(gas), Data: testRead(x)}
 	}
@@ -304,6 +310,72 @@ func TestBatcherFirstPageResumesAlone(t *testing.T) {
 	assert.Equal(t, []int64{1, 2, 3}, pages)
 	assert.EqualValues(t, 1, node.batches.Load())
 	assert.EqualValues(t, 2, node.alone.Load())
+}
+
+// TestScanReadsAStuckBatchedFirstPageAlone: a first page that comes back from a batch with no
+// progress, as one the batch starts with too little gas does, is read again alone before the scan
+// calls the read stuck, and only that page, once. A page stuck alone is stuck.
+func TestScanReadsAStuckBatchedFirstPageAlone(t *testing.T) {
+	// A page moves the cursor by the x it reads back: 0 where it made no progress.
+	scan := func(cfg *BatchConfig, node *batchNode, step int64) ([]int64, error) {
+		var moved []int64
+		_, err := Scan(context.Background(), int64(0), Pinned{Block: big.NewInt(100)},
+			func(ctx context.Context, cursor int64, block *big.Int) (Page[int64], error) {
+				var got testResult
+				err := CallPage(ctx, cfg, node, cursor, int64(0), testContract, &got, 0, block, big.NewInt(step))
+				if err != nil {
+					return Page[int64]{}, err
+				}
+				moved = append(moved, got.Value.Int64())
+				next := cursor + got.Value.Int64()
+				return Page[int64]{Block: block.Uint64(), Next: next, Done: next >= 3}, nil
+			})
+		return moved, err
+	}
+
+	node := &batchNode{stuck: true}
+	moved, err := scan(&BatchConfig{}, node, 1)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{0, 1, 1, 1}, moved, "the stuck first page, then the same page and the rest alone")
+	assert.EqualValues(t, 1, node.batches.Load())
+	assert.EqualValues(t, 3, node.alone.Load())
+
+	node = &batchNode{stuck: true}
+	_, err = scan(&BatchConfig{}, node, 0)
+	assert.ErrorIs(t, err, ErrNoProgress)
+	assert.EqualValues(t, 1, node.batches.Load())
+	assert.EqualValues(t, 1, node.alone.Load(), "read alone once")
+
+	node = &batchNode{}
+	_, err = scan(nil, node, 0)
+	assert.ErrorIs(t, err, ErrNoProgress)
+	assert.EqualValues(t, 1, node.alone.Load(), "a page read alone the first time is not read again")
+}
+
+// TestScanWordsReadsAStuckBatchedFirstPageAlone: as for Scan, a bitmap scan's first page that a
+// batch ran with no progress is read again alone.
+func TestScanWordsReadsAStuckBatchedFirstPageAlone(t *testing.T) {
+	node := &batchNode{stuck: true}
+	cfg := &BatchConfig{}
+	_, words, err := ScanWords(t.Context(), 0, 10, Pinned{Block: big.NewInt(100)}, WordsParallel,
+		func(ctx context.Context, lower, upper int16, block *big.Int) (Page[int16], []int16, error) {
+			var got testResult
+			// Read alone, a page reads every word: x 11 moves the cursor past them all.
+			err := CallPage(ctx, cfg, node, lower, int16(0), testContract, &got, 0, block, big.NewInt(11))
+			if err != nil {
+				return Page[int16]{}, nil, err
+			}
+			next := lower + int16(got.Value.Int64())
+			var read []int16
+			for w := lower; w < next && w <= upper; w++ {
+				read = append(read, w)
+			}
+			return Page[int16]{Block: block.Uint64(), Next: next, Done: next > upper}, read, nil
+		})
+	require.NoError(t, err)
+	assert.Len(t, words, 11)
+	assert.EqualValues(t, 1, node.batches.Load())
+	assert.EqualValues(t, 1, node.alone.Load())
 }
 
 // TestSharedBatcherIsOnePerCaller: the trackers reading through one node share its batches.
