@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -114,6 +116,59 @@ func TestCall(t *testing.T) {
 
 	assert.Error(t, Call(ctx, reverting(payload), testContract, &got, 0, nil, "not a uint256"),
 		"arguments that do not fit the constructor")
+}
+
+// TestCallAsksASmallerPageOfARefusedResponse: a lens pages by gas, and the KyberSwap gateway
+// refuses 2 MB of revert data on Base with HTTP 502. A call so refused is made again with half the
+// gas, for a smaller page, down to the least gas a lens makes progress with.
+func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
+	ctx := t.Context()
+	var sent []uint64
+	var refuseAbove uint64
+	status := http.StatusBadGateway
+	node := callerFunc(func(msg ethereum.CallMsg, _ *big.Int) ([]byte, error) {
+		if bytes.Equal(msg.Data, probeCode) {
+			return nil, failing{msg: "no probe"}
+		}
+		sent = append(sent, msg.Gas)
+		// Gas 0 runs with the node's own default, here as much as any.
+		if msg.Gas == 0 || msg.Gas > refuseAbove {
+			return nil, rpc.HTTPError{StatusCode: status, Status: http.StatusText(status)}
+		}
+		return nil, dataError{result(7, -5)}
+	})
+	call := func(gas uint64) error {
+		sent = nil
+		var got testResult
+		err := Call(ctx, node, testContract, &got, gas, nil, big.NewInt(1))
+		if err == nil {
+			assert.EqualValues(t, 7, got.Value.Int64())
+		}
+		return err
+	}
+
+	refuseAbove = 30_000_000
+	require.NoError(t, call(50_000_000))
+	assert.Equal(t, []uint64{50_000_000, 25_000_000}, sent)
+
+	status = http.StatusRequestEntityTooLarge
+	require.NoError(t, call(100_000_000))
+	assert.Equal(t, []uint64{100_000_000, 50_000_000, 25_000_000}, sent)
+
+	// Refused however small: the error, once half the gas is less than a lens makes progress with.
+	refuseAbove = 0
+	var refused rpc.HTTPError
+	require.ErrorAs(t, call(50_000_000), &refused)
+	assert.Equal(t, []uint64{50_000_000, 25_000_000, 12_500_000, 6_250_000}, sent)
+
+	// The gas left to a node whose cap is unknown: there is none to halve.
+	require.ErrorAs(t, call(0), &refused)
+	assert.Equal(t, []uint64{0}, sent)
+
+	// Any other refusal says nothing of the size.
+	status = http.StatusTooManyRequests
+	require.ErrorAs(t, call(50_000_000), &refused)
+	assert.Equal(t, []uint64{50_000_000}, sent)
 }
 
 // TestLoadNeedsOneResult: the result is the ABI's one function, so a file with two is refused

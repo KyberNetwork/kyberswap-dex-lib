@@ -357,7 +357,7 @@ type lensBatchResults struct {
 }
 
 // flush runs the batch and hands each read its result; a batch that failed hands every read the
-// error, and each is made alone.
+// error, and each is made alone. A batch refused for its size is cut in two first (see run).
 func (b *Batcher) flush(cur *batch) {
 	codes := make([][]byte, len(cur.codes))
 	for contract, i := range cur.codes {
@@ -376,17 +376,33 @@ func (b *Batcher) flush(cur *batch) {
 	defer func() { <-b.inFlight }()
 	ctx, cancel := context.WithTimeout(context.Background(), batchTimeout)
 	defer cancel()
+	b.run(ctx, cur.block, codes, cur.reads, items)
+}
+
+// run makes one batch call of reads, whose LensBatch items are items, and hands each read its
+// result. Half the reads of a batch whose response the node refuses for its size (see
+// refusedForSize) give about half the response: each half is then a call of its own, with every
+// lens code of the batch, which its items index, and a read refused alone gets the error, to be
+// made alone with less gas.
+func (b *Batcher) run(ctx context.Context, block *big.Int, codes [][]byte, reads []*batchRead,
+	items []lensBatchItem) {
 	b.batches.Add(1)
 	var out lensBatchResults
 	err := b.calls.Wait(ctx)
 	if err == nil {
-		err = Call(ctx, b.caller, lensBatch, &out, b.cfg.Gas, cur.block, codes, items,
+		err = callOnce(ctx, b.caller, lensBatch, &out, callGas(ctx, b.caller, b.cfg.Gas), block, codes, items,
 			new(big.Int).SetUint64(b.cfg.MinItemGas))
 	}
-	if err == nil && len(out.Results) != len(cur.reads) {
-		err = fmt.Errorf("ephemeral: a batch of %d reads returned %d results", len(cur.reads), len(out.Results))
+	if len(reads) > 1 && refusedForSize(err) {
+		mid := len(reads) / 2
+		b.run(ctx, block, codes, reads[:mid], items[:mid])
+		b.run(ctx, block, codes, reads[mid:], items[mid:])
+		return
 	}
-	for i, read := range cur.reads {
+	if err == nil && len(out.Results) != len(reads) {
+		err = fmt.Errorf("ephemeral: a batch of %d reads returned %d results", len(reads), len(out.Results))
+	}
+	for i, read := range reads {
 		if err != nil {
 			read.done <- batchResult{err: err}
 			continue
@@ -405,13 +421,13 @@ func (b *Batcher) flush(cur *batch) {
 	}
 }
 
-// callAlone is Call, counted against the calls the Batcher allows.
+// callAlone is Call, each call it makes counted against the calls the Batcher allows.
 func (b *Batcher) callAlone(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int,
 	args ...any) error {
 	if err := b.calls.Wait(ctx); err != nil {
 		return err
 	}
-	return Call(ctx, c, contract, out, gas, block, args...)
+	return callSmaller(ctx, c, b.calls, contract, out, gas, block, args...)
 }
 
 // CallPage is Call for the page of a scan at cursor: the first, at start, goes through the

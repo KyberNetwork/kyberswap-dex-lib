@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +31,9 @@ type batchNode struct {
 	stuck bool
 	// gasOf is what reading x costs in a batch; nil is 1000 gas a read.
 	gasOf func(x int64) uint64
+	// refuse reports a batch call of that many reads whose response the node refuses for its size,
+	// with HTTP 502, as the KyberSwap gateway refuses one past its limit; nil refuses none.
+	refuse func(reads int) bool
 	// delay is how long a batch call takes; inFlight and peak count those running at once.
 	delay          time.Duration
 	inFlight, peak atomic.Int64
@@ -70,6 +75,9 @@ func (n *batchNode) CallContract(_ context.Context, msg ethereum.CallMsg, block 
 		return nil, err
 	}
 	items := *abi.ConvertType(values[1], new([]lensBatchItem)).(*[]lensBatchItem)
+	if n.refuse != nil && n.refuse(len(items)) {
+		return nil, rpc.HTTPError{StatusCode: http.StatusBadGateway, Status: "502 Bad Gateway"}
+	}
 
 	type result struct {
 		Ran  bool
@@ -245,6 +253,23 @@ func TestBatcherFallsBackWhenTheBatchFails(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 9, got.Value.Int64())
 	assert.EqualValues(t, 1, node.alone.Load())
+}
+
+// TestBatcherCutsABatchRefusedForItsSize: half the reads of a batch whose response the node refuses
+// for its size give about half the response. Each half is a call of its own, and a read refused
+// alone in a batch is made alone.
+func TestBatcherCutsABatchRefusedForItsSize(t *testing.T) {
+	node := &batchNode{refuse: func(reads int) bool { return reads > 2 }}
+	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
+	readAll(t, b, node, 1, 2, 3, 4, 5, 6, 7, 8)
+	assert.EqualValues(t, 7, node.batches.Load(), "eight reads refused, four and four refused, then twos")
+	assert.EqualValues(t, 0, node.alone.Load())
+
+	node = &batchNode{refuse: func(int) bool { return true }}
+	b = NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
+	readAll(t, b, node, 1, 2)
+	assert.EqualValues(t, 3, node.batches.Load(), "two reads refused, then each refused")
+	assert.EqualValues(t, 2, node.alone.Load())
 }
 
 // TestBatcherWithoutABatch: a nil Batcher is Call.
