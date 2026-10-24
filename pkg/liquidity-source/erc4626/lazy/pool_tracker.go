@@ -119,8 +119,7 @@ func UpdateEntityState(p *entity.Pool, vaultCfg erc4626.VaultCfg, state *erc4626
 	}
 
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{lo.CoalesceOrEmpty(state.MaxDeposit, state.TotalAssets, bignumber.ZeroBI).String(),
-		lo.CoalesceOrEmpty(state.MaxRedeem, state.TotalSupply, bignumber.ZeroBI).String()}
+	p.Reserves = erc4626.Reserves(state)
 	p.Extra = string(extraBytes)
 	p.BlockNumber = state.BlockNumber
 	return nil
