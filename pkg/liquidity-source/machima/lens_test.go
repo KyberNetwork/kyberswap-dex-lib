@@ -25,18 +25,16 @@ func newLensTracker(t *testing.T, useLens bool) *PoolTracker {
 func trackedPool(t *testing.T) entity.Pool {
 	t.Helper()
 	extra := Extra{
-		Extra: uniswapv3.Extra{
-			Liquidity:    big.NewInt(1000),
-			SqrtPriceX96: big.NewInt(1 << 62),
-			TickSpacing:  200,
-			Tick:         big.NewInt(-200),
-			Ticks: []uniswapv3.Tick{
-				{Index: -400, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(1000)},
-				{Index: 400, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(-1000)},
-			},
-			LensBlock: 41,
+		Liquidity:    big.NewInt(1000),
+		SqrtPriceX96: big.NewInt(1 << 62),
+		TickSpacing:  200,
+		Tick:         big.NewInt(-200),
+		Ticks: []uniswapv3.Tick{
+			{Index: -400, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(1000)},
+			{Index: 400, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(-1000)},
 		},
-		ProtocolState: ProtocolState{BuyTaxBps: 100, SellTaxBps: 100, HasTax: true, PoolDeploymentTime: 7},
+		LensBlock: 41,
+		BuyTaxBps: 100, SellTaxBps: 100, HasTax: true, PoolDeploymentTime: 7,
 	}
 	raw, err := json.Marshal(extra)
 	require.NoError(t, err)

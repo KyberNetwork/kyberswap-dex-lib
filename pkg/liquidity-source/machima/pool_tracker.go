@@ -360,8 +360,7 @@ var modeledKeys = jsonKeys(reflect.TypeFor[Extra]())
 // included.
 func jsonKeys(t reflect.Type) []string {
 	var keys []string
-	for i := range t.NumField() {
-		field := t.Field(i)
+	for field := range t.Fields() {
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 		switch {
 		case name == "-":

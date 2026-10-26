@@ -26,5 +26,5 @@ type Config struct {
 	// LensGas is the gas each lens call may use; 0 leaves it to the node's eth_call cap.
 	LensGas uint64 `json:"lensGas,omitempty"`
 	// LensGuard bounds the lens reads made while updating pools, which never wait for it.
-	LensGuard ephemeral.GuardConfig `json:"lensGuard,omitempty"`
+	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
 }

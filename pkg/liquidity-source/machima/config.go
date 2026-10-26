@@ -18,7 +18,7 @@ type Config struct {
 	// half of a pool is read whole through V3Lens, in place of the TickLens sweep.
 	UseLens   bool                  `json:"useLens,omitempty"`
 	LensGas   uint64                `json:"lensGas,omitempty"`
-	LensGuard ephemeral.GuardConfig `json:"lensGuard,omitempty"`
+	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
 	// RouterAddress is the MachimaAggregatorRouter the executor approves and calls.
 	RouterAddress string `json:"routerAddress"`
 
