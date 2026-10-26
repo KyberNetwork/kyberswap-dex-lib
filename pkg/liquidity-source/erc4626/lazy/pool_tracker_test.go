@@ -53,3 +53,20 @@ func TestUpdateEntityStateKeepsLimits(t *testing.T) {
 	require.NotNil(t, e.MintHeadroom)
 	assert.Zero(t, e.MintHeadroom.Sign())
 }
+
+// A deposit-only vault must still read totalSupply: slot 0 converts assets to shares with it. Redeem stays
+// unsupported, so normalizePoolState must not turn the nil maxRedeem into totalSupply.
+func TestDepositOnlyReadsSupplyKeepsRedeemOff(t *testing.T) {
+	t.Parallel()
+	var methods []string
+	add := func(c *ethrpc.Call, _ []any) { methods = append(methods, c.Method) }
+	cfg := erc4626.VaultCfg{Gas: erc4626.GasCfg{Deposit: 1}}
+	addStateCalls(add, "0xvault", "", cfg, false, new(common.Address), newState())
+	assert.Contains(t, methods, erc4626.Erc4626MethodTotalSupply)
+	assert.NotContains(t, methods, erc4626.Erc4626MethodMaxRedeem)
+
+	st := newState()
+	st.TotalSupply, st.TotalAssets = big.NewInt(5), big.NewInt(7)
+	normalizePoolState(cfg, st)
+	assert.Nil(t, st.MaxRedeem)
+}

@@ -119,8 +119,7 @@ func UpdateEntityState(p *entity.Pool, vaultCfg erc4626.VaultCfg, state *erc4626
 	}
 
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{lo.CoalesceOrEmpty(state.MaxDeposit, state.TotalAssets, bignumber.ZeroBI).String(),
-		lo.CoalesceOrEmpty(state.MaxRedeem, state.TotalSupply, bignumber.ZeroBI).String()}
+	p.Reserves = erc4626.Reserves(vaultCfg, state)
 	p.Extra = string(extraBytes)
 	p.BlockNumber = state.BlockNumber
 	return nil
@@ -147,7 +146,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if err = poolState.ResolveLimits(vaultCfg); err != nil {
 		return assetToken, nil, err
 	}
-	normalizePoolState(&poolState)
+	normalizePoolState(vaultCfg, &poolState)
 	if resp.BlockNumber != nil {
 		poolState.BlockNumber = resp.BlockNumber.Uint64()
 	}
@@ -179,6 +178,10 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 			addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodPreviewDeposit, Params: []any{amt.ToBig()}}, []any{&state.DepositRates[i]})
 		}
 	}
+	if vaultCfg.Gas.Deposit > 0 && vaultCfg.Gas.Redeem == 0 && !vaultCfg.SupplyReadByLimits() {
+		// deposit-only: the supply converts maxDeposit (assets) into shares for the reserves
+		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: totalSupplyTarget, Method: erc4626.Erc4626MethodTotalSupply}, []any{&state.TotalSupply})
+	}
 	if vaultCfg.Gas.Redeem > 0 {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxRedeem, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxRedeem})
 		if !vaultCfg.SupplyReadByLimits() { // else AddLimitCalls already read it
@@ -190,7 +193,7 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 	}
 }
 
-func normalizePoolState(state *erc4626.PoolState) {
+func normalizePoolState(cfg erc4626.VaultCfg, state *erc4626.PoolState) {
 	if state.MaxDeposit == nil || state.MaxDeposit.Sign() == 0 {
 		state.MaxDeposit = state.TotalAssets // fallback to a sensible value
 	} else if state.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
@@ -199,7 +202,9 @@ func normalizePoolState(state *erc4626.PoolState) {
 	if state.MinDeposit != nil && state.MinDeposit.Sign() == 0 {
 		state.MinDeposit = nil
 	}
-	if state.MaxRedeem == nil || state.MaxRedeem.Sign() == 0 {
+	if cfg.Gas.Redeem == 0 { // redeem unsupported: totalSupply is read only for the deposit conversion
+		state.MaxRedeem = nil
+	} else if state.MaxRedeem == nil || state.MaxRedeem.Sign() == 0 {
 		state.MaxRedeem = state.TotalSupply // fallback to a sensible value
 	} else if state.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
 		state.MaxRedeem = nil // no limit
