@@ -117,8 +117,8 @@ func fillDecimals(t *testing.T, ctx context.Context, client *ethrpc.Client, pool
 }
 
 // TestLiveLensSplitsUnderALowGasCap: under a gas cap below what all of Ethereum's pools need
-// together (~8M gas), the batch is split, and the split read returns exactly what one uncapped
-// call does.
+// together (15 pools fit 8M and take 3 calls at 5M, in October 2026), the batch is split, and the
+// split read returns exactly what one uncapped call does.
 func TestLiveLensSplitsUnderALowGasCap(t *testing.T) {
 	rpcURL := os.Getenv("EULER_SWAP_V2_RPC_URL")
 	if rpcURL == "" || os.Getenv("CI") != "" {
@@ -153,6 +153,9 @@ func TestLiveLensSplitsUnderALowGasCap(t *testing.T) {
 	block := new(big.Int).SetUint64(latest - 2)
 
 	tracker, err := NewPoolTracker(&cfg, client)
+	require.NoError(t, err)
+	// The first uncapped call probes the node's gas cap once per client: take that out of the count.
+	_, _, err = tracker.readLens(ctx, inputs, block, 0)
 	require.NoError(t, err)
 	before := counter.n.Load()
 	_, whole, err := tracker.readLens(ctx, inputs, block, 0)
