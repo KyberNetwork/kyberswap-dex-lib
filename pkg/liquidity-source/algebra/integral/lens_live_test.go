@@ -179,7 +179,7 @@ func livePools(ctx context.Context, t *testing.T, client *ethclient.Client, dex 
 			return
 		}
 		seen[address] = true
-		liquidity, err := client.CallContract(ctx, ethereum.CallMsg{To: ptr(common.HexToAddress(address)),
+		liquidity, err := client.CallContract(ctx, ethereum.CallMsg{To: new(common.HexToAddress(address)),
 			Data: poolV12ABI.Methods[poolLiquidityMethod].ID}, nil)
 		if err == nil && new(big.Int).SetBytes(liquidity).Sign() > 0 {
 			pools = append(pools, address)
@@ -192,7 +192,7 @@ func livePools(ctx context.Context, t *testing.T, client *ethclient.Client, dex 
 		for _, b := range dex.tokens[i+1:] {
 			data, err := factoryABI.Pack("poolByPair", common.HexToAddress(a), common.HexToAddress(b))
 			require.NoError(t, err)
-			out, err := client.CallContract(ctx, ethereum.CallMsg{To: ptr(common.HexToAddress(dex.factory)),
+			out, err := client.CallContract(ctx, ethereum.CallMsg{To: new(common.HexToAddress(dex.factory)),
 				Data: data}, nil)
 			if err != nil || len(out) < 32 {
 				continue
@@ -208,7 +208,7 @@ func livePools(ctx context.Context, t *testing.T, client *ethclient.Client, dex 
 func liveTokens(ctx context.Context, t *testing.T, client *ethclient.Client, address string) []*entity.PoolToken {
 	var tokens []*entity.PoolToken
 	for _, method := range []string{"token0", "token1"} {
-		out, err := client.CallContract(ctx, ethereum.CallMsg{To: ptr(common.HexToAddress(address)),
+		out, err := client.CallContract(ctx, ethereum.CallMsg{To: new(common.HexToAddress(address)),
 			Data: poolV12ABI.Methods[method].ID}, nil)
 		require.NoError(t, err)
 		tokens = append(tokens, &entity.PoolToken{Address: strings.ToLower(common.BytesToAddress(out).Hex()),
@@ -252,8 +252,6 @@ func boundTicks(ticks []tickspkg.Tick) int {
 	}
 	return n
 }
-
-func ptr[T any](v T) *T { return &v }
 
 // retryOn429 retries a request a free RPC tier turned away for its rate, after a growing pause.
 type retryOn429 struct{}

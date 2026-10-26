@@ -26,7 +26,7 @@ type Config struct {
 	// tick spacing 1 takes ~24M gas to read in one call, so a node with a lower cap pages.
 	LensGas uint64 `json:"lensGas,omitempty"`
 	// LensGuard bounds the lens reads made while updating pools, which never wait for it.
-	LensGuard ephemeral.GuardConfig `json:"lensGuard,omitempty"`
+	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
 
 	StableHookFactories []string `json:"stableHookFactories,omitempty"`
 }
