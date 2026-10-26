@@ -145,14 +145,12 @@ func TestBatcherGathersConcurrentReads(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for x := int64(1); x <= 10; x++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			got, err := read(t, b, node, x, 100)
 			assert.NoError(t, err)
 			assert.EqualValues(t, x, got.Value.Int64())
 			assert.EqualValues(t, -x, got.Tick.Int64())
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -169,12 +167,10 @@ func TestBatcherFlushesOnSize(t *testing.T) {
 	start := time.Now()
 	var wg sync.WaitGroup
 	for x := int64(1); x <= 6; x++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := read(t, b, node, x, 100)
 			assert.NoError(t, err)
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -201,13 +197,11 @@ func TestBatcherKeepsBlocksApart(t *testing.T) {
 	b := NewBatcher(node, BatchConfig{WindowMs: 50, Gas: 1_000_000_000})
 
 	var wg sync.WaitGroup
-	for i := int64(0); i < 4; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for i := range int64(4) {
+		wg.Go(func() {
 			_, err := read(t, b, node, i+1, 100+i%2)
 			assert.NoError(t, err)
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -225,11 +219,9 @@ func TestBatcherHandsEachReadItsOwnOutcome(t *testing.T) {
 	got := make([]testResult, 3)
 	var wg sync.WaitGroup
 	for i, x := range []int64{7, 13, 14} {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			got[i], errs[i] = read(t, b, node, x, 100)
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -291,9 +283,7 @@ func TestBatcherGathersReadsAtTheLatest(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for x := int64(1); x <= 6; x++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			var block *big.Int
 			if x > 3 {
 				block = big.NewInt(100)
@@ -301,7 +291,7 @@ func TestBatcherGathersReadsAtTheLatest(t *testing.T) {
 			var got testResult
 			assert.NoError(t, b.Call(context.Background(), node, testContract, &got, 0, block, big.NewInt(x)))
 			assert.EqualValues(t, x, got.Value.Int64())
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -420,12 +410,10 @@ func TestBatcherSendsALensCodeOnce(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for x := int64(100); x < 140; x++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := read(t, b, node, x, 100)
 			assert.NoError(t, err)
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -439,13 +427,11 @@ func readAll(t *testing.T, b *Batcher, node *batchNode, xs ...int64) {
 	t.Helper()
 	var wg sync.WaitGroup
 	for _, x := range xs {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			got, err := read(t, b, node, x, 100)
 			assert.NoError(t, err)
 			assert.EqualValues(t, x, got.Value.Int64())
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -501,7 +487,7 @@ func TestBatcherLearnsAPageTooLargeForItsBatch(t *testing.T) {
 	assert.EqualValues(t, 1, b.Stats().Heavy)
 }
 
-// TestBatcherLearnsALensFromItsPools: a pool not read yet is expected to cost what its lens'sss
+// TestBatcherLearnsALensFromItsPools: a pool not read yet is expected to cost what its lens's
 // pools have cost.
 func TestBatcherLearnsALensFromItsPools(t *testing.T) {
 	node := &batchNode{gasOf: func(int64) uint64 { return 8_000_000 }}
@@ -551,9 +537,7 @@ func TestLensGuardWithABatchKeepsTheCooldownOnly(t *testing.T) {
 	var ran atomic.Int64
 	var wg sync.WaitGroup
 	for i := range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ok, err := g.Try(context.Background(), fmt.Sprint("pool", i), func(context.Context) error {
 				ran.Add(1)
 				<-release
@@ -561,7 +545,7 @@ func TestLensGuardWithABatchKeepsTheCooldownOnly(t *testing.T) {
 			})
 			assert.True(t, ok)
 			assert.NoError(t, err)
-		}()
+		})
 	}
 	require.Eventually(t, func() bool { return ran.Load() == 10 }, time.Second, time.Millisecond,
 		"ten pools at once, where a guard counting pools lets two")
@@ -591,12 +575,10 @@ func TestPinAsksTheChainOnce(t *testing.T) {
 	h := &countingChain{}
 	var wg sync.WaitGroup
 	for range 50 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := Pin(context.Background(), h, big.NewInt(7))
 			assert.NoError(t, err)
-		}()
+		})
 	}
 	wg.Wait()
 	assert.EqualValues(t, 1, h.asked.Load())
