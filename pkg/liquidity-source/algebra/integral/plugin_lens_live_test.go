@@ -132,7 +132,7 @@ func checkPluginPool(ctx context.Context, t *testing.T, client *ethclient.Client
 
 	for _, cache := range []map[uint16]Timepoint{nil, kept} {
 		p := &entity.Pool{Address: address, Exchange: byRPC.config.DexID, Type: DexType,
-			Extra: string(lo.Must(json.Marshal(Extra{ExtraTimepoint: ExtraTimepoint{Timepoints: cache}})))}
+			Extra: string(lo.Must(json.Marshal(Extra{Timepoints: cache})))}
 		read := func(tracker *PoolTracker) (pluginData, []recordedCall) {
 			calls.start()
 			var d pluginData

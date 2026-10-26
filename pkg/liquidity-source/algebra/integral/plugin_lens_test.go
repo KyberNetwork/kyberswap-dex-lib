@@ -76,7 +76,7 @@ func readBoth(t *testing.T, chain *fakeChain, cache map[uint16]Timepoint, perCal
 	int) {
 	t.Helper()
 	p := &entity.Pool{Address: "0x7491c04dc4575e086a8ee31f7ce1c6d56fb7dcc1",
-		Extra: string(lo.Must(json.Marshal(Extra{ExtraTimepoint: ExtraTimepoint{Timepoints: cache}})))}
+		Extra: string(lo.Must(json.Marshal(Extra{Timepoints: cache})))}
 	plugin := common.HexToAddress("0x3E6e46Ea6E7f5D659dD1b3aB889cb8Bc199A072F")
 	read := func(tracker *PoolTracker) pluginData {
 		var d pluginData

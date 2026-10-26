@@ -67,8 +67,8 @@ func (n *ctxNode) CallContract(ctx context.Context, msg ethereum.CallMsg, block 
 // TestGasCapProbeCutShortIsNotKept: a probe its caller's context cut short says nothing of the
 // node, and the next call probes again rather than going without the cap for probeRetry.
 func TestGasCapProbeCutShortIsNotKept(t *testing.T) {
-	node := &ctxNode{fakeNode: fakeNode{limit: 50_000_000}}
-	cancelled, cancel := context.WithCancel(context.Background())
+	node := &ctxNode{limit: 50_000_000}
+	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()
 	_, err := GasCap(cancelled, node)
 	require.ErrorIs(t, err, context.Canceled)

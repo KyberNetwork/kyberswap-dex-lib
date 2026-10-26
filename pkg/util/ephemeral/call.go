@@ -94,8 +94,7 @@ func callSmaller(ctx context.Context, c Caller, limit *rate.Limiter, contract *C
 // A 502 can also be a passing failure, and a 401 a key the node refuses: each then costs a few
 // calls more.
 func refusedForSize(err error) bool {
-	var refused rpc.HTTPError
-	if errors.As(err, &refused) {
+	if refused, ok := errors.AsType[rpc.HTTPError](err); ok {
 		switch refused.StatusCode {
 		case http.StatusRequestEntityTooLarge, http.StatusBadGateway, http.StatusUnauthorized:
 			return true
