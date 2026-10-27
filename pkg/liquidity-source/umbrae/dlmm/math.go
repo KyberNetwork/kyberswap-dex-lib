@@ -251,11 +251,12 @@ func calculateSwapWithinBin(
 
 	if absorbDust {
 		// Checked subtraction, as on-chain: the ceil-inverse never exceeds the input here.
-		leftoverNative, under := new(uint256.Int).SubOverflow(amountInNative, consumedNative)
+		var leftoverNative uint256.Int
+		_, under := leftoverNative.SubOverflow(amountInNative, consumedNative)
 		if under {
 			return nil, nil, ErrMathOverflow
 		}
-		leftoverOut, err := outputAt(leftoverNative, normPrice, priceDenominator, swapForY)
+		leftoverOut, err := outputAt(&leftoverNative, normPrice, priceDenominator, swapForY)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -266,7 +267,7 @@ func calculateSwapWithinBin(
 			}
 			adjacentPrice := getNormalizedPriceFromId(adjacent, binStep)
 			if isNormalizedPriceRepresentable(adjacentPrice) {
-				if leftoverOut, err = outputAt(leftoverNative, adjacentPrice, priceDenominator, swapForY); err != nil {
+				if leftoverOut, err = outputAt(&leftoverNative, adjacentPrice, priceDenominator, swapForY); err != nil {
 					return nil, nil, err
 				}
 			}
