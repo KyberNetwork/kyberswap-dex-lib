@@ -115,6 +115,22 @@ func (t *PoolTracker) GetNewPoolState(
 
 	status := TokenStatus(stateResult.Status)
 
+	// nftGate reverts on Portal implementations older than v5.27.0 (no gate): TryAggregate and treat a
+	// failed call as ungated.
+	var nftGate common.Address
+	gateResp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    portalABI,
+			Target: t.config.PortalAddress,
+			Method: "nftGate",
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&nftGate}).
+		TryAggregate()
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	nftGated := gateResp.Result[0] && nftGate != (common.Address{})
+
 	if status != TokenStatusTradable {
 		// Graduated (DEX) or invalid: stop feeding this pool to path-finding, permanently. Timestamp
 		// is set to 1 (not time.Now()) so pool-service's IsPoolActive/WouldArchive - which treats
@@ -151,6 +167,7 @@ func (t *PoolTracker) GetNewPoolState(
 		BuyTaxBps:                stateResult.BuyTaxRate.Uint64(),
 		SellTaxBps:               stateResult.SellTaxRate.Uint64(),
 		TaxOnBondingCurveEnabled: taxEnabled,
+		NFTGated:                 nftGated,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

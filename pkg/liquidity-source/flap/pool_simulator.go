@@ -34,8 +34,9 @@ var (
 type PoolSimulator struct {
 	pool.Pool
 
-	status TokenStatus
-	curve  Curve
+	status   TokenStatus
+	nftGated bool
+	curve    Curve
 
 	circulatingSupply *uint256.Int
 	dexSupplyThresh   *uint256.Int
@@ -94,6 +95,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		},
 		status:                   extra.Status,
+		nftGated:                 extra.NFTGated,
 		curve:                    extra.Curve,
 		circulatingSupply:        extra.CirculatingSupply,
 		dexSupplyThresh:          extra.DexSupplyThresh,
@@ -142,6 +144,9 @@ func (s *PoolSimulator) sellSideDeductionBps() uint64 {
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.status != TokenStatusTradable {
 		return nil, ErrPoolNotTradable
+	}
+	if s.nftGated {
+		return nil, ErrNFTGated
 	}
 
 	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
@@ -264,6 +269,9 @@ func (s *PoolSimulator) calcSell(amountIn *uint256.Int) (*pool.CalcAmountOutResu
 func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	if s.status != TokenStatusTradable {
 		return nil, ErrPoolNotTradable
+	}
+	if s.nftGated {
+		return nil, ErrNFTGated
 	}
 
 	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
