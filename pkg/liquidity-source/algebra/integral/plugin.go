@@ -455,7 +455,8 @@ func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceCh
 
 	var factor uint256.Int
 	factor.SetUint64(uint64(priceChangeFactor))
-	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, &factor).Div(priceChangeRatio, FACTOR_DENOMINATOR)
+	// The ratio is negative when the price fell; the plugin divides it as an int256, which SDiv does.
+	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, &factor).SDiv(priceChangeRatio, FACTOR_DENOMINATOR)
 
 	feeFactors := p.slidingFee
 	newZeroToOneFeeFactor := feeFactors.ZeroToOneFeeFactor.Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
