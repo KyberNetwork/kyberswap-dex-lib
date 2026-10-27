@@ -188,7 +188,9 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		return nil, ErrOverflow
 	}
 
-	result, err := p.V3Pool.GetInputAmountV2(zeroForOne, amountOut, sqrtPriceLimitX96)
+	// A swap is executed exact in, so the pool ends where the exact-in swap of this input leaves it,
+	// which the exact-out walk's rounding does not reach: UpdateBalance takes that state.
+	result, next, err := p.V3Pool.GetInputAmountExactInEnd(zeroForOne, amountOut, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	}
@@ -196,8 +198,7 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 	if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
-
-	b := &calcAmountInBacking{sqrtPrice: result.SqrtRatioX96}
+	b := &calcAmountInBacking{sqrtPrice: next.SqrtRatioX96}
 	// The walk can reach the price limit with output still owed, as the pool's own swap stops there
 	// and pays less, though the pool may hold that much of the token outside the range: the quote
 	// fills partly and reports what it does not pay, as CalcAmountOut reports its unspent input.
@@ -223,8 +224,8 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: &b.sqrtPrice,
-			NextStateLiquidity:    result.Liquidity,
-			NextStateTickCurrent:  result.CurrentTick,
+			NextStateLiquidity:    next.Liquidity,
+			NextStateTickCurrent:  next.CurrentTick,
 		},
 	}
 	return &b.res, nil

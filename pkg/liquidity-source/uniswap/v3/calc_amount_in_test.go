@@ -60,3 +60,26 @@ func TestCalcAmountInBeyondLiquidity(t *testing.T) {
 		assert.Zero(t, res.RemainingTokenAmountOut.Amount.Sign(), "an output the range can pay is paid whole")
 	}
 }
+
+// TestCalcAmountInNextStateIsExactIn: a swap is always executed exact in, so the state a quote by
+// output hands UpdateBalance is the state the exact-in swap of its input leaves, which a quote by
+// that input reports, not the end of the exact-out walk, whose rounding stops at another price.
+func TestCalcAmountInNextStateIsExactIn(t *testing.T) {
+	sim := rangePool(t)
+	for i, in := range sim.Info.Tokens {
+		out := sim.Info.Tokens[1-i]
+		for _, amountOut := range []int64{1, 999, 123456789, 7e12, 3e15, 2.9e16} {
+			ri, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{Token: out, Amount: big.NewInt(amountOut)}, TokenIn: in})
+			require.NoError(t, err)
+			ro, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *ri.TokenAmountIn, TokenOut: out})
+			require.NoError(t, err)
+			byOut, byIn := ri.SwapInfo.(SwapInfo), ro.SwapInfo.(SwapInfo)
+			assert.Equal(t, byIn.NextStateSqrtRatioX96.Dec(), byOut.NextStateSqrtRatioX96.Dec(),
+				"%s in for %d out: price", in, amountOut)
+			assert.Equal(t, byIn.NextStateLiquidity.Dec(), byOut.NextStateLiquidity.Dec(),
+				"%s in for %d out: liquidity", in, amountOut)
+			assert.Equal(t, byIn.NextStateTickCurrent, byOut.NextStateTickCurrent, "%s in for %d out: tick", in, amountOut)
+		}
+	}
+}

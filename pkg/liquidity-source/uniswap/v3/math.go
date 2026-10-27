@@ -108,9 +108,87 @@ func (p *Pool) GetInputAmountV2(zeroForOne bool, outputAmount, sqrtPriceLimitX96
 	return sr, nil
 }
 
+// GetInputAmountExactInEnd is GetInputAmountV2, and also where the exact-in swap of the input it
+// returns leaves the pool, which is how a swap is executed. The two walks take the same input at
+// every step but the last, where the exact-out walk rounds the price toward the pool and the
+// exact-in one toward the swapper, so only that step is redone; the whole exact-in swap runs only
+// when the redone step reaches its target and goes on. Over words priced in float the exact-out
+// walk's error carries into the end it gives, as it does into its input.
+func (p *Pool) GetInputAmountExactInEnd(zeroForOne bool, outputAmount, sqrtPriceLimitX96 uint256.Int) (
+	SwapResult, SwapResult, error) {
+	var last lastInputStep
+	outputAmount.Neg(&outputAmount)
+	sr, err := p.swap(zeroForOne, outputAmount, sqrtPriceLimitX96, &last)
+	if err != nil {
+		return SwapResult{}, SwapResult{}, err
+	}
+	end, ok, err := last.exactIn(p.Fee)
+	if err == nil && !ok {
+		end, err = p.Swap(zeroForOne, sr.AmountCalculated, sqrtPriceLimitX96)
+	}
+	if err != nil {
+		return SwapResult{}, SwapResult{}, err
+	}
+	return sr, end, nil
+}
+
+// lastInputStep is the last step of an exact-out swap that took input: where it began, its target,
+// the input it took, fee included, and the state it left.
+type lastInputStep struct {
+	start, target, liquidity, amountIn uint256.Int
+	tick                               int
+	reached, ok                        bool
+	afterPrice, afterLiquidity         uint256.Int
+	afterTick                          int
+}
+
+// exactIn redoes the step exact in with the input it took. Ending inside the step, it spends all of
+// that input there, so its end is the exact-in swap's. Reaching the target as the exact-out step did,
+// with the same input, it leaves the state that step left. Otherwise ok is false.
+//
+// The price the input less the fee moves to falls short of the target exactly when that input is
+// less than the input to the target, as ComputeSwapStep decides it: each rounds the same way. So the
+// step's amounts are worked out only when it reaches the target.
+func (s *lastInputStep) exactIn(fee FeeAmount) (SwapResult, bool, error) {
+	if !s.ok {
+		return SwapResult{}, false, nil
+	}
+	zeroForOne := !s.start.Lt(&s.target)
+	var lessFee, next uint256.Int
+	_, err := mulDivSmall(&lessFee, &s.amountIn, maxFeeInt-uint64(fee), maxFeeInt)
+	if err == nil {
+		// past the price range it fails where the step reaches the target, which ComputeSwapStep takes
+		err = GetNextSqrtPriceFromInput(&s.start, &s.liquidity, &lessFee, zeroForOne, &next)
+	}
+	if err == nil && (zeroForOne && next.Gt(&s.target) || !zeroForOne && next.Lt(&s.target)) {
+		tick := s.tick
+		if !next.Eq(&s.start) {
+			if tick, err = GetTickAtSqrtRatio(&next); err != nil {
+				return SwapResult{}, false, err
+			}
+		}
+		return SwapResult{SqrtRatioX96: next, Liquidity: s.liquidity, CurrentTick: tick}, true, nil
+	}
+	var in, out, feeAmount uint256.Int
+	if err := ComputeSwapStep(&s.start, &s.target, &s.liquidity, &s.amountIn, fee, &next, &in, &out,
+		&feeAmount); err != nil {
+		return SwapResult{}, false, err
+	}
+	if s.reached && feeAmount.Add(&in, &feeAmount).Eq(&s.amountIn) {
+		return SwapResult{SqrtRatioX96: s.afterPrice, Liquidity: s.afterLiquidity, CurrentTick: s.afterTick}, true, nil
+	}
+	return SwapResult{}, false, nil
+}
+
 // Swap is the core Uniswap V3 swap algorithm.
 // Positive amountSpecified → exact input. Negative → exact output.
 func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.Int) (SwapResult, error) {
+	return p.swap(zeroForOne, amountSpecified, sqrtPriceLimitX96, nil)
+}
+
+// swap is Swap, recording the last step that took input into last when last is not nil.
+func (p *Pool) swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.Int,
+	last *lastInputStep) (SwapResult, error) {
 	if sqrtPriceLimitX96.IsZero() {
 		if zeroForOne {
 			sqrtPriceLimitX96 = *MinSqrtRatioU256P1
@@ -203,6 +281,13 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 			return SwapResult{}, err
 		}
 
+		record := last != nil && !(amountIn.IsZero() && feeAmount.IsZero())
+		if record {
+			last.start, last.target, last.liquidity, last.tick = sqrtPriceStartX96, targetValue, liquidity, tick
+			last.amountIn.Add(&amountIn, &feeAmount)
+			last.reached, last.ok = nxtSqrtPriceX96.Eq(&targetValue), true
+		}
+
 		// A step now spans at most one bitmap word, so ComputeSwapStep's own rounding is already
 		// the on-chain rounding and needs no correction on top of it.
 		fullyCrossed := sqrtPriceX96.Set(&nxtSqrtPriceX96).Eq(&sqrtPriceNextX96)
@@ -241,6 +326,9 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 			} else {
 				tick = tickNext
 			}
+			if record {
+				last.afterPrice, last.afterLiquidity, last.afterTick = sqrtPriceX96, liquidity, tick
+			}
 			if slicePos == noSlicePos && (liquidity.IsZero() || paidWords >= floatWalkAfterWords) {
 				var words int
 				if tick, words, err = p.walkWordsFloat(zeroForOne, exactInput, tick, listTick, &liquidity,
@@ -248,11 +336,17 @@ func (p *Pool) Swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 					return SwapResult{}, err
 				}
 				crossEmptyWordLoops += words
+				if last != nil && words > 0 && !liquidity.IsZero() {
+					last.ok = false // the words walked took input, priced in float
+				}
 			}
 		} else if !sqrtPriceX96.Eq(&sqrtPriceStartX96) {
 			if tick, err = GetTickAtSqrtRatio(&sqrtPriceX96); err != nil {
 				return SwapResult{}, err
 			}
+		}
+		if record && !fullyCrossed {
+			last.afterPrice, last.afterLiquidity, last.afterTick = sqrtPriceX96, liquidity, tick
 		}
 	}
 
