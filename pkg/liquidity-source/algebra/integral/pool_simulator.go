@@ -209,7 +209,9 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	zeroForOne := tokenInIndex == 0
 	var overrideFee, pluginFee uint32
 	var err error
-	if p.useBasePluginV2 && p.slidingFee.FeeType {
+	if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
+		overrideFee, pluginFee, err = p.beforeSwapSliding(zeroForOne)
+	} else if p.useBasePluginV2 && p.slidingFee.FeeType {
 		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
 	} else {
 		overrideFee, pluginFee, err = p.beforeSwapV1(zeroForOne)
@@ -329,11 +331,36 @@ func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
 	})
 }
 
+// beforeSwapSliding prices a swap as the base plugins of Camelot, Cypher and Sheriff do: the last tick
+// before the timepoint write, then the dynamic fee after it when that is on, then the fee factor of
+// the swap's direction applied to the dynamic fee, or to s_baseFee when the dynamic fee is off.
+func (p *PoolSimulator) beforeSwapSliding(zeroToOne bool) (uint32, uint32, error) {
+	currentTick := p.globalState.Tick
+	lastTick := p.getLastTick()
+
+	baseFee := p.slidingFee.BaseFee
+	if p.slidingFee.DynamicFeeEnabled {
+		if _, _, err := p.beforeSwapV1(zeroToOne); err != nil {
+			return 0, 0, err
+		}
+		baseFee = p.globalState.LastFee
+	}
+	if err := p.writeTimepoint(nil); err != nil {
+		return 0, 0, err
+	}
+
+	newFee, err := p.getFeeAndUpdateFactors(zeroToOne, currentTick, lastTick, baseFee)
+	if err != nil {
+		return 0, 0, err
+	}
+	return uint32(newFee), 0, nil
+}
+
 func (p *PoolSimulator) beforeSwapV2(zeroToOne bool) (uint32, uint32, error) {
 	currentTick := p.globalState.Tick
 	lastTick := p.getLastTick()
 
-	newFee, err := p.getFeeAndUpdateFactors(zeroToOne, currentTick, lastTick)
+	newFee, err := p.getFeeAndUpdateFactors(zeroToOne, currentTick, lastTick, p.slidingFee.BaseFee)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -345,7 +372,9 @@ func (p *PoolSimulator) beforeSwapV2(zeroToOne bool) (uint32, uint32, error) {
 	return uint32(newFee), 0, nil
 }
 
-func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, lastTick int32) (uint16, error) {
+// getFeeAndUpdateFactors is the plugin's _getFeeAndUpdateFactors, with the fee it scales as baseFee.
+func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, lastTick int32,
+	baseFee uint16) (uint16, error) {
 	var currentFeeFactors *SlidingFeeConfig
 
 	if currentTick != lastTick {
@@ -360,7 +389,7 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 		currentFeeFactors = p.slidingFee
 	}
 
-	adjustedFee := uint256.NewInt(uint64(p.slidingFee.BaseFee))
+	adjustedFee := uint256.NewInt(uint64(baseFee))
 	adjustedFee = adjustedFee.Rsh(
 		adjustedFee.Mul(adjustedFee,
 			lo.Ternary(zeroToOne, currentFeeFactors.ZeroToOneFeeFactor, currentFeeFactors.OneToZeroFeeFactor),
