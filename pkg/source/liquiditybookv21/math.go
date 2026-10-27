@@ -122,27 +122,32 @@ func getEndOfDivRoundDown(
 	var lpotdod uint256.Int
 	lpotdod.And(denominator, lpotdod.Neg(denominator))
 
-	denominator = denominator.Div(denominator, &lpotdod)
+	// The caller's denominator is left as it was.
+	var d uint256.Int
+	d.Div(denominator, &lpotdod)
 
 	prod0 = prod0.Div(prod0, &lpotdod)
 
-	// // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one
+	// Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one
 	// lpotdod := add(div(sub(0, lpotdod), lpotdod), 1)
-	lpotdod.AddUint64(lpotdod.Div(lpotdod.Neg(&lpotdod), &lpotdod), 1)
+	var negLpotdod uint256.Int
+	lpotdod.AddUint64(lpotdod.Div(negLpotdod.Neg(&lpotdod), &lpotdod), 1)
 
 	tmp := remainder
 	prod0 = prod0.Or(prod0, tmp.Mul(prod1, &lpotdod))
 
-	inverse := prod1.Mul(prod1.Mul(denominator, denominator), big256.U9)
+	// inverse := (3 * denominator) ^ 2, where ^ is xor: the inverse modulo 2^4 to start Newton from
+	var inverse uint256.Int
+	inverse.Xor(inverse.Mul(&d, big256.U3), big256.U2)
 
 	for range 6 {
 		inverse.Mul(
-			inverse,
-			tmp.Sub(big256.U2, tmp.Mul(denominator, inverse)),
+			&inverse,
+			tmp.Sub(big256.U2, tmp.Mul(&d, &inverse)),
 		)
 	}
 
-	result := prod0.Mul(prod0, inverse)
+	result := prod0.Mul(prod0, &inverse)
 	return result, nil
 }
 
