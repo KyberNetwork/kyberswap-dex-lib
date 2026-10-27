@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -20,12 +22,17 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	feed         *resty.Client // nil: no feed configured
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	return &PoolTracker{config: cfg, ethrpcClient: ethrpcClient}, nil
+	t := &PoolTracker{config: cfg, ethrpcClient: ethrpcClient}
+	if cfg.HTTP != nil && cfg.HTTP.BaseURL != "" {
+		t.feed = resty.New().SetBaseURL(cfg.HTTP.BaseURL).SetHeaders(cfg.HTTP.Headers).SetTimeout(3 * time.Second)
+	}
+	return t, nil
 }
 
 // rawBoard is PropAMMVenue.board()'s return tuple, decoded by output name.
@@ -37,8 +44,7 @@ type rawBoard struct {
 	ExpiresAt *big.Int
 }
 
-// GetNewPoolState reads the venue's makers and protocol fee, then every maker's board for both
-// directions of the pair, pinned to the same block.
+// GetNewPoolState reads the board feed, falling back to on-chain reads when the feed fails.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -54,42 +60,16 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	var (
-		makerAddrs []common.Address
-		feeBps     uint16
-	)
-	makersResp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{ABI: venueABI, Target: staticExtra.Venue, Method: methodMakers}, []any{&makerAddrs}).
-		AddCall(&ethrpc.Call{ABI: venueABI, Target: staticExtra.Venue, Method: methodFeeBps}, []any{&feeBps}).
-		Aggregate()
+	members, feeBps, blockNumber, err := t.fetchFeed(ctx, token0, token1, staticExtra.Venue)
 	if err != nil {
-		return p, err
-	}
-
-	boards := make([]rawBoard, 2*len(makerAddrs))
-	if len(makerAddrs) > 0 {
-		req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(makersResp.BlockNumber)
-		for i, m := range makerAddrs {
-			req.AddCall(&ethrpc.Call{ABI: venueABI, Target: staticExtra.Venue, Method: methodBoard, Params: []any{m, token0, token1}},
-				[]any{&boards[2*i]})
-			req.AddCall(&ethrpc.Call{ABI: venueABI, Target: staticExtra.Venue, Method: methodBoard, Params: []any{m, token1, token0}},
-				[]any{&boards[2*i+1]})
-		}
-		if _, err := req.Aggregate(); err != nil {
+		logger.WithFields(logger.Fields{"dexId": t.config.DexID, "pool": p.Address}).
+			Warnf("biconomy-prop: board feed unusable, reading on-chain: %v", err)
+		if members, feeBps, blockNumber, err = t.fetchOnchain(ctx, token0, token1, staticExtra.Venue); err != nil {
 			return p, err
 		}
 	}
 
-	members := make([]MemberExtra, len(makerAddrs))
-	for i, m := range makerAddrs {
-		members[i] = MemberExtra{
-			Maker: hexutil.Encode(m[:]),
-			Dir0:  toBoard(boards[2*i]),
-			Dir1:  toBoard(boards[2*i+1]),
-		}
-	}
-
-	extra, err := json.Marshal(Extra{Members: members, FeeBps: uint64(feeBps)})
+	extra, err := json.Marshal(Extra{Members: members, FeeBps: feeBps})
 	if err != nil {
 		return p, err
 	}
@@ -101,9 +81,50 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extra)
 	p.Reserves = entity.PoolReserves{reserve0.Dec(), reserve1.Dec()}
-	p.BlockNumber = makersResp.BlockNumber.Uint64()
+	p.BlockNumber = blockNumber
 	p.Timestamp = now
 	return p, nil
+}
+
+// fetchOnchain reads the venue's makers and protocol fee, then every maker's board for both
+// directions of the pair, pinned to the same block.
+func (t *PoolTracker) fetchOnchain(ctx context.Context, token0, token1 common.Address, venue string) (
+	[]MemberExtra, uint64, uint64, error) {
+	var (
+		makerAddrs []common.Address
+		feeBps     uint16
+	)
+	makersResp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{ABI: venueABI, Target: venue, Method: methodMakers}, []any{&makerAddrs}).
+		AddCall(&ethrpc.Call{ABI: venueABI, Target: venue, Method: methodFeeBps}, []any{&feeBps}).
+		Aggregate()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	boards := make([]rawBoard, 2*len(makerAddrs))
+	if len(makerAddrs) > 0 {
+		req := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(makersResp.BlockNumber)
+		for i, m := range makerAddrs {
+			req.AddCall(&ethrpc.Call{ABI: venueABI, Target: venue, Method: methodBoard, Params: []any{m, token0, token1}},
+				[]any{&boards[2*i]})
+			req.AddCall(&ethrpc.Call{ABI: venueABI, Target: venue, Method: methodBoard, Params: []any{m, token1, token0}},
+				[]any{&boards[2*i+1]})
+		}
+		if _, err := req.Aggregate(); err != nil {
+			return nil, 0, 0, err
+		}
+	}
+
+	members := make([]MemberExtra, len(makerAddrs))
+	for i, m := range makerAddrs {
+		members[i] = MemberExtra{
+			Maker: hexutil.Encode(m[:]),
+			Dir0:  toBoard(boards[2*i]),
+			Dir1:  toBoard(boards[2*i+1]),
+		}
+	}
+	return members, uint64(feeBps), makersResp.BlockNumber.Uint64(), nil
 }
 
 func toBoard(rb rawBoard) Board {
