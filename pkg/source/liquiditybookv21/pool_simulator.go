@@ -179,7 +179,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			b.ReserveY = changes[1].Add(b.ReserveY, changes[1])
 		}
 
-		if !b.isEmpty() {
+		// The active bin stays, empty or not: a swap starts there and finds the next bin by its place.
+		if !b.isEmpty() || b.ID == p.activeBinID {
 			newBins = append(newBins, b)
 		}
 	}
