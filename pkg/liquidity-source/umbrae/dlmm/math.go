@@ -169,6 +169,17 @@ func getDecayedVolatility(volatility, lastUpdate, filterPeriod, decayPeriod, now
 	return applyVolatilityDecay(volatility, delta, decayPeriod)
 }
 
+// getCarriedVolatility mirrors FeeHelper.getCarriedVolatility (SwapRevisionV2Oct2026, #1212): inside
+// the filter window the decayed value (the stored accumulator); once a new window opens, only
+// reductionFactor/10000 of it carries.
+func getCarriedVolatility(volatility, lastUpdate uint64, fp FeeParameters, now uint64) uint64 {
+	decayed := getDecayedVolatility(volatility, lastUpdate, uint64(fp.FilterPeriod), uint64(fp.DecayPeriod), now)
+	if now < lastUpdate+uint64(fp.FilterPeriod) {
+		return decayed
+	}
+	return decayed * uint64(fp.ReductionFactor) / basisPoints
+}
+
 // getFeeAmountFrom mirrors the deployed FeeHelper.getFeeAmountFrom: a CEILING division with
 // denominator (10000 + totalFee), clamped so the fee never consumes the whole amount. (V1 floored;
 // the V2 ceil + clamp are both load-bearing for wei-exactness.)
@@ -198,18 +209,18 @@ func getFeeAmountFrom(amount, totalFee *uint256.Int) (*uint256.Int, error) {
 // conversion folded into priceDenominator = scaleY * 10^decimalsX (identical in both directions).
 // Output floors, input-consumed-on-depletion ceils (against the swapper). A zero-output bin is
 // skipped, not charged (H-02/#203): returns (0, 0).
+//
+// With absorbDust (SwapRevisionV2Oct2026, #1211) a depleted bin takes the whole input when what is
+// left cannot buy one output unit here, or buys exactly one here and none at the adjacent bin in the
+// swap direction (binID-1 selling X, binID+1 selling Y); an unrepresentable adjacent price proves
+// nothing and the walk goes on.
 func calculateSwapWithinBin(
 	binReserveOut, amountInNormalized, normPrice, priceDenominator, scaleIn, scaleOut *uint256.Int,
-	swapForY bool,
+	swapForY bool, binID uint32, binStep uint16, absorbDust bool,
 ) (amountOutNormalized, amountInConsumedNormalized *uint256.Int, err error) {
 	amountInNative := new(uint256.Int).Div(amountInNormalized, scaleIn)
 
-	var maxOutNative *uint256.Int
-	if swapForY {
-		maxOutNative, err = mulDivFloor(amountInNative, normPrice, priceDenominator)
-	} else {
-		maxOutNative, err = mulDivFloor(amountInNative, priceDenominator, normPrice)
-	}
+	maxOutNative, err := outputAt(amountInNative, normPrice, priceDenominator, swapForY)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -237,5 +248,41 @@ func calculateSwapWithinBin(
 		return nil, nil, err
 	}
 	consumed := new(uint256.Int).Mul(consumedNative, scaleIn)
+
+	if absorbDust {
+		// Checked subtraction, as on-chain: the ceil-inverse never exceeds the input here.
+		leftoverNative, under := new(uint256.Int).SubOverflow(amountInNative, consumedNative)
+		if under {
+			return nil, nil, ErrMathOverflow
+		}
+		leftoverOut, err := outputAt(leftoverNative, normPrice, priceDenominator, swapForY)
+		if err != nil {
+			return nil, nil, err
+		}
+		if leftoverOut.IsUint64() && leftoverOut.Uint64() == 1 {
+			adjacent := binID + 1
+			if swapForY {
+				adjacent = binID - 1
+			}
+			adjacentPrice := getNormalizedPriceFromId(adjacent, binStep)
+			if isNormalizedPriceRepresentable(adjacentPrice) {
+				if leftoverOut, err = outputAt(leftoverNative, adjacentPrice, priceDenominator, swapForY); err != nil {
+					return nil, nil, err
+				}
+			}
+		}
+		if leftoverOut.IsZero() {
+			consumed = new(uint256.Int).Set(amountInNormalized)
+		}
+	}
 	return new(uint256.Int).Set(binReserveOut), consumed, nil
+}
+
+// outputAt mirrors SwapCalculator._outputAt: the native output a native input buys at one bin
+// price, rounded down.
+func outputAt(amountInNative, normPrice, priceDenominator *uint256.Int, swapForY bool) (*uint256.Int, error) {
+	if swapForY {
+		return mulDivFloor(amountInNative, normPrice, priceDenominator)
+	}
+	return mulDivFloor(amountInNative, priceDenominator, normPrice)
 }
