@@ -1,0 +1,70 @@
+{
+ "block": 518763672,
+ "blockTimestamp": 1793110612,
+ "chain": "arbitrum",
+ "feeConfig": {
+  "alpha1": 2900,
+  "alpha2": 12000,
+  "beta1": 360,
+  "beta2": 60000,
+  "gamma1": 59,
+  "gamma2": 8500,
+  "volumeBeta": 0,
+  "volumeGamma": 10,
+  "baseFee": 100
+ },
+ "liquidity": 702131203445854089460439,
+ "pool": "0xe7778fe421466921e7ca66d901fd77e6e1daba47",
+ "storedFee": 15000,
+ "swapFee": 7550,
+ "tick": 127928,
+ "timepointIndex": 4,
+ "timepoints": {
+  "0": {
+   "initialized": true,
+   "blockTimestamp": 1680889526,
+   "tickCumulative": 0,
+   "secondsPerLiquidityCumulative": 0,
+   "volatilityCumulative": 0,
+   "averageTick": 128284,
+   "volumePerLiquidityCumulative": 0
+  },
+  "3": {
+   "initialized": true,
+   "blockTimestamp": 1680890231,
+   "tickCumulative": 90374436,
+   "secondsPerLiquidityCumulative": 341672706613674656,
+   "volatilityCumulative": 8029353,
+   "averageTick": 128238,
+   "volumePerLiquidityCumulative": 317884354938540328
+  },
+  "4": {
+   "initialized": true,
+   "blockTimestamp": 1680890527,
+   "tickCumulative": -172258076,
+   "secondsPerLiquidityCumulative": 100723580608597785185159225472510004265632,
+   "volatilityCumulative": 102287559339668,
+   "averageTick": 128190,
+   "volumePerLiquidityCumulative": 1844674725255310100140328
+  },
+  "5": {
+   "initialized": false,
+   "blockTimestamp": 0,
+   "tickCumulative": 0,
+   "secondsPerLiquidityCumulative": 0,
+   "volatilityCumulative": 0,
+   "averageTick": 0,
+   "volumePerLiquidityCumulative": 0
+  },
+  "6": {
+   "initialized": false,
+   "blockTimestamp": 0,
+   "tickCumulative": 0,
+   "secondsPerLiquidityCumulative": 0,
+   "volatilityCumulative": 0,
+   "averageTick": 0,
+   "volumePerLiquidityCumulative": 0
+  }
+ },
+ "volumePerLiquidityInBlock": 676990502332954720
+}
