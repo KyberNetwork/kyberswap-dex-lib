@@ -32,11 +32,10 @@ func TestShiftDivWide(t *testing.T) {
 		}
 		ux, ud := uint256.MustFromBig(x), uint256.MustFromBig(d)
 
-		got, err := shiftDivRoundDown(ux, scaleOffset, ud)
-		require.NoError(t, err)
+		var got uint256.Int
+		require.NoError(t, shiftDivRoundDown(&got, ux, scaleOffset, ud))
 		assert.Equal(t, down.String(), got.Dec(), "%s << 128 / %s", x, d)
-		got, err = shiftDivRoundUp(ux, scaleOffset, ud)
-		require.NoError(t, err)
+		require.NoError(t, shiftDivRoundUp(&got, ux, scaleOffset, ud))
 		if up.BitLen() <= 256 {
 			assert.Equal(t, up.String(), got.Dec(), "%s << 128 / %s, rounded up", x, d)
 		}

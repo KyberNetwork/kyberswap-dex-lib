@@ -159,18 +159,18 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.variableFeeParams = swapInfo.NewParameters.VariableFeeParams
 
 	// update reserves of bins
-	totalBinReserveChanges := make(map[uint32][2]*uint256.Int)
-	for _, b := range swapInfo.BinsReserveChanges {
+	totalBinReserveChanges := make(map[uint32][2]*uint256.Int, len(swapInfo.BinsReserveChanges))
+	var dx, dy uint256.Int
+	for i := range swapInfo.BinsReserveChanges {
+		b := &swapInfo.BinsReserveChanges[i]
 		changes, ok := totalBinReserveChanges[b.BinID]
 		if !ok {
-			totalBinReserveChanges[b.BinID] = [2]*uint256.Int{
-				new(uint256.Int).Sub(b.AmountXIn, b.AmountXOut),
-				new(uint256.Int).Sub(b.AmountYIn, b.AmountYOut)}
+			totalBinReserveChanges[b.BinID] = [2]*uint256.Int{b.changeX(new(uint256.Int)), b.changeY(new(uint256.Int))}
 			continue
 		}
 
-		changes[0].Add(changes[0], b.AmountXIn).Sub(changes[0], b.AmountXOut)
-		changes[1].Add(changes[1], b.AmountYIn).Sub(changes[1], b.AmountYOut)
+		changes[0].Add(changes[0], b.changeX(&dx))
+		changes[1].Add(changes[1], b.changeY(&dy))
 	}
 	newBins := p.bins[:0]
 	for _, b := range p.bins {
@@ -212,7 +212,12 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*swapResul
 		amountIn           uint256.Int
 		swapFee            uint256.Int
 		binsReserveChanges []binReserveChanges
+		protocolShare      uint256.Int
+
+		// one bin's amounts, reused bin after bin
+		price, amountOutOfBin, amountInWithoutFee, totalFees, feeAmount, pFee, binAmountIn uint256.Int
 	)
+	protocolShare.SetUint64(uint64(p.staticFeeParams.ProtocolShare))
 
 	params := p.copyParameters()
 	id := params.ActiveBinID
@@ -226,59 +231,46 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*swapResul
 		}
 		binReserves := p.bins[binArrIdx].decode(!swapForY)
 		if binReserves.Sign() > 0 {
-			price, err := getPriceFromID(id, binStep)
-			if err != nil {
+			if err := getPriceFromID(&price, id, binStep); err != nil {
 				return nil, err
 			}
 
-			var amountOutOfBin *uint256.Int
 			if binReserves.Cmp(amountsOutLeft) > 0 {
-				amountOutOfBin = amountsOutLeft
+				amountOutOfBin.Set(amountsOutLeft)
 			} else {
-				amountOutOfBin = binReserves
+				amountOutOfBin.Set(binReserves)
 			}
 
 			params = params.updateVolatilityAccumulator(id)
 
-			var amountInWithoutFee *uint256.Int
-
 			if swapForY {
-				amountInWithoutFee, err = shiftDivRoundUp(amountOutOfBin, scaleOffset, price)
+				err = shiftDivRoundUp(&amountInWithoutFee, &amountOutOfBin, scaleOffset, &price)
 			} else {
-				amountInWithoutFee, err = mulShiftRoundUp(amountOutOfBin, price, scaleOffset)
+				err = mulShiftRoundUp(&amountInWithoutFee, &amountOutOfBin, &price, scaleOffset)
 			}
 			if err != nil {
 				return nil, err
 			}
 
-			totalFees := params.getTotalFee(binStep)
+			params.getTotalFee(binStep, &totalFees)
 
-			feeAmount, err := getFeeAmount(amountInWithoutFee, totalFees)
-			if err != nil {
+			if err := getFeeAmount(&feeAmount, &amountInWithoutFee, &totalFees); err != nil {
 				return nil, err
 			}
 
-			// The bin takes what comes in less the protocol's share of the fee, as in getSwapOut. Both
-			// amounts are the bin's own, copied: amountIn sums every bin, and amountOutOfBin may be
-			// amountsOutLeft, which the swap is about to bring to zero.
-			binAmountIn := new(uint256.Int).Add(amountInWithoutFee, feeAmount)
-			amountIn.Add(&amountIn, binAmountIn)
-			pFee, err := scalarMulDivBasisPointRoundDown(
-				feeAmount, uint256.NewInt(uint64(p.staticFeeParams.ProtocolShare)),
-			)
-			if err != nil {
+			// The bin takes what comes in less the protocol's share of the fee, as in getSwapOut.
+			binAmountIn.Add(&amountInWithoutFee, &feeAmount)
+			amountIn.Add(&amountIn, &binAmountIn)
+			if err := scalarMulDivBasisPointRoundDown(&pFee, &feeAmount, &protocolShare); err != nil {
 				return nil, err
 			}
-			binAmountIn.Sub(binAmountIn, pFee)
-			binAmountOut := new(uint256.Int).Set(amountOutOfBin)
-			amountsOutLeft.Sub(amountsOutLeft, amountOutOfBin)
+			binAmountIn.Sub(&binAmountIn, &pFee)
+			amountsOutLeft.Sub(amountsOutLeft, &amountOutOfBin)
 
-			swapFee.Add(&swapFee, feeAmount)
+			swapFee.Add(&swapFee, &feeAmount)
 
-			newBinReserveChanges := newBinReserveChanges(
-				id, !swapForY, binAmountIn, binAmountOut,
-			)
-			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
+			binsReserveChanges = append(binsReserveChanges,
+				newBinReserveChanges(id, !swapForY, &binAmountIn, &amountOutOfBin))
 		}
 
 		if amountsOutLeft.IsZero() {
@@ -327,7 +319,12 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*swapResul
 		amountOut          uint256.Int
 		swapFee            uint256.Int
 		binsReserveChanges []binReserveChanges
+		protocolShare      uint256.Int
+
+		// one bin's amounts, reused bin after bin
+		amountsInWithFees, amountsOutOfBin, totalFees, pFee uint256.Int
 	)
+	protocolShare.SetUint64(uint64(p.staticFeeParams.ProtocolShare))
 
 	params := p.copyParameters()
 	id := params.ActiveBinID
@@ -339,34 +336,26 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*swapResul
 		if err != nil {
 			return nil, err
 		}
-		binReserves := p.bins[binArrIdx]
+		binReserves := &p.bins[binArrIdx]
 		if !binReserves.isEmptyForSwap(!swapForY) {
 			params = params.updateVolatilityAccumulator(id)
 
-			amountsInWithFees, amountsOutOfBin, totalFees, err := binReserves.getAmounts(
-				params, binStep, swapForY, id, amountsInLeft,
-			)
-			if err != nil {
+			if err := binReserves.getAmounts(params, binStep, swapForY, id, amountsInLeft,
+				&amountsInWithFees, &amountsOutOfBin, &totalFees); err != nil {
 				return nil, err
 			}
 
 			if amountsInWithFees.Sign() > 0 {
-				amountsInLeft.Sub(amountsInLeft, amountsInWithFees)
-				amountOut.Add(&amountOut, amountsOutOfBin)
-				swapFee.Add(&swapFee, totalFees)
+				amountsInLeft.Sub(amountsInLeft, &amountsInWithFees)
+				amountOut.Add(&amountOut, &amountsOutOfBin)
+				swapFee.Add(&swapFee, &totalFees)
 
-				pFee, err := scalarMulDivBasisPointRoundDown(
-					totalFees,
-					uint256.NewInt(uint64(p.staticFeeParams.ProtocolShare)),
-				)
-				if err != nil {
+				if err := scalarMulDivBasisPointRoundDown(&pFee, &totalFees, &protocolShare); err != nil {
 					return nil, err
 				}
-				amountsInWithFees.Sub(amountsInWithFees, pFee)
-				newBinReserveChanges := newBinReserveChanges(
-					id, !swapForY, amountsInWithFees, amountsOutOfBin,
-				)
-				binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
+				amountsInWithFees.Sub(&amountsInWithFees, &pFee)
+				binsReserveChanges = append(binsReserveChanges,
+					newBinReserveChanges(id, !swapForY, &amountsInWithFees, &amountsOutOfBin))
 			}
 
 		}
