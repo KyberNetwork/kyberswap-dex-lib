@@ -36,6 +36,7 @@ const (
 var (
 	ErrTokenNotListed     = errors.New("flap: token not listed")
 	ErrPoolNotTradable    = errors.New("flap: token is not tradable on the bonding curve (graduated or invalid)")
+	ErrNFTGated           = errors.New("flap: token is NFT gated on the bonding curve")
 	ErrZeroAmountOut      = errors.New("flap: zero amount out")
 	ErrInsufficientSupply = errors.New("flap: sell amount exceeds circulating supply")
 
