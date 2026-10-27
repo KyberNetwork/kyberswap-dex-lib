@@ -1,0 +1,97 @@
+{
+ "chain": "robinhood",
+ "block": 99195575,
+ "pool": {
+  "address": "0x617ae92088254d5f9f137de3a07086a846455b6d",
+  "exchange": "sectorone-v20",
+  "type": "liquiditybook-v20",
+  "reserves": [
+   "794885569339210259904",
+   "0"
+  ],
+  "tokens": [
+   {
+    "address": "0xd5f1afea47b1a9eab414d2ee740cf1d6d039e725",
+    "swappable": true
+   },
+   {
+    "address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"rpcBlockTimestamp\":1793099192,\"feeParameters\":{\"binStep\":240,\"baseFactor\":20000,\"filterPeriod\":600,\"decayPeriod\":2400,\"reductionFactor\":5000,\"variableFeeControl\":5000,\"protocolShare\":1000,\"maxVolatilityAccumulated\":75000,\"volatilityAccumulated\":20000,\"volatilityReference\":10000,\"indexRef\":8387217,\"time\":1792974509},\"activeBinId\":8387216,\"bins\":[{\"id\":8387216,\"reserveX\":0,\"reserveY\":0},{\"id\":8387230,\"reserveX\":442688954544853345658,\"reserveY\":0},{\"id\":8387231,\"reserveX\":176098721734537215577,\"reserveY\":0},{\"id\":8387232,\"reserveX\":176097893059819698669,\"reserveY\":0}]}",
+  "blockNumber": 99195575
+ },
+ "quotes": [
+  {
+   "amountIn": "1",
+   "swapForY": false,
+   "amountOut": "0"
+  },
+  {
+   "amountIn": "3",
+   "swapForY": false,
+   "amountOut": "312154963781700"
+  },
+  {
+   "amountIn": "10",
+   "swapForY": false,
+   "amountOut": "1404697337017654"
+  },
+  {
+   "amountIn": "30",
+   "swapForY": false,
+   "amountOut": "4370169492943813"
+  },
+  {
+   "amountIn": "100",
+   "swapForY": false,
+   "amountOut": "14515205815849095"
+  },
+  {
+   "amountIn": "300",
+   "swapForY": false,
+   "amountOut": "43701694929438135"
+  },
+  {
+   "amountIn": "1000",
+   "swapForY": false,
+   "amountOut": "145932445567945202"
+  },
+  {
+   "amountIn": "3000",
+   "swapForY": false,
+   "amountOut": "438109491667617309"
+  },
+  {
+   "amountIn": "10000",
+   "swapForY": false,
+   "amountOut": "1460573075534578830"
+  },
+  {
+   "amountIn": "30000",
+   "swapForY": false,
+   "amountOut": "4381719226603736492"
+  },
+  {
+   "amountIn": "100000",
+   "swapForY": false,
+   "amountOut": "14605730755345788309"
+  },
+  {
+   "amountIn": "300000",
+   "swapForY": false,
+   "amountOut": "43817192266037364929"
+  },
+  {
+   "amountIn": "1000000",
+   "swapForY": false,
+   "amountOut": "146057307553457883096"
+  },
+  {
+   "amountIn": "3000000",
+   "swapForY": false,
+   "amountOut": "438171922660373649290"
+  }
+ ]
+}
