@@ -258,13 +258,25 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*swapResul
 				return nil, err
 			}
 
-			amountIn.Add(&amountIn, new(uint256.Int).Add(amountInWithoutFee, feeAmount))
+			// The bin takes what comes in less the protocol's share of the fee, as in getSwapOut. Both
+			// amounts are the bin's own, copied: amountIn sums every bin, and amountOutOfBin may be
+			// amountsOutLeft, which the swap is about to bring to zero.
+			binAmountIn := new(uint256.Int).Add(amountInWithoutFee, feeAmount)
+			amountIn.Add(&amountIn, binAmountIn)
+			pFee, err := scalarMulDivBasisPointRoundDown(
+				feeAmount, uint256.NewInt(uint64(p.staticFeeParams.ProtocolShare)),
+			)
+			if err != nil {
+				return nil, err
+			}
+			binAmountIn.Sub(binAmountIn, pFee)
+			binAmountOut := new(uint256.Int).Set(amountOutOfBin)
 			amountsOutLeft.Sub(amountsOutLeft, amountOutOfBin)
 
 			swapFee.Add(&swapFee, feeAmount)
 
 			newBinReserveChanges := newBinReserveChanges(
-				id, !swapForY, &amountIn, amountOutOfBin,
+				id, !swapForY, binAmountIn, binAmountOut,
 			)
 			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
 		}
