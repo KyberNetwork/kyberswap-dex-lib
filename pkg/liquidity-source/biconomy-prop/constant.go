@@ -16,6 +16,8 @@ const (
 
 	bpsDenominator = 10_000
 
+	defaultFeedMaxAgeMs = 3000
+
 	// maxMakers is the venue's registry cap.
 	maxMakers = 16
 
@@ -30,5 +32,7 @@ var (
 	ErrInsufficientLiquidity = errors.New("biconomy-prop: amountIn exceeds live board depth")
 	ErrZeroAmountOut         = errors.New("biconomy-prop: zero amountOut")
 	ErrOverflow              = errors.New("biconomy-prop: uint256 overflow")
+	ErrFeedStale             = errors.New("biconomy-prop: board feed response too old")
+	ErrFeedInvalid           = errors.New("biconomy-prop: board feed response invalid")
 	ErrTooManyMakers         = errors.New("biconomy-prop: more makers than the venue registry cap")
 )
