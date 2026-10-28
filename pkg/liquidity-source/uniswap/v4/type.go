@@ -41,6 +41,8 @@ type StaticExtra struct {
 	UniversalRouterAddress common.Address `json:"uR"`
 	Permit2Address         common.Address `json:"pm2"`
 	Multicall3Address      common.Address `json:"mc3"`
+	// PoolManager is set only for forks with their own PoolManager; nil means PoolManager[chainID].
+	PoolManager *common.Address `json:"pM,omitempty"`
 }
 
 type Extra struct {
@@ -109,6 +111,8 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
+	// PoolManager is the pool's manager (own, else PoolManager[chainID]); omitted when unknown.
+	PoolManager *common.Address `json:"manager,omitempty"`
 
 	TokenWrapMetadata *TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
 }

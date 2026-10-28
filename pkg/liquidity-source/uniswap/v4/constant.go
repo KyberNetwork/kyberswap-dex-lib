@@ -44,6 +44,7 @@ var (
 		valueobject.ChainIDAvalancheCChain: "0x9F75dD27D6664c475B90e105573E550ff69437B0",
 		valueobject.ChainIDBase:            "0x0d5e0F971ED27FBfF6c2837bf31316121532048D",
 		valueobject.ChainIDBSC:             "0x9F75dD27D6664c475B90e105573E550ff69437B0",
+		valueobject.ChainIDElysium:         "0x4861741785a8319a935741d0b570cafc33c4ca6b", // Elyspump fork
 		valueobject.ChainIDEthereum:        "0x52F0E24D1c21C8A0cB1e5a5dD6198556BD9E1203",
 		valueobject.ChainIDMonad:           "0xa222Dd357A9076d1091Ed6Aa2e16C9742dD26891",
 		valueobject.ChainIDMegaETH:         "0x94bDC671f0c35F44a1DaA53143fd1f868D1623b9",
