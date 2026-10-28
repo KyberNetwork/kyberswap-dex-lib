@@ -3,7 +3,7 @@ package ammalgam
 import "errors"
 
 const (
-	DexType = "ammalgam"
+	DexType = "ammalgam-dlex"
 	// Average of 12 executeAmmalgam helper-frame gas measurements (6 mainnet pairs x 2 directions,
 	// Tenderly sims). It includes validateOnUpdate's unthrottled lending checkpoint (~350k).
 	defaultGas = int64(402_047)

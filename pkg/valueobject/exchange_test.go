@@ -7,6 +7,6 @@ import (
 )
 
 func TestExchangeAmmalgamIsNotPropAMM(t *testing.T) {
-	require.Equal(t, "ammalgam", ExchangeAmmalgam)
+	require.Equal(t, "ammalgam-dlex", ExchangeAmmalgam)
 	require.False(t, IsPropAMMSource(ExchangeAmmalgam))
 }

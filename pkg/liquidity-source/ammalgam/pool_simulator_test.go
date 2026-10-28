@@ -28,7 +28,7 @@ func simulatorFixture(t *testing.T, reserves [2]string, references [2]string, mi
 	encoded, err := json.Marshal(extra)
 	require.NoError(t, err)
 	return entity.Pool{
-		Address: testPair, Exchange: "ammalgam", Type: DexType, BlockNumber: 1234,
+		Address: testPair, Exchange: "ammalgam-dlex", Type: DexType, BlockNumber: 1234,
 		Tokens:   []*entity.PoolToken{{Address: testTokenX, Swappable: true}, {Address: testTokenY, Swappable: true}},
 		Reserves: entity.PoolReserves{reserves[0], reserves[1]}, Extra: string(encoded),
 	}
@@ -164,7 +164,7 @@ func TestPoolSimulatorMetaAndApproval(t *testing.T) {
 	s := newTestSimulator(t)
 	require.Equal(t, pool.RouterMetaInfo{Router: testPair, BlockNumber: 1234}, s.GetMetaInfo(testTokenX, testTokenY))
 	require.Empty(t, s.GetApprovalAddress(testTokenX, testTokenY))
-	require.Equal(t, DexType, "ammalgam")
+	require.Equal(t, DexType, "ammalgam-dlex")
 }
 
 func TestPoolSimulatorRejectsInvalidInputsAndStates(t *testing.T) {
