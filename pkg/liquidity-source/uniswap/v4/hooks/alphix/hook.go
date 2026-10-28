@@ -75,6 +75,7 @@ func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (ent
 	}
 
 	hook := hexutil.Encode(param.HookAddress[:])
+	poolManager := uniswapv4.PoolManagerOf(param.Pool, param.Cfg.ChainID)
 
 	var amountsAvailable [2]*big.Int
 	var poolManagerBalances [2]*big.Int
@@ -87,7 +88,7 @@ func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (ent
 				ABI:    abi.Multicall3ABI,
 				Target: param.Cfg.Multicall3Address,
 				Method: abi.Multicall3GetEthBalance,
-				Params: []any{uniswapv4.PoolManager[param.Cfg.ChainID]},
+				Params: []any{poolManager},
 			}, []any{&poolManagerBalances[i]})
 		} else {
 			token := param.Pool.Tokens[i].Address
@@ -96,7 +97,7 @@ func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (ent
 				ABI:    abi.Erc20ABI,
 				Target: token,
 				Method: abi.Erc20BalanceOfMethod,
-				Params: []any{uniswapv4.PoolManager[param.Cfg.ChainID]},
+				Params: []any{poolManager},
 			}, []any{&poolManagerBalances[i]})
 		}
 		req.AddCall(&ethrpc.Call{

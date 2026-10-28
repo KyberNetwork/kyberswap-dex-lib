@@ -208,7 +208,7 @@ func (t *PoolTracker) resolveHookState(
 	if result.HookExtra, err = hook.Track(ctx, hookParam); err != nil {
 		return err
 	}
-	hookParam.Pool.Exchange = hook.GetExchange()
+	hookParam.Pool.Exchange = ExchangeOf(hook, hookParam.Cfg.DexID, hookParam.Pool.Exchange)
 
 	hookReserves, err := hook.GetReserves(ctx, hookParam)
 	if err != nil {
