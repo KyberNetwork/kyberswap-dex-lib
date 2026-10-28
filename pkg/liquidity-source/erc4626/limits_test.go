@@ -39,3 +39,24 @@ func TestResolveLimitsFailsOnMissingRead(t *testing.T) {
 	assert.False(t, s.Paused)
 	assert.Nil(t, s.MintHeadroom)
 }
+
+func TestResolveMaxDeposit(t *testing.T) {
+	t.Parallel()
+	zero, gate, total := big.NewInt(0), big.NewInt(0xbeef), big.NewInt(561)
+	for name, tc := range map[string]struct {
+		s    PoolState
+		want *big.Int
+	}{
+		"read failed":     {PoolState{}, total},
+		"closed":          {PoolState{MaxDeposit: zero}, zero}, // e.g. Aave stata over its supply cap
+		"ungated vaultV2": {PoolState{MaxDeposit: zero, ReceiveSharesGate: zero, SendAssetsGate: zero}, total},
+		"gated vaultV2":   {PoolState{MaxDeposit: zero, ReceiveSharesGate: zero, SendAssetsGate: gate}, zero},
+		"half read gates": {PoolState{MaxDeposit: zero, ReceiveSharesGate: zero}, zero},
+		"bounded":         {PoolState{MaxDeposit: big.NewInt(7), ReceiveSharesGate: zero, SendAssetsGate: zero}, big.NewInt(7)},
+		"no limit":        {PoolState{MaxDeposit: new(big.Int).Lsh(big.NewInt(1), 200)}, nil},
+	} {
+		tc.s.TotalAssets = total
+		tc.s.ResolveMaxDeposit()
+		assert.Equal(t, tc.want, tc.s.MaxDeposit, name)
+	}
+}

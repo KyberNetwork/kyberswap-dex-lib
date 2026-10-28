@@ -55,6 +55,8 @@ type (
 		TotalSupply *big.Int
 		// Raw limit reads, see AddLimitCalls. Paused is 0/1, nil if the read failed or is not configured.
 		RawPaused, MaxSupply *big.Int
+		// Morpho VaultV2 gate addresses as words, nil if the vault has no such getter.
+		ReceiveSharesGate, SendAssetsGate *big.Int
 		// Resolved by ResolveLimits.
 		Paused       bool
 		MintHeadroom *big.Int

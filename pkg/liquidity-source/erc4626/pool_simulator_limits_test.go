@@ -214,3 +214,15 @@ func TestFactoryStaleCheck(t *testing.T) {
 		}
 	}
 }
+
+func TestZeroMaxDepositRejects(t *testing.T) {
+	t.Parallel()
+	// depositPool round-trips Extra through JSON, so a zero mD must survive as "closed", not "no limit"
+	sim := depositPool(t, func(e *Extra) { e.MaxDeposit = uint256.NewInt(0) })
+	_, err := deposit(sim, 1)
+	assert.ErrorIs(t, err, ErrERC4626DepositMoreThanMax)
+	_, err = sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: "0xvault", Amount: big.NewInt(1)}, TokenIn: "0xasset",
+	})
+	assert.ErrorIs(t, err, ErrERC4626DepositMoreThanMax)
+}
