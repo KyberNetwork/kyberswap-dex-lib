@@ -47,12 +47,11 @@ type PoolTracker struct {
 }
 
 type pairStorage struct {
-	ReserveX             *big.Int
-	ReserveY             *big.Int
-	LastUpdateTimestamp  uint32
-	ReferenceReserveX    *big.Int
-	ReferenceReserveY    *big.Int
-	LastLendingTimestamp uint32
+	ReserveX            *big.Int
+	ReserveY            *big.Int
+	LastUpdateTimestamp uint32
+	ReferenceReserveX   *big.Int
+	ReferenceReserveY   *big.Int
 }
 
 type referenceReservesRPC struct {
@@ -67,7 +66,6 @@ type totalAssetsAndSharesRPC struct {
 
 type trackerSnapshot struct {
 	BlockNumber    uint64
-	BlockTimestamp uint32
 	Beacon         common.Address
 	Implementation common.Address
 	Storage        pairStorage
@@ -117,14 +115,6 @@ func (t *PoolTracker) GetNewPoolState(
 
 	blockNumber := new(big.Int).Set(beaconResponse.BlockNumber)
 	snapshot := trackerSnapshot{BlockNumber: blockNumber.Uint64(), Beacon: beacon}
-	header, err := t.ethrpcClient.GetETHClient().HeaderByNumber(ctx, blockNumber)
-	if err != nil {
-		return p, fmt.Errorf("read Ammalgam snapshot header: %w", err)
-	}
-	if header == nil || header.Number == nil || header.Number.Cmp(blockNumber) != 0 {
-		return p, errors.New("invalid Ammalgam snapshot header")
-	}
-	snapshot.BlockTimestamp = uint32(header.Time)
 
 	storageReads := []utileth.StorageRead{{Slot: pairReservesSlot}, {Slot: pairReferencesSlot}}
 	if err := utileth.BatchGetStorageAtAtBlock(ctx, t.ethrpcClient.GetETHClient().Client(),
@@ -183,12 +173,11 @@ func decodePairStorageV110(reservesWord, referencesWord common.Hash) pairStorage
 	reserves := reservesWord.Big()
 	references := referencesWord.Big()
 	return pairStorage{
-		ReserveX:             decode112(reserves, 0),
-		ReserveY:             decode112(reserves, 112),
-		LastUpdateTimestamp:  uint32(new(big.Int).Rsh(new(big.Int).Set(reserves), 224).Uint64()),
-		ReferenceReserveX:    decode112(references, 0),
-		ReferenceReserveY:    decode112(references, 112),
-		LastLendingTimestamp: uint32(new(big.Int).Rsh(new(big.Int).Set(references), 224).Uint64()),
+		ReserveX:            decode112(reserves, 0),
+		ReserveY:            decode112(reserves, 112),
+		LastUpdateTimestamp: uint32(new(big.Int).Rsh(new(big.Int).Set(reserves), 224).Uint64()),
+		ReferenceReserveX:   decode112(references, 0),
+		ReferenceReserveY:   decode112(references, 112),
 	}
 }
 

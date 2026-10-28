@@ -22,12 +22,10 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 		BlockNumber:    10,
 		Beacon:         beacon,
 		Implementation: implementation,
-		BlockTimestamp: 1_000,
 		Storage: pairStorage{
-			ReserveX:             big.NewInt(1_000),
-			ReserveY:             big.NewInt(2_000),
-			LastUpdateTimestamp:  77,
-			LastLendingTimestamp: 900,
+			ReserveX:            big.NewInt(1_000),
+			ReserveY:            big.NewInt(2_000),
+			LastUpdateTimestamp: 77,
 		},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900),
@@ -74,9 +72,8 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 
 func TestResolveSwapStateAccruesAnyElapsedLendingTime(t *testing.T) {
 	snapshot := trackerSnapshot{
-		BlockTimestamp: 1_000 + 60, // far below the 86399s swap throttle: the helper checkpoints anyway
 		Storage: pairStorage{
-			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 1_000,
+			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000),
 		},
 		RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
 			big.NewInt(0), big.NewInt(100), big.NewInt(200),
@@ -114,7 +111,6 @@ func TestDecodePairStorageV110(t *testing.T) {
 	require.Equal(t, uint32(33), storage.LastUpdateTimestamp)
 	require.Equal(t, int64(44), storage.ReferenceReserveX.Int64())
 	require.Equal(t, int64(55), storage.ReferenceReserveY.Int64())
-	require.Equal(t, uint32(66), storage.LastLendingTimestamp)
 }
 
 func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
@@ -137,8 +133,7 @@ func TestUpdatePoolFromSnapshotScheduledRefreshPreservesActivityTimestamp(t *tes
 	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	snapshot := trackerSnapshot{
 		BlockNumber: 10, Beacon: beacon, Implementation: implementation,
-		BlockTimestamp: 1_000,
-		Storage:        pairStorage{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 900},
+		Storage: pairStorage{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000)},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900), ReferenceReserveY: big.NewInt(1_800),
 		},
