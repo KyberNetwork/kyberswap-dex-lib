@@ -78,14 +78,13 @@ preserve the contract's dust rules. `SwapInfo` carries both next balances and ne
 accounted units. `UpdateBalance` applies those values without recomputing, and
 clones copy all writable balance/share/word state. Quote calls do not mutate state.
 
-Gas estimates are 350,000 within a category and 550,000 across categories. They
-retain allowance for cold-call overhead: the earlier cold-call study measured
-222,072–323,820 and 343,043–521,306 respectively. The current model-3 execution
-harness measures up to 202,019 and 397,888, which tests check against the estimates.
-The harness warms some state while preparing cases, so these newer measurements
-are not a replacement for a complete cold router transaction estimate. Both
-studies use Monad Foundry 1.8.6 with page-storage pricing. Remeasure after changes
-to token code, the registry or policy.
+Gas estimates are 273,846 within a category and 564,978 across categories. They are
+the integer averages of the `swapWithExtraFees` frame gas in Tenderly simulations of
+router transactions on Monad (3 and 14 swaps; the ranges were 270,713-275,413 and
+538,985-597,354: xStock output costs about 597,000, xStock input about 539,000).
+The model-3 execution harness measures up to 202,019 and 397,888 with some state
+pre-warmed, so tests check those against the estimates. Remeasure after changes to
+token code, the registry or policy.
 
 ## Verification
 

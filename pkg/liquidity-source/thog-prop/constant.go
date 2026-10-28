@@ -13,10 +13,10 @@ const (
 	// Quote one block after the snapshot: 0.50 bp extra spread at the live policy.
 	executionAgeLookahead uint64 = 1
 	wmon                         = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
-	// Estimates include call overhead beyond the model-3 harness measurements.
-	// Same-category swaps skip covariance-risk work; see README.md for provenance.
-	sameCategoryGas  = 350000
-	crossCategoryGas = 550000
+	// Integer averages of Tenderly swapWithExtraFees frame gas through the
+	// router on Monad (3 same-category, 14 cross-category swaps); see README.md.
+	sameCategoryGas  = 273846
+	crossCategoryGas = 564978
 )
 
 var (
