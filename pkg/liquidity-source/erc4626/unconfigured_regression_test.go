@@ -26,8 +26,8 @@ import (
 )
 
 // A vault without depositsPausedMethod/maxSupplyMethod must behave exactly as before they existed: same RPC
-// calls, same Extra JSON (no "p"/"mH") and same simulator results. The golden was captured from origin/main.
-// Regenerate (only from a tree without the pause/cap feature) with UPDATE_GOLDEN=1.
+// calls, same Extra JSON (no "p"/"mH") and same simulator results. The golden was captured from origin/main,
+// then regenerated with UPDATE_GOLDEN=1 to add the VaultV2 permission reads every deposit-enabled vault now makes.
 const goldenPath = "testdata/unconfigured_golden.json"
 
 const (
