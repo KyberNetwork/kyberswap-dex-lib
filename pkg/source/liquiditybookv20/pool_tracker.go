@@ -1,8 +1,10 @@
 package liquiditybookv20
 
 import (
+	"cmp"
 	"context"
 	"math/big"
+	"slices"
 	"sort"
 	"time"
 
@@ -75,11 +77,12 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 		return entity.Pool{}, err
 	}
 
+	activeBinID := uint32(rpcData.ReservesAndID.ActiveId.Uint64())
 	extra := Extra{
 		RpcBlockTimestamp: rpcData.BlockTimestamp,
 		FeeParameters:     rpcData.FeeParameters,
-		ActiveBinID:       uint32(rpcData.ReservesAndID.ActiveId.Uint64()),
-		Bins:              subgraphResult.Bins,
+		ActiveBinID:       activeBinID,
+		Bins:              withActiveBin(subgraphResult.Bins, activeBinID),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -301,7 +304,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	}
 	bins = filterEmptyAndSortBins(bins)
 
-	extra.Bins = bins
+	extra.Bins = withActiveBin(bins, extra.ActiveBinID)
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.Error(err.Error())
@@ -417,7 +420,7 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 		}
 	}
 
-	extra.Bins = bins
+	extra.Bins = withActiveBin(bins, extra.ActiveBinID)
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.Error(err.Error())
@@ -675,4 +678,17 @@ func filterEmptyAndSortBins(bins []Bin) []Bin {
 		return b[i].ID < b[j].ID
 	})
 	return b
+}
+
+// withActiveBin returns bins with the active one in it, empty when it holds nothing: a swap starts in
+// the active bin and steps on from it, and the simulator finds the next bin by the active one's place
+// in the set, which an empty active bin, dropped like every empty bin, does not have. bins is sorted.
+func withActiveBin(bins []Bin, activeID uint32) []Bin {
+	i, found := slices.BinarySearchFunc(bins, activeID, func(b Bin, id uint32) int {
+		return cmp.Compare(b.ID, id)
+	})
+	if found {
+		return bins
+	}
+	return slices.Insert(slices.Clip(bins), i, Bin{ID: activeID, ReserveX: new(big.Int), ReserveY: new(big.Int)})
 }

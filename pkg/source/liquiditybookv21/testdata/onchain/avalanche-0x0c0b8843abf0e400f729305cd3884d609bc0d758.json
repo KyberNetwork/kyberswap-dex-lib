@@ -1,0 +1,447 @@
+{
+ "chain": "avalanche",
+ "block": 98686460,
+ "pool": {
+  "address": "0x0c0b8843abf0e400f729305cd3884d609bc0d758",
+  "exchange": "pharaoh-lb",
+  "type": "liquiditybook-v21",
+  "reserves": [
+   "128721116",
+   "682438035"
+  ],
+  "tokens": [
+   {
+    "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+    "swappable": true
+   },
+   {
+    "address": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"rpcBlockTimestamp\":1793099929,\"staticFeeParams\":{\"baseFactor\":5000,\"filterPeriod\":10,\"decayPeriod\":120,\"reductionFactor\":5000,\"variableFeeControl\":2000000,\"protocolShare\":500,\"maxVolatilityAccumulator\":100000},\"variableFeeParams\":{\"volatilityAccumulator\":10000,\"volatilityReference\":0,\"idReference\":8388619,\"timeOfLastUpdate\":1793068642},\"activeBinId\":8388620,\"binStep\":1,\"bins\":[{\"id\":8388605,\"reserveX\":0,\"reserveY\":22224335},{\"id\":8388606,\"reserveX\":0,\"reserveY\":25196962},{\"id\":8388607,\"reserveX\":0,\"reserveY\":28431211},{\"id\":8388608,\"reserveX\":0,\"reserveY\":31916104},{\"id\":8388609,\"reserveX\":0,\"reserveY\":35560093},{\"id\":8388610,\"reserveX\":0,\"reserveY\":39308223},{\"id\":8388611,\"reserveX\":0,\"reserveY\":43047568},{\"id\":8388612,\"reserveX\":0,\"reserveY\":46788661},{\"id\":8388613,\"reserveX\":0,\"reserveY\":50322273},{\"id\":8388614,\"reserveX\":0,\"reserveY\":53758560},{\"id\":8388615,\"reserveX\":0,\"reserveY\":56801733},{\"id\":8388616,\"reserveX\":0,\"reserveY\":59419758},{\"id\":8388617,\"reserveX\":0,\"reserveY\":61591673},{\"id\":8388618,\"reserveX\":0,\"reserveY\":63694366},{\"id\":8388619,\"reserveX\":0,\"reserveY\":64145611},{\"id\":8388620,\"reserveX\":64047039,\"reserveY\":230904},{\"id\":8388621,\"reserveX\":9298005,\"reserveY\":0},{\"id\":8388622,\"reserveX\":9290158,\"reserveY\":0},{\"id\":8388623,\"reserveX\":9220095,\"reserveY\":0},{\"id\":8388624,\"reserveX\":9218792,\"reserveY\":0},{\"id\":8388625,\"reserveX\":9217798,\"reserveY\":0},{\"id\":8388626,\"reserveX\":9214598,\"reserveY\":0},{\"id\":8388627,\"reserveX\":9214631,\"reserveY\":0}]}",
+  "blockNumber": 98686460
+ },
+ "quotes": [
+  {
+   "kind": "out",
+   "amount": "1",
+   "swapForY": true,
+   "result": "0"
+  },
+  {
+   "kind": "in",
+   "amount": "1",
+   "swapForY": true,
+   "result": "2"
+  },
+  {
+   "kind": "out",
+   "amount": "3",
+   "swapForY": true,
+   "result": "2"
+  },
+  {
+   "kind": "in",
+   "amount": "3",
+   "swapForY": true,
+   "result": "4"
+  },
+  {
+   "kind": "out",
+   "amount": "10",
+   "swapForY": true,
+   "result": "9"
+  },
+  {
+   "kind": "in",
+   "amount": "10",
+   "swapForY": true,
+   "result": "11"
+  },
+  {
+   "kind": "out",
+   "amount": "30",
+   "swapForY": true,
+   "result": "29"
+  },
+  {
+   "kind": "in",
+   "amount": "30",
+   "swapForY": true,
+   "result": "31"
+  },
+  {
+   "kind": "out",
+   "amount": "100",
+   "swapForY": true,
+   "result": "99"
+  },
+  {
+   "kind": "in",
+   "amount": "100",
+   "swapForY": true,
+   "result": "101"
+  },
+  {
+   "kind": "out",
+   "amount": "300",
+   "swapForY": true,
+   "result": "299"
+  },
+  {
+   "kind": "in",
+   "amount": "300",
+   "swapForY": true,
+   "result": "301"
+  },
+  {
+   "kind": "out",
+   "amount": "1000",
+   "swapForY": true,
+   "result": "1000"
+  },
+  {
+   "kind": "in",
+   "amount": "1000",
+   "swapForY": true,
+   "result": "1000"
+  },
+  {
+   "kind": "out",
+   "amount": "3000",
+   "swapForY": true,
+   "result": "3002"
+  },
+  {
+   "kind": "in",
+   "amount": "3000",
+   "swapForY": true,
+   "result": "2998"
+  },
+  {
+   "kind": "out",
+   "amount": "10000",
+   "swapForY": true,
+   "result": "10011"
+  },
+  {
+   "kind": "in",
+   "amount": "10000",
+   "swapForY": true,
+   "result": "9990"
+  },
+  {
+   "kind": "out",
+   "amount": "30000",
+   "swapForY": true,
+   "result": "30034"
+  },
+  {
+   "kind": "in",
+   "amount": "30000",
+   "swapForY": true,
+   "result": "29967"
+  },
+  {
+   "kind": "out",
+   "amount": "100000",
+   "swapForY": true,
+   "result": "100115"
+  },
+  {
+   "kind": "in",
+   "amount": "100000",
+   "swapForY": true,
+   "result": "99886"
+  },
+  {
+   "kind": "out",
+   "amount": "300000",
+   "swapForY": true,
+   "result": "300336"
+  },
+  {
+   "kind": "in",
+   "amount": "300000",
+   "swapForY": true,
+   "result": "299665"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000",
+   "swapForY": true,
+   "result": "1001069"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000",
+   "swapForY": true,
+   "result": "998931"
+  },
+  {
+   "kind": "out",
+   "amount": "3000000",
+   "swapForY": true,
+   "result": "3003166"
+  },
+  {
+   "kind": "in",
+   "amount": "3000000",
+   "swapForY": true,
+   "result": "2996836"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000",
+   "swapForY": true,
+   "result": "10010506"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000",
+   "swapForY": true,
+   "result": "9989505"
+  },
+  {
+   "kind": "out",
+   "amount": "30000000",
+   "swapForY": true,
+   "result": "30031475"
+  },
+  {
+   "kind": "in",
+   "amount": "30000000",
+   "swapForY": true,
+   "result": "29968557"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000",
+   "swapForY": true,
+   "result": "100101081"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000",
+   "swapForY": true,
+   "result": "99899014"
+  },
+  {
+   "kind": "out",
+   "amount": "300000000",
+   "swapForY": true,
+   "result": "300251970"
+  },
+  {
+   "kind": "in",
+   "amount": "300000000",
+   "swapForY": true,
+   "result": "299748181"
+  },
+  {
+   "kind": "out",
+   "amount": "1",
+   "swapForY": false,
+   "result": "0"
+  },
+  {
+   "kind": "in",
+   "amount": "1",
+   "swapForY": false,
+   "result": "3"
+  },
+  {
+   "kind": "out",
+   "amount": "3",
+   "swapForY": false,
+   "result": "1"
+  },
+  {
+   "kind": "in",
+   "amount": "3",
+   "swapForY": false,
+   "result": "5"
+  },
+  {
+   "kind": "out",
+   "amount": "10",
+   "swapForY": false,
+   "result": "8"
+  },
+  {
+   "kind": "in",
+   "amount": "10",
+   "swapForY": false,
+   "result": "12"
+  },
+  {
+   "kind": "out",
+   "amount": "30",
+   "swapForY": false,
+   "result": "28"
+  },
+  {
+   "kind": "in",
+   "amount": "30",
+   "swapForY": false,
+   "result": "32"
+  },
+  {
+   "kind": "out",
+   "amount": "100",
+   "swapForY": false,
+   "result": "98"
+  },
+  {
+   "kind": "in",
+   "amount": "100",
+   "swapForY": false,
+   "result": "102"
+  },
+  {
+   "kind": "out",
+   "amount": "300",
+   "swapForY": false,
+   "result": "298"
+  },
+  {
+   "kind": "in",
+   "amount": "300",
+   "swapForY": false,
+   "result": "302"
+  },
+  {
+   "kind": "out",
+   "amount": "1000",
+   "swapForY": false,
+   "result": "997"
+  },
+  {
+   "kind": "in",
+   "amount": "1000",
+   "swapForY": false,
+   "result": "1003"
+  },
+  {
+   "kind": "out",
+   "amount": "3000",
+   "swapForY": false,
+   "result": "2995"
+  },
+  {
+   "kind": "in",
+   "amount": "3000",
+   "swapForY": false,
+   "result": "3005"
+  },
+  {
+   "kind": "out",
+   "amount": "10000",
+   "swapForY": false,
+   "result": "9987"
+  },
+  {
+   "kind": "in",
+   "amount": "10000",
+   "swapForY": false,
+   "result": "10014"
+  },
+  {
+   "kind": "out",
+   "amount": "30000",
+   "swapForY": false,
+   "result": "29962"
+  },
+  {
+   "kind": "in",
+   "amount": "30000",
+   "swapForY": false,
+   "result": "30039"
+  },
+  {
+   "kind": "out",
+   "amount": "100000",
+   "swapForY": false,
+   "result": "99875"
+  },
+  {
+   "kind": "in",
+   "amount": "100000",
+   "swapForY": false,
+   "result": "100127"
+  },
+  {
+   "kind": "out",
+   "amount": "300000",
+   "swapForY": false,
+   "result": "299625"
+  },
+  {
+   "kind": "in",
+   "amount": "300000",
+   "swapForY": false,
+   "result": "300377"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000",
+   "swapForY": false,
+   "result": "998750"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000",
+   "swapForY": false,
+   "result": "1001252"
+  },
+  {
+   "kind": "out",
+   "amount": "3000000",
+   "swapForY": false,
+   "result": "2996252"
+  },
+  {
+   "kind": "in",
+   "amount": "3000000",
+   "swapForY": false,
+   "result": "3003753"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000",
+   "swapForY": false,
+   "result": "9987508"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000",
+   "swapForY": false,
+   "result": "10012508"
+  },
+  {
+   "kind": "out",
+   "amount": "30000000",
+   "swapForY": false,
+   "result": "29962525"
+  },
+  {
+   "kind": "in",
+   "amount": "30000000",
+   "swapForY": false,
+   "result": "30037522"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000",
+   "swapForY": false,
+   "result": "99865806"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000",
+   "swapForY": false,
+   "result": "100134420"
+  }
+ ]
+}
