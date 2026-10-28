@@ -1,0 +1,424 @@
+{
+  "source": "peachbuild/adaptive-pools@314ed2151367d3edb6f9045f05f5eb18567f5aa6",
+  "notes": "eth_call quotes and all initialized ticks pinned to pool.blockNumber. Reserves are recomputed with the production EstimateReservesFromTicks helper before simulation. Insufficient liquidity is canonical Quoter NotEnoughLiquidity(bytes32).",
+  "cases": [
+    {
+      "name": "arc-Ramp-pool",
+      "chainId": 5042,
+      "blockHash": "0x6877c5ebd32eb11e1288858cb8d225df26f2ff47a9654eaef5e4148878ff486b",
+      "quoter": "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94",
+      "protocolFee": 0,
+      "mathHelperMatchesSource": true,
+      "pool": {
+        "address": "0x2e6e7f11473f1534c44954c6ff96848bf950ec20078686bd2e5f894893fbe560",
+        "exchange": "uniswap-v4-peach",
+        "type": "uniswap-v4",
+        "timestamp": 1792656624,
+        "blockNumber": 27252638,
+        "swapFee": 0,
+        "reserves": [
+          "0",
+          "0"
+        ],
+        "tokens": [
+          {
+            "address": "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+            "decimals": 8,
+            "swappable": true
+          },
+          {
+            "address": "0x3600000000000000000000000000000000000000",
+            "decimals": 6,
+            "swappable": true
+          }
+        ],
+        "extra": "{\"liquidity\":29105807,\"sqrtPriceX96\":2275579071148052468332900315181,\"tickSpacing\":10,\"tick\":67156,\"ticks\":[{\"index\":-887270,\"liquidityGross\":51732,\"liquidityNet\":51732},{\"index\":60240,\"liquidityGross\":118817,\"liquidityNet\":118817},{\"index\":60290,\"liquidityGross\":177530,\"liquidityNet\":177530},{\"index\":66000,\"liquidityGross\":3518734,\"liquidityNet\":3518734},{\"index\":66040,\"liquidityGross\":2202028,\"liquidityNet\":2202028},{\"index\":66120,\"liquidityGross\":11219649,\"liquidityNet\":11219649},{\"index\":66160,\"liquidityGross\":352245,\"liquidityNet\":352245},{\"index\":67090,\"liquidityGross\":698514031,\"liquidityNet\":698514031},{\"index\":67100,\"liquidityGross\":698514031,\"liquidityNet\":-698514031},{\"index\":67150,\"liquidityGross\":11465072,\"liquidityNet\":11465072},{\"index\":67170,\"liquidityGross\":48916786,\"liquidityNet\":48679152},{\"index\":67180,\"liquidityGross\":118722,\"liquidityNet\":118722},{\"index\":67220,\"liquidityGross\":790737297,\"liquidityNet\":790500257},{\"index\":67230,\"liquidityGross\":790738978,\"liquidityNet\":-790498576},{\"index\":67280,\"liquidityGross\":48797969,\"liquidityNet\":-48797969},{\"index\":67300,\"liquidityGross\":11465072,\"liquidityNet\":-11465072},{\"index\":67850,\"liquidityGross\":8123,\"liquidityNet\":8123},{\"index\":68010,\"liquidityGross\":3518734,\"liquidityNet\":-3518734},{\"index\":68050,\"liquidityGross\":2202028,\"liquidityNet\":-2202028},{\"index\":68130,\"liquidityGross\":11219649,\"liquidityNet\":-11219649},{\"index\":68180,\"liquidityGross\":360887,\"liquidityNet\":-343603},{\"index\":68400,\"liquidityGross\":8123,\"liquidityNet\":-8123},{\"index\":68640,\"liquidityGross\":8642,\"liquidityNet\":-8642},{\"index\":74110,\"liquidityGross\":118722,\"liquidityNet\":-118722},{\"index\":74160,\"liquidityGross\":179211,\"liquidityNet\":-179211},{\"index\":887270,\"liquidityGross\":51732,\"liquidityNet\":-51732}],\"hX\":{\"ok\":true,\"ts\":1792656624,\"f01\":700,\"f10\":700,\"a01\":700,\"a10\":700,\"floor\":100,\"cap\":6000,\"absolute\":1000000,\"p01\":700,\"p10\":700,\"exp\":1792663642,\"pause\":0,\"poolPause\":0,\"mid\":{\"e\":true,\"t\":1,\"f\":500000,\"c\":1000000}}}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":8388608,\"tS\":10,\"hooks\":\"0x8c960De62a26A688B72e6cbf644F46715642a080\"}"
+      },
+      "quotes": [
+        {
+          "zeroForOne": true,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 67676
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "100",
+          "amountOut": "81661",
+          "gas": 73473
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "100000000",
+          "amountOut": "39950781",
+          "gas": 758724
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 67921
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 67921
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000",
+          "amountOut": "1209",
+          "gas": 94616
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        }
+      ],
+      "hookRuntimeCodeHash": "0xf4b57a3c955357c676bf762150615e775e5dba5c4ab589fed6270eb6c9413228",
+      "hookRuntimeMatchesSourceExceptImmutables": true
+    },
+    {
+      "name": "arc-RwaRamp-pool",
+      "chainId": 5042,
+      "blockHash": "0x6877c5ebd32eb11e1288858cb8d225df26f2ff47a9654eaef5e4148878ff486b",
+      "quoter": "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94",
+      "protocolFee": 0,
+      "mathHelperMatchesSource": true,
+      "pool": {
+        "address": "0xc026ead7a7ba825083b0b88fe362c35cdfbb0095ac7ae702c84273822ca85618",
+        "exchange": "uniswap-v4-peach",
+        "type": "uniswap-v4",
+        "timestamp": 1792656624,
+        "blockNumber": 27252638,
+        "swapFee": 0,
+        "reserves": [
+          "0",
+          "0"
+        ],
+        "tokens": [
+          {
+            "address": "0xb01702df2b75353d245bbe8c697c3152726dac21",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xb44ff1febfdd975e881fea3170f4e0ff0cba8638",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "extra": "{\"liquidity\":20006000399979999600157989,\"sqrtPriceX96\":79228162514264337593543950336,\"tickSpacing\":10,\"tick\":0,\"ticks\":[{\"index\":-10,\"liquidityGross\":20006000399979999600157989,\"liquidityNet\":20006000399979999600157989},{\"index\":10,\"liquidityGross\":20006000399979999600157989,\"liquidityNet\":-20006000399979999600157989}],\"hX\":{\"ok\":true,\"ts\":1792656624,\"f01\":1500,\"f10\":1500,\"a01\":1500,\"a10\":1500,\"floor\":800,\"cap\":50000,\"absolute\":1000000,\"p01\":0,\"p10\":0,\"exp\":0,\"pause\":0,\"poolPause\":0,\"mid\":{\"e\":false,\"t\":0,\"f\":0,\"c\":0}}}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":8388608,\"tS\":10,\"hooks\":\"0x3722d2840bFA4E9610d265DA08078d178bF46080\"}"
+      },
+      "quotes": [
+        {
+          "zeroForOne": true,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 104785
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000",
+          "amountOut": "998499999999",
+          "gas": 107828
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000",
+          "amountOut": "998499950164841532",
+          "gas": 107828
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 96849
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000",
+          "amountOut": "998499999999",
+          "gas": 102014
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000",
+          "amountOut": "998499950164841532",
+          "gas": 102014
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        }
+      ],
+      "hookRuntimeCodeHash": "0x5646491011fe073af55b11040a42bc928166d542c5e8a2ac88f98fbd076d3be2",
+      "hookRuntimeMatchesSourceExceptImmutables": true
+    },
+    {
+      "name": "bsc-Ramp-pool",
+      "chainId": 56,
+      "blockHash": "0x05e22ccfecd443a333beb7232f4126ee5bc896cdbb7679089e6be072d2172a44",
+      "quoter": "0x9F75dD27D6664c475B90e105573E550ff69437B0",
+      "protocolFee": 0,
+      "mathHelperMatchesSource": true,
+      "pool": {
+        "address": "0xd94e3484c3d7b16c611a472f769e1f9b3f9883528e38db13a3fb6739f86f378e",
+        "exchange": "uniswap-v4-peach",
+        "type": "uniswap-v4",
+        "timestamp": 1792656623,
+        "blockNumber": 129095585,
+        "swapFee": 0,
+        "reserves": [
+          "0",
+          "0"
+        ],
+        "tokens": [
+          {
+            "address": "0xdf93badfacad7b29c5807c88fb8bf6928e0da12f",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xf73e595171769b5fd537946014aba877dd9d7ff6",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "extra": "{\"liquidity\":20006000399979999600157989,\"sqrtPriceX96\":79228162514264337593543950336,\"tickSpacing\":10,\"tick\":0,\"ticks\":[{\"index\":-10,\"liquidityGross\":20006000399979999600157989,\"liquidityNet\":20006000399979999600157989},{\"index\":10,\"liquidityGross\":20006000399979999600157989,\"liquidityNet\":-20006000399979999600157989}],\"hX\":{\"ok\":true,\"ts\":1792656623,\"f01\":700,\"f10\":700,\"a01\":700,\"a10\":700,\"floor\":100,\"cap\":6000,\"absolute\":1000000,\"p01\":0,\"p10\":0,\"exp\":0,\"pause\":0,\"poolPause\":0,\"mid\":{\"e\":false,\"t\":0,\"f\":0,\"c\":0}}}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":8388608,\"tS\":10,\"hooks\":\"0x4D1546682BC8252E52c1c1820F0AaA7694C9e080\"}"
+      },
+      "quotes": [
+        {
+          "zeroForOne": true,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 82922
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000",
+          "amountOut": "999299999999",
+          "gas": 85965
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000",
+          "amountOut": "999299950084953506",
+          "gas": 85965
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 74986
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000",
+          "amountOut": "999299999999",
+          "gas": 80151
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000",
+          "amountOut": "999299950084953506",
+          "gas": 80151
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        }
+      ],
+      "hookRuntimeCodeHash": "0xcfa1d9ae5b9c1356c3c66a8cd2d94d0f6b8590743c11d1c56c5051fe4d9c20ee",
+      "hookRuntimeMatchesSourceExceptImmutables": true
+    },
+    {
+      "name": "bsc-RampETH-pool",
+      "chainId": 56,
+      "blockHash": "0x05e22ccfecd443a333beb7232f4126ee5bc896cdbb7679089e6be072d2172a44",
+      "quoter": "0x9F75dD27D6664c475B90e105573E550ff69437B0",
+      "protocolFee": 0,
+      "mathHelperMatchesSource": true,
+      "pool": {
+        "address": "0x0f42ccc5de784c395cbc2ef447f2b6d32207425a894daf29e607104db0a4f23a",
+        "exchange": "uniswap-v4-peach",
+        "type": "uniswap-v4",
+        "timestamp": 1792656623,
+        "blockNumber": 129095585,
+        "swapFee": 0,
+        "reserves": [
+          "0",
+          "0"
+        ],
+        "tokens": [
+          {
+            "address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x55d398326f99059ff775485246999027b3197955",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "extra": "{\"liquidity\":74710598809064836754,\"sqrtPriceX96\":2194404734382651808346706406218,\"tickSpacing\":10,\"tick\":66430,\"ticks\":[{\"index\":66430,\"liquidityGross\":74710598809064836754,\"liquidityNet\":74710598809064836754},{\"index\":66440,\"liquidityGross\":74710598809064836754,\"liquidityNet\":-74710598809064836754}],\"hX\":{\"ok\":true,\"ts\":1792656623,\"f01\":700,\"f10\":700,\"a01\":700,\"a10\":700,\"floor\":100,\"cap\":6000,\"absolute\":1000000,\"p01\":0,\"p10\":0,\"exp\":0,\"pause\":0,\"poolPause\":0,\"mid\":{\"e\":false,\"t\":0,\"f\":0,\"c\":0}}}",
+        "staticExtra": "{\"0x0\":[true,false],\"fee\":8388608,\"tS\":10,\"hooks\":\"0x1e4605837970EeF394662B1a9e88e09292636080\"}"
+      },
+      "quotes": [
+        {
+          "zeroForOne": true,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 57833
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 75082
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000",
+          "amountOut": "1302631546",
+          "gas": 80555
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000",
+          "amountOut": "1302002782106527",
+          "gas": 80431
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        }
+      ],
+      "hookRuntimeCodeHash": "0x81cc05111b5ebb3818f61fdbc4cb7ae27e03527288a6b6a87bef2e4a4be5f9c4",
+      "hookRuntimeMatchesSourceExceptImmutables": true
+    },
+    {
+      "name": "bsc-RwaRamp-pool",
+      "chainId": 56,
+      "blockHash": "0x05e22ccfecd443a333beb7232f4126ee5bc896cdbb7679089e6be072d2172a44",
+      "quoter": "0x9F75dD27D6664c475B90e105573E550ff69437B0",
+      "protocolFee": 0,
+      "mathHelperMatchesSource": true,
+      "pool": {
+        "address": "0x00719e5d898b5e880fafe22dbd9086d133c606db59d8f97c154fc747f2cbe0dc",
+        "exchange": "uniswap-v4-peach",
+        "type": "uniswap-v4",
+        "timestamp": 1792656623,
+        "blockNumber": 129095585,
+        "swapFee": 0,
+        "reserves": [
+          "0",
+          "0"
+        ],
+        "tokens": [
+          {
+            "address": "0xc27e5fd93fd9741b91691d68effa83d210576ee2",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xdf93badfacad7b29c5807c88fb8bf6928e0da12f",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "extra": "{\"liquidity\":20006000399979999600157989,\"sqrtPriceX96\":79228162514264337593543950336,\"tickSpacing\":10,\"tick\":0,\"ticks\":[{\"index\":-10,\"liquidityGross\":20006000399979999600157989,\"liquidityNet\":20006000399979999600157989},{\"index\":10,\"liquidityGross\":20006000399979999600157989,\"liquidityNet\":-20006000399979999600157989}],\"hX\":{\"ok\":true,\"ts\":1792656623,\"f01\":1500,\"f10\":1500,\"a01\":1500,\"a10\":1500,\"floor\":800,\"cap\":50000,\"absolute\":1000000,\"p01\":0,\"p10\":0,\"exp\":0,\"pause\":0,\"poolPause\":0,\"mid\":{\"e\":false,\"t\":0,\"f\":0,\"c\":0}}}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":8388608,\"tS\":10,\"hooks\":\"0x98C819a522b91f76bAEAf499F3801e76890F2080\"}"
+      },
+      "quotes": [
+        {
+          "zeroForOne": true,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 104763
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000",
+          "amountOut": "998499999999",
+          "gas": 107806
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000",
+          "amountOut": "998499950164841532",
+          "gas": 107806
+        },
+        {
+          "zeroForOne": true,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1",
+          "amountOut": "0",
+          "gas": 96827
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000",
+          "amountOut": "998499999999",
+          "gas": 101992
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000",
+          "amountOut": "998499950164841532",
+          "gas": 101992
+        },
+        {
+          "zeroForOne": false,
+          "amountIn": "1000000000000000000000000000000",
+          "insufficientLiquidity": true
+        }
+      ],
+      "hookRuntimeCodeHash": "0x0fd24d879c73828a7cfaa60efd038282a5ffda7d8cabd6aafe1c87e74c767091",
+      "hookRuntimeMatchesSourceExceptImmutables": true
+    }
+  ]
+}

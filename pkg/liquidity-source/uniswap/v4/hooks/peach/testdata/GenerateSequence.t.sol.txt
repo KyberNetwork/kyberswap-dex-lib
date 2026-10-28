@@ -1,0 +1,154 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+import {MidBlockFeeTest} from "peach-source/test/MidBlockFee.t.sol";
+import {SessionLib} from "peach-source/src/rwa/SessionLib.sol";
+import {Ramp} from "peach-source/src/core/Ramp.sol";
+import {BaseHook} from "peach-source/src/hooks/BaseHook.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {Vm} from "forge-std/Vm.sol";
+
+// Run only test_generateKyberSequence; inherited tests remain in the pinned source.
+contract GenerateSequence is MidBlockFeeTest {
+    using PoolIdLibrary for PoolKey;
+    using BalanceDeltaLibrary for BalanceDelta;
+
+    function q(uint256 n) private pure returns (string memory) {
+        return string.concat('"', vm.toString(n), '"');
+    }
+
+    function test_generateKyberSequence() public {
+        (PoolKey memory a, PoolKey memory b, PoolKey memory c) = multiPools();
+        PoolKey[3] memory keys = [a, b, c];
+        string memory cases = "";
+        for (uint256 kind; kind < 3; ++kind) {
+            for (uint256 variant; variant < 5; ++variant) {
+                for (uint256 dir; dir < 2; ++dir) {
+                    uint256 snapshot = vm.snapshotState();
+                    PoolKey memory key = keys[kind];
+                    Ramp hook = Ramp(address(key.hooks));
+                    if (kind == 2 && variant == 4) {
+                        SessionLib.FloorConfig memory peak = rwaHook.floorConfig(key.toId());
+                        peak.closedSpike = 3000000;
+                        rwaHook.setPoolConfig(key, peak, 6000);
+                        vm.warp(1767623400); // Monday opening after a fully closed Sunday.
+                    }
+                    BaseHook.MidBlockConfig memory cfg = BaseHook.MidBlockConfig(
+                        variant != 0,
+                        variant == 2 ? 1000000 : 1,
+                        variant == 4 ? 1000000 : 500000,
+                        variant == 3 ? 100 : 15000
+                    );
+                    hook.setMidBlockConfig(key, cfg);
+                    (uint160 price, int24 tick, uint24 pf,) = StateLibrary.getSlot0(manager, key.toId());
+                    require(pf == 0, "expected zero protocol fee");
+                    string memory row = string.concat(
+                        '{"kind":',
+                        vm.toString(kind),
+                        ',"variant":',
+                        vm.toString(variant),
+                        ',"direction":',
+                        vm.toString(dir),
+                        ',"hook":"',
+                        vm.toString(address(key.hooks)),
+                        '","poolId":"',
+                        vm.toString(PoolId.unwrap(key.toId())),
+                        '","currency0":"',
+                        vm.toString(Currency.unwrap(key.currency0)),
+                        '","currency1":"',
+                        vm.toString(Currency.unwrap(key.currency1)),
+                        '","tickSpacing":',
+                        vm.toString(uint256(uint24(key.tickSpacing))),
+                        ',"timestamp":',
+                        vm.toString(block.timestamp),
+                        ',"liquidity":',
+                        q(StateLibrary.getLiquidity(manager, key.toId())),
+                        ',"sqrtPriceX96":',
+                        q(price),
+                        ',"tick":',
+                        vm.toString(int256(tick)),
+                        ',"protocolFee":',
+                        vm.toString(pf),
+                        ',"base0":',
+                        vm.toString(hook.currentFee(key.toId(), true)),
+                        ',"base1":',
+                        vm.toString(hook.currentFee(key.toId(), false)),
+                        ',"auto0":',
+                        vm.toString(hook.autonomousFee(key.toId(), true)),
+                        ',"auto1":',
+                        vm.toString(hook.autonomousFee(key.toId(), false)),
+                        ',"floor":',
+                        vm.toString(hook.pokeFloor(key.toId())),
+                        ',"cap":',
+                        vm.toString(hook.maxFee(key.toId())),
+                        ',"mid":{"e":',
+                        cfg.enabled ? "true" : "false",
+                        ',"t":',
+                        vm.toString(cfg.midThresholdPips),
+                        ',"f":',
+                        vm.toString(cfg.captureFractionE6),
+                        ',"c":',
+                        vm.toString(cfg.midCap),
+                        '},"steps":['
+                    );
+                    for (uint256 leg; leg < 4; ++leg) {
+                        bool zfo = leg == 0 ? dir == 0 : (leg == 3 ? dir == 0 : dir != 0);
+                        uint256 amount = leg == 0 ? 1e20 : (leg == 2 ? 2e20 : 1e18);
+                        (uint160 beforePrice,,,) = StateLibrary.getSlot0(manager, key.toId());
+                        token(key.currency1).approve(address(swapRouter), type(uint256).max);
+                        if (Currency.unwrap(key.currency0) != address(0)) {
+                            token(key.currency0).approve(address(swapRouter), type(uint256).max);
+                        }
+                        vm.recordLogs();
+                        BalanceDelta delta = swap(key, zfo, -int256(amount), "");
+                        Vm.Log[] memory logs = vm.getRecordedLogs();
+                        uint24 paid;
+                        bool found;
+                        bytes32 topic = keccak256("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)");
+                        for (uint256 i; i < logs.length; ++i) {
+                            if (logs[i].emitter == address(manager) && logs[i].topics[0] == topic) {
+                                (,,,,, paid) = abi.decode(
+                                    logs[i].data, (int128, int128, uint160, uint128, int24, uint24)
+                                );
+                                found = true;
+                            }
+                        }
+                        require(found, "missing swap event");
+                        (uint160 afterPrice,,,) = StateLibrary.getSlot0(manager, key.toId());
+                        uint256 actualInput = uint256(-int256(zfo ? delta.amount0() : delta.amount1()));
+                        uint256 output = uint256(int256(zfo ? delta.amount1() : delta.amount0()));
+                        row = string.concat(
+                            row,
+                            leg == 0 ? "" : ",",
+                            '{"zeroForOne":',
+                            zfo ? "true" : "false",
+                            ',"amountIn":',
+                            q(actualInput),
+                            ',"amountOut":',
+                            q(output),
+                            ',"fee":',
+                            vm.toString(paid),
+                            ',"sqrtBefore":',
+                            q(beforePrice),
+                            ',"sqrtAfter":',
+                            q(afterPrice),
+                            "}"
+                        );
+                    }
+                    row = string.concat(row, "]}");
+                    cases = string.concat(cases, bytes(cases).length == 0 ? "" : ",", row);
+                    require(vm.revertToState(snapshot), "snapshot rollback");
+                }
+            }
+        }
+        vm.writeFile(
+            "sequence.json",
+            string.concat(
+                '{"source":"peachbuild/adaptive-pools@314ed2151367d3edb6f9045f05f5eb18567f5aa6","cases":[', cases, "]}"
+            )
+        );
+    }
+}
