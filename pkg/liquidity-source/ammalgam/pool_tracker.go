@@ -76,7 +76,7 @@ type trackerSnapshot struct {
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
 	if config == nil || !validPairAddress(config.PairImplementation) {
-		return nil, errors.New("Ammalgam pair implementation is required for the v1.1.0 storage layout")
+		return nil, errors.New("ammalgam pair implementation is required for the v1.1.0 storage layout")
 	}
 	return &PoolTracker{config: config, ethrpcClient: ethrpcClient}, nil
 }
@@ -242,29 +242,29 @@ func reconcileTrackerMetadata(
 	if staticExtra.FactoryAddress != "" &&
 		(!validPairAddress(staticExtra.FactoryAddress) ||
 			!strings.EqualFold(staticExtra.FactoryAddress, config.FactoryAddress)) {
-		return staticExtra, fmt.Errorf("Ammalgam factory mismatch: configured %s, stored %s",
+		return staticExtra, fmt.Errorf("ammalgam factory mismatch: configured %s, stored %s",
 			config.FactoryAddress, staticExtra.FactoryAddress)
 	}
 	if config.PairBeacon != "" &&
 		(!validPairAddress(config.PairBeacon) || !strings.EqualFold(config.PairBeacon, beacon.Hex())) {
-		return staticExtra, fmt.Errorf("Ammalgam pair beacon mismatch: configured %s, on chain %s",
+		return staticExtra, fmt.Errorf("ammalgam pair beacon mismatch: configured %s, on chain %s",
 			config.PairBeacon, beacon.Hex())
 	}
 	if staticExtra.PairBeacon != "" &&
 		(!validPairAddress(staticExtra.PairBeacon) || !strings.EqualFold(staticExtra.PairBeacon, beacon.Hex())) {
-		return staticExtra, fmt.Errorf("Ammalgam pair beacon mismatch: stored %s, on chain %s",
+		return staticExtra, fmt.Errorf("ammalgam pair beacon mismatch: stored %s, on chain %s",
 			staticExtra.PairBeacon, beacon.Hex())
 	}
 	if config.PairImplementation != "" &&
 		(!validPairAddress(config.PairImplementation) ||
 			!strings.EqualFold(config.PairImplementation, implementation.Hex())) {
-		return staticExtra, fmt.Errorf("Ammalgam pair implementation mismatch: configured %s, on chain %s",
+		return staticExtra, fmt.Errorf("ammalgam pair implementation mismatch: configured %s, on chain %s",
 			config.PairImplementation, implementation.Hex())
 	}
 	if staticExtra.PairImplementation != "" &&
 		(!validPairAddress(staticExtra.PairImplementation) ||
 			!strings.EqualFold(staticExtra.PairImplementation, implementation.Hex())) {
-		return staticExtra, fmt.Errorf("Ammalgam pair implementation mismatch: stored %s, on chain %s",
+		return staticExtra, fmt.Errorf("ammalgam pair implementation mismatch: stored %s, on chain %s",
 			staticExtra.PairImplementation, implementation.Hex())
 	}
 

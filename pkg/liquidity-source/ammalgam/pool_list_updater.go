@@ -69,7 +69,7 @@ func requireAllCallsSucceeded(response *ethrpc.Response, count int) error {
 	}
 	for i, ok := range response.Result {
 		if !ok {
-			return fmt.Errorf("Ammalgam RPC call %d failed", i)
+			return fmt.Errorf("ammalgam RPC call %d failed", i)
 		}
 	}
 	return nil
