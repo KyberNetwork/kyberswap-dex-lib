@@ -14,5 +14,5 @@ var (
 	ErrInvalidToken  = errors.New("invalid Ammalgam token")
 	ErrInvalidAmount = errors.New("invalid Ammalgam amount")
 	ErrZeroOutput    = errors.New("zero Ammalgam output")
-	ErrReserveLimit  = errors.New("Ammalgam reserve exceeds uint112")
+	ErrReserveLimit  = errors.New("ammalgam reserve exceeds uint112")
 )

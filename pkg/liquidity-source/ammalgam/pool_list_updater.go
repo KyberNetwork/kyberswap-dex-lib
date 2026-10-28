@@ -53,11 +53,11 @@ func validateFactoryMetadata(config *Config, beacon, implementation common.Addre
 	}
 	if config.PairBeacon != "" &&
 		(!validPairAddress(config.PairBeacon) || !strings.EqualFold(config.PairBeacon, beacon.Hex())) {
-		return fmt.Errorf("Ammalgam pair beacon mismatch: configured %s, on chain %s", config.PairBeacon, beacon.Hex())
+		return fmt.Errorf("ammalgam pair beacon mismatch: configured %s, on chain %s", config.PairBeacon, beacon.Hex())
 	}
 	if config.PairImplementation != "" &&
 		(!validPairAddress(config.PairImplementation) || !strings.EqualFold(config.PairImplementation, implementation.Hex())) {
-		return fmt.Errorf("Ammalgam pair implementation mismatch: configured %s, on chain %s",
+		return fmt.Errorf("ammalgam pair implementation mismatch: configured %s, on chain %s",
 			config.PairImplementation, implementation.Hex())
 	}
 	return nil
