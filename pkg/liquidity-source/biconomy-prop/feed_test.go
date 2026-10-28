@@ -70,7 +70,7 @@ func TestFeedExtraEqualsOnchainExtra(t *testing.T) {
 			if strings.ToLower(b.MM) != me.Maker {
 				continue
 			}
-			if strings.ToLower(b.TokenIn) == strings.ToLower(weth.Hex()) {
+			if strings.EqualFold(b.TokenIn, weth.Hex()) {
 				me.Dir0 = toBoard(rawOf(t, b))
 			} else {
 				me.Dir1 = toBoard(rawOf(t, b))
@@ -90,7 +90,7 @@ func TestFeedMissingDirectionIsDark(t *testing.T) {
 	r := loadFeed(t)
 	kept := r.Boards[:0:0]
 	for _, b := range r.Boards {
-		if !(b.MM == r.Makers[0] && b.TokenIn == usdc.Hex()) {
+		if b.MM != r.Makers[0] || b.TokenIn != usdc.Hex() {
 			kept = append(kept, b)
 		}
 	}
