@@ -44,7 +44,7 @@ func (r *PriceFeedReader) read(ctx context.Context, address string, priceFeed *P
 	}
 	priceFeedState := State{}
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
@@ -53,7 +53,7 @@ func (r *PriceFeedReader) read(ctx context.Context, address string, priceFeed *P
 		Params: nil,
 	}, []any{&priceFeedState})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.TryAggregate); err != nil {
 		return err
 	}
 

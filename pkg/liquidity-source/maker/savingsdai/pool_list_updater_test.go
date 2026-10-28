@@ -3,6 +3,7 @@ package savingsdai
 import (
 	"context"
 	"testing"
+	"testing/synctest"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -10,13 +11,31 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolListUpdaterTestSuite struct {
 	suite.Suite
+}
+
+func TestGetNewPoolStatePinsTimestamp(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		srv, recorder := ethrpcmock.New(t, potABI, savingsABI)
+		client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x4444444444444444444444444444444444444444"))
+		cfg := &Config{SavingsRateSymbol: "dsr", SavingsToken: "0x7777777777777777777777777777777777777777", Pot: "0x8888888888888888888888888888888888888888"}
+		tracker := NewPoolTracker(cfg, client)
+		got, err := tracker.GetNewPoolState(context.Background(), entity.Pool{}, poolpkg.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, uint64(ethrpcmock.Block), got.BlockNumber)
+		require.Equal(t, entity.PoolReserves{"1", "1"}, got.Reserves)
+		ethrpcmock.CheckPool(t, "savingsdai_TestGetNewPoolStatePinsTimestamp", got)
+		ethrpcmock.CheckRequests(t, "savingsdai_TestGetNewPoolStatePinsTimestamp", recorder)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+	})
 }
 
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {

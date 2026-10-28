@@ -1,13 +1,27 @@
 package fulcrom
 
 import (
+	"bytes"
+	"context"
+	stdjson "encoding/json"
+	"io"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -111,4 +125,238 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			_ = result
 		})
 	}
+}
+
+func TestGetNewPoolStatePinsAllCallsToFirstBlock(t *testing.T) {
+	const snapshotBlock = uint64(12345)
+	const vaultAddress = "0x0000000000000000000000000000000000000001"
+	const usdgAddress = "0x0000000000000000000000000000000000000002"
+	const feedAddress = "0x0000000000000000000000000000000000000003"
+	const tokenAddress = "0x0000000000000000000000000000000000000004"
+
+	multicallABI, err := abi.JSON(strings.NewReader(`[
+		{"inputs":[{"name":"requireSuccess","type":"bool"},{"components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}],"name":"calls","type":"tuple[]"}],"name":"tryAggregate","outputs":[{"components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}],"type":"tuple[]"}],"stateMutability":"payable","type":"function"},
+		{"inputs":[{"name":"requireSuccess","type":"bool"},{"components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}],"name":"calls","type":"tuple[]"}],"name":"tryBlockAndAggregate","outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}],"type":"tuple[]"}],"stateMutability":"payable","type":"function"}
+	]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractABIs := map[common.Address]abi.ABI{
+		common.HexToAddress(vaultAddress):                                 vaultABI,
+		common.HexToAddress(feedAddress):                                  vaultPriceFeedABI,
+		common.HexToAddress(usdgAddress):                                  erc20ABI,
+		common.HexToAddress("0x0000000000000000000000000000000000000005"): multicallABI,
+	}
+	var tags []string
+	var firstRequireSuccess bool
+	var firstCallFailed bool
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var req struct {
+			ID     stdjson.RawMessage   `json:"id"`
+			Method string               `json:"method"`
+			Params []stdjson.RawMessage `json:"params"`
+		}
+		if err := stdjson.Unmarshal(body, &req); err != nil {
+			t.Errorf("decode rpc request: %v", err)
+			return
+		}
+		var result string
+		switch req.Method {
+		case "eth_chainId":
+			result = "0x1"
+		case "eth_blockNumber":
+			result = "0x3039"
+		case "eth_call":
+			var call struct {
+				To    string `json:"to"`
+				Data  string `json:"data"`
+				Input string `json:"input"`
+			}
+			var tag string
+			if err := stdjson.Unmarshal(req.Params[0], &call); err != nil {
+				t.Errorf("decode eth_call: %v", err)
+				return
+			}
+			_ = stdjson.Unmarshal(req.Params[1], &tag)
+			tags = append(tags, tag)
+			input, _ := hexutil.Decode(call.Data)
+			if len(input) == 0 {
+				input, _ = hexutil.Decode(call.Input)
+			}
+			target := common.HexToAddress(call.To)
+			a, ok := contractABIs[target]
+			if !ok {
+				t.Errorf("unexpected call target %s", call.To)
+				return
+			}
+			method, err := a.MethodById(input[:4])
+			if err != nil {
+				t.Errorf("unknown method selector %x for %s", input[:4], call.To)
+				return
+			}
+			if target == common.HexToAddress("0x0000000000000000000000000000000000000005") {
+				decoded, err := method.Inputs.Unpack(input[4:])
+				if err != nil {
+					t.Errorf("unpack multicall: %v", err)
+					return
+				}
+				if method.Name == "tryBlockAndAggregate" {
+					firstRequireSuccess = decoded[0].(bool)
+				}
+				calls := decoded[1].([]struct {
+					Target   common.Address `json:"target"`
+					CallData []byte         `json:"callData"`
+				})
+				items := make([]struct {
+					Success    bool   `abi:"success"`
+					ReturnData []byte `abi:"returnData"`
+				}, len(calls))
+				for i, inner := range calls {
+					innerABI, ok := contractABIs[inner.Target]
+					if !ok {
+						t.Errorf("unexpected inner target %s", inner.Target)
+						return
+					}
+					innerMethod, err := innerABI.MethodById(inner.CallData[:4])
+					if err != nil {
+						t.Errorf("unknown inner selector %x", inner.CallData[:4])
+						return
+					}
+					values := make([]any, len(innerMethod.Outputs))
+					for j, output := range innerMethod.Outputs {
+						switch output.Type.T {
+						case abi.AddressTy:
+							switch innerMethod.Name {
+							case vaultMethodUSDG:
+								values[j] = common.HexToAddress(usdgAddress)
+							case vaultMethodPriceFeed:
+								values[j] = common.HexToAddress(feedAddress)
+							case vaultMethodWhitelistedTokens:
+								values[j] = common.HexToAddress(tokenAddress)
+							default:
+								values[j] = common.Address{}
+							}
+						case abi.BoolTy:
+							values[j] = true
+						case abi.UintTy:
+							values[j] = big.NewInt(1)
+						default:
+							t.Errorf("unsupported output type %s for %s", output.Type, innerMethod.Name)
+							return
+						}
+					}
+					items[i].Success = innerMethod.Name != vaultMethodHasDynamicFees
+					if !items[i].Success {
+						firstCallFailed = true
+						continue
+					}
+					items[i].ReturnData, err = innerMethod.Outputs.Pack(values...)
+					if err != nil {
+						t.Errorf("pack %s result: %v", innerMethod.Name, err)
+						return
+					}
+				}
+				var packed []byte
+				if method.Name == "tryAggregate" {
+					packed, err = method.Outputs.Pack(items)
+				} else {
+					packed, err = method.Outputs.Pack(new(big.Int).SetUint64(snapshotBlock), [32]byte{}, items)
+				}
+				if err != nil {
+					t.Errorf("pack multicall result: %v", err)
+					return
+				}
+				result = hexutil.Encode(packed)
+			} else {
+				method, err := a.MethodById(input[:4])
+				if err != nil {
+					t.Errorf("unknown direct method: %v", err)
+					return
+				}
+				packed, err := method.Outputs.Pack(big.NewInt(99))
+				if err != nil {
+					t.Errorf("pack direct response: %v", err)
+					return
+				}
+				result = hexutil.Encode(packed)
+			}
+		default:
+			t.Errorf("unexpected rpc method %s", req.Method)
+			return
+		}
+		response, _ := stdjson.Marshal(map[string]any{"jsonrpc": "2.0", "id": stdjson.RawMessage(req.ID), "result": result})
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.Copy(w, bytes.NewReader(response))
+	})
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := ethrpc.New(server.URL).SetMulticallContract(common.HexToAddress("0x0000000000000000000000000000000000000005"))
+	tracker, err := NewPoolTracker(&Config{DexID: DexTypeFulcrom}, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: vaultAddress}, pool.GetNewPoolStateParams{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.BlockNumber != snapshotBlock {
+		t.Fatalf("BlockNumber = %d, want %d", updated.BlockNumber, snapshotBlock)
+	}
+	if firstRequireSuccess || !firstCallFailed {
+		t.Fatalf("first call failure semantics changed: requireSuccess=%v callFailed=%v", firstRequireSuccess, firstCallFailed)
+	}
+	if len(updated.Tokens) != 1 || len(updated.Reserves) != 1 || updated.Tokens[0].Address != tokenAddress || updated.Reserves[0] != "1" {
+		t.Fatalf("unexpected pool state: tokens=%+v reserves=%v", updated.Tokens, updated.Reserves)
+	}
+
+	if len(tags) < 5 || tags[0] != "latest" {
+		t.Fatalf("unexpected eth_call block tags: %v", tags)
+	}
+	for i, tag := range tags[1:] {
+		if tag != "0x3039" {
+			t.Fatalf("eth_call %d block tag = %s, want 0x3039; all tags: %v", i+1, tag, tags)
+		}
+	}
+}
+
+func TestGetNewPoolStateSnapshotEquivalent(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		vaultAddress := common.HexToAddress("0x1000000000000000000000000000000000000001")
+		usdgAddress := common.HexToAddress("0x2000000000000000000000000000000000000002")
+		feedAddress := common.HexToAddress("0x3000000000000000000000000000000000000003")
+		tokenAddress := common.HexToAddress("0x4000000000000000000000000000000000000004")
+		resolver := func(_ common.Address, method abi.Method, inputs []any) ([]any, error) {
+			switch method.Name {
+			case vaultMethodUSDG:
+				return []any{usdgAddress}, nil
+			case vaultMethodPriceFeed:
+				return []any{feedAddress}, nil
+			case vaultMethodWhitelistedTokenCount:
+				return []any{big.NewInt(1)}, nil
+			case vaultMethodWhitelistedTokens:
+				return []any{tokenAddress}, nil
+			}
+			values := make([]any, len(method.Outputs))
+			for i, output := range method.Outputs {
+				values[i] = ethrpcmock.Value(output.Type)
+			}
+			return values, nil
+		}
+		server, recorder := ethrpcmock.NewWithResolver(t, resolver, vaultABI, vaultPriceFeedABI, erc20ABI)
+		client := ethrpc.New(server.URL).SetMulticallContract(common.HexToAddress("0x5000000000000000000000000000000000000005"))
+		tracker, err := NewPoolTracker(&Config{DexID: DexTypeFulcrom}, client)
+		require.NoError(t, err)
+		updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: vaultAddress.Hex(), Exchange: DexTypeFulcrom, Type: DexTypeFulcrom, Extra: "{}"}, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+
+		require.Equal(t, uint64(ethrpcmock.Block), updated.BlockNumber)
+
+		require.Len(t, updated.Tokens, 1)
+		require.Equal(t, hexutil.Encode(tokenAddress[:]), updated.Tokens[0].Address)
+		require.Equal(t, entity.PoolReserves{"1"}, updated.Reserves)
+		ethrpcmock.CheckPool(t, "fulcrom_TestGetNewPoolStateSnapshotEquivalent", updated)
+		ethrpcmock.CheckRequests(t, "fulcrom_TestGetNewPoolStateSnapshotEquivalent", recorder, [2]string{"tryAggregate", "tryBlockAndAggregate"})
+		ethrpcmock.RequireRequestsPinned(t, recorder, 3)
+	})
 }

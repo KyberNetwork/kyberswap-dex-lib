@@ -29,7 +29,7 @@ func NewChainlinkFlagsReader(ethrpcClient *ethrpc.Client) *ChainlinkFlagsReader 
 func (r *ChainlinkFlagsReader) Read(ctx context.Context, address string) (*ChainlinkFlags, error) {
 	var value bool
 
-	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest := newRequest(r.ethrpcClient, ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
@@ -38,7 +38,7 @@ func (r *ChainlinkFlagsReader) Read(ctx context.Context, address string) (*Chain
 		Params: []any{common.HexToAddress(FlagArbitrumSeqOffline)},
 	}, []any{&value})
 
-	if _, err := rpcRequest.Call(); err != nil {
+	if _, err := callWithBlockRetry(ctx, rpcRequest.Call); err != nil {
 		r.log.Errorf("error when call rpc: %s", err)
 		return nil, err
 	}

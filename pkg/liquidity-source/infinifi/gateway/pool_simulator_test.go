@@ -1,10 +1,15 @@
 package gateway
 
 import (
+	"context"
 	"math/big"
 	"strings"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -12,8 +17,80 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
+
+func TestGetNewPoolStatePinsNewBucketReadsToMainBlock(t *testing.T) {
+	for _, addNewBucket := range []bool{false, true} {
+		name := "existing-bucket"
+		if addNewBucket {
+			name = "new-bucket"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				oldShareToken := common.HexToAddress("0x0000000000000000000000000000000000000008")
+				newShareToken := common.HexToAddress("0x0000000000000000000000000000000000000009")
+				resolver := func(_ common.Address, method abi.Method, inputs []any) ([]any, error) {
+					values := make([]any, len(method.Outputs))
+					for i, output := range method.Outputs {
+						values[i] = ethrpcmock.Value(output.Type)
+					}
+					if method.Name == "getEnabledBuckets" {
+						if addNewBucket {
+							values[0] = []uint32{6, 7}
+						} else {
+							values[0] = []uint32{7}
+						}
+					}
+					if method.Name == "buckets" {
+						values[0] = oldShareToken
+						if addNewBucket && inputs[0].(uint32) == 7 {
+							values[0] = newShareToken
+						}
+					}
+					return values, nil
+				}
+				srv, recorder := ethrpcmock.NewWithResolver(t, resolver, gatewayABI, erc20ABI, erc4626ABI, lockingControllerABI)
+				tracker := NewPoolTracker(&Config{
+					DexID: DexType, Gateway: "0x0000000000000000000000000000000000000001",
+					IUSD: "0x0000000000000000000000000000000000000002", SIUSD: "0x0000000000000000000000000000000000000003",
+					LockingController: "0x0000000000000000000000000000000000000004",
+				}, ethrpc.New(srv.URL))
+				extra := `{"liusdBuckets":[{"index":6,"totalSupply":1,"bucketData":{"shareToken":"0x0000000000000000000000000000000000000008","totalReceiptTokens":1,"multiplier":1}}]}`
+				tokens := []*entity.PoolToken{{Address: "0x000000000000000000000000000000000000000a"}, {Address: "0x000000000000000000000000000000000000000b"}, {Address: "0x000000000000000000000000000000000000000c"}}
+				if !addNewBucket {
+					extra = `{"liusdBuckets":[{"index":7,"totalSupply":1,"bucketData":{"shareToken":"0x0000000000000000000000000000000000000008","totalReceiptTokens":1,"multiplier":1}}]}`
+				}
+				tokens = append(tokens, &entity.PoolToken{Address: oldShareToken.Hex()})
+				updated, err := tracker.GetNewPoolState(context.Background(), entity.Pool{
+					Address: "0x0000000000000000000000000000000000000005", Extra: extra, Tokens: tokens,
+				}, pool.GetNewPoolStateParams{})
+				require.NoError(t, err)
+				require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+				wantRequests := 1
+				wantTokens := 4
+				if addNewBucket {
+					wantRequests = 3
+					wantTokens = 5
+					require.Equal(t, newShareToken.Hex(), updated.Tokens[4].Address)
+				}
+				require.Len(t, recorder.Snapshot(), wantRequests)
+				require.Len(t, updated.Tokens, wantTokens)
+				var updatedExtra Extra
+				require.NoError(t, json.Unmarshal([]byte(updated.Extra), &updatedExtra))
+				wantBuckets := 1
+				if addNewBucket {
+					wantBuckets = 2
+				}
+				require.Len(t, updatedExtra.LIUSDBuckets, wantBuckets)
+				ethrpcmock.RequireRequestsPinned(t, recorder, wantRequests)
+				ethrpcmock.CheckPool(t, "infinifi-gateway-tracker-pin-"+name, updated)
+				ethrpcmock.CheckRequests(t, "infinifi-gateway-tracker-pin-"+name, recorder)
+			})
+		})
+	}
+}
 
 func getPoolSim(isPaused bool) *PoolSimulator {
 	extraStr := `{"address":"0x3f04b65ddbd87f9ce0a2e7eb24d80e7fb87625b5","exchange":"infinifi","type":"infinifi-gateway","timestamp":1766298309,"reserves":["1000000000000000000000000","104131454683989908935933065","99563982997168197725467844","15652134235785515737864774","319965469459800257231810","1000000000000000000","3166349483701620253919558","1000000000000000000","11380467428921897117173","1000000000000000000","3581390415730186225765584","1000000000000000000","1000000000000000000","1000000000000000000","1000000000000000000","963294344644093134158921"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x48f9e38f3070ad8945dfeae3fa70987722e3d89c","symbol":"iUSD","decimals":18,"swappable":true},{"address":"0xdbdc1ef57537e34680b898e1febd3d68c7389bcb","symbol":"siUSD","decimals":18,"swappable":true},{"address":"0x12b004719fb632f1e7c010c6f5d6009fb4258442","symbol":"liUSD-1w","decimals":18,"swappable":true},{"address":"0xf1839becaf586814d022f16cdb3504ff8d8ff361","symbol":"liUSD-2w","decimals":18,"swappable":true},{"address":"0xed2a360ffdc1ed4f8df0bd776a1ffbbe06444a0a","symbol":"liUSD-3w","decimals":18,"swappable":true},{"address":"0x66bcf6151d5558afb47c38b20663589843156078","symbol":"liUSD-4w","decimals":18,"swappable":true},{"address":"0xf0c4a78febf4062aed39a02be8a4c72e9857d7d1","symbol":"liUSD-5w","decimals":18,"swappable":true},{"address":"0xb06cc4548febff3d66a680f9c516381c79bc9707","symbol":"liUSD-6w","decimals":18,"swappable":true},{"address":"0x3a744a6b57984eb62aeb36eb6501d268372cf8bb","symbol":"liUSD-7w","decimals":18,"swappable":true},{"address":"0xf68b95b7e851170c0e5123a3249dd1ca46215085","symbol":"liUSD-8w","decimals":18,"swappable":true},{"address":"0xbb5ca732fafed8870f9c0e8406ad707939c912e1","symbol":"liUSD-9w","decimals":18,"swappable":true},{"address":"0xd15fbf48c6dddadc9ef0693b060d80af51cc26d5","symbol":"liUSD-10w","decimals":18,"swappable":true},{"address":"0xed030a37ec6eb308a416dc64dd4b649a2bbe4fcd","symbol":"liUSD-11w","decimals":18,"swappable":true},{"address":"0x3d360ab96b942c1251ab061178f731efebc2d644","symbol":"liUSD-12w","decimals":18,"swappable":true},{"address":"0xbd3f9814eb946e617f1d774a6762cdbec0bf087a","symbol":"liUSD-13w","decimals":18,"swappable":true}],"extra":"{\"isPaused\":false,\"iusdSupply\":1000000000000000000000000,\"siusdTotalAssets\":1000000000000000000000000,\"siusdSupply\":500000000000000000000000,\"liusdBuckets\":[{\"index\":1,\"totalSupply\":1000000000000000000000000,\"bucketData\":{\"shareToken\":\"0x12b004719fb632f1e7c010c6f5d6009fb4258442\",\"totalReceiptTokens\":1000000000000000000000000,\"multiplier\":1263000000000000000}},{\"index\":2,\"totalSupply\":800000000000000000000000,\"bucketData\":{\"shareToken\":\"0xf1839becaf586814d022f16cdb3504ff8d8ff361\",\"totalReceiptTokens\":1000000000000000000000000,\"multiplier\":1310000000000000000}},{\"index\":3,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0xed2a360ffdc1ed4f8df0bd776a1ffbbe06444a0a\",\"totalReceiptTokens\":1153620771798657576,\"multiplier\":1310000000000000000}},{\"index\":4,\"totalSupply\":3166349483701620253919558,\"bucketData\":{\"shareToken\":\"0x66bcf6151d5558afb47c38b20663589843156078\",\"totalReceiptTokens\":3660547616921391472398769,\"multiplier\":1358000000000000000}},{\"index\":5,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0xf0c4a78febf4062aed39a02be8a4c72e9857d7d1\",\"totalReceiptTokens\":1159647234013212202,\"multiplier\":1358000000000000000}},{\"index\":6,\"totalSupply\":11380467428921897117173,\"bucketData\":{\"shareToken\":\"0xb06cc4548febff3d66a680f9c516381c79bc9707\",\"totalReceiptTokens\":13213930712512969941799,\"multiplier\":1386000000000000000}},{\"index\":7,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0x3a744a6b57984eb62aeb36eb6501d268372cf8bb\",\"totalReceiptTokens\":1163095237516620378,\"multiplier\":1386000000000000000}},{\"index\":8,\"totalSupply\":3581390415730186225765584,\"bucketData\":{\"shareToken\":\"0xf68b95b7e851170c0e5123a3249dd1ca46215085\",\"totalReceiptTokens\":4169246714536778490165271,\"multiplier\":1406000000000000000}},{\"index\":9,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0xbb5ca732fafed8870f9c0e8406ad707939c912e1\",\"totalReceiptTokens\":1165736580133285184,\"multiplier\":1406000000000000000}},{\"index\":10,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0xd15fbf48c6dddadc9ef0693b060d80af51cc26d5\",\"totalReceiptTokens\":1165736580133285184,\"multiplier\":1406000000000000000}},{\"index\":11,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0xed030a37ec6eb308a416dc64dd4b649a2bbe4fcd\",\"totalReceiptTokens\":1165736580133285184,\"multiplier\":1406000000000000000}},{\"index\":12,\"totalSupply\":1000000000000000000,\"bucketData\":{\"shareToken\":\"0x3d360ab96b942c1251ab061178f731efebc2d644\",\"totalReceiptTokens\":1165736580133285184,\"multiplier\":1406000000000000000}},{\"index\":13,\"totalSupply\":963294344644093134158921,\"bucketData\":{\"shareToken\":\"0xbd3f9814eb946e617f1d774a6762cdbec0bf087a\",\"totalReceiptTokens\":1126949876405305527769314,\"multiplier\":1440000000000000000}}]}","blockNumber":24059168}`

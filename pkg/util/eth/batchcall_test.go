@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -37,6 +38,75 @@ func recordBatch(t *testing.T) (*rpc.Client, *[][]json.RawMessage) {
 	require.NoError(t, err)
 	t.Cleanup(client.Close)
 	return client, &params
+}
+
+func TestBatchGetStorageAt_BlockTagRetryAndLegacyBehavior(t *testing.T) {
+	for _, tc := range []struct {
+		name, tag string
+		mode      string
+		wantErr   string
+		wantCalls int
+	}{
+		{name: "legacy-latest", wantCalls: 1},
+		{name: "pinned-unknown-retry", tag: "0x3039", mode: "unknown", wantCalls: 2},
+		{name: "pinned-rate-retry-raw-element-error", tag: "0x3039", mode: "rate-limit", wantErr: "element broke", wantCalls: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			var tags []string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if tc.mode == "rate-limit" && calls == 1 {
+					http.Error(w, "429 rate limit", http.StatusTooManyRequests)
+					return
+				}
+				var reqs []struct {
+					ID     json.RawMessage   `json:"id"`
+					Params []json.RawMessage `json:"params"`
+				}
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&reqs))
+				resp := make([]map[string]any, len(reqs))
+				for i, req := range reqs {
+					var tag string
+					_ = json.Unmarshal(req.Params[2], &tag)
+					tags = append(tags, tag)
+					if tc.mode == "unknown" && calls == 1 {
+						resp[i] = map[string]any{"jsonrpc": "2.0", "id": req.ID, "error": map[string]any{"code": -32000, "message": "unknown block"}}
+					} else if tc.mode == "rate-limit" {
+						resp[i] = map[string]any{"jsonrpc": "2.0", "id": req.ID, "error": map[string]any{"code": -32000, "message": "element broke"}}
+					} else {
+						resp[i] = map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": "0x" + strings.Repeat("0", 64)}
+					}
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(resp)
+			}))
+			defer srv.Close()
+			client, err := rpc.Dial(srv.URL)
+			require.NoError(t, err)
+			defer client.Close()
+			reads := []StorageRead{{Slot: common.Hash{1}}}
+			if tc.tag == "" {
+				err = BatchGetStorageAt(context.Background(), client, common.Address{1}, reads, BatchRetry{MaxAttempts: 2})
+			} else {
+				err = BatchGetStorageAt(context.Background(), client, common.Address{1}, reads, BatchRetry{MaxAttempts: 2}, tc.tag)
+			}
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tc.wantCalls, calls)
+			wantTag := tc.tag
+			if wantTag == "" {
+				wantTag = "latest"
+			}
+			for _, got := range tags {
+				require.Equal(t, wantTag, got)
+			}
+		})
+	}
 }
 
 func TestBatchEthCall_Overrides(t *testing.T) {

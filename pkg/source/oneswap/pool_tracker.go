@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -93,7 +94,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var totalSupply *big.Int
-	calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+	calls = d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
@@ -102,7 +103,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []any{&totalSupply})
 
-	if _, err := calls.TryAggregate(); err != nil {
+	if _, err := utilEth.CallWithBlockRetry(ctx, calls.TryAggregate, resp.BlockNumber); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,

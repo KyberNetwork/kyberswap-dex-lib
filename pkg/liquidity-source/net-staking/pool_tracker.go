@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -100,6 +101,7 @@ func fetchDynamic(
 	var (
 		indexBig    *big.Int
 		blockNumber = big.NewInt(0)
+		indexBlock  *big.Int
 	)
 
 	// index() is only ever consumed by the wrap-side math (sNetToWs/wsToSNet), which
@@ -123,6 +125,7 @@ func fetchDynamic(
 		if resp1.BlockNumber != nil {
 			blockNumber = resp1.BlockNumber
 		}
+		indexBlock = resp1.BlockNumber
 	}
 
 	var (
@@ -131,6 +134,9 @@ func fetchDynamic(
 		sNetWrapReserveBig    *big.Int
 	)
 	req2 := ethrpcClient.NewRequest().SetContext(ctx)
+	if hasWrap {
+		req2.SetBlockNumber(utilEth.BlockNumberOrLatest(indexBlock))
+	}
 	if overrides != nil {
 		req2.SetOverrides(overrides)
 	}
@@ -153,7 +159,13 @@ func fetchDynamic(
 			Params: []any{gethcommon.HexToAddress(wrapAddress)},
 		}, []any{&sNetWrapReserveBig})
 	}
-	resp2, err := req2.Aggregate()
+	var resp2 *ethrpc.Response
+	var err error
+	if hasWrap {
+		resp2, err = utilEth.CallWithBlockRetry(ctx, req2.Aggregate, indexBlock)
+	} else {
+		resp2, err = req2.Aggregate()
+	}
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}

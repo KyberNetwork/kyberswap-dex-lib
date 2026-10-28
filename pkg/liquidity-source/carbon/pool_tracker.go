@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -52,7 +53,7 @@ func (t *PoolTracker) GetNewPoolState(
 	token0 := common.HexToAddress(staticExtra.Token0)
 	token1 := common.HexToAddress(staticExtra.Token1)
 
-	tradingFeePpm, err := t.getTradingFee(ctx, token0, token1)
+	tradingFeePpm, blockNumber, err := t.getTradingFee(ctx, token0, token1)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   t.config.DexId,
@@ -60,6 +61,7 @@ func (t *PoolTracker) GetNewPoolState(
 			"error":   err,
 		}).Warn("failed to get trading fee, using default")
 		tradingFeePpm = defaultTradingFeePpm
+		blockNumber = nil
 	}
 
 	now := time.Now()
@@ -67,12 +69,11 @@ func (t *PoolTracker) GetNewPoolState(
 		now.Sub(time.Unix(prevExtra.LastFullScanTime, 0)) > fullScanInterval
 
 	var strategies []Strategy
-	var blockNumber *big.Int
 	var lastFullScanTime int64
 	var strategyCount int64
 
 	if fullScanDue {
-		if strategies, strategyCount, blockNumber, err = t.fullScan(ctx, token0, token1); err != nil {
+		if strategies, strategyCount, blockNumber, err = t.fullScan(ctx, token0, token1, blockNumber); err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId":   t.config.DexId,
 				"address": p.Address,
@@ -83,7 +84,7 @@ func (t *PoolTracker) GetNewPoolState(
 		strategies = applyDustFilter(strategies)
 		lastFullScanTime = now.Unix()
 	} else {
-		if strategies, strategyCount, blockNumber, lastFullScanTime, err = t.incrementalScan(ctx, token0, token1, prevExtra); err != nil {
+		if strategies, strategyCount, blockNumber, lastFullScanTime, err = t.incrementalScan(ctx, token0, token1, prevExtra, blockNumber); err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId":   t.config.DexId,
 				"address": p.Address,
@@ -130,11 +131,11 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) getTradingFee(ctx context.Context, token0, token1 common.Address) (uint32, error) {
+func (t *PoolTracker) getTradingFee(ctx context.Context, token0, token1 common.Address) (uint32, *big.Int, error) {
 	var pairFee uint32
 	var globalFee uint32
 
-	if _, err := t.ethrpcClient.R().SetContext(ctx).
+	resp, err := t.ethrpcClient.R().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    controllerABI,
 			Target: t.config.Controller.String(),
@@ -145,23 +146,24 @@ func (t *PoolTracker) getTradingFee(ctx context.Context, token0, token1 common.A
 			ABI:    controllerABI,
 			Target: t.config.Controller.String(),
 			Method: "tradingFeePPM"}, []any{&globalFee}).
-		TryAggregate(); err != nil {
-		return 0, err
+		TryBlockAndAggregate()
+	if err != nil {
+		return 0, nil, err
 	}
 
 	if pairFee > 0 {
-		return pairFee, nil
+		return pairFee, resp.BlockNumber, nil
 	}
 
-	return globalFee, nil
+	return globalFee, resp.BlockNumber, nil
 }
 
 // fullScan re-fetches every strategy for the pair from chain and returns the on-chain
 // strategiesByPairCount alongside them - the caller stores that count (not len(strategies),
 // since dust-filtered strategies get dropped) so incrementalScan can detect newly created
 // strategies later by diffing counts instead of re-fetching everything every poll.
-func (t *PoolTracker) fullScan(ctx context.Context, token0, token1 common.Address) ([]Strategy, int64, *big.Int, error) {
-	count, blockNumber, err := t.getStrategyCount(ctx, token0, token1)
+func (t *PoolTracker) fullScan(ctx context.Context, token0, token1 common.Address, blockNumber *big.Int) ([]Strategy, int64, *big.Int, error) {
+	count, blockNumber, err := t.getStrategyCount(ctx, token0, token1, blockNumber)
 	if err != nil {
 		return nil, 0, nil, err
 	}
@@ -193,8 +195,9 @@ func (t *PoolTracker) incrementalScan(
 	ctx context.Context,
 	token0, token1 common.Address,
 	prevExtra Extra,
+	blockNumber *big.Int,
 ) ([]Strategy, int64, *big.Int, int64, error) {
-	count, blockNumber, err := t.getStrategyCount(ctx, token0, token1)
+	count, blockNumber, err := t.getStrategyCount(ctx, token0, token1, blockNumber)
 	if err != nil {
 		return nil, 0, nil, 0, err
 	}
@@ -205,7 +208,7 @@ func (t *PoolTracker) incrementalScan(
 	if count.Int64() < prevExtra.StrategyCount {
 		// a strategy was deleted on-chain; index positions may have shifted underneath us,
 		// so fall back to a full re-scan rather than trying to diff against stale indices.
-		strategies, strategyCount, blockNumber, err := t.fullScan(ctx, token0, token1)
+		strategies, strategyCount, blockNumber, err := t.fullScan(ctx, token0, token1, blockNumber)
 		if err != nil {
 			return nil, 0, nil, 0, err
 		}
@@ -241,15 +244,26 @@ func (t *PoolTracker) incrementalScan(
 	return strategies, count.Int64(), blockNumber, prevExtra.LastFullScanTime, nil
 }
 
-func (t *PoolTracker) getStrategyCount(ctx context.Context, token0, token1 common.Address) (*big.Int, *big.Int, error) {
+func (t *PoolTracker) getStrategyCount(ctx context.Context, token0, token1 common.Address, blockNumber *big.Int) (*big.Int, *big.Int, error) {
 	var count *big.Int
-	resp, err := t.ethrpcClient.R().SetContext(ctx).
-		AddCall(&ethrpc.Call{
+	call := func() (*ethrpc.Response, error) {
+		req := t.ethrpcClient.R().SetContext(ctx)
+		if blockNumber != nil {
+			req.SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
+		}
+		return req.AddCall(&ethrpc.Call{
 			ABI:    controllerABI,
 			Target: t.config.Controller.String(),
 			Method: "strategiesByPairCount",
-			Params: []any{token0, token1}}, []any{&count}).
-		Aggregate()
+			Params: []any{token0, token1}}, []any{&count}).Aggregate()
+	}
+	var resp *ethrpc.Response
+	var err error
+	if blockNumber != nil {
+		resp, err = utilEth.CallWithBlockRetry(ctx, call, blockNumber)
+	} else {
+		resp, err = call()
+	}
 	if err != nil {
 		logger.Errorf("failed to get strategies by pair count: %v", err)
 		return nil, nil, err
@@ -265,14 +279,17 @@ func (t *PoolTracker) fetchStrategiesBatch(
 	blockNumber *big.Int,
 ) ([]Strategy, error) {
 	var rawStrategies []StrategyByPairResp
-	if _, err := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber).
-		AddCall(&ethrpc.Call{
+	call := func() (*ethrpc.Response, error) {
+		req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
+		return req.AddCall(&ethrpc.Call{
 			ABI:    controllerABI,
 			Target: t.config.Controller.String(),
 			Method: "strategiesByPair",
 			Params: []any{token0, token1, big.NewInt(int64(startIndex)), big.NewInt(int64(endIndex))},
 		}, []any{&rawStrategies}).
-		Aggregate(); err != nil {
+			Aggregate()
+	}
+	if _, err := utilEth.CallWithBlockRetry(ctx, call, blockNumber); err != nil {
 		return nil, err
 	}
 
@@ -298,16 +315,19 @@ func (t *PoolTracker) fetchStrategiesByIDs(
 		chunk := ids[offset:endIndex]
 
 		raws := make([]StrategyByPairResp, len(chunk))
-		req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumber)
-		for i, id := range chunk {
-			req.AddCall(&ethrpc.Call{
-				ABI:    controllerABI,
-				Target: t.config.Controller.String(),
-				Method: "strategy",
-				Params: []any{id},
-			}, []any{&raws[i]})
+		call := func() (*ethrpc.Response, error) {
+			req := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(blockNumber))
+			for i, id := range chunk {
+				req.AddCall(&ethrpc.Call{
+					ABI:    controllerABI,
+					Target: t.config.Controller.String(),
+					Method: "strategy",
+					Params: []any{id},
+				}, []any{&raws[i]})
+			}
+			return req.Aggregate()
 		}
-		if _, err := req.Aggregate(); err != nil {
+		if _, err := utilEth.CallWithBlockRetry(ctx, call, blockNumber); err != nil {
 			return nil, err
 		}
 

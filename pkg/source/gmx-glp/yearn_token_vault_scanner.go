@@ -61,7 +61,7 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 	}
 	yearnStrategy := make([]GetStrategies, len(strategyList))
 
-	calls := y.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := newRequest(y.ethrpcClient, ctx)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    yearnTokenVaultABI,
 		Target: address,
@@ -127,7 +127,7 @@ func (y *YearnTokenVaultScanner) getYearnTokenVaultScanner(ctx context.Context, 
 		}, []any{&yearnStrategy[i]})
 
 	}
-	if _, err := calls.TryAggregate(); err != nil {
+	if _, err := callWithBlockRetry(ctx, calls.TryAggregate); err != nil {
 		logger.Errorf("failed to aggregate calls address %v with err %v", y.config.YearnTokenVaultAddress, err)
 		return nil, err
 	}

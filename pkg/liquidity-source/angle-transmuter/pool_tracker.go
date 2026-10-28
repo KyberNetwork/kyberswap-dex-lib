@@ -21,6 +21,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -153,12 +154,13 @@ func (t *PoolTracker) getNewPoolState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	var collateralList []common.Address
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
+	firstResponse, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).
 		AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
 			Target: t.config.Transmuter,
 			Method: "getCollateralList",
-		}, []any{&collateralList}).Aggregate(); err != nil {
+		}, []any{&collateralList}).Aggregate()
+	if err != nil {
 		return p, err
 	}
 
@@ -212,7 +214,8 @@ func (t *PoolTracker) getNewPoolState(
 		Method: "getTotalIssued",
 	}, []any{&totalStablecoinIssued})
 
-	if _, err := calls.TryAggregate(); err != nil {
+	calls.SetBlockNumber(utilEth.BlockNumberOrLatest(firstResponse.BlockNumber))
+	if _, err := utilEth.CallWithBlockRetry(ctx, calls.TryAggregate, firstResponse.BlockNumber); err != nil {
 		return p, err
 	}
 
@@ -247,6 +250,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	calls = t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	calls.SetBlockNumber(utilEth.BlockNumberOrLatest(firstResponse.BlockNumber))
 	for i, collat := range oracleConfigs {
 		configs := []struct {
 			typ  OracleReadType
@@ -341,7 +345,7 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	res, err := calls.Aggregate()
+	res, err := utilEth.CallWithBlockRetry(ctx, calls.Aggregate, firstResponse.BlockNumber)
 	if err != nil {
 		return p, err
 	}

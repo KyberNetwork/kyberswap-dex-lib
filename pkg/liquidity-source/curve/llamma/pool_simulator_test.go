@@ -1,10 +1,16 @@
 package llamma
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -12,7 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -1724,4 +1732,62 @@ func TestCloneState(t *testing.T) {
 		},
 		TokenOut: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
 	}, nil)
+}
+
+func TestGetNewPoolStatePinsBandsToPoolSnapshot(t *testing.T) {
+	for _, withOverrides := range []bool{false, true} {
+		name := "normal"
+		if withOverrides {
+			name = "overrides"
+		}
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				poolAddress := common.HexToAddress("0x0000000000000000000000000000000000000001")
+				token0 := common.HexToAddress("0x0000000000000000000000000000000000000002")
+				token1 := common.HexToAddress("0x0000000000000000000000000000000000000003")
+				resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+					values := make([]any, len(method.Outputs))
+					for i, output := range method.Outputs {
+						values[i] = ethrpcmock.Value(output.Type)
+					}
+					switch method.RawName {
+					case llammaMethodGetBasePrice, llammaMethodPriceOracle:
+						values[0] = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+					case llammaMethodActiveBand, llammaMethodMinBand, llammaMethodMaxBand:
+						values[0] = big.NewInt(10)
+					case shared.ERC20MethodBalanceOf:
+						values[0] = big.NewInt(1000)
+					case llammaMethodAdminFeesX, llammaMethodAdminFeesY:
+						values[0] = big.NewInt(0)
+					}
+					return values, nil
+				}
+				srv, recorder := ethrpcmock.NewWithResolver(t, resolver, CurveLlammaABI, shared.ERC20ABI)
+				client := ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0x0000000000000000000000000000000000000005"))
+				tracker := NewPoolTracker(&Config{DexID: DexType, MaxBandLimit: 3}, client)
+				p := entity.Pool{Address: poolAddress.Hex(), StaticExtra: "{}", Tokens: []*entity.PoolToken{{Address: token0.Hex()}, {Address: token1.Hex()}}}
+				var updated entity.Pool
+				var err error
+				if withOverrides {
+					updated, err = tracker.GetNewPoolStateWithOverrides(context.Background(), p, pool.GetNewPoolStateWithOverridesParams{
+						Overrides: map[common.Address]gethclient.OverrideAccount{common.HexToAddress("0x0000000000000000000000000000000000000009"): {Balance: big.NewInt(1)}},
+					})
+				} else {
+					updated, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				}
+				require.NoError(t, err)
+				require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+				var extra Extra
+				require.NoError(t, json.Unmarshal([]byte(updated.Extra), &extra))
+				require.NotEmpty(t, extra.Bands)
+				ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+				ethrpcmock.CheckPool(t, "curve-llamma-tracker-pin", updated)
+				key := "curve-llamma-tracker-pin-normal"
+				if withOverrides {
+					key = "curve-llamma-tracker-pin-overrides"
+				}
+				ethrpcmock.CheckRequests(t, key, recorder)
+			})
+		})
+	}
 }

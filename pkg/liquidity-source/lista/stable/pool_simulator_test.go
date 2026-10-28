@@ -1,17 +1,84 @@
 package stable
 
 import (
+	"context"
 	"math/big"
+	"strings"
 	"testing"
+	"testing/synctest"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test/ethrpcmock"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
+
+func TestGetNewPoolStatePinsOracleReadsToBaseBlock(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		testABI, err := abi.JSON(strings.NewReader(`[
+			{"type":"function","name":"initial_A","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"future_A","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"initial_A_time","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"future_A_time","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"fee","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"admin_fee","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"balances","inputs":[{"type":"uint256"}],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"totalSupply","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"fetchOraclePrice","inputs":[],"outputs":[{"type":"uint256[2]"}]},
+			{"type":"function","name":"price0DiffThreshold","inputs":[],"outputs":[{"type":"uint256"}]},
+			{"type":"function","name":"price1DiffThreshold","inputs":[],"outputs":[{"type":"uint256"}]}
+		]`))
+		require.NoError(t, err)
+		resolver := func(_ common.Address, method abi.Method, _ []any) ([]any, error) {
+			values := make([]any, len(method.Outputs))
+			for i, output := range method.Outputs {
+				values[i] = ethrpcmock.Value(output.Type)
+			}
+			return values, nil
+		}
+		srv, recorder := ethrpcmock.NewWithResolver(t, resolver, testABI)
+		tracker, err := NewPoolTracker(&curve.Config{DexID: DexType, SkipInitFactory: true}, ethrpc.New(srv.URL))
+		require.NoError(t, err)
+		p := entity.Pool{
+			Address:     "0x0000000000000000000000000000000000000001",
+			Type:        DexType,
+			Exchange:    DexType,
+			StaticExtra: `{"lpToken":"0x0000000000000000000000000000000000000004"}`,
+			Tokens:      []*entity.PoolToken{{Address: "0x0000000000000000000000000000000000000002"}, {Address: "0x0000000000000000000000000000000000000003"}},
+		}
+		updated, err := tracker.GetNewPoolState(context.Background(), p, poolpkg.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.Equal(t, ethrpcmock.Block, updated.BlockNumber)
+		require.Equal(t, entity.PoolReserves{"1", "1", "1"}, updated.Reserves)
+		ethrpcmock.RequireRequestsPinned(t, recorder, 2)
+		ethrpcmock.CheckPool(t, "lista-stable-tracker-pin", updated)
+		ethrpcmock.CheckRequests(t, "lista-stable-tracker-pin", recorder)
+	})
+}
+
+func TestGetNewPoolStateWithOverridesKeepsListaTypeUnsupported(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		testABI, err := abi.JSON(strings.NewReader(`[]`))
+		require.NoError(t, err)
+		srv, recorder := ethrpcmock.New(t, testABI)
+		tracker, err := NewPoolTracker(&curve.Config{DexID: DexType, SkipInitFactory: true}, ethrpc.New(srv.URL))
+		require.NoError(t, err)
+		_, err = tracker.GetNewPoolStateWithOverrides(context.Background(), entity.Pool{Type: DexType}, poolpkg.GetNewPoolStateWithOverridesParams{
+			Overrides: map[common.Address]gethclient.OverrideAccount{},
+		})
+		require.Error(t, err)
+		require.Empty(t, recorder.Snapshot())
+	})
+}
 
 func TestCloneState(t *testing.T) {
 	t.Parallel()

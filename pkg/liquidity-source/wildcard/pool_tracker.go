@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	utilEth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -101,7 +102,7 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 		}
 	}
 
-	req = rpcClient.NewRequest().SetContext(ctx)
+	req = rpcClient.NewRequest().SetContext(ctx).SetBlockNumber(utilEth.BlockNumberOrLatest(resp.BlockNumber))
 	samples := make([][][][2]*big.Int, len(pools))
 	for i, pool := range pools {
 		samples[i] = make([][][2]*big.Int, len(pool.Tokens))
@@ -122,14 +123,9 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 			}
 		}
 	}
-	resp, err = req.TryAggregate()
+	resp, err = utilEth.CallWithBlockRetry(ctx, req.TryAggregate, resp.BlockNumber)
 	if err != nil {
 		return nil, err
-	}
-	if resp != nil && resp.BlockNumber != nil {
-		for i := range pools {
-			pools[i].BlockNumber = resp.BlockNumber.Uint64()
-		}
 	}
 	buffer := big.NewInt(bps - cfg.PriceTolerance)
 	for i := range samples {
