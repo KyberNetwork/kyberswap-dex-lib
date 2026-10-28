@@ -337,3 +337,22 @@ func TestCalcAmountIn_NotTradable(t *testing.T) {
 	})
 	assert.ErrorIs(t, err, ErrPoolNotTradable)
 }
+
+// A gated token's curve only accepts NFT holders (tx.origin), so quoting it would revert on swap.
+func TestCalcAmountOut_NFTGated(t *testing.T) {
+	sim := buildTestPoolWithExtra(t, Extra{
+		Status:            TokenStatusTradable,
+		NFTGated:          true,
+		Curve:             buildTestPool(t).curve,
+		CirculatingSupply: uint256.MustFromDecimal("356411072277789739739740347"),
+		DexSupplyThresh:   uint256.MustFromDecimal("800000000000000000000000000"),
+		BuyFeeBps:         100,
+		SellFeeBps:        100,
+	})
+	in := pool.TokenAmount{Token: testQuoteToken, Amount: big.NewInt(1e15)}
+	_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: in, TokenOut: testBaseToken})
+	assert.ErrorIs(t, err, ErrNFTGated)
+	_, err = sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: testBaseToken, Amount: big.NewInt(1e15)}, TokenIn: testQuoteToken})
+	assert.ErrorIs(t, err, ErrNFTGated)
+}
