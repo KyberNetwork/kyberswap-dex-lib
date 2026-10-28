@@ -454,7 +454,8 @@ func (p *PoolSimulator) GetExchange() string {
 	if p.exchange != "" {
 		return p.exchange
 	}
-	return p.hook.GetExchange()
+	// Unexported fields are empty after a msgpack decode; Info.Exchange keeps the fork name.
+	return ExchangeOf(p.hook, "", p.Info.Exchange)
 }
 
 // GetTokens returns a slice shared with the simulator and its clones: callers must not modify it.
