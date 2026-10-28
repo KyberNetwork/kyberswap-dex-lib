@@ -203,7 +203,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
-	return MetaInfo{IdxIn: p.GetTokenIndex(tokenIn), HasNative: p.HasNative, BlockNumber: p.Info.BlockNumber}
+	return MetaInfo{ApprovalAddress: accountCore, IdxIn: p.GetTokenIndex(tokenIn), HasNative: p.HasNative, BlockNumber: p.Info.BlockNumber}
 }
 
 func (p *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {

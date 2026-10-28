@@ -11,6 +11,9 @@ import (
 const (
 	DexType = "kuru-ob-v2"
 
+	// AccountCore on Monad: the KuruV2Helper approve target (hardcoded in the helper too).
+	accountCore = "0x264123a9b96cc1193944cc25c188f1bd3dfa670e"
+
 	bookDepth       = 50 // price levels read per side
 	marketStateLive = 0
 	marketBatchSize = 100

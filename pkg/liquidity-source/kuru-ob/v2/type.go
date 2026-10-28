@@ -84,7 +84,8 @@ type SwapInfo struct {
 
 // MetaInfo feeds the encoder: IdxIn 1 = quote in = OrderBook.swap isBuy.
 type MetaInfo struct {
-	IdxIn       int    `json:"i,omitempty"`
-	HasNative   bool   `json:"n,omitempty"`
-	BlockNumber uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress"`
+	IdxIn           int    `json:"i,omitempty"`
+	HasNative       bool   `json:"n,omitempty"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }
