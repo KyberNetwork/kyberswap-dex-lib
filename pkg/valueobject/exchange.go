@@ -13,6 +13,7 @@ const (
 	ExchangeAltFun                      = "alt-fun"
 	ExchangeFlywheelFun                 = "flywheel-fun"
 	ExchangeAmbient                     = "ambient"
+	ExchangeAmmalgamDLEX                = "ammalgam-dlex"
 	ExchangeApeSwap                     = "apeswap"
 	ExchangeArberaDen                   = "arbera-den"
 	ExchangeArberaDenAmm                = "arbera-den-amm"
