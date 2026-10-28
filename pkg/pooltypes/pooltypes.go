@@ -116,6 +116,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
+	kuruob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob"
+	kuruobv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/limit-order"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
@@ -528,6 +530,8 @@ type Types struct {
 	Gblin                      string
 	EverlongFlamm              string
 	BTRProp                    string
+	KuruOB                     string
+	KuruOBV2                   string
 }
 
 var (
@@ -797,5 +801,7 @@ var (
 		Gblin:                      gblin.DexType,
 		EverlongFlamm:              everlongflamm.DexType,
 		BTRProp:                    btrprop.DexType,
+		KuruOB:                     kuruob.DexType,
+		KuruOBV2:                   kuruobv2.DexType,
 	}
 )
