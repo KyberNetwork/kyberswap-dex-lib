@@ -363,6 +363,7 @@ const (
 	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
 	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
+	ExchangeUniswapV4Reafund            = "uniswap-v4-reafund"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
