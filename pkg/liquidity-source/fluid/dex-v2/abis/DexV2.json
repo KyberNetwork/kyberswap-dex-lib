@@ -2,16 +2,19 @@
   {
     "inputs": [
       {
+        "indexed": true,
         "internalType": "uint256",
         "name": "dexType",
         "type": "uint256"
       },
       {
+        "indexed": true,
         "internalType": "bytes32",
         "name": "dexId",
         "type": "bytes32"
       },
       {
+        "indexed": true,
         "internalType": "address",
         "name": "user",
         "type": "address"
@@ -63,11 +66,13 @@
   {
     "inputs": [
       {
+        "indexed": true,
         "internalType": "uint256",
         "name": "dexType",
         "type": "uint256"
       },
       {
+        "indexed": true,
         "internalType": "bytes32",
         "name": "dexId",
         "type": "bytes32"
@@ -116,16 +121,19 @@
   {
     "inputs": [
       {
+        "indexed": true,
         "internalType": "uint256",
         "name": "dexType",
         "type": "uint256"
       },
       {
+        "indexed": true,
         "internalType": "bytes32",
         "name": "dexId",
         "type": "bytes32"
       },
       {
+        "indexed": true,
         "internalType": "address",
         "name": "user",
         "type": "address"
@@ -177,16 +185,19 @@
   {
     "inputs": [
       {
+        "indexed": true,
         "internalType": "uint256",
         "name": "dexType",
         "type": "uint256"
       },
       {
+        "indexed": true,
         "internalType": "bytes32",
         "name": "dexId",
         "type": "bytes32"
       },
       {
+        "indexed": true,
         "internalType": "address",
         "name": "user",
         "type": "address"
@@ -238,16 +249,19 @@
   {
     "inputs": [
       {
+        "indexed": true,
         "internalType": "uint256",
         "name": "dexType",
         "type": "uint256"
       },
       {
+        "indexed": true,
         "internalType": "bytes32",
         "name": "dexId",
         "type": "bytes32"
       },
       {
+        "indexed": true,
         "internalType": "address",
         "name": "user",
         "type": "address"
@@ -294,6 +308,52 @@
       }
     ],
     "name": "LogPayback",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dexType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "dexId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "swap0To1",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "word6",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "word7",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogSwapIn",
     "type": "event"
   },
   {
