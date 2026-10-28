@@ -83,7 +83,7 @@ func Lazycall(
 		if err := poolState.ResolveLimits(vaultCfg); err != nil {
 			return *pool, err
 		}
-		normalizePoolState(&poolState)
+		normalizePoolState(vaultCfg, &poolState)
 		if blockNumber != nil {
 			poolState.BlockNumber = blockNumber.Uint64()
 		} else {

@@ -143,6 +143,17 @@ func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log e
 
 			return p.DexId, p.DexType, nil
 
+		case abis.DexV2ABI.Events["LogSwapIn"].ID:
+			// A swap moves the pool's price and reserves, which the tracker reads whole on any
+			// log of the pool. Every field is in the data.
+			values, err := abis.DexV2ABI.Unpack("LogSwapIn", log.Data)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+			dexType, _ := values[0].(*big.Int)
+			dexId, _ := values[1].([32]byte)
+			return dexId, dexType, nil
+
 		default:
 			return [32]byte{}, nil, nil
 		}
