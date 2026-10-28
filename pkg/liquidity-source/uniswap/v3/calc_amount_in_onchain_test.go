@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -177,4 +178,71 @@ func TestCalcAmountInMatchesQuoterV2(t *testing.T) {
 		})
 	}
 	assert.Positive(t, beyond, "no fixture has an output past what its ticks pay")
+}
+
+// TestCalcAmountInNextStateMatchesChain: a swap is always executed exact in, so after a quote by
+// output the pool is where its own exact-in swap of the quoted input leaves it on the chain, and
+// that price, tick and liquidity are what UpdateBalance sets. Each quote whose input matches the
+// quoter's to the wei is checked, which leaves out those a float64 walk prices.
+func TestCalcAmountInNextStateMatchesChain(t *testing.T) {
+	for name, fixture := range loadOnchainFixtures(t) {
+		t.Run(name, func(t *testing.T) {
+			sim, err := NewPoolSimulator(fixture.Pool, 0)
+			require.NoError(t, err)
+			var checked int
+			for _, q := range fixture.Quotes {
+				res, ok := quoteByOutput(t, sim, q)
+				if !ok || res.TokenAmountIn.Amount.String() != q.ExactIn.AmountIn {
+					continue
+				}
+				checked++
+
+				_, out := q.tokens(sim)
+				next := sim.CloneState().(*PoolSimulator)
+				next.UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn:  *res.TokenAmountIn,
+					TokenAmountOut: pool.TokenAmount{Token: out, Amount: bigInt(t, q.ExactIn.AmountOut)},
+					SwapInfo:       res.SwapInfo,
+				})
+				assert.Equal(t, q.ExactIn.SqrtPriceX96After, next.V3Pool.SqrtRatioX96.Dec(), "%s: price", q)
+				assert.Equal(t, q.ExactIn.TickAfter, next.V3Pool.TickCurrent, "%s: tick", q)
+				assert.Equal(t, q.ExactIn.LiquidityAfter, next.V3Pool.Liquidity.Dec(), "%s: liquidity", q)
+			}
+			assert.Greater(t, checked, len(fixture.Quotes)/2, "quotes checked against the chain")
+		})
+	}
+}
+
+// TestExactInEndMatchesWholeSwap: GetInputAmountExactInEnd redoes only the last step of the
+// exact-out walk exact in. For every output of the fixtures, and 20 fractions of each, its end must
+// be the whole exact-in swap's, unless a run of words was priced in float, where the two walks carry
+// different float errors.
+func TestExactInEndMatchesWholeSwap(t *testing.T) {
+	for name, fixture := range loadOnchainFixtures(t) {
+		t.Run(name, func(t *testing.T) {
+			sim, err := NewPoolSimulator(fixture.Pool, 0)
+			require.NoError(t, err)
+			checked := 0
+			for _, q := range fixture.Quotes {
+				full := bigInt(t, q.AmountOut)
+				for i := int64(1); i <= 21; i++ {
+					var out uint256.Int
+					if out.SetFromBig(new(big.Int).Div(new(big.Int).Mul(full, big.NewInt(i)), big.NewInt(21))); out.IsZero() {
+						continue
+					}
+					res, end, err := sim.V3Pool.GetInputAmountExactInEnd(q.ZeroForOne, out, uint256.Int{})
+					if err != nil || res.CrossEmptyWordLoops >= floatWalkAfterWords {
+						continue
+					}
+					whole, err := sim.V3Pool.Swap(q.ZeroForOne, res.AmountCalculated, uint256.Int{})
+					require.NoError(t, err)
+					assert.Equal(t, whole.SqrtRatioX96.Dec(), end.SqrtRatioX96.Dec(), "%s out, price", out.Dec())
+					assert.Equal(t, whole.Liquidity.Dec(), end.Liquidity.Dec(), "%s out, liquidity", out.Dec())
+					assert.Equal(t, whole.CurrentTick, end.CurrentTick, "%s out, tick", out.Dec())
+					checked++
+				}
+			}
+			require.Positive(t, checked)
+		})
+	}
 }
