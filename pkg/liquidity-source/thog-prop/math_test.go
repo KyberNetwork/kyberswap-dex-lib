@@ -1,156 +1,297 @@
 package thogprop
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/hex"
+	"encoding/json"
+	"io"
+	"math/big"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// stateBlock107066625 is the live makerSnapshot() state at Monad block
-// 107066625, captured while integrating this package. Used to verify
-// ExactQuote against four independently-called makerQuoteExactInput()
-// results at that exact block -- see the fixtures below.
-func stateBlock107066625() *State {
-	u := func(s string) uint256.Int {
-		return *uint256.MustFromDecimal(s)
-	}
-	return &State{
-		V1:             u("2994239055849461445655022230385668861908425422835416817831970788550610092030"),
-		V2:             u("1124588846958885914322232869647557697816726"),
-		V3:             u("853655712402932"),
-		R1:             u("2014949657059124526062761958401416449565747983888532651381762"),
-		R2:             u("294984522595088000014157334"),
-		R3:             u("43066045109633176"),
-		I1:             u("26959946667149500150766263744785391798464467030925802040175863822145"),
-		I2:             u("112083"),
-		P1:             u("57896044618658097711785492504343953926634992332820282019728792003956564819968"),
-		P2:             u("57896044618658097711785492504343953926634992332820282019728792003956564819968"),
-		GloballyPaused: false,
-		RiskV3Ready:    true,
-		PairRiskReady:  true,
-		Balances: []uint256.Int{
-			u("36406748694"),              // USDC
-			u("20581810"),                 // AUSD
-			u("2227929976"),               // USDT0
-			u("171154752028809148389158"), // WMON
-			u("2698350120294236217"),      // WETH
-			u("895623"),                   // WBTC
-			u("7523178"),                  // cbBTC
-			u("1846142"),                  // XAUt0
-		},
-	}
+type contractCase struct {
+	Method             string `json:"method"`
+	InputIndex         int    `json:"inputIndex"`
+	OutputIndex        int    `json:"outputIndex"`
+	Amount             string `json:"amount"`
+	GasPrice           string `json:"gasPrice"`
+	AuctionHandlerWarm bool   `json:"auctionHandlerWarm"`
+	Success            bool   `json:"success"`
+	Result             string `json:"result"`
+	MeasuredGas        int64  `json:"measuredGas"`
+	QuoteBlock         uint64 `json:"quoteBlock,omitempty"`
+}
+type contractSnapshot struct {
+	Snapshot         string                  `json:"snapshot"`
+	ShareBalances    map[string]ShareBalance `json:"shareBalances"`
+	BlockHash        string                  `json:"blockHash"`
+	Cases            []contractCase          `json:"cases"`
+	historicalModel2 bool
+}
+type contractFixture struct {
+	Proxy     string             `json:"proxy"`
+	Snapshots []contractSnapshot `json:"snapshots"`
 }
 
-func tok(idx int) tokenMeta { return tokenTable[idx] }
-
-func TestExactQuote_LiveParityFixtures(t *testing.T) {
-	const executionBlock = 107066625 // age=0, matches the live call exactly
-
-	tests := []struct {
-		name        string
-		tokenInIdx  int
-		tokenOutIdx int
-		amountIn    string
-		wantOut     string
-	}{
-		{"USDC->WMON cross-category with penalty", 0, 3, "1000000000", "37907937342479108369049"},
-		{"USDC->AUSD same-category, penalty short-circuits", 0, 1, "10000000", "9998074"},
-		{"XAUt0->USDC index-7 sell side", 7, 0, "1000000", "4348564229"},
-		{"USDC->XAUt0 index-7 buy side", 0, 7, "1000000000", "229839"},
+func fixture(t testing.TB, file string) contractFixture {
+	t.Helper()
+	dir := "testdata"
+	// The published full corpora can be checked without adding grid dumps to
+	// this dependency. Normal tests use the committed representative excerpts.
+	if external := os.Getenv("THOGAMM_FIXTURES"); external != "" {
+		dir = external
 	}
+	data, err := os.ReadFile(filepath.Join(dir, file))
+	require.NoError(t, err)
+	z, err := gzip.NewReader(bytes.NewReader(data))
+	require.NoError(t, err)
+	defer func() { require.NoError(t, z.Close()) }()
+	data, err = io.ReadAll(z)
+	require.NoError(t, err)
+	var f contractFixture
+	require.NoError(t, json.Unmarshal(data, &f))
+	require.NotEmpty(t, f.Snapshots)
+	for i := range f.Snapshots {
+		f.Snapshots[i].historicalModel2 = file == "deployed-v8.json.gz" || file == "boundaries-v8.json.gz"
+	}
+	return f
+}
+func raw(t testing.TB, s string) []byte {
+	t.Helper()
+	data, err := hex.DecodeString(strings.TrimPrefix(s, "0x"))
+	require.NoError(t, err)
+	return data
+}
+func fixturePage(t testing.TB, snapshot contractSnapshot) poolData {
+	t.Helper()
+	p, err := decodeSnapshot(raw(t, snapshot.Snapshot))
+	require.NoError(t, err)
+	if snapshot.historicalModel2 {
+		// Model 3 leaves the read-only curve unchanged. Migrate only the model
+		// identity in these historical model-2 fixtures, never in runtime reads.
+		require.Equal(t, uint16(8), p.SchemaVersion)
+		require.Equal(t, uint16(8), p.Words[6].Slot)
+		old := new(big.Int).Rsh(new(big.Int).Set(p.Words[6].Value), 176).Uint64() & 255
+		require.Equal(t, uint64(2), old)
+		p.Words[6].Value = new(big.Int).Add(p.Words[6].Value, new(big.Int).Lsh(big.NewInt(1), 176))
+	}
+	return p
+}
+func stateFrom(t testing.TB, snapshot contractSnapshot) State {
+	t.Helper()
+	s, err := snapshotState(fixturePage(t, snapshot), snapshot.ShareBalances)
+	require.NoError(t, err)
+	return s
+}
+func number(t testing.TB, s string) uint256.Int {
+	t.Helper()
+	s = strings.TrimLeft(strings.TrimPrefix(s, "0x"), "0")
+	if s == "" {
+		s = "0"
+	}
+	n, err := uint256.FromHex("0x" + s)
+	require.NoError(t, err)
+	return *n
+}
+func encodedWords(values ...uint256.Int) []byte {
+	var result []byte
+	for _, v := range values {
+		b := v.Bytes32()
+		result = append(result, b[:]...)
+	}
+	return result
+}
+func checkReadOnly(t *testing.T, file string) {
+	t.Helper()
+	f := fixture(t, file)
+	tested, success := 0, 0
+	for _, snapshot := range f.Snapshots {
+		s := stateFrom(t, snapshot)
+		for index, c := range snapshot.Cases {
+			amount := number(t, c.Amount)
+			var got []byte
+			var err error
+			switch c.Method {
+			case "quote":
+				var q Quote
+				block := s.BlockNumber
+				if c.QuoteBlock != 0 {
+					block = c.QuoteBlock
+				}
+				q, err = s.QuoteExactInputAt(c.InputIndex, c.OutputIndex, amount, block)
+				got = encodedWords(q.AmountOut, u(q.PostedBlock))
+			case "price":
+				var p Fraction
+				p, err = s.MarginalPrice(c.InputIndex, c.OutputIndex, amount)
+				got = encodedWords(u(32), u(1), p.Numerator, p.Denominator)
+			case "limits":
+				var a, b uint256.Int
+				a, b, err = s.Limits(c.InputIndex, c.OutputIndex)
+				got = encodedWords(u(32), u(2), a, b)
+			default:
+				t.Fatal(c.Method)
+			}
+			require.Equal(t, c.Success, err == nil, "block %d case %d (%+v): %v", s.BlockNumber, index, c, err)
+			if c.Success {
+				require.Equal(t, raw(t, c.Result), got, "block %d case %d", s.BlockNumber, index)
+				success++
+			}
+			tested++
+		}
+	}
+	require.Positive(t, tested)
+	require.Positive(t, success)
+	t.Logf("%s: %d cases, %d exact successes, %d matching rejections", file, tested, success, tested-success)
+}
+func TestHistoricalReadOnlyContractParity(t *testing.T) { checkReadOnly(t, "deployed-v8.json.gz") }
+func TestHistoricalBoundaryParity(t *testing.T)         { checkReadOnly(t, "boundaries-v8.json.gz") }
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := stateBlock107066625()
-			amountIn := uint256.MustFromDecimal(tt.amountIn)
-			wantOut := uint256.MustFromDecimal(tt.wantOut)
-
-			gotOut, postedBlock, err := ExactQuote(s, tok(tt.tokenInIdx), tok(tt.tokenOutIdx), amountIn, executionBlock, false)
+func TestModel3ExecutionParity(t *testing.T) {
+	f := fixture(t, "execution-model3.json.gz")
+	tested, success := 0, 0
+	for _, snapshot := range f.Snapshots {
+		s := stateFrom(t, snapshot)
+		for index, c := range snapshot.Cases {
+			amount := number(t, c.Amount)
+			ctx := ExecutionContext{BlockNumber: s.BlockNumber, BaseFee: s.BaseFee, GasPrice: number(t, c.GasPrice), AuctionHandlerWarm: c.AuctionHandlerWarm}
+			var q Quote
+			var err error
+			var got uint256.Int
+			switch c.Method {
+			case "execution":
+				q, err = s.QuoteExecution(c.InputIndex, c.OutputIndex, amount, ctx)
+				got = q.AmountOut
+			case "exactOutput":
+				q, err = s.QuoteExactOutput(c.InputIndex, c.OutputIndex, amount, ctx)
+				got = q.AmountIn
+			default:
+				t.Fatal(c.Method)
+			}
+			require.Equal(t, c.Success, err == nil, "block %d case %d (%+v): %v", s.BlockNumber, index, c, err)
+			if c.Success {
+				require.Equal(t, raw(t, c.Result)[:32], encodedWords(got), "case %d (%+v)", index, c)
+				success++
+			}
+			tested++
+		}
+	}
+	require.Positive(t, tested)
+	require.Positive(t, success)
+	t.Logf("model 3: %d cases, %d exact successes, %d matching rejections", tested, success, tested-success)
+}
+func entityFrom(t testing.TB, s State) entity.Pool {
+	t.Helper()
+	extra, err := json.Marshal(&Extra{State: s})
+	require.NoError(t, err)
+	p := entity.Pool{Address: "0x80c74517bcc2d67ffe02d3ed886796272f647210", Type: DexType, Extra: string(extra), StaticExtra: `{"poolId":"0xce389e78282dedac7b18ba7f775b7602d2ab3ab171bbd6711eb0239be6ef4dcc"}`, BlockNumber: s.BlockNumber}
+	for i, token := range s.Tokens {
+		p.Tokens = append(p.Tokens, &entity.PoolToken{Address: token.Address, Decimals: token.Decimals, Swappable: true})
+		p.Reserves = append(p.Reserves, s.Balances[i].Dec())
+	}
+	return p
+}
+func TestSimulatorOneBlockQuotesPurityAndUpdates(t *testing.T) {
+	f := fixture(t, "execution-model3.json.gz")
+	checked := 0
+	for _, snapshot := range f.Snapshots {
+		s := stateFrom(t, snapshot)
+		sim, err := NewPoolSimulator(entityFrom(t, s))
+		require.NoError(t, err)
+		for _, c := range snapshot.Cases {
+			if c.Method != "execution" || !c.Success {
+				continue
+			}
+			amount := number(t, c.Amount)
+			before := sim.state
+			expected, expectedErr := s.QuoteExactInputAt(c.InputIndex, c.OutputIndex, amount, s.BlockNumber+1)
+			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.Tokens[c.InputIndex].Address, Amount: amount.ToBig()}, TokenOut: s.Tokens[c.OutputIndex].Address}
+			result, err := sim.CalcAmountOut(params)
+			require.Equal(t, expectedErr, err)
+			require.Equal(t, before, sim.state)
 			if err != nil {
-				t.Fatalf("ExactQuote() error = %v", err)
+				continue
 			}
-			if gotOut.Cmp(wantOut) != 0 {
-				diff := new(uint256.Int).Sub(&gotOut, wantOut)
-				t.Errorf("amountOut = %s, want %s (diff %s)", gotOut.Dec(), wantOut.Dec(), diff.Dec())
+			require.Equal(t, expected.AmountOut.ToBig(), result.TokenAmountOut.Amount)
+			clone := sim.CloneState().(*PoolSimulator)
+			clone.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
+			require.Equal(t, before, sim.state)
+			swap := result.SwapInfo.(SwapInfo)
+			require.Equal(t, swap.InputBalance, clone.state.Balances[c.InputIndex])
+			require.Equal(t, swap.OutputBalance, clone.state.Balances[c.OutputIndex])
+			require.Equal(t, swap.InputUnits, clone.state.packed(107, c.InputIndex, 128, 2))
+			require.Equal(t, swap.OutputUnits, clone.state.packed(107, c.OutputIndex, 128, 2))
+			rebuilt, err := NewPoolSimulator(entityFrom(t, clone.state))
+			require.NoError(t, err)
+			q1, e1 := clone.CalcAmountOut(params)
+			q2, e2 := rebuilt.CalcAmountOut(params)
+			require.Equal(t, e1, e2)
+			require.Equal(t, q1, q2)
+			checked++
+			if checked >= 100 {
+				return
 			}
-			if postedBlock != executionBlock {
-				t.Errorf("postedBlock = %d, want %d", postedBlock, executionBlock)
-			}
-		})
+		}
+	}
+	require.Positive(t, checked)
+}
+func BenchmarkQuoteExactInput(b *testing.B) {
+	f := fixture(b, "execution-model3.json.gz")
+	s := stateFrom(b, f.Snapshots[0])
+	amount := u(1000000)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		if _, err := s.QuoteExactInputAt(0, 1, amount, s.BlockNumber+1); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
-func TestExactQuote_FastLaneHaircut(t *testing.T) {
-	s := stateBlock107066625()
-	amountIn := uint256.NewInt(1000000000)
+func TestLiveModel3ReadOnlyParity(t *testing.T)    { checkReadOnly(t, "deployed-model3.json.gz") }
+func TestOneBlockDelayContractParity(t *testing.T) { checkReadOnly(t, "one-block-model3.json.gz") }
 
-	base, _, err := ExactQuote(s, tok(0), tok(3), amountIn, 107066625, false)
-	if err != nil {
-		t.Fatalf("ExactQuote(fastLaneHot=false) error = %v", err)
-	}
-	hot, _, err := ExactQuote(s, tok(0), tok(3), amountIn, 107066625, true)
-	if err != nil {
-		t.Fatalf("ExactQuote(fastLaneHot=true) error = %v", err)
-	}
-
-	want := new(uint256.Int).Mul(&base, uint256.NewInt(9990))
-	want.Div(want, uint256.NewInt(10000))
-	if hot.Cmp(want) != 0 {
-		t.Errorf("fastLaneHot amountOut = %s, want %s (9990/10000 of %s)", hot.Dec(), want.Dec(), base.Dec())
-	}
-	if hot.Cmp(&base) >= 0 {
-		t.Errorf("fastLaneHot amountOut %s should be strictly less than cold amountOut %s", hot.Dec(), base.Dec())
-	}
-}
-
-func TestExactQuote_SameTokenRejected(t *testing.T) {
-	s := stateBlock107066625()
-	if _, _, err := ExactQuote(s, tok(0), tok(0), uint256.NewInt(1000000), 107066625, false); err == nil {
-		t.Error("expected an error quoting tokenIn == tokenOut, got nil")
-	}
-}
-
-func TestExactQuote_MaxAgeExceededReturnsSentinel(t *testing.T) {
-	s := stateBlock107066625()
-	maxAgeBits := bits(&s.R1, 198, 8)
-	maxAge := maxAgeBits.Uint64()
-	_, _, err := ExactQuote(s, tok(0), tok(3), uint256.NewInt(1000000000), 107066625+maxAge+1, false)
-	if err != ErrStalePrice {
-		t.Errorf("got err = %v, want ErrStalePrice", err)
-	}
-}
-
-func TestMaxFlooredInput(t *testing.T) {
-	tests := []struct {
-		maximum, divisor, multiplier, want string
-	}{
-		// maximum saturated at maxU256, large divisor -> saturates again
-		{"115792089237316195423570985008687907853269984665640564039457584007913129639935", "1000000000000000000000000000000", "1000000000000000000", "115792089237316195423570985008687907853269984665640564039457584007913129639935"},
-		// maximum saturated, tiny divisor -> does NOT saturate, needs the wide-multiply path
-		{"115792089237316195423570985008687907853269984665640564039457584007913129639935", "1", "1000000000000000000", "115792089237316195423570985008687907853269984665640564039457"},
-		// maxRiskNotionalUsdWad as maximum, realistic WAD-scale divisor/multiplier
-		{"664619068552888026590626425199190042", "1000000000000000000", "1000000000000000000000000000000", "664619068552888026590626"},
-		{"100", "7", "3", "235"},
-		{"0", "5", "3", "1"},
-		{"115792089237316195423570985008687907853269984665640564039457584007913129639935", "115792089237316195423570985008687907853269984665640564039457584007913129639935", "1", "115792089237316195423570985008687907853269984665640564039457584007913129639935"},
-		{"115792089237316195423570985008687907853269984665640564039457584007913129639935", "1", "115792089237316195423570985008687907853269984665640564039457584007913129639935", "1"},
-		{"16157387885063800092468972531095442600227637936690303362357377535130907802014", "925123444424254823561077285034", "719941466287131323558231662929", "20762213364672992518340486605657941254909946413325109697450958322504414449584"},
-		{"69709006495262083753438964270882567809667203355268795714903518762464260067738", "887263329113174494581759872948", "518543687442706248304305296266", "115792089237316195423570985008687907853269984665640564039457584007913129639935"},
-		{"87863889970162580245208440663227548203746960243348472696205216504220216118241", "530681276762416477923267193790", "250002842794692296707986335863", "115792089237316195423570985008687907853269984665640564039457584007913129639935"},
-		{"41566972108330407139236895720128556017787341847205356916185490192885258906212", "364744754089824788739823854612", "612412446212605494291410711936", "24756738883533665943047591566117958105715971765442627512202339635127795716478"},
-		{"33947725049433467350045554180148557448142904607798194645610524279359899319942", "283427037600167819109799088834", "795912206930140882904914252273", "12088900082506786043968624698934530883444698755494298207653557943746057658487"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.maximum+"/"+tt.divisor+"/"+tt.multiplier, func(t *testing.T) {
-			maximum := uint256.MustFromDecimal(tt.maximum)
-			divisor := uint256.MustFromDecimal(tt.divisor)
-			multiplier := uint256.MustFromDecimal(tt.multiplier)
-			want := uint256.MustFromDecimal(tt.want)
-
-			got := maxFlooredInput(maximum, divisor, multiplier)
-			if got.Cmp(want) != 0 {
-				t.Errorf("maxFlooredInput(%s,%s,%s) = %s, want %s", tt.maximum, tt.divisor, tt.multiplier, got.Dec(), want.Dec())
+func TestRouterQuotesMatchOneBlockEVM(t *testing.T) {
+	f := fixture(t, "one-block-model3.json.gz")
+	for _, snapshot := range f.Snapshots {
+		s := stateFrom(t, snapshot)
+		require.Equal(t, uint64(50), s.small(2, 146, 16))
+		sim, err := NewPoolSimulator(entityFrom(t, s))
+		require.NoError(t, err)
+		count := 0
+		for _, c := range snapshot.Cases {
+			if c.QuoteBlock != s.BlockNumber+1 {
+				continue
 			}
-		})
+			amount := number(t, c.Amount)
+			before := sim.state
+			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: s.Tokens[c.InputIndex].Address, Amount: amount.ToBig()},
+				TokenOut:      s.Tokens[c.OutputIndex].Address,
+			})
+			require.Equal(t, c.Success, err == nil, "%+v: %v", c, err)
+			require.Equal(t, before, sim.state)
+			if c.Success {
+				require.Equal(t, raw(t, c.Result)[:32], encodedWords(*uint256.MustFromBig(result.TokenAmountOut.Amount)))
+				a, err := s.prepare(c.InputIndex, c.OutputIndex, s.BlockNumber)
+				require.NoError(t, err)
+				b, err := s.prepare(c.InputIndex, c.OutputIndex, s.BlockNumber+1)
+				require.NoError(t, err)
+				var delta uint256.Int
+				delta.Sub(&b.spread, &a.spread)
+				require.Equal(t, u(50), delta)
+			}
+			count++
+		}
+		require.Positive(t, count)
 	}
 }
