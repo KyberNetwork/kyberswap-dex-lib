@@ -188,7 +188,9 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		return nil, ErrOverflow
 	}
 
-	result, err := p.V3Pool.GetInputAmountV2(zeroForOne, amountOut, sqrtPriceLimitX96)
+	// A swap is executed exact in, so the pool ends where the exact-in swap of this input leaves it,
+	// which the exact-out walk's rounding does not reach: UpdateBalance takes that state.
+	result, next, err := p.V3Pool.GetInputAmountExactInEnd(zeroForOne, amountOut, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +198,16 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 	if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
-	b := &calcAmountInBacking{sqrtPrice: result.SqrtRatioX96}
+	b := &calcAmountInBacking{sqrtPrice: next.SqrtRatioX96}
+	// The walk can reach the price limit with output still owed, as the pool's own swap stops there
+	// and pays less, though the pool may hold that much of the token outside the range: the quote
+	// fills partly and reports what it does not pay, as CalcAmountOut reports its unspent input.
+	b.remaining = pool.TokenAmount{Token: tokenOut, Amount: bignumber.ZeroBI}
+	if !result.RemainingAmountIn.IsZero() {
+		var owed uint256.Int
+		owed.Neg(&result.RemainingAmountIn)
+		b.remaining.Amount = big256.ToBigBacked(&b.remainingBI, &b.remainingWords, &owed)
+	}
 	amountInBI := big256.ToBigBacked(&b.inBI, &b.inWords, &result.AmountCalculated)
 	if p.exceedsMaxTx(tokenIn, amountInBI) {
 		// tokenIn is the launched token here (a sell): it moves user -> pool, the same leg
@@ -206,14 +217,15 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 
 	b.in, b.fee = pool.TokenAmount{Token: tokenIn, Amount: amountInBI}, pool.TokenAmount{Token: tokenIn}
 	b.res = pool.CalcAmountInResult{
-		TokenAmountIn: &b.in,
-		Fee:           &b.fee,
+		TokenAmountIn:           &b.in,
+		RemainingTokenAmountOut: &b.remaining,
+		Fee:                     &b.fee,
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
 			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: &b.sqrtPrice,
-			NextStateLiquidity:    result.Liquidity,
-			NextStateTickCurrent:  result.CurrentTick,
+			NextStateLiquidity:    next.Liquidity,
+			NextStateTickCurrent:  next.CurrentTick,
 		},
 	}
 	return &b.res, nil
@@ -294,11 +306,11 @@ type calcAmountOutBacking struct {
 
 // calcAmountInBacking is calcAmountOutBacking for CalcAmountIn.
 type calcAmountInBacking struct {
-	res       pool.CalcAmountInResult
-	in, fee   pool.TokenAmount
-	sqrtPrice uint256.Int // SwapInfo points here
-	inBI      big.Int
-	inWords   [4]big.Word
+	res                     pool.CalcAmountInResult
+	in, remaining, fee      pool.TokenAmount
+	sqrtPrice               uint256.Int // SwapInfo points here
+	inBI, remainingBI       big.Int
+	inWords, remainingWords [4]big.Word
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
