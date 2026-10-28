@@ -28,6 +28,7 @@ type PoolSimulator struct {
 	// tokens and canSwapTo cache GetTokens and CanSwapTo (keyed by each token of GetTokens): both
 	// depend only on the pool's tokens and the token wrappers, and the route finder calls them far
 	// more often than CalcAmountOut. Not serialized; a decoded simulator computes them per call.
+	exchange  string              `msgpack:"-"` // hook exchange with the fork dexID
 	tokens    []string            `msgpack:"-"`
 	canSwapTo map[string][]string `msgpack:"-"`
 }
@@ -95,6 +96,7 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
+		exchange:      ExchangeOf(hook, "", entityPool.Exchange),
 		chainID:       chainID,
 		// few_v2 is listed before few_v1 so, for a token pair with pools in both
 		// generations (e.g. WBTC/fwWBTC), the current/active generation wins.
@@ -449,6 +451,9 @@ func (p *PoolSimulator) computeCanSwapTo(address string) []string {
 }
 
 func (p *PoolSimulator) GetExchange() string {
+	if p.exchange != "" {
+		return p.exchange
+	}
 	return p.hook.GetExchange()
 }
 
@@ -611,6 +616,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          p.hook.GetHookData(),
 		PriceLimit:        priceLimit,
+		PoolManager:       p.poolManager(),
 		TokenWrapMetadata: wrapMetadata,
 	}
 }
@@ -623,4 +629,15 @@ func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobj
 func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
 	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
 	return meta.TokenOut == NativeTokenAddress
+}
+
+// poolManager is the pool's own manager, else the official one for the chain, else nil.
+func (p *PoolSimulator) poolManager() *common.Address {
+	if p.staticExtra.PoolManager != nil {
+		return p.staticExtra.PoolManager
+	}
+	if pm, ok := PoolManager[p.chainID]; ok {
+		return &pm
+	}
+	return nil
 }
