@@ -19,6 +19,11 @@ import (
 // amount out, both ways. The pools are Camelot's, Cypher's and Sheriff's, whose plugins scale the
 // dynamic fee by a fee factor, and a Thena pool whose plugin does not. The simulator must quote each
 // amount to the wei.
+//
+// The Camelot pool 0x7529fe05 on Arbitrum, at block 518746249, is the case of a price that fell:
+// its tick is 265624 and its last timepoint's is 265632, so a swap at that block moves the fee
+// factors by a negative price change, which the plugin divides as an int256. Each of its quotes is
+// the pool's own swap in an eth_call at that block.
 func TestCalcAmountMatchesChain(t *testing.T) {
 	files, err := filepath.Glob("testdata/onchain/*.json")
 	require.NoError(t, err)
