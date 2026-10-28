@@ -1,0 +1,653 @@
+{
+ "chain": "avalanche",
+ "pair": "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03",
+ "block": 41657972,
+ "blockTimestamp": 1707899442,
+ "txs": [
+  "0x6b44567671b18e0279a8907b141d5648325ce6126c76828c33aede504cc4a7d6"
+ ],
+ "pool": {
+  "address": "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03",
+  "exchange": "traderjoe-v21",
+  "type": "liquiditybook-v21",
+  "reserves": [
+   "2796381803137010136",
+   "11308489690450779"
+  ],
+  "tokens": [
+   {
+    "address": "0x0215bc3524b00e551dffe5d21e0d8ab1713e7d84",
+    "swappable": true
+   },
+   {
+    "address": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"activeBinId\":8388214,\"bins\":[{\"id\":8388214,\"reserveX\":968540163877520030,\"reserveY\":11308489690450779},{\"id\":8388215,\"reserveX\":856697690458993290,\"reserveY\":0},{\"id\":8388216,\"reserveX\":57573310798759791,\"reserveY\":0},{\"id\":8388217,\"reserveX\":57158935465260519,\"reserveY\":0},{\"id\":8388218,\"reserveX\":56474926869019411,\"reserveY\":0},{\"id\":8388219,\"reserveX\":55531044296223834,\"reserveY\":0},{\"id\":8388220,\"reserveX\":54340624153791259,\"reserveY\":0},{\"id\":8388221,\"reserveX\":52920266455486935,\"reserveY\":0},{\"id\":8388222,\"reserveX\":51289449789418941,\"reserveY\":0},{\"id\":8388223,\"reserveX\":49470087244774622,\"reserveY\":0},{\"id\":8388224,\"reserveX\":47486037434357211,\"reserveY\":0},{\"id\":8388225,\"reserveX\":45362585831126009,\"reserveY\":0},{\"id\":8388226,\"reserveX\":43125912112052656,\"reserveY\":0},{\"id\":8388227,\"reserveX\":40802559071118906,\"reserveY\":0},{\"id\":8388228,\"reserveX\":38418917953588780,\"reserveY\":0},{\"id\":8388229,\"reserveX\":36000743830103718,\"reserveY\":0},{\"id\":8388230,\"reserveX\":33572712948022554,\"reserveY\":0},{\"id\":8388231,\"reserveX\":31158031962201710,\"reserveY\":0},{\"id\":8388232,\"reserveX\":28778106662963051,\"reserveY\":0},{\"id\":8388233,\"reserveX\":26452275395654942,\"reserveY\":0},{\"id\":8388234,\"reserveX\":24197609913808390,\"reserveY\":0},{\"id\":8388235,\"reserveX\":22028784030218165,\"reserveY\":0},{\"id\":8388236,\"reserveX\":19958008220257333,\"reserveY\":0},{\"id\":8388237,\"reserveX\":17995026367513524,\"reserveY\":0},{\"id\":8388238,\"reserveX\":16147169184016716,\"reserveY\":0},{\"id\":8388239,\"reserveX\":14419457527366004,\"reserveY\":0},{\"id\":8388240,\"reserveX\":12814747896850682,\"reserveY\":0},{\"id\":8388241,\"reserveX\":11333911823227542,\"reserveY\":0},{\"id\":8388242,\"reserveX\":9976040657978478,\"reserveY\":0},{\"id\":8388243,\"reserveX\":8738667388666299,\"reserveY\":0},{\"id\":8388244,\"reserveX\":7617997516668834,\"reserveY\":0}]}",
+  "blockNumber": 41657971
+ },
+ "logs": [
+  {
+   "address": "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03",
+   "topics": [
+    "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb",
+    "0x000000000000000000000000b4315e873dbcf96ffd0acd8ea43f689d8c20fb30",
+    "0x0000000000000000000000006899f448072222c98e65ce3f29d9ccb92c739ad1",
+    "0x0000000000000000000000000000000000000000000000000000000000000000"
+   ],
+   "data": "0x00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000007ffe7600000000000000000000000000000000000000000000000000000000000000010000000000000000006c0123d78442f100000000000000000000000000000000",
+   "blockNumber": "0x27ba674",
+   "transactionHash": "0x6b44567671b18e0279a8907b141d5648325ce6126c76828c33aede504cc4a7d6",
+   "transactionIndex": "0x1",
+   "blockHash": "0xdcb50a80a332c02ebdb71cba56f89f0c8130f80dd2bd19a73db9c3eb12496fbe",
+   "logIndex": "0x3",
+   "removed": false
+  },
+  {
+   "address": "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03",
+   "topics": [
+    "0xa32e146844d6144a22e94c586715a1317d58a8aa3581ec33d040113ddcb24350",
+    "0x000000000000000000000000b4315e873dbcf96ffd0acd8ea43f689d8c20fb30",
+    "0x000000000000000000000000b4315e873dbcf96ffd0acd8ea43f689d8c20fb30"
+   ],
+   "data": "0x00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000007ffe760000000000000000000000000000000000000000000000000000000000000001000000000000000000282d02eef20b5b00000000000000000d70f225c29e429e",
+   "blockNumber": "0x27ba674",
+   "transactionHash": "0x6b44567671b18e0279a8907b141d5648325ce6126c76828c33aede504cc4a7d6",
+   "transactionIndex": "0x1",
+   "blockHash": "0xdcb50a80a332c02ebdb71cba56f89f0c8130f80dd2bd19a73db9c3eb12496fbe",
+   "logIndex": "0x4",
+   "removed": false
+  }
+ ],
+ "calls": {
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0x7ca0de30": "0x0000000000000000000000000000000000000000000000000000000000001f40000000000000000000000000000000000000000000000000000000000000012c00000000000000000000000000000000000000000000000000000000000004b000000000000000000000000000000000000000000000000000000000000013880000000000000000000000000000000000000000000000000000000000001d4c00000000000000000000000000000000000000000000000000000000000009c400000000000000000000000000000000000000000000000000000000000249f0",
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0x8d7024e5": "0x0000000000000000000000000000000000000000000000000000000000002710000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007ffe770000000000000000000000000000000000000000000000000000000065cc78fa",
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0x0902f1ac": "0x000000000000000000000000000000000000000000000000195dcc495dbac73a0000000000000000000000000000000000000000000000000000000000000000",
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0xdbe65edc": "0x00000000000000000000000000000000000000000000000000000000007ffe76",
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0x17f11ecc": "0x0000000000000000000000000000000000000000000000000000000000000064",
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0x4c7cffbd00000000000000000000000000000000000000000000000000000000007ffe76": "0x000000000000000000000000000000000513bf1b5665bf67ec6677ab4bc0fccf",
+  "0xda52d9d80d14c0abe1f88544636d8b8a2e563d03 0x0abe968800000000000000000000000000000000000000000000000000000000007ffe76": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+ },
+ "activeBinId": 8388214,
+ "bins": [
+  {
+   "id": 8388215,
+   "reserveX": 856697690458993290,
+   "reserveY": 0
+  },
+  {
+   "id": 8388216,
+   "reserveX": 57573310798759791,
+   "reserveY": 0
+  },
+  {
+   "id": 8388217,
+   "reserveX": 57158935465260519,
+   "reserveY": 0
+  },
+  {
+   "id": 8388218,
+   "reserveX": 56474926869019411,
+   "reserveY": 0
+  },
+  {
+   "id": 8388219,
+   "reserveX": 55531044296223834,
+   "reserveY": 0
+  },
+  {
+   "id": 8388220,
+   "reserveX": 54340624153791259,
+   "reserveY": 0
+  },
+  {
+   "id": 8388221,
+   "reserveX": 52920266455486935,
+   "reserveY": 0
+  },
+  {
+   "id": 8388222,
+   "reserveX": 51289449789418941,
+   "reserveY": 0
+  },
+  {
+   "id": 8388223,
+   "reserveX": 49470087244774622,
+   "reserveY": 0
+  },
+  {
+   "id": 8388224,
+   "reserveX": 47486037434357211,
+   "reserveY": 0
+  },
+  {
+   "id": 8388225,
+   "reserveX": 45362585831126009,
+   "reserveY": 0
+  },
+  {
+   "id": 8388226,
+   "reserveX": 43125912112052656,
+   "reserveY": 0
+  },
+  {
+   "id": 8388227,
+   "reserveX": 40802559071118906,
+   "reserveY": 0
+  },
+  {
+   "id": 8388228,
+   "reserveX": 38418917953588780,
+   "reserveY": 0
+  },
+  {
+   "id": 8388229,
+   "reserveX": 36000743830103718,
+   "reserveY": 0
+  },
+  {
+   "id": 8388230,
+   "reserveX": 33572712948022554,
+   "reserveY": 0
+  },
+  {
+   "id": 8388231,
+   "reserveX": 31158031962201710,
+   "reserveY": 0
+  },
+  {
+   "id": 8388232,
+   "reserveX": 28778106662963051,
+   "reserveY": 0
+  },
+  {
+   "id": 8388233,
+   "reserveX": 26452275395654942,
+   "reserveY": 0
+  },
+  {
+   "id": 8388234,
+   "reserveX": 24197609913808390,
+   "reserveY": 0
+  },
+  {
+   "id": 8388235,
+   "reserveX": 22028784030218165,
+   "reserveY": 0
+  },
+  {
+   "id": 8388236,
+   "reserveX": 19958008220257333,
+   "reserveY": 0
+  },
+  {
+   "id": 8388237,
+   "reserveX": 17995026367513524,
+   "reserveY": 0
+  },
+  {
+   "id": 8388238,
+   "reserveX": 16147169184016716,
+   "reserveY": 0
+  },
+  {
+   "id": 8388239,
+   "reserveX": 14419457527366004,
+   "reserveY": 0
+  },
+  {
+   "id": 8388240,
+   "reserveX": 12814747896850682,
+   "reserveY": 0
+  },
+  {
+   "id": 8388241,
+   "reserveX": 11333911823227542,
+   "reserveY": 0
+  },
+  {
+   "id": 8388242,
+   "reserveX": 9976040657978478,
+   "reserveY": 0
+  },
+  {
+   "id": 8388243,
+   "reserveX": 8738667388666299,
+   "reserveY": 0
+  },
+  {
+   "id": 8388244,
+   "reserveX": 7617997516668834,
+   "reserveY": 0
+  }
+ ],
+ "quotes": [
+  {
+   "kind": "out",
+   "amount": "1",
+   "swapForY": false,
+   "result": "0"
+  },
+  {
+   "kind": "in",
+   "amount": "1",
+   "swapForY": false,
+   "result": "2"
+  },
+  {
+   "kind": "out",
+   "amount": "3",
+   "swapForY": false,
+   "result": "99"
+  },
+  {
+   "kind": "in",
+   "amount": "3",
+   "swapForY": false,
+   "result": "2"
+  },
+  {
+   "kind": "out",
+   "amount": "10",
+   "swapForY": false,
+   "result": "449"
+  },
+  {
+   "kind": "in",
+   "amount": "10",
+   "swapForY": false,
+   "result": "2"
+  },
+  {
+   "kind": "out",
+   "amount": "30",
+   "swapForY": false,
+   "result": "1447"
+  },
+  {
+   "kind": "in",
+   "amount": "30",
+   "swapForY": false,
+   "result": "2"
+  },
+  {
+   "kind": "out",
+   "amount": "100",
+   "swapForY": false,
+   "result": "4942"
+  },
+  {
+   "kind": "in",
+   "amount": "100",
+   "swapForY": false,
+   "result": "4"
+  },
+  {
+   "kind": "out",
+   "amount": "300",
+   "swapForY": false,
+   "result": "14827"
+  },
+  {
+   "kind": "in",
+   "amount": "300",
+   "swapForY": false,
+   "result": "8"
+  },
+  {
+   "kind": "out",
+   "amount": "1000",
+   "swapForY": false,
+   "result": "49473"
+  },
+  {
+   "kind": "in",
+   "amount": "1000",
+   "swapForY": false,
+   "result": "22"
+  },
+  {
+   "kind": "out",
+   "amount": "3000",
+   "swapForY": false,
+   "result": "148520"
+  },
+  {
+   "kind": "in",
+   "amount": "3000",
+   "swapForY": false,
+   "result": "62"
+  },
+  {
+   "kind": "out",
+   "amount": "10000",
+   "swapForY": false,
+   "result": "495135"
+  },
+  {
+   "kind": "in",
+   "amount": "10000",
+   "swapForY": false,
+   "result": "203"
+  },
+  {
+   "kind": "out",
+   "amount": "30000",
+   "swapForY": false,
+   "result": "1485406"
+  },
+  {
+   "kind": "in",
+   "amount": "30000",
+   "swapForY": false,
+   "result": "606"
+  },
+  {
+   "kind": "out",
+   "amount": "100000",
+   "swapForY": false,
+   "result": "4951504"
+  },
+  {
+   "kind": "in",
+   "amount": "100000",
+   "swapForY": false,
+   "result": "2021"
+  },
+  {
+   "kind": "out",
+   "amount": "300000",
+   "swapForY": false,
+   "result": "14854512"
+  },
+  {
+   "kind": "in",
+   "amount": "300000",
+   "swapForY": false,
+   "result": "6060"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000",
+   "swapForY": false,
+   "result": "49515090"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000",
+   "swapForY": false,
+   "result": "20196"
+  },
+  {
+   "kind": "out",
+   "amount": "3000000",
+   "swapForY": false,
+   "result": "148545270"
+  },
+  {
+   "kind": "in",
+   "amount": "3000000",
+   "swapForY": false,
+   "result": "60588"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000",
+   "swapForY": false,
+   "result": "495151002"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000",
+   "swapForY": false,
+   "result": "201959"
+  },
+  {
+   "kind": "out",
+   "amount": "30000000",
+   "swapForY": false,
+   "result": "1485453056"
+  },
+  {
+   "kind": "in",
+   "amount": "30000000",
+   "swapForY": false,
+   "result": "605877"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000",
+   "swapForY": false,
+   "result": "4951510270"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000",
+   "swapForY": false,
+   "result": "2019587"
+  },
+  {
+   "kind": "out",
+   "amount": "300000000",
+   "swapForY": false,
+   "result": "14854530812"
+  },
+  {
+   "kind": "in",
+   "amount": "300000000",
+   "swapForY": false,
+   "result": "6058759"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000000",
+   "swapForY": false,
+   "result": "49515102707"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000",
+   "swapForY": false,
+   "result": "20195859"
+  },
+  {
+   "kind": "out",
+   "amount": "3000000000",
+   "swapForY": false,
+   "result": "148545308122"
+  },
+  {
+   "kind": "in",
+   "amount": "3000000000",
+   "swapForY": false,
+   "result": "60587576"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000",
+   "swapForY": false,
+   "result": "495151027074"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000",
+   "swapForY": false,
+   "result": "201958585"
+  },
+  {
+   "kind": "out",
+   "amount": "30000000000",
+   "swapForY": false,
+   "result": "1485453081223"
+  },
+  {
+   "kind": "in",
+   "amount": "30000000000",
+   "swapForY": false,
+   "result": "605875751"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000000",
+   "swapForY": false,
+   "result": "4951510270743"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000",
+   "swapForY": false,
+   "result": "2019585835"
+  },
+  {
+   "kind": "out",
+   "amount": "300000000000",
+   "swapForY": false,
+   "result": "14854530812230"
+  },
+  {
+   "kind": "in",
+   "amount": "300000000000",
+   "swapForY": false,
+   "result": "6058757503"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000000000",
+   "swapForY": false,
+   "result": "49515102707433"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000",
+   "swapForY": false,
+   "result": "20195858341"
+  },
+  {
+   "kind": "out",
+   "amount": "3000000000000",
+   "swapForY": false,
+   "result": "148545308122300"
+  },
+  {
+   "kind": "in",
+   "amount": "3000000000000",
+   "swapForY": false,
+   "result": "60587575023"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000000",
+   "swapForY": false,
+   "result": "495151027074336"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000000",
+   "swapForY": false,
+   "result": "201958583407"
+  },
+  {
+   "kind": "out",
+   "amount": "30000000000000",
+   "swapForY": false,
+   "result": "1485453081223008"
+  },
+  {
+   "kind": "in",
+   "amount": "30000000000000",
+   "swapForY": false,
+   "result": "605875750219"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000000000",
+   "swapForY": false,
+   "result": "4951510270743363"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000",
+   "swapForY": false,
+   "result": "2019585834061"
+  },
+  {
+   "kind": "out",
+   "amount": "300000000000000",
+   "swapForY": false,
+   "result": "14854530812230089"
+  },
+  {
+   "kind": "in",
+   "amount": "300000000000000",
+   "swapForY": false,
+   "result": "6058757502183"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000000000000",
+   "swapForY": false,
+   "result": "49515102707433632"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000000",
+   "swapForY": false,
+   "result": "20195858340609"
+  },
+  {
+   "kind": "out",
+   "amount": "3000000000000000",
+   "swapForY": false,
+   "result": "148545308122300897"
+  },
+  {
+   "kind": "in",
+   "amount": "3000000000000000",
+   "swapForY": false,
+   "result": "60587575021826"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000000000",
+   "swapForY": false,
+   "result": "495151027074336326"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000000000",
+   "swapForY": false,
+   "result": "201958583406084"
+  },
+  {
+   "kind": "out",
+   "amount": "30000000000000000",
+   "swapForY": false,
+   "result": "1446261461016550609"
+  },
+  {
+   "kind": "in",
+   "amount": "30000000000000000",
+   "swapForY": false,
+   "result": "605875750218250"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000000",
+   "swapForY": false,
+   "result": "2019585834060831"
+  },
+  {
+   "kind": "in",
+   "amount": "300000000000000000",
+   "swapForY": false,
+   "result": "6058757502182490"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000000000",
+   "swapForY": false,
+   "result": "20250228973897151"
+  }
+ ]
+}
