@@ -1,6 +1,7 @@
 package lazy
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestUpdateEntityStateKeepsLimits(t *testing.T) {
 }
 
 // A deposit-only vault must still read totalSupply: slot 0 converts assets to shares with it. Redeem stays
-// unsupported, so normalizePoolState must not turn the nil maxRedeem into totalSupply.
+// unsupported, so NormalizeState must not turn the nil maxRedeem into totalSupply.
 func TestDepositOnlyReadsSupplyKeepsRedeemOff(t *testing.T) {
 	t.Parallel()
 	var methods []string
@@ -67,6 +68,60 @@ func TestDepositOnlyReadsSupplyKeepsRedeemOff(t *testing.T) {
 
 	st := newState()
 	st.TotalSupply, st.TotalAssets = big.NewInt(5), big.NewInt(7)
-	normalizePoolState(cfg, st)
+	erc4626.NormalizeState(cfg, st)
 	assert.Nil(t, st.MaxRedeem)
+}
+
+// Redeem pause is read for redeem-enabled vaults only, with or without deposits, and never for deposit-only.
+func TestAddStateCallsReadsRedeemsPaused(t *testing.T) {
+	t.Parallel()
+	collect := func(cfg erc4626.VaultCfg) (methods []string) {
+		add := func(c *ethrpc.Call, _ []any) { methods = append(methods, c.Method) }
+		addStateCalls(add, "0xvault", "", cfg, false, new(common.Address), newState())
+		return
+	}
+	redeemOnly := erc4626.VaultCfg{Gas: erc4626.GasCfg{Redeem: 1}, RedeemsPausedMethod: "paused"}
+	assert.Contains(t, collect(redeemOnly), "paused")
+
+	both := erc4626.VaultCfg{Gas: erc4626.GasCfg{Deposit: 1, Redeem: 1}, DepositsPausedMethod: "paused", RedeemsPausedMethod: "paused"}
+	assert.Equal(t, 2, countOf(collect(both), "paused"))
+
+	both.RedeemsPausedMethod = ""
+	assert.Equal(t, 1, countOf(collect(both), "paused"))
+
+	depositOnly := erc4626.VaultCfg{Gas: erc4626.GasCfg{Deposit: 1}, RedeemsPausedMethod: "paused"}
+	assert.NotContains(t, collect(depositOnly), "paused")
+}
+
+func countOf(ss []string, s string) (n int) {
+	for _, v := range ss {
+		if v == s {
+			n++
+		}
+	}
+	return
+}
+
+func TestUpdateEntityStateWritesRedeemsPaused(t *testing.T) {
+	t.Parallel()
+	var p entity.Pool
+	st := newState()
+	st.MaxDeposit, st.MaxRedeem, st.MinDeposit, st.TotalAssets = big.NewInt(5), big.NewInt(5), big.NewInt(0), big.NewInt(7)
+	st.RedeemsPaused = true
+	require.NoError(t, UpdateEntityState(&p, erc4626.VaultCfg{Gas: erc4626.GasCfg{Redeem: 1}}, st))
+
+	var e erc4626.Extra
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &e))
+	assert.True(t, e.RedeemsPaused)
+	assert.False(t, e.DepositsPaused)
+}
+
+// A configured redeem pause read that failed fails the lazy refresh, so a revert cannot pass as "not paused".
+func TestLazycallRedeemsPausedFailsOnMissingRead(t *testing.T) {
+	t.Parallel()
+	p := entity.Pool{Address: "0xvault"}
+	cfg := erc4626.VaultCfg{Gas: erc4626.GasCfg{Redeem: 1}, RedeemsPausedMethod: "paused"}
+	_, apply := Lazycall(context.Background(), &p, ethrpc.New("http://127.0.0.1:1"), "0xvault", "", cfg, false, nil)
+	_, err := apply(big.NewInt(1))
+	assert.ErrorIs(t, err, erc4626.ErrReadFailed)
 }
